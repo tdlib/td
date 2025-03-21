@@ -145,12 +145,12 @@ void CallbackQueriesManager::answer_callback_query(int64 callback_query_id, cons
       ->send(callback_query_id, text, url, show_alert, cache_time);
 }
 
-tl_object_ptr<td_api::CallbackQueryPayload> CallbackQueriesManager::get_query_payload(int32 flags, BufferSlice &&data,
+tl_object_ptr<td_api::CallbackQueryPayload> CallbackQueriesManager::get_query_payload(BufferSlice &&data,
                                                                                       string &&game_short_name) {
-  bool has_data = (flags & telegram_api::updateBotCallbackQuery::DATA_MASK) != 0;
-  bool has_game = (flags & telegram_api::updateBotCallbackQuery::GAME_SHORT_NAME_MASK) != 0;
+  bool has_data = !data.empty();
+  bool has_game = !game_short_name.empty();
   if (has_data == has_game) {
-    LOG(ERROR) << "Receive wrong flags " << flags << " in a callback query";
+    LOG(ERROR) << "Receive wrong callback query: " << has_data << ' ' << has_game;
     return nullptr;
   }
 
@@ -164,9 +164,9 @@ tl_object_ptr<td_api::CallbackQueryPayload> CallbackQueriesManager::get_query_pa
   return nullptr;
 }
 
-void CallbackQueriesManager::on_new_query(int32 flags, int64 callback_query_id, UserId sender_user_id,
-                                          DialogId dialog_id, MessageId message_id, BufferSlice &&data,
-                                          int64 chat_instance, string &&game_short_name) {
+void CallbackQueriesManager::on_new_query(int64 callback_query_id, UserId sender_user_id, DialogId dialog_id,
+                                          MessageId message_id, BufferSlice &&data, int64 chat_instance,
+                                          string &&game_short_name) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive new callback query in invalid " << dialog_id;
     return;
@@ -186,7 +186,7 @@ void CallbackQueriesManager::on_new_query(int32 flags, int64 callback_query_id, 
     return;
   }
 
-  auto payload = get_query_payload(flags, std::move(data), std::move(game_short_name));
+  auto payload = get_query_payload(std::move(data), std::move(game_short_name));
   if (payload == nullptr) {
     return;
   }
@@ -200,7 +200,7 @@ void CallbackQueriesManager::on_new_query(int32 flags, int64 callback_query_id, 
 }
 
 void CallbackQueriesManager::on_new_inline_query(
-    int32 flags, int64 callback_query_id, UserId sender_user_id,
+    int64 callback_query_id, UserId sender_user_id,
     tl_object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id, BufferSlice &&data, int64 chat_instance,
     string &&game_short_name) {
   if (!sender_user_id.is_valid()) {
@@ -214,7 +214,7 @@ void CallbackQueriesManager::on_new_inline_query(
   }
   CHECK(inline_message_id != nullptr);
 
-  auto payload = get_query_payload(flags, std::move(data), std::move(game_short_name));
+  auto payload = get_query_payload(std::move(data), std::move(game_short_name));
   if (payload == nullptr) {
     return;
   }

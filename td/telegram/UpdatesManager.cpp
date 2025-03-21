@@ -3620,7 +3620,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDisc
   td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->channel_id_)),
                                                           MessageId(ServerMessageId(update->top_msg_id_)), MessageId(),
                                                           last_read_inbox_message_id, MessageId(), -1);
-  if ((update->flags_ & telegram_api::updateReadChannelDiscussionInbox::BROADCAST_ID_MASK) != 0) {
+  if (update->broadcast_id_ != 0) {
     td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->broadcast_id_)),
                                                             MessageId(ServerMessageId(update->broadcast_post_)),
                                                             MessageId(), last_read_inbox_message_id, MessageId(), -1);
@@ -4160,16 +4160,15 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotInlineSend> 
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotCallbackQuery> update, Promise<Unit> &&promise) {
-  td_->callback_queries_manager_->on_new_query(update->flags_, update->query_id_, UserId(update->user_id_),
-                                               DialogId(update->peer_), MessageId(ServerMessageId(update->msg_id_)),
-                                               std::move(update->data_), update->chat_instance_,
-                                               std::move(update->game_short_name_));
+  td_->callback_queries_manager_->on_new_query(update->query_id_, UserId(update->user_id_), DialogId(update->peer_),
+                                               MessageId(ServerMessageId(update->msg_id_)), std::move(update->data_),
+                                               update->chat_instance_, std::move(update->game_short_name_));
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateInlineBotCallbackQuery> update,
                                Promise<Unit> &&promise) {
-  td_->callback_queries_manager_->on_new_inline_query(update->flags_, update->query_id_, UserId(update->user_id_),
+  td_->callback_queries_manager_->on_new_inline_query(update->query_id_, UserId(update->user_id_),
                                                       std::move(update->msg_id_), std::move(update->data_),
                                                       update->chat_instance_, std::move(update->game_short_name_));
   promise.set_value(Unit());

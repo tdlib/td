@@ -28,10 +28,10 @@ class CallbackQueriesManager {
   void answer_callback_query(int64 callback_query_id, const string &text, bool show_alert, const string &url,
                              int32 cache_time, Promise<Unit> &&promise) const;
 
-  void on_new_query(int32 flags, int64 callback_query_id, UserId sender_user_id, DialogId dialog_id,
-                    MessageId message_id, BufferSlice &&data, int64 chat_instance, string &&game_short_name);
+  void on_new_query(int64 callback_query_id, UserId sender_user_id, DialogId dialog_id, MessageId message_id,
+                    BufferSlice &&data, int64 chat_instance, string &&game_short_name);
 
-  void on_new_inline_query(int32 flags, int64 callback_query_id, UserId sender_user_id,
+  void on_new_inline_query(int64 callback_query_id, UserId sender_user_id,
                            tl_object_ptr<telegram_api::InputBotInlineMessageID> &&inline_message_id, BufferSlice &&data,
                            int64 chat_instance, string &&game_short_name);
 
@@ -44,8 +44,7 @@ class CallbackQueriesManager {
                            Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> &&promise);
 
  private:
-  static tl_object_ptr<td_api::CallbackQueryPayload> get_query_payload(int32 flags, BufferSlice &&data,
-                                                                       string &&game_short_name);
+  static tl_object_ptr<td_api::CallbackQueryPayload> get_query_payload(BufferSlice &&data, string &&game_short_name);
 
   void send_get_callback_answer_query(MessageFullId message_full_id,
                                       tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
