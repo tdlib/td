@@ -263,7 +263,6 @@ struct SponsoredMessageManager::SponsoredDialogs {
   int64 local_id = 0;
   vector<Promise<td_api::object_ptr<td_api::sponsoredChats>>> promises;
   vector<SponsoredDialog> dialogs;
-  FlatHashMap<int64, SponsoredMessageInfo> dialog_infos;
   bool is_premium = false;
   bool sponsored_enabled = false;
 };
@@ -328,6 +327,9 @@ void SponsoredMessageManager::delete_cached_sponsored_dialogs(int64 local_id) {
   auto it = search_sponsored_dialogs_.find(query_it->second);
   CHECK(it != search_sponsored_dialogs_.end());
   if (it->second->promises.empty()) {
+    for (auto &dialog : it->second->dialogs) {
+      dialog_infos_.erase(dialog.local_id);
+    }
     search_sponsored_dialogs_.erase(it);
     local_id_to_search_query_.erase(query_it);
   }
@@ -569,6 +571,9 @@ void SponsoredMessageManager::get_search_sponsored_dialogs(
       // drop cache
       delete_cached_sponsored_dialogs_timeout_.cancel_timeout(dialogs->local_id);
       local_id_to_search_query_.erase(dialogs->local_id);
+      for (auto &dialog : dialogs->dialogs) {
+        dialog_infos_.erase(dialog.local_id);
+      }
       dialogs = nullptr;
     }
   }
@@ -598,7 +603,6 @@ void SponsoredMessageManager::on_get_search_sponsored_dialogs(
   auto promises = std::move(dialogs->promises);
   reset_to_empty(dialogs->promises);
   CHECK(dialogs->dialogs.empty());
-  CHECK(dialogs->dialog_infos.empty());
 
   auto local_id = dialogs->local_id;
   if (result.is_error()) {
@@ -618,7 +622,6 @@ void SponsoredMessageManager::on_get_search_sponsored_dialogs(
       td_->chat_manager_->on_get_chats(std::move(sponsored_dialogs->chats_), "on_get_search_sponsored_dialogs");
 
       for (auto &sponsored_dialog : sponsored_dialogs->peers_) {
-        auto dialog_local_id = ++current_local_id_;
         auto dialog_id = DialogId(sponsored_dialog->peer_);
         if (!dialog_id.is_valid() || !td_->dialog_manager_->have_dialog_info(dialog_id)) {
           LOG(ERROR) << "Receive unknown " << dialog_id;
@@ -626,11 +629,14 @@ void SponsoredMessageManager::on_get_search_sponsored_dialogs(
         }
         td_->dialog_manager_->force_create_dialog(dialog_id, "on_get_search_sponsored_dialogs");
 
-        SponsoredMessageInfo dialog_info;
-        dialog_info.random_id_ = sponsored_dialog->random_id_.as_slice().str();
-        auto is_inserted = dialogs->dialog_infos.emplace(dialog_local_id, std::move(dialog_info)).second;
+        auto dialog_local_id = ++current_local_id_;
+
+        auto dialog_info = make_unique<SponsoredMessageInfo>();
+        dialog_info->random_id_ = sponsored_dialog->random_id_.as_slice().str();
+        auto is_inserted = dialog_infos_.emplace(dialog_local_id, std::move(dialog_info)).second;
         CHECK(is_inserted);
-        dialogs->dialogs.emplace_back(local_id, dialog_id, std::move(sponsored_dialog->sponsor_info_),
+
+        dialogs->dialogs.emplace_back(dialog_local_id, dialog_id, std::move(sponsored_dialog->sponsor_info_),
                                       std::move(sponsored_dialog->additional_info_));
       }
       break;

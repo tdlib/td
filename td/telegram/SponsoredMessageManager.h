@@ -87,6 +87,7 @@ class SponsoredMessageManager final : public Actor {
 
   FlatHashMap<string, unique_ptr<SponsoredDialogs>> search_sponsored_dialogs_;
   FlatHashMap<int64, string> local_id_to_search_query_;
+  FlatHashMap<int64, unique_ptr<SponsoredMessageInfo>> dialog_infos_;
 
   MessageId current_sponsored_message_id_ = MessageId::max();
 
