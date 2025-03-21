@@ -46,8 +46,8 @@ class SponsoredMessageManager final : public Actor {
   void get_search_sponsored_dialogs(const string &query, Promise<td_api::object_ptr<td_api::sponsoredChats>> &&promise);
 
  private:
+  struct SponsoredContentInfo;
   struct SponsoredMessage;
-  struct SponsoredMessageInfo;
   struct DialogSponsoredMessages;
   struct SponsoredDialog;
   struct SponsoredDialogs;
@@ -87,7 +87,7 @@ class SponsoredMessageManager final : public Actor {
 
   FlatHashMap<string, unique_ptr<SponsoredDialogs>> search_sponsored_dialogs_;
   FlatHashMap<int64, string> local_id_to_search_query_;
-  FlatHashMap<int64, unique_ptr<SponsoredMessageInfo>> dialog_infos_;
+  FlatHashMap<int64, unique_ptr<SponsoredContentInfo>> dialog_infos_;
 
   MessageId current_sponsored_message_id_ = MessageId::max();
 

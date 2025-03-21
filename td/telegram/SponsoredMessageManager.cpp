@@ -200,6 +200,12 @@ class GetSponsoredPeersQuery final : public Td::ResultHandler {
   }
 };
 
+struct SponsoredMessageManager::SponsoredContentInfo {
+  string random_id_;
+  bool is_viewed_ = false;
+  bool is_clicked_ = false;
+};
+
 struct SponsoredMessageManager::SponsoredMessage {
   int64 local_id = 0;
   bool is_recommended = false;
@@ -230,16 +236,10 @@ struct SponsoredMessageManager::SponsoredMessage {
   }
 };
 
-struct SponsoredMessageManager::SponsoredMessageInfo {
-  string random_id_;
-  bool is_viewed_ = false;
-  bool is_clicked_ = false;
-};
-
 struct SponsoredMessageManager::DialogSponsoredMessages {
   vector<Promise<td_api::object_ptr<td_api::sponsoredMessages>>> promises;
   vector<SponsoredMessage> messages;
-  FlatHashMap<int64, SponsoredMessageInfo> message_infos;
+  FlatHashMap<int64, SponsoredContentInfo> message_infos;
   int32 messages_between = 0;
   bool is_premium = false;
   bool sponsored_enabled = false;
@@ -476,7 +476,7 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
         auto local_id = current_sponsored_message_id_.get();
         CHECK(!current_sponsored_message_id_.is_valid());
         CHECK(!current_sponsored_message_id_.is_scheduled());
-        SponsoredMessageInfo message_info;
+        SponsoredContentInfo message_info;
         message_info.random_id_ = sponsored_message->random_id_.as_slice().str();
         auto is_inserted = messages->message_infos.emplace(local_id, std::move(message_info)).second;
         CHECK(is_inserted);
@@ -631,7 +631,7 @@ void SponsoredMessageManager::on_get_search_sponsored_dialogs(
 
         auto dialog_local_id = ++current_local_id_;
 
-        auto dialog_info = make_unique<SponsoredMessageInfo>();
+        auto dialog_info = make_unique<SponsoredContentInfo>();
         dialog_info->random_id_ = sponsored_dialog->random_id_.as_slice().str();
         auto is_inserted = dialog_infos_.emplace(dialog_local_id, std::move(dialog_info)).second;
         CHECK(is_inserted);
