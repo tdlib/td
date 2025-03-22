@@ -874,8 +874,8 @@ void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentC
     reset_pending_date_ = -1;
     if (code_type->reset_pending_date_ > 0) {
       reset_pending_date_ = code_type->reset_pending_date_;
-    } else if ((code_type->flags_ & telegram_api::auth_sentCodeTypeEmailCode::RESET_AVAILABLE_PERIOD_MASK) != 0) {
-      reset_available_period_ = max(code_type->reset_available_period_, 0);
+    } else if (code_type->reset_available_period_ > 0) {
+      reset_available_period_ = code_type->reset_available_period_;
     }
     if (email_code_info_.is_empty()) {
       email_code_info_ = SentEmailCode("<unknown>", code_type->length_);
