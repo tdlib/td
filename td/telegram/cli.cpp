@@ -3482,9 +3482,9 @@ class CliClient final : public Actor {
       get_args(args, language_code, key, value);
       td_api::object_ptr<td_api::languagePackString> str =
           td_api::make_object<td_api::languagePackString>(key, nullptr);
-      if (op == "sclsv") {
+      if (op == "sclpsv") {
         str->value_ = td_api::make_object<td_api::languagePackStringValueOrdinary>(value);
-      } else if (op == "sclsp") {
+      } else if (op == "sclpsp") {
         str->value_ = td_api::make_object<td_api::languagePackStringValuePluralized>(value, string("One\0One", 7),
                                                                                      "Two", "Few", "Many", "Other");
       } else {
