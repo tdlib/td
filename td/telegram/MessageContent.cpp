@@ -6691,17 +6691,17 @@ static auto secret_to_telegram(secret_api::photoCachedSize &photo_size) {
 
 // documentAttributeImageSize w:int h:int = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeImageSize &image_size) {
-  return make_tl_object<telegram_api::documentAttributeImageSize>(image_size.w_, image_size.h_);
+  return telegram_api::make_object<telegram_api::documentAttributeImageSize>(image_size.w_, image_size.h_);
 }
 
 // documentAttributeAnimated = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeAnimated &animated) {
-  return make_tl_object<telegram_api::documentAttributeAnimated>();
+  return telegram_api::make_object<telegram_api::documentAttributeAnimated>();
 }
 
 // documentAttributeSticker23 = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeSticker23 &sticker) {
-  return make_tl_object<telegram_api::documentAttributeSticker>(
+  return telegram_api::make_object<telegram_api::documentAttributeSticker>(
       0, false, "", make_tl_object<telegram_api::inputStickerSetEmpty>(), nullptr);
 }
 
@@ -6721,14 +6721,14 @@ static auto secret_to_telegram(secret_api::documentAttributeSticker &sticker) {
   if (!clean_input_string(sticker.alt_)) {
     sticker.alt_.clear();
   }
-  return make_tl_object<telegram_api::documentAttributeSticker>(
+  return telegram_api::make_object<telegram_api::documentAttributeSticker>(
       0, false, sticker.alt_, secret_to_telegram<telegram_api::InputStickerSet>(*sticker.stickerset_), nullptr);
 }
 
 // documentAttributeVideo23 duration:int w:int h:int = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeVideo23 &video) {
-  return make_tl_object<telegram_api::documentAttributeVideo>(0, false, false, false, video.duration_, video.w_,
-                                                              video.h_, 0, 0.0, string());
+  return telegram_api::make_object<telegram_api::documentAttributeVideo>(0, false, false, false, video.duration_,
+                                                                         video.w_, video.h_, 0, 0.0, string());
 }
 
 // documentAttributeFilename file_name:string = DocumentAttribute;
@@ -6736,14 +6736,13 @@ static auto secret_to_telegram(secret_api::documentAttributeFilename &filename) 
   if (!clean_input_string(filename.file_name_)) {
     filename.file_name_.clear();
   }
-  return make_tl_object<telegram_api::documentAttributeFilename>(filename.file_name_);
+  return telegram_api::make_object<telegram_api::documentAttributeFilename>(filename.file_name_);
 }
 
 // documentAttributeVideo flags:# round_message:flags.0?true duration:int w:int h:int = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeVideo &video) {
-  return make_tl_object<telegram_api::documentAttributeVideo>(
-      video.round_message_ ? telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK : 0, video.round_message_, false,
-      false, video.duration_, video.w_, video.h_, 0, 0.0, string());
+  return telegram_api::make_object<telegram_api::documentAttributeVideo>(
+      0, video.round_message_, false, false, video.duration_, video.w_, video.h_, 0, 0.0, string());
 }
 
 static auto telegram_documentAttributeAudio(bool is_voice_note, int duration, string title, string performer,
@@ -6754,22 +6753,8 @@ static auto telegram_documentAttributeAudio(bool is_voice_note, int duration, st
   if (!clean_input_string(performer)) {
     performer.clear();
   }
-
-  int32 flags = 0;
-  if (is_voice_note) {
-    flags |= telegram_api::documentAttributeAudio::VOICE_MASK;
-  }
-  if (!title.empty()) {
-    flags |= telegram_api::documentAttributeAudio::TITLE_MASK;
-  }
-  if (!performer.empty()) {
-    flags |= telegram_api::documentAttributeAudio::PERFORMER_MASK;
-  }
-  if (!waveform.empty()) {
-    flags |= telegram_api::documentAttributeAudio::WAVEFORM_MASK;
-  }
-  return make_tl_object<telegram_api::documentAttributeAudio>(flags, is_voice_note, duration, std::move(title),
-                                                              std::move(performer), std::move(waveform));
+  return telegram_api::make_object<telegram_api::documentAttributeAudio>(0, is_voice_note, duration, std::move(title),
+                                                                         std::move(performer), std::move(waveform));
 }
 
 // documentAttributeAudio23 duration:int = DocumentAttribute;
@@ -6788,8 +6773,8 @@ static auto secret_to_telegram(secret_api::documentAttributeAudio &audio) {
                                          audio.waveform_.clone());
 }
 
-static auto secret_to_telegram(std::vector<tl_object_ptr<secret_api::DocumentAttribute>> &attributes) {
-  std::vector<tl_object_ptr<telegram_api::DocumentAttribute>> res;
+static auto secret_to_telegram(std::vector<secret_api::object_ptr<secret_api::DocumentAttribute>> &attributes) {
+  std::vector<telegram_api::object_ptr<telegram_api::DocumentAttribute>> res;
   for (auto &attribute : attributes) {
     auto telegram_attribute = secret_to_telegram<telegram_api::DocumentAttribute>(*attribute);
     if (telegram_attribute) {
@@ -6922,7 +6907,7 @@ unique_ptr<MessageContent> get_secret_message_content(
   switch (constructor_id) {
     case secret_api::decryptedMessageMediaDocument46::ID: {
       auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaDocument46>(media_ptr);
-      media_ptr = make_tl_object<secret_api::decryptedMessageMediaDocument>(
+      media_ptr = secret_api::make_object<secret_api::decryptedMessageMediaDocument>(
           std::move(media->thumb_), media->thumb_w_, media->thumb_h_, media->mime_type_, media->size_,
           std::move(media->key_), std::move(media->iv_), std::move(media->attributes_), string());
 
@@ -6931,10 +6916,10 @@ unique_ptr<MessageContent> get_secret_message_content(
     }
     case secret_api::decryptedMessageMediaVideo::ID: {
       auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaVideo>(media_ptr);
-      vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
-      attributes.emplace_back(
-          make_tl_object<secret_api::documentAttributeVideo>(0, false, media->duration_, media->w_, media->h_));
-      media_ptr = make_tl_object<secret_api::decryptedMessageMediaDocument>(
+      vector<secret_api::object_ptr<secret_api::DocumentAttribute>> attributes;
+      attributes.emplace_back(secret_api::make_object<secret_api::documentAttributeVideo>(0, false, media->duration_,
+                                                                                          media->w_, media->h_));
+      media_ptr = secret_api::make_object<secret_api::decryptedMessageMediaDocument>(
           std::move(media->thumb_), media->thumb_w_, media->thumb_h_, media->mime_type_, media->size_,
           std::move(media->key_), std::move(media->iv_), std::move(attributes), string());
 
@@ -7065,7 +7050,7 @@ unique_ptr<MessageContent> get_secret_message_content(
           auto attribute_sticker = static_cast<telegram_api::documentAttributeSticker *>(attribute.get());
           CHECK(attribute_sticker->stickerset_ != nullptr);
           if (attribute_sticker->stickerset_->get_id() != telegram_api::inputStickerSetEmpty::ID) {
-            attribute_sticker->stickerset_ = make_tl_object<telegram_api::inputStickerSetEmpty>();
+            attribute_sticker->stickerset_ = telegram_api::make_object<telegram_api::inputStickerSetEmpty>();
           }
         }
       }

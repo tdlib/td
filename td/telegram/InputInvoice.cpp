@@ -326,10 +326,10 @@ static telegram_api::object_ptr<telegram_api::inputWebDocument> get_input_web_do
   const PhotoSize &size = photo.photos[0];
   CHECK(size.file_id.is_valid());
 
-  vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
+  vector<telegram_api::object_ptr<telegram_api::DocumentAttribute>> attributes;
   if (size.dimensions.width != 0 && size.dimensions.height != 0) {
-    attributes.push_back(
-        make_tl_object<telegram_api::documentAttributeImageSize>(size.dimensions.width, size.dimensions.height));
+    attributes.push_back(telegram_api::make_object<telegram_api::documentAttributeImageSize>(size.dimensions.width,
+                                                                                             size.dimensions.height));
   }
 
   auto file_view = file_manager->get_file_view(size.file_id);
