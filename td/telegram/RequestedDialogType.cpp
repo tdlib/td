@@ -182,19 +182,9 @@ telegram_api::object_ptr<telegram_api::RequestPeerType> RequestedDialogType::get
 
 telegram_api::object_ptr<telegram_api::inputKeyboardButtonRequestPeer>
 RequestedDialogType::get_input_keyboard_button_request_peer(const string &text) const {
-  int32 flags = 0;
-  if (request_name_) {
-    flags |= telegram_api::inputKeyboardButtonRequestPeer::NAME_REQUESTED_MASK;
-  }
-  if (request_username_) {
-    flags |= telegram_api::inputKeyboardButtonRequestPeer::USERNAME_REQUESTED_MASK;
-  }
-  if (request_photo_) {
-    flags |= telegram_api::inputKeyboardButtonRequestPeer::PHOTO_REQUESTED_MASK;
-  }
   return telegram_api::make_object<telegram_api::inputKeyboardButtonRequestPeer>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, text, button_id_,
-      get_input_request_peer_type_object(), max_quantity_);
+      0, request_name_, request_username_, request_photo_, text, button_id_, get_input_request_peer_type_object(),
+      max_quantity_);
 }
 
 int32 RequestedDialogType::get_button_id() const {
