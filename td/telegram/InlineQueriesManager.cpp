@@ -468,38 +468,22 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
       if (!entities.empty()) {
         flags |= telegram_api::inputBotInlineMessageMediaWebPage::ENTITIES_MASK;
       }
-      if (input_message_text.force_small_media) {
-        flags |= telegram_api::inputBotInlineMessageMediaWebPage::FORCE_SMALL_MEDIA_MASK;
-      }
-      if (input_message_text.force_large_media) {
-        flags |= telegram_api::inputBotInlineMessageMediaWebPage::FORCE_LARGE_MEDIA_MASK;
-      }
-      if (input_message_text.show_above_text) {
-        flags |= telegram_api::inputBotInlineMessageMediaWebPage::INVERT_MEDIA_MASK;
-      }
-      if (!input_message_text.text.text.empty()) {
-        flags |= telegram_api::inputBotInlineMessageMediaWebPage::OPTIONAL_MASK;
-      }
+      bool is_optional = !input_message_text.text.text.empty();
       return make_tl_object<telegram_api::inputBotInlineMessageMediaWebPage>(
-          flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-          std::move(input_message_text.text.text), std::move(entities), input_message_text.web_page_url,
-          std::move(input_reply_markup));
+          flags, input_message_text.show_above_text, input_message_text.force_large_media,
+          input_message_text.force_small_media, is_optional, std::move(input_message_text.text.text),
+          std::move(entities), input_message_text.web_page_url, std::move(input_reply_markup));
     }
     int32 flags = 0;
     if (input_reply_markup != nullptr) {
       flags |= telegram_api::inputBotInlineMessageText::REPLY_MARKUP_MASK;
     }
-    if (input_message_text.disable_web_page_preview) {
-      flags |= telegram_api::inputBotInlineMessageText::NO_WEBPAGE_MASK;
-    } else if (input_message_text.show_above_text) {
-      flags |= telegram_api::inputBotInlineMessageText::INVERT_MEDIA_MASK;
-    }
     if (!entities.empty()) {
       flags |= telegram_api::inputBotInlineMessageText::ENTITIES_MASK;
     }
-    return make_tl_object<telegram_api::inputBotInlineMessageText>(flags, false /*ignored*/, false /*ignored*/,
-                                                                   std::move(input_message_text.text.text),
-                                                                   std::move(entities), std::move(input_reply_markup));
+    return make_tl_object<telegram_api::inputBotInlineMessageText>(
+        flags, input_message_text.disable_web_page_preview, input_message_text.show_above_text,
+        std::move(input_message_text.text.text), std::move(entities), std::move(input_reply_markup));
   }
   if (constructor_id == td_api::inputMessageContact::ID) {
     TRY_RESULT(contact, process_input_message_contact(td_, std::move(input_message_content)));
@@ -542,11 +526,9 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     if (!entities.empty()) {
       flags |= telegram_api::inputBotInlineMessageMediaAuto::ENTITIES_MASK;
     }
-    if (extract_input_invert_media(input_message_content)) {
-      flags |= telegram_api::inputBotInlineMessageMediaAuto::INVERT_MEDIA_MASK;
-    }
+    bool invert_media = extract_input_invert_media(input_message_content);
     return make_tl_object<telegram_api::inputBotInlineMessageMediaAuto>(
-        flags, false /*ignored*/, caption.text, std::move(entities), std::move(input_reply_markup));
+        flags, invert_media, caption.text, std::move(entities), std::move(input_reply_markup));
   }
   return Status::Error(400, "Unallowed inline message content type");
 }
