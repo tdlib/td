@@ -673,6 +673,39 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteBusinessProfilePhotoQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  UserId user_id_;
+  bool is_fallback_;
+
+ public:
+  explicit DeleteBusinessProfilePhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(BusinessConnectionId business_connection_id, bool is_fallback) {
+    user_id_ = td_->business_connection_manager_->get_business_connection_user_id(business_connection_id);
+    is_fallback_ = is_fallback;
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::photos_updateProfilePhoto(0, is_fallback, nullptr,
+                                                telegram_api::make_object<telegram_api::inputPhotoEmpty>()),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id), {{user_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::photos_updateProfilePhoto>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->user_manager_->on_set_profile_photo(user_id_, result_ptr.move_as_ok(), is_fallback_, 0, std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class DeleteContactProfilePhotoQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
@@ -5104,15 +5137,14 @@ void UserManager::set_business_profile_photo(BusinessConnectionId business_conne
                                              const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
                                              bool is_fallback, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->business_connection_manager_->check_business_connection(business_connection_id));
-  auto user_id = td_->business_connection_manager_->get_business_connection_user_id(business_connection_id);
   if (input_photo == nullptr) {
-    td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-        ->send(user_id, FileId(), 0, is_fallback, telegram_api::make_object<telegram_api::inputPhotoEmpty>());
+    td_->create_handler<DeleteBusinessProfilePhotoQuery>(std::move(promise))->send(business_connection_id, is_fallback);
     return;
   }
   if (input_photo->get_id() == td_api::inputChatPhotoPrevious::ID) {
     return promise.set_error(Status::Error(400, "Unsupported"));
   }
+  auto user_id = td_->business_connection_manager_->get_business_connection_user_id(business_connection_id);
   set_profile_photo_impl(user_id, input_photo, is_fallback, false, std::move(promise));
 }
 
