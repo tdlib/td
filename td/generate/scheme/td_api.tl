@@ -9744,6 +9744,12 @@ setBusinessAccountName business_connection_id:string first_name:string last_name
 //@bio The new value of the bio; 0-getOption("bio_length_max") characters without line feeds
 setBusinessAccountBio business_connection_id:string bio:string = Ok;
 
+//@description Changes a profile photo of a business account; for bots only
+//@business_connection_id Unique identifier of business connection
+//@photo Profile photo to set; pass null to remove the photo
+//@is_public Pass true to set the public photo, which will be visible even the main photo is hidden by privacy settings
+setBusinessAccountProfilePhoto business_connection_id:string photo:InputChatPhoto is_public:Bool = Ok;
+
 //@description Changes the editable username of a business account; for bots only
 //@business_connection_id Unique identifier of business connection
 //@username The new value of the username
@@ -11505,7 +11511,7 @@ getWebPageInstantView url:string only_local:Bool = WebPageInstantView;
 
 //@description Changes a profile photo for the current user
 //@photo Profile photo to set
-//@is_public Pass true to set a public photo, which will be visible even the main photo is hidden by privacy settings
+//@is_public Pass true to set the public photo, which will be visible even the main photo is hidden by privacy settings
 setProfilePhoto photo:InputChatPhoto is_public:Bool = Ok;
 
 //@description Deletes a profile photo @profile_photo_id Identifier of the profile photo to delete

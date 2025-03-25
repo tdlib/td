@@ -583,6 +583,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::setBusinessAccountBio &request);
 
+  void on_request(uint64 id, td_api::setBusinessAccountProfilePhoto &request);
+
   void on_request(uint64 id, td_api::setBusinessAccountUsername &request);
 
   void on_request(uint64 id, td_api::setBusinessAccountGiftSettings &request);

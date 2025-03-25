@@ -15,6 +15,7 @@
 #include "td/telegram/BotVerification.hpp"
 #include "td/telegram/BotVerifierSettings.hpp"
 #include "td/telegram/BusinessAwayMessage.h"
+#include "td/telegram/BusinessConnectionManager.h"
 #include "td/telegram/BusinessGreetingMessage.h"
 #include "td/telegram/BusinessInfo.h"
 #include "td/telegram/BusinessInfo.hpp"
@@ -506,39 +507,31 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
       flags |= telegram_api::photos_uploadProfilePhoto::FILE_MASK;
       photo_input_file = std::move(input_file);
     }
-    if (td_->user_manager_->is_user_bot(user_id)) {
+    if (td_->user_manager_->is_user_bot(user_id) != td_->auth_manager_->is_bot()) {
       auto r_input_user = td_->user_manager_->get_input_user(user_id);
       if (r_input_user.is_error()) {
         return on_error(r_input_user.move_as_error());
       }
       flags |= telegram_api::photos_uploadProfilePhoto::BOT_MASK;
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, r_input_user.move_as_ok(),
+          telegram_api::photos_uploadProfilePhoto(flags, is_fallback, r_input_user.move_as_ok(),
                                                   std::move(photo_input_file), std::move(video_input_file),
                                                   main_frame_timestamp, nullptr),
           {{user_id}}));
     } else if (user_id == td_->user_manager_->get_my_id()) {
-      if (is_fallback) {
-        flags |= telegram_api::photos_uploadProfilePhoto::FALLBACK_MASK;
-      }
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, nullptr, std::move(photo_input_file),
+          telegram_api::photos_uploadProfilePhoto(flags, is_fallback, nullptr, std::move(photo_input_file),
                                                   std::move(video_input_file), main_frame_timestamp, nullptr),
           {{"me"}}));
     } else {
-      if (only_suggest) {
-        flags |= telegram_api::photos_uploadContactProfilePhoto::SUGGEST_MASK;
-      } else {
-        flags |= telegram_api::photos_uploadContactProfilePhoto::SAVE_MASK;
-      }
       auto r_input_user = td_->user_manager_->get_input_user(user_id);
       if (r_input_user.is_error()) {
         return on_error(r_input_user.move_as_error());
       }
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_uploadContactProfilePhoto(flags, false /*ignored*/, false /*ignored*/,
-                                                         r_input_user.move_as_ok(), std::move(photo_input_file),
-                                                         std::move(video_input_file), main_frame_timestamp, nullptr),
+          telegram_api::photos_uploadContactProfilePhoto(flags, only_suggest, !only_suggest, r_input_user.move_as_ok(),
+                                                         std::move(photo_input_file), std::move(video_input_file),
+                                                         main_frame_timestamp, nullptr),
           {{user_id}}));
     }
   }
@@ -550,40 +543,32 @@ class UploadProfilePhotoQuery final : public Td::ResultHandler {
     is_fallback_ = is_fallback;
     only_suggest_ = only_suggest;
 
-    if (td_->user_manager_->is_user_bot(user_id)) {
+    if (td_->user_manager_->is_user_bot(user_id) != td_->auth_manager_->is_bot()) {
       auto r_input_user = td_->user_manager_->get_input_user(user_id);
       if (r_input_user.is_error()) {
         return on_error(r_input_user.move_as_error());
       }
-      int32 flags = telegram_api::photos_uploadProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
-      flags |= telegram_api::photos_uploadProfilePhoto::BOT_MASK;
+      int32 flags = telegram_api::photos_uploadProfilePhoto::VIDEO_EMOJI_MARKUP_MASK |
+                    telegram_api::photos_uploadProfilePhoto::BOT_MASK;
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, r_input_user.move_as_ok(), nullptr, nullptr,
-                                                  0.0, sticker_photo_size->get_input_video_size_object(td_)),
+          telegram_api::photos_uploadProfilePhoto(flags, is_fallback, r_input_user.move_as_ok(), nullptr, nullptr, 0.0,
+                                                  sticker_photo_size->get_input_video_size_object(td_)),
           {{user_id}}));
     } else if (user_id == td_->user_manager_->get_my_id()) {
       int32 flags = telegram_api::photos_uploadProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
-      if (is_fallback) {
-        flags |= telegram_api::photos_uploadProfilePhoto::FALLBACK_MASK;
-      }
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_uploadProfilePhoto(flags, false /*ignored*/, nullptr, nullptr, nullptr, 0.0,
+          telegram_api::photos_uploadProfilePhoto(flags, is_fallback, nullptr, nullptr, nullptr, 0.0,
                                                   sticker_photo_size->get_input_video_size_object(td_)),
           {{"me"}}));
     } else {
-      int32 flags = telegram_api::photos_uploadContactProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
-      if (only_suggest) {
-        flags |= telegram_api::photos_uploadContactProfilePhoto::SUGGEST_MASK;
-      } else {
-        flags |= telegram_api::photos_uploadContactProfilePhoto::SAVE_MASK;
-      }
       auto r_input_user = td_->user_manager_->get_input_user(user_id);
       if (r_input_user.is_error()) {
         return on_error(r_input_user.move_as_error());
       }
+      int32 flags = telegram_api::photos_uploadContactProfilePhoto::VIDEO_EMOJI_MARKUP_MASK;
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_uploadContactProfilePhoto(flags, false /*ignored*/, false /*ignored*/,
-                                                         r_input_user.move_as_ok(), nullptr, nullptr, 0.0,
+          telegram_api::photos_uploadContactProfilePhoto(flags, only_suggest, !only_suggest, r_input_user.move_as_ok(),
+                                                         nullptr, nullptr, 0.0,
                                                          sticker_photo_size->get_input_video_size_object(td_)),
           {{user_id}}));
     }
@@ -637,24 +622,18 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
     old_photo_id_ = old_photo_id;
     is_fallback_ = is_fallback;
     file_reference_ = FileManager::extract_file_reference(input_photo);
-    int32 flags = 0;
-    if (is_fallback) {
-      flags |= telegram_api::photos_updateProfilePhoto::FALLBACK_MASK;
-    }
-    if (td_->user_manager_->is_user_bot(user_id)) {
+    if (user_id != td_->user_manager_->get_my_id()) {
       auto r_input_user = td_->user_manager_->get_input_user(user_id);
       if (r_input_user.is_error()) {
         return on_error(r_input_user.move_as_error());
       }
-      flags |= telegram_api::photos_updateProfilePhoto::BOT_MASK;
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_updateProfilePhoto(flags, false /*ignored*/, r_input_user.move_as_ok(),
-                                                  std::move(input_photo)),
+          telegram_api::photos_updateProfilePhoto(telegram_api::photos_updateProfilePhoto::BOT_MASK, is_fallback,
+                                                  r_input_user.move_as_ok(), std::move(input_photo)),
           {{user_id}}));
     } else {
       send_query(G()->net_query_creator().create(
-          telegram_api::photos_updateProfilePhoto(flags, false /*ignored*/, nullptr, std::move(input_photo)),
-          {{"me"}}));
+          telegram_api::photos_updateProfilePhoto(0, is_fallback, nullptr, std::move(input_photo)), {{"me"}}));
     }
   }
 
@@ -5119,6 +5098,22 @@ void UserManager::set_bot_profile_photo(UserId bot_user_id,
     return;
   }
   set_profile_photo_impl(bot_user_id, input_photo, false, false, std::move(promise));
+}
+
+void UserManager::set_business_profile_photo(BusinessConnectionId business_connection_id,
+                                             const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
+                                             bool is_fallback, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->business_connection_manager_->check_business_connection(business_connection_id));
+  auto user_id = td_->business_connection_manager_->get_business_connection_user_id(business_connection_id);
+  if (input_photo == nullptr) {
+    td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
+        ->send(user_id, FileId(), 0, is_fallback, telegram_api::make_object<telegram_api::inputPhotoEmpty>());
+    return;
+  }
+  if (input_photo->get_id() == td_api::inputChatPhotoPrevious::ID) {
+    return promise.set_error(Status::Error(400, "Unsupported"));
+  }
+  set_profile_photo_impl(user_id, input_photo, is_fallback, false, std::move(promise));
 }
 
 void UserManager::set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, bool is_fallback,

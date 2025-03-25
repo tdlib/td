@@ -12,6 +12,7 @@
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/BotMenuButton.h"
 #include "td/telegram/BotVerifierSettings.h"
+#include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/Contact.h"
 #include "td/telegram/CustomEmojiId.h"
@@ -340,6 +341,10 @@ class UserManager final : public Actor {
 
   void set_bot_profile_photo(UserId bot_user_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
                              Promise<Unit> &&promise);
+
+  void set_business_profile_photo(BusinessConnectionId business_connection_id,
+                                  const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, bool is_fallback,
+                                  Promise<Unit> &&promise);
 
   void set_profile_photo(const td_api::object_ptr<td_api::InputChatPhoto> &input_photo, bool is_fallback,
                          Promise<Unit> &&promise);

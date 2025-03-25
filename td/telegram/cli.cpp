@@ -6715,6 +6715,11 @@ class CliClient final : public Actor {
       string username;
       get_args(args, username);
       send_request(td_api::make_object<td_api::setBusinessAccountUsername>(business_connection_id_, username));
+    } else if (op == "sbapp" || op == "sbappf") {
+      InputChatPhoto input_chat_photo;
+      get_args(args, input_chat_photo);
+      send_request(td_api::make_object<td_api::setBusinessAccountProfilePhoto>(business_connection_id_,
+                                                                               input_chat_photo, op == "sbappf"));
     } else if (op == "sbags") {
       bool show_button;
       bool unlimited_gifts;

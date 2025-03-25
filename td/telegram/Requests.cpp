@@ -3883,6 +3883,13 @@ void Requests::on_request(uint64 id, td_api::setBusinessAccountBio &request) {
       BusinessConnectionId(std::move(request.business_connection_id_)), request.bio_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::setBusinessAccountProfilePhoto &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->set_business_profile_photo(BusinessConnectionId(std::move(request.business_connection_id_)),
+                                                 request.photo_, request.is_public_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setBusinessAccountUsername &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.username_);
