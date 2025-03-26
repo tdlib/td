@@ -154,16 +154,10 @@ AutosaveManager::DialogAutosaveSettings::DialogAutosaveSettings(const td_api::sc
 telegram_api::object_ptr<telegram_api::autoSaveSettings>
 AutosaveManager::DialogAutosaveSettings::get_input_auto_save_settings() const {
   int32 flags = 0;
-  if (autosave_photos_) {
-    flags |= telegram_api::autoSaveSettings::PHOTOS_MASK;
-  }
-  if (autosave_videos_) {
-    flags |= telegram_api::autoSaveSettings::VIDEOS_MASK;
-  }
   if (are_inited_) {
     flags |= telegram_api::autoSaveSettings::VIDEO_MAX_SIZE_MASK;
   }
-  return telegram_api::make_object<telegram_api::autoSaveSettings>(flags, false /*ignored*/, false /*ignored*/,
+  return telegram_api::make_object<telegram_api::autoSaveSettings>(flags, autosave_photos_, autosave_videos_,
                                                                    max_video_file_size_);
 }
 
