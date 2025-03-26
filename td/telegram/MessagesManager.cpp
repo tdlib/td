@@ -242,7 +242,7 @@ class GetChannelMessagesQuery final : public Td::ResultHandler {
   explicit GetChannelMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, tl_object_ptr<telegram_api::InputChannel> &&input_channel,
+  void send(ChannelId channel_id, tl_object_ptr<telegram_api::InputChannel> input_channel,
             vector<tl_object_ptr<telegram_api::InputMessage>> &&message_ids, MessageId last_new_message_id) {
     channel_id_ = channel_id;
     last_new_message_id_ = last_new_message_id;
@@ -14508,6 +14508,10 @@ void MessagesManager::get_messages_from_server(vector<MessageFullId> &&message_i
     }
     const auto *d = get_dialog_force(DialogId(it.first));
     for (auto &slice_message_ids : vector_split(std::move(it.second), MAX_SLICE_SIZE)) {
+      if (input_channel == nullptr) {
+        input_channel = td_->chat_manager_->get_input_channel(it.first);
+        CHECK(input_channel != nullptr);
+      }
       td_->create_handler<GetChannelMessagesQuery>(mpas.get_promise())
           ->send(it.first, std::move(input_channel), std::move(slice_message_ids),
                  d == nullptr ? MessageId() : d->last_new_message_id);
