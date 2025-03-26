@@ -203,13 +203,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Have no access to the chat"));
     }
-    int32 flags = 0;
-    if (is_refund) {
-      flags |= telegram_api::inputStarsTransaction::REFUND_MASK;
-    }
     vector<telegram_api::object_ptr<telegram_api::inputStarsTransaction>> transaction_ids;
     transaction_ids.push_back(
-        telegram_api::make_object<telegram_api::inputStarsTransaction>(flags, false /*ignored*/, transaction_id));
+        telegram_api::make_object<telegram_api::inputStarsTransaction>(0, is_refund, transaction_id));
     send_query(G()->net_query_creator().create(
         telegram_api::payments_getStarsTransactionsByID(std::move(input_peer), std::move(transaction_ids))));
   }
