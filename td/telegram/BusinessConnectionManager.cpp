@@ -709,15 +709,15 @@ class UpdateBusinessGiftSettingsQuery final : public Td::ResultHandler {
     user_id_ = user_id;
 
     int32 flags = 0;
-    auto disallowed_gifts = settings.get_disallowed_gifts();
-    if (!disallowed_gifts.is_default()) {
+    auto gifts_settings = settings.get_disallowed_gifts().get_input_disallowed_gifts_settings();
+    if (gifts_settings != nullptr) {
       flags |= telegram_api::globalPrivacySettings::DISALLOWED_GIFTS_MASK;
     }
     send_query(G()->net_query_creator().create_with_prefix(
         business_connection_id.get_invoke_prefix(),
         telegram_api::account_setGlobalPrivacySettings(telegram_api::make_object<telegram_api::globalPrivacySettings>(
             flags, false, false, false, false, false, settings.get_display_gifts_button(), 0,
-            disallowed_gifts.get_input_disallowed_gifts_settings())),
+            std::move(gifts_settings))),
         td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
   }
 
