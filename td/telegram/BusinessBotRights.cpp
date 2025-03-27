@@ -62,54 +62,10 @@ td_api::object_ptr<td_api::businessBotRights> BusinessBotRights::get_business_bo
 }
 
 telegram_api::object_ptr<telegram_api::businessBotRights> BusinessBotRights::get_input_business_bot_rights() const {
-  int32 flags = 0;
-  if (can_reply_) {
-    flags |= telegram_api::businessBotRights::REPLY_MASK;
-  }
-  if (can_read_messages_) {
-    flags |= telegram_api::businessBotRights::READ_MESSAGES_MASK;
-  }
-  if (can_delete_sent_messages_) {
-    flags |= telegram_api::businessBotRights::DELETE_SENT_MESSAGES_MASK;
-  }
-  if (can_delete_received_messages_) {
-    flags |= telegram_api::businessBotRights::DELETE_RECEIVED_MESSAGES_MASK;
-  }
-  if (can_edit_name_) {
-    flags |= telegram_api::businessBotRights::EDIT_NAME_MASK;
-  }
-  if (can_edit_bio_) {
-    flags |= telegram_api::businessBotRights::EDIT_BIO_MASK;
-  }
-  if (can_edit_profile_photo_) {
-    flags |= telegram_api::businessBotRights::EDIT_PROFILE_PHOTO_MASK;
-  }
-  if (can_edit_username_) {
-    flags |= telegram_api::businessBotRights::EDIT_USERNAME_MASK;
-  }
-  if (can_view_gifts_) {
-    flags |= telegram_api::businessBotRights::VIEW_GIFTS_MASK;
-  }
-  if (can_sell_gifts_) {
-    flags |= telegram_api::businessBotRights::SELL_GIFTS_MASK;
-  }
-  if (can_change_gift_settings_) {
-    flags |= telegram_api::businessBotRights::CHANGE_GIFT_SETTINGS_MASK;
-  }
-  if (can_transfer_and_upgrade_gifts_) {
-    flags |= telegram_api::businessBotRights::TRANSFER_AND_UPGRADE_GIFTS_MASK;
-  }
-  if (can_transfer_stars_) {
-    flags |= telegram_api::businessBotRights::TRANSFER_STARS_MASK;
-  }
-  if (can_manage_stories_) {
-    flags |= telegram_api::businessBotRights::MANAGE_STORIES_MASK;
-  }
-
   return telegram_api::make_object<telegram_api::businessBotRights>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, false /*ignored*/, false /*ignored*/);
+      0, can_reply_, can_read_messages_, can_delete_sent_messages_, can_delete_received_messages_, can_edit_name_,
+      can_edit_bio_, can_edit_profile_photo_, can_edit_username_, can_view_gifts_, can_sell_gifts_,
+      can_change_gift_settings_, can_transfer_and_upgrade_gifts_, can_transfer_stars_, can_manage_stories_);
 }
 
 bool operator==(const BusinessBotRights &lhs, const BusinessBotRights &rhs) {
