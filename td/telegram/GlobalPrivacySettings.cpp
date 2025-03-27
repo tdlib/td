@@ -140,34 +140,17 @@ telegram_api::object_ptr<telegram_api::globalPrivacySettings> GlobalPrivacySetti
     const {
   CHECK(set_type_ == SetType::None);
   int32 flags = 0;
-  if (archive_and_mute_new_noncontact_peers_) {
-    flags |= telegram_api::globalPrivacySettings::ARCHIVE_AND_MUTE_NEW_NONCONTACT_PEERS_MASK;
-  }
-  if (keep_archived_unmuted_) {
-    flags |= telegram_api::globalPrivacySettings::KEEP_ARCHIVED_UNMUTED_MASK;
-  }
-  if (keep_archived_folders_) {
-    flags |= telegram_api::globalPrivacySettings::KEEP_ARCHIVED_FOLDERS_MASK;
-  }
-  if (hide_read_marks_) {
-    flags |= telegram_api::globalPrivacySettings::HIDE_READ_MARKS_MASK;
-  }
-  if (new_noncontact_peers_require_premium_) {
-    flags |= telegram_api::globalPrivacySettings::NEW_NONCONTACT_PEERS_REQUIRE_PREMIUM_MASK;
-  }
   if (noncontact_peers_paid_star_count_ > 0) {
     flags |= telegram_api::globalPrivacySettings::NONCONTACT_PEERS_PAID_STARS_MASK;
-  }
-  if (gift_settings_.get_display_gifts_button()) {
-    flags |= telegram_api::globalPrivacySettings::DISPLAY_GIFTS_BUTTON_MASK;
   }
   auto disallowed_gifts = gift_settings_.get_disallowed_gifts();
   if (!disallowed_gifts.is_default()) {
     flags |= telegram_api::globalPrivacySettings::DISALLOWED_GIFTS_MASK;
   }
   return telegram_api::make_object<telegram_api::globalPrivacySettings>(
-      flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-      false /*ignored*/, noncontact_peers_paid_star_count_, disallowed_gifts.get_input_disallowed_gifts_settings());
+      flags, archive_and_mute_new_noncontact_peers_, keep_archived_unmuted_, keep_archived_folders_, hide_read_marks_,
+      new_noncontact_peers_require_premium_, gift_settings_.get_display_gifts_button(),
+      noncontact_peers_paid_star_count_, disallowed_gifts.get_input_disallowed_gifts_settings());
 }
 
 td_api::object_ptr<td_api::archiveChatListSettings> GlobalPrivacySettings::get_archive_chat_list_settings_object()
