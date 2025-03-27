@@ -1009,17 +1009,10 @@ void StarGiftManager::send_gift(int64 gift_id, DialogId dialog_id, td_api::objec
       get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(text), false, true, true, false));
   MessageQuote::remove_unallowed_quote_entities(message);
 
-  int32 flags = 0;
-  if (is_private) {
-    flags |= telegram_api::inputInvoiceStarGift::HIDE_NAME_MASK;
-  }
-  if (pay_for_upgrade) {
-    flags |= telegram_api::inputInvoiceStarGift::INCLUDE_UPGRADE_MASK;
-  }
   auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGift>(
-      flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), gift_id, nullptr);
+      0, is_private, pay_for_upgrade, std::move(input_peer), gift_id, nullptr);
   auto send_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGift>(
-      flags, false /*ignored*/, false /*ignored*/, std::move(send_input_peer), gift_id, nullptr);
+      0, is_private, pay_for_upgrade, std::move(send_input_peer), gift_id, nullptr);
   if (!message.text.empty()) {
     input_invoice->flags_ |= telegram_api::inputInvoiceStarGift::MESSAGE_MASK;
     input_invoice->message_ = get_input_text_with_entities(td_->user_manager_.get(), message, "send_gift");
@@ -1109,14 +1102,10 @@ void StarGiftManager::upgrade_gift(BusinessConnectionId business_connection_id, 
     if (!as_business && !td_->star_manager_->has_owned_star_count(star_count)) {
       return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
     }
-    int32 flags = 0;
-    if (keep_original_details) {
-      flags |= telegram_api::inputInvoiceStarGiftUpgrade::KEEP_ORIGINAL_DETAILS_MASK;
-    }
     auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftUpgrade>(
-        flags, false /*ignored*/, std::move(input_saved_star_gift));
+        0, keep_original_details, std::move(input_saved_star_gift));
     auto upgrade_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftUpgrade>(
-        flags, false /*ignored*/, star_gift_id.get_input_saved_star_gift(td_));
+        0, keep_original_details, star_gift_id.get_input_saved_star_gift(td_));
     td_->create_handler<GetGiftUpgradePaymentFormQuery>(std::move(promise))
         ->send(business_connection_id, std::move(input_invoice), std::move(upgrade_input_invoice), star_count);
   } else {

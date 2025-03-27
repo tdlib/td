@@ -212,15 +212,7 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
   switch (purpose->get_id()) {
     case td_api::storePaymentPurposePremiumSubscription::ID: {
       auto p = static_cast<td_api::storePaymentPurposePremiumSubscription *>(purpose.get());
-      int32 flags = 0;
-      if (p->is_restore_) {
-        flags |= telegram_api::inputStorePaymentPremiumSubscription::RESTORE_MASK;
-      }
-      if (p->is_upgrade_) {
-        flags |= telegram_api::inputStorePaymentPremiumSubscription::UPGRADE_MASK;
-      }
-      return make_tl_object<telegram_api::inputStorePaymentPremiumSubscription>(flags, false /*ignored*/,
-                                                                                false /*ignored*/);
+      return make_tl_object<telegram_api::inputStorePaymentPremiumSubscription>(0, p->is_restore_, p->is_upgrade_);
     }
     case td_api::storePaymentPurposePremiumGift::ID: {
       auto p = static_cast<td_api::storePaymentPurposePremiumGift *>(purpose.get());
