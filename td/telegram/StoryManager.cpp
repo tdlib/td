@@ -1131,7 +1131,8 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
 
     const FormattedText &caption = story->caption_;
     auto entities = get_input_message_entities(td_->user_manager_.get(), &caption, "SendStoryQuery");
-    if (!td_->option_manager_->get_option_boolean("can_use_text_entities_in_story_caption")) {
+    if (!td_->auth_manager_->is_bot() &&
+        !td_->option_manager_->get_option_boolean("can_use_text_entities_in_story_caption")) {
       entities.clear();
     }
     auto privacy_rules = story->privacy_rules_.get_input_privacy_rules(td_);
@@ -1818,9 +1819,10 @@ bool StoryManager::can_get_story_view_count(DialogId owner_dialog_id) {
 bool StoryManager::can_post_stories(DialogId owner_dialog_id) const {
   switch (owner_dialog_id.get_type()) {
     case DialogType::User:
-      return is_my_story(owner_dialog_id);
+      return is_my_story(owner_dialog_id) != td_->auth_manager_->is_bot();
     case DialogType::Channel:
-      return td_->chat_manager_->get_channel_status(owner_dialog_id.get_channel_id()).can_post_stories();
+      return !td_->auth_manager_->is_bot() &&
+             td_->chat_manager_->get_channel_status(owner_dialog_id.get_channel_id()).can_post_stories();
     case DialogType::Chat:
     case DialogType::SecretChat:
     case DialogType::None:
@@ -1832,9 +1834,10 @@ bool StoryManager::can_post_stories(DialogId owner_dialog_id) const {
 bool StoryManager::can_edit_stories(DialogId owner_dialog_id) const {
   switch (owner_dialog_id.get_type()) {
     case DialogType::User:
-      return is_my_story(owner_dialog_id);
+      return is_my_story(owner_dialog_id) != td_->auth_manager_->is_bot();
     case DialogType::Channel:
-      return td_->chat_manager_->get_channel_status(owner_dialog_id.get_channel_id()).can_edit_stories();
+      return !td_->auth_manager_->is_bot() &&
+             td_->chat_manager_->get_channel_status(owner_dialog_id.get_channel_id()).can_edit_stories();
     case DialogType::Chat:
     case DialogType::SecretChat:
     case DialogType::None:
@@ -1846,9 +1849,10 @@ bool StoryManager::can_edit_stories(DialogId owner_dialog_id) const {
 bool StoryManager::can_delete_stories(DialogId owner_dialog_id) const {
   switch (owner_dialog_id.get_type()) {
     case DialogType::User:
-      return is_my_story(owner_dialog_id);
+      return is_my_story(owner_dialog_id) != td_->auth_manager_->is_bot();
     case DialogType::Channel:
-      return td_->chat_manager_->get_channel_status(owner_dialog_id.get_channel_id()).can_delete_stories();
+      return !td_->auth_manager_->is_bot() &&
+             td_->chat_manager_->get_channel_status(owner_dialog_id.get_channel_id()).can_delete_stories();
     case DialogType::Chat:
     case DialogType::SecretChat:
     case DialogType::None:
@@ -2038,8 +2042,8 @@ StoryManager::ActiveStories *StoryManager::get_active_stories_force(DialogId own
     return active_stories;
   }
 
-  if (!G()->use_message_database() || failed_to_load_active_stories_.count(owner_dialog_id) > 0 ||
-      !owner_dialog_id.is_valid()) {
+  if (td_->auth_manager_->is_bot() || !G()->use_message_database() ||
+      failed_to_load_active_stories_.count(owner_dialog_id) > 0 || !owner_dialog_id.is_valid()) {
     return nullptr;
   }
 
@@ -3646,9 +3650,6 @@ StoryId StoryManager::on_get_story(DialogId owner_dialog_id,
     LOG(ERROR) << "Receive a story in " << owner_dialog_id;
     return {};
   }
-  if (td_->auth_manager_->is_bot()) {
-    return {};
-  }
   CHECK(story_item_ptr != nullptr);
   switch (story_item_ptr->get_id()) {
     case telegram_api::storyItemDeleted::ID:
@@ -3679,8 +3680,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     return StoryId();
   }
 
-  td_->dialog_manager_->force_create_dialog(owner_dialog_id, "on_get_new_story");
-
+  bool is_bot = td_->auth_manager_->is_bot();
   StoryId old_story_id;
   auto updates_story_ids_it = update_story_ids_.find(story_full_id);
   if (updates_story_ids_it != update_story_ids_.end()) {
@@ -3699,7 +3699,8 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     }
   }
 
-  bool is_bot = td_->auth_manager_->is_bot();
+  td_->dialog_manager_->force_create_dialog(owner_dialog_id, "on_get_new_story");
+
   auto caption =
       get_message_text(td_->user_manager_.get(), std::move(story_item->caption_), std::move(story_item->entities_),
                        true, is_bot, story_item->date_, false, "on_get_new_story");
@@ -3712,6 +3713,9 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
   bool is_changed = false;
   bool need_save_to_database = false;
   if (story == nullptr) {
+    if (is_bot && old_story_id == StoryId()) {
+      return StoryId();
+    }
     auto s = make_unique<Story>();
     story = s.get();
     stories_.set(story_full_id, std::move(s));
@@ -3854,7 +3858,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
 
   LOG(INFO) << "Receive " << story_full_id;
 
-  if (is_active_story(story)) {
+  if (!td_->auth_manager_->is_bot() && is_active_story(story)) {
     auto active_stories = get_active_stories_force(owner_dialog_id, "on_get_new_story");
     if (active_stories == nullptr) {
       if (is_subscribed_to_dialog_stories(owner_dialog_id)) {
@@ -3966,9 +3970,12 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
 
   update_story_ids_.erase(story_full_id);
 
-  inaccessible_story_full_ids_.set(story_full_id, Time::now());
-  send_closure_later(G()->messages_manager(),
-                     &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
+  bool is_bot = td_->auth_manager_->is_bot();
+  if (!is_bot) {
+    inaccessible_story_full_ids_.set(story_full_id, Time::now());
+    send_closure_later(G()->messages_manager(),
+                       &MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages, story_full_id);
+  }
 
   const Story *story = get_story_force(story_full_id, "on_delete_story");
   auto owner_dialog_id = story_full_id.get_dialog_id();
@@ -3997,12 +4004,14 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
     LOG(INFO) << "Delete not found " << story_full_id;
   }
 
-  auto active_stories = get_active_stories_force(owner_dialog_id, "on_get_deleted_story");
-  if (active_stories != nullptr && contains(active_stories->story_ids_, story_id)) {
-    auto story_ids = active_stories->story_ids_;
-    td::remove(story_ids, story_id);
-    on_update_active_stories(owner_dialog_id, active_stories->max_read_story_id_, std::move(story_ids), Promise<Unit>(),
-                             "on_delete_story");
+  if (!is_bot) {
+    auto active_stories = get_active_stories_force(owner_dialog_id, "on_get_deleted_story");
+    if (active_stories != nullptr && contains(active_stories->story_ids_, story_id)) {
+      auto story_ids = active_stories->story_ids_;
+      td::remove(story_ids, story_id);
+      on_update_active_stories(owner_dialog_id, active_stories->max_read_story_id_, std::move(story_ids),
+                               Promise<Unit>(), "on_delete_story");
+    }
   }
 
   delete_story_from_database(story_full_id);
@@ -4478,6 +4487,9 @@ td_api::object_ptr<td_api::updateChatActiveStories> StoryManager::get_update_cha
 
 void StoryManager::send_update_chat_active_stories(DialogId owner_dialog_id, const ActiveStories *active_stories,
                                                    const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (updated_active_stories_.count(owner_dialog_id) == 0) {
     if (active_stories == nullptr || active_stories->public_order_ == 0) {
       LOG(INFO) << "Skip update about active stories in " << owner_dialog_id << " from " << source;
@@ -5129,7 +5141,7 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_story_content), dialog_id));
   TRY_RESULT_PROMISE(promise, caption,
                      get_formatted_text(td_, DialogId(), std::move(input_caption), is_bot, true, false, false));
-  if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
+  if (dialog_id != td_->dialog_manager_->get_my_dialog_id() && !is_bot) {
     settings = td_api::make_object<td_api::storyPrivacySettingsEveryone>();
   }
   TRY_RESULT_PROMISE(promise, privacy_rules,
@@ -5162,18 +5174,17 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   TRY_RESULT_PROMISE(promise, story_id, get_next_yet_unsent_story_id(dialog_id));
   vector<MediaArea> areas;
   if (input_areas != nullptr) {
+    vector<MediaArea> old_media_areas;
     for (auto &input_area : input_areas->areas_) {
-      MediaArea media_area(td_, std::move(input_area), Auto());
+      MediaArea media_area(td_, std::move(input_area), old_media_areas);
       if (media_area.is_valid()) {
         areas.push_back(std::move(media_area));
       }
     }
   }
-  if (!td_->option_manager_->get_option_boolean("can_use_text_entities_in_story_caption")) {
+  if (!is_bot && !td_->option_manager_->get_option_boolean("can_use_text_entities_in_story_caption")) {
     caption.entities.clear();
   }
-
-  td_->dialog_manager_->force_create_dialog(dialog_id, "send_story");
 
   auto story = make_unique<Story>();
   if (dialog_id.get_type() == DialogType::Channel &&
@@ -5275,9 +5286,11 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
     being_sent_stories_[pending_story->random_id_] = story_full_id;
     being_sent_story_random_ids_[story_full_id] = pending_story->random_id_;
 
-    updated_active_stories_.insert(pending_story->dialog_id_);
-    send_update_chat_active_stories(pending_story->dialog_id_, active_stories, "do_send_story");
-    update_story_list_sent_total_count(StoryListId::main(), "do_send_story");
+    if (!td_->auth_manager_->is_bot()) {
+      updated_active_stories_.insert(pending_story->dialog_id_);
+      send_update_chat_active_stories(pending_story->dialog_id_, active_stories, "do_send_story");
+      update_story_list_sent_total_count(StoryListId::main(), "do_send_story");
+    }
   }
 
   auto file_upload_id = pending_story->file_upload_id_;

@@ -4030,7 +4030,6 @@ void Requests::on_request(uint64 id, const td_api::canSendStory &request) {
 }
 
 void Requests::on_request(uint64 id, td_api::sendStory &request) {
-  CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->story_manager_->send_story(DialogId(request.chat_id_), std::move(request.content_), std::move(request.areas_),
                                   std::move(request.caption_), std::move(request.privacy_settings_),
