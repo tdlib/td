@@ -240,7 +240,11 @@ Result<SecureString> Ed25519::compute_shared_secret(const PublicKey &public_key,
 #if OPENSSL_VERSION_NUMBER >= 0x10101000L
   BigNum p = BigNum::from_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed").move_as_ok();
   auto public_y = public_key.as_octet_string();
-  public_y.as_mutable_slice()[31] = static_cast<char>(public_y[31] & 127);
+  MutableSlice pub_slc = public_y.as_mutable_slice();
+  if (pub_slc.size() != PublicKey::LENGTH) {
+    return Status::Error("Wrong public key");
+  }
+  pub_slc[31] = static_cast<char>(public_y[31] & 127);
   BigNum y = BigNum::from_le_binary(public_y);
   BigNum y2 = y.clone();
   y += 1;
