@@ -2230,14 +2230,8 @@ class GetChannelDifferenceQuery final : public Td::ResultHandler {
     pts_ = pts;
     limit_ = limit;
     CHECK(input_channel != nullptr);
-
-    int32 flags = 0;
-    if (force) {
-      flags |= telegram_api::updates_getChannelDifference::FORCE_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::updates_getChannelDifference(
-        flags, false /*ignored*/, std::move(input_channel), make_tl_object<telegram_api::channelMessagesFilterEmpty>(),
-        pts, limit)));
+        0, force, std::move(input_channel), make_tl_object<telegram_api::channelMessagesFilterEmpty>(), pts, limit)));
   }
 
   void on_result(BufferSlice packet) final {

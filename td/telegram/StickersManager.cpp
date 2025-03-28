@@ -1122,23 +1122,13 @@ class CreateNewStickerSetQuery final : public Td::ResultHandler {
     CHECK(input_user != nullptr);
 
     int32 flags = 0;
-    if (sticker_type == StickerType::Mask) {
-      flags |= telegram_api::stickers_createStickerSet::MASKS_MASK;
-    }
-    if (sticker_type == StickerType::CustomEmoji) {
-      flags |= telegram_api::stickers_createStickerSet::EMOJIS_MASK;
-    }
-    if (has_text_color) {
-      flags |= telegram_api::stickers_createStickerSet::TEXT_COLOR_MASK;
-    }
     if (!software.empty()) {
       flags |= telegram_api::stickers_createStickerSet::SOFTWARE_MASK;
     }
-
     send_query(G()->net_query_creator().create(
-        telegram_api::stickers_createStickerSet(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                std::move(input_user), title, short_name, nullptr,
-                                                std::move(input_stickers), software),
+        telegram_api::stickers_createStickerSet(
+            flags, sticker_type == StickerType::Mask, sticker_type == StickerType::CustomEmoji, has_text_color,
+            std::move(input_user), title, short_name, nullptr, std::move(input_stickers), software),
         {{short_name}}));
   }
 
