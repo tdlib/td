@@ -1210,8 +1210,8 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
   unique_ptr<PendingStory> pending_story_;
 
  public:
-  void send(const Story *story, unique_ptr<PendingStory> pending_story,
-            telegram_api::object_ptr<telegram_api::InputFile> input_file, const BeingEditedStory *edited_story) {
+  void send(unique_ptr<PendingStory> pending_story, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+            const BeingEditedStory *edited_story) {
     pending_story_ = std::move(pending_story);
     CHECK(pending_story_ != nullptr);
     dialog_id_ = pending_story_->dialog_id_;
@@ -5602,8 +5602,7 @@ void StoryManager::do_edit_story(unique_ptr<PendingStory> &&pending_story,
     td_->file_manager_->cancel_upload(pending_story->file_upload_id_);
     return;
   }
-  CHECK(story->content_ != nullptr);
-  td_->create_handler<EditStoryQuery>()->send(story, std::move(pending_story), std::move(input_file), it->second.get());
+  td_->create_handler<EditStoryQuery>()->send(std::move(pending_story), std::move(input_file), it->second.get());
 }
 
 void StoryManager::edit_story_cover(DialogId owner_dialog_id, StoryId story_id, double main_frame_timestamp,
