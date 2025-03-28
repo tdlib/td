@@ -579,6 +579,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::deleteBusinessMessages &request);
 
+  void on_request(uint64 id, td_api::deleteBusinessStory &request);
+
   void on_request(uint64 id, td_api::setBusinessAccountName &request);
 
   void on_request(uint64 id, td_api::setBusinessAccountBio &request);

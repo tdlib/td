@@ -609,6 +609,41 @@ class DeleteBusinessMessagesQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteBusinessStoriesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeleteBusinessStoriesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(BusinessConnectionId business_connection_id, const vector<StoryId> &story_ids) {
+    auto user_id = td_->business_connection_manager_->get_business_connection_user_id(business_connection_id);
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(user_id), AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::stories_deleteStories(std::move(input_peer), StoryId::get_input_story_ids(story_ids)),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_deleteStories>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for DeleteBusinessStoriesQuery: " << ptr;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateBusinessProfileQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
@@ -811,6 +846,16 @@ Status BusinessConnectionManager::check_business_message_id(MessageId message_id
   }
   if (!message_id.is_server()) {
     return Status::Error(400, "Wrong message identifier specified");
+  }
+  return Status::OK();
+}
+
+Status BusinessConnectionManager::check_business_story_id(StoryId story_id) const {
+  if (!story_id.is_valid()) {
+    return Status::Error(400, "Invalid story identifier specified");
+  }
+  if (!story_id.is_server()) {
+    return Status::Error(400, "Wrong story identifier specified");
   }
   return Status::OK();
 }
@@ -1744,6 +1789,13 @@ void BusinessConnectionManager::delete_business_messages(BusinessConnectionId bu
   }
 
   td_->create_handler<DeleteBusinessMessagesQuery>(std::move(promise))->send(business_connection_id, message_ids);
+}
+
+void BusinessConnectionManager::delete_business_story(BusinessConnectionId business_connection_id, StoryId story_id,
+                                                      Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
+  TRY_STATUS_PROMISE(promise, check_business_story_id(story_id));
+  td_->create_handler<DeleteBusinessStoriesQuery>(std::move(promise))->send(business_connection_id, {story_id});
 }
 
 void BusinessConnectionManager::set_business_name(BusinessConnectionId business_connection_id, const string &first_name,

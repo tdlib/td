@@ -6702,6 +6702,10 @@ class CliClient final : public Actor {
       get_args(args, message_ids);
       send_request(
           td_api::make_object<td_api::deleteBusinessMessages>(business_connection_id_, as_message_ids(message_ids)));
+    } else if (op == "dbs") {
+      StoryId story_id;
+      get_args(args, story_id);
+      send_request(td_api::make_object<td_api::deleteBusinessStory>(business_connection_id_, story_id));
     } else if (op == "sban") {
       string first_name;
       string last_name;

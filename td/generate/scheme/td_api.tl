@@ -9733,6 +9733,11 @@ readBusinessMessage business_connection_id:string chat_id:int53 message_id:int53
 //@message_ids Identifier of the messages
 deleteBusinessMessages business_connection_id:string message_ids:vector<int53> = Ok;
 
+//@description Deletes a story sent by the bot on behalf of a business account; for bots only
+//@business_connection_id Unique identifier of business connection
+//@story_id Identifier of the story to delete
+deleteBusinessStory business_connection_id:string story_id:int32 = Ok;
+
 //@description Changes the first and last name of a business account; for bots only
 //@business_connection_id Unique identifier of business connection
 //@first_name The new value of the first name for the business account; 1-64 characters
@@ -9755,7 +9760,7 @@ setBusinessAccountProfilePhoto business_connection_id:string photo:InputChatPhot
 //@username The new value of the username
 setBusinessAccountUsername business_connection_id:string username:string = Ok;
 
-//@description Changes settings for gift receiving of a business account
+//@description Changes settings for gift receiving of a business account; for bots only
 //@business_connection_id Unique identifier of business connection
 //@settings The new settings
 setBusinessAccountGiftSettings business_connection_id:string settings:giftSettings = Ok;

@@ -114,6 +114,8 @@ class BusinessConnectionManager final : public Actor {
   void delete_business_messages(BusinessConnectionId business_connection_id, const vector<MessageId> &message_ids,
                                 Promise<Unit> &&promise);
 
+  void delete_business_story(BusinessConnectionId business_connection_id, StoryId story_id, Promise<Unit> &&promise);
+
   void set_business_name(BusinessConnectionId business_connection_id, const string &first_name, const string &last_name,
                          Promise<Unit> &&promise);
 
@@ -163,6 +165,8 @@ class BusinessConnectionManager final : public Actor {
   void tear_down() final;
 
   Status check_business_message_id(MessageId message_id) const;
+
+  Status check_business_story_id(StoryId story_id) const;
 
   void on_get_business_connection(const BusinessConnectionId &connection_id,
                                   Result<telegram_api::object_ptr<telegram_api::Updates>> r_updates);
