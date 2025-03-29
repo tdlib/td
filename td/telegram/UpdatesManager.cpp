@@ -1524,6 +1524,24 @@ string UpdatesManager::extract_join_group_call_presentation_params(telegram_api:
   return string();
 }
 
+telegram_api::object_ptr<telegram_api::StoryItem> UpdatesManager::extract_story(telegram_api::Updates *updates_ptr,
+                                                                                DialogId owner_dialog_id) {
+  auto updates = get_updates(updates_ptr);
+  if (updates->size() != 1u) {
+    return nullptr;
+  }
+  for (auto it = updates->begin(); it != updates->end(); ++it) {
+    auto *update_ptr = it->get();
+    if (update_ptr->get_id() == telegram_api::updateStory::ID) {
+      auto update = static_cast<telegram_api::updateStory *>(update_ptr);
+      if (DialogId(update->peer_) == owner_dialog_id) {
+        return std::move(update->story_);
+      }
+    }
+  }
+  return nullptr;
+}
+
 vector<DialogId> UpdatesManager::get_update_notify_settings_dialog_ids(const telegram_api::Updates *updates_ptr) {
   vector<DialogId> dialog_ids;
   auto updates = get_updates(updates_ptr);

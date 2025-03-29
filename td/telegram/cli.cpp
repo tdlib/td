@@ -6702,6 +6702,24 @@ class CliClient final : public Actor {
       get_args(args, message_ids);
       send_request(
           td_api::make_object<td_api::deleteBusinessMessages>(business_connection_id_, as_message_ids(message_ids)));
+    }
+    if (op == "ebsp" || op == "ebsv") {
+      ChatId story_sender_chat_id;
+      StoryId story_id;
+      string story;
+      StoryPrivacySettings rules;
+      InputStoryAreas areas;
+      get_args(args, story_sender_chat_id, story_id, story, rules, areas);
+      td_api::object_ptr<td_api::InputStoryContent> content;
+      if (op == "ebsp") {
+        content =
+            td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(story), get_added_sticker_file_ids());
+      } else {
+        content = td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(story),
+                                                                      get_added_sticker_file_ids(), 10, 0.5, true);
+      }
+      send_request(td_api::make_object<td_api::editBusinessStory>(story_sender_chat_id, story_id, std::move(content),
+                                                                  areas, get_caption(), rules));
     } else if (op == "dbs") {
       StoryId story_id;
       get_args(args, story_id);

@@ -3866,6 +3866,14 @@ void Requests::on_request(uint64 id, td_api::deleteBusinessMessages &request) {
       MessageId::get_message_ids(request.message_ids_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::editBusinessStory &request) {
+  CHECK_IS_BOT();
+  CREATE_REQUEST_PROMISE();
+  td_->story_manager_->edit_business_story(
+      DialogId(request.story_sender_chat_id_), StoryId(request.story_id_), std::move(request.content_),
+      std::move(request.areas_), std::move(request.caption_), std::move(request.privacy_settings_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::deleteBusinessStory &request) {
   CHECK_IS_BOT();
   CREATE_OK_REQUEST_PROMISE();

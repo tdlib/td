@@ -9733,6 +9733,15 @@ readBusinessMessage business_connection_id:string chat_id:int53 message_id:int53
 //@message_ids Identifier of the messages
 deleteBusinessMessages business_connection_id:string message_ids:vector<int53> = Ok;
 
+//@description Changes a story sent by the bot on behalf of a business account; for bots only
+//@story_sender_chat_id Identifier of the chat that posted the story
+//@story_id Identifier of the story to edit
+//@content New content of the story
+//@areas New clickable rectangle areas to be shown on the story media
+//@caption New story caption
+//@privacy_settings The new privacy settings for the story
+editBusinessStory story_sender_chat_id:int53 story_id:int32 content:InputStoryContent areas:inputStoryAreas caption:formattedText privacy_settings:StoryPrivacySettings = Story;
+
 //@description Deletes a story sent by the bot on behalf of a business account; for bots only
 //@business_connection_id Unique identifier of business connection
 //@story_id Identifier of the story to delete
