@@ -204,12 +204,8 @@ class AddContactQuery final : public Td::ResultHandler {
   void send(UserId user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user, const Contact &contact,
             bool share_phone_number) {
     user_id_ = user_id;
-    int32 flags = 0;
-    if (share_phone_number) {
-      flags |= telegram_api::contacts_addContact::ADD_PHONE_PRIVACY_EXCEPTION_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::contacts_addContact(flags, false /*ignored*/, std::move(input_user), contact.get_first_name(),
+        telegram_api::contacts_addContact(0, share_phone_number, std::move(input_user), contact.get_first_name(),
                                           contact.get_last_name(), contact.get_phone_number()),
         {{DialogId(user_id)}}));
   }
