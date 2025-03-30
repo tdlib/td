@@ -593,6 +593,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::setBusinessAccountGiftSettings &request);
 
+  void on_request(uint64 id, td_api::getBusinessAccountStarAmount &request);
+
   void on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request);
 
   void on_request(uint64 id, const td_api::setQuickReplyShortcutName &request);

@@ -9774,6 +9774,9 @@ setBusinessAccountUsername business_connection_id:string username:string = Ok;
 //@settings The new settings
 setBusinessAccountGiftSettings business_connection_id:string settings:giftSettings = Ok;
 
+//@description Returns the amount of Telegram Stars owned by a business account; for bots only @business_connection_id Unique identifier of business connection
+getBusinessAccountStarAmount business_connection_id:string = StarAmount;
+
 
 //@description Checks validness of a name for a quick reply shortcut. Can be called synchronously @name The name of the shortcut; 1-32 characters
 checkQuickReplyShortcutName name:string = Ok;

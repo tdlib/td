@@ -127,6 +127,9 @@ class BusinessConnectionManager final : public Actor {
   void set_business_gift_settings(BusinessConnectionId business_connection_id, StarGiftSettings settings,
                                   Promise<Unit> &&promise);
 
+  void get_business_star_status(BusinessConnectionId business_connection_id,
+                                Promise<td_api::object_ptr<td_api::starAmount>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

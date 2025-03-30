@@ -773,6 +773,44 @@ class UpdateBusinessGiftSettingsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetBusinessStarsStatusQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::starAmount>> promise_;
+
+ public:
+  explicit GetBusinessStarsStatusQuery(Promise<td_api::object_ptr<td_api::starAmount>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const BusinessConnectionId &business_connection_id) {
+    auto user_id = td_->business_connection_manager_->get_business_connection_user_id(business_connection_id);
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(user_id), AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(), telegram_api::payments_getStarsStatus(std::move(input_peer)),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsStatus>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetBusinessStarsStatusQuery: " << to_string(result);
+
+    auto star_amount = StarAmount(std::move(result->balance_), true);
+    promise_.set_value(star_amount.get_star_amount_object());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class BusinessConnectionManager::UploadMediaCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
@@ -1835,6 +1873,12 @@ void BusinessConnectionManager::set_business_gift_settings(BusinessConnectionId 
 
   td_->create_handler<UpdateBusinessGiftSettingsQuery>(std::move(promise))
       ->send(business_connection_id, user_id, settings);
+}
+
+void BusinessConnectionManager::get_business_star_status(BusinessConnectionId business_connection_id,
+                                                         Promise<td_api::object_ptr<td_api::starAmount>> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
+  td_->create_handler<GetBusinessStarsStatusQuery>(std::move(promise))->send(business_connection_id);
 }
 
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(

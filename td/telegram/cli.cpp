@@ -6754,6 +6754,8 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::giftSettings>(
               show_button, td_api::make_object<td_api::acceptedGiftTypes>(unlimited_gifts, limited_gifts,
                                                                           upgraded_gifts, premium_subscription))));
+    } else if (op == "gbasa") {
+      send_request(td_api::make_object<td_api::getBusinessAccountStarAmount>(business_connection_id_));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
     } else if (op == "gob") {
