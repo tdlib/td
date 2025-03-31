@@ -1068,13 +1068,13 @@ giftSettings show_gift_button:Bool accepted_gift_types:acceptedGiftTypes = GiftS
 //@description Describes a model of an upgraded gift
 //@name Name of the model
 //@sticker The sticker representing the upgraded gift
-//@rarity_per_mille The number of upgraded gift that receive this model for each 1000 gifts upgraded
+//@rarity_per_mille The number of upgraded gifts that receive this model for each 1000 gifts upgraded
 upgradedGiftModel name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftModel;
 
 //@description Describes a symbol shown on the pattern of an upgraded gift
 //@name Name of the symbol
 //@sticker The sticker representing the symbol
-//@rarity_per_mille The number of upgraded gift that receive this symbol for each 1000 gifts upgraded
+//@rarity_per_mille The number of upgraded gifts that receive this symbol for each 1000 gifts upgraded
 upgradedGiftSymbol name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftSymbol;
 
 //@description Describes colors of a backdrop of an upgraded gift
@@ -1087,7 +1087,7 @@ upgradedGiftBackdropColors center_color:int32 edge_color:int32 symbol_color:int3
 //@description Describes a backdrop of an upgraded gift
 //@name Name of the backdrop
 //@colors Colors of the backdrop
-//@rarity_per_mille The number of upgraded gift that receive this backdrop for each 1000 gifts upgraded
+//@rarity_per_mille The number of upgraded gifts that receive this backdrop for each 1000 gifts upgraded
 upgradedGiftBackdrop name:string colors:upgradedGiftBackdropColors rarity_per_mille:int32 = UpgradedGiftBackdrop;
 
 //@description Describes the original details about the gift
