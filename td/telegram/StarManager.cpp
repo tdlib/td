@@ -435,6 +435,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                     LOG(ERROR) << "Receive sale of an upgraded gift";
                   } else {
                     if (for_user || for_channel) {
+                      product_info = nullptr;
                       return td_api::make_object<td_api::starTransactionTypeGiftSale>(user_id_object,
                                                                                       gift.get_gift_object(td_));
                     }
