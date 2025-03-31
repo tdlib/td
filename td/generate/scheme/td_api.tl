@@ -1056,7 +1056,7 @@ starGiveawayPaymentOptions options:vector<starGiveawayPaymentOption> = StarGivea
 //@description Describes gift types that are accepted by a user
 //@unlimited_gifts True, if unlimited regular gifts are accepted
 //@limited_gifts True, if limited regular gifts are accepted
-//@upgraded_gifts True, if upgraded gifts are accepted
+//@upgraded_gifts True, if upgraded gifts and regular gifts that can be upgraded for free are accepted
 //@premium_subscription True, if Telegram Premium subscription is accepted
 acceptedGiftTypes unlimited_gifts:Bool limited_gifts:Bool upgraded_gifts:Bool premium_subscription:Bool = AcceptedGiftTypes;
 
