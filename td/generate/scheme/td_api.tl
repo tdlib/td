@@ -1073,7 +1073,7 @@ upgradedGiftModel name:string sticker:sticker rarity_per_mille:int32 = UpgradedG
 
 //@description Describes a symbol shown on the pattern of an upgraded gift
 //@name Name of the symbol
-//@sticker The sticker representing the upgraded gift
+//@sticker The sticker representing the symbol
 //@rarity_per_mille The number of upgraded gift that receive this symbol for each 1000 gifts upgraded
 upgradedGiftSymbol name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftSymbol;
 
