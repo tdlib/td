@@ -19841,7 +19841,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
       } else {
         m->sender_dialog_id = send_as_dialog_id;
       }
-      m->has_explicit_sender = true;
+      if (dialog_type == DialogType::Channel) {
+        m->has_explicit_sender = true;
+      }
     } else if (d->default_send_message_as_dialog_id.is_valid()) {
       if (d->default_send_message_as_dialog_id.get_type() == DialogType::User) {
         m->sender_user_id = my_id;
