@@ -399,6 +399,15 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             if (dialog_id.get_type() == DialogType::User) {
               auto user_id = dialog_id.get_user_id();
               auto user_id_object = td_->user_manager_->get_user_id_object(user_id, "starsTransactionPeer");
+              if (transaction->business_transfer_) {
+                transaction->business_transfer_ = false;
+                if (is_purchase) {
+                  if (for_user) {
+                    return td_api::make_object<td_api::starTransactionTypeBusinessBotTransferSend>(user_id_object);
+                  }
+                }
+                return nullptr;
+              }
               if (transaction->stargift_ != nullptr) {
                 auto gift = StarGift(td_, std::move(transaction->stargift_), true);
                 transaction->stargift_ = nullptr;
@@ -685,6 +694,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (transaction->premium_gift_months_) {
           LOG(ERROR) << "Receive Telegram Premium purchase with " << to_string(star_transaction);
+        }
+        if (transaction->business_transfer_) {
+          LOG(ERROR) << "Receive business bot transfer with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {
