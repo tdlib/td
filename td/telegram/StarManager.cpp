@@ -403,7 +403,13 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 transaction->business_transfer_ = false;
                 if (is_purchase) {
                   if (for_user) {
+                    product_info = nullptr;
                     return td_api::make_object<td_api::starTransactionTypeBusinessBotTransferSend>(user_id_object);
+                  }
+                } else {
+                  if (for_bot) {
+                    product_info = nullptr;
+                    return td_api::make_object<td_api::starTransactionTypeBusinessBotTransferReceive>(user_id_object);
                   }
                 }
                 return nullptr;
