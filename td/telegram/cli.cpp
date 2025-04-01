@@ -3708,10 +3708,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getStarGiveawayPaymentOptions>());
     } else if (op == "gsta" || op == "gsti" || op == "gsto") {
       string owner_id;
-      string subscription_id;
-      string offset;
       string limit;
-      get_args(args, owner_id, subscription_id, offset, limit);
+      string offset;
+      string subscription_id;
+      get_args(args, owner_id, limit, offset, subscription_id);
       td_api::object_ptr<td_api::StarTransactionDirection> direction;
       if (op == "gsti") {
         direction = td_api::make_object<td_api::starTransactionDirectionIncoming>();
