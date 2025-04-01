@@ -689,7 +689,7 @@ businessGreetingMessageSettings shortcut_id:int32 recipients:businessRecipients 
 //@can_edit_bio True, if the bot can edit bio of the business account
 //@can_edit_profile_photo True, if the bot can edit profile photo of the business account
 //@can_edit_username True, if the bot can edit username of the business account
-//@can_view_gifts True, if the bot can view gifts received by the business account
+//@can_view_gifts True, if the bot can view gifts and amount of Telegram Stars owned by the business account
 //@can_sell_gifts True, if the bot can sell regular gifts received by the business account
 //@can_change_gift_settings True, if the bot can change gift receiving settings of the business account
 //@can_transfer_and_upgrade_gifts True, if the bot can transfer and upgrade gifts received by the business account
