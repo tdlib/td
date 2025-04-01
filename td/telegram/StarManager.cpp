@@ -514,22 +514,22 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               SCOPE_EXIT {
                 bot_payload.clear();
               };
+              if (transaction->premium_gift_months_ > 0 && is_purchase) {
+                SCOPE_EXIT {
+                  transaction->premium_gift_months_ = 0;
+                  product_info = nullptr;
+                };
+                if (for_user || for_bot) {
+                  return td_api::make_object<td_api::starTransactionTypePremiumPurchase>(
+                      user_id_object, transaction->premium_gift_months_,
+                      td_->stickers_manager_->get_premium_gift_sticker_object(transaction->premium_gift_months_, 0));
+                }
+              }
               if (product_info != nullptr) {
                 if (is_purchase) {
-                  if (for_user || for_bot) {
-                    if (transaction->premium_gift_months_ > 0) {
-                      SCOPE_EXIT {
-                        transaction->premium_gift_months_ = 0;
-                        product_info = nullptr;
-                      };
-                      return td_api::make_object<td_api::starTransactionTypePremiumPurchase>(
-                          user_id_object, transaction->premium_gift_months_,
-                          td_->stickers_manager_->get_premium_gift_sticker_object(transaction->premium_gift_months_,
-                                                                                  0));
-                    } else if (for_user) {
-                      return td_api::make_object<td_api::starTransactionTypeBotInvoicePurchase>(
-                          user_id_object, std::move(product_info));
-                    }
+                  if (for_user) {
+                    return td_api::make_object<td_api::starTransactionTypeBotInvoicePurchase>(user_id_object,
+                                                                                              std::move(product_info));
                   }
                 } else {
                   if (for_bot) {
