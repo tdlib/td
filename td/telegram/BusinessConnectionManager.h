@@ -130,6 +130,8 @@ class BusinessConnectionManager final : public Actor {
   void get_business_star_status(BusinessConnectionId business_connection_id,
                                 Promise<td_api::object_ptr<td_api::starAmount>> &&promise);
 
+  void transfer_business_stars(BusinessConnectionId business_connection_id, int64 star_count, Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

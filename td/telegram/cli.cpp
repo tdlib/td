@@ -6756,6 +6756,10 @@ class CliClient final : public Actor {
                                                                           upgraded_gifts, premium_subscription))));
     } else if (op == "gbasa") {
       send_request(td_api::make_object<td_api::getBusinessAccountStarAmount>(business_connection_id_));
+    } else if (op == "tbas") {
+      int64 star_count;
+      get_args(args, star_count);
+      send_request(td_api::make_object<td_api::transferBusinessAccountStars>(business_connection_id_, star_count));
     } else if (op == "grib") {
       send_request(td_api::make_object<td_api::getRecentInlineBots>());
     } else if (op == "gob") {

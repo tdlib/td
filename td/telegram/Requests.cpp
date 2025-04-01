@@ -3928,6 +3928,13 @@ void Requests::on_request(uint64 id, td_api::getBusinessAccountStarAmount &reque
       BusinessConnectionId(std::move(request.business_connection_id_)), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::transferBusinessAccountStars &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->business_connection_manager_->transfer_business_stars(
+      BusinessConnectionId(std::move(request.business_connection_id_)), request.star_count_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::loadQuickReplyShortcuts &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

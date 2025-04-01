@@ -811,6 +811,117 @@ class GetBusinessStarsStatusQuery final : public Td::ResultHandler {
   }
 };
 
+class TransferBusinessStarsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit TransferBusinessStarsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(BusinessConnectionId business_connection_id, int64 payment_form_id, int64 star_count) {
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::payments_sendStarsForm(
+            payment_form_id, telegram_api::make_object<telegram_api::inputInvoiceBusinessBotTransferStars>(
+                                 telegram_api::make_object<telegram_api::inputUserSelf>(), star_count)),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_sendStarsForm>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto payment_result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for TransferBusinessStarsQuery: " << to_string(payment_result);
+    switch (payment_result->get_id()) {
+      case telegram_api::payments_paymentResult::ID: {
+        auto result = telegram_api::move_object_as<telegram_api::payments_paymentResult>(payment_result);
+        promise_.set_value(Unit());
+        break;
+      }
+      case telegram_api::payments_paymentVerificationNeeded::ID:
+        LOG(ERROR) << "Receive " << to_string(payment_result);
+        break;
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "FORM_SUBMIT_DUPLICATE") {
+      LOG(ERROR) << "Receive FORM_SUBMIT_DUPLICATE";
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetBusinessStarTransferPaymentFormQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  BusinessConnectionId business_connection_id_;
+  int64 star_count_;
+
+ public:
+  explicit GetBusinessStarTransferPaymentFormQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(BusinessConnectionId business_connection_id, int64 star_count) {
+    business_connection_id_ = business_connection_id;
+    star_count_ = star_count;
+    send_query(G()->net_query_creator().create_with_prefix(
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::payments_getPaymentForm(
+            0,
+            telegram_api::make_object<telegram_api::inputInvoiceBusinessBotTransferStars>(
+                telegram_api::make_object<telegram_api::inputUserSelf>(), star_count_),
+            nullptr),
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getPaymentForm>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto payment_form_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetBusinessStarTransferPaymentFormQuery: " << to_string(payment_form_ptr);
+    switch (payment_form_ptr->get_id()) {
+      case telegram_api::payments_paymentForm::ID:
+        LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
+        promise_.set_error(Status::Error(500, "Unsupported"));
+        break;
+      case telegram_api::payments_paymentFormStars::ID: {
+        auto payment_form = static_cast<const telegram_api::payments_paymentFormStars *>(payment_form_ptr.get());
+        if (payment_form->invoice_->prices_.size() != 1u ||
+            payment_form->invoice_->prices_[0]->amount_ != star_count_) {
+          return promise_.set_error(Status::Error(400, "Wrong transfer price specified"));
+        }
+        td_->create_handler<TransferBusinessStarsQuery>(std::move(promise_))
+            ->send(business_connection_id_, payment_form->form_id_, star_count_);
+        break;
+      }
+      case telegram_api::payments_paymentFormStarGift::ID: {
+        auto payment_form = static_cast<const telegram_api::payments_paymentFormStarGift *>(payment_form_ptr.get());
+        if (payment_form->invoice_->prices_.size() != 1u ||
+            payment_form->invoice_->prices_[0]->amount_ != star_count_) {
+          return promise_.set_error(Status::Error(400, "Wrong transfer price specified"));
+        }
+        td_->create_handler<TransferBusinessStarsQuery>(std::move(promise_))
+            ->send(business_connection_id_, payment_form->form_id_, star_count_);
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class BusinessConnectionManager::UploadMediaCallback final : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) final {
@@ -1879,6 +1990,17 @@ void BusinessConnectionManager::get_business_star_status(BusinessConnectionId bu
                                                          Promise<td_api::object_ptr<td_api::starAmount>> &&promise) {
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
   td_->create_handler<GetBusinessStarsStatusQuery>(std::move(promise))->send(business_connection_id);
+}
+
+void BusinessConnectionManager::transfer_business_stars(BusinessConnectionId business_connection_id, int64 star_count,
+                                                        Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
+  if (star_count <= 0 || star_count > 1000000000) {
+    return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars to transfer specified"));
+  }
+
+  td_->create_handler<GetBusinessStarTransferPaymentFormQuery>(std::move(promise))
+      ->send(business_connection_id, star_count);
 }
 
 td_api::object_ptr<td_api::updateBusinessConnection> BusinessConnectionManager::get_update_business_connection(
