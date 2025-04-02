@@ -26525,9 +26525,12 @@ MessageFullId MessagesManager::on_send_message_success(int64 random_id, MessageI
   // upload was canceled in delete_message
 
   const auto *input_reply_to = get_message_input_reply_to(sent_message.get());
-  if (input_reply_to != nullptr && input_reply_to->is_valid() &&
-      input_reply_to->get_reply_message_full_id(dialog_id).get_message_id().is_yet_unsent()) {
-    set_message_reply(d, sent_message.get(), MessageInputReplyTo(), false);
+  if (input_reply_to != nullptr) {
+    auto reply_message_full_id = input_reply_to->get_reply_message_full_id(dialog_id);
+    auto reply_message_id = reply_message_full_id.get_message_id();
+    if (reply_message_id.is_valid() && reply_message_id.is_yet_unsent()) {
+      set_message_reply(d, sent_message.get(), MessageInputReplyTo(), false);
+    }
   }
 
   sent_message->message_id = new_message_id;
