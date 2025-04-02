@@ -34,13 +34,13 @@ BusinessBotRights::BusinessBotRights(const td_api::object_ptr<td_api::businessBo
   }
   can_reply_ = bot_rights->can_reply_;
   can_read_messages_ = bot_rights->can_read_messages_;
-  can_delete_sent_messages_ = bot_rights->can_delete_outgoing_messages_;
-  can_delete_received_messages_ = bot_rights->can_delete_incoming_messages_;
+  can_delete_sent_messages_ = bot_rights->can_delete_sent_messages_;
+  can_delete_received_messages_ = bot_rights->can_delete_all_messages_;
   can_edit_name_ = bot_rights->can_edit_name_;
   can_edit_bio_ = bot_rights->can_edit_bio_;
   can_edit_profile_photo_ = bot_rights->can_edit_profile_photo_;
   can_edit_username_ = bot_rights->can_edit_username_;
-  can_view_gifts_ = bot_rights->can_view_gifts_;
+  can_view_gifts_ = bot_rights->can_view_gifts_and_stars_;
   can_sell_gifts_ = bot_rights->can_sell_gifts_;
   can_change_gift_settings_ = bot_rights->can_change_gift_settings_;
   can_transfer_and_upgrade_gifts_ = bot_rights->can_transfer_and_upgrade_gifts_;
