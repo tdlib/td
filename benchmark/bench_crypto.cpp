@@ -145,9 +145,9 @@ class HmacSha512ShortBench final : public td::Benchmark {
   }
 
   void run(int n) final {
-    unsigned char md[32];
+    unsigned char md[64];
     for (int i = 0; i < n; i++) {
-      td::hmac_sha256(td::Slice(data, SHORT_DATA_SIZE), td::Slice(data, SHORT_DATA_SIZE), td::MutableSlice(md, 32));
+      td::hmac_sha512(td::Slice(data, SHORT_DATA_SIZE), td::Slice(data, SHORT_DATA_SIZE), td::MutableSlice(md, 64));
     }
   }
 };
