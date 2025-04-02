@@ -5717,6 +5717,8 @@ void StoryManager::on_edit_business_story(unique_ptr<PendingStory> &&pending_sto
   auto promise = std::move(it->second->promise_);
   being_edited_business_stories_.erase(it);
 
+  td_->updates_manager_->process_updates_users_and_chats(updates.get());
+
   auto story = UpdatesManager::extract_story(updates.get(), pending_story->dialog_id_);
   if (story == nullptr) {
     LOG(ERROR) << "Receive unexpected edit story result: " << to_string(updates);
