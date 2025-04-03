@@ -1121,9 +1121,9 @@ gifts gifts:vector<gift> = Gifts;
 //@total_upgraded_count Total number of gifts that were upgraded from the same gift
 //@max_upgraded_count The maximum number of gifts that can be upgraded from the same gift
 //@owner_id Identifier of the user or the chat that owns the upgraded gift; may be null if none or unknown
-//@owner_address Address of the gift NFT owner in TON blockchain; may be empty if none
+//@owner_address Address of the gift NFT owner in TON blockchain; may be empty if none. Append the address to getOption("ton_blockchain_explorer_url") to get a link with information about the address
 //@owner_name Name of the owner for the case when owner identifier and address aren't known
-//@gift_address Address of the gift NFT in TON blockchain; may be empty if none
+//@gift_address Address of the gift NFT in TON blockchain; may be empty if none. Append the address to getOption("ton_blockchain_explorer_url") to get a link with information about the address
 //@model Model of the upgraded gift
 //@symbol Symbol of the upgraded gift
 //@backdrop Backdrop of the upgraded gift
