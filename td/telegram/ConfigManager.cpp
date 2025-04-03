@@ -1001,12 +1001,9 @@ void ConfigManager::set_content_settings(bool ignore_sensitive_content_restricti
   queries.push_back(std::move(promise));
   if (!is_set_content_settings_request_sent_) {
     is_set_content_settings_request_sent_ = true;
-    int32 flags = 0;
-    if (ignore_sensitive_content_restrictions) {
-      flags |= telegram_api::account_setContentSettings::SENSITIVE_ENABLED_MASK;
-    }
     G()->net_query_dispatcher().dispatch_with_callback(
-        G()->net_query_creator().create(telegram_api::account_setContentSettings(flags, false /*ignored*/)),
+        G()->net_query_creator().create(
+            telegram_api::account_setContentSettings(0, ignore_sensitive_content_restrictions)),
         actor_shared(this, 3 + static_cast<uint64>(ignore_sensitive_content_restrictions)));
   }
 }

@@ -68,20 +68,14 @@ class SaveAutoSaveSettingsQuery final : public Td::ResultHandler {
             telegram_api::object_ptr<telegram_api::autoSaveSettings> settings) {
     int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
-    if (users) {
-      flags |= telegram_api::account_saveAutoSaveSettings::USERS_MASK;
-    } else if (chats) {
-      flags |= telegram_api::account_saveAutoSaveSettings::CHATS_MASK;
-    } else if (broadcasts) {
-      flags |= telegram_api::account_saveAutoSaveSettings::BROADCASTS_MASK;
-    } else {
+    if (!users && !chats && !broadcasts) {
       flags |= telegram_api::account_saveAutoSaveSettings::PEER_MASK;
       input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
       CHECK(input_peer != nullptr);
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::account_saveAutoSaveSettings(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   std::move(input_peer), std::move(settings)),
+        telegram_api::account_saveAutoSaveSettings(flags, users, chats, broadcasts, std::move(input_peer),
+                                                   std::move(settings)),
         {{"me"}}));
   }
 

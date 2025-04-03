@@ -76,15 +76,8 @@ class SaveAutoDownloadSettingsQuery final : public Td::ResultHandler {
   }
 
   void send(NetType type, const AutoDownloadSettings &settings) {
-    int32 flags = 0;
-    if (type == NetType::MobileRoaming) {
-      flags |= telegram_api::account_saveAutoDownloadSettings::LOW_MASK;
-    }
-    if (type == NetType::WiFi) {
-      flags |= telegram_api::account_saveAutoDownloadSettings::HIGH_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::account_saveAutoDownloadSettings(
-        flags, false /*ignored*/, false /*ignored*/, get_input_auto_download_settings(settings))));
+        0, type == NetType::MobileRoaming, type == NetType::WiFi, get_input_auto_download_settings(settings))));
   }
 
   void on_result(BufferSlice packet) final {

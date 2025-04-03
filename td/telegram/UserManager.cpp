@@ -794,9 +794,6 @@ class UpdateColorQuery final : public Td::ResultHandler {
     accent_color_id_ = accent_color_id;
     background_custom_emoji_id_ = background_custom_emoji_id;
     int32 flags = 0;
-    if (for_profile) {
-      flags |= telegram_api::account_updateColor::FOR_PROFILE_MASK;
-    }
     if (accent_color_id.is_valid()) {
       flags |= telegram_api::account_updateColor::COLOR_MASK;
     }
@@ -804,8 +801,7 @@ class UpdateColorQuery final : public Td::ResultHandler {
       flags |= telegram_api::account_updateColor::BACKGROUND_EMOJI_ID_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::account_updateColor(flags, false /*ignored*/, accent_color_id.get(),
-                                          background_custom_emoji_id.get()),
+        telegram_api::account_updateColor(flags, for_profile, accent_color_id.get(), background_custom_emoji_id.get()),
         {{"me"}}));
   }
 
