@@ -5690,6 +5690,7 @@ void StoryManager::edit_business_story(DialogId owner_dialog_id, StoryId story_i
   }
 
   auto &edited_story = being_edited_business_stories_[edit_story_num];
+  CHECK(edited_story == nullptr);
   edited_story = make_unique<BeingEditedBusinessStory>();
   edited_story->content_ = std::move(content);
   edited_story->areas_ = std::move(areas);
