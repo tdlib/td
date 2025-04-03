@@ -14,8 +14,10 @@
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/StarGiftSettings.h"
+#include "td/telegram/StoryId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 

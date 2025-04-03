@@ -1514,14 +1514,14 @@ void UpdatesManager::process_updates_users_and_chats(telegram_api::Updates *upda
   switch (updates_ptr->get_id()) {
     case telegram_api::updatesCombined::ID: {
       auto updates = static_cast<telegram_api::updatesCombined *>(updates_ptr);
-      td_->user_manager_->on_get_users(std::move(updates->users_), "updatesCombined");
-      td_->chat_manager_->on_get_chats(std::move(updates->chats_), "updatesCombined");
+      td_->user_manager_->on_get_users(std::move(updates->users_), "updatesCombined 2");
+      td_->chat_manager_->on_get_chats(std::move(updates->chats_), "updatesCombined 2");
       break;
     }
     case telegram_api::updates::ID: {
       auto updates = static_cast<telegram_api::updates *>(updates_ptr);
-      td_->user_manager_->on_get_users(std::move(updates->users_), "updates");
-      td_->chat_manager_->on_get_chats(std::move(updates->chats_), "updates");
+      td_->user_manager_->on_get_users(std::move(updates->users_), "updates 2");
+      td_->chat_manager_->on_get_chats(std::move(updates->chats_), "updates 2");
       break;
     }
     default:

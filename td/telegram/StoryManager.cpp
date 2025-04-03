@@ -4068,7 +4068,7 @@ void StoryManager::on_delete_story(StoryFullId story_full_id) {
   }
 
   if (!is_bot) {
-    auto active_stories = get_active_stories_force(owner_dialog_id, "on_get_deleted_story");
+    auto active_stories = get_active_stories_force(owner_dialog_id, "on_delete_story");
     if (active_stories != nullptr && contains(active_stories->story_ids_, story_id)) {
       auto story_ids = active_stories->story_ids_;
       td::remove(story_ids, story_id);

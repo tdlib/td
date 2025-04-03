@@ -30,6 +30,7 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarAmount.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"

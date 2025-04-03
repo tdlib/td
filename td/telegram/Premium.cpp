@@ -596,7 +596,7 @@ class SendPremiumGiftQuery final : public Td::ResultHandler {
     }
 
     auto payment_result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendGiftQuery: " << to_string(payment_result);
+    LOG(INFO) << "Receive result for SendPremiumGiftQuery: " << to_string(payment_result);
     switch (payment_result->get_id()) {
       case telegram_api::payments_paymentResult::ID: {
         auto result = telegram_api::move_object_as<telegram_api::payments_paymentResult>(payment_result);

@@ -27991,7 +27991,7 @@ void MessagesManager::on_create_new_dialog(telegram_api::object_ptr<telegram_api
                                            MissingInvitees &&missing_invitees,
                                            Promise<td_api::object_ptr<td_api::createdBasicGroupChat>> &&chat_promise,
                                            Promise<td_api::object_ptr<td_api::chat>> &&channel_promise) {
-  LOG(INFO) << "Receive result for creation of a chat: " << to_string(updates);
+  LOG(INFO) << "Receive result for creating of a chat: " << to_string(updates);
 
   auto fail = [&](Slice message) {
     chat_promise.set_error(Status::Error(500, message));
