@@ -719,12 +719,9 @@ class DeleteContactProfilePhotoQuery final : public Td::ResultHandler {
     CHECK(input_user != nullptr);
     user_id_ = user_id;
 
-    int32 flags = 0;
-    flags |= telegram_api::photos_uploadContactProfilePhoto::SAVE_MASK;
-    send_query(G()->net_query_creator().create(
-        telegram_api::photos_uploadContactProfilePhoto(flags, false /*ignored*/, false /*ignored*/,
-                                                       std::move(input_user), nullptr, nullptr, 0, nullptr),
-        {{user_id}}));
+    send_query(G()->net_query_creator().create(telegram_api::photos_uploadContactProfilePhoto(
+                                                   0, false, true, std::move(input_user), nullptr, nullptr, 0, nullptr),
+                                               {{user_id}}));
   }
 
   void on_result(BufferSlice packet) final {

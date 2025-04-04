@@ -76,14 +76,8 @@ class GetAllStoriesQuery final : public Td::ResultHandler {
     if (!state.empty()) {
       flags |= telegram_api::stories_getAllStories::STATE_MASK;
     }
-    if (is_next) {
-      flags |= telegram_api::stories_getAllStories::NEXT_MASK;
-    }
-    if (story_list_id == StoryListId::archive()) {
-      flags |= telegram_api::stories_getAllStories::HIDDEN_MASK;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::stories_getAllStories(flags, false /*ignored*/, false /*ignored*/, state)));
+    bool hidden = story_list_id == StoryListId::archive();
+    send_query(G()->net_query_creator().create(telegram_api::stories_getAllStories(flags, is_next, hidden, state)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -273,15 +267,13 @@ class SendStoryReactionQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
     CHECK(!reaction_type.is_paid_reaction());
-
-    int32 flags = 0;
-    if (!reaction_type.is_empty() && add_to_recent) {
-      flags |= telegram_api::stories_sendReaction::ADD_TO_RECENT_MASK;
+    if (reaction_type.is_empty()) {
+      add_to_recent = false;
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::stories_sendReaction(flags, false /*ignored*/, std::move(input_peer),
-                                           story_full_id.get_story_id().get(), reaction_type.get_input_reaction()),
+        telegram_api::stories_sendReaction(0, add_to_recent, std::move(input_peer), story_full_id.get_story_id().get(),
+                                           reaction_type.get_input_reaction()),
         {{story_full_id}, {"view_story"}}));
   }
 
@@ -326,17 +318,8 @@ class GetStoryViewsListQuery final : public Td::ResultHandler {
     if (!query.empty()) {
       flags |= telegram_api::stories_getStoryViewsList::Q_MASK;
     }
-    if (only_contacts) {
-      flags |= telegram_api::stories_getStoryViewsList::JUST_CONTACTS_MASK;
-    }
-    if (prefer_forwards) {
-      flags |= telegram_api::stories_getStoryViewsList::FORWARDS_FIRST_MASK;
-    }
-    if (prefer_with_reaction) {
-      flags |= telegram_api::stories_getStoryViewsList::REACTIONS_FIRST_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::stories_getStoryViewsList(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        telegram_api::stories_getStoryViewsList(flags, only_contacts, prefer_with_reaction, prefer_forwards,
                                                 std::move(input_peer), query, story_id.get(), offset, limit)));
   }
 
@@ -383,11 +366,8 @@ class GetStoryReactionsListQuery final : public Td::ResultHandler {
     if (!offset.empty()) {
       flags |= telegram_api::stories_getStoryReactionsList::OFFSET_MASK;
     }
-    if (prefer_forwards) {
-      flags |= telegram_api::stories_getStoryReactionsList::FORWARDS_FIRST_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::stories_getStoryReactionsList(
-        flags, false /*ignored*/, std::move(input_peer), story_full_id.get_story_id().get(),
+        flags, prefer_forwards, std::move(input_peer), story_full_id.get_story_id().get(),
         reaction_type.get_input_reaction(), offset, limit)));
   }
 
@@ -995,11 +975,8 @@ class ActivateStealthModeQuery final : public Td::ResultHandler {
   }
 
   void send() {
-    int32 flags =
-        telegram_api::stories_activateStealthMode::PAST_MASK | telegram_api::stories_activateStealthMode::FUTURE_MASK;
-
-    send_query(G()->net_query_creator().create(
-        telegram_api::stories_activateStealthMode(flags, false /*ignored*/, false /*ignored*/), {{"view_story"}}));
+    send_query(
+        G()->net_query_creator().create(telegram_api::stories_activateStealthMode(0, true, true), {{"view_story"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1144,19 +1121,12 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     if (!entities.empty()) {
       flags |= telegram_api::stories_sendStory::ENTITIES_MASK;
     }
-    if (pending_story_->story_->is_pinned_) {
-      flags |= telegram_api::stories_sendStory::PINNED_MASK;
-    }
     if (period != 86400) {
       flags |= telegram_api::stories_sendStory::PERIOD_MASK;
     }
     if (story->forward_info_ != nullptr) {
-      flags |= telegram_api::stories_sendStory::FWD_MODIFIED_MASK;
       flags |= telegram_api::stories_sendStory::FWD_FROM_ID_MASK;
       flags |= telegram_api::stories_sendStory::FWD_FROM_STORY_MASK;
-    }
-    if (story->noforwards_) {
-      flags |= telegram_api::stories_sendStory::NOFORWARDS_MASK;
     }
     auto input_media_areas = MediaArea::get_input_media_areas(td_, story->areas_);
     if (!input_media_areas.empty()) {
@@ -1164,10 +1134,11 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::stories_sendStory(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                        std::move(input_peer), std::move(input_media), std::move(input_media_areas),
-                                        caption.text, std::move(entities), std::move(privacy_rules),
-                                        pending_story_->random_id_, period, std::move(fwd_input_peer), fwd_story_id),
+        telegram_api::stories_sendStory(flags, pending_story_->story_->is_pinned_, story->noforwards_,
+                                        story->forward_info_ != nullptr, std::move(input_peer), std::move(input_media),
+                                        std::move(input_media_areas), caption.text, std::move(entities),
+                                        std::move(privacy_rules), pending_story_->random_id_, period,
+                                        std::move(fwd_input_peer), fwd_story_id),
         {{pending_story_->dialog_id_}}));
   }
 
