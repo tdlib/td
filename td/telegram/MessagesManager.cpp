@@ -421,13 +421,9 @@ class ExportChannelMessageLinkQuery final : public Td::ResultHandler {
     if (input_channel == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
-    int32 flags = 0;
-    if (for_group) {
-      flags |= telegram_api::channels_exportMessageLink::GROUPED_MASK;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::channels_exportMessageLink(flags, false /*ignored*/, false /*ignored*/, std::move(input_channel),
-                                                 message_id.get_server_message_id().get())));
+    bool for_thread = false;
+    send_query(G()->net_query_creator().create(telegram_api::channels_exportMessageLink(
+        0, for_group, for_thread, std::move(input_channel), message_id.get_server_message_id().get())));
   }
 
   void on_result(BufferSlice packet) final {

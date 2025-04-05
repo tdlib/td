@@ -1011,13 +1011,8 @@ class DeleteChannelHistoryQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    int32 flags = 0;
-    if (revoke) {
-      flags |= telegram_api::channels_deleteHistory::FOR_EVERYONE_MASK;
-    }
-
     send_query(G()->net_query_creator().create(telegram_api::channels_deleteHistory(
-        flags, false /*ignored*/, std::move(input_channel), max_message_id.get_server_message_id().get())));
+        0, revoke, std::move(input_channel), max_message_id.get_server_message_id().get())));
   }
 
   void on_result(BufferSlice packet) final {
