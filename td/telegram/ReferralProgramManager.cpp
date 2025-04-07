@@ -111,21 +111,22 @@ class ReferralProgramManager::GetSuggestedStarRefBotsQuery final : public Td::Re
     affiliate_type_ = affiliate_type;
     auto input_peer = affiliate_type.get_input_peer(td_);
     CHECK(input_peer != nullptr);
-    int32 flags = 0;
+    bool order_by_revenue = false;
+    bool order_by_date = false;
     switch (sort_order) {
       case ReferralProgramSortOrder::Profitability:
         break;
       case ReferralProgramSortOrder::Date:
-        flags |= telegram_api::payments_getSuggestedStarRefBots::ORDER_BY_DATE_MASK;
+        order_by_date = true;
         break;
       case ReferralProgramSortOrder::Revenue:
-        flags |= telegram_api::payments_getSuggestedStarRefBots::ORDER_BY_REVENUE_MASK;
+        order_by_revenue = true;
         break;
       default:
         UNREACHABLE();
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_getSuggestedStarRefBots(
-        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), offset, limit)));
+        0, order_by_revenue, order_by_date, std::move(input_peer), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -224,11 +225,10 @@ class ReferralProgramManager::EditConnectedStarRefBotQuery final : public Td::Re
 
   void send(AffiliateType affiliate_type, const string &url) {
     affiliate_type_ = affiliate_type;
-    int32 flags = telegram_api::payments_editConnectedStarRefBot::REVOKED_MASK;
     auto input_peer = affiliate_type.get_input_peer(td_);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_editConnectedStarRefBot(flags, false /*ignored*/, std::move(input_peer), url)));
+        telegram_api::payments_editConnectedStarRefBot(0, true, std::move(input_peer), url)));
   }
 
   void on_result(BufferSlice packet) final {

@@ -607,16 +607,11 @@ class ValidateRequestedInfoQuery final : public Td::ResultHandler {
             bool allow_save) {
     dialog_id_ = input_invoice_info.dialog_id_;
 
-    int32 flags = 0;
-    if (allow_save) {
-      flags |= telegram_api::payments_validateRequestedInfo::SAVE_MASK;
-    }
     if (requested_info == nullptr) {
-      requested_info = make_tl_object<telegram_api::paymentRequestedInfo>();
-      requested_info->flags_ = 0;
+      requested_info = telegram_api::make_object<telegram_api::paymentRequestedInfo>();
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_validateRequestedInfo(
-        flags, false /*ignored*/, std::move(input_invoice_info.input_invoice_), std::move(requested_info))));
+        0, allow_save, std::move(input_invoice_info.input_invoice_), std::move(requested_info))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -889,15 +884,8 @@ class ClearSavedInfoQuery final : public Td::ResultHandler {
 
   void send(bool clear_credentials, bool clear_order_info) {
     CHECK(clear_credentials || clear_order_info);
-    int32 flags = 0;
-    if (clear_credentials) {
-      flags |= telegram_api::payments_clearSavedInfo::CREDENTIALS_MASK;
-    }
-    if (clear_order_info) {
-      flags |= telegram_api::payments_clearSavedInfo::INFO_MASK;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::payments_clearSavedInfo(flags, false /*ignored*/, false /*ignored*/)));
+    send_query(
+        G()->net_query_creator().create(telegram_api::payments_clearSavedInfo(0, clear_credentials, clear_order_info)));
   }
 
   void on_result(BufferSlice packet) final {

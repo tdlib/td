@@ -228,12 +228,8 @@ class SaveStarGiftQuery final : public Td::ResultHandler {
   void send(StarGiftId star_gift_id, bool is_saved) {
     dialog_id_ = star_gift_id.get_dialog_id(td_);
     is_saved_ = is_saved;
-    int32 flags = 0;
-    if (!is_saved) {
-      flags |= telegram_api::payments_saveStarGift::UNSAVE_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_saveStarGift(flags, false /*ignored*/, star_gift_id.get_input_saved_star_gift(td_)),
+        telegram_api::payments_saveStarGift(0, !is_saved, star_gift_id.get_input_saved_star_gift(td_)),
         {{dialog_id_}}));
   }
 
@@ -298,13 +294,8 @@ class ToggleChatStarGiftNotificationsQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    int32 flags = 0;
-    if (are_enabled) {
-      flags |= telegram_api::payments_toggleChatStarGiftNotifications::ENABLED_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_toggleChatStarGiftNotifications(flags, false /*ignored*/, std::move(input_peer)),
-        {{dialog_id_}}));
+        telegram_api::payments_toggleChatStarGiftNotifications(0, are_enabled, std::move(input_peer)), {{dialog_id_}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -437,13 +428,9 @@ class UpgradeStarGiftQuery final : public Td::ResultHandler {
   void send(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, bool keep_original_details) {
     auto input_gift = star_gift_id.get_input_saved_star_gift(td_);
     CHECK(input_gift != nullptr);
-    int32 flags = 0;
-    if (keep_original_details) {
-      flags |= telegram_api::payments_upgradeStarGift::KEEP_ORIGINAL_DETAILS_MASK;
-    }
     send_query(G()->net_query_creator().create_with_prefix(
         business_connection_id.get_invoke_prefix(),
-        telegram_api::payments_upgradeStarGift(flags, false /*ignored*/, std::move(input_gift)),
+        telegram_api::payments_upgradeStarGift(0, keep_original_details, std::move(input_gift)),
         td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
   }
 
@@ -750,30 +737,10 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
-    int32 flags = 0;
-    if (exclude_unsaved) {
-      flags |= telegram_api::payments_getSavedStarGifts::EXCLUDE_UNSAVED_MASK;
-    }
-    if (exclude_saved) {
-      flags |= telegram_api::payments_getSavedStarGifts::EXCLUDE_SAVED_MASK;
-    }
-    if (exclude_unlimited) {
-      flags |= telegram_api::payments_getSavedStarGifts::EXCLUDE_UNLIMITED_MASK;
-    }
-    if (exclude_limited) {
-      flags |= telegram_api::payments_getSavedStarGifts::EXCLUDE_LIMITED_MASK;
-    }
-    if (exclude_unique) {
-      flags |= telegram_api::payments_getSavedStarGifts::EXCLUDE_UNIQUE_MASK;
-    }
-    if (sort_by_value) {
-      flags |= telegram_api::payments_getSavedStarGifts::SORT_BY_VALUE_MASK;
-    }
     send_query(G()->net_query_creator().create_with_prefix(
         business_connection_id.get_invoke_prefix(),
-        telegram_api::payments_getSavedStarGifts(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                 false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                 std::move(input_peer), offset, limit),
+        telegram_api::payments_getSavedStarGifts(0, exclude_unsaved, exclude_saved, exclude_unlimited, exclude_limited,
+                                                 exclude_unique, sort_by_value, std::move(input_peer), offset, limit),
         td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id), {{dialog_id_}}));
   }
 
