@@ -212,11 +212,8 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
     if (start_date > 0) {
       flags |= telegram_api::phone_createGroupCall::SCHEDULE_DATE_MASK;
     }
-    if (is_rtmp_stream) {
-      flags |= telegram_api::phone_createGroupCall::RTMP_STREAM_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::phone_createGroupCall(
-        flags, false, std::move(input_peer), Random::secure_int32(), title, start_date)));
+        flags, is_rtmp_stream, std::move(input_peer), Random::secure_int32(), title, start_date)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -442,22 +439,15 @@ class JoinGroupCallQuery final : public Td::ResultHandler {
     CHECK(join_as_input_peer != nullptr);
 
     int32 flags = 0;
-    if (is_muted) {
-      flags |= telegram_api::phone_joinGroupCall::MUTED_MASK;
-    }
     if (!invite_hash.empty()) {
       flags |= telegram_api::phone_joinGroupCall::INVITE_HASH_MASK;
-    }
-    if (is_video_stopped) {
-      flags |= telegram_api::phone_joinGroupCall::VIDEO_STOPPED_MASK;
     }
     if (key_fingerprint != 0) {
       flags |= telegram_api::phone_joinGroupCall::KEY_FINGERPRINT_MASK;
     }
     auto query = G()->net_query_creator().create(telegram_api::phone_joinGroupCall(
-        flags, false /*ignored*/, false /*ignored*/, input_group_call_id.get_input_group_call(),
-        std::move(join_as_input_peer), invite_hash, key_fingerprint,
-        telegram_api::make_object<telegram_api::dataJSON>(payload)));
+        flags, is_muted, is_video_stopped, input_group_call_id.get_input_group_call(), std::move(join_as_input_peer),
+        invite_hash, key_fingerprint, telegram_api::make_object<telegram_api::dataJSON>(payload)));
     auto join_query_ref = query.get_weak();
     send_query(std::move(query));
     return join_query_ref;
@@ -618,9 +608,13 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
   explicit ToggleGroupCallSettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(int32 flags, InputGroupCallId input_group_call_id, bool join_muted) {
+  void send(InputGroupCallId input_group_call_id, bool reset_invite_hash, bool set_join_muted, bool join_muted) {
+    int32 flags = 0;
+    if (set_join_muted) {
+      flags |= telegram_api::phone_toggleGroupCallSettings::JOIN_MUTED_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::phone_toggleGroupCallSettings(
-        flags, false /*ignored*/, input_group_call_id.get_input_group_call(), join_muted)));
+        flags, reset_invite_hash, input_group_call_id.get_input_group_call(), join_muted)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -679,12 +673,8 @@ class ExportGroupCallInviteQuery final : public Td::ResultHandler {
   }
 
   void send(InputGroupCallId input_group_call_id, bool can_self_unmute) {
-    int32 flags = 0;
-    if (can_self_unmute) {
-      flags |= telegram_api::phone_exportGroupCallInvite::CAN_SELF_UNMUTE_MASK;
-    }
-    send_query(G()->net_query_creator().create(telegram_api::phone_exportGroupCallInvite(
-        flags, false /*ignored*/, input_group_call_id.get_input_group_call())));
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_exportGroupCallInvite(0, can_self_unmute, input_group_call_id.get_input_group_call())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -712,18 +702,11 @@ class ToggleGroupCallRecordQuery final : public Td::ResultHandler {
   void send(InputGroupCallId input_group_call_id, bool is_enabled, const string &title, bool record_video,
             bool use_portrait_orientation) {
     int32 flags = 0;
-    if (is_enabled) {
-      flags |= telegram_api::phone_toggleGroupCallRecord::START_MASK;
-    }
     if (!title.empty()) {
       flags |= telegram_api::phone_toggleGroupCallRecord::TITLE_MASK;
     }
-    if (record_video) {
-      flags |= telegram_api::phone_toggleGroupCallRecord::VIDEO_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::phone_toggleGroupCallRecord(
-        flags, false /*ignored*/, false /*ignored*/, input_group_call_id.get_input_group_call(), title,
-        use_portrait_orientation)));
+        flags, is_enabled, record_video, input_group_call_id.get_input_group_call(), title, use_portrait_orientation)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3455,9 +3438,8 @@ void GroupCallManager::send_toggle_group_call_mute_new_participants_query(InputG
         send_closure(actor_id, &GroupCallManager::on_toggle_group_call_mute_new_participants, input_group_call_id,
                      mute_new_participants, std::move(result));
       });
-  int32 flags = telegram_api::phone_toggleGroupCallSettings::JOIN_MUTED_MASK;
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))
-      ->send(flags, input_group_call_id, mute_new_participants);
+      ->send(input_group_call_id, false, true, mute_new_participants);
 }
 
 void GroupCallManager::on_toggle_group_call_mute_new_participants(InputGroupCallId input_group_call_id,
@@ -3518,8 +3500,7 @@ void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, 
     return promise.set_error(Status::Error(400, "Can't reset invite hash in the group call"));
   }
 
-  int32 flags = telegram_api::phone_toggleGroupCallSettings::RESET_INVITE_HASH_MASK;
-  td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))->send(flags, input_group_call_id, false);
+  td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))->send(input_group_call_id, true, false, false);
 }
 
 void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids,
