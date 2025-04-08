@@ -5183,6 +5183,9 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   unique_ptr<StoryForwardInfo> forward_info;
   StoryFullId forward_from_story_full_id;
   if (from_story_full_id != nullptr) {
+    if (is_bot) {
+      return promise.set_error(Status::Error(400, "Bots can't repost stories"));
+    }
     forward_from_story_full_id =
         StoryFullId(DialogId(from_story_full_id->sender_chat_id_), StoryId(from_story_full_id->story_id_));
     const Story *story = get_story(forward_from_story_full_id);
@@ -5200,7 +5203,7 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
     forward_info->hide_sender_if_needed(td_);
   }
   if (active_period != 86400 && !(G()->is_test_dc() && (active_period == 60 || active_period == 300))) {
-    bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
+    bool is_premium = td_->option_manager_->get_option_boolean("is_premium") || is_bot;
     if (!is_premium || !td::contains(vector<int32>{6 * 3600, 12 * 3600, 2 * 86400}, active_period)) {
       return promise.set_error(Status::Error(400, "Invalid story active period specified"));
     }
