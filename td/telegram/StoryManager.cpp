@@ -3925,6 +3925,10 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateStorySendSucceeded>(get_story_object(story_full_id, story),
                                                                        old_story_id.get()));
+    if (td_->auth_manager_->is_bot()) {
+      on_delete_story(story_full_id);
+      return StoryId();
+    }
   }
 
   return story_id;
