@@ -80,10 +80,10 @@ class UpdateConnectedBotQuery final : public Td::ResultHandler {
   }
 
   void send(const BusinessConnectedBot &bot, telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
-    int32 flags = telegram_api::account_updateConnectedBot::RIGHTS_MASK;
     auto rights = bot.get_rights().get_input_business_bot_rights();
     send_query(G()->net_query_creator().create(
-        telegram_api::account_updateConnectedBot(flags, false, std::move(rights), std::move(input_user),
+        telegram_api::account_updateConnectedBot(telegram_api::account_updateConnectedBot::RIGHTS_MASK, false,
+                                                 std::move(rights), std::move(input_user),
                                                  bot.get_recipients().get_input_business_bot_recipients(td_)),
         {{"me"}}));
   }
