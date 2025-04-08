@@ -4353,8 +4353,7 @@ void Requests::on_request(uint64 id, const td_api::createCall &request) {
     }
   });
   send_closure(G()->call_manager(), &CallManager::create_call, UserId(request.user_id_),
-               CallProtocol(*request.protocol_), request.is_video_, GroupCallId(request.group_call_id_),
-               std::move(query_promise));
+               CallProtocol(*request.protocol_), request.is_video_, std::move(query_promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::acceptCall &request) {

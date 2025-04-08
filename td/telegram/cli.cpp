@@ -4466,11 +4466,10 @@ class CliClient final : public Actor {
 
     if (op == "cc") {
       UserId user_id;
-      GroupCallId group_call_id;
-      get_args(args, user_id, group_call_id);
+      get_args(args, user_id);
       send_request(td_api::make_object<td_api::createCall>(
           user_id, td_api::make_object<td_api::callProtocol>(true, true, 65, 65, vector<string>{"2.6", "3.0"}),
-          rand_bool(), group_call_id));
+          rand_bool()));
     } else if (op == "ac") {
       CallId call_id;
       get_args(args, call_id);

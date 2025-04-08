@@ -192,17 +192,12 @@ CallActor::CallActor(Td *td, CallId call_id, ActorShared<> parent, Promise<int64
     : td_(td), parent_(std::move(parent)), call_id_promise_(std::move(promise)), local_call_id_(call_id) {
 }
 
-void CallActor::create_call(UserId user_id, CallProtocol &&protocol, bool is_video, GroupCallId group_call_id,
-                            Promise<CallId> &&promise) {
+void CallActor::create_call(UserId user_id, CallProtocol &&protocol, bool is_video, Promise<CallId> &&promise) {
   CHECK(state_ == State::Empty);
   state_ = State::SendRequestQuery;
   is_outgoing_ = true;
   is_video_ = is_video;
   user_id_ = user_id;
-  auto r_input_group_call_id = td_->group_call_manager_->get_input_group_call_id(group_call_id);
-  if (r_input_group_call_id.is_ok()) {
-    input_group_call_id_ = r_input_group_call_id.ok();
-  }
   call_state_.protocol = std::move(protocol);
   call_state_.type = CallState::Type::Pending;
   call_state_.is_received = false;
@@ -989,9 +984,8 @@ void CallActor::flush_call_state() {
     call_state_need_flush_ = false;
 
     auto peer_id = is_outgoing_ ? user_id_ : call_admin_user_id_;
-    auto group_call_id = td_->group_call_manager_->get_group_call_id(input_group_call_id_, DialogId()).get();
     auto update = td_api::make_object<td_api::updateCall>(td_api::make_object<td_api::call>(
-        local_call_id_.get(), 0, is_outgoing_, is_video_, call_state_.get_call_state_object(), group_call_id));
+        local_call_id_.get(), 0, is_outgoing_, is_video_, call_state_.get_call_state_object()));
     send_closure(G()->user_manager(), &UserManager::get_user_id_object_async, peer_id,
                  [td_actor = G()->td(), update = std::move(update)](Result<int64> r_user_id) mutable {
                    if (r_user_id.is_ok()) {

@@ -8,7 +8,6 @@
 
 #include "td/telegram/CallActor.h"
 #include "td/telegram/CallId.h"
-#include "td/telegram/GroupCallId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -36,8 +35,7 @@ class CallManager final : public Actor {
 
   void update_call_signaling_data(int64 call_id, string data);
 
-  void create_call(UserId user_id, CallProtocol &&protocol, bool is_video, GroupCallId group_call_id,
-                   Promise<CallId> promise);
+  void create_call(UserId user_id, CallProtocol &&protocol, bool is_video, Promise<CallId> promise);
 
   void accept_call(CallId call_id, CallProtocol &&protocol, Promise<Unit> promise);
 

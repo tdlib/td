@@ -10,8 +10,6 @@
 #include "td/telegram/CallId.h"
 #include "td/telegram/DhConfig.h"
 #include "td/telegram/files/FileUploadId.h"
-#include "td/telegram/GroupCallId.h"
-#include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -102,8 +100,7 @@ class CallActor final : public NetQueryCallback {
  public:
   CallActor(Td *td, CallId call_id, ActorShared<> parent, Promise<int64> promise);
 
-  void create_call(UserId user_id, CallProtocol &&protocol, bool is_video, GroupCallId group_call_id,
-                   Promise<CallId> &&promise);
+  void create_call(UserId user_id, CallProtocol &&protocol, bool is_video, Promise<CallId> &&promise);
 
   void accept_call(CallProtocol &&protocol, Promise<Unit> promise);
 
@@ -155,7 +152,6 @@ class CallActor final : public NetQueryCallback {
   bool is_outgoing_{false};
   bool is_video_{false};
   UserId user_id_;
-  InputGroupCallId input_group_call_id_;
 
   CallId local_call_id_;
   int64 call_id_{0};

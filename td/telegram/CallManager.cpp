@@ -90,16 +90,14 @@ void CallManager::update_call_signaling_data(int64 call_id, string data) {
   send_closure(actor, &CallActor::update_call_signaling_data, std::move(data));
 }
 
-void CallManager::create_call(UserId user_id, CallProtocol &&protocol, bool is_video, GroupCallId group_call_id,
-                              Promise<CallId> promise) {
+void CallManager::create_call(UserId user_id, CallProtocol &&protocol, bool is_video, Promise<CallId> promise) {
   TRY_STATUS_PROMISE(promise, td_->user_manager_->get_input_user(user_id));
   LOG(INFO) << "Create call with " << user_id;
   auto call_id = create_call_actor();
   auto actor = get_call_actor(call_id);
   CHECK(!actor.empty());
   auto safe_promise = SafePromise<CallId>(std::move(promise), Status::Error(400, "Call not found"));
-  send_closure(actor, &CallActor::create_call, user_id, std::move(protocol), is_video, group_call_id,
-               std::move(safe_promise));
+  send_closure(actor, &CallActor::create_call, user_id, std::move(protocol), is_video, std::move(safe_promise));
 }
 
 void CallManager::accept_call(CallId call_id, CallProtocol &&protocol, Promise<Unit> promise) {
