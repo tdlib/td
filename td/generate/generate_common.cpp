@@ -34,7 +34,8 @@ static void generate_cpp(const std::string &directory, const std::string &tl_nam
 
 int main() {
   generate_cpp<>("td/telegram", "telegram_api", "std::string", "BufferSlice",
-                 {"\"td/tl/tl_object_parse.h\"", "\"td/tl/tl_object_store.h\""}, {"\"td/utils/buffer.h\""});
+                 {"\"td/tl/tl_object_parse.h\"", "\"td/tl/tl_object_store.h\""},
+                 {"\"td/utils/buffer.h\"", "\"td/utils/UInt.h\""});
 
   generate_cpp<>("td/telegram", "secret_api", "std::string", "BufferSlice",
                  {"\"td/tl/tl_object_parse.h\"", "\"td/tl/tl_object_store.h\""}, {"\"td/utils/buffer.h\""});

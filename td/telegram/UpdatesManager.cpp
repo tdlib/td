@@ -1088,6 +1088,15 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
           }
           break;
         }
+        case telegram_api::messageActionConferenceCall::ID: {
+          auto content = static_cast<const telegram_api::messageActionConferenceCall *>(action);
+          for (auto &participant : content->other_participants_) {
+            if (!is_acceptable_peer(participant)) {
+              return false;
+            }
+          }
+          break;
+        }
         default:
           UNREACHABLE();
           return false;
@@ -4670,6 +4679,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueSta
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallChainBlocks> update,
+                               Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

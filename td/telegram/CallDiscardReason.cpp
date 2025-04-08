@@ -28,6 +28,9 @@ CallDiscardReason get_call_discard_reason(
       case telegram_api::phoneCallDiscardReasonBusy::ID:
         result.type_ = CallDiscardReason::Type::Declined;
         break;
+      case telegram_api::phoneCallDiscardReasonMigrateConferenceCall::ID:
+        result.type_ = CallDiscardReason::Type::Declined;
+        break;
       /*
       case telegram_api::phoneCallDiscardReasonAllowGroupCall::ID:
         result.type_ = CallDiscardReason::Type::AllowGroupCall;

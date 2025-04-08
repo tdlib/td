@@ -172,8 +172,6 @@ class CallActor final : public NetQueryCallback {
 
   void update_call_inner(tl_object_ptr<telegram_api::phone_phoneCall> call);
 
-  void update_conference_call(const telegram_api::object_ptr<telegram_api::inputGroupCall> &conference_call);
-
   tl_object_ptr<telegram_api::inputPhoneCall> get_input_phone_call(const char *source);
   bool load_dh_config();
   void on_dh_config(Result<std::shared_ptr<DhConfig>> r_dh_config, bool dummy);

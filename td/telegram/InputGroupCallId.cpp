@@ -6,14 +6,23 @@
 //
 #include "td/telegram/InputGroupCallId.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
-InputGroupCallId::InputGroupCallId(const tl_object_ptr<telegram_api::inputGroupCall> &input_group_call)
-    : group_call_id(input_group_call->id_), access_hash(input_group_call->access_hash_) {
+InputGroupCallId::InputGroupCallId(const telegram_api::object_ptr<telegram_api::InputGroupCall> &input_group_call) {
+  CHECK(input_group_call != nullptr);
+  if (input_group_call->get_id() != telegram_api::inputGroupCall::ID) {
+    LOG(ERROR) << "Receive " << to_string(input_group_call);
+    return;
+  }
+  auto group_call = static_cast<const telegram_api::inputGroupCall *>(input_group_call.get());
+  group_call_id = group_call->id_;
+  access_hash = group_call->access_hash_;
 }
 
-tl_object_ptr<telegram_api::inputGroupCall> InputGroupCallId::get_input_group_call() const {
-  return make_tl_object<telegram_api::inputGroupCall>(group_call_id, access_hash);
+telegram_api::object_ptr<telegram_api::inputGroupCall> InputGroupCallId::get_input_group_call() const {
+  return telegram_api::make_object<telegram_api::inputGroupCall>(group_call_id, access_hash);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, InputGroupCallId input_group_call_id) {

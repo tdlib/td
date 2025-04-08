@@ -442,12 +442,9 @@ class JoinGroupCallQuery final : public Td::ResultHandler {
     if (!invite_hash.empty()) {
       flags |= telegram_api::phone_joinGroupCall::INVITE_HASH_MASK;
     }
-    if (key_fingerprint != 0) {
-      flags |= telegram_api::phone_joinGroupCall::KEY_FINGERPRINT_MASK;
-    }
     auto query = G()->net_query_creator().create(telegram_api::phone_joinGroupCall(
         flags, is_muted, is_video_stopped, input_group_call_id.get_input_group_call(), std::move(join_as_input_peer),
-        invite_hash, key_fingerprint, telegram_api::make_object<telegram_api::dataJSON>(payload)));
+        invite_hash, UInt256(), BufferSlice(), telegram_api::make_object<telegram_api::dataJSON>(payload)));
     auto join_query_ref = query.get_weak();
     send_query(std::move(query));
     return join_query_ref;
@@ -4282,7 +4279,6 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       if (call.scheduled_start_date == 0) {
         call.start_subscribed = false;
       }
-      call.call_id = td_->call_manager_->get_call_id(group_call->conference_from_call_);
 
       call.version = group_call->version_;
       call.title_version = group_call->version_;
