@@ -3740,6 +3740,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
                        true, is_bot, story_item->date_, false, "on_get_new_story");
   auto content = get_story_content(td_, std::move(story_item->media_), owner_dialog_id);
   if (content == nullptr) {
+    LOG(INFO) << "Failed to get content of " << story_full_id;
     return StoryId();
   }
 
@@ -3747,9 +3748,6 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
   bool is_changed = false;
   bool need_save_to_database = false;
   if (story == nullptr) {
-    if (is_bot && old_story_id == StoryId()) {
-      return StoryId();
-    }
     auto s = make_unique<Story>();
     story = s.get();
     stories_.set(story_full_id, std::move(s));
