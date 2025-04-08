@@ -425,7 +425,7 @@ class JoinGroupCallQuery final : public Td::ResultHandler {
   }
 
   NetQueryRef send(InputGroupCallId input_group_call_id, DialogId as_dialog_id, const string &payload, bool is_muted,
-                   bool is_video_stopped, const string &invite_hash, int64 key_fingerprint, uint64 generation) {
+                   bool is_video_stopped, const string &invite_hash, uint64 generation) {
     input_group_call_id_ = input_group_call_id;
     as_dialog_id_ = as_dialog_id;
     generation_ = generation;
@@ -965,7 +965,6 @@ struct GroupCallManager::PendingJoinRequest {
   uint64 generation = 0;
   int32 audio_source = 0;
   DialogId as_dialog_id;
-  int64 key_fingerprint = 0;
   Promise<string> promise;
 };
 
@@ -2593,7 +2592,7 @@ void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Pro
 
 void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source,
                                        string &&payload, bool is_muted, bool is_my_video_enabled,
-                                       const string &invite_hash, int64 key_fingerprint, Promise<string> &&promise) {
+                                       const string &invite_hash, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
@@ -2646,7 +2645,6 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
   request->generation = generation;
   request->audio_source = audio_source;
   request->as_dialog_id = as_dialog_id;
-  request->key_fingerprint = key_fingerprint;
   request->promise = std::move(promise);
 
   auto query_promise =
@@ -2655,9 +2653,9 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
         send_closure(actor_id, &GroupCallManager::finish_join_group_call, input_group_call_id, generation,
                      result.move_as_error());
       });
-  request->query_ref = td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
-                           ->send(input_group_call_id, as_dialog_id, payload, is_muted, !is_my_video_enabled,
-                                  invite_hash, key_fingerprint, generation);
+  request->query_ref =
+      td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
+          ->send(input_group_call_id, as_dialog_id, payload, is_muted, !is_my_video_enabled, invite_hash, generation);
 
   if (group_call->dialog_id.is_valid()) {
     td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(group_call->dialog_id, as_dialog_id,

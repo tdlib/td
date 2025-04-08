@@ -4564,8 +4564,7 @@ class CliClient final : public Actor {
       GroupCallId group_call_id;
       string participant_id;
       string invite_hash;
-      int64 key_fingerprint;
-      get_args(args, group_call_id, participant_id, invite_hash, key_fingerprint);
+      get_args(args, group_call_id, participant_id, invite_hash);
 
       auto payload = PSTRING() << "{\"ufrag\":\"ufrag\",\"pwd\":\"pwd\",\"fingerprints\":[{\"hash\":\"hash\",\"setup\":"
                                   "\"setup\",\"fingerprint\":\"fingerprint\"},{\"hash\":\"h2\",\"setup\":\"s2\","
@@ -4593,7 +4592,7 @@ class CliClient final : public Actor {
       } else {
         send_request(td_api::make_object<td_api::joinGroupCall>(group_call_id, as_message_sender(participant_id),
                                                                 group_call_source_, std::move(payload), true, true,
-                                                                invite_hash, key_fingerprint));
+                                                                invite_hash));
       }
     } else if (op == "tgcssip") {
       GroupCallId group_call_id;
