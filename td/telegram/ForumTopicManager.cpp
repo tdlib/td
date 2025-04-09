@@ -599,11 +599,15 @@ void ForumTopicManager::on_update_forum_topic_unread(DialogId dialog_id, Message
     return;
   }
 
+  bool need_update = false;
   if (topic->topic_->update_last_read_outbox_message_id(last_read_outbox_message_id)) {
-    // TODO send updates
+    need_update = true;
   }
   if (topic->topic_->update_last_read_inbox_message_id(last_read_inbox_message_id, unread_count)) {
     // TODO send updates
+  }
+  if (need_update) {
+    on_forum_topic_changed(dialog_id, topic);
   }
 }
 
@@ -669,8 +673,7 @@ void ForumTopicManager::on_update_forum_topic_is_pinned(DialogId dialog_id, Mess
     return;
   }
   if (topic->topic_->set_is_pinned(is_pinned)) {
-    topic->need_save_to_database_ = true;
-    save_topic_to_database(dialog_id, topic);
+    on_forum_topic_changed(dialog_id, topic);
   }
 }
 
@@ -697,8 +700,7 @@ void ForumTopicManager::on_update_pinned_forum_topics(DialogId dialog_id, vector
       return;
     }
     if (topic->topic_->set_is_pinned(contains(top_thread_message_ids, top_thread_message_id))) {
-      topic->need_save_to_database_ = true;
-      save_topic_to_database(dialog_id, topic.get());
+      on_forum_topic_changed(dialog_id, topic.get());
     }
   });
 }
@@ -734,13 +736,11 @@ bool ForumTopicManager::update_forum_topic_notification_settings(DialogId dialog
 
   auto need_update = need_update_dialog_notification_settings(current_settings, new_settings);
   if (need_update.are_changed) {
-    // TODO update unmute timeouts, td_api updates, remove notifications
+    // TODO update unmute timeouts, remove notifications
     *current_settings = std::move(new_settings);
 
     auto topic = get_topic(dialog_id, top_thread_message_id);
-    CHECK(topic != nullptr);
-    topic->need_save_to_database_ = true;
-    save_topic_to_database(dialog_id, topic);
+    on_forum_topic_changed(dialog_id, topic);
   }
   return need_update.need_update_server;
 }
@@ -1046,6 +1046,7 @@ MessageId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
         topic->need_save_to_database_ = true;  // temporary
       }
       set_topic_info(dialog_id, topic, std::move(forum_topic_info));
+      send_update_forum_topic(dialog_id, topic);
       save_topic_to_database(dialog_id, topic);
       return top_thread_message_id;
     }
@@ -1164,7 +1165,7 @@ void ForumTopicManager::set_topic_info(DialogId dialog_id, Topic *topic, unique_
   }
 }
 
-td_api::object_ptr<td_api::updateForumTopicInfo> ForumTopicManager::get_update_forum_topic_info(
+td_api::object_ptr<td_api::updateForumTopicInfo> ForumTopicManager::get_update_forum_topic_info_object(
     DialogId dialog_id, const ForumTopicInfo *topic_info) const {
   return td_api::make_object<td_api::updateForumTopicInfo>(
       td_->dialog_manager_->get_chat_id_object(dialog_id, "updateForumTopicInfo"),
@@ -1175,7 +1176,27 @@ void ForumTopicManager::send_update_forum_topic_info(DialogId dialog_id, const F
   if (td_->auth_manager_->is_bot()) {
     return;
   }
-  send_closure(G()->td(), &Td::send_update, get_update_forum_topic_info(dialog_id, topic_info));
+  send_closure(G()->td(), &Td::send_update, get_update_forum_topic_info_object(dialog_id, topic_info));
+}
+
+td_api::object_ptr<td_api::updateForumTopic> ForumTopicManager::get_update_forum_topic_object(
+    DialogId dialog_id, const Topic *topic) const {
+  CHECK(topic != nullptr);
+  return topic->topic_->get_update_forum_topic_object(td_, dialog_id, topic->info_->get_top_thread_message_id());
+}
+
+void ForumTopicManager::send_update_forum_topic(DialogId dialog_id, const Topic *topic) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update, get_update_forum_topic_object(dialog_id, topic));
+}
+
+void ForumTopicManager::on_forum_topic_changed(DialogId dialog_id, Topic *topic) {
+  CHECK(topic != nullptr);
+  send_update_forum_topic(dialog_id, topic);
+  topic->need_save_to_database_ = true;
+  save_topic_to_database(dialog_id, topic);
 }
 
 void ForumTopicManager::save_topic_to_database(DialogId dialog_id, const Topic *topic) {
