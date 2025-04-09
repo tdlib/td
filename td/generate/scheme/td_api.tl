@@ -2814,6 +2814,7 @@ savedMessagesTopic id:int53 type:SavedMessagesTopicType is_pinned:Bool order:int
 forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
 
 //@description Contains basic information about a forum topic
+//@chat_id Identifier of the forum chat to which the topic belongs
 //@message_thread_id Message thread identifier of the topic
 //@name Name of the topic
 //@icon Icon of the topic
@@ -2823,7 +2824,7 @@ forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
 //@is_outgoing True, if the topic was created by the current user
 //@is_closed True, if the topic is closed
 //@is_hidden True, if the topic is hidden above the topic list and closed; for General topic only
-forumTopicInfo message_thread_id:int53 name:string icon:forumTopicIcon creation_date:int32 creator_id:MessageSender is_general:Bool is_outgoing:Bool is_closed:Bool is_hidden:Bool = ForumTopicInfo;
+forumTopicInfo chat_id:int53 message_thread_id:int53 name:string icon:forumTopicIcon creation_date:int32 creator_id:MessageSender is_general:Bool is_outgoing:Bool is_closed:Bool is_hidden:Bool = ForumTopicInfo;
 
 //@description Describes a forum topic
 //@info Basic information about the topic
@@ -8330,8 +8331,8 @@ updateQuickReplyShortcuts shortcut_ids:vector<int32> = Update;
 //@messages The new list of quick reply messages for the shortcut in order from the first to the last sent
 updateQuickReplyShortcutMessages shortcut_id:int32 messages:vector<quickReplyMessage> = Update;
 
-//@description Basic information about a topic in a forum chat was changed @chat_id Chat identifier @info New information about the topic
-updateForumTopicInfo chat_id:int53 info:forumTopicInfo = Update;
+//@description Basic information about a topic in a forum chat was changed @info New information about the topic
+updateForumTopicInfo info:forumTopicInfo = Update;
 
 //@description Information about a topic in a forum chat was changed
 //@chat_id Chat identifier

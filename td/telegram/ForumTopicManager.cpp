@@ -534,13 +534,13 @@ void ForumTopicManager::on_forum_topic_created(DialogId dialog_id, unique_ptr<Fo
   MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
   auto topic = add_topic(dialog_id, top_thread_message_id);
   if (topic == nullptr) {
-    return promise.set_value(forum_topic_info->get_forum_topic_info_object(td_));
+    return promise.set_value(forum_topic_info->get_forum_topic_info_object(td_, dialog_id));
   }
   if (topic->info_ == nullptr) {
     set_topic_info(dialog_id, topic, std::move(forum_topic_info));
   }
   save_topic_to_database(dialog_id, topic);
-  promise.set_value(topic->info_->get_forum_topic_info_object(td_));
+  promise.set_value(topic->info_->get_forum_topic_info_object(td_, dialog_id));
 }
 
 void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, string &&title,
@@ -1167,9 +1167,7 @@ void ForumTopicManager::set_topic_info(DialogId dialog_id, Topic *topic, unique_
 
 td_api::object_ptr<td_api::updateForumTopicInfo> ForumTopicManager::get_update_forum_topic_info_object(
     DialogId dialog_id, const ForumTopicInfo *topic_info) const {
-  return td_api::make_object<td_api::updateForumTopicInfo>(
-      td_->dialog_manager_->get_chat_id_object(dialog_id, "updateForumTopicInfo"),
-      topic_info->get_forum_topic_info_object(td_));
+  return td_api::make_object<td_api::updateForumTopicInfo>(topic_info->get_forum_topic_info_object(td_, dialog_id));
 }
 
 void ForumTopicManager::send_update_forum_topic_info(DialogId dialog_id, const ForumTopicInfo *topic_info) const {
