@@ -76,7 +76,7 @@ Result<ScopeNotificationSettings> get_scope_notification_settings(
   return ScopeNotificationSettings(
       mute_until, get_notification_sound(false, notification_settings->sound_id_), notification_settings->show_preview_,
       notification_settings->use_default_mute_stories_, notification_settings->mute_stories_,
-      get_notification_sound(false, notification_settings->story_sound_id_), !notification_settings->show_story_sender_,
+      get_notification_sound(false, notification_settings->story_sound_id_), !notification_settings->show_story_poster_,
       notification_settings->disable_pinned_message_notifications_,
       notification_settings->disable_mention_notifications_);
 }

@@ -220,7 +220,7 @@ class StoryManager final : public Actor {
 
   void update_dialogs_to_send_stories(ChannelId channel_id, bool can_send_stories);
 
-  void can_send_story(DialogId dialog_id, Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise);
+  void can_send_story(DialogId dialog_id, Promise<td_api::object_ptr<td_api::CanPostStoryResult>> &&promise);
 
   void send_story(DialogId dialog_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
@@ -373,7 +373,7 @@ class StoryManager final : public Actor {
   td_api::object_ptr<td_api::stories> get_stories_object(int32 total_count, const vector<StoryFullId> &story_full_ids,
                                                          const vector<StoryId> &pinned_story_ids) const;
 
-  static td_api::object_ptr<td_api::CanSendStoryResult> get_can_send_story_result_object(const Status &error,
+  static td_api::object_ptr<td_api::CanPostStoryResult> get_can_post_story_result_object(const Status &error,
                                                                                          bool force = false);
 
   FileSourceId get_story_file_source_id(StoryFullId story_full_id);

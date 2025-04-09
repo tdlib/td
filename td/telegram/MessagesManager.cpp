@@ -20047,7 +20047,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
       }
       auto reply_to_story = td_api::move_object_as<td_api::inputMessageReplyToStory>(reply_to);
       auto story_id = StoryId(reply_to_story->story_id_);
-      auto sender_dialog_id = DialogId(reply_to_story->story_sender_chat_id_);
+      auto sender_dialog_id = DialogId(reply_to_story->story_poster_chat_id_);
       if (d->dialog_id != sender_dialog_id || td_->dialog_manager_->is_broadcast_channel(sender_dialog_id)) {
         LOG(INFO) << "Ignore reply to story from " << sender_dialog_id << " in a wrong " << d->dialog_id;
         return {};

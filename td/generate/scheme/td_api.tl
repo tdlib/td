@@ -698,7 +698,7 @@ businessGreetingMessageSettings shortcut_id:int32 recipients:businessRecipients 
 //@can_change_gift_settings True, if the bot can change gift receiving settings of the business account
 //@can_transfer_and_upgrade_gifts True, if the bot can transfer and upgrade gifts received by the business account
 //@can_transfer_stars True, if the bot can transfer Telegram Stars received by the business account to account of the bot, or use them to upgrade and transfer gifts
-//@can_manage_stories True, if the bot can send, edit and delete stories
+//@can_manage_stories True, if the bot can post, edit and delete stories
 businessBotRights can_reply:Bool can_read_messages:Bool can_delete_sent_messages:Bool can_delete_all_messages:Bool can_edit_name:Bool can_edit_bio:Bool can_edit_profile_photo:Bool can_edit_username:Bool can_view_gifts_and_stars:Bool can_sell_gifts:Bool can_change_gift_settings:Bool can_transfer_and_upgrade_gifts:Bool can_transfer_stars:Bool can_manage_stories:Bool = BusinessBotRights;
 
 //@description Describes a bot connected to a business account
@@ -1769,7 +1769,7 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@date Point in time (Unix timestamp) when the current user joined, or the point in time when the supergroup or channel was created, in case the user is not a member
 //@status Status of the current user in the supergroup or channel; custom title will always be empty
 //@member_count Number of members in the supergroup or channel; 0 if unknown. Currently, it is guaranteed to be known only if the supergroup or channel was received through
-//-getChatSimilarChats, getChatsToSendStories, getCreatedPublicChats, getGroupsInCommon, getInactiveSupergroupChats, getRecommendedChats, getSuitableDiscussionChats,
+//-getChatSimilarChats, getChatsToPostStories, getCreatedPublicChats, getGroupsInCommon, getInactiveSupergroupChats, getRecommendedChats, getSuitableDiscussionChats,
 //-getUserPrivacySettingRules, getVideoChatAvailableParticipants, searchPublicChats, or in chatFolderInviteLinkInfo.missing_chat_ids, or in userFullInfo.personal_chat_id,
 //-or for chats with messages or stories from publicForwards and foundStories
 //@boost_level Approximate boost level for the chat
@@ -2073,8 +2073,8 @@ inputTextQuote text:formattedText position:int32 = InputTextQuote;
 //-messageVideoNote, or messageVoiceNote
 messageReplyToMessage chat_id:int53 message_id:int53 quote:textQuote origin:MessageOrigin origin_send_date:int32 content:MessageContent = MessageReplyTo;
 
-//@description Describes a story replied by a given message @story_sender_chat_id The identifier of the sender of the story @story_id The identifier of the story
-messageReplyToStory story_sender_chat_id:int53 story_id:int32 = MessageReplyTo;
+//@description Describes a story replied by a given message @story_poster_chat_id The identifier of the poster of the story @story_id The identifier of the story
+messageReplyToStory story_poster_chat_id:int53 story_id:int32 = MessageReplyTo;
 
 
 //@class InputMessageReplyTo @description Contains information about the message or the story to be replied
@@ -2091,9 +2091,9 @@ inputMessageReplyToMessage message_id:int53 quote:inputTextQuote = InputMessageR
 inputMessageReplyToExternalMessage chat_id:int53 message_id:int53 quote:inputTextQuote = InputMessageReplyTo;
 
 //@description Describes a story to be replied
-//@story_sender_chat_id The identifier of the sender of the story. Currently, stories can be replied only in the sender's chat and channel stories can't be replied
+//@story_poster_chat_id The identifier of the poster of the story. Currently, stories can be replied only in the chat that posted the story; channel stories can't be replied
 //@story_id The identifier of the story
-inputMessageReplyToStory story_sender_chat_id:int53 story_id:int32 = InputMessageReplyTo;
+inputMessageReplyToStory story_poster_chat_id:int53 story_id:int32 = InputMessageReplyTo;
 
 
 //@description Describes a fact-check added to the message by an independent checker
@@ -2304,13 +2304,13 @@ notificationSettingsScopeChannelChats = NotificationSettingsScope;
 //@mute_stories True, if story notifications are disabled for the chat
 //@use_default_story_sound If true, the value for the relevant type of chat is used instead of story_sound_id
 //@story_sound_id Identifier of the notification sound to be played for stories; 0 if sound is disabled
-//@use_default_show_story_sender If true, the value for the relevant type of chat is used instead of show_story_sender
-//@show_story_sender True, if the sender of stories must be displayed in notifications
+//@use_default_show_story_poster If true, the value for the relevant type of chat is used instead of show_story_poster
+//@show_story_poster True, if the chat that posted a story must be displayed in notifications
 //@use_default_disable_pinned_message_notifications If true, the value for the relevant type of chat or the forum chat is used instead of disable_pinned_message_notifications
 //@disable_pinned_message_notifications If true, notifications for incoming pinned messages will be created as for an ordinary unread message
 //@use_default_disable_mention_notifications If true, the value for the relevant type of chat or the forum chat is used instead of disable_mention_notifications
 //@disable_mention_notifications If true, notifications for messages with mentions will be created as for an ordinary unread message
-chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound_id:int64 use_default_show_preview:Bool show_preview:Bool use_default_mute_stories:Bool mute_stories:Bool use_default_story_sound:Bool story_sound_id:int64 use_default_show_story_sender:Bool show_story_sender:Bool use_default_disable_pinned_message_notifications:Bool disable_pinned_message_notifications:Bool use_default_disable_mention_notifications:Bool disable_mention_notifications:Bool = ChatNotificationSettings;
+chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound_id:int64 use_default_show_preview:Bool show_preview:Bool use_default_mute_stories:Bool mute_stories:Bool use_default_story_sound:Bool story_sound_id:int64 use_default_show_story_poster:Bool show_story_poster:Bool use_default_disable_pinned_message_notifications:Bool disable_pinned_message_notifications:Bool use_default_disable_mention_notifications:Bool disable_mention_notifications:Bool = ChatNotificationSettings;
 
 //@description Contains information about notification settings for several chats
 //@mute_for Time left before notifications will be unmuted, in seconds
@@ -2319,10 +2319,10 @@ chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_so
 //@use_default_mute_stories If true, story notifications are received only for the first 5 chats from topChatCategoryUsers regardless of the value of mute_stories
 //@mute_stories True, if story notifications are disabled
 //@story_sound_id Identifier of the notification sound to be played for stories; 0 if sound is disabled
-//@show_story_sender True, if the sender of stories must be displayed in notifications
+//@show_story_poster True, if the chat that posted a story must be displayed in notifications
 //@disable_pinned_message_notifications True, if notifications for incoming pinned messages will be created as for an ordinary unread message
 //@disable_mention_notifications True, if notifications for messages with mentions will be created as for an ordinary unread message
-scopeNotificationSettings mute_for:int32 sound_id:int64 show_preview:Bool use_default_mute_stories:Bool mute_stories:Bool story_sound_id:int64 show_story_sender:Bool disable_pinned_message_notifications:Bool disable_mention_notifications:Bool = ScopeNotificationSettings;
+scopeNotificationSettings mute_for:int32 sound_id:int64 show_preview:Bool use_default_mute_stories:Bool mute_stories:Bool story_sound_id:int64 show_story_poster:Bool disable_pinned_message_notifications:Bool disable_mention_notifications:Bool = ScopeNotificationSettings;
 
 
 //@class ReactionNotificationSource @description Describes sources of reactions for which notifications will be shown
@@ -3248,8 +3248,8 @@ linkPreviewTypeSticker sticker:sticker = LinkPreviewType;
 //@description The link is a link to a sticker set @stickers Up to 4 stickers from the sticker set
 linkPreviewTypeStickerSet stickers:vector<sticker> = LinkPreviewType;
 
-//@description The link is a link to a story. Link preview description is unavailable @story_sender_chat_id The identifier of the chat that posted the story @story_id Story identifier
-linkPreviewTypeStory story_sender_chat_id:int53 story_id:int32 = LinkPreviewType;
+//@description The link is a link to a story. Link preview description is unavailable @story_poster_chat_id The identifier of the chat that posted the story @story_id Story identifier
+linkPreviewTypeStory story_poster_chat_id:int53 story_id:int32 = LinkPreviewType;
 
 //@description The link is a link to boost a supergroup chat @photo Photo of the chat; may be null
 linkPreviewTypeSupergroupBoost photo:chatPhoto = LinkPreviewType;
@@ -3928,10 +3928,10 @@ messageGame game:game = MessageContent;
 messagePoll poll:poll = MessageContent;
 
 //@description A message with a forwarded story
-//@story_sender_chat_id Identifier of the chat that posted the story
+//@story_poster_chat_id Identifier of the chat that posted the story
 //@story_id Story identifier
 //@via_mention True, if the story was automatically forwarded because of a mention of the user
-messageStory story_sender_chat_id:int53 story_id:int32 via_mention:Bool = MessageContent;
+messageStory story_poster_chat_id:int53 story_id:int32 via_mention:Bool = MessageContent;
 
 //@description A message with an invoice from a bot. Use getInternalLink with internalLinkTypeBotStart to share the invoice
 //@product_info Information about the product
@@ -4506,10 +4506,10 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@is_closed True, if the poll needs to be sent already closed; for bots only
 inputMessagePoll question:formattedText options:vector<formattedText> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
 
-//@description A message with a forwarded story. Stories can't be sent to secret chats. A story can be forwarded only if story.can_be_forwarded
-//@story_sender_chat_id Identifier of the chat that posted the story
+//@description A message with a forwarded story. Stories can't be forwarded to secret chats. A story can be forwarded only if story.can_be_forwarded
+//@story_poster_chat_id Identifier of the chat that posted the story
 //@story_id Story identifier
-inputMessageStory story_sender_chat_id:int53 story_id:int32 = InputMessageContent;
+inputMessageStory story_poster_chat_id:int53 story_id:int32 = InputMessageContent;
 
 //@description A forwarded message
 //@from_chat_id Identifier for the chat this forwarded message came from
@@ -4884,7 +4884,7 @@ inputStoryArea position:storyAreaPosition type:InputStoryAreaType = InputStoryAr
 inputStoryAreas areas:vector<inputStoryArea> = InputStoryAreas;
 
 
-//@description Describes a video file sent in a story
+//@description Describes a video file posted as a story
 //@duration Duration of the video, in seconds
 //@width Video width
 //@height Video height
@@ -4910,7 +4910,7 @@ storyContentVideo video:storyVideo alternative_video:storyVideo = StoryContent;
 storyContentUnsupported = StoryContent;
 
 
-//@class InputStoryContent @description The content of a story to send
+//@class InputStoryContent @description The content of a story to post
 
 //@description A photo story
 //@photo Photo to send. The photo must be at most 10 MB in size. The photo size must be 1080x1920
@@ -4937,11 +4937,11 @@ storyListArchive = StoryList;
 
 //@class StoryOrigin @description Contains information about the origin of a story that was reposted
 
-//@description The original story was a public story with known sender @chat_id Identifier of the chat that posted original story @story_id Story identifier of the original story
+//@description The original story was a public story that was posted by a known chat @chat_id Identifier of the chat that posted original story @story_id Story identifier of the original story
 storyOriginPublicStory chat_id:int53 story_id:int32 = StoryOrigin;
 
-//@description The original story was sent by an unknown user @sender_name Name of the story sender
-storyOriginHiddenUser sender_name:string = StoryOrigin;
+//@description The original story was posted by an unknown user @poster_name Name of the user or the chat that posted the story
+storyOriginHiddenUser poster_name:string = StoryOrigin;
 
 
 //@description Contains information about original story that was reposted
@@ -4957,19 +4957,19 @@ storyRepostInfo origin:StoryOrigin is_content_modified:Bool = StoryRepostInfo;
 storyInteractionInfo view_count:int32 forward_count:int32 reaction_count:int32 recent_viewer_user_ids:vector<int53> = StoryInteractionInfo;
 
 //@description Represents a story
-//@id Unique story identifier among stories of the given sender
-//@sender_chat_id Identifier of the chat that posted the story
-//@sender_id Identifier of the sender of the story; may be null if the story is posted on behalf of the sender_chat_id
+//@id Unique story identifier among stories posted by the given chat
+//@poster_chat_id Identifier of the chat that posted the story
+//@poster_id Identifier of the user or chat that posted the story; may be null if the story is posted on behalf of the poster_chat_id
 //@date Point in time (Unix timestamp) when the story was published
-//@is_being_sent True, if the story is being sent by the current user
+//@is_being_posted True, if the story is being posted by the current user
 //@is_being_edited True, if the story is being edited by the current user
 //@is_edited True, if the story was edited
-//@is_posted_to_chat_page True, if the story is saved in the sender's profile and will be available there after expiration
+//@is_posted_to_chat_page True, if the story is saved in the profile of the chat that posted it and will be available there after expiration
 //@is_visible_only_for_self True, if the story is visible only for the current user
 //@can_be_deleted True, if the story can be deleted
 //@can_be_edited True, if the story can be edited
 //@can_be_forwarded True, if the story can be forwarded as a message. Otherwise, screenshots and saving of the story content must be also forbidden
-//@can_be_replied True, if the story can be replied in the chat with the story sender
+//@can_be_replied True, if the story can be replied in the chat with the user that posted the story
 //@can_toggle_is_posted_to_chat_page True, if the story's is_posted_to_chat_page value can be changed
 //@can_get_statistics True, if the story statistics are available through getStoryStatistics
 //@can_get_interactions True, if interactions with the story can be received through getStoryInteractions
@@ -4981,7 +4981,7 @@ storyInteractionInfo view_count:int32 forward_count:int32 reaction_count:int32 r
 //@content Content of the story
 //@areas Clickable areas to be shown on the story content
 //@caption Caption of the story
-story id:int32 sender_chat_id:int53 sender_id:MessageSender date:int32 is_being_sent:Bool is_being_edited:Bool is_edited:Bool is_posted_to_chat_page:Bool is_visible_only_for_self:Bool can_be_deleted:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied:Bool can_toggle_is_posted_to_chat_page:Bool can_get_statistics:Bool can_get_interactions:Bool has_expired_viewers:Bool repost_info:storyRepostInfo interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText = Story;
+story id:int32 poster_chat_id:int53 poster_id:MessageSender date:int32 is_being_posted:Bool is_being_edited:Bool is_edited:Bool is_posted_to_chat_page:Bool is_visible_only_for_self:Bool can_be_deleted:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied:Bool can_toggle_is_posted_to_chat_page:Bool can_get_statistics:Bool can_get_interactions:Bool has_expired_viewers:Bool repost_info:storyRepostInfo interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText = Story;
 
 //@description Represents a list of stories
 //@total_count Approximate total number of stories found
@@ -4992,13 +4992,13 @@ stories total_count:int32 stories:vector<story> pinned_story_ids:vector<int32> =
 //@description Contains a list of stories found by a search @total_count Approximate total number of stories found @stories List of stories @next_offset The offset for the next request. If empty, then there are no more results
 foundStories total_count:int32 stories:vector<story> next_offset:string = FoundStories;
 
-//@description Contains identifier of a story along with identifier of its sender
-//@sender_chat_id Identifier of the chat that posted the story
-//@story_id Unique story identifier among stories of the given sender
-storyFullId sender_chat_id:int53 story_id:int32 = StoryFullId;
+//@description Contains identifier of a story along with identifier of the chat that posted it
+//@poster_chat_id Identifier of the chat that posted the story
+//@story_id Unique story identifier among stories of the chat
+storyFullId poster_chat_id:int53 story_id:int32 = StoryFullId;
 
 //@description Contains basic information about a story
-//@story_id Unique story identifier among stories of the given sender
+//@story_id Unique story identifier among stories of the chat
 //@date Point in time (Unix timestamp) when the story was published
 //@is_for_close_friends True, if the story is available only to close friends
 storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
@@ -5006,7 +5006,7 @@ storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
 //@description Describes active stories posted by a chat
 //@chat_id Identifier of the chat that posted the stories
 //@list Identifier of the story list in which the stories are shown; may be null if the stories aren't shown in a story list
-//@order A parameter used to determine order of the stories in the story list; 0 if the stories doesn't need to be shown in the story list. Stories must be sorted by the pair (order, story_sender_chat_id) in descending order
+//@order A parameter used to determine order of the stories in the story list; 0 if the stories doesn't need to be shown in the story list. Stories must be sorted by the pair (order, story_poster_chat_id) in descending order
 //@max_read_story_id Identifier of the last read active story
 //@stories Basic information about the stories; use getStory to get full information about the stories. The stories are in chronological order (i.e., in order of increasing story identifiers)
 chatActiveStories chat_id:int53 list:StoryList order:int53 max_read_story_id:int32 stories:vector<storyInfo> = ChatActiveStories;
@@ -6152,13 +6152,13 @@ premiumLimitTypeShareableChatFolderCount = PremiumLimitType;
 //@description The maximum number of active stories
 premiumLimitTypeActiveStoryCount = PremiumLimitType;
 
-//@description The maximum number of stories sent per week
-premiumLimitTypeWeeklySentStoryCount = PremiumLimitType;
+//@description The maximum number of stories posted per week
+premiumLimitTypeWeeklyPostedStoryCount = PremiumLimitType;
 
-//@description The maximum number of stories sent per month
-premiumLimitTypeMonthlySentStoryCount = PremiumLimitType;
+//@description The maximum number of stories posted per month
+premiumLimitTypeMonthlyPostedStoryCount = PremiumLimitType;
 
-//@description The maximum length of captions of sent stories
+//@description The maximum length of captions of posted stories
 premiumLimitTypeStoryCaptionLength = PremiumLimitType;
 
 //@description The maximum number of suggested reaction areas on a story
@@ -6581,25 +6581,25 @@ timeZones time_zones:vector<timeZone> = TimeZones;
 hashtags hashtags:vector<string> = Hashtags;
 
 
-//@class CanSendStoryResult @description Represents result of checking whether the current user can send a story in the specific chat
+//@class CanPostStoryResult @description Represents result of checking whether the current user can post a story on behalf of the specific chat
 
 //@description A story can be sent
-canSendStoryResultOk = CanSendStoryResult;
+canPostStoryResultOk = CanPostStoryResult;
 
 //@description The user must subscribe to Telegram Premium to be able to post stories
-canSendStoryResultPremiumNeeded = CanSendStoryResult;
+canPostStoryResultPremiumNeeded = CanPostStoryResult;
 
 //@description The chat must be boosted first by Telegram Premium subscribers to post more stories. Call getChatBoostStatus to get current boost status of the chat
-canSendStoryResultBoostNeeded = CanSendStoryResult;
+canPostStoryResultBoostNeeded = CanPostStoryResult;
 
 //@description The limit for the number of active stories exceeded. The user can buy Telegram Premium, delete an active story, or wait for the oldest story to expire
-canSendStoryResultActiveStoryLimitExceeded = CanSendStoryResult;
+canPostStoryResultActiveStoryLimitExceeded = CanPostStoryResult;
 
-//@description The weekly limit for the number of posted stories exceeded. The user needs to buy Telegram Premium or wait specified time @retry_after Time left before the user can send the next story
-canSendStoryResultWeeklyLimitExceeded retry_after:int32 = CanSendStoryResult;
+//@description The weekly limit for the number of posted stories exceeded. The user needs to buy Telegram Premium or wait specified time @retry_after Time left before the user can post the next story
+canPostStoryResultWeeklyLimitExceeded retry_after:int32 = CanPostStoryResult;
 
-//@description The monthly limit for the number of posted stories exceeded. The user needs to buy Telegram Premium or wait specified time @retry_after Time left before the user can send the next story
-canSendStoryResultMonthlyLimitExceeded retry_after:int32 = CanSendStoryResult;
+//@description The monthly limit for the number of posted stories exceeded. The user needs to buy Telegram Premium or wait specified time @retry_after Time left before the user can post the next story
+canPostStoryResultMonthlyLimitExceeded retry_after:int32 = CanPostStoryResult;
 
 
 //@class CanTransferOwnershipResult @description Represents result of checking whether the current session can be used to transfer a chat ownership to another user
@@ -7424,10 +7424,10 @@ internalLinkTypeSettings = InternalLinkType;
 //@expect_custom_emoji True, if the sticker set is expected to contain custom emoji
 internalLinkTypeStickerSet sticker_set_name:string expect_custom_emoji:Bool = InternalLinkType;
 
-//@description The link is a link to a story. Call searchPublicChat with the given sender username, then call getStory with the received chat identifier and the given story identifier, then show the story if received
-//@story_sender_username Username of the sender of the story
+//@description The link is a link to a story. Call searchPublicChat with the given poster username, then call getStory with the received chat identifier and the given story identifier, then show the story if received
+//@story_poster_username Username of the poster of the story
 //@story_id Story identifier
-internalLinkTypeStory story_sender_username:string story_id:int32 = InternalLinkType;
+internalLinkTypeStory story_poster_username:string story_id:int32 = InternalLinkType;
 
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @theme_name Name of the theme
 internalLinkTypeTheme theme_name:string = InternalLinkType;
@@ -7914,11 +7914,11 @@ statisticalGraphError error_message:string = StatisticalGraph;
 //@description Describes a message sent in the chat @message_id Message identifier
 chatStatisticsObjectTypeMessage message_id:int53 = ChatStatisticsObjectType;
 
-//@description Describes a story sent by the chat @story_id Story identifier
+//@description Describes a story posted on behalf of the chat @story_id Story identifier
 chatStatisticsObjectTypeStory story_id:int32 = ChatStatisticsObjectType;
 
 
-//@description Contains statistics about interactions with a message sent in the chat or a story sent by the chat
+//@description Contains statistics about interactions with a message sent in the chat or a story posted on behalf of the chat
 //@object_type Type of the object
 //@view_count Number of times the object was viewed
 //@forward_count Number of times the object was forwarded
@@ -7971,9 +7971,9 @@ chatStatisticsSupergroup period:dateRange member_count:statisticalValue message_
 //@mean_message_view_count Mean number of times the recently sent messages were viewed
 //@mean_message_share_count Mean number of times the recently sent messages were shared
 //@mean_message_reaction_count Mean number of times reactions were added to the recently sent messages
-//@mean_story_view_count Mean number of times the recently sent stories were viewed
-//@mean_story_share_count Mean number of times the recently sent stories were shared
-//@mean_story_reaction_count Mean number of times reactions were added to the recently sent stories
+//@mean_story_view_count Mean number of times the recently posted stories were viewed
+//@mean_story_share_count Mean number of times the recently posted stories were shared
+//@mean_story_reaction_count Mean number of times reactions were added to the recently posted stories
 //@enabled_notifications_percentage A percentage of users with enabled notifications for the chat; 0-100
 //@member_count_graph A graph containing number of members in the chat
 //@join_graph A graph containing number of members joined and left the chat
@@ -7987,7 +7987,7 @@ chatStatisticsSupergroup period:dateRange member_count:statisticalValue message_
 //@story_interaction_graph A graph containing number of story views and shares
 //@story_reaction_graph A graph containing number of reactions on stories
 //@instant_view_interaction_graph A graph containing number of views of associated with the chat instant views
-//@recent_interactions Detailed statistics about number of views and shares of recently sent messages and stories
+//@recent_interactions Detailed statistics about number of views and shares of recently sent messages and posted stories
 chatStatisticsChannel period:dateRange member_count:statisticalValue mean_message_view_count:statisticalValue mean_message_share_count:statisticalValue mean_message_reaction_count:statisticalValue mean_story_view_count:statisticalValue mean_story_share_count:statisticalValue mean_story_reaction_count:statisticalValue enabled_notifications_percentage:double member_count_graph:StatisticalGraph join_graph:StatisticalGraph mute_graph:StatisticalGraph view_count_by_hour_graph:StatisticalGraph view_count_by_source_graph:StatisticalGraph join_by_source_graph:StatisticalGraph language_graph:StatisticalGraph message_interaction_graph:StatisticalGraph message_reaction_graph:StatisticalGraph story_interaction_graph:StatisticalGraph story_reaction_graph:StatisticalGraph instant_view_interaction_graph:StatisticalGraph recent_interactions:vector<chatStatisticsInteractionInfo> = ChatStatistics;
 
 
@@ -8511,17 +8511,17 @@ updateUnreadChatCount chat_list:ChatList total_count:int32 unread_count:int32 un
 //@description A story was changed @story The new information about the story
 updateStory story:story = Update;
 
-//@description A story became inaccessible @story_sender_chat_id Identifier of the chat that posted the story @story_id Story identifier
-updateStoryDeleted story_sender_chat_id:int53 story_id:int32 = Update;
+//@description A story became inaccessible @story_poster_chat_id Identifier of the chat that posted the story @story_id Story identifier
+updateStoryDeleted story_poster_chat_id:int53 story_id:int32 = Update;
 
-//@description A story has been successfully sent @story The sent story @old_story_id The previous temporary story identifier
-updateStorySendSucceeded story:story old_story_id:int32 = Update;
+//@description A story has been successfully posted @story The posted story @old_story_id The previous temporary story identifier
+updateStoryPostSucceeded story:story old_story_id:int32 = Update;
 
-//@description A story failed to send. If the story sending is canceled, then updateStoryDeleted will be received instead of this update
-//@story The failed to send story
-//@error The cause of the story sending failure
+//@description A story failed to post. If the story posting is canceled, then updateStoryDeleted will be received instead of this update
+//@story The failed to post story
+//@error The cause of the story posting failure
 //@error_type Type of the error; may be null if unknown
-updateStorySendFailed story:story error:error error_type:CanSendStoryResult = Update;
+updateStoryPostFailed story:story error:error error_type:CanPostStoryResult = Update;
 
 //@description The list of active stories posted by a specific chat has changed
 //@active_stories The new list of active stories
@@ -9350,11 +9350,11 @@ searchOutgoingDocumentMessages query:string limit:int32 = FoundMessages;
 searchPublicMessagesByTag tag:string offset:string limit:int32 = FoundMessages;
 
 //@description Searches for public stories containing the given hashtag or cashtag. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
-//@story_sender_chat_id Identifier of the chat that posted the stories to search for; pass 0 to search stories in all chats
+//@story_poster_chat_id Identifier of the chat that posted the stories to search for; pass 0 to search stories in all chats
 //@tag Hashtag or cashtag to search for
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of stories to be returned; up to 100. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
-searchPublicStoriesByTag story_sender_chat_id:int53 tag:string offset:string limit:int32 = FoundStories;
+searchPublicStoriesByTag story_poster_chat_id:int53 tag:string offset:string limit:int32 = FoundStories;
 
 //@description Searches for public stories by the given address location. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 //@address Address of the location
@@ -9778,16 +9778,16 @@ readBusinessMessage business_connection_id:string chat_id:int53 message_id:int53
 //@message_ids Identifier of the messages
 deleteBusinessMessages business_connection_id:string message_ids:vector<int53> = Ok;
 
-//@description Changes a story sent by the bot on behalf of a business account; for bots only
-//@story_sender_chat_id Identifier of the chat that posted the story
+//@description Changes a story posted by the bot on behalf of a business account; for bots only
+//@story_poster_chat_id Identifier of the chat that posted the story
 //@story_id Identifier of the story to edit
 //@content New content of the story
 //@areas New clickable rectangle areas to be shown on the story media
 //@caption New story caption
 //@privacy_settings The new privacy settings for the story
-editBusinessStory story_sender_chat_id:int53 story_id:int32 content:InputStoryContent areas:inputStoryAreas caption:formattedText privacy_settings:StoryPrivacySettings = Story;
+editBusinessStory story_poster_chat_id:int53 story_id:int32 content:InputStoryContent areas:inputStoryAreas caption:formattedText privacy_settings:StoryPrivacySettings = Story;
 
-//@description Deletes a story sent by the bot on behalf of a business account; for bots only
+//@description Deletes a story posted by the bot on behalf of a business account; for bots only
 //@business_connection_id Unique identifier of business connection
 //@story_id Identifier of the story to delete
 deleteBusinessStory business_connection_id:string story_id:int32 = Ok;
@@ -10708,43 +10708,43 @@ getCurrentWeather location:location = CurrentWeather;
 
 
 //@description Returns a story
-//@story_sender_chat_id Identifier of the chat that posted the story
+//@story_poster_chat_id Identifier of the chat that posted the story
 //@story_id Story identifier
 //@only_local Pass true to get only locally available information without sending network requests
-getStory story_sender_chat_id:int53 story_id:int32 only_local:Bool = Story;
+getStory story_poster_chat_id:int53 story_id:int32 only_local:Bool = Story;
 
-//@description Returns supergroup and channel chats in which the current user has the right to post stories. The chats must be rechecked with canSendStory before actually trying to post a story there
-getChatsToSendStories = Chats;
+//@description Returns supergroup and channel chats in which the current user has the right to post stories. The chats must be rechecked with canPostStory before actually trying to post a story there
+getChatsToPostStories = Chats;
 
-//@description Checks whether the current user can send a story on behalf of a chat; requires can_post_stories right for supergroup and channel chats
+//@description Checks whether the current user can post a story on behalf of a chat; requires can_post_stories right for supergroup and channel chats
 //@chat_id Chat identifier. Pass Saved Messages chat identifier when posting a story on behalf of the current user
-canSendStory chat_id:int53 = CanSendStoryResult;
+canPostStory chat_id:int53 = CanPostStoryResult;
 
-//@description Sends a new story to a chat; requires can_post_stories right for supergroup and channel chats. Returns a temporary story
+//@description Posts a new story on behalf of a chat; requires can_post_stories right for supergroup and channel chats. Returns a temporary story
 //@chat_id Identifier of the chat that will post the story. Pass Saved Messages chat identifier when posting a story on behalf of the current user
 //@content Content of the story
 //@areas Clickable rectangle areas to be shown on the story media; pass null if none
 //@caption Story caption; pass null to use an empty caption; 0-getOption("story_caption_length_max") characters; can have entities only if getOption("can_use_text_entities_in_story_caption")
-//@privacy_settings The privacy settings for the story; ignored for stories sent to supergroup and channel chats
+//@privacy_settings The privacy settings for the story; ignored for stories posted on behalf of supergroup and channel chats
 //@active_period Period after which the story is moved to archive, in seconds; must be one of 6 * 3600, 12 * 3600, 86400, or 2 * 86400 for Telegram Premium users, and 86400 otherwise
 //@from_story_full_id Full identifier of the original story, which content was used to create the story; pass null if the story isn't repost of another story
 //@is_posted_to_chat_page Pass true to keep the story accessible after expiration
 //@protect_content Pass true if the content of the story must be protected from forwarding and screenshotting
-sendStory chat_id:int53 content:InputStoryContent areas:inputStoryAreas caption:formattedText privacy_settings:StoryPrivacySettings active_period:int32 from_story_full_id:storyFullId is_posted_to_chat_page:Bool protect_content:Bool = Story;
+postStory chat_id:int53 content:InputStoryContent areas:inputStoryAreas caption:formattedText privacy_settings:StoryPrivacySettings active_period:int32 from_story_full_id:storyFullId is_posted_to_chat_page:Bool protect_content:Bool = Story;
 
 //@description Changes content and caption of a story. Can be called only if story.can_be_edited == true
-//@story_sender_chat_id Identifier of the chat that posted the story
+//@story_poster_chat_id Identifier of the chat that posted the story
 //@story_id Identifier of the story to edit
 //@content New content of the story; pass null to keep the current content
 //@areas New clickable rectangle areas to be shown on the story media; pass null to keep the current areas. Areas can't be edited if story content isn't changed
 //@caption New story caption; pass null to keep the current caption
-editStory story_sender_chat_id:int53 story_id:int32 content:InputStoryContent areas:inputStoryAreas caption:formattedText = Ok;
+editStory story_poster_chat_id:int53 story_id:int32 content:InputStoryContent areas:inputStoryAreas caption:formattedText = Ok;
 
 //@description Changes cover of a video story. Can be called only if story.can_be_edited == true and the story isn't being edited now
-//@story_sender_chat_id Identifier of the chat that posted the story
+//@story_poster_chat_id Identifier of the chat that posted the story
 //@story_id Identifier of the story to edit
 //@cover_frame_timestamp New timestamp of the frame, which will be used as video thumbnail
-editStoryCover story_sender_chat_id:int53 story_id:int32 cover_frame_timestamp:double = Ok;
+editStoryCover story_poster_chat_id:int53 story_id:int32 cover_frame_timestamp:double = Ok;
 
 //@description Changes privacy settings of a story. The method can be called only for stories posted on behalf of the current user and if story.can_be_edited == true
 //@story_id Identifier of the story
@@ -10752,21 +10752,21 @@ editStoryCover story_sender_chat_id:int53 story_id:int32 cover_frame_timestamp:d
 setStoryPrivacySettings story_id:int32 privacy_settings:StoryPrivacySettings = Ok;
 
 //@description Toggles whether a story is accessible after expiration. Can be called only if story.can_toggle_is_posted_to_chat_page == true
-//@story_sender_chat_id Identifier of the chat that posted the story
+//@story_poster_chat_id Identifier of the chat that posted the story
 //@story_id Identifier of the story
 //@is_posted_to_chat_page Pass true to make the story accessible after expiration; pass false to make it private
-toggleStoryIsPostedToChatPage story_sender_chat_id:int53 story_id:int32 is_posted_to_chat_page:Bool = Ok;
+toggleStoryIsPostedToChatPage story_poster_chat_id:int53 story_id:int32 is_posted_to_chat_page:Bool = Ok;
 
-//@description Deletes a previously sent story. Can be called only if story.can_be_deleted == true
-//@story_sender_chat_id Identifier of the chat that posted the story
+//@description Deletes a previously posted story. Can be called only if story.can_be_deleted == true
+//@story_poster_chat_id Identifier of the chat that posted the story
 //@story_id Identifier of the story to delete
-deleteStory story_sender_chat_id:int53 story_id:int32 = Ok;
+deleteStory story_poster_chat_id:int53 story_id:int32 = Ok;
 
 //@description Returns the list of chats with non-default notification settings for stories
 getStoryNotificationSettingsExceptions = Chats;
 
 //@description Loads more active stories from a story list. The loaded stories will be sent through updates. Active stories are sorted by
-//-the pair (active_stories.order, active_stories.story_sender_chat_id) in descending order. Returns a 404 error if all active stories have been loaded
+//-the pair (active_stories.order, active_stories.story_poster_chat_id) in descending order. Returns a 404 error if all active stories have been loaded
 //@story_list The story list in which to load active stories
 loadActiveStories story_list:StoryList = Ok;
 
@@ -10798,24 +10798,24 @@ getChatArchivedStories chat_id:int53 from_story_id:int32 limit:int32 = Stories;
 setChatPinnedStories chat_id:int53 story_ids:vector<int32> = Ok;
 
 //@description Informs TDLib that a story is opened and is being viewed by the user
-//@story_sender_chat_id The identifier of the sender of the opened story
+//@story_poster_chat_id The identifier of the chat that posted the opened story
 //@story_id The identifier of the story
-openStory story_sender_chat_id:int53 story_id:int32 = Ok;
+openStory story_poster_chat_id:int53 story_id:int32 = Ok;
 
 //@description Informs TDLib that a story is closed by the user
-//@story_sender_chat_id The identifier of the sender of the story to close
+//@story_poster_chat_id The identifier of the poster of the story to close
 //@story_id The identifier of the story
-closeStory story_sender_chat_id:int53 story_id:int32 = Ok;
+closeStory story_poster_chat_id:int53 story_id:int32 = Ok;
 
 //@description Returns reactions, which can be chosen for a story @row_size Number of reaction per row, 5-25
 getStoryAvailableReactions row_size:int32 = AvailableReactions;
 
 //@description Changes chosen reaction on a story that has already been sent
-//@story_sender_chat_id The identifier of the sender of the story
+//@story_poster_chat_id The identifier of the poster of the story
 //@story_id The identifier of the story
 //@reaction_type Type of the reaction to set; pass null to remove the reaction. Custom emoji reactions can be used only by Telegram Premium users. Paid reactions can't be set
 //@update_recent_reactions Pass true if the reaction needs to be added to recent reactions
-setStoryReaction story_sender_chat_id:int53 story_id:int32 reaction_type:ReactionType update_recent_reactions:Bool = Ok;
+setStoryReaction story_poster_chat_id:int53 story_id:int32 reaction_type:ReactionType update_recent_reactions:Bool = Ok;
 
 //@description Returns interactions with a story. The method can be called only for stories posted on behalf of the current user
 //@story_id Story identifier
@@ -10828,20 +10828,20 @@ setStoryReaction story_sender_chat_id:int53 story_id:int32 reaction_type:Reactio
 getStoryInteractions story_id:int32 query:string only_contacts:Bool prefer_forwards:Bool prefer_with_reaction:Bool offset:string limit:int32 = StoryInteractions;
 
 //@description Returns interactions with a story posted in a chat. Can be used only if story is posted on behalf of a chat and the user is an administrator in the chat
-//@story_sender_chat_id The identifier of the sender of the story
+//@story_poster_chat_id The identifier of the poster of the story
 //@story_id Story identifier
 //@reaction_type Pass the default heart reaction or a suggested reaction type to receive only interactions with the specified reaction type; pass null to receive all interactions; reactionTypePaid isn't supported
 //@prefer_forwards Pass true to get forwards and reposts first, then reactions, then other views; pass false to get interactions sorted just by interaction date
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of story interactions to return
-getChatStoryInteractions story_sender_chat_id:int53 story_id:int32 reaction_type:ReactionType prefer_forwards:Bool offset:string limit:int32 = StoryInteractions;
+getChatStoryInteractions story_poster_chat_id:int53 story_id:int32 reaction_type:ReactionType prefer_forwards:Bool offset:string limit:int32 = StoryInteractions;
 
 //@description Reports a story to the Telegram moderators
-//@story_sender_chat_id The identifier of the sender of the story to report
+//@story_poster_chat_id The identifier of the poster of the story to report
 //@story_id The identifier of the story to report
 //@option_id Option identifier chosen by the user; leave empty for the initial request
 //@text Additional report details; 0-1024 characters; leave empty for the initial request
-reportStory story_sender_chat_id:int53 story_id:int32 option_id:bytes text:string = ReportStoryResult;
+reportStory story_poster_chat_id:int53 story_id:int32 option_id:bytes text:string = ReportStoryResult;
 
 //@description Activates stealth mode for stories, which hides all views of stories from the current user in the last "story_stealth_mode_past_period" seconds
 //-and for the next "story_stealth_mode_future_period" seconds; for Telegram Premium users only
@@ -10849,11 +10849,11 @@ activateStoryStealthMode = Ok;
 
 //@description Returns forwards of a story as a message to public chats and reposts by public channels. Can be used only if the story is posted on behalf of the current user or story.can_get_statistics == true.
 //-For optimal performance, the number of returned messages and stories is chosen by TDLib
-//@story_sender_chat_id The identifier of the sender of the story
+//@story_poster_chat_id The identifier of the poster of the story
 //@story_id The identifier of the story
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages and stories to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
-getStoryPublicForwards story_sender_chat_id:int53 story_id:int32 offset:string limit:int32 = PublicForwards;
+getStoryPublicForwards story_poster_chat_id:int53 story_id:int32 offset:string limit:int32 = PublicForwards;
 
 
 //@description Returns the list of features available on the specific chat boost level. This is an offline method

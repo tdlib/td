@@ -3693,7 +3693,7 @@ static Result<InputMessageContent> create_input_message_content(
     }
     case td_api::inputMessageStory::ID: {
       auto input_story = static_cast<td_api::inputMessageStory *>(input_message_content.get());
-      DialogId story_sender_dialog_id(input_story->story_sender_chat_id_);
+      DialogId story_sender_dialog_id(input_story->story_poster_chat_id_);
       StoryId story_id(input_story->story_id_);
       StoryFullId story_full_id(story_sender_dialog_id, story_id);
       if (!td->story_manager_->have_story_force(story_full_id)) {

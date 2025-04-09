@@ -1039,11 +1039,11 @@ class GetChatsToSendStoriesQuery final : public Td::ResultHandler {
 };
 
 class CanSendStoryQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::CanSendStoryResult>> promise_;
+  Promise<td_api::object_ptr<td_api::CanPostStoryResult>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit CanSendStoryQuery(Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise)
+  explicit CanSendStoryQuery(Promise<td_api::object_ptr<td_api::CanPostStoryResult>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -1062,11 +1062,11 @@ class CanSendStoryQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(td_api::make_object<td_api::canSendStoryResultOk>());
+    promise_.set_value(td_api::make_object<td_api::canPostStoryResultOk>());
   }
 
   void on_error(Status status) final {
-    auto result = StoryManager::get_can_send_story_result_object(status);
+    auto result = StoryManager::get_can_post_story_result_object(status);
     if (result != nullptr) {
       return promise_.set_value(std::move(result));
     }
@@ -3609,26 +3609,26 @@ td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stor
       story_list_id.get_story_list_object(), order, max_read_story_id.get(), std::move(stories));
 }
 
-td_api::object_ptr<td_api::CanSendStoryResult> StoryManager::get_can_send_story_result_object(const Status &error,
+td_api::object_ptr<td_api::CanPostStoryResult> StoryManager::get_can_post_story_result_object(const Status &error,
                                                                                               bool force) {
   CHECK(error.is_error());
   if (error.message() == "PREMIUM_ACCOUNT_REQUIRED") {
-    return td_api::make_object<td_api::canSendStoryResultPremiumNeeded>();
+    return td_api::make_object<td_api::canPostStoryResultPremiumNeeded>();
   }
   if (error.message() == "BOOSTS_REQUIRED") {
-    return td_api::make_object<td_api::canSendStoryResultBoostNeeded>();
+    return td_api::make_object<td_api::canPostStoryResultBoostNeeded>();
   }
   if (error.message() == "STORIES_TOO_MUCH") {
-    return td_api::make_object<td_api::canSendStoryResultActiveStoryLimitExceeded>();
+    return td_api::make_object<td_api::canPostStoryResultActiveStoryLimitExceeded>();
   }
   if (begins_with(error.message(), "STORY_SEND_FLOOD_WEEKLY_")) {
     auto r_next_date = to_integer_safe<int32>(error.message().substr(Slice("STORY_SEND_FLOOD_WEEKLY_").size()));
     if (r_next_date.is_ok() && r_next_date.ok() > 0) {
       auto retry_after = r_next_date.ok() - G()->unix_time();
       if (retry_after > 0 || force) {
-        return td_api::make_object<td_api::canSendStoryResultWeeklyLimitExceeded>(max(retry_after, 0));
+        return td_api::make_object<td_api::canPostStoryResultWeeklyLimitExceeded>(max(retry_after, 0));
       } else {
-        return td_api::make_object<td_api::canSendStoryResultOk>();
+        return td_api::make_object<td_api::canPostStoryResultOk>();
       }
     }
   }
@@ -3637,9 +3637,9 @@ td_api::object_ptr<td_api::CanSendStoryResult> StoryManager::get_can_send_story_
     if (r_next_date.is_ok() && r_next_date.ok() > 0) {
       auto retry_after = r_next_date.ok() - G()->unix_time();
       if (retry_after > 0 || force) {
-        return td_api::make_object<td_api::canSendStoryResultMonthlyLimitExceeded>(max(retry_after, 0));
+        return td_api::make_object<td_api::canPostStoryResultMonthlyLimitExceeded>(max(retry_after, 0));
       } else {
-        return td_api::make_object<td_api::canSendStoryResultOk>();
+        return td_api::make_object<td_api::canPostStoryResultOk>();
       }
     }
   }
@@ -3923,7 +3923,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
 
   if (old_story_id.is_valid()) {
     send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateStorySendSucceeded>(get_story_object(story_full_id, story),
+                 td_api::make_object<td_api::updateStoryPostSucceeded>(get_story_object(story_full_id, story),
                                                                        old_story_id.get()));
     if (td_->auth_manager_->is_bot()) {
       on_delete_story(story_full_id);
@@ -5150,7 +5150,7 @@ void StoryManager::save_channels_to_send_stories() {
 }
 
 void StoryManager::can_send_story(DialogId dialog_id,
-                                  Promise<td_api::object_ptr<td_api::CanSendStoryResult>> &&promise) {
+                                  Promise<td_api::object_ptr<td_api::CanPostStoryResult>> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "can_send_story")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
@@ -5189,7 +5189,7 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
       return promise.set_error(Status::Error(400, "Bots can't repost stories"));
     }
     forward_from_story_full_id =
-        StoryFullId(DialogId(from_story_full_id->sender_chat_id_), StoryId(from_story_full_id->story_id_));
+        StoryFullId(DialogId(from_story_full_id->poster_chat_id_), StoryId(from_story_full_id->story_id_));
     const Story *story = get_story(forward_from_story_full_id);
     if (story == nullptr || story->content_ == nullptr) {
       return promise.set_error(Status::Error(400, "Story to repost not found"));
@@ -5820,9 +5820,9 @@ void StoryManager::delete_pending_story(unique_ptr<PendingStory> &&pending_story
                                       "delete_pending_story");
       send_closure(
           G()->td(), &Td::send_update,
-          td_api::make_object<td_api::updateStorySendFailed>(
+          td_api::make_object<td_api::updateStoryPostFailed>(
               std::move(story_object), td_api::make_object<td_api::error>(status.code(), status.message().str()),
-              get_can_send_story_result_object(status, true)));
+              get_can_post_story_result_object(status, true)));
     }
     auto it = yet_unsent_stories_.find(pending_story->dialog_id_);
     CHECK(it != yet_unsent_stories_.end());

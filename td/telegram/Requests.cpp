@@ -3285,7 +3285,7 @@ void Requests::on_request(uint64 id, td_api::searchPublicStoriesByTag &request) 
   CLEAN_INPUT_STRING(request.tag_);
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
-  td_->story_manager_->search_hashtag_posts(DialogId(request.story_sender_chat_id_), std::move(request.tag_),
+  td_->story_manager_->search_hashtag_posts(DialogId(request.story_poster_chat_id_), std::move(request.tag_),
                                             std::move(request.offset_), request.limit_, std::move(promise));
 }
 
@@ -3542,7 +3542,7 @@ void Requests::on_request(uint64 id, td_api::getStoryPublicForwards &request) {
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   td_->statistics_manager_->get_story_public_forwards(
-      {DialogId(request.story_sender_chat_id_), StoryId(request.story_id_)}, std::move(request.offset_), request.limit_,
+      {DialogId(request.story_poster_chat_id_), StoryId(request.story_id_)}, std::move(request.offset_), request.limit_,
       std::move(promise));
 }
 
@@ -3881,7 +3881,7 @@ void Requests::on_request(uint64 id, td_api::editBusinessStory &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();
   td_->story_manager_->edit_business_story(
-      DialogId(request.story_sender_chat_id_), StoryId(request.story_id_), std::move(request.content_),
+      DialogId(request.story_poster_chat_id_), StoryId(request.story_id_), std::move(request.content_),
       std::move(request.areas_), std::move(request.caption_), std::move(request.privacy_settings_), std::move(promise));
 }
 
@@ -4053,23 +4053,23 @@ void Requests::on_request(uint64 id, const td_api::getCurrentWeather &request) {
 void Requests::on_request(uint64 id, const td_api::getStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->story_manager_->get_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
+  td_->story_manager_->get_story(DialogId(request.story_poster_chat_id_), StoryId(request.story_id_),
                                  request.only_local_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getChatsToSendStories &request) {
+void Requests::on_request(uint64 id, const td_api::getChatsToPostStories &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->story_manager_->get_dialogs_to_send_stories(std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::canSendStory &request) {
+void Requests::on_request(uint64 id, const td_api::canPostStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->story_manager_->can_send_story(DialogId(request.chat_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::sendStory &request) {
+void Requests::on_request(uint64 id, td_api::postStory &request) {
   CREATE_REQUEST_PROMISE();
   td_->story_manager_->send_story(DialogId(request.chat_id_), std::move(request.content_), std::move(request.areas_),
                                   std::move(request.caption_), std::move(request.privacy_settings_),
@@ -4080,7 +4080,7 @@ void Requests::on_request(uint64 id, td_api::sendStory &request) {
 void Requests::on_request(uint64 id, td_api::editStory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->story_manager_->edit_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
+  td_->story_manager_->edit_story(DialogId(request.story_poster_chat_id_), StoryId(request.story_id_),
                                   std::move(request.content_), std::move(request.areas_), std::move(request.caption_),
                                   std::move(promise));
 }
@@ -4088,7 +4088,7 @@ void Requests::on_request(uint64 id, td_api::editStory &request) {
 void Requests::on_request(uint64 id, const td_api::editStoryCover &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->story_manager_->edit_story_cover(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
+  td_->story_manager_->edit_story_cover(DialogId(request.story_poster_chat_id_), StoryId(request.story_id_),
                                         request.cover_frame_timestamp_, std::move(promise));
 }
 
@@ -4102,14 +4102,14 @@ void Requests::on_request(uint64 id, td_api::setStoryPrivacySettings &request) {
 void Requests::on_request(uint64 id, const td_api::toggleStoryIsPostedToChatPage &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->story_manager_->toggle_story_is_pinned(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
+  td_->story_manager_->toggle_story_is_pinned(DialogId(request.story_poster_chat_id_), StoryId(request.story_id_),
                                               request.is_posted_to_chat_page_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::deleteStory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->story_manager_->delete_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
+  td_->story_manager_->delete_story(DialogId(request.story_poster_chat_id_), StoryId(request.story_id_),
                                     std::move(promise));
 }
 
@@ -5052,14 +5052,14 @@ void Requests::on_request(uint64 id, const td_api::setChatPinnedStories &request
 void Requests::on_request(uint64 id, const td_api::openStory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->story_manager_->open_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
+  td_->story_manager_->open_story(DialogId(request.story_poster_chat_id_), StoryId(request.story_id_),
                                   std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::closeStory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->story_manager_->close_story(DialogId(request.story_sender_chat_id_), StoryId(request.story_id_),
+  td_->story_manager_->close_story(DialogId(request.story_poster_chat_id_), StoryId(request.story_id_),
                                    std::move(promise));
 }
 
@@ -5071,7 +5071,7 @@ void Requests::on_request(uint64 id, const td_api::getStoryAvailableReactions &r
 void Requests::on_request(uint64 id, const td_api::setStoryReaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->story_manager_->set_story_reaction({DialogId(request.story_sender_chat_id_), StoryId(request.story_id_)},
+  td_->story_manager_->set_story_reaction({DialogId(request.story_poster_chat_id_), StoryId(request.story_id_)},
                                           ReactionType(request.reaction_type_), request.update_recent_reactions_,
                                           std::move(promise));
 }
@@ -5091,7 +5091,7 @@ void Requests::on_request(uint64 id, td_api::getChatStoryInteractions &request) 
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   td_->story_manager_->get_dialog_story_interactions(
-      {DialogId(request.story_sender_chat_id_), StoryId(request.story_id_)}, ReactionType(request.reaction_type_),
+      {DialogId(request.story_poster_chat_id_), StoryId(request.story_id_)}, ReactionType(request.reaction_type_),
       request.prefer_forwards_, request.offset_, request.limit_, std::move(promise));
 }
 
@@ -5099,7 +5099,7 @@ void Requests::on_request(uint64 id, td_api::reportStory &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.text_);
   CREATE_REQUEST_PROMISE();
-  td_->story_manager_->report_story({DialogId(request.story_sender_chat_id_), StoryId(request.story_id_)},
+  td_->story_manager_->report_story({DialogId(request.story_poster_chat_id_), StoryId(request.story_id_)},
                                     request.option_id_, request.text_, std::move(promise));
 }
 

@@ -627,11 +627,11 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getStory &request);
 
-  void on_request(uint64 id, const td_api::getChatsToSendStories &request);
+  void on_request(uint64 id, const td_api::getChatsToPostStories &request);
 
-  void on_request(uint64 id, const td_api::canSendStory &request);
+  void on_request(uint64 id, const td_api::canPostStory &request);
 
-  void on_request(uint64 id, td_api::sendStory &request);
+  void on_request(uint64 id, td_api::postStory &request);
 
   void on_request(uint64 id, td_api::editStory &request);
 

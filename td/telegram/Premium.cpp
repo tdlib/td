@@ -958,9 +958,9 @@ static Slice get_limit_type_key(const td_api::PremiumLimitType *limit_type) {
       return Slice("story_expiring");
     case td_api::premiumLimitTypeStoryCaptionLength::ID:
       return Slice("story_caption_length");
-    case td_api::premiumLimitTypeWeeklySentStoryCount::ID:
+    case td_api::premiumLimitTypeWeeklyPostedStoryCount::ID:
       return Slice("stories_sent_weekly");
-    case td_api::premiumLimitTypeMonthlySentStoryCount::ID:
+    case td_api::premiumLimitTypeMonthlyPostedStoryCount::ID:
       return Slice("stories_sent_monthly");
     case td_api::premiumLimitTypeStorySuggestedReactionAreaCount::ID:
       return Slice("stories_suggested_reactions");
@@ -1189,10 +1189,10 @@ static td_api::object_ptr<td_api::premiumLimit> get_premium_limit_object(Slice k
       return td_api::make_object<td_api::premiumLimitTypeStoryCaptionLength>();
     }
     if (key == "stories_sent_weekly") {
-      return td_api::make_object<td_api::premiumLimitTypeWeeklySentStoryCount>();
+      return td_api::make_object<td_api::premiumLimitTypeWeeklyPostedStoryCount>();
     }
     if (key == "stories_sent_monthly") {
-      return td_api::make_object<td_api::premiumLimitTypeMonthlySentStoryCount>();
+      return td_api::make_object<td_api::premiumLimitTypeMonthlyPostedStoryCount>();
     }
     if (key == "stories_suggested_reactions") {
       return td_api::make_object<td_api::premiumLimitTypeStorySuggestedReactionAreaCount>();

@@ -366,8 +366,8 @@ static auto sticker_set(const td::string &sticker_set_name, bool expect_custom_e
   return td::td_api::make_object<td::td_api::internalLinkTypeStickerSet>(sticker_set_name, expect_custom_emoji);
 }
 
-static auto story(const td::string &sender_username, td::int32 story_id) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeStory>(sender_username, story_id);
+static auto story(const td::string &poster_username, td::int32 story_id) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeStory>(poster_username, story_id);
 }
 
 static auto theme(const td::string &theme_name) {
