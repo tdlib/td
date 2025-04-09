@@ -533,6 +533,8 @@ class MessagesManager final : public Actor {
 
   vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
 
+  int64 get_message_order(DialogId dialog_id, MessageId message_id) const;
+
   void block_message_sender_from_replies(MessageId message_id, bool need_delete_message, bool need_delete_all_messages,
                                          bool report_spam, Promise<Unit> &&promise);
 

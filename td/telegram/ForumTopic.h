@@ -32,6 +32,8 @@ class ForumTopic {
   DialogNotificationSettings notification_settings_;
   unique_ptr<DraftMessage> draft_message_;
 
+  int64 get_forum_topic_order(Td *td, DialogId dialog_id) const;
+
  public:
   ForumTopic() = default;
 

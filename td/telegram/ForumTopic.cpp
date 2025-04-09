@@ -6,6 +6,7 @@
 //
 #include "td/telegram/ForumTopic.h"
 
+#include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DraftMessage.h"
 #include "td/telegram/MessagesManager.h"
@@ -62,6 +63,25 @@ bool ForumTopic::update_last_read_inbox_message_id(MessageId last_read_inbox_mes
   return true;
 }
 
+int64 ForumTopic::get_forum_topic_order(Td *td, DialogId dialog_id) const {
+  int64 order = DEFAULT_ORDER;
+  if (last_message_id_ != MessageId()) {
+    int64 last_message_order = td->messages_manager_->get_message_order(dialog_id, last_message_id_);
+    if (last_message_order > order) {
+      order = last_message_order;
+    }
+  }
+  // TODO && can_send_message(dialog_id, info_.get_top_thread_message_id()).is_ok();
+  if (draft_message_ != nullptr) {
+    auto draft_message_date = draft_message_->get_date();
+    int64 draft_order = DialogDate::get_dialog_order(MessageId(), draft_message_date);
+    if (draft_order > order) {
+      order = draft_order;
+    }
+  }
+  return order <= 0 ? 0 : order;
+}
+
 td_api::object_ptr<td_api::forumTopic> ForumTopic::get_forum_topic_object(Td *td, DialogId dialog_id,
                                                                           const ForumTopicInfo &info) const {
   if (info.is_empty()) {
@@ -73,8 +93,8 @@ td_api::object_ptr<td_api::forumTopic> ForumTopic::get_forum_topic_object(Td *td
       td->messages_manager_->get_message_object({dialog_id, last_message_id_}, "get_forum_topic_object");
   auto draft_message = get_draft_message_object(td, draft_message_);
   return td_api::make_object<td_api::forumTopic>(
-      info.get_forum_topic_info_object(td), std::move(last_message), is_pinned_, unread_count_,
-      last_read_inbox_message_id_.get(), last_read_outbox_message_id_.get(), unread_mention_count_,
+      info.get_forum_topic_info_object(td), std::move(last_message), get_forum_topic_order(td, dialog_id), is_pinned_,
+      unread_count_, last_read_inbox_message_id_.get(), last_read_outbox_message_id_.get(), unread_mention_count_,
       unread_reaction_count_, get_chat_notification_settings_object(&notification_settings_), std::move(draft_message));
 }
 

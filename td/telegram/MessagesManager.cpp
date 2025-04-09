@@ -32256,6 +32256,14 @@ int64 MessagesManager::get_next_pinned_dialog_order() {
   return current_pinned_dialog_order_;
 }
 
+int64 MessagesManager::get_message_order(DialogId dialog_id, MessageId message_id) const {
+  auto m = get_message({dialog_id, message_id});
+  if (m == nullptr) {
+    return DEFAULT_ORDER;
+  }
+  return DialogDate::get_dialog_order(m->message_id, m->date);
+}
+
 void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need_send_update,
                                         bool is_loaded_from_database) {
   if (td_->auth_manager_->is_bot()) {

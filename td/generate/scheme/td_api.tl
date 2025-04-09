@@ -2828,6 +2828,7 @@ forumTopicInfo message_thread_id:int53 name:string icon:forumTopicIcon creation_
 //@description Describes a forum topic
 //@info Basic information about the topic
 //@last_message Last message in the topic; may be null if unknown
+//@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order
 //@is_pinned True, if the topic is pinned in the topic list
 //@unread_count Number of unread messages in the topic
 //@last_read_inbox_message_id Identifier of the last read incoming message
@@ -2836,7 +2837,7 @@ forumTopicInfo message_thread_id:int53 name:string icon:forumTopicIcon creation_
 //@unread_reaction_count Number of messages with unread reactions in the topic
 //@notification_settings Notification settings for the topic
 //@draft_message A draft of a message in the topic; may be null if none
-forumTopic info:forumTopicInfo last_message:message is_pinned:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings draft_message:draftMessage = ForumTopic;
+forumTopic info:forumTopicInfo last_message:message order:int64 is_pinned:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings draft_message:draftMessage = ForumTopic;
 
 //@description Describes a list of forum topics
 //@total_count Approximate total number of forum topics found
