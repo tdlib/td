@@ -12006,7 +12006,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     }
     if (from_dialog_list) {
       auto message_date = get_message_date(message);
-      int64 order = get_dialog_order(message_full_id.get_message_id(), message_date);
+      int64 order = DialogDate::get_dialog_order(message_full_id.get_message_id(), message_date);
       message_full_id_to_dialog_date.emplace(message_full_id, DialogDate(order, message_full_id.get_dialog_id()));
     }
     message_full_id_to_message[message_full_id] = std::move(message);
@@ -31930,13 +31930,13 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
 
     auto pending_order = DEFAULT_ORDER;
     if (last_database_message != nullptr) {
-      auto last_message_order = get_dialog_order(last_message_id, last_database_message->date);
+      auto last_message_order = DialogDate::get_dialog_order(last_message_id, last_database_message->date);
       if (last_message_order > pending_order) {
         pending_order = last_message_order;
       }
     }
     if (draft_message != nullptr && !need_hide_dialog_draft_message(d)) {
-      int64 draft_order = get_dialog_order(MessageId(), draft_message->get_date());
+      int64 draft_order = DialogDate::get_dialog_order(MessageId(), draft_message->get_date());
       if (draft_order > pending_order) {
         pending_order = draft_order;
       }
@@ -31955,7 +31955,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
   } else if (last_database_message_id.is_valid()) {
     auto date = DialogDate(order, dialog_id).get_date();
     if (date < MIN_PINNED_DIALOG_DATE) {
-      d->pending_order = get_dialog_order(last_message_id, date);
+      d->pending_order = DialogDate::get_dialog_order(last_message_id, date);
     }
   }
 
@@ -32173,12 +32173,6 @@ void MessagesManager::update_dialogs_hints_rating(const Dialog *d) {
   }
 }
 
-int64 MessagesManager::get_dialog_order(MessageId message_id, int32 message_date) {
-  CHECK(!message_id.is_scheduled());
-  return (static_cast<int64>(message_date) << 32) +
-         message_id.get_prev_server_message_id().get_server_message_id().get();
-}
-
 bool MessagesManager::is_dialog_sponsored(const Dialog *d) const {
   return d->order == DEFAULT_ORDER && d->dialog_id == sponsored_dialog_id_;
 }
@@ -32277,19 +32271,19 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
       auto m = get_message(d, d->last_message_id);
       CHECK(m != nullptr);
       LOG(INFO) << "Last message at " << m->date << " found";
-      int64 last_message_order = get_dialog_order(m->message_id, m->date);
+      int64 last_message_order = DialogDate::get_dialog_order(m->message_id, m->date);
       if (last_message_order > new_order) {
         new_order = last_message_order;
       }
     } else if (d->delete_last_message_date > 0) {
       LOG(INFO) << "Deleted last " << d->deleted_last_message_id << " at " << d->delete_last_message_date << " found";
-      int64 delete_order = get_dialog_order(d->deleted_last_message_id, d->delete_last_message_date);
+      int64 delete_order = DialogDate::get_dialog_order(d->deleted_last_message_id, d->delete_last_message_date);
       if (delete_order > new_order) {
         new_order = delete_order;
       }
     } else if (d->last_clear_history_date > 0) {
       LOG(INFO) << "Clear history at " << d->last_clear_history_date << " found";
-      int64 clear_order = get_dialog_order(d->last_clear_history_message_id, d->last_clear_history_date);
+      int64 clear_order = DialogDate::get_dialog_order(d->last_clear_history_message_id, d->last_clear_history_date);
       if (clear_order > new_order) {
         new_order = clear_order;
       }
@@ -32303,7 +32297,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
     if (d->draft_message != nullptr && !need_hide_dialog_draft_message(d)) {
       auto draft_message_date = d->draft_message->get_date();
       LOG(INFO) << "Draft message at " << draft_message_date << " found";
-      int64 draft_order = get_dialog_order(MessageId(), draft_message_date);
+      int64 draft_order = DialogDate::get_dialog_order(MessageId(), draft_message_date);
       if (draft_order > new_order) {
         new_order = draft_order;
       }
@@ -32313,7 +32307,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
         auto chat_id = d->dialog_id.get_chat_id();
         auto date = td_->chat_manager_->get_chat_date(chat_id);
         LOG(INFO) << "Creation at " << date << " found";
-        int64 join_order = get_dialog_order(MessageId(), date);
+        int64 join_order = DialogDate::get_dialog_order(MessageId(), date);
         if (join_order > new_order && td_->chat_manager_->get_chat_status(chat_id).is_member()) {
           new_order = join_order;
         }
@@ -32322,7 +32316,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
       case DialogType::Channel: {
         auto date = td_->chat_manager_->get_channel_date(d->dialog_id.get_channel_id());
         LOG(INFO) << "Join at " << date << " found";
-        int64 join_order = get_dialog_order(MessageId(), date);
+        int64 join_order = DialogDate::get_dialog_order(MessageId(), date);
         if (join_order > new_order) {
           new_order = join_order;
         }
@@ -32332,7 +32326,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, const char *source, bool need
         auto date = td_->user_manager_->get_secret_chat_date(d->dialog_id.get_secret_chat_id());
         if (date != 0 && !is_deleted_secret_chat(d)) {
           LOG(INFO) << "Creation at " << date << " found";
-          int64 creation_order = get_dialog_order(MessageId(), date);
+          int64 creation_order = DialogDate::get_dialog_order(MessageId(), date);
           if (creation_order > new_order) {
             new_order = creation_order;
           }

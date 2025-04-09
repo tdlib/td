@@ -2841,8 +2841,6 @@ class MessagesManager final : public Actor {
 
   static NotificationInfo *add_dialog_notification_info(Dialog *d);
 
-  static int64 get_dialog_order(MessageId message_id, int32 message_date);
-
   bool is_dialog_sponsored(const Dialog *d) const;
 
   int64 get_dialog_base_order(const Dialog *d) const;
