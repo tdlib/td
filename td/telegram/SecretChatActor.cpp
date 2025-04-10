@@ -1410,21 +1410,13 @@ NetQueryPtr SecretChatActor::create_net_query(const log_event::OutboundSecretMes
                              telegram_api::messages_sendEncryptedService(get_input_chat(), message.random_id,
                                                                          message.encrypted_message.clone()));
   } else if (message.file.empty()) {
-    int32 flags = 0;
-    if (message.is_silent) {
-      flags |= telegram_api::messages_sendEncrypted::SILENT_MASK;
-    }
     query = create_net_query(
-        QueryType::Message, telegram_api::messages_sendEncrypted(flags, false /*ignored*/, get_input_chat(),
+        QueryType::Message, telegram_api::messages_sendEncrypted(0, message.is_silent, get_input_chat(),
                                                                  message.random_id, message.encrypted_message.clone()));
   } else {
-    int32 flags = 0;
-    if (message.is_silent) {
-      flags |= telegram_api::messages_sendEncryptedFile::SILENT_MASK;
-    }
     query = create_net_query(QueryType::Message,
                              telegram_api::messages_sendEncryptedFile(
-                                 flags, false /*ignored*/, get_input_chat(), message.random_id,
+                                 0, message.is_silent, get_input_chat(), message.random_id,
                                  message.encrypted_message.clone(), message.file.as_input_encrypted_file()));
   }
   if (!message.is_rewritable) {

@@ -162,20 +162,8 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
     message_ = std::move(message);
 
     int32 flags = 0;
-    if (message_->disable_web_page_preview_) {
-      flags |= telegram_api::messages_sendMessage::NO_WEBPAGE_MASK;
-    }
-    if (message_->disable_notification_) {
-      flags |= telegram_api::messages_sendMessage::SILENT_MASK;
-    }
-    if (message_->noforwards_) {
-      flags |= telegram_api::messages_sendMessage::NOFORWARDS_MASK;
-    }
     if (message_->effect_id_.is_valid()) {
       flags |= telegram_api::messages_sendMessage::EFFECT_MASK;
-    }
-    if (message_->invert_media_) {
-      flags |= telegram_api::messages_sendMessage::INVERT_MEDIA_MASK;
     }
 
     auto input_peer = td_->dialog_manager_->get_input_peer(message_->dialog_id_, AccessRights::Know);
@@ -199,10 +187,10 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
 
     send_query(G()->net_query_creator().create_with_prefix(
         message_->business_connection_id_.get_invoke_prefix(),
-        telegram_api::messages_sendMessage(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                           false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                           false /*ignored*/, std::move(input_peer), std::move(reply_to),
-                                           message_text->text, message_->random_id_,
+        telegram_api::messages_sendMessage(flags, message_->disable_web_page_preview_, message_->disable_notification_,
+                                           false, false, message_->noforwards_, false, message_->invert_media_, false,
+                                           std::move(input_peer), std::move(reply_to), message_text->text,
+                                           message_->random_id_,
                                            get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_),
                                            std::move(entities), 0, nullptr, nullptr, message_->effect_id_.get(), 0),
         td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
@@ -241,17 +229,8 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
     message_ = std::move(message);
 
     int32 flags = 0;
-    if (message_->disable_notification_) {
-      flags |= telegram_api::messages_sendMedia::SILENT_MASK;
-    }
-    if (message_->noforwards_) {
-      flags |= telegram_api::messages_sendMedia::NOFORWARDS_MASK;
-    }
     if (message_->effect_id_.is_valid()) {
       flags |= telegram_api::messages_sendMedia::EFFECT_MASK;
-    }
-    if (message_->invert_media_) {
-      flags |= telegram_api::messages_sendMedia::INVERT_MEDIA_MASK;
     }
 
     auto input_peer = td_->dialog_manager_->get_input_peer(message_->dialog_id_, AccessRights::Know);
@@ -267,16 +246,15 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
     if (!entities.empty()) {
       flags |= telegram_api::messages_sendMedia::ENTITIES_MASK;
     }
-
     if (message_->reply_markup_ != nullptr) {
       flags |= telegram_api::messages_sendMedia::REPLY_MARKUP_MASK;
     }
 
     send_query(G()->net_query_creator().create_with_prefix(
         message_->business_connection_id_.get_invoke_prefix(),
-        telegram_api::messages_sendMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                         std::move(input_peer), std::move(reply_to), std::move(input_media),
+        telegram_api::messages_sendMedia(flags, message_->disable_notification_, false, false, message_->noforwards_,
+                                         false, message_->invert_media_, false, std::move(input_peer),
+                                         std::move(reply_to), std::move(input_media),
                                          message_text == nullptr ? string() : message_text->text, message_->random_id_,
                                          get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_),
                                          std::move(entities), 0, nullptr, nullptr, message_->effect_id_.get(), 0),
@@ -317,17 +295,8 @@ class BusinessConnectionManager::SendBusinessMultiMediaQuery final : public Td::
     messages_ = std::move(messages);
 
     int32 flags = 0;
-    if (messages_[0]->disable_notification_) {
-      flags |= telegram_api::messages_sendMultiMedia::SILENT_MASK;
-    }
-    if (messages_[0]->noforwards_) {
-      flags |= telegram_api::messages_sendMultiMedia::NOFORWARDS_MASK;
-    }
     if (messages_[0]->effect_id_.is_valid()) {
       flags |= telegram_api::messages_sendMultiMedia::EFFECT_MASK;
-    }
-    if (messages_[0]->invert_media_) {
-      flags |= telegram_api::messages_sendMultiMedia::INVERT_MEDIA_MASK;
     }
 
     auto input_peer = td_->dialog_manager_->get_input_peer(messages_[0]->dialog_id_, AccessRights::Know);
@@ -340,10 +309,10 @@ class BusinessConnectionManager::SendBusinessMultiMediaQuery final : public Td::
 
     send_query(G()->net_query_creator().create_with_prefix(
         messages_[0]->business_connection_id_.get_invoke_prefix(),
-        telegram_api::messages_sendMultiMedia(
-            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(reply_to),
-            std::move(input_single_media), 0, nullptr, nullptr, messages_[0]->effect_id_.get(), 0),
+        telegram_api::messages_sendMultiMedia(flags, messages_[0]->disable_notification_, false, false,
+                                              messages_[0]->noforwards_, false, messages_[0]->invert_media_, false,
+                                              std::move(input_peer), std::move(reply_to), std::move(input_single_media),
+                                              0, nullptr, nullptr, messages_[0]->effect_id_.get(), 0),
         td_->business_connection_manager_->get_business_connection_dc_id(messages_[0]->business_connection_id_),
         {{messages_[0]->dialog_id_}}));
   }

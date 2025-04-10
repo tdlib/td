@@ -1216,10 +1216,9 @@ class SendMessageQuery final : public Td::ResultHandler {
     }
 
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendMessage(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                           false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                           false /*ignored*/, std::move(input_peer), std::move(reply_to), text,
-                                           random_id, std::move(reply_markup), std::move(entities), schedule_date,
+        telegram_api::messages_sendMessage(flags, false, false, false, false, false, false, false, false,
+                                           std::move(input_peer), std::move(reply_to), text, random_id,
+                                           std::move(reply_markup), std::move(entities), schedule_date,
                                            std::move(as_input_peer), nullptr, effect_id.get(), paid_message_star_count),
         {{dialog_id, MessageContentType::Text},
          {dialog_id, is_copy ? MessageContentType::Photo : MessageContentType::Text}});
@@ -1352,9 +1351,8 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
     }
 
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendInlineBotResult(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                                   false /*ignored*/, std::move(input_peer), std::move(reply_to),
-                                                   random_id, query_id, result_id, schedule_date,
+        telegram_api::messages_sendInlineBotResult(flags, false, false, false, false, std::move(input_peer),
+                                                   std::move(reply_to), random_id, query_id, result_id, schedule_date,
                                                    std::move(as_input_peer), nullptr, paid_message_star_count),
         {{dialog_id, MessageContentType::Text}, {dialog_id, MessageContentType::Photo}});
     auto send_query_ref = query.get_weak();
@@ -1426,11 +1424,10 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
 
     // no quick ack, because file reference errors are very likely to happen
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendMultiMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                              false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                              false /*ignored*/, std::move(input_peer), std::move(reply_to),
-                                              std::move(input_single_media), schedule_date, std::move(as_input_peer),
-                                              nullptr, effect_id.get(), paid_message_star_count),
+        telegram_api::messages_sendMultiMedia(flags, false, false, false, false, false, false, false,
+                                              std::move(input_peer), std::move(reply_to), std::move(input_single_media),
+                                              schedule_date, std::move(as_input_peer), nullptr, effect_id.get(),
+                                              paid_message_star_count),
         {{dialog_id, is_copy ? MessageContentType::Text : MessageContentType::Photo},
          {dialog_id, MessageContentType::Photo}}));
   }
@@ -1571,10 +1568,9 @@ class SendMediaQuery final : public Td::ResultHandler {
     }
 
     auto query = G()->net_query_creator().create(
-        telegram_api::messages_sendMedia(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-                                         std::move(input_peer), std::move(reply_to), std::move(input_media), text,
-                                         random_id, std::move(reply_markup), std::move(entities), schedule_date,
+        telegram_api::messages_sendMedia(flags, false, false, false, false, false, false, false, std::move(input_peer),
+                                         std::move(reply_to), std::move(input_media), text, random_id,
+                                         std::move(reply_markup), std::move(entities), schedule_date,
                                          std::move(as_input_peer), nullptr, effect_id.get(), paid_message_star_count),
         {{dialog_id, content_type}, {dialog_id, is_copy ? MessageContentType::Text : content_type}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack") && was_uploaded_) {
@@ -1939,8 +1935,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
 
     auto query = G()->net_query_creator().create(
         telegram_api::messages_forwardMessages(
-            flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-            false /*ignored*/, false /*ignored*/, std::move(from_input_peer),
+            flags, false, false, false, false, false, false, false, std::move(from_input_peer),
             MessageId::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer),
             top_thread_message_id.get_server_message_id().get(), schedule_date, std::move(as_input_peer), nullptr,
             new_video_start_timestamp, paid_message_star_count),
