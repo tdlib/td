@@ -662,22 +662,17 @@ class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHan
       }
       flags |= telegram_api::messages_editMessage::MESSAGE_MASK;
     }
-    if (m->edited_invert_media) {
-      flags |= telegram_api::messages_editMessage::INVERT_MEDIA_MASK;
-    }
-    if (m->edited_disable_web_page_preview) {
-      flags |= telegram_api::messages_editMessage::NO_WEBPAGE_MASK;
-    }
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editMessage::MEDIA_MASK;
     }
 
     CHECK(m->shortcut_id.is_server());
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_editMessage(
-            flags, false /*ignored*/, false /*ignored*/, telegram_api::make_object<telegram_api::inputPeerSelf>(),
-            m->message_id.get_server_message_id().get(), text != nullptr ? text->text : string(),
-            std::move(input_media), nullptr, std::move(entities), 0, m->shortcut_id.get()),
+        telegram_api::messages_editMessage(flags, m->edited_disable_web_page_preview, m->edited_invert_media,
+                                           telegram_api::make_object<telegram_api::inputPeerSelf>(),
+                                           m->message_id.get_server_message_id().get(),
+                                           text != nullptr ? text->text : string(), std::move(input_media), nullptr,
+                                           std::move(entities), 0, m->shortcut_id.get()),
         {{"me"}}));
   }
 

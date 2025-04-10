@@ -1089,13 +1089,8 @@ class DeleteMessagesQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     server_message_ids_ = server_message_ids;
 
-    int32 flags = 0;
-    if (revoke) {
-      flags |= telegram_api::messages_deleteMessages::REVOKE_MASK;
-    }
-
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_deleteMessages(flags, false /*ignored*/, std::move(server_message_ids))));
+        telegram_api::messages_deleteMessages(0, revoke, std::move(server_message_ids))));
   }
 
   void on_result(BufferSlice packet) final {
