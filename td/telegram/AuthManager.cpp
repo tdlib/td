@@ -516,6 +516,17 @@ void AuthManager::on_update_login_token() {
   send_export_login_token_query();
 }
 
+void AuthManager::on_update_sent_code(telegram_api::object_ptr<telegram_api::auth_SentCode> &&sent_code_ptr) {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (state_ != State::WaitPremiumPurchase) {
+    return;
+  }
+
+  on_sent_code(std::move(sent_code_ptr));
+}
+
 void AuthManager::set_phone_number(uint64 query_id, string phone_number,
                                    td_api::object_ptr<td_api::phoneNumberAuthenticationSettings> settings) {
   if (state_ != State::WaitPhoneNumber) {

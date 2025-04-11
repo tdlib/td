@@ -1157,6 +1157,11 @@ void UpdatesManager::on_get_updates_impl(telegram_api::object_ptr<telegram_api::
         td_->auth_manager_->on_update_login_token();
         return promise.set_value(Unit());
       }
+      if (update_id == telegram_api::updateSentPhoneCode::ID) {
+        td_->auth_manager_->on_update_sent_code(
+            std::move(static_cast<telegram_api::updateSentPhoneCode *>(update.get())->sent_code_));
+        return promise.set_value(Unit());
+      }
 
       switch (update_id) {
         case telegram_api::updateServiceNotification::ID:
@@ -2373,6 +2378,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
         case telegram_api::updateChannelUserTyping::ID:
         case telegram_api::updateEncryptedChatTyping::ID:
         case telegram_api::updateLoginToken::ID:
+        case telegram_api::updateSentPhoneCode::ID:
         case telegram_api::updateDcOptions::ID:
         case telegram_api::updateConfig::ID:
         case telegram_api::updateServiceNotification::ID:
@@ -4469,6 +4475,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLoginToken> upd
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSentPhoneCode> update, Promise<Unit> &&promise) {
+  LOG(INFO) << "Ignore updateSentPhoneCode after authorization";
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotStopped> update, Promise<Unit> &&promise) {
   auto qts = update->qts_;
   add_pending_qts_update(std::move(update), qts, std::move(promise));
@@ -4659,10 +4670,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueSta
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSentPhoneCode> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

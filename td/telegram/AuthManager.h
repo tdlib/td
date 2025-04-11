@@ -57,6 +57,8 @@ class AuthManager final : public NetActor {
 
   void on_update_login_token();
 
+  void on_update_sent_code(telegram_api::object_ptr<telegram_api::auth_SentCode> &&sent_code_ptr);
+
   void on_authorization_lost(string source);
   void on_closing(bool destroy_flag);
 
