@@ -1387,27 +1387,36 @@ void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose
   td->create_handler<CanPurchasePremiumQuery>(std::move(promise))->send(std::move(purpose));
 }
 
-void assign_app_store_transaction(Td *td, const string &receipt,
-                                  td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise) {
+void assign_store_transaction(Td *td, td_api::object_ptr<td_api::StoreTransaction> &&transaction,
+                              td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise) {
+  if (transaction == nullptr) {
+    return promise.set_error(Status::Error(400, "Transaction must be non-empty"));
+  }
   if (purpose != nullptr && purpose->get_id() == td_api::storePaymentPurposePremiumSubscription::ID) {
     dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::UpgradePremium}, Promise<Unit>());
     dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::SubscribeToAnnualPremium}, Promise<Unit>());
     dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::RestorePremium}, Promise<Unit>());
   }
-  td->create_handler<AssignAppStoreTransactionQuery>(std::move(promise))->send(receipt, std::move(purpose));
-}
+  switch (transaction->get_id()) {
+    case td_api::storeTransactionAppStore::ID: {
+      auto type = td_api::move_object_as<td_api::storeTransactionAppStore>(transaction);
+      td->create_handler<AssignAppStoreTransactionQuery>(std::move(promise))->send(type->receipt_, std::move(purpose));
+      break;
+    }
+    case td_api::storeTransactionGooglePlay::ID: {
+      auto type = td_api::move_object_as<td_api::storeTransactionGooglePlay>(transaction);
+      if (!clean_input_string(type->package_name_) || !clean_input_string(type->store_product_id_) ||
+          !clean_input_string(type->purchase_token_)) {
+        return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
+      }
 
-void assign_play_market_transaction(Td *td, const string &package_name, const string &store_product_id,
-                                    const string &purchase_token,
-                                    td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose,
-                                    Promise<Unit> &&promise) {
-  if (purpose != nullptr && purpose->get_id() == td_api::storePaymentPurposePremiumSubscription::ID) {
-    dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::UpgradePremium}, Promise<Unit>());
-    dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::SubscribeToAnnualPremium}, Promise<Unit>());
-    dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::RestorePremium}, Promise<Unit>());
+      td->create_handler<AssignPlayMarketTransactionQuery>(std::move(promise))
+          ->send(type->package_name_, type->store_product_id_, type->purchase_token_, std::move(purpose));
+      break;
+    }
+    default:
+      UNREACHABLE();
   }
-  td->create_handler<AssignPlayMarketTransactionQuery>(std::move(promise))
-      ->send(package_name, store_product_id, purchase_token, std::move(purpose));
 }
 
 }  // namespace td

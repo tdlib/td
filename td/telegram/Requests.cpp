@@ -7848,20 +7848,10 @@ void Requests::on_request(uint64 id, td_api::canPurchaseFromStore &request) {
   can_purchase_premium(td_, std::move(request.purpose_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::assignAppStoreTransaction &request) {
+void Requests::on_request(uint64 id, td_api::assignStoreTransaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  assign_app_store_transaction(td_, request.receipt_, std::move(request.purpose_), std::move(promise));
-}
-
-void Requests::on_request(uint64 id, td_api::assignGooglePlayTransaction &request) {
-  CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.package_name_);
-  CLEAN_INPUT_STRING(request.store_product_id_);
-  CLEAN_INPUT_STRING(request.purchase_token_);
-  CREATE_OK_REQUEST_PROMISE();
-  assign_play_market_transaction(td_, request.package_name_, request.store_product_id_, request.purchase_token_,
-                                 std::move(request.purpose_), std::move(promise));
+  assign_store_transaction(td_, std::move(request.transaction_), std::move(request.purpose_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getBusinessFeatures &request) {

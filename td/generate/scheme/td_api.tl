@@ -6398,6 +6398,18 @@ storePaymentPurposeStars currency:string amount:int53 star_count:int53 = StorePa
 storePaymentPurposeGiftedStars user_id:int53 currency:string amount:int53 star_count:int53 = StorePaymentPurpose;
 
 
+//@class StoreTransaction @description Describes an in-store transaction
+
+//@description A purchase through App Store @receipt App Store receipt
+storeTransactionAppStore receipt:bytes = StoreTransaction;
+
+//@description A purchase through Google Play
+//@package_name Application package name
+//@store_product_id Identifier of the purchased store product
+//@purchase_token Google Play purchase token
+storeTransactionGooglePlay package_name:string store_product_id:string purchase_token:string = StoreTransaction;
+
+
 //@class TelegramPaymentPurpose @description Describes a purpose of a payment toward Telegram
 
 //@description The user gifting Telegram Premium to another user
@@ -12587,18 +12599,11 @@ getStarTransactions owner_id:MessageSender subscription_id:string direction:Star
 //@offset Offset of the first subscription to return as received from the previous request; use empty string to get the first chunk of results
 getStarSubscriptions only_expiring:Bool offset:string = StarSubscriptions;
 
-//@description Checks whether an in-store purchase is possible. Must be called before any in-store purchase @purpose Transaction purpose
+//@description Checks whether an in-store purchase is possible. Must be called before any in-store purchase. For official applications only @purpose Transaction purpose
 canPurchaseFromStore purpose:StorePaymentPurpose = Ok;
 
-//@description Informs server about a purchase through App Store. For official applications only @receipt App Store receipt @purpose Transaction purpose
-assignAppStoreTransaction receipt:bytes purpose:StorePaymentPurpose = Ok;
-
-//@description Informs server about a purchase through Google Play. For official applications only
-//@package_name Application package name
-//@store_product_id Identifier of the purchased store product
-//@purchase_token Google Play purchase token
-//@purpose Transaction purpose
-assignGooglePlayTransaction package_name:string store_product_id:string purchase_token:string purpose:StorePaymentPurpose = Ok;
+//@description Informs server about an in-store purchase. For official applications only @transaction Information about the transaction @purpose Transaction purpose
+assignStoreTransaction transaction:StoreTransaction purpose:StorePaymentPurpose = Ok;
 
 //@description Cancels or re-enables Telegram Star subscription
 //@subscription_id Identifier of the subscription to change
