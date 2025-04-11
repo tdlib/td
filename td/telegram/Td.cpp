@@ -151,6 +151,7 @@ bool Td::is_authentication_request(int32 id) {
     case td_api::setTdlibParameters::ID:
     case td_api::getAuthorizationState::ID:
     case td_api::setAuthenticationPhoneNumber::ID:
+    case td_api::checkAuthenticationPremiumPurchase::ID:
     case td_api::sendAuthenticationFirebaseSms::ID:
     case td_api::reportAuthenticationCodeMissing::ID:
     case td_api::setAuthenticationEmailAddress::ID:

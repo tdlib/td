@@ -105,6 +105,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::setAuthenticationPhoneNumber &request);
 
+  void on_request(uint64 id, td_api::checkAuthenticationPremiumPurchase &request);
+
   void on_request(uint64 id, td_api::sendAuthenticationFirebaseSms &request);
 
   void on_request(uint64 id, td_api::reportAuthenticationCodeMissing &request);

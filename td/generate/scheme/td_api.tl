@@ -8876,10 +8876,16 @@ getAuthorizationState = AuthorizationState;
 setTdlibParameters use_test_dc:Bool database_directory:string files_directory:string database_encryption_key:bytes use_file_database:Bool use_chat_info_database:Bool use_message_database:Bool use_secret_chats:Bool api_id:int32 api_hash:string system_language_code:string device_model:string system_version:string application_version:string = Ok;
 
 //@description Sets the phone number of the user and sends an authentication code to the user. Works only when the current authorization state is authorizationStateWaitPhoneNumber,
-//-or if there is no pending authentication query and the current authorization state is authorizationStateWaitEmailAddress, authorizationStateWaitEmailCode, authorizationStateWaitCode, authorizationStateWaitRegistration, or authorizationStateWaitPassword
+//-or if there is no pending authentication query and the current authorization state is authorizationStateWaitPremiumPurchase, authorizationStateWaitEmailAddress,
+//-authorizationStateWaitEmailCode, authorizationStateWaitCode, authorizationStateWaitRegistration, or authorizationStateWaitPassword
 //@phone_number The phone number of the user, in international format
 //@settings Settings for the authentication of the user's phone number; pass null to use default settings
 setAuthenticationPhoneNumber phone_number:string settings:phoneNumberAuthenticationSettings = Ok;
+
+//@description Checks whether an in-store purchase of Telegram Premium is possible before authorization. Works only when the current authorization state is authorizationStateWaitPremiumPurchase
+//@currency ISO 4217 currency code of the payment currency
+//@amount Paid amount, in the smallest units of the currency
+checkAuthenticationPremiumPurchase currency:string amount:int53 = Ok;
 
 //@description Sets the email address of the user and sends an authentication code to the email address. Works only when the current authorization state is authorizationStateWaitEmailAddress @email_address The email address of the user
 setAuthenticationEmailAddress email_address:string = Ok;
@@ -8896,7 +8902,8 @@ checkAuthenticationEmailCode code:EmailAddressAuthentication = Ok;
 checkAuthenticationCode code:string = Ok;
 
 //@description Requests QR code authentication by scanning a QR code on another logged in device. Works only when the current authorization state is authorizationStateWaitPhoneNumber,
-//-or if there is no pending authentication query and the current authorization state is authorizationStateWaitEmailAddress, authorizationStateWaitEmailCode, authorizationStateWaitCode, authorizationStateWaitRegistration, or authorizationStateWaitPassword
+//-or if there is no pending authentication query and the current authorization state is authorizationStateWaitPremiumPurchase, authorizationStateWaitEmailAddress,
+//-authorizationStateWaitEmailCode, authorizationStateWaitCode, authorizationStateWaitRegistration, or authorizationStateWaitPassword
 //@other_user_ids List of user identifiers of other users currently using the application
 requestQrCodeAuthentication other_user_ids:vector<int53> = Ok;
 

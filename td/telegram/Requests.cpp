@@ -1983,6 +1983,12 @@ void Requests::on_request(uint64 id, td_api::setAuthenticationPhoneNumber &reque
                std::move(request.settings_));
 }
 
+void Requests::on_request(uint64 id, td_api::checkAuthenticationPremiumPurchase &request) {
+  CLEAN_INPUT_STRING(request.currency_);
+  send_closure(td_->auth_manager_actor_, &AuthManager::check_premium_purchase, id, std::move(request.currency_),
+               request.amount_);
+}
+
 void Requests::on_request(uint64 id, td_api::sendAuthenticationFirebaseSms &request) {
   CLEAN_INPUT_STRING(request.token_);
   send_closure(td_->auth_manager_actor_, &AuthManager::set_firebase_token, id, std::move(request.token_));

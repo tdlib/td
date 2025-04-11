@@ -2588,6 +2588,11 @@ class CliClient final : public Actor {
     } else if (op == "sap" || op == "sapn") {
       send_request(
           td_api::make_object<td_api::setAuthenticationPhoneNumber>(args, as_phone_number_authentication_settings()));
+    } else if (op == "capp") {
+      string currency;
+      int64 amount;
+      get_args(args, currency, amount);
+      send_request(td_api::make_object<td_api::checkAuthenticationPremiumPurchase>(currency, amount));
     } else if (op == "sae" || op == "saea") {
       send_request(td_api::make_object<td_api::setAuthenticationEmailAddress>(args));
     } else if (op == "rac") {
