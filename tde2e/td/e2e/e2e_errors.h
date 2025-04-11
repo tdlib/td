@@ -37,7 +37,8 @@ enum class ErrorCode : int {
   InvalidBroadcast_InvalidReveal = 505,
   InvalidBroadcast_InvalidBlockHash = 506,
   InvalidCallChannelId = 600,
-  CallFailed = 601
+  CallFailed = 601,
+  CallKeyAlreadyUsed = 602
 };
 inline std::string_view error_string(ErrorCode error_code) {
   switch (error_code) {
@@ -93,6 +94,8 @@ inline std::string_view error_string(ErrorCode error_code) {
       return "INVALID_BROADCAST__INVALID_BLOCK_HASH";
     case ErrorCode::CallFailed:
       return "CALL_FAILED";
+    case ErrorCode::CallKeyAlreadyUsed:
+      return "CALL_KEY_ALREADY_USED";
     case ErrorCode::InvalidCallChannelId:
       return "INVALID_CALL_CHANNEL_ID";
   }

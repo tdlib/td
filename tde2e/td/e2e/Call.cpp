@@ -571,6 +571,15 @@ td::Result<std::string> Call::create_self_add_block(const PrivateKey &private_ke
 }
 
 td::Result<Call> Call::create(td::int64 user_id, PrivateKey private_key, td::Slice last_block_server) {
+  {
+    // Forbid creating multiple calls with the same key
+    static std::mutex mutex;
+    static td::FlatHashSet<td::UInt256, UInt256Hash> public_keys;
+    std::lock_guard<std::mutex> lock(mutex);
+    if (!public_keys.insert(private_key.to_public_key().to_u256()).second) {
+      return Error(E::CallKeyAlreadyUsed);
+    }
+  }
   TRY_RESULT(last_block, Blockchain::from_server_to_local(last_block_server.str()));
   TRY_RESULT(blockchain, ClientBlockchain::create_from_block(last_block, private_key.to_public_key()));
   auto call = Call(user_id, std::move(private_key), std::move(blockchain));

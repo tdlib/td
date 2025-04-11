@@ -736,6 +736,7 @@ TEST(Call, Basic_API) {
   auto zero_block = F(call_create_zero_block(key0, CallState{0, {CallParticipant{-1, pkey0, 3}}})).value();
 
   auto call1 = call_create(-1, key0, zero_block).value();
+  ASSERT_TRUE(!call_create(-1, key0, zero_block).is_ok());
   auto block0 = F(call_create_self_add_block(key1, zero_block, CallParticipant{1, pkey1, 3})).value();
   call1 = call_create(1, key1, block0).value();
 
