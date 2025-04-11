@@ -69,6 +69,7 @@ class AuthManager final : public NetActor {
   enum class State : int32 {
     None,
     WaitPhoneNumber,
+    WaitPremiumPurchase,
     WaitCode,
     WaitQrCodeConfirmation,
     WaitPassword,
@@ -132,6 +133,10 @@ class AuthManager final : public NetActor {
   // from constructor
   int32 api_id_;
   string api_hash_;
+
+  // State::WaitPremiumPurchase
+  string store_product_id_;
+  string phone_code_hash_;
 
   // State::WaitEmailAddress
   bool allow_apple_id_ = false;
