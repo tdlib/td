@@ -1989,6 +1989,11 @@ void Requests::on_request(uint64 id, td_api::checkAuthenticationPremiumPurchase 
                request.amount_);
 }
 
+void Requests::on_request(uint64 id, td_api::setAuthenticationPremiumPurchaseTransaction &request) {
+  send_closure(td_->auth_manager_actor_, &AuthManager::set_premium_purchase_transaction, id,
+               std::move(request.transaction_), request.is_restore_, std::move(request.currency_), request.amount_);
+}
+
 void Requests::on_request(uint64 id, td_api::sendAuthenticationFirebaseSms &request) {
   CLEAN_INPUT_STRING(request.token_);
   send_closure(td_->auth_manager_actor_, &AuthManager::set_firebase_token, id, std::move(request.token_));

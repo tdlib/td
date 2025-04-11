@@ -8887,6 +8887,13 @@ setAuthenticationPhoneNumber phone_number:string settings:phoneNumberAuthenticat
 //@amount Paid amount, in the smallest units of the currency
 checkAuthenticationPremiumPurchase currency:string amount:int53 = Ok;
 
+//@description Informs server about an in-store purchase of Telegram Premium before authorization. Works only when the current authorization state is authorizationStateWaitPremiumPurchase
+//@transaction Information about the transaction
+//@is_restore Pass true if this is a restore of a Telegram Premium purchase; only for App Store
+//@currency ISO 4217 currency code of the payment currency
+//@amount Paid amount, in the smallest units of the currency
+setAuthenticationPremiumPurchaseTransaction transaction:StoreTransaction is_restore:Bool currency:string amount:int53 = Ok;
+
 //@description Sets the email address of the user and sends an authentication code to the email address. Works only when the current authorization state is authorizationStateWaitEmailAddress @email_address The email address of the user
 setAuthenticationEmailAddress email_address:string = Ok;
 

@@ -40,6 +40,7 @@
 
 #include "td/utils/base64.h"
 #include "td/utils/format.h"
+#include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Promise.h"
@@ -582,6 +583,51 @@ void AuthManager::check_premium_purchase(uint64 query_id, string currency, int64
                   G()->net_query_creator().create_unauth(telegram_api::payments_canPurchaseStore(std::move(purpose))));
 }
 
+void AuthManager::set_premium_purchase_transaction(uint64 query_id,
+                                                   td_api::object_ptr<td_api::StoreTransaction> &&transaction,
+                                                   bool is_restore, string currency, int64 amount) {
+  if (state_ != State::WaitPremiumPurchase) {
+    return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationPremiumPurchase unexpected"));
+  }
+  if (transaction == nullptr) {
+    return on_query_error(query_id, Status::Error(400, "Transaction must be non-empty"));
+  }
+  auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentAuthCode>(
+      0, is_restore, send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str(), currency,
+      amount);
+  switch (transaction->get_id()) {
+    case td_api::storeTransactionAppStore::ID: {
+      auto type = td_api::move_object_as<td_api::storeTransactionAppStore>(transaction);
+      on_new_query(query_id);
+      start_net_query(NetQueryType::SetPremiumPurchaseTransaction,
+                      G()->net_query_creator().create_unauth(telegram_api::payments_assignAppStoreTransaction(
+                          BufferSlice(type->receipt_), std::move(purpose))));
+      break;
+    }
+    case td_api::storeTransactionGooglePlay::ID: {
+      auto type = td_api::move_object_as<td_api::storeTransactionGooglePlay>(transaction);
+      if (!clean_input_string(type->package_name_) || !clean_input_string(type->store_product_id_) ||
+          !clean_input_string(type->purchase_token_)) {
+        return on_query_error(query_id, Status::Error(400, "Strings must be encoded in UTF-8"));
+      }
+      auto receipt = telegram_api::make_object<telegram_api::dataJSON>(string());
+      receipt->data_ = json_encode<string>(json_object([&](auto &o) {
+        o("packageName", type->package_name_);
+        o("purchaseToken", type->purchase_token_);
+        o("productId", type->store_product_id_);
+      }));
+
+      on_new_query(query_id);
+      start_net_query(NetQueryType::SetPremiumPurchaseTransaction,
+                      G()->net_query_creator().create_unauth(
+                          telegram_api::payments_assignPlayMarketTransaction(std::move(receipt), std::move(purpose))));
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
 void AuthManager::set_firebase_token(uint64 query_id, string token) {
   if (state_ != State::WaitCode) {
     return on_query_error(query_id, Status::Error(400, "Call to sendAuthenticationFirebaseSms unexpected"));
@@ -948,6 +994,21 @@ void AuthManager::on_send_code_result(NetQueryPtr &&net_query) {
     return on_current_query_error(r_sent_code.move_as_error());
   }
   on_sent_code(r_sent_code.move_as_ok());
+}
+
+void AuthManager::on_set_premium_purchase_transaction_result(NetQueryPtr &&net_query) {
+  static_assert(std::is_same<telegram_api::payments_assignAppStoreTransaction::ReturnType,
+                             telegram_api::payments_assignPlayMarketTransaction::ReturnType>::value,
+                "");
+  auto result = fetch_result<telegram_api::payments_assignPlayMarketTransaction>(std::move(net_query));
+  if (result.is_error()) {
+    return on_current_query_error(result.move_as_error());
+  }
+
+  td_->updates_manager_->on_get_updates(result.move_as_ok(), Promise<Unit>());
+  if (query_id_ != 0) {
+    return on_current_query_error(Status::Error(500, "Failed to get sent code"));
+  }
 }
 
 void AuthManager::on_check_premium_purchase_result(NetQueryPtr &&net_query) {
@@ -1414,6 +1475,9 @@ void AuthManager::on_result(NetQueryPtr net_query) {
       break;
     case NetQueryType::CheckPremiumPurchase:
       on_check_premium_purchase_result(std::move(net_query));
+      break;
+    case NetQueryType::SetPremiumPurchaseTransaction:
+      on_set_premium_purchase_transaction_result(std::move(net_query));
       break;
     case NetQueryType::SendEmailCode:
       on_send_email_code_result(std::move(net_query));

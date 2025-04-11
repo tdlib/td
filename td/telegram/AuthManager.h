@@ -43,6 +43,9 @@ class AuthManager final : public NetActor {
 
   void check_premium_purchase(uint64 query_id, string currency, int64 amount);
 
+  void set_premium_purchase_transaction(uint64 query_id, td_api::object_ptr<td_api::StoreTransaction> &&transaction,
+                                        bool is_restore, string currency, int64 amount);
+
   void set_firebase_token(uint64 query_id, string token);
 
   void report_missing_code(uint64 query_id, string mobile_network_code);
@@ -111,6 +114,7 @@ class AuthManager final : public NetActor {
     SignUp,
     SendCode,
     CheckPremiumPurchase,
+    SetPremiumPurchaseTransaction,
     SendEmailCode,
     VerifyEmailAddress,
     ResetEmailAddress,
@@ -233,6 +237,7 @@ class AuthManager final : public NetActor {
 
   void on_send_code_result(NetQueryPtr &&net_query);
   void on_check_premium_purchase_result(NetQueryPtr &&net_query);
+  void on_set_premium_purchase_transaction_result(NetQueryPtr &&net_query);
   void on_send_email_code_result(NetQueryPtr &&net_query);
   void on_verify_email_address_result(NetQueryPtr &&net_query);
   void on_reset_email_address_result(NetQueryPtr &&net_query);
