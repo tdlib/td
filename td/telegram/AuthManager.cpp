@@ -39,6 +39,7 @@
 #include "td/telegram/Version.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
@@ -48,6 +49,8 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
+
+#include <type_traits>
 
 namespace td {
 

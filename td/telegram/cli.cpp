@@ -6949,7 +6949,7 @@ class CliClient final : public Actor {
     } else if (op == "spp" || op == "spppf") {
       InputChatPhoto input_chat_photo;
       get_args(args, input_chat_photo);
-      send_request(td_api::make_object<td_api::setProfilePhoto>(input_chat_photo, op == "sppf"));
+      send_request(td_api::make_object<td_api::setProfilePhoto>(input_chat_photo, op == "spppf"));
     } else if (op == "suppp") {
       UserId user_id;
       InputChatPhoto input_chat_photo;
