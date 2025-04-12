@@ -389,7 +389,7 @@ bool operator==(const DialogActionBar &lhs, const DialogActionBar &rhs) {
          lhs.can_report_location_ == rhs.can_report_location_ && lhs.can_unarchive_ == rhs.can_unarchive_ &&
          lhs.distance_ == rhs.distance_ && lhs.can_invite_members_ == rhs.can_invite_members_ &&
          lhs.join_request_dialog_title_ == rhs.join_request_dialog_title_ &&
-         lhs.is_join_request_broadcast_ == lhs.is_join_request_broadcast_ &&
+         lhs.is_join_request_broadcast_ == rhs.is_join_request_broadcast_ &&
          lhs.join_request_date_ == rhs.join_request_date_ && lhs.registration_month_ == rhs.registration_month_ &&
          lhs.phone_country_ == rhs.phone_country_ && lhs.last_name_change_date_ == rhs.last_name_change_date_ &&
          lhs.last_photo_change_date_ == rhs.last_photo_change_date_;
