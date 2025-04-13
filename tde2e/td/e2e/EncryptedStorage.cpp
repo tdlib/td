@@ -312,7 +312,7 @@ void EncryptedStorage::sync_entry(Key key, std::optional<Value> value, bool rewr
     auto it = updates_.find(key);
     if (it != updates_.end()) {
       auto &update_info = it->second;
-      if (!reapply_update(update_info, std::move(value))) {
+      if (!reapply_update(update_info, p.first->second)) {
         LOG(INFO) << "Update [drop] " << key << " " << update_info.update;
         updates_.erase(it);
       }
