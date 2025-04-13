@@ -1511,15 +1511,14 @@ void BusinessConnectionManager::send_message_album(
   request.promise_ = std::move(promise);
 
   do_send_message_album(request_id, business_connection_id, dialog_id, std::move(input_reply_to), disable_notification,
-                        protect_content, effect_id, std::move(message_contents), std::move(promise));
+                        protect_content, effect_id, std::move(message_contents));
 }
 
 void BusinessConnectionManager::do_send_message_album(int64 request_id, BusinessConnectionId business_connection_id,
                                                       DialogId dialog_id, MessageInputReplyTo &&input_reply_to,
                                                       bool disable_notification, bool protect_content,
                                                       MessageEffectId effect_id,
-                                                      vector<InputMessageContent> &&message_contents,
-                                                      Promise<td_api::object_ptr<td_api::businessMessages>> &&promise) {
+                                                      vector<InputMessageContent> &&message_contents) {
   vector<const Photo *> covers;
   for (auto &content : message_contents) {
     append(covers, get_message_content_need_to_upload_covers(td_, content.content.get()));
@@ -1529,14 +1528,16 @@ void BusinessConnectionManager::do_send_message_album(int64 request_id, Business
         business_connection_id, dialog_id, std::move(covers),
         PromiseCreator::lambda([actor_id = actor_id(this), request_id, business_connection_id, dialog_id,
                                 input_reply_to = std::move(input_reply_to), disable_notification, protect_content,
-                                effect_id, message_contents = std::move(message_contents),
-                                promise = std::move(promise)](Result<Unit> result) mutable {
+                                effect_id,
+                                message_contents = std::move(message_contents)](Result<Unit> result) mutable {
           if (result.is_error()) {
-            return promise.set_error(result.move_as_error());
+            send_closure(actor_id, &BusinessConnectionManager::fail_send_message_album, request_id,
+                         result.move_as_error());
+            return;
           }
           send_closure(actor_id, &BusinessConnectionManager::do_send_message_album, request_id, business_connection_id,
                        dialog_id, std::move(input_reply_to), disable_notification, protect_content, effect_id,
-                       std::move(message_contents), std::move(promise));
+                       std::move(message_contents));
         }));
   }
 
@@ -1565,6 +1566,14 @@ void BusinessConnectionManager::do_send_message_album(int64 request_id, Business
                                 media_pos, std::move(result));
                  }));
   }
+}
+
+void BusinessConnectionManager::fail_send_message_album(int64 request_id, Status error) {
+  auto it = media_group_send_requests_.find(request_id);
+  CHECK(it != media_group_send_requests_.end());
+  auto promise = std::move(it->second.promise_);
+  media_group_send_requests_.erase(it);
+  promise.set_error(std::move(error));
 }
 
 void BusinessConnectionManager::on_upload_message_album_media(int64 request_id, size_t media_pos,
