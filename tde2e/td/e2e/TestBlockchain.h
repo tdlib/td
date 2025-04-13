@@ -129,6 +129,7 @@ struct BlockBuilder {
                                  bool in_proof = true, td::int32 external_permissions = 0);
   BlockBuilder &skip_group_state_proof();
   BlockBuilder &with_shared_key(const std::vector<td::int64> &user_ids, bool in_changes = true, bool in_proof = true);
+  BlockBuilder &with_shared_key(GroupSharedKeyRef shared_key, bool in_changes, bool in_proof);
   BlockBuilder &skip_shared_key_proof();
 
  private:

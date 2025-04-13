@@ -32,7 +32,7 @@ S_TEST(BlockchainValidation, ZeroBlock) {
                      .with_block_hash({})
                      .set_value("a", "b")  // need some changes
                      .with_group_state({}, false, true, 7)
-                     .with_shared_key({}, false, true)
+                     .with_shared_key(std::vector<td::int64>{}, false, true)
                      .build(alice_pk);
     TEST_TRY_STATUS(BT().expect_ok(block));
   }
@@ -141,7 +141,7 @@ S_TEST(BlockchainValidation, GroupStateChanges) {
   auto zero_block =
       BB().with_previous_block(minus_one_block)
           .with_group_state({{1, 1, alice_pk.to_public_key()}, {2, 2, bob_pk.to_public_key()}}, true, false, 3)
-          .with_shared_key({1}, true, false)
+          .with_shared_key({1, 2}, true, false)
           .skip_group_state_proof()
           .skip_shared_key_proof()
           .build(alice_pk);
@@ -231,7 +231,7 @@ S_TEST(BlockchainValidation, GroupStateChanges) {
     auto zero_block_without_external =
         BB().with_previous_block(minus_one_block)
             .with_group_state({{1, 1, alice_pk.to_public_key()}, {2, 2, bob_pk.to_public_key()}}, true, false, 0)
-            .with_shared_key({1}, true, false)
+            .with_shared_key({1, 2}, true, false)
             .skip_group_state_proof()
             .skip_shared_key_proof()
             .build(alice_pk);
@@ -246,6 +246,82 @@ S_TEST(BlockchainValidation, GroupStateChanges) {
             .skip_shared_key_proof()
             .build(carol_pk);
     TEST_TRY_STATUS(bt.expect_error(E::InvalidBlock_NoPermissions, block));
+  }
+  {
+    TEST_DEBUG_VALUE(description, "Invalid: shared key - number of users");
+    BT bt;
+    auto block =
+        BB().with_previous_block(minus_one_block)
+            .with_group_state({{1, 1, alice_pk.to_public_key()}, {2, 2, bob_pk.to_public_key()}}, true, false, 0)
+            .with_shared_key({1}, true, false)
+            .skip_group_state_proof()
+            .skip_shared_key_proof()
+            .build(alice_pk);
+    TEST_TRY_STATUS(bt.expect_error(E::InvalidBlock_InvalidSharedSecret, block));
+  }
+  {
+    TEST_DEBUG_VALUE(description, "Invalid: shared key - different number of users and headers");
+    BT bt;
+    auto keys = std::make_shared<const GroupSharedKey>(
+        GroupSharedKey{PublicKey::from_u256({}), "dummy", {1, 2}, std::vector<std::string>(3, "??")});
+    auto block =
+        BB().with_previous_block(minus_one_block)
+            .with_group_state({{1, 1, alice_pk.to_public_key()}, {2, 2, bob_pk.to_public_key()}}, true, false, 0)
+            .with_shared_key(keys, true, false)
+            .skip_group_state_proof()
+            .skip_shared_key_proof()
+            .build(alice_pk);
+    TEST_TRY_STATUS(bt.expect_error(E::InvalidBlock_InvalidSharedSecret, block));
+  }
+  {
+    TEST_DEBUG_VALUE(description, "Invalid: shared key - duplicate users");
+    BT bt;
+    auto keys = std::make_shared<const GroupSharedKey>(
+        GroupSharedKey{PublicKey::from_u256({}), "dummy", {1, 1}, std::vector<std::string>(2, "??")});
+    auto block =
+        BB().with_previous_block(minus_one_block)
+            .with_group_state({{1, 1, alice_pk.to_public_key()}, {2, 2, bob_pk.to_public_key()}}, true, false, 0)
+            .with_shared_key(keys, true, false)
+            .skip_group_state_proof()
+            .skip_shared_key_proof()
+            .build(alice_pk);
+    TEST_TRY_STATUS(bt.expect_error(E::InvalidBlock_InvalidSharedSecret, block));
+  }
+  {
+    TEST_DEBUG_VALUE(description, "Invalid: shared key - unknown users");
+    BT bt;
+    auto keys = std::make_shared<const GroupSharedKey>(
+        GroupSharedKey{PublicKey::from_u256({}), "dummy", {1, 3}, std::vector<std::string>(2, "??")});
+    auto block =
+        BB().with_previous_block(minus_one_block)
+            .with_group_state({{1, 1, alice_pk.to_public_key()}, {2, 2, bob_pk.to_public_key()}}, true, false, 0)
+            .with_shared_key(keys, true, false)
+            .skip_group_state_proof()
+            .skip_shared_key_proof()
+            .build(alice_pk);
+    TEST_TRY_STATUS(bt.expect_error(E::InvalidBlock_InvalidSharedSecret, block));
+  }
+  {
+    TEST_DEBUG_VALUE(description, "Invalid: group state - duplicate users");
+    BT bt;
+    auto block =
+        BB().with_previous_block(minus_one_block)
+            .with_group_state({{1, 1, alice_pk.to_public_key()}, {1, 2, bob_pk.to_public_key()}}, true, false, 0)
+            .skip_group_state_proof()
+            .skip_shared_key_proof()
+            .build(alice_pk);
+    TEST_TRY_STATUS(bt.expect_error(E::InvalidBlock_InvalidGroupState, block));
+  }
+  {
+    TEST_DEBUG_VALUE(description, "Invalid: group state - duplicate public key");
+    BT bt;
+    auto block =
+        BB().with_previous_block(minus_one_block)
+            .with_group_state({{1, 1, alice_pk.to_public_key()}, {2, 2, alice_pk.to_public_key()}}, true, false, 0)
+            .skip_group_state_proof()
+            .skip_shared_key_proof()
+            .build(alice_pk);
+    TEST_TRY_STATUS(bt.expect_error(E::InvalidBlock_InvalidGroupState, block));
   }
   return td::Status::OK();
 }

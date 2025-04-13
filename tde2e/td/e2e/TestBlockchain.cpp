@@ -403,7 +403,9 @@ BlockBuilder &BlockBuilder::skip_group_state_proof() {
 }
 
 BlockBuilder &BlockBuilder::with_shared_key(const std::vector<td::int64> &user_ids, bool in_changes, bool in_proof) {
-  auto shared_key = make_shared_key(user_ids);
+  return with_shared_key(make_shared_key(user_ids), in_changes, in_proof);
+}
+BlockBuilder &BlockBuilder::with_shared_key(GroupSharedKeyRef shared_key, bool in_changes, bool in_proof) {
   if (in_changes) {
     block.changes_.push_back(Change{ChangeSetSharedKey{shared_key}});
   }

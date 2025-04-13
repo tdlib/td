@@ -409,25 +409,25 @@ td::Status State::clear_shared_key(const Permissions &permissions) {
 }
 
 td::Status State::validate_shared_key(const GroupSharedKeyRef &shared_key, const GroupStateRef &group_state) {
-  if (shared_key->empty_shared_key()) {
+  if (shared_key->empty()) {
     return td::Status::OK();
   }
   if (shared_key->dest_user_id.size() != shared_key->dest_header.size()) {
-    return td::Status::Error("Shared key different number of users and headers");
+    return Error(E::InvalidBlock_InvalidSharedSecret, "different number of users and headers");
   }
   if (shared_key->dest_user_id.size() != group_state->participants.size()) {
-    return td::Status::Error("Shared key has wrong number of users");
+    return Error(E::InvalidBlock_InvalidSharedSecret, "wrong number of users");
   }
   std::set<td::int64> participants;
   for (const auto user_id : shared_key->dest_user_id) {
     participants.insert(user_id);
   }
   if (participants.size() != shared_key->dest_user_id.size()) {
-    return td::Status::Error("Shared key has duplicate users");
+    return Error(E::InvalidBlock_InvalidSharedSecret, "duplicate users");
   }
   for (auto &p : group_state->participants) {
     if (!participants.count(p.user_id)) {
-      return td::Status::Error("Unknown user_id in SetSharedKey");
+      return Error(E::InvalidBlock_InvalidSharedSecret, "unknown user_id");
     }
   }
   return td::Status::OK();
