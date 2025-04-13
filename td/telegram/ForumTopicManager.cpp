@@ -1038,7 +1038,7 @@ MessageId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
           topic->topic_ == nullptr ? nullptr : topic->topic_->get_notification_settings();
       auto forum_topic_full = td::make_unique<ForumTopic>(td_, std::move(forum_topic), current_notification_settings);
       if (forum_topic_full->is_short()) {
-        LOG(ERROR) << "Receive short " << to_string(forum_topic);
+        LOG(ERROR) << "Receive short forum topic";
         return MessageId();
       }
       if (topic->topic_ == nullptr || true) {

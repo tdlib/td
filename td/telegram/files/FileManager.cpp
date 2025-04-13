@@ -1894,7 +1894,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
           return std::move(status);
         }
       } else {
-        data.local_ = LocalFileLocation(std::move(r_info.ok().location_));
+        data.local_ = LocalFileLocation(std::move(r_info.ok_ref().location_));
         data.size_ = r_info.ok().size_;
       }
     } else {

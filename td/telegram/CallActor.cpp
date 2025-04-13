@@ -552,7 +552,7 @@ void CallActor::update_call(tl_object_ptr<telegram_api::PhoneCall> call) {
       case telegram_api::phoneCallAccepted::ID:
         return do_update_call(static_cast<const telegram_api::phoneCallAccepted &>(*call));
       case telegram_api::phoneCall::ID:
-        return do_update_call(static_cast<const telegram_api::phoneCall &>(*call));
+        return do_update_call(static_cast<telegram_api::phoneCall &>(*call));
       case telegram_api::phoneCallDiscarded::ID:
         return do_update_call(static_cast<const telegram_api::phoneCallDiscarded &>(*call));
       default:
@@ -689,7 +689,7 @@ void CallActor::update_conference_call(const telegram_api::object_ptr<telegram_a
   }
 }
 
-Status CallActor::do_update_call(const telegram_api::phoneCall &call) {
+Status CallActor::do_update_call(telegram_api::phoneCall &call) {
   if (state_ != State::WaitAcceptResult && state_ != State::WaitConfirmResult) {
     if (state_ == State::Ready) {
       update_conference_call(call.conference_call_);

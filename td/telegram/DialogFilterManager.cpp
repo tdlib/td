@@ -580,8 +580,8 @@ class DialogFilterManager::DialogFiltersLogEvent {
   int32 server_main_dialog_list_position = 0;
   int32 main_dialog_list_position = 0;
   int32 updated_date = 0;
-  const vector<unique_ptr<DialogFilter>> *server_dialog_filters_in;
-  const vector<unique_ptr<DialogFilter>> *dialog_filters_in;
+  const vector<unique_ptr<DialogFilter>> *server_dialog_filters_in = nullptr;
+  const vector<unique_ptr<DialogFilter>> *dialog_filters_in = nullptr;
   vector<unique_ptr<DialogFilter>> server_dialog_filters_out;
   vector<unique_ptr<DialogFilter>> dialog_filters_out;
   bool server_are_tags_enabled = false;

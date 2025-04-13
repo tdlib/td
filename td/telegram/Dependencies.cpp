@@ -142,7 +142,7 @@ bool Dependencies::resolve_force(Td *td, const char *source, bool ignore_errors)
       LOG(INFO) << "Can't find " << web_page_id << " from " << source;
     }
   }
-  for (auto story_full_id : story_full_ids) {
+  for (const auto &story_full_id : story_full_ids) {
     if (!td->story_manager_->have_story_force(story_full_id)) {
       LOG(INFO) << "Can't find " << story_full_id << " from " << source;
     }

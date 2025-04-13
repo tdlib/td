@@ -313,8 +313,8 @@ td::Result<std::string> CallEncryption::decrypt(td::int64 user_id, td::int32 cha
   TRY_STATUS(parser.get_status());
 
   for (td::int32 i = 0; i < epochs_n; i++) {
-    auto epoch_hash = epoch_hashes[i];
-    auto encrypted_header = encrypted_headers[i];
+    const auto &epoch_hash = epoch_hashes[i];
+    const auto &encrypted_header = encrypted_headers[i];
     if (auto it = epoch_by_hash_.find(epoch_hash); it != epoch_by_hash_.end()) {
       auto it2 = epochs_.find(it->second);
       if (it2 != epochs_.end()) {
@@ -567,7 +567,7 @@ td::Result<std::string> Call::create_self_add_block(const PrivateKey &private_ke
   td::remove_if(old_state.participants,
                 [&self](const GroupParticipant &participant) { return participant.user_id == self.user_id; });
   old_state.participants.push_back(self);
-  auto new_group_state = std::make_shared<GroupState>(std::move(old_state));
+  auto new_group_state = std::make_shared<GroupState>(old_state);
   TRY_RESULT(changes, make_changes_for_new_state(std::move(new_group_state)));
   return blockchain.build_block(changes, private_key);
 }

@@ -3324,8 +3324,7 @@ void DialogManager::on_get_blocked_dialogs(int32 offset, int32 limit, int32 tota
 void DialogManager::set_dialog_available_reactions_on_server(DialogId dialog_id,
                                                              const ChatReactions &available_reactions,
                                                              Promise<Unit> &&promise) {
-  td_->create_handler<SetChatAvailableReactionsQuery>(std::move(promise))
-      ->send(dialog_id, std::move(available_reactions));
+  td_->create_handler<SetChatAvailableReactionsQuery>(std::move(promise))->send(dialog_id, available_reactions);
 }
 
 void DialogManager::set_dialog_default_send_as_on_server(DialogId dialog_id, DialogId send_as_dialog_id,

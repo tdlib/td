@@ -409,6 +409,7 @@ td::Status State::clear_shared_key(const Permissions &permissions) {
 }
 
 td::Status State::validate_shared_key(const GroupSharedKeyRef &shared_key, const GroupStateRef &group_state) {
+  CHECK(shared_key != nullptr);
   if (shared_key->empty()) {
     return td::Status::OK();
   }
