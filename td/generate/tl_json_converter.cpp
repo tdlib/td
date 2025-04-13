@@ -230,17 +230,17 @@ void gen_json_converter_file(const tl::simple::Schema &schema, const std::string
   sb << "namespace td {\n";
   sb << "namespace td_api {\n";
   if (is_header) {
-    sb << "\nvoid to_json(JsonValueScope &jv, const tl_object_ptr<Object> &value);\n";
-    sb << "\nStatus from_json(tl_object_ptr<Function> &to, td::JsonValue from);\n";
+    sb << "\nvoid to_json(JsonValueScope &jv, const td_api::object_ptr<Object> &value);\n";
+    sb << "\nStatus from_json(td_api::object_ptr<Function> &to, td::JsonValue from);\n";
     sb << "\nvoid to_json(JsonValueScope &jv, const Object &object);\n";
     sb << "\nvoid to_json(JsonValueScope &jv, const Function &object);\n\n";
   } else {
     sb << R"ABCD(
-void to_json(JsonValueScope &jv, const tl_object_ptr<Object> &value) {
-  td::to_json(jv, std::move(value));
+void to_json(JsonValueScope &jv, const td_api::object_ptr<Object> &value) {
+  td::to_json(jv, value);
 }
 
-Status from_json(tl_object_ptr<Function> &to, td::JsonValue from) {
+Status from_json(td_api::object_ptr<Function> &to, td::JsonValue from) {
   return td::from_json(to, std::move(from));
 }
 
