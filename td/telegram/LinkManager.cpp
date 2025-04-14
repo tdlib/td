@@ -99,16 +99,16 @@ static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
   return string();
 }
 
-static string get_url_query_slug(bool is_tg, const HttpUrlQuery &url_query) {
+static string get_url_query_slug(bool is_tg, const HttpUrlQuery &url_query, Slice link_name) {
   const auto &path = url_query.path_;
   if (is_tg) {
-    if (path.size() == 1 && path[0] == "addlist") {
-      // addlist?slug=<hash>
+    if (path.size() == 1 && path[0] == link_name) {
+      // {link_name}?slug=<hash>
       return url_query.get_arg("slug").str();
     }
   } else {
-    if (path.size() >= 2 && path[0] == "addlist") {
-      // /addlist/<hash>
+    if (path.size() >= 2 && path[0] == link_name) {
+      // /{link_name}/<hash>
       return path[1];
     }
   }
@@ -529,6 +529,18 @@ class LinkManager::InternalLinkGame final : public InternalLink {
  public:
   InternalLinkGame(string bot_username, string game_short_name)
       : bot_username_(std::move(bot_username)), game_short_name_(std::move(game_short_name)) {
+  }
+};
+
+class LinkManager::InternalLinkGroupCall final : public InternalLink {
+  string url_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeGroupCall>(url_);
+  }
+
+ public:
+  explicit InternalLinkGroupCall(string url) : url_(std::move(url)) {
   }
 };
 
@@ -1301,9 +1313,9 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
     if (ends_with(host, ".t.me") && host.size() >= 9 && host.find('.') == host.size() - 5) {
       Slice subdomain(&host[0], host.size() - 5);
       static const FlatHashSet<Slice, SliceHash> disallowed_subdomains(
-          {"addemoji", "addlist", "addstickers", "addtheme", "auth", "boost", "confirmphone", "contact",
-           "giftcode", "invoice", "joinchat",    "login",    "m",    "nft",   "proxy",        "setlanguage",
-           "share",    "socks",   "web",         "a",        "k",    "z"});
+          {"addemoji",    "addlist",  "addstickers", "addtheme", "auth",  "boost", "call", "confirmphone",
+           "contact",     "giftcode", "invoice",     "joinchat", "login", "m",     "nft",  "proxy",
+           "setlanguage", "share",    "socks",       "web",      "a",     "k",     "z"});
       if (is_valid_username(subdomain) && disallowed_subdomains.count(subdomain) == 0) {
         result.type_ = LinkType::TMe;
         result.query_ = PSTRING() << '/' << subdomain << http_url.query_;
@@ -1611,10 +1623,16 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     // settings
     return td::make_unique<InternalLinkSettings>();
   } else if (path.size() == 1 && path[0] == "addlist") {
-    auto slug = get_url_query_slug(true, url_query);
+    auto slug = get_url_query_slug(true, url_query, "addlist");
     if (!slug.empty() && is_base64url_characters(slug)) {
       // addlist?slug=<slug>
       return td::make_unique<InternalLinkDialogFolderInvite>(get_dialog_filter_invite_link(slug, true));
+    }
+  } else if (path.size() == 1 && path[0] == "call") {
+    auto slug = get_url_query_slug(true, url_query, "call");
+    if (!slug.empty() && is_base64url_characters(slug)) {
+      // call?slug=<slug>
+      return td::make_unique<InternalLinkGroupCall>(get_group_call_invite_link(slug, true));
     }
   } else if (path.size() == 1 && path[0] == "join") {
     auto invite_hash = get_url_query_hash(true, url_query);
@@ -1775,10 +1793,16 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkAuthenticationCode>(path[1]);
     }
   } else if (path[0] == "addlist") {
-    auto slug = get_url_query_slug(false, url_query);
+    auto slug = get_url_query_slug(false, url_query, "addlist");
     if (!slug.empty() && is_base64url_characters(slug)) {
       // /addlist/<slug>
       return td::make_unique<InternalLinkDialogFolderInvite>(get_dialog_filter_invite_link(slug, true));
+    }
+  } else if (path[0] == "call") {
+    auto slug = get_url_query_slug(false, url_query, "call");
+    if (!slug.empty() && is_base64url_characters(slug)) {
+      // /call/<slug>
+      return td::make_unique<InternalLinkGroupCall>(get_group_call_invite_link(slug, true));
     }
   } else if (path[0] == "joinchat") {
     auto invite_hash = get_url_query_hash(false, url_query);
@@ -2388,6 +2412,14 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return PSTRING() << get_t_me_url() << link->bot_username_ << "?game=" << link->game_short_name_;
       }
     }
+    case td_api::internalLinkTypeGroupCall::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeGroupCall *>(type_ptr);
+      auto slug = get_group_call_invite_link_slug(link->invite_link_);
+      if (slug.empty()) {
+        return Status::Error(400, "Invalid group call link specified");
+      }
+      return get_group_call_invite_link(slug, is_internal);
+    }
     case td_api::internalLinkTypeInstantView::ID: {
       auto link = static_cast<const td_api::internalLinkTypeInstantView *>(type_ptr);
       if (is_internal) {
@@ -2958,7 +2990,7 @@ string LinkManager::get_dialog_filter_invite_link_slug(Slice invite_link) {
     return string();
   }
   const auto url_query = parse_url_query(link_info.query_);
-  auto slug = get_url_query_slug(link_info.type_ == LinkType::Tg, url_query);
+  auto slug = get_url_query_slug(link_info.type_ == LinkType::Tg, url_query, "addlist");
   if (!is_base64url_characters(slug)) {
     return string();
   }
@@ -3000,6 +3032,30 @@ string LinkManager::get_dialog_invite_link(Slice invite_hash, bool is_internal) 
     return PSTRING() << "tg:join?invite=" << invite_hash;
   } else {
     return PSTRING() << get_t_me_url() << '+' << invite_hash;
+  }
+}
+
+string LinkManager::get_group_call_invite_link_slug(Slice invite_link) {
+  auto link_info = get_link_info(invite_link);
+  if (link_info.type_ != LinkType::Tg && link_info.type_ != LinkType::TMe) {
+    return string();
+  }
+  const auto url_query = parse_url_query(link_info.query_);
+  auto slug = get_url_query_slug(link_info.type_ == LinkType::Tg, url_query, "call");
+  if (!is_base64url_characters(slug)) {
+    return string();
+  }
+  return slug;
+}
+
+string LinkManager::get_group_call_invite_link(Slice slug, bool is_internal) {
+  if (!is_base64url_characters(slug)) {
+    return string();
+  }
+  if (is_internal) {
+    return PSTRING() << "tg:call?slug=" << slug;
+  } else {
+    return PSTRING() << get_t_me_url() << "call/" << slug;
   }
 }
 

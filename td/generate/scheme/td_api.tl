@@ -7327,6 +7327,9 @@ internalLinkTypeEditProfileSettings = InternalLinkType;
 //@game_short_name Short name of the game
 internalLinkTypeGame bot_username:string game_short_name:string = InternalLinkType;
 
+//@description The link is a link to a group call. Call joinGroupCallByLink with the given invite_link @invite_link Internal representation of the invite link
+internalLinkTypeGroupCall invite_link:string = InternalLinkType;
+
 //@description The link must be opened in an Instant View. Call getWebPageInstantView with the given URL to process the link.
 //-If Instant View is found, then show it, otherwise, open the fallback URL in an external browser
 //@url URL to be passed to getWebPageInstantView

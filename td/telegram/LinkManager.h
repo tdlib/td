@@ -96,6 +96,10 @@ class LinkManager final : public Actor {
 
   static string get_dialog_invite_link(Slice invite_hash, bool is_internal);
 
+  static string get_group_call_invite_link_slug(Slice invite_link);
+
+  static string get_group_call_invite_link(Slice slug, bool is_internal);
+
   static string get_instant_view_link_url(Slice link);
 
   static string get_instant_view_link_rhash(Slice link);
@@ -140,6 +144,7 @@ class LinkManager final : public Actor {
   class InternalLinkDialogReferralProgram;
   class InternalLinkEditProfileSettings;
   class InternalLinkGame;
+  class InternalLinkGroupCall;
   class InternalLinkInstantView;
   class InternalLinkInvoice;
   class InternalLinkLanguage;
