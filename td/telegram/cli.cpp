@@ -1099,7 +1099,7 @@ class CliClient final : public Actor {
   struct GiveawayParameters {
     int64 chat_id = 0;
     vector<int64> additional_chat_ids;
-    int32 date;
+    int32 date = 0;
     vector<string> country_codes;
 
     operator td_api::object_ptr<td_api::giveawayParameters>() const {

@@ -106,7 +106,7 @@ class PingConnectionPingPong final
   unique_ptr<AuthData> auth_data_;
   unique_ptr<SessionConnection> connection_;
   int pong_cnt_{0};
-  double rtt_;
+  double rtt_{0.0};
   bool is_closed_{false};
   Status status_;
 
