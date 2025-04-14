@@ -1506,6 +1506,12 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       return td_api::make_object<td_api::linkPreviewTypeWebApp>(
           get_photo_object(td_->file_manager_.get(), web_page->photo_));
     }
+    if (type == "call") {
+      LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
+      LOG_IF(ERROR, web_page->document_.type != Document::Type::Unknown)
+          << "Receive wrong document for " << web_page->url_;
+      return td_api::make_object<td_api::linkPreviewTypeGroupCall>();
+    }
     if (type == "channel" || type == "channel_request") {
       LOG_IF(ERROR, web_page->document_.type != Document::Type::Unknown)
           << "Receive wrong document for " << web_page->url_;

@@ -3227,6 +3227,9 @@ linkPreviewTypeExternalAudio url:string mime_type:string duration:int32 = LinkPr
 //@duration Duration of the video, in seconds; 0 if unknown
 linkPreviewTypeExternalVideo url:string mime_type:string width:int32 height:int32 duration:int32 = LinkPreviewType;
 
+//@description The link is a link to a group call
+linkPreviewTypeGroupCall = LinkPreviewType;
+
 //@description The link is a link to an invoice
 linkPreviewTypeInvoice = LinkPreviewType;
 
