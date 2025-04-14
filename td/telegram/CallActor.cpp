@@ -117,7 +117,7 @@ tl_object_ptr<td_api::CallState> CallState::get_call_state_object() const {
     case Type::Ready: {
       auto call_connections = transform(connections, [](auto &c) { return c.get_call_server_object(); });
       return make_tl_object<td_api::callStateReady>(protocol.get_call_protocol_object(), std::move(call_connections),
-                                                    config, key, vector<string>(emojis_fingerprint), allow_p2p,
+                                                    config, key, vector<string>(emojis_fingerprint), allow_p2p, conference_supported,
                                                     custom_parameters);
     }
     case Type::HangingUp:
@@ -681,6 +681,7 @@ Status CallActor::do_update_call(telegram_api::phoneCall &call) {
   }
   call_state_.protocol = CallProtocol(*call.protocol_);
   call_state_.allow_p2p = call.p2p_allowed_;
+  call_state_.conference_supported = call.conference_supported_;
   if (call.custom_parameters_ != nullptr) {
     call_state_.custom_parameters = std::move(call.custom_parameters_->data_);
   }

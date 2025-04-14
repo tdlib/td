@@ -90,6 +90,7 @@ struct CallState {
   vector<string> emojis_fingerprint;
   string custom_parameters;
   bool allow_p2p{false};
+  bool conference_supported{false};
 
   Status error;
 
