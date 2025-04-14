@@ -85,6 +85,7 @@ DcAuthManager::DcInfo &DcAuthManager::get_dc(int32 dc_id) {
   CHECK(dc);
   return *dc;
 }
+
 DcAuthManager::DcInfo *DcAuthManager::find_dc(int32 dc_id) {
   auto it = std::find_if(dcs_.begin(), dcs_.end(), [&](auto &x) { return x.dc_id.get_raw_id() == dc_id; });
   if (it == dcs_.end()) {

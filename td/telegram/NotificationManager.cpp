@@ -1114,7 +1114,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
   // all other additions and edits can be merged to the first addition/edit
   // i.e. in edit+delete+add chain we want to remove deletion and merge addition to the edit
 
-  auto group_key = group_keys_[NotificationGroupId(group_id)];
+  const auto &group_key = group_keys_[NotificationGroupId(group_id)];
   bool is_hidden = group_key.last_notification_date == 0 || get_last_updated_group_key() < group_key;
   bool is_changed = true;
   while (is_changed) {

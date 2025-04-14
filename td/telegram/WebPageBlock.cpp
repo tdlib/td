@@ -1211,8 +1211,8 @@ class WebPageBlockEmbedded final : public WebPageBlock {
   Photo poster_photo;
   Dimensions dimensions;
   WebPageBlockCaption caption;
-  bool is_full_width;
-  bool allow_scrolling;
+  bool is_full_width = false;
+  bool allow_scrolling = false;
 
  public:
   WebPageBlockEmbedded() = default;
@@ -1277,7 +1277,7 @@ class WebPageBlockEmbeddedPost final : public WebPageBlock {
   string url;
   string author;
   Photo author_photo;
-  int32 date;
+  int32 date = 0;
   vector<unique_ptr<WebPageBlock>> page_blocks;
   WebPageBlockCaption caption;
 
@@ -1651,7 +1651,7 @@ class WebPageBlockTable final : public WebPageBlock {
 class WebPageBlockDetails final : public WebPageBlock {
   RichText header;
   vector<unique_ptr<WebPageBlock>> page_blocks;
-  bool is_open;
+  bool is_open = false;
 
  public:
   WebPageBlockDetails() = default;

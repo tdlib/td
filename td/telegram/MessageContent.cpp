@@ -3183,9 +3183,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
         file_id.is_valid());
 
   InlineMessageContent result;
-  tl_object_ptr<telegram_api::ReplyMarkup> reply_markup;
-  result.disable_web_page_preview = false;
-  result.invert_media = false;
+  telegram_api::object_ptr<telegram_api::ReplyMarkup> reply_markup;
   switch (bot_inline_message->get_id()) {
     case telegram_api::botInlineMessageText::ID: {
       auto inline_message = telegram_api::move_object_as<telegram_api::botInlineMessageText>(bot_inline_message);
@@ -7343,6 +7341,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto m = make_unique<MessageGame>(
           Game(td, via_bot_user_id, std::move(media->game_), std::move(message), owner_dialog_id));
       if (m->game.is_empty()) {
+        message = m->game.get_text();
         break;
       }
       return std::move(m);

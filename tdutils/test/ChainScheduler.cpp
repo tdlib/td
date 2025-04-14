@@ -109,7 +109,7 @@ TEST(ChainScheduler, Stress) {
   int ChainsN = 4;
 
   struct QueryWithParents {
-    TaskId task_id;
+    TaskId task_id = -1;
     QueryPtr id;
     td::vector<QueryPtr> parents;
   };

@@ -1344,7 +1344,7 @@ void ReactionManager::on_get_message_effects(
       for (const auto &available_effect : effects->effects_) {
         Effect effect;
         effect.id_ = MessageEffectId(available_effect->id_);
-        effect.emoji_ = std::move(available_effect->emoticon_);
+        effect.emoji_ = available_effect->emoticon_;
         effect.is_premium_ = available_effect->premium_required_;
         if (available_effect->static_icon_id_ != 0) {
           auto it = stickers.find(available_effect->static_icon_id_);

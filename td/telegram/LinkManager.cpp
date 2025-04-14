@@ -1459,7 +1459,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
         }
         if (arg.first == "ref" && is_valid_start_parameter(arg.second) && !arg.second.empty()) {
           // resolve?domain=<bot_username>&ref=<referrer>
-          return td::make_unique<InternalLinkDialogReferralProgram>(std::move(username), std::move(arg.second));
+          return td::make_unique<InternalLinkDialogReferralProgram>(std::move(username), arg.second);
         }
         if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
           auto prefixes = get_referral_program_start_parameter_prefixes();
@@ -1964,7 +1964,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       }
       if (arg.first == "ref" && is_valid_start_parameter(arg.second) && !arg.second.empty()) {
         // /<bot_username>?ref=<referrer>
-        return td::make_unique<InternalLinkDialogReferralProgram>(std::move(username), std::move(arg.second));
+        return td::make_unique<InternalLinkDialogReferralProgram>(std::move(username), arg.second);
       }
       if (arg.first == "start" && is_valid_start_parameter(arg.second)) {
         auto prefixes = get_referral_program_start_parameter_prefixes();
@@ -2486,10 +2486,10 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       return std::move(static_cast<td_api::internalLinkTypeMessage &>(*parsed_object).url_);
     }
     case td_api::internalLinkTypeMessageDraft::ID: {
-      auto link = static_cast<const td_api::internalLinkTypeMessageDraft *>(type_ptr);
+      auto *link = static_cast<const td_api::internalLinkTypeMessageDraft *>(type_ptr);
       string text;
       if (link->text_ != nullptr) {
-        text = std::move(link->text_->text_);
+        text = link->text_->text_;
       }
       string url;
       if (link->contains_link_) {

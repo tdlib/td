@@ -441,7 +441,7 @@ void MessageImportManager::start_import_messages(DialogId dialog_id, int64 impor
   }));
   auto lock_promise = multipromise.get_promise();
 
-  for (auto attached_file_upload_id : attached_file_upload_ids) {
+  for (const auto &attached_file_upload_id : attached_file_upload_ids) {
     upload_imported_message_attachment(dialog_id, import_id, attached_file_upload_id, false,
                                        multipromise.get_promise());
   }

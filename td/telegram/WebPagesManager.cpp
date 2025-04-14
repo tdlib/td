@@ -721,7 +721,7 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
   if (from_binlog || from_database) {
     if (!web_page->story_full_ids_.empty()) {
       Dependencies dependencies;
-      for (auto story_full_id : web_page->story_full_ids_) {
+      for (const auto &story_full_id : web_page->story_full_ids_) {
         dependencies.add(story_full_id);
       }
       if (!dependencies.resolve_force(td_, "update_web_page 1")) {
@@ -749,7 +749,7 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
     }
 
     if (page->story_full_ids_ != web_page->story_full_ids_) {
-      for (auto story_full_id : page->story_full_ids_) {
+      for (const auto &story_full_id : page->story_full_ids_) {
         auto it = story_web_pages_.find(story_full_id);
         if (it != story_web_pages_.end()) {
           it->second.erase(web_page_id);
@@ -758,7 +758,7 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
           }
         }
       }
-      for (auto story_full_id : web_page->story_full_ids_) {
+      for (const auto &story_full_id : web_page->story_full_ids_) {
         story_web_pages_[story_full_id].insert(web_page_id);
       }
     }
@@ -1438,7 +1438,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       }
     }
     if (caption != nullptr && caption->text_ != nullptr && caption->text_->get_id() == td_api::richTextPlain::ID) {
-      caption_text = std::move(static_cast<const td_api::richTextPlain *>(caption->text_.get())->text_);
+      caption_text = std::move(static_cast<td_api::richTextPlain *>(caption->text_.get())->text_);
     } else {
       LOG(ERROR) << "Receive instead of caption text: " << to_string(caption);
     }
@@ -2233,7 +2233,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
 class WebPagesManager::WebPageLogEvent {
  public:
   WebPageId web_page_id;
-  const WebPage *web_page_in;
+  const WebPage *web_page_in = nullptr;
   unique_ptr<WebPage> web_page_out;
 
   WebPageLogEvent() = default;
@@ -2503,7 +2503,7 @@ vector<UserId> WebPagesManager::get_web_page_user_ids(WebPageId web_page_id) con
   const WebPage *web_page = get_web_page(web_page_id);
   vector<UserId> user_ids;
   if (web_page != nullptr && !web_page->story_full_ids_.empty()) {
-    for (auto story_full_id : web_page->story_full_ids_) {
+    for (const auto &story_full_id : web_page->story_full_ids_) {
       auto dialog_id = story_full_id.get_dialog_id();
       if (dialog_id.get_type() == DialogType::User) {
         user_ids.push_back(dialog_id.get_user_id());
@@ -2517,7 +2517,7 @@ vector<ChannelId> WebPagesManager::get_web_page_channel_ids(WebPageId web_page_i
   const WebPage *web_page = get_web_page(web_page_id);
   vector<ChannelId> channel_ids;
   if (web_page != nullptr && !web_page->story_full_ids_.empty()) {
-    for (auto story_full_id : web_page->story_full_ids_) {
+    for (const auto &story_full_id : web_page->story_full_ids_) {
       auto dialog_id = story_full_id.get_dialog_id();
       if (dialog_id.get_type() == DialogType::Channel) {
         channel_ids.push_back(dialog_id.get_channel_id());

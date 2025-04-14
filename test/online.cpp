@@ -212,7 +212,7 @@ class InitTask : public Task {
  public:
   struct Options {
     string name;
-    int32 api_id;
+    int32 api_id = 0;
     string api_hash;
   };
   InitTask(Options options, td::Promise<> promise) : options_(std::move(options)), promise_(std::move(promise)) {
@@ -279,8 +279,8 @@ class InitTask : public Task {
 class GetMe : public Task {
  public:
   struct Result {
-    int64 user_id;
-    int64 chat_id;
+    int64 user_id = 0;
+    int64 chat_id = 0;
   };
   explicit GetMe(Promise<Result> promise) : promise_(std::move(promise)) {
   }
@@ -491,7 +491,7 @@ class TestTd : public Actor {
  private:
   Options options_;
   ActorOwn<TestClient> alice_;
-  GetMe::Result alice_id_;
+  GetMe::Result alice_id_ = 0;
   std::string alice_cache_dir_;
   ActorOwn<TestClient> bob_;
 

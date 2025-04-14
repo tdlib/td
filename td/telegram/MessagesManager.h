@@ -564,10 +564,10 @@ class MessagesManager final : public Actor {
   void get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise);
 
   void get_message_from_server(MessageFullId message_full_id, Promise<Unit> &&promise, const char *source,
-                               tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
+                               telegram_api::object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
   void get_messages_from_server(vector<MessageFullId> &&message_ids, Promise<Unit> &&promise, const char *source,
-                                tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
+                                telegram_api::object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
   void get_message_properties(DialogId dialog_id, MessageId message_id,
                               Promise<td_api::object_ptr<td_api::messageProperties>> &&promise);
@@ -1818,9 +1818,9 @@ class MessagesManager final : public Actor {
     bool drop_author = false;
     bool drop_media_captions = false;
 
-    Dialog *from_dialog;
+    Dialog *from_dialog = nullptr;
     MessageId top_thread_message_id;
-    Dialog *to_dialog;
+    Dialog *to_dialog = nullptr;
     MessageSendOptions message_send_options;
   };
 
@@ -3255,9 +3255,9 @@ class MessagesManager final : public Actor {
 
   struct GetDialogsTask {
     DialogListId dialog_list_id;
-    int64 dialog_list_unique_id;
-    int32 limit;
-    int32 retry_count;
+    int64 dialog_list_unique_id = 0;
+    int32 limit = 0;
+    int32 retry_count = 5;
     DialogDate last_dialog_date = MIN_DIALOG_DATE;
     Promise<td_api::object_ptr<td_api::chats>> promise;
   };
