@@ -8421,9 +8421,10 @@ updateForumTopicInfo info:forumTopicInfo = Update;
 //@chat_id Chat identifier
 //@message_thread_id Message thread identifier of the topic
 //@is_pinned True, if the topic is pinned in the topic list
+//@last_read_inbox_message_id Identifier of the last read incoming message
 //@last_read_outbox_message_id Identifier of the last read outgoing message
 //@notification_settings Notification settings for the topic
-updateForumTopic chat_id:int53 message_thread_id:int53 is_pinned:Bool last_read_outbox_message_id:int53 notification_settings:chatNotificationSettings = Update;
+updateForumTopic chat_id:int53 message_thread_id:int53 is_pinned:Bool last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 notification_settings:chatNotificationSettings = Update;
 
 //@description Notification settings for some type of chats were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
 updateScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Update;
