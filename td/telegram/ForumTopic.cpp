@@ -103,7 +103,8 @@ td_api::object_ptr<td_api::updateForumTopic> ForumTopic::get_update_forum_topic_
     Td *td, DialogId dialog_id, MessageId top_thread_message_id) const {
   return td_api::make_object<td_api::updateForumTopic>(
       td->dialog_manager_->get_chat_id_object(dialog_id, "updateForumTopic"), top_thread_message_id.get(), is_pinned_,
-      last_read_outbox_message_id_.get(), get_chat_notification_settings_object(&notification_settings_));
+      last_read_inbox_message_id_.get(), last_read_outbox_message_id_.get(),
+      get_chat_notification_settings_object(&notification_settings_));
 }
 
 }  // namespace td
