@@ -14,9 +14,9 @@
 namespace td {
 
 struct CallDiscardReason {
-  enum class Type : int32 { Empty, Missed, Disconnected, HungUp, Declined };
+  enum class Type : int32 { Empty, Missed, Disconnected, HungUp, Declined, UpgradeToGroupCall };
   Type type_ = Type::Empty;
-  string encrypted_key_;
+  string slug_;
 };
 
 CallDiscardReason get_call_discard_reason(const telegram_api::object_ptr<telegram_api::PhoneCallDiscardReason> &reason);
