@@ -877,6 +877,7 @@ struct GroupCallManager::GroupCall {
   string invite_link;
   bool is_inited = false;
   bool is_active = false;
+  bool is_conference = false;
   bool is_rtmp_stream = false;
   bool is_joined = false;
   bool need_rejoin = false;
@@ -4243,6 +4244,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       auto group_call = static_cast<const telegram_api::groupCall *>(group_call_ptr.get());
       input_group_call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
       call.is_active = true;
+      call.is_conference = group_call->conference_;
       call.is_rtmp_stream = group_call->rtmp_stream_;
       call.has_hidden_listeners = group_call->listeners_hidden_;
       call.title = group_call->title_;
@@ -4354,6 +4356,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       *group_call = std::move(call);
       need_update = true;
     } else {
+      if (call.is_conference != group_call->is_conference) {
+        group_call->is_conference = call.is_conference;
+        need_update = true;
+      }
       if (call.is_rtmp_stream != group_call->is_rtmp_stream) {
         group_call->is_rtmp_stream = call.is_rtmp_stream;
         need_update = true;
@@ -4843,11 +4849,11 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   bool is_video_recorded = get_group_call_is_video_recorded(group_call);
   return td_api::make_object<td_api::groupCall>(
       group_call->group_call_id.get(), get_group_call_title(group_call), group_call->invite_link, scheduled_start_date,
-      start_subscribed, is_active, group_call->is_rtmp_stream, is_joined, group_call->need_rejoin,
-      group_call->can_be_managed, group_call->participant_count, group_call->has_hidden_listeners,
-      group_call->loaded_all_participants, std::move(recent_speakers), is_my_video_enabled, is_my_video_paused,
-      can_enable_video, mute_new_participants, can_toggle_mute_new_participants, record_duration, is_video_recorded,
-      group_call->duration);
+      start_subscribed, is_active, !group_call->is_conference, !group_call->is_conference && group_call->is_rtmp_stream,
+      is_joined, group_call->need_rejoin, group_call->can_be_managed, group_call->participant_count,
+      group_call->has_hidden_listeners, group_call->loaded_all_participants, std::move(recent_speakers),
+      is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
+      can_toggle_mute_new_participants, record_duration, is_video_recorded, group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
