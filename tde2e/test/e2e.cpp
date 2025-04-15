@@ -786,8 +786,8 @@ TEST(Call, Basic_API) {
   ASSERT_EQ(call_get_verification_state(call2).value().emoji_hash.value(),
             call_get_verification_state(call3).value().emoji_hash.value());
 
-  auto e = call_encrypt(call2, 1, "hello").value();
-  auto e2 = call_encrypt(call2, 1, "hello").value();
+  auto e = call_encrypt(call2, 1, "hello", 0).value();
+  auto e2 = call_encrypt(call2, 1, "hello", 0).value();
   CHECK(e != "hello");
   LOG(ERROR) << e.size();
   ASSERT_TRUE(!call_decrypt(call2, 2, 1, e).is_ok());
@@ -796,13 +796,21 @@ TEST(Call, Basic_API) {
   ASSERT_EQ("hello", call_decrypt(call3, 2, 1, e).value());
   ASSERT_TRUE(!call_decrypt(call3, 2, 1, e).is_ok());
 
+  {
+    auto hel_x = call_encrypt(call2, 1, "hello world", 3).value();
+    ASSERT_TRUE(td::begins_with(hel_x, "hel"));
+    ASSERT_TRUE(!td::begins_with(hel_x, "hello wo"));
+    auto hello = call_decrypt(call3, 2, 1, hel_x).value();
+    ASSERT_EQ("hello world", hello);
+  }
+
   auto block3 = F(call_create_change_state_block(
                       call2, CallState{0, {CallParticipant{2, pkey2, 3}, CallParticipant{3, pkey3, 3}}}))
                     .value();
   call_apply_block(call3, block3).value();
   ASSERT_TRUE(!call_decrypt(call3, 2, 1, e).is_ok());
   ASSERT_EQ("hello", call_decrypt(call3, 2, 1, e2).value());
-  ASSERT_TRUE(call_decrypt(call2, 3, 1, call_encrypt(call3, 1, "bye").value()).is_ok());
+  ASSERT_TRUE(call_decrypt(call2, 3, 1, call_encrypt(call3, 1, "bye", 0).value()).is_ok());
 
   LOG(ERROR) << call_describe(call1).value();
   LOG(ERROR) << call_describe(call2).value();
@@ -879,7 +887,7 @@ class CallEncryptionBench final : public td::Benchmark {
 
   void run(int n) final {
     for (int i = 0; i < n; i++) {
-      auto encrypted = e1_->encrypt(1, msg_).move_as_ok();
+      auto encrypted = e1_->encrypt(1, msg_, 0).move_as_ok();
       CHECK(msg_ == e2_->decrypt(1, 1, encrypted).move_as_ok());
     }
   }

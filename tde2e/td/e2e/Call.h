@@ -55,7 +55,7 @@ struct CallVerificationChain {
   friend td::StringBuilder &operator<<(td::StringBuilder &sb, const CallVerificationChain &chain);
 
  private:
-  td::Status process_broadcast(std::string message, e2e::object_ptr<e2e::e2e_chain_GroupBroadcast> broadcast);
+  td::Status process_broadcast(td::Slice message, e2e::object_ptr<e2e::e2e_chain_GroupBroadcast> broadcast);
   td::Status process_broadcast(e2e::e2e_chain_groupBroadcastNonceCommit &nonce_commit);
   td::Status process_broadcast(e2e::e2e_chain_groupBroadcastNonceReveal &nonce_reveal);
 
@@ -91,8 +91,8 @@ class CallEncryption {
   td::Status add_shared_key(td::int32 epoch, td::UInt256 epoch_hash, td::SecureString key, GroupStateRef group_state);
   void forget_shared_key(td::int32 epoch, td::UInt256 epoch_hash);
 
-  td::Result<std::string> decrypt(td::int64 expected_user_id, td::int32 expected_channel_id, td::Slice encrypted_data);
-  td::Result<std::string> encrypt(td::int32 channel_id, td::Slice decrypted_data);
+  td::Result<std::string> decrypt(td::int64 expected_user_id, td::int32 expected_channel_id, td::Slice packet);
+  td::Result<std::string> encrypt(td::int32 channel_id, td::Slice data, size_t unencrypted_header_length);
 
  private:
   static constexpr double FORGET_EPOCH_DELAY = 10;
@@ -128,8 +128,9 @@ class CallEncryption {
   td::Result<std::string> encrypt_packet_with_secret(td::int32 channel_id, td::Slice header, td::Slice packet,
                                                      td::Slice one_time_secret);
   td::Result<std::string> decrypt_packet_with_secret(td::int64 expected_user_id, td::int32 expected_channel_id,
-                                                     td::Slice unencrypted_packet, td::Slice encrypted_packet,
-                                                     td::Slice one_time_secret, const GroupStateRef &group_state);
+                                                     td::Slice unencrypted_header, td::Slice unencrypted_prefix,
+                                                     td::Slice encrypted_packet, td::Slice one_time_secret,
+                                                     const GroupStateRef &group_state);
   td::Status check_not_seen(const PublicKey &public_key, td::int32 channel_id, td::uint32 seqno);
   void mark_as_seen(const PublicKey &public_key, td::int32 channel_id, td::uint32 seqno);
   static td::Status validate_channel_id(td::int32 channel_id);
@@ -189,9 +190,9 @@ struct Call {
     TRY_STATUS(get_status());
     return call_encryption_.decrypt(user_id, channel_id, encrypted_data);
   }
-  td::Result<std::string> encrypt(td::int32 channel_id, td::Slice decrypted_data) {
+  td::Result<std::string> encrypt(td::int32 channel_id, td::Slice decrypted_data, size_t unencrypted_prefix_size) {
     TRY_STATUS(get_status());
-    return call_encryption_.encrypt(channel_id, decrypted_data);
+    return call_encryption_.encrypt(channel_id, decrypted_data, unencrypted_prefix_size);
   }
 
   td::Result<std::vector<std::string>> pull_outbound_messages() {

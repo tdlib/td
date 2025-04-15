@@ -467,9 +467,9 @@ class KeyChain {
     TRY_RESULT(shared_key, call_ref->shared_key());
     return shared_key.as_slice().str();
   }
-  td::Result<api::Bytes> call_encrypt(api::CallId call_id, api::CallChannelId channel_id, td::Slice message) {
+  td::Result<api::Bytes> call_encrypt(api::CallId call_id, api::CallChannelId channel_id, td::Slice message, size_t unencrypted_prefix_size) {
     TRY_RESULT(call_ref, to_call_ref(call_id));
-    return call_ref->encrypt(channel_id, message);
+    return call_ref->encrypt(channel_id, message, unencrypted_prefix_size);
   }
   td::Result<api::SecureBytes> call_decrypt(api::CallId call_id, api::UserId user_id, api::CallChannelId channel_id,
                                             td::Slice message) {
@@ -792,8 +792,8 @@ Result<Bytes> call_create_change_state_block(CallId call_id, const CallState &ne
 Result<SecureBytes> call_export_shared_key(CallId call_id) {
   return get_default_keychain().call_export_shared_key(call_id);
 }
-Result<Bytes> call_encrypt(CallId call_id, CallChannelId channel_id, SecureSlice message) {
-  return get_default_keychain().call_encrypt(call_id, channel_id, to_slice(message));
+Result<Bytes> call_encrypt(CallId call_id, CallChannelId channel_id, SecureSlice message, size_t unencrypted_prefix_size) {
+  return get_default_keychain().call_encrypt(call_id, channel_id, to_slice(message), unencrypted_prefix_size);
 }
 Result<SecureBytes> call_decrypt(CallId call_id, UserId user_id, CallChannelId channel_id, Slice message) {
   return get_default_keychain().call_decrypt(call_id, user_id, channel_id, to_slice(message));
