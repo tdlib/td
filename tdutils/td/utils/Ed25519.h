@@ -47,7 +47,7 @@ class Ed25519 {
     }
 
     static Result<PublicKey> from_slice(Slice slice) {
-      if (slice.size() != 32) {
+      if (slice.size() != LENGTH) {
         return Status::Error("Invalid slice size");
       }
       return PublicKey(SecureString(slice));
