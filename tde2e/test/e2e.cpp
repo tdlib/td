@@ -29,6 +29,7 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/overloaded.h"
 #include "td/utils/Random.h"
 #include "td/utils/SharedSlice.h"

@@ -7,7 +7,6 @@
 #include "td/utils/Ed25519.h"
 
 #include "td/utils/BigNum.h"
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/ScopeGuard.h"
 

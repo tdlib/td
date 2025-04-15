@@ -303,7 +303,8 @@ Result<std::string> call_describe_block(Slice block);
 Result<std::string> call_describe_message(Slice message);
 
 Result<Bytes> call_create_change_state_block(CallId call_id, const CallState &new_state);
-Result<Bytes> call_encrypt(CallId call_id, CallChannelId channel_id, SecureSlice message, size_t unencrypted_prefix_size);
+Result<Bytes> call_encrypt(CallId call_id, CallChannelId channel_id, SecureSlice message,
+                           size_t unencrypted_prefix_size);
 Result<SecureBytes> call_decrypt(CallId call_id, UserId user_id, CallChannelId channel_id, Slice message);
 
 Result<int> call_get_height(CallId call_id);

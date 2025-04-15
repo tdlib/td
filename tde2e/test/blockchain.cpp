@@ -9,6 +9,8 @@
 #include "td/utils/simple_tests.h"
 #include "td/utils/Status.h"
 
+#include <memory>
+
 using namespace tde2e_core;
 using BB = BlockBuilder;
 using BT = BlockchainTester;
