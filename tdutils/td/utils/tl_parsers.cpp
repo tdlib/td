@@ -24,7 +24,7 @@ TlParser::TlParser(Slice slice) {
     if (data_len <= small_data_array.size() * sizeof(int32)) {
       buf = &small_data_array[0];
     } else {
-      LOG(ERROR) << "Unexpected big unaligned data pointer of length " << slice.size() << " at " << slice.begin();
+      // LOG(ERROR) << "Unexpected big unaligned data pointer of length " << slice.size() << " at " << slice.begin();
       data_buf = std::make_unique<int32[]>(1 + data_len / sizeof(int32));
       buf = data_buf.get();
     }
