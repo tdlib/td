@@ -109,7 +109,8 @@ class CallActor final : public NetQueryCallback {
 
   void send_call_signaling_data(string &&data, Promise<Unit> promise);
 
-  void discard_call(bool is_disconnected, int32 duration, bool is_video, int64 connection_id, Promise<Unit> promise);
+  void discard_call(bool is_disconnected, const string &invite_link, int32 duration, bool is_video, int64 connection_id,
+                    Promise<Unit> promise);
 
   void rate_call(int32 rating, string comment, vector<td_api::object_ptr<td_api::CallProblem>> &&problems,
                  Promise<Unit> promise);

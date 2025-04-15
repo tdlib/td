@@ -12,6 +12,7 @@
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
+#include "td/telegram/LinkManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
@@ -117,8 +118,8 @@ tl_object_ptr<td_api::CallState> CallState::get_call_state_object() const {
     case Type::Ready: {
       auto call_connections = transform(connections, [](auto &c) { return c.get_call_server_object(); });
       return make_tl_object<td_api::callStateReady>(protocol.get_call_protocol_object(), std::move(call_connections),
-                                                    config, key, vector<string>(emojis_fingerprint), allow_p2p, conference_supported,
-                                                    custom_parameters);
+                                                    config, key, vector<string>(emojis_fingerprint), allow_p2p,
+                                                    conference_supported, custom_parameters);
     }
     case Type::HangingUp:
       return make_tl_object<td_api::callStateHangingUp>();
@@ -245,17 +246,10 @@ void CallActor::send_call_signaling_data(string &&data, Promise<Unit> promise) {
                     }));
 }
 
-void CallActor::discard_call(bool is_disconnected, int32 duration, bool is_video, int64 connection_id,
-                             Promise<Unit> promise) {
-  promise.set_value(Unit());
+void CallActor::discard_call(bool is_disconnected, const string &invite_link, int32 duration, bool is_video,
+                             int64 connection_id, Promise<Unit> promise) {
   if (state_ == State::Discarded || state_ == State::WaitDiscardResult || state_ == State::SendDiscardQuery) {
-    return;
-  }
-  is_video_ |= is_video;
-
-  if (state_ == State::WaitRequestResult && !request_query_ref_.empty()) {
-    LOG(INFO) << "Cancel request call query";
-    cancel_query(request_query_ref_);
+    return promise.set_value(Unit());
   }
 
   switch (call_state_.type) {
@@ -272,8 +266,17 @@ void CallActor::discard_call(bool is_disconnected, int32 duration, bool is_video
           is_disconnected ? CallDiscardReason::Type::Disconnected : CallDiscardReason::Type::HungUp;
       break;
     case CallState::Type::Ready:
-      call_state_.discard_reason.type_ =
-          is_disconnected ? CallDiscardReason::Type::Disconnected : CallDiscardReason::Type::HungUp;
+      if (!invite_link.empty()) {
+        auto slug = LinkManager::get_group_call_invite_link_slug(invite_link);
+        if (slug.empty()) {
+          return promise.set_error(Status::Error(400, "Invalid invite link specified"));
+        }
+        call_state_.discard_reason.type_ = CallDiscardReason::Type::UpgradeToGroupCall;
+        call_state_.discard_reason.slug_ = std::move(slug);
+      } else {
+        call_state_.discard_reason.type_ =
+            is_disconnected ? CallDiscardReason::Type::Disconnected : CallDiscardReason::Type::HungUp;
+      }
       duration_ = duration;
       connection_id_ = connection_id;
       break;
@@ -285,10 +288,18 @@ void CallActor::discard_call(bool is_disconnected, int32 duration, bool is_video
       return;
   }
 
+  is_video_ |= is_video;
+
+  if (state_ == State::WaitRequestResult && !request_query_ref_.empty()) {
+    LOG(INFO) << "Cancel request call query";
+    cancel_query(request_query_ref_);
+  }
+
   call_state_.type = CallState::Type::HangingUp;
   call_state_need_flush_ = true;
 
   state_ = State::SendDiscardQuery;
+  promise.set_value(Unit());
   loop();
 }
 

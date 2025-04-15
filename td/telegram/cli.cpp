@@ -4482,8 +4482,9 @@ class CliClient final : public Actor {
     } else if (op == "dc") {
       CallId call_id;
       bool is_disconnected;
-      get_args(args, call_id, is_disconnected);
-      send_request(td_api::make_object<td_api::discardCall>(call_id, is_disconnected, 0, rand_bool(), 0));
+      string invite_link;
+      get_args(args, call_id, is_disconnected, invite_link);
+      send_request(td_api::make_object<td_api::discardCall>(call_id, is_disconnected, invite_link, 0, rand_bool(), 0));
     } else if (op == "scr") {
       CallId call_id;
       int32 rating;

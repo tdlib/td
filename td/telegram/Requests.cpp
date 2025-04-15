@@ -4373,11 +4373,12 @@ void Requests::on_request(uint64 id, td_api::sendCallSignalingData &request) {
                std::move(request.data_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::discardCall &request) {
+void Requests::on_request(uint64 id, td_api::discardCall &request) {
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.invite_link_);
   CREATE_OK_REQUEST_PROMISE();
   send_closure(G()->call_manager(), &CallManager::discard_call, CallId(request.call_id_), request.is_disconnected_,
-               request.duration_, request.is_video_, request.connection_id_, std::move(promise));
+               request.invite_link_, request.duration_, request.is_video_, request.connection_id_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::sendCallRating &request) {

@@ -110,14 +110,14 @@ void CallManager::send_call_signaling_data(CallId call_id, string &&data, Promis
   send_closure(actor, &CallActor::send_call_signaling_data, std::move(data), std::move(safe_promise));
 }
 
-void CallManager::discard_call(CallId call_id, bool is_disconnected, int32 duration, bool is_video, int64 connection_id,
-                               Promise<Unit> promise) {
+void CallManager::discard_call(CallId call_id, bool is_disconnected, const string &invite_link, int32 duration,
+                               bool is_video, int64 connection_id, Promise<Unit> promise) {
   auto actor = get_call_actor(call_id);
   if (actor.empty()) {
     return promise.set_error(Status::Error(400, "Call not found"));
   }
   auto safe_promise = SafePromise<Unit>(std::move(promise), Status::Error(400, "Call not found"));
-  send_closure(actor, &CallActor::discard_call, is_disconnected, duration, is_video, connection_id,
+  send_closure(actor, &CallActor::discard_call, is_disconnected, invite_link, duration, is_video, connection_id,
                std::move(safe_promise));
 }
 

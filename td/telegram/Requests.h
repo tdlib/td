@@ -711,7 +711,7 @@ class Requests {
 
   void on_request(uint64 id, td_api::sendCallSignalingData &request);
 
-  void on_request(uint64 id, const td_api::discardCall &request);
+  void on_request(uint64 id, td_api::discardCall &request);
 
   void on_request(uint64 id, td_api::sendCallRating &request);
 
