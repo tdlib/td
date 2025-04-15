@@ -578,12 +578,16 @@ void ForumTopicManager::read_forum_topic_messages(DialogId dialog_id, MessageId 
     return;
   }
 
+  bool need_update = false;
   if (topic->topic_->update_last_read_inbox_message_id(last_read_inbox_message_id, -1)) {
-    // TODO send updates
+    need_update = true;
     auto max_message_id = last_read_inbox_message_id.get_prev_server_message_id();
     LOG(INFO) << "Send read topic history request in topic of " << top_thread_message_id << " in " << dialog_id
               << " up to " << max_message_id;
     td_->create_handler<ReadForumTopicQuery>()->send(dialog_id, top_thread_message_id, max_message_id);
+  }
+  if (need_update) {
+    on_forum_topic_changed(dialog_id, topic);
   }
 }
 
@@ -604,7 +608,7 @@ void ForumTopicManager::on_update_forum_topic_unread(DialogId dialog_id, Message
     need_update = true;
   }
   if (topic->topic_->update_last_read_inbox_message_id(last_read_inbox_message_id, unread_count)) {
-    // TODO send updates
+    need_update = true;
   }
   if (need_update) {
     on_forum_topic_changed(dialog_id, topic);
