@@ -287,19 +287,10 @@ string serialize(const T &object) {
   size_t length = calc_length.get_length();
 
   string key(length, '\0');
-  if (!is_aligned_pointer<4>(key.data())) {
-    auto ptr = StackAllocator::alloc(length);
-    MutableSlice data = ptr.as_slice();
-    TlStorerUnsafe storer(data.ubegin());
-    store(object, storer);
-    CHECK(storer.get_buf() == data.uend());
-    key.assign(data.begin(), data.size());
-  } else {
-    MutableSlice data = key;
-    TlStorerUnsafe storer(data.ubegin());
-    store(object, storer);
-    CHECK(storer.get_buf() == data.uend());
-  }
+  MutableSlice data = key;
+  TlStorerUnsafe storer(data.ubegin());
+  store(object, storer);
+  CHECK(storer.get_buf() == data.uend());
   return key;
 }
 
@@ -310,7 +301,6 @@ SecureString serialize_secure(const T &object) {
   size_t length = calc_length.get_length();
 
   SecureString key(length, '\0');
-  CHECK(is_aligned_pointer<4>(key.data()));
   MutableSlice data = key.as_mutable_slice();
   TlStorerUnsafe storer(data.ubegin());
   store(object, storer);
