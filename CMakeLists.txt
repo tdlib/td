@@ -29,6 +29,8 @@ option(TD_INSTALL_STATIC_LIBRARIES "Enable installation of static libraries." ON
 option(TD_INSTALL_SHARED_LIBRARIES "Enable installation of shared libraries." ON)
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")
+option(TD_BUILD_BENCHMARK "Use \"OFF\" to disable benchmark" ON)
+option(TD_BUILD_TESTING "Use \"OFF\" to disable testing" ON)
 if (NOT CMAKE_CROSSCOMPILING)
   option(TD_GENERATE_SOURCE_FILES "Use \"ON\" to just generate TDLib source files.")
 endif()
@@ -206,14 +208,14 @@ add_subdirectory(sqlite)
 set(TDDB_ENABLE_INSTALL ${TD_INSTALL_STATIC_LIBRARIES} CACHE BOOL "" FORCE)
 add_subdirectory(tddb)
 
-if (BUILD_TESTING)
+if (TD_BUILD_TESTING AND BUILD_TESTING)
   add_subdirectory(test)
 endif()
 
 set(TDE2E_ENABLE_INSTALL ${TD_INSTALL_STATIC_LIBRARIES} CACHE BOOL "" FORCE)
 add_subdirectory(tde2e)
 
-if (NOT CMAKE_CROSSCOMPILING)
+if (TD_BUILD_BENCHMARK AND (NOT CMAKE_CROSSCOMPILING))
   add_subdirectory(benchmark)
 endif()
 
