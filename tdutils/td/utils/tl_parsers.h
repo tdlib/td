@@ -13,11 +13,8 @@
 #include "td/utils/Status.h"
 #include "td/utils/UInt.h"
 
-#include <array>
 #include <cstring>
 #include <limits>
-#include <memory>
-#include <string>
 
 namespace td {
 
@@ -26,11 +23,7 @@ class TlParser {
   size_t data_len = 0;
   size_t left_len = 0;
   size_t error_pos = std::numeric_limits<size_t>::max();
-  std::string error;
-
-  std::unique_ptr<int32[]> data_buf;
-  static constexpr size_t SMALL_DATA_ARRAY_SIZE = 6;
-  std::array<int32, SMALL_DATA_ARRAY_SIZE> small_data_array;
+  string error;
 
   alignas(4) static const unsigned char empty_data[sizeof(UInt512)];
 
