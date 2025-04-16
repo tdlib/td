@@ -88,7 +88,8 @@ enum class MessageContentType : int32 {
   StarGift,
   StarGiftUnique,
   PaidMessagesRefunded,
-  PaidMessagesPrice
+  PaidMessagesPrice,
+  ConferenceCall
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 

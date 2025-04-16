@@ -518,7 +518,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 41;
+  static constexpr int32 CURRENT_VERSION = 42;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1354,6 +1354,31 @@ class MessagePaidMessagesPrice final : public MessageContent {
   }
 };
 
+class MessageConferenceCall final : public MessageContent {
+ public:
+  int64 call_id = 0;
+  int32 duration = 0;
+  vector<DialogId> other_participant_dialog_ids;
+  bool is_active = false;
+  bool is_video = false;
+  bool was_missed = false;
+
+  MessageConferenceCall() = default;
+  MessageConferenceCall(int64 call_id, int32 duration, vector<DialogId> other_participant_dialog_ids, bool is_active,
+                        bool is_video, bool was_missed)
+      : call_id(call_id)
+      , duration(duration)
+      , other_participant_dialog_ids(std::move(other_participant_dialog_ids))
+      , is_active(is_active)
+      , is_video(is_video)
+      , was_missed(was_missed) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::ConferenceCall;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -2138,6 +2163,26 @@ static void store(const MessageContent *content, StorerT &storer) {
       BEGIN_STORE_FLAGS();
       END_STORE_FLAGS();
       store(m->star_count, storer);
+      break;
+    }
+    case MessageContentType::ConferenceCall: {
+      const auto *m = static_cast<const MessageConferenceCall *>(content);
+      bool has_duration = m->duration != 0;
+      bool has_other_participant_dialog_ids = !m->other_participant_dialog_ids.empty();
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(m->is_active);
+      STORE_FLAG(m->is_video);
+      STORE_FLAG(m->was_missed);
+      STORE_FLAG(has_duration);
+      STORE_FLAG(has_other_participant_dialog_ids);
+      END_STORE_FLAGS();
+      store(m->call_id, storer);
+      if (has_duration) {
+        store(m->duration, storer);
+      }
+      if (has_other_participant_dialog_ids) {
+        store(m->other_participant_dialog_ids, storer);
+      }
       break;
     }
     default:
@@ -3150,6 +3195,27 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::ConferenceCall: {
+      auto m = make_unique<MessageConferenceCall>();
+      bool has_duration;
+      bool has_other_participant_dialog_ids;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(m->is_active);
+      PARSE_FLAG(m->is_video);
+      PARSE_FLAG(m->was_missed);
+      PARSE_FLAG(has_duration);
+      PARSE_FLAG(has_other_participant_dialog_ids);
+      END_PARSE_FLAGS();
+      parse(m->call_id, parser);
+      if (has_duration) {
+        parse(m->duration, parser);
+      }
+      if (has_other_participant_dialog_ids) {
+        parse(m->other_participant_dialog_ids, parser);
+      }
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -3935,6 +4001,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::StarGiftUnique:
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
+    case MessageContentType::ConferenceCall:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -4085,6 +4152,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::StarGiftUnique:
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
+    case MessageContentType::ConferenceCall:
       break;
     default:
       UNREACHABLE();
@@ -4262,6 +4330,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::StarGiftUnique:
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
+    case MessageContentType::ConferenceCall:
       break;
     default:
       UNREACHABLE();
@@ -4506,6 +4575,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
     case MessageContentType::StarGiftUnique:
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
+    case MessageContentType::ConferenceCall:
       break;
     default:
       UNREACHABLE();
@@ -4730,6 +4800,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::StarGiftUnique:
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
+    case MessageContentType::ConferenceCall:
       UNREACHABLE();
   }
   return Status::OK();
@@ -4816,6 +4887,14 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
       const auto *m = static_cast<const MessageCall *>(content);
       if (!is_outgoing && (m->discard_reason.type_ == CallDiscardReason::Type::Declined ||
                            m->discard_reason.type_ == CallDiscardReason::Type::Missed)) {
+        index_mask |= message_search_filter_index_mask(MessageSearchFilter::MissedCall);
+      }
+      return index_mask;
+    }
+    case MessageContentType::ConferenceCall: {
+      int32 index_mask = message_search_filter_index_mask(MessageSearchFilter::Call);
+      const auto *m = static_cast<const MessageConferenceCall *>(content);
+      if (!is_outgoing && m->was_missed) {
         index_mask |= message_search_filter_index_mask(MessageSearchFilter::MissedCall);
       }
       return index_mask;
@@ -5197,6 +5276,9 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::PaidMessagesRefunded:
       break;
     case MessageContentType::PaidMessagesPrice:
+      break;
+    case MessageContentType::ConferenceCall:
+      // private chats only
       break;
     default:
       UNREACHABLE();
@@ -5631,6 +5713,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::StarGiftUnique:
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
+    case MessageContentType::ConferenceCall:
       break;
     default:
       UNREACHABLE();
@@ -5790,6 +5873,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::StarGiftUnique:
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
+    case MessageContentType::ConferenceCall:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -6433,6 +6517,17 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *rhs = static_cast<const MessagePaidMessagesPrice *>(new_content);
       if (lhs->star_count != rhs->star_count) {
         need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ConferenceCall: {
+      const auto *lhs = static_cast<const MessageConferenceCall *>(old_content);
+      const auto *rhs = static_cast<const MessageConferenceCall *>(new_content);
+      if (lhs->duration != rhs->duration || lhs->other_participant_dialog_ids != rhs->other_participant_dialog_ids ||
+          lhs->is_active != rhs->is_active || lhs->is_video != rhs->is_video || lhs->was_missed != rhs->was_missed) {
+        need_update = true;
+      } else if (lhs->call_id != rhs->call_id) {
+        is_content_changed = true;
       }
       break;
     }
@@ -7696,6 +7791,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::StarGiftUnique:
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
+    case MessageContentType::ConferenceCall:
       return nullptr;
     default:
       UNREACHABLE();
@@ -8289,8 +8385,23 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto action = move_tl_object_as<telegram_api::messageActionPaidMessagesPrice>(action_ptr);
       return td::make_unique<MessagePaidMessagesPrice>(StarManager::get_star_count(action->stars_));
     }
-    case telegram_api::messageActionConferenceCall::ID:
-      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionConferenceCall::ID: {
+      auto action = move_tl_object_as<telegram_api::messageActionConferenceCall>(action_ptr);
+      vector<DialogId> other_participant_dialog_ids;
+      for (const auto &peer : action->other_participants_) {
+        auto dialog_id = DialogId(peer);
+        if (!dialog_id.is_valid()) {
+          LOG(ERROR) << "Receive invalid " << dialog_id;
+          continue;
+        }
+        if (dialog_id.get_type() != DialogType::User) {
+          td->dialog_manager_->force_create_dialog(dialog_id, "messageActionConferenceCall", true);
+        }
+      }
+      return td::make_unique<MessageConferenceCall>(action->call_id_, max(0, action->duration_),
+                                                    std::move(other_participant_dialog_ids), action->active_,
+                                                    action->video_, action->missed_);
+    }
     default:
       UNREACHABLE();
   }
@@ -8831,6 +8942,15 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     case MessageContentType::PaidMessagesPrice: {
       const auto *m = static_cast<const MessagePaidMessagesPrice *>(content);
       return td_api::make_object<td_api::messagePaidMessagePriceChanged>(m->star_count);
+    }
+    case MessageContentType::ConferenceCall: {
+      const auto *m = static_cast<const MessageConferenceCall *>(content);
+      vector<td_api::object_ptr<td_api::MessageSender>> other_participant_ids;
+      for (auto participant_dialog_id : m->other_participant_dialog_ids) {
+        other_participant_ids.push_back(get_message_sender_object(td, participant_dialog_id, "messageGroupCall"));
+      }
+      return td_api::make_object<td_api::messageGroupCall>(m->is_active, m->was_missed, m->is_video, m->duration,
+                                                           std::move(other_participant_ids));
     }
     default:
       UNREACHABLE();
@@ -9505,6 +9625,10 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::PaymentRefunded:
     case MessageContentType::GiftStars:
     case MessageContentType::PrizeStars:
+    case MessageContentType::StarGiftUnique:
+    case MessageContentType::PaidMessagesRefunded:
+    case MessageContentType::PaidMessagesPrice:
+    case MessageContentType::ConferenceCall:
       return string();
     default:
       UNREACHABLE();
@@ -9941,6 +10065,13 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::PaidMessagesPrice:
       break;
+    case MessageContentType::ConferenceCall: {
+      const auto *content = static_cast<const MessageConferenceCall *>(message_content);
+      for (auto dialog_id : content->other_participant_dialog_ids) {
+        dependencies.add_message_sender_dependencies(dialog_id);
+      }
+      break;
+    }
     default:
       UNREACHABLE();
       break;

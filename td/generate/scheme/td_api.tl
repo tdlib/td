@@ -3951,6 +3951,14 @@ messageInvoice product_info:productInfo currency:string total_amount:int53 start
 //@description A message with information about an ended call @is_video True, if the call was a video call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
 messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;
 
+//@description A message with information about a group call not bound to a chat
+//@is_active True, if the call is active
+//@was_missed True, if the user was called by another participant of the group call
+//@is_video True, if the call is a video call
+//@duration Call duration, in seconds; for ended calls only
+//@other_participant_ids Identifiers of some other call participants
+messageGroupCall is_active:Bool was_missed:Bool is_video:Bool duration:int32 other_participant_ids:vector<MessageSender> = MessageContent;
+
 //@description A new video chat was scheduled @group_call_id Identifier of the video chat. The video chat can be received through the method getGroupCall @start_date Point in time (Unix timestamp) when the group call is expected to be started by an administrator
 messageVideoChatScheduled group_call_id:int32 start_date:int32 = MessageContent;
 
