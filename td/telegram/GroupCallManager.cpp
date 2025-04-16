@@ -885,6 +885,7 @@ struct GroupCallManager::GroupCall {
   bool is_being_left = false;
   bool is_speaking = false;
   bool can_self_unmute = false;
+  bool is_creator = false;
   bool can_be_managed = false;
   bool has_hidden_listeners = false;
   bool syncing_participants = false;
@@ -4246,6 +4247,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       call.is_active = true;
       call.is_conference = group_call->conference_;
       call.is_rtmp_stream = group_call->rtmp_stream_;
+      call.is_creator = group_call->creator_;
       call.has_hidden_listeners = group_call->listeners_hidden_;
       call.title = group_call->title_;
       call.invite_link = group_call->invite_link_;
@@ -4362,6 +4364,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       }
       if (call.is_rtmp_stream != group_call->is_rtmp_stream) {
         group_call->is_rtmp_stream = call.is_rtmp_stream;
+        need_update = true;
+      }
+      if (call.is_creator != group_call->is_creator) {
+        group_call->is_creator = call.is_creator;
         need_update = true;
       }
       if (call.has_hidden_listeners != group_call->has_hidden_listeners) {
@@ -4850,9 +4856,9 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   return td_api::make_object<td_api::groupCall>(
       group_call->group_call_id.get(), get_group_call_title(group_call), group_call->invite_link, scheduled_start_date,
       start_subscribed, is_active, !group_call->is_conference, !group_call->is_conference && group_call->is_rtmp_stream,
-      is_joined, group_call->need_rejoin, group_call->can_be_managed, group_call->participant_count,
-      group_call->has_hidden_listeners, group_call->loaded_all_participants, std::move(recent_speakers),
-      is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
+      is_joined, group_call->need_rejoin, group_call->is_creator, group_call->can_be_managed,
+      group_call->participant_count, group_call->has_hidden_listeners, group_call->loaded_all_participants,
+      std::move(recent_speakers), is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
       can_toggle_mute_new_participants, record_duration, is_video_recorded, group_call->duration);
 }
 
