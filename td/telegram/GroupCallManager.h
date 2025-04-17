@@ -203,9 +203,9 @@ class GroupCallManager final : public Actor {
 
   Status can_manage_group_calls(DialogId dialog_id) const;
 
-  bool can_manage_group_call(InputGroupCallId input_group_call_id) const;
+  bool can_manage_group_call(InputGroupCallId input_group_call_id, bool allow_owned) const;
 
-  bool can_manage_group_call(const GroupCall *group_call) const;
+  bool can_manage_group_call(const GroupCall *group_call, bool allow_owned) const;
 
   bool get_group_call_can_self_unmute(InputGroupCallId input_group_call_id) const;
 

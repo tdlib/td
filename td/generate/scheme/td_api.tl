@@ -5341,7 +5341,7 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@is_rtmp_stream True, if the chat is an RTMP stream instead of an ordinary video chat
 //@is_joined True, if the call is joined
 //@need_rejoin True, if user was kicked from the call because of network loss and the call needs to be rejoined
-//@is_owned True, if the user is the owner of the call and can ban users there; for group calls that aren't bound to a chat
+//@is_owned True, if the user is the owner of the call and can end the call, change volume level of other users, or ban users there; for group calls that aren't bound to a chat
 //@can_be_managed True, if the current user can manage the group call; for video chats only
 //@participant_count Number of participants in the group call
 //@has_hidden_listeners True, if group call participants, which are muted, aren't returned in participant list
@@ -11294,13 +11294,14 @@ setGroupCallParticipantIsSpeaking group_call_id:int32 audio_source:int32 is_spea
 //@is_muted Pass true to mute the user; pass false to unmute them
 toggleGroupCallParticipantIsMuted group_call_id:int32 participant_id:MessageSender is_muted:Bool = Ok;
 
-//@description Changes volume level of a participant of an active group call. If the current user can manage the group call, then the participant's volume level will be changed for all users with the default volume level
+//@description Changes volume level of a participant of an active group call. If the current user can manage the group call or is the owner of the group call,
+//-then the participant's volume level will be changed for all users with the default volume level
 //@group_call_id Group call identifier
 //@participant_id Participant identifier
 //@volume_level New participant's volume level; 1-20000 in hundreds of percents
 setGroupCallParticipantVolumeLevel group_call_id:int32 participant_id:MessageSender volume_level:int32 = Ok;
 
-//@description Toggles whether a group call participant hand is rased
+//@description Toggles whether a group call participant hand is rased; for voice chats only
 //@group_call_id Group call identifier
 //@participant_id Participant identifier
 //@is_hand_raised Pass true if the user's hand needs to be raised. Only self hand can be raised. Requires groupCall.can_be_managed group call flag to lower other's hand
@@ -11314,7 +11315,7 @@ loadGroupCallParticipants group_call_id:int32 limit:int32 = Ok;
 //@description Leaves a group call @group_call_id Group call identifier
 leaveGroupCall group_call_id:int32 = Ok;
 
-//@description Ends a group call. Requires groupCall.can_be_managed @group_call_id Group call identifier
+//@description Ends a group call. Requires groupCall.can_be_managed or groupCall.is_owned @group_call_id Group call identifier
 endGroupCall group_call_id:int32 = Ok;
 
 //@description Returns information about available group call streams @group_call_id Group call identifier

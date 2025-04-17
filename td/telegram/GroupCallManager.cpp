@@ -1297,13 +1297,16 @@ Status GroupCallManager::can_manage_group_calls(DialogId dialog_id) const {
   return Status::OK();
 }
 
-bool GroupCallManager::can_manage_group_call(InputGroupCallId input_group_call_id) const {
-  return can_manage_group_call(get_group_call(input_group_call_id));
+bool GroupCallManager::can_manage_group_call(InputGroupCallId input_group_call_id, bool allow_owned) const {
+  return can_manage_group_call(get_group_call(input_group_call_id), allow_owned);
 }
 
-bool GroupCallManager::can_manage_group_call(const GroupCall *group_call) const {
+bool GroupCallManager::can_manage_group_call(const GroupCall *group_call, bool allow_owned) const {
   if (group_call == nullptr) {
     return false;
+  }
+  if (group_call->is_conference) {
+    return allow_owned && group_call->is_creator;
   }
   return can_manage_group_calls(group_call->dialog_id).is_ok();
 }
@@ -2296,7 +2299,7 @@ std::pair<int32, int32> GroupCallManager::process_group_call_participant(InputGr
   }
 
   bool can_self_unmute = get_group_call_can_self_unmute(input_group_call_id);
-  bool can_manage = can_manage_group_call(input_group_call_id);
+  bool can_manage = can_manage_group_call(input_group_call_id, true);
   auto *participants = add_group_call_participants(input_group_call_id, "process_group_call_participant");
   for (size_t i = 0; i < participants->participants.size(); i++) {
     auto &old_participant = participants->participants[i];
@@ -2720,7 +2723,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     participant.joined_date = G()->unix_time();
     // if can_self_unmute has never been inited from self-participant,
     // it contains reasonable default "!call.mute_new_participants || call.can_be_managed"
-    participant.server_is_muted_by_admin = !group_call->can_self_unmute && !can_manage_group_call(group_call);
+    participant.server_is_muted_by_admin = !group_call->can_self_unmute && !can_manage_group_call(group_call, true);
     participant.server_is_muted_by_themselves = is_muted && !participant.server_is_muted_by_admin;
     participant.is_just_joined = !is_rejoin;
     participant.video_diff = get_group_call_can_enable_video(group_call) && is_my_video_enabled;
@@ -3799,7 +3802,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
   }
   dialog_id = participant->dialog_id;
 
-  bool can_manage = can_manage_group_call(group_call);
+  bool can_manage = can_manage_group_call(group_call, true);
   bool is_admin = td::contains(participants->administrator_dialog_ids, dialog_id);
 
   auto participant_copy = *participant;
@@ -3850,7 +3853,7 @@ void GroupCallManager::on_toggle_group_call_participant_is_muted(InputGroupCallI
 
   CHECK(participant->have_pending_is_muted);
   participant->have_pending_is_muted = false;
-  bool can_manage = can_manage_group_call(group_call);
+  bool can_manage = can_manage_group_call(group_call, true);
   if (update_group_call_participant_can_be_muted(can_manage, participants, *participant) ||
       participant->server_is_muted_by_themselves != participant->pending_is_muted_by_themselves ||
       participant->server_is_muted_by_admin != participant->pending_is_muted_by_admin ||
@@ -4000,7 +4003,7 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
     if (is_hand_raised) {
       return promise.set_error(Status::Error(400, "Can't raise others hand"));
     } else {
-      if (!can_manage_group_call(group_call)) {
+      if (!can_manage_group_call(group_call, false)) {
         return promise.set_error(Status::Error(400, "Have not enough rights in the group call"));
       }
     }
