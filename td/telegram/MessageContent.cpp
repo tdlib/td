@@ -6625,6 +6625,8 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
       td->star_gift_manager_->on_get_star_gift(star_gift->star_gift, false);
       return td->star_gift_manager_->register_gift(message_full_id, source);
     }
+    case MessageContentType::ConferenceCall:
+      return td->group_call_manager_->register_group_call(message_full_id, source);
     default:
       return;
   }
@@ -6777,6 +6779,8 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
       return td->star_gift_manager_->unregister_gift(message_full_id, source);
     case MessageContentType::StarGiftUnique:
       return td->star_gift_manager_->unregister_gift(message_full_id, source);
+    case MessageContentType::ConferenceCall:
+      return td->group_call_manager_->unregister_group_call(message_full_id, source);
     default:
       return;
   }

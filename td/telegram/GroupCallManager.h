@@ -12,6 +12,7 @@
 #include "td/telegram/GroupCallParticipant.h"
 #include "td/telegram/GroupCallParticipantOrder.h"
 #include "td/telegram/InputGroupCallId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -147,6 +148,10 @@ class GroupCallManager final : public Actor {
   void process_join_group_call_presentation_response(InputGroupCallId input_group_call_id, uint64 generation,
                                                      tl_object_ptr<telegram_api::Updates> &&updates, Status status);
 
+  void register_group_call(MessageFullId message_full_id, const char *source);
+
+  void unregister_group_call(MessageFullId message_full_id, const char *source);
+
  private:
   struct GroupCall;
   struct GroupCallParticipants;
@@ -180,6 +185,12 @@ class GroupCallManager final : public Actor {
   static void on_sync_participants_timeout_callback(void *group_call_manager_ptr, int64 group_call_id_int);
 
   void on_sync_participants_timeout(GroupCallId group_call_id);
+
+  static void on_update_group_call_timeout_callback(void *group_call_manager_ptr, int64 call_id);
+
+  void on_update_group_call_timeout(int64 call_id);
+
+  void on_update_group_call_message(int64 call_id);
 
   GroupCallId get_next_group_call_id(InputGroupCallId input_group_call_id);
 
@@ -418,6 +429,10 @@ class GroupCallManager final : public Actor {
       pending_join_presentation_requests_;
   uint64 join_group_request_generation_ = 0;
 
+  FlatHashMap<MessageFullId, int64, MessageFullIdHash> group_call_messages_;
+  FlatHashMap<int64, MessageFullId> group_call_message_full_ids_;
+  int64 current_call_id_ = 0;
+
   uint64 toggle_recording_generation_ = 0;
 
   uint64 toggle_is_muted_generation_ = 0;
@@ -431,6 +446,7 @@ class GroupCallManager final : public Actor {
   MultiTimeout pending_send_speaking_action_timeout_{"PendingSendSpeakingActionTimeout"};
   MultiTimeout recent_speaker_update_timeout_{"RecentSpeakerUpdateTimeout"};
   MultiTimeout sync_participants_timeout_{"SyncParticipantsTimeout"};
+  MultiTimeout update_group_call_timeout_{"UpdateGroupCallTimeout"};
 };
 
 }  // namespace td

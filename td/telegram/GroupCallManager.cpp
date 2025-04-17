@@ -986,6 +986,9 @@ GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), pare
 
   sync_participants_timeout_.set_callback(on_sync_participants_timeout_callback);
   sync_participants_timeout_.set_callback_data(static_cast<void *>(this));
+
+  update_group_call_timeout_.set_callback(on_update_group_call_timeout_callback);
+  update_group_call_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 GroupCallManager::~GroupCallManager() = default;
@@ -1139,6 +1142,43 @@ void GroupCallManager::on_sync_participants_timeout(GroupCallId group_call_id) {
   auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
 
   sync_group_call_participants(input_group_call_id);
+}
+
+void GroupCallManager::on_update_group_call_timeout_callback(void *group_call_manager_ptr, int64 call_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto group_call_manager = static_cast<GroupCallManager *>(group_call_manager_ptr);
+  send_closure_later(group_call_manager->actor_id(group_call_manager), &GroupCallManager::on_update_group_call_timeout,
+                     call_id);
+}
+
+void GroupCallManager::on_update_group_call_timeout(int64 call_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto it = group_call_message_full_ids_.find(call_id);
+  if (it == group_call_message_full_ids_.end()) {
+    return;
+  }
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), call_id](Unit) {
+    send_closure(actor_id, &GroupCallManager::on_update_group_call_message, call_id);
+  });
+  td_->messages_manager_->get_message_from_server(it->second, std::move(promise), "on_update_group_call_timeout");
+}
+
+void GroupCallManager::on_update_group_call_message(int64 call_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto it = group_call_message_full_ids_.find(call_id);
+  if (it == group_call_message_full_ids_.end()) {
+    return;
+  }
+  update_group_call_timeout_.add_timeout_in(call_id, 60);
 }
 
 bool GroupCallManager::is_group_call_being_joined(InputGroupCallId input_group_call_id) const {
@@ -4890,6 +4930,31 @@ void GroupCallManager::send_update_group_call_participant(InputGroupCallId input
   auto group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited);
   send_update_group_call_participant(group_call->group_call_id, participant, source);
+}
+
+void GroupCallManager::register_group_call(MessageFullId message_full_id, const char *source) {
+  CHECK(!td_->auth_manager_->is_bot());
+  CHECK(message_full_id.get_message_id().is_server());
+  LOG(INFO) << "Register group call " << message_full_id << " from " << source;
+  auto &call_id = group_call_messages_[message_full_id];
+  if (call_id == 0) {
+    call_id = ++current_call_id_;
+    group_call_message_full_ids_[call_id] = message_full_id;
+  }
+  update_group_call_timeout_.add_timeout_in(call_id, 0);
+}
+
+void GroupCallManager::unregister_group_call(MessageFullId message_full_id, const char *source) {
+  CHECK(!td_->auth_manager_->is_bot());
+  CHECK(message_full_id.get_message_id().is_server());
+  LOG(INFO) << "Unregister group call " << message_full_id << " from " << source;
+  auto it = group_call_messages_.find(message_full_id);
+  CHECK(it != group_call_messages_.end());
+  auto call_id = it->second;
+  group_call_messages_.erase(it);
+  auto is_deleted = group_call_message_full_ids_.erase(call_id) > 0;
+  LOG_CHECK(is_deleted) << source << ' ' << message_full_id;
+  update_group_call_timeout_.cancel_timeout(call_id, "unregister_group_call");
 }
 
 }  // namespace td
