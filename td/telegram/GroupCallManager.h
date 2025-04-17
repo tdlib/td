@@ -205,6 +205,8 @@ class GroupCallManager final : public Actor {
 
   bool can_manage_group_call(InputGroupCallId input_group_call_id) const;
 
+  bool can_manage_group_call(const GroupCall *group_call) const;
+
   bool get_group_call_can_self_unmute(InputGroupCallId input_group_call_id) const;
 
   bool get_group_call_joined_date_asc(InputGroupCallId input_group_call_id) const;
