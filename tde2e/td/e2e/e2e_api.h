@@ -288,8 +288,8 @@ Result<StorageBlockchainState> storage_get_blockchain_state(StorageId);
 using CallId = std::int64_t;
 using CallChannelId = std::int32_t;
 struct CallParticipant {
-  UserId user_id;
-  PublicKeyId public_key_id;
+  UserId user_id{};
+  PublicKeyId public_key_id{};
   int permissions{};
 };
 
