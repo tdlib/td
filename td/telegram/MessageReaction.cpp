@@ -61,18 +61,10 @@ class SendReactionQuery final : public Td::ResultHandler {
     int32 flags = 0;
     if (!reaction_types.empty()) {
       flags |= telegram_api::messages_sendReaction::REACTION_MASK;
-
-      if (is_big) {
-        flags |= telegram_api::messages_sendReaction::BIG_MASK;
-      }
-
-      if (add_to_recent) {
-        flags |= telegram_api::messages_sendReaction::ADD_TO_RECENT_MASK;
-      }
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendReaction(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+        telegram_api::messages_sendReaction(flags, is_big, add_to_recent, std::move(input_peer),
                                             message_full_id.get_message_id().get_server_message_id().get(),
                                             ReactionType::get_input_reactions(reaction_types)),
         {{dialog_id_}, {message_full_id}}));

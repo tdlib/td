@@ -777,11 +777,9 @@ class ReorderPinnedDialogsQuery final : public Td::ResultHandler {
 
   void send(FolderId folder_id, const vector<DialogId> &dialog_ids) {
     folder_id_ = folder_id;
-    int32 flags = telegram_api::messages_reorderPinnedDialogs::FORCE_MASK;
     send_query(G()->net_query_creator().create(
         telegram_api::messages_reorderPinnedDialogs(
-            flags, true /*ignored*/, folder_id.get(),
-            td_->dialog_manager_->get_input_dialog_peers(dialog_ids, AccessRights::Read)),
+            0, true, folder_id.get(), td_->dialog_manager_->get_input_dialog_peers(dialog_ids, AccessRights::Read)),
         {{folder_id_}}));
   }
 
@@ -1089,12 +1087,8 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    int32 flags = 0;
-    if (is_marked_as_unread) {
-      flags |= telegram_api::messages_markDialogUnread::UNREAD_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_markDialogUnread(flags, false /*ignored*/, std::move(input_peer)), {{dialog_id}}));
+        telegram_api::messages_markDialogUnread(0, is_marked_as_unread, std::move(input_peer)), {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1140,12 +1134,8 @@ class ToggleDialogPinQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    int32 flags = 0;
-    if (is_pinned) {
-      flags |= telegram_api::messages_toggleDialogPin::PINNED_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_toggleDialogPin(flags, false /*ignored*/, std::move(input_peer)), {{dialog_id}}));
+        telegram_api::messages_toggleDialogPin(0, is_pinned, std::move(input_peer)), {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1190,12 +1180,8 @@ class ToggleDialogTranslationsQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    int32 flags = 0;
-    if (!is_translatable) {
-      flags |= telegram_api::messages_togglePeerTranslations::DISABLED_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_togglePeerTranslations(flags, false /*ignored*/, std::move(input_peer)), {{dialog_id}}));
+        telegram_api::messages_togglePeerTranslations(0, !is_translatable, std::move(input_peer)), {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {

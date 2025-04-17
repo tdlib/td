@@ -92,15 +92,8 @@ class ClickSponsoredMessageQuery final : public Td::ResultHandler {
   }
 
   void send(const string &message_id, bool is_media_click, bool from_fullscreen) {
-    int32 flags = 0;
-    if (is_media_click) {
-      flags |= telegram_api::messages_clickSponsoredMessage::MEDIA_MASK;
-    }
-    if (from_fullscreen) {
-      flags |= telegram_api::messages_clickSponsoredMessage::FULLSCREEN_MASK;
-    }
-    send_query(G()->net_query_creator().create(telegram_api::messages_clickSponsoredMessage(
-        flags, false /*ignored*/, false /*ignored*/, BufferSlice(message_id))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_clickSponsoredMessage(0, is_media_click, from_fullscreen, BufferSlice(message_id))));
   }
 
   void on_result(BufferSlice packet) final {

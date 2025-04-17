@@ -111,25 +111,16 @@ class RequestAppWebViewQuery final : public Td::ResultHandler {
     if (theme_parameters != nullptr) {
       flags |= telegram_api::messages_requestAppWebView::THEME_PARAMS_MASK;
     }
-    if (allow_write_access) {
-      flags |= telegram_api::messages_requestAppWebView::WRITE_ALLOWED_MASK;
-    }
     if (!start_parameter.empty()) {
       flags |= telegram_api::messages_requestAppWebView::START_PARAM_MASK;
-    }
-    if (parameters.is_compact()) {
-      flags |= telegram_api::messages_requestAppWebView::COMPACT_MASK;
-    }
-    if (parameters.is_full_screen()) {
-      flags |= telegram_api::messages_requestAppWebView::FULLSCREEN_MASK;
     }
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
     auto input_bot_app =
         telegram_api::make_object<telegram_api::inputBotAppShortName>(std::move(input_user), web_app_short_name);
     send_query(G()->net_query_creator().create(telegram_api::messages_requestAppWebView(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_bot_app),
-        start_parameter, std::move(theme_parameters), parameters.get_application_name())));
+        flags, allow_write_access, parameters.is_compact(), parameters.is_full_screen(), std::move(input_peer),
+        std::move(input_bot_app), start_parameter, std::move(theme_parameters), parameters.get_application_name())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -160,6 +151,8 @@ class RequestMainWebViewQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
             const string &start_parameter, const WebAppOpenParameters &parameters) {
+    is_full_screen_ = parameters.is_full_screen();
+
     int32 flags = 0;
     auto theme_parameters = parameters.get_input_theme_parameters();
     if (theme_parameters != nullptr) {
@@ -168,17 +161,10 @@ class RequestMainWebViewQuery final : public Td::ResultHandler {
     if (!start_parameter.empty()) {
       flags |= telegram_api::messages_requestMainWebView::START_PARAM_MASK;
     }
-    if (parameters.is_compact()) {
-      flags |= telegram_api::messages_requestMainWebView::COMPACT_MASK;
-    }
-    if (parameters.is_full_screen()) {
-      is_full_screen_ = true;
-      flags |= telegram_api::messages_requestMainWebView::FULLSCREEN_MASK;
-    }
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::messages_requestMainWebView(
-        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), std::move(input_user), start_parameter,
+        flags, parameters.is_compact(), is_full_screen_, std::move(input_peer), std::move(input_user), start_parameter,
         std::move(theme_parameters), parameters.get_application_name())));
   }
 
@@ -236,6 +222,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     CHECK(input_peer != nullptr);
 
     string start_parameter;
+    bool from_bot_menu = false;
     if (begins_with(url, "start://")) {
       start_parameter = url.substr(8);
       url = string();
@@ -244,7 +231,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
     } else if (begins_with(url, "menu://")) {
       url = url.substr(7);
 
-      flags |= telegram_api::messages_requestWebView::FROM_BOT_MENU_MASK;
+      from_bot_menu = true;
       flags |= telegram_api::messages_requestWebView::URL_MASK;
     } else if (!url.empty()) {
       flags |= telegram_api::messages_requestWebView::URL_MASK;
@@ -262,11 +249,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_requestWebView::REPLY_TO_MASK;
     }
 
-    if (silent) {
-      flags |= telegram_api::messages_requestWebView::SILENT_MASK;
-    }
-
-    tl_object_ptr<telegram_api::InputPeer> as_input_peer;
+    telegram_api::object_ptr<telegram_api::InputPeer> as_input_peer;
     if (as_dialog_id.is_valid()) {
       as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Write);
       if (as_input_peer != nullptr) {
@@ -274,15 +257,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
       }
     }
 
-    if (parameters.is_compact()) {
-      flags |= telegram_api::messages_requestWebView::COMPACT_MASK;
-    }
-    if (parameters.is_full_screen()) {
-      flags |= telegram_api::messages_requestWebView::FULLSCREEN_MASK;
-    }
-
     send_query(G()->net_query_creator().create(telegram_api::messages_requestWebView(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+        flags, from_bot_menu, silent, parameters.is_compact(), parameters.is_full_screen(), std::move(input_peer),
         std::move(input_user), url, start_parameter, std::move(theme_parameters), parameters.get_application_name(),
         std::move(reply_to), std::move(as_input_peer))));
   }
@@ -329,11 +305,8 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_prolongWebView::REPLY_TO_MASK;
     }
-    if (silent) {
-      flags |= telegram_api::messages_prolongWebView::SILENT_MASK;
-    }
 
-    tl_object_ptr<telegram_api::InputPeer> as_input_peer;
+    telegram_api::object_ptr<telegram_api::InputPeer> as_input_peer;
     if (as_dialog_id.is_valid()) {
       as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Write);
       if (as_input_peer != nullptr) {
@@ -341,9 +314,9 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
       }
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_prolongWebView(
-        flags, false /*ignored*/, std::move(input_peer), r_input_user.move_as_ok(), query_id, std::move(reply_to),
-        std::move(as_input_peer))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_prolongWebView(flags, silent, std::move(input_peer), r_input_user.move_as_ok(), query_id,
+                                              std::move(reply_to), std::move(as_input_peer))));
   }
 
   void on_result(BufferSlice packet) final {

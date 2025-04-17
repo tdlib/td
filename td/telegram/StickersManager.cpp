@@ -126,12 +126,9 @@ class SearchStickersQuery final : public Td::ResultHandler {
     parameters_ = std::move(parameters);
     sticker_type_ = sticker_type;
     is_first_ = offset == 0;
-    int32 flags = 0;
-    if (sticker_type == StickerType::CustomEmoji) {
-      flags |= telegram_api::messages_searchStickers::EMOJIS_MASK;
-    }
-    send_query(G()->net_query_creator().create(telegram_api::messages_searchStickers(
-        flags, false /*ignored*/, query, emoji, std::move(input_language_codes), offset, limit, hash)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_searchStickers(0, sticker_type == StickerType::CustomEmoji, query, emoji,
+                                              std::move(input_language_codes), offset, limit, hash)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -329,15 +326,9 @@ class GetArchivedStickerSetsQuery final : public Td::ResultHandler {
     offset_sticker_set_id_ = offset_sticker_set_id;
     sticker_type_ = sticker_type;
 
-    int32 flags = 0;
-    if (sticker_type_ == StickerType::Mask) {
-      flags |= telegram_api::messages_getArchivedStickers::MASKS_MASK;
-    }
-    if (sticker_type_ == StickerType::CustomEmoji) {
-      flags |= telegram_api::messages_getArchivedStickers::EMOJIS_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::messages_getArchivedStickers(
-        flags, false /*ignored*/, false /*ignored*/, offset_sticker_set_id.get(), limit)));
+        0, sticker_type == StickerType::Mask, sticker_type == StickerType::CustomEmoji, offset_sticker_set_id.get(),
+        limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -485,13 +476,7 @@ class GetRecentStickersQuery final : public Td::ResultHandler {
   void send(bool is_repair, bool is_attached, int64 hash) {
     is_repair_ = is_repair;
     is_attached_ = is_attached;
-    int32 flags = 0;
-    if (is_attached) {
-      flags |= telegram_api::messages_getRecentStickers::ATTACHED_MASK;
-    }
-
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_getRecentStickers(flags, is_attached /*ignored*/, hash)));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getRecentStickers(0, is_attached, hash)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -533,14 +518,8 @@ class SaveRecentStickerQuery final : public Td::ResultHandler {
     file_reference_ = input_document->file_reference_.as_slice().str();
     unsave_ = unsave;
     is_attached_ = is_attached;
-
-    int32 flags = 0;
-    if (is_attached) {
-      flags |= telegram_api::messages_saveRecentSticker::ATTACHED_MASK;
-    }
-
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_saveRecentSticker(flags, is_attached /*ignored*/, std::move(input_document), unsave)));
+        telegram_api::messages_saveRecentSticker(0, is_attached, std::move(input_document), unsave)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -593,14 +572,7 @@ class ClearRecentStickersQuery final : public Td::ResultHandler {
 
   void send(bool is_attached) {
     is_attached_ = is_attached;
-
-    int32 flags = 0;
-    if (is_attached) {
-      flags |= telegram_api::messages_clearRecentStickers::ATTACHED_MASK;
-    }
-
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_clearRecentStickers(flags, is_attached /*ignored*/)));
+    send_query(G()->net_query_creator().create(telegram_api::messages_clearRecentStickers(0, is_attached)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -721,15 +693,9 @@ class ReorderStickerSetsQuery final : public Td::ResultHandler {
  public:
   void send(StickerType sticker_type, const vector<StickerSetId> &sticker_set_ids) {
     sticker_type_ = sticker_type;
-    int32 flags = 0;
-    if (sticker_type == StickerType::Mask) {
-      flags |= telegram_api::messages_reorderStickerSets::MASKS_MASK;
-    }
-    if (sticker_type == StickerType::CustomEmoji) {
-      flags |= telegram_api::messages_reorderStickerSets::EMOJIS_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::messages_reorderStickerSets(
-        flags, false /*ignored*/, false /*ignored*/, StickersManager::convert_sticker_set_ids(sticker_set_ids))));
+        0, sticker_type == StickerType::Mask, sticker_type == StickerType::CustomEmoji,
+        StickersManager::convert_sticker_set_ids(sticker_set_ids))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -880,12 +846,10 @@ class SearchStickerSetsQuery final : public Td::ResultHandler {
     query_ = std::move(query);
     switch (sticker_type) {
       case StickerType::Regular:
-        send_query(
-            G()->net_query_creator().create(telegram_api::messages_searchStickerSets(0, false /*ignored*/, query_, 0)));
+        send_query(G()->net_query_creator().create(telegram_api::messages_searchStickerSets(0, false, query_, 0)));
         break;
       case StickerType::CustomEmoji:
-        send_query(G()->net_query_creator().create(
-            telegram_api::messages_searchEmojiStickerSets(0, false /*ignored*/, query_, 0)));
+        send_query(G()->net_query_creator().create(telegram_api::messages_searchEmojiStickerSets(0, false, query_, 0)));
         break;
       default:
         UNREACHABLE();

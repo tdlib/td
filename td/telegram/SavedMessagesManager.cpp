@@ -74,10 +74,8 @@ class GetSavedDialogsQuery final : public Td::ResultHandler {
     auto input_peer = DialogManager::get_input_peer_force(offset_dialog_id);
     CHECK(input_peer != nullptr);
 
-    int32 flags = telegram_api::messages_getSavedDialogs::EXCLUDE_PINNED_MASK;
     send_query(G()->net_query_creator().create(telegram_api::messages_getSavedDialogs(
-        flags, false /*ignored*/, offset_date, offset_message_id.get_server_message_id().get(), std::move(input_peer),
-        limit, 0)));
+        0, true, offset_date, offset_message_id.get_server_message_id().get(), std::move(input_peer), limit, 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -251,12 +249,8 @@ class ToggleSavedDialogPinQuery final : public Td::ResultHandler {
     auto saved_input_peer = saved_messages_topic_id.get_input_dialog_peer(td_);
     CHECK(saved_input_peer != nullptr);
 
-    int32 flags = 0;
-    if (is_pinned) {
-      flags |= telegram_api::messages_toggleSavedDialogPin::PINNED_MASK;
-    }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_toggleSavedDialogPin(flags, false /*ignored*/, std::move(saved_input_peer))));
+        telegram_api::messages_toggleSavedDialogPin(0, is_pinned, std::move(saved_input_peer))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -287,9 +281,8 @@ class ReorderPinnedSavedDialogsQuery final : public Td::ResultHandler {
       CHECK(saved_input_peer != nullptr);
       return saved_input_peer;
     });
-    int32 flags = telegram_api::messages_reorderPinnedSavedDialogs::FORCE_MASK;
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_reorderPinnedSavedDialogs(flags, true /*ignored*/, std::move(order))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_reorderPinnedSavedDialogs(0, true, std::move(order))));
   }
 
   void on_result(BufferSlice packet) final {

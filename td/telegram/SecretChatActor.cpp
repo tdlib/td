@@ -705,12 +705,8 @@ void SecretChatActor::do_close_chat_impl(bool delete_history, bool is_already_di
   send_update_secret_chat();
 
   if (!is_already_discarded) {
-    int32 flags = 0;
-    if (delete_history) {
-      flags |= telegram_api::messages_discardEncryption::DELETE_HISTORY_MASK;
-    }
     auto query = create_net_query(QueryType::DiscardEncryption,
-                                  telegram_api::messages_discardEncryption(flags, false /*ignored*/, auth_state_.id));
+                                  telegram_api::messages_discardEncryption(0, delete_history, auth_state_.id));
     query->total_timeout_limit_ = 60 * 60 * 24 * 365;
     context_->send_net_query(std::move(query), actor_shared(this), true);
     discard_encryption_promise_ = mpas.get_promise();
@@ -1240,7 +1236,7 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<log_event::Inbou
     auto old = move_tl_object_as<secret_api::decryptedMessage46>(message->decrypted_message_layer->message_);
     old->flags_ &= ~secret_api::decryptedMessage::GROUPED_ID_MASK;  // just in case
     message->decrypted_message_layer->message_ = secret_api::make_object<secret_api::decryptedMessage>(
-        old->flags_, false /*ignored*/, old->random_id_, old->ttl_, std::move(old->message_), std::move(old->media_),
+        old->flags_, false, old->random_id_, old->ttl_, std::move(old->message_), std::move(old->media_),
         std::move(old->entities_), std::move(old->via_bot_name_), old->reply_to_random_id_, 0);
   }
   if (message->decrypted_message_layer->message_->get_id() == secret_api::decryptedMessageService8::ID) {

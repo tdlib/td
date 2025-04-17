@@ -890,8 +890,8 @@ class Master final : public Actor {
     LOG(INFO) << "Send message: " << tag("id", id) << tag("text", text) << tag("random_id", random_id);
     sent_messages_[random_id] = Message{id, text};
     send_closure(get_by_id(id), &SecretChatProxy::send_message,
-                 secret_api::make_object<secret_api::decryptedMessage>(0, false /*ignored*/, random_id, 0, text, Auto(),
-                                                                       Auto(), Auto(), Auto(), 0));
+                 secret_api::make_object<secret_api::decryptedMessage>(0, false, random_id, 0, text, Auto(), Auto(),
+                                                                       Auto(), Auto(), 0));
   }
   void process_net_query(my_api::messages_sendEncryptedService &&message, NetQueryPtr net_query,
                          ActorShared<NetQueryCallback> callback) {

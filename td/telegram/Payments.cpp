@@ -253,14 +253,15 @@ class SetBotPreCheckoutAnswerQuery final : public Td::ResultHandler {
 
   void send(int64 pre_checkout_query_id, const string &error_message) {
     int32 flags = 0;
+    bool is_success = false;
     if (!error_message.empty()) {
       flags |= telegram_api::messages_setBotPrecheckoutResults::ERROR_MASK;
     } else {
-      flags |= telegram_api::messages_setBotPrecheckoutResults::SUCCESS_MASK;
+      is_success = true;
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::messages_setBotPrecheckoutResults(
-        flags, false /*ignored*/, pre_checkout_query_id, error_message)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_setBotPrecheckoutResults(flags, is_success, pre_checkout_query_id, error_message)));
   }
 
   void on_result(BufferSlice packet) final {

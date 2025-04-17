@@ -95,9 +95,6 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
     CHECK(!FileManager::extract_was_uploaded(input_media));
 
     int32 flags = 0;
-    if (disable_web_page_preview) {
-      flags |= telegram_api::messages_editInlineBotMessage::NO_WEBPAGE_MASK;
-    }
     if (reply_markup != nullptr) {
       flags |= telegram_api::messages_editInlineBotMessage::REPLY_MARKUP_MASK;
     }
@@ -110,14 +107,11 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editInlineBotMessage::MEDIA_MASK;
     }
-    if (invert_media) {
-      flags |= telegram_api::messages_editInlineBotMessage::INVERT_MEDIA_MASK;
-    }
 
     auto dc_id = DcId::internal(get_inline_message_dc_id(input_bot_inline_message_id));
     send_query(G()->net_query_creator().create(
         telegram_api::messages_editInlineBotMessage(
-            flags, false /*ignored*/, false /*ignored*/, std::move(input_bot_inline_message_id), text,
+            flags, disable_web_page_preview, invert_media, std::move(input_bot_inline_message_id), text,
             std::move(input_media), std::move(reply_markup), std::move(entities)),
         {}, dc_id));
   }
@@ -151,18 +145,10 @@ class SetInlineGameScoreQuery final : public Td::ResultHandler {
     CHECK(input_bot_inline_message_id != nullptr);
     CHECK(input_user != nullptr);
 
-    int32 flags = 0;
-    if (edit_message) {
-      flags |= telegram_api::messages_setInlineGameScore::EDIT_MESSAGE_MASK;
-    }
-    if (force) {
-      flags |= telegram_api::messages_setInlineGameScore::FORCE_MASK;
-    }
-
     auto dc_id = DcId::internal(get_inline_message_dc_id(input_bot_inline_message_id));
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_setInlineGameScore(flags, false /*ignored*/, false /*ignored*/,
-                                                  std::move(input_bot_inline_message_id), std::move(input_user), score),
+        telegram_api::messages_setInlineGameScore(0, edit_message, force, std::move(input_bot_inline_message_id),
+                                                  std::move(input_user), score),
         {}, dc_id));
   }
 

@@ -131,12 +131,6 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
             vector<tl_object_ptr<telegram_api::InputBotInlineResult>> &&results, int32 cache_time,
             const string &next_offset) {
     int32 flags = 0;
-    if (is_gallery) {
-      flags |= telegram_api::messages_setInlineBotResults::GALLERY_MASK;
-    }
-    if (is_personal) {
-      flags |= telegram_api::messages_setInlineBotResults::PRIVATE_MASK;
-    }
     if (!next_offset.empty()) {
       flags |= telegram_api::messages_setInlineBotResults::NEXT_OFFSET_MASK;
     }
@@ -147,7 +141,7 @@ class SetInlineBotResultsQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_setInlineBotResults::SWITCH_WEBVIEW_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_setInlineBotResults(
-        flags, false /*ignored*/, false /*ignored*/, inline_query_id, std::move(results), cache_time, next_offset,
+        flags, is_gallery, is_personal, inline_query_id, std::move(results), cache_time, next_offset,
         std::move(switch_pm), std::move(web_view))));
   }
 
@@ -254,6 +248,8 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_requestSimpleWebView::THEME_PARAMS_MASK;
     }
     string start_parameter;
+    bool from_switch_webview = false;
+    bool from_side_menu = false;
     if (ends_with(url, "#kb")) {
       // a URL from keyboard button
       url.resize(url.size() - 3);
@@ -261,28 +257,22 @@ class RequestSimpleWebViewQuery final : public Td::ResultHandler {
     } else if (ends_with(url, "#iq")) {
       // a URL from inline query results button
       url.resize(url.size() - 3);
-      flags |= telegram_api::messages_requestSimpleWebView::FROM_SWITCH_WEBVIEW_MASK;
+      from_switch_webview = true;
       flags |= telegram_api::messages_requestSimpleWebView::URL_MASK;
     } else if (url.empty()) {
-      flags |= telegram_api::messages_requestSimpleWebView::FROM_SIDE_MENU_MASK;
+      from_side_menu = true;
     } else if (begins_with(url, "start://")) {
       start_parameter = url.substr(8);
       url = string();
 
-      flags |= telegram_api::messages_requestSimpleWebView::FROM_SIDE_MENU_MASK;
+      from_side_menu = true;
       flags |= telegram_api::messages_requestSimpleWebView::START_PARAM_MASK;
     } else {
       return on_error(Status::Error(400, "Invalid URL specified"));
     }
-    if (parameters.is_compact()) {
-      flags |= telegram_api::messages_requestSimpleWebView::COMPACT_MASK;
-    }
-    if (parameters.is_full_screen()) {
-      flags |= telegram_api::messages_requestSimpleWebView::FULLSCREEN_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::messages_requestSimpleWebView(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_user), url,
-        start_parameter, std::move(theme_parameters), parameters.get_application_name())));
+        flags, from_switch_webview, from_side_menu, parameters.is_compact(), parameters.is_full_screen(),
+        std::move(input_user), url, start_parameter, std::move(theme_parameters), parameters.get_application_name())));
   }
 
   void on_result(BufferSlice packet) final {

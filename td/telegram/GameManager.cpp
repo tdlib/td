@@ -35,14 +35,6 @@ class SetGameScoreQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, MessageId message_id, bool edit_message,
             tl_object_ptr<telegram_api::InputUser> input_user, int32 score, bool force) {
-    int32 flags = 0;
-    if (edit_message) {
-      flags |= telegram_api::messages_setGameScore::EDIT_MESSAGE_MASK;
-    }
-    if (force) {
-      flags |= telegram_api::messages_setGameScore::FORCE_MASK;
-    }
-
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Edit);
@@ -52,7 +44,7 @@ class SetGameScoreQuery final : public Td::ResultHandler {
 
     CHECK(input_user != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_setGameScore(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+        telegram_api::messages_setGameScore(0, edit_message, force, std::move(input_peer),
                                             message_id.get_server_message_id().get(), std::move(input_user), score),
         {{dialog_id}}));
   }

@@ -45,6 +45,8 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> input_message_entities;
     telegram_api::object_ptr<telegram_api::InputMedia> media;
     int64 message_effect_id = 0;
+    bool disable_web_page_preview = false;
+    bool invert_media = false;
     if (draft_message != nullptr) {
       CHECK(!draft_message->is_local());
       input_reply_to = draft_message->message_input_reply_to_.get_input_reply_to(td_, MessageId() /*TODO*/);
@@ -52,9 +54,9 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
         flags |= telegram_api::messages_saveDraft::REPLY_TO_MASK;
       }
       if (draft_message->input_message_text_.disable_web_page_preview) {
-        flags |= telegram_api::messages_saveDraft::NO_WEBPAGE_MASK;
+        disable_web_page_preview = true;
       } else if (draft_message->input_message_text_.show_above_text) {
-        flags |= telegram_api::messages_saveDraft::INVERT_MEDIA_MASK;
+        invert_media = true;
       }
       input_message_entities = get_input_message_entities(
           td_->user_manager_.get(), draft_message->input_message_text_.text.entities, "SaveDraftMessageQuery");
@@ -72,7 +74,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_saveDraft(
-            flags, false /*ignored*/, false /*ignored*/, std::move(input_reply_to), std::move(input_peer),
+            flags, disable_web_page_preview, invert_media, std::move(input_reply_to), std::move(input_peer),
             draft_message == nullptr ? string() : draft_message->input_message_text_.text.text,
             std::move(input_message_entities), std::move(media), message_effect_id),
         {{dialog_id}}));

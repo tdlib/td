@@ -47,27 +47,29 @@ class GetBotCallbackAnswerQuery final : public Td::ResultHandler {
 
     int32 flags = 0;
     BufferSlice data;
+    bool is_game = false;
     CHECK(payload != nullptr);
     switch (payload->get_id()) {
       case td_api::callbackQueryPayloadData::ID:
-        flags = telegram_api::messages_getBotCallbackAnswer::DATA_MASK;
         data = BufferSlice(static_cast<const td_api::callbackQueryPayloadData *>(payload.get())->data_);
         break;
       case td_api::callbackQueryPayloadDataWithPassword::ID:
         CHECK(password != nullptr);
-        flags = telegram_api::messages_getBotCallbackAnswer::DATA_MASK |
-                telegram_api::messages_getBotCallbackAnswer::PASSWORD_MASK;
+        flags = telegram_api::messages_getBotCallbackAnswer::PASSWORD_MASK;
         data = BufferSlice(static_cast<const td_api::callbackQueryPayloadDataWithPassword *>(payload.get())->data_);
         break;
       case td_api::callbackQueryPayloadGame::ID:
-        flags = telegram_api::messages_getBotCallbackAnswer::GAME_MASK;
+        is_game = true;
         break;
       default:
         UNREACHABLE();
     }
+    if (!is_game) {
+      flags |= telegram_api::messages_getBotCallbackAnswer::DATA_MASK;
+    }
 
     auto net_query = G()->net_query_creator().create(telegram_api::messages_getBotCallbackAnswer(
-        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), std::move(data),
+        flags, is_game, std::move(input_peer), message_id.get_server_message_id().get(), std::move(data),
         std::move(password)));
     net_query->need_resend_on_503_ = false;
     send_query(std::move(net_query));
@@ -108,14 +110,11 @@ class SetBotCallbackAnswerQuery final : public Td::ResultHandler {
     if (!text.empty()) {
       flags |= telegram_api::messages_setBotCallbackAnswer::MESSAGE_MASK;
     }
-    if (show_alert) {
-      flags |= telegram_api::messages_setBotCallbackAnswer::ALERT_MASK;
-    }
     if (!url.empty()) {
       flags |= telegram_api::messages_setBotCallbackAnswer::URL_MASK;
     }
-    send_query(G()->net_query_creator().create(telegram_api::messages_setBotCallbackAnswer(
-        flags, false /*ignored*/, callback_query_id, text, url, cache_time)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_setBotCallbackAnswer(flags, show_alert, callback_query_id, text, url, cache_time)));
   }
 
   void on_result(BufferSlice packet) final {

@@ -1109,7 +1109,7 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
   void send(string url, MessageFullId message_full_id, int32 button_id, bool allow_write_access) {
     url_ = std::move(url);
     int32 flags = 0;
-    tl_object_ptr<telegram_api::InputPeer> input_peer;
+    telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
     if (message_full_id.get_dialog_id().is_valid()) {
       dialog_id_ = message_full_id.get_dialog_id();
       input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
@@ -1118,12 +1118,9 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
     } else {
       flags |= telegram_api::messages_acceptUrlAuth::URL_MASK;
     }
-    if (allow_write_access) {
-      flags |= telegram_api::messages_acceptUrlAuth::WRITE_ALLOWED_MASK;
-    }
     send_query(G()->net_query_creator().create(telegram_api::messages_acceptUrlAuth(
-        flags, false /*ignored*/, std::move(input_peer), message_full_id.get_message_id().get_server_message_id().get(),
-        button_id, url_)));
+        flags, allow_write_access, std::move(input_peer),
+        message_full_id.get_message_id().get_server_message_id().get(), button_id, url_)));
   }
 
   void on_result(BufferSlice packet) final {

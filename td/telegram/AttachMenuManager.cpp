@@ -95,13 +95,9 @@ class ToggleBotInAttachMenuQuery final : public Td::ResultHandler {
   explicit ToggleBotInAttachMenuQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::InputUser> &&input_user, bool is_added, bool allow_write_access) {
-    int32 flags = 0;
-    if (is_added && allow_write_access) {
-      flags |= telegram_api::messages_toggleBotInAttachMenu::WRITE_ALLOWED_MASK;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_toggleBotInAttachMenu(flags, false /*ignored*/, std::move(input_user), is_added)));
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user, bool is_added, bool allow_write_access) {
+    send_query(G()->net_query_creator().create(telegram_api::messages_toggleBotInAttachMenu(
+        0, is_added && allow_write_access, std::move(input_user), is_added)));
   }
 
   void on_result(BufferSlice packet) final {
