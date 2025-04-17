@@ -361,19 +361,9 @@ class UpdateDialogPinnedMessageQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't update pinned message"));
     }
 
-    int32 flags = 0;
-    if (disable_notification) {
-      flags |= telegram_api::messages_updatePinnedMessage::SILENT_MASK;
-    }
-    if (is_unpin) {
-      flags |= telegram_api::messages_updatePinnedMessage::UNPIN_MASK;
-    }
-    if (only_for_self) {
-      flags |= telegram_api::messages_updatePinnedMessage::PM_ONESIDE_MASK;
-    }
     send_query(G()->net_query_creator().create_with_prefix(
         business_connection_id.get_invoke_prefix(),
-        telegram_api::messages_updatePinnedMessage(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        telegram_api::messages_updatePinnedMessage(0, disable_notification, is_unpin, only_for_self,
                                                    std::move(input_peer), message_id.get_server_message_id().get()),
         td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
   }
@@ -465,11 +455,10 @@ class GetDialogListQuery final : public Td::ResultHandler {
     auto input_peer = DialogManager::get_input_peer_force(offset_dialog_id);
     CHECK(input_peer != nullptr);
 
-    int32 flags =
-        telegram_api::messages_getDialogs::EXCLUDE_PINNED_MASK | telegram_api::messages_getDialogs::FOLDER_ID_MASK;
+    int32 flags = telegram_api::messages_getDialogs::FOLDER_ID_MASK;
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getDialogs(flags, false /*ignored*/, folder_id.get(), offset_date,
-                                          offset_message_id.get(), std::move(input_peer), limit, 0),
+        telegram_api::messages_getDialogs(flags, true, folder_id.get(), offset_date, offset_message_id.get(),
+                                          std::move(input_peer), limit, 0),
         {{folder_id}}));
   }
 
@@ -21320,14 +21309,11 @@ void MessagesManager::send_secret_message(DialogId dialog_id, const Message *m, 
     CHECK(m->media_album_id < 0);
     flags |= secret_api::decryptedMessage::GROUPED_ID_MASK;
   }
-  if (m->disable_notification) {
-    flags |= secret_api::decryptedMessage::SILENT_MASK;
-  }
 
   send_closure(
       td_->secret_chats_manager_, &SecretChatsManager::send_message, dialog_id.get_secret_chat_id(),
-      make_tl_object<secret_api::decryptedMessage>(
-          flags, false /*ignored*/, random_id, m->ttl.get_input_ttl(),
+      secret_api::make_object<secret_api::decryptedMessage>(
+          flags, m->disable_notification, random_id, m->ttl.get_input_ttl(),
           m->content->get_type() == MessageContentType::Text ? text->text : string(), std::move(media.decrypted_media_),
           std::move(entities), td_->user_manager_->get_user_first_username(m->via_bot_user_id), m->reply_to_random_id,
           -m->media_album_id),

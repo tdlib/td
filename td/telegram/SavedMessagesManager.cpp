@@ -219,8 +219,8 @@ class DeleteSavedMessagesByDateQuery final : public Td::ResultHandler {
     auto saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
     CHECK(saved_input_peer != nullptr);
 
-    int32 flags =
-        telegram_api::messages_deleteHistory::MIN_DATE_MASK | telegram_api::messages_deleteHistory::MAX_DATE_MASK;
+    int32 flags = telegram_api::messages_deleteSavedHistory::MIN_DATE_MASK |
+                  telegram_api::messages_deleteSavedHistory::MAX_DATE_MASK;
 
     send_query(G()->net_query_creator().create(
         telegram_api::messages_deleteSavedHistory(flags, std::move(saved_input_peer), 0, min_date, max_date)));

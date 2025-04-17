@@ -139,15 +139,11 @@ class ReportMessageDeliveryQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return;
     }
-    int32 flags = 0;
-    if (from_push) {
-      flags |= telegram_api::messages_reportMessagesDelivery::PUSH_MASK;
-    }
     auto message_id = message_full_id.get_message_id();
     CHECK(message_id.is_valid());
     CHECK(message_id.is_server());
     send_query(G()->net_query_creator().create(telegram_api::messages_reportMessagesDelivery(
-        flags, false /*ignored*/, std::move(input_peer), {message_id.get_server_message_id().get()})));
+        0, from_push, std::move(input_peer), {message_id.get_server_message_id().get()})));
   }
 
   void on_result(BufferSlice packet) final {
@@ -317,25 +313,28 @@ class SearchMessagesGlobalQuery final : public Td::ResultHandler {
     if (!ignore_folder_id) {
       flags |= telegram_api::messages_searchGlobal::FOLDER_ID_MASK;
     }
+    bool users_only = false;
+    bool groups_only = false;
+    bool broadcasts_only = false;
     if (dialog_type_filter != nullptr) {
       switch (dialog_type_filter->get_id()) {
         case td_api::searchMessagesChatTypeFilterPrivate::ID:
-          flags |= telegram_api::messages_searchGlobal::USERS_ONLY_MASK;
+          users_only = true;
           break;
         case td_api::searchMessagesChatTypeFilterGroup::ID:
-          flags |= telegram_api::messages_searchGlobal::GROUPS_ONLY_MASK;
+          groups_only = true;
           break;
         case td_api::searchMessagesChatTypeFilterChannel::ID:
-          flags |= telegram_api::messages_searchGlobal::BROADCASTS_ONLY_MASK;
+          broadcasts_only = true;
           break;
         default:
           UNREACHABLE();
       }
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_searchGlobal(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, folder_id.get(), query,
-        get_input_messages_filter(filter), min_date_, max_date_, offset_date_, std::move(input_peer),
-        offset_message_id.get_server_message_id().get(), limit)));
+        flags, broadcasts_only, groups_only, users_only, folder_id.get(), query, get_input_messages_filter(filter),
+        min_date_, max_date_, offset_date_, std::move(input_peer), offset_message_id.get_server_message_id().get(),
+        limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -878,12 +877,7 @@ class DeletePhoneCallHistoryQuery final : public Td::ResultHandler {
   }
 
   void send(bool revoke) {
-    int32 flags = 0;
-    if (revoke) {
-      flags |= telegram_api::messages_deletePhoneCallHistory::REVOKE_MASK;
-    }
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_deletePhoneCallHistory(flags, false /*ignored*/)));
+    send_query(G()->net_query_creator().create(telegram_api::messages_deletePhoneCallHistory(0, revoke)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -964,16 +958,8 @@ class DeleteHistoryQuery final : public Td::ResultHandler {
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
     }
 
-    int32 flags = 0;
-    if (!remove_from_dialog_list) {
-      flags |= telegram_api::messages_deleteHistory::JUST_CLEAR_MASK;
-    }
-    if (revoke) {
-      flags |= telegram_api::messages_deleteHistory::REVOKE_MASK;
-    }
-
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_deleteHistory(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+        telegram_api::messages_deleteHistory(0, !remove_from_dialog_list, revoke, std::move(input_peer),
                                              max_message_id.get_server_message_id().get(), 0, 0)));
   }
 
@@ -1050,15 +1036,11 @@ class DeleteMessagesByDateQuery final : public Td::ResultHandler {
       return promise_.set_error(Status::Error(400, "Chat is not accessible"));
     }
 
-    int32 flags = telegram_api::messages_deleteHistory::JUST_CLEAR_MASK |
-                  telegram_api::messages_deleteHistory::MIN_DATE_MASK |
-                  telegram_api::messages_deleteHistory::MAX_DATE_MASK;
-    if (revoke) {
-      flags |= telegram_api::messages_deleteHistory::REVOKE_MASK;
-    }
-
-    send_query(G()->net_query_creator().create(telegram_api::messages_deleteHistory(
-        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), 0, min_date, max_date)));
+    int32 flags =
+        telegram_api::messages_deleteHistory::MIN_DATE_MASK | telegram_api::messages_deleteHistory::MAX_DATE_MASK;
+    bool just_clear = true;
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_deleteHistory(flags, just_clear, revoke, std::move(input_peer), 0, min_date, max_date)));
   }
 
   void on_result(BufferSlice packet) final {
