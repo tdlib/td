@@ -49,8 +49,6 @@ class CallManager final : public Actor {
 
   void send_call_log(CallId call_id, td_api::object_ptr<td_api::InputFile> log_file, Promise<Unit> promise);
 
-  void create_conference_call(CallId call_id, Promise<Unit> promise);
-
  private:
   bool close_flag_ = false;
 

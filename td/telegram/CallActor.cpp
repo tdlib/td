@@ -11,7 +11,6 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/GroupCallManager.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
@@ -515,18 +514,6 @@ void CallActor::on_save_log_query_result(FileUploadId file_upload_id, Promise<Un
     call_state_need_flush_ = true;
   }
   loop();
-  promise.set_value(Unit());
-}
-
-void CallActor::create_conference_call(Promise<Unit> promise) {
-  promise.set_value(Unit());
-}
-
-void CallActor::on_create_conference_call_result(Promise<Unit> promise, Result<NetQueryPtr> r_net_query) {
-  auto res = fetch_result<telegram_api::phone_createConferenceCall>(std::move(r_net_query));
-  if (res.is_error()) {
-    return promise.set_error(res.move_as_error());
-  }
   promise.set_value(Unit());
 }
 

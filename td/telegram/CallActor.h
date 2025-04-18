@@ -119,8 +119,6 @@ class CallActor final : public NetQueryCallback {
 
   void send_call_log(td_api::object_ptr<td_api::InputFile> log_file, Promise<Unit> promise);
 
-  void create_conference_call(Promise<Unit> promise);
-
   void update_call(tl_object_ptr<telegram_api::PhoneCall> call);
 
  private:
@@ -218,8 +216,6 @@ class CallActor final : public NetQueryCallback {
                           Promise<Unit> &&promise);
 
   void on_save_log_query_result(FileUploadId file_upload_id, Promise<Unit> promise, Result<NetQueryPtr> r_net_query);
-
-  void on_create_conference_call_result(Promise<Unit> promise, Result<NetQueryPtr> r_net_query);
 
   void on_get_call_config_result(Result<NetQueryPtr> r_net_query);
 

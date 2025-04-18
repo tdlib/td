@@ -20,6 +20,8 @@
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"
 
+#include "td/e2e/e2e_api.h"
+
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
@@ -54,6 +56,9 @@ class GroupCallManager final : public Actor {
 
   void create_voice_chat(DialogId dialog_id, string title, int32 start_date, bool is_rtmp_stream,
                          Promise<GroupCallId> &&promise);
+
+  void create_group_call(td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters,
+                         Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
   void get_voice_chat_rtmp_stream_url(DialogId dialog_id, bool revoke,
                                       Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise);
@@ -259,6 +264,12 @@ class GroupCallManager final : public Actor {
 
   bool is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call, int32 audio_source) const;
 
+  void on_create_group_call(int32 random_id, telegram_api::object_ptr<telegram_api::Updates> &&updates,
+                            Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
+
+  void on_create_group_call_finished(InputGroupCallId input_group_call_id,
+                                     Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
+
   void sync_group_call_participants(InputGroupCallId input_group_call_id);
 
   void on_sync_group_call_participants(InputGroupCallId input_group_call_id,
@@ -416,6 +427,12 @@ class GroupCallManager final : public Actor {
   vector<InputGroupCallId> input_group_call_ids_;
 
   FlatHashMap<InputGroupCallId, unique_ptr<GroupCall>, InputGroupCallIdHash> group_calls_;
+
+  struct BeingCreatedCall {
+    bool is_join_ = false;
+    tde2e_api::PrivateKeyId private_key_id_;
+  };
+  FlatHashMap<int32, BeingCreatedCall> being_created_group_calls_;
 
   string pending_group_call_join_params_;
 

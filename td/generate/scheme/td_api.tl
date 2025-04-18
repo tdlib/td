@@ -11210,8 +11210,8 @@ setVideoChatDefaultParticipant chat_id:int53 default_participant_id:MessageSende
 //@is_rtmp_stream Pass true to create an RTMP stream instead of an ordinary video chat
 createVideoChat chat_id:int53 title:string start_date:int32 is_rtmp_stream:Bool = GroupCallId;
 
-//@description Creates a group call from a one-to-one call @call_id Call identifier
-createGroupCall call_id:int32 = Ok;
+//@description Creates a new group call @join_parameters Parameters to join the call; pass null to only create call link without joining the call
+createGroupCall join_parameters:groupCallJoinParameters = GroupCall;
 
 //@description Returns RTMP URL for streaming to the chat; requires can_manage_video_chats administrator right @chat_id Chat identifier
 getVideoChatRtmpUrl chat_id:int53 = RtmpUrl;

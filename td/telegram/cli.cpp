@@ -4546,10 +4546,13 @@ class CliClient final : public Actor {
       bool is_rtmp_stream;
       get_args(args, chat_id, title, start_date, is_rtmp_stream);
       send_request(td_api::make_object<td_api::createVideoChat>(chat_id, title, start_date, is_rtmp_stream));
-    } else if (op == "cgc") {
-      CallId call_id;
-      get_args(args, call_id);
-      send_request(td_api::make_object<td_api::createGroupCall>(call_id));
+    } else if (op == "cgc" || op == "cgcv" || op == "cgca") {
+      td_api::object_ptr<td_api::groupCallJoinParameters> parameters;
+      if (op != "cgc") {
+        parameters = td_api::make_object<td_api::groupCallJoinParameters>(
+            get_group_call_join_payload(op == "cgcv", false), true, true);
+      }
+      send_request(td_api::make_object<td_api::createGroupCall>(std::move(parameters)));
     } else if (op == "gvcru") {
       ChatId chat_id;
       get_args(args, chat_id);
