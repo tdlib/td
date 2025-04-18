@@ -806,6 +806,26 @@ class CliClient final : public Actor {
     arg.group_call_id = to_integer<int32>(trim(args));
   }
 
+  string get_group_call_join_payload(bool for_video, bool for_screen_sharing) const {
+    auto payload = PSTRING() << "{\"ufrag\":\"ufrag\",\"pwd\":\"pwd\",\"fingerprints\":[{\"hash\":\"hash\",\"setup\":"
+                                "\"setup\",\"fingerprint\":\"fingerprint\"},{\"hash\":\"h2\",\"setup\":\"s2\","
+                                "\"fingerprint\":\"fingerprint2\"}],\"ssrc\":"
+                             << group_call_source_ << ',';
+    if (!for_video && !for_screen_sharing) {
+      payload.back() = '}';
+    } else {
+      string sim_sources = for_screen_sharing ? "[5,6]" : "[1,2]";
+      string fid_sources = for_screen_sharing ? "[7,8]" : "[3,4]";
+      payload +=
+          "\"payload-types\":[{\"id\":12345,\"name\":\"opus\",\"clockrate\":48000,\"channels\":2,\"rtcp-fbs\":[{"
+          "\"type\":\"transport-cc\",\"subtype\":\"subtype1\"},{\"type\":\"type2\",\"subtype\":\"subtype2\"}],"
+          "\"parameters\":{\"minptime\":\"10\",\"useinbandfec\":\"1\"}}],\"rtp-hdrexts\":[{\"id\":1,\"uri\":\"urn:"
+          "ietf:params:rtp-hdrext:ssrc-audio-level\"}],\"ssrc-groups\":[{\"sources\":" +
+          sim_sources + ",\"semantics\":\"SIM\"},{\"sources\":" + fid_sources + ",\"semantics\":\"FID\"}]}";
+    }
+    return payload;
+  }
+
   static int32 as_proxy_id(string str) {
     return to_integer<int32>(trim(std::move(str)));
   }
@@ -4567,33 +4587,15 @@ class CliClient final : public Actor {
       string invite_hash;
       get_args(args, group_call_id, participant_id, invite_hash);
 
-      auto payload = PSTRING() << "{\"ufrag\":\"ufrag\",\"pwd\":\"pwd\",\"fingerprints\":[{\"hash\":\"hash\",\"setup\":"
-                                  "\"setup\",\"fingerprint\":\"fingerprint\"},{\"hash\":\"h2\",\"setup\":\"s2\","
-                                  "\"fingerprint\":\"fingerprint2\"}],\"ssrc\":"
-                               << group_call_source_ << ',';
-      if (op == "jgc") {
-        payload.back() = '}';
-      } else {
-        string sim_sources = "[1,2]";
-        string fid_sources = "[3,4]";
-        if (op == "sgcss") {
-          sim_sources = "[5,6]";
-          fid_sources = "[7,8]";
-        }
-        payload +=
-            "\"payload-types\":[{\"id\":12345,\"name\":\"opus\",\"clockrate\":48000,\"channels\":2,\"rtcp-fbs\":[{"
-            "\"type\":\"transport-cc\",\"subtype\":\"subtype1\"},{\"type\":\"type2\",\"subtype\":\"subtype2\"}],"
-            "\"parameters\":{\"minptime\":\"10\",\"useinbandfec\":\"1\"}}],\"rtp-hdrexts\":[{\"id\":1,\"uri\":\"urn:"
-            "ietf:params:rtp-hdrext:ssrc-audio-level\"}],\"ssrc-groups\":[{\"sources\":" +
-            sim_sources + ",\"semantics\":\"SIM\"},{\"sources\":" + fid_sources + ",\"semantics\":\"FID\"}]}";
-      }
       if (op == "sgcss") {
-        send_request(
-            td_api::make_object<td_api::startGroupCallScreenSharing>(group_call_id, group_call_source_ + 1, payload));
+        send_request(td_api::make_object<td_api::startGroupCallScreenSharing>(group_call_id, group_call_source_ + 1,
+                                                                              get_group_call_join_payload(true, true)));
       } else {
         send_request(td_api::make_object<td_api::joinGroupCall>(
             group_call_id, as_message_sender(participant_id), group_call_source_,
-            td_api::make_object<td_api::groupCallJoinParameters>(payload, true, true), invite_hash));
+            td_api::make_object<td_api::groupCallJoinParameters>(get_group_call_join_payload(op == "jgcv", false), true,
+                                                                 true),
+            invite_hash));
       }
     } else if (op == "tgcssip") {
       GroupCallId group_call_id;
