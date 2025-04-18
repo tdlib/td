@@ -4581,22 +4581,23 @@ class CliClient final : public Actor {
       get_args(args, group_call_id);
       send_request(
           td_api::make_object<td_api::toggleGroupCallEnabledStartNotification>(group_call_id, op == "tgcesne"));
-    } else if (op == "jgc" || op == "jgcv" || op == "sgcss") {
+    } else if (op == "jgc" || op == "jgcv") {
       GroupCallId group_call_id;
       string participant_id;
       string invite_hash;
       get_args(args, group_call_id, participant_id, invite_hash);
 
-      if (op == "sgcss") {
-        send_request(td_api::make_object<td_api::startGroupCallScreenSharing>(group_call_id, group_call_source_ + 1,
-                                                                              get_group_call_join_payload(true, true)));
-      } else {
-        send_request(td_api::make_object<td_api::joinGroupCall>(
-            group_call_id, as_message_sender(participant_id), group_call_source_,
-            td_api::make_object<td_api::groupCallJoinParameters>(get_group_call_join_payload(op == "jgcv", false), true,
-                                                                 true),
-            invite_hash));
-      }
+      send_request(td_api::make_object<td_api::joinGroupCall>(
+          group_call_id, as_message_sender(participant_id), group_call_source_,
+          td_api::make_object<td_api::groupCallJoinParameters>(get_group_call_join_payload(op == "jgcv", false), true,
+                                                               true),
+          invite_hash));
+    } else if (op == "sgcss") {
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+
+      send_request(td_api::make_object<td_api::startGroupCallScreenSharing>(group_call_id, group_call_source_ + 1,
+                                                                            get_group_call_join_payload(true, true)));
     } else if (op == "tgcssip") {
       GroupCallId group_call_id;
       bool is_paused;
