@@ -53,10 +53,6 @@ td::UInt256 to_hash(td::Slice tag, td::Slice serialization) {
 
 class KeyChain {
  public:
-  KeyChain() {
-    set_log_verbosity_level(1).ignore();
-  }
-
   td::Result<api::Ok> set_log_verbosity_level(td::int32 new_verbosity_level) {
     if (0 <= new_verbosity_level && new_verbosity_level <= VERBOSITY_NAME(NEVER)) {
       SET_VERBOSITY_LEVEL(VERBOSITY_NAME(FATAL) + new_verbosity_level);
