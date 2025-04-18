@@ -17,6 +17,7 @@
 #include "td/telegram/DialogParticipantFilter.h"
 #include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/GroupCallJoinParameters.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
@@ -424,13 +425,13 @@ class JoinGroupCallQuery final : public Td::ResultHandler {
   explicit JoinGroupCallQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  NetQueryRef send(InputGroupCallId input_group_call_id, DialogId as_dialog_id, const string &payload, bool is_muted,
-                   bool is_video_stopped, const string &invite_hash, uint64 generation) {
+  NetQueryRef send(InputGroupCallId input_group_call_id, DialogId as_dialog_id,
+                   const GroupCallJoinParameters &parameters, const string &invite_hash, uint64 generation) {
     input_group_call_id_ = input_group_call_id;
     as_dialog_id_ = as_dialog_id;
     generation_ = generation;
 
-    tl_object_ptr<telegram_api::InputPeer> join_as_input_peer;
+    telegram_api::object_ptr<telegram_api::InputPeer> join_as_input_peer;
     if (as_dialog_id.is_valid()) {
       join_as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
     } else {
@@ -443,8 +444,9 @@ class JoinGroupCallQuery final : public Td::ResultHandler {
       flags |= telegram_api::phone_joinGroupCall::INVITE_HASH_MASK;
     }
     auto query = G()->net_query_creator().create(telegram_api::phone_joinGroupCall(
-        flags, is_muted, is_video_stopped, input_group_call_id.get_input_group_call(), std::move(join_as_input_peer),
-        invite_hash, UInt256(), BufferSlice(), telegram_api::make_object<telegram_api::dataJSON>(payload)));
+        flags, parameters.is_muted_, !parameters.is_my_video_enabled_, input_group_call_id.get_input_group_call(),
+        std::move(join_as_input_peer), invite_hash, UInt256(), BufferSlice(),
+        telegram_api::make_object<telegram_api::dataJSON>(parameters.payload_)));
     auto join_query_ref = query.get_weak();
     send_query(std::move(query));
     return join_query_ref;
@@ -2640,9 +2642,11 @@ void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Pro
 }
 
 void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source,
-                                       string &&payload, bool is_muted, bool is_my_video_enabled,
+                                       td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters,
                                        const string &invite_hash, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+  TRY_RESULT_PROMISE(promise, parameters,
+                     GroupCallJoinParameters::get_group_call_join_parameters(std::move(join_parameters), false));
 
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
@@ -2702,9 +2706,8 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
         send_closure(actor_id, &GroupCallManager::finish_join_group_call, input_group_call_id, generation,
                      result.move_as_error());
       });
-  request->query_ref =
-      td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
-          ->send(input_group_call_id, as_dialog_id, payload, is_muted, !is_my_video_enabled, invite_hash, generation);
+  request->query_ref = td_->create_handler<JoinGroupCallQuery>(std::move(query_promise))
+                           ->send(input_group_call_id, as_dialog_id, parameters, invite_hash, generation);
 
   if (group_call->dialog_id.is_valid()) {
     td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(group_call->dialog_id, as_dialog_id,
@@ -2724,9 +2727,9 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     // if can_self_unmute has never been inited from self-participant,
     // it contains reasonable default "!call.mute_new_participants || call.can_be_managed"
     participant.server_is_muted_by_admin = !group_call->can_self_unmute && !can_manage_group_call(group_call, true);
-    participant.server_is_muted_by_themselves = is_muted && !participant.server_is_muted_by_admin;
+    participant.server_is_muted_by_themselves = parameters.is_muted_ && !participant.server_is_muted_by_admin;
     participant.is_just_joined = !is_rejoin;
-    participant.video_diff = get_group_call_can_enable_video(group_call) && is_my_video_enabled;
+    participant.video_diff = get_group_call_can_enable_video(group_call) && parameters.is_my_video_enabled_;
     participant.is_fake = true;
     auto diff = process_group_call_participant(input_group_call_id, std::move(participant));
     if (diff.first != 0) {
@@ -2740,9 +2743,9 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
                                                         "join_group_call 2");
     }
   }
-  if (group_call->is_my_video_enabled != is_my_video_enabled) {
-    group_call->is_my_video_enabled = is_my_video_enabled;
-    if (!is_my_video_enabled) {
+  if (group_call->is_my_video_enabled != parameters.is_my_video_enabled_) {
+    group_call->is_my_video_enabled = parameters.is_my_video_enabled_;
+    if (!group_call->is_my_video_enabled) {
       group_call->is_my_video_paused = false;
     }
     need_update = true;

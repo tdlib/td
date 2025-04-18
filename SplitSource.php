@@ -366,6 +366,7 @@ function split_file($file, $chunks, $undo) {
             'game_manager[_(-](?![.]get[(][)])|GameManager' => 'GameManager',
             'G[(][)]|Global[^A-Za-z]' => 'Global',
             'GlobalPrivacySettings' => 'GlobalPrivacySettings',
+            'GroupCallJoinParameters' => 'GroupCallJoinParameters',
             'GroupCallId' => 'GroupCallId',
             'group_call_manager[_(-](?![.]get[(][)])|GroupCallManager' => 'GroupCallManager',
             'hashtag_hints[_(-](?![.]get[(][)])|HashtagHints' => 'HashtagHints',

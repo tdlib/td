@@ -442,6 +442,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/GiveawayParameters.cpp
   td/telegram/Global.cpp
   td/telegram/GlobalPrivacySettings.cpp
+  td/telegram/GroupCallJoinParameters.cpp
   td/telegram/GroupCallManager.cpp
   td/telegram/GroupCallParticipant.cpp
   td/telegram/GroupCallParticipantOrder.cpp
@@ -782,6 +783,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/GiveawayParameters.h
   td/telegram/Global.h
   td/telegram/GlobalPrivacySettings.h
+  td/telegram/GroupCallJoinParameters.h
   td/telegram/GroupCallId.h
   td/telegram/GroupCallManager.h
   td/telegram/GroupCallParticipant.h

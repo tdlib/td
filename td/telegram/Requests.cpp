@@ -4474,13 +4474,12 @@ void Requests::on_request(uint64 id, const td_api::toggleGroupCallEnabledStartNo
 void Requests::on_request(uint64 id, td_api::joinGroupCall &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_hash_);
-  CLEAN_INPUT_STRING(request.payload_);
   CREATE_TEXT_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, join_as_dialog_id,
                      get_message_sender_dialog_id(td_, request.participant_id_, true, true));
   td_->group_call_manager_->join_group_call(GroupCallId(request.group_call_id_), join_as_dialog_id,
-                                            request.audio_source_id_, std::move(request.payload_), request.is_muted_,
-                                            request.is_my_video_enabled_, request.invite_hash_, std::move(promise));
+                                            request.audio_source_id_, std::move(request.join_parameters_),
+                                            request.invite_hash_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::startGroupCallScreenSharing &request) {

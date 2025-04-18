@@ -4588,12 +4588,12 @@ class CliClient final : public Actor {
             sim_sources + ",\"semantics\":\"SIM\"},{\"sources\":" + fid_sources + ",\"semantics\":\"FID\"}]}";
       }
       if (op == "sgcss") {
-        send_request(td_api::make_object<td_api::startGroupCallScreenSharing>(group_call_id, group_call_source_ + 1,
-                                                                              std::move(payload)));
+        send_request(
+            td_api::make_object<td_api::startGroupCallScreenSharing>(group_call_id, group_call_source_ + 1, payload));
       } else {
-        send_request(td_api::make_object<td_api::joinGroupCall>(group_call_id, as_message_sender(participant_id),
-                                                                group_call_source_, std::move(payload), true, true,
-                                                                invite_hash));
+        send_request(td_api::make_object<td_api::joinGroupCall>(
+            group_call_id, as_message_sender(participant_id), group_call_source_,
+            td_api::make_object<td_api::groupCallJoinParameters>(payload, true, true), invite_hash));
       }
     } else if (op == "tgcssip") {
       GroupCallId group_call_id;
