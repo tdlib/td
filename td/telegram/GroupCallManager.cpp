@@ -226,19 +226,10 @@ class CreateGroupCallQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for CreateGroupCallQuery: " << to_string(ptr);
 
-    auto group_call_ids = td_->updates_manager_->get_update_new_group_call_ids(ptr.get());
-    if (group_call_ids.empty()) {
-      LOG(ERROR) << "Receive wrong CreateGroupCallQuery response " << to_string(ptr);
+    auto group_call_id = td_->updates_manager_->get_update_new_group_call_id(ptr.get());
+    if (!group_call_id.is_valid()) {
       return on_error(Status::Error(500, "Receive wrong response"));
     }
-    auto group_call_id = group_call_ids[0];
-    for (const auto &other_group_call_id : group_call_ids) {
-      if (group_call_id != other_group_call_id) {
-        LOG(ERROR) << "Receive wrong CreateGroupCallQuery response " << to_string(ptr);
-        return on_error(Status::Error(500, "Receive wrong response"));
-      }
-    }
-
     td_->updates_manager_->on_get_updates(
         std::move(ptr), PromiseCreator::lambda([promise = std::move(promise_), group_call_id](Unit) mutable {
           promise.set_value(std::move(group_call_id));

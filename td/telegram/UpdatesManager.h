@@ -115,7 +115,7 @@ class UpdatesManager final : public Actor {
   static vector<std::pair<const telegram_api::Message *, bool>> get_new_messages(
       const telegram_api::Updates *updates_ptr);
 
-  static vector<InputGroupCallId> get_update_new_group_call_ids(const telegram_api::Updates *updates_ptr);
+  static InputGroupCallId get_update_new_group_call_id(const telegram_api::Updates *updates_ptr);
 
   void process_updates_users_and_chats(telegram_api::Updates *updates_ptr);
 

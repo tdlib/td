@@ -1502,8 +1502,8 @@ vector<std::pair<const telegram_api::Message *, bool>> UpdatesManager::get_new_m
   return messages;
 }
 
-vector<InputGroupCallId> UpdatesManager::get_update_new_group_call_ids(const telegram_api::Updates *updates_ptr) {
-  vector<InputGroupCallId> input_group_call_ids;
+InputGroupCallId UpdatesManager::get_update_new_group_call_id(const telegram_api::Updates *updates_ptr) {
+  InputGroupCallId result;
   auto updates = get_updates(updates_ptr);
   if (updates != nullptr) {
     for (auto &update : *updates) {
@@ -1517,11 +1517,19 @@ vector<InputGroupCallId> UpdatesManager::get_update_new_group_call_ids(const tel
       }
 
       if (input_group_call_id.is_valid()) {
-        input_group_call_ids.push_back(input_group_call_id);
+        if (!result.is_valid()) {
+          result = input_group_call_id;
+        } else if (result != input_group_call_id) {
+          result = {};
+          break;
+        }
       }
     }
   }
-  return input_group_call_ids;
+  if (!result.is_valid()) {
+    LOG(ERROR) << "Receive wrong response " << to_string(*updates_ptr);
+  }
+  return result;
 }
 
 void UpdatesManager::process_updates_users_and_chats(telegram_api::Updates *updates_ptr) {
