@@ -54,6 +54,11 @@ class Result {
     return std::holds_alternative<T>(data_);
   }
 
+  // Check if the result is an error
+  bool is_error() const {
+    return std::holds_alternative<Error>(data_);
+  }
+
   T &value() {
     return std::get<T>(data_);
   }
