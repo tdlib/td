@@ -62,7 +62,7 @@ if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
   target_include_directories(test-tdutils PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
   target_link_libraries(test-tdutils PRIVATE tdutils)
   target_link_libraries(run_all_tests PRIVATE tdcore tdclient)
-  target_link_libraries(test-online PRIVATE tdcore tdclient tdutils tdactor)
+  target_link_libraries(test-online PRIVATE tdcore tdjson_private tdclient tdutils tdactor)
 
   if (CLANG)
 #    add_executable(fuzz_url fuzz_url.cpp)

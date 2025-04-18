@@ -491,7 +491,7 @@ class TestTd : public Actor {
  private:
   Options options_;
   ActorOwn<TestClient> alice_;
-  GetMe::Result alice_id_ = 0;
+  GetMe::Result alice_id_;
   std::string alice_cache_dir_;
   ActorOwn<TestClient> bob_;
 
