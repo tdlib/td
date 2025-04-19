@@ -270,9 +270,8 @@ void SecretChatActor::send_message_impl(tl_object_ptr<secret_api::DecryptedMessa
       create_encrypted_message(binlog_event->my_in_seq_no, binlog_event->my_out_seq_no, message).move_as_ok();
   binlog_event->need_notify_user = (flags & SendFlag::Push) == 0;
   binlog_event->is_external = (flags & SendFlag::External) != 0;
-  binlog_event->is_silent = (message->get_id() == secret_api::decryptedMessage::ID &&
-                             (static_cast<const secret_api::decryptedMessage *>(message.get())->flags_ &
-                              secret_api::decryptedMessage::SILENT_MASK) != 0);
+  binlog_event->is_silent = message->get_id() == secret_api::decryptedMessage::ID &&
+                            static_cast<const secret_api::decryptedMessage *>(message.get())->silent_;
   if (message->get_id() == secret_api::decryptedMessageService::ID) {
     binlog_event->is_rewritable = false;
     auto service_message = move_tl_object_as<secret_api::decryptedMessageService>(message);

@@ -445,7 +445,7 @@ tl_object_ptr<telegram_api::chatAdminRights> DialogParticipantStatus::get_chat_a
 tl_object_ptr<telegram_api::chatBannedRights> DialogParticipantStatus::get_chat_banned_rights() const {
   auto result = get_restricted_rights().get_chat_banned_rights();
   if (type_ == Type::Banned) {
-    result->flags_ |= telegram_api::chatBannedRights::VIEW_MESSAGES_MASK;
+    result->view_messages_ = true;
   }
   result->until_date_ = until_date_;
   return result;

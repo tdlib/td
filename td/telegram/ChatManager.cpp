@@ -8651,8 +8651,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
 
   DialogParticipantStatus status = [&] {
     if (channel.creator_) {
-      bool is_anonymous = channel.admin_rights_ != nullptr &&
-                          (channel.admin_rights_->flags_ & telegram_api::chatAdminRights::ANONYMOUS_MASK) != 0;
+      bool is_anonymous = channel.admin_rights_ != nullptr && channel.admin_rights_->anonymous_;
       return DialogParticipantStatus::Creator(!channel.left_, is_anonymous, string());
     } else if (channel.admin_rights_ != nullptr) {
       return DialogParticipantStatus(false, std::move(channel.admin_rights_), string(),

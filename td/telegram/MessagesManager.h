@@ -126,14 +126,15 @@ class MessagesManager final : public Actor {
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW = 1 << 1;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_REPLY_MARKUP = 1 << 2;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_ENTITIES = 1 << 3;
-  //  static constexpr int32 SEND_MESSAGE_FLAG_IS_POST = 1 << 4;
   static constexpr int32 SEND_MESSAGE_FLAG_DISABLE_NOTIFICATION = 1 << 5;
   static constexpr int32 SEND_MESSAGE_FLAG_FROM_BACKGROUND = 1 << 6;
   static constexpr int32 SEND_MESSAGE_FLAG_CLEAR_DRAFT = 1 << 7;
   static constexpr int32 SEND_MESSAGE_FLAG_WITH_MY_SCORE = 1 << 8;
   static constexpr int32 SEND_MESSAGE_FLAG_IS_FROM_THREAD = 1 << 9;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_SCHEDULE_DATE = 1 << 10;
-  static constexpr int32 SEND_MESSAGE_FLAG_HAS_MESSAGE = 1 << 11;
+  static constexpr int32 SEND_MESSAGE_FLAG_HIDE_VIA = 1 << 11;
+  static constexpr int32 SEND_MESSAGE_FLAG_DROP_AUTHOR = 1 << 11;
+  static constexpr int32 SEND_MESSAGE_FLAG_DROP_MEDIA_CAPTIONS = 1 << 12;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_SEND_AS = 1 << 13;
   static constexpr int32 SEND_MESSAGE_FLAG_NOFORWARDS = 1 << 14;
   static constexpr int32 SEND_MESSAGE_FLAG_UPDATE_STICKER_SETS_ORDER = 1 << 15;

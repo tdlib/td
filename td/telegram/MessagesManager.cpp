@@ -22112,7 +22112,7 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, Me
   int64 random_id = begin_send_message(dialog_id, m);
   auto flags = get_message_flags(m);
   if (!m->via_bot_user_id.is_valid() || m->hide_via_bot) {
-    flags |= telegram_api::messages_sendInlineBotResult::HIDE_VIA_MASK;
+    flags |= SEND_MESSAGE_FLAG_HIDE_VIA;
   }
   m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(
       flags, dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
@@ -23270,10 +23270,10 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
     flags |= SEND_MESSAGE_FLAG_ALLOW_PAID_STARS;
   }
   if (drop_author) {
-    flags |= telegram_api::messages_forwardMessages::DROP_AUTHOR_MASK;
+    flags |= SEND_MESSAGE_FLAG_DROP_AUTHOR;
   }
   if (drop_media_captions) {
-    flags |= telegram_api::messages_forwardMessages::DROP_MEDIA_CAPTIONS_MASK;
+    flags |= SEND_MESSAGE_FLAG_DROP_MEDIA_CAPTIONS;
   }
 
   vector<int64> random_ids =
