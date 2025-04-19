@@ -79,7 +79,7 @@ class GroupCallManager final : public Actor {
 
   void start_scheduled_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
-  void join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source,
+  void join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
                        td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters, const string &invite_hash,
                        Promise<string> &&promise);
 

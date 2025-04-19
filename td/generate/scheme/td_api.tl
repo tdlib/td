@@ -5303,10 +5303,11 @@ callStateError error:error = CallState;
 
 
 //@description Describes parameters used to join a group call
+//@audio_source_id Audio channel synchronization source identifier; received from tgcalls
 //@payload Group call join payload; received from tgcalls
 //@is_muted Pass true to join the call with muted microphone
 //@is_my_video_enabled Pass true if the user's video is enabled
-groupCallJoinParameters payload:string is_muted:Bool is_my_video_enabled:Bool = GroupCallJoinParameters;
+groupCallJoinParameters audio_source_id:int32 payload:string is_muted:Bool is_my_video_enabled:Bool = GroupCallJoinParameters;
 
 
 //@class GroupCallVideoQuality @description Describes the quality of a group call video
@@ -11233,10 +11234,9 @@ toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notifi
 //@description Joins an active group call. Returns join response payload for tgcalls
 //@group_call_id Group call identifier
 //@participant_id Identifier of a group call participant, which will be used to join the call; pass null to join as self; video chats only
-//@audio_source_id Caller audio channel synchronization source identifier; received from tgcalls
 //@join_parameters Parameters to join the call
 //@invite_hash If non-empty, invite hash to be used to join the group call without being muted by administrators
-joinGroupCall group_call_id:int32 participant_id:MessageSender audio_source_id:int32 join_parameters:groupCallJoinParameters invite_hash:string = Text;
+joinGroupCall group_call_id:int32 participant_id:MessageSender join_parameters:groupCallJoinParameters invite_hash:string = Text;
 
 //@description Starts screen sharing in a joined group call. Returns join response payload for tgcalls
 //@group_call_id Group call identifier

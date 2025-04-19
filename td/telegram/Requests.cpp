@@ -4478,8 +4478,8 @@ void Requests::on_request(uint64 id, td_api::joinGroupCall &request) {
   TRY_RESULT_PROMISE(promise, join_as_dialog_id,
                      get_message_sender_dialog_id(td_, request.participant_id_, true, true));
   td_->group_call_manager_->join_group_call(GroupCallId(request.group_call_id_), join_as_dialog_id,
-                                            request.audio_source_id_, std::move(request.join_parameters_),
-                                            request.invite_hash_, std::move(promise));
+                                            std::move(request.join_parameters_), request.invite_hash_,
+                                            std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::startGroupCallScreenSharing &request) {

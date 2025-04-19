@@ -15,6 +15,7 @@ namespace td {
 
 struct GroupCallJoinParameters {
   string payload_;
+  int32 audio_source_ = 0;
   bool is_muted_ = false;
   bool is_my_video_enabled_ = false;
 

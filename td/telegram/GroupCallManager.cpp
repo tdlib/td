@@ -2753,7 +2753,7 @@ void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Pro
   td_->create_handler<StartScheduledGroupCallQuery>(std::move(promise))->send(input_group_call_id);
 }
 
-void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id, int32 audio_source,
+void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
                                        td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters,
                                        const string &invite_hash, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
@@ -2808,7 +2808,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
   auto &request = pending_join_requests_[input_group_call_id];
   request = make_unique<PendingJoinRequest>();
   request->generation = generation;
-  request->audio_source = audio_source;
+  request->audio_source = parameters.audio_source_;
   request->as_dialog_id = as_dialog_id;
   request->promise = std::move(promise);
 
@@ -2834,7 +2834,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     participant.is_self = true;
     participant.dialog_id = as_dialog_id;
     participant.about = td_->dialog_manager_->get_dialog_about(participant.dialog_id);
-    participant.audio_source = audio_source;
+    participant.audio_source = parameters.audio_source_;
     participant.joined_date = G()->unix_time();
     // if can_self_unmute has never been inited from self-participant,
     // it contains reasonable default "!call.mute_new_participants || call.can_be_managed"
