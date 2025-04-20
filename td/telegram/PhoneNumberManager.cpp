@@ -314,15 +314,15 @@ void PhoneNumberManager::check_code(string code, Promise<Unit> &&promise) {
   switch (type_) {
     case Type::ChangePhone:
       td_->create_handler<ChangePhoneQuery>(std::move(query_promise))
-          ->send(send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str(), code);
+          ->send(send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash(), code);
       break;
     case Type::VerifyPhone:
       td_->create_handler<VerifyPhoneQuery>(std::move(query_promise))
-          ->send(send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str(), code);
+          ->send(send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash(), code);
       break;
     case Type::ConfirmPhone:
       td_->create_handler<ConfirmPhoneQuery>(std::move(query_promise))
-          ->send(send_code_helper_.phone_code_hash().str(), code);
+          ->send(send_code_helper_.get_phone_code_hash(), code);
       break;
     default:
       UNREACHABLE();

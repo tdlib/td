@@ -47,15 +47,17 @@ class SendCodeHelper {
 
   telegram_api::object_ptr<telegram_api::emailVerifyPurposeLoginSetup> get_email_verify_purpose_login_setup() const;
 
-  Slice phone_number() const {
+  const string &get_phone_number() const {
     return phone_number_;
   }
-  Slice phone_code_hash() const {
+
+  const string &get_phone_code_hash() const {
     return phone_code_hash_;
   }
 
   template <class StorerT>
   void store(StorerT &storer) const;
+
   template <class ParserT>
   void parse(ParserT &parser);
 

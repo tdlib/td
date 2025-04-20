@@ -439,7 +439,7 @@ void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
   if (state_ != State::WaitPhoneNumber) {
     return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationBotToken unexpected"));
   }
-  if (!send_code_helper_.phone_number().empty() || was_qr_code_request_) {
+  if (!send_code_helper_.get_phone_number().empty() || was_qr_code_request_) {
     return on_query_error(
         query_id, Status::Error(400, "Cannot set bot token after authentication began. You need to log out first"));
   }
@@ -563,7 +563,7 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
   code_ = string();
   email_code_ = {};
 
-  if (send_code_helper_.phone_number() != phone_number) {
+  if (send_code_helper_.get_phone_number() != phone_number) {
     send_code_helper_ = SendCodeHelper();
     terms_of_service_ = TermsOfService();
   }
@@ -581,7 +581,7 @@ void AuthManager::check_premium_purchase(uint64 query_id, string currency, int64
   on_new_query(query_id);
 
   auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentAuthCode>(
-      0, false, send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str(), currency, amount);
+      0, false, send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash(), currency, amount);
   start_net_query(NetQueryType::CheckPremiumPurchase,
                   G()->net_query_creator().create_unauth(telegram_api::payments_canPurchaseStore(std::move(purpose))));
 }
@@ -596,8 +596,7 @@ void AuthManager::set_premium_purchase_transaction(uint64 query_id,
     return on_query_error(query_id, Status::Error(400, "Transaction must be non-empty"));
   }
   auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentAuthCode>(
-      0, is_restore, send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str(), currency,
-      amount);
+      0, is_restore, send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash(), currency, amount);
   switch (transaction->get_id()) {
     case td_api::storeTransactionAppStore::ID: {
       auto type = td_api::move_object_as<td_api::storeTransactionAppStore>(transaction);
@@ -698,7 +697,7 @@ void AuthManager::send_auth_sign_in_query() {
       is_email ? telegram_api::auth_signIn::EMAIL_VERIFICATION_MASK : telegram_api::auth_signIn::PHONE_CODE_MASK;
   start_net_query(NetQueryType::SignIn,
                   G()->net_query_creator().create_unauth(telegram_api::auth_signIn(
-                      flags, send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str(), code_,
+                      flags, send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash(), code_,
                       is_email ? email_code_.get_input_email_verification() : nullptr)));
 }
 
@@ -732,7 +731,7 @@ void AuthManager::reset_email_address(uint64 query_id) {
   on_new_query(query_id);
   start_net_query(NetQueryType::ResetEmailAddress,
                   G()->net_query_creator().create_unauth(telegram_api::auth_resetLoginEmail(
-                      send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str())));
+                      send_code_helper_.get_phone_number(), send_code_helper_.get_phone_code_hash())));
 }
 
 void AuthManager::check_code(uint64 query_id, string code) {
@@ -760,8 +759,8 @@ void AuthManager::register_user(uint64 query_id, string first_name, string last_
 
   last_name = clean_name(last_name, MAX_NAME_LENGTH);
   start_net_query(NetQueryType::SignUp, G()->net_query_creator().create_unauth(telegram_api::auth_signUp(
-                                            0, disable_notification, send_code_helper_.phone_number().str(),
-                                            send_code_helper_.phone_code_hash().str(), first_name, last_name)));
+                                            0, disable_notification, send_code_helper_.get_phone_number(),
+                                            send_code_helper_.get_phone_code_hash(), first_name, last_name)));
 }
 
 void AuthManager::check_password(uint64 query_id, string password) {
