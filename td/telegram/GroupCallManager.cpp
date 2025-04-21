@@ -3238,13 +3238,17 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
       if (block_it != being_joined_call_blocks_.end()) {
         auto &blocks = block_it->second;
         if (blocks.is_inited_[0] && blocks.is_inited_[1]) {
+          CHECK(!blocks.blocks_[0].empty());
           auto my_user_id = td_->user_manager_->get_my_id();
-          auto r_call_id = tde2e_api::call_create(my_user_id.get(), group_call->private_key_id, blocks.last_block_);
+          auto r_call_id = tde2e_api::call_create(my_user_id.get(), group_call->private_key_id, blocks.blocks_[0][0]);
           if (r_call_id.is_error()) {
             LOG(ERROR) << "Failed to create call";
           } else {
             group_call->call_id = r_call_id.value();
-            for (const auto &block : blocks.subchain_blocks_) {
+            for (size_t i = 1; i < blocks.blocks_[0].size(); i++) {
+              tde2e_api::call_apply_block(group_call->call_id, blocks.blocks_[0][i]);
+            }
+            for (const auto &block : blocks.blocks_[1]) {
               tde2e_api::call_receive_inbound_message(group_call->call_id, block);
             }
             group_call->call_verification_state =
@@ -4541,8 +4545,8 @@ void GroupCallManager::on_update_group_call_chain_blocks(InputGroupCallId input_
     return;
   }
   if (pending_join_requests_.count(input_group_call_id) != 0 && !pending_group_call_join_params_.empty()) {
-    if (sub_chain_id == 0 && blocks.size() > 1u) {
-      LOG(ERROR) << "Receive multiple join blocks for " << sub_chain_id << " of " << input_group_call_id;
+    if (sub_chain_id == 0 && blocks.empty()) {
+      LOG(ERROR) << "Receive no join blocks for " << sub_chain_id << " of " << input_group_call_id;
       return;
     }
     auto &data = being_joined_call_blocks_[input_group_call_id];
@@ -4550,13 +4554,7 @@ void GroupCallManager::on_update_group_call_chain_blocks(InputGroupCallId input_
       LOG(ERROR) << "Receive duplicate blocks for sub_chain_id = " << sub_chain_id << " of " << input_group_call_id;
     }
     data.is_inited_[sub_chain_id] = true;
-    if (sub_chain_id == 0) {
-      if (!blocks.empty()) {
-        data.last_block_ = std::move(blocks[0]);
-      }
-    } else {
-      data.subchain_blocks_ = std::move(blocks);
-    }
+    data.blocks_[sub_chain_id] = std::move(blocks);
     data.next_offset_[sub_chain_id] = next_offset;
     return;
   }

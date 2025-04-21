@@ -452,8 +452,7 @@ class GroupCallManager final : public Actor {
 
   struct BeingJoinedCallBlocks {
     bool is_inited_[2];
-    string last_block_;
-    vector<string> subchain_blocks_;
+    vector<string> blocks_[2];
     int32 next_offset_[2];
   };
   FlatHashMap<InputGroupCallId, BeingJoinedCallBlocks, InputGroupCallIdHash> being_joined_call_blocks_;
