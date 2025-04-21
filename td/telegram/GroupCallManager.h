@@ -430,6 +430,7 @@ class GroupCallManager final : public Actor {
 
   struct BeingCreatedCall {
     bool is_join_ = false;
+    tde2e_api::PublicKeyId public_key_id_;
     tde2e_api::PrivateKeyId private_key_id_;
   };
   FlatHashMap<int32, BeingCreatedCall> being_created_group_calls_;

@@ -261,7 +261,7 @@ class CreateConferenceCallQuery final : public Td::ResultHandler {
   }
 
   void send(int32 random_id, bool is_join, const GroupCallJoinParameters &join_parameters,
-            tde2e_api::PrivateKeyId private_key_id) {
+            tde2e_api::PrivateKeyId private_key_id, tde2e_api::PublicKeyId public_key_id) {
     UInt256 public_key{};
     BufferSlice block;
     if (is_join) {
@@ -271,7 +271,7 @@ class CreateConferenceCallQuery final : public Td::ResultHandler {
 
       tde2e_api::CallParticipant participant;
       participant.user_id = td_->user_manager_->get_my_id().get();
-      participant.public_key_id = tde2e_move_as_ok(tde2e_api::key_from_public_key(public_key_string));
+      participant.public_key_id = public_key_id;
       participant.permissions = 3;
 
       tde2e_api::CallState state;
@@ -1445,6 +1445,9 @@ void GroupCallManager::create_group_call(td_api::object_ptr<td_api::groupCallJoi
       return promise.set_error(Status::Error(400, "Failed to generate encryption key"));
     }
     data.private_key_id_ = tde2e_move_as_ok(r_private_key_id);
+
+    auto public_key_string = tde2e_move_as_ok(tde2e_api::key_to_public_key(data.private_key_id_));
+    data.public_key_id_ = tde2e_move_as_ok(tde2e_api::key_from_public_key(public_key_string));
   }
 
   auto random_id = 0;
@@ -1463,7 +1466,7 @@ void GroupCallManager::create_group_call(td_api::object_ptr<td_api::groupCallJoi
                      std::move(promise));
       });
   td_->create_handler<CreateConferenceCallQuery>(std::move(query_promise))
-      ->send(random_id, data.is_join_, parameters, data.private_key_id_);
+      ->send(random_id, data.is_join_, parameters, data.private_key_id_, data.public_key_id_);
 }
 
 void GroupCallManager::on_create_group_call(int32 random_id, telegram_api::object_ptr<telegram_api::Updates> &&updates,
