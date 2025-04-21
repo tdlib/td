@@ -94,6 +94,8 @@ class Requests {
 
   Promise<string> create_text_request_promise(uint64 id);
 
+  Promise<string> create_data_request_promise(uint64 id);
+
   Promise<string> create_http_url_request_promise(uint64 id);
 
   template <class T>
@@ -780,6 +782,8 @@ class Requests {
   void on_request(uint64 id, const td_api::getGroupCallStreams &request);
 
   void on_request(uint64 id, td_api::getGroupCallStreamSegment &request);
+
+  void on_request(uint64 id, td_api::encryptGroupCallData &request);
 
   void on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupChat &request);
 

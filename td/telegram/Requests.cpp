@@ -1915,6 +1915,16 @@ Promise<string> Requests::create_text_request_promise(uint64 id) {
   });
 }
 
+Promise<string> Requests::create_data_request_promise(uint64 id) {
+  return PromiseCreator::lambda([actor_id = td_actor_, id](Result<string> result) mutable {
+    if (result.is_error()) {
+      send_closure(actor_id, &Td::send_error, id, result.move_as_error());
+    } else {
+      send_closure(actor_id, &Td::send_result, id, td_api::make_object<td_api::data>(result.move_as_ok()));
+    }
+  });
+}
+
 Promise<string> Requests::create_http_url_request_promise(uint64 id) {
   return PromiseCreator::lambda([actor_id = td_actor_, id](Result<string> result) mutable {
     if (result.is_error()) {
@@ -1952,13 +1962,21 @@ Promise<string> Requests::create_http_url_request_promise(uint64 id) {
   *td_->request_actors_.get(slot_id) = create_actor<name>(#name, td_->actor_shared(td_, slot_id), id, __VA_ARGS__);
 
 #define CREATE_REQUEST_PROMISE() auto promise = create_request_promise<std::decay_t<decltype(request)>::ReturnType>(id)
+
 #define CREATE_OK_REQUEST_PROMISE()                                                                                    \
   static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::ok>>::value, ""); \
   auto promise = create_ok_request_promise(id)
+
 #define CREATE_TEXT_REQUEST_PROMISE()                                                                               \
   static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::text>>::value, \
                 "");                                                                                                \
   auto promise = create_text_request_promise(id)
+
+#define CREATE_DATA_REQUEST_PROMISE()                                                                               \
+  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::data>>::value, \
+                "");                                                                                                \
+  auto promise = create_data_request_promise(id)
+
 #define CREATE_HTTP_URL_REQUEST_PROMISE()                                                                              \
   static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::httpUrl>>::value, \
                 "");                                                                                                   \
@@ -4642,6 +4660,14 @@ void Requests::on_request(uint64 id, td_api::getGroupCallStreamSegment &request)
   td_->group_call_manager_->get_group_call_stream_segment(GroupCallId(request.group_call_id_), request.time_offset_,
                                                           request.scale_, request.channel_id_,
                                                           std::move(request.video_quality_), std::move(query_promise));
+}
+
+void Requests::on_request(uint64 id, td_api::encryptGroupCallData &request) {
+  CHECK_IS_USER();
+  CREATE_DATA_REQUEST_PROMISE();
+  td_->group_call_manager_->encrypt_group_call_data(GroupCallId(request.group_call_id_),
+                                                    std::move(request.data_channel_), std::move(request.data_),
+                                                    request.unencrypted_prefix_size_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupChat &request) {

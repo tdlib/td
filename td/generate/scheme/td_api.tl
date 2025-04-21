@@ -5399,6 +5399,15 @@ groupCallParticipant participant_id:MessageSender audio_source_id:int32 screen_s
 createdGroupCall group_call_id:int32 join_payload:string = CreatedGroupCall;
 
 
+//@class GroupCallDataChannel @description Describes data channel for a group call
+
+//@description The main data channel for audio and video data
+groupCallDataChannelMain = GroupCallDataChannel;
+
+//@description The data channel for screen sharing
+groupCallDataChannelScreenSharing = GroupCallDataChannel;
+
+
 //@class CallProblem @description Describes the exact type of problem with a call
 
 //@description The user heard their own voice
@@ -7857,6 +7866,9 @@ count count:int32 = Count;
 
 //@description Contains some text @text Text
 text text:string = Text;
+
+//@description Contains some binary data @data Data
+data data:bytes = Data;
 
 //@description Contains a value representing a number of seconds @seconds Number of seconds
 seconds seconds:double = Seconds;
@@ -11336,6 +11348,13 @@ getGroupCallStreams group_call_id:int32 = GroupCallStreams;
 //@channel_id Identifier of an audio/video channel to get as received from tgcalls
 //@video_quality Video quality as received from tgcalls; pass null to get the worst available quality
 getGroupCallStreamSegment group_call_id:int32 time_offset:int53 scale:int32 channel_id:int32 video_quality:GroupCallVideoQuality = FilePart;
+
+//@description Encrypts group call data before sending them over network using tgcalls
+//@group_call_id Group call identifier. The call must not be a voice chat
+//@data_channel Data channel for which data is encrypted
+//@data Data to encrypt
+//@unencrypted_prefix_size Size of data prefix that must be kept unencrypted
+encryptGroupCallData group_call_id:int32 data_channel:GroupCallDataChannel data:bytes unencrypted_prefix_size:int32 = Data;
 
 
 //@description Changes the block list of a message sender. Currently, only users and supergroup chats can be blocked

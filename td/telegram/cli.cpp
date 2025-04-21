@@ -4575,6 +4575,14 @@ class CliClient final : public Actor {
       get_args(args, group_call_id, channel_id);
       send_request(td_api::make_object<td_api::getGroupCallStreamSegment>(
           group_call_id, (std::time(nullptr) - 5) * 1000, 0, channel_id, nullptr));
+    } else if (op == "egcd" || op == "egcds") {
+      GroupCallId group_call_id;
+      int32 unecrypted_prefix_size;
+      string data;
+      get_args(args, group_call_id, unecrypted_prefix_size, data);
+      send_request(td_api::make_object<td_api::encryptGroupCallData>(
+          group_call_id, op == "egcds" ? td_api::make_object<td_api::groupCallDataChannelScreenSharing>() : nullptr,
+          data, unecrypted_prefix_size));
     } else if (op == "ssgc") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);
