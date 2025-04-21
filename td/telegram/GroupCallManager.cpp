@@ -4568,27 +4568,21 @@ void GroupCallManager::on_update_group_call_chain_blocks(InputGroupCallId input_
     LOG(ERROR) << "Receive a block in " << sub_chain_id << " of " << input_group_call_id;
     return;
   }
-  if (sub_chain_id == 0) {
-    if (blocks.size() == 1u && next_offset == group_call->block_next_offset[0] + 1) {
-      auto r_call_state = tde2e_api::call_apply_block(group_call->call_id, blocks[0]);
-      if (r_call_state.is_error()) {
-        LOG(INFO) << "Failed to apply block";
-        // TODO poll blocks
-      } else {
-        group_call->block_next_offset[0] = next_offset;
+  if (next_offset == group_call->block_next_offset[sub_chain_id] + static_cast<int32>(blocks.size())) {
+    if (sub_chain_id == 0) {
+      for (const auto &block : blocks) {
+        tde2e_api::call_apply_block(group_call->call_id, block);
       }
+      // TODO check for errors and leave call on error
     } else {
-      // TODO poll blocks
-    }
-  } else {
-    if (next_offset == group_call->block_next_offset[1] + static_cast<int32>(blocks.size())) {
       for (const auto &block : blocks) {
         tde2e_api::call_receive_inbound_message(group_call->call_id, block);
       }
-      group_call->block_next_offset[1] = next_offset;
-    } else {
-      // TODO poll blocks
+      // TODO get verification state
     }
+    group_call->block_next_offset[sub_chain_id] = next_offset;
+  } else {
+    // TODO poll blocks
   }
 }
 
