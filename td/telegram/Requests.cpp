@@ -4670,6 +4670,16 @@ void Requests::on_request(uint64 id, td_api::encryptGroupCallData &request) {
                                                     request.unencrypted_prefix_size_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::decryptGroupCallData &request) {
+  CHECK_IS_USER();
+  CREATE_DATA_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, participant_dialog_id,
+                     get_message_sender_dialog_id(td_, request.participant_id_, false, false));
+  td_->group_call_manager_->decrypt_group_call_data(GroupCallId(request.group_call_id_), participant_dialog_id,
+                                                    std::move(request.data_channel_), std::move(request.data_),
+                                                    std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupChat &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

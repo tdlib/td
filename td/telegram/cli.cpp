@@ -4583,6 +4583,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::encryptGroupCallData>(
           group_call_id, op == "egcds" ? td_api::make_object<td_api::groupCallDataChannelScreenSharing>() : nullptr,
           data, unecrypted_prefix_size));
+    } else if (op == "dgcd" || op == "dgcds") {
+      GroupCallId group_call_id;
+      string participant_id;
+      string data;
+      get_args(args, group_call_id, participant_id, data);
+      send_request(td_api::make_object<td_api::decryptGroupCallData>(
+          group_call_id, as_message_sender(participant_id),
+          op == "dgcds" ? td_api::make_object<td_api::groupCallDataChannelScreenSharing>() : nullptr, data));
     } else if (op == "ssgc") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);

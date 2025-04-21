@@ -2987,6 +2987,48 @@ void GroupCallManager::encrypt_group_call_data(GroupCallId group_call_id,
   promise.set_value(std::move(r_data.value()));
 }
 
+void GroupCallManager::decrypt_group_call_data(GroupCallId group_call_id, DialogId participant_dialog_id,
+                                               td_api::object_ptr<td_api::GroupCallDataChannel> &&data_channel,
+                                               string &&data, Promise<string> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+  if (!group_call->is_inited || !group_call->is_active) {
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+  if (!group_call->is_conference || group_call->call_id == tde2e_api::CallId()) {
+    return promise.set_error(Status::Error(400, "Group call doesn't support decryption"));
+  }
+  if (!group_call->is_joined || group_call->is_being_left) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(PromiseCreator::lambda(
+          [actor_id = actor_id(this), group_call_id, participant_dialog_id, data_channel = std::move(data_channel),
+           data = std::move(data), promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+            } else {
+              send_closure(actor_id, &GroupCallManager::decrypt_group_call_data, group_call_id, participant_dialog_id,
+                           std::move(data_channel), std::move(data), std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+
+  tde2e_api::CallChannelId channel_id{};
+  if (data_channel != nullptr && data_channel->get_id() == td_api::groupCallDataChannelScreenSharing::ID) {
+    channel_id = 1;
+  }
+  auto r_data = tde2e_api::call_decrypt(group_call->call_id, participant_dialog_id.get(), channel_id, data);
+  if (r_data.is_error()) {
+    return promise.set_error(Status::Error(400, r_data.error().message));
+  }
+  promise.set_value(std::move(r_data.value()));
+}
+
 void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id, int32 audio_source, string &&payload,
                                                        Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());

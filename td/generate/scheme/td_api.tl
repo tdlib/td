@@ -11356,6 +11356,13 @@ getGroupCallStreamSegment group_call_id:int32 time_offset:int53 scale:int32 chan
 //@unencrypted_prefix_size Size of data prefix that must be kept unencrypted
 encryptGroupCallData group_call_id:int32 data_channel:GroupCallDataChannel data:bytes unencrypted_prefix_size:int32 = Data;
 
+//@description Decrypts group call data received by tgcalls
+//@group_call_id Group call identifier. The call must not be a voice chat
+//@participant_id Identifier of the group call participant, which sent the data
+//@data_channel Data channel for which data was encrypted
+//@data Data to decrypt
+decryptGroupCallData group_call_id:int32 participant_id:MessageSender data_channel:GroupCallDataChannel data:bytes = Data;
+
 
 //@description Changes the block list of a message sender. Currently, only users and supergroup chats can be blocked
 //@sender_id Identifier of a message sender to block/unblock

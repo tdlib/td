@@ -785,6 +785,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::encryptGroupCallData &request);
 
+  void on_request(uint64 id, td_api::decryptGroupCallData &request);
+
   void on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupChat &request);
 
   void on_request(uint64 id, const td_api::getChatListsToAddChat &request);
