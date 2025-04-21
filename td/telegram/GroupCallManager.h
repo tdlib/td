@@ -135,6 +135,9 @@ class GroupCallManager final : public Actor {
 
   void on_update_group_call_connection(string &&connection_params);
 
+  void on_update_group_call_chain_blocks(InputGroupCallId input_group_call_id, int32 sub_chain_id,
+                                         vector<string> &&blocks, int32 next_offset);
+
   void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id);
 
   void on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id, bool is_muted_by_admin, int32 date,
@@ -438,6 +441,14 @@ class GroupCallManager final : public Actor {
   };
   FlatHashMap<int32, BeingCreatedCall> being_created_group_calls_;
   FlatHashMap<InputGroupCallId, string, InputGroupCallIdHash> group_call_join_payloads_;
+
+  struct BeingJoinedCallBlocks {
+    bool is_inited_[2];
+    string last_block_;
+    vector<string> subchain_blocks_;
+    int32 next_offset_[2];
+  };
+  FlatHashMap<InputGroupCallId, BeingJoinedCallBlocks, InputGroupCallIdHash> being_joined_call_blocks_;
 
   string pending_group_call_join_params_;
 

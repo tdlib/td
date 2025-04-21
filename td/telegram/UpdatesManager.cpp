@@ -2788,6 +2788,12 @@ void UpdatesManager::process_updates(vector<tl_object_ptr<telegram_api::Update>>
         continue;
       }
 
+      // updateGroupCallChainBlocks must be processed before updateGroupCall
+      if (constructor_id == telegram_api::updateGroupCallChainBlocks::ID) {
+        on_update(move_tl_object_as<telegram_api::updateGroupCallChainBlocks>(update), get_promise());
+        continue;
+      }
+
       // updatePtsChanged forces get difference, so process it last
       if (constructor_id == telegram_api::updatePtsChanged::ID) {
         update_pts_changed = move_tl_object_as<telegram_api::updatePtsChanged>(update);
@@ -4406,6 +4412,15 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallConnec
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallChainBlocks> update,
+                               Promise<Unit> &&promise) {
+  send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call_chain_blocks,
+               InputGroupCallId(update->call_), update->sub_chain_id_,
+               transform(update->blocks_, [](const BufferSlice &block) { return block.as_slice().str(); }),
+               update->next_offset_);
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCall> update, Promise<Unit> &&promise) {
   DialogId dialog_id(ChatId(update->chat_id_));
   if (dialog_id != DialogId() && !td_->dialog_manager_->have_dialog_force(dialog_id, "updateGroupCall")) {
@@ -4687,11 +4702,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueSta
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallChainBlocks> update,
-                               Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

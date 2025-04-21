@@ -963,6 +963,9 @@ struct GroupCallManager::GroupCall {
   DialogId as_dialog_id;
   tde2e_api::PrivateKeyId private_key_id{};
   tde2e_api::PublicKeyId public_key_id{};
+  tde2e_api::CallId call_id{};
+  tde2e_api::CallVerificationState call_verification_state{};
+  int32 block_next_offset[2] = {};
 
   int32 version = -1;
   int32 leave_version = -1;
@@ -3137,8 +3140,43 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
   group_call->joined_date = G()->unix_time();
   group_call->audio_source = it->second->audio_source;
   group_call->as_dialog_id = it->second->as_dialog_id;
-  group_call->private_key_id = it->second->private_key_id;
-  group_call->public_key_id = it->second->public_key_id;
+  if (group_call->is_conference) {
+    if (it->second->private_key_id == tde2e_api::PrivateKeyId()) {
+      LOG(ERROR) << "Have no private key in " << input_group_call_id;
+    } else {
+      group_call->private_key_id = it->second->private_key_id;
+      group_call->public_key_id = it->second->public_key_id;
+
+      auto block_it = being_joined_call_blocks_.find(input_group_call_id);
+      if (block_it != being_joined_call_blocks_.end()) {
+        auto &blocks = block_it->second;
+        if (blocks.is_inited_[0] && blocks.is_inited_[1]) {
+          auto my_user_id = td_->user_manager_->get_my_id();
+          auto r_call_id = tde2e_api::call_create(my_user_id.get(), group_call->private_key_id, blocks.last_block_);
+          if (r_call_id.is_error()) {
+            LOG(ERROR) << "Failed to create call";
+          } else {
+            group_call->call_id = r_call_id.value();
+            for (const auto &block : blocks.subchain_blocks_) {
+              tde2e_api::call_receive_inbound_message(group_call->call_id, block);
+            }
+            group_call->call_verification_state =
+                tde2e_move_as_ok(tde2e_api::call_get_verification_state(group_call->call_id));
+            group_call->block_next_offset[0] = blocks.next_offset_[0];
+            group_call->block_next_offset[1] = blocks.next_offset_[1];
+          }
+        } else {
+          LOG(ERROR) << "Have no blocks for a subchain in " << input_group_call_id;
+        }
+        being_joined_call_blocks_.erase(block_it);
+      } else {
+        LOG(ERROR) << "Have no blocks in " << input_group_call_id;
+      }
+    }
+  } else if (it->second->private_key_id != tde2e_api::PrivateKeyId()) {
+    LOG(ERROR) << "Have private key in " << input_group_call_id;
+  }
+
   it->second->promise.set_value(std::move(json_response));
   if (group_call->audio_source != 0) {
     check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
@@ -4395,7 +4433,44 @@ void GroupCallManager::on_update_group_call_connection(string &&connection_param
   if (!pending_group_call_join_params_.empty()) {
     LOG(ERROR) << "Receive duplicate connection params";
   }
+  if (connection_params.empty()) {
+    LOG(ERROR) << "Receive empty connection params";
+  }
   pending_group_call_join_params_ = std::move(connection_params);
+}
+
+void GroupCallManager::on_update_group_call_chain_blocks(InputGroupCallId input_group_call_id, int32 sub_chain_id,
+                                                         vector<string> &&blocks, int32 next_offset) {
+  if (sub_chain_id != 0 && sub_chain_id != 1) {
+    LOG(ERROR) << "Receive blocks in subchain " << sub_chain_id << " of " << input_group_call_id;
+    return;
+  }
+  if (next_offset < 0) {
+    LOG(ERROR) << "Receive next offset = " << next_offset;
+    return;
+  }
+  if (pending_join_requests_.count(input_group_call_id) != 0 && !pending_group_call_join_params_.empty()) {
+    if (sub_chain_id == 0 && blocks.size() > 1u) {
+      LOG(ERROR) << "Receive multiple join blocks for " << sub_chain_id << " of " << input_group_call_id;
+      return;
+    }
+    auto &data = being_joined_call_blocks_[input_group_call_id];
+    if (data.is_inited_[sub_chain_id]) {
+      LOG(ERROR) << "Receive duplicate blocks for sub_chain_id = " << sub_chain_id << " of " << input_group_call_id;
+    }
+    data.is_inited_[sub_chain_id] = true;
+    if (sub_chain_id == 0) {
+      if (!blocks.empty()) {
+        data.last_block_ = std::move(blocks[0]);
+      }
+    } else {
+      data.subchain_blocks_ = std::move(blocks);
+    }
+    data.next_offset_[sub_chain_id] = next_offset;
+    return;
+  }
+
+  // TODO apply blocks to the call
 }
 
 void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id) {
@@ -4711,6 +4786,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   }
   if (!join_params.empty()) {
     need_update |= on_join_group_call_response(input_group_call_id, std::move(join_params));
+  } else if (being_joined_call_blocks_.erase(input_group_call_id) != 0) {
+    LOG(ERROR) << "Ignore blocks for " << input_group_call_id;
   }
   update_group_call_dialog(group_call, "update_group_call", false);  // must be after join response is processed
   need_update |= try_clear_group_call_participants(input_group_call_id);
