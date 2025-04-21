@@ -180,6 +180,10 @@ class TdExample:
                     phone_number = input('Please enter your phone number (international format): ')
                     self.send({'@type': 'setAuthenticationPhoneNumber', 'phone_number': phone_number})
 
+                elif auth_type == 'authorizationStateWaitPremiumPurchase':
+                    print("Telegram Premium subscription is required.")
+                    return
+
                 elif auth_type == 'authorizationStateWaitEmailAddress':
                     email_address = input('Please enter your email address: ')
                     self.send({'@type': 'setAuthenticationEmailAddress', 'email_address': email_address})

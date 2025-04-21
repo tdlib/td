@@ -262,6 +262,9 @@ class TdExample {
                                     td_api::make_object<td_api::setAuthenticationPhoneNumber>(phone_number, nullptr),
                                     create_authentication_query_handler());
                               },
+                              [this](td_api::authorizationStateWaitPremiumPurchase &) {
+                                std::cout << "Telegram Premium subscription is required" << std::endl;
+                              },
                               [this](td_api::authorizationStateWaitEmailAddress &) {
                                 std::cout << "Enter email address: " << std::flush;
                                 std::string email_address;

@@ -122,6 +122,9 @@ func updateAuthorizationState(authorizationState: Dictionary<String, Any>) {
             let phone_number = myReadLine()
             client.queryAsync(query:["@type":"setAuthenticationPhoneNumber", "phone_number":phone_number], f:checkAuthenticationError)
 
+        case "authorizationStateWaitPremiumPurchase":
+            print("Telegram Premium subscription is required")
+
         case "authorizationStateWaitEmailAddress":
             print("Enter your email address: ")
             let email_address = myReadLine()
