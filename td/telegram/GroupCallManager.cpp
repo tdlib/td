@@ -2989,6 +2989,7 @@ void GroupCallManager::encrypt_group_call_data(GroupCallId group_call_id,
 
 void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id, int32 audio_source, string &&payload,
                                                        Promise<string> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
@@ -3032,6 +3033,7 @@ void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id
 }
 
 void GroupCallManager::end_group_call_screen_sharing(GroupCallId group_call_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
@@ -4043,6 +4045,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
 
 void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_call_id, DialogId dialog_id,
                                                               bool is_muted, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
@@ -4140,6 +4143,7 @@ void GroupCallManager::on_toggle_group_call_participant_is_muted(InputGroupCallI
 
 void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group_call_id, DialogId dialog_id,
                                                                int32 volume_level, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
   if (volume_level < GroupCallParticipant::MIN_VOLUME_LEVEL || volume_level > GroupCallParticipant::MAX_VOLUME_LEVEL) {
     return promise.set_error(Status::Error(400, "Wrong volume level specified"));
@@ -4236,6 +4240,7 @@ void GroupCallManager::on_set_group_call_participant_volume_level(InputGroupCall
 
 void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId group_call_id, DialogId dialog_id,
                                                                     bool is_hand_raised, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
@@ -4364,6 +4369,7 @@ void GroupCallManager::load_group_call_participants(GroupCallId group_call_id, i
 }
 
 void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
