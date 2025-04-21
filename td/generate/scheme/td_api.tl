@@ -5395,6 +5395,9 @@ groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> en
 //@order User's order in the group call participant list. Orders must be compared lexicographically. The bigger is order, the higher is user in the list. If order is empty, the user must be removed from the participant list
 groupCallParticipant participant_id:MessageSender audio_source_id:int32 screen_sharing_audio_source_id:int32 video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
 
+//@description Describes a just created group call @group_call_id Identifier of the group call @join_payload Join response payload for tgcalls; empty if the call isn't joined
+createdGroupCall group_call_id:int32 join_payload:string = CreatedGroupCall;
+
 
 //@class CallProblem @description Describes the exact type of problem with a call
 
@@ -11212,7 +11215,7 @@ setVideoChatDefaultParticipant chat_id:int53 default_participant_id:MessageSende
 createVideoChat chat_id:int53 title:string start_date:int32 is_rtmp_stream:Bool = GroupCallId;
 
 //@description Creates a new group call @join_parameters Parameters to join the call; pass null to only create call link without joining the call
-createGroupCall join_parameters:groupCallJoinParameters = GroupCall;
+createGroupCall join_parameters:groupCallJoinParameters = CreatedGroupCall;
 
 //@description Returns RTMP URL for streaming to the chat; requires can_manage_video_chats administrator right @chat_id Chat identifier
 getVideoChatRtmpUrl chat_id:int53 = RtmpUrl;
