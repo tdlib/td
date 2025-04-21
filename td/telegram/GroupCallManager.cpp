@@ -961,6 +961,8 @@ struct GroupCallManager::GroupCall {
   int32 unmuted_video_limit = 0;
   DcId stream_dc_id;
   DialogId as_dialog_id;
+  tde2e_api::PrivateKeyId private_key_id{};
+  tde2e_api::PublicKeyId public_key_id{};
 
   int32 version = -1;
   int32 leave_version = -1;
@@ -1020,6 +1022,10 @@ struct GroupCallManager::PendingJoinRequest {
   uint64 generation = 0;
   int32 audio_source = 0;
   DialogId as_dialog_id;
+
+  tde2e_api::PrivateKeyId private_key_id{};
+  tde2e_api::PublicKeyId public_key_id{};
+
   Promise<string> promise;
 };
 
@@ -1448,6 +1454,7 @@ void GroupCallManager::create_group_call(td_api::object_ptr<td_api::groupCallJoi
 
     auto public_key_string = tde2e_move_as_ok(tde2e_api::key_to_public_key(data.private_key_id_));
     data.public_key_id_ = tde2e_move_as_ok(tde2e_api::key_from_public_key(public_key_string));
+    data.audio_source_ = parameters.audio_source_;
   }
 
   auto random_id = 0;
@@ -1482,6 +1489,9 @@ void GroupCallManager::on_create_group_call(int32 random_id,
       r_updates = Status::Error(500, "Receive wrong response");
     }
   }
+  if (data.is_join_ && pending_join_requests_.count(input_group_call_id) != 0) {
+    r_updates = Status::Error(500, "Join just created call");
+  }
   if (r_updates.is_error()) {
     if (data.is_join_) {
       auto r_ok = tde2e_api::key_destroy(data.private_key_id_);
@@ -1492,17 +1502,62 @@ void GroupCallManager::on_create_group_call(int32 random_id,
     return promise.set_error(r_updates.move_as_error());
   }
 
-  td_->updates_manager_->on_get_updates(r_updates.move_as_ok(),
-                                        PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
-                                                                input_group_call_id](Unit) mutable {
-                                          send_closure(actor_id, &GroupCallManager::on_create_group_call_finished,
-                                                       input_group_call_id, std::move(promise));
-                                        }));
+  if (data.is_join_) {
+    auto &request = pending_join_requests_[input_group_call_id];
+    if (request != nullptr) {
+      r_updates = Status::Error(500, "Join just created call");
+    }
+    request = make_unique<PendingJoinRequest>();
+    request->generation = 1;
+    request->audio_source = data.audio_source_;
+    request->private_key_id = data.private_key_id_;
+    request->public_key_id = data.public_key_id_;
+    request->promise =
+        PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id](Result<string> r_payload) mutable {
+          if (r_payload.is_ok()) {
+            send_closure(actor_id, &GroupCallManager::on_get_group_call_join_payload, input_group_call_id,
+                         r_payload.move_as_ok());
+          }
+        });
+  }
+
+  td_->updates_manager_->on_get_updates(
+      r_updates.move_as_ok(), PromiseCreator::lambda([actor_id = actor_id(this), is_join = data.is_join_,
+                                                      promise = std::move(promise), input_group_call_id](Unit) mutable {
+        send_closure(actor_id, &GroupCallManager::on_create_group_call_finished, input_group_call_id, is_join,
+                     std::move(promise));
+      }));
 }
 
-void GroupCallManager::on_create_group_call_finished(InputGroupCallId input_group_call_id,
+void GroupCallManager::on_get_group_call_join_payload(InputGroupCallId input_group_call_id, string &&payload) {
+  if (payload.empty()) {
+    LOG(ERROR) << "Receive empty join payload";
+    return;
+  }
+  auto &join_payload = group_call_join_payloads_[input_group_call_id];
+  if (!join_payload.empty()) {
+    LOG(ERROR) << "Receive multiple join payloads";
+    return;
+  }
+  join_payload = std::move(payload);
+  LOG(INFO) << "Save join payload for " << input_group_call_id;
+}
+
+void GroupCallManager::on_create_group_call_finished(InputGroupCallId input_group_call_id, bool is_join,
                                                      Promise<td_api::object_ptr<td_api::groupCall>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
+  LOG(INFO) << "Finish creation of " << input_group_call_id;
+  string payload;
+  if (is_join) {
+    auto it = group_call_join_payloads_.find(input_group_call_id);
+    if (it == group_call_join_payloads_.end()) {
+      promise.set_error(Status::Error(500, "Receive no join payload"));
+      return finish_join_group_call(input_group_call_id, 1, Status::Error(500, "Receive no join payload"));
+    }
+    payload = std::move(it->second);
+    group_call_join_payloads_.erase(it);
+  }
+
   const auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
   auto group_call_object = get_group_call_object(group_call, {});
@@ -2563,6 +2618,8 @@ int32 GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_gr
   if (!it->second->query_ref.empty()) {
     cancel_query(it->second->query_ref);
   }
+  tde2e_api::key_destroy(it->second->private_key_id);
+  tde2e_api::key_destroy(it->second->public_key_id);
   it->second->promise.set_error(Status::Error(200, "Canceled"));
   auto audio_source = it->second->audio_source;
   pending_join_requests_.erase(it);
@@ -3070,6 +3127,8 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
   }
   CHECK(it->second != nullptr);
 
+  LOG(INFO) << "Successfully joined " << input_group_call_id;
+
   auto group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
   group_call->is_joined = true;
@@ -3079,6 +3138,8 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
   group_call->joined_date = G()->unix_time();
   group_call->audio_source = it->second->audio_source;
   group_call->as_dialog_id = it->second->as_dialog_id;
+  group_call->private_key_id = it->second->private_key_id;
+  group_call->public_key_id = it->second->public_key_id;
   it->second->promise.set_value(std::move(json_response));
   if (group_call->audio_source != 0) {
     check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
@@ -3096,6 +3157,8 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
   if (it == pending_join_requests_.end() || (generation != 0 && it->second->generation != generation)) {
     return;
   }
+  tde2e_api::key_destroy(it->second->private_key_id);
+  tde2e_api::key_destroy(it->second->public_key_id);
   it->second->promise.set_error(std::move(error));
   auto as_dialog_id = it->second->as_dialog_id;
   pending_join_requests_.erase(it);

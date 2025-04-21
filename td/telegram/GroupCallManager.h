@@ -267,7 +267,9 @@ class GroupCallManager final : public Actor {
   void on_create_group_call(int32 random_id, Result<telegram_api::object_ptr<telegram_api::Updates>> &&r_updates,
                             Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
-  void on_create_group_call_finished(InputGroupCallId input_group_call_id,
+  void on_get_group_call_join_payload(InputGroupCallId input_group_call_id, string &&payload);
+
+  void on_create_group_call_finished(InputGroupCallId input_group_call_id, bool is_join,
                                      Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
   void sync_group_call_participants(InputGroupCallId input_group_call_id);
@@ -430,10 +432,12 @@ class GroupCallManager final : public Actor {
 
   struct BeingCreatedCall {
     bool is_join_ = false;
-    tde2e_api::PublicKeyId public_key_id_;
-    tde2e_api::PrivateKeyId private_key_id_;
+    tde2e_api::PrivateKeyId private_key_id_{};
+    tde2e_api::PublicKeyId public_key_id_{};
+    int32 audio_source_ = 0;
   };
   FlatHashMap<int32, BeingCreatedCall> being_created_group_calls_;
+  FlatHashMap<InputGroupCallId, string, InputGroupCallIdHash> group_call_join_payloads_;
 
   string pending_group_call_join_params_;
 
