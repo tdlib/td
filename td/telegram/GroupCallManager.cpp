@@ -4561,7 +4561,37 @@ void GroupCallManager::on_update_group_call_chain_blocks(InputGroupCallId input_
     return;
   }
 
-  // TODO apply blocks to the call
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined ||
+      group_call->is_being_left || blocks.empty()) {
+    return;
+  }
+  if (!group_call->is_conference || group_call->call_id == tde2e_api::CallId()) {
+    LOG(ERROR) << "Receive a block in " << sub_chain_id << " of " << input_group_call_id;
+    return;
+  }
+  if (sub_chain_id == 0) {
+    if (blocks.size() == 1u && next_offset == group_call->block_next_offset[0] + 1) {
+      auto r_call_state = tde2e_api::call_apply_block(group_call->call_id, blocks[0]);
+      if (r_call_state.is_error()) {
+        LOG(INFO) << "Failed to apply block";
+        // TODO poll blocks
+      } else {
+        group_call->block_next_offset[0] = next_offset;
+      }
+    } else {
+      // TODO poll blocks
+    }
+  } else {
+    if (next_offset == group_call->block_next_offset[1] + static_cast<int32>(blocks.size())) {
+      for (const auto &block : blocks) {
+        tde2e_api::call_receive_inbound_message(group_call->call_id, block);
+      }
+      group_call->block_next_offset[1] = next_offset;
+    } else {
+      // TODO poll blocks
+    }
+  }
 }
 
 void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id) {
