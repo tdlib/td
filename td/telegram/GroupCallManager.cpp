@@ -1459,17 +1459,15 @@ void GroupCallManager::create_group_call(td_api::object_ptr<td_api::groupCallJoi
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), random_id, promise = std::move(promise)](
                                  Result<telegram_api::object_ptr<telegram_api::Updates>> &&r_updates) mutable {
-        if (r_updates.is_error()) {
-          return promise.set_error(r_updates.move_as_error());
-        }
-        send_closure(actor_id, &GroupCallManager::on_create_group_call, random_id, r_updates.move_as_ok(),
+        send_closure(actor_id, &GroupCallManager::on_create_group_call, random_id, std::move(r_updates),
                      std::move(promise));
       });
   td_->create_handler<CreateConferenceCallQuery>(std::move(query_promise))
       ->send(random_id, data.is_join_, parameters, data.private_key_id_, data.public_key_id_);
 }
 
-void GroupCallManager::on_create_group_call(int32 random_id, telegram_api::object_ptr<telegram_api::Updates> &&updates,
+void GroupCallManager::on_create_group_call(int32 random_id,
+                                            Result<telegram_api::object_ptr<telegram_api::Updates>> &&r_updates,
                                             Promise<td_api::object_ptr<td_api::groupCall>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   auto it = being_created_group_calls_.find(random_id);
@@ -1477,12 +1475,24 @@ void GroupCallManager::on_create_group_call(int32 random_id, telegram_api::objec
   auto data = std::move(it->second);
   being_created_group_calls_.erase(it);
 
-  auto input_group_call_id = td_->updates_manager_->get_update_new_group_call_id(updates.get());
-  if (!input_group_call_id.is_valid()) {
-    return promise.set_error(Status::Error(500, "Receive wrong response"));
+  InputGroupCallId input_group_call_id;
+  if (r_updates.is_ok()) {
+    input_group_call_id = td_->updates_manager_->get_update_new_group_call_id(r_updates.ok().get());
+    if (!input_group_call_id.is_valid()) {
+      r_updates = Status::Error(500, "Receive wrong response");
+    }
+  }
+  if (r_updates.is_error()) {
+    if (data.is_join_) {
+      auto r_ok = tde2e_api::key_destroy(data.private_key_id_);
+      CHECK(r_ok.is_ok());
+      r_ok = tde2e_api::key_destroy(data.public_key_id_);
+      CHECK(r_ok.is_ok());
+    }
+    return promise.set_error(r_updates.move_as_error());
   }
 
-  td_->updates_manager_->on_get_updates(std::move(updates),
+  td_->updates_manager_->on_get_updates(r_updates.move_as_ok(),
                                         PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
                                                                 input_group_call_id](Unit) mutable {
                                           send_closure(actor_id, &GroupCallManager::on_create_group_call_finished,

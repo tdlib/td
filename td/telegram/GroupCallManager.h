@@ -264,7 +264,7 @@ class GroupCallManager final : public Actor {
 
   bool is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call, int32 audio_source) const;
 
-  void on_create_group_call(int32 random_id, telegram_api::object_ptr<telegram_api::Updates> &&updates,
+  void on_create_group_call(int32 random_id, Result<telegram_api::object_ptr<telegram_api::Updates>> &&r_updates,
                             Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
   void on_create_group_call_finished(InputGroupCallId input_group_call_id,
