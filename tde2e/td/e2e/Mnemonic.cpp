@@ -225,7 +225,7 @@ td::Result<Mnemonic> Mnemonic::create_new(Options options) {
       for (size_t j = 0; j < 11; j++) {
         size_t offset = i * 11 + j;
         if ((rnd[offset / 8] & (1 << (offset & 7))) != 0) {
-          word_i |= 1 << j;
+          word_i |= static_cast<size_t>(1) << j;
         }
       }
       words.push_back(bip_words[word_i].copy());
