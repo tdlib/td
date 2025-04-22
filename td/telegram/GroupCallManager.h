@@ -179,6 +179,7 @@ class GroupCallManager final : public Actor {
   static constexpr int32 UPDATE_GROUP_CALL_PARTICIPANT_ORDER_TIMEOUT = 10;
   static constexpr int32 CHECK_GROUP_CALL_IS_JOINED_TIMEOUT = 10;
   static constexpr size_t MAX_TITLE_LENGTH = 64;  // server-side limit for group call/call record title length
+  static constexpr size_t BLOCK_POLL_COUNT = 100;
 
   void tear_down() final;
 
@@ -413,6 +414,10 @@ class GroupCallManager final : public Actor {
   void update_group_call_dialog(const GroupCall *group_call, const char *source, bool force);
 
   void on_call_state_updated(GroupCall *group_call);
+
+  void poll_group_call_blocks(GroupCall *group_call, int32 sub_chain_id);
+
+  void on_poll_group_call_blocks(InputGroupCallId input_group_call_id, int32 sub_chain_id);
 
   vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> get_recent_speakers(const GroupCall *group_call,
                                                                                  bool for_update);
