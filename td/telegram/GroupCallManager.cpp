@@ -4519,6 +4519,14 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
       process_group_call_after_join_requests(input_group_call_id, "on_group_call_left_impl");
     }
   }
+  if (group_call->is_conference) {
+    tde2e_api::key_destroy(group_call->private_key_id);
+    tde2e_api::key_destroy(group_call->public_key_id);
+    tde2e_api::call_destroy(group_call->call_id);
+    group_call->private_key_id = {};
+    group_call->public_key_id = {};
+    group_call->call_id = {};
+  }
 }
 
 void GroupCallManager::discard_group_call(GroupCallId group_call_id, Promise<Unit> &&promise) {
