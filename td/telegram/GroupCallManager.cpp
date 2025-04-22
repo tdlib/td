@@ -3255,6 +3255,7 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
                 tde2e_move_as_ok(tde2e_api::call_get_verification_state(group_call->call_id));
             group_call->block_next_offset[0] = blocks.next_offset_[0];
             group_call->block_next_offset[1] = blocks.next_offset_[1];
+            on_call_state_updated(group_call);
           }
         } else {
           LOG(ERROR) << "Have no blocks for a subchain in " << input_group_call_id;
@@ -4573,7 +4574,7 @@ void GroupCallManager::on_update_group_call_chain_blocks(InputGroupCallId input_
       for (const auto &block : blocks) {
         tde2e_api::call_apply_block(group_call->call_id, block);
       }
-      // TODO check for errors and leave call on error
+      on_call_state_updated(group_call);
     } else {
       for (const auto &block : blocks) {
         tde2e_api::call_receive_inbound_message(group_call->call_id, block);
@@ -5205,6 +5206,17 @@ void GroupCallManager::update_group_call_dialog(const GroupCall *group_call, con
 
   td_->messages_manager_->on_update_dialog_group_call(group_call->dialog_id, group_call->is_active,
                                                       group_call->participant_count == 0, source, force);
+}
+
+void GroupCallManager::on_call_state_updated(GroupCall *group_call) {
+  CHECK(group_call != nullptr);
+  CHECK(group_call->call_id != tde2e_api::CallId());
+  auto r_state = tde2e_api::call_get_state(group_call->call_id);
+  if (r_state.is_error()) {
+    leave_group_call(group_call->group_call_id, Auto());
+    return;
+  }
+  // auto &state = r_state.value();
 }
 
 vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> GroupCallManager::get_recent_speakers(

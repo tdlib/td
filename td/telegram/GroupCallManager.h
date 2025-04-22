@@ -412,6 +412,8 @@ class GroupCallManager final : public Actor {
 
   void update_group_call_dialog(const GroupCall *group_call, const char *source, bool force);
 
+  void on_call_state_updated(GroupCall *group_call);
+
   vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> get_recent_speakers(const GroupCall *group_call,
                                                                                  bool for_update);
 
