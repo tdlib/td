@@ -67,16 +67,20 @@ class AuthData {
   void set_main_auth_key(AuthKey auth_key) {
     main_auth_key_ = std::move(auth_key);
   }
+
   void break_main_auth_key() {
     main_auth_key_.break_key();
   }
+
   const AuthKey &get_main_auth_key() const {
     // CHECK(has_main_auth_key());
     return main_auth_key_;
   }
+
   bool has_main_auth_key() const {
     return !main_auth_key_.empty();
   }
+
   bool need_main_auth_key() const {
     return !has_main_auth_key();
   }
@@ -85,12 +89,15 @@ class AuthData {
     CHECK(!auth_key.empty());
     tmp_auth_key_ = std::move(auth_key);
   }
+
   const AuthKey &get_tmp_auth_key() const {
     return tmp_auth_key_;
   }
+
   bool was_tmp_auth_key() const {
     return use_pfs() && !tmp_auth_key_.empty();
   }
+
   bool need_tmp_auth_key(double now, double refresh_margin) const {
     if (!use_pfs()) {
       return false;
@@ -103,12 +110,15 @@ class AuthData {
     }
     return false;
   }
+
   void drop_main_auth_key() {
     main_auth_key_ = AuthKey();
   }
+
   void drop_tmp_auth_key() {
     tmp_auth_key_ = AuthKey();
   }
+
   bool has_tmp_auth_key(double now) const {
     if (!use_pfs()) {
       return false;
@@ -128,6 +138,7 @@ class AuthData {
     }
     return get_main_auth_key();
   }
+
   bool has_auth_key(double now) const {
     if (use_pfs()) {
       return has_tmp_auth_key(now);
@@ -138,6 +149,7 @@ class AuthData {
   bool get_auth_flag() const {
     return main_auth_key_.auth_flag();
   }
+
   void set_auth_flag(bool auth_flag) {
     main_auth_key_.set_auth_flag(auth_flag);
     if (!auth_flag) {
@@ -148,6 +160,7 @@ class AuthData {
   bool get_bind_flag() const {
     return !use_pfs() || tmp_auth_key_.auth_flag();
   }
+
   void on_bind() {
     CHECK(use_pfs());
     tmp_auth_key_.set_auth_flag(true);
@@ -184,6 +197,7 @@ class AuthData {
   void set_session_id(uint64 session_id) {
     session_id_ = session_id;
   }
+
   uint64 get_session_id() const {
     CHECK(session_id_ != 0);
     return session_id_;

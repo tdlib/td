@@ -48,9 +48,11 @@ class SessionCallback final : public Session::Callback {
   void on_failed() final {
     send_closure(parent_, &SessionProxy::on_failed);
   }
+
   void on_closed() final {
     send_closure(parent_, &SessionProxy::on_closed);
   }
+
   void request_raw_connection(unique_ptr<mtproto::AuthData> auth_data,
                               Promise<unique_ptr<mtproto::RawConnection>> promise) final {
     send_closure(G()->connection_creator(), &ConnectionCreator::request_raw_connection, dc_id_, allow_media_only_,
@@ -224,7 +226,7 @@ void SessionProxy::open_session(bool force) {
   CHECK(session_.empty());
   auto dc_id = auth_data_->dc_id();
   string name = PSTRING() << "Session" << get_name().substr(Slice("SessionProxy").size());
-  string hash_string = PSTRING() << name << " " << dc_id.get_raw_id() << " " << allow_media_only_;
+  string hash_string = PSTRING() << name << ' ' << dc_id.get_raw_id() << ' ' << allow_media_only_;
   auto hash = Hash<string>()(hash_string);
   int32 raw_dc_id = dc_id.get_raw_id();
   int32 int_dc_id = raw_dc_id;
@@ -233,6 +235,10 @@ void SessionProxy::open_session(bool force) {
   }
   if (allow_media_only_ && !is_cdn_) {
     int_dc_id = -int_dc_id;
+  }
+  if (is_main_ && use_pfs_ && !tmp_auth_key_.empty()) {
+    send_closure_later(G()->td(), &Td::on_update, telegram_api::make_object<telegram_api::updates>(),
+                       tmp_auth_key_.id());
   }
   session_ = create_actor<Session>(
       name,
