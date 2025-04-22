@@ -4578,15 +4578,19 @@ void GroupCallManager::on_update_group_call_chain_blocks(InputGroupCallId input_
     LOG(ERROR) << "Receive a block in " << sub_chain_id << " of " << input_group_call_id;
     return;
   }
-  if (next_offset == group_call->block_next_offset[sub_chain_id] + static_cast<int32>(blocks.size())) {
+  auto added_blocks = next_offset - group_call->block_next_offset[sub_chain_id];
+  if (added_blocks <= 0) {
+    return;
+  }
+  if (added_blocks <= static_cast<int32>(blocks.size())) {
     if (sub_chain_id == 0) {
-      for (const auto &block : blocks) {
-        tde2e_api::call_apply_block(group_call->call_id, block);
+      for (size_t i = blocks.size() - added_blocks; i < blocks.size(); i++) {
+        tde2e_api::call_apply_block(group_call->call_id, blocks[i]);
       }
       on_call_state_updated(group_call);
     } else {
-      for (const auto &block : blocks) {
-        tde2e_api::call_receive_inbound_message(group_call->call_id, block);
+      for (size_t i = blocks.size() - added_blocks; i < blocks.size(); i++) {
+        tde2e_api::call_receive_inbound_message(group_call->call_id, blocks[i]);
       }
       // TODO get verification state
     }
