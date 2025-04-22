@@ -8527,6 +8527,12 @@ updateGroupCall group_call:groupCall = Update;
 //@participant New data about a participant
 updateGroupCallParticipant group_call_id:int32 participant:groupCallParticipant = Update;
 
+//@description The list of group call participants that can send and receive encrypted call data has changed; for group calls not bound to a chat only
+//@group_call_id Identifier of group call
+//@participant_user_ids New list of group call participant user identifiers. The identifiers may be invalid or the corresponding users may be unknown.
+//-The participants must be shown in the list of group call participants even there is no information about them
+updateGroupCallParticipants group_call_id:int32 participant_user_ids:vector<int64> = Update;
+
 //@description New call signaling data arrived @call_id The call identifier @data The data
 updateNewCallSignalingData call_id:int32 data:bytes = Update;
 

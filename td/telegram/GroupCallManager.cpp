@@ -966,6 +966,7 @@ struct GroupCallManager::GroupCall {
   tde2e_api::CallId call_id{};
   tde2e_api::CallVerificationState call_verification_state{};
   int32 block_next_offset[2] = {};
+  vector<int64> blockchain_participant_ids;
 
   int32 version = -1;
   int32 leave_version = -1;
@@ -5216,7 +5217,22 @@ void GroupCallManager::on_call_state_updated(GroupCall *group_call) {
     leave_group_call(group_call->group_call_id, Auto());
     return;
   }
-  // auto &state = r_state.value();
+  auto &state = r_state.value();
+  auto participant_ids = transform(state.participants, [](const auto &participant) { return participant.user_id; });
+  std::sort(participant_ids.begin(), participant_ids.end());
+  if (group_call->blockchain_participant_ids == participant_ids) {
+    return;
+  }
+  group_call->blockchain_participant_ids = participant_ids;
+  for (auto participant_id : participant_ids) {
+    auto user_id = UserId(participant_id);
+    if (user_id.is_valid()) {
+      td_->user_manager_->have_user_force(user_id, "on_call_state_updated");
+    }
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateGroupCallParticipants>(group_call->group_call_id.get(),
+                                                                        std::move(participant_ids)));
 }
 
 vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> GroupCallManager::get_recent_speakers(
