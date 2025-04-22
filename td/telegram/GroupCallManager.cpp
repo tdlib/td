@@ -1080,6 +1080,9 @@ GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), pare
 
   update_group_call_timeout_.set_callback(on_update_group_call_timeout_callback);
   update_group_call_timeout_.set_callback_data(static_cast<void *>(this));
+
+  poll_group_call_blocks_timeout_.set_callback(on_poll_group_call_blocks_timeout_callback);
+  poll_group_call_blocks_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 GroupCallManager::~GroupCallManager() = default;
@@ -1270,6 +1273,30 @@ void GroupCallManager::on_update_group_call_message(int64 call_id) {
     return;
   }
   update_group_call_timeout_.add_timeout_in(call_id, 60);
+}
+
+void GroupCallManager::on_poll_group_call_blocks_timeout_callback(void *group_call_manager_ptr, int64 call_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto group_call_manager = static_cast<GroupCallManager *>(group_call_manager_ptr);
+  send_closure_later(group_call_manager->actor_id(group_call_manager),
+                     &GroupCallManager::on_poll_group_call_blocks_timeout, call_id);
+}
+
+void GroupCallManager::on_poll_group_call_blocks_timeout(int64 call_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto input_group_call_id = get_input_group_call_id(GroupCallId(narrow_cast<int32>(call_id / 2))).move_as_ok();
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_joined ||
+      group_call->is_being_left || !group_call->is_conference || group_call->call_id == tde2e_api::CallId()) {
+    return;
+  }
+  poll_group_call_blocks(group_call, static_cast<int32>(call_id % 2));
 }
 
 bool GroupCallManager::is_group_call_being_joined(InputGroupCallId input_group_call_id) const {
@@ -3285,6 +3312,11 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
                 tde2e_move_as_ok(tde2e_api::call_get_verification_state(group_call->call_id));
             group_call->block_next_offset[0] = blocks.next_offset_[0];
             group_call->block_next_offset[1] = blocks.next_offset_[1];
+
+            poll_group_call_blocks_timeout_.set_timeout_in(group_call->group_call_id.get() * 2,
+                                                           GROUP_CALL_BLOCK_POLL_TIMEOUT);
+            poll_group_call_blocks_timeout_.set_timeout_in(group_call->group_call_id.get() * 2 + 1,
+                                                           GROUP_CALL_BLOCK_POLL_TIMEOUT);
             on_call_state_updated(group_call);
           }
         } else {
@@ -4555,6 +4587,9 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
     group_call->private_key_id = {};
     group_call->public_key_id = {};
     group_call->call_id = {};
+
+    poll_group_call_blocks_timeout_.cancel_timeout(group_call->group_call_id.get() * 2);
+    poll_group_call_blocks_timeout_.cancel_timeout(group_call->group_call_id.get() * 2 + 1);
   }
 }
 
@@ -4624,6 +4659,8 @@ void GroupCallManager::on_update_group_call_chain_blocks(InputGroupCallId input_
       // TODO get verification state
     }
     group_call->block_next_offset[sub_chain_id] = next_offset;
+    poll_group_call_blocks_timeout_.set_timeout_in(group_call->group_call_id.get() * 2 + sub_chain_id,
+                                                   GROUP_CALL_BLOCK_POLL_TIMEOUT);
 
     if (blocks.size() == BLOCK_POLL_COUNT) {
       poll_group_call_blocks(group_call, sub_chain_id);
@@ -4641,11 +4678,12 @@ void GroupCallManager::poll_group_call_blocks(GroupCall *group_call, int32 sub_c
   group_call->is_blockchain_being_polled[sub_chain_id] = true;
 
   auto group_call_id = group_call->group_call_id;
+  poll_group_call_blocks_timeout_.cancel_timeout(group_call_id.get() * 2 + sub_chain_id);
+
   auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, sub_chain_id](Unit) {
     send_closure(actor_id, &GroupCallManager::on_poll_group_call_blocks, input_group_call_id, sub_chain_id);
   });
-
   td_->create_handler<GetGroupCallChainBlocksQuery>(std::move(promise))
       ->send(input_group_call_id, sub_chain_id, group_call->block_next_offset[sub_chain_id],
              static_cast<int32>(BLOCK_POLL_COUNT));
@@ -4656,6 +4694,8 @@ void GroupCallManager::on_poll_group_call_blocks(InputGroupCallId input_group_ca
   CHECK(group_call != nullptr);
   CHECK(group_call->is_blockchain_being_polled[sub_chain_id]);
   group_call->is_blockchain_being_polled[sub_chain_id] = false;
+  poll_group_call_blocks_timeout_.set_timeout_in(group_call->group_call_id.get() * 2 + sub_chain_id,
+                                                 GROUP_CALL_BLOCK_POLL_TIMEOUT);
 }
 
 void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id) {

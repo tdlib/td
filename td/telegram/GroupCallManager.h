@@ -178,6 +178,7 @@ class GroupCallManager final : public Actor {
   static constexpr int32 RECENT_SPEAKER_TIMEOUT = 60 * 60;
   static constexpr int32 UPDATE_GROUP_CALL_PARTICIPANT_ORDER_TIMEOUT = 10;
   static constexpr int32 CHECK_GROUP_CALL_IS_JOINED_TIMEOUT = 10;
+  static constexpr int32 GROUP_CALL_BLOCK_POLL_TIMEOUT = 10;
   static constexpr size_t MAX_TITLE_LENGTH = 64;  // server-side limit for group call/call record title length
   static constexpr size_t BLOCK_POLL_COUNT = 100;
 
@@ -207,6 +208,10 @@ class GroupCallManager final : public Actor {
   static void on_update_group_call_timeout_callback(void *group_call_manager_ptr, int64 call_id);
 
   void on_update_group_call_timeout(int64 call_id);
+
+  static void on_poll_group_call_blocks_timeout_callback(void *group_call_manager_ptr, int64 call_id);
+
+  void on_poll_group_call_blocks_timeout(int64 call_id);
 
   void on_update_group_call_message(int64 call_id);
 
@@ -497,6 +502,7 @@ class GroupCallManager final : public Actor {
   MultiTimeout recent_speaker_update_timeout_{"RecentSpeakerUpdateTimeout"};
   MultiTimeout sync_participants_timeout_{"SyncParticipantsTimeout"};
   MultiTimeout update_group_call_timeout_{"UpdateGroupCallTimeout"};
+  MultiTimeout poll_group_call_blocks_timeout_{"PollGroupCallBlocksTimeout"};
 };
 
 }  // namespace td
