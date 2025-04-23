@@ -10,7 +10,7 @@ This is an example of building TDLib with `C++/CLI` support and an example of TD
 ```
 git clone https://github.com/Microsoft/vcpkg.git
 cd vcpkg
-git checkout 07b30b49e5136a36100a2ce644476e60d7f3ddc1
+git checkout bc3512a509f9d29b37346a7e7e929f9a26e66c7e
 .\bootstrap-vcpkg.bat
 .\vcpkg.exe install gperf:x64-windows gperf:x86-windows openssl:x64-windows openssl:x86-windows zlib:x64-windows zlib:x86-windows
 ```
