@@ -10,7 +10,7 @@ import os
 import sys
 from ctypes import CDLL, CFUNCTYPE, c_char_p, c_double, c_int
 from ctypes.util import find_library
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 
 class TdExample:
@@ -32,12 +32,14 @@ class TdExample:
 
     def _load_library(self) -> None:
         """Load the TDLib shared library."""
-        tdjson_path = find_library('tdjson')
+        tdjson_path = find_library("tdjson")
         if tdjson_path is None:
-            if os.name == 'nt':
-                tdjson_path = os.path.join(os.path.dirname(__file__), 'tdjson.dll')
+            if os.name == "nt":
+                tdjson_path = os.path.join(os.path.dirname(__file__), "tdjson.dll")
             else:
-                sys.exit("Error: Can't find 'tdjson' library. Make sure it's installed correctly.")
+                sys.exit(
+                    "Error: Can't find 'tdjson' library. Make sure it's installed correctly."
+                )
 
         try:
             self.tdjson = CDLL(tdjson_path)
@@ -70,7 +72,10 @@ class TdExample:
         self.log_message_callback_type = CFUNCTYPE(None, c_int, c_char_p)
         self._td_set_log_message_callback = self.tdjson.td_set_log_message_callback
         self._td_set_log_message_callback.restype = None
-        self._td_set_log_message_callback.argtypes = [c_int, self.log_message_callback_type]
+        self._td_set_log_message_callback.argtypes = [
+            c_int,
+            self.log_message_callback_type,
+        ]
 
     def _setup_logging(self, verbosity_level: int = 1) -> None:
         """Configure TDLib logging.
@@ -78,13 +83,16 @@ class TdExample:
         Args:
             verbosity_level: 0-fatal, 1-errors, 2-warnings, 3+-debug
         """
+
         @self.log_message_callback_type
         def on_log_message_callback(verbosity_level, message):
             if verbosity_level == 0:
-                sys.exit(f'TDLib fatal error: {message.decode("utf-8")}')
+                sys.exit(f"TDLib fatal error: {message.decode('utf-8')}")
 
         self._td_set_log_message_callback(2, on_log_message_callback)
-        self.execute({'@type': 'setLogVerbosityLevel', 'new_verbosity_level': verbosity_level})
+        self.execute(
+            {"@type": "setLogVerbosityLevel", "new_verbosity_level": verbosity_level}
+        )
 
     def execute(self, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Execute a synchronous TDLib request.
@@ -95,10 +103,10 @@ class TdExample:
         Returns:
             Response from TDLib or None
         """
-        query_json = json.dumps(query).encode('utf-8')
+        query_json = json.dumps(query).encode("utf-8")
         result = self._td_execute(query_json)
         if result:
-            return json.loads(result.decode('utf-8'))
+            return json.loads(result.decode("utf-8"))
         return None
 
     def send(self, query: Dict[str, Any]) -> None:
@@ -107,7 +115,7 @@ class TdExample:
         Args:
             query: The request to send
         """
-        query_json = json.dumps(query).encode('utf-8')
+        query_json = json.dumps(query).encode("utf-8")
         self._td_send(self.client_id, query_json)
 
     def receive(self, timeout: float = 1.0) -> Optional[Dict[str, Any]]:
@@ -121,12 +129,12 @@ class TdExample:
         """
         result = self._td_receive(timeout)
         if result:
-            return json.loads(result.decode('utf-8'))
+            return json.loads(result.decode("utf-8"))
         return None
 
     def login(self) -> None:
         """Start the authentication process."""
-        self.send({'@type': 'getOption', 'name': 'version'})
+        self.send({"@type": "getOption", "name": "version"})
 
         print("Starting Telegram authentication flow...")
         print("Press Ctrl+C to cancel at any time.")
@@ -145,70 +153,102 @@ class TdExample:
                 continue
 
             # Print all updates for debugging
-            if event.get('@type') != 'updateAuthorizationState':
+            event_type = event["@type"]
+            if event_type != "updateAuthorizationState":
                 print(f"Receive: {json.dumps(event, indent=2)}")
 
             # Process authorization states
-            if event.get('@type') == 'updateAuthorizationState':
-                auth_state = event['authorization_state']
-                auth_type = auth_state.get('@type')
+            if event_type == "updateAuthorizationState":
+                auth_state = event["authorization_state"]
+                auth_type = auth_state["@type"]
 
-                if auth_type == 'authorizationStateClosed':
+                if auth_type == "authorizationStateClosed":
                     print("Authorization state closed.")
                     break
 
-                elif auth_type == 'authorizationStateWaitTdlibParameters':
+                elif auth_type == "authorizationStateWaitTdlibParameters":
                     if not self.api_id or not self.api_hash:
-                        print("\nYou MUST obtain your own api_id and api_hash at https://my.telegram.org")
+                        print(
+                            "\nYou MUST obtain your own api_id and api_hash at https://my.telegram.org"
+                        )
                         self.api_id = int(input("Please enter your API ID: "))
                         self.api_hash = input("Please enter your API hash: ")
 
                     print("Setting TDLib parameters...")
-                    self.send({
-                        '@type': 'setTdlibParameters',
-                        'database_directory': 'tdlib_data',
-                        'use_message_database': True,
-                        'use_secret_chats': True,
-                        'api_id': self.api_id,
-                        'api_hash': self.api_hash,
-                        'system_language_code': 'en',
-                        'device_model': 'Python TDLib Client',
-                        'application_version': '1.1',
-                    })
+                    self.send(
+                        {
+                            "@type": "setTdlibParameters",
+                            "database_directory": "tdlib_data",
+                            "use_message_database": True,
+                            "use_secret_chats": True,
+                            "api_id": self.api_id,
+                            "api_hash": self.api_hash,
+                            "system_language_code": "en",
+                            "device_model": "Python TDLib Client",
+                            "application_version": "1.1",
+                        }
+                    )
 
-                elif auth_type == 'authorizationStateWaitPhoneNumber':
-                    phone_number = input('Please enter your phone number (international format): ')
-                    self.send({'@type': 'setAuthenticationPhoneNumber', 'phone_number': phone_number})
+                elif auth_type == "authorizationStateWaitPhoneNumber":
+                    phone_number = input(
+                        "Please enter your phone number (international format): "
+                    )
+                    self.send(
+                        {
+                            "@type": "setAuthenticationPhoneNumber",
+                            "phone_number": phone_number,
+                        }
+                    )
 
-                elif auth_type == 'authorizationStateWaitPremiumPurchase':
+                elif auth_type == "authorizationStateWaitPremiumPurchase":
                     print("Telegram Premium subscription is required.")
                     return
 
-                elif auth_type == 'authorizationStateWaitEmailAddress':
-                    email_address = input('Please enter your email address: ')
-                    self.send({'@type': 'setAuthenticationEmailAddress', 'email_address': email_address})
+                elif auth_type == "authorizationStateWaitEmailAddress":
+                    email_address = input("Please enter your email address: ")
+                    self.send(
+                        {
+                            "@type": "setAuthenticationEmailAddress",
+                            "email_address": email_address,
+                        }
+                    )
 
-                elif auth_type == 'authorizationStateWaitEmailCode':
-                    code = input('Please enter the email authentication code you received: ')
-                    self.send({
-                        '@type': 'checkAuthenticationEmailCode',
-                        'code': {'@type': 'emailAddressAuthenticationCode', 'code': code}
-                    })
+                elif auth_type == "authorizationStateWaitEmailCode":
+                    code = input(
+                        "Please enter the email authentication code you received: "
+                    )
+                    self.send(
+                        {
+                            "@type": "checkAuthenticationEmailCode",
+                            "code": {
+                                "@type": "emailAddressAuthenticationCode",
+                                "code": code,
+                            },
+                        }
+                    )
 
-                elif auth_type == 'authorizationStateWaitCode':
-                    code = input('Please enter the authentication code you received: ')
-                    self.send({'@type': 'checkAuthenticationCode', 'code': code})
+                elif auth_type == "authorizationStateWaitCode":
+                    code = input("Please enter the authentication code you received: ")
+                    self.send({"@type": "checkAuthenticationCode", "code": code})
 
-                elif auth_type == 'authorizationStateWaitRegistration':
-                    first_name = input('Please enter your first name: ')
-                    last_name = input('Please enter your last name: ')
-                    self.send({'@type': 'registerUser', 'first_name': first_name, 'last_name': last_name})
+                elif auth_type == "authorizationStateWaitRegistration":
+                    first_name = input("Please enter your first name: ")
+                    last_name = input("Please enter your last name: ")
+                    self.send(
+                        {
+                            "@type": "registerUser",
+                            "first_name": first_name,
+                            "last_name": last_name,
+                        }
+                    )
 
-                elif auth_type == 'authorizationStateWaitPassword':
-                    password = input('Please enter your password: ')
-                    self.send({'@type': 'checkAuthenticationPassword', 'password': password})
+                elif auth_type == "authorizationStateWaitPassword":
+                    password = input("Please enter your password: ")
+                    self.send(
+                        {"@type": "checkAuthenticationPassword", "password": password}
+                    )
 
-                elif auth_type == 'authorizationStateReady':
+                elif auth_type == "authorizationStateReady":
                     print("Authorization complete! You are now logged in.")
                     return
 
@@ -222,10 +262,14 @@ def main():
 
     print("TDLib Python Client")
     print("===================")
-    print("IMPORTANT: You should obtain your own api_id and api_hash at https://my.telegram.org")
+    print(
+        "IMPORTANT: You should obtain your own api_id and api_hash at https://my.telegram.org"
+    )
     print("         The default values are for demonstration only.\n")
 
-    use_default = input("Use default API credentials for testing? (y/n): ").lower() == 'y'
+    use_default = (
+        input("Use default API credentials for testing? (y/n): ").lower() == "y"
+    )
 
     if use_default:
         client = TdExample(DEFAULT_API_ID, DEFAULT_API_HASH)
@@ -234,10 +278,12 @@ def main():
 
     # Test execute method
     print("\nTesting TDLib execute method...")
-    result = client.execute({
-        '@type': 'getTextEntities',
-        'text': '@telegram /test_command https://telegram.org telegram.me'
-    })
+    result = client.execute(
+        {
+            "@type": "getTextEntities",
+            "text": "@telegram /test_command https://telegram.org telegram.me",
+        }
+    )
     print(f"Text entities: {json.dumps(result, indent=2)}")
 
     # Start login process
