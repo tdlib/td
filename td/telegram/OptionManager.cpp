@@ -173,6 +173,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("paid_message_star_count_max", 10000);
   set_default_integer_option("paid_message_earnings_per_mille", 850);
   set_default_integer_option("pinned_gift_count_max", 6);
+  set_default_integer_option("group_call_participant_count_max", is_test_dc ? 5 : 100);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();

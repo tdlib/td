@@ -11285,7 +11285,8 @@ setGroupCallTitle group_call_id:int32 title:string = Ok;
 //@mute_new_participants New value of the mute_new_participants setting
 toggleGroupCallMuteNewParticipants group_call_id:int32 mute_new_participants:Bool = Ok;
 
-//@description Invites a user to an active group call; for group calls not bound to a chat only. Sends a service message of the type messageGroupCall
+//@description Invites a user to an active group call; for group calls not bound to a chat only. Sends a service message of the type messageGroupCall.
+//-The group call can have at most getOption("group_call_participant_count_max") participants
 //@group_call_id Group call identifier
 //@user_id User identifier
 //@is_video Pass true if the group call is a video call
