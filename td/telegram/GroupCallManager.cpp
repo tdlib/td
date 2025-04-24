@@ -427,6 +427,28 @@ class GetGroupCallChainBlocksQuery final : public Td::ResultHandler {
   }
 };
 
+class SendConferenceCallBroadcastQuery final : public Td::ResultHandler {
+ public:
+  void send(InputGroupCallId input_group_call_id, const string &query) {
+    send_query(G()->net_query_creator().create(telegram_api::phone_sendConferenceCallBroadcast(
+        input_group_call_id.get_input_group_call(), BufferSlice(query))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_sendConferenceCallBroadcast>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendConferenceCallBroadcastQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
+  }
+
+  void on_error(Status status) final {
+  }
+};
+
 class GetGroupCallParticipantsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   InputGroupCallId input_group_call_id_;
@@ -3317,6 +3339,7 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
                                                            GROUP_CALL_BLOCK_POLL_TIMEOUT);
             poll_group_call_blocks_timeout_.set_timeout_in(group_call->group_call_id.get() * 2 + 1,
                                                            GROUP_CALL_BLOCK_POLL_TIMEOUT);
+            send_outbound_group_call_blockchain_messages(group_call);
             on_call_state_updated(group_call);
           }
         } else {
@@ -4661,6 +4684,7 @@ void GroupCallManager::on_update_group_call_chain_blocks(InputGroupCallId input_
     group_call->block_next_offset[sub_chain_id] = next_offset;
     poll_group_call_blocks_timeout_.set_timeout_in(group_call->group_call_id.get() * 2 + sub_chain_id,
                                                    GROUP_CALL_BLOCK_POLL_TIMEOUT);
+    send_outbound_group_call_blockchain_messages(group_call);
 
     if (blocks.size() == BLOCK_POLL_COUNT) {
       poll_group_call_blocks(group_call, sub_chain_id);
@@ -5343,6 +5367,20 @@ void GroupCallManager::on_call_state_updated(GroupCall *group_call) {
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateGroupCallParticipants>(group_call->group_call_id.get(),
                                                                         std::move(participant_ids)));
+}
+
+void GroupCallManager::send_outbound_group_call_blockchain_messages(GroupCall *group_call) {
+  CHECK(group_call != nullptr);
+  CHECK(group_call->call_id != tde2e_api::CallId());
+  auto r_queries = tde2e_api::call_pull_outbound_messages(group_call->call_id);
+  if (r_queries.is_error()) {
+    return;
+  }
+
+  for (auto &query : r_queries.value()) {
+    auto input_group_call_id = get_input_group_call_id(group_call->group_call_id).move_as_ok();
+    td_->create_handler<SendConferenceCallBroadcastQuery>()->send(input_group_call_id, query);
+  }
 }
 
 vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> GroupCallManager::get_recent_speakers(

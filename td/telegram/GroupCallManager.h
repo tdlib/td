@@ -420,6 +420,8 @@ class GroupCallManager final : public Actor {
 
   void on_call_state_updated(GroupCall *group_call);
 
+  void send_outbound_group_call_blockchain_messages(GroupCall *group_call);
+
   void poll_group_call_blocks(GroupCall *group_call, int32 sub_chain_id);
 
   void on_poll_group_call_blocks(InputGroupCallId input_group_call_id, int32 sub_chain_id);
