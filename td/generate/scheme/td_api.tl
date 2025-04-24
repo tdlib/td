@@ -8533,6 +8533,12 @@ updateGroupCallParticipant group_call_id:int32 participant:groupCallParticipant 
 //-The participants must be shown in the list of group call participants even there is no information about them
 updateGroupCallParticipants group_call_id:int32 participant_user_ids:vector<int64> = Update;
 
+//@description The verification state of an encrypted group call has changed; for group calls not bound to a chat only
+//@group_call_id Identifier of group call
+//@generation The call state generation to which the emoji corresponds
+//@emojis Group call state fingerprint represented as 4 emoji; may be empty if the state isn't verified yet
+updateGroupCallVerificationState group_call_id:int32 generation:int32 emojis:vector<string> = Update;
+
 //@description New call signaling data arrived @call_id The call identifier @data The data
 updateNewCallSignalingData call_id:int32 data:bytes = Update;
 

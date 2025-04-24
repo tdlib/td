@@ -420,6 +420,10 @@ class GroupCallManager final : public Actor {
 
   void on_call_state_updated(GroupCall *group_call);
 
+  static vector<string> get_emojis_fingerprint(const GroupCall *group_call);
+
+  void on_call_verification_state_updated(GroupCall *group_call);
+
   void send_outbound_group_call_blockchain_messages(GroupCall *group_call);
 
   void poll_group_call_blocks(GroupCall *group_call, int32 sub_chain_id);

@@ -30,6 +30,8 @@
 #include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/as.h"
+#include "td/utils/bits.h"
 #include "td/utils/buffer.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
@@ -1015,7 +1017,7 @@ struct GroupCallManager::GroupCall {
   tde2e_api::PrivateKeyId private_key_id{};
   tde2e_api::PublicKeyId public_key_id{};
   tde2e_api::CallId call_id{};
-  tde2e_api::CallVerificationState call_verification_state{};
+  tde2e_api::CallVerificationState call_verification_state;
   int32 block_next_offset[2] = {};
   vector<int64> blockchain_participant_ids;
 
@@ -3330,8 +3332,6 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
             for (const auto &block : blocks.blocks_[1]) {
               tde2e_api::call_receive_inbound_message(group_call->call_id, block);
             }
-            group_call->call_verification_state =
-                tde2e_move_as_ok(tde2e_api::call_get_verification_state(group_call->call_id));
             group_call->block_next_offset[0] = blocks.next_offset_[0];
             group_call->block_next_offset[1] = blocks.next_offset_[1];
 
@@ -3339,8 +3339,8 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
                                                            GROUP_CALL_BLOCK_POLL_TIMEOUT);
             poll_group_call_blocks_timeout_.set_timeout_in(group_call->group_call_id.get() * 2 + 1,
                                                            GROUP_CALL_BLOCK_POLL_TIMEOUT);
-            send_outbound_group_call_blockchain_messages(group_call);
             on_call_state_updated(group_call);
+            on_call_verification_state_updated(group_call);
           }
         } else {
           LOG(ERROR) << "Have no blocks for a subchain in " << input_group_call_id;
@@ -4679,12 +4679,11 @@ void GroupCallManager::on_update_group_call_chain_blocks(InputGroupCallId input_
       for (size_t i = blocks.size() - added_blocks; i < blocks.size(); i++) {
         tde2e_api::call_receive_inbound_message(group_call->call_id, blocks[i]);
       }
-      // TODO get verification state
     }
     group_call->block_next_offset[sub_chain_id] = next_offset;
     poll_group_call_blocks_timeout_.set_timeout_in(group_call->group_call_id.get() * 2 + sub_chain_id,
                                                    GROUP_CALL_BLOCK_POLL_TIMEOUT);
-    send_outbound_group_call_blockchain_messages(group_call);
+    on_call_verification_state_updated(group_call);
 
     if (blocks.size() == BLOCK_POLL_COUNT) {
       poll_group_call_blocks(group_call, sub_chain_id);
@@ -5367,6 +5366,40 @@ void GroupCallManager::on_call_state_updated(GroupCall *group_call) {
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateGroupCallParticipants>(group_call->group_call_id.get(),
                                                                         std::move(participant_ids)));
+}
+
+vector<string> GroupCallManager::get_emojis_fingerprint(const GroupCall *group_call) {
+  const auto &o_emoji_hash = group_call->call_verification_state.emoji_hash;
+  if (!o_emoji_hash || o_emoji_hash.value().size() < 32u) {
+    return vector<string>();
+  }
+  const auto *emoji_hash = Slice(o_emoji_hash.value()).ubegin();
+  vector<string> result;
+  result.reserve(4);
+  for (int i = 0; i < 4; i++) {
+    uint64 num = big_endian_to_host64(as<uint64>(emoji_hash + 8 * i));
+    result.push_back(get_emoji_fingerprint(num));
+  }
+  return result;
+}
+
+void GroupCallManager::on_call_verification_state_updated(GroupCall *group_call) {
+  send_outbound_group_call_blockchain_messages(group_call);
+  CHECK(group_call != nullptr);
+  CHECK(group_call->call_id != tde2e_api::CallId());
+  auto r_state = tde2e_api::call_get_verification_state(group_call->call_id);
+  if (r_state.is_error()) {
+    return;
+  }
+  auto &state = r_state.value();
+  if (state.height == group_call->call_verification_state.height &&
+      state.emoji_hash == group_call->call_verification_state.emoji_hash) {
+    return;
+  }
+  group_call->call_verification_state = std::move(state);
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateGroupCallVerificationState>(
+                   group_call->group_call_id.get(), state.height, get_emojis_fingerprint(group_call)));
 }
 
 void GroupCallManager::send_outbound_group_call_blockchain_messages(GroupCall *group_call) {
