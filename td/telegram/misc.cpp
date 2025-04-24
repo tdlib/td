@@ -7,6 +7,8 @@
 #include "td/telegram/misc.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/as.h"
+#include "td/utils/bits.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/Hints.h"
@@ -317,6 +319,7 @@ int64 get_vector_hash(const vector<uint64> &numbers) {
   return static_cast<int64>(acc);
 }
 
+// returns emoji corresponding to the specified number
 string get_emoji_fingerprint(uint64 num) {
   static const vector<Slice> emojis{
       u8"\U0001f609", u8"\U0001f60d", u8"\U0001f61b", u8"\U0001f62d", u8"\U0001f631", u8"\U0001f621", u8"\U0001f60e",
@@ -372,6 +375,16 @@ string get_emoji_fingerprint(uint64 num) {
       u8"\U0001f537"};
 
   return emojis[static_cast<size_t>((num & 0x7FFFFFFFFFFFFFFF) % emojis.size())].str();
+}
+
+vector<string> get_emoji_fingerprints(const unsigned char *buffer) {
+  vector<string> result;
+  result.reserve(4);
+  for (int i = 0; i < 4; i++) {
+    uint64 num = big_endian_to_host64(as<uint64>(buffer + 8 * i));
+    result.push_back(get_emoji_fingerprint(num));
+  }
+  return result;
 }
 
 bool check_currency_amount(int64 amount) {

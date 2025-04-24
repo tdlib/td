@@ -22,8 +22,6 @@
 #include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
-#include "td/utils/as.h"
-#include "td/utils/bits.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
@@ -1071,14 +1069,7 @@ vector<string> CallActor::get_emojis_fingerprint(const string &key, const string
   string str = key + g_a;
   unsigned char sha256_buf[32];
   sha256(str, {sha256_buf, 32});
-
-  vector<string> result;
-  result.reserve(4);
-  for (int i = 0; i < 4; i++) {
-    uint64 num = big_endian_to_host64(as<uint64>(sha256_buf + 8 * i));
-    result.push_back(get_emoji_fingerprint(num));
-  }
-  return result;
+  return get_emoji_fingerprints(sha256_buf);
 }
 
 }  // namespace td

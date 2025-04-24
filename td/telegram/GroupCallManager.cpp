@@ -30,8 +30,6 @@
 #include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
-#include "td/utils/as.h"
-#include "td/utils/bits.h"
 #include "td/utils/buffer.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
@@ -5373,14 +5371,7 @@ vector<string> GroupCallManager::get_emojis_fingerprint(const GroupCall *group_c
   if (!o_emoji_hash || o_emoji_hash.value().size() < 32u) {
     return vector<string>();
   }
-  const auto *emoji_hash = Slice(o_emoji_hash.value()).ubegin();
-  vector<string> result;
-  result.reserve(4);
-  for (int i = 0; i < 4; i++) {
-    uint64 num = big_endian_to_host64(as<uint64>(emoji_hash + 8 * i));
-    result.push_back(get_emoji_fingerprint(num));
-  }
-  return result;
+  return get_emoji_fingerprints(Slice(o_emoji_hash.value()).ubegin());
 }
 
 void GroupCallManager::on_call_verification_state_updated(GroupCall *group_call) {
