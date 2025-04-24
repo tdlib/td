@@ -215,7 +215,8 @@ void CallActor::accept_call(CallProtocol &&protocol, Promise<Unit> promise) {
 }
 
 void CallActor::update_call_signaling_data(string data) {
-  if (call_state_.type != CallState::Type::Ready) {
+  if (call_state_.type != CallState::Type::Ready &&
+      call_state_.discard_reason.type_ != CallDiscardReason::Type::UpgradeToGroupCall) {
     return;
   }
 
@@ -226,7 +227,8 @@ void CallActor::update_call_signaling_data(string data) {
 }
 
 void CallActor::send_call_signaling_data(string &&data, Promise<Unit> promise) {
-  if (call_state_.type != CallState::Type::Ready) {
+  if (call_state_.type != CallState::Type::Ready &&
+      call_state_.discard_reason.type_ != CallDiscardReason::Type::UpgradeToGroupCall) {
     return promise.set_error(Status::Error(400, "Call is not active"));
   }
 
@@ -1029,7 +1031,8 @@ void CallActor::loop() {
       break;
     case State::Discarded: {
       if (call_state_.type == CallState::Type::Discarded &&
-          (call_state_.need_rating || call_state_.need_debug_information || call_state_.need_log)) {
+          (call_state_.need_rating || call_state_.need_debug_information || call_state_.need_log ||
+           call_state_.discard_reason.type_ == CallDiscardReason::Type::UpgradeToGroupCall)) {
         break;
       }
       LOG(INFO) << "Close " << local_call_id_;
