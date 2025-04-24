@@ -4542,6 +4542,13 @@ void Requests::on_request(uint64 id, const td_api::revokeGroupCallInviteLink &re
   td_->group_call_manager_->revoke_group_call_invite_link(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::inviteGroupCallParticipant &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->group_call_manager_->invite_group_call_participant(GroupCallId(request.group_call_id_), UserId(request.user_id_),
+                                                          request.is_video_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::inviteGroupCallParticipants &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -114,6 +114,8 @@ class GroupCallManager final : public Actor {
 
   void revoke_group_call_invite_link(GroupCallId group_call_id, Promise<Unit> &&promise);
 
+  void invite_group_call_participant(GroupCallId group_call_id, UserId user_id, bool is_video, Promise<Unit> &&promise);
+
   void invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
 
   void get_group_call_invite_link(GroupCallId group_call_id, bool can_self_unmute, Promise<string> &&promise);

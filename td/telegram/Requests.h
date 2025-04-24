@@ -751,6 +751,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::revokeGroupCallInviteLink &request);
 
+  void on_request(uint64 id, const td_api::inviteGroupCallParticipant &request);
+
   void on_request(uint64 id, const td_api::inviteGroupCallParticipants &request);
 
   void on_request(uint64 id, const td_api::getGroupCallInviteLink &request);

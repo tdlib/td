@@ -736,6 +736,35 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
   }
 };
 
+class InviteConferenceCallParticipantQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit InviteConferenceCallParticipantQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, telegram_api::object_ptr<telegram_api::InputUser> input_user,
+            bool is_video) {
+    send_query(G()->net_query_creator().create(telegram_api::phone_inviteConferenceCallParticipant(
+        0, is_video, input_group_call_id.get_input_group_call(), std::move(input_user))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_inviteConferenceCallParticipant>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for InviteConferenceCallParticipantQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class InviteToGroupCallQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -3947,6 +3976,15 @@ void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, 
   }
 
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))->send(input_group_call_id, true, false, false);
+}
+
+void GroupCallManager::invite_group_call_participant(GroupCallId group_call_id, UserId user_id, bool is_video,
+                                                     Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+
+  td_->create_handler<InviteConferenceCallParticipantQuery>(std::move(promise))
+      ->send(input_group_call_id, std::move(input_user), is_video);
 }
 
 void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids,

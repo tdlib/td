@@ -4656,7 +4656,12 @@ class CliClient final : public Actor {
       get_args(args, group_call_id, source_id, is_speaking);
       send_request(
           td_api::make_object<td_api::setGroupCallParticipantIsSpeaking>(group_call_id, source_id, is_speaking));
-    } else if (op == "igcp") {
+    } else if (op == "igcp" || op == "igcpv") {
+      GroupCallId group_call_id;
+      UserId user_id;
+      get_args(args, group_call_id, user_id);
+      send_request(td_api::make_object<td_api::inviteGroupCallParticipant>(group_call_id, user_id, op == "igcpv"));
+    } else if (op == "igcps") {
       GroupCallId group_call_id;
       string user_ids;
       get_args(args, group_call_id, user_ids);
