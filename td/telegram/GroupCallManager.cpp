@@ -2943,7 +2943,10 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
   if (group_call->is_inited && !group_call->is_active) {
-    return promise.set_error(Status::Error(400, "Group call is finished"));
+    return promise.set_error(Status::Error(400, "Voice chat is finished"));
+  }
+  if (group_call->is_conference) {
+    return promise.set_error(Status::Error(400, "The group call must be joined using joinGroupCall"));
   }
   bool need_update = false;
   bool old_is_joined = get_group_call_is_joined(group_call);

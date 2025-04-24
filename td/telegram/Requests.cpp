@@ -4489,7 +4489,7 @@ void Requests::on_request(uint64 id, const td_api::toggleGroupCallEnabledStartNo
                                                                request.enabled_start_notification_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::joinGroupCall &request) {
+void Requests::on_request(uint64 id, td_api::joinVideoChat &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_hash_);
   CREATE_TEXT_REQUEST_PROMISE();

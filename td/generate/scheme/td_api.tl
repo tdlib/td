@@ -7493,7 +7493,7 @@ internalLinkTypeUserPhoneNumber phone_number:string draft_text:string open_profi
 //@token The token
 internalLinkTypeUserToken token:string = InternalLinkType;
 
-//@description The link is a link to a video chat. Call searchPublicChat with the given chat username, and then joinGroupCall with the given invite hash to process the link
+//@description The link is a link to a video chat. Call searchPublicChat with the given chat username, and then joinVideoChat with the given invite hash to process the link
 //@chat_username Username of the chat with the video chat
 //@invite_hash If non-empty, invite hash to be used to join the video chat without being muted by administrators
 //@is_live_stream True, if the video chat is expected to be a live stream in a channel or a broadcast group
@@ -11263,7 +11263,7 @@ toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notifi
 //@participant_id Identifier of a group call participant, which will be used to join the call; pass null to join as self; video chats only
 //@join_parameters Parameters to join the call
 //@invite_hash If non-empty, invite hash to be used to join the group call without being muted by administrators
-joinGroupCall group_call_id:int32 participant_id:MessageSender join_parameters:groupCallJoinParameters invite_hash:string = Text;
+joinVideoChat group_call_id:int32 participant_id:MessageSender join_parameters:groupCallJoinParameters invite_hash:string = Text;
 
 //@description Starts screen sharing in a joined group call. Returns join response payload for tgcalls
 //@group_call_id Group call identifier
@@ -11299,7 +11299,7 @@ inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int53> = Ok;
 
 //@description Returns invite link to a video chat in a public chat
 //@group_call_id Group call identifier
-//@can_self_unmute Pass true if the invite link needs to contain an invite hash, passing which to joinGroupCall would allow the invited user to unmute themselves. Requires groupCall.can_be_managed group call flag
+//@can_self_unmute Pass true if the invite link needs to contain an invite hash, passing which to joinVideoChat would allow the invited user to unmute themselves. Requires groupCall.can_be_managed group call flag
 getGroupCallInviteLink group_call_id:int32 can_self_unmute:Bool = HttpUrl;
 
 //@description Revokes invite link for a group call. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier

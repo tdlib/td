@@ -4600,13 +4600,13 @@ class CliClient final : public Actor {
       get_args(args, group_call_id);
       send_request(
           td_api::make_object<td_api::toggleGroupCallEnabledStartNotification>(group_call_id, op == "tgcesne"));
-    } else if (op == "jgc" || op == "jgcv") {
+    } else if (op == "jvc" || op == "jvcv") {
       GroupCallId group_call_id;
       string participant_id;
       string invite_hash;
       get_args(args, group_call_id, participant_id, invite_hash);
 
-      send_request(td_api::make_object<td_api::joinGroupCall>(
+      send_request(td_api::make_object<td_api::joinVideoChat>(
           group_call_id, as_message_sender(participant_id),
           td_api::make_object<td_api::groupCallJoinParameters>(
               group_call_source_, get_group_call_join_payload(op == "jgcv", false), true, true),
