@@ -612,7 +612,7 @@ class FastPingTestActor final : public td::Actor {
         auth_data->set_use_pfs(true);
         td::uint64 session_id = 0;
         do {
-          td::Random::secure_bytes(reinterpret_cast<td::uint8 *>(&session_id), sizeof(session_id));
+          session_id = td::Random::secure_uint64();
         } while (session_id == 0);
         auth_data->set_session_id(session_id);
       }

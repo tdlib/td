@@ -260,7 +260,7 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   }
   uint64 session_id = 0;
   do {
-    Random::secure_bytes(reinterpret_cast<uint8 *>(&session_id), sizeof(session_id));
+    session_id = Random::secure_uint64();
   } while (session_id == 0);
   auth_data_.set_session_id(session_id);
   use_pfs_ = use_pfs;

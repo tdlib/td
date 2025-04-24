@@ -182,6 +182,7 @@ uint64 Random::Xorshift128plus::operator()() {
 int Random::Xorshift128plus::fast(int min_value, int max_value) {
   return static_cast<int>((*this)() % (max_value - min_value + 1) + min_value);
 }
+
 int64 Random::Xorshift128plus::fast64(int64 min_value, int64 max_value) {
   return static_cast<int64>((*this)() % (max_value - min_value + 1) + min_value);
 }
