@@ -1376,6 +1376,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 freeze_since_date = 0;
   int32 freeze_until_date = 0;
   string freeze_appeal_url;
+  bool can_accept_calls = true;
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
@@ -2092,6 +2093,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 get_json_value_int(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "call_requests_disabled") {
+        can_accept_calls = !get_json_value_bool(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2204,6 +2209,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     options.set_option_empty("dismiss_birthday_contact_today");
   }
+  options.set_option_boolean("can_accept_calls", can_accept_calls);
 
   if (!is_premium_available) {
     premium_bot_username.clear();  // just in case
