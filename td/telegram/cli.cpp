@@ -4661,11 +4661,11 @@ class CliClient final : public Actor {
       UserId user_id;
       get_args(args, group_call_id, user_id);
       send_request(td_api::make_object<td_api::inviteGroupCallParticipant>(group_call_id, user_id, op == "igcpv"));
-    } else if (op == "igcps") {
+    } else if (op == "ivcp") {
       GroupCallId group_call_id;
       string user_ids;
       get_args(args, group_call_id, user_ids);
-      send_request(td_api::make_object<td_api::inviteGroupCallParticipants>(group_call_id, as_user_ids(user_ids)));
+      send_request(td_api::make_object<td_api::inviteVideoChatParticipants>(group_call_id, as_user_ids(user_ids)));
     } else if (op == "ggcil") {
       GroupCallId group_call_id;
       bool can_self_unmute;

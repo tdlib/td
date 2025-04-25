@@ -11292,10 +11292,10 @@ toggleGroupCallMuteNewParticipants group_call_id:int32 mute_new_participants:Boo
 //@is_video Pass true if the group call is a video call
 inviteGroupCallParticipant group_call_id:int32 user_id:int53 is_video:Bool = Ok;
 
-//@description Invites users to an active group call; for video chats only. Sends a service message of the type messageInviteVideoChatParticipants
+//@description Invites users to an active video chat. Sends a service message of the type messageInviteVideoChatParticipants to the chat bound to the call
 //@group_call_id Group call identifier
 //@user_ids User identifiers. At most 10 users can be invited simultaneously
-inviteGroupCallParticipants group_call_id:int32 user_ids:vector<int53> = Ok;
+inviteVideoChatParticipants group_call_id:int32 user_ids:vector<int53> = Ok;
 
 //@description Returns invite link to a video chat in a public chat
 //@group_call_id Group call identifier
