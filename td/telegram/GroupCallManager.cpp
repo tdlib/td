@@ -793,6 +793,34 @@ class DeclineConferenceCallInviteQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteConferenceCallParticipantsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeleteConferenceCallParticipantsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, vector<int64> &&user_ids, bool is_ban, BufferSlice &&block) {
+    send_query(G()->net_query_creator().create(telegram_api::phone_deleteConferenceCallParticipants(
+        0, !is_ban, is_ban, input_group_call_id.get_input_group_call(), std::move(user_ids), std::move(block))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_deleteConferenceCallParticipants>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeleteConferenceCallParticipantsQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class InviteToGroupCallQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -4014,6 +4042,14 @@ void GroupCallManager::invite_group_call_participant(GroupCallId group_call_id, 
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
+  auto *group_call = get_group_call(input_group_call_id);
+  if (!is_group_call_active(group_call)) {
+    return promise.set_error(Status::Error(400, "Group call is not active"));
+  }
+  if (!group_call->is_conference) {
+    return promise.set_error(Status::Error(400, "Use inviteVideoChatParticipants for video chats"));
+  }
+
   td_->create_handler<InviteConferenceCallParticipantQuery>(std::move(promise))
       ->send(input_group_call_id, std::move(input_user), is_video);
 }
@@ -4024,11 +4060,68 @@ void GroupCallManager::decline_group_call_invitation(MessageFullId message_full_
   td_->create_handler<DeclineConferenceCallInviteQuery>(std::move(promise))->send(server_message_id);
 }
 
+void GroupCallManager::delete_group_call_participants(GroupCallId group_call_id, const vector<int64> &user_ids,
+                                                      bool is_ban, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto my_user_id = td_->user_manager_->get_my_id();
+  for (auto &user_id : user_ids) {
+    if (user_id == my_user_id.get()) {
+      return promise.set_error(Status::Error(400, "Use leaveGroupCall to leave the group call"));
+    }
+  }
+
+  do_delete_group_call_participant(input_group_call_id, user_ids, is_ban, std::move(promise));
+}
+
+void GroupCallManager::do_delete_group_call_participant(InputGroupCallId input_group_call_id, vector<int64> user_ids,
+                                                        bool is_ban, Promise<Unit> &&promise) {
+  auto *group_call = get_group_call(input_group_call_id);
+  if (!is_group_call_active(group_call) || group_call->is_being_left) {
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+  if (!group_call->is_conference) {
+    return promise.set_error(
+        Status::Error(400, "Use setChatMemberStatus to ban participants from video chats and the corresponding chats"));
+  }
+  if (!group_call->is_joined) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, user_ids = std::move(user_ids),
+                                  is_ban, promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_value(Unit());
+            } else {
+              send_closure(actor_id, &GroupCallManager::do_delete_group_call_participant, input_group_call_id,
+                           std::move(user_ids), is_ban, std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+  auto state = tde2e_move_as_ok(tde2e_api::call_get_state(group_call->call_id));
+  td::remove_if(state.participants,
+                [&user_ids](const auto &participant) { return td::contains(user_ids, participant.user_id); });
+  auto block = tde2e_move_as_ok(tde2e_api::call_create_change_state_block(group_call->call_id, state));
+
+  td_->create_handler<DeleteConferenceCallParticipantsQuery>(std::move(promise))
+      ->send(input_group_call_id, std::move(user_ids), is_ban, BufferSlice(block));
+}
+
 void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids,
                                                       Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
-  vector<tl_object_ptr<telegram_api::InputUser>> input_users;
+  auto *group_call = get_group_call(input_group_call_id);
+  if (!is_group_call_active(group_call)) {
+    return promise.set_error(Status::Error(400, "Group call is not active"));
+  }
+  if (group_call->is_conference) {
+    return promise.set_error(Status::Error(400, "The call is not a video chat"));
+  }
+
+  vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
   auto my_user_id = td_->user_manager_->get_my_id();
   for (auto user_id : user_ids) {
     TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));

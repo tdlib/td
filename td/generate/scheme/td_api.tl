@@ -11297,6 +11297,11 @@ inviteGroupCallParticipant group_call_id:int32 user_id:int53 is_video:Bool = Ok;
 //@message_id Identifier of the message of the type messageGroupCall
 declineGroupCallInvitation chat_id:int53 message_id:int53 = Ok;
 
+//@description Bans users from a group call not bound to a chat. Requires groupCall.is_owned. Only the owner of the group call can invite the banned users back
+//@group_call_id Group call identifier
+//@user_ids Identifiers of group call participants to ban; identifiers of unknown users from the update updateGroupCallParticipants can be also passed to the method
+banGroupCallParticipants group_call_id:int32 user_ids:vector<int64> = Ok;
+
 //@description Invites users to an active video chat. Sends a service message of the type messageInviteVideoChatParticipants to the chat bound to the call
 //@group_call_id Group call identifier
 //@user_ids User identifiers. At most 10 users can be invited simultaneously

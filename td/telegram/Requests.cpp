@@ -4556,6 +4556,13 @@ void Requests::on_request(uint64 id, const td_api::declineGroupCallInvitation &r
                                                           std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::banGroupCallParticipants &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->group_call_manager_->delete_group_call_participants(GroupCallId(request.group_call_id_), request.user_ids_, true,
+                                                           std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::inviteVideoChatParticipants &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
