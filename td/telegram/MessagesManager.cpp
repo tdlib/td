@@ -35050,6 +35050,24 @@ Result<MessagesManager::InvoiceMessageInfo> MessagesManager::get_invoice_message
   return std::move(result);
 }
 
+Result<ServerMessageId> MessagesManager::get_group_call_message_id(MessageFullId message_full_id) {
+  auto m = get_message_force(message_full_id, "get_group_call_message_id");
+  if (m == nullptr) {
+    return Status::Error(400, "Message not found");
+  }
+  if (m->content->get_type() != MessageContentType::GroupCall) {
+    return Status::Error(400, "Message has wrong type");
+  }
+  if (m->message_id.is_scheduled()) {
+    return Status::Error(400, "Wrong scheduled message identifier");
+  }
+  if (!m->message_id.is_server()) {
+    return Status::Error(400, "Wrong message identifier");
+  }
+
+  return m->message_id.get_server_message_id();
+}
+
 Result<ServerMessageId> MessagesManager::get_payment_successful_message_id(MessageFullId message_full_id) {
   auto m = get_message_force(message_full_id, "get_payment_successful_message_id");
   if (m == nullptr) {

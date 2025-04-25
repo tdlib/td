@@ -932,6 +932,8 @@ class MessagesManager final : public Actor {
   };
   Result<InvoiceMessageInfo> get_invoice_message_info(MessageFullId message_full_id);
 
+  Result<ServerMessageId> get_group_call_message_id(MessageFullId message_full_id);
+
   Result<ServerMessageId> get_payment_successful_message_id(MessageFullId message_full_id);
 
   Result<ServerMessageId> get_giveaway_message_id(MessageFullId message_full_id);

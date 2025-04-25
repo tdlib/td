@@ -4549,6 +4549,13 @@ void Requests::on_request(uint64 id, const td_api::inviteGroupCallParticipant &r
                                                           request.is_video_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::declineGroupCallInvitation &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->group_call_manager_->decline_group_call_invitation({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                          std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::inviteVideoChatParticipants &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

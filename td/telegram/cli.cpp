@@ -4661,6 +4661,11 @@ class CliClient final : public Actor {
       UserId user_id;
       get_args(args, group_call_id, user_id);
       send_request(td_api::make_object<td_api::inviteGroupCallParticipant>(group_call_id, user_id, op == "igcpv"));
+    } else if (op == "dgci") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_id);
+      send_request(td_api::make_object<td_api::declineGroupCallInvitation>(chat_id, message_id));
     } else if (op == "ivcp") {
       GroupCallId group_call_id;
       string user_ids;

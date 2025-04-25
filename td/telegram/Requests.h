@@ -753,6 +753,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::inviteGroupCallParticipant &request);
 
+  void on_request(uint64 id, const td_api::declineGroupCallInvitation &request);
+
   void on_request(uint64 id, const td_api::inviteVideoChatParticipants &request);
 
   void on_request(uint64 id, const td_api::getGroupCallInviteLink &request);

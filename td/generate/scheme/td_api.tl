@@ -7360,7 +7360,7 @@ internalLinkTypeEditProfileSettings = InternalLinkType;
 //@game_short_name Short name of the game
 internalLinkTypeGame bot_username:string game_short_name:string = InternalLinkType;
 
-//@description The link is a link to a group call. Call joinGroupCallByLink with the given invite_link @invite_link Internal representation of the invite link
+//@description The link is a link to a group call. Call joinGroupCall with the given invite_link @invite_link Internal representation of the invite link
 internalLinkTypeGroupCall invite_link:string = InternalLinkType;
 
 //@description The link must be opened in an Instant View. Call getWebPageInstantView with the given URL to process the link.
@@ -11291,6 +11291,11 @@ toggleGroupCallMuteNewParticipants group_call_id:int32 mute_new_participants:Boo
 //@user_id User identifier
 //@is_video Pass true if the group call is a video call
 inviteGroupCallParticipant group_call_id:int32 user_id:int53 is_video:Bool = Ok;
+
+//@description Declines an invitation to an active group call via messageGroupCall
+//@chat_id Identifier of the chat with the message
+//@message_id Identifier of the message of the type messageGroupCall
+declineGroupCallInvitation chat_id:int53 message_id:int53 = Ok;
 
 //@description Invites users to an active video chat. Sends a service message of the type messageInviteVideoChatParticipants to the chat bound to the call
 //@group_call_id Group call identifier

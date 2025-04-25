@@ -765,6 +765,34 @@ class InviteConferenceCallParticipantQuery final : public Td::ResultHandler {
   }
 };
 
+class DeclineConferenceCallInviteQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeclineConferenceCallInviteQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ServerMessageId server_message_id) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::phone_declineConferenceCallInvite(server_message_id.get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_declineConferenceCallInvite>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeclineConferenceCallInviteQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class InviteToGroupCallQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -3988,6 +4016,12 @@ void GroupCallManager::invite_group_call_participant(GroupCallId group_call_id, 
 
   td_->create_handler<InviteConferenceCallParticipantQuery>(std::move(promise))
       ->send(input_group_call_id, std::move(input_user), is_video);
+}
+
+void GroupCallManager::decline_group_call_invitation(MessageFullId message_full_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, server_message_id, td_->messages_manager_->get_group_call_message_id(message_full_id));
+
+  td_->create_handler<DeclineConferenceCallInviteQuery>(std::move(promise))->send(server_message_id);
 }
 
 void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids,
