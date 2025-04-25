@@ -5410,6 +5410,17 @@ groupCallDataChannelMain = GroupCallDataChannel;
 groupCallDataChannelScreenSharing = GroupCallDataChannel;
 
 
+//@class InputGroupCall @description Describes a non-joined group call that isn't bound to a chat
+
+//@description The group call is accessible through a link @link The link for the group call
+inputGroupCallLink link:string = InputGroupCall;
+
+//@description The group call is accessible through a message of the type messageGroupCall
+//@chat_id Identifier of the chat with the message
+//@message_id Identifier of the message of the type messageGroupCall
+inputGroupCallMessage chat_id:int53 message_id:int53 = InputGroupCall;
+
+
 //@class CallProblem @description Describes the exact type of problem with a call
 
 //@description The user heard their own voice
