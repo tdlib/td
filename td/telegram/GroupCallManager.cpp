@@ -795,12 +795,18 @@ class DeclineConferenceCallInviteQuery final : public Td::ResultHandler {
 
 class DeleteConferenceCallParticipantsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  InputGroupCallId input_group_call_id_;
+  vector<int64> user_ids_;
+  bool is_ban_ = false;
 
  public:
   explicit DeleteConferenceCallParticipantsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(InputGroupCallId input_group_call_id, vector<int64> &&user_ids, bool is_ban, BufferSlice &&block) {
+    input_group_call_id_ = input_group_call_id;
+    user_ids_ = user_ids;
+    is_ban_ = is_ban;
     send_query(G()->net_query_creator().create(telegram_api::phone_deleteConferenceCallParticipants(
         0, !is_ban, is_ban, input_group_call_id.get_input_group_call(), std::move(user_ids), std::move(block))));
   }
@@ -817,6 +823,10 @@ class DeleteConferenceCallParticipantsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (begins_with(status.message(), "CONF_WRITE_CHAIN_INVALID")) {
+      return td_->group_call_manager_->do_delete_group_call_participants(input_group_call_id_, std::move(user_ids_),
+                                                                         is_ban_, std::move(promise_));
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -2181,7 +2191,7 @@ void GroupCallManager::on_update_group_call_participants(
       }
       if (participant.joined_date == 0) {
         if (!participant.is_self) {
-          do_delete_group_call_participant(input_group_call_id, {participant.dialog_id.get()}, false, Promise<Unit>());
+          do_delete_group_call_participants(input_group_call_id, {participant.dialog_id.get()}, false, Promise<Unit>());
         }
       } else if (participant.is_min &&
                  get_group_call_participant(group_call_participants, participant.dialog_id) == nullptr) {
@@ -4078,11 +4088,12 @@ void GroupCallManager::delete_group_call_participants(GroupCallId group_call_id,
     }
   }
 
-  do_delete_group_call_participant(input_group_call_id, user_ids, is_ban, std::move(promise));
+  do_delete_group_call_participants(input_group_call_id, user_ids, is_ban, std::move(promise));
 }
 
-void GroupCallManager::do_delete_group_call_participant(InputGroupCallId input_group_call_id, vector<int64> user_ids,
-                                                        bool is_ban, Promise<Unit> &&promise) {
+void GroupCallManager::do_delete_group_call_participants(InputGroupCallId input_group_call_id, vector<int64> user_ids,
+                                                         bool is_ban, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   auto *group_call = get_group_call(input_group_call_id);
   if (!is_group_call_active(group_call) || group_call->is_being_left) {
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
@@ -4099,7 +4110,7 @@ void GroupCallManager::do_delete_group_call_participant(InputGroupCallId input_g
             if (result.is_error()) {
               promise.set_value(Unit());
             } else {
-              send_closure(actor_id, &GroupCallManager::do_delete_group_call_participant, input_group_call_id,
+              send_closure(actor_id, &GroupCallManager::do_delete_group_call_participants, input_group_call_id,
                            std::move(user_ids), is_ban, std::move(promise));
             }
           }));

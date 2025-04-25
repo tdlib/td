@@ -121,6 +121,9 @@ class GroupCallManager final : public Actor {
   void delete_group_call_participants(GroupCallId group_call_id, const vector<int64> &user_ids, bool is_ban,
                                       Promise<Unit> &&promise);
 
+  void do_delete_group_call_participants(InputGroupCallId input_group_call_id, vector<int64> user_ids, bool is_ban,
+                                         Promise<Unit> &&promise);
+
   void invite_group_call_participants(GroupCallId group_call_id, vector<UserId> &&user_ids, Promise<Unit> &&promise);
 
   void get_group_call_invite_link(GroupCallId group_call_id, bool can_self_unmute, Promise<string> &&promise);
@@ -349,9 +352,6 @@ class GroupCallManager final : public Actor {
 
   GroupCallParticipant *get_group_call_participant(GroupCallParticipants *group_call_participants,
                                                    DialogId dialog_id) const;
-
-  void do_delete_group_call_participant(InputGroupCallId input_group_call_id, vector<int64> user_ids, bool is_ban,
-                                        Promise<Unit> &&promise);
 
   void send_edit_group_call_title_query(InputGroupCallId input_group_call_id, const string &title);
 
