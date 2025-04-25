@@ -3951,7 +3951,9 @@ messageInvoice product_info:productInfo currency:string total_amount:int53 start
 //@description A message with information about an ended call @is_video True, if the call was a video call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
 messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;
 
-//@description A message with information about a group call not bound to a chat
+//@description A message with information about a group call not bound to a chat. If the message is incoming, the call isn't active, isn't missed and has no duration,
+//-and getOption("can_accept_calls") is true, then incoming call screen must be shown to the user. Use joinGroupCall to accept the call or declineGroupCallInvitation to decline it.
+//-If the call become active or missed, then the call screen must be hidden
 //@is_active True, if the call is active
 //@was_missed True, if the user was called by another participant of the group call
 //@is_video True, if the call is a video call
@@ -11292,7 +11294,7 @@ toggleGroupCallMuteNewParticipants group_call_id:int32 mute_new_participants:Boo
 //@is_video Pass true if the group call is a video call
 inviteGroupCallParticipant group_call_id:int32 user_id:int53 is_video:Bool = Ok;
 
-//@description Declines an invitation to an active group call via messageGroupCall
+//@description Declines an invitation to an active group call via messageGroupCall. Can be called both by the sender and the receiver of the invitation
 //@chat_id Identifier of the chat with the message
 //@message_id Identifier of the message of the type messageGroupCall
 declineGroupCallInvitation chat_id:int53 message_id:int53 = Ok;
