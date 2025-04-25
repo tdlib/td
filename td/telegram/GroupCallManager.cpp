@@ -2176,8 +2176,15 @@ void GroupCallManager::on_update_group_call_participants(
     vector<DialogId> missing_participants;
     for (auto &group_call_participant : participants) {
       GroupCallParticipant participant(group_call_participant, version);
-      if (participant.is_valid() && participant.is_min && participant.joined_date != 0 &&
-          get_group_call_participant(group_call_participants, participant.dialog_id) == nullptr) {
+      if (!participant.is_valid()) {
+        continue;
+      }
+      if (participant.joined_date == 0) {
+        if (!participant.is_self) {
+          do_delete_group_call_participant(input_group_call_id, {participant.dialog_id.get()}, false, Promise<Unit>());
+        }
+      } else if (participant.is_min &&
+                 get_group_call_participant(group_call_participants, participant.dialog_id) == nullptr) {
         missing_participants.push_back(participant.dialog_id);
       }
     }
@@ -4101,8 +4108,11 @@ void GroupCallManager::do_delete_group_call_participant(InputGroupCallId input_g
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   auto state = tde2e_move_as_ok(tde2e_api::call_get_state(group_call->call_id));
-  td::remove_if(state.participants,
-                [&user_ids](const auto &participant) { return td::contains(user_ids, participant.user_id); });
+  if (!td::remove_if(state.participants,
+                     [&user_ids](const auto &participant) { return td::contains(user_ids, participant.user_id); }) &&
+      !is_ban) {
+    return promise.set_value(Unit());
+  }
   auto block = tde2e_move_as_ok(tde2e_api::call_create_change_state_block(group_call->call_id, state));
 
   td_->create_handler<DeleteConferenceCallParticipantsQuery>(std::move(promise))
