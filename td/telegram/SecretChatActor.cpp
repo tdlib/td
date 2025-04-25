@@ -213,7 +213,7 @@ Result<BufferSlice> SecretChatActor::create_encrypted_message(int32 my_in_seq_no
 
   auto layer = current_layer();
   BufferSlice random_bytes(31);
-  Random::secure_bytes(random_bytes.as_mutable_slice().ubegin(), random_bytes.size());
+  Random::secure_bytes(random_bytes.as_mutable_slice());
   auto message_with_layer = secret_api::make_object<secret_api::decryptedMessageLayer>(
       std::move(random_bytes), layer, in_seq_no, out_seq_no, std::move(message));
   LOG(INFO) << "Create message " << to_string(message_with_layer);

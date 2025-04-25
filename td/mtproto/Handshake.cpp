@@ -234,8 +234,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
   MutableSlice encrypted_data = encrypted_data_str;
   sha1(data, encrypted_data.ubegin());
   encrypted_data.substr(20, data.size()).copy_from(data);
-  Random::secure_bytes(encrypted_data.ubegin() + encrypted_data_size,
-                       encrypted_data_size_with_pad - encrypted_data_size);
+  Random::secure_bytes(encrypted_data.substr(encrypted_data_size));
   tmp_KDF(server_nonce_, new_nonce_, &tmp_aes_key, &tmp_aes_iv);
   aes_ige_encrypt(as_slice(tmp_aes_key), as_mutable_slice(tmp_aes_iv), encrypted_data, encrypted_data);
 

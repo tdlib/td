@@ -88,7 +88,7 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
   while (true) {
     try_cnt++;
     CHECK(try_cnt < 10);
-    Random::secure_bytes(header_slice.ubegin(), header.size());
+    Random::secure_bytes(header_slice);
     if (secret_.emulate_tls()) {
       break;
     }
