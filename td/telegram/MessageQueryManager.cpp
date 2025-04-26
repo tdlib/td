@@ -1587,7 +1587,7 @@ void MessageQueryManager::complete_upload_message_cover(
     return promise.set_error(Status::Error(500, "Receive invalid response"));
   }
   auto media = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media_ptr);
-  if (media->photo_ == nullptr || (media->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) != 0) {
+  if (media->photo_ == nullptr || media->ttl_seconds_ != 0) {
     return promise.set_error(Status::Error(500, "Receive invalid response without photo"));
   }
   auto new_photo = get_photo(td_, std::move(media->photo_), dialog_id, FileType::Photo);

@@ -192,8 +192,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
   switch (media_ptr->get_id()) {
     case telegram_api::messageMediaPhoto::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media_ptr);
-      if (media->photo_ == nullptr || (media->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) != 0 ||
-          media->spoiler_) {
+      if (media->photo_ == nullptr || media->ttl_seconds_ != 0 || media->spoiler_) {
         LOG(ERROR) << "Receive a story with content " << to_string(media);
         break;
       }
@@ -207,8 +206,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
     }
     case telegram_api::messageMediaDocument::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaDocument>(media_ptr);
-      if (media->document_ == nullptr || (media->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) != 0 ||
-          media->spoiler_) {
+      if (media->document_ == nullptr || media->ttl_seconds_ != 0 || media->spoiler_) {
         LOG(ERROR) << "Receive a story with content " << to_string(media);
         break;
       }
