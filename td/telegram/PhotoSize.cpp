@@ -287,9 +287,7 @@ AnimationSize get_animation_size(Td *td, PhotoSizeSource source, int64 id, int64
   result.type = PhotoSizeType(type);
   result.dimensions = get_dimensions(size->w_, size->h_, "get_animation_size");
   result.size = size->size_;
-  if ((size->flags_ & telegram_api::videoSize::VIDEO_START_TS_MASK) != 0) {
-    result.main_frame_timestamp = size->video_start_ts_;
-  }
+  result.main_frame_timestamp = size->video_start_ts_;
 
   if (source.get_type("get_animation_size") == PhotoSizeSource::Type::Thumbnail) {
     source.thumbnail().thumbnail_type = result.type;

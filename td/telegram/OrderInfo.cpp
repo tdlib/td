@@ -170,7 +170,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const OrderInfo &order_
   return string_builder << "]";
 }
 
-unique_ptr<OrderInfo> get_order_info(tl_object_ptr<telegram_api::paymentRequestedInfo> order_info) {
+unique_ptr<OrderInfo> get_order_info(telegram_api::object_ptr<telegram_api::paymentRequestedInfo> order_info) {
   if (order_info == nullptr || order_info->flags_ == 0) {
     return nullptr;
   }

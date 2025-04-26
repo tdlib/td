@@ -2146,16 +2146,12 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
       auto page_block = move_tl_object_as<telegram_api::pageBlockEmbed>(page_block_ptr);
       bool is_full_width = page_block->full_width_;
       bool allow_scrolling = page_block->allow_scrolling_;
-      bool has_dimensions = (page_block->flags_ & telegram_api::pageBlockEmbed::W_MASK) != 0;
       Photo poster_photo;
       auto it = photos.find(page_block->poster_photo_id_);
       if (it != photos.end()) {
         poster_photo = *it->second;
       }
-      Dimensions dimensions;
-      if (has_dimensions) {
-        dimensions = get_dimensions(page_block->w_, page_block->h_, "pageBlockEmbed");
-      }
+      auto dimensions = get_dimensions(page_block->w_, page_block->h_, "pageBlockEmbed");
       return td::make_unique<WebPageBlockEmbedded>(
           std::move(page_block->url_), std::move(page_block->html_), std::move(poster_photo), dimensions,
           get_page_block_caption(std::move(page_block->caption_), documents), is_full_width, allow_scrolling);
