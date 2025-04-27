@@ -50,7 +50,7 @@ BackgroundFill::BackgroundFill(const telegram_api::wallPaperSettings *settings) 
   }
 
   auto flags = settings->flags_;
-  if ((flags & telegram_api::wallPaperSettings::EMOTICON_MASK) != 0) {
+  if (!settings->emoticon_.empty()) {
     LOG(ERROR) << "Receive filled background with " << to_string(*settings);
   }
   if ((flags & telegram_api::wallPaperSettings::BACKGROUND_COLOR_MASK) != 0) {
@@ -411,7 +411,7 @@ BackgroundType::BackgroundType(bool has_no_file, bool is_pattern,
   }
   if (has_no_file) {
     CHECK(settings != nullptr);
-    if ((settings->flags_ & telegram_api::wallPaperSettings::EMOTICON_MASK) != 0) {
+    if (!settings->emoticon_.empty()) {
       type_ = Type::ChatTheme;
       theme_name_ = std::move(settings->emoticon_);
     } else {

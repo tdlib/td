@@ -21,7 +21,7 @@ PeerColor::PeerColor(const telegram_api::object_ptr<telegram_api::peerColor> &pe
       accent_color_id_ = AccentColorId();
     }
   }
-  if ((peer_color->flags_ & telegram_api::peerColor::BACKGROUND_EMOJI_ID_MASK) != 0) {
+  if (peer_color->background_emoji_id_ != 0) {
     background_custom_emoji_id_ = CustomEmojiId(peer_color->background_emoji_id_);
     if (!background_custom_emoji_id_.is_valid()) {
       LOG(ERROR) << "Receive " << to_string(peer_color);

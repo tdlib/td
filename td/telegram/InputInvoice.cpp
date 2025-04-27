@@ -74,7 +74,7 @@ InputInvoice::InputInvoice(tl_object_ptr<telegram_api::messageMediaInvoice> &&me
     message_invoice->total_amount_ = 0;
   }
   total_amount_ = message_invoice->total_amount_;
-  if ((message_invoice->flags_ & telegram_api::messageMediaInvoice::RECEIPT_MSG_ID_MASK) != 0) {
+  if (message_invoice->receipt_msg_id_ != 0) {
     receipt_message_id_ = MessageId(ServerMessageId(message_invoice->receipt_msg_id_));
     if (!receipt_message_id_.is_valid()) {
       LOG(ERROR) << "Receive as receipt message " << receipt_message_id_ << " in " << owner_dialog_id;

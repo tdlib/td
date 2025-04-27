@@ -4267,26 +4267,15 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       } else {
         call.stream_dc_id = DcId();
       }
-      if ((group_call->flags_ & telegram_api::groupCall::RECORD_START_DATE_MASK) != 0) {
+      if (group_call->record_start_date_ > 0) {
         call.record_start_date = group_call->record_start_date_;
         call.is_video_recorded = group_call->record_video_active_;
-        if (call.record_start_date <= 0) {
-          LOG(ERROR) << "Receive invalid record start date " << group_call->record_start_date_ << " in "
-                     << input_group_call_id;
-          call.record_start_date = 0;
-          call.is_video_recorded = false;
-        }
       } else {
         call.record_start_date = 0;
         call.is_video_recorded = false;
       }
-      if ((group_call->flags_ & telegram_api::groupCall::SCHEDULE_DATE_MASK) != 0) {
+      if (group_call->schedule_date_ > 0) {
         call.scheduled_start_date = group_call->schedule_date_;
-        if (call.scheduled_start_date <= 0) {
-          LOG(ERROR) << "Receive invalid scheduled start date " << group_call->schedule_date_ << " in "
-                     << input_group_call_id;
-          call.scheduled_start_date = 0;
-        }
       } else {
         call.scheduled_start_date = 0;
       }

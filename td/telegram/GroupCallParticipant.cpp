@@ -26,7 +26,7 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
   server_is_muted_by_admin = participant->muted_ && !participant->can_self_unmute_;
   server_is_muted_locally = participant->muted_by_you_;
   is_self = participant->self_;
-  if ((participant->flags_ & telegram_api::groupCallParticipant::VOLUME_MASK) != 0) {
+  if (participant->volume_ != 0) {
     volume_level = participant->volume_;
     if (volume_level < MIN_VOLUME_LEVEL || volume_level > MAX_VOLUME_LEVEL) {
       LOG(ERROR) << "Receive " << to_string(participant);
