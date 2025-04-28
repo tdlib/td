@@ -779,6 +779,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::toggleGroupCallParticipantIsHandRaised &request);
 
+  void on_request(uint64 id, td_api::getGroupCallParticipants &request);
+
   void on_request(uint64 id, const td_api::loadGroupCallParticipants &request);
 
   void on_request(uint64 id, const td_api::leaveGroupCall &request);

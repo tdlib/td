@@ -4740,6 +4740,11 @@ class CliClient final : public Actor {
       get_args(args, group_call_id, participant_id, is_hand_raised);
       send_request(td_api::make_object<td_api::toggleGroupCallParticipantIsHandRaised>(
           group_call_id, as_message_sender(participant_id), is_hand_raised));
+    } else if (op == "ggcp") {
+      InputGroupCall input_group_call;
+      string limit;
+      get_args(args, input_group_call, limit);
+      send_request(td_api::make_object<td_api::getGroupCallParticipants>(input_group_call, as_limit(limit)));
     } else if (op == "lgcp") {
       GroupCallId group_call_id;
       string limit;

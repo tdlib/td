@@ -4641,6 +4641,13 @@ void Requests::on_request(uint64 id, const td_api::toggleGroupCallParticipantIsH
       GroupCallId(request.group_call_id_), participant_dialog_id, request.is_hand_raised_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getGroupCallParticipants &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->group_call_manager_->get_group_call_participants(std::move(request.input_group_call_), request.limit_,
+                                                        std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::loadGroupCallParticipants &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

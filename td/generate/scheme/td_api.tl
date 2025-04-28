@@ -5397,6 +5397,9 @@ groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> en
 //@order User's order in the group call participant list. Orders must be compared lexicographically. The bigger is order, the higher is user in the list. If order is empty, the user must be removed from the participant list
 groupCallParticipant participant_id:MessageSender audio_source_id:int32 screen_sharing_audio_source_id:int32 video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
 
+//@description Contains identifiers of group call participants @total_count Total number of group call participants @participant_ids Identifiers of the participants
+groupCallParticipants total_count:int32 participant_ids:vector<MessageSender> = GroupCallParticipants;
+
 //@description Describes a just created group call @group_call_id Identifier of the group call @join_payload Join response payload for tgcalls; empty if the call isn't joined
 createdGroupCall group_call_id:int32 join_payload:string = CreatedGroupCall;
 
@@ -11368,6 +11371,11 @@ setGroupCallParticipantVolumeLevel group_call_id:int32 participant_id:MessageSen
 //@participant_id Participant identifier
 //@is_hand_raised Pass true if the user's hand needs to be raised. Only self hand can be raised. Requires groupCall.can_be_managed group call flag to lower other's hand
 toggleGroupCallParticipantIsHandRaised group_call_id:int32 participant_id:MessageSender is_hand_raised:Bool = Ok;
+
+//@description Returns information about participants of a non-joined group call that is not bound to a chat
+//@input_group_call The group call which participants will be returned
+//@limit The maximum number of participants to return; must be positive
+getGroupCallParticipants input_group_call:InputGroupCall limit:int32 = GroupCallParticipants;
 
 //@description Loads more participants of a group call. The loaded participants will be received through updates. Use the field groupCall.loaded_all_participants to check whether all participants have already been loaded
 //@group_call_id Group call identifier. The group call must be previously received through getGroupCall and must be joined or being joined

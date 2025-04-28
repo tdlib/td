@@ -143,6 +143,9 @@ class GroupCallManager final : public Actor {
   void toggle_group_call_participant_is_hand_raised(GroupCallId group_call_id, DialogId dialog_id, bool is_hand_raised,
                                                     Promise<Unit> &&promise);
 
+  void get_group_call_participants(td_api::object_ptr<td_api::InputGroupCall> input_group_call, int32 limit,
+                                   Promise<td_api::object_ptr<td_api::groupCallParticipants>> &&promise);
+
   void load_group_call_participants(GroupCallId group_call_id, int32 limit, Promise<Unit> &&promise);
 
   void leave_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);

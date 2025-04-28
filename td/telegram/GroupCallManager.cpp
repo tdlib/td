@@ -18,6 +18,7 @@
 #include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallJoinParameters.h"
+#include "td/telegram/InputGroupCall.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
@@ -462,8 +463,8 @@ class GetGroupCallParticipantsQuery final : public Td::ResultHandler {
     input_group_call_id_ = input_group_call_id;
     offset_ = std::move(offset);
     send_query(G()->net_query_creator().create(telegram_api::phone_getGroupParticipants(
-        input_group_call_id.get_input_group_call(), vector<tl_object_ptr<telegram_api::InputPeer>>(), vector<int32>(),
-        offset_, limit)));
+        input_group_call_id.get_input_group_call(), vector<telegram_api::object_ptr<telegram_api::InputPeer>>(),
+        vector<int32>(), offset_, limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -476,6 +477,55 @@ class GetGroupCallParticipantsQuery final : public Td::ResultHandler {
                                                              offset_);
 
     promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetInputGroupCallParticipantsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::groupCallParticipants>> promise_;
+
+ public:
+  explicit GetInputGroupCallParticipantsQuery(Promise<td_api::object_ptr<td_api::groupCallParticipants>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCall input_group_call, int32 limit) {
+    send_query(G()->net_query_creator().create(telegram_api::phone_getGroupParticipants(
+        input_group_call.get_input_group_call(), vector<telegram_api::object_ptr<telegram_api::InputPeer>>(),
+        vector<int32>(), string(), limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_getGroupParticipants>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto participants = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive group call participants: " << to_string(participants);
+
+    td_->user_manager_->on_get_users(std::move(participants->users_), "GetInputGroupCallParticipantsQuery");
+    td_->chat_manager_->on_get_chats(std::move(participants->chats_), "GetInputGroupCallParticipantsQuery");
+
+    auto total_count = participants->count_;
+    auto version = participants->version_;
+    vector<td_api::object_ptr<td_api::MessageSender>> result;
+    for (auto &group_call_participant : participants->participants_) {
+      GroupCallParticipant participant(group_call_participant, version);
+      if (!participant.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
+        continue;
+      }
+      result.push_back(get_message_sender_object(td_, participant.dialog_id, "GetInputGroupCallParticipantsQuery"));
+    }
+    if (total_count < static_cast<int32>(result.size())) {
+      LOG(ERROR) << "Receive total " << total_count << " participant count and " << result.size() << " participants";
+      total_count = static_cast<int32>(result.size());
+    }
+    promise_.set_value(td_api::make_object<td_api::groupCallParticipants>(total_count, std::move(result)));
   }
 
   void on_error(Status status) final {
@@ -4655,6 +4705,16 @@ void GroupCallManager::on_toggle_group_call_participant_is_hand_raised(InputGrou
     }
   }
   promise.set_value(Unit());
+}
+
+void GroupCallManager::get_group_call_participants(
+    td_api::object_ptr<td_api::InputGroupCall> input_group_call, int32 limit,
+    Promise<td_api::object_ptr<td_api::groupCallParticipants>> &&promise) {
+  TRY_RESULT_PROMISE(promise, group_call, InputGroupCall::get_input_group_call(td_, std::move(input_group_call)));
+  if (limit <= 0) {
+    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+  }
+  td_->create_handler<GetInputGroupCallParticipantsQuery>(std::move(promise))->send(group_call, limit);
 }
 
 void GroupCallManager::load_group_call_participants(GroupCallId group_call_id, int32 limit, Promise<Unit> &&promise) {
