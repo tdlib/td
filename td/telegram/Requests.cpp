@@ -403,7 +403,7 @@ class SearchPublicChatRequest final : public RequestActor<> {
  public:
   SearchPublicChatRequest(ActorShared<Td> td, uint64 request_id, string username)
       : RequestActor(std::move(td), request_id), username_(std::move(username)) {
-    set_tries(4);  // 1 for server request + 1 for reload voice chat + 1 for reload dialog + 1 for result
+    set_tries(4);  // 1 for server request + 1 for reload Video chat + 1 for reload dialog + 1 for result
   }
 };
 
@@ -4448,7 +4448,7 @@ void Requests::on_request(uint64 id, td_api::createVideoChat &request) {
       promise.set_value(td_api::make_object<td_api::groupCallId>(result.ok().get()));
     }
   });
-  td_->group_call_manager_->create_voice_chat(DialogId(request.chat_id_), std::move(request.title_),
+  td_->group_call_manager_->create_video_chat(DialogId(request.chat_id_), std::move(request.title_),
                                               request.start_date_, request.is_rtmp_stream_, std::move(query_promise));
 }
 
@@ -4461,13 +4461,13 @@ void Requests::on_request(uint64 id, td_api::createGroupCall &request) {
 void Requests::on_request(uint64 id, const td_api::getVideoChatRtmpUrl &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->group_call_manager_->get_voice_chat_rtmp_stream_url(DialogId(request.chat_id_), false, std::move(promise));
+  td_->group_call_manager_->get_video_chat_rtmp_stream_url(DialogId(request.chat_id_), false, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::replaceVideoChatRtmpUrl &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->group_call_manager_->get_voice_chat_rtmp_stream_url(DialogId(request.chat_id_), true, std::move(promise));
+  td_->group_call_manager_->get_video_chat_rtmp_stream_url(DialogId(request.chat_id_), true, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getGroupCall &request) {
@@ -4495,7 +4495,7 @@ void Requests::on_request(uint64 id, td_api::joinVideoChat &request) {
   CREATE_TEXT_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, join_as_dialog_id,
                      get_message_sender_dialog_id(td_, request.participant_id_, true, true));
-  td_->group_call_manager_->join_group_call(GroupCallId(request.group_call_id_), join_as_dialog_id,
+  td_->group_call_manager_->join_video_chat(GroupCallId(request.group_call_id_), join_as_dialog_id,
                                             std::move(request.join_parameters_), request.invite_hash_,
                                             std::move(promise));
 }

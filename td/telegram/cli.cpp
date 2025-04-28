@@ -4635,7 +4635,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::joinVideoChat>(
           group_call_id, as_message_sender(participant_id),
           td_api::make_object<td_api::groupCallJoinParameters>(
-              group_call_source_, get_group_call_join_payload(op == "jgcv", false), true, true),
+              group_call_source_, get_group_call_join_payload(op == "jvcv", false), true, true),
           invite_hash));
     } else if (op == "sgcss") {
       GroupCallId group_call_id;

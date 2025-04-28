@@ -1544,7 +1544,7 @@ Status GroupCallManager::can_join_group_calls(DialogId dialog_id) const {
     case DialogType::Channel:
       break;
     case DialogType::User:
-      return Status::Error(400, "Chat can't have a voice chat");
+      return Status::Error(400, "Chat can't have a video chat");
     case DialogType::SecretChat:
     case DialogType::None:
     default:
@@ -1572,7 +1572,7 @@ Status GroupCallManager::can_manage_group_calls(DialogId dialog_id) const {
     }
     case DialogType::User:
     case DialogType::SecretChat:
-      return Status::Error(400, "Chat can't have a voice chat");
+      return Status::Error(400, "Chat can't have a video chat");
     case DialogType::None:
       // OK
       break;
@@ -1622,7 +1622,7 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
   switch (as_dialog_id.get_type()) {
     case DialogType::User:
       if (as_dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
-        return promise.set_error(Status::Error(400, "Can't join voice chat as another user"));
+        return promise.set_error(Status::Error(400, "Can't join video chat as another user"));
       }
       break;
     case DialogType::Chat:
@@ -1632,7 +1632,7 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
       }
       break;
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't join voice chat as a secret chat"));
+      return promise.set_error(Status::Error(400, "Can't join video chat as a secret chat"));
     default:
       return promise.set_error(Status::Error(400, "Invalid default participant identifier specified"));
   }
@@ -1644,10 +1644,10 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
   td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(dialog_id, as_dialog_id, true);
 }
 
-void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32 start_date, bool is_rtmp_stream,
+void GroupCallManager::create_video_chat(DialogId dialog_id, string title, int32 start_date, bool is_rtmp_stream,
                                          Promise<GroupCallId> &&promise) {
   TRY_STATUS_PROMISE(
-      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "create_voice_chat"));
+      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "create_video_chat"));
   TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id));
 
   title = clean_name(title, MAX_TITLE_LENGTH);
@@ -1657,7 +1657,7 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
         } else {
-          send_closure(actor_id, &GroupCallManager::on_voice_chat_created, dialog_id, result.move_as_ok(),
+          send_closure(actor_id, &GroupCallManager::on_video_chat_created, dialog_id, result.move_as_ok(),
                        std::move(promise));
         }
       });
@@ -1790,21 +1790,21 @@ void GroupCallManager::on_create_group_call_finished(InputGroupCallId input_grou
   promise.set_value(td_api::make_object<td_api::groupCallInfo>(group_call->group_call_id.get(), payload));
 }
 
-void GroupCallManager::get_voice_chat_rtmp_stream_url(DialogId dialog_id, bool revoke,
+void GroupCallManager::get_video_chat_rtmp_stream_url(DialogId dialog_id, bool revoke,
                                                       Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
-                                                                        "get_voice_chat_rtmp_stream_url"));
+                                                                        "get_video_chat_rtmp_stream_url"));
   TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id));
 
   td_->create_handler<GetGroupCallRtmpStreamUrlGroupCallQuery>(std::move(promise))->send(dialog_id, revoke);
 }
 
-void GroupCallManager::on_voice_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id,
+void GroupCallManager::on_video_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id,
                                              Promise<GroupCallId> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(input_group_call_id.is_valid());
 
-  td_->messages_manager_->on_update_dialog_group_call(dialog_id, true, true, "on_voice_chat_created");
+  td_->messages_manager_->on_update_dialog_group_call(dialog_id, true, true, "on_video_chat_created");
   td_->messages_manager_->on_update_dialog_group_call_id(dialog_id, input_group_call_id);
 
   promise.set_value(get_group_call_id(input_group_call_id, dialog_id));
@@ -3056,7 +3056,7 @@ void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Pro
   td_->create_handler<StartScheduledGroupCallQuery>(std::move(promise))->send(input_group_call_id);
 }
 
-void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
+void GroupCallManager::join_video_chat(GroupCallId group_call_id, DialogId as_dialog_id,
                                        td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters,
                                        const string &invite_hash, Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
@@ -3066,7 +3066,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
   if (group_call->is_inited && !group_call->is_active) {
-    return promise.set_error(Status::Error(400, "Voice chat is finished"));
+    return promise.set_error(Status::Error(400, "Video chat is finished"));
   }
   if (group_call->is_conference) {
     return promise.set_error(Status::Error(400, "The group call must be joined using joinGroupCall"));
@@ -3090,13 +3090,13 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     auto dialog_type = as_dialog_id.get_type();
     if (dialog_type == DialogType::User) {
       if (as_dialog_id != my_dialog_id) {
-        return promise.set_error(Status::Error(400, "Can't join voice chat as another user"));
+        return promise.set_error(Status::Error(400, "Can't join video chat as another user"));
       }
-      if (!td_->user_manager_->have_user_force(as_dialog_id.get_user_id(), "join_group_call")) {
+      if (!td_->user_manager_->have_user_force(as_dialog_id.get_user_id(), "join_video_chat 1")) {
         have_as_dialog_id = false;
       }
     } else {
-      if (!td_->dialog_manager_->have_dialog_force(as_dialog_id, "join_group_call")) {
+      if (!td_->dialog_manager_->have_dialog_force(as_dialog_id, "join_video_chat 2")) {
         return promise.set_error(Status::Error(400, "Join as chat not found"));
       }
     }
@@ -3132,7 +3132,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
                                                                                   true);
   } else {
     if (as_dialog_id.get_type() != DialogType::User) {
-      td_->dialog_manager_->force_create_dialog(as_dialog_id, "join_group_call");
+      td_->dialog_manager_->force_create_dialog(as_dialog_id, "join_video_chat 3");
     }
   }
   if (group_call->is_inited && have_as_dialog_id) {
@@ -3153,12 +3153,12 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     if (diff.first != 0) {
       CHECK(diff.first == 1);
       need_update |= set_group_call_participant_count(group_call, group_call->participant_count + diff.first,
-                                                      "join_group_call 1", true);
+                                                      "join_video_chat 4", true);
     }
     if (diff.second != 0) {
       CHECK(diff.second == 1);
       need_update |= set_group_call_unmuted_video_count(group_call, group_call->unmuted_video_count + diff.second,
-                                                        "join_group_call 2");
+                                                        "join_video_chat 5");
     }
   }
   if (group_call->is_my_video_enabled != parameters.is_my_video_enabled_) {
@@ -3172,7 +3172,7 @@ void GroupCallManager::join_group_call(GroupCallId group_call_id, DialogId as_di
     need_update = true;
   }
   if (group_call->is_inited && need_update) {
-    send_update_group_call(group_call, "join_group_call 3");
+    send_update_group_call(group_call, "join_video_chat 6");
   }
 
   try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);

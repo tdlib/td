@@ -54,13 +54,13 @@ class GroupCallManager final : public Actor {
 
   void set_group_call_default_join_as(DialogId dialog_id, DialogId as_dialog_id, Promise<Unit> &&promise);
 
-  void create_voice_chat(DialogId dialog_id, string title, int32 start_date, bool is_rtmp_stream,
+  void create_video_chat(DialogId dialog_id, string title, int32 start_date, bool is_rtmp_stream,
                          Promise<GroupCallId> &&promise);
 
   void create_group_call(td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters,
                          Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise);
 
-  void get_voice_chat_rtmp_stream_url(DialogId dialog_id, bool revoke,
+  void get_video_chat_rtmp_stream_url(DialogId dialog_id, bool revoke,
                                       Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise);
 
   void get_group_call(GroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
@@ -79,7 +79,7 @@ class GroupCallManager final : public Actor {
 
   void start_scheduled_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
 
-  void join_group_call(GroupCallId group_call_id, DialogId as_dialog_id,
+  void join_video_chat(GroupCallId group_call_id, DialogId as_dialog_id,
                        td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters, const string &invite_hash,
                        Promise<string> &&promise);
 
@@ -247,7 +247,7 @@ class GroupCallManager final : public Actor {
 
   bool get_group_call_joined_date_asc(InputGroupCallId input_group_call_id) const;
 
-  void on_voice_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id, Promise<GroupCallId> &&promise);
+  void on_video_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id, Promise<GroupCallId> &&promise);
 
   void finish_get_group_call(InputGroupCallId input_group_call_id,
                              Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result);
