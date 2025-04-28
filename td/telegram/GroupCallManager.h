@@ -11,6 +11,7 @@
 #include "td/telegram/GroupCallId.h"
 #include "td/telegram/GroupCallParticipant.h"
 #include "td/telegram/GroupCallParticipantOrder.h"
+#include "td/telegram/InputGroupCall.h"
 #include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/td_api.h"
@@ -31,6 +32,7 @@
 
 namespace td {
 
+struct GroupCallJoinParameters;
 class Td;
 
 class GroupCallManager final : public Actor {
@@ -78,6 +80,10 @@ class GroupCallManager final : public Actor {
                                      Promise<string> &&promise);
 
   void start_scheduled_group_call(GroupCallId group_call_id, Promise<Unit> &&promise);
+
+  void join_group_call(td_api::object_ptr<td_api::InputGroupCall> &&api_input_group_call,
+                       td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters,
+                       Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise);
 
   void join_video_chat(GroupCallId group_call_id, DialogId as_dialog_id,
                        td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters, const string &invite_hash,
@@ -172,7 +178,7 @@ class GroupCallManager final : public Actor {
                                          vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
                                          int32 version, bool is_recursive = false);
 
-  void process_join_group_call_response(InputGroupCallId input_group_call_id, uint64 generation,
+  void process_join_voice_chat_response(InputGroupCallId input_group_call_id, uint64 generation,
                                         tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);
 
   void process_join_group_call_presentation_response(InputGroupCallId input_group_call_id, uint64 generation,
@@ -338,6 +344,24 @@ class GroupCallManager final : public Actor {
 
   void finish_load_group_call_administrators(InputGroupCallId input_group_call_id, Result<DialogParticipants> &&result);
 
+  void try_join_group_call(InputGroupCall &&input_group_call, GroupCallJoinParameters &&join_parameters,
+                           Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise);
+
+  void do_join_group_call(InputGroupCall &&input_group_call, GroupCallJoinParameters &&join_parameters,
+                          telegram_api::object_ptr<telegram_api::Updates> updates,
+                          Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise);
+
+  void on_join_group_call(InputGroupCall &&input_group_call, GroupCallJoinParameters &&join_parameters,
+                          const tde2e_api::PrivateKeyId &private_key_id, const tde2e_api::PublicKeyId &public_key_id,
+                          Result<telegram_api::object_ptr<telegram_api::Updates>> &&r_updates,
+                          Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise);
+
+  void process_join_group_call_response(InputGroupCallId input_group_call_id, bool is_join, int32 audio_source,
+                                        const tde2e_api::PrivateKeyId &private_key_id,
+                                        const tde2e_api::PublicKeyId &public_key_id,
+                                        telegram_api::object_ptr<telegram_api::Updates> &&updates,
+                                        Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise);
+
   int32 cancel_join_group_call_request(InputGroupCallId input_group_call_id, GroupCall *group_call);
 
   int32 cancel_join_group_call_presentation_request(InputGroupCallId input_group_call_id);
@@ -489,6 +513,8 @@ class GroupCallManager final : public Actor {
   FlatHashMap<InputGroupCallId, BeingJoinedCallBlocks, InputGroupCallIdHash> being_joined_call_blocks_;
 
   string pending_group_call_join_params_;
+
+  FlatHashMap<InputGroupCall, InputGroupCallId, InputGroupCallHash> real_input_group_call_ids_;
 
   FlatHashMap<InputGroupCallId, unique_ptr<GroupCallParticipants>, InputGroupCallIdHash> group_call_participants_;
   FlatHashMap<DialogId, vector<InputGroupCallId>, DialogIdHash> participant_id_to_group_call_id_;

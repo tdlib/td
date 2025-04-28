@@ -4626,6 +4626,12 @@ class CliClient final : public Actor {
       get_args(args, group_call_id);
       send_request(
           td_api::make_object<td_api::toggleGroupCallEnabledStartNotification>(group_call_id, op == "tgcesne"));
+    } else if (op == "jgc" || op == "jgcv") {
+      InputGroupCall input_group_call;
+      get_args(args, input_group_call);
+      send_request(td_api::make_object<td_api::joinGroupCall>(
+          input_group_call, td_api::make_object<td_api::groupCallJoinParameters>(
+                                group_call_source_, get_group_call_join_payload(op == "jgcv", false), true, true)));
     } else if (op == "jvc" || op == "jvcv") {
       GroupCallId group_call_id;
       string participant_id;

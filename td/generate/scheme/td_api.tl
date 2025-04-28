@@ -11274,6 +11274,9 @@ startScheduledGroupCall group_call_id:int32 = Ok;
 //@enabled_start_notification New value of the enabled_start_notification setting
 toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notification:Bool = Ok;
 
+//@description Joins a group call that is not bound to a chat @input_group_call The group call to join @join_parameters Parameters to join the call
+joinGroupCall input_group_call:InputGroupCall join_parameters:groupCallJoinParameters = GroupCallInfo;
+
 //@description Joins an active group call. Returns join response payload for tgcalls
 //@group_call_id Group call identifier
 //@participant_id Identifier of a group call participant, which will be used to join the call; pass null to join as self; video chats only
