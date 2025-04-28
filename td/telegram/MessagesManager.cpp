@@ -35055,7 +35055,7 @@ Result<ServerMessageId> MessagesManager::get_group_call_message_id(MessageFullId
   if (m == nullptr) {
     return Status::Error(400, "Message not found");
   }
-  if (m->content->get_type() != MessageContentType::GroupCall) {
+  if (m->content->get_type() != MessageContentType::ConferenceCall) {
     return Status::Error(400, "Message has wrong type");
   }
   if (m->message_id.is_scheduled()) {
