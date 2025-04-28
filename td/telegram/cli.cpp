@@ -1116,6 +1116,32 @@ class CliClient final : public Actor {
     }
   }
 
+  struct InputGroupCall {
+    int64 chat_id = 0;
+    int64 message_id = 0;
+    string invite_link;
+
+    operator td_api::object_ptr<td_api::InputGroupCall>() const {
+      if (!invite_link.empty()) {
+        return td_api::make_object<td_api::inputGroupCallLink>(invite_link);
+      } else {
+        return td_api::make_object<td_api::inputGroupCallMessage>(chat_id, message_id);
+      }
+    }
+  };
+
+  void get_args(string &args, InputGroupCall &arg) const {
+    if (begins_with(args, "https://t.me/call") || begins_with(args, "tg://call")) {
+      arg.invite_link = args;
+    } else {
+      string chat_id;
+      string message_id;
+      std::tie(chat_id, message_id) = split(args, get_delimiter(args));
+      arg.chat_id = as_chat_id(chat_id);
+      arg.message_id = as_message_id(message_id);
+    }
+  }
+
   struct GiveawayParameters {
     int64 chat_id = 0;
     vector<int64> additional_chat_ids;
