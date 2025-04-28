@@ -5400,8 +5400,8 @@ groupCallParticipant participant_id:MessageSender audio_source_id:int32 screen_s
 //@description Contains identifiers of group call participants @total_count Total number of group call participants @participant_ids Identifiers of the participants
 groupCallParticipants total_count:int32 participant_ids:vector<MessageSender> = GroupCallParticipants;
 
-//@description Describes a just created group call @group_call_id Identifier of the group call @join_payload Join response payload for tgcalls; empty if the call isn't joined
-createdGroupCall group_call_id:int32 join_payload:string = CreatedGroupCall;
+//@description Contains information about a just created or just joined group call @group_call_id Identifier of the group call @join_payload Join response payload for tgcalls; empty if the call isn't joined
+groupCallInfo group_call_id:int32 join_payload:string = GroupCallInfo;
 
 
 //@class GroupCallDataChannel @description Describes data channel for a group call
@@ -11255,7 +11255,7 @@ setVideoChatDefaultParticipant chat_id:int53 default_participant_id:MessageSende
 createVideoChat chat_id:int53 title:string start_date:int32 is_rtmp_stream:Bool = GroupCallId;
 
 //@description Creates a new group call @join_parameters Parameters to join the call; pass null to only create call link without joining the call
-createGroupCall join_parameters:groupCallJoinParameters = CreatedGroupCall;
+createGroupCall join_parameters:groupCallJoinParameters = GroupCallInfo;
 
 //@description Returns RTMP URL for streaming to the chat; requires can_manage_video_chats administrator right @chat_id Chat identifier
 getVideoChatRtmpUrl chat_id:int53 = RtmpUrl;

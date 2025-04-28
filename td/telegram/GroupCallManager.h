@@ -58,7 +58,7 @@ class GroupCallManager final : public Actor {
                          Promise<GroupCallId> &&promise);
 
   void create_group_call(td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters,
-                         Promise<td_api::object_ptr<td_api::createdGroupCall>> &&promise);
+                         Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise);
 
   void get_voice_chat_rtmp_stream_url(DialogId dialog_id, bool revoke,
                                       Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise);
@@ -295,12 +295,12 @@ class GroupCallManager final : public Actor {
   bool is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call, int32 audio_source) const;
 
   void on_create_group_call(int32 random_id, Result<telegram_api::object_ptr<telegram_api::Updates>> &&r_updates,
-                            Promise<td_api::object_ptr<td_api::createdGroupCall>> &&promise);
+                            Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise);
 
   void on_get_group_call_join_payload(InputGroupCallId input_group_call_id, string &&payload);
 
   void on_create_group_call_finished(InputGroupCallId input_group_call_id, bool is_join,
-                                     Promise<td_api::object_ptr<td_api::createdGroupCall>> &&promise);
+                                     Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise);
 
   void sync_group_call_participants(InputGroupCallId input_group_call_id);
 

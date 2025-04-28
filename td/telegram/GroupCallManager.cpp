@@ -1666,7 +1666,7 @@ void GroupCallManager::create_voice_chat(DialogId dialog_id, string title, int32
 }
 
 void GroupCallManager::create_group_call(td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters,
-                                         Promise<td_api::object_ptr<td_api::createdGroupCall>> &&promise) {
+                                         Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise) {
   TRY_RESULT_PROMISE(promise, parameters,
                      GroupCallJoinParameters::get_group_call_join_parameters(std::move(join_parameters), true));
 
@@ -1702,7 +1702,7 @@ void GroupCallManager::create_group_call(td_api::object_ptr<td_api::groupCallJoi
 
 void GroupCallManager::on_create_group_call(int32 random_id,
                                             Result<telegram_api::object_ptr<telegram_api::Updates>> &&r_updates,
-                                            Promise<td_api::object_ptr<td_api::createdGroupCall>> &&promise) {
+                                            Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   auto it = being_created_group_calls_.find(random_id);
   CHECK(it != being_created_group_calls_.end());
@@ -1771,7 +1771,7 @@ void GroupCallManager::on_get_group_call_join_payload(InputGroupCallId input_gro
 }
 
 void GroupCallManager::on_create_group_call_finished(InputGroupCallId input_group_call_id, bool is_join,
-                                                     Promise<td_api::object_ptr<td_api::createdGroupCall>> &&promise) {
+                                                     Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   LOG(INFO) << "Finish creation of " << input_group_call_id;
   string payload;
@@ -1787,7 +1787,7 @@ void GroupCallManager::on_create_group_call_finished(InputGroupCallId input_grou
 
   const auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
-  promise.set_value(td_api::make_object<td_api::createdGroupCall>(group_call->group_call_id.get(), payload));
+  promise.set_value(td_api::make_object<td_api::groupCallInfo>(group_call->group_call_id.get(), payload));
 }
 
 void GroupCallManager::get_voice_chat_rtmp_stream_url(DialogId dialog_id, bool revoke,
