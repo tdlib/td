@@ -7558,10 +7558,6 @@ blockListMain = BlockList;
 blockListStories = BlockList;
 
 
-//@description Contains a part of a file @data File bytes
-filePart data:bytes = FilePart;
-
-
 //@class FileType @description Represents the type of file
 
 //@description The data is not a file
@@ -11048,7 +11044,7 @@ finishFileGeneration generation_id:int64 error:error = Ok;
 //@file_id Identifier of the file. The file must be located in the TDLib file cache
 //@offset The offset from which to read the file
 //@count Number of bytes to read. An error will be returned if there are not enough bytes available in the file from the specified position. Pass 0 to read all available data from the specified position
-readFilePart file_id:int32 offset:int53 count:int53 = FilePart;
+readFilePart file_id:int32 offset:int53 count:int53 = Data;
 
 //@description Deletes a file from the TDLib file cache @file_id Identifier of the file to delete
 deleteFile file_id:int32 = Ok;

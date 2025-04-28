@@ -550,8 +550,7 @@ class FileManager final : public Actor {
 
   Result<string> get_suggested_file_name(FileId file_id, const string &directory);
 
-  void read_file_part(FileId file_id, int64 offset, int64 count, int left_tries,
-                      Promise<td_api::object_ptr<td_api::filePart>> promise);
+  void read_file_part(FileId file_id, int64 offset, int64 count, int left_tries, Promise<string> promise);
 
   void delete_file(FileId file_id, Promise<Unit> promise, const char *source);
 

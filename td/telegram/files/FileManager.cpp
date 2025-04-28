@@ -2837,8 +2837,7 @@ void FileManager::get_content(FileId file_id, Promise<BufferSlice> promise) {
   send_closure(file_load_manager_, &FileLoadManager::get_content, full_local_location->path_, std::move(promise));
 }
 
-void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int left_tries,
-                                 Promise<td_api::object_ptr<td_api::filePart>> promise) {
+void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int left_tries, Promise<string> promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!file_id.is_valid()) {
@@ -2860,7 +2859,7 @@ void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int 
   if (count == 0) {
     count = file_view.downloaded_prefix(offset);
     if (count == 0) {
-      return promise.set_value(td_api::make_object<td_api::filePart>());
+      return promise.set_value(string());
     }
   } else if (file_view.downloaded_prefix(offset) < count) {
     // TODO this check is safer to do in another thread
@@ -2903,9 +2902,7 @@ void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int 
                                    }))
               .release();
         } else {
-          auto result = td_api::make_object<td_api::filePart>();
-          result->data_ = r_bytes.move_as_ok();
-          promise.set_value(std::move(result));
+          promise.set_value(r_bytes.move_as_ok());
         }
       });
   send_closure(file_load_manager_, &FileLoadManager::read_file_part, *path, offset, count,

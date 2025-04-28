@@ -5640,7 +5640,7 @@ void Requests::on_request(uint64 id, td_api::finishFileGeneration &request) {
 }
 
 void Requests::on_request(uint64 id, const td_api::readFilePart &request) {
-  CREATE_REQUEST_PROMISE();
+  CREATE_DATA_REQUEST_PROMISE();
   send_closure(td_->file_manager_actor_, &FileManager::read_file_part, FileId(request.file_id_, 0), request.offset_,
                request.count_, 2, std::move(promise));
 }
