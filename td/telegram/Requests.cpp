@@ -4682,19 +4682,10 @@ void Requests::on_request(uint64 id, const td_api::getGroupCallStreams &request)
 
 void Requests::on_request(uint64 id, td_api::getGroupCallStreamSegment &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<string> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      auto file_part = td_api::make_object<td_api::filePart>();
-      file_part->data_ = result.move_as_ok();
-      promise.set_value(std::move(file_part));
-    }
-  });
+  CREATE_DATA_REQUEST_PROMISE();
   td_->group_call_manager_->get_group_call_stream_segment(GroupCallId(request.group_call_id_), request.time_offset_,
                                                           request.scale_, request.channel_id_,
-                                                          std::move(request.video_quality_), std::move(query_promise));
+                                                          std::move(request.video_quality_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::encryptGroupCallData &request) {
