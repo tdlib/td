@@ -1910,7 +1910,9 @@ Promise<string> Requests::create_text_request_promise(uint64 id) {
     if (result.is_error()) {
       send_closure(actor_id, &Td::send_error, id, result.move_as_error());
     } else {
-      send_closure(actor_id, &Td::send_result, id, td_api::make_object<td_api::text>(result.move_as_ok()));
+      auto text = td_api::make_object<td_api::text>();
+      text->text_ = result.move_as_ok();
+      send_closure(actor_id, &Td::send_result, id, std::move(text));
     }
   });
 }
@@ -1920,7 +1922,9 @@ Promise<string> Requests::create_data_request_promise(uint64 id) {
     if (result.is_error()) {
       send_closure(actor_id, &Td::send_error, id, result.move_as_error());
     } else {
-      send_closure(actor_id, &Td::send_result, id, td_api::make_object<td_api::data>(result.move_as_ok()));
+      auto data = td_api::make_object<td_api::data>();
+      data->data_ = result.move_as_ok();
+      send_closure(actor_id, &Td::send_result, id, std::move(data));
     }
   });
 }
@@ -1930,7 +1934,9 @@ Promise<string> Requests::create_http_url_request_promise(uint64 id) {
     if (result.is_error()) {
       send_closure(actor_id, &Td::send_error, id, result.move_as_error());
     } else {
-      send_closure(actor_id, &Td::send_result, id, td_api::make_object<td_api::httpUrl>(result.move_as_ok()));
+      auto http_url = td_api::make_object<td_api::httpUrl>();
+      http_url->url_ = result.move_as_ok();
+      send_closure(actor_id, &Td::send_result, id, std::move(http_url));
     }
   });
 }
