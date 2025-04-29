@@ -4350,6 +4350,7 @@ void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, 
 void GroupCallManager::invite_group_call_participant(
     GroupCallId group_call_id, UserId user_id, bool is_video,
     Promise<td_api::object_ptr<td_api::InviteGroupCallParticipantResult>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
@@ -4358,8 +4359,24 @@ void GroupCallManager::invite_group_call_participant(
   if (!group_call->is_conference) {
     return promise.set_error(Status::Error(400, "Use inviteVideoChatParticipants for video chats"));
   }
-  if (!is_group_call_active(group_call)) {
-    return promise.set_error(Status::Error(400, "Group call is not active"));
+  if (!is_group_call_active(group_call) || group_call->is_being_left) {
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+  if (!group_call->is_joined) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, user_id, is_video,
+                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+            } else {
+              send_closure(actor_id, &GroupCallManager::invite_group_call_participant, group_call_id, user_id, is_video,
+                           std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
 
   td_->create_handler<InviteConferenceCallParticipantQuery>(std::move(promise))
