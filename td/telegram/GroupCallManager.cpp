@@ -561,6 +561,44 @@ class GetInputGroupCallParticipantsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetGroupCallParticipantsToCheckQuery final : public Td::ResultHandler {
+  Promise<vector<int64>> promise_;
+
+ public:
+  explicit GetGroupCallParticipantsToCheckQuery(Promise<vector<int64>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id) {
+    send_query(G()->net_query_creator().create(telegram_api::phone_getGroupParticipants(
+        input_group_call_id.get_input_group_call(), vector<telegram_api::object_ptr<telegram_api::InputPeer>>(),
+        vector<int32>(), string(), 1000)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_getGroupParticipants>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto participants = result_ptr.move_as_ok();
+    auto version = participants->version_;
+    vector<int64> result;
+    for (auto &group_call_participant : participants->participants_) {
+      GroupCallParticipant participant(group_call_participant, version);
+      if (!participant.is_valid()) {
+        LOG(ERROR) << "Receive invalid " << to_string(group_call_participant);
+        continue;
+      }
+      result.push_back(participant.dialog_id.get());
+    }
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class StartScheduledGroupCallQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -2014,8 +2052,38 @@ void GroupCallManager::finish_check_group_call_is_joined(InputGroupCallId input_
     return;
   }
 
+  if (group_call->is_conference) {
+    auto promise = PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id,
+                                           blockchain_participant_ids = group_call->blockchain_participant_ids](
+                                              Result<vector<int64>> r_participants) mutable {
+      if (r_participants.is_ok()) {
+        send_closure(actor_id, &GroupCallManager::on_sync_conference_call_participants, input_group_call_id,
+                     std::move(blockchain_participant_ids), r_participants.move_as_ok());
+      }
+    });
+    td_->create_handler<GetGroupCallParticipantsToCheckQuery>(std::move(promise))->send(input_group_call_id);
+  }
+
   int32 next_timeout = result.is_ok() ? CHECK_GROUP_CALL_IS_JOINED_TIMEOUT : 1;
   check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(), next_timeout);
+}
+
+void GroupCallManager::on_sync_conference_call_participants(InputGroupCallId input_group_call_id,
+                                                            vector<int64> &&blockchain_participant_ids,
+                                                            vector<int64> &&server_participant_ids) {
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr && group_call->is_inited);
+  if (!group_call->is_joined || group_call->is_being_joined) {
+    return;
+  }
+
+  vector<int64> removed_user_ids;
+  for (auto participant_id : blockchain_participant_ids) {
+    if (!td::contains(server_participant_ids, participant_id)) {
+      removed_user_ids.push_back(participant_id);
+    }
+  }
+  do_delete_group_call_participants(input_group_call_id, std::move(removed_user_ids), false, Promise<Unit>());
 }
 
 const string &GroupCallManager::get_group_call_title(const GroupCall *group_call) {

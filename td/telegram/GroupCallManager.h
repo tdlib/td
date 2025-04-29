@@ -269,6 +269,10 @@ class GroupCallManager final : public Actor {
   void finish_check_group_call_is_joined(InputGroupCallId input_group_call_id, int32 audio_source,
                                          Result<Unit> &&result);
 
+  void on_sync_conference_call_participants(InputGroupCallId input_group_call_id,
+                                            vector<int64> &&blockchain_participant_ids,
+                                            vector<int64> &&server_participant_ids);
+
   static const string &get_group_call_title(const GroupCall *group_call);
 
   static bool get_group_call_is_joined(const GroupCall *group_call);
