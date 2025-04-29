@@ -251,8 +251,6 @@ class MessagesManager final : public Actor {
 
   bool on_update_message_id(int64 random_id, MessageId new_message_id, const char *source);
 
-  void on_update_message_video_published(MessageFullId message_full_id);
-
   void on_update_dialog_draft_message(DialogId dialog_id, MessageId top_thread_message_id,
                                       tl_object_ptr<telegram_api::DraftMessage> &&draft_message, bool force = false);
 
@@ -2292,8 +2290,6 @@ class MessagesManager final : public Actor {
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m,
                                           bool *need_update_dialog_pos);
 
-  void send_update_video_published(MessageFullId message_full_id);
-
   void send_update_message_content(const Dialog *d, Message *m, bool is_message_in_dialog, const char *source);
 
   void send_update_message_content_impl(DialogId dialog_id, const Message *m, const char *source) const;
@@ -3128,7 +3124,6 @@ class MessagesManager final : public Actor {
   FlatHashMap<MessageFullId, MessageId, MessageFullIdHash> messages_to_restore_;  // new_message_id -> temporary_id
 
   FlatHashMap<MessageFullId, vector<Promise<Unit>>, MessageFullIdHash> awaited_message_full_ids_;
-  FlatHashSet<MessageFullId, MessageFullIdHash> published_video_message_full_ids_;
 
   const char *debug_add_message_to_dialog_fail_reason_ = "";
 

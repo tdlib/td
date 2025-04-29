@@ -886,6 +886,7 @@ class InviteConferenceCallParticipantQuery final : public Td::ResultHandler {
     td_->messages_manager_->wait_message_add(
         message_full_id,
         PromiseCreator::lambda([message_full_id, promise = std::move(promise_)](Result<Unit> &&result) mutable {
+          TRY_STATUS_PROMISE(promise, G()->close_status());
           promise.set_value(td_api::make_object<td_api::inviteGroupCallParticipantResultSuccess>(
               message_full_id.get_dialog_id().get(), message_full_id.get_message_id().get()));
         }));

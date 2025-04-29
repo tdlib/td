@@ -4495,8 +4495,15 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteScheduled
   td_->messages_manager_->on_update_delete_scheduled_messages(dialog_id, std::move(message_ids));
   if (!td_->auth_manager_->is_bot()) {
     for (auto message_id : update->sent_messages_) {
-      td_->messages_manager_->on_update_message_video_published(
-          {DialogId(dialog_id), MessageId(ServerMessageId(message_id))});
+      auto message_full_id = MessageFullId{DialogId(dialog_id), MessageId(ServerMessageId(message_id))};
+      td_->messages_manager_->wait_message_add(
+          message_full_id, PromiseCreator::lambda([message_full_id](Result<Unit> &&result) {
+            if (result.is_ok() && !G()->close_flag()) {
+              send_closure(G()->td(), &Td::send_update,
+                           td_api::make_object<td_api::updateVideoPublished>(message_full_id.get_dialog_id().get(),
+                                                                             message_full_id.get_message_id().get()));
+            }
+          }));
     }
   }
   promise.set_value(Unit());
