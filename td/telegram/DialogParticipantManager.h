@@ -162,7 +162,7 @@ class DialogParticipantManager final : public Actor {
 
   static constexpr int32 CHANNEL_PARTICIPANT_CACHE_TIME = 1800;  // some reasonable limit
 
-  static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server side limit
+  static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server-side limit
 
   void tear_down() final;
 

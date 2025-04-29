@@ -95,7 +95,7 @@ class InlineQueriesManager final : public Actor {
 
  private:
   static constexpr size_t MAX_RECENT_INLINE_BOTS = 20;  // some reasonable value
-  static constexpr int32 INLINE_QUERY_DELAY_MS = 400;   // server side limit
+  static constexpr int32 INLINE_QUERY_DELAY_MS = 400;   // server-side limit
 
   Result<tl_object_ptr<telegram_api::InputBotInlineResult>> get_input_bot_inline_result(
       td_api::object_ptr<td_api::InputInlineQueryResult> &&result, bool *is_gallery, bool *force_vertical) const;

@@ -752,8 +752,8 @@ class UserManager final : public Actor {
   class UserLogEvent;
   class SecretChatLogEvent;
 
-  static constexpr int32 MAX_GET_PROFILE_PHOTOS = 100;  // server side limit
-  static constexpr size_t MAX_NAME_LENGTH = 64;         // server side limit for first/last name
+  static constexpr int32 MAX_GET_PROFILE_PHOTOS = 100;  // server-side limit
+  static constexpr size_t MAX_NAME_LENGTH = 64;         // server-side limit for first/last name
 
   static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;  // some reasonable limit
 

@@ -44,7 +44,7 @@ Result<MessageSelfDestructType> MessageSelfDestructType::get_message_self_destru
       auto ttl =
           static_cast<const td_api::messageSelfDestructTypeTimer *>(self_destruct_type.get())->self_destruct_time_;
 
-      static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;  // server side limit
+      static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;  // server-side limit
       if (ttl <= 0 || ttl > MAX_PRIVATE_MESSAGE_TTL) {
         return Status::Error(400, "Invalid message content self-destruct time specified");
       }

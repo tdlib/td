@@ -1180,7 +1180,7 @@ void get_message_added_reactions(Td *td, MessageFullId message_full_id, Reaction
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
-  static constexpr int32 MAX_GET_ADDED_REACTIONS = 100;  // server side limit
+  static constexpr int32 MAX_GET_ADDED_REACTIONS = 100;  // server-side limit
   if (limit > MAX_GET_ADDED_REACTIONS) {
     limit = MAX_GET_ADDED_REACTIONS;
   }

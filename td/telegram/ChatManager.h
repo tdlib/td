@@ -628,8 +628,8 @@ class ChatManager final : public Actor {
   class ChatLogEvent;
   class ChannelLogEvent;
 
-  static constexpr size_t MAX_TITLE_LENGTH = 128;        // server side limit for chat title
-  static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;  // server side limit for chat/channel description
+  static constexpr size_t MAX_TITLE_LENGTH = 128;        // server-side limit for chat title
+  static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;  // server-side limit for chat/channel description
 
   static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;  // some reasonable limit
 

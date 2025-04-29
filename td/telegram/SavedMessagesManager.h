@@ -74,7 +74,7 @@ class SavedMessagesManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  static constexpr int32 MAX_GET_HISTORY = 100;  // server side limit
+  static constexpr int32 MAX_GET_HISTORY = 100;  // server-side limit
 
   static constexpr int64 MIN_PINNED_TOPIC_ORDER = static_cast<int64>(2147000000) << 32;
 

@@ -137,7 +137,7 @@ class BusinessConnectionManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  static constexpr size_t MAX_NAME_LENGTH = 64;  // server side limit for first/last name
+  static constexpr size_t MAX_NAME_LENGTH = 64;  // server-side limit for first/last name
 
   struct BusinessConnection;
   struct PendingMessage;

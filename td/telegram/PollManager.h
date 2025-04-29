@@ -144,7 +144,7 @@ class PollManager final : public Actor {
     bool was_invalidated_ = false;  // the list needs to be invalidated when voters are changed
   };
 
-  static constexpr int32 MAX_GET_POLL_VOTERS = 50;  // server side limit
+  static constexpr int32 MAX_GET_POLL_VOTERS = 50;  // server-side limit
   static constexpr int32 UNLOAD_POLL_DELAY = 600;   // some reasonable value
 
   class SetPollAnswerLogEvent;

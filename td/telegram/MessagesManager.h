@@ -1557,13 +1557,13 @@ class MessagesManager final : public Actor {
   class SetDialogFolderIdOnServerLogEvent;
   class UpdateDialogNotificationSettingsOnServerLogEvent;
 
-  static constexpr size_t MAX_GROUPED_MESSAGES = 10;  // server side limit
-  static constexpr int32 MAX_GET_DIALOGS = 100;       // server side limit
-  static constexpr int32 MAX_GET_HISTORY = 100;       // server side limit
-  static constexpr int32 MAX_SEARCH_MESSAGES = 100;   // server side limit
+  static constexpr size_t MAX_GROUPED_MESSAGES = 10;  // server-side limit
+  static constexpr int32 MAX_GET_DIALOGS = 100;       // server-side limit
+  static constexpr int32 MAX_GET_HISTORY = 100;       // server-side limit
+  static constexpr int32 MAX_SEARCH_MESSAGES = 100;   // server-side limit
   static constexpr int32 MIN_CHANNEL_DIFFERENCE = 1;
   static constexpr int32 MAX_CHANNEL_DIFFERENCE = 100;
-  static constexpr int32 MAX_BOT_CHANNEL_DIFFERENCE = 100000;  // server side limit
+  static constexpr int32 MAX_BOT_CHANNEL_DIFFERENCE = 100000;  // server-side limit
   static constexpr size_t MIN_DELETED_ASYNCHRONOUSLY_MESSAGES = 2;
   static constexpr size_t MAX_UNLOADED_MESSAGES = 5000;
 

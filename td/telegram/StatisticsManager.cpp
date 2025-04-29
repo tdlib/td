@@ -829,7 +829,7 @@ void StatisticsManager::send_get_message_public_forwards_query(
     return promise.set_error(Status::Error(400, "Message forwards are inaccessible"));
   }
 
-  static constexpr int32 MAX_MESSAGE_FORWARDS = 100;  // server side limit
+  static constexpr int32 MAX_MESSAGE_FORWARDS = 100;  // server-side limit
   if (limit > MAX_MESSAGE_FORWARDS) {
     limit = MAX_MESSAGE_FORWARDS;
   }
@@ -873,7 +873,7 @@ void StatisticsManager::send_get_story_public_forwards_query(
     return promise.set_error(Status::Error(400, "Story forwards are inaccessible"));
   }
 
-  static constexpr int32 MAX_STORY_FORWARDS = 100;  // server side limit
+  static constexpr int32 MAX_STORY_FORWARDS = 100;  // server-side limit
   if (limit > MAX_STORY_FORWARDS) {
     limit = MAX_STORY_FORWARDS;
   }

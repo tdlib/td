@@ -464,9 +464,9 @@ class StickersManager final : public Actor {
   static constexpr int32 MAX_FEATURED_STICKER_SET_VIEW_DELAY = 5;
   static constexpr int32 OLD_FEATURED_STICKER_SET_SLICE_SIZE = 20;
 
-  static constexpr int32 MAX_FOUND_STICKERS = 100;                 // server side limit
-  static constexpr size_t MAX_STICKER_SET_TITLE_LENGTH = 64;       // server side limit
-  static constexpr size_t MAX_STICKER_SET_SHORT_NAME_LENGTH = 64;  // server side limit
+  static constexpr int32 MAX_FOUND_STICKERS = 100;                 // server-side limit
+  static constexpr size_t MAX_STICKER_SET_TITLE_LENGTH = 64;       // server-side limit
+  static constexpr size_t MAX_STICKER_SET_SHORT_NAME_LENGTH = 64;  // server-side limit
   static constexpr size_t MAX_GET_CUSTOM_EMOJI_STICKERS = 200;     // server-side limit
 
   static constexpr int32 EMOJI_KEYWORDS_UPDATE_DELAY = 3600;

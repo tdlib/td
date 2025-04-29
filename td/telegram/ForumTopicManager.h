@@ -116,7 +116,7 @@ class ForumTopicManager final : public Actor {
   void on_topic_message_count_changed(DialogId dialog_id, MessageId top_thread_message_id, int diff);
 
  private:
-  static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server side limit for forum topic title
+  static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server-side limit for forum topic title
 
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;

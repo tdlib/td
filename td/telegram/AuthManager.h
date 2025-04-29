@@ -90,7 +90,7 @@ class AuthManager final : public NetActor {
   tl_object_ptr<td_api::AuthorizationState> get_current_authorization_state_object() const;
 
  private:
-  static constexpr size_t MAX_NAME_LENGTH = 64;  // server side limit
+  static constexpr size_t MAX_NAME_LENGTH = 64;  // server-side limit
 
   enum class State : int32 {
     None,

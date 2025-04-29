@@ -72,7 +72,7 @@ void replace_offending_characters(string &str) {
 }
 
 bool clean_input_string(string &str) {
-  constexpr size_t LENGTH_LIMIT = 35000;  // server side limit
+  constexpr size_t LENGTH_LIMIT = 35000;  // server-side limit
   if (!check_utf8(str)) {
     return false;
   }

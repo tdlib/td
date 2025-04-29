@@ -4501,7 +4501,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     entities.clear();
   }
 
-  constexpr size_t LENGTH_LIMIT = 35000;  // server side limit
+  constexpr size_t LENGTH_LIMIT = 35000;  // server-side limit
   if (text.size() > LENGTH_LIMIT) {
     size_t new_size = LENGTH_LIMIT;
     while (!is_utf8_character_first_code_unit(text[new_size])) {

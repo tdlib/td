@@ -4828,7 +4828,7 @@ void StoryManager::on_view_dialog_active_stories(vector<DialogId> dialog_ids) {
   }
   LOG(DEBUG) << "View active stories of " << dialog_ids;
 
-  const size_t MAX_SLICE_SIZE = 100;  // server side limit
+  const size_t MAX_SLICE_SIZE = 100;  // server-side limit
   vector<DialogId> input_dialog_ids;
   vector<telegram_api::object_ptr<telegram_api::InputPeer>> input_peers;
   for (auto &dialog_id : dialog_ids) {

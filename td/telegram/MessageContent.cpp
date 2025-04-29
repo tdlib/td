@@ -3500,7 +3500,7 @@ static Result<InputMessageContent> create_input_message_content(
         }
         extended_media.push_back(std::move(media));
       }
-      static constexpr size_t MAX_PAID_MEDIA = 10;  // server side limit
+      static constexpr size_t MAX_PAID_MEDIA = 10;  // server-side limit
       if (extended_media.empty() || extended_media.size() > MAX_PAID_MEDIA) {
         return Status::Error(400, "Invalid number of paid media specified");
       }
@@ -3828,7 +3828,7 @@ Result<InputMessageContent> get_input_message_content(
 }
 
 Status check_message_group_message_contents(const vector<InputMessageContent> &message_contents) {
-  static constexpr size_t MAX_GROUPED_MESSAGES = 10;  // server side limit
+  static constexpr size_t MAX_GROUPED_MESSAGES = 10;  // server-side limit
   if (message_contents.size() > MAX_GROUPED_MESSAGES) {
     return Status::Error(400, "Too many messages to send as an album");
   }

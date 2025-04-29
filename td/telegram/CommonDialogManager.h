@@ -42,7 +42,7 @@ class CommonDialogManager final : public Actor {
  private:
   void tear_down() final;
 
-  static constexpr int32 MAX_GET_DIALOGS = 100;  // server side limit
+  static constexpr int32 MAX_GET_DIALOGS = 100;  // server-side limit
 
   struct CommonDialogs {
     vector<DialogId> dialog_ids;
