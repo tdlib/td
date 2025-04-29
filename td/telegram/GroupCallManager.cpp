@@ -852,10 +852,12 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
 };
 
 class InviteConferenceCallParticipantQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::InviteGroupCallParticipantResult>> promise_;
 
  public:
-  explicit InviteConferenceCallParticipantQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit InviteConferenceCallParticipantQuery(
+      Promise<td_api::object_ptr<td_api::InviteGroupCallParticipantResult>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(InputGroupCallId input_group_call_id, telegram_api::object_ptr<telegram_api::InputUser> input_user,
@@ -872,10 +874,35 @@ class InviteConferenceCallParticipantQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for InviteConferenceCallParticipantQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+    auto new_messages = UpdatesManager::get_new_messages(ptr.get());
+    if (new_messages.size() != 1u || new_messages[0].second) {
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+    auto message_full_id = MessageFullId::get_message_full_id(new_messages[0].first, new_messages[0].second);
+    if (!message_full_id.get_message_id().is_valid() || !message_full_id.get_dialog_id().is_valid()) {
+      return on_error(Status::Error(500, "Receive invalid message identifier"));
+    }
+
+    td_->messages_manager_->wait_message_add(
+        message_full_id,
+        PromiseCreator::lambda([message_full_id, promise = std::move(promise_)](Result<Unit> &&result) mutable {
+          promise.set_value(td_api::make_object<td_api::inviteGroupCallParticipantResultSuccess>(
+              message_full_id.get_dialog_id().get(), message_full_id.get_message_id().get()));
+        }));
+
+    td_->updates_manager_->on_get_updates(std::move(ptr), Promise<Unit>());
   }
 
   void on_error(Status status) final {
+    if (status.message() == "USER_PRIVACY_RESTRICTED") {
+      return promise_.set_value(td_api::make_object<td_api::inviteGroupCallParticipantResultUserPrivacyRestricted>());
+    }
+    if (status.message() == "USER_ALREADY_PARTICIPANT") {
+      return promise_.set_value(td_api::make_object<td_api::inviteGroupCallParticipantResultUserAlreadyParticipant>());
+    }
+    if (status.message() == "USER_WAS_KICKED") {
+      return promise_.set_value(td_api::make_object<td_api::inviteGroupCallParticipantResultUserWasBanned>());
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -4319,17 +4346,19 @@ void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, 
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))->send(input_group_call_id, true, false, false);
 }
 
-void GroupCallManager::invite_group_call_participant(GroupCallId group_call_id, UserId user_id, bool is_video,
-                                                     Promise<Unit> &&promise) {
+void GroupCallManager::invite_group_call_participant(
+    GroupCallId group_call_id, UserId user_id, bool is_video,
+    Promise<td_api::object_ptr<td_api::InviteGroupCallParticipantResult>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (!is_group_call_active(group_call)) {
-    return promise.set_error(Status::Error(400, "Group call is not active"));
-  }
+  CHECK(group_call != nullptr);
   if (!group_call->is_conference) {
     return promise.set_error(Status::Error(400, "Use inviteVideoChatParticipants for video chats"));
+  }
+  if (!is_group_call_active(group_call)) {
+    return promise.set_error(Status::Error(400, "Group call is not active"));
   }
 
   td_->create_handler<InviteConferenceCallParticipantQuery>(std::move(promise))

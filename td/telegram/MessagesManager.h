@@ -247,6 +247,8 @@ class MessagesManager final : public Actor {
                       int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
                       Promise<Unit> &&promise);
 
+  void wait_message_add(MessageFullId message_full_id, Promise<Unit> &&promise);
+
   bool on_update_message_id(int64 random_id, MessageId new_message_id, const char *source);
 
   void on_update_message_video_published(MessageFullId message_full_id);
@@ -3125,6 +3127,7 @@ class MessagesManager final : public Actor {
       update_scheduled_message_ids_;                                              // new_message_id -> temporary_id
   FlatHashMap<MessageFullId, MessageId, MessageFullIdHash> messages_to_restore_;  // new_message_id -> temporary_id
 
+  FlatHashMap<MessageFullId, vector<Promise<Unit>>, MessageFullIdHash> awaited_message_full_ids_;
   FlatHashSet<MessageFullId, MessageFullIdHash> published_video_message_full_ids_;
 
   const char *debug_add_message_to_dialog_fail_reason_ = "";

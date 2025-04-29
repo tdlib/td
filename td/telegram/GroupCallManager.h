@@ -120,7 +120,8 @@ class GroupCallManager final : public Actor {
 
   void revoke_group_call_invite_link(GroupCallId group_call_id, Promise<Unit> &&promise);
 
-  void invite_group_call_participant(GroupCallId group_call_id, UserId user_id, bool is_video, Promise<Unit> &&promise);
+  void invite_group_call_participant(GroupCallId group_call_id, UserId user_id, bool is_video,
+                                     Promise<td_api::object_ptr<td_api::InviteGroupCallParticipantResult>> &&promise);
 
   void decline_group_call_invitation(MessageFullId message_full_id, Promise<Unit> &&promise);
 

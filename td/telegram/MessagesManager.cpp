@@ -11263,6 +11263,14 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
       published_video_message_full_ids_.erase({dialog_id, message_id}) != 0) {
     send_update_video_published({dialog_id, message_id});
   }
+  if (!td_->auth_manager_->is_bot() && !message_id.is_scheduled()) {
+    auto it = awaited_message_full_ids_.find({dialog_id, message_id});
+    if (it != awaited_message_full_ids_.end()) {
+      auto promises = std::move(it->second);
+      awaited_message_full_ids_.erase(it);
+      set_promises(promises);
+    }
+  }
 
   if (is_sent_message) {
     if (try_add_active_live_location(dialog_id, m)) {
@@ -24329,6 +24337,21 @@ Result<MessageId> MessagesManager::add_local_message(
   }
 
   return message_id;
+}
+
+void MessagesManager::wait_message_add(MessageFullId message_full_id, Promise<Unit> &&promise) {
+  Dialog *d = get_dialog_force(message_full_id.get_dialog_id());
+  auto message_id = message_full_id.get_message_id();
+  CHECK(message_id.is_valid());
+  if (d != nullptr) {
+    if (have_message_force(d, message_id, "wait_message_add")) {
+      return promise.set_value(Unit());
+    }
+    if (is_deleted_message(d, message_id)) {
+      return promise.set_error(Status::Error(400, "The message was deleted"));
+    }
+  }
+  awaited_message_full_ids_[message_full_id].push_back(std::move(promise));
 }
 
 bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_message_id, const char *source) {

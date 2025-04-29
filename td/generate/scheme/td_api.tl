@@ -5404,6 +5404,23 @@ groupCallParticipants total_count:int32 participant_ids:vector<MessageSender> = 
 groupCallInfo group_call_id:int32 join_payload:string = GroupCallInfo;
 
 
+//@class InviteGroupCallParticipantResult @description Describes result of group call participant invitation
+
+//@description The user can't be invited due to their privacy settings
+inviteGroupCallParticipantResultUserPrivacyRestricted = InviteGroupCallParticipantResult;
+
+//@description The user can't be invited because they are already a participant of the call
+inviteGroupCallParticipantResultUserAlreadyParticipant = InviteGroupCallParticipantResult;
+
+//@description The user can't be invited because they were banned by the owner of the call and can be invited back only by the owner of the group call
+inviteGroupCallParticipantResultUserWasBanned = InviteGroupCallParticipantResult;
+
+//@description The user was invited and a service message of the type messageGroupCall was sent which can be used in declineGroupCallInvitation to cancel the invitation
+//@chat_id Identifier of the chat with the invitation message
+//@message_id Identifier of the message
+inviteGroupCallParticipantResultSuccess chat_id:int53 message_id:int53 = InviteGroupCallParticipantResult;
+
+
 //@class GroupCallDataChannel @description Describes data channel for a group call
 
 //@description The main data channel for audio and video data
@@ -11305,7 +11322,7 @@ toggleGroupCallMuteNewParticipants group_call_id:int32 mute_new_participants:Boo
 //@group_call_id Group call identifier
 //@user_id User identifier
 //@is_video Pass true if the group call is a video call
-inviteGroupCallParticipant group_call_id:int32 user_id:int53 is_video:Bool = Ok;
+inviteGroupCallParticipant group_call_id:int32 user_id:int53 is_video:Bool = InviteGroupCallParticipantResult;
 
 //@description Declines an invitation to an active group call via messageGroupCall. Can be called both by the sender and the receiver of the invitation
 //@chat_id Identifier of the chat with the message
