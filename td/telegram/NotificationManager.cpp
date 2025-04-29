@@ -3351,6 +3351,11 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
     return Status::Error(406, "Phone call notification is not supported");
   }
 
+  if (begins_with(loc_key, "CONF_CALL_") || begins_with(loc_key, "CONF_VIDEOCALL_")) {
+    // TODO CONF_CALL_REQUEST/CONF_CALL_MISSED/CONF_VIDEOCALL_REQUEST/CONF_VIDEOCALL_MISSED notifications
+    return Status::Error(406, "Group call notification is not supported");
+  }
+
   if (begins_with(loc_key, "REACT_") || loc_key == "READ_REACTION") {
     // TODO REACT_* notifications
     return Status::Error(406, "Reaction notifications are unsupported");
