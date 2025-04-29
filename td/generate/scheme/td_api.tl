@@ -11425,7 +11425,7 @@ encryptGroupCallData group_call_id:int32 data_channel:GroupCallDataChannel data:
 //@description Decrypts group call data received by tgcalls
 //@group_call_id Group call identifier. The call must not be a voice chat
 //@participant_id Identifier of the group call participant, which sent the data
-//@data_channel Data channel for which data was encrypted
+//@data_channel Data channel for which data was encrypted; pass null if unknown
 //@data Data to decrypt
 decryptGroupCallData group_call_id:int32 participant_id:MessageSender data_channel:GroupCallDataChannel data:bytes = Data;
 
