@@ -9695,6 +9695,13 @@ bool need_poll_message_content_extended_media(const MessageContent *content) {
   }
 }
 
+bool need_poll_conference_call_message_content(const MessageContent *content) {
+  CHECK(content != nullptr);
+  CHECK(content->get_type() == MessageContentType::ConferenceCall);
+  const auto *call = static_cast<const MessageConferenceCall *>(content);
+  return call->duration == 0 && !call->is_active && !call->was_missed;
+}
+
 void set_message_content_video_start_timestamp(MessageContent *content, int32 start_timestamp) {
   CHECK(content != nullptr);
   switch (content->get_type()) {

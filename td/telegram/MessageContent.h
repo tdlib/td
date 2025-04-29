@@ -326,6 +326,8 @@ bool update_message_content_extended_media(
 
 bool need_poll_message_content_extended_media(const MessageContent *content);
 
+bool need_poll_conference_call_message_content(const MessageContent *content);
+
 void set_message_content_video_start_timestamp(MessageContent *content, int32 start_timestamp);
 
 void get_message_content_animated_emoji_click_sticker(const MessageContent *content, MessageFullId message_full_id,

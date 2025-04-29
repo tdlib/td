@@ -1517,6 +1517,9 @@ void GroupCallManager::on_update_group_call_timeout(int64 call_id) {
   if (it == group_call_message_full_ids_.end()) {
     return;
   }
+  if (!td_->messages_manager_->need_poll_group_call_message(it->second)) {
+    return;
+  }
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), call_id](Unit) {
     send_closure(actor_id, &GroupCallManager::on_update_group_call_message, call_id);
   });
@@ -1532,7 +1535,7 @@ void GroupCallManager::on_update_group_call_message(int64 call_id) {
   if (it == group_call_message_full_ids_.end()) {
     return;
   }
-  update_group_call_timeout_.add_timeout_in(call_id, 60);
+  update_group_call_timeout_.add_timeout_in(call_id, 3);
 }
 
 void GroupCallManager::on_poll_group_call_blocks_timeout_callback(void *group_call_manager_ptr, int64 call_id) {
