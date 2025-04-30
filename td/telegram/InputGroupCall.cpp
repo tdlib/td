@@ -12,8 +12,6 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 
-#include "td/utils/logging.h"
-
 namespace td {
 
 Result<InputGroupCall> InputGroupCall::get_input_group_call(

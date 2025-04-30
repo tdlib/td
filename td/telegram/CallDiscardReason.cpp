@@ -8,7 +8,6 @@
 
 #include "td/telegram/LinkManager.h"
 
-#include "td/utils/buffer.h"
 #include "td/utils/common.h"
 
 namespace td {

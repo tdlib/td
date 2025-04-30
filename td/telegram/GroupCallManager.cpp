@@ -8,8 +8,6 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/CallId.h"
-#include "td/telegram/CallManager.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogActionManager.h"
@@ -24,6 +22,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
@@ -37,8 +36,11 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
+#include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/UInt.h"
 
+#include <algorithm>
 #include <map>
 #include <utility>
 
@@ -535,7 +537,6 @@ class GetInputGroupCallParticipantsQuery final : public Td::ResultHandler {
     }
 
     auto participants = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive group call participants: " << to_string(participants);
 
     td_->user_manager_->on_get_users(std::move(participants->users_), "GetInputGroupCallParticipantsQuery");
     td_->chat_manager_->on_get_chats(std::move(participants->chats_), "GetInputGroupCallParticipantsQuery");
@@ -3356,8 +3357,7 @@ void GroupCallManager::on_join_group_call(InputGroupCall &&input_group_call, Gro
     CHECK(r_ok.is_ok());
     if (begins_with(r_updates.error().message(), "CONF_WRITE_CHAIN_INVALID")) {
       LOG(INFO) << "Restart join of " << input_group_call << ", because group call state has changed";
-      return td_->group_call_manager_->try_join_group_call(std::move(input_group_call), std::move(join_parameters),
-                                                           std::move(promise));
+      return try_join_group_call(std::move(input_group_call), std::move(join_parameters), std::move(promise));
     }
     return promise.set_error(r_updates.move_as_error());
   }

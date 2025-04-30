@@ -5095,7 +5095,7 @@ class CliClient final : public Actor {
           chat_id,
           td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), get_added_sticker_file_ids()),
           areas, get_caption(), rules, active_period ? active_period : 86400, get_reposted_story_full_id(),
-          op == "sspp", protect_content));
+          op == "pspp", protect_content));
     } else if (op == "psv" || op == "psvp") {
       ChatId chat_id;
       string video;
@@ -5110,7 +5110,7 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), get_added_sticker_file_ids(),
                                                               duration, 0.5, true),
           areas, get_caption(), rules, active_period ? active_period : 86400, get_reposted_story_full_id(),
-          op == "ssvp", protect_content));
+          op == "psvp", protect_content));
     } else if (op == "esc") {
       ChatId story_poster_chat_id;
       StoryId story_id;
