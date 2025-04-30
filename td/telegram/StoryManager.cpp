@@ -1062,7 +1062,8 @@ class CanSendStoryQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(td_api::make_object<td_api::canPostStoryResultOk>());
+    auto ptr = result_ptr.move_as_ok();
+    promise_.set_value(td_api::make_object<td_api::canPostStoryResultOk>(ptr->count_remains_));
   }
 
   void on_error(Status status) final {
@@ -3628,7 +3629,7 @@ td_api::object_ptr<td_api::CanPostStoryResult> StoryManager::get_can_post_story_
       if (retry_after > 0 || force) {
         return td_api::make_object<td_api::canPostStoryResultWeeklyLimitExceeded>(max(retry_after, 0));
       } else {
-        return td_api::make_object<td_api::canPostStoryResultOk>();
+        return td_api::make_object<td_api::canPostStoryResultOk>(1);
       }
     }
   }
@@ -3639,7 +3640,7 @@ td_api::object_ptr<td_api::CanPostStoryResult> StoryManager::get_can_post_story_
       if (retry_after > 0 || force) {
         return td_api::make_object<td_api::canPostStoryResultMonthlyLimitExceeded>(max(retry_after, 0));
       } else {
-        return td_api::make_object<td_api::canPostStoryResultOk>();
+        return td_api::make_object<td_api::canPostStoryResultOk>(1);
       }
     }
   }

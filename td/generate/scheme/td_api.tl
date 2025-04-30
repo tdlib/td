@@ -6650,8 +6650,8 @@ hashtags hashtags:vector<string> = Hashtags;
 
 //@class CanPostStoryResult @description Represents result of checking whether the current user can post a story on behalf of the specific chat
 
-//@description A story can be sent
-canPostStoryResultOk = CanPostStoryResult;
+//@description A story can be sent @story_count Number of stories that can be posted by the user
+canPostStoryResultOk story_count:int32 = CanPostStoryResult;
 
 //@description The user must subscribe to Telegram Premium to be able to post stories
 canPostStoryResultPremiumNeeded = CanPostStoryResult;
