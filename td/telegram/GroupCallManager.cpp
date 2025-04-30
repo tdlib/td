@@ -1953,7 +1953,8 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
   }
 
   if (group_call != nullptr && group_call->is_inited) {
-    bool can_be_managed = group_call->is_active && can_manage_group_calls(group_call->dialog_id).is_ok();
+    bool can_be_managed =
+        !group_call->is_conference && group_call->is_active && can_manage_group_calls(group_call->dialog_id).is_ok();
     if (can_be_managed != group_call->can_be_managed) {
       group_call->can_be_managed = can_be_managed;
       send_update_group_call(group_call, "on_update_group_call_rights");
@@ -4437,8 +4438,8 @@ void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, 
                       }));
     return;
   }
-  if (!group_call->is_active || !group_call->can_be_managed) {
-    return promise.set_error(Status::Error(400, "Can't reset invite hash in the group call"));
+  if (!group_call->is_active || !(group_call->is_conference ? group_call->is_creator : group_call->can_be_managed)) {
+    return promise.set_error(Status::Error(400, "Can't revoke invite link in the group call"));
   }
 
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))->send(input_group_call_id, true, false, false);
@@ -5482,8 +5483,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   auto *group_call = add_group_call(input_group_call_id, dialog_id);
   call.group_call_id = group_call->group_call_id;
   call.dialog_id = dialog_id.is_valid() ? dialog_id : group_call->dialog_id;
-  call.can_be_managed = call.is_active && can_manage_group_calls(call.dialog_id).is_ok();
-  call.can_self_unmute = call.is_active && (!call.mute_new_participants || call.can_be_managed);
+  call.can_be_managed = call.is_active && !call.is_conference && can_manage_group_calls(call.dialog_id).is_ok();
+  call.can_self_unmute = call.is_active && (!call.mute_new_participants || call.can_be_managed || call.is_creator);
   if (!group_call->dialog_id.is_valid()) {
     group_call->dialog_id = dialog_id;
   }
