@@ -4658,11 +4658,11 @@ class CliClient final : public Actor {
       GroupCallId group_call_id;
       get_args(args, group_call_id);
       send_request(td_api::make_object<td_api::endGroupCallScreenSharing>(group_call_id));
-    } else if (op == "sgct") {
+    } else if (op == "svct") {
       GroupCallId group_call_id;
       string title;
       get_args(args, group_call_id, title);
-      send_request(td_api::make_object<td_api::setGroupCallTitle>(group_call_id, title));
+      send_request(td_api::make_object<td_api::setVideoChatTitle>(group_call_id, title));
     } else if (op == "tgcmnp" || op == "tgcmnpe") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);

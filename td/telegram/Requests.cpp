@@ -4534,7 +4534,7 @@ void Requests::on_request(uint64 id, const td_api::endGroupCallScreenSharing &re
   td_->group_call_manager_->end_group_call_screen_sharing(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::setGroupCallTitle &request) {
+void Requests::on_request(uint64 id, td_api::setVideoChatTitle &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);
   CREATE_OK_REQUEST_PROMISE();

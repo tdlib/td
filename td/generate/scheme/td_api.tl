@@ -11290,11 +11290,11 @@ toggleVideoChatEnabledStartNotification group_call_id:int32 enabled_start_notifi
 //@description Joins a group call that is not bound to a chat @input_group_call The group call to join @join_parameters Parameters to join the call
 joinGroupCall input_group_call:InputGroupCall join_parameters:groupCallJoinParameters = GroupCallInfo;
 
-//@description Joins an active group call. Returns join response payload for tgcalls
+//@description Joins an active video chat. Returns join response payload for tgcalls
 //@group_call_id Group call identifier
 //@participant_id Identifier of a group call participant, which will be used to join the call; pass null to join as self; video chats only
 //@join_parameters Parameters to join the call
-//@invite_hash If non-empty, invite hash to be used to join the group call without being muted by administrators
+//@invite_hash Invite hash as received from internalLinkTypeVideoChat
 joinVideoChat group_call_id:int32 participant_id:MessageSender join_parameters:groupCallJoinParameters invite_hash:string = Text;
 
 //@description Starts screen sharing in a joined group call. Returns join response payload for tgcalls
@@ -11309,8 +11309,8 @@ toggleGroupCallScreenSharingIsPaused group_call_id:int32 is_paused:Bool = Ok;
 //@description Ends screen sharing in a joined group call @group_call_id Group call identifier
 endGroupCallScreenSharing group_call_id:int32 = Ok;
 
-//@description Sets group call title. Requires groupCall.can_be_managed group call flag @group_call_id Group call identifier @title New group call title; 1-64 characters
-setGroupCallTitle group_call_id:int32 title:string = Ok;
+//@description Sets title of a video chat; requires groupCall.can_be_managed right @group_call_id Group call identifier @title New group call title; 1-64 characters
+setVideoChatTitle group_call_id:int32 title:string = Ok;
 
 //@description Toggles whether new participants of a group call can be unmuted only by administrators of the group call. Requires groupCall.can_toggle_mute_new_participants group call flag
 //@group_call_id Group call identifier

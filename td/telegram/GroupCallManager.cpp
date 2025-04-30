@@ -3937,7 +3937,7 @@ void GroupCallManager::set_group_call_title(GroupCallId group_call_id, string ti
         }));
     return;
   }
-  if (!group_call->is_active || !group_call->can_be_managed) {
+  if (group_call->is_conference || !group_call->is_active || !group_call->can_be_managed) {
     return promise.set_error(Status::Error(400, "Can't change group call title"));
   }
 

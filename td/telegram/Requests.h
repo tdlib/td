@@ -747,7 +747,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::endGroupCallScreenSharing &request);
 
-  void on_request(uint64 id, td_api::setGroupCallTitle &request);
+  void on_request(uint64 id, td_api::setVideoChatTitle &request);
 
   void on_request(uint64 id, const td_api::toggleGroupCallMuteNewParticipants &request);
 
