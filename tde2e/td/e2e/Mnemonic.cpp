@@ -27,13 +27,16 @@
 
 namespace tde2e_core {
 
+Mnemonic::Options::Options() = default;
+
 td::Result<Mnemonic> Mnemonic::create(td::SecureString words, td::SecureString password) {
   return create_from_normalized(normalize_and_split(std::move(words)), std::move(password));
 }
+
 td::Result<Mnemonic> Mnemonic::create(std::vector<td::SecureString> words, td::SecureString password) {
   return create(join(words), std::move(password));
 }
-Mnemonic::Options::Options() = default;
+
 td::Result<Mnemonic> Mnemonic::create_from_normalized(const std::vector<td::SecureString> &words,
                                                       td::SecureString password) {
   auto new_words = normalize_and_split(join(words));
@@ -75,6 +78,7 @@ bool Mnemonic::is_password_seed() const {
 std::vector<td::SecureString> Mnemonic::get_words() const {
   return td::transform(words_, [](const auto &word) { return word.copy(); });
 }
+
 td::SecureString Mnemonic::get_words_string() const {
   CHECK(words_.size() > 0);
   size_t length = words_.size() - 1;
@@ -126,6 +130,7 @@ td::StringBuilder &operator<<(td::StringBuilder &sb, const Mnemonic &mnemonic) {
 Mnemonic::Mnemonic(std::vector<td::SecureString> words, td::SecureString password)
     : words_(std::move(words)), password_(std::move(password)) {
 }
+
 td::SecureString Mnemonic::join(td::Span<td::SecureString> words) {
   size_t res_size = 0;
   for (size_t i = 0; i < words.size(); i++) {
@@ -168,7 +173,7 @@ std::vector<std::string> Mnemonic::generate_verification_words(td::Slice data) {
   static constexpr size_t BITS_PER_WORD = 11;
   static constexpr size_t BIP_WORD_COUNT = 1 << BITS_PER_WORD;
   static constexpr size_t HASH_SIZE = 64;
-  static_assert(VERIFICATION_WORD_COUNT * BITS_PER_WORD <= HASH_SIZE * 8, "Verification words count is too large");
+  static_assert(VERIFICATION_WORD_COUNT * BITS_PER_WORD <= HASH_SIZE * 8, "Verification word count is too large");
 
   static auto bip_words = Mnemonic::normalize_and_split(td::SecureString(bip39_english()));
   CHECK(bip_words.size() == BIP_WORD_COUNT);
@@ -195,11 +200,11 @@ std::vector<std::string> Mnemonic::generate_verification_words(td::Slice data) {
 
 td::Result<Mnemonic> Mnemonic::create_new(Options options) {
   td::Timer timer;
-  if (options.words_count == 0) {
-    options.words_count = 24;
+  if (options.word_count == 0) {
+    options.word_count = 24;
   }
-  if (options.words_count < 8 || options.words_count > 48) {
-    return td::Status::Error(PSLICE() << "Invalid words count(" << options.words_count
+  if (options.word_count < 8 || options.word_count > 48) {
+    return td::Status::Error(PSLICE() << "Invalid number of words (" << options.word_count
                                       << ") requested for mnemonic creation");
   }
   td::int32 max_iterations = 256 * 20;
@@ -218,9 +223,9 @@ td::Result<Mnemonic> Mnemonic::create_new(Options options) {
   int A = 0, B = 0, C = 0;
   for (int iteration = 0; iteration < max_iterations; iteration++) {
     std::vector<td::SecureString> words;
-    td::SecureString rnd((options.words_count * 11 + 7) / 8);
+    td::SecureString rnd((options.word_count * 11 + 7) / 8);
     td::Random::secure_bytes(rnd.as_mutable_slice());
-    for (int i = 0; i < options.words_count; i++) {
+    for (int i = 0; i < options.word_count; i++) {
       size_t word_i = 0;
       for (size_t j = 0; j < 11; j++) {
         size_t offset = i * 11 + j;

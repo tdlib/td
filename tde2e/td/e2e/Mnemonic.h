@@ -23,7 +23,7 @@ class Mnemonic {
   static td::Result<Mnemonic> create(std::vector<td::SecureString> words, td::SecureString password);
   struct Options {
     Options();
-    int words_count = 24;
+    int word_count = 24;
     td::SecureString password;
     td::SecureString entropy;
   };
