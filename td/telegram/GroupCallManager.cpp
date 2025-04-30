@@ -3206,6 +3206,9 @@ void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Pro
                       }));
     return;
   }
+  if (group_call->is_conference) {
+    return promise.set_error(Status::Error(400, "The group call isn't scheduled"));
+  }
   if (!group_call->can_be_managed) {
     return promise.set_error(Status::Error(400, "Not enough rights to start the group call"));
   }

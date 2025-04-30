@@ -11279,8 +11279,8 @@ replaceVideoChatRtmpUrl chat_id:int53 = RtmpUrl;
 //@description Returns information about a group call @group_call_id Group call identifier
 getGroupCall group_call_id:int32 = GroupCall;
 
-//@description Starts a scheduled group call @group_call_id Group call identifier
-startScheduledGroupCall group_call_id:int32 = Ok;
+//@description Starts a scheduled video chat @group_call_id Group call identifier of the video chat
+startScheduledVideoChat group_call_id:int32 = Ok;
 
 //@description Toggles whether the current user will receive a notification when the group call starts; scheduled group calls only
 //@group_call_id Group call identifier

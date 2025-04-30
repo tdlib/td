@@ -4617,10 +4617,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::decryptGroupCallData>(
           group_call_id, as_message_sender(participant_id),
           op == "dgcds" ? td_api::make_object<td_api::groupCallDataChannelScreenSharing>() : nullptr, data));
-    } else if (op == "ssgc") {
+    } else if (op == "ssvc") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);
-      send_request(td_api::make_object<td_api::startScheduledGroupCall>(group_call_id));
+      send_request(td_api::make_object<td_api::startScheduledVideoChat>(group_call_id));
     } else if (op == "tgcesn" || op == "tgcesne") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);

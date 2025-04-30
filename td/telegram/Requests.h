@@ -735,7 +735,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getGroupCall &request);
 
-  void on_request(uint64 id, const td_api::startScheduledGroupCall &request);
+  void on_request(uint64 id, const td_api::startScheduledVideoChat &request);
 
   void on_request(uint64 id, const td_api::toggleGroupCallEnabledStartNotification &request);
 
