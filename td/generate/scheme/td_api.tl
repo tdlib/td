@@ -2492,7 +2492,7 @@ savedMessagesTags tags:vector<savedMessagesTag> = SavedMessagesTags;
 businessBotManageBar bot_user_id:int53 manage_url:string is_bot_paused:Bool can_bot_reply:Bool = BusinessBotManageBar;
 
 
-//@description Describes a video chat
+//@description Describes a video chat, i.e. a group call bound to a chat
 //@group_call_id Group call identifier of an active video chat; 0 if none. Full information about the video chat can be received through the method getGroupCall
 //@has_participants True, if the video chat has participants
 //@default_participant_id Default group call participant identifier to join the video chat; may be null
@@ -3227,7 +3227,7 @@ linkPreviewTypeExternalAudio url:string mime_type:string duration:int32 = LinkPr
 //@duration Duration of the video, in seconds; 0 if unknown
 linkPreviewTypeExternalVideo url:string mime_type:string width:int32 height:int32 duration:int32 = LinkPreviewType;
 
-//@description The link is a link to a group call
+//@description The link is a link to a group call that isn't bound to a chat
 linkPreviewTypeGroupCall = LinkPreviewType;
 
 //@description The link is a link to an invoice
@@ -3951,13 +3951,13 @@ messageInvoice product_info:productInfo currency:string total_amount:int53 start
 //@description A message with information about an ended call @is_video True, if the call was a video call @discard_reason Reason why the call was discarded @duration Call duration, in seconds
 messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = MessageContent;
 
-//@description A message with information about a group call not bound to a chat. If the message is incoming, the call isn't active, isn't missed and has no duration,
+//@description A message with information about a group call not bound to a chat. If the message is incoming, the call isn't active, isn't missed, and has no duration,
 //-and getOption("can_accept_calls") is true, then incoming call screen must be shown to the user. Use joinGroupCall to accept the call or declineGroupCallInvitation to decline it.
 //-If the call become active or missed, then the call screen must be hidden
-//@is_active True, if the call is active
-//@was_missed True, if the user was called by another participant of the group call
+//@is_active True, if the call is active, i.e. the called user joined the call
+//@was_missed True, if the called user missed or declined the call
 //@is_video True, if the call is a video call
-//@duration Call duration, in seconds; for ended calls only
+//@duration Call duration, in seconds; for left calls only
 //@other_participant_ids Identifiers of some other call participants
 messageGroupCall is_active:Bool was_missed:Bool is_video:Bool duration:int32 other_participant_ids:vector<MessageSender> = MessageContent;
 
@@ -5342,26 +5342,26 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 
 //@description Describes a group call
 //@id Group call identifier
-//@title Group call title
+//@title Group call title; for video chats only
 //@invite_link Invite link for the group call; for group calls that aren't bound to a chat
-//@scheduled_start_date Point in time (Unix timestamp) when the group call is expected to be started by an administrator; 0 if it is already active or was ended
-//@enabled_start_notification True, if the group call is scheduled and the current user will receive a notification when the group call starts
+//@scheduled_start_date Point in time (Unix timestamp) when the group call is expected to be started by an administrator; 0 if it is already active or was ended; for video chats only
+//@enabled_start_notification True, if the group call is scheduled and the current user will receive a notification when the group call starts; for video chats only
 //@is_active True, if the call is active
-//@is_video_chat True, if the chat is bound to a chat
-//@is_rtmp_stream True, if the chat is an RTMP stream instead of an ordinary video chat
+//@is_video_chat True, if the call is bound to a chat
+//@is_rtmp_stream True, if the call is an RTMP stream instead of an ordinary video chat; for video chats only
 //@is_joined True, if the call is joined
 //@need_rejoin True, if user was kicked from the call because of network loss and the call needs to be rejoined
 //@is_owned True, if the user is the owner of the call and can end the call, change volume level of other users, or ban users there; for group calls that aren't bound to a chat
 //@can_be_managed True, if the current user can manage the group call; for video chats only
 //@participant_count Number of participants in the group call
-//@has_hidden_listeners True, if group call participants, which are muted, aren't returned in participant list
+//@has_hidden_listeners True, if group call participants, which are muted, aren't returned in participant list; for video chats only
 //@loaded_all_participants True, if all group call participants are loaded
 //@recent_speakers At most 3 recently speaking users in the group call
 //@is_my_video_enabled True, if the current user's video is enabled
 //@is_my_video_paused True, if the current user's video is paused
 //@can_enable_video True, if the current user can broadcast video or share screen
-//@mute_new_participants True, if only group call administrators can unmute new participants
-//@can_toggle_mute_new_participants True, if the current user can enable or disable mute_new_participants setting
+//@mute_new_participants True, if only group call administrators can unmute new participants; for video chats only
+//@can_toggle_mute_new_participants True, if the current user can enable or disable mute_new_participants setting; for video chats only
 //@record_duration Duration of the ongoing group call recording, in seconds; 0 if none. An updateGroupCall update is not triggered when value of this field changes, but the same recording goes on
 //@is_video_recorded True, if a video file is being recorded for the call
 //@duration Call duration, in seconds; for ended calls only
@@ -7393,7 +7393,7 @@ internalLinkTypeEditProfileSettings = InternalLinkType;
 //@game_short_name Short name of the game
 internalLinkTypeGame bot_username:string game_short_name:string = InternalLinkType;
 
-//@description The link is a link to a group call. Call joinGroupCall with the given invite_link @invite_link Internal representation of the invite link
+//@description The link is a link to a group call that isn't bound to a chat. Call joinGroupCall with the given invite_link @invite_link Internal representation of the invite link
 internalLinkTypeGroupCall invite_link:string = InternalLinkType;
 
 //@description The link must be opened in an Instant View. Call getWebPageInstantView with the given URL to process the link.
@@ -8548,23 +8548,23 @@ updateApplicationRecaptchaVerificationRequired verification_id:int53 action:stri
 //@description New call was created or information about a call was updated @call New data about a call
 updateCall call:call = Update;
 
-//@description Information about a group call was updated @group_call New data about a group call
+//@description Information about a group call was updated @group_call New data about the group call
 updateGroupCall group_call:groupCall = Update;
 
 //@description Information about a group call participant was changed. The updates are sent only after the group call is received through getGroupCall and only if the call is joined or being joined
-//@group_call_id Identifier of group call
-//@participant New data about a participant
+//@group_call_id Identifier of the group call
+//@participant New data about the participant
 updateGroupCallParticipant group_call_id:int32 participant:groupCallParticipant = Update;
 
 //@description The list of group call participants that can send and receive encrypted call data has changed; for group calls not bound to a chat only
-//@group_call_id Identifier of group call
+//@group_call_id Identifier of the group call
 //@participant_user_ids New list of group call participant user identifiers. The identifiers may be invalid or the corresponding users may be unknown.
 //-The participants must be shown in the list of group call participants even there is no information about them
 updateGroupCallParticipants group_call_id:int32 participant_user_ids:vector<int64> = Update;
 
 //@description The verification state of an encrypted group call has changed; for group calls not bound to a chat only
-//@group_call_id Identifier of group call
-//@generation The call state generation to which the emoji corresponds
+//@group_call_id Identifier of the group call
+//@generation The call state generation to which the emoji corresponds. If generation is different for two users, then their emoji may be also different
 //@emojis Group call state fingerprint represented as 4 emoji; may be empty if the state isn't verified yet
 updateGroupCallVerificationState group_call_id:int32 generation:int32 emojis:vector<string> = Update;
 
@@ -11267,13 +11267,13 @@ setVideoChatDefaultParticipant chat_id:int53 default_participant_id:MessageSende
 //@is_rtmp_stream Pass true to create an RTMP stream instead of an ordinary video chat
 createVideoChat chat_id:int53 title:string start_date:int32 is_rtmp_stream:Bool = GroupCallId;
 
-//@description Creates a new group call @join_parameters Parameters to join the call; pass null to only create call link without joining the call
+//@description Creates a new group call that isn't bound to a chat @join_parameters Parameters to join the call; pass null to only create call link without joining the call
 createGroupCall join_parameters:groupCallJoinParameters = GroupCallInfo;
 
-//@description Returns RTMP URL for streaming to the chat; requires can_manage_video_chats administrator right @chat_id Chat identifier
+//@description Returns RTMP URL for streaming to the video chat of a chat; requires can_manage_video_chats administrator right @chat_id Chat identifier
 getVideoChatRtmpUrl chat_id:int53 = RtmpUrl;
 
-//@description Replaces the current RTMP URL for streaming to the chat; requires owner privileges @chat_id Chat identifier
+//@description Replaces the current RTMP URL for streaming to the video chat of a chat; requires owner privileges in the chat @chat_id Chat identifier
 replaceVideoChatRtmpUrl chat_id:int53 = RtmpUrl;
 
 //@description Returns information about a group call @group_call_id Group call identifier
@@ -11382,7 +11382,7 @@ toggleGroupCallParticipantIsMuted group_call_id:int32 participant_id:MessageSend
 //@volume_level New participant's volume level; 1-20000 in hundreds of percents
 setGroupCallParticipantVolumeLevel group_call_id:int32 participant_id:MessageSender volume_level:int32 = Ok;
 
-//@description Toggles whether a group call participant hand is rased; for voice chats only
+//@description Toggles whether a group call participant hand is rased; for video chats only
 //@group_call_id Group call identifier
 //@participant_id Participant identifier
 //@is_hand_raised Pass true if the user's hand needs to be raised. Only self hand can be raised. Requires groupCall.can_be_managed group call flag to lower other's hand
@@ -11416,14 +11416,14 @@ getGroupCallStreams group_call_id:int32 = GroupCallStreams;
 getGroupCallStreamSegment group_call_id:int32 time_offset:int53 scale:int32 channel_id:int32 video_quality:GroupCallVideoQuality = Data;
 
 //@description Encrypts group call data before sending them over network using tgcalls
-//@group_call_id Group call identifier. The call must not be a voice chat
+//@group_call_id Group call identifier. The call must not be a video chat
 //@data_channel Data channel for which data is encrypted
 //@data Data to encrypt
 //@unencrypted_prefix_size Size of data prefix that must be kept unencrypted
 encryptGroupCallData group_call_id:int32 data_channel:GroupCallDataChannel data:bytes unencrypted_prefix_size:int32 = Data;
 
 //@description Decrypts group call data received by tgcalls
-//@group_call_id Group call identifier. The call must not be a voice chat
+//@group_call_id Group call identifier. The call must not be a video chat
 //@participant_id Identifier of the group call participant, which sent the data
 //@data_channel Data channel for which data was encrypted; pass null if unknown
 //@data Data to decrypt
