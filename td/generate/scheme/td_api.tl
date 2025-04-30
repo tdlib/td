@@ -11282,10 +11282,10 @@ getGroupCall group_call_id:int32 = GroupCall;
 //@description Starts a scheduled video chat @group_call_id Group call identifier of the video chat
 startScheduledVideoChat group_call_id:int32 = Ok;
 
-//@description Toggles whether the current user will receive a notification when the group call starts; scheduled group calls only
+//@description Toggles whether the current user will receive a notification when the video chat starts; for scheduled video chats only
 //@group_call_id Group call identifier
 //@enabled_start_notification New value of the enabled_start_notification setting
-toggleGroupCallEnabledStartNotification group_call_id:int32 enabled_start_notification:Bool = Ok;
+toggleVideoChatEnabledStartNotification group_call_id:int32 enabled_start_notification:Bool = Ok;
 
 //@description Joins a group call that is not bound to a chat @input_group_call The group call to join @join_parameters Parameters to join the call
 joinGroupCall input_group_call:InputGroupCall join_parameters:groupCallJoinParameters = GroupCallInfo;

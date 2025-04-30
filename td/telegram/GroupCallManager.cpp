@@ -4269,8 +4269,8 @@ void GroupCallManager::toggle_group_call_start_subscribed(GroupCallId group_call
                           }));
     return;
   }
-  if (!group_call->is_active || group_call->scheduled_start_date <= 0) {
-    return promise.set_error(Status::Error(400, "Group call isn't scheduled"));
+  if (group_call->is_conference || !group_call->is_active || group_call->scheduled_start_date <= 0) {
+    return promise.set_error(Status::Error(400, "The group call isn't scheduled"));
   }
 
   if (start_subscribed == get_group_call_start_subscribed(group_call)) {

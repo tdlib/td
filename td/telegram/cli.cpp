@@ -4621,11 +4621,11 @@ class CliClient final : public Actor {
       GroupCallId group_call_id;
       get_args(args, group_call_id);
       send_request(td_api::make_object<td_api::startScheduledVideoChat>(group_call_id));
-    } else if (op == "tgcesn" || op == "tgcesne") {
+    } else if (op == "tvcesn" || op == "tvcesne") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);
       send_request(
-          td_api::make_object<td_api::toggleGroupCallEnabledStartNotification>(group_call_id, op == "tgcesne"));
+          td_api::make_object<td_api::toggleVideoChatEnabledStartNotification>(group_call_id, op == "tvcesne"));
     } else if (op == "jgc" || op == "jgcv") {
       InputGroupCall input_group_call;
       get_args(args, input_group_call);

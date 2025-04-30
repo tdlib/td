@@ -4488,7 +4488,7 @@ void Requests::on_request(uint64 id, const td_api::startScheduledVideoChat &requ
   td_->group_call_manager_->start_scheduled_group_call(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::toggleGroupCallEnabledStartNotification &request) {
+void Requests::on_request(uint64 id, const td_api::toggleVideoChatEnabledStartNotification &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->group_call_manager_->toggle_group_call_start_subscribed(GroupCallId(request.group_call_id_),
