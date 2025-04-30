@@ -165,11 +165,15 @@ void PromoDataManager::on_get_promo_data(Result<telegram_api::object_ptr<telegra
       td_->user_manager_->on_get_users(std::move(promo->users_), "on_get_promo_data");
       td_->chat_manager_->on_get_chats(std::move(promo->chats_), "on_get_promo_data");
       expires_at = promo->expires_;
-      bool is_proxy = promo->proxy_;
-      td_->messages_manager_->set_sponsored_dialog(
-          DialogId(promo->peer_),
-          is_proxy ? DialogSource::mtproto_proxy()
-                   : DialogSource::public_service_announcement(promo->psa_type_, promo->psa_message_));
+      if (promo->peer_ != nullptr) {
+        bool is_proxy = promo->proxy_;
+        td_->messages_manager_->set_sponsored_dialog(
+            DialogId(promo->peer_),
+            is_proxy ? DialogSource::mtproto_proxy()
+                     : DialogSource::public_service_announcement(promo->psa_type_, promo->psa_message_));
+      } else {
+        remove_sponsored_dialog();
+      }
       break;
     }
     default:

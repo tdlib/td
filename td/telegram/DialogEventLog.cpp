@@ -501,6 +501,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           old_dialog_participant.status_.get_chat_member_status_object(),
           new_dialog_participant.status_.get_chat_member_status_object());
     }
+    case telegram_api::channelAdminLogEventActionToggleAutotranslation::ID:
+      return nullptr;
     default:
       UNREACHABLE();
       return nullptr;
