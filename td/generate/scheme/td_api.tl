@@ -5343,7 +5343,7 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@description Describes a group call
 //@id Group call identifier
 //@title Group call title; for video chats only
-//@invite_link Invite link for the group call; for group calls that aren't bound to a chat
+//@invite_link Invite link for the group call; for group calls that aren't bound to a chat. For video chats call getVideoChatInviteLink to get the link
 //@scheduled_start_date Point in time (Unix timestamp) when the group call is expected to be started by an administrator; 0 if it is already active or was ended; for video chats only
 //@enabled_start_notification True, if the group call is scheduled and the current user will receive a notification when the group call starts; for video chats only
 //@is_active True, if the call is active
@@ -11329,12 +11329,12 @@ inviteGroupCallParticipant group_call_id:int32 user_id:int53 is_video:Bool = Inv
 //@message_id Identifier of the message of the type messageGroupCall
 declineGroupCallInvitation chat_id:int53 message_id:int53 = Ok;
 
-//@description Bans users from a group call not bound to a chat. Requires groupCall.is_owned. Only the owner of the group call can invite the banned users back
+//@description Bans users from a group call not bound to a chat; requires groupCall.is_owned. Only the owner of the group call can invite the banned users back
 //@group_call_id Group call identifier
 //@user_ids Identifiers of group call participants to ban; identifiers of unknown users from the update updateGroupCallParticipants can be also passed to the method
 banGroupCallParticipants group_call_id:int32 user_ids:vector<int64> = Ok;
 
-//@description Invites users to an active video chat. Sends a service message of the type messageInviteVideoChatParticipants to the chat bound to the call
+//@description Invites users to an active video chat. Sends a service message of the type messageInviteVideoChatParticipants to the chat bound to the group call
 //@group_call_id Group call identifier
 //@user_ids User identifiers. At most 10 users can be invited simultaneously
 inviteVideoChatParticipants group_call_id:int32 user_ids:vector<int53> = Ok;
@@ -11342,7 +11342,7 @@ inviteVideoChatParticipants group_call_id:int32 user_ids:vector<int53> = Ok;
 //@description Returns invite link to a video chat in a public chat
 //@group_call_id Group call identifier
 //@can_self_unmute Pass true if the invite link needs to contain an invite hash, passing which to joinVideoChat would allow the invited user to unmute themselves. Requires groupCall.can_be_managed right
-getGroupCallInviteLink group_call_id:int32 can_self_unmute:Bool = HttpUrl;
+getVideoChatInviteLink group_call_id:int32 can_self_unmute:Bool = HttpUrl;
 
 //@description Revokes invite link for a group call. Requires groupCall.can_be_managed right for video chats or groupCall.is_owned otherwise @group_call_id Group call identifier
 revokeGroupCallInviteLink group_call_id:int32 = Ok;

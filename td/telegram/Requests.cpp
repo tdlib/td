@@ -4583,7 +4583,7 @@ void Requests::on_request(uint64 id, const td_api::inviteVideoChatParticipants &
                                                            UserId::get_user_ids(request.user_ids_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getGroupCallInviteLink &request) {
+void Requests::on_request(uint64 id, const td_api::getVideoChatInviteLink &request) {
   CHECK_IS_USER();
   CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->group_call_manager_->get_group_call_invite_link(GroupCallId(request.group_call_id_), request.can_self_unmute_,

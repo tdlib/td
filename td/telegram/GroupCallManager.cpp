@@ -4590,7 +4590,7 @@ void GroupCallManager::get_group_call_invite_link(GroupCallId group_call_id, boo
                           }));
     return;
   }
-  if (!group_call->is_active) {
+  if (group_call->is_conference || !group_call->is_active) {
     return promise.set_error(Status::Error(400, "Can't get group call invite link"));
   }
 
