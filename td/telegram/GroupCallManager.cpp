@@ -4352,7 +4352,8 @@ void GroupCallManager::toggle_group_call_mute_new_participants(GroupCallId group
                       }));
     return;
   }
-  if (!group_call->is_active || !group_call->can_be_managed || !group_call->allowed_toggle_mute_new_participants) {
+  if (group_call->is_conference || !group_call->is_active || !group_call->can_be_managed ||
+      !group_call->allowed_toggle_mute_new_participants) {
     return promise.set_error(Status::Error(400, "Can't change mute_new_participants setting"));
   }
 

@@ -4663,10 +4663,10 @@ class CliClient final : public Actor {
       string title;
       get_args(args, group_call_id, title);
       send_request(td_api::make_object<td_api::setVideoChatTitle>(group_call_id, title));
-    } else if (op == "tgcmnp" || op == "tgcmnpe") {
+    } else if (op == "tvcmnp" || op == "tvcmnpe") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);
-      send_request(td_api::make_object<td_api::toggleGroupCallMuteNewParticipants>(group_call_id, op == "tgcmnpe"));
+      send_request(td_api::make_object<td_api::toggleVideoChatMuteNewParticipants>(group_call_id, op == "tvcmnpe"));
     } else if (op == "rgcil") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);

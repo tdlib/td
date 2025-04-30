@@ -4542,7 +4542,7 @@ void Requests::on_request(uint64 id, td_api::setVideoChatTitle &request) {
                                                  std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::toggleGroupCallMuteNewParticipants &request) {
+void Requests::on_request(uint64 id, const td_api::toggleVideoChatMuteNewParticipants &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->group_call_manager_->toggle_group_call_mute_new_participants(GroupCallId(request.group_call_id_),
