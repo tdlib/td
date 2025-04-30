@@ -55,10 +55,10 @@ T tde2e_move_as_ok(tde2e_api::Result<T> result) {
 }  // namespace
 
 class GetGroupCallStreamChannelsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::groupCallStreams>> promise_;
+  Promise<td_api::object_ptr<td_api::videoChatStreams>> promise_;
 
  public:
-  explicit GetGroupCallStreamChannelsQuery(Promise<td_api::object_ptr<td_api::groupCallStreams>> &&promise)
+  explicit GetGroupCallStreamChannelsQuery(Promise<td_api::object_ptr<td_api::videoChatStreams>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -76,10 +76,10 @@ class GetGroupCallStreamChannelsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     auto streams = transform(ptr->channels_, [](const tl_object_ptr<telegram_api::groupCallStreamChannel> &channel) {
-      return td_api::make_object<td_api::groupCallStream>(channel->channel_, channel->scale_,
+      return td_api::make_object<td_api::videoChatStream>(channel->channel_, channel->scale_,
                                                           channel->last_timestamp_ms_);
     });
-    promise_.set_value(td_api::make_object<td_api::groupCallStreams>(std::move(streams)));
+    promise_.set_value(td_api::make_object<td_api::videoChatStreams>(std::move(streams)));
   }
 
   void on_error(Status status) final {
@@ -3039,7 +3039,7 @@ int32 GroupCallManager::cancel_join_group_call_presentation_request(InputGroupCa
 }
 
 void GroupCallManager::get_group_call_streams(GroupCallId group_call_id,
-                                              Promise<td_api::object_ptr<td_api::groupCallStreams>> &&promise) {
+                                              Promise<td_api::object_ptr<td_api::videoChatStreams>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
@@ -3057,7 +3057,7 @@ void GroupCallManager::get_group_call_streams(GroupCallId group_call_id,
                       }));
     return;
   }
-  if (!group_call->is_active || !group_call->stream_dc_id.is_exact()) {
+  if (group_call->is_conference || !group_call->is_active || !group_call->stream_dc_id.is_exact()) {
     return promise.set_error(Status::Error(400, "Group call can't be streamed"));
   }
   if (!group_call->is_joined) {
@@ -3077,7 +3077,7 @@ void GroupCallManager::get_group_call_streams(GroupCallId group_call_id,
 
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), input_group_call_id, audio_source = group_call->audio_source,
-       promise = std::move(promise)](Result<td_api::object_ptr<td_api::groupCallStreams>> &&result) mutable {
+       promise = std::move(promise)](Result<td_api::object_ptr<td_api::videoChatStreams>> &&result) mutable {
         send_closure(actor_id, &GroupCallManager::finish_get_group_call_streams, input_group_call_id, audio_source,
                      std::move(result), std::move(promise));
       });
@@ -3086,8 +3086,8 @@ void GroupCallManager::get_group_call_streams(GroupCallId group_call_id,
 }
 
 void GroupCallManager::finish_get_group_call_streams(InputGroupCallId input_group_call_id, int32 audio_source,
-                                                     Result<td_api::object_ptr<td_api::groupCallStreams>> &&result,
-                                                     Promise<td_api::object_ptr<td_api::groupCallStreams>> &&promise) {
+                                                     Result<td_api::object_ptr<td_api::videoChatStreams>> &&result,
+                                                     Promise<td_api::object_ptr<td_api::videoChatStreams>> &&promise) {
   if (!G()->close_flag() && result.is_error()) {
     auto message = result.error().message();
     if (message == "GROUPCALL_JOIN_MISSING" || message == "GROUPCALL_FORBIDDEN" || message == "GROUPCALL_INVALID") {
@@ -3120,7 +3120,7 @@ void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, 
                       }));
     return;
   }
-  if (!group_call->is_active || !group_call->stream_dc_id.is_exact()) {
+  if (group_call->is_conference || !group_call->is_active || !group_call->stream_dc_id.is_exact()) {
     return promise.set_error(Status::Error(400, "Group call can't be streamed"));
   }
   if (!group_call->is_joined) {
@@ -4623,7 +4623,7 @@ void GroupCallManager::toggle_group_call_recording(GroupCallId group_call_id, bo
             }));
     return;
   }
-  if (!group_call->is_active || !group_call->can_be_managed) {
+  if (group_call->is_conference || !group_call->is_active || !group_call->can_be_managed) {
     return promise.set_error(Status::Error(400, "Can't manage group call recording"));
   }
 
@@ -4990,6 +4990,9 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
       return;
     }
     return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  }
+  if (group_call->is_conference) {
+    return promise.set_error(Status::Error(400, "The method can be used only in video chats"));
   }
 
   auto participants = add_group_call_participants(input_group_call_id, "toggle_group_call_participant_is_hand_raised");

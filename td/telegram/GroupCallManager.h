@@ -73,7 +73,7 @@ class GroupCallManager final : public Actor {
                          Promise<td_api::object_ptr<td_api::groupCall>> &&promise);
 
   void get_group_call_streams(GroupCallId group_call_id,
-                              Promise<td_api::object_ptr<td_api::groupCallStreams>> &&promise);
+                              Promise<td_api::object_ptr<td_api::videoChatStreams>> &&promise);
 
   void get_group_call_stream_segment(GroupCallId group_call_id, int64 time_offset, int32 scale, int32 channel_id,
                                      td_api::object_ptr<td_api::GroupCallVideoQuality> quality,
@@ -260,8 +260,8 @@ class GroupCallManager final : public Actor {
                              Result<tl_object_ptr<telegram_api::phone_groupCall>> &&result);
 
   void finish_get_group_call_streams(InputGroupCallId input_group_call_id, int32 audio_source,
-                                     Result<td_api::object_ptr<td_api::groupCallStreams>> &&result,
-                                     Promise<td_api::object_ptr<td_api::groupCallStreams>> &&promise);
+                                     Result<td_api::object_ptr<td_api::videoChatStreams>> &&result,
+                                     Promise<td_api::object_ptr<td_api::videoChatStreams>> &&promise);
 
   void finish_get_group_call_stream_segment(InputGroupCallId input_group_call_id, int32 audio_source,
                                             Result<string> &&result, Promise<string> &&promise);

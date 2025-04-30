@@ -4680,13 +4680,13 @@ void Requests::on_request(uint64 id, const td_api::endGroupCall &request) {
   td_->group_call_manager_->discard_group_call(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getGroupCallStreams &request) {
+void Requests::on_request(uint64 id, const td_api::getVideoChatStreams &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->group_call_manager_->get_group_call_streams(GroupCallId(request.group_call_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::getGroupCallStreamSegment &request) {
+void Requests::on_request(uint64 id, td_api::getVideoChatStreamSegment &request) {
   CHECK_IS_USER();
   CREATE_DATA_REQUEST_PROMISE();
   td_->group_call_manager_->get_group_call_stream_segment(GroupCallId(request.group_call_id_), request.time_offset_,
