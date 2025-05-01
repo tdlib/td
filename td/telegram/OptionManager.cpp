@@ -174,6 +174,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("paid_message_earnings_per_mille", 850);
   set_default_integer_option("pinned_gift_count_max", 6);
   set_default_integer_option("group_call_participant_count_max", is_test_dc ? 5 : 200);
+  set_default_integer_option("channel_autotranslation_level_min", is_test_dc ? 1 : 3);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
@@ -384,6 +385,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "can_edit_fact_check",
                                                               "caption_length_limit_default",
                                                               "caption_length_limit_premium",
+                                                              "channel_autotranslation_level_min",
                                                               "channel_bg_icon_level_min",
                                                               "channel_custom_wallpaper_level_min",
                                                               "channel_emoji_status_level_min",
