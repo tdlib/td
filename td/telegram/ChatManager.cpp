@@ -1993,6 +1993,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(show_message_sender);
     STORE_FLAG(has_bot_verification_icon);
     STORE_FLAG(has_paid_message_star_count);
+    STORE_FLAG(autotranslation);
     END_STORE_FLAGS();
   }
 
@@ -2132,6 +2133,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(show_message_sender);
     PARSE_FLAG(has_bot_verification_icon);
     PARSE_FLAG(has_paid_message_star_count);
+    PARSE_FLAG(autotranslation);
     END_PARSE_FLAGS();
   }
 
@@ -8530,6 +8532,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
   bool show_message_sender = channel.signature_profiles_;
   auto boost_level = channel.level_;
   auto paid_message_star_count = channel.send_paid_messages_stars_;
+  bool autotranslation = channel.autotranslation_;
 
   if (have_participant_count) {
     auto channel_full = get_channel_full_const(channel_id);
@@ -8581,7 +8584,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
       if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
           c->is_megagroup != is_megagroup || c->is_scam != is_scam || c->is_fake != is_fake ||
           c->is_gigagroup != is_gigagroup || c->is_forum != is_forum || c->boost_level != boost_level ||
-          c->paid_message_star_count != paid_message_star_count) {
+          c->paid_message_star_count != paid_message_star_count || c->autotranslation != autotranslation) {
         c->has_linked_channel = has_linked_channel;
         c->is_slow_mode_enabled = is_slow_mode_enabled;
         c->is_megagroup = is_megagroup;
@@ -8595,6 +8598,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
         }
         c->boost_level = boost_level;
         c->paid_message_star_count = paid_message_star_count;
+        c->autotranslation = autotranslation;
 
         c->is_changed = true;
         invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_get_min_channel");
@@ -8725,10 +8729,11 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     c->need_save_to_database = true;
   }
   if (c->is_verified != is_verified || c->sign_messages != sign_messages ||
-      c->show_message_sender != show_message_sender) {
+      c->show_message_sender != show_message_sender || c->autotranslation != autotranslation) {
     c->is_verified = is_verified;
     c->sign_messages = sign_messages;
     c->show_message_sender = show_message_sender;
+    c->autotranslation = autotranslation;
 
     c->is_changed = true;
   }
@@ -8825,6 +8830,7 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
   bool is_verified = false;
   bool is_scam = false;
   bool is_fake = false;
+  bool autotranslation = false;
 
   LOG_IF(ERROR, channel.broadcast_ == is_megagroup)
       << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << " from " << source << ": "
@@ -8858,10 +8864,11 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
     c->need_save_to_database = true;
   }
   if (c->is_verified != is_verified || c->sign_messages != sign_messages ||
-      c->show_message_sender != show_message_sender) {
+      c->show_message_sender != show_message_sender || c->autotranslation != autotranslation) {
     c->is_verified = is_verified;
     c->sign_messages = sign_messages;
     c->show_message_sender = show_message_sender;
+    c->autotranslation = autotranslation;
 
     c->is_changed = true;
   }
@@ -8984,8 +8991,8 @@ td_api::object_ptr<td_api::updateSupergroup> ChatManager::get_update_unknown_sup
   bool is_megagroup = min_channel == nullptr ? false : min_channel->is_megagroup_;
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, 0, false,
-      false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, nullptr, false, string(), 0, false,
-      false));
+      false, false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, nullptr, false, string(), 0,
+      false, false));
 }
 
 int64 ChatManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -9022,7 +9029,7 @@ td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(Channe
   }
   return td_api::make_object<td_api::supergroup>(
       channel_id.get(), c->usernames.get_usernames_object(), c->date,
-      get_channel_status(c).get_chat_member_status_object(), c->participant_count, c->boost_level,
+      get_channel_status(c).get_chat_member_status_object(), c->participant_count, c->boost_level, c->autotranslation,
       c->has_linked_channel, c->has_location, c->sign_messages, c->show_message_sender, get_channel_join_to_send(c),
       get_channel_join_request(c), c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_forum,
       get_channel_verification_status_object(c), get_restriction_reason_has_sensitive_content(c->restriction_reasons),

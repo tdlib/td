@@ -1773,6 +1773,7 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //-getUserPrivacySettingRules, getVideoChatAvailableParticipants, searchPublicChats, or in chatFolderInviteLinkInfo.missing_chat_ids, or in userFullInfo.personal_chat_id,
 //-or for chats with messages or stories from publicForwards and foundStories
 //@boost_level Approximate boost level for the chat
+//@has_automatic_translation True, if automatic translation of messages is enabled in the channel
 //@has_linked_chat True, if the channel has a discussion group, or the supergroup is the designated discussion group for a channel
 //@has_location True, if the supergroup is connected to a location, i.e. the supergroup is a location-based supergroup
 //@sign_messages True, if messages sent to the channel contains name of the sender. This field is only applicable to channels
@@ -1789,7 +1790,7 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@paid_message_star_count Number of Telegram Stars that must be paid by non-administrator users of the supergroup chat for each sent message
 //@has_active_stories True, if the supergroup or channel has non-expired stories available to the current user
 //@has_unread_active_stories True, if the supergroup or channel has unread non-expired stories available to the current user
-supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus member_count:int32 boost_level:int32 has_linked_chat:Bool has_location:Bool sign_messages:Bool show_message_sender:Bool join_to_send_messages:Bool join_by_request:Bool is_slow_mode_enabled:Bool is_channel:Bool is_broadcast_group:Bool is_forum:Bool verification_status:verificationStatus has_sensitive_content:Bool restriction_reason:string paid_message_star_count:int53 has_active_stories:Bool has_unread_active_stories:Bool = Supergroup;
+supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus member_count:int32 boost_level:int32 has_automatic_translation:Bool has_linked_chat:Bool has_location:Bool sign_messages:Bool show_message_sender:Bool join_to_send_messages:Bool join_by_request:Bool is_slow_mode_enabled:Bool is_channel:Bool is_broadcast_group:Bool is_forum:Bool verification_status:verificationStatus has_sensitive_content:Bool restriction_reason:string paid_message_star_count:int53 has_active_stories:Bool has_unread_active_stories:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
 //@photo Chat photo; may be null if empty or unknown. If non-null, then it is the same photo as in chat.photo

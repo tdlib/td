@@ -507,6 +507,7 @@ class ChatManager final : public Actor {
     bool join_to_send = false;
     bool join_request = false;
     bool stories_hidden = false;
+    bool autotranslation = false;
 
     bool is_megagroup = false;
     bool is_gigagroup = false;
