@@ -47,7 +47,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     case telegram_api::channelAdminLogEventActionParticipantJoin::ID:
       return td_api::make_object<td_api::chatEventMemberJoined>();
     case telegram_api::channelAdminLogEventActionParticipantJoinByInvite::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantJoinByInvite>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionParticipantJoinByInvite>(action_ptr);
       DialogInviteLink invite_link(std::move(action->invite_), true, false,
                                    "channelAdminLogEventActionParticipantJoinByInvite");
       if (!invite_link.is_valid()) {
@@ -58,7 +59,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           invite_link.get_chat_invite_link_object(td->user_manager_.get()), action->via_chatlist_);
     }
     case telegram_api::channelAdminLogEventActionParticipantJoinByRequest::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantJoinByRequest>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionParticipantJoinByRequest>(action_ptr);
       DialogInviteLink invite_link(std::move(action->invite_), true, true,
                                    "channelAdminLogEventActionParticipantJoinByRequest");
       UserId approver_user_id(action->approved_by_);
@@ -72,7 +74,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     case telegram_api::channelAdminLogEventActionParticipantLeave::ID:
       return td_api::make_object<td_api::chatEventMemberLeft>();
     case telegram_api::channelAdminLogEventActionParticipantInvite::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantInvite>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionParticipantInvite>(action_ptr);
       DialogParticipant dialog_participant(std::move(action->participant_),
                                            td->chat_manager_->get_channel_type(channel_id));
       if (!dialog_participant.is_valid() || dialog_participant.dialog_id_.get_type() != DialogType::User) {
@@ -84,7 +86,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           dialog_participant.status_.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleBan::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleBan>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionParticipantToggleBan>(action_ptr);
       auto channel_type = td->chat_manager_->get_channel_type(channel_id);
       DialogParticipant old_dialog_participant(std::move(action->prev_participant_), channel_type);
       DialogParticipant new_dialog_participant(std::move(action->new_participant_), channel_type);
@@ -102,7 +105,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           new_dialog_participant.status_.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleAdmin::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleAdmin>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionParticipantToggleAdmin>(action_ptr);
       auto channel_type = td->chat_manager_->get_channel_type(channel_id);
       DialogParticipant old_dialog_participant(std::move(action->prev_participant_), channel_type);
       DialogParticipant new_dialog_participant(std::move(action->new_participant_), channel_type);
@@ -122,27 +126,27 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           new_dialog_participant.status_.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionChangeTitle::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeTitle>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeTitle>(action_ptr);
       return td_api::make_object<td_api::chatEventTitleChanged>(std::move(action->prev_value_),
                                                                 std::move(action->new_value_));
     }
     case telegram_api::channelAdminLogEventActionChangeAbout::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeAbout>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeAbout>(action_ptr);
       return td_api::make_object<td_api::chatEventDescriptionChanged>(std::move(action->prev_value_),
                                                                       std::move(action->new_value_));
     }
     case telegram_api::channelAdminLogEventActionChangeUsername::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeUsername>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeUsername>(action_ptr);
       return td_api::make_object<td_api::chatEventUsernameChanged>(std::move(action->prev_value_),
                                                                    std::move(action->new_value_));
     }
     case telegram_api::channelAdminLogEventActionChangeUsernames::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeUsernames>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeUsernames>(action_ptr);
       return td_api::make_object<td_api::chatEventActiveUsernamesChanged>(std::move(action->prev_value_),
                                                                           std::move(action->new_value_));
     }
     case telegram_api::channelAdminLogEventActionChangePhoto::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangePhoto>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangePhoto>(action_ptr);
       auto old_photo = get_photo(td, std::move(action->prev_photo_), DialogId(channel_id));
       auto new_photo = get_photo(td, std::move(action->new_photo_), DialogId(channel_id));
       auto file_manager = td->file_manager_.get();
@@ -150,7 +154,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
                                                                 get_chat_photo_object(file_manager, new_photo));
     }
     case telegram_api::channelAdminLogEventActionDefaultBannedRights::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDefaultBannedRights>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionDefaultBannedRights>(action_ptr);
       auto channel_type = td->chat_manager_->get_channel_type(channel_id);
       auto old_permissions = RestrictedRights(action->prev_banned_rights_, channel_type);
       auto new_permissions = RestrictedRights(action->new_banned_rights_, channel_type);
@@ -158,19 +163,20 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
                                                                       new_permissions.get_chat_permissions_object());
     }
     case telegram_api::channelAdminLogEventActionToggleInvites::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleInvites>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionToggleInvites>(action_ptr);
       return td_api::make_object<td_api::chatEventInvitesToggled>(action->new_value_);
     }
     case telegram_api::channelAdminLogEventActionToggleSignatures::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleSignatures>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionToggleSignatures>(action_ptr);
       return td_api::make_object<td_api::chatEventSignMessagesToggled>(action->new_value_);
     }
     case telegram_api::channelAdminLogEventActionToggleSignatureProfiles::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleSignatureProfiles>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionToggleSignatureProfiles>(action_ptr);
       return td_api::make_object<td_api::chatEventShowMessageSenderToggled>(action->new_value_);
     }
     case telegram_api::channelAdminLogEventActionUpdatePinned::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionUpdatePinned>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionUpdatePinned>(action_ptr);
       auto message = td->messages_manager_->get_dialog_event_log_message_object(
           DialogId(channel_id), std::move(action->message_), actor_dialog_id);
       if (message == nullptr) {
@@ -186,7 +192,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return nullptr;
     }
     case telegram_api::channelAdminLogEventActionEditMessage::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionEditMessage>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionEditMessage>(action_ptr);
       DialogId old_sender_dialog_id;
       auto old_message = td->messages_manager_->get_dialog_event_log_message_object(
           DialogId(channel_id), std::move(action->prev_message_), old_sender_dialog_id);
@@ -202,7 +208,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return td_api::make_object<td_api::chatEventMessageEdited>(std::move(old_message), std::move(new_message));
     }
     case telegram_api::channelAdminLogEventActionStopPoll::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionStopPoll>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionStopPoll>(action_ptr);
       auto message = td->messages_manager_->get_dialog_event_log_message_object(
           DialogId(channel_id), std::move(action->message_), actor_dialog_id);
       if (message == nullptr) {
@@ -211,7 +217,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return td_api::make_object<td_api::chatEventPollStopped>(std::move(message));
     }
     case telegram_api::channelAdminLogEventActionDeleteMessage::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDeleteMessage>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionDeleteMessage>(action_ptr);
       auto message = td->messages_manager_->get_dialog_event_log_message_object(
           DialogId(channel_id), std::move(action->message_), actor_dialog_id);
       if (message == nullptr) {
@@ -220,25 +226,27 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       return td_api::make_object<td_api::chatEventMessageDeleted>(std::move(message), false);
     }
     case telegram_api::channelAdminLogEventActionChangeStickerSet::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeStickerSet>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeStickerSet>(action_ptr);
       auto old_sticker_set_id = td->stickers_manager_->add_sticker_set(std::move(action->prev_stickerset_));
       auto new_sticker_set_id = td->stickers_manager_->add_sticker_set(std::move(action->new_stickerset_));
       return td_api::make_object<td_api::chatEventStickerSetChanged>(old_sticker_set_id.get(),
                                                                      new_sticker_set_id.get());
     }
     case telegram_api::channelAdminLogEventActionChangeEmojiStickerSet::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeEmojiStickerSet>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeEmojiStickerSet>(action_ptr);
       auto old_sticker_set_id = td->stickers_manager_->add_sticker_set(std::move(action->prev_stickerset_));
       auto new_sticker_set_id = td->stickers_manager_->add_sticker_set(std::move(action->new_stickerset_));
       return td_api::make_object<td_api::chatEventCustomEmojiStickerSetChanged>(old_sticker_set_id.get(),
                                                                                 new_sticker_set_id.get());
     }
     case telegram_api::channelAdminLogEventActionTogglePreHistoryHidden::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionTogglePreHistoryHidden>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionTogglePreHistoryHidden>(action_ptr);
       return td_api::make_object<td_api::chatEventIsAllHistoryAvailableToggled>(!action->new_value_);
     }
     case telegram_api::channelAdminLogEventActionChangeLinkedChat::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeLinkedChat>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeLinkedChat>(action_ptr);
 
       auto get_dialog_from_channel_id = [dialog_manager = td->dialog_manager_.get()](int64 channel_id_int) {
         ChannelId channel_id(channel_id_int);
@@ -262,20 +270,21 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           td->dialog_manager_->get_chat_id_object(new_linked_dialog_id, "chatEventLinkedChatChanged 2"));
     }
     case telegram_api::channelAdminLogEventActionChangeLocation::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeLocation>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeLocation>(action_ptr);
       auto old_location = DialogLocation(td, std::move(action->prev_value_));
       auto new_location = DialogLocation(td, std::move(action->new_value_));
       return td_api::make_object<td_api::chatEventLocationChanged>(old_location.get_chat_location_object(),
                                                                    new_location.get_chat_location_object());
     }
     case telegram_api::channelAdminLogEventActionToggleSlowMode::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleSlowMode>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionToggleSlowMode>(action_ptr);
       auto old_slow_mode_delay = clamp(action->prev_value_, 0, 86400 * 366);
       auto new_slow_mode_delay = clamp(action->new_value_, 0, 86400 * 366);
       return td_api::make_object<td_api::chatEventSlowModeDelayChanged>(old_slow_mode_delay, new_slow_mode_delay);
     }
     case telegram_api::channelAdminLogEventActionExportedInviteEdit::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionExportedInviteEdit>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionExportedInviteEdit>(action_ptr);
       DialogInviteLink old_invite_link(std::move(action->prev_invite_), true, false,
                                        "channelAdminLogEventActionExportedInviteEdit");
       DialogInviteLink new_invite_link(std::move(action->new_invite_), true, false,
@@ -289,7 +298,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           new_invite_link.get_chat_invite_link_object(td->user_manager_.get()));
     }
     case telegram_api::channelAdminLogEventActionExportedInviteRevoke::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionExportedInviteRevoke>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionExportedInviteRevoke>(action_ptr);
       DialogInviteLink invite_link(std::move(action->invite_), true, false,
                                    "channelAdminLogEventActionExportedInviteRevoke");
       if (!invite_link.is_valid()) {
@@ -300,7 +310,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           invite_link.get_chat_invite_link_object(td->user_manager_.get()));
     }
     case telegram_api::channelAdminLogEventActionExportedInviteDelete::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionExportedInviteDelete>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionExportedInviteDelete>(action_ptr);
       DialogInviteLink invite_link(std::move(action->invite_), true, false,
                                    "channelAdminLogEventActionExportedInviteDelete");
       if (!invite_link.is_valid()) {
@@ -311,7 +322,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           invite_link.get_chat_invite_link_object(td->user_manager_.get()));
     }
     case telegram_api::channelAdminLogEventActionStartGroupCall::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionStartGroupCall>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionStartGroupCall>(action_ptr);
       auto input_group_call_id = InputGroupCallId(action->call_);
       if (!input_group_call_id.is_valid()) {
         return nullptr;
@@ -320,7 +331,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           td->group_call_manager_->get_group_call_id(input_group_call_id, DialogId(channel_id)).get());
     }
     case telegram_api::channelAdminLogEventActionDiscardGroupCall::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDiscardGroupCall>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionDiscardGroupCall>(action_ptr);
       auto input_group_call_id = InputGroupCallId(action->call_);
       if (!input_group_call_id.is_valid()) {
         return nullptr;
@@ -329,7 +340,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           td->group_call_manager_->get_group_call_id(input_group_call_id, DialogId(channel_id)).get());
     }
     case telegram_api::channelAdminLogEventActionParticipantMute::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantMute>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionParticipantMute>(action_ptr);
       GroupCallParticipant participant(action->participant_, 0);
       if (!participant.is_valid()) {
         return nullptr;
@@ -338,7 +349,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           get_message_sender_object(td, participant.dialog_id, "chatEventVideoChatParticipantIsMutedToggled"), true);
     }
     case telegram_api::channelAdminLogEventActionParticipantUnmute::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantUnmute>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionParticipantUnmute>(action_ptr);
       GroupCallParticipant participant(action->participant_, 0);
       if (!participant.is_valid()) {
         return nullptr;
@@ -347,7 +358,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           get_message_sender_object(td, participant.dialog_id, "chatEventVideoChatParticipantIsMutedToggled"), false);
     }
     case telegram_api::channelAdminLogEventActionParticipantVolume::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantVolume>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionParticipantVolume>(action_ptr);
       GroupCallParticipant participant(action->participant_, 0);
       if (!participant.is_valid()) {
         return nullptr;
@@ -357,22 +368,24 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           participant.volume_level);
     }
     case telegram_api::channelAdminLogEventActionToggleGroupCallSetting::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleGroupCallSetting>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionToggleGroupCallSetting>(action_ptr);
       return td_api::make_object<td_api::chatEventVideoChatMuteNewParticipantsToggled>(action->join_muted_);
     }
     case telegram_api::channelAdminLogEventActionChangeHistoryTTL::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeHistoryTTL>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeHistoryTTL>(action_ptr);
       auto old_value = MessageTtl(clamp(action->prev_value_, 0, 86400 * 366));
       auto new_value = MessageTtl(clamp(action->new_value_, 0, 86400 * 366));
       return td_api::make_object<td_api::chatEventMessageAutoDeleteTimeChanged>(
           old_value.get_message_auto_delete_time_object(), new_value.get_message_auto_delete_time_object());
     }
     case telegram_api::channelAdminLogEventActionToggleNoForwards::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleNoForwards>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionToggleNoForwards>(action_ptr);
       return td_api::make_object<td_api::chatEventHasProtectedContentToggled>(action->new_value_);
     }
     case telegram_api::channelAdminLogEventActionChangeAvailableReactions::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeAvailableReactions>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeAvailableReactions>(action_ptr);
       ChatReactions old_available_reactions(std::move(action->prev_value_), 0, false);
       ChatReactions new_available_reactions(std::move(action->new_value_), 0, false);
       return td_api::make_object<td_api::chatEventAvailableReactionsChanged>(
@@ -380,11 +393,11 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           new_available_reactions.get_chat_available_reactions_object(td));
     }
     case telegram_api::channelAdminLogEventActionToggleForum::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleForum>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionToggleForum>(action_ptr);
       return td_api::make_object<td_api::chatEventIsForumToggled>(action->new_value_);
     }
     case telegram_api::channelAdminLogEventActionCreateTopic::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionCreateTopic>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionCreateTopic>(action_ptr);
       auto topic_info = ForumTopicInfo(td, action->topic_);
       if (topic_info.is_empty()) {
         return nullptr;
@@ -394,7 +407,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           topic_info.get_forum_topic_info_object(td, DialogId(channel_id)));
     }
     case telegram_api::channelAdminLogEventActionEditTopic::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionEditTopic>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionEditTopic>(action_ptr);
       auto old_topic_info = ForumTopicInfo(td, action->prev_topic_);
       auto new_topic_info = ForumTopicInfo(td, action->new_topic_);
       if (old_topic_info.is_empty() || new_topic_info.is_empty() ||
@@ -417,7 +430,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           new_topic_info.get_forum_topic_info_object(td, DialogId(channel_id)));
     }
     case telegram_api::channelAdminLogEventActionDeleteTopic::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDeleteTopic>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionDeleteTopic>(action_ptr);
       auto topic_info = ForumTopicInfo(td, action->topic_);
       if (topic_info.is_empty()) {
         return nullptr;
@@ -426,7 +439,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           topic_info.get_forum_topic_info_object(td, DialogId(channel_id)));
     }
     case telegram_api::channelAdminLogEventActionPinTopic::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionPinTopic>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionPinTopic>(action_ptr);
       ForumTopicInfo old_topic_info;
       ForumTopicInfo new_topic_info;
       if (action->prev_topic_ != nullptr) {
@@ -443,11 +456,11 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           new_topic_info.get_forum_topic_info_object(td, DialogId(channel_id)));
     }
     case telegram_api::channelAdminLogEventActionToggleAntiSpam::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleAntiSpam>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionToggleAntiSpam>(action_ptr);
       return td_api::make_object<td_api::chatEventHasAggressiveAntiSpamEnabledToggled>(action->new_value_);
     }
     case telegram_api::channelAdminLogEventActionChangePeerColor::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangePeerColor>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangePeerColor>(action_ptr);
       auto old_peer_color = PeerColor(action->prev_value_);
       auto new_peer_color = PeerColor(action->new_value_);
       return td_api::make_object<td_api::chatEventAccentColorChanged>(
@@ -457,7 +470,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           new_peer_color.background_custom_emoji_id_.get());
     }
     case telegram_api::channelAdminLogEventActionChangeProfilePeerColor::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeProfilePeerColor>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeProfilePeerColor>(action_ptr);
       auto old_peer_color = PeerColor(action->prev_value_);
       auto new_peer_color = PeerColor(action->new_value_);
       return td_api::make_object<td_api::chatEventProfileAccentColorChanged>(
@@ -467,21 +481,22 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           new_peer_color.background_custom_emoji_id_.get());
     }
     case telegram_api::channelAdminLogEventActionChangeWallpaper::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeWallpaper>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeWallpaper>(action_ptr);
       auto old_background_info = BackgroundInfo(td, std::move(action->prev_value_), true);
       auto new_background_info = BackgroundInfo(td, std::move(action->new_value_), true);
       return td_api::make_object<td_api::chatEventBackgroundChanged>(
           old_background_info.get_chat_background_object(td), new_background_info.get_chat_background_object(td));
     }
     case telegram_api::channelAdminLogEventActionChangeEmojiStatus::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeEmojiStatus>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeEmojiStatus>(action_ptr);
       auto old_emoji_status = EmojiStatus(std::move(action->prev_value_));
       auto new_emoji_status = EmojiStatus(std::move(action->new_value_));
       return td_api::make_object<td_api::chatEventEmojiStatusChanged>(old_emoji_status.get_emoji_status_object(),
                                                                       new_emoji_status.get_emoji_status_object());
     }
     case telegram_api::channelAdminLogEventActionParticipantSubExtend::ID: {
-      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantSubExtend>(action_ptr);
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionParticipantSubExtend>(action_ptr);
       auto channel_type = td->chat_manager_->get_channel_type(channel_id);
       DialogParticipant old_dialog_participant(std::move(action->prev_participant_), channel_type);
       DialogParticipant new_dialog_participant(std::move(action->new_participant_), channel_type);
@@ -501,8 +516,11 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
           old_dialog_participant.status_.get_chat_member_status_object(),
           new_dialog_participant.status_.get_chat_member_status_object());
     }
-    case telegram_api::channelAdminLogEventActionToggleAutotranslation::ID:
-      return nullptr;
+    case telegram_api::channelAdminLogEventActionToggleAutotranslation::ID: {
+      auto action =
+          telegram_api::move_object_as<telegram_api::channelAdminLogEventActionToggleAutotranslation>(action_ptr);
+      return td_api::make_object<td_api::chatEventAutomaticTranslationToggled>(action->new_value_);
+    }
     default:
       UNREACHABLE();
       return nullptr;
