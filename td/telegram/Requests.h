@@ -1261,6 +1261,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::toggleSupergroupCanHaveSponsoredMessages &request);
 
+  void on_request(uint64 id, const td_api::toggleSupergroupHasAutomaticTranslation &request);
+
   void on_request(uint64 id, const td_api::toggleSupergroupHasHiddenMembers &request);
 
   void on_request(uint64 id, const td_api::toggleSupergroupHasAggressiveAntiSpamEnabled &request);

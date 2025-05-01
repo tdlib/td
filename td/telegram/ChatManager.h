@@ -259,6 +259,9 @@ class ChatManager final : public Actor {
   void toggle_channel_can_have_sponsored_messages(ChannelId channel_id, bool can_have_sponsored_messages,
                                                   Promise<Unit> &&promise);
 
+  void toggle_channel_has_automatic_translation(ChannelId channel_id, bool has_automatic_translation,
+                                                Promise<Unit> &&promise);
+
   void toggle_channel_has_hidden_participants(ChannelId channel_id, bool has_hidden_participants,
                                               Promise<Unit> &&promise);
 

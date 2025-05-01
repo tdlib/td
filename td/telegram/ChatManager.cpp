@@ -777,6 +777,51 @@ class RestrictSponsoredMessagesQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleAutotranslationQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+  bool has_automatic_translation_;
+
+ public:
+  explicit ToggleAutotranslationQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, bool has_automatic_translation) {
+    channel_id_ = channel_id;
+    has_automatic_translation_ = has_automatic_translation;
+
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_toggleAutotranslation(std::move(input_channel), has_automatic_translation),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_toggleAutotranslation>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ToggleAutotranslationQuery: " << to_string(ptr);
+
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->chat_manager_->on_get_channel_error(channel_id_, status, "ToggleAutotranslationQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleParticipantsHiddenQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -3253,6 +3298,22 @@ void ChatManager::toggle_channel_can_have_sponsored_messages(ChannelId channel_i
 
   td_->create_handler<RestrictSponsoredMessagesQuery>(std::move(promise))
       ->send(channel_id, can_have_sponsored_messages);
+}
+
+void ChatManager::toggle_channel_has_automatic_translation(ChannelId channel_id, bool has_automatic_translation,
+                                                           Promise<Unit> &&promise) {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Supergroup not found"));
+  }
+  if (!c->status.can_change_info_and_settings_as_administrator()) {
+    return promise.set_error(Status::Error(400, "Not enough rights to change automatic translation"));
+  }
+  if (get_channel_type(c) != ChannelType::Broadcast) {
+    return promise.set_error(Status::Error(400, "Automatic translation can be enabled only in channels"));
+  }
+
+  td_->create_handler<ToggleAutotranslationQuery>(std::move(promise))->send(channel_id, has_automatic_translation);
 }
 
 Status ChatManager::can_hide_chat_participants(ChatId chat_id) const {
