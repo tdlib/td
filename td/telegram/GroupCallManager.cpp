@@ -3377,6 +3377,7 @@ void GroupCallManager::process_join_group_call_response(InputGroupCallId input_g
     request = make_unique<PendingJoinRequest>();
     request->generation = 1;
     request->audio_source = audio_source;
+    request->as_dialog_id = td_->dialog_manager_->get_my_dialog_id();
     request->private_key_id = private_key_id;
     request->public_key_id = public_key_id;
     request->promise =
