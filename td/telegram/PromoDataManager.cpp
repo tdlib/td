@@ -198,6 +198,14 @@ void PromoDataManager::on_get_promo_data(Result<telegram_api::object_ptr<telegra
           LOG(ERROR) << "Receive unsupported suggested action " << action;
         }
       }
+      if (promo->custom_pending_suggestion_ != nullptr) {
+        SuggestedAction suggested_action(td_->user_manager_.get(), std::move(promo->custom_pending_suggestion_));
+        if (!suggested_action.is_empty()) {
+          suggested_actions.push_back(std::move(suggested_action));
+        } else {
+          LOG(ERROR) << "Receive unsupported custom suggested action";
+        }
+      }
       td_->suggested_action_manager_->update_suggested_actions(std::move(suggested_actions));
       break;
     }

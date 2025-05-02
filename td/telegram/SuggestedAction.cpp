@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/Td.h"
 
@@ -56,6 +57,19 @@ SuggestedAction::SuggestedAction(Slice action_str) {
   }
 }
 
+SuggestedAction::SuggestedAction(const UserManager *user_manager,
+                                 telegram_api::object_ptr<telegram_api::pendingSuggestion> action) {
+  CHECK(action != nullptr);
+  if (action->suggestion_.empty() || action->url_.empty()) {
+    return;
+  }
+  type_ = Type::Custom;
+  custom_type_ = std::move(action->suggestion_);
+  title_ = get_formatted_text(user_manager, std::move(action->title_), true, false, "SuggestedAction");
+  description_ = get_formatted_text(user_manager, std::move(action->description_), true, false, "SuggestedAction");
+  url_ = std::move(action->url_);
+}
+
 SuggestedAction::SuggestedAction(Slice action_str, DialogId dialog_id) {
   CHECK(dialog_id.is_valid());
   if (action_str == Slice("CONVERT_GIGAGROUP")) {
@@ -64,7 +78,7 @@ SuggestedAction::SuggestedAction(Slice action_str, DialogId dialog_id) {
   }
 }
 
-SuggestedAction::SuggestedAction(const td_api::object_ptr<td_api::SuggestedAction> &suggested_action) {
+SuggestedAction::SuggestedAction(td_api::object_ptr<td_api::SuggestedAction> &&suggested_action) {
   if (suggested_action == nullptr) {
     return;
   }
@@ -91,7 +105,7 @@ SuggestedAction::SuggestedAction(const td_api::object_ptr<td_api::SuggestedActio
       break;
     }
     case td_api::suggestedActionSetPassword::ID: {
-      auto action = static_cast<const td_api::suggestedActionSetPassword *>(suggested_action.get());
+      const auto *action = static_cast<const td_api::suggestedActionSetPassword *>(suggested_action.get());
       type_ = Type::SetPassword;
       otherwise_relogin_days_ = action->authorization_delay_;
       break;
@@ -120,6 +134,16 @@ SuggestedAction::SuggestedAction(const td_api::object_ptr<td_api::SuggestedActio
     case td_api::suggestedActionSetProfilePhoto::ID:
       init(Type::UserpicSetup);
       break;
+    case td_api::suggestedActionCustom::ID: {
+      auto *action = static_cast<td_api::suggestedActionCustom *>(suggested_action.get());
+      if (!clean_input_string(action->name_) || !clean_input_string(action->url_)) {
+        break;
+      }
+      type_ = Type::Custom;
+      custom_type_ = std::move(action->name_);
+      url_ = std::move(action->url_);
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -155,12 +179,15 @@ string SuggestedAction::get_suggested_action_str() const {
       return "STARS_SUBSCRIPTION_LOW_BALANCE";
     case Type::UserpicSetup:
       return "USERPIC_SETUP";
+    case Type::Custom:
+      return custom_type_;
     default:
       return string();
   }
 }
 
-td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_action_object() const {
+td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_action_object(
+    const UserManager *user_manager) const {
   switch (type_) {
     case Type::Empty:
       return nullptr;
@@ -193,6 +220,10 @@ td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_actio
       return td_api::make_object<td_api::suggestedActionExtendStarSubscriptions>();
     case Type::UserpicSetup:
       return td_api::make_object<td_api::suggestedActionSetProfilePhoto>();
+    case Type::Custom:
+      return td_api::make_object<td_api::suggestedActionCustom>(
+          custom_type_, get_formatted_text_object(user_manager, title_, true, -1),
+          get_formatted_text_object(user_manager, description_, true, -1), url_);
     default:
       UNREACHABLE();
       return nullptr;
@@ -200,16 +231,17 @@ td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_actio
 }
 
 td_api::object_ptr<td_api::updateSuggestedActions> get_update_suggested_actions_object(
-    const vector<SuggestedAction> &added_actions, const vector<SuggestedAction> &removed_actions, const char *source) {
+    const UserManager *user_manager, const vector<SuggestedAction> &added_actions,
+    const vector<SuggestedAction> &removed_actions, const char *source) {
   LOG(INFO) << "Get updateSuggestedActions from " << source;
-  auto get_object = [](const SuggestedAction &action) {
-    return action.get_suggested_action_object();
+  auto get_object = [user_manager](const SuggestedAction &action) {
+    return action.get_suggested_action_object(user_manager);
   };
   return td_api::make_object<td_api::updateSuggestedActions>(transform(added_actions, get_object),
                                                              transform(removed_actions, get_object));
 }
 
-bool update_suggested_actions(vector<SuggestedAction> &suggested_actions,
+bool update_suggested_actions(const UserManager *user_manager, vector<SuggestedAction> &suggested_actions,
                               vector<SuggestedAction> &&new_suggested_actions) {
   td::unique(new_suggested_actions);
   if (new_suggested_actions == suggested_actions) {
@@ -232,15 +264,17 @@ bool update_suggested_actions(vector<SuggestedAction> &suggested_actions,
   }
   CHECK(!added_actions.empty() || !removed_actions.empty());
   suggested_actions = std::move(new_suggested_actions);
-  send_closure(G()->td(), &Td::send_update,
-               get_update_suggested_actions_object(added_actions, removed_actions, "update_suggested_actions"));
+  send_closure(
+      G()->td(), &Td::send_update,
+      get_update_suggested_actions_object(user_manager, added_actions, removed_actions, "update_suggested_actions"));
   return true;
 }
 
-bool remove_suggested_action(vector<SuggestedAction> &suggested_actions, SuggestedAction suggested_action) {
+bool remove_suggested_action(const UserManager *user_manager, vector<SuggestedAction> &suggested_actions,
+                             SuggestedAction suggested_action) {
   if (td::remove(suggested_actions, suggested_action)) {
     send_closure(G()->td(), &Td::send_update,
-                 get_update_suggested_actions_object({}, {suggested_action}, "remove_suggested_action"));
+                 get_update_suggested_actions_object(user_manager, {}, {suggested_action}, "remove_suggested_action"));
     return true;
   }
   return false;
@@ -263,6 +297,7 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
     case SuggestedAction::Type::StarsSubscriptionLowBalance:
     case SuggestedAction::Type::ConvertToGigagroup:
     case SuggestedAction::Type::UserpicSetup:
+    case SuggestedAction::Type::Custom:
       return send_closure_later(G()->suggested_action_manager(), &SuggestedActionManager::dismiss_suggested_action,
                                 std::move(action), std::move(promise));
     case SuggestedAction::Type::SetPassword: {
@@ -277,7 +312,7 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
       if (days == action.otherwise_relogin_days_) {
         vector<SuggestedAction> removed_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
         send_closure(G()->td(), &Td::send_update,
-                     get_update_suggested_actions_object({}, removed_actions, "dismiss_suggested_action"));
+                     get_update_suggested_actions_object(nullptr, {}, removed_actions, "dismiss_suggested_action"));
         G()->set_option_empty("otherwise_relogin_days");
       }
       return promise.set_value(Unit());

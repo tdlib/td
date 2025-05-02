@@ -7092,10 +7092,10 @@ void Requests::on_request(uint64 id, td_api::stopPoll &request) {
                                     std::move(request.reply_markup_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::hideSuggestedAction &request) {
+void Requests::on_request(uint64 id, td_api::hideSuggestedAction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  dismiss_suggested_action(SuggestedAction(request.action_), std::move(promise));
+  dismiss_suggested_action(SuggestedAction(std::move(request.action_)), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::hideContactCloseBirthdays &request) {

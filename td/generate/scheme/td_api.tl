@@ -7895,6 +7895,13 @@ suggestedActionExtendPremium manage_premium_subscription_url:string = SuggestedA
 //-to get the number of expiring subscriptions and the number of required to buy Telegram Stars
 suggestedActionExtendStarSubscriptions = SuggestedAction;
 
+//@description A custom suggestion to be shown at the top of the chat list
+//@name Unique name of the suggestion
+//@title Title of the suggestion
+//@param_description Description of the suggestion
+//@url Link to open when the suggestion is clicked
+suggestedActionCustom name:string title:formattedText description:formattedText url:string = SuggestedAction;
+
 
 //@description Contains a counter @count Count
 count count:int32 = Count;

@@ -74,7 +74,7 @@ void SuggestedActionManager::start_up() {
       LOG(ERROR) << "Failed to parse suggested actions from binlog: " << status;
       save_suggested_actions();
     } else {
-      ::td::update_suggested_actions(suggested_actions_, std::move(suggested_actions));
+      ::td::update_suggested_actions(td_->user_manager_.get(), suggested_actions_, std::move(suggested_actions));
     }
   }
 }
@@ -99,13 +99,13 @@ void SuggestedActionManager::update_suggested_actions(vector<SuggestedAction> &&
     // do not update suggested actions while dismissing an action
     return;
   }
-  if (::td::update_suggested_actions(suggested_actions_, std::move(suggested_actions))) {
+  if (::td::update_suggested_actions(td_->user_manager_.get(), suggested_actions_, std::move(suggested_actions))) {
     save_suggested_actions();
   }
 }
 
 void SuggestedActionManager::hide_suggested_action(SuggestedAction suggested_action) {
-  if (remove_suggested_action(suggested_actions_, suggested_action)) {
+  if (remove_suggested_action(td_->user_manager_.get(), suggested_actions_, suggested_action)) {
     save_suggested_actions();
   }
 }
@@ -127,7 +127,13 @@ void SuggestedActionManager::dismiss_suggested_action(SuggestedAction suggested_
     }
     remove_dialog_suggested_action(suggested_action);
   } else {
-    if (!remove_suggested_action(suggested_actions_, suggested_action)) {
+    for (auto &action : suggested_actions_) {
+      if (action == suggested_action) {
+        suggested_action = action;
+        break;
+      }
+    }
+    if (!remove_suggested_action(td_->user_manager_.get(), suggested_actions_, suggested_action)) {
       return promise.set_value(Unit());
     }
     save_suggested_actions();
@@ -161,7 +167,7 @@ void SuggestedActionManager::on_dismiss_suggested_action(SuggestedAction suggest
   if (suggested_action.dialog_id_ != DialogId()) {
     remove_dialog_suggested_action(suggested_action);
   } else {
-    if (remove_suggested_action(suggested_actions_, suggested_action)) {
+    if (remove_suggested_action(td_->user_manager_.get(), suggested_actions_, suggested_action)) {
       save_suggested_actions();
     }
     send_closure(G()->config_manager(), &ConfigManager::reget_app_config, Promise<Unit>());
@@ -207,7 +213,7 @@ void SuggestedActionManager::set_dialog_pending_suggestions(DialogId dialog_id, 
   if (it == dialog_suggested_actions_.end()) {
     it = dialog_suggested_actions_.emplace(dialog_id, vector<SuggestedAction>()).first;
   }
-  ::td::update_suggested_actions(it->second, std::move(suggested_actions));
+  ::td::update_suggested_actions(td_->user_manager_.get(), it->second, std::move(suggested_actions));
   if (it->second.empty()) {
     dialog_suggested_actions_.erase(it);
   }
@@ -218,7 +224,7 @@ void SuggestedActionManager::remove_dialog_suggested_action(SuggestedAction acti
   if (it == dialog_suggested_actions_.end()) {
     return;
   }
-  remove_suggested_action(it->second, action);
+  remove_suggested_action(td_->user_manager_.get(), it->second, action);
   if (it->second.empty()) {
     dialog_suggested_actions_.erase(it);
   }
@@ -226,10 +232,12 @@ void SuggestedActionManager::remove_dialog_suggested_action(SuggestedAction acti
 
 void SuggestedActionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (!suggested_actions_.empty()) {
-    updates.push_back(get_update_suggested_actions_object(suggested_actions_, {}, "get_current_state"));
+    updates.push_back(
+        get_update_suggested_actions_object(td_->user_manager_.get(), suggested_actions_, {}, "get_current_state"));
   }
   for (const auto &actions : dialog_suggested_actions_) {
-    updates.push_back(get_update_suggested_actions_object(actions.second, {}, "get_current_state 2"));
+    updates.push_back(
+        get_update_suggested_actions_object(td_->user_manager_.get(), actions.second, {}, "get_current_state 2"));
   }
 }
 

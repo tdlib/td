@@ -2304,6 +2304,12 @@ class CliClient final : public Actor {
     if (begins_with(action, "spass")) {
       return td_api::make_object<td_api::suggestedActionSetPassword>(to_integer<int32>(action.substr(5)));
     }
+    if (begins_with(action, "custom")) {
+      Slice name;
+      Slice url;
+      std::tie(name, url) = split(action.substr(6), ' ');
+      return td_api::make_object<td_api::suggestedActionCustom>(name.str(), nullptr, nullptr, url.str());
+    }
     return nullptr;
   }
 

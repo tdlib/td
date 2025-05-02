@@ -28,6 +28,12 @@ void SuggestedAction::store(StorerT &storer) const {
   if (has_otherwise_relogin_days) {
     td::store(otherwise_relogin_days_, storer);
   }
+  if (type_ == Type::Custom) {
+    td::store(custom_type_, storer);
+    td::store(title_, storer);
+    td::store(description_, storer);
+    td::store(url_, storer);
+  }
 }
 
 template <class ParserT>
@@ -44,6 +50,12 @@ void SuggestedAction::parse(ParserT &parser) {
   }
   if (has_otherwise_relogin_days) {
     td::parse(otherwise_relogin_days_, parser);
+  }
+  if (type_ == Type::Custom) {
+    td::parse(custom_type_, parser);
+    td::parse(title_, parser);
+    td::parse(description_, parser);
+    td::parse(url_, parser);
   }
 }
 

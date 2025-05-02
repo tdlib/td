@@ -494,7 +494,8 @@ td_api::object_ptr<td_api::Update> OptionManager::get_internal_option_update(Sli
     auto days = narrow_cast<int32>(get_option_integer(name));
     if (days > 0) {
       vector<SuggestedAction> added_actions{SuggestedAction{SuggestedAction::Type::SetPassword, DialogId(), days}};
-      return get_update_suggested_actions_object(added_actions, {}, "get_internal_option_update");
+      return get_update_suggested_actions_object(td_->user_manager_.get(), added_actions, {},
+                                                 "get_internal_option_update");
     }
   }
   return nullptr;
