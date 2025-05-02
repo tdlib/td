@@ -2066,6 +2066,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         can_accept_calls = !get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "stars_stargift_resale_amount_min") {
+        G()->set_option_integer("gift_resale_star_count_min", get_json_value_int(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
