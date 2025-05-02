@@ -302,7 +302,7 @@ class GroupCallManager final : public Actor {
 
   bool need_group_call_participants(InputGroupCallId input_group_call_id) const;
 
-  static bool need_group_call_participants(const GroupCall *group_call);
+  bool need_group_call_participants(InputGroupCallId input_group_call_id, const GroupCall *group_call) const;
 
   bool process_pending_group_call_participant_updates(InputGroupCallId input_group_call_id);
 
