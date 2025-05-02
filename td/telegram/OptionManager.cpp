@@ -176,6 +176,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("group_call_participant_count_max", is_test_dc ? 5 : 200);
   set_default_integer_option("channel_autotranslation_level_min", is_test_dc ? 1 : 3);
   set_default_integer_option("gift_resale_star_count_min", 125);
+  set_default_integer_option("gift_resale_star_count_max", 100000);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
