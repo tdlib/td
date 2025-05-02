@@ -13,10 +13,14 @@
 #include "td/telegram/DialogSource.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/OptionManager.h"
+#include "td/telegram/SuggestedAction.h"
+#include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -123,7 +127,7 @@ void PromoDataManager::schedule_get_promo_data(int32 expires_in) {
 }
 
 void PromoDataManager::timeout_expired() {
-  if (G()->close_flag() || !is_inited_) {
+  if (G()->close_flag() || !is_inited_ || reloading_promo_data_) {
     return;
   }
 
@@ -174,6 +178,27 @@ void PromoDataManager::on_get_promo_data(Result<telegram_api::object_ptr<telegra
       } else {
         remove_sponsored_dialog();
       }
+      if (td::contains(promo->dismissed_suggestions_, "BIRTHDAY_CONTACTS_TODAY")) {
+        td_->option_manager_->set_option_boolean("dismiss_birthday_contact_today", true);
+      } else {
+        td_->option_manager_->set_option_empty("dismiss_birthday_contact_today");
+      }
+
+      vector<SuggestedAction> suggested_actions;
+      for (const auto &action : promo->pending_suggestions_) {
+        SuggestedAction suggested_action(action);
+        if (!suggested_action.is_empty()) {
+          if (suggested_action == SuggestedAction{SuggestedAction::Type::SetPassword} &&
+              td_->option_manager_->get_option_integer("otherwise_relogin_days") > 0) {
+            LOG(INFO) << "Skip SetPassword suggested action";
+          } else {
+            suggested_actions.push_back(suggested_action);
+          }
+        } else {
+          LOG(ERROR) << "Receive unsupported suggested action " << action;
+        }
+      }
+      td_->suggested_action_manager_->update_suggested_actions(std::move(suggested_actions));
       break;
     }
     default:
