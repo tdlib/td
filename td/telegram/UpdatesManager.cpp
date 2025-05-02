@@ -55,6 +55,7 @@
 #include "td/telegram/PollId.h"
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PrivacyManager.h"
+#include "td/telegram/PromoDataManager.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/QuickReplyShortcutId.h"
@@ -4263,6 +4264,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateSavedGifs> upda
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateConfig> update, Promise<Unit> &&promise) {
   send_closure(td_->config_manager_, &ConfigManager::request_config, false);
+  td_->promo_data_manager_->reload_promo_data();
   promise.set_value(Unit());
 }
 
