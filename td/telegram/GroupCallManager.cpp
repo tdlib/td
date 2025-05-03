@@ -49,10 +49,14 @@ namespace td {
 namespace {
 
 template <class T>
-T tde2e_move_as_ok(tde2e_api::Result<T> result) {
-  LOG_CHECK(result.is_ok()) << static_cast<int>(result.error().code) << " : " << result.error().message;
+T tde2e_move_as_ok_impl(tde2e_api::Result<T> result, int line) {
+  LOG_CHECK(result.is_ok()) << static_cast<int>(result.error().code) << " : " << result.error().message << " at line "
+                            << line;
+  ;
   return std::move(result.value());
 }
+
+#define tde2e_move_as_ok(result) tde2e_move_as_ok_impl((result), __LINE__)
 
 }  // namespace
 
