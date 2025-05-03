@@ -1123,7 +1123,7 @@ void WebPagesManager::load_web_page_instant_view(WebPageId web_page_id, bool onl
         LOG(INFO) << "Load " << web_page_id << " instant view from database";
         G()->td_db()->get_sqlite_pmc()->get(
             get_web_page_instant_view_database_key(web_page_id),
-            PromiseCreator::lambda([actor_id = actor_id(this), web_page_id, only_local](string value) {
+            PromiseCreator::lambda([actor_id = actor_id(this), web_page_id](string value) {
               send_closure(actor_id, &WebPagesManager::on_load_web_page_instant_view_from_database, web_page_id,
                            std::move(value));
             }));
