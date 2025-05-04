@@ -3837,7 +3837,7 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
                                                            GROUP_CALL_BLOCK_POLL_TIMEOUT);
             poll_group_call_blocks_timeout_.set_timeout_in(group_call->group_call_id.get() * 2 + 1,
                                                            GROUP_CALL_BLOCK_POLL_TIMEOUT);
-            on_call_state_updated(group_call);
+            on_call_state_updated(group_call, "on_join_group_call_response");
             on_call_verification_state_updated(group_call);
           }
         } else {
@@ -5289,7 +5289,7 @@ void GroupCallManager::on_update_group_call_chain_blocks(InputGroupCallId input_
       for (size_t i = blocks.size() - added_blocks; i < blocks.size(); i++) {
         tde2e_api::call_apply_block(group_call->call_id, blocks[i]);
       }
-      on_call_state_updated(group_call);
+      on_call_state_updated(group_call, "on_update_group_call_chain_blocks");
     } else {
       for (size_t i = blocks.size() - added_blocks; i < blocks.size(); i++) {
         tde2e_api::call_receive_inbound_message(group_call->call_id, blocks[i]);
@@ -5958,16 +5958,23 @@ void GroupCallManager::update_group_call_dialog(const GroupCall *group_call, con
                                                       group_call->participant_count == 0, source, force);
 }
 
-void GroupCallManager::on_call_state_updated(GroupCall *group_call) {
+void GroupCallManager::on_call_state_updated(GroupCall *group_call, const char *source) {
   CHECK(group_call != nullptr);
   CHECK(group_call->call_id != tde2e_api::CallId());
   auto r_state = tde2e_api::call_get_state(group_call->call_id);
   if (r_state.is_error()) {
+    LOG(INFO) << "State of " << group_call->group_call_id << " has error " << static_cast<int>(r_state.error().code)
+              << " : " << r_state.error().message << " from " << source;
     leave_group_call(group_call->group_call_id, Auto());
     return;
   }
   auto &state = r_state.value();
   auto participant_ids = transform(state.participants, [](const auto &participant) { return participant.user_id; });
+  if (!td::contains(participant_ids, td_->user_manager_->get_my_id().get())) {
+    LOG(INFO) << "State of " << group_call->group_call_id << " doesn't contain the current user";
+    leave_group_call(group_call->group_call_id, Auto());
+    return;
+  }
   std::sort(participant_ids.begin(), participant_ids.end());
   if (group_call->blockchain_participant_ids == participant_ids) {
     return;

@@ -463,7 +463,7 @@ class GroupCallManager final : public Actor {
 
   void update_group_call_dialog(const GroupCall *group_call, const char *source, bool force);
 
-  void on_call_state_updated(GroupCall *group_call);
+  void on_call_state_updated(GroupCall *group_call, const char *source);
 
   static vector<string> get_emojis_fingerprint(const GroupCall *group_call);
 
