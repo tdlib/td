@@ -5225,6 +5225,9 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
     group_call->private_key_id = {};
     group_call->public_key_id = {};
     group_call->call_id = {};
+    group_call->block_next_offset[0] = -1;
+    group_call->block_next_offset[1] = -1;
+    set_blockchain_participant_ids(group_call, {});
 
     poll_group_call_blocks_timeout_.cancel_timeout(group_call->group_call_id.get() * 2);
     poll_group_call_blocks_timeout_.cancel_timeout(group_call->group_call_id.get() * 2 + 1);
@@ -5975,6 +5978,10 @@ void GroupCallManager::on_call_state_updated(GroupCall *group_call, const char *
     leave_group_call(group_call->group_call_id, Auto());
     return;
   }
+  set_blockchain_participant_ids(group_call, std::move(participant_ids));
+}
+
+void GroupCallManager::set_blockchain_participant_ids(GroupCall *group_call, vector<int64> participant_ids) {
   std::sort(participant_ids.begin(), participant_ids.end());
   if (group_call->blockchain_participant_ids == participant_ids) {
     return;

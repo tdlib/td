@@ -465,6 +465,8 @@ class GroupCallManager final : public Actor {
 
   void on_call_state_updated(GroupCall *group_call, const char *source);
 
+  void set_blockchain_participant_ids(GroupCall *group_call, vector<int64> participant_ids);
+
   static vector<string> get_emojis_fingerprint(const GroupCall *group_call);
 
   void on_call_verification_state_updated(GroupCall *group_call);
