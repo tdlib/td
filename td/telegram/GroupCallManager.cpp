@@ -5228,6 +5228,12 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
     group_call->block_next_offset[0] = -1;
     group_call->block_next_offset[1] = -1;
     set_blockchain_participant_ids(group_call, {});
+    if (!get_emojis_fingerprint(group_call).empty()) {
+      group_call->call_verification_state.emoji_hash = {};
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateGroupCallVerificationState>(
+                       group_call->group_call_id.get(), group_call->call_verification_state.height, vector<string>()));
+    }
 
     poll_group_call_blocks_timeout_.cancel_timeout(group_call->group_call_id.get() * 2);
     poll_group_call_blocks_timeout_.cancel_timeout(group_call->group_call_id.get() * 2 + 1);
