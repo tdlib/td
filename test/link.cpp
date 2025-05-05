@@ -312,6 +312,10 @@ static auto message_draft(td::string text, bool contains_url) {
   return td::td_api::make_object<td::td_api::internalLinkTypeMessageDraft>(std::move(formatted_text), contains_url);
 }
 
+static auto my_stars() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeMyStars>();
+}
+
 static auto passport_data_request(td::int32 bot_user_id, const td::string &scope, const td::string &public_key,
                                   const td::string &nonce, const td::string &callback_url) {
   return td::td_api::make_object<td::td_api::internalLinkTypePassportDataRequest>(bot_user_id, scope, public_key, nonce,
@@ -1439,6 +1443,14 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/filters", settings());
   parse_internal_link("tg://settings/language", language_settings());
   parse_internal_link("tg://settings/privacy", privacy_and_security_settings());
+
+  parse_internal_link("tg://stars", my_stars());
+  parse_internal_link("tg://stars?asdsa?D?SADasD?asD", my_stars());
+  parse_internal_link("tg://stars#test", my_stars());
+  parse_internal_link("tg://stars/#test", my_stars());
+  parse_internal_link("tg://stars/aadsa#test", my_stars());
+  parse_internal_link("tg://stars/theme#test", my_stars());
+  parse_internal_link("tg:stars/theme#test", my_stars());
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
   parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));

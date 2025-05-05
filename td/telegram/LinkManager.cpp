@@ -631,6 +631,12 @@ class LinkManager::InternalLinkMessageDraft final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkMyStars final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeMyStars>();
+  }
+};
+
 class LinkManager::InternalLinkPassportDataRequest final : public InternalLink {
   UserId bot_user_id_;
   string scope_;
@@ -1622,6 +1628,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
     // settings
     return td::make_unique<InternalLinkSettings>();
+  } else if (!path.empty() && path[0] == "stars") {
+    // stars
+    return td::make_unique<InternalLinkMyStars>();
   } else if (path.size() == 1 && path[0] == "addlist") {
     auto slug = get_url_query_slug(true, url_query, "addlist");
     if (!slug.empty() && is_base64url_characters(slug)) {
@@ -2536,6 +2545,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return PSTRING() << get_t_me_url() << "share?url=" << url_encode(url) << text;
       }
     }
+    case td_api::internalLinkTypeMyStars::ID:
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      return "tg://stars";
     case td_api::internalLinkTypePassportDataRequest::ID: {
       auto link = static_cast<const td_api::internalLinkTypePassportDataRequest *>(type_ptr);
       if (!is_internal) {
