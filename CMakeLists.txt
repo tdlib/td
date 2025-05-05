@@ -579,6 +579,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StarAmount.cpp
   td/telegram/StarGift.cpp
   td/telegram/StarGiftAttribute.cpp
+  td/telegram/StarGiftAttributeId.cpp
   td/telegram/StarGiftId.cpp
   td/telegram/StarGiftManager.cpp
   td/telegram/StarGiftSettings.cpp
@@ -957,6 +958,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StarAmount.h
   td/telegram/StarGift.h
   td/telegram/StarGiftAttribute.h
+  td/telegram/StarGiftAttributeId.h
   td/telegram/StarGiftId.h
   td/telegram/StarGiftManager.h
   td/telegram/StarGiftSettings.h

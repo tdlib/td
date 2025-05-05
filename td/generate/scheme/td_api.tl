@@ -1147,6 +1147,18 @@ upgradedGift id:int64 title:string name:string number:int32 total_upgraded_count
 upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 = UpgradeGiftResult;
 
 
+//@class UpgradedGiftAttributeId @description Contains identifier of an upgraded gift attribute to search for
+
+//@description Identifier of a gift model @sticker_id Identifier of the sticker representing the model
+upgradedGiftAttributeIdModel sticker_id:int64 = UpgradedGiftAttributeId;
+
+//@description Identifier of a gift symbol @sticker_id Identifier of the sticker representing the symbol
+upgradedGiftAttributeIdSymbol sticker_id:int64 = UpgradedGiftAttributeId;
+
+//@description Identifier of a gift backdrop @backdrop_id Identifier of the backdrop
+upgradedGiftAttributeIdBackdrop backdrop_id:int32 = UpgradedGiftAttributeId;
+
+
 //@class SentGift @description Represents content of a gift received by a user or a channel chat
 
 //@description Regular gift @gift The gift
