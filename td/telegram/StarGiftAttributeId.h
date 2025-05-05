@@ -22,13 +22,13 @@ class StarGiftAttributeId {
   int32 backdrop_id_ = 0;
 
   static Result<StarGiftAttributeId> get_star_gift_attribute_id(
-      td_api::object_ptr<td_api::UpgradedGiftAttributeId> &&attribute);
+      const td_api::object_ptr<td_api::UpgradedGiftAttributeId> &attribute);
 
   telegram_api::object_ptr<telegram_api::StarGiftAttributeId> get_input_star_gift_attribute_id_object() const;
 
  public:
   static Result<vector<StarGiftAttributeId>> get_star_gift_attribute_ids(
-      vector<td_api::object_ptr<td_api::UpgradedGiftAttributeId>> &&attributes);
+      const vector<td_api::object_ptr<td_api::UpgradedGiftAttributeId>> &attributes);
 
   static vector<telegram_api::object_ptr<telegram_api::StarGiftAttributeId>> get_input_star_gift_attribute_ids_object(
       const vector<StarGiftAttributeId> &attributes);

@@ -22,6 +22,7 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarGiftAttribute.h"
+#include "td/telegram/StarGiftAttributeId.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
@@ -927,6 +928,60 @@ class GetStarGiftWithdrawalUrlQuery final : public Td::ResultHandler {
   }
 };
 
+class GetResaleStarGiftsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftsForResale>> promise_;
+
+ public:
+  explicit GetResaleStarGiftsQuery(Promise<td_api::object_ptr<td_api::giftsForResale>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 gift_id, const td_api::object_ptr<td_api::GiftForResaleOrder> &order,
+            const vector<StarGiftAttributeId> &attribute_ids, const string &offset, int32 limit) {
+    int32 flags = 0;
+    auto order_id = order->get_id();
+    auto attributes = StarGiftAttributeId::get_input_star_gift_attribute_ids_object(attribute_ids);
+    if (!attributes.empty()) {
+      flags |= telegram_api::payments_getResaleStarGifts::ATTRIBUTES_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::payments_getResaleStarGifts(
+        flags, order_id == td_api::giftForResaleOrderPrice::ID, order_id == td_api::giftForResaleOrderNumber::ID, 0,
+        gift_id, std::move(attributes), offset, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getResaleStarGifts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetResaleStarGiftsQuery: " << to_string(ptr);
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetResaleStarGiftsQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetResaleStarGiftsQuery");
+
+    auto total_count = ptr->count_;
+    if (total_count < static_cast<int32>(ptr->gifts_.size())) {
+      LOG(ERROR) << "Receive " << ptr->gifts_.size() << " gifts with total count = " << total_count;
+      total_count = static_cast<int32>(ptr->gifts_.size());
+    }
+    vector<td_api::object_ptr<td_api::upgradedGift>> gifts;
+    for (auto &gift : ptr->gifts_) {
+      StarGift star_gift(td_, std::move(gift), true);
+      if (!star_gift.is_valid() || !star_gift.is_unique()) {
+        LOG(ERROR) << "Receive invalid upgraded gift";
+        continue;
+      }
+      gifts.push_back(star_gift.get_upgraded_gift_object(td_));
+    }
+    promise_.set_value(td_api::make_object<td_api::giftsForResale>(total_count, std::move(gifts), ptr->next_offset_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 StarGiftManager::StarGiftManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   update_gift_message_timeout_.set_callback(on_update_gift_message_timeout_callback);
   update_gift_message_timeout_.set_callback_data(static_cast<void *>(this));
@@ -1225,6 +1280,21 @@ void StarGiftManager::send_get_star_gift_withdrawal_url_query(
 
   td_->create_handler<GetStarGiftWithdrawalUrlQuery>(std::move(promise))
       ->send(star_gift_id, std::move(input_check_password));
+}
+
+void StarGiftManager::get_resale_star_gifts(
+    int64 gift_id, const td_api::object_ptr<td_api::GiftForResaleOrder> &order,
+    const vector<td_api::object_ptr<td_api::UpgradedGiftAttributeId>> &attributes, const string &offset, int32 limit,
+    Promise<td_api::object_ptr<td_api::giftsForResale>> &&promise) {
+  if (limit < 0) {
+    return promise.set_error(Status::Error(400, "Limit must be non-negative"));
+  }
+  if (order == nullptr) {
+    return promise.set_error(Status::Error(400, "Gift sort order must be non-empty"));
+  }
+  TRY_RESULT_PROMISE(promise, attribute_ids, StarGiftAttributeId::get_star_gift_attribute_ids(attributes));
+
+  td_->create_handler<GetResaleStarGiftsQuery>(std::move(promise))->send(gift_id, order, attribute_ids, offset, limit);
 }
 
 void StarGiftManager::register_gift(MessageFullId message_full_id, const char *source) {

@@ -1565,6 +1565,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getUpgradedGiftWithdrawalUrl &request);
 
+  void on_request(uint64 id, td_api::searchGiftsForResale &request);
+
   void on_request(uint64 id, td_api::createInvoiceLink &request);
 
   void on_request(uint64 id, td_api::refundStarPayment &request);

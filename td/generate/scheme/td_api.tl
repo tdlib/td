@@ -1167,6 +1167,25 @@ upgradedGiftAttributeIdSymbol sticker_id:int64 = UpgradedGiftAttributeId;
 upgradedGiftAttributeIdBackdrop backdrop_id:int32 = UpgradedGiftAttributeId;
 
 
+//@class GiftForResaleOrder @description Describes order in which upgraded gifts for resale will be sorted
+
+//@description The gifts will be sorted by their price from the lowest to the highest
+giftForResaleOrderPrice = GiftForResaleOrder;
+
+//@description The gifts will be sorted by the last date when their price was changed from the newest to the oldest
+giftForResaleOrderPriceChangeDate = GiftForResaleOrder;
+
+//@description The gifts will be sorted by their number from the smallest to the largest
+giftForResaleOrderNumber = GiftForResaleOrder;
+
+
+//@description Describes gifts available for resale
+//@total_count Total number of gifts found
+//@gifts The gifts
+//@next_offset The offset for the next request. If empty, then there are no more results
+giftsForResale total_count:int32 gifts:vector<upgradedGift> next_offset:string = GiftsForResale;
+
+
 //@class SentGift @description Represents content of a gift received by a user or a channel chat
 
 //@description Regular gift @gift The gift
@@ -12261,6 +12280,14 @@ getUpgradedGift name:string = UpgradedGift;
 //@password The 2-step verification password of the current user
 getUpgradedGiftWithdrawalUrl received_gift_id:string password:string = HttpUrl;
 
+//@description Returns upgraded gifts that can be bought from other owners
+//@gift_id Identifier of the regular gift that was upgraded to a unique gift
+//@order Order in which the results will be sorted
+//@attributes Attributes used to filter received gifts. If multiple attributes of the same type are specified, then all of them are allowed.
+//-If none attributes of specific type are specified, then all values for this attribute type are allowed
+//@offset Offset of the first entry to return as received from the previous request with the same order and attributes; use empty string to get the first chunk of results
+//@limit The maximum number of gifts to return
+searchGiftsForResale gift_id:int64 order:GiftForResaleOrder attributes:vector<UpgradedGiftAttributeId> offset:string limit:int32 = GiftsForResale;
 
 //@description Creates a link for the given invoice; for bots only
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request

@@ -11,7 +11,7 @@
 namespace td {
 
 Result<StarGiftAttributeId> StarGiftAttributeId::get_star_gift_attribute_id(
-    td_api::object_ptr<td_api::UpgradedGiftAttributeId> &&attribute) {
+    const td_api::object_ptr<td_api::UpgradedGiftAttributeId> &attribute) {
   if (attribute == nullptr) {
     return Status::Error(400, "Attribute identifier must be non-empty");
   }
@@ -36,10 +36,10 @@ Result<StarGiftAttributeId> StarGiftAttributeId::get_star_gift_attribute_id(
 }
 
 Result<vector<StarGiftAttributeId>> StarGiftAttributeId::get_star_gift_attribute_ids(
-    vector<td_api::object_ptr<td_api::UpgradedGiftAttributeId>> &&attributes) {
+    const vector<td_api::object_ptr<td_api::UpgradedGiftAttributeId>> &attributes) {
   vector<StarGiftAttributeId> result;
   for (auto &attribute : attributes) {
-    TRY_RESULT(attribute_id, get_star_gift_attribute_id(std::move(attribute)));
+    TRY_RESULT(attribute_id, get_star_gift_attribute_id(attribute));
     result.push_back(attribute_id);
   }
   return result;

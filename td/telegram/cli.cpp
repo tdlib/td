@@ -3012,6 +3012,21 @@ class CliClient final : public Actor {
       string password;
       get_args(args, received_gift_id, password);
       send_request(td_api::make_object<td_api::getUpgradedGiftWithdrawalUrl>(received_gift_id, password));
+    } else if (op == "sgfr" || op == "sgfrd" || op == "sgfrn") {
+      int64 gift_id;
+      string limit;
+      string offset;
+      get_args(args, gift_id, limit, offset);
+      td_api::object_ptr<td_api::GiftForResaleOrder> order;
+      if (op == "sgfrd") {
+        order = td_api::make_object<td_api::giftForResaleOrderPriceChangeDate>();
+      } else if (op == "sgfrn") {
+        order = td_api::make_object<td_api::giftForResaleOrderNumber>();
+      } else {
+        order = td_api::make_object<td_api::giftForResaleOrderPrice>();
+      }
+      send_request(td_api::make_object<td_api::searchGiftsForResale>(gift_id, std::move(order), Auto(), offset,
+                                                                     as_limit(limit)));
     } else if (op == "rsp") {
       UserId user_id;
       string telegram_payment_charge_id;
