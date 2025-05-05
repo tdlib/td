@@ -8988,9 +8988,9 @@ td_api::object_ptr<td_api::upgradeGiftResult> get_message_content_upgrade_gift_r
       } else if (dialog_id.get_type() == DialogType::User && message_id.is_valid() && message_id.is_server()) {
         star_gift_id = StarGiftId(message_id.get_server_message_id());
       }
-      return td_api::make_object<td_api::upgradeGiftResult>(m->star_gift.get_upgraded_gift_object(td),
-                                                            star_gift_id.get_star_gift_id(), m->is_saved,
-                                                            m->can_transfer, m->transfer_star_count, m->can_export_at);
+      return td_api::make_object<td_api::upgradeGiftResult>(
+          m->star_gift.get_upgraded_gift_object(td), star_gift_id.get_star_gift_id(), m->is_saved, m->can_transfer,
+          m->transfer_star_count, m->can_transfer_at, m->can_export_at);
     }
     default:
       UNREACHABLE();
