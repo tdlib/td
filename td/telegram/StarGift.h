@@ -47,6 +47,7 @@ class StarGift {
   int32 num_ = 0;
   int32 unique_availability_issued_ = 0;
   int32 unique_availability_total_ = 0;
+  int64 resale_star_count_ = 0;
 
   friend bool operator==(const StarGift &lhs, const StarGift &rhs);
 

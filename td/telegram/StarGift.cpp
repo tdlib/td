@@ -39,6 +39,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     gift_address_ = std::move(star_gift->gift_address_);
     unique_availability_issued_ = star_gift->availability_issued_;
     unique_availability_total_ = star_gift->availability_total_;
+    resale_star_count_ = StarManager::get_star_count(star_gift->resell_stars_);
     for (auto &attribute : star_gift->attributes_) {
       switch (attribute->get_id()) {
         case telegram_api::starGiftAttributeModel::ID:
@@ -147,7 +148,7 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
       !owner_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, owner_dialog_id_, "upgradedGift"),
       owner_address_, owner_name_, gift_address_, model_.get_upgraded_gift_model_object(td),
       pattern_.get_upgraded_gift_symbol_object(td), backdrop_.get_upgraded_gift_backdrop_object(),
-      original_details_.get_upgraded_gift_original_details_object(td));
+      original_details_.get_upgraded_gift_original_details_object(td), resale_star_count_);
 }
 
 td_api::object_ptr<td_api::SentGift> StarGift::get_sent_gift_object(Td *td) const {
@@ -175,7 +176,8 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.owner_address_ == rhs.owner_address_ && lhs.owner_name_ == rhs.owner_name_ &&
          lhs.gift_address_ == rhs.gift_address_ && lhs.num_ == rhs.num_ &&
          lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
-         lhs.unique_availability_total_ == rhs.unique_availability_total_;
+         lhs.unique_availability_total_ == rhs.unique_availability_total_ &&
+         lhs.resale_star_count_ == rhs.resale_star_count_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarGift &star_gift) {
