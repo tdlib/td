@@ -4296,15 +4296,19 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
     return;
   }
 
-  auto m = get_message_force(d, message_id, "on_update_read_message_comments");
-  if (m == nullptr || !m->message_id.is_server()) {
-    return;
-  }
-  if (m->is_topic_message || (d->is_forum && m->message_id == MessageId(ServerMessageId(1)))) {
+  if (message_id == MessageId(ServerMessageId(1))) {
     td_->forum_topic_manager_->on_update_forum_topic_unread(
         dialog_id, message_id, max_message_id, last_read_inbox_message_id, last_read_outbox_message_id, unread_count);
-  } else if (m->top_thread_message_id != m->message_id) {
-      return;
+    return;
+  }
+
+  auto m = get_message_force(d, message_id, "on_update_read_message_comments");
+  if (m == nullptr || !m->message_id.is_server() || m->top_thread_message_id != m->message_id) {
+    return;
+  }
+  if (m->is_topic_message) {
+    td_->forum_topic_manager_->on_update_forum_topic_unread(
+        dialog_id, message_id, max_message_id, last_read_inbox_message_id, last_read_outbox_message_id, unread_count);
   }
   if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
     return;
