@@ -18,13 +18,15 @@ namespace td {
 class Td;
 
 class StarGiftId {
-  enum class Type : int32 { Empty, ForUser, ForDialog };
+  enum class Type : int32 { Empty, ForUser, ForDialog, Slug };
   Type type_ = Type::Empty;
 
   ServerMessageId server_message_id_;
 
   DialogId dialog_id_;
   int64 saved_id_ = 0;
+
+  string slug_;
 
   friend bool operator==(const StarGiftId &lhs, const StarGiftId &rhs);
 
@@ -36,6 +38,8 @@ class StarGiftId {
   explicit StarGiftId(ServerMessageId server_message_id);
 
   StarGiftId(DialogId dialog_id, int64 saved_id);
+
+  static StarGiftId from_slug(const string &slug);
 
   explicit StarGiftId(const string &star_gift_id);
 

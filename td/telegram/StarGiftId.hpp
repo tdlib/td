@@ -19,10 +19,12 @@ void StarGiftId::store(StorerT &storer) const {
   bool has_server_message_id = server_message_id_.is_valid();
   bool has_dialog_id = dialog_id_.is_valid();
   bool has_saved_id = saved_id_ != 0;
+  bool has_slug = !slug_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_server_message_id);
   STORE_FLAG(has_dialog_id);
   STORE_FLAG(has_saved_id);
+  STORE_FLAG(has_slug);
   END_STORE_FLAGS();
   td::store(type_, storer);
   if (has_server_message_id) {
@@ -34,6 +36,9 @@ void StarGiftId::store(StorerT &storer) const {
   if (has_saved_id) {
     td::store(saved_id_, storer);
   }
+  if (has_slug) {
+    td::store(slug_, storer);
+  }
 }
 
 template <class ParserT>
@@ -41,10 +46,12 @@ void StarGiftId::parse(ParserT &parser) {
   bool has_server_message_id;
   bool has_dialog_id;
   bool has_saved_id;
+  bool has_slug;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_server_message_id);
   PARSE_FLAG(has_dialog_id);
   PARSE_FLAG(has_saved_id);
+  PARSE_FLAG(has_slug);
   END_PARSE_FLAGS();
   td::parse(type_, parser);
   if (has_server_message_id) {
@@ -55,6 +62,9 @@ void StarGiftId::parse(ParserT &parser) {
   }
   if (has_saved_id) {
     td::parse(saved_id_, parser);
+  }
+  if (has_slug) {
+    td::parse(slug_, parser);
   }
 }
 
