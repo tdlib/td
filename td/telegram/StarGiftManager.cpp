@@ -33,16 +33,18 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/Status.h"
 
 namespace td {
 
 class GetStarGiftsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::gifts>> promise_;
+  Promise<td_api::object_ptr<td_api::availableGifts>> promise_;
 
  public:
-  explicit GetStarGiftsQuery(Promise<td_api::object_ptr<td_api::gifts>> &&promise) : promise_(std::move(promise)) {
+  explicit GetStarGiftsQuery(Promise<td_api::object_ptr<td_api::availableGifts>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send() {
@@ -62,17 +64,35 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
       return promise_.set_error(Status::Error(500, "Receive unexpected response"));
     }
     auto results = telegram_api::move_object_as<telegram_api::payments_starGifts>(ptr);
-    vector<td_api::object_ptr<td_api::gift>> options;
+    vector<td_api::object_ptr<td_api::availableGift>> options;
     for (auto &gift : results->gifts_) {
+      int64 availability_resale = 0;
+      int64 resell_min_stars = 0;
+      if (gift->get_id() == telegram_api::starGift::ID) {
+        auto star_gift = static_cast<const telegram_api::starGift *>(gift.get());
+        availability_resale = star_gift->availability_resale_;
+        resell_min_stars = StarManager::get_star_count(star_gift->resell_min_stars_);
+        if (availability_resale < 0 || availability_resale > 1000000000) {
+          LOG(ERROR) << "Receive " << availability_resale << " available gifts";
+          availability_resale = 0;
+          resell_min_stars = 0;
+        } else if (resell_min_stars == 0 && availability_resale == 0) {
+          LOG(ERROR) << "Receive " << availability_resale << " available gifts with the minimum price of "
+                     << resell_min_stars;
+          availability_resale = 0;
+        }
+      }
+
       StarGift star_gift(td_, std::move(gift), false);
       if (!star_gift.is_valid()) {
         continue;
       }
       td_->star_gift_manager_->on_get_star_gift(star_gift, true);
-      options.push_back(star_gift.get_gift_object(td_));
+      options.push_back(td_api::make_object<td_api::availableGift>(
+          star_gift.get_gift_object(td_), narrow_cast<int32>(availability_resale), resell_min_stars));
     }
 
-    promise_.set_value(td_api::make_object<td_api::gifts>(std::move(options)));
+    promise_.set_value(td_api::make_object<td_api::availableGifts>(std::move(options)));
   }
 
   void on_error(Status status) final {
@@ -936,7 +956,7 @@ void StarGiftManager::tear_down() {
   parent_.reset();
 }
 
-void StarGiftManager::get_gift_payment_options(Promise<td_api::object_ptr<td_api::gifts>> &&promise) {
+void StarGiftManager::get_gift_payment_options(Promise<td_api::object_ptr<td_api::availableGifts>> &&promise) {
   td_->create_handler<GetStarGiftsQuery>(std::move(promise))->send();
 }
 

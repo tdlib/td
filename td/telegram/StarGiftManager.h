@@ -38,7 +38,7 @@ class StarGiftManager final : public Actor {
   StarGiftManager &operator=(StarGiftManager &&) = delete;
   ~StarGiftManager() final;
 
-  void get_gift_payment_options(Promise<td_api::object_ptr<td_api::gifts>> &&promise);
+  void get_gift_payment_options(Promise<td_api::object_ptr<td_api::availableGifts>> &&promise);
 
   void on_get_star_gift(const StarGift &star_gift, bool from_server);
 

@@ -1115,9 +1115,6 @@ upgradedGiftOriginalDetails sender_id:MessageSender receiver_id:MessageSender te
 //@last_send_date Point in time (Unix timestamp) when the gift was send for the last time; for sold out gifts only
 gift id:int64 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 is_for_birthday:Bool remaining_count:int32 total_count:int32 first_send_date:int32 last_send_date:int32 = Gift;
 
-//@description Contains a list of gifts that can be sent to another user or channel chat @gifts The list of gifts
-gifts gifts:vector<gift> = Gifts;
-
 //@description Describes an upgraded gift that can be transferred to another owner or transferred to the TON blockchain as an NFT
 //@id Unique identifier of the gift
 //@title The title of the upgraded gift
@@ -1146,6 +1143,15 @@ upgradedGift id:int64 title:string name:string number:int32 total_upgraded_count
 //@next_resale_date Point in time (Unix timestamp) when the gift can be resold to another user; 0 if the gift can't be resold; only for the receiver of the gift
 //@export_date Point in time (Unix timestamp) when the gift can be transferred to the TON blockchain as an NFT
 upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 = UpgradeGiftResult;
+
+//@description Describes a gift that is available for purchase
+//@gift The gift
+//@resale_count Number of gifts that are available for resale
+//@min_resale_star_count The minimum price for the gifts available for resale; 0 if there are no such gifts
+availableGift gift:gift resale_count:int32 min_resale_star_count:int53 = AvailableGift;
+
+//@description Contains a list of gifts that can be sent to another user or channel chat @gifts The list of gifts
+availableGifts gifts:vector<availableGift> = AvailableGifts;
 
 
 //@class UpgradedGiftAttributeId @description Contains identifier of an upgraded gift attribute to search for
@@ -12182,7 +12188,7 @@ deleteSavedCredentials = Ok;
 setGiftSettings settings:giftSettings = Ok;
 
 //@description Returns gifts that can be sent to other users and channel chats
-getAvailableGifts = Gifts;
+getAvailableGifts = AvailableGifts;
 
 //@description Sends a gift to another user or channel chat. May return an error with a message "STARGIFT_USAGE_LIMITED" if the gift was sold out
 //@gift_id Identifier of the gift to send
