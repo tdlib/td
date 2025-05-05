@@ -1141,8 +1141,9 @@ upgradedGift id:int64 title:string name:string number:int32 total_upgraded_count
 //@can_be_transferred True, if the gift can be transferred to another owner
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift
 //@next_transfer_date Point in time (Unix timestamp) when the gift can be transferred to another owner; 0 if the gift can be transferred immediately or transfer isn't possible
+//@next_resale_date Point in time (Unix timestamp) when the gift can be resold to another user; 0 if the gift can't be resold; only for the receiver of the gift
 //@export_date Point in time (Unix timestamp) when the gift can be transferred to the TON blockchain as an NFT
-upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 next_transfer_date:int32 export_date:int32 = UpgradeGiftResult;
+upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 = UpgradeGiftResult;
 
 
 //@class SentGift @description Represents content of a gift received by a user or a channel chat
@@ -4187,7 +4188,7 @@ messageGift gift:gift sender_id:MessageSender received_gift_id:string text:forma
 //@gift The gift
 //@sender_id Sender of the gift; may be null for anonymous gifts
 //@received_gift_id Unique identifier of the received gift for the current user; only for the receiver of the gift
-//@is_upgrade True, if the gift was obtained by upgrading of a previously received gift; otherwise, this is a transferred gift
+//@is_upgrade True, if the gift was obtained by upgrading of a previously received gift; otherwise, this is a transferred or resold gift
 //@is_saved True, if the gift is displayed on the user's or the channel's profile page; only for the receiver of the gift
 //@can_be_transferred True, if the gift can be transferred to another owner; only for the receiver of the gift
 //@was_transferred True, if the gift was transferred to another owner; only for the receiver of the gift
@@ -4200,7 +4201,7 @@ messageUpgradedGift gift:upgradedGift sender_id:MessageSender received_gift_id:s
 //@description A gift which purchase, upgrade or transfer were refunded
 //@gift The gift
 //@sender_id Sender of the gift
-//@is_upgrade True, if the gift was obtained by upgrading of a previously received gift
+//@is_upgrade True, if the gift was obtained by upgrading of a previously received gift; otherwise, this is a transferred or resold gift
 messageRefundedUpgradedGift gift:gift sender_id:MessageSender is_upgrade:Bool = MessageContent;
 
 //@description Paid messages were refunded @message_count The number of refunded messages @star_count The number of refunded Telegram Stars
@@ -6815,7 +6816,7 @@ pushMessageContentGiveaway winner_count:int32 prize:GiveawayPrize is_pinned:Bool
 pushMessageContentGift star_count:int53 = PushMessageContent;
 
 //@description A message with an upgraded gift
-//@is_upgrade True, if the gift was obtained by upgrading of a previously received gift; otherwise, this is a transferred gift
+//@is_upgrade True, if the gift was obtained by upgrading of a previously received gift; otherwise, this is a transferred or resold gift
 pushMessageContentUpgradedGift is_upgrade:Bool = PushMessageContent;
 
 //@description A screenshot of a message in the chat has been taken

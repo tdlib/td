@@ -9003,7 +9003,7 @@ td_api::object_ptr<td_api::upgradeGiftResult> get_message_content_upgrade_gift_r
       }
       return td_api::make_object<td_api::upgradeGiftResult>(
           m->star_gift.get_upgraded_gift_object(td), star_gift_id.get_star_gift_id(), m->is_saved, m->can_transfer,
-          m->transfer_star_count, m->can_transfer_at, m->can_export_at);
+          m->transfer_star_count, m->can_transfer_at, m->can_resell_at, m->can_export_at);
     }
     default:
       UNREACHABLE();
