@@ -1148,7 +1148,8 @@ upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be
 //@gift The gift
 //@resale_count Number of gifts that are available for resale
 //@min_resale_star_count The minimum price for the gifts available for resale; 0 if there are no such gifts
-availableGift gift:gift resale_count:int32 min_resale_star_count:int53 = AvailableGift;
+//@title The title of the upgraded gift; empty if the gift isn't available for resale
+availableGift gift:gift resale_count:int32 min_resale_star_count:int53 title:string = AvailableGift;
 
 //@description Contains a list of gifts that can be sent to another user or channel chat @gifts The list of gifts
 availableGifts gifts:vector<availableGift> = AvailableGifts;

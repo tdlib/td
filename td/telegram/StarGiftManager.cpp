@@ -68,18 +68,23 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
     for (auto &gift : results->gifts_) {
       int64 availability_resale = 0;
       int64 resell_min_stars = 0;
+      string title;
       if (gift->get_id() == telegram_api::starGift::ID) {
         auto star_gift = static_cast<const telegram_api::starGift *>(gift.get());
         availability_resale = star_gift->availability_resale_;
         resell_min_stars = StarManager::get_star_count(star_gift->resell_min_stars_);
+        title = star_gift->title_;
         if (availability_resale < 0 || availability_resale > 1000000000) {
           LOG(ERROR) << "Receive " << availability_resale << " available gifts";
           availability_resale = 0;
-          resell_min_stars = 0;
         } else if (resell_min_stars == 0 && availability_resale == 0) {
           LOG(ERROR) << "Receive " << availability_resale << " available gifts with the minimum price of "
                      << resell_min_stars;
           availability_resale = 0;
+        }
+        if (availability_resale == 0) {
+          resell_min_stars = 0;
+          title.clear();
         }
       }
 
@@ -89,7 +94,7 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
       }
       td_->star_gift_manager_->on_get_star_gift(star_gift, true);
       options.push_back(td_api::make_object<td_api::availableGift>(
-          star_gift.get_gift_object(td_), narrow_cast<int32>(availability_resale), resell_min_stars));
+          star_gift.get_gift_object(td_), narrow_cast<int32>(availability_resale), resell_min_stars, title));
     }
 
     promise_.set_value(td_api::make_object<td_api::availableGifts>(std::move(options)));
