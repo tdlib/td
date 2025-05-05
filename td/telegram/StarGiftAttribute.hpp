@@ -41,7 +41,9 @@ void StarGiftAttributeSticker::parse(ParserT &parser) {
 template <class StorerT>
 void StarGiftAttributeBackdrop::store(StorerT &storer) const {
   CHECK(is_valid());
+  bool has_id = id_ != 0;
   BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_id);
   END_STORE_FLAGS();
   td::store(name_, storer);
   td::store(center_color_, storer);
@@ -49,11 +51,16 @@ void StarGiftAttributeBackdrop::store(StorerT &storer) const {
   td::store(pattern_color_, storer);
   td::store(text_color_, storer);
   td::store(rarity_permille_, storer);
+  if (has_id) {
+    td::store(id_, storer);
+  }
 }
 
 template <class ParserT>
 void StarGiftAttributeBackdrop::parse(ParserT &parser) {
+  bool has_id;
   BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_id);
   END_PARSE_FLAGS();
   td::parse(name_, parser);
   td::parse(center_color_, parser);
@@ -61,6 +68,9 @@ void StarGiftAttributeBackdrop::parse(ParserT &parser) {
   td::parse(pattern_color_, parser);
   td::parse(text_color_, parser);
   td::parse(rarity_permille_, parser);
+  if (has_id) {
+    td::parse(id_, parser);
+  }
 }
 
 template <class StorerT>

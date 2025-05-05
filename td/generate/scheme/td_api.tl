@@ -1089,10 +1089,11 @@ upgradedGiftSymbol name:string sticker:sticker rarity_per_mille:int32 = Upgraded
 upgradedGiftBackdropColors center_color:int32 edge_color:int32 symbol_color:int32 text_color:int32 = UpgradedGiftBackdropColors;
 
 //@description Describes a backdrop of an upgraded gift
+//@id Unique identifier of the backdrop
 //@name Name of the backdrop
 //@colors Colors of the backdrop
 //@rarity_per_mille The number of upgraded gifts that receive this backdrop for each 1000 gifts upgraded
-upgradedGiftBackdrop name:string colors:upgradedGiftBackdropColors rarity_per_mille:int32 = UpgradedGiftBackdrop;
+upgradedGiftBackdrop id:int32 name:string colors:upgradedGiftBackdropColors rarity_per_mille:int32 = UpgradedGiftBackdrop;
 
 //@description Describes the original details about the gift
 //@sender_id Identifier of the user or the chat that sent the gift; may be null if the gift was private

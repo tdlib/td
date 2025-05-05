@@ -57,6 +57,7 @@ inline bool operator!=(const StarGiftAttributeSticker &lhs, const StarGiftAttrib
 
 class StarGiftAttributeBackdrop {
   string name_;
+  int32 id_ = 0;
   int32 center_color_ = 0;
   int32 edge_color_ = 0;
   int32 pattern_color_ = 0;

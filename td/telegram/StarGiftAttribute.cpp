@@ -56,6 +56,7 @@ bool operator==(const StarGiftAttributeSticker &lhs, const StarGiftAttributeStic
 StarGiftAttributeBackdrop::StarGiftAttributeBackdrop(
     telegram_api::object_ptr<telegram_api::starGiftAttributeBackdrop> &&attribute)
     : name_(std::move(attribute->name_))
+    , id_(attribute->backdrop_id_)
     , center_color_(attribute->center_color_)
     , edge_color_(attribute->edge_color_)
     , pattern_color_(attribute->pattern_color_)
@@ -66,15 +67,15 @@ StarGiftAttributeBackdrop::StarGiftAttributeBackdrop(
 td_api::object_ptr<td_api::upgradedGiftBackdrop> StarGiftAttributeBackdrop::get_upgraded_gift_backdrop_object() const {
   CHECK(is_valid());
   return td_api::make_object<td_api::upgradedGiftBackdrop>(
-      name_,
+      id_, name_,
       td_api::make_object<td_api::upgradedGiftBackdropColors>(center_color_, edge_color_, pattern_color_, text_color_),
       rarity_permille_);
 }
 
 bool operator==(const StarGiftAttributeBackdrop &lhs, const StarGiftAttributeBackdrop &rhs) {
-  return lhs.name_ == rhs.name_ && lhs.center_color_ == rhs.center_color_ && lhs.edge_color_ == rhs.edge_color_ &&
-         lhs.pattern_color_ == rhs.pattern_color_ && lhs.text_color_ == rhs.text_color_ &&
-         lhs.rarity_permille_ == rhs.rarity_permille_;
+  return lhs.id_ == rhs.id_ && lhs.name_ == rhs.name_ && lhs.center_color_ == rhs.center_color_ &&
+         lhs.edge_color_ == rhs.edge_color_ && lhs.pattern_color_ == rhs.pattern_color_ &&
+         lhs.text_color_ == rhs.text_color_ && lhs.rarity_permille_ == rhs.rarity_permille_;
 }
 
 StarGiftAttributeOriginalDetails::StarGiftAttributeOriginalDetails(
