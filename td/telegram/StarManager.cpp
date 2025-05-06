@@ -446,7 +446,15 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   }
                 } else {
                   if (gift.is_unique()) {
-                    LOG(ERROR) << "Receive sale of an upgraded gift";
+                    if (transaction->stargift_resale_) {
+                      transaction->stargift_resale_ = false;
+                      if (for_user) {
+                        return td_api::make_object<td_api::starTransactionTypeUpgradedGiftSale>(
+                            user_id_object, gift.get_upgraded_gift_object(td_));
+                      }
+                    } else {
+                      LOG(ERROR) << "Receive sale of an upgraded gift";
+                    }
                   } else {
                     if (for_user || for_channel) {
                       product_info = nullptr;
@@ -702,6 +710,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
         if (transaction->business_transfer_) {
           LOG(ERROR) << "Receive business bot transfer with " << to_string(star_transaction);
+        }
+        if (transaction->stargift_resale_) {
+          LOG(ERROR) << "Receive gift resale with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {
