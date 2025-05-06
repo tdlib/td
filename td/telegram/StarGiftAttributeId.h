@@ -29,6 +29,8 @@ class StarGiftAttributeId {
 
   friend struct StarGiftAttributeIdHash;
 
+  friend bool operator==(const StarGiftAttributeId &lhs, const StarGiftAttributeId &rhs);
+
  public:
   StarGiftAttributeId() = default;
 
@@ -47,5 +49,11 @@ struct StarGiftAttributeIdHash {
                                                : Hash<int64>()(star_gift_attribute_id.sticker_id_);
   }
 };
+
+bool operator==(const StarGiftAttributeId &lhs, const StarGiftAttributeId &rhs);
+
+inline bool operator!=(const StarGiftAttributeId &lhs, const StarGiftAttributeId &rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace td

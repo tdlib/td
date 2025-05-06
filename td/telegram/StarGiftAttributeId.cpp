@@ -88,4 +88,8 @@ StarGiftAttributeId::get_input_star_gift_attribute_ids_object(const vector<StarG
   });
 }
 
+bool operator==(const StarGiftAttributeId &lhs, const StarGiftAttributeId &rhs) {
+  return lhs.type_ == rhs.type_ && lhs.sticker_id_ == rhs.sticker_id_ && lhs.backdrop_id_ == rhs.backdrop_id_;
+}
+
 }  // namespace td
