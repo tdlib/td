@@ -31,10 +31,18 @@ class StarGiftAttributeId {
 
   friend bool operator==(const StarGiftAttributeId &lhs, const StarGiftAttributeId &rhs);
 
+  StarGiftAttributeId(Type type, int64 sticker_id, int32 backdrop_id);
+
  public:
   StarGiftAttributeId() = default;
 
   explicit StarGiftAttributeId(telegram_api::object_ptr<telegram_api::StarGiftAttributeId> attribute);
+
+  static StarGiftAttributeId model(int64 sticker_id);
+
+  static StarGiftAttributeId pattern(int64 sticker_id);
+
+  static StarGiftAttributeId backdrop(int32 backdrop_id);
 
   static Result<vector<StarGiftAttributeId>> get_star_gift_attribute_ids(
       const vector<td_api::object_ptr<td_api::UpgradedGiftAttributeId>> &attributes);

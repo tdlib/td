@@ -10,6 +10,22 @@
 
 namespace td {
 
+StarGiftAttributeId::StarGiftAttributeId(Type type, int64 sticker_id, int32 backdrop_id)
+    : type_(type), sticker_id_(sticker_id), backdrop_id_(backdrop_id) {
+}
+
+StarGiftAttributeId StarGiftAttributeId::model(int64 sticker_id) {
+  return StarGiftAttributeId(Type::Model, sticker_id, 0);
+}
+
+StarGiftAttributeId StarGiftAttributeId::pattern(int64 sticker_id) {
+  return StarGiftAttributeId(Type::Pattern, sticker_id, 0);
+}
+
+StarGiftAttributeId StarGiftAttributeId::backdrop(int32 backdrop_id) {
+  return StarGiftAttributeId(Type::Backdrop, 0, backdrop_id);
+}
+
 Result<StarGiftAttributeId> StarGiftAttributeId::get_star_gift_attribute_id(
     const td_api::object_ptr<td_api::UpgradedGiftAttributeId> &attribute) {
   if (attribute == nullptr) {
