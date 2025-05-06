@@ -6,6 +6,8 @@
 //
 #include "td/telegram/TranslationManager.h"
 
+#include "td/telegram/AccessRights.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/Td.h"
@@ -26,13 +28,24 @@ class TranslateTextQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(vector<FormattedText> &&texts, const string &to_language_code) {
-    int flags = telegram_api::messages_translateText::TEXT_MASK;
-    auto input_texts = transform(std::move(texts), [user_manager = td_->user_manager_.get()](FormattedText &&text) {
-      return get_input_text_with_entities(user_manager, std::move(text), "TranslateTextQuery");
-    });
-    send_query(G()->net_query_creator().create(telegram_api::messages_translateText(
-        flags, nullptr, vector<int32>{}, std::move(input_texts), to_language_code)));
+  void send(vector<FormattedText> &&texts, MessageFullId message_full_id, const string &to_language_code) {
+    int32 flags = 0;
+    if (message_full_id.get_message_id().is_valid()) {
+      CHECK(texts.size() == 1u);
+      flags |= telegram_api::messages_translateText::PEER_MASK;
+      auto input_peer = td_->dialog_manager_->get_input_peer(message_full_id.get_dialog_id(), AccessRights::Read);
+      CHECK(input_peer != nullptr);
+      auto message_ids = {message_full_id.get_message_id().get_server_message_id().get()};
+      send_query(G()->net_query_creator().create(telegram_api::messages_translateText(
+          flags, std::move(input_peer), std::move(message_ids), Auto(), to_language_code)));
+    } else {
+      flags |= telegram_api::messages_translateText::TEXT_MASK;
+      auto input_texts = transform(std::move(texts), [user_manager = td_->user_manager_.get()](FormattedText &&text) {
+        return get_input_text_with_entities(user_manager, std::move(text), "TranslateTextQuery");
+      });
+      send_query(G()->net_query_creator().create(telegram_api::messages_translateText(
+          flags, nullptr, vector<int32>{}, std::move(input_texts), to_language_code)));
+    }
   }
 
   void on_result(BufferSlice packet) final {
@@ -95,11 +108,11 @@ void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText
   TRY_STATUS_PROMISE(promise, fix_formatted_text(text->text_, entities, true, true, true, true, true));
 
   translate_text(FormattedText{std::move(text->text_), std::move(entities)}, skip_bot_commands, max_media_timestamp,
-                 to_language_code, std::move(promise));
+                 MessageFullId(), to_language_code, std::move(promise));
 }
 
 void TranslationManager::translate_text(FormattedText text, bool skip_bot_commands, int32 max_media_timestamp,
-                                        const string &to_language_code,
+                                        MessageFullId message_full_id, const string &to_language_code,
                                         Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
   vector<FormattedText> texts;
   texts.push_back(std::move(text));
@@ -114,7 +127,8 @@ void TranslationManager::translate_text(FormattedText text, bool skip_bot_comman
                      max_media_timestamp, std::move(promise));
       });
 
-  td_->create_handler<TranslateTextQuery>(std::move(query_promise))->send(std::move(texts), to_language_code);
+  td_->create_handler<TranslateTextQuery>(std::move(query_promise))
+      ->send(std::move(texts), message_full_id, to_language_code);
 }
 
 void TranslationManager::on_get_translated_texts(vector<telegram_api::object_ptr<telegram_api::textWithEntities>> texts,

@@ -2911,7 +2911,7 @@ void NotificationManager::add_push_notification_user(
   int32 flags = 0;
   if (sender_access_hash != -1) {
     // set phone number flag to show that this is a full access hash
-    flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::PHONE_MASK;
+    flags |= telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::PHONE_MASK;
   } else {
     sender_access_hash = 0;
   }

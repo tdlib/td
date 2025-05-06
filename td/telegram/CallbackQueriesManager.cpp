@@ -55,7 +55,7 @@ class GetBotCallbackAnswerQuery final : public Td::ResultHandler {
         break;
       case td_api::callbackQueryPayloadDataWithPassword::ID:
         CHECK(password != nullptr);
-        flags = telegram_api::messages_getBotCallbackAnswer::PASSWORD_MASK;
+        flags |= telegram_api::messages_getBotCallbackAnswer::PASSWORD_MASK;
         data = BufferSlice(static_cast<const td_api::callbackQueryPayloadDataWithPassword *>(payload.get())->data_);
         break;
       case td_api::callbackQueryPayloadGame::ID:

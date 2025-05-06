@@ -121,6 +121,8 @@ class ChatManager final : public Actor {
 
   bool get_channel_stories_hidden(ChannelId channel_id) const;
 
+  bool get_channel_autotranslation(ChannelId channel_id) const;
+
   bool can_poll_channel_active_stories(ChannelId channel_id) const;
 
   bool can_use_premium_custom_emoji_in_channel(ChannelId channel_id) const;

@@ -14320,7 +14320,13 @@ void MessagesManager::translate_message_text(MessageFullId message_full_id, cons
 
   auto skip_bot_commands = need_skip_bot_commands(message_full_id.get_dialog_id(), m);
   auto max_media_timestamp = get_message_max_media_timestamp(m);
-  td_->translation_manager_->translate_text(*text, skip_bot_commands, max_media_timestamp, to_language_code,
+  auto dialog_id = message_full_id.get_dialog_id();
+  auto has_autotranslation = dialog_id.get_type() == DialogType::Channel &&
+                             td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) &&
+                             m->message_id.is_valid() && m->message_id.is_server() &&
+                             td_->chat_manager_->get_channel_autotranslation(dialog_id.get_channel_id());
+  td_->translation_manager_->translate_text(*text, skip_bot_commands, max_media_timestamp,
+                                            has_autotranslation ? message_full_id : MessageFullId(), to_language_code,
                                             std::move(promise));
 }
 

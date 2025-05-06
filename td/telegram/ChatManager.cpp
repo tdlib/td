@@ -2919,6 +2919,14 @@ bool ChatManager::get_channel_stories_hidden(ChannelId channel_id) const {
   return c->stories_hidden;
 }
 
+bool ChatManager::get_channel_autotranslation(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return c->autotranslation;
+}
+
 bool ChatManager::can_poll_channel_active_stories(ChannelId channel_id) const {
   const Channel *c = get_channel(channel_id);
   return need_poll_channel_active_stories(c, channel_id) && Time::now() >= c->max_active_story_id_next_reload_time;
