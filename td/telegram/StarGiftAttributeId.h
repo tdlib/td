@@ -22,6 +22,8 @@ class StarGiftAttributeId {
   int64 sticker_id_ = 0;
   int32 backdrop_id_ = 0;
 
+  StarGiftAttributeId(Type type, int64 sticker_id, int32 backdrop_id);
+
   static Result<StarGiftAttributeId> get_star_gift_attribute_id(
       const td_api::object_ptr<td_api::UpgradedGiftAttributeId> &attribute);
 
@@ -31,7 +33,7 @@ class StarGiftAttributeId {
 
   friend bool operator==(const StarGiftAttributeId &lhs, const StarGiftAttributeId &rhs);
 
-  StarGiftAttributeId(Type type, int64 sticker_id, int32 backdrop_id);
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const StarGiftAttributeId &attribute_id);
 
  public:
   StarGiftAttributeId() = default;
@@ -63,5 +65,7 @@ bool operator==(const StarGiftAttributeId &lhs, const StarGiftAttributeId &rhs);
 inline bool operator!=(const StarGiftAttributeId &lhs, const StarGiftAttributeId &rhs) {
   return !(lhs == rhs);
 }
+
+StringBuilder &operator<<(StringBuilder &string_builder, const StarGiftAttributeId &attribute_id);
 
 }  // namespace td

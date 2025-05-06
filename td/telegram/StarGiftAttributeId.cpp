@@ -101,4 +101,20 @@ bool operator==(const StarGiftAttributeId &lhs, const StarGiftAttributeId &rhs) 
   return lhs.type_ == rhs.type_ && lhs.sticker_id_ == rhs.sticker_id_ && lhs.backdrop_id_ == rhs.backdrop_id_;
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const StarGiftAttributeId &attribute_id) {
+  switch (attribute_id.type_) {
+    case StarGiftAttributeId::Type::Model:
+      return string_builder << "model " << attribute_id.sticker_id_;
+    case StarGiftAttributeId::Type::Pattern:
+      return string_builder << "symbol " << attribute_id.sticker_id_;
+    case StarGiftAttributeId::Type::Backdrop:
+      return string_builder << "backdrop " << attribute_id.backdrop_id_;
+    case StarGiftAttributeId::Type::None:
+      return string_builder << "[empty attribute]";
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
+}
+
 }  // namespace td
