@@ -75,6 +75,8 @@ class StickersManager final : public Actor {
 
   StickerFormat get_sticker_format(FileId file_id) const;
 
+  int64 get_sticker_id(FileId sticker_id) const;
+
   bool is_premium_custom_emoji(CustomEmojiId custom_emoji_id, bool default_result) const;
 
   bool have_sticker(StickerSetId sticker_set_id, int64 sticker_id);
@@ -606,8 +608,6 @@ class StickersManager final : public Actor {
   class StickerSetListLogEvent;
 
   class UploadStickerFileCallback;
-
-  int64 get_sticker_id(FileId sticker_id) const;
 
   CustomEmojiId get_custom_emoji_id(FileId sticker_id) const;
 

@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/StarGiftAttributeId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -41,6 +42,8 @@ class StarGiftAttributeSticker {
   td_api::object_ptr<td_api::upgradedGiftModel> get_upgraded_gift_model_object(const Td *td) const;
 
   td_api::object_ptr<td_api::upgradedGiftSymbol> get_upgraded_gift_symbol_object(const Td *td) const;
+
+  StarGiftAttributeId get_id(Td *td, bool is_model) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
@@ -81,6 +84,8 @@ class StarGiftAttributeBackdrop {
   }
 
   td_api::object_ptr<td_api::upgradedGiftBackdrop> get_upgraded_gift_backdrop_object() const;
+
+  StarGiftAttributeId get_id() const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
