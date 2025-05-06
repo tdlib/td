@@ -1189,6 +1189,13 @@ class GetResaleStarGiftsQuery final : public Td::ResultHandler {
           UNREACHABLE();
       }
     }
+    auto compare_by_count = [](auto &lhs, auto &rhs) {
+      return lhs->total_count_ > rhs->total_count_;
+    };
+    std::sort(models.begin(), models.end(), compare_by_count);
+    std::sort(symbols.begin(), symbols.end(), compare_by_count);
+    std::sort(backdrops.begin(), backdrops.end(), compare_by_count);
+
     if (!counters.empty()) {
       LOG(ERROR) << "Receive " << counters.size() << " unused counters";
     }
