@@ -75,6 +75,8 @@ class StarGiftManager final : public Actor {
 
   void get_star_gift_withdrawal_url(StarGiftId star_gift_id, const string &password, Promise<string> &&promise);
 
+  void set_star_gift_price(StarGiftId star_gift_id, int64 resale_star_count, Promise<Unit> &&promise);
+
   void get_resale_star_gifts(int64 gift_id, const td_api::object_ptr<td_api::GiftForResaleOrder> &order,
                              const vector<td_api::object_ptr<td_api::UpgradedGiftAttributeId>> &attributes,
                              const string &offset, int32 limit,

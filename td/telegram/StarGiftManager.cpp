@@ -19,6 +19,7 @@
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OnlineManager.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarGiftAttribute.h"
@@ -1032,6 +1033,39 @@ class GetStarGiftWithdrawalUrlQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateStarGiftPriceQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit UpdateStarGiftPriceQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(StarGiftId star_gift_id, int64 resale_star_count) {
+    auto input_gift = star_gift_id.get_input_saved_star_gift(td_);
+    if (input_gift == nullptr) {
+      return on_error(Status::Error(400, "Gift not found"));
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_updateStarGiftPrice(std::move(input_gift), resale_star_count)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_updateStarGiftPrice>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for UpdateStarGiftPriceQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetResaleStarGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::giftsForResale>> promise_;
 
@@ -1486,6 +1520,19 @@ void StarGiftManager::send_get_star_gift_withdrawal_url_query(
 
   td_->create_handler<GetStarGiftWithdrawalUrlQuery>(std::move(promise))
       ->send(star_gift_id, std::move(input_check_password));
+}
+
+void StarGiftManager::set_star_gift_price(StarGiftId star_gift_id, int64 resale_star_count, Promise<Unit> &&promise) {
+  if (!star_gift_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
+  }
+  if ((resale_star_count != 0 &&
+       resale_star_count < td_->option_manager_->get_option_integer("gift_resale_star_count_min")) ||
+      resale_star_count > td_->option_manager_->get_option_integer("gift_resale_star_count_max")) {
+    return promise.set_error(Status::Error(400, "Invalid resale price specified"));
+  }
+
+  td_->create_handler<UpdateStarGiftPriceQuery>(std::move(promise))->send(star_gift_id, resale_star_count);
 }
 
 void StarGiftManager::get_resale_star_gifts(
