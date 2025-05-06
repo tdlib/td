@@ -10,6 +10,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/HashTableUtils.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
@@ -26,6 +27,8 @@ class StarGiftAttributeId {
 
   telegram_api::object_ptr<telegram_api::StarGiftAttributeId> get_input_star_gift_attribute_id_object() const;
 
+  friend struct StarGiftAttributeIdHash;
+
  public:
   StarGiftAttributeId() = default;
 
@@ -36,6 +39,13 @@ class StarGiftAttributeId {
 
   static vector<telegram_api::object_ptr<telegram_api::StarGiftAttributeId>> get_input_star_gift_attribute_ids_object(
       const vector<StarGiftAttributeId> &attributes);
+};
+
+struct StarGiftAttributeIdHash {
+  uint32 operator()(StarGiftAttributeId star_gift_attribute_id) const {
+    return star_gift_attribute_id.backdrop_id_ ? Hash<int32>()(star_gift_attribute_id.backdrop_id_)
+                                               : Hash<int64>()(star_gift_attribute_id.sticker_id_);
+  }
 };
 
 }  // namespace td
