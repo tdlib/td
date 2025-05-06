@@ -88,7 +88,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogSource &sou
     case DialogSource::Type::MtprotoProxy:
       return string_builder << "MTProto proxy sponsor";
     case DialogSource::Type::PublicServiceAnnouncement:
-      return string_builder << "public service announcement of type " << source.psa_type_;
+      return string_builder << "public service announcement of type \"" << source.psa_type_ << '"';
     default:
       UNREACHABLE();
       return string_builder;
