@@ -782,6 +782,26 @@ class CliClient final : public Actor {
     return added_sticker_file_ids_;
   }
 
+  vector<td_api::object_ptr<td_api::UpgradedGiftAttributeId>> get_upgraded_gift_attribute_ids() {
+    return transform(
+        upgraded_gift_attribute_ids_,
+        [](const auto &attribute_id) -> td_api::object_ptr<td_api::UpgradedGiftAttributeId> {
+          if (attribute_id[0] == 'm') {
+            return td_api::make_object<td_api::upgradedGiftAttributeIdModel>(to_integer<int64>(attribute_id.substr(1)));
+          }
+          if (attribute_id[0] == 's') {
+            return td_api::make_object<td_api::upgradedGiftAttributeIdSymbol>(
+                to_integer<int64>(attribute_id.substr(1)));
+          }
+          if (attribute_id[0] == 'b') {
+            return td_api::make_object<td_api::upgradedGiftAttributeIdBackdrop>(
+                to_integer<int32>(attribute_id.substr(1)));
+          }
+          LOG(ERROR) << "Unknown attribute " << attribute_id;
+          return nullptr;
+        });
+  }
+
   struct CallId {
     int32 call_id = 0;
 
@@ -3025,8 +3045,8 @@ class CliClient final : public Actor {
       } else {
         order = td_api::make_object<td_api::giftForResaleOrderPrice>();
       }
-      send_request(td_api::make_object<td_api::searchGiftsForResale>(gift_id, std::move(order), Auto(), offset,
-                                                                     as_limit(limit)));
+      send_request(td_api::make_object<td_api::searchGiftsForResale>(
+          gift_id, std::move(order), get_upgraded_gift_attribute_ids(), offset, as_limit(limit)));
     } else if (op == "rsp") {
       UserId user_id;
       string telegram_payment_charge_id;
@@ -5468,6 +5488,8 @@ class CliClient final : public Actor {
       thumbnail_ = args;
     } else if (op == "smst") {
       start_timestamp_ = to_integer<int32>(args);
+    } else if (op == "sugai") {
+      upgraded_gift_attribute_ids_ = full_split(args);
     } else if (op == "sm" || op == "sms" || op == "smf") {
       ChatId chat_id;
       string message;
@@ -7810,6 +7832,7 @@ class CliClient final : public Actor {
   string cover_;
   string thumbnail_;
   int32 start_timestamp_ = 0;
+  vector<string> upgraded_gift_attribute_ids_;
 
   ConcurrentScheduler *scheduler_{nullptr};
 
