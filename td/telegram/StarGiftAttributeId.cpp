@@ -31,24 +31,17 @@ Result<StarGiftAttributeId> StarGiftAttributeId::get_star_gift_attribute_id(
   if (attribute == nullptr) {
     return Status::Error(400, "Attribute identifier must be non-empty");
   }
-  StarGiftAttributeId result;
   switch (attribute->get_id()) {
     case td_api::upgradedGiftAttributeIdModel::ID:
-      result.type_ = Type::Model;
-      result.sticker_id_ = static_cast<const td_api::upgradedGiftAttributeIdModel *>(attribute.get())->sticker_id_;
-      break;
+      return model(static_cast<const td_api::upgradedGiftAttributeIdModel *>(attribute.get())->sticker_id_);
     case td_api::upgradedGiftAttributeIdSymbol::ID:
-      result.type_ = Type::Pattern;
-      result.sticker_id_ = static_cast<const td_api::upgradedGiftAttributeIdSymbol *>(attribute.get())->sticker_id_;
-      break;
+      return pattern(static_cast<const td_api::upgradedGiftAttributeIdSymbol *>(attribute.get())->sticker_id_);
     case td_api::upgradedGiftAttributeIdBackdrop::ID:
-      result.type_ = Type::Backdrop;
-      result.backdrop_id_ = static_cast<const td_api::upgradedGiftAttributeIdBackdrop *>(attribute.get())->backdrop_id_;
-      break;
+      return backdrop(static_cast<const td_api::upgradedGiftAttributeIdBackdrop *>(attribute.get())->backdrop_id_);
     default:
       UNREACHABLE();
+      return {};
   }
-  return result;
 }
 
 Result<vector<StarGiftAttributeId>> StarGiftAttributeId::get_star_gift_attribute_ids(
