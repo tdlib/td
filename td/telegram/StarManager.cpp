@@ -453,10 +453,10 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 } else {
                   if (gift.is_unique()) {
                     if (transaction->stargift_resale_) {
-                      if (for_user) {
+                      if (for_user && affiliate != nullptr) {
                         transaction->stargift_resale_ = false;
                         return td_api::make_object<td_api::starTransactionTypeUpgradedGiftSale>(
-                            user_id_object, gift.get_upgraded_gift_object(td_));
+                            user_id_object, gift.get_upgraded_gift_object(td_), std::move(affiliate));
                       }
                     } else {
                       LOG(ERROR) << "Receive sale of an upgraded gift";
