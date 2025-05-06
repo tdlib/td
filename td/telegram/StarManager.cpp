@@ -422,7 +422,13 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 td_->star_gift_manager_->on_get_star_gift(gift, true);
                 if (is_purchase) {
                   if (gift.is_unique()) {
-                    if (transaction->stargift_upgrade_) {
+                    if (transaction->stargift_resale_) {
+                      if (for_user) {
+                        transaction->stargift_resale_ = false;
+                        return td_api::make_object<td_api::starTransactionTypeUpgradedGiftPurchase>(
+                            user_id_object, gift.get_upgraded_gift_object(td_));
+                      }
+                    } else if (transaction->stargift_upgrade_) {
                       if (for_user) {
                         transaction->stargift_upgrade_ = false;
                         transaction->msg_id_ = 0;  // ignore
@@ -447,8 +453,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 } else {
                   if (gift.is_unique()) {
                     if (transaction->stargift_resale_) {
-                      transaction->stargift_resale_ = false;
                       if (for_user) {
+                        transaction->stargift_resale_ = false;
                         return td_api::make_object<td_api::starTransactionTypeUpgradedGiftSale>(
                             user_id_object, gift.get_upgraded_gift_object(td_));
                       }
