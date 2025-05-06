@@ -1048,6 +1048,9 @@ class GetResaleStarGiftsQuery final : public Td::ResultHandler {
     if (!attributes.empty()) {
       flags |= telegram_api::payments_getResaleStarGifts::ATTRIBUTES_MASK;
     }
+    if (offset.empty()) {
+      flags |= telegram_api::payments_getResaleStarGifts::ATTRIBUTES_HASH_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::payments_getResaleStarGifts(
         flags, order_id == td_api::giftForResaleOrderPrice::ID, order_id == td_api::giftForResaleOrderNumber::ID, 0,
         gift_id, std::move(attributes), offset, limit)));
@@ -1078,7 +1081,85 @@ class GetResaleStarGiftsQuery final : public Td::ResultHandler {
       }
       gifts.push_back(star_gift.get_upgraded_gift_object(td_));
     }
-    promise_.set_value(td_api::make_object<td_api::giftsForResale>(total_count, std::move(gifts), ptr->next_offset_));
+    FlatHashMap<StarGiftAttributeId, int32, StarGiftAttributeIdHash> counters;
+    for (auto &counter : ptr->counters_) {
+      if (counter->count_ <= 0) {
+        LOG(ERROR) << "Receive " << to_string(counter);
+        continue;
+      }
+      StarGiftAttributeId attribute(std::move(counter->attribute_));
+      CHECK(attribute != StarGiftAttributeId());
+      counters[attribute] = counter->count_;
+    }
+    auto get_count = [&](StarGiftAttributeId attribute_id) {
+      auto it = counters.find(attribute_id);
+      if (it == counters.end()) {
+        LOG(ERROR) << "Can't find counter for " << attribute_id;
+        return 0;
+      }
+      auto count = it->second;
+      counters.erase(it);
+      return count;
+    };
+    vector<td_api::object_ptr<td_api::upgradedGiftModelCount>> models;
+    vector<td_api::object_ptr<td_api::upgradedGiftSymbolCount>> symbols;
+    vector<td_api::object_ptr<td_api::upgradedGiftBackdropCount>> backdrops;
+    for (auto &attribute : ptr->attributes_) {
+      switch (attribute->get_id()) {
+        case telegram_api::starGiftAttributeModel::ID: {
+          auto model = StarGiftAttributeSticker(
+              td_, telegram_api::move_object_as<telegram_api::starGiftAttributeModel>(attribute));
+          if (!model.is_valid()) {
+            LOG(ERROR) << "Receive invalid model";
+            break;
+          }
+          auto count = get_count(model.get_id(td_, true));
+          if (count > 0) {
+            models.push_back(
+                td_api::make_object<td_api::upgradedGiftModelCount>(model.get_upgraded_gift_model_object(td_), count));
+          }
+          break;
+        }
+        case telegram_api::starGiftAttributePattern::ID: {
+          auto pattern = StarGiftAttributeSticker(
+              td_, telegram_api::move_object_as<telegram_api::starGiftAttributePattern>(attribute));
+          if (!pattern.is_valid()) {
+            LOG(ERROR) << "Receive invalid symbol";
+            break;
+          }
+          auto count = get_count(pattern.get_id(td_, false));
+          if (count > 0) {
+            symbols.push_back(td_api::make_object<td_api::upgradedGiftSymbolCount>(
+                pattern.get_upgraded_gift_symbol_object(td_), count));
+          }
+          break;
+        }
+        case telegram_api::starGiftAttributeBackdrop::ID: {
+          auto backdrop = StarGiftAttributeBackdrop(
+              telegram_api::move_object_as<telegram_api::starGiftAttributeBackdrop>(attribute));
+          if (!backdrop.is_valid()) {
+            LOG(ERROR) << "Receive invalid backdrop";
+            break;
+          }
+          auto count = get_count(backdrop.get_id());
+          if (count > 0) {
+            backdrops.push_back(td_api::make_object<td_api::upgradedGiftBackdropCount>(
+                backdrop.get_upgraded_gift_backdrop_object(), count));
+          }
+          break;
+        }
+        case telegram_api::starGiftAttributeOriginalDetails::ID:
+          LOG(ERROR) << "Receive original details";
+          break;
+        default:
+          UNREACHABLE();
+      }
+    }
+    if (!counters.empty()) {
+      LOG(ERROR) << "Receive " << counters.size() << " unused counters";
+    }
+    promise_.set_value(td_api::make_object<td_api::giftsForResale>(
+        total_count, std::move(gifts), std::move(models), std::move(symbols), std::move(backdrops), ptr->next_offset_));
   }
 
   void on_error(Status status) final {

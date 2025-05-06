@@ -1167,6 +1167,16 @@ upgradedGiftAttributeIdSymbol sticker_id:int64 = UpgradedGiftAttributeId;
 upgradedGiftAttributeIdBackdrop backdrop_id:int32 = UpgradedGiftAttributeId;
 
 
+//@description Describes a model of an upgraded gift with the number of gifts found @model The model @total_count Total number of gifts with the model
+upgradedGiftModelCount model:upgradedGiftModel total_count:int32 = UpgradedGiftModelCount;
+
+//@description Describes a symbol shown on the pattern of an upgraded gift @symbol The symbol @total_count Total number of gifts with the symbol
+upgradedGiftSymbolCount symbol:upgradedGiftSymbol total_count:int32 = UpgradedGiftSymbolCount;
+
+//@description Describes a backdrop of an upgraded gift @backdrop The backdrop @total_count Total number of gifts with the symbol
+upgradedGiftBackdropCount backdrop:upgradedGiftBackdrop total_count:int32 = UpgradedGiftBackdropCount;
+
+
 //@class GiftForResaleOrder @description Describes order in which upgraded gifts for resale will be sorted
 
 //@description The gifts will be sorted by their price from the lowest to the highest
@@ -1182,8 +1192,11 @@ giftForResaleOrderNumber = GiftForResaleOrder;
 //@description Describes gifts available for resale
 //@total_count Total number of gifts found
 //@gifts The gifts
+//@models Available models; for searchGiftsForResale requests without offset only
+//@symbols Available symbols; for searchGiftsForResale requests without offset only
+//@backdrops Available backdrops; for searchGiftsForResale requests without offset only
 //@next_offset The offset for the next request. If empty, then there are no more results
-giftsForResale total_count:int32 gifts:vector<upgradedGift> next_offset:string = GiftsForResale;
+giftsForResale total_count:int32 gifts:vector<upgradedGift> models:vector<upgradedGiftModelCount> symbols:vector<upgradedGiftSymbolCount> backdrops:vector<upgradedGiftBackdropCount> next_offset:string = GiftsForResale;
 
 
 //@class SentGift @description Represents content of a gift received by a user or a channel chat
