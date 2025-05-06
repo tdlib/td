@@ -79,7 +79,7 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
         if (availability_resale < 0 || availability_resale > 1000000000) {
           LOG(ERROR) << "Receive " << availability_resale << " available gifts";
           availability_resale = 0;
-        } else if (resell_min_stars == 0 && availability_resale == 0) {
+        } else if (resell_min_stars == 0 && availability_resale > 0) {
           LOG(ERROR) << "Receive " << availability_resale << " available gifts with the minimum price of "
                      << resell_min_stars;
           availability_resale = 0;
