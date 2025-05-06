@@ -1106,14 +1106,14 @@ class GetResaleStarGiftsQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive " << ptr->gifts_.size() << " gifts with total count = " << total_count;
       total_count = static_cast<int32>(ptr->gifts_.size());
     }
-    vector<td_api::object_ptr<td_api::upgradedGift>> gifts;
+    vector<td_api::object_ptr<td_api::giftForResale>> gifts;
     for (auto &gift : ptr->gifts_) {
       StarGift star_gift(td_, std::move(gift), true);
       if (!star_gift.is_valid() || !star_gift.is_unique()) {
         LOG(ERROR) << "Receive invalid upgraded gift";
         continue;
       }
-      gifts.push_back(star_gift.get_upgraded_gift_object(td_));
+      gifts.push_back(star_gift.get_gift_for_resale_object(td_));
     }
     FlatHashMap<StarGiftAttributeId, int32, StarGiftAttributeIdHash> counters;
     for (auto &counter : ptr->counters_) {

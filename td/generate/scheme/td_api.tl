@@ -1189,6 +1189,11 @@ giftForResaleOrderPriceChangeDate = GiftForResaleOrder;
 giftForResaleOrderNumber = GiftForResaleOrder;
 
 
+//@description Describes a gift available for resale
+//@gift The gift
+//@received_gift_id Unique identifier of the received gift for the current user; only for the gifts owned by the current user
+giftForResale gift:upgradedGift received_gift_id:string = GiftForResale;
+
 //@description Describes gifts available for resale
 //@total_count Total number of gifts found
 //@gifts The gifts
@@ -1196,7 +1201,7 @@ giftForResaleOrderNumber = GiftForResaleOrder;
 //@symbols Available symbols; for searchGiftsForResale requests without offset only
 //@backdrops Available backdrops; for searchGiftsForResale requests without offset only
 //@next_offset The offset for the next request. If empty, then there are no more results
-giftsForResale total_count:int32 gifts:vector<upgradedGift> models:vector<upgradedGiftModelCount> symbols:vector<upgradedGiftSymbolCount> backdrops:vector<upgradedGiftBackdropCount> next_offset:string = GiftsForResale;
+giftsForResale total_count:int32 gifts:vector<giftForResale> models:vector<upgradedGiftModelCount> symbols:vector<upgradedGiftSymbolCount> backdrops:vector<upgradedGiftBackdropCount> next_offset:string = GiftsForResale;
 
 
 //@class SentGift @description Represents content of a gift received by a user or a channel chat

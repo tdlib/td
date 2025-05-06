@@ -7,7 +7,9 @@
 #include "td/telegram/StarGift.h"
 
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"
+#include "td/telegram/StarGiftId.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
@@ -149,6 +151,15 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
       owner_address_, owner_name_, gift_address_, model_.get_upgraded_gift_model_object(td),
       pattern_.get_upgraded_gift_symbol_object(td), backdrop_.get_upgraded_gift_backdrop_object(),
       original_details_.get_upgraded_gift_original_details_object(td), resale_star_count_);
+}
+
+td_api::object_ptr<td_api::giftForResale> StarGift::get_gift_for_resale_object(Td *td) const {
+  CHECK(is_valid());
+  CHECK(is_unique_);
+  return td_api::make_object<td_api::giftForResale>(get_upgraded_gift_object(td),
+                                                    owner_dialog_id_ == td->dialog_manager_->get_my_dialog_id()
+                                                        ? StarGiftId::from_slug(slug_).get_star_gift_id()
+                                                        : string());
 }
 
 td_api::object_ptr<td_api::SentGift> StarGift::get_sent_gift_object(Td *td) const {
