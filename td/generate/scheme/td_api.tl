@@ -1118,7 +1118,7 @@ gift id:int64 sticker:sticker star_count:int53 default_sell_star_count:int53 upg
 //@description Describes an upgraded gift that can be transferred to another owner or transferred to the TON blockchain as an NFT
 //@id Unique identifier of the gift
 //@title The title of the upgraded gift
-//@name Unique name of the upgraded gift that can be used with internalLinkTypeUpgradedGift
+//@name Unique name of the upgraded gift that can be used with internalLinkTypeUpgradedGift or sendResoldGift
 //@number Unique number of the upgraded gift among gifts upgraded from the same gift
 //@total_upgraded_count Total number of gifts that were upgraded from the same gift
 //@max_upgraded_count The maximum number of gifts that can be upgraded from the same gift
@@ -12255,6 +12255,12 @@ upgradeGift business_connection_id:string received_gift_id:string keep_original_
 //@new_owner_id Identifier of the user or the channel chat that will receive the gift
 //@star_count The amount of Telegram Stars required to pay for the transfer
 transferGift business_connection_id:string received_gift_id:string new_owner_id:MessageSender star_count:int53 = Ok;
+
+//@description Sends an upgraded gift that is available for resale to another user or channel chat
+//@gift_name Name of the upgraded gift to send
+//@owner_id Identifier of the user or the channel chat that will receive the gift
+//@star_count The amount of Telegram Stars required to pay for the gift
+sendResoldGift gift_name:string owner_id:MessageSender star_count:int53 = Ok;
 
 //@description Returns gifts received by the given user or chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
