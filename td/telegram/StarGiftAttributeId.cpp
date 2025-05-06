@@ -26,7 +26,7 @@ Result<StarGiftAttributeId> StarGiftAttributeId::get_star_gift_attribute_id(
       result.sticker_id_ = static_cast<const td_api::upgradedGiftAttributeIdSymbol *>(attribute.get())->sticker_id_;
       break;
     case td_api::upgradedGiftAttributeIdBackdrop::ID:
-      result.type_ = Type::Model;
+      result.type_ = Type::Backdrop;
       result.backdrop_id_ = static_cast<const td_api::upgradedGiftAttributeIdBackdrop *>(attribute.get())->backdrop_id_;
       break;
     default:
@@ -43,6 +43,26 @@ Result<vector<StarGiftAttributeId>> StarGiftAttributeId::get_star_gift_attribute
     result.push_back(attribute_id);
   }
   return result;
+}
+
+StarGiftAttributeId::StarGiftAttributeId(telegram_api::object_ptr<telegram_api::StarGiftAttributeId> attribute) {
+  CHECK(attribute != nullptr);
+  switch (attribute->get_id()) {
+    case telegram_api::starGiftAttributeIdModel::ID:
+      type_ = Type::Model;
+      sticker_id_ = static_cast<const telegram_api::starGiftAttributeIdModel *>(attribute.get())->document_id_;
+      break;
+    case telegram_api::starGiftAttributeIdPattern::ID:
+      type_ = Type::Pattern;
+      sticker_id_ = static_cast<const telegram_api::starGiftAttributeIdPattern *>(attribute.get())->document_id_;
+      break;
+    case telegram_api::starGiftAttributeIdBackdrop::ID:
+      type_ = Type::Backdrop;
+      backdrop_id_ = static_cast<const telegram_api::starGiftAttributeIdBackdrop *>(attribute.get())->backdrop_id_;
+      break;
+    default:
+      UNREACHABLE();
+  }
 }
 
 telegram_api::object_ptr<telegram_api::StarGiftAttributeId>

@@ -27,6 +27,10 @@ class StarGiftAttributeId {
   telegram_api::object_ptr<telegram_api::StarGiftAttributeId> get_input_star_gift_attribute_id_object() const;
 
  public:
+  StarGiftAttributeId() = default;
+
+  explicit StarGiftAttributeId(telegram_api::object_ptr<telegram_api::StarGiftAttributeId> attribute);
+
   static Result<vector<StarGiftAttributeId>> get_star_gift_attribute_ids(
       const vector<td_api::object_ptr<td_api::UpgradedGiftAttributeId>> &attributes);
 
