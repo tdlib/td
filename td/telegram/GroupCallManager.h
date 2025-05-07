@@ -332,10 +332,10 @@ class GroupCallManager final : public Actor {
                                        int32 version, const string &offset, bool is_load, bool is_sync);
 
   static bool update_group_call_participant_can_be_muted(bool can_manage, const GroupCallParticipants *participants,
-                                                         GroupCallParticipant &participant);
+                                                         GroupCallParticipant &participant, bool force_is_admin);
 
   void update_group_call_participants_can_be_muted(InputGroupCallId input_group_call_id, bool can_manage,
-                                                   GroupCallParticipants *participants);
+                                                   GroupCallParticipants *participants, bool force_is_admin);
 
   void update_group_call_participants_order(InputGroupCallId input_group_call_id, bool can_self_unmute,
                                             GroupCallParticipants *participants, const char *source);
