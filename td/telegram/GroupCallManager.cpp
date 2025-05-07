@@ -4865,7 +4865,11 @@ void GroupCallManager::on_toggle_group_call_participant_is_muted(InputGroupCallI
       participant->server_is_muted_by_themselves != participant->pending_is_muted_by_themselves ||
       participant->server_is_muted_by_admin != participant->pending_is_muted_by_admin ||
       participant->server_is_muted_locally != participant->pending_is_muted_locally) {
-    LOG(ERROR) << "Failed to mute/unmute " << dialog_id << " in " << input_group_call_id;
+    LOG(ERROR) << "Failed to mute/unmute " << dialog_id << " in " << input_group_call_id
+               << ", can_manage = " << can_manage << ", expected " << participant->pending_is_muted_by_themselves << '/'
+               << participant->pending_is_muted_by_admin << '/' << participant->pending_is_muted_locally
+               << ", but received " << participant->server_is_muted_by_themselves << '/'
+               << participant->server_is_muted_by_admin << '/' << participant->server_is_muted_locally;
     if (participant->order.is_valid()) {
       send_update_group_call_participant(input_group_call_id, *participant,
                                          "on_toggle_group_call_participant_is_muted");
