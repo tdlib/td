@@ -3,9 +3,13 @@ if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.10"))
 endif()
 
 option(TDE2E_ENABLE_INSTALL "Enable installation of the library." ON)
+option(TDE2E_INSTALL_INCLUDES "Enable installation of include files for the library." ON)
 
 if (NOT DEFINED CMAKE_INSTALL_LIBDIR)
   set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
+if (NOT DEFINED CMAKE_INSTALL_INCLUDEDIR)
+  set(CMAKE_INSTALL_INCLUDEDIR "include")
 endif()
 
 set_source_files_properties(${TL_E2E_AUTO_SOURCE} PROPERTIES GENERATED TRUE)
@@ -83,4 +87,7 @@ if (TDE2E_ENABLE_INSTALL)
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   )
+  if (TDE2E_INSTALL_INCLUDES)
+    install(FILES td/e2e/e2e_api.h td/e2e/e2e_errors.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/e2e")
+  endif()
 endif()

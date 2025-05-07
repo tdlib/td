@@ -41,6 +41,7 @@ enum class ErrorCode : int {
   CallFailed = 601,
   CallKeyAlreadyUsed = 602
 };
+
 inline std::string_view error_string(ErrorCode error_code) {
   switch (error_code) {
     case ErrorCode::Any:
