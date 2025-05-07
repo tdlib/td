@@ -7976,7 +7976,7 @@ suggestedActionExtendStarSubscriptions = SuggestedAction;
 //@name Unique name of the suggestion
 //@title Title of the suggestion
 //@param_description Description of the suggestion
-//@url Link to open when the suggestion is clicked
+//@url The link to open when the suggestion is clicked
 suggestedActionCustom name:string title:formattedText description:formattedText url:string = SuggestedAction;
 
 

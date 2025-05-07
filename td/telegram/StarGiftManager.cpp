@@ -39,6 +39,8 @@
 #include "td/utils/Random.h"
 #include "td/utils/Status.h"
 
+#include <algorithm>
+
 namespace td {
 
 class GetStarGiftsQuery final : public Td::ResultHandler {

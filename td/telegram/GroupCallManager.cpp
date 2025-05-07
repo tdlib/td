@@ -52,7 +52,6 @@ template <class T>
 T tde2e_move_as_ok_impl(tde2e_api::Result<T> result, int line) {
   LOG_CHECK(result.is_ok()) << static_cast<int>(result.error().code) << " : " << result.error().message << " at line "
                             << line;
-  ;
   return std::move(result.value());
 }
 

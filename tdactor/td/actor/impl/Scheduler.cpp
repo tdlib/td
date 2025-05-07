@@ -544,22 +544,22 @@ void Scheduler::run_mailbox() {
   }
   VLOG(actor) << "Run mailbox : finish " << actor_count_;
 
-  //Useful for debug, but O(ActorsCount) check
+  // Useful for debug, but O(ActorCount) check
 
-  //int cnt = 0;
-  //for (ListNode *end = &pending_actors_list_, *it = pending_actors_list_.next; it != end; it = it->next) {
-  //cnt++;
-  //auto actor_info = ActorInfo::from_list_node(it);
-  //LOG(ERROR) << *actor_info;
-  //CHECK(actor_info->mailbox_.empty());
-  //CHECK(!actor_info->is_running());
-  //}
-  //for (ListNode *end = &ready_actors_list_, *it = ready_actors_list_.next; it != end; it = it->next) {
-  //auto actor_info = ActorInfo::from_list_node(it);
-  //LOG(ERROR) << *actor_info;
-  //cnt++;
-  //}
-  //LOG_CHECK(cnt == actor_count_) << cnt << " vs " << actor_count_;
+  // int cnt = 0;
+  // for (ListNode *end = &pending_actors_list_, *it = pending_actors_list_.next; it != end; it = it->next) {
+  //   cnt++;
+  //   auto actor_info = ActorInfo::from_list_node(it);
+  //   LOG(ERROR) << *actor_info;
+  //   CHECK(actor_info->mailbox_.empty());
+  //   CHECK(!actor_info->is_running());
+  // }
+  // for (ListNode *end = &ready_actors_list_, *it = ready_actors_list_.next; it != end; it = it->next) {
+  //   auto actor_info = ActorInfo::from_list_node(it);
+  //   LOG(ERROR) << *actor_info;
+  //   cnt++;
+  // }
+  // LOG_CHECK(cnt == actor_count_) << cnt << " vs " << actor_count_;
 }
 
 Timestamp Scheduler::run_timeout() {
