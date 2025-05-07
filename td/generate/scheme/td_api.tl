@@ -12283,7 +12283,8 @@ upgradeGift business_connection_id:string received_gift_id:string keep_original_
 //@star_count The amount of Telegram Stars required to pay for the transfer
 transferGift business_connection_id:string received_gift_id:string new_owner_id:MessageSender star_count:int53 = Ok;
 
-//@description Sends an upgraded gift that is available for resale to another user or channel chat
+//@description Sends an upgraded gift that is available for resale to another user or channel chat; gifts already owned by the current user
+//-must be transferred using transferGift and can't be passed to the method
 //@gift_name Name of the upgraded gift to send
 //@owner_id Identifier of the user or the channel chat that will receive the gift
 //@star_count The amount of Telegram Stars required to pay for the gift
