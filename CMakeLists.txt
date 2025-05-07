@@ -32,6 +32,7 @@ option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TD
 if (NOT CMAKE_CROSSCOMPILING)
   option(TD_GENERATE_SOURCE_FILES "Use \"ON\" to just generate TDLib source files.")
 endif()
+option(TD_E2E_ONLY "Use \"ON\" to build and install tde2e instead of TDLib.")
 
 include(CTest)
 
@@ -174,9 +175,9 @@ if (NOT CMAKE_CROSSCOMPILING)
   endif()
 endif()
 
-if (NOT OPENSSL_FOUND)
+if (NOT OPENSSL_FOUND OR TD_GENERATE_SOURCE_FILES)
   if (NOT TD_GENERATE_SOURCE_FILES)
-    message(WARNING "Can't find OpenSSL: stop TDLib building")
+    message(WARNING "Can't find OpenSSL: stop building")
   endif()
   return()
 endif()
@@ -185,7 +186,15 @@ if (NOT ZLIB_FOUND)
   find_package(ZLIB)
 endif()
 if (NOT ZLIB_FOUND)
-  message(WARNING "Can't find zlib: stop TDLib building")
+  message(WARNING "Can't find zlib: stop building")
+  return()
+endif()
+
+set(TDE2E_ENABLE_INSTALL ${TD_INSTALL_STATIC_LIBRARIES} CACHE BOOL "" FORCE)
+set(TDE2E_INSTALL_INCLUDES ${TD_E2E_ONLY} CACHE BOOL "" FORCE)
+add_subdirectory(tde2e)
+
+if (TD_E2E_ONLY)
   return()
 endif()
 
@@ -209,9 +218,6 @@ add_subdirectory(tddb)
 if (BUILD_TESTING)
   add_subdirectory(test)
 endif()
-
-set(TDE2E_ENABLE_INSTALL ${TD_INSTALL_STATIC_LIBRARIES} CACHE BOOL "" FORCE)
-add_subdirectory(tde2e)
 
 if (NOT CMAKE_CROSSCOMPILING)
   add_subdirectory(benchmark)
