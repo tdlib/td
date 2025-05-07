@@ -1082,7 +1082,7 @@ class GetResaleStarGiftsQuery final : public Td::ResultHandler {
     if (!attributes.empty()) {
       flags |= telegram_api::payments_getResaleStarGifts::ATTRIBUTES_MASK;
     }
-    if (offset.empty()) {
+    if (offset.empty() && attributes.empty()) {
       flags |= telegram_api::payments_getResaleStarGifts::ATTRIBUTES_HASH_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_getResaleStarGifts(

@@ -1197,9 +1197,9 @@ giftForResale gift:upgradedGift received_gift_id:string = GiftForResale;
 //@description Describes gifts available for resale
 //@total_count Total number of gifts found
 //@gifts The gifts
-//@models Available models; for searchGiftsForResale requests without offset only
-//@symbols Available symbols; for searchGiftsForResale requests without offset only
-//@backdrops Available backdrops; for searchGiftsForResale requests without offset only
+//@models Available models; for searchGiftsForResale requests without offset and attributes only
+//@symbols Available symbols; for searchGiftsForResale requests without offset and attributes only
+//@backdrops Available backdrops; for searchGiftsForResale requests without offset and attributes only
 //@next_offset The offset for the next request. If empty, then there are no more results
 giftsForResale total_count:int32 gifts:vector<giftForResale> models:vector<upgradedGiftModelCount> symbols:vector<upgradedGiftSymbolCount> backdrops:vector<upgradedGiftBackdropCount> next_offset:string = GiftsForResale;
 
