@@ -15046,9 +15046,10 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
       if (info.comment_dialog_id.is_valid() || info.for_comment || m->is_topic_message) {
         top_thread_message_id = m->top_thread_message_id;
       } else if (td_->dialog_manager_->is_forum_channel(dialog_id) &&
-                 info.top_thread_message_id == MessageId(ServerMessageId(1))) {
+                 (info.top_thread_message_id == MessageId(ServerMessageId(1)) ||
+                  m->message_id == MessageId(ServerMessageId(1)))) {
         // General topic
-        top_thread_message_id = info.top_thread_message_id;
+        top_thread_message_id = MessageId(ServerMessageId(1));
       } else {
         top_thread_message_id = MessageId();
       }
@@ -15058,7 +15059,9 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
           media_timestamp = info.media_timestamp;
         }
       }
-      if (m->content->get_type() == MessageContentType::TopicCreate && top_thread_message_id.is_valid()) {
+      if ((m->content->get_type() == MessageContentType::TopicCreate ||
+           m->message_id == MessageId(ServerMessageId(1))) &&
+          top_thread_message_id.is_valid()) {
         message = nullptr;
         CHECK(!for_album);
         CHECK(media_timestamp == 0);
