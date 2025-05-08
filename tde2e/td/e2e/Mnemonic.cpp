@@ -185,7 +185,7 @@ std::vector<std::string> Mnemonic::generate_verification_words(td::Slice data) {
 
   std::size_t bit_pos = 0;
   for (size_t i = 0; i < VERIFICATION_WORD_COUNT; ++i) {
-    td::uint16 index = 0;
+    int index = 0;
     for (size_t bit = 0; bit < BITS_PER_WORD; ++bit, ++bit_pos) {
       if ((hash[bit_pos / 8] >> (bit_pos % 8)) & 1) {
         index |= (1 << bit);

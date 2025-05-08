@@ -23,12 +23,15 @@
 namespace tde2e_core {
 
 namespace {
+
 td::uint8 begin_mask(size_t start_bit) {
-  return 0xFF >> start_bit;
+  return static_cast<td::uint8>(0xFF >> start_bit);
 }
+
 td::uint8 end_mask(size_t end_bit) {
   return static_cast<td::uint8>(0xFF << (8 - end_bit));
 }
+
 td::uint8 create_mask(size_t start_bit, size_t end_bit) {
   return begin_mask(start_bit) & end_mask(end_bit);
 }
@@ -37,12 +40,14 @@ size_t count_common_bits(td::uint8 byte1, td::uint8 byte2, size_t start_bit, siz
   return td::count_leading_zeroes32(((byte1 ^ byte2) & begin_mask(start_bit)) >> (8 - end_bit)) +
          (end_bit - start_bit) - 32;
 }
+
 #ifndef TG_ENGINE
 td::NamedThreadSafeCounter::CounterRef &get_bit_string_counter() {
   static auto counter = td::NamedThreadSafeCounter::get_default().get_counter("BitString");
   return counter;
 }
 #endif
+
 }  // namespace
 
 td::int64 BitString::get_counter_value() {
@@ -191,8 +196,8 @@ size_t BitString::common_prefix_length(const BitString &other) const {
 
   if (begin_bit != 0) {
     td::uint8 first_byte_mask = begin_mask(begin_bit);
-    td::uint8 byte1 = ptr1[-1] & first_byte_mask;
-    td::uint8 byte2 = ptr2[-1] & first_byte_mask;
+    auto byte1 = static_cast<td::uint8>(ptr1[-1] & first_byte_mask);
+    auto byte2 = static_cast<td::uint8>(ptr2[-1] & first_byte_mask);
     if (byte1 != byte2) {
       res += count_common_bits(byte1, byte2, begin_bit, 8);
       CHECK(res <= min_length);
@@ -284,13 +289,13 @@ BitString fetch_bit_string(ParserT &parser, BitString &base_bs) {
   if (bs.bytes_size_ == -1) {
     td::uint8 mask = create_mask(bs.begin_bit_, bs.end_bit_);
     byte = parser.template fetch_binary<td::uint8>();
-    ptr[-1] |= byte & mask;
+    ptr[-1] = static_cast<td::uint8>(ptr[-1] | (byte & mask));
     n = 1;
   } else {
     if (bs.begin_bit_ != 0) {
       byte = parser.template fetch_binary<td::uint8>();
       td::uint8 first_byte_mask = begin_mask(bs.begin_bit_);
-      ptr[-1] |= byte & first_byte_mask;
+      ptr[-1] = static_cast<td::uint8>(ptr[-1] | (byte & first_byte_mask));
       n++;
     }
 
@@ -300,7 +305,7 @@ BitString fetch_bit_string(ParserT &parser, BitString &base_bs) {
     if (bs.end_bit_ != 0) {
       byte = parser.template fetch_binary<td::uint8>();
       auto last_byte_mask = end_mask(bs.end_bit_);
-      ptr[bs.bytes_size_] |= byte & last_byte_mask;
+      ptr[bs.bytes_size_] = static_cast<td::uint8>(ptr[bs.bytes_size_] | (byte & last_byte_mask));
       n++;
     }
   }
