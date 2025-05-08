@@ -1185,13 +1185,6 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
 
   // Do not save dc_options in config, because it will be interpreted and saved by ConnectionCreator.
   DcOptions dc_options(config->dc_options_);
-  std::stable_sort(dc_options.dc_options.begin(), dc_options.dc_options.end(),
-                   [](const DcOption &lhs, const DcOption &rhs) {
-                     if (lhs.get_dc_id() != rhs.get_dc_id()) {
-                       return lhs.get_dc_id() < rhs.get_dc_id();
-                     }
-                     return !lhs.is_ipv6() && rhs.is_ipv6();
-                   });
   send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_options, std::move(dc_options));
 
   options.set_option_integer("recent_stickers_limit", config->stickers_recent_limit_);

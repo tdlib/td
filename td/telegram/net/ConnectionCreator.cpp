@@ -43,6 +43,7 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 
+#include <algorithm>
 #include <utility>
 
 namespace td {
@@ -1161,6 +1162,32 @@ void ConnectionCreator::client_wakeup(uint32 hash) {
 }
 
 void ConnectionCreator::on_dc_options(DcOptions new_dc_options) {
+  auto seed = G()->get_option_integer("my_id");
+  std::stable_sort(new_dc_options.dc_options.begin(), new_dc_options.dc_options.end(),
+                   [seed](const DcOption &lhs, const DcOption &rhs) {
+                     if (lhs.get_dc_id() != rhs.get_dc_id()) {
+                       return lhs.get_dc_id() < rhs.get_dc_id();
+                     }
+                     if (lhs.is_ipv6() != rhs.is_ipv6()) {
+                       return rhs.is_ipv6();
+                     }
+                     if (lhs.is_media_only() != rhs.is_media_only()) {
+                       return rhs.is_media_only();
+                     }
+                     if (lhs.is_obfuscated_tcp_only() != rhs.is_obfuscated_tcp_only()) {
+                       return lhs.is_obfuscated_tcp_only();
+                     }
+                     if (lhs.is_static() != rhs.is_static()) {
+                       return rhs.is_static();
+                     }
+                     if (lhs.is_ipv6()) {
+                       return false;
+                     }
+                     auto lhs_ip_address_hash = Hash<int64>()(lhs.get_ip_address().get_ipv4() + seed);
+                     auto rhs_ip_address_hash = Hash<int64>()(rhs.get_ip_address().get_ipv4() + seed);
+                     return lhs_ip_address_hash < rhs_ip_address_hash;
+                   });
+
   VLOG(connections) << "SAVE " << new_dc_options;
   G()->td_db()->get_binlog_pmc()->set("dc_options", serialize(new_dc_options));
   dc_options_set_.reset();
