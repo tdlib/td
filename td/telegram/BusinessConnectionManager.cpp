@@ -407,6 +407,8 @@ class BusinessConnectionManager::UploadBusinessMediaQuery final : public Td::Res
 
 class BusinessConnectionManager::EditBusinessMessageQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::businessMessage>> promise_;
+  BusinessConnectionId business_connection_id_;
+  DialogId dialog_id_;
 
  public:
   explicit EditBusinessMessageQuery(Promise<td_api::object_ptr<td_api::businessMessage>> &&promise)
@@ -417,6 +419,9 @@ class BusinessConnectionManager::EditBusinessMessageQuery final : public Td::Res
             const string &text, vector<telegram_api::object_ptr<telegram_api::MessageEntity>> &&entities,
             bool disable_web_page_preview, telegram_api::object_ptr<telegram_api::InputMedia> &&input_media,
             bool invert_media, telegram_api::object_ptr<telegram_api::ReplyMarkup> &&reply_markup) {
+    business_connection_id_ = std::move(business_connection_id);
+    dialog_id_ = dialog_id;
+
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
     CHECK(input_peer != nullptr);
 
@@ -436,11 +441,11 @@ class BusinessConnectionManager::EditBusinessMessageQuery final : public Td::Res
 
     int32 server_message_id = message_id.get_server_message_id().get();
     send_query(G()->net_query_creator().create_with_prefix(
-        business_connection_id.get_invoke_prefix(),
+        business_connection_id_.get_invoke_prefix(),
         telegram_api::messages_editMessage(flags, disable_web_page_preview, invert_media, std::move(input_peer),
                                            server_message_id, text, std::move(input_media), std::move(reply_markup),
                                            std::move(entities), 0, 0),
-        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id), {{dialog_id}}));
+        td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id_), {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -456,7 +461,9 @@ class BusinessConnectionManager::EditBusinessMessageQuery final : public Td::Res
 
   void on_error(Status status) final {
     if (status.code() != 403 && !(status.code() == 500 && G()->close_flag())) {
-      LOG(WARNING) << "Failed to edit business message with the error " << status.message();
+      LOG(WARNING) << "Failed to edit business message by "
+                   << td_->business_connection_manager_->get_business_connection_user_id(business_connection_id_)
+                   << " in " << dialog_id_ << " with the error " << status.message();
     } else {
       LOG(INFO) << "Receive error for EditBusinessMessageQuery: " << status;
     }
@@ -1696,7 +1703,9 @@ void BusinessConnectionManager::on_fail_send_message(unique_ptr<PendingMessage> 
   MessagesManager::process_send_message_fail_error(error_code, error_message, message->dialog_id_,
                                                    td_->auth_manager_->is_bot(), message->content_->get_type());
   if (error_code != 403 && !(error_code == 500 && G()->close_flag())) {
-    LOG(WARNING) << "Failed to send business in " << message->dialog_id_ << " with the error " << error;
+    LOG(WARNING) << "Failed to send business message by "
+                 << get_business_connection_user_id(message->business_connection_id_) << " in " << message->dialog_id_
+                 << " with the error " << error;
   }
 }
 
