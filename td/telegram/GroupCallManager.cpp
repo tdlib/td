@@ -1366,6 +1366,14 @@ struct GroupCallManager::PendingJoinRequest {
   Promise<string> promise;
 };
 
+struct GroupCallManager::PendingJoinPresentationRequest {
+  NetQueryRef query_ref;
+  uint64 generation = 0;
+  int32 audio_source = 0;
+
+  Promise<string> promise;
+};
+
 GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   update_group_call_participant_order_timeout_.set_callback(on_update_group_call_participant_order_timeout_callback);
   update_group_call_participant_order_timeout_.set_callback_data(static_cast<void *>(this));
@@ -3638,7 +3646,7 @@ void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id
 
   auto generation = ++join_group_request_generation_;
   auto &request = pending_join_presentation_requests_[input_group_call_id];
-  request = make_unique<PendingJoinRequest>();
+  request = make_unique<PendingJoinPresentationRequest>();
   request->generation = generation;
   request->audio_source = audio_source;
   request->promise = std::move(promise);
