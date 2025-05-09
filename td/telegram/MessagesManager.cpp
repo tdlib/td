@@ -879,8 +879,9 @@ class SearchMessagesQuery final : public Td::ResultHandler {
       if (top_thread_message_id.is_valid()) {
         flags |= telegram_api::messages_getUnreadReactions::TOP_MSG_ID_MASK;
       }
-      send_query(G()->net_query_creator().create(telegram_api::messages_getUnreadReactions(
-          flags, std::move(input_peer), top_msg_id, offset_id, offset, limit, std::numeric_limits<int32>::max(), 0)));
+      send_query(G()->net_query_creator().create(
+          telegram_api::messages_getUnreadReactions(flags, std::move(input_peer), top_msg_id, nullptr, offset_id,
+                                                    offset, limit, std::numeric_limits<int32>::max(), 0)));
     } else if (top_thread_message_id.is_valid() && query.empty() && !sender_dialog_id.is_valid() &&
                filter == MessageSearchFilter::Empty) {
       CHECK(!saved_messages_topic_id.is_valid());
@@ -1925,8 +1926,8 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
         telegram_api::messages_forwardMessages(
             flags, false, false, false, false, false, false, false, std::move(from_input_peer),
             MessageId::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer),
-            top_thread_message_id.get_server_message_id().get(), schedule_date, std::move(as_input_peer), nullptr,
-            new_video_start_timestamp, paid_message_star_count),
+            top_thread_message_id.get_server_message_id().get(), nullptr, schedule_date, std::move(as_input_peer),
+            nullptr, new_video_start_timestamp, paid_message_star_count),
         {{to_dialog_id, MessageContentType::Text}, {to_dialog_id, MessageContentType::Photo}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_ids = random_ids_](Result<Unit> result) {
@@ -2121,10 +2122,10 @@ class SendScreenshotNotificationQuery final : public Td::ResultHandler {
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendScreenshotNotification(
-            std::move(input_peer),
-            telegram_api::make_object<telegram_api::inputReplyToMessage>(0, 0, 0, nullptr, string(), Auto(), 0),
-            random_id),
+        telegram_api::messages_sendScreenshotNotification(std::move(input_peer),
+                                                          telegram_api::make_object<telegram_api::inputReplyToMessage>(
+                                                              0, 0, 0, nullptr, string(), Auto(), 0, nullptr),
+                                                          random_id),
         {{dialog_id, MessageContentType::Text}}));
   }
 
@@ -4281,6 +4282,7 @@ void MessagesManager::on_update_read_channel_messages_contents(
     // TODO
     return;
   }
+  // ignore update->saved_peer_id_
 
   for (auto &server_message_id : update->messages_) {
     read_channel_message_content_from_updates(d, MessageId(ServerMessageId(server_message_id)));
@@ -27068,6 +27070,8 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, Message
           }
           break;
         }
+        case telegram_api::inputReplyToMonoForum::ID:
+          break;
         default:
           UNREACHABLE();
       }

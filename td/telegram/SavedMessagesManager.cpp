@@ -75,7 +75,8 @@ class GetSavedDialogsQuery final : public Td::ResultHandler {
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(telegram_api::messages_getSavedDialogs(
-        0, true, offset_date, offset_message_id.get_server_message_id().get(), std::move(input_peer), limit, 0)));
+        0, true, nullptr, offset_date, offset_message_id.get_server_message_id().get(), std::move(input_peer), limit,
+        0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -105,7 +106,8 @@ class GetSavedHistoryQuery final : public Td::ResultHandler {
     auto saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
     CHECK(saved_input_peer != nullptr);
     send_query(G()->net_query_creator().create(telegram_api::messages_getSavedHistory(
-        std::move(saved_input_peer), from_message_id.get_server_message_id().get(), 0, offset, limit, 0, 0, 0)));
+        0, nullptr, std::move(saved_input_peer), from_message_id.get_server_message_id().get(), 0, offset, limit, 0, 0,
+        0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -140,7 +142,7 @@ class GetSavedMessageByDateQuery final : public Td::ResultHandler {
     CHECK(saved_input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getSavedHistory(std::move(saved_input_peer), 0, date, -3, 5, 0, 0, 0)));
+        telegram_api::messages_getSavedHistory(0, nullptr, std::move(saved_input_peer), 0, date, -3, 5, 0, 0, 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -189,7 +191,7 @@ class DeleteSavedHistoryQuery final : public Td::ResultHandler {
 
     int32 flags = 0;
     send_query(G()->net_query_creator().create(telegram_api::messages_deleteSavedHistory(
-        flags, std::move(saved_input_peer), std::numeric_limits<int32>::max(), 0, 0)));
+        flags, nullptr, std::move(saved_input_peer), std::numeric_limits<int32>::max(), 0, 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -221,7 +223,7 @@ class DeleteSavedMessagesByDateQuery final : public Td::ResultHandler {
                   telegram_api::messages_deleteSavedHistory::MAX_DATE_MASK;
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_deleteSavedHistory(flags, std::move(saved_input_peer), 0, min_date, max_date)));
+        telegram_api::messages_deleteSavedHistory(flags, nullptr, std::move(saved_input_peer), 0, min_date, max_date)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -542,7 +544,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     Promise<Unit> &&promise) {
   CHECK(saved_dialogs_ptr != nullptr);
   int32 total_count = -1;
-  vector<telegram_api::object_ptr<telegram_api::savedDialog>> dialogs;
+  vector<telegram_api::object_ptr<telegram_api::SavedDialog>> dialogs;
   vector<telegram_api::object_ptr<telegram_api::Message>> messages;
   vector<telegram_api::object_ptr<telegram_api::Chat>> chats;
   vector<telegram_api::object_ptr<telegram_api::User>> users;
@@ -595,7 +597,11 @@ void SavedMessagesManager::on_get_saved_messages_topics(
   MessageId last_message_id;
   DialogId last_dialog_id;
   vector<SavedMessagesTopicId> added_saved_messages_topic_ids;
-  for (auto &dialog : dialogs) {
+  for (auto &dialog_ptr : dialogs) {
+    if (dialog_ptr->get_id() != telegram_api::savedDialog::ID) {
+      continue;
+    }
+    auto dialog = telegram_api::move_object_as<telegram_api::savedDialog>(dialog_ptr);
     auto peer_dialog_id = DialogId(dialog->peer_);
     if (!peer_dialog_id.is_valid()) {
       LOG(ERROR) << "Receive " << peer_dialog_id << " in result of getSavedMessagesTopics";

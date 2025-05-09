@@ -4169,8 +4169,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatDefaultBann
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDraftMessage> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_dialog_draft_message(
-      DialogId(update->peer_), MessageId(ServerMessageId(update->top_msg_id_)), std::move(update->draft_));
+  if (update->saved_peer_id_ != nullptr) {
+    // TODO
+  } else {
+    td_->messages_manager_->on_update_dialog_draft_message(
+        DialogId(update->peer_), MessageId(ServerMessageId(update->top_msg_id_)), std::move(update->draft_));
+  }
   promise.set_value(Unit());
 }
 
@@ -4196,7 +4200,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedSavedDial
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogUnreadMark> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_dialog_is_marked_as_unread(DialogId(update->peer_), update->unread_);
+  if (update->saved_peer_id_ != nullptr) {
+    // TODO
+  } else {
+    td_->messages_manager_->on_update_dialog_is_marked_as_unread(DialogId(update->peer_), update->unread_);
+  }
   promise.set_value(Unit());
 }
 
@@ -4711,6 +4719,14 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueSta
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadMonoForumInbox> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadMonoForumOutbox> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

@@ -539,8 +539,9 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
 
     if (filter == MessageSearchFilter::Empty && !top_thread_message_id.is_valid()) {
       if (saved_messages_topic_id.is_valid()) {
-        send_query(G()->net_query_creator().create(telegram_api::messages_getSavedHistory(
-            saved_messages_topic_id.get_input_peer(td_), message_id.get_server_message_id().get(), 0, -1, 1, 0, 0, 0)));
+        send_query(G()->net_query_creator().create(
+            telegram_api::messages_getSavedHistory(0, nullptr, saved_messages_topic_id.get_input_peer(td_),
+                                                   message_id.get_server_message_id().get(), 0, -1, 1, 0, 0, 0)));
       } else {
         send_query(G()->net_query_creator().create(telegram_api::messages_getHistory(
             std::move(input_peer), message_id.get_server_message_id().get(), 0, -1, 1, 0, 0, 0)));
@@ -1290,7 +1291,7 @@ class ReadReactionsQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_readReactions(flags, std::move(input_peer),
-                                             top_thread_message_id.get_server_message_id().get()),
+                                             top_thread_message_id.get_server_message_id().get(), nullptr),
         {{dialog_id}}));
   }
 
@@ -1414,7 +1415,7 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_unpinAllMessages::TOP_MSG_ID_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_unpinAllMessages(
-        flags, std::move(input_peer), top_thread_message_id.get_server_message_id().get())));
+        flags, std::move(input_peer), top_thread_message_id.get_server_message_id().get(), nullptr)));
   }
 
   void on_result(BufferSlice packet) final {

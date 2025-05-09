@@ -938,8 +938,8 @@ class ToggleForumQuery final : public Td::ResultHandler {
 
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::channels_toggleForum(std::move(input_channel), is_forum),
-                                               {{channel_id}}));
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_toggleForum(std::move(input_channel), is_forum, false), {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1296,7 +1296,7 @@ class UpdatePaidMessagesPriceQuery final : public Td::ResultHandler {
     CHECK(input_channel != nullptr);
 
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_updatePaidMessagesPrice(std::move(input_channel), send_paid_messages_stars)));
+        telegram_api::channels_updatePaidMessagesPrice(0, false, std::move(input_channel), send_paid_messages_stars)));
   }
 
   void on_result(BufferSlice packet) final {

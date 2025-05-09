@@ -435,7 +435,7 @@ class ToggleNoForwardsQuery final : public Td::ResultHandler {
 class GetDialogUnreadMarksQuery final : public Td::ResultHandler {
  public:
   void send() {
-    send_query(G()->net_query_creator().create(telegram_api::messages_getDialogUnreadMarks()));
+    send_query(G()->net_query_creator().create(telegram_api::messages_getDialogUnreadMarks(0, nullptr)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1088,7 +1088,8 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_markDialogUnread(0, is_marked_as_unread, std::move(input_peer)), {{dialog_id}}));
+        telegram_api::messages_markDialogUnread(0, is_marked_as_unread, nullptr, std::move(input_peer)),
+        {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {

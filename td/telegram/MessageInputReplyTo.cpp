@@ -58,6 +58,10 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
       quote_ = MessageQuote(td, reply_to);
       break;
     }
+    case telegram_api::inputReplyToMonoForum::ID: {
+      // auto reply_to = telegram_api::move_object_as<telegram_api::inputReplyToMonoForum>(input_reply_to);
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -105,7 +109,7 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   }
   auto result = telegram_api::make_object<telegram_api::inputReplyToMessage>(
       flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
-      std::move(input_peer), string(), Auto(), 0);
+      std::move(input_peer), string(), Auto(), 0, nullptr);
   quote_.update_input_reply_to_message(td, result.get());
   return std::move(result);
 }
