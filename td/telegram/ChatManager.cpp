@@ -5955,7 +5955,8 @@ bool ChatManager::on_get_channel_error(ChannelId channel_id, const Status &statu
   if (G()->is_expected_error(status)) {
     return true;
   }
-  if (status.message() == "CHANNEL_PRIVATE" || status.message() == "CHANNEL_PUBLIC_GROUP_NA") {
+  if (status.message() == "CHANNEL_PRIVATE" || status.message() == "CHANNEL_PUBLIC_GROUP_NA" ||
+      status.message() == "FROZEN_PARTICIPANT_MISSING") {
     if (!channel_id.is_valid()) {
       LOG(ERROR) << "Receive " << status.message() << " in invalid " << channel_id << " from " << source;
       return false;
