@@ -84,7 +84,7 @@ add_custom_target(generate_javadoc
 add_library(tdjni SHARED
   td_jni.cpp
 )
-target_include_directories(tdjni PRIVATE ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
+target_include_directories(tdjni SYSTEM PRIVATE ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
 target_link_libraries(tdjni PRIVATE ${JAVA_JVM_LIBRARY})
 target_compile_definitions(tdjni PRIVATE PACKAGE_NAME="${TD_API_JAVA_PACKAGE}")
 
