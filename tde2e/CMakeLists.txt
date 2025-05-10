@@ -70,11 +70,11 @@ add_library(tde2e STATIC ${TDE2E_SOURCE})
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tde2e tl_generate_common)
 endif()
-target_link_libraries(tde2e PUBLIC tdutils PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
+target_link_libraries(tde2e PRIVATE tdutils ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
 target_include_directories(tde2e SYSTEM PRIVATE $<BUILD_INTERFACE:${OPENSSL_INCLUDE_DIR}>)
-target_include_directories(tde2e PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/..)
+target_include_directories(tde2e PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
 target_include_directories(tde2e PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_include_directories(tde2e PUBLIC $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
+target_compile_features(tde2e INTERFACE cxx_std_17)
 
 add_executable(test-e2e EXCLUDE_FROM_ALL
   ${TDE2E_TEST_SOURCE}
@@ -86,6 +86,7 @@ if (TDE2E_ENABLE_INSTALL)
   install(TARGETS tde2e EXPORT TdStaticTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
   )
   if (TDE2E_INSTALL_INCLUDES)
     install(FILES td/e2e/e2e_api.h td/e2e/e2e_errors.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/td/e2e")
