@@ -195,6 +195,27 @@ set(TDE2E_INSTALL_INCLUDES ${TD_E2E_ONLY} CACHE BOOL "" FORCE)
 add_subdirectory(tde2e)
 
 if (TD_E2E_ONLY)
+  if (TD_INSTALL_STATIC_LIBRARIES)
+    include(GeneratePkgConfig)
+    generate_pkgconfig(tdutils "Telegram Library - Utils")
+    generate_pkgconfig(tde2e "Telegram Library - E2E")
+    install(EXPORT TdStaticTargets
+      FILE TdStaticTargets.cmake
+      NAMESPACE tde2e::
+      DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/tde2e"
+    )
+  endif()
+  if (MSVC AND VCPKG_TOOLCHAIN)
+    install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/" DESTINATION "${CMAKE_INSTALL_BINDIR}" FILES_MATCHING PATTERN "*.dll")
+  endif()
+  include(CMakePackageConfigHelpers)
+  write_basic_package_version_file("TdConfigVersion.cmake"
+    VERSION "${TDLib_VERSION}"
+    COMPATIBILITY ExactVersion
+  )
+  install(FILES "TdConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/TdConfigVersion.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/tde2e"
+  )
   return()
 endif()
 
