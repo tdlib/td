@@ -200,20 +200,18 @@ if (TD_E2E_ONLY)
     generate_pkgconfig(tdutils "Telegram Library - Utils")
     generate_pkgconfig(tde2e "Telegram Library - E2E")
     install(EXPORT TdStaticTargets
-      FILE TdStaticTargets.cmake
+      FILE tde2eStaticTargets.cmake
       NAMESPACE tde2e::
       DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/tde2e"
     )
   endif()
-  if (MSVC AND VCPKG_TOOLCHAIN)
-    install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/" DESTINATION "${CMAKE_INSTALL_BINDIR}" FILES_MATCHING PATTERN "*.dll")
-  endif()
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tde2eConfig.cmake" "include(\"\${CMAKE_CURRENT_LIST_DIR}/tde2eStaticTargets.cmake\")\n")
   include(CMakePackageConfigHelpers)
-  write_basic_package_version_file("TdConfigVersion.cmake"
+  write_basic_package_version_file("tde2eConfigVersion.cmake"
     VERSION "${TDLib_VERSION}"
     COMPATIBILITY ExactVersion
   )
-  install(FILES "TdConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/TdConfigVersion.cmake"
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/tde2eConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/tde2eConfigVersion.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/tde2e"
   )
   return()
