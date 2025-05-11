@@ -50,7 +50,7 @@ class GetNearestDcQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status) && status.message() != "BOT_METHOD_INVALID") {
-      LOG(ERROR) << "GetNearestDc returned " << status;
+      LOG(ERROR) << "Receive error for GetNearestDcQuery: " << status;
     }
     promise_.set_error(std::move(status));
   }
@@ -80,7 +80,7 @@ class GetCountriesListQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
-      LOG(ERROR) << "GetCountriesList returned " << status;
+      LOG(ERROR) << "Receive error for GetCountriesListQuery: " << status;
     }
     promise_.set_error(std::move(status));
   }

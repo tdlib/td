@@ -43,7 +43,7 @@ class GetTimezonesListQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (!G()->is_expected_error(status)) {
-      LOG(ERROR) << "GetTimezonesListQuery returned " << status;
+      LOG(ERROR) << "Receive error for GetTimezonesListQuery: " << status;
     }
     promise_.set_error(std::move(status));
   }
