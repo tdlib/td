@@ -7058,7 +7058,7 @@ void UserManager::on_update_contacts_reset() {
 void UserManager::update_contacts_hints(const User *u, UserId user_id, bool from_database) {
   bool is_contact = is_user_contact(u, user_id, false);
   if (td_->auth_manager_->is_bot()) {
-    LOG_IF(ERROR, is_contact) << "Bot has " << user_id << " in the contacts list";
+    LOG_IF(ERROR, is_contact) << "Bot has " << user_id << " as a contact";
     return;
   }
 

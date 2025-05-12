@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
     }
     if (mime_type_to_extension.emplace_hint(mime_type_to_extension.end(), mime_type, extensions[index])->second !=
         extensions[index]) {
-      std::cerr << "MIME type \"" << mime_type << "\" has more than one extensions list" << std::endl;
+      std::cerr << "MIME type \"" << mime_type << "\" has more than one list of extensions" << std::endl;
     }
 
     for (auto &extension : extensions) {

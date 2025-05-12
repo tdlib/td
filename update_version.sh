@@ -3,10 +3,10 @@ cd $(dirname $0)
 
 COMMIT_FILES="example/cpp/CMakeLists.txt example/uwp/extension.vsixmanifest example/uwp/Telegram.Td.UWP.nuspec example/web/tdweb/package.json example/web/tdweb/package-lock.json README.md td/telegram/OptionManager.cpp"
 
-# check argument '-i' to drop all fixed files list.
+# check argument '-i' to drop the fixed list of files to commit
 for arg in "$@"; do if [[ "$arg" == "-i" ]]; then COMMIT_FILES=""; break; fi; done
 
-# 'git diff' to ensure that 'CMakeLists.txt' is modified.
+# 'git diff' to ensure that 'CMakeLists.txt' is modified
 GIT_DIFF=$(git --no-pager diff --unified=0 CMakeLists.txt)
 
 SED_REGEX="project\(TDLib VERSION ([0-9\.]+) LANGUAGES CXX C\)"

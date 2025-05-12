@@ -5344,7 +5344,7 @@ void StickersManager::on_load_sticker_set_from_database(StickerSetId sticker_set
     return;
   }
 
-  // it is possible that a server reload_sticker_set request has failed and cleared requests list with an error
+  // it is possible that a server reload_sticker_set request has failed and cleared list of requests with an error
   if (with_stickers) {
     // CHECK(!sticker_set->load_requests_.empty());
   } else {
@@ -8855,7 +8855,7 @@ void StickersManager::on_load_recent_stickers_from_database(bool is_attached, st
     return;
   }
 
-  LOG(INFO) << "Successfully loaded recent " << (is_attached ? "attached " : "") << "stickers list of size "
+  LOG(INFO) << "Successfully loaded list of recent " << (is_attached ? "attached " : "") << "stickers of size "
             << value.size() << " from database";
 
   StickerListLogEvent log_event;
@@ -9253,7 +9253,7 @@ void StickersManager::on_load_favorite_stickers_from_database(const string &valu
     return;
   }
 
-  LOG(INFO) << "Successfully loaded favorite stickers list of size " << value.size() << " from database";
+  LOG(INFO) << "Successfully loaded list of favorite stickers of size " << value.size() << " from database";
 
   StickerListLogEvent log_event;
   auto status = log_event_parse(log_event, value);
@@ -9657,7 +9657,7 @@ void StickersManager::on_get_language_codes(const string &key, Result<vector<str
     return false;
   });
   if (language_codes.empty()) {
-    LOG(ERROR) << "Language codes list is empty";
+    LOG(ERROR) << "List of language codes is empty";
     language_codes.emplace_back("en");
   }
   td::unique(language_codes);

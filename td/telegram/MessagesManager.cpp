@@ -11967,7 +11967,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
           // unread_muted_messages_count:int unread_unmuted_messages_count:int
           FolderId folder_folder_id(folder->folder_->id_);
           if (folder_folder_id == FolderId::archive()) {
-            // archive is expected in pinned dialogs list
+            // archive is expected in the list of pinned dialogs
             break;
           }
         }
@@ -17571,7 +17571,7 @@ void MessagesManager::on_load_active_live_location_message_full_ids_from_databas
     return;
   }
 
-  LOG(INFO) << "Successfully loaded active live location messages list of size " << value.size() << " from database";
+  LOG(INFO) << "Successfully loaded list of active live location messages of size " << value.size() << " from database";
 
   const auto new_message_full_ids = std::move(active_live_location_message_full_ids_);
   vector<MessageFullId> old_message_full_ids;

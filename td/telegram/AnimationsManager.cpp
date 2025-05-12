@@ -533,7 +533,7 @@ void AnimationsManager::on_load_saved_animations_from_database(const string &val
     return;
   }
 
-  LOG(INFO) << "Successfully loaded saved animations list of size " << value.size() << " from database";
+  LOG(INFO) << "Successfully loaded saved animations of size " << value.size() << " from database";
 
   AnimationListLogEvent log_event;
   log_event_parse(log_event, value).ensure();
