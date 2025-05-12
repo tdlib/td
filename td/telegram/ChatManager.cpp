@@ -2040,6 +2040,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(has_paid_message_star_count);
     STORE_FLAG(autotranslation);
     STORE_FLAG(is_monoforum);
+    STORE_FLAG(broadcast_messages_allowed);
     END_STORE_FLAGS();
   }
 
@@ -2181,6 +2182,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(has_paid_message_star_count);
     PARSE_FLAG(autotranslation);
     PARSE_FLAG(is_monoforum);
+    PARSE_FLAG(broadcast_messages_allowed);
     END_PARSE_FLAGS();
   }
 
@@ -8612,6 +8614,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
   auto boost_level = channel.level_;
   auto paid_message_star_count = channel.send_paid_messages_stars_;
   bool autotranslation = channel.autotranslation_;
+  bool broadcast_messages_allowed = channel.broadcast_messages_allowed_;
 
   if (have_participant_count) {
     auto channel_full = get_channel_full_const(channel_id);
@@ -8625,9 +8628,12 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
       << oneline(to_string(channel));
 
   if (is_megagroup) {
-    LOG_IF(ERROR, sign_messages) << "Need to sign messages in the supergroup " << channel_id << " from " << source;
+    LOG_IF(ERROR, sign_messages) << "Need to sign messages in the " << channel_id << " from " << source;
+    LOG_IF(ERROR, broadcast_messages_allowed)
+        << "Receive supergroup with feedback group as " << channel_id << " from " << source;
     sign_messages = true;
     show_message_sender = true;
+    broadcast_messages_allowed = false;
   } else {
     LOG_IF(ERROR, is_slow_mode_enabled && channel_id.get() >= 8000000000)
         << "Slow mode enabled in the " << channel_id << " from " << source;
@@ -8666,7 +8672,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
           c->is_megagroup != is_megagroup || c->is_scam != is_scam || c->is_fake != is_fake ||
           c->is_gigagroup != is_gigagroup || c->is_forum != is_forum || c->is_monoforum != is_monoforum ||
           c->boost_level != boost_level || c->paid_message_star_count != paid_message_star_count ||
-          c->autotranslation != autotranslation) {
+          c->autotranslation != autotranslation || c->broadcast_messages_allowed != broadcast_messages_allowed) {
         c->has_linked_channel = has_linked_channel;
         c->is_slow_mode_enabled = is_slow_mode_enabled;
         c->is_megagroup = is_megagroup;
@@ -8682,6 +8688,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
         c->boost_level = boost_level;
         c->paid_message_star_count = paid_message_star_count;
         c->autotranslation = autotranslation;
+        c->broadcast_messages_allowed = broadcast_messages_allowed;
 
         c->is_changed = true;
         invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_get_min_channel");
@@ -8779,7 +8786,8 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
   if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
       c->is_megagroup != is_megagroup || c->is_scam != is_scam || c->is_fake != is_fake ||
       c->is_gigagroup != is_gigagroup || c->is_forum != is_forum || c->is_monoforum != is_monoforum ||
-      c->boost_level != boost_level || c->paid_message_star_count != paid_message_star_count) {
+      c->boost_level != boost_level || c->paid_message_star_count != paid_message_star_count ||
+      c->broadcast_messages_allowed != broadcast_messages_allowed) {
     c->has_linked_channel = has_linked_channel;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
@@ -8794,6 +8802,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     c->is_monoforum = is_monoforum;
     c->boost_level = boost_level;
     c->paid_message_star_count = paid_message_star_count;
+    c->broadcast_messages_allowed = broadcast_messages_allowed;
 
     c->is_changed = true;
     need_invalidate_channel_full = true;
@@ -8915,6 +8924,7 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
   bool is_scam = false;
   bool is_fake = false;
   bool autotranslation = false;
+  bool broadcast_messages_allowed = false;
 
   LOG_IF(ERROR, channel.broadcast_ == is_megagroup)
       << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << " from " << source << ": "
@@ -8928,7 +8938,8 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
   bool need_invalidate_channel_full = false;
   if (c->is_slow_mode_enabled != is_slow_mode_enabled || c->is_megagroup != is_megagroup ||
       !c->restriction_reasons.empty() || c->is_scam != is_scam || c->is_fake != is_fake ||
-      c->join_to_send != join_to_send || c->join_request != join_request) {
+      c->join_to_send != join_to_send || c->join_request != join_request ||
+      c->broadcast_messages_allowed != broadcast_messages_allowed) {
     // c->has_linked_channel = has_linked_channel;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
@@ -8937,6 +8948,7 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
     c->is_fake = is_fake;
     c->join_to_send = join_to_send;
     c->join_request = join_request;
+    c->broadcast_messages_allowed = broadcast_messages_allowed;
 
     c->is_changed = true;
     need_invalidate_channel_full = true;
@@ -9076,7 +9088,7 @@ td_api::object_ptr<td_api::updateSupergroup> ChatManager::get_update_unknown_sup
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, 0, false,
       false, false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, nullptr, false,
-      string(), 0, false, false));
+      false, string(), 0, false, false));
 }
 
 int64 ChatManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -9116,7 +9128,7 @@ td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(Channe
       get_channel_status(c).get_chat_member_status_object(), c->participant_count, c->boost_level, c->autotranslation,
       c->has_linked_channel, c->has_location, c->sign_messages, c->show_message_sender, get_channel_join_to_send(c),
       get_channel_join_request(c), c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_forum,
-      c->is_monoforum, get_channel_verification_status_object(c),
+      c->is_monoforum, get_channel_verification_status_object(c), c->broadcast_messages_allowed,
       get_restriction_reason_has_sensitive_content(c->restriction_reasons),
       get_restriction_reason_description(c->restriction_reasons), c->paid_message_star_count,
       c->max_active_story_id.is_valid(), get_channel_has_unread_stories(c));

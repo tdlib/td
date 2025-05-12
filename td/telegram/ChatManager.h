@@ -513,6 +513,7 @@ class ChatManager final : public Actor {
     bool join_request = false;
     bool stories_hidden = false;
     bool autotranslation = false;
+    bool broadcast_messages_allowed = false;
 
     bool is_megagroup = false;
     bool is_gigagroup = false;
