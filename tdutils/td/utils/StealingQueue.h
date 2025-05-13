@@ -21,7 +21,7 @@ class StealingQueue {
 
   // tries to put a value
   // returns if succeeded
-  // only owner is allowed to to do this
+  // only owner is allowed to do this
   template <class F>
   void local_push(T value, F &&overflow_f) {
     while (true) {

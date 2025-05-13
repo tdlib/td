@@ -71,7 +71,7 @@ async function loadTdlibWasm(onFS, wasmUrl) {
   }
   let module = createTdwebModule({
     onRuntimeInitialized: () => {
-      log.info('runtime intialized');
+      log.info('runtime initialized');
       onFS(module.FS);
     },
     instantiateWasm: (imports, successCallback) => {

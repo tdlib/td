@@ -197,7 +197,7 @@ class Session final
 
   double wakeup_at_ = 0.0;
 
-  // mtproto::AuthData should be the last field, because it's size is about 32 KB
+  // mtproto::AuthData should be the last field, because its size is about 32 KB
   mtproto::AuthData auth_data_;
 
   void on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake);
