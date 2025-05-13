@@ -4281,6 +4281,12 @@ messagePaidMessagesRefunded message_count:int32 star_count:int53 = MessageConten
 //@description A price for paid messages was changed in the supergroup chat @paid_message_star_count The new number of Telegram Stars that must be paid by non-administrator users of the supergroup chat for each sent message
 messagePaidMessagePriceChanged paid_message_star_count:int53 = MessageContent;
 
+//@description A price for feedback messages was changed in the channel chat
+//@is_enabled True, if feedback group was enabled for the channel; false otherwise
+//@paid_message_star_count The new number of Telegram Stars that must be paid by non-administrator users of the channel chat for each message sent to the feedback group;
+//-0 if the feedback group was disabled or the messages are free
+messageFeedbackMessagePriceChanged is_enabled:Bool paid_message_star_count:int53 = MessageContent;
+
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
 

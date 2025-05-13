@@ -1351,9 +1351,11 @@ class MessagePaidMessagesRefunded final : public MessageContent {
 class MessagePaidMessagesPrice final : public MessageContent {
  public:
   int64 star_count = 0;
+  bool broadcast_messages_allowed = false;
 
   MessagePaidMessagesPrice() = default;
-  explicit MessagePaidMessagesPrice(int64 star_count) : star_count(star_count) {
+  MessagePaidMessagesPrice(int64 star_count, bool broadcast_messages_allowed)
+      : star_count(star_count), broadcast_messages_allowed(broadcast_messages_allowed) {
   }
 
   MessageContentType get_type() const final {
@@ -2183,6 +2185,7 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::PaidMessagesPrice: {
       const auto *m = static_cast<const MessagePaidMessagesPrice *>(content);
       BEGIN_STORE_FLAGS();
+      STORE_FLAG(m->broadcast_messages_allowed);
       END_STORE_FLAGS();
       store(m->star_count, storer);
       break;
@@ -3227,6 +3230,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::PaidMessagesPrice: {
       auto m = make_unique<MessagePaidMessagesPrice>();
       BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(m->broadcast_messages_allowed);
       END_PARSE_FLAGS();
       parse(m->star_count, parser);
       content = std::move(m);
@@ -6554,7 +6558,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::PaidMessagesPrice: {
       const auto *lhs = static_cast<const MessagePaidMessagesPrice *>(old_content);
       const auto *rhs = static_cast<const MessagePaidMessagesPrice *>(new_content);
-      if (lhs->star_count != rhs->star_count) {
+      if (lhs->star_count != rhs->star_count || lhs->broadcast_messages_allowed != rhs->broadcast_messages_allowed) {
         need_update = true;
       }
       break;
@@ -8428,7 +8432,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionPaidMessagesPrice::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionPaidMessagesPrice>(action_ptr);
-      return td::make_unique<MessagePaidMessagesPrice>(StarManager::get_star_count(action->stars_));
+      return td::make_unique<MessagePaidMessagesPrice>(StarManager::get_star_count(action->stars_),
+                                                       action->broadcast_messages_allowed_);
     }
     case telegram_api::messageActionConferenceCall::ID: {
       auto action = move_tl_object_as<telegram_api::messageActionConferenceCall>(action_ptr);
@@ -8986,6 +8991,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::PaidMessagesPrice: {
       const auto *m = static_cast<const MessagePaidMessagesPrice *>(content);
+      if (td->dialog_manager_->is_broadcast_channel(dialog_id)) {
+        return td_api::make_object<td_api::messageFeedbackMessagePriceChanged>(
+            m->broadcast_messages_allowed, !m->broadcast_messages_allowed ? 0 : m->star_count);
+      }
       return td_api::make_object<td_api::messagePaidMessagePriceChanged>(m->star_count);
     }
     case MessageContentType::ConferenceCall: {
