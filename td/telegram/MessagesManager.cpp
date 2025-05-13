@@ -27132,7 +27132,7 @@ void MessagesManager::on_update_dialog_is_pinned(FolderId folder_id, DialogId di
   }
   if (d->order == DEFAULT_ORDER) {
     // the chat can't be pinned or is already unpinned
-    // don't change it's folder_id
+    // don't change its folder_id
     LOG(INFO) << "Can't apply updateDialogPinned in " << folder_id << " with " << dialog_id;
     return;
   }

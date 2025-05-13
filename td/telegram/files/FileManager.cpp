@@ -3802,7 +3802,7 @@ void FileManager::run_upload(FileNodePtr node, vector<int> bad_parts) {
     auto generate_location = file_view.get_generate_location();
     if (generate_location != nullptr && generate_location->file_type_ == FileType::SecureEncrypted) {
       // Can't upload secure file before its size is known
-      LOG(INFO) << "Can't upload secure file " << node->main_file_id_ << " before it's size is known";
+      LOG(INFO) << "Can't upload secure file " << node->main_file_id_ << " before its size is known";
       return;
     }
   }
