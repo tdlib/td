@@ -228,8 +228,8 @@ class Scheduler {
   unique_ptr<ObjectPool<ActorInfo>> actor_info_pool_;
 
   int32 actor_count_ = 0;
-  ListNode pending_actors_list_;
-  ListNode ready_actors_list_;
+  ListNode pending_actors_;
+  ListNode ready_actors_;
   KHeap<double> timeout_queue_;
 
   FlatHashMap<ActorInfo *, std::vector<Event>> pending_events_;

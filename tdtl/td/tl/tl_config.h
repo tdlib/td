@@ -64,7 +64,7 @@ class tl_config_parser {
   tl_tree *read_type_expr(int *var_count);
   tl_tree *read_nat_expr(int *var_count);
   tl_tree *read_expr(int *var_count);
-  std::vector<arg> read_args_list(int *var_count);
+  std::vector<arg> read_args(int *var_count);
 
   tl_combinator *read_combinator();
   tl_type *read_type();

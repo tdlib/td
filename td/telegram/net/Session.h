@@ -149,7 +149,7 @@ class Session final
   PendingQueries pending_queries_;
   std::map<mtproto::MessageId, Query> sent_queries_;
   std::deque<NetQueryPtr> pending_invoke_after_queries_;
-  ListNode sent_queries_list_;
+  ListNode sent_query_list_;
 
   struct ConnectionInfo {
     int8 connection_id_ = 0;

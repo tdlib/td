@@ -111,7 +111,7 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
     send_later(actor_id, Event::start());
     do_migrate_actor(actor_info, sched_id);
   } else {
-    pending_actors_list_.put(weak_info->get_list_node());
+    pending_actors_.put(weak_info->get_list_node());
     if (ActorTraits<ActorT>::need_start_up) {
       send_later(actor_id, Event::start());
     }

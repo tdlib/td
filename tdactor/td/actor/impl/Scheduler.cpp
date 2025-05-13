@@ -167,9 +167,9 @@ EventGuard::~EventGuard() {
   auto node = info->get_list_node();
   node->remove();
   if (info->mailbox_.empty()) {
-    scheduler_->pending_actors_list_.put(node);
+    scheduler_->pending_actors_.put(node);
   } else {
-    scheduler_->ready_actors_list_.put(node);
+    scheduler_->ready_actors_.put(node);
   }
   info->finish_run();
   swap_context(info);
@@ -244,12 +244,12 @@ void Scheduler::clear() {
   if (!service_actor_.empty()) {
     service_actor_.do_stop();
   }
-  while (!pending_actors_list_.empty()) {
-    auto actor_info = ActorInfo::from_list_node(pending_actors_list_.get());
+  while (!pending_actors_.empty()) {
+    auto actor_info = ActorInfo::from_list_node(pending_actors_.get());
     do_stop_actor(actor_info);
   }
-  while (!ready_actors_list_.empty()) {
-    auto actor_info = ActorInfo::from_list_node(ready_actors_list_.get());
+  while (!ready_actors_.empty()) {
+    auto actor_info = ActorInfo::from_list_node(ready_actors_.get());
     do_stop_actor(actor_info);
   }
   poll_.clear();
@@ -347,9 +347,9 @@ void Scheduler::register_migrated_actor(ActorInfo *actor_info) {
     pending_events_.erase(it);
   }
   if (actor_info->mailbox_.empty()) {
-    pending_actors_list_.put(actor_info->get_list_node());
+    pending_actors_.put(actor_info->get_list_node());
   } else {
-    ready_actors_list_.put(actor_info->get_list_node());
+    ready_actors_.put(actor_info->get_list_node());
   }
   actor_info->get_actor_unsafe()->on_finish_migrate();
 }
@@ -409,7 +409,7 @@ void Scheduler::add_to_mailbox(ActorInfo *actor_info, Event &&event) {
   if (!actor_info->is_running()) {
     auto node = actor_info->get_list_node();
     node->remove();
-    ready_actors_list_.put(node);
+    ready_actors_.put(node);
   }
   VLOG(actor) << "Add to mailbox: " << *actor_info << " " << event;
   actor_info->mailbox_.push_back(std::move(event));
@@ -535,9 +535,9 @@ void Scheduler::flush_mailbox(ActorInfo *actor_info) {
 
 void Scheduler::run_mailbox() {
   VLOG(actor) << "Run mailbox : begin";
-  ListNode actors_list = std::move(ready_actors_list_);
-  while (!actors_list.empty()) {
-    ListNode *node = actors_list.get();
+  ListNode ready_actors = std::move(ready_actors_);
+  while (!ready_actors.empty()) {
+    ListNode *node = ready_actors.get();
     CHECK(node);
     auto actor_info = ActorInfo::from_list_node(node);
     flush_mailbox(actor_info);
@@ -547,14 +547,14 @@ void Scheduler::run_mailbox() {
   // Useful for debug, but O(ActorCount) check
 
   // int cnt = 0;
-  // for (ListNode *end = &pending_actors_list_, *it = pending_actors_list_.next; it != end; it = it->next) {
+  // for (ListNode *end = &pending_actors_, *it = pending_actors_.next; it != end; it = it->next) {
   //   cnt++;
   //   auto actor_info = ActorInfo::from_list_node(it);
   //   LOG(ERROR) << *actor_info;
   //   CHECK(actor_info->mailbox_.empty());
   //   CHECK(!actor_info->is_running());
   // }
-  // for (ListNode *end = &ready_actors_list_, *it = ready_actors_list_.next; it != end; it = it->next) {
+  // for (ListNode *end = &ready_actors_, *it = ready_actors_.next; it != end; it = it->next) {
   //   auto actor_info = ActorInfo::from_list_node(it);
   //   LOG(ERROR) << *actor_info;
   //   cnt++;
@@ -580,7 +580,7 @@ Timestamp Scheduler::run_events(Timestamp timeout) {
   do {
     run_mailbox();
     res = run_timeout();
-  } while (!ready_actors_list_.empty() && !timeout.is_in_past());
+  } while (!ready_actors_.empty() && !timeout.is_in_past());
   return res;
 }
 
@@ -599,7 +599,7 @@ void Scheduler::run_no_guard(Timestamp timeout) {
 }
 
 Timestamp Scheduler::get_timeout() {
-  if (!ready_actors_list_.empty()) {
+  if (!ready_actors_.empty()) {
     return Timestamp::in(0);
   }
   if (timeout_queue_.empty()) {

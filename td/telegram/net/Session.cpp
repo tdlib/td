@@ -573,9 +573,9 @@ Status Session::on_pong(double ping_time, double pong_time, double current_time)
                                       << " after ping sent at " << ping_time << " and answered at " << pong_time
                                       << " with the current server time " << current_time);
     }
-    if (!sent_queries_list_.empty()) {
+    if (!sent_query_list_.empty()) {
       double query_timeout = 60 + (current_time - ping_time);
-      for (auto it = sent_queries_list_.prev; it != &sent_queries_list_; it = it->prev) {
+      for (auto it = sent_query_list_.prev; it != &sent_query_list_; it = it->prev) {
         auto query = Query::from_list_node(it);
         if (Timestamp::at(query->sent_at_ + query_timeout).is_in_past()) {
           if (status.is_ok()) {
@@ -1172,7 +1172,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   auto status =
       sent_queries_.emplace(message_id, Query{message_id, std::move(net_query), main_connection_.connection_id_, now});
   LOG_CHECK(status.second) << message_id;
-  sent_queries_list_.put(status.first->second.get_list_node());
+  sent_query_list_.put(status.first->second.get_list_node());
   if (immediately_fail_query) {
     on_message_result_error(message_id, 401, "TEST_ERROR");
   }

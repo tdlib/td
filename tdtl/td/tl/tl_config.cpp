@@ -147,7 +147,7 @@ tl_tree *tl_config_parser::read_array(int *var_count) {
   std::int32_t flags = FLAG_NOVAR;
   tl_tree *multiplicity = read_nat_expr(var_count);
 
-  tl_tree_array *T = new tl_tree_array(flags, multiplicity, read_args_list(var_count));
+  tl_tree_array *T = new tl_tree_array(flags, multiplicity, read_args(var_count));
 
   for (std::size_t i = 0; i < T->args.size(); i++) {
     if (!(T->args[i].flags & FLAG_NOVAR)) {
@@ -218,7 +218,7 @@ tl_tree *tl_config_parser::read_expr(int *var_count) {
   }
 }
 
-std::vector<arg> tl_config_parser::read_args_list(int *var_count) {
+std::vector<arg> tl_config_parser::read_args(int *var_count) {
   const int schema_flag_opt_field = 2 << static_cast<int>(schema_version >= 3);
   const int schema_flag_has_vars = schema_flag_opt_field ^ 6;
 
@@ -283,7 +283,7 @@ tl_combinator *tl_config_parser::read_combinator() {
 
   std::int32_t left_type = try_parse_int();
   if (left_type == TLS_COMBINATOR_LEFT) {
-    combinator->args = read_args_list(&combinator->var_count);
+    combinator->args = read_args(&combinator->var_count);
   } else {
     if (left_type != TLS_COMBINATOR_LEFT_BUILTIN) {
       std::fprintf(stderr, "Wrong tls_combinator_left magic %d\n", static_cast<int>(left_type));
