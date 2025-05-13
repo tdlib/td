@@ -8142,6 +8142,14 @@ bool ChatManager::is_forum_channel(ChannelId channel_id) const {
   return c->is_forum;
 }
 
+bool ChatManager::is_monoforum_channel(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return c->is_monoforum;
+}
+
 int32 ChatManager::get_channel_date(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {

@@ -358,6 +358,7 @@ class ChatManager final : public Actor {
   bool is_broadcast_channel(ChannelId channel_id) const;
   bool is_megagroup_channel(ChannelId channel_id) const;
   bool is_forum_channel(ChannelId channel_id) const;
+  bool is_monoforum_channel(ChannelId channel_id) const;
   int32 get_channel_date(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_status(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_permissions(ChannelId channel_id) const;
