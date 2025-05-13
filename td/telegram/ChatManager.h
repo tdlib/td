@@ -585,6 +585,7 @@ class ChatManager final : public Actor {
     StickerSetId emoji_sticker_set_id;
 
     ChannelId linked_channel_id;
+    ChannelId monoforum_channel_id;
 
     DialogLocation location;
 
@@ -742,6 +743,8 @@ class ChatManager final : public Actor {
                                           tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link);
   void on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
                                                 ChannelId linked_channel_id);
+  void on_update_channel_full_monoforum_channel_id(ChannelFull *channel_full, ChannelId channel_id,
+                                                   ChannelId monoforum_channel_id);
   void on_update_channel_full_location(ChannelFull *channel_full, ChannelId channel_id, const DialogLocation &location);
   void on_update_channel_full_slow_mode_delay(ChannelFull *channel_full, ChannelId channel_id, int32 slow_mode_delay,
                                               int32 slow_mode_next_send_date);
@@ -756,7 +759,12 @@ class ChatManager final : public Actor {
                                     const Usernames &new_usernames);
 
   void remove_linked_channel_id(ChannelId channel_id);
+
+  void remove_monoforum_channel_id(ChannelId channel_id);
+
   ChannelId get_linked_channel_id(ChannelId channel_id) const;
+
+  ChannelId get_monoforum_channel_id(ChannelId channel_id) const;
 
   static bool speculative_add_count(int32 &count, int32 delta_count, int32 min_count = 0);
 
@@ -928,6 +936,7 @@ class ChatManager final : public Actor {
   FlatHashMap<ChannelId, FlatHashSet<MessageFullId, MessageFullIdHash>, ChannelIdHash> channel_messages_;
 
   WaitFreeHashMap<ChannelId, ChannelId, ChannelIdHash> linked_channel_ids_;
+  WaitFreeHashMap<ChannelId, ChannelId, ChannelIdHash> monoforum_channel_ids_;
 
   WaitFreeHashSet<ChannelId, ChannelIdHash> restricted_channel_ids_;
 
