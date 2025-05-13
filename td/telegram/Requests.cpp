@@ -4925,8 +4925,8 @@ void Requests::on_request(uint64 id, const td_api::allowUnpaidMessagesFromUser &
 void Requests::on_request(uint64 id, const td_api::setChatPaidMessageStarCount &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->chat_manager_->set_channel_send_paid_messages_star_count(DialogId(request.chat_id_),
-                                                                request.paid_message_star_count_, std::move(promise));
+  td_->chat_manager_->set_channel_send_paid_message_star_count(DialogId(request.chat_id_),
+                                                               request.paid_message_star_count_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::canSendMessageToUser &request) {
@@ -5249,6 +5249,13 @@ void Requests::on_request(uint64 id, const td_api::setChatDiscussionGroup &reque
   CREATE_OK_REQUEST_PROMISE();
   td_->chat_manager_->set_channel_discussion_group(DialogId(request.chat_id_), DialogId(request.discussion_chat_id_),
                                                    std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::setChatFeedbackGroup &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->chat_manager_->set_channel_feedback_group(DialogId(request.chat_id_), request.is_enabled_,
+                                                 request.paid_message_star_count_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setChatLocation &request) {

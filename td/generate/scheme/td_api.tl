@@ -10755,6 +10755,13 @@ setChatDescription chat_id:int53 description:string = Ok;
 //-Basic group chats must be first upgraded to supergroup chats. If new chat members don't have access to old messages in the supergroup, then toggleSupergroupIsAllHistoryAvailable must be used first to change that
 setChatDiscussionGroup chat_id:int53 discussion_chat_id:int53 = Ok;
 
+//@description Changes feedback group settings for a channel chat; requires owner privileges in the chat
+//@chat_id Identifier of the channel chat
+//@is_enabled Pass true if the feedback group is enabled for the channel chat; pass false otherwise
+//@paid_message_star_count The new number of Telegram Stars that must be paid for each message that is sent to the feedback supergroup chat unless the sender is an administrator of the channel chat; 0-getOption("paid_message_star_count_max").
+//-The channel will receive getOption("paid_message_earnings_per_mille") Telegram Stars for each 1000 Telegram Stars paid for message sending. Requires supergroupFullInfo.can_enable_paid_messages for positive amounts
+setChatFeedbackGroup chat_id:int53 is_enabled:Bool paid_message_star_count:int53 = Ok;
+
 //@description Changes the location of a chat. Available only for some location-based supergroups, use supergroupFullInfo.can_set_location to check whether the method is allowed to use @chat_id Chat identifier @location New location for the chat; must be valid and not null
 setChatLocation chat_id:int53 location:chatLocation = Ok;
 

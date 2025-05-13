@@ -957,6 +957,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::setChatDiscussionGroup &request);
 
+  void on_request(uint64 id, const td_api::setChatFeedbackGroup &request);
+
   void on_request(uint64 id, td_api::setChatLocation &request);
 
   void on_request(uint64 id, const td_api::setChatSlowModeDelay &request);

@@ -278,6 +278,9 @@ class ChatManager final : public Actor {
 
   void set_channel_discussion_group(DialogId dialog_id, DialogId discussion_dialog_id, Promise<Unit> &&promise);
 
+  void set_channel_feedback_group(DialogId dialog_id, bool is_enabled, int64 paid_message_star_count,
+                                  Promise<Unit> &&promise);
+
   void set_channel_location(ChannelId dialog_id, const DialogLocation &location, Promise<Unit> &&promise);
 
   void set_channel_slow_mode_delay(DialogId dialog_id, int32 slow_mode_delay, Promise<Unit> &&promise);
@@ -286,8 +289,8 @@ class ChatManager final : public Actor {
 
   void report_channel_anti_spam_false_positive(ChannelId channel_id, MessageId message_id, Promise<Unit> &&promise);
 
-  void set_channel_send_paid_messages_star_count(DialogId dialog_id, int64 send_paid_messages_star_count,
-                                                 Promise<Unit> &&promise);
+  void set_channel_send_paid_message_star_count(DialogId dialog_id, int64 send_paid_message_star_count,
+                                                Promise<Unit> &&promise);
 
   void delete_chat(ChatId chat_id, Promise<Unit> &&promise);
 

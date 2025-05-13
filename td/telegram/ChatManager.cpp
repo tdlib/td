@@ -1289,14 +1289,14 @@ class UpdatePaidMessagesPriceQuery final : public Td::ResultHandler {
   explicit UpdatePaidMessagesPriceQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, int64 send_paid_messages_stars) {
+  void send(ChannelId channel_id, int64 send_paid_messages_stars, bool broadcast_messages_allowed) {
     channel_id_ = channel_id;
 
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::channels_updatePaidMessagesPrice(0, false, std::move(input_channel), send_paid_messages_stars)));
+    send_query(G()->net_query_creator().create(telegram_api::channels_updatePaidMessagesPrice(
+        0, broadcast_messages_allowed, std::move(input_channel), send_paid_messages_stars)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3563,6 +3563,40 @@ void ChatManager::set_channel_discussion_group(DialogId dialog_id, DialogId disc
              std::move(group_input_channel));
 }
 
+void ChatManager::set_channel_feedback_group(DialogId dialog_id, bool is_enabled, int64 paid_message_star_count,
+                                             Promise<Unit> &&promise) {
+  if (!dialog_id.is_valid()) {
+    return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
+  }
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_channel_feedback_group")) {
+    return promise.set_error(Status::Error(400, "Chat not found"));
+  }
+
+  if (dialog_id.get_type() != DialogType::Channel) {
+    return promise.set_error(Status::Error(400, "Chat is not a supergroup"));
+  }
+
+  auto channel_id = dialog_id.get_channel_id();
+  const Channel *c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat info not found"));
+  }
+  if (c->is_megagroup) {
+    return promise.set_error(Status::Error(400, "Chat is not a channel"));
+  }
+  if (!c->status.is_creator()) {
+    return promise.set_error(Status::Error(400, "Not enough rights in the channel"));
+  }
+  if (!is_enabled) {
+    paid_message_star_count = 0;
+  } else if (paid_message_star_count < 0 || paid_message_star_count > 1000000) {
+    return promise.set_error(Status::Error(400, "Invalid number of Telegram Stars specified"));
+  }
+
+  td_->create_handler<UpdatePaidMessagesPriceQuery>(std::move(promise))
+      ->send(channel_id, paid_message_star_count, is_enabled);
+}
+
 void ChatManager::set_channel_location(ChannelId channel_id, const DialogLocation &location, Promise<Unit> &&promise) {
   if (location.empty()) {
     return promise.set_error(Status::Error(400, "Invalid chat location specified"));
@@ -3761,12 +3795,12 @@ void ChatManager::report_channel_anti_spam_false_positive(ChannelId channel_id, 
   td_->create_handler<ReportChannelAntiSpamFalsePositiveQuery>(std::move(promise))->send(channel_id, message_id);
 }
 
-void ChatManager::set_channel_send_paid_messages_star_count(DialogId dialog_id, int64 send_paid_messages_star_count,
-                                                            Promise<Unit> &&promise) {
+void ChatManager::set_channel_send_paid_message_star_count(DialogId dialog_id, int64 send_paid_message_star_count,
+                                                           Promise<Unit> &&promise) {
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_channel_send_paid_messages_star_count")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_channel_send_paid_message_star_count")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
@@ -3785,12 +3819,12 @@ void ChatManager::set_channel_send_paid_messages_star_count(DialogId dialog_id, 
   if (!get_channel_status(c).can_restrict_members()) {
     return promise.set_error(Status::Error(400, "Not enough rights in the supergroup"));
   }
-  if (send_paid_messages_star_count < 0 || send_paid_messages_star_count > 1000000) {
+  if (send_paid_message_star_count < 0 || send_paid_message_star_count > 1000000) {
     return promise.set_error(Status::Error(400, "Invalid number of Telegram Stars specified"));
   }
 
   td_->create_handler<UpdatePaidMessagesPriceQuery>(std::move(promise))
-      ->send(channel_id, send_paid_messages_star_count);
+      ->send(channel_id, send_paid_message_star_count, false);
 }
 
 void ChatManager::delete_chat(ChatId chat_id, Promise<Unit> &&promise) {

@@ -6789,6 +6789,12 @@ class CliClient final : public Actor {
       ChatId group_chat_id;
       get_args(args, chat_id, group_chat_id);
       send_request(td_api::make_object<td_api::setChatDiscussionGroup>(chat_id, group_chat_id));
+    } else if (op == "scfg") {
+      ChatId chat_id;
+      bool is_enabled;
+      int64 paid_message_star_count;
+      get_args(args, chat_id, is_enabled, paid_message_star_count);
+      send_request(td_api::make_object<td_api::setChatFeedbackGroup>(chat_id, is_enabled, paid_message_star_count));
     } else if (op == "scl") {
       ChatId chat_id;
       string latitude;
