@@ -516,8 +516,8 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
     std::shared_ptr<StoryDbSyncSafeInterface> sync_db_safe_;
     StoryDbSyncInterface *sync_db_ = nullptr;
 
-    static constexpr size_t MAX_PENDING_QUERIES_COUNT{50};
-    static constexpr double MAX_PENDING_QUERIES_DELAY{0.01};
+    static constexpr size_t MAX_PENDING_QUERY_COUNT{50};
+    static constexpr double MAX_PENDING_QUERY_DELAY{0.01};
 
     //NB: order is important, destructor of pending_writes_ will change finished_writes_
     vector<Promise<Unit>> finished_writes_;
@@ -527,11 +527,11 @@ class StoryDbAsync final : public StoryDbAsyncInterface {
     template <class F>
     void add_write_query(F &&f) {
       pending_writes_.push_back(PromiseCreator::lambda(std::forward<F>(f)));
-      if (pending_writes_.size() > MAX_PENDING_QUERIES_COUNT) {
+      if (pending_writes_.size() > MAX_PENDING_QUERY_COUNT) {
         do_flush();
         wakeup_at_ = 0;
       } else if (wakeup_at_ == 0) {
-        wakeup_at_ = Time::now_cached() + MAX_PENDING_QUERIES_DELAY;
+        wakeup_at_ = Time::now_cached() + MAX_PENDING_QUERY_DELAY;
       }
       if (wakeup_at_ != 0) {
         set_timeout_at(wakeup_at_);

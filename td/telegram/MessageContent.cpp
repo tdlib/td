@@ -5483,8 +5483,8 @@ static void merge_location_access_hash(const Location &first, const Location &se
 }
 
 static bool need_message_text_changed_warning(const MessageText *old_content, const MessageText *new_content) {
-  const int32 MAX_CUSTOM_ENTITIES_COUNT = 100;  // server-side limit
-  if (old_content->text.entities.size() > MAX_CUSTOM_ENTITIES_COUNT) {
+  const int32 MAX_CUSTOM_ENTITY_COUNT = 100;  // server-side limit
+  if (old_content->text.entities.size() > MAX_CUSTOM_ENTITY_COUNT) {
     return false;
   }
   if (new_content->text.text == "Unsupported characters" ||

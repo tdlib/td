@@ -108,8 +108,8 @@ class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
     std::shared_ptr<SqliteKeyValueSafe> kv_safe_;
     SqliteKeyValue *kv_ = nullptr;
 
-    static constexpr double MAX_PENDING_QUERIES_DELAY = 0.01;
-    static constexpr size_t MAX_PENDING_QUERIES_COUNT = 100;
+    static constexpr double MAX_PENDING_QUERY_DELAY = 0.01;
+    static constexpr size_t MAX_PENDING_QUERY_COUNT = 100;
     FlatHashMap<string, optional<string>> buffer_;
     vector<Promise<Unit>> buffer_promises_;
     size_t cnt_ = 0;
@@ -123,9 +123,9 @@ class SqliteKeyValueAsync final : public SqliteKeyValueAsyncInterface {
       if (!force) {
         auto now = Time::now_cached();
         if (wakeup_at_ == 0) {
-          wakeup_at_ = now + MAX_PENDING_QUERIES_DELAY;
+          wakeup_at_ = now + MAX_PENDING_QUERY_DELAY;
         }
-        if (now < wakeup_at_ && cnt_ < MAX_PENDING_QUERIES_COUNT) {
+        if (now < wakeup_at_ && cnt_ < MAX_PENDING_QUERY_COUNT) {
           set_timeout_at(wakeup_at_);
           return;
         }
