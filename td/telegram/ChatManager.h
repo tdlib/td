@@ -359,6 +359,7 @@ class ChatManager final : public Actor {
   bool is_megagroup_channel(ChannelId channel_id) const;
   bool is_forum_channel(ChannelId channel_id) const;
   bool is_monoforum_channel(ChannelId channel_id) const;
+  ChannelId get_monoforum_channel_id(ChannelId channel_id) const;
   int32 get_channel_date(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_status(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_permissions(ChannelId channel_id) const;
@@ -767,8 +768,6 @@ class ChatManager final : public Actor {
   void remove_monoforum_channel_id(ChannelId channel_id);
 
   ChannelId get_linked_channel_id(ChannelId channel_id) const;
-
-  ChannelId get_monoforum_channel_id(ChannelId channel_id) const;
 
   static bool speculative_add_count(int32 &count, int32 delta_count, int32 min_count = 0);
 

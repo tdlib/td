@@ -6398,15 +6398,6 @@ ChannelId ChatManager::get_linked_channel_id(ChannelId channel_id) const {
   return linked_channel_ids_.get(channel_id);
 }
 
-ChannelId ChatManager::get_monoforum_channel_id(ChannelId channel_id) const {
-  auto channel_full = get_channel_full(channel_id);
-  if (channel_full != nullptr) {
-    return channel_full->monoforum_channel_id;
-  }
-
-  return monoforum_channel_ids_.get(channel_id);
-}
-
 void ChatManager::on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
                                                            ChannelId linked_channel_id) {
   auto old_linked_channel_id = get_linked_channel_id(channel_id);
@@ -8148,6 +8139,14 @@ bool ChatManager::is_monoforum_channel(ChannelId channel_id) const {
     return false;
   }
   return c->is_monoforum;
+}
+
+ChannelId ChatManager::get_monoforum_channel_id(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return monoforum_channel_ids_.get(channel_id);
+  }
+  return c->monoforum_channel_id;
 }
 
 int32 ChatManager::get_channel_date(ChannelId channel_id) const {
