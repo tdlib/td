@@ -22,7 +22,9 @@ DialogType DialogId::get_type() const {
   static_assert(ZERO_CHANNEL_ID + 1 == -ChatId::MAX_CHAT_ID, "");
   static_assert(
       ZERO_SECRET_CHAT_ID + std::numeric_limits<int32>::max() + 1 == ZERO_CHANNEL_ID - ChannelId::MAX_CHANNEL_ID, "");
-
+  static_assert(ZERO_CHANNEL_ID - ChannelId::MIN_MONOFORUM_CHANNEL_ID + 1 ==
+                    ZERO_SECRET_CHAT_ID + std::numeric_limits<int32>::min(),
+                "");
   if (id < 0) {
     if (-ChatId::MAX_CHAT_ID <= id) {
       return DialogType::Chat;
@@ -32,6 +34,9 @@ DialogType DialogId::get_type() const {
     }
     if (ZERO_SECRET_CHAT_ID + std::numeric_limits<int32>::min() <= id && id != ZERO_SECRET_CHAT_ID) {
       return DialogType::SecretChat;
+    }
+    if (ZERO_CHANNEL_ID - ChannelId::MAX_MONOFORUM_CHANNEL_ID <= id) {
+      return DialogType::Channel;
     }
   } else if (0 < id && id <= UserId::MAX_USER_ID) {
     return DialogType::User;
