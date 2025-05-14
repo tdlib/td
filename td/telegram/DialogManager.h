@@ -142,6 +142,8 @@ class DialogManager final : public Actor {
 
   bool is_forum_channel(DialogId dialog_id) const;
 
+  bool is_monoforum_channel(DialogId dialog_id) const;
+
   bool is_broadcast_channel(DialogId dialog_id) const;
 
   bool on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source);
