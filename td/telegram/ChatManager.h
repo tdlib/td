@@ -499,6 +499,8 @@ class ChatManager final : public Actor {
     StoryId max_active_story_id;
     StoryId max_read_story_id;
 
+    ChannelId monoforum_channel_id;
+
     static constexpr uint32 CACHE_VERSION = 10;
     uint32 cache_version = 0;
 

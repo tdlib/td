@@ -1990,6 +1990,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
   bool has_emoji_status = emoji_status != nullptr;
   bool has_bot_verification_icon = bot_verification_icon.is_valid();
   bool has_paid_message_star_count = paid_message_star_count != 0;
+  bool has_monoforum_channel_id = monoforum_channel_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -2041,6 +2042,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(autotranslation);
     STORE_FLAG(is_monoforum);
     STORE_FLAG(broadcast_messages_allowed);
+    STORE_FLAG(has_monoforum_channel_id);
     END_STORE_FLAGS();
   }
 
@@ -2099,6 +2101,9 @@ void ChatManager::Channel::store(StorerT &storer) const {
   if (has_paid_message_star_count) {
     store(paid_message_star_count, storer);
   }
+  if (has_monoforum_channel_id) {
+    store(monoforum_channel_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -2132,6 +2137,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
   bool has_emoji_status = false;
   bool has_bot_verification_icon = false;
   bool has_paid_message_star_count = false;
+  bool has_monoforum_channel_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -2183,6 +2189,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(autotranslation);
     PARSE_FLAG(is_monoforum);
     PARSE_FLAG(broadcast_messages_allowed);
+    PARSE_FLAG(has_monoforum_channel_id);
     END_PARSE_FLAGS();
   }
 
@@ -2273,6 +2280,9 @@ void ChatManager::Channel::parse(ParserT &parser) {
   }
   if (has_paid_message_star_count) {
     parse(paid_message_star_count, parser);
+  }
+  if (has_monoforum_channel_id) {
+    parse(monoforum_channel_id, parser);
   }
 
   if (!check_utf8(title)) {
@@ -8615,6 +8625,11 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
   auto paid_message_star_count = channel.send_paid_messages_stars_;
   bool autotranslation = channel.autotranslation_;
   bool broadcast_messages_allowed = channel.broadcast_messages_allowed_;
+  auto monoforum_channel_id = ChannelId(channel.linked_monoforum_id_);
+  if (monoforum_channel_id != ChannelId() && !monoforum_channel_id.is_valid()) {
+    LOG(ERROR) << "Receive feedback " << monoforum_channel_id << " for " << channel_id;
+    monoforum_channel_id = ChannelId();
+  }
 
   if (have_participant_count) {
     auto channel_full = get_channel_full_const(channel_id);
@@ -8701,9 +8716,11 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
         }
         on_update_channel_bot_verification_icon(c, channel_id, CustomEmojiId(channel.bot_verification_icon_));
       }
-      if (c->join_to_send != join_to_send || c->join_request != join_request) {
+      if (c->join_to_send != join_to_send || c->join_request != join_request ||
+          c->monoforum_channel_id != monoforum_channel_id) {
         c->join_to_send = join_to_send;
         c->join_request = join_request;
+        c->monoforum_channel_id = monoforum_channel_id;
 
         c->need_save_to_database = true;
       }
@@ -8815,9 +8832,11 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     }
     on_update_channel_bot_verification_icon(c, channel_id, CustomEmojiId(channel.bot_verification_icon_));
   }
-  if (c->join_to_send != join_to_send || c->join_request != join_request) {
+  if (c->join_to_send != join_to_send || c->join_request != join_request ||
+      c->monoforum_channel_id != monoforum_channel_id) {
     c->join_to_send = join_to_send;
     c->join_request = join_request;
+    c->monoforum_channel_id = monoforum_channel_id;
 
     c->need_save_to_database = true;
   }
