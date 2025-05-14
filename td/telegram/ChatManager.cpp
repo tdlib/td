@@ -5757,6 +5757,12 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
 
     auto migrated_from_chat_id = ChatId(channel->migrated_from_chat_id_);
     auto migrated_from_max_message_id = MessageId(ServerMessageId(channel->migrated_from_max_id_));
+    if ((!migrated_from_chat_id.is_valid() && migrated_from_chat_id != ChatId()) ||
+        (!migrated_from_max_message_id.is_valid() && migrated_from_max_message_id != MessageId())) {
+      LOG(ERROR) << "Receive migrate from " << migrated_from_max_message_id << " from " << migrated_from_chat_id;
+      migrated_from_chat_id = {};
+      migrated_from_max_message_id = {};
+    }
     if (channel_full->migrated_from_chat_id != migrated_from_chat_id ||
         channel_full->migrated_from_max_message_id != migrated_from_max_message_id) {
       channel_full->migrated_from_chat_id = migrated_from_chat_id;
