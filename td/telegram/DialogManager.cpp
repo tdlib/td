@@ -3171,7 +3171,7 @@ void DialogManager::on_failed_public_dialogs_search(const string &query, Status 
 }
 
 void DialogManager::reget_peer_settings(DialogId dialog_id) {
-  if (!have_input_peer(dialog_id, false, AccessRights::Read)) {
+  if (!have_input_peer(dialog_id, false, AccessRights::Read) || is_monoforum_channel(dialog_id)) {
     return;
   }
 

@@ -28311,7 +28311,8 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
     }
     return promise.set_error(Status::Error(500, "Wrong getDialog query"));
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) ||
+      td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
     if (log_event_id != 0) {
       binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     }
