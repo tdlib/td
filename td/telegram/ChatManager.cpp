@@ -5778,7 +5778,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
     channel_full->is_update_channel_full_sent = true;
     update_channel_full(channel_full, channel_id, "on_get_channel_full");
 
-    if (linked_channel_id.is_valid()) {
+    if (linked_channel_id.is_valid() && have_channel(linked_channel_id)) {
       auto linked_channel_full = get_channel_full_force(linked_channel_id, true, "on_get_channel_full");
       on_update_channel_full_linked_channel_id(linked_channel_full, linked_channel_id, channel_id);
       if (linked_channel_full != nullptr) {
@@ -6313,7 +6313,7 @@ void ChatManager::on_update_channel_full_linked_channel_id(ChannelFull *channel_
 
   remove_linked_channel_id(channel_id);
   remove_linked_channel_id(linked_channel_id);
-  if (channel_id.is_valid() && linked_channel_id.is_valid()) {
+  if (linked_channel_id.is_valid()) {
     linked_channel_ids_.set(channel_id, linked_channel_id);
     linked_channel_ids_.set(linked_channel_id, channel_id);
   }
