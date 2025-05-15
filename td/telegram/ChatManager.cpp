@@ -6048,6 +6048,10 @@ bool ChatManager::on_get_channel_error(ChannelId channel_id, const Status &statu
     LOG(ERROR) << "Receive BOT_METHOD_INVALID from " << source;
     return true;
   }
+  if (status.message() == "CHANNEL_MONOFORUM_UNSUPPORTED") {
+    LOG(ERROR) << "Receive CHANNEL_MONOFORUM_UNSUPPORTED from " << source;
+    return true;
+  }
   if (G()->is_expected_error(status)) {
     return true;
   }
