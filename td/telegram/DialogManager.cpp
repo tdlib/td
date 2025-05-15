@@ -1839,7 +1839,6 @@ bool DialogManager::is_broadcast_channel(DialogId dialog_id) const {
 bool DialogManager::on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source) {
   auto message = status.message();
   if (message == CSlice("BOT_METHOD_INVALID")) {
-    LOG(ERROR) << "Receive BOT_METHOD_INVALID from " << source;
     return true;
   }
   if (G()->is_expected_error(status)) {
