@@ -5800,11 +5800,13 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
     }
 
     auto monoforum_channel_id = c->monoforum_channel_id;
-    auto monoforum_channel = get_channel_force(monoforum_channel_id, "ChannelFull");
-    if (monoforum_channel == nullptr ||
-        (c->is_megagroup ? !c->is_monoforum || monoforum_channel->is_megagroup : !monoforum_channel->is_monoforum)) {
-      LOG(ERROR) << "Failed to add a monoforum link between " << channel_id << " and " << monoforum_channel_id;
-      monoforum_channel_id = ChannelId();
+    if (monoforum_channel_id != ChannelId()) {
+      auto monoforum_channel = get_channel_force(monoforum_channel_id, "ChannelFull");
+      if (monoforum_channel == nullptr ||
+          (c->is_megagroup ? !c->is_monoforum || monoforum_channel->is_megagroup : !monoforum_channel->is_monoforum)) {
+        LOG(ERROR) << "Failed to add a monoforum link between " << channel_id << " and " << monoforum_channel_id;
+        monoforum_channel_id = ChannelId();
+      }
     }
     on_update_channel_full_monoforum_channel_id(channel_full, channel_id, monoforum_channel_id);
 
