@@ -765,8 +765,6 @@ class ChatManager final : public Actor {
 
   void remove_linked_channel_id(ChannelId channel_id);
 
-  void remove_monoforum_channel_id(ChannelId channel_id);
-
   ChannelId get_linked_channel_id(ChannelId channel_id) const;
 
   static bool speculative_add_count(int32 &count, int32 delta_count, int32 min_count = 0);

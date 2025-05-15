@@ -5860,7 +5860,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
     channel_full->is_update_channel_full_sent = true;
     update_channel_full(channel_full, channel_id, "on_get_channel_full");
 
-    if (monoforum_channel_id.is_valid() && have_channel(monoforum_channel_id)) {
+    if (monoforum_channel_id.is_valid() && have_channel(monoforum_channel_id) && !c->is_monoforum) {
       auto monoforum_channel_full = get_channel_full_force(monoforum_channel_id, true, "on_get_channel_full");
       on_update_channel_full_monoforum_channel_id(monoforum_channel_full, monoforum_channel_id, channel_id);
       if (monoforum_channel_full != nullptr) {
@@ -6379,18 +6379,6 @@ void ChatManager::remove_linked_channel_id(ChannelId channel_id) {
   }
 }
 
-void ChatManager::remove_monoforum_channel_id(ChannelId channel_id) {
-  if (!channel_id.is_valid()) {
-    return;
-  }
-
-  auto monoforum_channel_id = monoforum_channel_ids_.get(channel_id);
-  if (monoforum_channel_id.is_valid()) {
-    monoforum_channel_ids_.erase(channel_id);
-    monoforum_channel_ids_.erase(monoforum_channel_id);
-  }
-}
-
 ChannelId ChatManager::get_linked_channel_id(ChannelId channel_id) const {
   auto channel_full = get_channel_full(channel_id);
   if (channel_full != nullptr) {
@@ -6403,7 +6391,7 @@ ChannelId ChatManager::get_linked_channel_id(ChannelId channel_id) const {
 void ChatManager::on_update_channel_full_linked_channel_id(ChannelFull *channel_full, ChannelId channel_id,
                                                            ChannelId linked_channel_id) {
   auto old_linked_channel_id = get_linked_channel_id(channel_id);
-  LOG(INFO) << "Uplate linked channel in " << channel_id << " from " << old_linked_channel_id << " to "
+  LOG(INFO) << "Update linked channel in " << channel_id << " from " << old_linked_channel_id << " to "
             << linked_channel_id;
 
   if (channel_full != nullptr && channel_full->linked_channel_id != linked_channel_id &&
@@ -6481,7 +6469,7 @@ void ChatManager::on_update_channel_full_linked_channel_id(ChannelFull *channel_
 
   if (linked_channel_id.is_valid()) {
     auto new_linked_linked_channel_id = get_linked_channel_id(linked_channel_id);
-    LOG(INFO) << "Uplate linked channel in " << linked_channel_id << " from " << old_linked_linked_channel_id << " to "
+    LOG(INFO) << "Update linked channel in " << linked_channel_id << " from " << old_linked_linked_channel_id << " to "
               << new_linked_linked_channel_id;
     if (old_linked_linked_channel_id != new_linked_linked_channel_id) {
       // must be called after the linked channel is changed
@@ -6494,7 +6482,7 @@ void ChatManager::on_update_channel_full_linked_channel_id(ChannelFull *channel_
 void ChatManager::on_update_channel_full_monoforum_channel_id(ChannelFull *channel_full, ChannelId channel_id,
                                                               ChannelId monoforum_channel_id) {
   auto old_monoforum_channel_id = get_monoforum_channel_id(channel_id);
-  LOG(INFO) << "Uplate monoforum channel in " << channel_id << " from " << old_monoforum_channel_id << " to "
+  LOG(INFO) << "Update monoforum channel in " << channel_id << " from " << old_monoforum_channel_id << " to "
             << monoforum_channel_id;
   if (old_monoforum_channel_id != monoforum_channel_id && monoforum_channel_id.is_valid() &&
       old_monoforum_channel_id.is_valid()) {
@@ -6504,15 +6492,8 @@ void ChatManager::on_update_channel_full_monoforum_channel_id(ChannelFull *chann
 
   if (channel_full != nullptr && channel_full->monoforum_channel_id != monoforum_channel_id &&
       channel_full->monoforum_channel_id.is_valid()) {
-    get_channel_force(channel_full->monoforum_channel_id, "on_update_channel_full_monoforum_channel_id 10");
-    get_channel_full_force(channel_full->monoforum_channel_id, true, "on_update_channel_full_monoforum_channel_id 0");
-  }
-
-  remove_monoforum_channel_id(channel_id);
-  remove_monoforum_channel_id(monoforum_channel_id);
-  if (channel_id.is_valid() && monoforum_channel_id.is_valid()) {
-    monoforum_channel_ids_.set(channel_id, monoforum_channel_id);
-    monoforum_channel_ids_.set(monoforum_channel_id, channel_id);
+    get_channel_force(channel_full->monoforum_channel_id, "on_update_channel_full_monoforum_channel_id");
+    get_channel_full_force(channel_full->monoforum_channel_id, true, "on_update_channel_full_monoforum_channel_id");
   }
 
   if (channel_full != nullptr && channel_full->monoforum_channel_id != monoforum_channel_id) {
@@ -6522,6 +6503,16 @@ void ChatManager::on_update_channel_full_monoforum_channel_id(ChannelFull *chann
 
   Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);
+
+  if (monoforum_channel_id.is_valid()) {
+    monoforum_channel_ids_.set(channel_id, monoforum_channel_id);
+    if (!c->is_monoforum) {
+      monoforum_channel_ids_.set(monoforum_channel_id, channel_id);
+    }
+  } else {
+    monoforum_channel_ids_.erase(channel_id);
+  }
+
   if (c->is_megagroup) {
     if (monoforum_channel_id.is_valid() != c->is_monoforum) {
       LOG(ERROR) << "Receive monoforum " << monoforum_channel_id << " in " << channel_id;
