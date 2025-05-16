@@ -558,14 +558,7 @@ Status SavedMessagesManager::check_monoforum_dialog_id(DialogId dialog_id) const
 
 Result<SavedMessagesManager::TopicList *> SavedMessagesManager::get_monoforum_topic_list(DialogId dialog_id) {
   TRY_STATUS(check_monoforum_dialog_id(dialog_id));
-
-  auto &topic_list = monoforum_topic_lists_[dialog_id];
-  if (topic_list == nullptr) {
-    topic_list = make_unique<TopicList>();
-    topic_list->dialog_id_ = dialog_id;
-    topic_list->are_pinned_saved_messages_topics_inited_ = true;
-  }
-  return topic_list.get();
+  return add_topic_list(dialog_id);
 }
 
 SavedMessagesManager::TopicList *SavedMessagesManager::get_topic_list(DialogId dialog_id) {
@@ -584,6 +577,19 @@ const SavedMessagesManager::TopicList *SavedMessagesManager::get_topic_list(Dial
     return nullptr;
   }
   return it->second.get();
+}
+
+SavedMessagesManager::TopicList *SavedMessagesManager::add_topic_list(DialogId dialog_id) {
+  if (dialog_id == DialogId() || dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+    return &topic_list_;
+  }
+  auto &topic_list = monoforum_topic_lists_[dialog_id];
+  if (topic_list == nullptr) {
+    topic_list = make_unique<TopicList>();
+    topic_list->dialog_id_ = dialog_id;
+    topic_list->are_pinned_saved_messages_topics_inited_ = true;
+  }
+  return topic_list.get();
 }
 
 void SavedMessagesManager::load_monoforum_topics(DialogId dialog_id, int32 limit, Promise<Unit> &&promise) {

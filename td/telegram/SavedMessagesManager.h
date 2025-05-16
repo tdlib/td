@@ -229,6 +229,8 @@ class SavedMessagesManager final : public Actor {
 
   const TopicList *get_topic_list(DialogId dialog_id) const;
 
+  TopicList *add_topic_list(DialogId dialog_id);
+
   Td *td_;
   ActorShared<> parent_;
 
