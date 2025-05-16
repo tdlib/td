@@ -206,12 +206,14 @@ class SavedMessagesManager final : public Actor {
   td_api::object_ptr<td_api::updateSavedMessagesTopic> get_update_saved_messages_topic_object(
       const SavedMessagesTopic *topic) const;
 
-  void send_update_saved_messages_topic(const SavedMessagesTopic *topic, const char *source) const;
+  void send_update_saved_messages_topic(const TopicList *topic_list, const SavedMessagesTopic *topic,
+                                        const char *source) const;
 
-  td_api::object_ptr<td_api::feedbackChatTopic> get_feedback_chat_topic_object(const SavedMessagesTopic *topic) const;
+  td_api::object_ptr<td_api::feedbackChatTopic> get_feedback_chat_topic_object(const TopicList *topic_list,
+                                                                               const SavedMessagesTopic *topic) const;
 
   td_api::object_ptr<td_api::updateFeedbackChatTopic> get_update_feedback_chat_topic_object(
-      const SavedMessagesTopic *topic) const;
+      const TopicList *topic_list, const SavedMessagesTopic *topic) const;
 
   td_api::object_ptr<td_api::updateSavedMessagesTopicCount> get_update_saved_messages_topic_count_object() const;
 
@@ -219,7 +221,9 @@ class SavedMessagesManager final : public Actor {
 
   Result<TopicList *> get_monoforum_topic_list(DialogId dialog_id);
 
-  SavedMessagesManager::TopicList *SavedMessagesManager::get_topic_list(DialogId dialog_id);
+  TopicList *get_topic_list(DialogId dialog_id);
+
+  const TopicList *get_topic_list(DialogId dialog_id) const;
 
   Td *td_;
   ActorShared<> parent_;
