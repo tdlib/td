@@ -834,7 +834,8 @@ inputChatPhotoSticker sticker:chatPhotoSticker = InputChatPhoto;
 chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_documents:Bool can_send_photos:Bool can_send_videos:Bool can_send_video_notes:Bool can_send_voice_notes:Bool can_send_polls:Bool can_send_other_messages:Bool can_add_link_previews:Bool can_change_info:Bool can_invite_users:Bool can_pin_messages:Bool can_create_topics:Bool = ChatPermissions;
 
 //@description Describes rights of the administrator
-//@can_manage_chat True, if the administrator can access the chat event log, get boost list, see hidden supergroup and channel members, report supergroup spam messages and ignore slow mode. Implied by any other privilege; applicable to supergroups and channels only
+//@can_manage_chat True, if the administrator can access the chat event log, get boost list, see hidden supergroup and channel members, report supergroup spam messages,
+//-ignore slow mode, and send messages to the chat without paying Telegram Stars. Implied by any other privilege; applicable to supergroups and channels only
 //@can_change_info True, if the administrator can change the chat title, photo, and other settings
 //@can_post_messages True, if the administrator can create channel posts or view channel statistics; applicable to channels only
 //@can_edit_messages True, if the administrator can edit messages of other users and pin messages; applicable to channels only
