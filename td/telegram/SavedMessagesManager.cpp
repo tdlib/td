@@ -542,7 +542,7 @@ void SavedMessagesManager::on_topic_changed(TopicList *topic_list, SavedMessages
   update_saved_messages_topic_sent_total_count(topic_list, source);
 }
 
-Result<SavedMessagesManager::TopicList *> SavedMessagesManager::get_monoforum_topic_list(DialogId dialog_id) {
+Status SavedMessagesManager::check_monoforum_dialog_id(DialogId dialog_id) const {
   TRY_STATUS(
       td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_monoforum_topic_list"));
   if (dialog_id.get_type() != DialogType::Channel ||
@@ -553,6 +553,12 @@ Result<SavedMessagesManager::TopicList *> SavedMessagesManager::get_monoforum_to
   if (!td_->chat_manager_->get_channel_status(broadcast_channel_id).is_administrator()) {
     return Status::Error(400, "Not enough rights in the chat");
   }
+  return Status::OK();
+}
+
+Result<SavedMessagesManager::TopicList *> SavedMessagesManager::get_monoforum_topic_list(DialogId dialog_id) {
+  TRY_STATUS(check_monoforum_dialog_id(dialog_id));
+
   auto &topic_list = monoforum_topic_lists_[dialog_id];
   if (topic_list == nullptr) {
     topic_list = make_unique<TopicList>();
@@ -570,13 +576,7 @@ const SavedMessagesManager::TopicList *SavedMessagesManager::get_topic_list(Dial
   if (dialog_id == DialogId() || dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     return &topic_list_;
   }
-  if (td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_topic_list").is_error() ||
-      dialog_id.get_type() != DialogType::Channel ||
-      !td_->chat_manager_->is_monoforum_channel(dialog_id.get_channel_id())) {
-    return nullptr;
-  }
-  auto broadcast_channel_id = td_->chat_manager_->get_monoforum_channel_id(dialog_id.get_channel_id());
-  if (!td_->chat_manager_->get_channel_status(broadcast_channel_id).is_administrator()) {
+  if (check_monoforum_dialog_id(dialog_id).is_error()) {
     return nullptr;
   }
   auto it = monoforum_topic_lists_.find(dialog_id);

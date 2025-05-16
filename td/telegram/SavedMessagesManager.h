@@ -221,6 +221,8 @@ class SavedMessagesManager final : public Actor {
 
   void update_saved_messages_topic_sent_total_count(TopicList *topic_list, const char *source);
 
+  Status check_monoforum_dialog_id(DialogId dialog_id) const;
+
   Result<TopicList *> get_monoforum_topic_list(DialogId dialog_id);
 
   TopicList *get_topic_list(DialogId dialog_id);
