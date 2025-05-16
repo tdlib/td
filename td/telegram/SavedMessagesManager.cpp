@@ -347,8 +347,12 @@ int64 SavedMessagesManager::get_saved_messages_topic_id_object(DialogId dialog_i
   if (saved_messages_topic_id == SavedMessagesTopicId()) {
     return 0;
   }
+  auto *topic_list = add_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return 0;
+  }
 
-  add_topic(dialog_id, saved_messages_topic_id);
+  add_topic(topic_list, saved_messages_topic_id);
 
   return saved_messages_topic_id.get_unique_id();
 }
@@ -362,35 +366,27 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
 const SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
     DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) const {
   CHECK(saved_messages_topic_id.is_valid());
-  if (dialog_id == DialogId() || dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
-    auto it = saved_messages_topics_.find(saved_messages_topic_id);
-    if (it == saved_messages_topics_.end()) {
-      return nullptr;
-    }
-    return it->second.get();
-  }
-  auto dialog_it = monoforum_topics_.find(dialog_id);
-  if (dialog_it == monoforum_topics_.end()) {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
     return nullptr;
   }
-  auto it = dialog_it->second.find(saved_messages_topic_id);
-  if (it == dialog_it->second.end()) {
+  auto it = topic_list->topics_.find(saved_messages_topic_id);
+  if (it == topic_list->topics_.end()) {
     return nullptr;
   }
   return it->second.get();
 }
 
 SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(
-    DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) {
+    TopicList *topic_list, SavedMessagesTopicId saved_messages_topic_id) {
   CHECK(saved_messages_topic_id.is_valid());
   auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-  bool is_saved_messages = dialog_id == DialogId() || dialog_id == my_dialog_id;
-  auto &result = is_saved_messages ? saved_messages_topics_[saved_messages_topic_id]
-                                   : monoforum_topics_[dialog_id][saved_messages_topic_id];
+  bool is_saved_messages = topic_list->dialog_id_ == DialogId();
+  auto &result = topic_list->topics_[saved_messages_topic_id];
   if (result == nullptr) {
     result = make_unique<SavedMessagesTopic>();
     if (!is_saved_messages) {
-      result->dialog_id_ = dialog_id;
+      result->dialog_id_ = topic_list->dialog_id_;
     }
     result->saved_messages_topic_id_ = saved_messages_topic_id;
     if (is_saved_messages && saved_messages_topic_id == SavedMessagesTopicId(my_dialog_id)) {
@@ -399,10 +395,7 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(
         result->draft_message_date_ = draft_message_object->date_;
       }
     }
-    auto *topic_list = get_topic_list(dialog_id);
-    if (topic_list != nullptr) {
-      send_update_saved_messages_topic(topic_list, result.get(), "add_topic");
-    }
+    send_update_saved_messages_topic(topic_list, result.get(), "add_topic");
   }
   return result.get();
 }
@@ -413,7 +406,7 @@ void SavedMessagesManager::set_topic_last_message_id(DialogId dialog_id, SavedMe
   if (topic_list == nullptr) {
     return;
   }
-  auto *topic = add_topic(dialog_id, saved_messages_topic_id);
+  auto *topic = add_topic(topic_list, saved_messages_topic_id);
   do_set_topic_last_message_id(topic, last_message_id, last_message_date);
   on_topic_changed(topic_list, topic, "set_topic_last_message_id");
 }
@@ -582,6 +575,9 @@ const SavedMessagesManager::TopicList *SavedMessagesManager::get_topic_list(Dial
 SavedMessagesManager::TopicList *SavedMessagesManager::add_topic_list(DialogId dialog_id) {
   if (dialog_id == DialogId() || dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     return &topic_list_;
+  }
+  if (check_monoforum_dialog_id(dialog_id).is_error()) {
+    return nullptr;
   }
   auto &topic_list = monoforum_topic_lists_[dialog_id];
   if (topic_list == nullptr) {
@@ -802,7 +798,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     }
     CHECK(full_message_id.get_message_id() == last_topic_message_id);
 
-    auto *topic = add_topic(dialog_id, saved_messages_topic_id);
+    auto *topic = add_topic(topic_list, saved_messages_topic_id);
     if (topic->last_message_id_ == MessageId()) {
       do_set_topic_last_message_id(topic, last_topic_message_id, message_date);
     }
@@ -1108,7 +1104,7 @@ void SavedMessagesManager::on_get_saved_messages_topic_history(
         td_->messages_manager_->get_message_object(full_message_id, "on_get_saved_messages_topic_history"));
   }
   if (from_message_id == MessageId::max()) {
-    auto *topic = add_topic(dialog_id, saved_messages_topic_id);
+    auto *topic = add_topic(topic_list, saved_messages_topic_id);
     if (info.messages.empty()) {
       do_set_topic_last_message_id(topic, MessageId(), 0);
     } else {
@@ -1234,17 +1230,14 @@ void SavedMessagesManager::get_current_state(vector<td_api::object_ptr<td_api::U
     updates.push_back(get_update_saved_messages_topic_count_object());
   }
 
-  for (const auto &it : saved_messages_topics_) {
+  for (const auto &it : topic_list_.topics_) {
     const auto *topic = it.second.get();
     updates.push_back(get_update_saved_messages_topic_object(topic));
   }
 
-  for (const auto &dialog_it : monoforum_topics_) {
-    auto *topic_list = get_topic_list(dialog_it.first);
-    if (topic_list == nullptr) {
-      continue;
-    }
-    for (const auto &it : dialog_it.second) {
+  for (const auto &dialog_it : monoforum_topic_lists_) {
+    const auto *topic_list = dialog_it.second.get();
+    for (const auto &it : topic_list->topics_) {
       const auto *topic = it.second.get();
       updates.push_back(get_update_feedback_chat_topic_object(topic_list, topic));
     }

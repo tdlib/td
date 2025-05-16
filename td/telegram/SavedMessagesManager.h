@@ -155,6 +155,8 @@ class SavedMessagesManager final : public Actor {
     int32 offset_date_ = std::numeric_limits<int32>::max();
     DialogId offset_dialog_id_;
     MessageId offset_message_id_;
+
+    FlatHashMap<SavedMessagesTopicId, unique_ptr<SavedMessagesTopic>, SavedMessagesTopicIdHash> topics_;
   };
 
   void tear_down() final;
@@ -163,7 +165,7 @@ class SavedMessagesManager final : public Actor {
 
   const SavedMessagesTopic *get_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) const;
 
-  SavedMessagesTopic *add_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id);
+  SavedMessagesTopic *add_topic(TopicList *topic_list, SavedMessagesTopicId saved_messages_topic_id);
 
   void get_pinned_saved_dialogs(int32 limit, Promise<Unit> &&promise);
 
@@ -233,12 +235,6 @@ class SavedMessagesManager final : public Actor {
 
   Td *td_;
   ActorShared<> parent_;
-
-  FlatHashMap<SavedMessagesTopicId, unique_ptr<SavedMessagesTopic>, SavedMessagesTopicIdHash> saved_messages_topics_;
-
-  FlatHashMap<DialogId, FlatHashMap<SavedMessagesTopicId, unique_ptr<SavedMessagesTopic>, SavedMessagesTopicIdHash>,
-              DialogIdHash>
-      monoforum_topics_;
 
   int64 current_pinned_saved_messages_topic_order_ = MIN_PINNED_TOPIC_ORDER;
 
