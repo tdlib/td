@@ -326,19 +326,20 @@ void SavedMessagesManager::tear_down() {
   parent_.reset();
 }
 
-SavedMessagesTopicId SavedMessagesManager::get_topic_id(int64 topic_id) const {
+SavedMessagesTopicId SavedMessagesManager::get_topic_id(DialogId dialog_id, int64 topic_id) const {
   if (topic_id == 0) {
     return SavedMessagesTopicId();
   }
   auto saved_messages_topic_id = SavedMessagesTopicId(DialogId(topic_id));
-  if (saved_messages_topics_.count(saved_messages_topic_id) == 0) {
+  if (get_topic(dialog_id, saved_messages_topic_id) == nullptr) {
     return SavedMessagesTopicId(DialogId(std::numeric_limits<int64>::max()));  // an invalid topic identifier
   }
   return saved_messages_topic_id;
 }
 
-vector<SavedMessagesTopicId> SavedMessagesManager::get_topic_ids(const vector<int64> &topic_ids) const {
-  return transform(topic_ids, [this](int64 topic_id) { return get_topic_id(topic_id); });
+vector<SavedMessagesTopicId> SavedMessagesManager::get_topic_ids(DialogId dialog_id,
+                                                                 const vector<int64> &topic_ids) const {
+  return transform(topic_ids, [this, dialog_id](int64 topic_id) { return get_topic_id(dialog_id, topic_id); });
 }
 
 int64 SavedMessagesManager::get_saved_messages_topic_id_object(DialogId dialog_id,
@@ -354,6 +355,12 @@ int64 SavedMessagesManager::get_saved_messages_topic_id_object(DialogId dialog_i
 
 SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
     DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) {
+  return const_cast<SavedMessagesTopic *>(
+      const_cast<const SavedMessagesManager *>(this)->get_topic(dialog_id, saved_messages_topic_id));
+}
+
+const SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
+    DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) const {
   CHECK(saved_messages_topic_id.is_valid());
   if (dialog_id == DialogId() || dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     auto it = saved_messages_topics_.find(saved_messages_topic_id);

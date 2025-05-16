@@ -31,9 +31,9 @@ class SavedMessagesManager final : public Actor {
  public:
   SavedMessagesManager(Td *td, ActorShared<> parent);
 
-  SavedMessagesTopicId get_topic_id(int64 topic_id) const;
+  SavedMessagesTopicId get_topic_id(DialogId dialog_id, int64 topic_id) const;
 
-  vector<SavedMessagesTopicId> get_topic_ids(const vector<int64> &topic_ids) const;
+  vector<SavedMessagesTopicId> get_topic_ids(DialogId dialog_id, const vector<int64> &topic_ids) const;
 
   int64 get_saved_messages_topic_id_object(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id);
 
@@ -160,6 +160,8 @@ class SavedMessagesManager final : public Actor {
   void tear_down() final;
 
   SavedMessagesTopic *get_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id);
+
+  const SavedMessagesTopic *get_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) const;
 
   SavedMessagesTopic *add_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id);
 
