@@ -567,7 +567,7 @@ class MessagePaymentSuccessful final : public MessageContent {
   string currency;
   int64 total_amount = 0;
   string invoice_payload;  // or invoice_slug for users
-  int32 subscription_until_date = false;
+  int32 subscription_until_date = 0;
   bool is_recurring = false;
   bool is_first_recurring = false;
 
