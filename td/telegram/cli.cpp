@@ -3153,6 +3153,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getChats>(nullptr, 1));
       send_request(td_api::make_object<td_api::getChats>(nullptr, 10));
       send_request(td_api::make_object<td_api::getChats>(nullptr, 5));
+    } else if (op == "lfct") {
+      ChatId chat_id;
+      string limit;
+      get_args(args, chat_id, limit);
+      send_request(td_api::make_object<td_api::loadFeedbackChatTopics>(chat_id, as_limit(limit)));
     } else if (op == "lsmt") {
       string limit;
       get_args(args, limit);

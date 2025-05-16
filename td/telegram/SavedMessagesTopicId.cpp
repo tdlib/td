@@ -10,6 +10,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageForwardInfo.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserManager.h"
@@ -63,6 +64,11 @@ td_api::object_ptr<td_api::SavedMessagesTopicType> SavedMessagesTopicId::get_sav
       td->dialog_manager_->get_chat_id_object(dialog_id_, "savedMessagesTopicTypeSavedFromChat"));
 }
 
+td_api::object_ptr<td_api::MessageSender> SavedMessagesTopicId::get_feedback_message_sender_object(Td *td) const {
+  CHECK(dialog_id_ != DialogId());
+  return get_message_sender_object(td, dialog_id_, "get_feedback_message_sender_object");
+}
+
 bool SavedMessagesTopicId::have_input_peer(Td *td) const {
   if (dialog_id_.get_type() == DialogType::SecretChat ||
       !td->dialog_manager_->have_dialog_info_force(dialog_id_, "SavedMessagesTopicId::have_input_peer")) {
@@ -83,8 +89,9 @@ Status SavedMessagesTopicId::is_valid_status(Td *td) const {
 
 Status SavedMessagesTopicId::is_valid_in(Td *td, DialogId dialog_id) const {
   if (dialog_id_ != DialogId()) {
-    if (dialog_id != td->dialog_manager_->get_my_dialog_id()) {
-      return Status::Error(400, "Can't use Saved Messages topic in the chat");
+    if (dialog_id != td->dialog_manager_->get_my_dialog_id() &&
+        (!td->dialog_manager_->is_monoforum_channel(dialog_id) || is_author_hidden())) {
+      return Status::Error(400, "Can't use topic in the chat");
     }
     if (!have_input_peer(td)) {
       return Status::Error(400, "Unknown Saved Messages topic specified");

@@ -2889,6 +2889,15 @@ savedMessagesTopicTypeSavedFromChat chat_id:int53 = SavedMessagesTopicType;
 savedMessagesTopic id:int53 type:SavedMessagesTopicType is_pinned:Bool order:int64 last_message:message draft_message:draftMessage = SavedMessagesTopic;
 
 
+//@description Contains information about a topic in a feedback chat
+//@chat_id Identifier of the chat to which the topic belongs
+//@id Unique topic identifier
+//@sender_id Identifier of the chat that sends the feedback
+//@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order
+//@last_message Last message in the topic; may be null if none or unknown
+feedbackChatTopic chat_id:int53 id:int53 sender_id:MessageSender order:int64 last_message:message = FeedbackChatTopic;
+
+
 //@description Describes a forum topic icon @color Color of the topic icon in RGB format @custom_emoji_id Unique identifier of the custom emoji shown on the topic icon; 0 if none
 forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
 
@@ -8498,6 +8507,10 @@ updateSavedMessagesTopic topic:savedMessagesTopic = Update;
 //@description Number of Saved Messages topics has changed @topic_count Approximate total number of Saved Messages topics
 updateSavedMessagesTopicCount topic_count:int32 = Update;
 
+//@description Basic information about a topic in a feedback group has changed. This update is guaranteed to come before the topic identifier is returned to the application
+//@topic New data about the topic
+updateFeedbackChatTopic topic:feedbackChatTopic = Update;
+
 //@description Basic information about a quick reply shortcut has changed. This update is guaranteed to come before the quick shortcut name is returned to the application
 //@shortcut New data about the shortcut
 updateQuickReplyShortcut shortcut:quickReplyShortcut = Update;
@@ -9391,6 +9404,13 @@ getInactiveSupergroupChats = Chats;
 
 //@description Returns a list of channel chats, which can be used as a personal chat
 getSuitablePersonalChats = Chats;
+
+
+//@description Loads more topics in a feedback group; requires administrator rights in the chat. The loaded topics will be sent through updateFeedbackChatTopic.
+//-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
+//@chat_id Chat identifier of the feedback group
+//@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
+loadFeedbackChatTopics chat_id:int53 limit:int32 = Ok;
 
 
 //@description Loads more Saved Messages topics. The loaded topics will be sent through updateSavedMessagesTopic. Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded

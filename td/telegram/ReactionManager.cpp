@@ -1152,7 +1152,7 @@ td_api::object_ptr<td_api::updateSavedMessagesTags> ReactionManager::get_update_
     SavedMessagesTopicId saved_messages_topic_id, const SavedReactionTags *tags) const {
   CHECK(tags != nullptr);
   return td_api::make_object<td_api::updateSavedMessagesTags>(
-      td_->saved_messages_manager_->get_saved_messages_topic_id_object(saved_messages_topic_id),
+      td_->saved_messages_manager_->get_saved_messages_topic_id_object(DialogId(), saved_messages_topic_id),
       tags->get_saved_messages_tags_object());
 }
 

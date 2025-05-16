@@ -56,6 +56,8 @@ class SavedMessagesTopicId {
 
   td_api::object_ptr<td_api::SavedMessagesTopicType> get_saved_messages_topic_type_object(const Td *td) const;
 
+  td_api::object_ptr<td_api::MessageSender> get_feedback_message_sender_object(Td *td) const;
+
   telegram_api::object_ptr<telegram_api::InputPeer> get_input_peer(const Td *td) const;
 
   telegram_api::object_ptr<telegram_api::InputDialogPeer> get_input_dialog_peer(const Td *td) const;

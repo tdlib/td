@@ -4818,7 +4818,10 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       unread_reaction_diff += (has_unread_message_reactions(dialog_id, m) ? 1 : 0);
       auto new_chosen_tags = get_chosen_tags(m->reactions);
 
-      td_->reaction_manager_->update_saved_messages_tags(m->saved_messages_topic_id, old_chosen_tags, new_chosen_tags);
+      if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+        td_->reaction_manager_->update_saved_messages_tags(m->saved_messages_topic_id, old_chosen_tags,
+                                                           new_chosen_tags);
+      }
 
       if (is_visible_message_reactions(dialog_id, m)) {
         need_update |= need_update_reactions;
@@ -11107,9 +11110,14 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       LOG(ERROR) << "Receive no Saved Messages topic for " << message_id << " in " << dialog_id;
       message->saved_messages_topic_id = SavedMessagesTopicId(my_dialog_id, message->forward_info.get(), DialogId());
     }
+  } else if (td->dialog_manager_->is_monoforum_channel(dialog_id)) {
+    if (!message->saved_messages_topic_id.is_valid() && !is_service_message_content(message->content->get_type())) {
+      LOG(ERROR) << "Receive no topic for " << message_id << " in " << dialog_id;
+      message->saved_messages_topic_id = SavedMessagesTopicId(get_message_sender(message.get()));
+    }
   } else {
     if (message->saved_messages_topic_id.is_valid()) {
-      LOG(ERROR) << "Receive Saved Messages " << message_info.saved_messages_topic_id << " for " << message_id << " in "
+      LOG(ERROR) << "Receive Saved Messages " << message->saved_messages_topic_id << " for " << message_id << " in "
                  << dialog_id;
       message->saved_messages_topic_id = SavedMessagesTopicId();
     }
@@ -12863,7 +12871,9 @@ void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message 
   update_message_count_by_index(d, -1, m);
   update_reply_count_by_message(d, -1, m);
 
-  td_->reaction_manager_->update_saved_messages_tags(m->saved_messages_topic_id, get_chosen_tags(m->reactions), {});
+  if (d->dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+    td_->reaction_manager_->update_saved_messages_tags(m->saved_messages_topic_id, get_chosen_tags(m->reactions), {});
+  }
 }
 
 void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanently_deleted, const char *source) {
@@ -12931,8 +12941,7 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
     td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, m->top_thread_message_id, -1);
   }
   if (is_permanently_deleted && !td_->auth_manager_->is_bot() && m->saved_messages_topic_id.is_valid()) {
-    CHECK(d->dialog_id == td_->dialog_manager_->get_my_dialog_id());
-    td_->saved_messages_manager_->on_topic_message_deleted(m->saved_messages_topic_id, m->message_id);
+    td_->saved_messages_manager_->on_topic_message_deleted(d->dialog_id, m->saved_messages_topic_id, m->message_id);
   }
 
   added_message_count_--;
@@ -18553,8 +18562,14 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
   if (m->is_pinned && is_scheduled) {
     m->is_pinned = false;
   }
-  if (dialog_id == td_->dialog_manager_->get_my_dialog_id() && !m->saved_messages_topic_id.is_valid()) {
-    m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get(), m->real_forward_from_dialog_id);
+  if (!m->saved_messages_topic_id.is_valid()) {
+    if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+      m->saved_messages_topic_id =
+          SavedMessagesTopicId(dialog_id, m->forward_info.get(), m->real_forward_from_dialog_id);
+    } else if (td_->dialog_manager_->is_monoforum_channel(dialog_id) &&
+               !is_service_message_content(m->content->get_type())) {
+      m->saved_messages_topic_id = SavedMessagesTopicId(get_message_sender(m));
+    }
   }
 
   LOG(INFO) << "Loaded " << m->message_id << " in " << dialog_id << " of size " << value.size() << " from database";
@@ -19286,7 +19301,7 @@ void MessagesManager::remove_message_reaction(MessageFullId message_full_id, Rea
 
   set_message_reactions(d, m, false, false, std::move(promise));
 
-  if (!old_chosen_tags.empty()) {
+  if (!old_chosen_tags.empty() && dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     td_->reaction_manager_->update_saved_messages_tags(m->saved_messages_topic_id, old_chosen_tags,
                                                        get_chosen_tags(m->reactions));
   }
@@ -19733,7 +19748,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
       can_be_saved, has_timestamped_media, m->is_channel_post, m->is_topic_message, m->contains_unread_mention, date,
       edit_date, std::move(forward_info), std::move(import_info), std::move(interaction_info),
       std::move(unread_reactions), std::move(fact_check), std::move(reply_to), top_thread_message_id,
-      td_->saved_messages_manager_->get_saved_messages_topic_id_object(m->saved_messages_topic_id),
+      td_->saved_messages_manager_->get_saved_messages_topic_id_object(dialog_id, m->saved_messages_topic_id),
       std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, via_business_bot_user_id,
       m->sender_boost_count, m->paid_message_star_count, m->author_signature, m->media_album_id, m->effect_id.get(),
       get_restriction_reason_has_sensitive_content(m->restriction_reasons),
@@ -19973,6 +19988,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   }
   if (dialog_id == DialogId(my_id)) {
     m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get(), m->real_forward_from_dialog_id);
+  } else {
+    // TODO init saved_messages_topic_id for outgoing monoforum messages
+    // m->saved_messages_topic_id = ...
   }
 
   return message;
@@ -24339,6 +24357,9 @@ Result<MessageId> MessagesManager::add_local_message(
   m->send_emoji = std::move(message_content.emoji);
   if (dialog_id == DialogId(my_id)) {
     m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get(), DialogId());
+  } else {
+    // TODO init saved_messages_topic_id for outgoing monoforum messages
+    // m->saved_messages_topic_id = ...
   }
 
   bool need_update = true;
@@ -25901,7 +25922,7 @@ void MessagesManager::send_update_chat_draft_message(Dialog *d) {
 
     if (d->dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
       td_->saved_messages_manager_->on_topic_draft_message_updated(
-          SavedMessagesTopicId(d->dialog_id), draft_message == nullptr ? 0 : draft_message->get_date());
+          d->dialog_id, SavedMessagesTopicId(d->dialog_id), draft_message == nullptr ? 0 : draft_message->get_date());
     }
   }
 }
@@ -25910,8 +25931,8 @@ void MessagesManager::send_update_last_message_if_needed(const Dialog *d, const 
   if (m->message_id == d->last_message_id) {
     send_update_chat_last_message_impl(d, source);
   }
-  if (d->dialog_id == td_->dialog_manager_->get_my_dialog_id() && m->saved_messages_topic_id.is_valid()) {
-    td_->saved_messages_manager_->on_topic_message_updated(m->saved_messages_topic_id, m->message_id);
+  if (m->saved_messages_topic_id.is_valid()) {
+    td_->saved_messages_manager_->on_topic_message_updated(d->dialog_id, m->saved_messages_topic_id, m->message_id);
   }
 }
 
@@ -30127,8 +30148,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     update_message_max_own_media_timestamp(d, result_message);
 
     if (from_update && m->saved_messages_topic_id.is_valid()) {
-      CHECK(dialog_id == td_->dialog_manager_->get_my_dialog_id());
-      td_->saved_messages_manager_->set_topic_last_message_id(m->saved_messages_topic_id, m->message_id, m->date);
+      td_->saved_messages_manager_->set_topic_last_message_id(dialog_id, m->saved_messages_topic_id, m->message_id,
+                                                              m->date);
     }
   }
 
