@@ -78,6 +78,17 @@ class SavedMessagesManager final : public Actor {
 
   static constexpr int64 MIN_PINNED_TOPIC_ORDER = static_cast<int64>(2147000000) << 32;
 
+  struct SavedMessagesTopicInfo {
+    DialogId peer_dialog_id_;
+    MessageId last_topic_message_id_;
+
+    MessageId read_inbox_max_message_id_;
+    MessageId read_outbox_max_message_id_;
+    int32 unread_count_ = 0;
+
+    bool is_pinned_ = false;
+  };
+
   struct SavedMessagesTopic {
     SavedMessagesTopicId saved_messages_topic_id_;
     MessageId last_message_id_;
@@ -152,6 +163,9 @@ class SavedMessagesManager final : public Actor {
   void on_get_pinned_saved_dialogs(Result<Unit> &&result);
 
   void get_saved_dialogs(int32 limit, Promise<Unit> &&promise);
+
+  static SavedMessagesTopicInfo get_saved_messages_topic_info(
+      telegram_api::object_ptr<telegram_api::SavedDialog> &&dialog_ptr, bool is_saved_messages);
 
   void on_get_saved_dialogs(Result<Unit> &&result);
 

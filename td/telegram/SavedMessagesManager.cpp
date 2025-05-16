@@ -530,6 +530,33 @@ void SavedMessagesManager::get_saved_dialogs(int32 limit, Promise<Unit> &&promis
   }
 }
 
+SavedMessagesManager::SavedMessagesTopicInfo SavedMessagesManager::get_saved_messages_topic_info(
+    telegram_api::object_ptr<telegram_api::SavedDialog> &&dialog_ptr, bool is_saved_messages) {
+  SavedMessagesTopicInfo result;
+  if (is_saved_messages) {
+    if (dialog_ptr->get_id() != telegram_api::savedDialog::ID) {
+      LOG(ERROR) << "Receive " << to_string(dialog_ptr);
+      return result;
+    }
+    auto dialog = telegram_api::move_object_as<telegram_api::savedDialog>(dialog_ptr);
+    result.peer_dialog_id_ = DialogId(dialog->peer_);
+    result.last_topic_message_id_ = MessageId(ServerMessageId(dialog->top_message_));
+    result.is_pinned_ = dialog->pinned_;
+  } else {
+    if (dialog_ptr->get_id() != telegram_api::monoForumDialog::ID) {
+      LOG(ERROR) << "Receive " << to_string(dialog_ptr);
+      return result;
+    }
+    auto dialog = telegram_api::move_object_as<telegram_api::monoForumDialog>(dialog_ptr);
+    result.peer_dialog_id_ = DialogId(dialog->peer_);
+    result.last_topic_message_id_ = MessageId(ServerMessageId(dialog->top_message_));
+    result.read_inbox_max_message_id_ = MessageId(ServerMessageId(dialog->read_inbox_max_id_));
+    result.read_outbox_max_message_id_ = MessageId(ServerMessageId(dialog->read_outbox_max_id_));
+    result.unread_count_ = max(0, dialog->unread_count_);
+  }
+  return result;
+}
+
 void SavedMessagesManager::on_get_saved_dialogs(Result<Unit> &&result) {
   G()->ignore_result_if_closing(result);
   if (result.is_error()) {
