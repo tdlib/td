@@ -96,6 +96,9 @@ class SavedMessagesManager final : public Actor {
     DialogId dialog_id_;
     SavedMessagesTopicId saved_messages_topic_id_;
     MessageId last_message_id_;
+    MessageId read_inbox_max_message_id_;
+    MessageId read_outbox_max_message_id_;
+    int32 unread_count_ = 0;
     int32 last_message_date_ = 0;
     int32 draft_message_date_ = 0;
     int64 pinned_order_ = 0;
@@ -183,6 +186,11 @@ class SavedMessagesManager final : public Actor {
                                            Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   void do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id, int32 last_message_date);
+
+  void do_set_topic_read_inbox_max_message_id(SavedMessagesTopic *topic, MessageId read_inbox_max_message_id,
+                                              int32 unread_count);
+
+  void do_set_topic_read_outbox_max_message_id(SavedMessagesTopic *topic, MessageId read_outbox_max_message_id);
 
   void load_topics(TopicList *topic_list, int32 limit, Promise<Unit> &&promise);
 

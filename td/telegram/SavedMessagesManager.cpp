@@ -418,9 +418,51 @@ void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topi
   }
 
   CHECK(last_message_id == MessageId() || last_message_id.is_valid());
-  LOG(INFO) << "Set last message in " << topic->saved_messages_topic_id_ << " to " << last_message_id;
+  LOG(INFO) << "Set last message in " << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_ << " to "
+            << last_message_id;
   topic->last_message_id_ = last_message_id;
   topic->last_message_date_ = last_message_date;
+  topic->is_changed_ = true;
+}
+
+void SavedMessagesManager::do_set_topic_read_inbox_max_message_id(SavedMessagesTopic *topic,
+                                                                  MessageId read_inbox_max_message_id,
+                                                                  int32 unread_count) {
+  if (unread_count < 0) {
+    LOG(ERROR) << "Receive " << unread_count << " unread messages in " << topic->saved_messages_topic_id_ << " of "
+               << topic->dialog_id_;
+    unread_count = 0;
+  }
+  if (!read_inbox_max_message_id.is_valid() && read_inbox_max_message_id != MessageId()) {
+    LOG(ERROR) << "Receive " << read_inbox_max_message_id << " last read message in " << topic->saved_messages_topic_id_
+               << " of " << topic->dialog_id_;
+    read_inbox_max_message_id = MessageId();
+  }
+  if (topic->read_inbox_max_message_id_ == read_inbox_max_message_id && topic->unread_count_ == unread_count) {
+    return;
+  }
+
+  LOG(INFO) << "Set read inbox max message in " << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_
+            << " to " << read_inbox_max_message_id << " with " << unread_count << " unread messages";
+  topic->read_inbox_max_message_id_ = read_inbox_max_message_id;
+  topic->unread_count_ = unread_count;
+  topic->is_changed_ = true;
+}
+
+void SavedMessagesManager::do_set_topic_read_outbox_max_message_id(SavedMessagesTopic *topic,
+                                                                   MessageId read_outbox_max_message_id) {
+  if (!read_outbox_max_message_id.is_valid() && read_outbox_max_message_id != MessageId()) {
+    LOG(ERROR) << "Receive " << read_outbox_max_message_id << " last read message in "
+               << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_;
+    read_outbox_max_message_id = MessageId();
+  }
+  if (topic->read_outbox_max_message_id_ == read_outbox_max_message_id) {
+    return;
+  }
+
+  LOG(INFO) << "Set read outbox max message in " << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_
+            << " to " << read_outbox_max_message_id;
+  topic->read_outbox_max_message_id_ = read_outbox_max_message_id;
   topic->is_changed_ = true;
 }
 
@@ -746,13 +788,13 @@ void SavedMessagesManager::on_get_saved_messages_topics(
   vector<SavedMessagesTopicId> added_saved_messages_topic_ids;
   bool is_saved_messages = topic_list->dialog_id_ == DialogId();
   for (auto &dialog_ptr : dialogs) {
-    auto dialog_info = get_saved_messages_topic_info(std::move(dialog_ptr), is_saved_messages);
-    if (!dialog_info.peer_dialog_id_.is_valid()) {
-      LOG(ERROR) << "Receive " << dialog_info.peer_dialog_id_ << " in result of getSavedMessagesTopics";
+    auto topic_info = get_saved_messages_topic_info(std::move(dialog_ptr), is_saved_messages);
+    if (!topic_info.peer_dialog_id_.is_valid()) {
+      LOG(ERROR) << "Receive " << topic_info.peer_dialog_id_ << " in result of getSavedMessagesTopics";
       total_count--;
       continue;
     }
-    SavedMessagesTopicId saved_messages_topic_id(dialog_info.peer_dialog_id_);
+    SavedMessagesTopicId saved_messages_topic_id(topic_info.peer_dialog_id_);
     if (td::contains(added_saved_messages_topic_ids, saved_messages_topic_id)) {
       LOG(ERROR) << "Receive " << saved_messages_topic_id
                  << " twice in result of getSavedMessagesTopics with total_count = " << total_count;
@@ -761,7 +803,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     }
     added_saved_messages_topic_ids.push_back(saved_messages_topic_id);
 
-    auto last_topic_message_id = dialog_info.last_topic_message_id_;
+    auto last_topic_message_id = topic_info.last_topic_message_id_;
     if (!last_topic_message_id.is_valid()) {
       // skip topics without messages
       LOG(ERROR) << "Receive " << saved_messages_topic_id << " without last message";
@@ -783,7 +825,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
       }
       last_message_date = message_date;
       last_message_id = last_topic_message_id;
-      last_dialog_id = dialog_info.peer_dialog_id_;
+      last_dialog_id = topic_info.peer_dialog_id_;
     }
     auto full_message_id = td_->messages_manager_->on_get_message(std::move(it->second), false, !is_saved_messages,
                                                                   false, "on_get_saved_messages_topics");
@@ -801,6 +843,12 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     auto *topic = add_topic(topic_list, saved_messages_topic_id);
     if (topic->last_message_id_ == MessageId()) {
       do_set_topic_last_message_id(topic, last_topic_message_id, message_date);
+    }
+    if (topic->read_inbox_max_message_id_ == MessageId()) {
+      do_set_topic_read_inbox_max_message_id(topic, topic_info.read_inbox_max_message_id_, topic_info.unread_count_);
+    }
+    if (topic->read_outbox_max_message_id_ == MessageId()) {
+      do_set_topic_read_outbox_max_message_id(topic, topic_info.read_outbox_max_message_id_);
     }
     on_topic_changed(topic_list, topic, "on_get_saved_messages_topics");
   }
@@ -879,7 +927,8 @@ td_api::object_ptr<td_api::feedbackChatTopic> SavedMessagesManager::get_feedback
       td_->dialog_manager_->get_chat_id_object(topic->dialog_id_, "feedbackChatTopic"),
       topic->saved_messages_topic_id_.get_unique_id(),
       topic->saved_messages_topic_id_.get_feedback_message_sender_object(td_),
-      get_topic_public_order(topic_list, topic), std::move(last_message_object));
+      get_topic_public_order(topic_list, topic), topic->read_inbox_max_message_id_.get(),
+      topic->read_outbox_max_message_id_.get(), topic->unread_count_, std::move(last_message_object));
 }
 
 td_api::object_ptr<td_api::updateFeedbackChatTopic> SavedMessagesManager::get_update_feedback_chat_topic_object(
