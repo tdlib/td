@@ -1588,7 +1588,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     LOG(ERROR) << "Receive poll " << poll_server->id_ << " instead of " << poll_id << " from " << source;
     return PollId();
   }
-  constexpr size_t MAX_POLL_OPTIONS = 10;  // server-side limit
+  constexpr size_t MAX_POLL_OPTIONS = 12;  // server-side limit
   if (poll_server != nullptr &&
       (poll_server->answers_.size() <= 1 || poll_server->answers_.size() > 10 * MAX_POLL_OPTIONS)) {
     LOG(ERROR) << "Receive " << poll_id << " from " << source

@@ -3733,7 +3733,7 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessagePoll::ID: {
       const size_t MAX_POLL_QUESTION_LENGTH = is_bot ? 300 : 255;  // server-side limit
       constexpr size_t MAX_POLL_OPTION_LENGTH = 100;               // server-side limit
-      constexpr size_t MAX_POLL_OPTIONS = 10;                      // server-side limit
+      constexpr size_t MAX_POLL_OPTIONS = 12;                      // server-side limit
       auto input_poll = static_cast<td_api::inputMessagePoll *>(input_message_content.get());
       TRY_RESULT(question,
                  get_formatted_text(td, dialog_id, std::move(input_poll->question_), is_bot, false, true, false));
