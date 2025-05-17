@@ -4732,7 +4732,8 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
         return Status::Error(400, "Non-anonymous polls can't be sent to channel chats");
       }
       if (dialog_type == DialogType::User && !is_forward && !td->auth_manager_->is_bot() &&
-          !td->user_manager_->is_user_bot(dialog_id.get_user_id())) {
+          !td->user_manager_->is_user_bot(dialog_id.get_user_id()) &&
+          dialog_id != td->dialog_manager_->get_my_dialog_id()) {
         return Status::Error(400, "Polls can't be sent to the private chat");
       }
       break;
