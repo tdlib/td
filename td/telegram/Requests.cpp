@@ -1121,8 +1121,8 @@ class JoinChatByInviteLinkRequest final : public RequestActor<DialogId> {
     td_->dialog_invite_link_manager_->import_dialog_invite_link(invite_link_, std::move(promise));
   }
 
-  void do_set_result(DialogId &&result) final {
-    dialog_id_ = result;
+  void do_set_result(DialogId &&dialog_id) final {
+    dialog_id_ = dialog_id;
   }
 
   void do_send_result() final {

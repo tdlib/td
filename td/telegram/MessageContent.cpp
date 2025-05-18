@@ -8107,15 +8107,15 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageContactRegistered>();
     case telegram_api::messageActionGeoProximityReached::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionGeoProximityReached>(action_ptr);
-      DialogId traveler_id(action->from_id_);
-      DialogId watcher_id(action->to_id_);
+      DialogId traveler_dialog_id(action->from_id_);
+      DialogId watcher_dialog_id(action->to_id_);
       int32 distance = action->distance_;
-      if (!traveler_id.is_valid() || !watcher_id.is_valid() || distance < 0) {
+      if (!traveler_dialog_id.is_valid() || !watcher_dialog_id.is_valid() || distance < 0) {
         LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
         break;
       }
 
-      return make_unique<MessageProximityAlertTriggered>(traveler_id, watcher_id, distance);
+      return make_unique<MessageProximityAlertTriggered>(traveler_dialog_id, watcher_dialog_id, distance);
     }
     case telegram_api::messageActionGroupCall::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionGroupCall>(action_ptr);

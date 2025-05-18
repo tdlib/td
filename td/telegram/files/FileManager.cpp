@@ -2133,9 +2133,9 @@ static int merge_choose_name(Slice x, Slice y) {
   return 2;
 }
 
-static int merge_choose_owner(DialogId x, DialogId y) {
-  if (x.is_valid() != y.is_valid()) {
-    return x.is_valid() < y.is_valid();
+static int merge_choose_owner(DialogId x_owner_dialog_id, DialogId y_owner_dialog_id) {
+  if (x_owner_dialog_id.is_valid() != y_owner_dialog_id.is_valid()) {
+    return x_owner_dialog_id.is_valid() < y_owner_dialog_id.is_valid();
   }
   return 2;
 }
