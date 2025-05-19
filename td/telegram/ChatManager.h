@@ -672,7 +672,7 @@ class ChatManager final : public Actor {
 
   const Channel *get_channel(ChannelId channel_id) const;
   Channel *get_channel(ChannelId channel_id);
-  Channel *get_channel_force(ChannelId channel_id, const char *source);
+  Channel *get_channel_force(ChannelId channel_id, const char *source, bool is_recursive = false);
 
   Channel *add_channel(ChannelId channel_id, const char *source);
 
@@ -800,8 +800,8 @@ class ChatManager final : public Actor {
   void save_channel_to_database_impl(Channel *c, ChannelId channel_id, string value);
   void on_save_channel_to_database(ChannelId channel_id, bool success);
   void load_channel_from_database(Channel *c, ChannelId channel_id, Promise<Unit> promise);
-  void load_channel_from_database_impl(ChannelId channel_id, Promise<Unit> promise);
-  void on_load_channel_from_database(ChannelId channel_id, string value, bool force);
+  void load_channel_from_database_impl(ChannelId channel_id, bool is_recursive, Promise<Unit> promise);
+  void on_load_channel_from_database(ChannelId channel_id, string value, bool force, bool is_recursive);
 
   static void save_chat_full(const ChatFull *chat_full, ChatId chat_id);
   static string get_chat_full_database_key(ChatId chat_id);

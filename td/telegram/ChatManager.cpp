@@ -4555,7 +4555,7 @@ void ChatManager::save_channel_to_database(Channel *c, ChannelId channel_id) {
     return;
   }
 
-  load_channel_from_database_impl(channel_id, Auto());
+  load_channel_from_database_impl(channel_id, false, Auto());
 }
 
 void ChatManager::save_channel_to_database_impl(Channel *c, ChannelId channel_id, string value) {
@@ -4605,23 +4605,23 @@ void ChatManager::load_channel_from_database(Channel *c, ChannelId channel_id, P
   }
 
   CHECK(c == nullptr || !c->is_being_saved);
-  load_channel_from_database_impl(channel_id, std::move(promise));
+  load_channel_from_database_impl(channel_id, false, std::move(promise));
 }
 
-void ChatManager::load_channel_from_database_impl(ChannelId channel_id, Promise<Unit> promise) {
+void ChatManager::load_channel_from_database_impl(ChannelId channel_id, bool is_recursive, Promise<Unit> promise) {
   LOG(INFO) << "Load " << channel_id << " from database";
   auto &load_channel_queries = load_channel_from_database_queries_[channel_id];
   load_channel_queries.push_back(std::move(promise));
   if (load_channel_queries.size() == 1u) {
     G()->td_db()->get_sqlite_pmc()->get(get_channel_database_key(channel_id),
-                                        PromiseCreator::lambda([channel_id](string value) {
+                                        PromiseCreator::lambda([channel_id, is_recursive](string value) {
                                           send_closure(G()->chat_manager(), &ChatManager::on_load_channel_from_database,
-                                                       channel_id, std::move(value), false);
+                                                       channel_id, std::move(value), false, is_recursive);
                                         }));
   }
 }
 
-void ChatManager::on_load_channel_from_database(ChannelId channel_id, string value, bool force) {
+void ChatManager::on_load_channel_from_database(ChannelId channel_id, string value, bool force, bool is_recursive) {
   if (G()->close_flag() && !force) {
     // the channel is in Binlog and will be saved after restart
     return;
@@ -4700,6 +4700,21 @@ void ChatManager::on_load_channel_from_database(ChannelId channel_id, string val
     }
   }
 
+  if (c != nullptr && c->monoforum_channel_id.is_valid() && !have_channel(c->monoforum_channel_id)) {
+    if (is_recursive || loaded_from_database_channels_.count(channel_id) != 0) {
+      LOG(ERROR) << "Can't find " << c->monoforum_channel_id << " from " << channel_id;
+    } else {
+      if (force) {
+        if (get_channel_force(c->monoforum_channel_id, "on_load_channel_from_database", true) == nullptr) {
+          LOG(ERROR) << "Can't find " << c->monoforum_channel_id << " from " << channel_id;
+        }
+      } else {
+        for (auto &promise : promises)
+          load_channel_from_database_impl(channel_id, true, std::move(promise));
+      }
+      return;
+    }
+  }
   set_promises(promises);
 }
 
@@ -4707,7 +4722,7 @@ bool ChatManager::have_channel_force(ChannelId channel_id, const char *source) {
   return get_channel_force(channel_id, source) != nullptr;
 }
 
-ChatManager::Channel *ChatManager::get_channel_force(ChannelId channel_id, const char *source) {
+ChatManager::Channel *ChatManager::get_channel_force(ChannelId channel_id, const char *source, bool is_recursive) {
   if (!channel_id.is_valid()) {
     return nullptr;
   }
@@ -4724,8 +4739,8 @@ ChatManager::Channel *ChatManager::get_channel_force(ChannelId channel_id, const
   }
 
   LOG(INFO) << "Trying to load " << channel_id << " from database from " << source;
-  on_load_channel_from_database(channel_id,
-                                G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_database_key(channel_id)), true);
+  on_load_channel_from_database(
+      channel_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_database_key(channel_id)), true, is_recursive);
   return get_channel(channel_id);
 }
 
