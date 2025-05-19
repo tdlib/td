@@ -3495,7 +3495,7 @@ void GroupCallManager::join_video_chat(GroupCallId group_call_id, DialogId as_di
     participant.audio_source = parameters.audio_source_;
     participant.joined_date = G()->unix_time();
     // if can_self_unmute has never been inited from self-participant,
-    // it contains reasonable default "!call.mute_new_participants || call.can_be_managed"
+    // it contains reasonable default "!call.mute_new_participants || call.can_be_managed || call.is_creator"
     participant.server_is_muted_by_admin = !group_call->can_self_unmute && !can_manage_group_call(group_call, true);
     participant.server_is_muted_by_themselves = parameters.is_muted_ && !participant.server_is_muted_by_admin;
     participant.is_just_joined = !is_rejoin;
