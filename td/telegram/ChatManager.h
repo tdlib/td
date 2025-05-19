@@ -270,7 +270,7 @@ class ChatManager final : public Actor {
   void toggle_channel_has_aggressive_anti_spam_enabled(ChannelId channel_id, bool has_aggressive_anti_spam_enabled,
                                                        Promise<Unit> &&promise);
 
-  void toggle_channel_is_forum(ChannelId channel_id, bool is_forum, Promise<Unit> &&promise);
+  void toggle_channel_is_forum(ChannelId channel_id, bool is_forum, bool is_forum_tabs, Promise<Unit> &&promise);
 
   void convert_channel_to_gigagroup(ChannelId channel_id, Promise<Unit> &&promise);
 

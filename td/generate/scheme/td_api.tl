@@ -12200,8 +12200,11 @@ toggleSupergroupHasHiddenMembers supergroup_id:int53 has_hidden_members:Bool = O
 //@has_aggressive_anti_spam_enabled The new value of has_aggressive_anti_spam_enabled
 toggleSupergroupHasAggressiveAntiSpamEnabled supergroup_id:int53 has_aggressive_anti_spam_enabled:Bool = Ok;
 
-//@description Toggles whether the supergroup is a forum; requires owner privileges in the supergroup. Discussion supergroups can't be converted to forums @supergroup_id Identifier of the supergroup @is_forum New value of is_forum
-toggleSupergroupIsForum supergroup_id:int53 is_forum:Bool = Ok;
+//@description Toggles whether the supergroup is a forum; requires owner privileges in the supergroup. Discussion supergroups can't be converted to forums
+//@supergroup_id Identifier of the supergroup
+//@is_forum New value of is_forum
+//@has_forum_tabs New value of has_forum_tabs; ignored if is_forum is false
+toggleSupergroupIsForum supergroup_id:int53 is_forum:Bool has_forum_tabs:Bool = Ok;
 
 //@description Upgrades supergroup to a broadcast group; requires owner privileges in the supergroup @supergroup_id Identifier of the supergroup
 toggleSupergroupIsBroadcastGroup supergroup_id:int53 = Ok;

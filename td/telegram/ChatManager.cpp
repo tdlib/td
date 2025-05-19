@@ -933,13 +933,14 @@ class ToggleForumQuery final : public Td::ResultHandler {
   explicit ToggleForumQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, bool is_forum) {
+  void send(ChannelId channel_id, bool is_forum, bool is_forum_tabs) {
     channel_id_ = channel_id;
 
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_toggleForum(std::move(input_channel), is_forum, false), {{channel_id}}));
+        telegram_api::channels_toggleForum(std::move(input_channel), is_forum, is_forum && is_forum_tabs),
+        {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3459,12 +3460,13 @@ void ChatManager::toggle_channel_has_aggressive_anti_spam_enabled(ChannelId chan
   td_->create_handler<ToggleAntiSpamQuery>(std::move(promise))->send(channel_id, has_aggressive_anti_spam_enabled);
 }
 
-void ChatManager::toggle_channel_is_forum(ChannelId channel_id, bool is_forum, Promise<Unit> &&promise) {
+void ChatManager::toggle_channel_is_forum(ChannelId channel_id, bool is_forum, bool is_forum_tabs,
+                                          Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(400, "Supergroup not found"));
   }
-  if (c->is_forum == is_forum) {
+  if (c->is_forum == is_forum && c->is_forum_tabs == is_forum_tabs) {
     return promise.set_value(Unit());
   }
   if (!get_channel_status(c).is_creator()) {
@@ -3474,7 +3476,7 @@ void ChatManager::toggle_channel_is_forum(ChannelId channel_id, bool is_forum, P
     return promise.set_error(Status::Error(400, "Forums can be enabled in supergroups only"));
   }
 
-  td_->create_handler<ToggleForumQuery>(std::move(promise))->send(channel_id, is_forum);
+  td_->create_handler<ToggleForumQuery>(std::move(promise))->send(channel_id, is_forum, is_forum_tabs);
 }
 
 void ChatManager::convert_channel_to_gigagroup(ChannelId channel_id, Promise<Unit> &&promise) {

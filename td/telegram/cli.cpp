@@ -6740,8 +6740,10 @@ class CliClient final : public Actor {
     } else if (op == "tsgif") {
       string supergroup_id;
       bool is_forum;
-      get_args(args, supergroup_id, is_forum);
-      send_request(td_api::make_object<td_api::toggleSupergroupIsForum>(as_supergroup_id(supergroup_id), is_forum));
+      bool has_forum_tabs;
+      get_args(args, supergroup_id, is_forum, has_forum_tabs);
+      send_request(td_api::make_object<td_api::toggleSupergroupIsForum>(as_supergroup_id(supergroup_id), is_forum,
+                                                                        has_forum_tabs));
     } else if (op == "tsibg") {
       string supergroup_id;
       get_args(args, supergroup_id);
