@@ -47,6 +47,9 @@ class SavedMessagesManager final : public Actor {
   void on_topic_draft_message_updated(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                       int32 draft_message_date);
 
+  void on_update_read_monoforum_inbox(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                      MessageId read_inbox_max_message_id);
+
   void load_saved_messages_topics(int32 limit, Promise<Unit> &&promise);
 
   void load_monoforum_topics(DialogId dialog_id, int32 limit, Promise<Unit> &&promise);

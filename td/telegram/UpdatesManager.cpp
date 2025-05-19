@@ -3710,6 +3710,18 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDisc
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadMonoForumInbox> update, Promise<Unit> &&promise) {
+  auto read_inbox_max_message_id = MessageId(ServerMessageId(update->read_max_id_));
+  if (!read_inbox_max_message_id.is_valid()) {
+    LOG(ERROR) << "Receive " << to_string(update);
+    return;
+  }
+  td_->saved_messages_manager_->on_update_read_monoforum_inbox(DialogId(ChannelId(update->channel_id_)),
+                                                               SavedMessagesTopicId(DialogId(update->saved_peer_id_)),
+                                                               read_inbox_max_message_id);
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelPinnedTopic> update, Promise<Unit> &&promise) {
   td_->forum_topic_manager_->on_update_forum_topic_is_pinned(
       DialogId(ChannelId(update->channel_id_)), MessageId(ServerMessageId(update->topic_id_)), update->pinned_);
@@ -4719,10 +4731,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueSta
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadMonoForumInbox> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

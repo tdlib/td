@@ -507,7 +507,7 @@ void SavedMessagesManager::on_topic_draft_message_updated(DialogId dialog_id,
   }
   auto *topic = get_topic(dialog_id, saved_messages_topic_id);
   if (topic == nullptr) {
-    LOG(INFO) << "Updated draft in unknown " << saved_messages_topic_id;
+    LOG(INFO) << "Updated draft in unknown " << saved_messages_topic_id << " from " << dialog_id;
     return;
   }
 
@@ -516,6 +516,29 @@ void SavedMessagesManager::on_topic_draft_message_updated(DialogId dialog_id,
   topic->is_changed_ = true;
 
   on_topic_changed(topic_list, topic, "on_topic_draft_message_updated");
+}
+
+void SavedMessagesManager::on_update_read_monoforum_inbox(DialogId dialog_id,
+                                                          SavedMessagesTopicId saved_messages_topic_id,
+                                                          MessageId read_inbox_max_message_id) {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return;
+  }
+  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  if (topic == nullptr) {
+    LOG(INFO) << "Updated read inbox in unknown " << saved_messages_topic_id << " from " << dialog_id;
+    return;
+  }
+  if (topic->dialog_id_ != dialog_id) {
+    LOG(ERROR) << "Can't update read inbox in a topic of " << dialog_id;
+    return;
+  }
+
+  // TODO update unread count
+  do_set_topic_read_inbox_max_message_id(topic, read_inbox_max_message_id, topic->unread_count_);
+
+  on_topic_changed(topic_list, topic, "on_update_read_monoforum_inbox");
 }
 
 int64 SavedMessagesManager::get_topic_order(int32 message_date, MessageId message_id) {
