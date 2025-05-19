@@ -525,6 +525,7 @@ class ChatManager final : public Actor {
     bool is_megagroup = false;
     bool is_gigagroup = false;
     bool is_forum = false;
+    bool is_forum_tabs = false;
     bool is_monoforum = false;
     bool is_verified = false;
     bool is_scam = false;
