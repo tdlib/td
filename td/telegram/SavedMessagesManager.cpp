@@ -319,6 +319,33 @@ class ReorderPinnedSavedDialogsQuery final : public Td::ResultHandler {
   }
 };
 
+class ReadSavedHistoryQuery final : public Td::ResultHandler {
+ public:
+  void send(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId max_message_id) {
+    auto parent_input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = saved_messages_topic_id.get_input_peer(td_);
+    if (parent_input_peer == nullptr || input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_readSavedHistory(std::move(parent_input_peer), std::move(input_peer),
+                                                max_message_id.get_server_message_id().get()),
+        {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_readSavedHistory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+  }
+
+  void on_error(Status status) final {
+    // two dailogs are involved
+    // td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReadSavedHistoryQuery");
+  }
+};
+
 SavedMessagesManager::SavedMessagesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -519,6 +546,30 @@ void SavedMessagesManager::on_topic_draft_message_updated(DialogId dialog_id,
   topic->is_changed_ = true;
 
   on_topic_changed(topic_list, topic, "on_topic_draft_message_updated");
+}
+
+void SavedMessagesManager::read_monoforum_topic_messages(DialogId dialog_id,
+                                                         SavedMessagesTopicId saved_messages_topic_id,
+                                                         MessageId read_inbox_max_message_id) {
+  CHECK(!td_->auth_manager_->is_bot());
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return;
+  }
+  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  if (topic == nullptr) {
+    return;
+  }
+
+  // TODO update unread count
+  do_set_topic_read_inbox_max_message_id(topic, read_inbox_max_message_id, topic->unread_count_);
+
+  if (topic->is_changed_) {
+    td_->create_handler<ReadSavedHistoryQuery>()->send(dialog_id, saved_messages_topic_id,
+                                                       read_inbox_max_message_id.get_prev_server_message_id());
+  }
+
+  on_topic_changed(topic_list, topic, "read_monoforum_topic_messages");
 }
 
 void SavedMessagesManager::on_update_read_monoforum_inbox(DialogId dialog_id,

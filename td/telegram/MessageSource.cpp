@@ -18,6 +18,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageSource source) {
       return string_builder << "MessageThreadHistory";
     case MessageSource::ForumTopicHistory:
       return string_builder << "ForumTopicHistory";
+    case MessageSource::MonoforumHistory:
+      return string_builder << "FeedbackChatHistory";
     case MessageSource::HistoryPreview:
       return string_builder << "HistoryPreview";
     case MessageSource::DialogList:
@@ -48,6 +50,8 @@ MessageSource get_message_source(const td_api::object_ptr<td_api::MessageSource>
       return MessageSource::MessageThreadHistory;
     case td_api::messageSourceForumTopicHistory::ID:
       return MessageSource::ForumTopicHistory;
+    case td_api::messageSourceFeedbackChatTopicHistory::ID:
+      return MessageSource::MonoforumHistory;
     case td_api::messageSourceHistoryPreview::ID:
       return MessageSource::HistoryPreview;
     case td_api::messageSourceChatList::ID:

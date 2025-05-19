@@ -2259,6 +2259,9 @@ messageSourceMessageThreadHistory = MessageSource;
 //@description The message is from a forum topic history
 messageSourceForumTopicHistory = MessageSource;
 
+//@description The message is from a feedback chat topic history
+messageSourceFeedbackChatTopicHistory = MessageSource;
+
 //@description The message is from chat, message thread or forum topic history preview
 messageSourceHistoryPreview = MessageSource;
 

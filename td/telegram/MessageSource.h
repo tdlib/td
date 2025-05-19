@@ -18,6 +18,7 @@ enum class MessageSource : int32 {
   DialogHistory,
   MessageThreadHistory,
   ForumTopicHistory,
+  MonoforumHistory,
   HistoryPreview,
   DialogList,
   Search,

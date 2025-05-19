@@ -15709,7 +15709,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     }
   }
   bool is_dialog_history = source == MessageSource::DialogHistory || source == MessageSource::MessageThreadHistory ||
-                           source == MessageSource::ForumTopicHistory;
+                           source == MessageSource::ForumTopicHistory || source == MessageSource::MonoforumHistory;
   bool need_read = force_read || is_dialog_history;
   bool need_update_view_count = is_dialog_history || source == MessageSource::HistoryPreview ||
                                 source == MessageSource::DialogList || source == MessageSource::Other;
@@ -15842,6 +15842,27 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
           }
         } else {
           forum_topic_id = message_forum_topic_id;
+        }
+      }
+    }
+  }
+
+  // get topic identifier for the messages
+  SavedMessagesTopicId saved_messages_topic_id;
+  if (source == MessageSource::MonoforumHistory) {
+    if (!td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
+      return Status::Error(400, "Chat is not a feedback chat");
+    }
+
+    for (auto message_id : message_ids) {
+      auto *m = get_message_force(d, message_id, "view_messages 31");
+      if (m != nullptr) {
+        if (saved_messages_topic_id.is_valid()) {
+          if (m->saved_messages_topic_id != saved_messages_topic_id) {
+            return Status::Error(400, "All messages must be from the same feedback chat topic");
+          }
+        } else {
+          saved_messages_topic_id = m->saved_messages_topic_id;
         }
       }
     }
@@ -16030,6 +16051,14 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     }
 
     td_->forum_topic_manager_->read_forum_topic_messages(dialog_id, forum_topic_id, max_message_id);
+    return Status::OK();
+  }
+  if (source == MessageSource::MonoforumHistory) {
+    if (!saved_messages_topic_id.is_valid() || !max_message_id.is_valid()) {
+      return Status::OK();
+    }
+
+    td_->saved_messages_manager_->read_monoforum_topic_messages(dialog_id, saved_messages_topic_id, max_message_id);
     return Status::OK();
   }
 
