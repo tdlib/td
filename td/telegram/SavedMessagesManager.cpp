@@ -541,6 +541,28 @@ void SavedMessagesManager::on_update_read_monoforum_inbox(DialogId dialog_id,
   on_topic_changed(topic_list, topic, "on_update_read_monoforum_inbox");
 }
 
+void SavedMessagesManager::on_update_read_monoforum_outbox(DialogId dialog_id,
+                                                           SavedMessagesTopicId saved_messages_topic_id,
+                                                           MessageId read_outbox_max_message_id) {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return;
+  }
+  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  if (topic == nullptr) {
+    LOG(INFO) << "Updated read outbox in unknown " << saved_messages_topic_id << " from " << dialog_id;
+    return;
+  }
+  if (topic->dialog_id_ != dialog_id) {
+    LOG(ERROR) << "Can't update read outbox in a topic of " << dialog_id;
+    return;
+  }
+
+  do_set_topic_read_outbox_max_message_id(topic, read_outbox_max_message_id);
+
+  on_topic_changed(topic_list, topic, "on_update_read_monoforum_outbox");
+}
+
 int64 SavedMessagesManager::get_topic_order(int32 message_date, MessageId message_id) {
   return (static_cast<int64>(message_date) << 31) +
          message_id.get_prev_server_message_id().get_server_message_id().get();
