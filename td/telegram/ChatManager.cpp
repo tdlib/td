@@ -5114,6 +5114,9 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
   bool need_update_channel_full = false;
   if (c->is_photo_changed) {
     td_->messages_manager_->on_dialog_photo_updated(DialogId(channel_id));
+    if (c->monoforum_channel_id.is_valid() && !c->is_megagroup) {
+      td_->messages_manager_->on_dialog_photo_updated(DialogId(c->monoforum_channel_id));
+    }
     c->is_photo_changed = false;
 
     auto channel_full = get_channel_full(channel_id, true, "update_channel");
@@ -5138,6 +5141,9 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
   }
   if (c->is_title_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(channel_id));
+    if (c->monoforum_channel_id.is_valid() && !c->is_megagroup) {
+      td_->messages_manager_->on_dialog_title_updated(DialogId(c->monoforum_channel_id));
+    }
     c->is_title_changed = false;
   }
   if (c->is_status_changed) {
