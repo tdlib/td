@@ -105,7 +105,7 @@ class ChatManager final : public Actor {
   CustomEmojiId get_channel_profile_background_custom_emoji_id(ChannelId channel_id) const;
 
   string get_chat_title(ChatId chat_id) const;
-  string get_channel_title(ChannelId channel_id) const;
+  string get_channel_title(ChannelId channel_id, bool is_recursive = false) const;
 
   RestrictedRights get_chat_default_permissions(ChatId chat_id) const;
   RestrictedRights get_channel_default_permissions(ChannelId channel_id) const;

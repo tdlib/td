@@ -2888,7 +2888,7 @@ string ChatManager::get_chat_title(ChatId chat_id) const {
   return c->title;
 }
 
-string ChatManager::get_channel_title(ChannelId channel_id) const {
+string ChatManager::get_channel_title(ChannelId channel_id, bool is_recursive) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     auto min_channel = get_min_channel(channel_id);
@@ -2896,6 +2896,9 @@ string ChatManager::get_channel_title(ChannelId channel_id) const {
       return min_channel->title_;
     }
     return string();
+  }
+  if (c->is_monoforum && !is_recursive) {
+    return get_channel_title(c->monoforum_channel_id, true);
   }
   return c->title;
 }
