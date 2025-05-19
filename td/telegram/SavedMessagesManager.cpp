@@ -438,6 +438,9 @@ void SavedMessagesManager::do_set_topic_read_inbox_max_message_id(SavedMessagesT
                << " of " << topic->dialog_id_;
     read_inbox_max_message_id = MessageId();
   }
+  if (read_inbox_max_message_id == topic->last_message_id_) {
+    unread_count = 0;
+  }
   if (topic->read_inbox_max_message_id_ == read_inbox_max_message_id && topic->unread_count_ == unread_count) {
     return;
   }
