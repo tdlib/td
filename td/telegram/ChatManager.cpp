@@ -2802,7 +2802,7 @@ const DialogPhoto *ChatManager::get_chat_dialog_photo(ChatId chat_id) const {
   return &c->photo;
 }
 
-const DialogPhoto *ChatManager::get_channel_dialog_photo(ChannelId channel_id) const {
+const DialogPhoto *ChatManager::get_channel_dialog_photo(ChannelId channel_id, bool is_recursive) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     auto min_channel = get_min_channel(channel_id);
@@ -2810,6 +2810,9 @@ const DialogPhoto *ChatManager::get_channel_dialog_photo(ChannelId channel_id) c
       return &min_channel->photo_;
     }
     return nullptr;
+  }
+  if (c->is_monoforum && !is_recursive) {
+    return get_channel_dialog_photo(c->monoforum_channel_id, true);
   }
   return &c->photo;
 }

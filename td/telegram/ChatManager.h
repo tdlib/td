@@ -88,7 +88,7 @@ class ChatManager final : public Actor {
   bool is_channel_received_from_server(ChannelId channel_id) const;
 
   const DialogPhoto *get_chat_dialog_photo(ChatId chat_id) const;
-  const DialogPhoto *get_channel_dialog_photo(ChannelId channel_id) const;
+  const DialogPhoto *get_channel_dialog_photo(ChannelId channel_id, bool is_recursive = false) const;
 
   AccentColorId get_channel_accent_color_id(ChannelId channel_id) const;
 
