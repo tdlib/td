@@ -4706,11 +4706,11 @@ void ChatManager::on_load_channel_from_database(ChannelId channel_id, string val
 
   if (c != nullptr && c->monoforum_channel_id.is_valid() && !have_channel(c->monoforum_channel_id)) {
     if (is_recursive || loaded_from_database_channels_.count(channel_id) != 0) {
-      LOG(ERROR) << "Can't find " << c->monoforum_channel_id << " from " << channel_id;
+      LOG(INFO) << "Can't find " << c->monoforum_channel_id << " from " << channel_id;
     } else {
       if (force) {
         if (get_channel_force(c->monoforum_channel_id, "on_load_channel_from_database", true) == nullptr) {
-          LOG(ERROR) << "Can't find " << c->monoforum_channel_id << " from " << channel_id;
+          LOG(INFO) << "Can't find " << c->monoforum_channel_id << " from " << channel_id;
         }
       } else {
         for (auto &promise : promises)
@@ -9084,6 +9084,10 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
 
   td_->messages_manager_->on_update_dialog_group_call(DialogId(channel_id), channel.call_active_,
                                                       !channel.call_not_empty_, "receive channel");
+
+  if (monoforum_channel_id.is_valid() && !td_->auth_manager_->is_bot() && !have_channel(monoforum_channel_id)) {
+    reload_channel_full(channel_id, Promise<Unit>(), "load monoforum");
+  }
 }
 
 void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &channel, const char *source) {
