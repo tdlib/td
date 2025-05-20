@@ -3737,7 +3737,7 @@ static Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessagePoll::ID: {
       const size_t MAX_POLL_QUESTION_LENGTH = is_bot ? 300 : 255;  // server-side limit
       constexpr size_t MAX_POLL_OPTION_LENGTH = 100;               // server-side limit
-      constexpr size_t MAX_POLL_OPTIONS = 12;                      // server-side limit
+      auto max_poll_options = td->option_manager_->get_option_integer("poll_answer_count_max");
       auto input_poll = static_cast<td_api::inputMessagePoll *>(input_message_content.get());
       TRY_RESULT(question,
                  get_formatted_text(td, dialog_id, std::move(input_poll->question_), is_bot, false, true, false));
@@ -3747,8 +3747,8 @@ static Result<InputMessageContent> create_input_message_content(
       if (input_poll->options_.size() <= 1) {
         return Status::Error(400, "Poll must have at least 2 option");
       }
-      if (input_poll->options_.size() > MAX_POLL_OPTIONS) {
-        return Status::Error(400, PSLICE() << "Poll can't have more than " << MAX_POLL_OPTIONS << " options");
+      if (input_poll->options_.size() > max_poll_options) {
+        return Status::Error(400, PSLICE() << "Poll can't have more than " << max_poll_options << " options");
       }
       vector<FormattedText> options;
       for (auto &input_option : input_poll->options_) {

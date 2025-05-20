@@ -19,6 +19,7 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OnlineManager.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.hpp"
 #include "td/telegram/StateManager.h"
@@ -1588,9 +1589,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     LOG(ERROR) << "Receive poll " << poll_server->id_ << " instead of " << poll_id << " from " << source;
     return PollId();
   }
-  constexpr size_t MAX_POLL_OPTIONS = 12;  // server-side limit
+  auto max_poll_options = clamp(td_->option_manager_->get_option_integer("poll_answer_count_max"),
+                                static_cast<int64>(10), static_cast<int64>(1000));
   if (poll_server != nullptr &&
-      (poll_server->answers_.size() <= 1 || poll_server->answers_.size() > 10 * MAX_POLL_OPTIONS)) {
+      (poll_server->answers_.size() <= 1 || poll_server->answers_.size() > 10 * max_poll_options)) {
     LOG(ERROR) << "Receive " << poll_id << " from " << source
                << " with wrong number of answers: " << to_string(poll_server);
     return PollId();

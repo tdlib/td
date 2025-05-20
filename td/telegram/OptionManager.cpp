@@ -178,6 +178,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("gift_resale_star_count_min", 125);
   set_default_integer_option("gift_resale_star_count_max", 100000);
   set_default_integer_option("gift_resale_earnings_per_mille", 800);
+  set_default_integer_option("poll_answer_count_max", 12);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
