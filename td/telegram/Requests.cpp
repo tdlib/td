@@ -2999,6 +2999,14 @@ void Requests::on_request(uint64 id, const td_api::loadFeedbackChatTopics &reque
   td_->saved_messages_manager_->load_monoforum_topics(DialogId(request.chat_id_), request.limit_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::setFeedbackChatTopicIsMarkedAsUnread &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->saved_messages_manager_->set_monoforum_topic_is_marked_as_unread(
+      DialogId(request.chat_id_), SavedMessagesTopicId(DialogId(request.topic_id_)), request.is_marked_as_unread_,
+      std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::loadSavedMessagesTopics &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

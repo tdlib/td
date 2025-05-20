@@ -91,6 +91,9 @@ class SavedMessagesManager final : public Actor {
 
   void reload_pinned_saved_messages_topics();
 
+  void set_monoforum_topic_is_marked_as_unread(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                               bool is_marked_as_unread, Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

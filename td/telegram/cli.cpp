@@ -3158,6 +3158,13 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, limit);
       send_request(td_api::make_object<td_api::loadFeedbackChatTopics>(chat_id, as_limit(limit)));
+    } else if (op == "sfctimau") {
+      ChatId chat_id;
+      ChatId topic_id;
+      bool is_marked_as_unread;
+      get_args(args, chat_id, topic_id, is_marked_as_unread);
+      send_request(
+          td_api::make_object<td_api::setFeedbackChatTopicIsMarkedAsUnread>(chat_id, topic_id, is_marked_as_unread));
     } else if (op == "lsmt") {
       string limit;
       get_args(args, limit);

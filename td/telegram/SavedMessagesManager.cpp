@@ -570,7 +570,6 @@ void SavedMessagesManager::on_topic_draft_message_updated(DialogId dialog_id,
   }
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr) {
-    LOG(INFO) << "Updated draft in unknown " << saved_messages_topic_id << " from " << dialog_id;
     return;
   }
 
@@ -614,7 +613,6 @@ void SavedMessagesManager::on_update_read_monoforum_inbox(DialogId dialog_id,
   }
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr) {
-    LOG(INFO) << "Updated read inbox in unknown " << saved_messages_topic_id << " from " << dialog_id;
     return;
   }
   if (topic->dialog_id_ != dialog_id) {
@@ -637,7 +635,6 @@ void SavedMessagesManager::on_update_read_monoforum_outbox(DialogId dialog_id,
   }
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr) {
-    LOG(INFO) << "Updated read outbox in unknown " << saved_messages_topic_id << " from " << dialog_id;
     return;
   }
   if (topic->dialog_id_ != dialog_id) {
@@ -659,7 +656,6 @@ void SavedMessagesManager::on_update_topic_draft_message(
   }
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr) {
-    LOG(INFO) << "Updated mark topic as unread in unknown " << saved_messages_topic_id << " from " << dialog_id;
     return;
   }
   if (topic->dialog_id_ != dialog_id) {
@@ -696,7 +692,6 @@ void SavedMessagesManager::on_update_topic_is_marked_as_unread(DialogId dialog_i
   }
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr) {
-    LOG(INFO) << "Updated mark topic as unread in unknown " << saved_messages_topic_id << " from " << dialog_id;
     return;
   }
   if (topic->dialog_id_ != dialog_id) {
@@ -1467,6 +1462,33 @@ void SavedMessagesManager::reload_pinned_saved_messages_topics() {
   }
 
   get_pinned_saved_dialogs(0, Auto());
+}
+
+void SavedMessagesManager::set_monoforum_topic_is_marked_as_unread(DialogId dialog_id,
+                                                                   SavedMessagesTopicId saved_messages_topic_id,
+                                                                   bool is_marked_as_unread, Promise<Unit> &&promise) {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return promise.set_error(Status::Error(400, "Topic not found"));
+  }
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
+  if (topic == nullptr) {
+    return promise.set_error(Status::Error(400, "Topic not found"));
+  }
+  if (topic->dialog_id_ != dialog_id) {
+    return promise.set_error(Status::Error(400, "Topic can't be marked as unread"));
+  }
+
+  if (is_marked_as_unread == topic->is_marked_as_unread_) {
+    return promise.set_value(Unit());
+  }
+
+  do_set_topic_is_marked_as_unread(topic, is_marked_as_unread);
+
+  td_->dialog_manager_->toggle_dialog_is_marked_as_unread_on_server(dialog_id, saved_messages_topic_id,
+                                                                    is_marked_as_unread, 0);
+
+  on_topic_changed(topic_list, topic, "set_monoforum_topic_is_marked_as_unread");
 }
 
 void SavedMessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
