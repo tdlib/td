@@ -601,6 +601,8 @@ void SavedMessagesManager::read_monoforum_topic_messages(DialogId dialog_id,
                                                        read_inbox_max_message_id.get_prev_server_message_id());
   }
 
+  do_set_topic_is_marked_as_unread(topic, false);
+
   on_topic_changed(topic_list, topic, "read_monoforum_topic_messages");
 }
 
