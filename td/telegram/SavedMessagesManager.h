@@ -189,6 +189,10 @@ class SavedMessagesManager final : public Actor {
 
   const SavedMessagesTopic *get_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) const;
 
+  static SavedMessagesTopic *get_topic(TopicList *topic_list, SavedMessagesTopicId saved_messages_topic_id);
+
+  static const SavedMessagesTopic *get_topic(const TopicList *topic_list, SavedMessagesTopicId saved_messages_topic_id);
+
   SavedMessagesTopic *add_topic(TopicList *topic_list, SavedMessagesTopicId saved_messages_topic_id);
 
   void get_pinned_saved_dialogs(int32 limit, Promise<Unit> &&promise);

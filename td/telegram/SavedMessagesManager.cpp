@@ -394,11 +394,21 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
 
 const SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
     DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) const {
-  CHECK(saved_messages_topic_id.is_valid());
   auto *topic_list = get_topic_list(dialog_id);
   if (topic_list == nullptr) {
     return nullptr;
   }
+  return get_topic(topic_list, saved_messages_topic_id);
+}
+
+SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
+    TopicList *topic_list, SavedMessagesTopicId saved_messages_topic_id) {
+  return const_cast<SavedMessagesTopic *>(
+      get_topic(const_cast<const TopicList *>(topic_list), saved_messages_topic_id));
+}
+
+const SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
+    const TopicList *topic_list, SavedMessagesTopicId saved_messages_topic_id) {
   auto it = topic_list->topics_.find(saved_messages_topic_id);
   if (it == topic_list->topics_.end()) {
     return nullptr;
@@ -525,7 +535,7 @@ void SavedMessagesManager::on_topic_message_updated(DialogId dialog_id, SavedMes
   if (topic_list == nullptr) {
     return;
   }
-  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr || topic->last_message_id_ != message_id) {
     return;
   }
@@ -539,7 +549,7 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
   if (topic_list == nullptr) {
     return;
   }
-  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr || topic->last_message_id_ != message_id) {
     return;
   }
@@ -558,7 +568,7 @@ void SavedMessagesManager::on_topic_draft_message_updated(DialogId dialog_id,
   if (topic_list == nullptr) {
     return;
   }
-  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr) {
     LOG(INFO) << "Updated draft in unknown " << saved_messages_topic_id << " from " << dialog_id;
     return;
@@ -579,7 +589,7 @@ void SavedMessagesManager::read_monoforum_topic_messages(DialogId dialog_id,
   if (topic_list == nullptr) {
     return;
   }
-  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr) {
     return;
   }
@@ -602,7 +612,7 @@ void SavedMessagesManager::on_update_read_monoforum_inbox(DialogId dialog_id,
   if (topic_list == nullptr) {
     return;
   }
-  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr) {
     LOG(INFO) << "Updated read inbox in unknown " << saved_messages_topic_id << " from " << dialog_id;
     return;
@@ -625,7 +635,7 @@ void SavedMessagesManager::on_update_read_monoforum_outbox(DialogId dialog_id,
   if (topic_list == nullptr) {
     return;
   }
-  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr) {
     LOG(INFO) << "Updated read outbox in unknown " << saved_messages_topic_id << " from " << dialog_id;
     return;
@@ -647,7 +657,7 @@ void SavedMessagesManager::on_update_topic_draft_message(
   if (topic_list == nullptr) {
     return;
   }
-  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr) {
     LOG(INFO) << "Updated mark topic as unread in unknown " << saved_messages_topic_id << " from " << dialog_id;
     return;
@@ -684,7 +694,7 @@ void SavedMessagesManager::on_update_topic_is_marked_as_unread(DialogId dialog_i
   if (topic_list == nullptr) {
     return;
   }
-  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr) {
     LOG(INFO) << "Updated mark topic as unread in unknown " << saved_messages_topic_id << " from " << dialog_id;
     return;
@@ -1253,7 +1263,7 @@ void SavedMessagesManager::set_last_topic_date(TopicList *topic_list, TopicDate 
   topic_list->last_topic_date_ = topic_date;
   for (auto it = topic_list->ordered_topics_.upper_bound(min_topic_date);
        it != topic_list->ordered_topics_.end() && *it <= topic_date; ++it) {
-    auto topic = get_topic(topic_list->dialog_id_, it->get_topic_id());
+    auto topic = get_topic(topic_list, it->get_topic_id());
     CHECK(topic != nullptr);
     send_update_saved_messages_topic(topic_list, topic, "set_last_topic_date");
   }
@@ -1411,7 +1421,7 @@ void SavedMessagesManager::toggle_saved_messages_topic_is_pinned(SavedMessagesTo
   if (!topic_list->are_pinned_saved_messages_topics_inited_) {
     return promise.set_error(Status::Error(400, "Pinned Saved Messages topics must be loaded first"));
   }
-  auto *topic = get_topic(topic_list->dialog_id_, saved_messages_topic_id);
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic == nullptr) {
     return promise.set_error(Status::Error(400, "Can't find Saved Messages topic"));
   }
@@ -1431,7 +1441,7 @@ void SavedMessagesManager::set_pinned_saved_messages_topics(vector<SavedMessages
   auto *topic_list = &topic_list_;
   for (const auto &saved_messages_topic_id : saved_messages_topic_ids) {
     TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
-    if (get_topic(topic_list->dialog_id_, saved_messages_topic_id) == nullptr) {
+    if (get_topic(topic_list, saved_messages_topic_id) == nullptr) {
       return promise.set_error(Status::Error(400, "Can't find Saved Messages topic"));
     }
   }
