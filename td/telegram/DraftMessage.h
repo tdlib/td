@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/InputDialogId.h"
 #include "td/telegram/InputMessageText.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContentType.h"
@@ -111,5 +112,8 @@ void save_draft_message(Td *td, DialogId dialog_id, const unique_ptr<DraftMessag
 void load_all_draft_messages(Td *td);
 
 void clear_all_draft_messages(Td *td, Promise<Unit> &&promise);
+
+InputDialogId get_draft_message_reply_input_dialog_id(
+    const telegram_api::object_ptr<telegram_api::DraftMessage> &draft_message);
 
 }  // namespace td

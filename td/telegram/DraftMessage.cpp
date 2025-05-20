@@ -562,4 +562,33 @@ void clear_all_draft_messages(Td *td, Promise<Unit> &&promise) {
   td->create_handler<ClearAllDraftsQuery>(std::move(promise))->send();
 }
 
+InputDialogId get_draft_message_reply_input_dialog_id(
+    const telegram_api::object_ptr<telegram_api::DraftMessage> &draft_message) {
+  if (draft_message == nullptr || draft_message->get_id() != telegram_api::draftMessage::ID) {
+    return {};
+  }
+  auto *input_reply_to = static_cast<const telegram_api::draftMessage *>(draft_message.get())->reply_to_.get();
+  if (input_reply_to == nullptr) {
+    return {};
+  }
+  switch (input_reply_to->get_id()) {
+    case telegram_api::inputReplyToStory::ID: {
+      auto reply_to = static_cast<const telegram_api::inputReplyToStory *>(input_reply_to);
+      return InputDialogId(reply_to->peer_);
+    }
+    case telegram_api::inputReplyToMessage::ID: {
+      auto reply_to = static_cast<const telegram_api::inputReplyToMessage *>(input_reply_to);
+      if (reply_to->reply_to_peer_id_ != nullptr) {
+        return InputDialogId(reply_to->reply_to_peer_id_);
+      }
+      break;
+    }
+    case telegram_api::inputReplyToMonoForum::ID:
+      break;
+    default:
+      UNREACHABLE();
+  }
+  return {};
+}
+
 }  // namespace td
