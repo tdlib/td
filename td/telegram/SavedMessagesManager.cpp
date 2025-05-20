@@ -11,6 +11,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/DraftMessage.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageQueryManager.h"
@@ -507,6 +508,16 @@ void SavedMessagesManager::do_set_topic_is_marked_as_unread(SavedMessagesTopic *
   topic->is_changed_ = true;
 }
 
+void SavedMessagesManager::do_set_topic_draft_message(SavedMessagesTopic *topic,
+                                                      unique_ptr<DraftMessage> &&draft_message, bool from_update) {
+  if (!need_update_draft_message(topic->draft_message_, draft_message, from_update)) {
+    return;
+  }
+
+  topic->draft_message_ = std::move(draft_message);
+  topic->is_changed_ = true;
+}
+
 void SavedMessagesManager::on_topic_message_updated(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                                     MessageId message_id) {
   auto *topic_list = get_topic_list(dialog_id);
@@ -820,7 +831,7 @@ void SavedMessagesManager::get_saved_dialogs(TopicList *topic_list, int32 limit,
 }
 
 SavedMessagesManager::SavedMessagesTopicInfo SavedMessagesManager::get_saved_messages_topic_info(
-    telegram_api::object_ptr<telegram_api::SavedDialog> &&dialog_ptr, bool is_saved_messages) {
+    Td *td, telegram_api::object_ptr<telegram_api::SavedDialog> &&dialog_ptr, bool is_saved_messages) {
   SavedMessagesTopicInfo result;
   if (is_saved_messages) {
     if (dialog_ptr->get_id() != telegram_api::savedDialog::ID) {
@@ -843,6 +854,7 @@ SavedMessagesManager::SavedMessagesTopicInfo SavedMessagesManager::get_saved_mes
     result.read_outbox_max_message_id_ = MessageId(ServerMessageId(dialog->read_outbox_max_id_));
     result.unread_count_ = max(0, dialog->unread_count_);
     result.is_marked_as_unread_ = dialog->unread_mark_;
+    result.draft_message_ = get_draft_message(td, std::move(dialog->draft_));
   }
   return result;
 }
@@ -921,7 +933,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
   vector<SavedMessagesTopicId> added_saved_messages_topic_ids;
   bool is_saved_messages = topic_list->dialog_id_ == DialogId();
   for (auto &dialog_ptr : dialogs) {
-    auto topic_info = get_saved_messages_topic_info(std::move(dialog_ptr), is_saved_messages);
+    auto topic_info = get_saved_messages_topic_info(td_, std::move(dialog_ptr), is_saved_messages);
     if (!topic_info.peer_dialog_id_.is_valid()) {
       LOG(ERROR) << "Receive " << topic_info.peer_dialog_id_ << " in result of getSavedMessagesTopics";
       total_count--;
@@ -984,6 +996,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
       do_set_topic_read_outbox_max_message_id(topic, topic_info.read_outbox_max_message_id_);
     }
     do_set_topic_is_marked_as_unread(topic, topic_info.is_marked_as_unread_);
+    do_set_topic_draft_message(topic, std::move(topic_info.draft_message_), true);
     on_topic_changed(topic_list, topic, "on_get_saved_messages_topics");
   }
 
@@ -1063,7 +1076,7 @@ td_api::object_ptr<td_api::feedbackChatTopic> SavedMessagesManager::get_feedback
       topic->saved_messages_topic_id_.get_feedback_message_sender_object(td_),
       get_topic_public_order(topic_list, topic), topic->read_inbox_max_message_id_.get(),
       topic->read_outbox_max_message_id_.get(), topic->unread_count_, topic->is_marked_as_unread_,
-      std::move(last_message_object));
+      std::move(last_message_object), get_draft_message_object(td_, topic->draft_message_));
 }
 
 td_api::object_ptr<td_api::updateFeedbackChatTopic> SavedMessagesManager::get_update_feedback_chat_topic_object(

@@ -25,6 +25,7 @@
 
 namespace td {
 
+class DraftMessage;
 class Td;
 
 class SavedMessagesManager final : public Actor {
@@ -97,6 +98,7 @@ class SavedMessagesManager final : public Actor {
     DialogId peer_dialog_id_;
     MessageId last_topic_message_id_;
 
+    unique_ptr<DraftMessage> draft_message_;
     MessageId read_inbox_max_message_id_;
     MessageId read_outbox_max_message_id_;
     int32 unread_count_ = 0;
@@ -111,6 +113,7 @@ class SavedMessagesManager final : public Actor {
     MessageId last_message_id_;
     MessageId read_inbox_max_message_id_;
     MessageId read_outbox_max_message_id_;
+    unique_ptr<DraftMessage> draft_message_;
     int32 unread_count_ = 0;
     int32 last_message_date_ = 0;
     int32 draft_message_date_ = 0;
@@ -191,7 +194,7 @@ class SavedMessagesManager final : public Actor {
   void get_saved_dialogs(TopicList *topic_list, int32 limit, Promise<Unit> &&promise);
 
   static SavedMessagesTopicInfo get_saved_messages_topic_info(
-      telegram_api::object_ptr<telegram_api::SavedDialog> &&dialog_ptr, bool is_saved_messages);
+      Td *td, telegram_api::object_ptr<telegram_api::SavedDialog> &&dialog_ptr, bool is_saved_messages);
 
   void on_get_saved_dialogs(TopicList *topic_list, Result<Unit> &&result);
 
@@ -207,6 +210,9 @@ class SavedMessagesManager final : public Actor {
   void do_set_topic_read_outbox_max_message_id(SavedMessagesTopic *topic, MessageId read_outbox_max_message_id);
 
   void do_set_topic_is_marked_as_unread(SavedMessagesTopic *topic, bool is_marked_as_unread);
+
+  void do_set_topic_draft_message(SavedMessagesTopic *topic, unique_ptr<DraftMessage> &&draft_message,
+                                  bool from_update);
 
   void load_topics(TopicList *topic_list, int32 limit, Promise<Unit> &&promise);
 
