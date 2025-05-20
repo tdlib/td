@@ -4225,7 +4225,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedSavedDial
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogUnreadMark> update, Promise<Unit> &&promise) {
   if (update->saved_peer_id_ != nullptr) {
-    // TODO
+    td_->saved_messages_manager_->on_update_topic_is_marked_as_unread(
+        DialogId(update->peer_), SavedMessagesTopicId(DialogId(update->saved_peer_id_)), update->unread_);
   } else {
     td_->messages_manager_->on_update_dialog_is_marked_as_unread(DialogId(update->peer_), update->unread_);
   }

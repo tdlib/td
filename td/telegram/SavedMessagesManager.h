@@ -56,6 +56,9 @@ class SavedMessagesManager final : public Actor {
   void on_update_read_monoforum_outbox(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                        MessageId read_outbox_max_message_id);
 
+  void on_update_topic_is_marked_as_unread(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                           bool is_marked_as_unread);
+
   void load_saved_messages_topics(int32 limit, Promise<Unit> &&promise);
 
   void load_monoforum_topics(DialogId dialog_id, int32 limit, Promise<Unit> &&promise);

@@ -628,6 +628,28 @@ void SavedMessagesManager::on_update_read_monoforum_outbox(DialogId dialog_id,
   on_topic_changed(topic_list, topic, "on_update_read_monoforum_outbox");
 }
 
+void SavedMessagesManager::on_update_topic_is_marked_as_unread(DialogId dialog_id,
+                                                               SavedMessagesTopicId saved_messages_topic_id,
+                                                               bool is_marked_as_unread) {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return;
+  }
+  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  if (topic == nullptr) {
+    LOG(INFO) << "Updated mark topic as unread in unknown " << saved_messages_topic_id << " from " << dialog_id;
+    return;
+  }
+  if (topic->dialog_id_ != dialog_id) {
+    LOG(ERROR) << "Can't mark topic as unread in a topic of " << dialog_id;
+    return;
+  }
+
+  do_set_topic_is_marked_as_unread(topic, is_marked_as_unread);
+
+  on_topic_changed(topic_list, topic, "on_update_topic_is_marked_as_unread");
+}
+
 int64 SavedMessagesManager::get_topic_order(int32 message_date, MessageId message_id) {
   return (static_cast<int64>(message_date) << 31) +
          message_id.get_prev_server_message_id().get_server_message_id().get();
