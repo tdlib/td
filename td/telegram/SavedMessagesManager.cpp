@@ -496,6 +496,17 @@ void SavedMessagesManager::do_set_topic_read_outbox_max_message_id(SavedMessages
   topic->is_changed_ = true;
 }
 
+void SavedMessagesManager::do_set_topic_is_marked_as_unread(SavedMessagesTopic *topic, bool is_marked_as_unread) {
+  if (topic->is_marked_as_unread_ == is_marked_as_unread) {
+    return;
+  }
+
+  LOG(INFO) << "Set is_marked_as_unread in " << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_ << " to "
+            << is_marked_as_unread;
+  topic->is_marked_as_unread_ = is_marked_as_unread;
+  topic->is_changed_ = true;
+}
+
 void SavedMessagesManager::on_topic_message_updated(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                                     MessageId message_id) {
   auto *topic_list = get_topic_list(dialog_id);
@@ -809,6 +820,7 @@ SavedMessagesManager::SavedMessagesTopicInfo SavedMessagesManager::get_saved_mes
     result.read_inbox_max_message_id_ = MessageId(ServerMessageId(dialog->read_inbox_max_id_));
     result.read_outbox_max_message_id_ = MessageId(ServerMessageId(dialog->read_outbox_max_id_));
     result.unread_count_ = max(0, dialog->unread_count_);
+    result.is_marked_as_unread_ = dialog->unread_mark_;
   }
   return result;
 }
@@ -949,6 +961,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
     if (topic->read_outbox_max_message_id_ == MessageId()) {
       do_set_topic_read_outbox_max_message_id(topic, topic_info.read_outbox_max_message_id_);
     }
+    do_set_topic_is_marked_as_unread(topic, topic_info.is_marked_as_unread_);
     on_topic_changed(topic_list, topic, "on_get_saved_messages_topics");
   }
 
@@ -1027,7 +1040,8 @@ td_api::object_ptr<td_api::feedbackChatTopic> SavedMessagesManager::get_feedback
       topic->saved_messages_topic_id_.get_unique_id(),
       topic->saved_messages_topic_id_.get_feedback_message_sender_object(td_),
       get_topic_public_order(topic_list, topic), topic->read_inbox_max_message_id_.get(),
-      topic->read_outbox_max_message_id_.get(), topic->unread_count_, std::move(last_message_object));
+      topic->read_outbox_max_message_id_.get(), topic->unread_count_, topic->is_marked_as_unread_,
+      std::move(last_message_object));
 }
 
 td_api::object_ptr<td_api::updateFeedbackChatTopic> SavedMessagesManager::get_update_feedback_chat_topic_object(

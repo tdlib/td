@@ -2902,8 +2902,9 @@ savedMessagesTopic id:int53 type:SavedMessagesTopicType is_pinned:Bool order:int
 //@last_read_inbox_message_id Identifier of the last read incoming message
 //@last_read_outbox_message_id Identifier of the last read outgoing message
 //@unread_count Number of unread messages in the chat
+//@is_marked_as_unread True, if the forum topic is marked as unread
 //@last_message Last message in the topic; may be null if none or unknown
-feedbackChatTopic chat_id:int53 id:int53 sender_id:MessageSender order:int64 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_count:int53 last_message:message = FeedbackChatTopic;
+feedbackChatTopic chat_id:int53 id:int53 sender_id:MessageSender order:int64 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_count:int53 is_marked_as_unread:Bool last_message:message = FeedbackChatTopic;
 
 
 //@description Describes a forum topic icon @color Color of the topic icon in RGB format @custom_emoji_id Unique identifier of the custom emoji shown on the topic icon; 0 if none

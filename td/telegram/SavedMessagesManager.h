@@ -97,6 +97,7 @@ class SavedMessagesManager final : public Actor {
     MessageId read_inbox_max_message_id_;
     MessageId read_outbox_max_message_id_;
     int32 unread_count_ = 0;
+    bool is_marked_as_unread_ = false;
 
     bool is_pinned_ = false;
   };
@@ -112,6 +113,7 @@ class SavedMessagesManager final : public Actor {
     int32 draft_message_date_ = 0;
     int64 pinned_order_ = 0;
     int64 private_order_ = 0;
+    bool is_marked_as_unread_ = false;
     bool is_changed_ = false;
   };
 
@@ -200,6 +202,8 @@ class SavedMessagesManager final : public Actor {
                                               int32 unread_count);
 
   void do_set_topic_read_outbox_max_message_id(SavedMessagesTopic *topic, MessageId read_outbox_max_message_id);
+
+  void do_set_topic_is_marked_as_unread(SavedMessagesTopic *topic, bool is_marked_as_unread);
 
   void load_topics(TopicList *topic_list, int32 limit, Promise<Unit> &&promise);
 
