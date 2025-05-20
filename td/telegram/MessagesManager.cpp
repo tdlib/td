@@ -27103,38 +27103,17 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, Message
     return;
   }
 
-  if (!force && draft_message != nullptr && draft_message->get_id() == telegram_api::draftMessage::ID) {
-    auto *input_reply_to = static_cast<const telegram_api::draftMessage *>(draft_message.get())->reply_to_.get();
-    if (input_reply_to != nullptr) {
-      InputDialogId input_dialog_id;
-      switch (input_reply_to->get_id()) {
-        case telegram_api::inputReplyToStory::ID: {
-          auto reply_to = static_cast<const telegram_api::inputReplyToStory *>(input_reply_to);
-          input_dialog_id = InputDialogId(reply_to->peer_);
-          break;
-        }
-        case telegram_api::inputReplyToMessage::ID: {
-          auto reply_to = static_cast<const telegram_api::inputReplyToMessage *>(input_reply_to);
-          if (reply_to->reply_to_peer_id_ != nullptr) {
-            input_dialog_id = InputDialogId(reply_to->reply_to_peer_id_);
-          }
-          break;
-        }
-        case telegram_api::inputReplyToMonoForum::ID:
-          break;
-        default:
-          UNREACHABLE();
-      }
-      auto reply_in_dialog_id = input_dialog_id.get_dialog_id();
-      if (reply_in_dialog_id.is_valid() && !have_dialog_force(reply_in_dialog_id, "on_update_dialog_draft_message")) {
-        td_->dialog_filter_manager_->load_input_dialog(
-            input_dialog_id, [actor_id = actor_id(this), dialog_id, top_thread_message_id,
-                              draft_message = std::move(draft_message)](Unit) mutable {
-              send_closure(actor_id, &MessagesManager::on_update_dialog_draft_message, dialog_id, top_thread_message_id,
-                           std::move(draft_message), true);
-            });
-        return;
-      }
+  if (!force) {
+    auto input_dialog_id = get_draft_message_reply_input_dialog_id(draft_message);
+    auto reply_in_dialog_id = input_dialog_id.get_dialog_id();
+    if (reply_in_dialog_id.is_valid() && !have_dialog_force(reply_in_dialog_id, "on_update_dialog_draft_message")) {
+      td_->dialog_filter_manager_->load_input_dialog(
+          input_dialog_id, [actor_id = actor_id(this), dialog_id, top_thread_message_id,
+                            draft_message = std::move(draft_message)](Unit) mutable {
+            send_closure(actor_id, &MessagesManager::on_update_dialog_draft_message, dialog_id, top_thread_message_id,
+                         std::move(draft_message), true);
+          });
+      return;
     }
   }
   update_dialog_draft_message(d, get_draft_message(td_, std::move(draft_message)), true, true);
