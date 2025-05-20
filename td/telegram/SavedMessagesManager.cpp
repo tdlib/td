@@ -726,8 +726,11 @@ void SavedMessagesManager::on_topic_changed(TopicList *topic_list, SavedMessages
   } else {
     new_private_order = 0;
   }
-  if (topic->draft_message_date_ != 0) {
-    int64 draft_order = get_topic_order(topic->draft_message_date_, MessageId());
+  auto draft_message_date = topic->draft_message_date_ != 0
+                                ? topic->draft_message_date_
+                                : (topic->draft_message_ != nullptr ? topic->draft_message_->get_date() : 0);
+  if (draft_message_date != 0) {
+    int64 draft_order = get_topic_order(draft_message_date, MessageId());
     if (new_private_order < draft_order) {
       new_private_order = draft_order;
     }
