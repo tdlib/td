@@ -9,6 +9,7 @@
 #include "td/telegram/AffectedHistory.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/DialogFilterManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DraftMessage.h"
@@ -637,6 +638,43 @@ void SavedMessagesManager::on_update_read_monoforum_outbox(DialogId dialog_id,
   do_set_topic_read_outbox_max_message_id(topic, read_outbox_max_message_id);
 
   on_topic_changed(topic_list, topic, "on_update_read_monoforum_outbox");
+}
+
+void SavedMessagesManager::on_update_topic_draft_message(
+    DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+    telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message, bool force) {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return;
+  }
+  auto *topic = get_topic(dialog_id, saved_messages_topic_id);
+  if (topic == nullptr) {
+    LOG(INFO) << "Updated mark topic as unread in unknown " << saved_messages_topic_id << " from " << dialog_id;
+    return;
+  }
+  if (topic->dialog_id_ != dialog_id) {
+    LOG(ERROR) << "Can't mark topic as unread in a topic of " << dialog_id;
+    return;
+  }
+
+  if (!force) {
+    auto input_dialog_id = get_draft_message_reply_input_dialog_id(draft_message);
+    auto reply_in_dialog_id = input_dialog_id.get_dialog_id();
+    if (reply_in_dialog_id.is_valid() &&
+        !td_->dialog_manager_->have_dialog_force(reply_in_dialog_id, "on_update_topic_draft_message")) {
+      td_->dialog_filter_manager_->load_input_dialog(
+          input_dialog_id, [actor_id = actor_id(this), dialog_id, saved_messages_topic_id,
+                            draft_message = std::move(draft_message)](Unit) mutable {
+            send_closure(actor_id, &SavedMessagesManager::on_update_topic_draft_message, dialog_id,
+                         saved_messages_topic_id, std::move(draft_message), true);
+          });
+      return;
+    }
+  }
+
+  do_set_topic_draft_message(topic, get_draft_message(td_, std::move(draft_message)), true);
+
+  on_topic_changed(topic_list, topic, "on_update_topic_draft_message");
 }
 
 void SavedMessagesManager::on_update_topic_is_marked_as_unread(DialogId dialog_id,

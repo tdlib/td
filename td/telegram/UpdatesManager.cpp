@@ -4194,7 +4194,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatDefaultBann
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDraftMessage> update, Promise<Unit> &&promise) {
   if (update->saved_peer_id_ != nullptr) {
-    // TODO
+    LOG_IF(ERROR, update->top_msg_id_ != 0) << "Have both top_msg_id and saved_peer_id";
+    td_->saved_messages_manager_->on_update_topic_draft_message(
+        DialogId(update->peer_), SavedMessagesTopicId(DialogId(update->saved_peer_id_)), std::move(update->draft_));
   } else {
     td_->messages_manager_->on_update_dialog_draft_message(
         DialogId(update->peer_), MessageId(ServerMessageId(update->top_msg_id_)), std::move(update->draft_));
