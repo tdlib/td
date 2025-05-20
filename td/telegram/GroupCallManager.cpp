@@ -674,14 +674,14 @@ class JoinGroupCallQuery final : public Td::ResultHandler {
   }
 };
 
-class JoinVoiceChatQuery final : public Td::ResultHandler {
+class JoinVideoChatQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   InputGroupCallId input_group_call_id_;
   DialogId as_dialog_id_;
   uint64 generation_ = 0;
 
  public:
-  explicit JoinVoiceChatQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit JoinVideoChatQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   NetQueryRef send(InputGroupCallId input_group_call_id, DialogId as_dialog_id,
@@ -718,8 +718,8 @@ class JoinVoiceChatQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for JoinVoiceChatQuery with generation " << generation_ << ": " << to_string(ptr);
-    td_->group_call_manager_->process_join_voice_chat_response(input_group_call_id_, generation_, std::move(ptr),
+    LOG(INFO) << "Receive result for JoinVideoChatQuery with generation " << generation_ << ": " << to_string(ptr);
+    td_->group_call_manager_->process_join_video_chat_response(input_group_call_id_, generation_, std::move(ptr),
                                                                std::move(promise_));
   }
 
@@ -3282,7 +3282,7 @@ void GroupCallManager::do_join_group_call(InputGroupCall &&input_group_call, Gro
     }
     if (group_call->is_inited && !group_call->is_conference) {
       // shouldn't happen
-      return promise.set_error(Status::Error(400, "The group call must be joined using joinVoiceChat"));
+      return promise.set_error(Status::Error(400, "The group call must be joined using joinVideoChat"));
     }
     if (group_call->is_joined) {
       return promise.set_error(Status::Error(400, "The group call is already joined"));
@@ -3477,7 +3477,7 @@ void GroupCallManager::join_video_chat(GroupCallId group_call_id, DialogId as_di
         send_closure(actor_id, &GroupCallManager::finish_join_group_call, input_group_call_id, generation,
                      result.move_as_error());
       });
-  request->query_ref = td_->create_handler<JoinVoiceChatQuery>(std::move(query_promise))
+  request->query_ref = td_->create_handler<JoinVideoChatQuery>(std::move(query_promise))
                            ->send(input_group_call_id, as_dialog_id, parameters, invite_hash, generation);
 
   if (group_call->dialog_id.is_valid()) {
@@ -3755,12 +3755,12 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
                                               false /*group_call->is_conference && group_call->is_creator*/);
 }
 
-void GroupCallManager::process_join_voice_chat_response(InputGroupCallId input_group_call_id, uint64 generation,
+void GroupCallManager::process_join_video_chat_response(InputGroupCallId input_group_call_id, uint64 generation,
                                                         tl_object_ptr<telegram_api::Updates> &&updates,
                                                         Promise<Unit> &&promise) {
   auto it = pending_join_requests_.find(input_group_call_id);
   if (it == pending_join_requests_.end() || it->second->generation != generation) {
-    LOG(INFO) << "Ignore JoinVoiceChatQuery response with " << input_group_call_id << " and generation " << generation;
+    LOG(INFO) << "Ignore JoinVideoChatQuery response with " << input_group_call_id << " and generation " << generation;
     return;
   }
 

@@ -6089,9 +6089,9 @@ void MessagesManager::hide_all_business_bot_manager_bars() {
 
 void MessagesManager::repair_dialog_active_group_call_id(DialogId dialog_id) {
   if (td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
-    LOG(INFO) << "Repair active voice chat ID in " << dialog_id;
+    LOG(INFO) << "Repair active video chat identifier in " << dialog_id;
     create_actor<SleepActor>(
-        "RepairChatActiveVoiceChatId", 1.0, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
+        "RepairChatActiveVideoChatId", 1.0, PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Unit) {
           send_closure(actor_id, &MessagesManager::do_repair_dialog_active_group_call_id, dialog_id);
         }))
         .release();
@@ -27797,8 +27797,8 @@ void MessagesManager::do_set_dialog_folder_id(Dialog *d, FolderId folder_id) {
 
 void MessagesManager::on_update_dialog_group_call(DialogId dialog_id, bool has_active_group_call,
                                                   bool is_group_call_empty, const char *source, bool force) {
-  LOG(INFO) << "Update voice chat in " << dialog_id << " with has_active_voice_chat = " << has_active_group_call
-            << " and is_voice_chat_empty = " << is_group_call_empty << " from " << source;
+  LOG(INFO) << "Update video chat in " << dialog_id << " with has_active_video_chat = " << has_active_group_call
+            << " and is_video_chat_empty = " << is_group_call_empty << " from " << source;
   CHECK(dialog_id.is_valid());
   Dialog *d = get_dialog(dialog_id);  // must not create the Dialog, because it is called from on_get_chat
   if (d == nullptr) {
@@ -31954,7 +31954,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
     CHECK(default_join_group_call_as_dialog_id.get_type() != DialogType::User);
     CHECK(!d->default_join_group_call_as_dialog_id.is_valid());
     if (!have_dialog(default_join_group_call_as_dialog_id)) {
-      LOG(INFO) << "Postpone adding of default join voice chat as " << default_join_group_call_as_dialog_id << " in "
+      LOG(INFO) << "Postpone adding of default join video chat as " << default_join_group_call_as_dialog_id << " in "
                 << dialog_id;
       pending_add_default_join_group_call_as_dialog_id_[default_join_group_call_as_dialog_id].push_back(dialog_id);
     } else {

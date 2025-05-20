@@ -872,7 +872,7 @@ class LinkManager::InternalLinkUserToken final : public InternalLink {
   }
 };
 
-class LinkManager::InternalLinkVoiceChat final : public InternalLink {
+class LinkManager::InternalLinkVideoChat final : public InternalLink {
   string dialog_username_;
   string invite_hash_;
   bool is_live_stream_;
@@ -882,7 +882,7 @@ class LinkManager::InternalLinkVoiceChat final : public InternalLink {
   }
 
  public:
-  InternalLinkVoiceChat(string dialog_username, string invite_hash, bool is_live_stream)
+  InternalLinkVideoChat(string dialog_username, string invite_hash, bool is_live_stream)
       : dialog_username_(std::move(dialog_username))
       , invite_hash_(std::move(invite_hash))
       , is_live_stream_(is_live_stream) {
@@ -1468,9 +1468,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           // resolve?domain=<username>&videochat
           // resolve?domain=<username>&videochat=<invite_hash>
           if (Scheduler::context() != nullptr) {
-            send_closure(G()->dialog_manager(), &DialogManager::reload_voice_chat_on_search, username);
+            send_closure(G()->dialog_manager(), &DialogManager::reload_video_chat_on_search, username);
           }
-          return td::make_unique<InternalLinkVoiceChat>(std::move(username), arg.second, arg.first == "livestream");
+          return td::make_unique<InternalLinkVideoChat>(std::move(username), arg.second, arg.first == "livestream");
         }
         if (arg.first == "ref" && is_valid_start_parameter(arg.second) && !arg.second.empty()) {
           // resolve?domain=<bot_username>&ref=<referrer>
@@ -1984,9 +1984,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
         // /<username>?videochat
         // /<username>?videochat=<invite_hash>
         if (Scheduler::context() != nullptr) {
-          send_closure(G()->dialog_manager(), &DialogManager::reload_voice_chat_on_search, username);
+          send_closure(G()->dialog_manager(), &DialogManager::reload_video_chat_on_search, username);
         }
-        return td::make_unique<InternalLinkVoiceChat>(std::move(username), arg.second, arg.first == "livestream");
+        return td::make_unique<InternalLinkVideoChat>(std::move(username), arg.second, arg.first == "livestream");
       }
       if (arg.first == "boost") {
         // /<username>?boost

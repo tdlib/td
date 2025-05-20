@@ -179,7 +179,7 @@ class GroupCallManager final : public Actor {
                                          vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
                                          int32 version, bool is_recursive = false);
 
-  void process_join_voice_chat_response(InputGroupCallId input_group_call_id, uint64 generation,
+  void process_join_video_chat_response(InputGroupCallId input_group_call_id, uint64 generation,
                                         tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);
 
   void process_join_group_call_presentation_response(InputGroupCallId input_group_call_id, uint64 generation,

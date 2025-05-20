@@ -3001,8 +3001,8 @@ DialogId DialogManager::search_public_dialog(const string &username_to_search, b
   }
 
   if (have_input_peer(dialog_id, false, AccessRights::Read)) {
-    if (!force && reload_voice_chat_on_search_usernames_.count(username)) {
-      reload_voice_chat_on_search_usernames_.erase(username);
+    if (!force && reload_video_chat_on_search_usernames_.count(username)) {
+      reload_video_chat_on_search_usernames_.erase(username);
       if (dialog_id.get_type() == DialogType::Channel) {
         td_->chat_manager_->reload_channel_full(dialog_id.get_channel_id(), std::move(promise), "search_public_dialog");
         return DialogId();
@@ -3023,14 +3023,14 @@ DialogId DialogManager::search_public_dialog(const string &username_to_search, b
   return DialogId();
 }
 
-void DialogManager::reload_voice_chat_on_search(const string &username) {
+void DialogManager::reload_video_chat_on_search(const string &username) {
   if (!td_->auth_manager_->is_authorized()) {
     return;
   }
 
   auto cleaned_username = clean_username(username);
   if (!cleaned_username.empty()) {
-    reload_voice_chat_on_search_usernames_.insert(cleaned_username);
+    reload_video_chat_on_search_usernames_.insert(cleaned_username);
   }
 }
 

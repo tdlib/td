@@ -252,7 +252,7 @@ class DialogManager final : public Actor {
 
   vector<DialogId> search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise);
 
-  void reload_voice_chat_on_search(const string &username);
+  void reload_video_chat_on_search(const string &username);
 
   void reget_peer_settings(DialogId dialog_id);
 
@@ -377,7 +377,7 @@ class DialogManager final : public Actor {
   };
   WaitFreeHashMap<string, ResolvedUsername> resolved_usernames_;
   WaitFreeHashMap<string, DialogId> inaccessible_resolved_usernames_;
-  FlatHashSet<string> reload_voice_chat_on_search_usernames_;
+  FlatHashSet<string> reload_video_chat_on_search_usernames_;
 
   FlatHashMap<string, vector<Promise<Unit>>> resolve_dialog_username_queries_;
 
