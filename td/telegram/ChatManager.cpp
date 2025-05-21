@@ -8336,7 +8336,7 @@ int32 ChatManager::get_channel_slow_mode_delay(ChannelId channel_id, const char 
 
 bool ChatManager::get_channel_effective_has_hidden_participants(ChannelId channel_id, const char *source) {
   auto c = get_channel_force(channel_id, "get_channel_effective_has_hidden_participants");
-  if (c == nullptr) {
+  if (c == nullptr || c->is_monoforum) {
     return true;
   }
   if (get_channel_status(c).is_administrator()) {
