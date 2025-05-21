@@ -45,13 +45,13 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
     Slice key;
     Slice value;
     template <class StorerT>
-    void store(StorerT &&storer) const {
+    void store(StorerT &storer) const {
       storer.store_string(key);
       storer.store_string(value);
     }
 
     template <class ParserT>
-    void parse(ParserT &&parser) {
+    void parse(ParserT &parser) {
       key = parser.template fetch_string<Slice>();
       value = parser.template fetch_string<Slice>();
     }
@@ -84,7 +84,10 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
         name,
         [&](const BinlogEvent &binlog_event) {
           Event event;
-          event.parse(TlParser(binlog_event.get_data()));
+          TlParser event_parser(binlog_event.get_data());
+          event.parse(event_parser);
+          event_parser.fetch_end();
+          LOG_CHECK(event_parser.get_error() == nullptr) << event_parser.get_status();
           if (event.key.empty()) {
             LOG(ERROR) << "Have event with empty key";
             return;
@@ -109,7 +112,10 @@ class BinlogKeyValue final : public KeyValueSyncInterface {
 
   void external_init_handle(const BinlogEvent &binlog_event) {
     Event event;
-    event.parse(TlParser(binlog_event.get_data()));
+    TlParser event_parser(binlog_event.get_data());
+    event.parse(event_parser);
+    event_parser.fetch_end();
+    LOG_CHECK(event_parser.get_error() == nullptr) << event_parser.get_status();
     if (event.key.empty()) {
       LOG(ERROR) << "Have external event with empty key";
       return;

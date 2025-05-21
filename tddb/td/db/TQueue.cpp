@@ -486,7 +486,7 @@ struct TQueueLogEvent final : public Storer {
   int64 extra;
 
   template <class StorerT>
-  void store(StorerT &&storer) const {
+  void store(StorerT &storer) const {
     using td::store;
     store(queue_id, storer);
     store(event_id, storer);
@@ -498,7 +498,7 @@ struct TQueueLogEvent final : public Storer {
   }
 
   template <class ParserT>
-  void parse(ParserT &&parser, int32 has_extra) {
+  void parse(ParserT &parser, int32 has_extra) {
     using td::parse;
     parse(queue_id, parser);
     parse(event_id, parser);
