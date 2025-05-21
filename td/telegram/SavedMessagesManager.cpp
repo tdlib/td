@@ -580,6 +580,28 @@ void SavedMessagesManager::on_topic_draft_message_updated(DialogId dialog_id,
   on_topic_changed(topic_list, topic, "on_topic_draft_message_updated");
 }
 
+void SavedMessagesManager::clear_monoforum_topic_draft_by_sent_message(DialogId dialog_id,
+                                                                       SavedMessagesTopicId saved_messages_topic_id,
+                                                                       bool message_clear_draft,
+                                                                       MessageContentType message_content_type) {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return;
+  }
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
+  if (topic == nullptr) {
+    return;
+  }
+
+  if (!message_clear_draft) {
+    const auto *draft_message = topic->draft_message_.get();
+    if (draft_message == nullptr || !draft_message->need_clear_local(message_content_type)) {
+      return;
+    }
+  }
+  do_set_topic_draft_message(topic, nullptr, false);
+}
+
 void SavedMessagesManager::read_monoforum_topic_messages(DialogId dialog_id,
                                                          SavedMessagesTopicId saved_messages_topic_id,
                                                          MessageId read_inbox_max_message_id) {

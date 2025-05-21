@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/SavedMessagesTopicId.h"
@@ -47,6 +48,9 @@ class SavedMessagesManager final : public Actor {
 
   void on_topic_draft_message_updated(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                       int32 draft_message_date);
+
+  void clear_monoforum_topic_draft_by_sent_message(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                                   bool message_clear_draft, MessageContentType message_content_type);
 
   void read_monoforum_topic_messages(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                      MessageId read_inbox_max_message_id);

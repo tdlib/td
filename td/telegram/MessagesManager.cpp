@@ -27138,6 +27138,10 @@ void MessagesManager::clear_dialog_draft_by_sent_message(Dialog *d, const Messag
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  if (td_->dialog_manager_->is_monoforum_channel(d->dialog_id) && m->saved_messages_topic_id.is_valid()) {
+    td_->saved_messages_manager_->clear_monoforum_topic_draft_by_sent_message(d->dialog_id, m->saved_messages_topic_id,
+                                                                              m->clear_draft, m->content->get_type());
+  }
   if (!m->clear_draft) {
     const DraftMessage *draft_message = nullptr;
     if (m->initial_top_thread_message_id.is_valid()) {
