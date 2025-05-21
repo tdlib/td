@@ -3158,6 +3158,15 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, limit);
       send_request(td_api::make_object<td_api::loadFeedbackChatTopics>(chat_id, as_limit(limit)));
+    } else if (op == "gfcth") {
+      ChatId chat_id;
+      ChatId topic_id;
+      MessageId from_message_id;
+      int32 offset;
+      string limit;
+      get_args(args, chat_id, topic_id, from_message_id, offset, limit);
+      send_request(td_api::make_object<td_api::getFeedbackChatTopicHistory>(chat_id, topic_id, from_message_id, offset,
+                                                                            as_limit(limit)));
     } else if (op == "sfctimau") {
       ChatId chat_id;
       ChatId topic_id;

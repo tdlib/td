@@ -112,17 +112,31 @@ class GetSavedDialogsQuery final : public Td::ResultHandler {
 
 class GetSavedHistoryQuery final : public Td::ResultHandler {
   Promise<MessagesInfo> promise_;
+  DialogId dialog_id_;
 
  public:
   explicit GetSavedHistoryQuery(Promise<MessagesInfo> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id, int32 offset, int32 limit) {
+  void send(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id, int32 offset,
+            int32 limit) {
+    dialog_id_ = dialog_id;
     auto saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
     CHECK(saved_input_peer != nullptr);
+
+    int32 flags = 0;
+    telegram_api::object_ptr<telegram_api::InputPeer> parent_input_peer;
+    if (dialog_id.get_type() == DialogType::Channel) {
+      flags |= telegram_api::messages_getSavedHistory::PARENT_PEER_MASK;
+      parent_input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+      if (parent_input_peer == nullptr) {
+        return on_error(Status::Error(400, "Can't access the chat"));
+      }
+    }
+
     send_query(G()->net_query_creator().create(telegram_api::messages_getSavedHistory(
-        0, nullptr, std::move(saved_input_peer), from_message_id.get_server_message_id().get(), 0, offset, limit, 0, 0,
-        0)));
+        flags, std::move(parent_input_peer), std::move(saved_input_peer), from_message_id.get_server_message_id().get(),
+        0, offset, limit, 0, 0, 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -131,9 +145,9 @@ class GetSavedHistoryQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-    auto info = get_messages_info(td_, my_dialog_id, result_ptr.move_as_ok(), "GetSavedHistoryQuery");
-    LOG_IF(ERROR, info.is_channel_messages) << "Receive channel messages in GetSavedHistoryQuery";
+    auto info = get_messages_info(td_, dialog_id_, result_ptr.move_as_ok(), "GetSavedHistoryQuery");
+    LOG_IF(ERROR, info.is_channel_messages != (dialog_id_.get_type() == DialogType::Channel))
+        << "Receive channel messages in GetSavedHistoryQuery";
     promise_.set_value(std::move(info));
   }
 
@@ -553,12 +567,13 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
   if (topic == nullptr || topic->last_message_id_ != message_id) {
     return;
   }
+  CHECK(dialog_id.is_valid());
 
   do_set_topic_last_message_id(topic, MessageId(), 0);
 
   on_topic_changed(topic_list, topic, "on_topic_message_deleted");
 
-  get_saved_messages_topic_history(dialog_id, saved_messages_topic_id, MessageId(), 0, 1, Auto());
+  get_topic_history(dialog_id, saved_messages_topic_id, MessageId(), 0, 1, Auto());
 }
 
 void SavedMessagesManager::on_topic_draft_message_updated(DialogId dialog_id,
@@ -1288,13 +1303,23 @@ void SavedMessagesManager::set_last_topic_date(TopicList *topic_list, TopicDate 
   }
 }
 
-void SavedMessagesManager::get_saved_messages_topic_history(DialogId dialog_id,
-                                                            SavedMessagesTopicId saved_messages_topic_id,
+void SavedMessagesManager::get_monoforum_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                                       MessageId from_message_id, int32 offset, int32 limit,
+                                                       Promise<td_api::object_ptr<td_api::messages>> &&promise) {
+  TRY_STATUS_PROMISE(promise, get_monoforum_topic_list(dialog_id));
+  get_topic_history(dialog_id, saved_messages_topic_id, from_message_id, offset, limit, std::move(promise));
+}
+
+void SavedMessagesManager::get_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id,
                                                             MessageId from_message_id, int32 offset, int32 limit,
                                                             Promise<td_api::object_ptr<td_api::messages>> &&promise) {
-  if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
-    return promise.set_error(Status::Error(500, "Unsupported"));
-  }
+  get_topic_history(td_->dialog_manager_->get_my_dialog_id(), saved_messages_topic_id, from_message_id, offset, limit,
+                    std::move(promise));
+}
+
+void SavedMessagesManager::get_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                             MessageId from_message_id, int32 offset, int32 limit,
+                                             Promise<td_api::object_ptr<td_api::messages>> &&promise) {
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
@@ -1330,7 +1355,7 @@ void SavedMessagesManager::get_saved_messages_topic_history(DialogId dialog_id,
                      saved_messages_topic_id, from_message_id, std::move(r_info), std::move(promise));
       });
   td_->create_handler<GetSavedHistoryQuery>(std::move(query_promise))
-      ->send(saved_messages_topic_id, from_message_id, offset, limit);
+      ->send(dialog_id, saved_messages_topic_id, from_message_id, offset, limit);
 }
 
 void SavedMessagesManager::on_get_saved_messages_topic_history(
@@ -1350,12 +1375,13 @@ void SavedMessagesManager::on_get_saved_messages_topic_history(
   vector<td_api::object_ptr<td_api::message>> messages;
   MessageId last_message_id;
   int32 last_message_date = 0;
+  bool is_saved_messages = topic_list->dialog_id_ == DialogId();
   for (auto &message : info.messages) {
     auto message_date = MessagesManager::get_message_date(message);
-    auto full_message_id = td_->messages_manager_->on_get_message(std::move(message), false, false, false,
+    auto full_message_id = td_->messages_manager_->on_get_message(std::move(message), false, !is_saved_messages, false,
                                                                   "on_get_saved_messages_topic_history");
     auto message_dialog_id = full_message_id.get_dialog_id();
-    if (dialog_id == DialogId()) {
+    if (message_dialog_id == DialogId()) {
       continue;
     }
     if (message_dialog_id != dialog_id) {

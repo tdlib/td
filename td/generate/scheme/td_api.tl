@@ -2897,7 +2897,7 @@ savedMessagesTopic id:int53 type:SavedMessagesTopicType is_pinned:Bool order:int
 //@description Contains information about a topic in a feedback chat
 //@chat_id Identifier of the chat to which the topic belongs
 //@id Unique topic identifier
-//@sender_id Identifier of the chat that sends the feedback
+//@sender_id Identifier of the user or chat that sends the feedback
 //@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order
 //@last_read_inbox_message_id Identifier of the last read incoming message
 //@last_read_outbox_message_id Identifier of the last read outgoing message
@@ -9422,8 +9422,17 @@ getSuitablePersonalChats = Chats;
 //@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
 loadFeedbackChatTopics chat_id:int53 limit:int32 = Ok;
 
+//@description Returns messages in a feedback group topic. The messages are returned in reverse chronological order (i.e., in order of decreasing message_id)
+//@chat_id Chat identifier of the feedback group
+//@topic_id Identifier of the topic which messages will be fetched
+//@from_message_id Identifier of the message starting from which messages must be fetched; use 0 to get results from the last message
+//@offset Specify 0 to get results from exactly the message from_message_id or a negative offset up to 99 to get additionally some newer messages
+//@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than or equal to -offset.
+//-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
+getFeedbackChatTopicHistory chat_id:int53 topic_id:int53 from_message_id:int53 offset:int32 limit:int32 = Messages;
+
 //@description Changes the marked as unread state of a feedback chat topic
-//@chat_id Chat identifier
+//@chat_id Chat identifier of the feedback group
 //@topic_id Topic identifier
 //@is_marked_as_unread New value of is_marked_as_unread
 setFeedbackChatTopicIsMarkedAsUnread chat_id:int53 topic_id:int53 is_marked_as_unread:Bool = Ok;

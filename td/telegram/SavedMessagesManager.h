@@ -76,8 +76,12 @@ class SavedMessagesManager final : public Actor {
                                     telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
                                     Promise<Unit> &&promise);
 
-  void get_saved_messages_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                        MessageId from_message_id, int32 offset, int32 limit,
+  void get_monoforum_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                   MessageId from_message_id, int32 offset, int32 limit,
+                                   Promise<td_api::object_ptr<td_api::messages>> &&promise);
+
+  void get_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
+                                        int32 offset, int32 limit,
                                         Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   void delete_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id, Promise<Unit> &&promise);
@@ -249,6 +253,9 @@ class SavedMessagesManager final : public Actor {
   void set_last_topic_date(TopicList *topic_list, TopicDate topic_date);
 
   void on_topic_changed(TopicList *topic_list, SavedMessagesTopic *topic, const char *source);
+
+  void get_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
+                         int32 offset, int32 limit, Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   td_api::object_ptr<td_api::savedMessagesTopic> get_saved_messages_topic_object(const SavedMessagesTopic *topic) const;
 

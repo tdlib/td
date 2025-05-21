@@ -2999,11 +2999,21 @@ void Requests::on_request(uint64 id, const td_api::loadFeedbackChatTopics &reque
   td_->saved_messages_manager_->load_monoforum_topics(DialogId(request.chat_id_), request.limit_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getFeedbackChatTopicHistory &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  DialogId dialog_id(request.chat_id_);
+  td_->saved_messages_manager_->get_monoforum_topic_history(
+      dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_),
+      MessageId(request.from_message_id_), request.offset_, request.limit_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::setFeedbackChatTopicIsMarkedAsUnread &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
+  DialogId dialog_id(request.chat_id_);
   td_->saved_messages_manager_->set_monoforum_topic_is_marked_as_unread(
-      DialogId(request.chat_id_), SavedMessagesTopicId(DialogId(request.topic_id_)), request.is_marked_as_unread_,
+      dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), request.is_marked_as_unread_,
       std::move(promise));
 }
 
@@ -3017,7 +3027,6 @@ void Requests::on_request(uint64 id, const td_api::getSavedMessagesTopicHistory 
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->saved_messages_manager_->get_saved_messages_topic_history(
-      td_->dialog_manager_->get_my_dialog_id(),
       td_->saved_messages_manager_->get_topic_id(DialogId(), request.saved_messages_topic_id_),
       MessageId(request.from_message_id_), request.offset_, request.limit_, std::move(promise));
 }
