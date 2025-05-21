@@ -3008,6 +3008,15 @@ void Requests::on_request(uint64 id, const td_api::getFeedbackChatTopicHistory &
       MessageId(request.from_message_id_), request.offset_, request.limit_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getFeedbackChatTopicMessageByDate &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  DialogId dialog_id(request.chat_id_);
+  td_->saved_messages_manager_->get_monoforum_topic_message_by_date(
+      dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), request.date_,
+      std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::setFeedbackChatTopicIsMarkedAsUnread &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

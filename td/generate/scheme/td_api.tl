@@ -9431,6 +9431,12 @@ loadFeedbackChatTopics chat_id:int53 limit:int32 = Ok;
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getFeedbackChatTopicHistory chat_id:int53 topic_id:int53 from_message_id:int53 offset:int32 limit:int32 = Messages;
 
+//@description Returns the last message sent in a feedback group topic no later than the specified date
+//@chat_id Chat identifier of the feedback group
+//@topic_id Identifier of the topic which messages will be fetched
+//@date Point in time (Unix timestamp) relative to which to search for messages
+getFeedbackChatTopicMessageByDate chat_id:int53 topic_id:int53 date:int32 = Message;
+
 //@description Changes the marked as unread state of a feedback chat topic
 //@chat_id Chat identifier of the feedback group
 //@topic_id Topic identifier

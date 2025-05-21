@@ -158,6 +158,7 @@ class GetSavedHistoryQuery final : public Td::ResultHandler {
 
 class GetSavedMessageByDateQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::message>> promise_;
+  DialogId dialog_id_;
   int32 date_ = 0;
 
  public:
@@ -165,13 +166,24 @@ class GetSavedMessageByDateQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(SavedMessagesTopicId saved_messages_topic_id, int32 date) {
+  void send(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, int32 date) {
+    dialog_id_ = dialog_id;
     date_ = date;
     auto saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
     CHECK(saved_input_peer != nullptr);
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_getSavedHistory(0, nullptr, std::move(saved_input_peer), 0, date, -3, 5, 0, 0, 0)));
+    int32 flags = 0;
+    telegram_api::object_ptr<telegram_api::InputPeer> parent_input_peer;
+    if (dialog_id.get_type() == DialogType::Channel) {
+      flags |= telegram_api::messages_getSavedHistory::PARENT_PEER_MASK;
+      parent_input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+      if (parent_input_peer == nullptr) {
+        return on_error(Status::Error(400, "Can't access the chat"));
+      }
+    }
+
+    send_query(G()->net_query_creator().create(telegram_api::messages_getSavedHistory(
+        flags, std::move(parent_input_peer), std::move(saved_input_peer), 0, date, -3, 5, 0, 0, 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -180,19 +192,20 @@ class GetSavedMessageByDateQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-    auto info = get_messages_info(td_, my_dialog_id, result_ptr.move_as_ok(), "GetSavedMessageByDateQuery");
-    LOG_IF(ERROR, info.is_channel_messages) << "Receive channel messages in GetSavedMessageByDateQuery";
+    auto is_saved_messages = dialog_id_.get_type() != DialogType::Channel;
+    auto info = get_messages_info(td_, dialog_id_, result_ptr.move_as_ok(), "GetSavedMessageByDateQuery");
+    LOG_IF(ERROR, info.is_channel_messages == is_saved_messages)
+        << "Receive channel messages in GetSavedMessageByDateQuery";
     for (auto &message : info.messages) {
       auto message_date = MessagesManager::get_message_date(message);
       auto message_dialog_id = DialogId::get_message_dialog_id(message);
-      if (message_dialog_id != my_dialog_id) {
-        LOG(ERROR) << "Receive message in wrong " << message_dialog_id << " instead of " << my_dialog_id;
+      if (message_dialog_id != dialog_id_) {
+        LOG(ERROR) << "Receive message in wrong " << message_dialog_id << " instead of " << dialog_id_;
         continue;
       }
       if (message_date != 0 && message_date <= date_) {
-        auto message_full_id = td_->messages_manager_->on_get_message(std::move(message), false, false, false,
-                                                                      "GetSavedMessageByDateQuery");
+        auto message_full_id = td_->messages_manager_->on_get_message(std::move(message), false, !is_saved_messages,
+                                                                      false, "GetSavedMessageByDateQuery");
         if (message_full_id != MessageFullId()) {
           return promise_.set_value(
               td_->messages_manager_->get_message_object(message_full_id, "GetSavedMessageByDateQuery"));
@@ -1423,15 +1436,30 @@ void SavedMessagesManager::delete_saved_messages_topic_history(SavedMessagesTopi
                                                                          std::move(promise));
 }
 
+void SavedMessagesManager::get_monoforum_topic_message_by_date(DialogId dialog_id,
+                                                               SavedMessagesTopicId saved_messages_topic_id, int32 date,
+                                                               Promise<td_api::object_ptr<td_api::message>> &&promise) {
+  TRY_STATUS_PROMISE(promise, get_monoforum_topic_list(dialog_id));
+  get_topic_message_by_date(dialog_id, saved_messages_topic_id, date, std::move(promise));
+}
+
 void SavedMessagesManager::get_saved_messages_topic_message_by_date(
     SavedMessagesTopicId saved_messages_topic_id, int32 date, Promise<td_api::object_ptr<td_api::message>> &&promise) {
+  get_topic_message_by_date(td_->dialog_manager_->get_my_dialog_id(), saved_messages_topic_id, date,
+                            std::move(promise));
+}
+
+void SavedMessagesManager::get_topic_message_by_date(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                                     int32 date,
+                                                     Promise<td_api::object_ptr<td_api::message>> &&promise) {
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
   if (date <= 0) {
     date = 1;
   }
 
-  td_->create_handler<GetSavedMessageByDateQuery>(std::move(promise))->send(saved_messages_topic_id, date);
+  td_->create_handler<GetSavedMessageByDateQuery>(std::move(promise))->send(dialog_id, saved_messages_topic_id, date);
 }
 
 void SavedMessagesManager::delete_saved_messages_topic_messages_by_date(SavedMessagesTopicId saved_messages_topic_id,

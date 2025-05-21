@@ -3167,6 +3167,12 @@ class CliClient final : public Actor {
       get_args(args, chat_id, topic_id, from_message_id, offset, limit);
       send_request(td_api::make_object<td_api::getFeedbackChatTopicHistory>(chat_id, topic_id, from_message_id, offset,
                                                                             as_limit(limit)));
+    } else if (op == "gfctmbd") {
+      ChatId chat_id;
+      ChatId topic_id;
+      int32 date;
+      get_args(args, chat_id, topic_id, date);
+      send_request(td_api::make_object<td_api::getFeedbackChatTopicMessageByDate>(chat_id, topic_id, date));
     } else if (op == "sfctimau") {
       ChatId chat_id;
       ChatId topic_id;
@@ -3186,8 +3192,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getSavedMessagesTopicHistory>(get_saved_messages_topic_id(),
                                                                              from_message_id, offset, as_limit(limit)));
     } else if (op == "gsmtmbd") {
-      send_request(td_api::make_object<td_api::getSavedMessagesTopicMessageByDate>(get_saved_messages_topic_id(),
-                                                                                   to_integer<int32>(args)));
+      int32 date;
+      get_args(args, date);
+      send_request(
+          td_api::make_object<td_api::getSavedMessagesTopicMessageByDate>(get_saved_messages_topic_id(), date));
     } else if (op == "dsmth" && args.empty()) {
       send_request(td_api::make_object<td_api::deleteSavedMessagesTopicHistory>(get_saved_messages_topic_id()));
     } else if (op == "dsmtmbd") {
