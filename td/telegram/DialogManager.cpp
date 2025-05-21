@@ -1085,16 +1085,24 @@ class ToggleDialogUnreadMarkQuery final : public Td::ResultHandler {
     saved_messages_topic_id_ = saved_messages_topic_id;
     is_marked_as_unread_ = is_marked_as_unread;
 
-    auto input_peer = td_->dialog_manager_->get_input_dialog_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
     int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputPeer> parent_input_peer;
+    telegram_api::object_ptr<telegram_api::InputDialogPeer> input_peer;
     if (saved_messages_topic_id.is_valid()) {
+      parent_input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+      if (parent_input_peer == nullptr) {
+        return on_error(Status::Error(400, "Can't access the chat"));
+      }
       flags |= telegram_api::messages_markDialogUnread::PARENT_PEER_MASK;
-      parent_input_peer = saved_messages_topic_id.get_input_peer(td_);
-      CHECK(parent_input_peer != nullptr);
+      input_peer = saved_messages_topic_id.get_input_dialog_peer(td_);
+      if (input_peer == nullptr) {
+        return on_error(Status::Error(400, "Can't access the topic"));
+      }
+    } else {
+      input_peer = td_->dialog_manager_->get_input_dialog_peer(dialog_id, AccessRights::Read);
+      if (input_peer == nullptr) {
+        return on_error(Status::Error(400, "Can't access the chat"));
+      }
     }
 
     send_query(G()->net_query_creator().create(
