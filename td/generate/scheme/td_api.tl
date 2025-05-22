@@ -9634,7 +9634,7 @@ getChatSparseMessagePositions chat_id:int53 filter:SearchMessagesFilter from_mes
 //@chat_id Identifier of the chat in which to return information about messages
 //@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterMention, searchMessagesFilterUnreadMention, and searchMessagesFilterUnreadReaction are unsupported in this function
 //@from_message_id The message identifier from which to return information about messages; use 0 to get results from the last message
-//@saved_messages_topic_id If not0, only messages in the specified Saved Messages topic will be considered; pass 0 to consider all messages, or for chats other than Saved Messages
+//@saved_messages_topic_id If not 0, only messages in the specified Saved Messages topic will be considered; pass 0 to consider all messages, or for chats other than Saved Messages
 getChatMessageCalendar chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 saved_messages_topic_id:int53 = MessageCalendar;
 
 //@description Returns approximate number of messages of the specified type in the chat
