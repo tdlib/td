@@ -33,6 +33,8 @@ class SavedMessagesManager final : public Actor {
  public:
   SavedMessagesManager(Td *td, ActorShared<> parent);
 
+  bool have_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) const;
+
   SavedMessagesTopicId get_topic_id(DialogId dialog_id, int64 topic_id) const;
 
   vector<SavedMessagesTopicId> get_topic_ids(DialogId dialog_id, const vector<int64> &topic_ids) const;

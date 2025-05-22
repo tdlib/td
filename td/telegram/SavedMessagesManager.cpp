@@ -382,6 +382,10 @@ void SavedMessagesManager::tear_down() {
   parent_.reset();
 }
 
+bool SavedMessagesManager::have_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) const {
+  return get_topic(dialog_id, saved_messages_topic_id) != nullptr;
+}
+
 SavedMessagesTopicId SavedMessagesManager::get_topic_id(DialogId dialog_id, int64 topic_id) const {
   if (topic_id == 0) {
     return SavedMessagesTopicId();
