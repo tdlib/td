@@ -69,8 +69,8 @@ td_api::object_ptr<td_api::forumTopicInfo> ForumTopicInfo::get_forum_topic_info_
 
   auto creator_id = get_message_sender_object_const(td, creator_dialog_id_, "get_forum_topic_info_object");
   return td_api::make_object<td_api::forumTopicInfo>(
-      td->dialog_manager_->get_chat_id_object(dialog_id, "forumTopicInfo"), top_thread_message_id_.get(), title_,
-      icon_.get_forum_topic_icon_object(), creation_date_, std::move(creator_id),
+      td->dialog_manager_->get_chat_id_object(dialog_id, "forumTopicInfo"), top_thread_message_id_.get(),
+      top_thread_message_id_.get(), title_, icon_.get_forum_topic_icon_object(), creation_date_, std::move(creator_id),
       top_thread_message_id_ == MessageId(ServerMessageId(1)), is_outgoing_, is_closed_, is_hidden_);
 }
 
