@@ -9428,13 +9428,14 @@ getInactiveSupergroupChats = Chats;
 getSuitablePersonalChats = Chats;
 
 
-//@description Loads more topics in a feedback group; requires administrator rights in the chat. The loaded topics will be sent through updateFeedbackChatTopic.
+//@description Loads more topics in a feedback group; requires can_post_messages administrator right in the corresponding channel chat. The loaded topics will be sent through updateFeedbackChatTopic.
 //-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
 //@chat_id Chat identifier of the feedback group
 //@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
 loadFeedbackChatTopics chat_id:int53 limit:int32 = Ok;
 
-//@description Returns messages in a feedback group topic. The messages are returned in reverse chronological order (i.e., in order of decreasing message_id)
+//@description Returns messages in a feedback group topic; requires can_post_messages administrator right in the corresponding channel chat.
+//-The messages are returned in reverse chronological order (i.e., in order of decreasing message_id)
 //@chat_id Chat identifier of the feedback group
 //@topic_id Identifier of the topic which messages will be fetched
 //@from_message_id Identifier of the message starting from which messages must be fetched; use 0 to get results from the last message
@@ -9443,18 +9444,18 @@ loadFeedbackChatTopics chat_id:int53 limit:int32 = Ok;
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getFeedbackChatTopicHistory chat_id:int53 topic_id:int53 from_message_id:int53 offset:int32 limit:int32 = Messages;
 
-//@description Returns the last message sent in a feedback group topic no later than the specified date
+//@description Returns the last message sent in a feedback group topic no later than the specified date; requires can_post_messages administrator right in the corresponding channel chat
 //@chat_id Chat identifier of the feedback group
 //@topic_id Identifier of the topic which messages will be fetched
 //@date Point in time (Unix timestamp) relative to which to search for messages
 getFeedbackChatTopicMessageByDate chat_id:int53 topic_id:int53 date:int32 = Message;
 
-//@description Deletes all messages in a feedback group topic
+//@description Deletes all messages in a feedback group topic; requires can_post_messages administrator right in the corresponding channel chat
 //@chat_id Chat identifier of the feedback group
 //@topic_id Identifier of the topic which messages will be deleted
 deleteFeedbackChatTopicHistory chat_id:int53 topic_id:int53 = Ok;
 
-//@description Changes the marked as unread state of a feedback chat topic
+//@description Changes the marked as unread state of a feedback chat topic; requires can_post_messages administrator right in the corresponding channel chat
 //@chat_id Chat identifier of the feedback group
 //@topic_id Topic identifier
 //@is_marked_as_unread New value of is_marked_as_unread
