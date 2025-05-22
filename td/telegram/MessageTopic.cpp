@@ -51,6 +51,15 @@ MessageTopic::MessageTopic(Td *td, DialogId dialog_id, bool is_topic_message, Me
   }
 }
 
+MessageTopic MessageTopic::forum(DialogId dialog_id, MessageId top_thread_message_id) {
+  // dialog_id can be a broadcast channel
+  MessageTopic result;
+  result.type_ = Type::Forum;
+  result.dialog_id_ = dialog_id;
+  result.top_thread_message_id_ = top_thread_message_id;
+  return result;
+}
+
 Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
                                                      const td_api::object_ptr<td_api::MessageTopic> &topic) {
   if (topic == nullptr) {

@@ -43,6 +43,7 @@
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/MessageSource.h"
 #include "td/telegram/MessageThreadInfo.h"
+#include "td/telegram/MessageTopic.h"
 #include "td/telegram/MessageTtl.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Notification.h"
@@ -196,12 +197,13 @@ class MessagesManager final : public Actor {
                             vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
                             Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
-  void on_get_dialog_messages_search_result(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                            const string &query, DialogId sender_dialog_id, MessageId from_message_id,
-                                            int32 offset, int32 limit, MessageSearchFilter filter,
-                                            MessageId top_thread_message_id, const ReactionType &tag, int64 random_id,
-                                            int32 total_count, vector<tl_object_ptr<telegram_api::Message>> &&messages,
+  void on_get_dialog_messages_search_result(DialogId dialog_id, MessageTopic message_topic, const string &query,
+                                            DialogId sender_dialog_id, MessageId from_message_id, int32 offset,
+                                            int32 limit, MessageSearchFilter filter, const ReactionType &tag,
+                                            int64 random_id, int32 total_count,
+                                            vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                             Promise<Unit> &&promise);
+
   void on_failed_dialog_messages_search(DialogId dialog_id, int64 random_id);
 
   void on_get_dialog_message_count(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
@@ -690,12 +692,10 @@ class MessagesManager final : public Actor {
   td_api::object_ptr<td_api::foundChatMessages> get_found_chat_messages_object(
       DialogId dialog_id, const FoundDialogMessages &found_dialog_messages, const char *source);
 
-  FoundDialogMessages search_dialog_messages(DialogId dialog_id, const string &query,
-                                             const td_api::object_ptr<td_api::MessageSender> &sender,
-                                             MessageId from_message_id, int32 offset, int32 limit,
-                                             MessageSearchFilter filter, MessageId top_thread_message_id,
-                                             SavedMessagesTopicId saved_messages_topic_id, const ReactionType &tag,
-                                             int64 &random_id, bool use_db, Promise<Unit> &&promise);
+  FoundDialogMessages search_dialog_messages(
+      DialogId dialog_id, const td_api::object_ptr<td_api::MessageTopic> &topic_id, const string &query,
+      const td_api::object_ptr<td_api::MessageSender> &sender, MessageId from_message_id, int32 offset, int32 limit,
+      MessageSearchFilter filter, const ReactionType &tag, int64 &random_id, bool use_db, Promise<Unit> &&promise);
 
   struct FoundMessages {
     vector<MessageFullId> message_full_ids;

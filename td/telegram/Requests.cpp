@@ -968,6 +968,7 @@ class GetMessageThreadHistoryRequest final : public RequestActor<> {
 
 class SearchChatMessagesRequest final : public RequestActor<> {
   DialogId dialog_id_;
+  td_api::object_ptr<td_api::MessageTopic> topic_id_;
   string query_;
   td_api::object_ptr<td_api::MessageSender> sender_id_;
   MessageId from_message_id_;
@@ -982,9 +983,9 @@ class SearchChatMessagesRequest final : public RequestActor<> {
   MessagesManager::FoundDialogMessages messages_;
 
   void do_run(Promise<Unit> &&promise) final {
-    messages_ = td_->messages_manager_->search_dialog_messages(
-        dialog_id_, query_, sender_id_, from_message_id_, offset_, limit_, filter_, top_thread_message_id_,
-        saved_messages_topic_id_, tag_, random_id_, get_tries() == 3, std::move(promise));
+    messages_ = td_->messages_manager_->search_dialog_messages(dialog_id_, topic_id_, query_, sender_id_,
+                                                               from_message_id_, offset_, limit_, filter_, tag_,
+                                                               random_id_, get_tries() == 3, std::move(promise));
   }
 
   void do_send_result() final {
@@ -1001,20 +1002,20 @@ class SearchChatMessagesRequest final : public RequestActor<> {
   }
 
  public:
-  SearchChatMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, string query,
-                            td_api::object_ptr<td_api::MessageSender> sender_id, int64 from_message_id, int32 offset,
-                            int32 limit, td_api::object_ptr<td_api::SearchMessagesFilter> filter,
-                            int64 message_thread_id, SavedMessagesTopicId saved_messages_topic_id, ReactionType tag)
+  SearchChatMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id,
+                            td_api::object_ptr<td_api::MessageTopic> &&topic_id, string &&query,
+                            td_api::object_ptr<td_api::MessageSender> &&sender_id, int64 from_message_id, int32 offset,
+                            int32 limit, const td_api::object_ptr<td_api::SearchMessagesFilter> &filter,
+                            ReactionType tag)
       : RequestActor(std::move(td), request_id)
       , dialog_id_(dialog_id)
+      , topic_id_(std::move(topic_id))
       , query_(std::move(query))
       , sender_id_(std::move(sender_id))
       , from_message_id_(from_message_id)
       , offset_(offset)
       , limit_(limit)
       , filter_(get_message_search_filter(filter))
-      , top_thread_message_id_(message_thread_id)
-      , saved_messages_topic_id_(saved_messages_topic_id)
       , tag_(std::move(tag))
       , random_id_(0) {
     set_tries(3);
@@ -3280,11 +3281,9 @@ void Requests::on_request(uint64 id, const td_api::getChatMessageCalendar &reque
 void Requests::on_request(uint64 id, td_api::searchChatMessages &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
-  CREATE_REQUEST(
-      SearchChatMessagesRequest, request.chat_id_, std::move(request.query_), std::move(request.sender_id_),
-      request.from_message_id_, request.offset_, request.limit_, std::move(request.filter_), request.message_thread_id_,
-      td_->saved_messages_manager_->get_topic_id(DialogId(request.chat_id_), request.saved_messages_topic_id_),
-      ReactionType());
+  CREATE_REQUEST(SearchChatMessagesRequest, request.chat_id_, std::move(request.topic_id_), std::move(request.query_),
+                 std::move(request.sender_id_), request.from_message_id_, request.offset_, request.limit_,
+                 request.filter_, ReactionType());
 }
 
 void Requests::on_request(uint64 id, td_api::searchSecretMessages &request) {
@@ -3311,9 +3310,11 @@ void Requests::on_request(uint64 id, td_api::searchMessages &request) {
 void Requests::on_request(uint64 id, td_api::searchSavedMessages &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
-  CREATE_REQUEST(SearchChatMessagesRequest, td_->dialog_manager_->get_my_dialog_id().get(), std::move(request.query_),
-                 nullptr, request.from_message_id_, request.offset_, request.limit_, nullptr, 0,
-                 td_->saved_messages_manager_->get_topic_id(DialogId(), request.saved_messages_topic_id_),
+  CREATE_REQUEST(SearchChatMessagesRequest, td_->dialog_manager_->get_my_dialog_id().get(),
+                 request.saved_messages_topic_id_ == 0
+                     ? nullptr
+                     : td_api::make_object<td_api::messageTopicSavedMessages>(request.saved_messages_topic_id_),
+                 std::move(request.query_), nullptr, request.from_message_id_, request.offset_, request.limit_, nullptr,
                  ReactionType(request.tag_));
 }
 
