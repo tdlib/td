@@ -2203,7 +2203,6 @@ factCheck text:formattedText country_code:string = FactCheck;
 //@can_be_saved True, if content of the message can be saved locally or copied using inputMessageForwarded or forwardMessages with copy options
 //@has_timestamped_media True, if media timestamp entities refers to a media in this message as opposed to a media in the replied message
 //@is_channel_post True, if the message is a channel post. All messages to channels are channel posts, all other messages are not channel posts
-//@is_topic_message True, if the message is a forum topic message
 //@contains_unread_mention True, if the message contains an unread mention for the current user
 //@date Point in time (Unix timestamp) when the message was sent; 0 for scheduled messages
 //@edit_date Point in time (Unix timestamp) when the message was last edited; 0 for scheduled messages
@@ -2214,7 +2213,7 @@ factCheck text:formattedText country_code:string = FactCheck;
 //@fact_check Information about fact-check added to the message; may be null if none
 //@reply_to Information about the message or the story this message is replying to; may be null if none
 //@message_thread_id If non-zero, the identifier of the message thread the message belongs to; unique within the chat to which the message belongs
-//@saved_messages_topic_id Identifier of the Saved Messages topic for the message; 0 for messages not from Saved Messages
+//@topic_id Identifier of the topic within the chat to which the message belongs; null if none
 //@self_destruct_type The message's self-destruct type; may be null if none
 //@self_destruct_in Time left before the message self-destruct timer expires, in seconds; 0 if self-destruction isn't scheduled yet
 //@auto_delete_in Time left before the message will be automatically deleted by message_auto_delete_time setting of the chat, in seconds; 0 if never
@@ -2229,7 +2228,7 @@ factCheck text:formattedText country_code:string = FactCheck;
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null if none
-message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool is_from_offline:Bool can_be_saved:Bool has_timestamped_media:Bool is_channel_post:Bool is_topic_message:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo import_info:messageImportInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> fact_check:factCheck reply_to:MessageReplyTo message_thread_id:int53 saved_messages_topic_id:int53 self_destruct_type:MessageSelfDestructType self_destruct_in:double auto_delete_in:double via_bot_user_id:int53 sender_business_bot_user_id:int53 sender_boost_count:int32 paid_message_star_count:int53 author_signature:string media_album_id:int64 effect_id:int64 has_sensitive_content:Bool restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool is_from_offline:Bool can_be_saved:Bool has_timestamped_media:Bool is_channel_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo import_info:messageImportInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> fact_check:factCheck reply_to:MessageReplyTo message_thread_id:int53 topic_id:MessageTopic self_destruct_type:MessageSelfDestructType self_destruct_in:double auto_delete_in:double via_bot_user_id:int53 sender_business_bot_user_id:int53 sender_boost_count:int32 paid_message_star_count:int53 author_signature:string media_album_id:int64 effect_id:int64 has_sensitive_content:Bool restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
 
 
 //@description Contains a list of messages @total_count Approximate total number of messages found @messages List of messages; messages may be null

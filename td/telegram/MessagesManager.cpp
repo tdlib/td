@@ -59,6 +59,7 @@
 #include "td/telegram/MessageReaction.hpp"
 #include "td/telegram/MessageReplyInfo.hpp"
 #include "td/telegram/MessageSender.h"
+#include "td/telegram/MessageTopic.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/MissingInvitee.h"
 #include "td/telegram/net/DcId.h"
@@ -14139,16 +14140,21 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
         reply_info = m->reply_info.get_message_reply_info_object(td_, d->last_read_inbox_message_id);
         CHECK(reply_info != nullptr);
       }
-      is_forum_topic = message->is_topic_message_;
+      if (message->topic_id_ != nullptr && message->topic_id_->get_id() == td_api::messageTopicForum::ID) {
+        if (static_cast<const td_api::messageTopicForum *>(message->topic_id_.get())->forum_topic_id_ !=
+            MessageId(ServerMessageId(1)).get()) {
+          is_forum_topic = true;
+        } else if (info.message_ids[0] == MessageId(ServerMessageId(1)) &&
+                   td_->dialog_manager_->is_forum_channel(info.dialog_id)) {
+          // General forum topic
+          is_forum_topic = true;
+        }
+      }
       messages.push_back(std::move(message));
     }
   }
   if (messages.size() != 1) {
     is_forum_topic = false;
-  } else if (info.message_ids[0] == MessageId(ServerMessageId(1)) &&
-             td_->dialog_manager_->is_forum_channel(info.dialog_id)) {
-    // General forum topic
-    is_forum_topic = true;
   }
   if (reply_info == nullptr && !is_forum_topic) {
     return nullptr;
@@ -19610,10 +19616,10 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       get_message_own_max_media_timestamp(m), m->invert_media, m->disable_web_page_preview);
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
-      nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, can_be_saved, true, m->is_channel_post,
-      m->is_topic_message, false, m->date, edit_date, std::move(forward_info), std::move(import_info),
-      std::move(interaction_info), Auto(), nullptr, std::move(reply_to), 0, 0, nullptr, 0.0, 0.0, via_bot_user_id, 0,
-      m->sender_boost_count, m->paid_message_star_count, m->author_signature, 0, 0,
+      nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, can_be_saved, true, m->is_channel_post, false,
+      m->date, edit_date, std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr,
+      std::move(reply_to), 0, nullptr, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count,
+      m->paid_message_star_count, m->author_signature, 0, 0,
       get_restriction_reason_has_sensitive_content(m->restriction_reasons),
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
@@ -19679,10 +19685,10 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
 
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_business_message_message_object"),
-      nullptr, nullptr, m->is_outgoing, false, m->is_from_offline, can_be_saved, false, false, false, false, m->date,
+      nullptr, nullptr, m->is_outgoing, false, m->is_from_offline, can_be_saved, false, false, false, m->date,
       m->edit_date, std::move(forward_info), std::move(import_info), nullptr, Auto(), nullptr, std::move(reply_to), 0,
-      0, std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, via_business_bot_user_id, m->sender_boost_count,
-      m->paid_message_star_count, string(), m->media_album_id, m->effect_id.get(),
+      nullptr, std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, via_business_bot_user_id,
+      m->sender_boost_count, m->paid_message_star_count, string(), m->media_album_id, m->effect_id.get(),
       get_restriction_reason_has_sensitive_content(m->restriction_reasons),
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
@@ -19763,6 +19769,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
     }
     return nullptr;
   }();
+  auto topic = MessageTopic(td_, dialog_id, m->is_topic_message, m->top_thread_message_id, m->saved_messages_topic_id);
   auto top_thread_message_id = m->top_thread_message_id.get();
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date || is_scheduled ? 0 : m->edit_date;
@@ -19774,10 +19781,9 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_message_object"),
       std::move(sending_state), std::move(scheduling_state), is_outgoing, m->is_pinned, m->is_from_offline,
-      can_be_saved, has_timestamped_media, m->is_channel_post, m->is_topic_message, m->contains_unread_mention, date,
-      edit_date, std::move(forward_info), std::move(import_info), std::move(interaction_info),
-      std::move(unread_reactions), std::move(fact_check), std::move(reply_to), top_thread_message_id,
-      td_->saved_messages_manager_->get_saved_messages_topic_id_object(dialog_id, m->saved_messages_topic_id),
+      can_be_saved, has_timestamped_media, m->is_channel_post, m->contains_unread_mention, date, edit_date,
+      std::move(forward_info), std::move(import_info), std::move(interaction_info), std::move(unread_reactions),
+      std::move(fact_check), std::move(reply_to), top_thread_message_id, topic.get_message_topic_object(td_),
       std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, via_business_bot_user_id,
       m->sender_boost_count, m->paid_message_star_count, m->author_signature, m->media_album_id, m->effect_id.get(),
       get_restriction_reason_has_sensitive_content(m->restriction_reasons),
