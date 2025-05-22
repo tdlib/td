@@ -2090,6 +2090,18 @@ messageInteractionInfo view_count:int32 forward_count:int32 reply_info:messageRe
 unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadReaction;
 
 
+//@class MessageTopic @description Describes a topic of messages in a chat
+
+//@description A topic in a forum supergroup chat @forum_topic_id Unique identifier of the forum topic; all messages in a non-forum supergroup chats belongs to the General topic
+messageTopicForum forum_topic_id:int53 = MessageTopic;
+
+//@description A topic in a feedback chat @feedback_chat_topic_id Unique identifier of the feedback chat topic
+messageTopicFeedbackChat feedback_chat_topic_id:int53 = MessageTopic;
+
+//@description A topic in Saved Messages chat @saved_messages_topic_id Unique identifier of the Saved Messages topic
+messageTopicSavedMessages saved_messages_topic_id:int53 = MessageTopic;
+
+
 //@class MessageEffectType @description Describes type of emoji effect
 
 //@description An effect from an emoji reaction @select_animation Select animation for the effect in TGS format @effect_animation Effect animation for the effect in TGS format

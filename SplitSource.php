@@ -392,6 +392,7 @@ function split_file($file, $chunks, $undo) {
             '[a-z_]*_message_sender' => 'MessageSender',
             'messages_manager[_(-](?![.]get[(][)])|MessagesManager' => 'MessagesManager',
             'MessageThreadInfo' => 'MessageThreadInfo',
+            'MessageTopic' => 'MessageTopic',
             'MessageTtl' => 'MessageTtl',
             'MissingInvitee' => 'MissingInvitee',
             'notification_manager[_(-](?![.]get[(][)])|NotificationManager|notifications[)]' => 'NotificationManager',
