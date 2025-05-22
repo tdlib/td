@@ -3160,26 +3160,24 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::loadFeedbackChatTopics>(chat_id, as_limit(limit)));
     } else if (op == "gfcth") {
       ChatId chat_id;
-      ChatId topic_id;
       MessageId from_message_id;
       int32 offset;
       string limit;
-      get_args(args, chat_id, topic_id, from_message_id, offset, limit);
-      send_request(td_api::make_object<td_api::getFeedbackChatTopicHistory>(chat_id, topic_id, from_message_id, offset,
-                                                                            as_limit(limit)));
+      get_args(args, chat_id, from_message_id, offset, limit);
+      send_request(td_api::make_object<td_api::getFeedbackChatTopicHistory>(chat_id, feedback_chat_topic_id_,
+                                                                            from_message_id, offset, as_limit(limit)));
     } else if (op == "gfctmbd") {
       ChatId chat_id;
-      ChatId topic_id;
       int32 date;
-      get_args(args, chat_id, topic_id, date);
-      send_request(td_api::make_object<td_api::getFeedbackChatTopicMessageByDate>(chat_id, topic_id, date));
+      get_args(args, chat_id, date);
+      send_request(
+          td_api::make_object<td_api::getFeedbackChatTopicMessageByDate>(chat_id, feedback_chat_topic_id_, date));
     } else if (op == "sfctimau") {
       ChatId chat_id;
-      ChatId topic_id;
       bool is_marked_as_unread;
-      get_args(args, chat_id, topic_id, is_marked_as_unread);
-      send_request(
-          td_api::make_object<td_api::setFeedbackChatTopicIsMarkedAsUnread>(chat_id, topic_id, is_marked_as_unread));
+      get_args(args, chat_id, is_marked_as_unread);
+      send_request(td_api::make_object<td_api::setFeedbackChatTopicIsMarkedAsUnread>(chat_id, feedback_chat_topic_id_,
+                                                                                     is_marked_as_unread));
     } else if (op == "lsmt") {
       string limit;
       get_args(args, limit);
@@ -5486,6 +5484,8 @@ class CliClient final : public Actor {
       only_preview_ = as_bool(args);
     } else if (op == "smti") {
       get_args(args, message_thread_id_);
+    } else if (op == "sfcti") {
+      get_args(args, feedback_chat_topic_id_);
     } else if (op == "sbci") {
       business_connection_id_ = args;
     } else if (op == "shs") {
@@ -7854,6 +7854,7 @@ class CliClient final : public Actor {
   int64 message_effect_id_ = 0;
   bool only_preview_ = false;
   MessageThreadId message_thread_id_;
+  ChatId feedback_chat_topic_id_;
   string business_connection_id_;
   bool has_spoiler_ = false;
   int32 message_self_destruct_time_ = 0;
