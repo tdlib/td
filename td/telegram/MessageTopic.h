@@ -24,6 +24,8 @@ class MessageTopic {
   MessageId top_thread_message_id_;  // TODO class ForumId
   SavedMessagesTopicId saved_messages_topic_id_;
 
+  friend bool operator==(const MessageTopic &lhs, const MessageTopic &rhs);
+
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageTopic &message_topic);
 
  public:
@@ -73,5 +75,11 @@ class MessageTopic {
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageTopic &message_topic);
+
+bool operator==(const MessageTopic &lhs, const MessageTopic &rhs);
+
+inline bool operator!=(const MessageTopic &lhs, const MessageTopic &rhs) {
+  return !(lhs == rhs);
+}
 
 }  // namespace td
