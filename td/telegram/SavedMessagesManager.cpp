@@ -265,15 +265,23 @@ class DeleteSavedMessagesByDateQuery final : public Td::ResultHandler {
   explicit DeleteSavedMessagesByDateQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(SavedMessagesTopicId saved_messages_topic_id, int32 min_date, int32 max_date) {
+  void send(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, int32 min_date, int32 max_date) {
     auto saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
     CHECK(saved_input_peer != nullptr);
 
     int32 flags = telegram_api::messages_deleteSavedHistory::MIN_DATE_MASK |
                   telegram_api::messages_deleteSavedHistory::MAX_DATE_MASK;
+    telegram_api::object_ptr<telegram_api::InputPeer> parent_input_peer;
+    if (dialog_id.get_type() == DialogType::Channel) {
+      flags |= telegram_api::messages_deleteSavedHistory::PARENT_PEER_MASK;
+      parent_input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+      if (parent_input_peer == nullptr) {
+        return on_error(Status::Error(400, "Can't access the chat"));
+      }
+    }
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_deleteSavedHistory(flags, nullptr, std::move(saved_input_peer), 0, min_date, max_date)));
+    send_query(G()->net_query_creator().create(telegram_api::messages_deleteSavedHistory(
+        flags, std::move(saved_input_peer), std::move(saved_input_peer), 0, min_date, max_date)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1486,10 +1494,26 @@ void SavedMessagesManager::get_topic_message_by_date(DialogId dialog_id, SavedMe
   td_->create_handler<GetSavedMessageByDateQuery>(std::move(promise))->send(dialog_id, saved_messages_topic_id, date);
 }
 
+void SavedMessagesManager::delete_monoforum_topic_messages_by_date(DialogId dialog_id,
+                                                                   SavedMessagesTopicId saved_messages_topic_id,
+                                                                   int32 min_date, int32 max_date,
+                                                                   Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, get_monoforum_topic_list(dialog_id));
+  delete_topic_messages_by_date(dialog_id, saved_messages_topic_id, min_date, max_date, std::move(promise));
+}
+
 void SavedMessagesManager::delete_saved_messages_topic_messages_by_date(SavedMessagesTopicId saved_messages_topic_id,
                                                                         int32 min_date, int32 max_date,
                                                                         Promise<Unit> &&promise) {
+  delete_topic_messages_by_date(td_->dialog_manager_->get_my_dialog_id(), saved_messages_topic_id, min_date, max_date,
+                                std::move(promise));
+}
+
+void SavedMessagesManager::delete_topic_messages_by_date(DialogId dialog_id,
+                                                         SavedMessagesTopicId saved_messages_topic_id, int32 min_date,
+                                                         int32 max_date, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
   TRY_STATUS_PROMISE(promise, MessagesManager::fix_delete_message_min_max_dates(min_date, max_date));
   if (max_date == 0) {
@@ -1497,12 +1521,11 @@ void SavedMessagesManager::delete_saved_messages_topic_messages_by_date(SavedMes
   }
 
   MessageQueryManager::AffectedHistoryQuery query = [td = td_, saved_messages_topic_id, min_date, max_date](
-                                                        DialogId, Promise<AffectedHistory> &&query_promise) {
+                                                        DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
     td->create_handler<DeleteSavedMessagesByDateQuery>(std::move(query_promise))
-        ->send(saved_messages_topic_id, min_date, max_date);
+        ->send(dialog_id, saved_messages_topic_id, min_date, max_date);
   };
-  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-  td_->message_query_manager_->run_affected_history_query_until_complete(my_dialog_id, std::move(query), true,
+  td_->message_query_manager_->run_affected_history_query_until_complete(dialog_id, std::move(query), true,
                                                                          std::move(promise));
 }
 

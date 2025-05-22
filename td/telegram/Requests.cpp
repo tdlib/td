@@ -3026,6 +3026,15 @@ void Requests::on_request(uint64 id, const td_api::deleteFeedbackChatTopicHistor
       dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::deleteFeedbackChatTopicMessagesByDate &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  DialogId dialog_id(request.chat_id_);
+  td_->saved_messages_manager_->delete_monoforum_topic_messages_by_date(
+      dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), request.min_date_,
+      request.max_date_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::setFeedbackChatTopicIsMarkedAsUnread &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

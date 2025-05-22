@@ -9455,6 +9455,14 @@ getFeedbackChatTopicMessageByDate chat_id:int53 topic_id:int53 date:int32 = Mess
 //@topic_id Identifier of the topic which messages will be deleted
 deleteFeedbackChatTopicHistory chat_id:int53 topic_id:int53 = Ok;
 
+//@description Deletes all messages between the specified dates in a feedback group topic; requires can_post_messages administrator right in the corresponding channel chat.
+//-Messages sent in the last 30 seconds will not be deleted
+//@chat_id Chat identifier of the feedback group
+//@topic_id Identifier of the topic which messages will be deleted
+//@min_date The minimum date of the messages to delete
+//@max_date The maximum date of the messages to delete
+deleteFeedbackChatTopicMessagesByDate chat_id:int53 topic_id:int53 min_date:int32 max_date:int32 = Ok;
+
 //@description Changes the marked as unread state of a feedback chat topic; requires can_post_messages administrator right in the corresponding channel chat
 //@chat_id Chat identifier of the feedback group
 //@topic_id Topic identifier
