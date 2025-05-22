@@ -19542,6 +19542,21 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
   auto can_be_saved = can_save_message(dialog_id, m);
   auto via_bot_user_id =
       td_->user_manager_->get_user_id_object(m->via_bot_user_id, "get_dialog_event_log_message_object via_bot_user_id");
+  auto reply_to = [&]() -> td_api::object_ptr<td_api::MessageReplyTo> {
+    if (!m->replied_message_info.is_empty()) {
+      if (m->replied_message_info.is_external()) {
+        return m->replied_message_info.get_message_reply_to_message_object(td_, dialog_id, m->message_id);
+      }
+      return nullptr;
+    }
+    if (m->reply_to_story_full_id.is_valid()) {
+      return td_api::make_object<td_api::messageReplyToStory>(
+          get_chat_id_object(m->reply_to_story_full_id.get_dialog_id(),
+                             "get_dialog_event_log_message_object messageReplyToStory"),
+          m->reply_to_story_full_id.get_story_id().get());
+    }
+    return nullptr;
+  }();
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   auto reply_markup = get_reply_markup_object(td_->user_manager_.get(), m->reply_markup);
   auto content = get_message_content_object(
@@ -19552,7 +19567,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
       nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, can_be_saved, true, m->is_channel_post,
       m->is_topic_message, false, m->date, edit_date, std::move(forward_info), std::move(import_info),
-      std::move(interaction_info), Auto(), nullptr, nullptr, 0, 0, nullptr, 0.0, 0.0, via_bot_user_id, 0,
+      std::move(interaction_info), Auto(), nullptr, std::move(reply_to), 0, 0, nullptr, 0.0, 0.0, via_bot_user_id, 0,
       m->sender_boost_count, m->paid_message_star_count, m->author_signature, 0, 0,
       get_restriction_reason_has_sensitive_content(m->restriction_reasons),
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
