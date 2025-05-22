@@ -3553,8 +3553,8 @@ class CliClient final : public Actor {
       MessageId message_id;
       string filter;
       get_args(args, chat_id, message_id, filter);
-      send_request(td_api::make_object<td_api::getChatMessagePosition>(
-          chat_id, message_id, as_search_messages_filter(filter), message_thread_id_, get_saved_messages_topic_id()));
+      send_request(td_api::make_object<td_api::getChatMessagePosition>(chat_id, get_message_topic_id(),
+                                                                       as_search_messages_filter(filter), message_id));
     } else if (op == "gup" || op == "gupp") {
       UserId user_id;
       int32 offset;

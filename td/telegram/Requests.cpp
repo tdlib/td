@@ -3447,10 +3447,9 @@ void Requests::on_request(uint64 id, const td_api::getChatMessagePosition &reque
   CHECK_IS_USER();
   CREATE_COUNT_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
-  td_->messages_manager_->get_dialog_message_position(
-      {dialog_id, MessageId(request.message_id_)}, get_message_search_filter(request.filter_),
-      MessageId(request.message_thread_id_),
-      td_->saved_messages_manager_->get_topic_id(dialog_id, request.saved_messages_topic_id_), std::move(promise));
+  td_->messages_manager_->get_dialog_message_position({dialog_id, MessageId(request.message_id_)},
+                                                      get_message_search_filter(request.filter_), request.topic_id_,
+                                                      std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getChatScheduledMessages &request) {

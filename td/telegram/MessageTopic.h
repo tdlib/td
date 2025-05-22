@@ -45,6 +45,18 @@ class MessageTopic {
     return type_ == Type::None;
   }
 
+  bool is_forum() const {
+    return type_ == Type::Forum;
+  }
+
+  bool is_monoforum() const {
+    return type_ == Type::Monoforum;
+  }
+
+  bool is_saved_messages() const {
+    return type_ == Type::SavedMessages;
+  }
+
   MessageId get_forum_topic_id() const {
     if (type_ != Type::Forum) {
       return MessageId();

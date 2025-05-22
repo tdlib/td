@@ -18414,8 +18414,7 @@ void MessagesManager::get_dialog_message_count_from_server(DialogId dialog_id,
 }
 
 void MessagesManager::get_dialog_message_position(MessageFullId message_full_id, MessageSearchFilter filter,
-                                                  MessageId top_thread_message_id,
-                                                  SavedMessagesTopicId saved_messages_topic_id,
+                                                  const td_api::object_ptr<td_api::MessageTopic> &topic_id,
                                                   Promise<int32> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
   TRY_RESULT_PROMISE(promise, d,
@@ -18431,23 +18430,14 @@ void MessagesManager::get_dialog_message_position(MessageFullId message_full_id,
        (get_message_index_mask(d->dialog_id, m) & message_search_filter_index_mask(filter)) == 0)) {
     return promise.set_error(Status::Error(400, "Message can't be found in the filter"));
   }
+  TRY_RESULT_PROMISE(promise, message_topic, MessageTopic::get_message_topic(td_, dialog_id, topic_id));
 
-  if (top_thread_message_id != MessageId()) {
-    if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
-      return promise.set_error(Status::Error(400, "Invalid message thread identifier specified"));
-    }
-    if (dialog_id.get_type() != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
-      return promise.set_error(Status::Error(400, "Can't filter by message thread identifier in the chat"));
-    }
-    if (m->top_thread_message_id != top_thread_message_id ||
-        (m->message_id == top_thread_message_id && !m->is_topic_message)) {
-      return promise.set_error(Status::Error(400, "Message doesn't belong to the message thread"));
-    }
+  if (!message_topic.is_empty() && get_message_topic(dialog_id, m) != message_topic) {
+    return promise.set_error(Status::Error(400, "Message doesn't belong to the topic"));
   }
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
-  td_->message_query_manager_->get_dialog_message_position_from_server(
-      dialog_id, message_id, filter, top_thread_message_id, saved_messages_topic_id, std::move(promise));
+  td_->message_query_manager_->get_dialog_message_position_from_server(dialog_id, message_topic, filter, message_id,
+                                                                       std::move(promise));
 }
 
 void MessagesManager::preload_newer_messages(const Dialog *d, MessageId max_message_id) {

@@ -16,6 +16,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageThreadInfo.h"
+#include "td/telegram/MessageTopic.h"
 #include "td/telegram/MessageViewer.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/SavedMessagesTopicId.h"
@@ -103,9 +104,9 @@ class MessageQueryManager final : public Actor {
                                vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
                                Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
-  void get_dialog_message_position_from_server(DialogId dialog_id, MessageId message_id, MessageSearchFilter filter,
-                                               MessageId top_thread_message_id,
-                                               SavedMessagesTopicId saved_messages_topic_id, Promise<int32> &&promise);
+  void get_dialog_message_position_from_server(DialogId dialog_id, MessageTopic message_topic,
+                                               MessageSearchFilter filter, MessageId message_id,
+                                               Promise<int32> &&promise);
 
   void get_message_read_date_from_server(MessageFullId message_full_id,
                                          Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise);
