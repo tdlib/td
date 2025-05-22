@@ -86,6 +86,9 @@ class SavedMessagesManager final : public Actor {
                                         int32 offset, int32 limit,
                                         Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
+  void delete_monoforum_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                      Promise<Unit> &&promise);
+
   void delete_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id, Promise<Unit> &&promise);
 
   void get_monoforum_topic_message_by_date(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, int32 date,
@@ -264,6 +267,8 @@ class SavedMessagesManager final : public Actor {
 
   void get_topic_message_by_date(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, int32 date,
                                  Promise<td_api::object_ptr<td_api::message>> &&promise);
+
+  void delete_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, Promise<Unit> &&promise);
 
   td_api::object_ptr<td_api::savedMessagesTopic> get_saved_messages_topic_object(const SavedMessagesTopic *topic) const;
 

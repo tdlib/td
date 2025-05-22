@@ -227,13 +227,21 @@ class DeleteSavedHistoryQuery final : public Td::ResultHandler {
   explicit DeleteSavedHistoryQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(SavedMessagesTopicId saved_messages_topic_id) {
+  void send(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) {
     auto saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
     CHECK(saved_input_peer != nullptr);
 
     int32 flags = 0;
+    telegram_api::object_ptr<telegram_api::InputPeer> parent_input_peer;
+    if (dialog_id.get_type() == DialogType::Channel) {
+      flags |= telegram_api::messages_deleteSavedHistory::PARENT_PEER_MASK;
+      parent_input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+      if (parent_input_peer == nullptr) {
+        return on_error(Status::Error(400, "Can't access the chat"));
+      }
+    }
     send_query(G()->net_query_creator().create(telegram_api::messages_deleteSavedHistory(
-        flags, nullptr, std::move(saved_input_peer), std::numeric_limits<int32>::max(), 0, 0)));
+        flags, std::move(parent_input_peer), std::move(saved_input_peer), std::numeric_limits<int32>::max(), 0, 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1427,16 +1435,28 @@ void SavedMessagesManager::on_get_saved_messages_topic_history(
   promise.set_value(td_api::make_object<td_api::messages>(info.total_count, std::move(messages)));
 }
 
+void SavedMessagesManager::delete_monoforum_topic_history(DialogId dialog_id,
+                                                          SavedMessagesTopicId saved_messages_topic_id,
+                                                          Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, get_monoforum_topic_list(dialog_id));
+  delete_topic_history(dialog_id, saved_messages_topic_id, std::move(promise));
+}
+
 void SavedMessagesManager::delete_saved_messages_topic_history(SavedMessagesTopicId saved_messages_topic_id,
                                                                Promise<Unit> &&promise) {
+  delete_topic_history(td_->dialog_manager_->get_my_dialog_id(), saved_messages_topic_id, std::move(promise));
+}
+
+void SavedMessagesManager::delete_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                                Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
   MessageQueryManager::AffectedHistoryQuery query = [td = td_, saved_messages_topic_id](
-                                                        DialogId, Promise<AffectedHistory> &&query_promise) {
-    td->create_handler<DeleteSavedHistoryQuery>(std::move(query_promise))->send(saved_messages_topic_id);
+                                                        DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
+    td->create_handler<DeleteSavedHistoryQuery>(std::move(query_promise))->send(dialog_id, saved_messages_topic_id);
   };
-  auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-  td_->message_query_manager_->run_affected_history_query_until_complete(my_dialog_id, std::move(query), true,
+  td_->message_query_manager_->run_affected_history_query_until_complete(dialog_id, std::move(query), true,
                                                                          std::move(promise));
 }
 

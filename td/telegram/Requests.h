@@ -363,6 +363,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getFeedbackChatTopicMessageByDate &request);
 
+  void on_request(uint64 id, const td_api::deleteFeedbackChatTopicHistory &request);
+
   void on_request(uint64 id, const td_api::setFeedbackChatTopicIsMarkedAsUnread &request);
 
   void on_request(uint64 id, const td_api::loadSavedMessagesTopics &request);

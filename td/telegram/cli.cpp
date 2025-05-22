@@ -3185,6 +3185,10 @@ class CliClient final : public Actor {
       get_args(args, chat_id, date);
       send_request(
           td_api::make_object<td_api::getFeedbackChatTopicMessageByDate>(chat_id, feedback_chat_topic_id_, date));
+    } else if (op == "dfcth") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::deleteFeedbackChatTopicHistory>(chat_id, feedback_chat_topic_id_));
     } else if (op == "sfctimau") {
       ChatId chat_id;
       bool is_marked_as_unread;

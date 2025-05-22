@@ -9449,6 +9449,11 @@ getFeedbackChatTopicHistory chat_id:int53 topic_id:int53 from_message_id:int53 o
 //@date Point in time (Unix timestamp) relative to which to search for messages
 getFeedbackChatTopicMessageByDate chat_id:int53 topic_id:int53 date:int32 = Message;
 
+//@description Deletes all messages in a feedback group topic
+//@chat_id Chat identifier of the feedback group
+//@topic_id Identifier of the topic which messages will be deleted
+deleteFeedbackChatTopicHistory chat_id:int53 topic_id:int53 = Ok;
+
 //@description Changes the marked as unread state of a feedback chat topic
 //@chat_id Chat identifier of the feedback group
 //@topic_id Topic identifier
