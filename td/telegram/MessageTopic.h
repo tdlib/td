@@ -29,6 +29,9 @@ class MessageTopic {
  public:
   MessageTopic() = default;
 
+  MessageTopic(Td *td, DialogId dialog_id, bool is_topic_message, MessageId top_thread_message_id,
+               SavedMessagesTopicId saved_messages_topic_id);
+
   Result<MessageTopic> get_message_topic(Td *td, DialogId dialog_id,
                                          const td_api::object_ptr<td_api::MessageTopic> &topic);
 

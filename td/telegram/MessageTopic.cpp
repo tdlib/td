@@ -6,11 +6,50 @@
 //
 #include "td/telegram/MessageTopic.h"
 
+#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/SavedMessagesManager.h"
 #include "td/telegram/Td.h"
 
 namespace td {
+
+MessageTopic::MessageTopic(Td *td, DialogId dialog_id, bool is_topic_message, MessageId top_thread_message_id,
+                           SavedMessagesTopicId saved_messages_topic_id) {
+  if (dialog_id == td->dialog_manager_->get_my_dialog_id()) {
+    if (saved_messages_topic_id.is_valid()) {
+      type_ = Type::SavedMessages;
+      dialog_id_ = dialog_id;
+      saved_messages_topic_id_ = saved_messages_topic_id;
+    }
+    return;
+  }
+  if (dialog_id.get_type() != DialogType::Channel) {
+    return;
+  }
+  auto channel_id = dialog_id.get_channel_id();
+  if (td->chat_manager_->is_monoforum_channel(channel_id)) {
+    if (saved_messages_topic_id.is_valid()) {
+      type_ = Type::Monoforum;
+      dialog_id_ = dialog_id;
+      saved_messages_topic_id_ = saved_messages_topic_id;
+    }
+    return;
+  }
+  if (td->chat_manager_->is_megagroup_channel(channel_id)) {
+    if (is_topic_message) {
+      if (top_thread_message_id.is_valid()) {
+        type_ = Type::Forum;
+        dialog_id_ = dialog_id;
+        top_thread_message_id_ = top_thread_message_id;
+      }
+      return;
+    }
+    type_ = Type::Forum;
+    dialog_id_ = dialog_id;
+    top_thread_message_id_ = MessageId(ServerMessageId(1));
+    return;
+  }
+}
 
 Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
                                                      const td_api::object_ptr<td_api::MessageTopic> &topic) {
@@ -26,15 +65,14 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
     case td_api::messageTopicForum::ID: {
       auto top_thread_message_id =
           MessageId(static_cast<const td_api::messageTopicForum *>(topic.get())->forum_topic_id_);
-      if (!td->dialog_manager_->is_forum_channel(dialog_id)) {
-        if (top_thread_message_id == MessageId(ServerMessageId(1))) {
-          return MessageTopic();
-        }
+      if (dialog_id.get_type() != DialogType::Channel ||
+          !td->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
         return Status::Error(400, "Chat is not a forum");
       }
       if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
         return Status::Error(400, "Invalid topic identifier specified");
       }
+      // TODO TRY_STATUS(forum_id.is_valid_in(td, dialog_id));
       result.type_ = Type::Forum;
       result.top_thread_message_id_ = top_thread_message_id;
       break;
