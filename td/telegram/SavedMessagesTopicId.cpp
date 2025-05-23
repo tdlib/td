@@ -7,6 +7,7 @@
 #include "td/telegram/SavedMessagesTopicId.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageForwardInfo.h"
@@ -70,7 +71,10 @@ td_api::object_ptr<td_api::MessageSender> SavedMessagesTopicId::get_feedback_mes
 }
 
 bool SavedMessagesTopicId::have_input_peer(Td *td) const {
-  if (dialog_id_.get_type() == DialogType::SecretChat ||
+  if (dialog_id_.get_type() == DialogType::SecretChat) {
+    return false;
+  }
+  if (!td->auth_manager_->is_bot() &&
       !td->dialog_manager_->have_dialog_info_force(dialog_id_, "SavedMessagesTopicId::have_input_peer")) {
     return false;
   }
