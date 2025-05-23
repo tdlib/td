@@ -15,6 +15,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
@@ -244,7 +245,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_requestWebView::THEME_PARAMS_MASK;
     }
 
-    auto reply_to = input_reply_to_.get_input_reply_to(td_, top_thread_message_id);
+    auto reply_to = input_reply_to_.get_input_reply_to(td_, top_thread_message_id, SavedMessagesTopicId() /*TODO*/);
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_requestWebView::REPLY_TO_MASK;
     }
@@ -301,7 +302,7 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
     }
 
     int32 flags = 0;
-    auto reply_to = input_reply_to.get_input_reply_to(td_, top_thread_message_id);
+    auto reply_to = input_reply_to.get_input_reply_to(td_, top_thread_message_id, SavedMessagesTopicId() /*TODO*/);
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_prolongWebView::REPLY_TO_MASK;
     }

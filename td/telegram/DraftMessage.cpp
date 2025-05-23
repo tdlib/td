@@ -49,7 +49,8 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     bool invert_media = false;
     if (draft_message != nullptr) {
       CHECK(!draft_message->is_local());
-      input_reply_to = draft_message->message_input_reply_to_.get_input_reply_to(td_, MessageId() /*TODO*/);
+      input_reply_to = draft_message->message_input_reply_to_.get_input_reply_to(td_, MessageId() /*TODO*/,
+                                                                                 SavedMessagesTopicId() /*TODO*/);
       if (input_reply_to != nullptr) {
         flags |= telegram_api::messages_saveDraft::REPLY_TO_MASK;
       }

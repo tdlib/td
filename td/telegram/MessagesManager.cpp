@@ -1179,9 +1179,9 @@ class SendMessageQuery final : public Td::ResultHandler {
 
  public:
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
-            const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
-            MessageEffectId effect_id, int64 paid_message_star_count,
-            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
+            const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id,
+            SavedMessagesTopicId saved_messages_topic_id, int32 schedule_date, MessageEffectId effect_id,
+            int64 paid_message_star_count, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text, bool is_copy,
             int64 random_id, NetQueryRef *send_query_ref) {
     random_id_ = random_id;
@@ -1192,7 +1192,7 @@ class SendMessageQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Have no write access to the chat"));
     }
 
-    auto reply_to = input_reply_to.get_input_reply_to(td_, top_thread_message_id);
+    auto reply_to = input_reply_to.get_input_reply_to(td_, top_thread_message_id, saved_messages_topic_id);
 
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMessage::REPLY_TO_MASK;
@@ -1326,15 +1326,16 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
 
  public:
   NetQueryRef send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
-                   const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
-                   int64 paid_message_star_count, int64 random_id, int64 query_id, const string &result_id) {
+                   const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id,
+                   SavedMessagesTopicId saved_messages_topic_id, int32 schedule_date, int64 paid_message_star_count,
+                   int64 random_id, int64 query_id, const string &result_id) {
     random_id_ = random_id;
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
 
-    auto reply_to = input_reply_to.get_input_reply_to(td_, top_thread_message_id);
+    auto reply_to = input_reply_to.get_input_reply_to(td_, top_thread_message_id, saved_messages_topic_id);
 
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendInlineBotResult::REPLY_TO_MASK;
@@ -1386,8 +1387,9 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
 
  public:
   void send(int32 flags, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
-            const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id, int32 schedule_date,
-            MessageEffectId effect_id, vector<FileUploadId> file_upload_ids, vector<FileId> cover_file_ids,
+            const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id,
+            SavedMessagesTopicId saved_messages_topic_id, int32 schedule_date, MessageEffectId effect_id,
+            vector<FileUploadId> file_upload_ids, vector<FileId> cover_file_ids,
             vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media, bool is_copy,
             int64 paid_message_star_count) {
     for (auto &single_media : input_single_media) {
@@ -1406,7 +1408,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Have no write access to the chat"));
     }
 
-    auto reply_to = input_reply_to.get_input_reply_to(td_, top_thread_message_id);
+    auto reply_to = input_reply_to.get_input_reply_to(td_, top_thread_message_id, saved_messages_topic_id);
 
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMultiMedia::REPLY_TO_MASK;
@@ -1528,8 +1530,9 @@ class SendMediaQuery final : public Td::ResultHandler {
   void send(vector<FileUploadId> file_upload_ids, vector<FileUploadId> thumbnail_file_upload_ids,
             vector<FileId> cover_file_ids, int32 flags, DialogId dialog_id,
             tl_object_ptr<telegram_api::InputPeer> as_input_peer, const MessageInputReplyTo &input_reply_to,
-            MessageId top_thread_message_id, int32 schedule_date, MessageEffectId effect_id,
-            int64 paid_message_star_count, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
+            MessageId top_thread_message_id, SavedMessagesTopicId saved_messages_topic_id, int32 schedule_date,
+            MessageEffectId effect_id, int64 paid_message_star_count,
+            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &text,
             tl_object_ptr<telegram_api::InputMedia> &&input_media, MessageContentType content_type, bool is_copy,
             int64 random_id, NetQueryRef *send_query_ref) {
@@ -1548,7 +1551,7 @@ class SendMediaQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Have no write access to the chat"));
     }
 
-    auto reply_to = input_reply_to.get_input_reply_to(td_, top_thread_message_id);
+    auto reply_to = input_reply_to.get_input_reply_to(td_, top_thread_message_id, saved_messages_topic_id);
 
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMedia::REPLY_TO_MASK;
@@ -21287,8 +21290,8 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
                              m->file_upload_ids, m->thumbnail_file_upload_ids,
                              get_message_content_cover_any_file_ids(m->content.get()), get_message_flags(m), dialog_id,
                              get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-                             m->initial_top_thread_message_id, get_message_schedule_date(m), m->effect_id,
-                             m->paid_message_star_count,
+                             m->initial_top_thread_message_id, get_message_monoforum_topic_id(m),
+                             get_message_schedule_date(m), m->effect_id, m->paid_message_star_count,
                              get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
                              get_input_message_entities(td_->user_manager_.get(), caption, "on_message_media_uploaded"),
                              caption == nullptr ? "" : caption->text, std::move(input_media), m->content->get_type(),
@@ -21625,6 +21628,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   tl_object_ptr<telegram_api::InputPeer> as_input_peer;
   const MessageInputReplyTo *input_reply_to = nullptr;
   MessageId top_thread_message_id;
+  SavedMessagesTopicId monoforum_topic_id;
   int32 flags = 0;
   int32 schedule_date = 0;
   MessageEffectId effect_id;
@@ -21640,6 +21644,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
 
     input_reply_to = get_message_input_reply_to(m);
     top_thread_message_id = m->initial_top_thread_message_id;
+    monoforum_topic_id = get_message_monoforum_topic_id(m);
     flags = get_message_flags(m);
     schedule_date = get_message_schedule_date(m);
     effect_id = m->effect_id;
@@ -21710,7 +21715,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   }
   CHECK(input_reply_to != nullptr);
   td_->create_handler<SendMultiMediaQuery>()->send(flags, dialog_id, std::move(as_input_peer), *input_reply_to,
-                                                   top_thread_message_id, schedule_date, effect_id,
+                                                   top_thread_message_id, monoforum_topic_id, schedule_date, effect_id,
                                                    std::move(file_upload_ids), std::move(cover_file_ids),
                                                    std::move(input_single_media), is_copy, paid_message_star_count);
 }
@@ -21769,8 +21774,8 @@ void MessagesManager::do_send_paid_media_group(DialogId dialog_id, MessageId mes
   td_->create_handler<SendMediaQuery>()->send(
       m->file_upload_ids, m->thumbnail_file_upload_ids, get_message_content_cover_any_file_ids(m->content.get()),
       get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-      m->initial_top_thread_message_id, get_message_schedule_date(m), m->effect_id, m->paid_message_star_count,
-      get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
+      m->initial_top_thread_message_id, get_message_monoforum_topic_id(m), get_message_schedule_date(m), m->effect_id,
+      m->paid_message_star_count, get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
       get_input_message_entities(td_->user_manager_.get(), caption, "do_send_paid_media_group"),
       caption == nullptr ? "" : caption->text, std::move(input_media), m->content->get_type(), m->is_copy, random_id,
       &m->send_query_ref);
@@ -21806,15 +21811,16 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
     if (input_media == nullptr) {
       td_->create_handler<SendMessageQuery>()->send(
           get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-          m->initial_top_thread_message_id, get_message_schedule_date(m), m->effect_id, m->paid_message_star_count,
-          get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
+          m->initial_top_thread_message_id, get_message_monoforum_topic_id(m), get_message_schedule_date(m),
+          m->effect_id, m->paid_message_star_count, get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
           get_input_message_entities(td_->user_manager_.get(), message_text, "on_text_message_ready_to_send"),
           message_text->text, m->is_copy, random_id, &m->send_query_ref);
     } else {
       td_->create_handler<SendMediaQuery>()->send(
           {}, {}, {}, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
-          *get_message_input_reply_to(m), m->initial_top_thread_message_id, get_message_schedule_date(m), m->effect_id,
-          m->paid_message_star_count, get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
+          *get_message_input_reply_to(m), m->initial_top_thread_message_id, get_message_monoforum_topic_id(m),
+          get_message_schedule_date(m), m->effect_id, m->paid_message_star_count,
+          get_input_reply_markup(td_->user_manager_.get(), m->reply_markup),
           get_input_message_entities(td_->user_manager_.get(), message_text, "on_text_message_ready_to_send"),
           message_text->text, std::move(input_media), MessageContentType::Text, m->is_copy, random_id,
           &m->send_query_ref);
@@ -22201,8 +22207,8 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, Me
   }
   m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(
       flags, dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-      m->initial_top_thread_message_id, get_message_schedule_date(m), m->paid_message_star_count, random_id, query_id,
-      result_id);
+      m->initial_top_thread_message_id, get_message_monoforum_topic_id(m), get_message_schedule_date(m),
+      m->paid_message_star_count, random_id, query_id, result_id);
 }
 
 bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, bool is_editing,
@@ -22456,6 +22462,13 @@ DialogId MessagesManager::get_message_original_sender(const Message *m) {
 DialogId MessagesManager::get_message_sender(const Message *m) {
   CHECK(m != nullptr);
   return m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id);
+}
+
+SavedMessagesTopicId MessagesManager::get_message_monoforum_topic_id(const Message *m) {
+  if (m->saved_messages_topic_id != SavedMessagesTopicId() && m->sender_dialog_id != DialogId()) {
+    return m->saved_messages_topic_id;
+  }
+  return SavedMessagesTopicId();
 }
 
 MessageTopic MessagesManager::get_message_topic(DialogId dialog_id, const Message *m) const {

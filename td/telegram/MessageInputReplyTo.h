@@ -10,6 +10,7 @@
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageQuote.h"
+#include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -83,8 +84,8 @@ class MessageInputReplyTo {
 
   void add_dependencies(Dependencies &dependencies) const;
 
-  telegram_api::object_ptr<telegram_api::InputReplyTo> get_input_reply_to(Td *td,
-                                                                          MessageId top_thread_message_id) const;
+  telegram_api::object_ptr<telegram_api::InputReplyTo> get_input_reply_to(
+      Td *td, MessageId top_thread_message_id, SavedMessagesTopicId saved_messages_topic_id) const;
 
   // only for draft messages
   td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to_object(Td *td) const;

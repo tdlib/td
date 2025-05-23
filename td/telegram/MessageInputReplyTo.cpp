@@ -75,7 +75,7 @@ void MessageInputReplyTo::add_dependencies(Dependencies &dependencies) const {
 }
 
 telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_input_reply_to(
-    Td *td, MessageId top_thread_message_id) const {
+    Td *td, MessageId top_thread_message_id, SavedMessagesTopicId saved_messages_topic_id) const {
   if (story_full_id_.is_valid()) {
     auto dialog_id = story_full_id_.get_dialog_id();
     auto input_peer = td->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
@@ -89,6 +89,11 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   auto reply_to_message_id = message_id_;
   if (reply_to_message_id == MessageId()) {
     if (top_thread_message_id == MessageId()) {
+      if (saved_messages_topic_id.is_valid()) {
+        auto input_peer = saved_messages_topic_id.get_input_peer(td);
+        CHECK(input_peer != nullptr);
+        return telegram_api::make_object<telegram_api::inputReplyToMonoForum>(std::move(input_peer));
+      }
       return nullptr;
     }
     reply_to_message_id = top_thread_message_id;
@@ -98,6 +103,12 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   if (top_thread_message_id != MessageId()) {
     CHECK(top_thread_message_id.is_server());
     flags |= telegram_api::inputReplyToMessage::TOP_MSG_ID_MASK;
+  }
+  telegram_api::object_ptr<telegram_api::InputPeer> monoforum_input_peer;
+  if (saved_messages_topic_id.is_valid()) {
+    monoforum_input_peer = saved_messages_topic_id.get_input_peer(td);
+    CHECK(monoforum_input_peer != nullptr);
+    flags |= telegram_api::inputReplyToMessage::MONOFORUM_PEER_ID_MASK;
   }
   telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
   if (dialog_id_ != DialogId()) {
@@ -110,7 +121,7 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   }
   auto result = telegram_api::make_object<telegram_api::inputReplyToMessage>(
       flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
-      std::move(input_peer), string(), Auto(), 0, nullptr);
+      std::move(input_peer), string(), Auto(), 0, std::move(monoforum_input_peer));
   quote_.update_input_reply_to_message(td, result.get());
   return std::move(result);
 }
