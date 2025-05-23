@@ -535,6 +535,8 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(TopicL
   }
   if (from_server) {
     result->is_received_from_server_ = true;
+  } else if (!is_saved_messages) {
+    get_monoforum_topic(topic_list->dialog_id_, saved_messages_topic_id, Auto());
   }
   return result.get();
 }
