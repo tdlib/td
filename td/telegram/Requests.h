@@ -359,6 +359,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::loadFeedbackChatTopics &request);
 
+  void on_request(uint64 id, const td_api::getFeedbackChatTopic &request);
+
   void on_request(uint64 id, const td_api::getFeedbackChatTopicHistory &request);
 
   void on_request(uint64 id, const td_api::getFeedbackChatTopicMessageByDate &request);

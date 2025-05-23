@@ -74,9 +74,13 @@ class SavedMessagesManager final : public Actor {
 
   void load_monoforum_topics(DialogId dialog_id, int32 limit, Promise<Unit> &&promise);
 
-  void on_get_saved_messages_topics(DialogId dialog_id, bool is_pinned, int32 limit,
+  void on_get_saved_messages_topics(DialogId dialog_id, SavedMessagesTopicId expected_saved_messages_topic_id,
+                                    bool is_pinned, int32 limit,
                                     telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
                                     Promise<Unit> &&promise);
+
+  void get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                           Promise<td_api::object_ptr<td_api::feedbackChatTopic>> &&promise);
 
   void get_monoforum_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                    MessageId from_message_id, int32 offset, int32 limit,
@@ -227,6 +231,9 @@ class SavedMessagesManager final : public Actor {
       Td *td, telegram_api::object_ptr<telegram_api::SavedDialog> &&dialog_ptr, bool is_saved_messages);
 
   void on_get_saved_dialogs(TopicList *topic_list, Result<Unit> &&result);
+
+  void on_get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                              Promise<td_api::object_ptr<td_api::feedbackChatTopic>> &&promise);
 
   void on_get_saved_messages_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                            MessageId from_message_id, Result<MessagesInfo> &&r_info,

@@ -9434,6 +9434,11 @@ getSuitablePersonalChats = Chats;
 //@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
 loadFeedbackChatTopics chat_id:int53 limit:int32 = Ok;
 
+//@description Returns information about a feedback group topic; requires can_post_messages administrator right in the corresponding channel chat
+//@chat_id Chat identifier of the feedback group
+//@topic_id Identifier of the topic to get
+getFeedbackChatTopic chat_id:int53 topic_id:int53 = FeedbackChatTopic;
+
 //@description Returns messages in a feedback group topic; requires can_post_messages administrator right in the corresponding channel chat.
 //-The messages are returned in reverse chronological order (i.e., in order of decreasing message_id)
 //@chat_id Chat identifier of the feedback group

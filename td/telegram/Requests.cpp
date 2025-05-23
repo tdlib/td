@@ -3000,6 +3000,14 @@ void Requests::on_request(uint64 id, const td_api::loadFeedbackChatTopics &reque
   td_->saved_messages_manager_->load_monoforum_topics(DialogId(request.chat_id_), request.limit_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getFeedbackChatTopic &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  DialogId dialog_id(request.chat_id_);
+  td_->saved_messages_manager_->get_monoforum_topic(dialog_id, SavedMessagesTopicId(DialogId(request.topic_id_)),
+                                                    std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getFeedbackChatTopicHistory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
