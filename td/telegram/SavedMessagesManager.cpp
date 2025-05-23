@@ -1471,26 +1471,40 @@ void SavedMessagesManager::get_monoforum_topic(DialogId dialog_id, SavedMessages
     return promise.set_value(get_feedback_chat_topic_object(topic_list, topic));
   }
 
-  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, saved_messages_topic_id,
-                                               promise = std::move(promise)](Result<Unit> &&result) mutable {
-    if (result.is_error()) {
-      return promise.set_error(result.move_as_error());
-    }
-    send_closure(actor_id, &SavedMessagesManager::on_get_monoforum_topic, dialog_id, saved_messages_topic_id,
-                 std::move(promise));
-  });
-  td_->create_handler<GetSavedDialogsByIdQuery>(std::move(query_promise))->send(dialog_id, saved_messages_topic_id);
+  auto &queries = topic_list->get_topic_queries_[saved_messages_topic_id];
+  queries.push_back(std::move(promise));
+  if (queries.size() == 1u) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), dialog_id, saved_messages_topic_id](Result<Unit> &&result) mutable {
+          send_closure(actor_id, &SavedMessagesManager::on_get_monoforum_topic, dialog_id, saved_messages_topic_id,
+                       std::move(result));
+        });
+    td_->create_handler<GetSavedDialogsByIdQuery>(std::move(query_promise))->send(dialog_id, saved_messages_topic_id);
+  }
 }
 
 void SavedMessagesManager::on_get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                                  Promise<td_api::object_ptr<td_api::feedbackChatTopic>> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
-  TRY_RESULT_PROMISE(promise, topic_list, get_monoforum_topic_list(dialog_id));
+                                                  Result<Unit> &&result) {
+  G()->ignore_result_if_closing(result);
+
+  auto *topic_list = get_topic_list(dialog_id);
+  CHECK(topic_list != nullptr);
+  auto it = topic_list->get_topic_queries_.find(saved_messages_topic_id);
+  CHECK(it != topic_list->get_topic_queries_.end());
+  auto promises = std::move(it->second);
+  topic_list->get_topic_queries_.erase(it);
+
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
-  if (topic == nullptr) {
-    return promise.set_error(Status::Error(500, "Topic not found"));
+  if (result.is_ok() && topic == nullptr) {
+    result = Status::Error(500, "Topic not found");
   }
-  return promise.set_value(get_feedback_chat_topic_object(topic_list, topic));
+  if (result.is_error()) {
+    return fail_promises(promises, result.move_as_error());
+  }
+
+  for (auto &promise : promises) {
+    promise.set_value(get_feedback_chat_topic_object(topic_list, topic));
+  }
 }
 
 void SavedMessagesManager::get_monoforum_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,

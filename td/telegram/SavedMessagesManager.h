@@ -208,6 +208,9 @@ class SavedMessagesManager final : public Actor {
     MessageId offset_message_id_;
 
     FlatHashMap<SavedMessagesTopicId, unique_ptr<SavedMessagesTopic>, SavedMessagesTopicIdHash> topics_;
+    FlatHashMap<SavedMessagesTopicId, vector<Promise<td_api::object_ptr<td_api::feedbackChatTopic>>>,
+                SavedMessagesTopicIdHash>
+        get_topic_queries_;
   };
 
   void tear_down() final;
@@ -233,8 +236,7 @@ class SavedMessagesManager final : public Actor {
 
   void on_get_saved_dialogs(TopicList *topic_list, Result<Unit> &&result);
 
-  void on_get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                              Promise<td_api::object_ptr<td_api::feedbackChatTopic>> &&promise);
+  void on_get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, Result<Unit> &&result);
 
   void on_get_saved_messages_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                            MessageId from_message_id, Result<MessagesInfo> &&r_info,
