@@ -1941,6 +1941,16 @@ Promise<string> Requests::create_http_url_request_promise(uint64 id) {
   });
 }
 
+Promise<int32> Requests::create_count_request_promise(uint64 id) {
+  return PromiseCreator::lambda([actor_id = td_actor_, id](Result<int32> result) mutable {
+    if (result.is_error()) {
+      send_closure(actor_id, &Td::send_error, id, result.move_as_error());
+    } else {
+      send_closure(actor_id, &Td::send_result, id, td_api::make_object<td_api::count>(result.move_as_ok()));
+    }
+  });
+}
+
 #define CLEAN_INPUT_STRING(field_name)                                  \
   if (!clean_input_string(field_name)) {                                \
     return send_error_raw(id, 400, "Strings must be encoded in UTF-8"); \
@@ -1962,6 +1972,7 @@ Promise<string> Requests::create_http_url_request_promise(uint64 id) {
   auto slot_id = td_->request_actors_.create(ActorOwn<>(), Td::RequestActorIdType); \
   td_->inc_request_actor_refcnt();                                                  \
   *td_->request_actors_.get(slot_id) = create_actor<name>(#name, td_->actor_shared(td_, slot_id), id);
+
 #define CREATE_REQUEST(name, ...)                                                   \
   auto slot_id = td_->request_actors_.create(ActorOwn<>(), Td::RequestActorIdType); \
   td_->inc_request_actor_refcnt();                                                  \
@@ -1987,6 +1998,11 @@ Promise<string> Requests::create_http_url_request_promise(uint64 id) {
   static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::httpUrl>>::value, \
                 "");                                                                                                   \
   auto promise = create_http_url_request_promise(id)
+
+#define CREATE_COUNT_REQUEST_PROMISE()                                                                               \
+  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::count>>::value, \
+                "");                                                                                                 \
+  auto promise = create_count_request_promise(id)
 
 void Requests::on_request(uint64 id, const td_api::setTdlibParameters &request) {
   send_error_raw(id, 400, "Unexpected setTdlibParameters");
@@ -3398,33 +3414,19 @@ void Requests::on_request(uint64 id, const td_api::getChatSparseMessagePositions
 
 void Requests::on_request(uint64 id, const td_api::getChatMessageCount &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<int32> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::count>(result.move_as_ok()));
-    }
-  });
+  CREATE_COUNT_REQUEST_PROMISE();
   td_->messages_manager_->get_dialog_message_count(
       DialogId(request.chat_id_), td_->saved_messages_manager_->get_topic_id(request.saved_messages_topic_id_),
-      get_message_search_filter(request.filter_), request.return_local_, std::move(query_promise));
+      get_message_search_filter(request.filter_), request.return_local_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getChatMessagePosition &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<int32> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::count>(result.move_as_ok()));
-    }
-  });
+  CREATE_COUNT_REQUEST_PROMISE();
   td_->messages_manager_->get_dialog_message_position(
       {DialogId(request.chat_id_), MessageId(request.message_id_)}, get_message_search_filter(request.filter_),
       MessageId(request.message_thread_id_),
-      td_->saved_messages_manager_->get_topic_id(request.saved_messages_topic_id_), std::move(query_promise));
+      td_->saved_messages_manager_->get_topic_id(request.saved_messages_topic_id_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getChatScheduledMessages &request) {
@@ -4774,15 +4776,8 @@ void Requests::on_request(uint64 id, const td_api::getChatFolderChatsToLeave &re
 
 void Requests::on_request(uint64 id, td_api::getChatFolderChatCount &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<int32> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(td_api::make_object<td_api::count>(result.move_as_ok()));
-    }
-  });
-  td_->messages_manager_->get_dialog_filter_dialog_count(std::move(request.folder_), std::move(query_promise));
+  CREATE_COUNT_REQUEST_PROMISE();
+  td_->messages_manager_->get_dialog_filter_dialog_count(std::move(request.folder_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::reorderChatFolders &request) {
@@ -8276,5 +8271,6 @@ void Requests::on_request(uint64 id, td_api::testCallVectorStringObject &request
 #undef CREATE_OK_REQUEST_PROMISE
 #undef CREATE_TEXT_REQUEST_PROMISE
 #undef CREATE_HTTP_URL_REQUEST_PROMISE
+#undef CREATE_COUNT_REQUEST_PROMISE
 
 }  // namespace td
