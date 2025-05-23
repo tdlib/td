@@ -946,6 +946,10 @@ void SavedMessagesManager::on_topic_changed(TopicList *topic_list, SavedMessages
   update_saved_messages_topic_sent_total_count(topic_list, source);
 }
 
+bool SavedMessagesManager::is_admined_monoforum_dialog(DialogId dialog_id) const {
+  return check_monoforum_dialog_id(dialog_id).is_ok();
+}
+
 Status SavedMessagesManager::check_monoforum_dialog_id(DialogId dialog_id) const {
   TRY_STATUS(
       td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_monoforum_topic_list"));
@@ -973,7 +977,7 @@ const SavedMessagesManager::TopicList *SavedMessagesManager::get_topic_list(Dial
   if (dialog_id == DialogId() || dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     return &topic_list_;
   }
-  if (check_monoforum_dialog_id(dialog_id).is_error()) {
+  if (!is_admined_monoforum_dialog(dialog_id)) {
     return nullptr;
   }
   auto it = monoforum_topic_lists_.find(dialog_id);

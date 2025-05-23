@@ -19885,7 +19885,12 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   bool is_channel_post = td_->dialog_manager_->is_broadcast_channel(dialog_id);
   if (!is_channel_post ||
       (!is_scheduled && td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id()))) {
-    if (send_as_dialog_id.is_valid()) {
+    if (options.monoforum_topic_id.is_valid()) {
+      CHECK(dialog_id.get_type() == DialogType::Channel);
+      auto channel_id = td_->chat_manager_->get_monoforum_channel_id(dialog_id.get_channel_id());
+      CHECK(channel_id.is_valid());
+      m->sender_dialog_id = DialogId(channel_id);
+    } else if (send_as_dialog_id.is_valid()) {
       // for resend_messages
       if (send_as_dialog_id.get_type() == DialogType::User) {
         m->sender_user_id = send_as_dialog_id.get_user_id();
@@ -20003,8 +20008,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   if (dialog_id == DialogId(my_id)) {
     m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get(), m->real_forward_from_dialog_id);
   } else {
-    // TODO init saved_messages_topic_id for outgoing monoforum messages
-    // m->saved_messages_topic_id = ...
+    m->saved_messages_topic_id = options.monoforum_topic_id;
   }
 
   return message;
@@ -20034,6 +20038,9 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   }
   if (options.update_stickersets_order && !td_->auth_manager_->is_bot()) {
     move_message_content_sticker_set_to_top(td_, result->content.get());
+  }
+  if (options.monoforum_topic_id.is_valid()) {
+    force_create_dialog(result->sender_dialog_id, "get_message_to_send");
   }
   if (result->paid_message_star_count > 0) {
     td_->star_manager_->add_pending_owned_star_count(-result->paid_message_star_count, false);
@@ -20813,6 +20820,17 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
   result.only_preview = options->only_preview_;
   TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
   result.sending_id = options->sending_id_;
+  if (options->feedback_chat_topic_id_ != 0) {
+    if (td_->saved_messages_manager_->is_admined_monoforum_dialog(dialog_id)) {
+      result.monoforum_topic_id =
+          td_->saved_messages_manager_->get_topic_id(dialog_id, options->feedback_chat_topic_id_);
+      if (!result.monoforum_topic_id.is_valid()) {
+        return Status::Error(400, "Invalid feedback chat topic specified");
+      }
+    }
+  } else if (td_->saved_messages_manager_->is_admined_monoforum_dialog(dialog_id)) {
+    return Status::Error(400, "Feedback chat topic must be specified");
+  }
 
   if (result.schedule_date != 0) {
     auto dialog_type = dialog_id.get_type();
@@ -23908,8 +23926,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
-  MessageSendOptions message_send_options(false, false, false, false, false, false, 0, sending_id, MessageEffectId(),
-                                          0);
+  MessageSendOptions message_send_options(false, false, false, false, false, false, 0, sending_id, MessageEffectId(), 0,
+                                          SavedMessagesTopicId());
   FlatHashMap<MessageId, MessageId, MessageIdHash> original_message_id_to_new_message_id;
   vector<td_api::object_ptr<td_api::message>> result;
   vector<Message *> sent_messages;
@@ -24133,7 +24151,8 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     MessageSendOptions options(
         message->disable_notification, message->from_background, message->update_stickersets_order, message->noforwards,
         message->allow_paid, false, get_message_schedule_date(message.get()), message->sending_id, message->effect_id,
-        required_paid_message_star_count == 0 ? message->paid_message_star_count : paid_message_star_count);
+        required_paid_message_star_count == 0 ? message->paid_message_star_count : paid_message_star_count,
+        dialog_id.get_type() == DialogType::Channel ? message->saved_messages_topic_id : SavedMessagesTopicId());
     Message *m = get_message_to_send(d, message->top_thread_message_id, std::move(message->input_reply_to), options,
                                      std::move(new_contents[i]), message->invert_media, &need_update_dialog_pos, false,
                                      nullptr, DialogId(), message->is_copy,

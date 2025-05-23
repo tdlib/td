@@ -1488,11 +1488,13 @@ class MessagesManager final : public Actor {
     int32 sending_id = 0;
     MessageEffectId effect_id;
     int64 paid_message_star_count = 0;
+    SavedMessagesTopicId monoforum_topic_id;
 
     MessageSendOptions() = default;
     MessageSendOptions(bool disable_notification, bool from_background, bool update_stickersets_order,
                        bool protect_content, bool allow_paid, bool only_preview, int32 schedule_date, int32 sending_id,
-                       MessageEffectId effect_id, int64 paid_message_star_count)
+                       MessageEffectId effect_id, int64 paid_message_star_count,
+                       SavedMessagesTopicId monoforum_topic_id)
         : disable_notification(disable_notification)
         , from_background(from_background)
         , update_stickersets_order(update_stickersets_order)
@@ -1502,7 +1504,8 @@ class MessagesManager final : public Actor {
         , schedule_date(schedule_date)
         , sending_id(sending_id)
         , effect_id(effect_id)
-        , paid_message_star_count(paid_message_star_count) {
+        , paid_message_star_count(paid_message_star_count)
+        , monoforum_topic_id(monoforum_topic_id) {
     }
   };
 

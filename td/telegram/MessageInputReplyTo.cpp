@@ -22,6 +22,7 @@ namespace td {
 
 MessageInputReplyTo::~MessageInputReplyTo() = default;
 
+// only for draft messages
 MessageInputReplyTo::MessageInputReplyTo(Td *td,
                                          telegram_api::object_ptr<telegram_api::InputReplyTo> &&input_reply_to) {
   if (input_reply_to == nullptr) {

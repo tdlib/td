@@ -2609,9 +2609,10 @@ class CliClient final : public Actor {
     }
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat_id, message_thread_id_, get_input_message_reply_to(),
-        td_api::make_object<td_api::messageSendOptions>(
-            disable_notification, from_background, false, use_test_dc_, paid_message_star_count_, false,
-            as_message_scheduling_state(schedule_date_), message_effect_id_, Random::fast(1, 1000), only_preview_),
+        td_api::make_object<td_api::messageSendOptions>(feedback_chat_topic_id_, disable_notification, from_background,
+                                                        false, use_test_dc_, paid_message_star_count_, false,
+                                                        as_message_scheduling_state(schedule_date_), message_effect_id_,
+                                                        Random::fast(1, 1000), only_preview_),
         nullptr, std::move(input_message_content)));
     if (id != 0) {
       query_id_to_send_message_info_[id].start_time = Time::now();
@@ -2619,9 +2620,9 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
-    return td_api::make_object<td_api::messageSendOptions>(false, false, false, use_test_dc_, paid_message_star_count_,
-                                                           true, as_message_scheduling_state(schedule_date_),
-                                                           message_effect_id_, Random::fast(1, 1000), only_preview_);
+    return td_api::make_object<td_api::messageSendOptions>(
+        feedback_chat_topic_id_, false, false, false, use_test_dc_, paid_message_star_count_, true,
+        as_message_scheduling_state(schedule_date_), message_effect_id_, Random::fast(1, 1000), only_preview_);
   }
 
   void send_get_background_url(td_api::object_ptr<td_api::BackgroundType> &&background_type) {

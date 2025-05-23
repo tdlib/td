@@ -51,6 +51,7 @@ class MessageInputReplyTo {
   explicit MessageInputReplyTo(StoryFullId story_full_id) : story_full_id_(story_full_id) {
   }
 
+  // only for draft messages
   MessageInputReplyTo(Td *td, telegram_api::object_ptr<telegram_api::InputReplyTo> &&input_reply_to);
 
   bool is_empty() const {
@@ -85,6 +86,7 @@ class MessageInputReplyTo {
   telegram_api::object_ptr<telegram_api::InputReplyTo> get_input_reply_to(Td *td,
                                                                           MessageId top_thread_message_id) const;
 
+  // only for draft messages
   td_api::object_ptr<td_api::InputMessageReplyTo> get_input_message_reply_to_object(Td *td) const;
 
   void set_message_id(MessageId new_message_id) {
