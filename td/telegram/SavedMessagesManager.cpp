@@ -477,7 +477,7 @@ int64 SavedMessagesManager::get_saved_messages_topic_id_object(DialogId dialog_i
     return 0;
   }
 
-  add_topic(topic_list, saved_messages_topic_id);
+  add_topic(topic_list, saved_messages_topic_id, false);
 
   return saved_messages_topic_id.get_unique_id();
 }
@@ -512,8 +512,9 @@ const SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
   return it->second.get();
 }
 
-SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(
-    TopicList *topic_list, SavedMessagesTopicId saved_messages_topic_id) {
+SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(TopicList *topic_list,
+                                                                          SavedMessagesTopicId saved_messages_topic_id,
+                                                                          bool from_server) {
   CHECK(saved_messages_topic_id.is_valid());
   auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   bool is_saved_messages = topic_list->dialog_id_ == DialogId();
@@ -532,6 +533,9 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(
     }
     send_update_saved_messages_topic(topic_list, result.get(), "add_topic");
   }
+  if (from_server) {
+    result->is_received_from_server_ = true;
+  }
   return result.get();
 }
 
@@ -541,7 +545,7 @@ void SavedMessagesManager::set_topic_last_message_id(DialogId dialog_id, SavedMe
   if (topic_list == nullptr) {
     return;
   }
-  auto *topic = add_topic(topic_list, saved_messages_topic_id);
+  auto *topic = add_topic(topic_list, saved_messages_topic_id, false);
   do_set_topic_last_message_id(topic, last_message_id, last_message_date);
   on_topic_changed(topic_list, topic, "set_topic_last_message_id");
 }
@@ -1213,7 +1217,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
       continue;
     }
 
-    auto *topic = add_topic(topic_list, saved_messages_topic_id);
+    auto *topic = add_topic(topic_list, saved_messages_topic_id, true);
     if (!td_->auth_manager_->is_bot()) {
       if (topic->last_message_id_ == MessageId() && last_topic_message_id.is_valid()) {
         do_set_topic_last_message_id(topic, last_topic_message_id, message_date);
@@ -1461,7 +1465,7 @@ void SavedMessagesManager::get_monoforum_topic(DialogId dialog_id, SavedMessages
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
-  if (topic != nullptr) {
+  if (topic != nullptr && topic->is_received_from_server_) {
     return promise.set_value(get_feedback_chat_topic_object(topic_list, topic));
   }
 
@@ -1581,7 +1585,7 @@ void SavedMessagesManager::on_get_saved_messages_topic_history(
         td_->messages_manager_->get_message_object(full_message_id, "on_get_saved_messages_topic_history"));
   }
   if (from_message_id == MessageId::max()) {
-    auto *topic = add_topic(topic_list, saved_messages_topic_id);
+    auto *topic = add_topic(topic_list, saved_messages_topic_id, false);
     if (info.messages.empty()) {
       do_set_topic_last_message_id(topic, MessageId(), 0);
     } else {

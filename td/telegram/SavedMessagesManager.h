@@ -150,6 +150,7 @@ class SavedMessagesManager final : public Actor {
     int64 pinned_order_ = 0;
     int64 private_order_ = 0;
     bool is_marked_as_unread_ = false;
+    bool is_received_from_server_ = false;
     bool is_changed_ = false;
   };
 
@@ -219,7 +220,7 @@ class SavedMessagesManager final : public Actor {
 
   static const SavedMessagesTopic *get_topic(const TopicList *topic_list, SavedMessagesTopicId saved_messages_topic_id);
 
-  SavedMessagesTopic *add_topic(TopicList *topic_list, SavedMessagesTopicId saved_messages_topic_id);
+  SavedMessagesTopic *add_topic(TopicList *topic_list, SavedMessagesTopicId saved_messages_topic_id, bool from_server);
 
   void get_pinned_saved_dialogs(int32 limit, Promise<Unit> &&promise);
 
