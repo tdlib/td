@@ -23777,7 +23777,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     if (original_reply_to_message_id.is_valid()) {
       auto it = forwarded_message_id_to_new_message_id.find(original_reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
-        input_reply_to = forwarded_message->replied_message_info.get_input_reply_to();
+        // keep replies in forwarded messages
+        input_reply_to = forwarded_message->replied_message_info.get_message_input_reply_to();
         input_reply_to.set_message_id(it->second);
       }
     }

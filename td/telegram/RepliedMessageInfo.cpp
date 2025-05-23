@@ -315,7 +315,7 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
                                                             std::move(origin), origin_date_, std::move(content));
 }
 
-MessageInputReplyTo RepliedMessageInfo::get_input_reply_to() const {
+MessageInputReplyTo RepliedMessageInfo::get_message_input_reply_to() const {
   CHECK(!is_external());
   if (message_id_.is_valid() || message_id_.is_valid_scheduled()) {
     return MessageInputReplyTo(message_id_, dialog_id_, quote_.clone(true));
