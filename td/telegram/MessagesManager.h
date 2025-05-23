@@ -1782,10 +1782,10 @@ class MessagesManager final : public Actor {
                                             Promise<Unit> promise);
 
   void send_forward_message_query(int32 flags, DialogId to_dialog_id, const MessageId top_thread_message_id,
-                                  DialogId from_dialog_id, tl_object_ptr<telegram_api::InputPeer> as_input_peer,
-                                  vector<MessageId> message_ids, vector<int64> random_ids, int32 schedule_date,
-                                  int32 new_video_start_timestamp, int64 paid_message_star_count,
-                                  Promise<Unit> promise);
+                                  const SavedMessagesTopicId saved_messages_topic_id, DialogId from_dialog_id,
+                                  tl_object_ptr<telegram_api::InputPeer> as_input_peer, vector<MessageId> message_ids,
+                                  vector<int64> random_ids, int32 schedule_date, int32 new_video_start_timestamp,
+                                  int64 paid_message_star_count, Promise<Unit> promise);
 
   Result<td_api::object_ptr<td_api::message>> forward_message(DialogId to_dialog_id, MessageId top_thread_message_id,
                                                               DialogId from_dialog_id, MessageId message_id,

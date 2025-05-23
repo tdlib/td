@@ -1897,7 +1897,8 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
   explicit ForwardMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(int32 flags, DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id,
+  void send(int32 flags, DialogId to_dialog_id, MessageId top_thread_message_id,
+            SavedMessagesTopicId saved_messages_topic_id, DialogId from_dialog_id,
             tl_object_ptr<telegram_api::InputPeer> as_input_peer, const vector<MessageId> &message_ids,
             vector<int64> &&random_ids, int32 schedule_date, int32 new_video_start_timestamp,
             int64 paid_message_star_count) {
@@ -1918,6 +1919,16 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat to forward messages from"));
     }
 
+    telegram_api::object_ptr<telegram_api::InputReplyTo> input_reply_to;
+    if (saved_messages_topic_id.is_valid()) {
+      auto monoforum_input_peer = saved_messages_topic_id.get_input_peer(td_);
+      if (monoforum_input_peer == nullptr) {
+        return on_error(Status::Error(400, "Can't access the topic to forward messages to"));
+      }
+      input_reply_to = telegram_api::make_object<telegram_api::inputReplyToMonoForum>(std::move(monoforum_input_peer));
+      flags |= telegram_api::messages_forwardMessages::REPLY_TO_MASK;
+    }
+
     if (as_input_peer != nullptr) {
       flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_SEND_AS;
     }
@@ -1932,8 +1943,8 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
         telegram_api::messages_forwardMessages(
             flags, false, false, false, false, false, false, false, std::move(from_input_peer),
             MessageId::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer),
-            top_thread_message_id.get_server_message_id().get(), nullptr, schedule_date, std::move(as_input_peer),
-            nullptr, new_video_start_timestamp, paid_message_star_count),
+            top_thread_message_id.get_server_message_id().get(), std::move(input_reply_to), schedule_date,
+            std::move(as_input_peer), nullptr, new_video_start_timestamp, paid_message_star_count),
         {{to_dialog_id, MessageContentType::Text}, {to_dialog_id, MessageContentType::Photo}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_ids = random_ids_](Result<Unit> result) {
@@ -23381,21 +23392,22 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   vector<int64> random_ids =
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
   send_closure_later(actor_id(this), &MessagesManager::send_forward_message_query, flags, to_dialog_id,
-                     messages[0]->initial_top_thread_message_id, from_dialog_id, std::move(as_input_peer), message_ids,
-                     std::move(random_ids), schedule_date, messages[0]->new_video_start_timestamp,
+                     messages[0]->initial_top_thread_message_id, get_message_monoforum_topic_id(messages[0]),
+                     from_dialog_id, std::move(as_input_peer), message_ids, std::move(random_ids), schedule_date,
+                     messages[0]->new_video_start_timestamp,
                      messages[0]->paid_message_star_count * static_cast<int32>(messages.size()),
                      get_erase_log_event_promise(log_event_id));
 }
 
-void MessagesManager::send_forward_message_query(int32 flags, DialogId to_dialog_id,
-                                                 const MessageId top_thread_message_id, DialogId from_dialog_id,
-                                                 tl_object_ptr<telegram_api::InputPeer> as_input_peer,
-                                                 vector<MessageId> message_ids, vector<int64> random_ids,
-                                                 int32 schedule_date, int32 new_video_start_timestamp,
-                                                 int64 paid_message_star_count, Promise<Unit> promise) {
+void MessagesManager::send_forward_message_query(
+    int32 flags, DialogId to_dialog_id, const MessageId top_thread_message_id,
+    const SavedMessagesTopicId saved_messages_topic_id, DialogId from_dialog_id,
+    tl_object_ptr<telegram_api::InputPeer> as_input_peer, vector<MessageId> message_ids, vector<int64> random_ids,
+    int32 schedule_date, int32 new_video_start_timestamp, int64 paid_message_star_count, Promise<Unit> promise) {
   td_->create_handler<ForwardMessagesQuery>(std::move(promise))
-      ->send(flags, to_dialog_id, top_thread_message_id, from_dialog_id, std::move(as_input_peer), message_ids,
-             std::move(random_ids), schedule_date, new_video_start_timestamp, paid_message_star_count);
+      ->send(flags, to_dialog_id, top_thread_message_id, saved_messages_topic_id, from_dialog_id,
+             std::move(as_input_peer), message_ids, std::move(random_ids), schedule_date, new_video_start_timestamp,
+             paid_message_star_count);
 }
 
 Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(

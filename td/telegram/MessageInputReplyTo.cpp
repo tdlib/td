@@ -91,8 +91,9 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
     if (top_thread_message_id == MessageId()) {
       if (saved_messages_topic_id.is_valid()) {
         auto input_peer = saved_messages_topic_id.get_input_peer(td);
-        CHECK(input_peer != nullptr);
-        return telegram_api::make_object<telegram_api::inputReplyToMonoForum>(std::move(input_peer));
+        if (input_peer != nullptr) {
+          return telegram_api::make_object<telegram_api::inputReplyToMonoForum>(std::move(input_peer));
+        }
       }
       return nullptr;
     }
@@ -107,8 +108,9 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   telegram_api::object_ptr<telegram_api::InputPeer> monoforum_input_peer;
   if (saved_messages_topic_id.is_valid()) {
     monoforum_input_peer = saved_messages_topic_id.get_input_peer(td);
-    CHECK(monoforum_input_peer != nullptr);
-    flags |= telegram_api::inputReplyToMessage::MONOFORUM_PEER_ID_MASK;
+    if (monoforum_input_peer != nullptr) {
+      flags |= telegram_api::inputReplyToMessage::MONOFORUM_PEER_ID_MASK;
+    }
   }
   telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
   if (dialog_id_ != DialogId()) {
