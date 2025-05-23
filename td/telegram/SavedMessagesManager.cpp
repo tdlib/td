@@ -535,7 +535,7 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(TopicL
   }
   if (from_server) {
     result->is_received_from_server_ = true;
-  } else if (!is_saved_messages) {
+  } else if (!result->is_received_from_server_ && !is_saved_messages) {
     get_monoforum_topic(topic_list->dialog_id_, saved_messages_topic_id, Auto());
   }
   return result.get();
@@ -1309,8 +1309,8 @@ td_api::object_ptr<td_api::feedbackChatTopic> SavedMessagesManager::get_feedback
   CHECK(topic->dialog_id_ != DialogId());
   td_api::object_ptr<td_api::message> last_message_object;
   if (topic->last_message_id_ != MessageId()) {
-    last_message_object = td_->messages_manager_->get_message_object(
-        {td_->dialog_manager_->get_my_dialog_id(), topic->last_message_id_}, "get_feedback_chat_topic_object");
+    last_message_object = td_->messages_manager_->get_message_object({topic->dialog_id_, topic->last_message_id_},
+                                                                     "get_feedback_chat_topic_object");
   }
   return td_api::make_object<td_api::feedbackChatTopic>(
       td_->dialog_manager_->get_chat_id_object(topic->dialog_id_, "feedbackChatTopic"),
@@ -1468,6 +1468,9 @@ void SavedMessagesManager::get_monoforum_topic(DialogId dialog_id, SavedMessages
 
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
   if (topic != nullptr && topic->is_received_from_server_) {
+    if (!promise) {
+      return promise.set_value(nullptr);
+    }
     return promise.set_value(get_feedback_chat_topic_object(topic_list, topic));
   }
 
@@ -1503,6 +1506,9 @@ void SavedMessagesManager::on_get_monoforum_topic(DialogId dialog_id, SavedMessa
   }
 
   for (auto &promise : promises) {
+    if (!promise) {
+      return promise.set_value(nullptr);
+    }
     promise.set_value(get_feedback_chat_topic_object(topic_list, topic));
   }
 }
