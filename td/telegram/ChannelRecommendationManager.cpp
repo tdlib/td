@@ -297,7 +297,7 @@ void ChannelRecommendationManager::on_get_recommended_channels(
 
 void ChannelRecommendationManager::get_channel_recommendations(
     DialogId dialog_id, bool return_local, Promise<td_api::object_ptr<td_api::chats>> &&chats_promise,
-    Promise<td_api::object_ptr<td_api::count>> &&count_promise) {
+    Promise<int32> &&count_promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_channel_recommendations")) {
     if (chats_promise) {
       chats_promise.set_error(Status::Error(400, "Chat not found"));
@@ -312,7 +312,7 @@ void ChannelRecommendationManager::get_channel_recommendations(
       chats_promise.set_value(td_api::make_object<td_api::chats>());
     }
     if (count_promise) {
-      count_promise.set_value(td_api::make_object<td_api::count>(0));
+      count_promise.set_value(0);
     }
     return;
   }
@@ -323,7 +323,7 @@ void ChannelRecommendationManager::get_channel_recommendations(
       chats_promise.set_value(td_api::make_object<td_api::chats>());
     }
     if (count_promise) {
-      count_promise.set_value(td_api::make_object<td_api::count>(0));
+      count_promise.set_value(0);
     }
     return;
   }
@@ -337,7 +337,8 @@ void ChannelRecommendationManager::get_channel_recommendations(
                                                                        "get_channel_recommendations"));
       }
       if (count_promise) {
-        count_promise.set_value(td_api::make_object<td_api::count>(it->second.total_count_));
+        auto count = it->second.total_count_;
+        count_promise.set_value(std::move(count));
       }
       if (next_reload_time > Time::now()) {
         return;
@@ -363,8 +364,7 @@ string ChannelRecommendationManager::get_channel_recommendations_database_key(Ch
 
 void ChannelRecommendationManager::load_channel_recommendations(
     ChannelId channel_id, bool use_database, bool return_local,
-    Promise<td_api::object_ptr<td_api::chats>> &&chats_promise,
-    Promise<td_api::object_ptr<td_api::count>> &&count_promise) {
+    Promise<td_api::object_ptr<td_api::chats>> &&chats_promise, Promise<int32> &&count_promise) {
   if (count_promise) {
     get_channel_recommendation_count_queries_[return_local][channel_id].push_back(std::move(count_promise));
   }
@@ -411,7 +411,8 @@ void ChannelRecommendationManager::finish_load_channel_recommendations_queries(C
       CHECK(!promises.empty());
       get_channel_recommendation_count_queries_[return_local].erase(it);
       for (auto &promise : promises) {
-        promise.set_value(td_api::make_object<td_api::count>(total_count));
+        auto count = total_count;
+        promise.set_value(std::move(count));
       }
     }
   }
@@ -469,7 +470,7 @@ void ChannelRecommendationManager::reload_channel_recommendations(ChannelId chan
     CHECK(!promises.empty());
     get_channel_recommendation_count_queries_[1].erase(it);
     for (auto &promise : promises) {
-      promise.set_value(td_api::make_object<td_api::count>(-1));
+      promise.set_value(-1);
     }
   }
   auto query_promise =

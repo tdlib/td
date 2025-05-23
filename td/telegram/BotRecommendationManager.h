@@ -27,7 +27,7 @@ class BotRecommendationManager final : public Actor {
 
   void get_bot_recommendations(UserId bot_user_id, bool return_local,
                                Promise<td_api::object_ptr<td_api::users>> &&users_promise,
-                               Promise<td_api::object_ptr<td_api::count>> &&count_promise);
+                               Promise<int32> &&count_promise);
 
   void open_bot_recommended_bot(UserId bot_user_id, UserId opened_bot_user_id, Promise<Unit> &&promise);
 
@@ -56,7 +56,7 @@ class BotRecommendationManager final : public Actor {
 
   void load_bot_recommendations(UserId bot_user_id, bool use_database, bool return_local,
                                 Promise<td_api::object_ptr<td_api::users>> &&users_promise,
-                                Promise<td_api::object_ptr<td_api::count>> &&count_promise);
+                                Promise<int32> &&count_promise);
 
   void fail_load_bot_recommendations_queries(UserId bot_user_id, Status &&error);
 
@@ -74,8 +74,7 @@ class BotRecommendationManager final : public Actor {
 
   FlatHashMap<UserId, RecommendedBots, UserIdHash> bot_recommended_bots_;
   FlatHashMap<UserId, vector<Promise<td_api::object_ptr<td_api::users>>>, UserIdHash> get_bot_recommendations_queries_;
-  FlatHashMap<UserId, vector<Promise<td_api::object_ptr<td_api::count>>>, UserIdHash>
-      get_bot_recommendation_count_queries_[2];
+  FlatHashMap<UserId, vector<Promise<int32>>, UserIdHash> get_bot_recommendation_count_queries_[2];
 };
 
 }  // namespace td

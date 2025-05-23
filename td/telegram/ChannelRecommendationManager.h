@@ -32,7 +32,7 @@ class ChannelRecommendationManager final : public Actor {
 
   void get_channel_recommendations(DialogId dialog_id, bool return_local,
                                    Promise<td_api::object_ptr<td_api::chats>> &&chats_promise,
-                                   Promise<td_api::object_ptr<td_api::count>> &&count_promise);
+                                   Promise<int32> &&count_promise);
 
   void open_channel_recommended_channel(DialogId dialog_id, DialogId opened_dialog_id, Promise<Unit> &&promise);
 
@@ -77,7 +77,7 @@ class ChannelRecommendationManager final : public Actor {
 
   void load_channel_recommendations(ChannelId channel_id, bool use_database, bool return_local,
                                     Promise<td_api::object_ptr<td_api::chats>> &&chats_promise,
-                                    Promise<td_api::object_ptr<td_api::count>> &&count_promise);
+                                    Promise<int32> &&count_promise);
 
   void fail_load_channel_recommendations_queries(ChannelId channel_id, Status &&error);
 
@@ -94,8 +94,7 @@ class ChannelRecommendationManager final : public Actor {
   FlatHashMap<ChannelId, RecommendedDialogs, ChannelIdHash> channel_recommended_dialogs_;
   FlatHashMap<ChannelId, vector<Promise<td_api::object_ptr<td_api::chats>>>, ChannelIdHash>
       get_channel_recommendations_queries_;
-  FlatHashMap<ChannelId, vector<Promise<td_api::object_ptr<td_api::count>>>, ChannelIdHash>
-      get_channel_recommendation_count_queries_[2];
+  FlatHashMap<ChannelId, vector<Promise<int32>>, ChannelIdHash> get_channel_recommendation_count_queries_[2];
 
   RecommendedDialogs recommended_channels_;
   vector<Promise<td_api::object_ptr<td_api::chats>>> get_recommended_channels_queries_;

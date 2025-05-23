@@ -2940,7 +2940,7 @@ void Requests::on_request(uint64 id, const td_api::getChatSimilarChats &request)
 
 void Requests::on_request(uint64 id, const td_api::getChatSimilarChatCount &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
+  CREATE_COUNT_REQUEST_PROMISE();
   td_->channel_recommendation_manager_->get_channel_recommendations(DialogId(request.chat_id_), request.return_local_,
                                                                     Auto(), std::move(promise));
 }
@@ -2961,7 +2961,7 @@ void Requests::on_request(uint64 id, const td_api::getBotSimilarBots &request) {
 
 void Requests::on_request(uint64 id, const td_api::getBotSimilarBotCount &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
+  CREATE_COUNT_REQUEST_PROMISE();
   td_->bot_recommendation_manager_->get_bot_recommendations(UserId(request.bot_user_id_), request.return_local_, Auto(),
                                                             std::move(promise));
 }

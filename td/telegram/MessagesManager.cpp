@@ -18337,10 +18337,10 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id, SavedMessages
   if (saved_messages_topic_id.is_valid()) {
     if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
         filter == MessageSearchFilter::FailedToSend) {
-      return promise.set_value(static_cast<int32>(0));
+      return promise.set_value(0);
     }
     if (return_local) {
-      return promise.set_value(static_cast<int32>(-1));
+      return promise.set_value(-1);
     }
   } else {
     auto dialog_type = dialog_id.get_type();
