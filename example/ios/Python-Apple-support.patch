@@ -1,7 +1,5 @@
-diff --git a/Makefile b/Makefile
-index a1d13e9..8efcf20 100644
---- a/Makefile
-+++ b/Makefile
+--- Makefile	2025-05-24 00:19:56
++++ Makefile2	2025-05-24 00:49:46
 @@ -18,8 +18,13 @@
  # - OpenSSL         - build OpenSSL for all platforms
  # - OpenSSL-macOS   - build OpenSSL for macOS
@@ -16,7 +14,7 @@ index a1d13e9..8efcf20 100644
  # - libFFI          - build libFFI for all platforms (except macOS)
  # - libFFI-iOS      - build libFFI for iOS
  # - libFFI-tvOS     - build libFFI for tvOS
-@@ -50,7 +55,7 @@ XZ_VERSION=5.4.2
+@@ -50,7 +55,7 @@
  # Preference is to use OpenSSL 3; however, Cryptography 3.4.8 (and
  # probably some other packages as well) only works with 1.1.1, so
  # we need to preserve the ability to build the older OpenSSL (for now...)
@@ -25,7 +23,7 @@ index a1d13e9..8efcf20 100644
  # OPENSSL_VERSION_NUMBER=1.1.1
  # OPENSSL_REVISION=q
  # OPENSSL_VERSION=$(OPENSSL_VERSION_NUMBER)$(OPENSSL_REVISION)
-@@ -59,7 +64,7 @@ LIBFFI_VERSION=3.4.2
+@@ -59,7 +64,7 @@
  
  # Supported OS and dependencies
  DEPENDENCIES=BZip2 XZ OpenSSL libFFI
@@ -34,7 +32,7 @@ index a1d13e9..8efcf20 100644
  
  CURL_FLAGS=--disable --fail --location --create-dirs --progress-bar
  
-@@ -69,22 +74,41 @@ VERSION_MIN-macOS=10.15
+@@ -69,22 +74,41 @@
  CFLAGS-macOS=-mmacosx-version-min=$(VERSION_MIN-macOS)
  
  # iOS targets
@@ -79,18 +77,19 @@ index a1d13e9..8efcf20 100644
  # The architecture of the machine doing the build
  HOST_ARCH=$(shell uname -m)
  HOST_PYTHON=install/macOS/macosx/python-$(PYTHON_VERSION)
-@@ -212,6 +236,10 @@ ARCH-$(target)=$$(subst .,,$$(suffix $(target)))
- 
+@@ -213,11 +237,7 @@
  ifeq ($(os),macOS)
  TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-darwin
-+else ifeq ($(os),visionOS)
-+TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-xros
-+else ifeq ($(os),visionOS-simulator)
-+TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-xros-simulator
  else
- 	ifeq ($$(findstring simulator,$$(SDK-$(target))),)
+-	ifeq ($$(findstring simulator,$$(SDK-$(target))),)
  TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))
-@@ -662,7 +690,7 @@ BZIP2_FATLIB-$(sdk)=$$(BZIP2_MERGE-$(sdk))/lib/libbz2.a
+-	else
+-TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))-simulator
+-	endif
+ endif
+ 
+ SDK_ROOT-$(target)=$$(shell xcrun --sdk $$(SDK-$(target)) --show-sdk-path)
+@@ -662,7 +682,7 @@
  XZ_MERGE-$(sdk)=$(PROJECT_DIR)/merge/$(os)/$(sdk)/xz-$(XZ_VERSION)
  XZ_FATLIB-$(sdk)=$$(XZ_MERGE-$(sdk))/lib/liblzma.a
  
@@ -99,7 +98,7 @@ index a1d13e9..8efcf20 100644
  OPENSSL_FATINCLUDE-$(sdk)=$$(OPENSSL_MERGE-$(sdk))/include
  OPENSSL_SSL_FATLIB-$(sdk)=$$(OPENSSL_MERGE-$(sdk))/lib/libssl.a
  OPENSSL_CRYPTO_FATLIB-$(sdk)=$$(OPENSSL_MERGE-$(sdk))/lib/libcrypto.a
-@@ -716,14 +744,14 @@ $$(OPENSSL_SSL_FATLIB-$(sdk)): $$(foreach target,$$(SDK_TARGETS-$(sdk)),$$(OPENS
+@@ -716,14 +736,14 @@
  	mkdir -p $$(OPENSSL_MERGE-$(sdk))/lib
  	lipo -create -output $$@ \
  		$$(foreach target,$$(SDK_TARGETS-$(sdk)),$$(OPENSSL_SSL_LIB-$$(target))) \
