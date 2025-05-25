@@ -449,7 +449,7 @@ class UserManager final : public Actor {
 
   void on_deleted_contacts(const vector<UserId> &deleted_contact_user_ids);
 
-  int32 get_imported_contact_count(Promise<Unit> &&promise);
+  void get_imported_contact_count(Promise<int32> &&promise);
 
   std::pair<vector<UserId>, vector<int32>> change_imported_contacts(vector<Contact> &contacts, int64 &random_id,
                                                                     Promise<Unit> &&promise);

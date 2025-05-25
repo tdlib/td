@@ -1199,22 +1199,6 @@ class RemoveContactsRequest final : public RequestActor<> {
   }
 };
 
-class GetImportedContactCountRequest final : public RequestActor<> {
-  int32 imported_contact_count_ = 0;
-
-  void do_run(Promise<Unit> &&promise) final {
-    imported_contact_count_ = td_->user_manager_->get_imported_contact_count(std::move(promise));
-  }
-
-  void do_send_result() final {
-    send_result(td_api::make_object<td_api::count>(imported_contact_count_));
-  }
-
- public:
-  GetImportedContactCountRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
-  }
-};
-
 class ChangeImportedContactsRequest final : public RequestActor<> {
   vector<Contact> contacts_;
   size_t contacts_size_;
@@ -5769,7 +5753,8 @@ void Requests::on_request(uint64 id, const td_api::removeContacts &request) {
 
 void Requests::on_request(uint64 id, const td_api::getImportedContactCount &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetImportedContactCountRequest);
+  CREATE_COUNT_REQUEST_PROMISE();
+  td_->user_manager_->get_imported_contact_count(std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::changeImportedContacts &request) {

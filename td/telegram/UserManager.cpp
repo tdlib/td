@@ -6778,17 +6778,22 @@ void UserManager::on_deleted_contacts(const vector<UserId> &deleted_contact_user
   }
 }
 
-int32 UserManager::get_imported_contact_count(Promise<Unit> &&promise) {
-  LOG(INFO) << "Get imported contact count";
+void UserManager::get_imported_contact_count(Promise<int32> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!are_contacts_loaded_ || saved_contact_count_ == -1) {
-    load_contacts(std::move(promise));
-    return 0;
+    return load_contacts(
+        PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](Result<Unit> result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+          send_closure(actor_id, &UserManager::get_imported_contact_count, std::move(promise));
+        }));
   }
   reload_contacts(false);
 
-  promise.set_value(Unit());
-  return saved_contact_count_;
+  auto count = saved_contact_count_;
+  promise.set_value(std::move(count));
 }
 
 void UserManager::load_imported_contacts(Promise<Unit> &&promise) {
