@@ -238,14 +238,12 @@ class messages_dhConfig final {
   }
 
   void store(TlStorerCalcLength &s) const {
-    (void)sizeof(s);
     TlStoreBinary::store(g_, s);
     TlStoreString::store(p_, s);
     TlStoreBinary::store(version_, s);
     TlStoreString::store(random_, s);
   }
   void store(TlStorerUnsafe &s) const {
-    (void)sizeof(s);
     TlStoreBinary::store(g_, s);
     TlStoreString::store(p_, s);
     TlStoreBinary::store(version_, s);
@@ -283,7 +281,6 @@ class encryptedChat final {
   }
 
   void store(TlStorerCalcLength &s) const {
-    (void)sizeof(s);
     TlStoreBinary::store(id_, s);
     TlStoreBinary::store(access_hash_, s);
     TlStoreBinary::store(date_, s);
@@ -294,7 +291,6 @@ class encryptedChat final {
   }
 
   void store(TlStorerUnsafe &s) const {
-    (void)sizeof(s);
     TlStoreBinary::store(id_, s);
     TlStoreBinary::store(access_hash_, s);
     TlStoreBinary::store(date_, s);
@@ -321,12 +317,10 @@ class messages_sentEncryptedMessage final {
   }
 
   void store(TlStorerCalcLength &s) const {
-    (void)sizeof(s);
     TlStoreBinary::store(date_, s);
   }
 
   void store(TlStorerUnsafe &s) const {
-    (void)sizeof(s);
     TlStoreBinary::store(date_, s);
   }
 };
