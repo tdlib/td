@@ -7301,10 +7301,12 @@ void Requests::on_request(uint64 id, td_api::openWebApp &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
   CREATE_REQUEST_PROMISE();
-  td_->web_app_manager_->request_web_view(DialogId(request.chat_id_), UserId(request.bot_user_id_),
-                                          MessageId(request.message_thread_id_), std::move(request.reply_to_),
-                                          std::move(request.url_), WebAppOpenParameters(std::move(request.parameters_)),
-                                          std::move(promise));
+  auto dialog_id = DialogId(request.chat_id_);
+  td_->web_app_manager_->request_web_view(
+      dialog_id, UserId(request.bot_user_id_), MessageId(request.message_thread_id_),
+      td_->saved_messages_manager_->get_topic_id(dialog_id, request.feedback_chat_topic_id_),
+      std::move(request.reply_to_), std::move(request.url_), WebAppOpenParameters(std::move(request.parameters_)),
+      std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::closeWebApp &request) {

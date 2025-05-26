@@ -10,6 +10,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
+#include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -48,12 +49,14 @@ class WebAppManager final : public Actor {
                              Promise<td_api::object_ptr<td_api::mainWebApp>> &&promise);
 
   void request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
+                        SavedMessagesTopicId saved_messages_topic_id,
                         td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, string &&url,
                         const WebAppOpenParameters &parameters,
                         Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise);
 
   void open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
-                     MessageInputReplyTo &&input_reply_to, DialogId as_dialog_id);
+                     SavedMessagesTopicId saved_messages_topic_id, MessageInputReplyTo &&input_reply_to,
+                     DialogId as_dialog_id);
 
   void close_web_view(int64 query_id, Promise<Unit> &&promise);
 
@@ -93,6 +96,7 @@ class WebAppManager final : public Actor {
     DialogId dialog_id_;
     UserId bot_user_id_;
     MessageId top_thread_message_id_;
+    SavedMessagesTopicId saved_messages_topic_id_;
     MessageInputReplyTo input_reply_to_;
     DialogId as_dialog_id_;
   };
