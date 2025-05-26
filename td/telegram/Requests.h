@@ -375,6 +375,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::unpinAllFeedbackChatTopicMessages &request);
 
+  void on_request(uint64 id, const td_api::readAllFeedbackChatTopicReactions &request);
+
   void on_request(uint64 id, const td_api::loadSavedMessagesTopics &request);
 
   void on_request(uint64 id, const td_api::getSavedMessagesTopicHistory &request);

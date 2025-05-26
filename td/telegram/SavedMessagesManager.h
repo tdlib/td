@@ -125,6 +125,9 @@ class SavedMessagesManager final : public Actor {
   void unpin_all_monoforum_topic_messages(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                           Promise<Unit> &&promise);
 
+  void read_all_monoforum_topic_reactions(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                          Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

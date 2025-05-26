@@ -3225,6 +3225,14 @@ class CliClient final : public Actor {
       get_args(args, chat_id, is_marked_as_unread);
       send_request(td_api::make_object<td_api::setFeedbackChatTopicIsMarkedAsUnread>(chat_id, feedback_chat_topic_id_,
                                                                                      is_marked_as_unread));
+    } else if (op == "uafctm") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::unpinAllFeedbackChatTopicMessages>(chat_id, feedback_chat_topic_id_));
+    } else if (op == "rafctr") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::readAllFeedbackChatTopicReactions>(chat_id, feedback_chat_topic_id_));
     } else if (op == "lsmt") {
       string limit;
       get_args(args, limit);

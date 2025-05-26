@@ -3066,6 +3066,14 @@ void Requests::on_request(uint64 id, const td_api::unpinAllFeedbackChatTopicMess
       dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::readAllFeedbackChatTopicReactions &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  DialogId dialog_id(request.chat_id_);
+  td_->saved_messages_manager_->read_all_monoforum_topic_reactions(
+      dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::loadSavedMessagesTopics &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

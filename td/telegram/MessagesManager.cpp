@@ -8626,8 +8626,8 @@ void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, MessageId to
 
   if (top_thread_message_id.is_valid()) {
     LOG(INFO) << "Receive readAllChatReactions request in thread of " << top_thread_message_id << " in " << dialog_id;
-    return td_->message_query_manager_->read_all_topic_reactions_on_server(dialog_id, top_thread_message_id, 0,
-                                                                           std::move(promise));
+    return td_->message_query_manager_->read_all_topic_reactions_on_server(
+        dialog_id, top_thread_message_id, SavedMessagesTopicId(), 0, std::move(promise));
   } else {
     LOG(INFO) << "Receive readAllChatReactions request in " << dialog_id << " with " << d->unread_reaction_count
               << " unread reactions";
