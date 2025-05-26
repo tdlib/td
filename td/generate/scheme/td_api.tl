@@ -9847,7 +9847,7 @@ sendQuickReplyShortcutMessages chat_id:int53 shortcut_id:int32 sending_id:int32 
 resendMessages chat_id:int53 message_ids:vector<int53> quote:inputTextQuote paid_message_star_count:int53 = Messages;
 
 //@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message
-//@chat_id Target chat
+//@chat_id Target chat; feedback chats aren't supported
 //@sender_id Identifier of the sender of the message
 //@reply_to Information about the message or story to be replied; pass null if none
 //@disable_notification Pass true to disable notification for the message

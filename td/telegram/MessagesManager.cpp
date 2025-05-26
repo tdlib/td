@@ -24323,6 +24323,9 @@ Result<MessageId> MessagesManager::add_local_message(
   if (!can_be_local_message_content(message_content.content->get_type())) {
     return Status::Error(400, "Can't add a local message with the specified content");
   }
+  if (td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
+    return Status::Error(400, "Can't add a local message to the chat");
+  }
 
   bool is_channel_post = td_->dialog_manager_->is_broadcast_channel(dialog_id);
   UserId sender_user_id;
@@ -24416,9 +24419,6 @@ Result<MessageId> MessagesManager::add_local_message(
   m->send_emoji = std::move(message_content.emoji);
   if (dialog_id == DialogId(my_id)) {
     m->saved_messages_topic_id = SavedMessagesTopicId(dialog_id, m->forward_info.get(), DialogId());
-  } else {
-    // TODO init saved_messages_topic_id for outgoing monoforum messages
-    // m->saved_messages_topic_id = ...
   }
 
   bool need_update = true;
