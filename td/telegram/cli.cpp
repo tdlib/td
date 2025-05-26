@@ -2630,6 +2630,13 @@ class CliClient final : public Actor {
         td_api::make_object<td_api::setChatDraftMessage>(chat_id, message_thread_id_, std::move(draft_message)));
   }
 
+  void set_draft_message(ChatId chat_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) {
+    send_request(td_api::make_object<td_api::setChatDraftMessage>(
+        chat_id, message_thread_id_,
+        td_api::make_object<td_api::draftMessage>(get_input_message_reply_to(), 0, std::move(input_message_content),
+                                                  message_effect_id_)));
+  }
+
   void send_get_background_url(td_api::object_ptr<td_api::BackgroundType> &&background_type) {
     send_request(td_api::make_object<td_api::getBackgroundUrl>("asd", std::move(background_type)));
   }
@@ -5109,21 +5116,15 @@ class CliClient final : public Actor {
       string video;
       get_args(args, chat_id, video);
       set_draft_message(
-          chat_id, td_api::make_object<td_api::draftMessage>(
-                       nullptr, 0,
-                       td_api::make_object<td_api::inputMessageVideoNote>(as_input_file(video), get_input_thumbnail(),
-                                                                          10, 5, get_message_self_destruct_type()),
-                       message_effect_id_));
+          chat_id, td_api::make_object<td_api::inputMessageVideoNote>(as_input_file(video), get_input_thumbnail(), 10,
+                                                                      5, get_message_self_destruct_type()));
     } else if (op == "scdmvoice") {
       ChatId chat_id;
       string voice;
       get_args(args, chat_id, voice);
-      set_draft_message(chat_id,
-                        td_api::make_object<td_api::draftMessage>(
-                            nullptr, 0,
-                            td_api::make_object<td_api::inputMessageVoiceNote>(
-                                as_input_file(voice), 0, "abacaba", get_caption(), get_message_self_destruct_type()),
-                            message_effect_id_));
+      set_draft_message(
+          chat_id, td_api::make_object<td_api::inputMessageVoiceNote>(as_input_file(voice), 0, "abacaba", get_caption(),
+                                                                      get_message_self_destruct_type()));
     } else if (op == "cadm") {
       send_request(td_api::make_object<td_api::clearAllDraftMessages>());
     } else if (op == "tchpc") {
