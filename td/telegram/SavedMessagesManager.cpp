@@ -1824,6 +1824,25 @@ Status SavedMessagesManager::set_monoforum_topic_draft_message(
   return Status::OK();
 }
 
+void SavedMessagesManager::unpin_all_monoforum_topic_messages(DialogId dialog_id,
+                                                              SavedMessagesTopicId saved_messages_topic_id,
+                                                              Promise<Unit> &&promise) {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return promise.set_error(Status::Error(400, "Topic not found"));
+  }
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
+  if (topic == nullptr) {
+    return promise.set_error(Status::Error(400, "Topic not found"));
+  }
+  if (topic->dialog_id_ != dialog_id) {
+    return promise.set_error(Status::Error(400, "Topic messages can't be unpinned"));
+  }
+
+  td_->message_query_manager_->unpin_all_topic_messages_on_server(dialog_id, MessageId(), saved_messages_topic_id, 0,
+                                                                  std::move(promise));
+}
+
 void SavedMessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (td_->auth_manager_->is_bot()) {
     return;

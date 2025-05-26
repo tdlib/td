@@ -9481,6 +9481,11 @@ setFeedbackChatTopicIsMarkedAsUnread chat_id:int53 topic_id:int53 is_marked_as_u
 //@draft_message New draft message; pass null to remove the draft. All files in draft message content must be of the type inputFileLocal. Media thumbnails and captions are ignored
 setFeedbackChatTopicDraftMessage chat_id:int53 topic_id:int53 draft_message:draftMessage = Ok;
 
+//@description Removes all pinned messages from a feedback chat topic; requires can_post_messages administrator right in the corresponding channel chat
+//@chat_id Identifier of the chat
+//@topic_id Topic identifier
+unpinAllFeedbackChatTopicMessages chat_id:int53 topic_id:int53 = Ok;
+
 
 //@description Loads more Saved Messages topics. The loaded topics will be sent through updateSavedMessagesTopic. Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
 //@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached

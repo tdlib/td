@@ -178,7 +178,8 @@ class MessageQueryManager final : public Actor {
 
   void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
-  void unpin_all_topic_messages_on_server(DialogId dialog_id, MessageId top_thread_message_id, uint64 log_event_id,
+  void unpin_all_topic_messages_on_server(DialogId dialog_id, MessageId top_thread_message_id,
+                                          SavedMessagesTopicId saved_messages_topic_id, uint64 log_event_id,
                                           Promise<Unit> &&promise);
 
   void on_binlog_events(vector<BinlogEvent> &&events);

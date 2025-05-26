@@ -29158,8 +29158,8 @@ void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId to
   }
 
   if (top_thread_message_id.is_valid()) {
-    return td_->message_query_manager_->unpin_all_topic_messages_on_server(dialog_id, top_thread_message_id, 0,
-                                                                           std::move(promise));
+    return td_->message_query_manager_->unpin_all_topic_messages_on_server(
+        dialog_id, top_thread_message_id, SavedMessagesTopicId(), 0, std::move(promise));
   }
 
   set_dialog_last_pinned_message_id(d, MessageId());

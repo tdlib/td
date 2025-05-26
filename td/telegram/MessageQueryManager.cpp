@@ -1401,14 +1401,16 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
   DialogId dialog_id_;
   MessageId top_thread_message_id_;
+  SavedMessagesTopicId saved_messages_topic_id_;
 
  public:
   explicit UnpinAllMessagesQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageId top_thread_message_id) {
+  void send(DialogId dialog_id, MessageId top_thread_message_id, SavedMessagesTopicId saved_messages_topic_id) {
     dialog_id_ = dialog_id;
     top_thread_message_id_ = top_thread_message_id;
+    saved_messages_topic_id_ = saved_messages_topic_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -1420,8 +1422,15 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
     if (top_thread_message_id.is_valid()) {
       flags |= telegram_api::messages_unpinAllMessages::TOP_MSG_ID_MASK;
     }
+    telegram_api::object_ptr<telegram_api::InputPeer> saved_input_peer;
+    if (saved_messages_topic_id.is_valid()) {
+      flags |= telegram_api::messages_unpinAllMessages::SAVED_PEER_ID_MASK;
+      saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
+      CHECK(saved_input_peer != nullptr);
+    }
     send_query(G()->net_query_creator().create(telegram_api::messages_unpinAllMessages(
-        flags, std::move(input_peer), top_thread_message_id.get_server_message_id().get(), nullptr)));
+        flags, std::move(input_peer), top_thread_message_id.get_server_message_id().get(),
+        std::move(saved_input_peer))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2775,10 +2784,12 @@ void MessageQueryManager::read_all_dialog_reactions_on_server(DialogId dialog_id
 }
 
 void MessageQueryManager::unpin_all_topic_messages_on_server(DialogId dialog_id, MessageId top_thread_message_id,
+                                                             SavedMessagesTopicId saved_messages_topic_id,
                                                              uint64 log_event_id, Promise<Unit> &&promise) {
-  AffectedHistoryQuery query = [td = td_, top_thread_message_id](DialogId dialog_id,
-                                                                 Promise<AffectedHistory> &&query_promise) {
-    td->create_handler<UnpinAllMessagesQuery>(std::move(query_promise))->send(dialog_id, top_thread_message_id);
+  AffectedHistoryQuery query = [td = td_, top_thread_message_id, saved_messages_topic_id](
+                                   DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
+    td->create_handler<UnpinAllMessagesQuery>(std::move(query_promise))
+        ->send(dialog_id, top_thread_message_id, saved_messages_topic_id);
   };
   run_affected_history_query_until_complete(dialog_id, std::move(query), true, std::move(promise));
 }
@@ -2912,7 +2923,8 @@ void MessageQueryManager::unpin_all_dialog_messages_on_server(DialogId dialog_id
   }
 
   AffectedHistoryQuery query = [td = td_](DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
-    td->create_handler<UnpinAllMessagesQuery>(std::move(query_promise))->send(dialog_id, MessageId());
+    td->create_handler<UnpinAllMessagesQuery>(std::move(query_promise))
+        ->send(dialog_id, MessageId(), SavedMessagesTopicId());
   };
   run_affected_history_query_until_complete(dialog_id, std::move(query), true,
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
