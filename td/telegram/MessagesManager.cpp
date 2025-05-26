@@ -27104,9 +27104,9 @@ void MessagesManager::fail_edit_message_media(MessageFullId message_full_id, Sta
   cancel_edit_message_media(dialog_id, m, "Failed to edit message. MUST BE IGNORED");
 }
 
-void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, MessageId top_thread_message_id,
-                                                     tl_object_ptr<telegram_api::DraftMessage> &&draft_message,
-                                                     bool force) {
+void MessagesManager::on_update_dialog_draft_message(
+    DialogId dialog_id, MessageId top_thread_message_id,
+    telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message, int32 try_count) {
   if (G()->close_flag()) {
     return;
   }
@@ -27137,17 +27137,19 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id, Message
     return;
   }
 
-  if (!force) {
-    auto input_dialog_id = get_draft_message_reply_input_dialog_id(draft_message);
-    auto reply_in_dialog_id = input_dialog_id.get_dialog_id();
-    if (reply_in_dialog_id.is_valid() && !have_dialog_force(reply_in_dialog_id, "on_update_dialog_draft_message")) {
-      td_->dialog_filter_manager_->load_input_dialog(
-          input_dialog_id, [actor_id = actor_id(this), dialog_id, top_thread_message_id,
-                            draft_message = std::move(draft_message)](Unit) mutable {
-            send_closure(actor_id, &MessagesManager::on_update_dialog_draft_message, dialog_id, top_thread_message_id,
-                         std::move(draft_message), true);
-          });
-      return;
+  auto input_dialog_ids = get_draft_message_reply_input_dialog_ids(draft_message);
+  if (try_count < static_cast<int32>(input_dialog_ids.size())) {
+    for (const auto &input_dialog_id : input_dialog_ids) {
+      auto reply_in_dialog_id = input_dialog_id.get_dialog_id();
+      if (reply_in_dialog_id.is_valid() && !have_dialog_force(reply_in_dialog_id, "on_update_dialog_draft_message")) {
+        td_->dialog_filter_manager_->load_input_dialog(
+            input_dialog_id, [actor_id = actor_id(this), dialog_id, top_thread_message_id,
+                              draft_message = std::move(draft_message), try_count](Unit) mutable {
+              send_closure(actor_id, &MessagesManager::on_update_dialog_draft_message, dialog_id, top_thread_message_id,
+                           std::move(draft_message), try_count + 1);
+            });
+        return;
+      }
     }
   }
   update_dialog_draft_message(d, get_draft_message(td_, std::move(draft_message)), true, true);

@@ -114,7 +114,7 @@ void load_all_draft_messages(Td *td);
 
 void clear_all_draft_messages(Td *td, Promise<Unit> &&promise);
 
-InputDialogId get_draft_message_reply_input_dialog_id(
+vector<InputDialogId> get_draft_message_reply_input_dialog_ids(
     const telegram_api::object_ptr<telegram_api::DraftMessage> &draft_message);
 
 }  // namespace td

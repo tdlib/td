@@ -816,7 +816,7 @@ void SavedMessagesManager::on_update_read_monoforum_outbox(DialogId dialog_id,
 
 void SavedMessagesManager::on_update_topic_draft_message(
     DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-    telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message, bool force) {
+    telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message, int32 try_count) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -834,18 +834,20 @@ void SavedMessagesManager::on_update_topic_draft_message(
     return;
   }
 
-  if (!force) {
-    auto input_dialog_id = get_draft_message_reply_input_dialog_id(draft_message);
-    auto reply_in_dialog_id = input_dialog_id.get_dialog_id();
-    if (reply_in_dialog_id.is_valid() &&
-        !td_->dialog_manager_->have_dialog_force(reply_in_dialog_id, "on_update_topic_draft_message")) {
-      td_->dialog_filter_manager_->load_input_dialog(
-          input_dialog_id, [actor_id = actor_id(this), dialog_id, saved_messages_topic_id,
-                            draft_message = std::move(draft_message)](Unit) mutable {
-            send_closure(actor_id, &SavedMessagesManager::on_update_topic_draft_message, dialog_id,
-                         saved_messages_topic_id, std::move(draft_message), true);
-          });
-      return;
+  auto input_dialog_ids = get_draft_message_reply_input_dialog_ids(draft_message);
+  if (try_count < static_cast<int32>(input_dialog_ids.size())) {
+    for (const auto &input_dialog_id : input_dialog_ids) {
+      auto reply_in_dialog_id = input_dialog_id.get_dialog_id();
+      if (reply_in_dialog_id.is_valid() &&
+          !td_->dialog_manager_->have_dialog_force(reply_in_dialog_id, "on_update_topic_draft_message")) {
+        td_->dialog_filter_manager_->load_input_dialog(
+            input_dialog_id, [actor_id = actor_id(this), dialog_id, saved_messages_topic_id,
+                              draft_message = std::move(draft_message), try_count](Unit) mutable {
+              send_closure(actor_id, &SavedMessagesManager::on_update_topic_draft_message, dialog_id,
+                           saved_messages_topic_id, std::move(draft_message), try_count + 1);
+            });
+        return;
+      }
     }
   }
 

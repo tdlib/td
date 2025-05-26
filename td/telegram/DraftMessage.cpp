@@ -563,7 +563,7 @@ void clear_all_draft_messages(Td *td, Promise<Unit> &&promise) {
   td->create_handler<ClearAllDraftsQuery>(std::move(promise))->send();
 }
 
-InputDialogId get_draft_message_reply_input_dialog_id(
+vector<InputDialogId> get_draft_message_reply_input_dialog_ids(
     const telegram_api::object_ptr<telegram_api::DraftMessage> &draft_message) {
   if (draft_message == nullptr || draft_message->get_id() != telegram_api::draftMessage::ID) {
     return {};
@@ -575,17 +575,23 @@ InputDialogId get_draft_message_reply_input_dialog_id(
   switch (input_reply_to->get_id()) {
     case telegram_api::inputReplyToStory::ID: {
       auto reply_to = static_cast<const telegram_api::inputReplyToStory *>(input_reply_to);
-      return InputDialogId(reply_to->peer_);
+      return {InputDialogId(reply_to->peer_)};
     }
     case telegram_api::inputReplyToMessage::ID: {
       auto reply_to = static_cast<const telegram_api::inputReplyToMessage *>(input_reply_to);
+      vector<InputDialogId> result;
       if (reply_to->reply_to_peer_id_ != nullptr) {
-        return InputDialogId(reply_to->reply_to_peer_id_);
+        result.emplace_back(reply_to->reply_to_peer_id_);
       }
-      break;
+      if (reply_to->monoforum_peer_id_ != nullptr) {
+        result.emplace_back(reply_to->monoforum_peer_id_);
+      }
+      return result;
     }
-    case telegram_api::inputReplyToMonoForum::ID:
-      break;
+    case telegram_api::inputReplyToMonoForum::ID: {
+      auto reply_to = static_cast<const telegram_api::inputReplyToMonoForum *>(input_reply_to);
+      return {InputDialogId(reply_to->monoforum_peer_id_)};
+    }
     default:
       UNREACHABLE();
   }

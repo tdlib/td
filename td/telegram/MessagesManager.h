@@ -254,7 +254,8 @@ class MessagesManager final : public Actor {
   bool on_update_message_id(int64 random_id, MessageId new_message_id, const char *source);
 
   void on_update_dialog_draft_message(DialogId dialog_id, MessageId top_thread_message_id,
-                                      tl_object_ptr<telegram_api::DraftMessage> &&draft_message, bool force = false);
+                                      telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message,
+                                      int32 try_count = 0);
 
   void on_update_dialog_is_pinned(FolderId folder_id, DialogId dialog_id, bool is_pinned);
 
