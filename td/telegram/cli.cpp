@@ -2625,6 +2625,11 @@ class CliClient final : public Actor {
         as_message_scheduling_state(schedule_date_), message_effect_id_, Random::fast(1, 1000), only_preview_);
   }
 
+  void set_draft_message(ChatId chat_id, td_api::object_ptr<td_api::draftMessage> &&draft_message) {
+    send_request(
+        td_api::make_object<td_api::setChatDraftMessage>(chat_id, message_thread_id_, std::move(draft_message)));
+  }
+
   void send_get_background_url(td_api::object_ptr<td_api::BackgroundType> &&background_type) {
     send_request(td_api::make_object<td_api::getBackgroundUrl>("asd", std::move(background_type)));
   }
@@ -5098,30 +5103,27 @@ class CliClient final : public Actor {
                                                           get_link_preview_options(), false),
             message_effect_id_);
       }
-      send_request(
-          td_api::make_object<td_api::setChatDraftMessage>(chat_id, message_thread_id_, std::move(draft_message)));
+      set_draft_message(chat_id, std::move(draft_message));
     } else if (op == "scdmvn") {
       ChatId chat_id;
       string video;
       get_args(args, chat_id, video);
-      send_request(td_api::make_object<td_api::setChatDraftMessage>(
-          chat_id, message_thread_id_,
-          td_api::make_object<td_api::draftMessage>(
-              nullptr, 0,
-              td_api::make_object<td_api::inputMessageVideoNote>(as_input_file(video), get_input_thumbnail(), 10, 5,
-                                                                 get_message_self_destruct_type()),
-              message_effect_id_)));
+      set_draft_message(
+          chat_id, td_api::make_object<td_api::draftMessage>(
+                       nullptr, 0,
+                       td_api::make_object<td_api::inputMessageVideoNote>(as_input_file(video), get_input_thumbnail(),
+                                                                          10, 5, get_message_self_destruct_type()),
+                       message_effect_id_));
     } else if (op == "scdmvoice") {
       ChatId chat_id;
       string voice;
       get_args(args, chat_id, voice);
-      send_request(td_api::make_object<td_api::setChatDraftMessage>(
-          chat_id, message_thread_id_,
-          td_api::make_object<td_api::draftMessage>(
-              nullptr, 0,
-              td_api::make_object<td_api::inputMessageVoiceNote>(as_input_file(voice), 0, "abacaba", get_caption(),
-                                                                 get_message_self_destruct_type()),
-              message_effect_id_)));
+      set_draft_message(chat_id,
+                        td_api::make_object<td_api::draftMessage>(
+                            nullptr, 0,
+                            td_api::make_object<td_api::inputMessageVoiceNote>(
+                                as_input_file(voice), 0, "abacaba", get_caption(), get_message_self_destruct_type()),
+                            message_effect_id_));
     } else if (op == "cadm") {
       send_request(td_api::make_object<td_api::clearAllDraftMessages>());
     } else if (op == "tchpc") {
