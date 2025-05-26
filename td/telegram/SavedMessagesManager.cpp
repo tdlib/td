@@ -1839,6 +1839,8 @@ void SavedMessagesManager::unpin_all_monoforum_topic_messages(DialogId dialog_id
     return promise.set_error(Status::Error(400, "Topic messages can't be unpinned"));
   }
 
+  td_->messages_manager_->unpin_all_local_dialog_messages(dialog_id, MessageId(), saved_messages_topic_id);
+
   td_->message_query_manager_->unpin_all_topic_messages_on_server(dialog_id, MessageId(), saved_messages_topic_id, 0,
                                                                   std::move(promise));
 }

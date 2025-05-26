@@ -1401,7 +1401,6 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
   DialogId dialog_id_;
   MessageId top_thread_message_id_;
-  SavedMessagesTopicId saved_messages_topic_id_;
 
  public:
   explicit UnpinAllMessagesQuery(Promise<AffectedHistory> &&promise) : promise_(std::move(promise)) {
@@ -1410,7 +1409,6 @@ class UnpinAllMessagesQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, MessageId top_thread_message_id, SavedMessagesTopicId saved_messages_topic_id) {
     dialog_id_ = dialog_id;
     top_thread_message_id_ = top_thread_message_id;
-    saved_messages_topic_id_ = saved_messages_topic_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
     if (input_peer == nullptr) {

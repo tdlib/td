@@ -512,6 +512,9 @@ class MessagesManager final : public Actor {
   void pin_dialog_message(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
                           bool disable_notification, bool only_for_self, bool is_unpin, Promise<Unit> &&promise);
 
+  void unpin_all_local_dialog_messages(DialogId dialog_id, MessageId top_thread_message_id,
+                                       SavedMessagesTopicId saved_messages_topic_id);
+
   void unpin_all_dialog_messages(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
   bool have_dialog(DialogId dialog_id) const;
