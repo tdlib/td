@@ -1787,16 +1787,41 @@ void SavedMessagesManager::set_monoforum_topic_is_marked_as_unread(DialogId dial
     return promise.set_error(Status::Error(400, "Topic can't be marked as unread"));
   }
 
-  if (is_marked_as_unread == topic->is_marked_as_unread_) {
-    return promise.set_value(Unit());
-  }
-
   do_set_topic_is_marked_as_unread(topic, is_marked_as_unread);
 
-  td_->dialog_manager_->toggle_dialog_is_marked_as_unread_on_server(dialog_id, saved_messages_topic_id,
-                                                                    is_marked_as_unread, 0);
+  if (topic->is_changed_) {
+    td_->dialog_manager_->toggle_dialog_is_marked_as_unread_on_server(dialog_id, saved_messages_topic_id,
+                                                                      is_marked_as_unread, 0);
+    on_topic_changed(topic_list, topic, "set_monoforum_topic_is_marked_as_unread");
+  }
+}
 
-  on_topic_changed(topic_list, topic, "set_monoforum_topic_is_marked_as_unread");
+Status SavedMessagesManager::set_monoforum_topic_draft_message(
+    DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+    td_api::object_ptr<td_api::draftMessage> &&draft_message) {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return Status::Error(400, "Topic not found");
+  }
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
+  if (topic == nullptr) {
+    return Status::Error(400, "Topic not found");
+  }
+  if (topic->dialog_id_ != dialog_id) {
+    return Status::Error(400, "Topic draft can't be changed");
+  }
+
+  TRY_RESULT(new_draft_message, DraftMessage::get_draft_message(td_, dialog_id, MessageId(), std::move(draft_message)));
+
+  do_set_topic_draft_message(topic, std::move(new_draft_message), false);
+
+  if (topic->is_changed_) {
+    if (!is_local_draft_message(topic->draft_message_)) {
+      save_draft_message(td_, dialog_id, saved_messages_topic_id, topic->draft_message_, Auto());
+    }
+    on_topic_changed(topic_list, topic, "set_monoforum_topic_is_marked_as_unread");
+  }
+  return Status::OK();
 }
 
 void SavedMessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

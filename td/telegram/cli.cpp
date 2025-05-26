@@ -2626,8 +2626,13 @@ class CliClient final : public Actor {
   }
 
   void set_draft_message(ChatId chat_id, td_api::object_ptr<td_api::draftMessage> &&draft_message) {
-    send_request(
-        td_api::make_object<td_api::setChatDraftMessage>(chat_id, message_thread_id_, std::move(draft_message)));
+    if (feedback_chat_topic_id_ != 0) {
+      send_request(td_api::make_object<td_api::setFeedbackChatTopicDraftMessage>(chat_id, feedback_chat_topic_id_,
+                                                                                 std::move(draft_message)));
+    } else {
+      send_request(
+          td_api::make_object<td_api::setChatDraftMessage>(chat_id, message_thread_id_, std::move(draft_message)));
+    }
   }
 
   void set_draft_message(ChatId chat_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) {
