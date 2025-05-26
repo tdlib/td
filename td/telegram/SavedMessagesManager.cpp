@@ -633,6 +633,26 @@ void SavedMessagesManager::do_set_topic_is_marked_as_unread(SavedMessagesTopic *
   topic->is_changed_ = true;
 }
 
+void SavedMessagesManager::do_set_topic_unread_reaction_count(SavedMessagesTopic *topic, int32 unread_reaction_count) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  if (unread_reaction_count < 0) {
+    LOG(ERROR) << "Receive " << unread_reaction_count << " unread reactions in " << topic->saved_messages_topic_id_
+               << " of " << topic->dialog_id_;
+    unread_reaction_count = 0;
+  }
+  if (topic->unread_reaction_count_ == unread_reaction_count) {
+    return;
+  }
+
+  LOG(INFO) << "Set unread reaction count in " << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_
+            << " to " << unread_reaction_count;
+  topic->unread_reaction_count_ = unread_reaction_count;
+  topic->is_changed_ = true;
+}
+
 void SavedMessagesManager::do_set_topic_draft_message(SavedMessagesTopic *topic,
                                                       unique_ptr<DraftMessage> &&draft_message, bool from_update) {
   if (td_->auth_manager_->is_bot()) {
@@ -1085,6 +1105,7 @@ SavedMessagesManager::SavedMessagesTopicInfo SavedMessagesManager::get_saved_mes
     result.read_inbox_max_message_id_ = MessageId(ServerMessageId(dialog->read_inbox_max_id_));
     result.read_outbox_max_message_id_ = MessageId(ServerMessageId(dialog->read_outbox_max_id_));
     result.unread_count_ = max(0, dialog->unread_count_);
+    result.unread_reaction_count_ = dialog->unread_reactions_count_;
     result.is_marked_as_unread_ = dialog->unread_mark_;
     result.draft_message_ = get_draft_message(td, std::move(dialog->draft_));
   }
@@ -1233,9 +1254,10 @@ void SavedMessagesManager::on_get_saved_messages_topics(
       if (topic->read_inbox_max_message_id_ == MessageId()) {
         do_set_topic_read_inbox_max_message_id(topic, topic_info.read_inbox_max_message_id_, topic_info.unread_count_);
       }
-      if (topic->read_outbox_max_message_id_ == MessageId()) {
+      if (topic->read_outbox_max_message_id_ < topic_info.read_outbox_max_message_id_) {
         do_set_topic_read_outbox_max_message_id(topic, topic_info.read_outbox_max_message_id_);
       }
+      do_set_topic_unread_reaction_count(topic, topic_info.unread_reaction_count_);
       do_set_topic_is_marked_as_unread(topic, topic_info.is_marked_as_unread_);
       do_set_topic_draft_message(topic, std::move(topic_info.draft_message_), true);
     }
@@ -1322,8 +1344,8 @@ td_api::object_ptr<td_api::feedbackChatTopic> SavedMessagesManager::get_feedback
       td_->dialog_manager_->get_chat_id_object(topic->dialog_id_, "feedbackChatTopic"),
       topic->saved_messages_topic_id_.get_unique_id(),
       topic->saved_messages_topic_id_.get_feedback_message_sender_object(td_),
-      get_topic_public_order(topic_list, topic), topic->read_inbox_max_message_id_.get(),
-      topic->read_outbox_max_message_id_.get(), topic->unread_count_, topic->is_marked_as_unread_,
+      get_topic_public_order(topic_list, topic), topic->is_marked_as_unread_, topic->unread_count_,
+      topic->read_inbox_max_message_id_.get(), topic->read_outbox_max_message_id_.get(), topic->unread_reaction_count_,
       std::move(last_message_object), get_draft_message_object(td_, topic->draft_message_));
 }
 

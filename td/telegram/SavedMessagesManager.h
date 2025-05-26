@@ -143,6 +143,7 @@ class SavedMessagesManager final : public Actor {
     MessageId read_inbox_max_message_id_;
     MessageId read_outbox_max_message_id_;
     int32 unread_count_ = 0;
+    int32 unread_reaction_count_ = 0;
     bool is_marked_as_unread_ = false;
 
     bool is_pinned_ = false;
@@ -156,6 +157,7 @@ class SavedMessagesManager final : public Actor {
     MessageId read_outbox_max_message_id_;
     unique_ptr<DraftMessage> draft_message_;
     int32 unread_count_ = 0;
+    int32 unread_reaction_count_ = 0;
     int32 last_message_date_ = 0;
     int32 draft_message_date_ = 0;
     int64 pinned_order_ = 0;
@@ -261,6 +263,8 @@ class SavedMessagesManager final : public Actor {
   void do_set_topic_read_outbox_max_message_id(SavedMessagesTopic *topic, MessageId read_outbox_max_message_id);
 
   void do_set_topic_is_marked_as_unread(SavedMessagesTopic *topic, bool is_marked_as_unread);
+
+  void do_set_topic_unread_reaction_count(SavedMessagesTopic *topic, int32 unread_reaction_count);
 
   void do_set_topic_draft_message(SavedMessagesTopic *topic, unique_ptr<DraftMessage> &&draft_message,
                                   bool from_update);
