@@ -1367,7 +1367,7 @@ void Td::send_result(uint64 id, tl_object_ptr<td_api::Object> object) {
   auto it = request_set_.find(id);
   if (it != request_set_.end()) {
     if (object == nullptr) {
-      object = make_tl_object<td_api::error>(404, "Not Found");
+      object = td_api::make_object<td_api::error>(404, "Not Found");
     }
     VLOG(td_requests) << "Sending result for request " << id << ": " << to_string(object);
     request_set_.erase(it);

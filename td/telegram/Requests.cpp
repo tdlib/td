@@ -4686,7 +4686,7 @@ void Requests::on_request(uint64 id, const td_api::toggleGroupCallIsMyVideoEnabl
 
 void Requests::on_request(uint64 id, const td_api::setGroupCallParticipantIsSpeaking &request) {
   CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
+  CREATE_REQUEST_PROMISE();
   td_->group_call_manager_->set_group_call_participant_is_speaking(
       GroupCallId(request.group_call_id_), request.audio_source_, request.is_speaking_, std::move(promise));
 }

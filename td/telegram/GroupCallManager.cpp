@@ -4708,14 +4708,15 @@ void GroupCallManager::on_toggle_group_call_recording(InputGroupCallId input_gro
   }
 }
 
-void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_call_id, int32 audio_source,
-                                                              bool is_speaking, Promise<Unit> &&promise, int32 date) {
+void GroupCallManager::set_group_call_participant_is_speaking(
+    GroupCallId group_call_id, int32 audio_source, bool is_speaking,
+    Promise<td_api::object_ptr<td_api::MessageSender>> &&promise, int32 date) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
   if (!is_group_call_active(group_call)) {
-    return promise.set_value(Unit());
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -4723,7 +4724,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, audio_source, is_speaking,
                                   promise = std::move(promise), date](Result<Unit> &&result) mutable {
             if (result.is_error()) {
-              promise.set_value(Unit());
+              promise.set_error(result.move_as_error());
             } else {
               send_closure(actor_id, &GroupCallManager::set_group_call_participant_is_speaking, group_call_id,
                            audio_source, is_speaking, std::move(promise), date);
@@ -4731,7 +4732,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
           }));
       return;
     }
-    return promise.set_value(Unit());
+    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
   }
   if (audio_source == 0) {
     audio_source = group_call->audio_source;
@@ -4757,7 +4758,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
       auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, audio_source, is_speaking,
                                                    promise = std::move(promise), date](Result<Unit> &&result) mutable {
         if (result.is_error()) {
-          promise.set_value(Unit());
+          promise.set_error(result.move_as_error());
         } else {
           send_closure(actor_id, &GroupCallManager::set_group_call_participant_is_speaking, group_call_id, audio_source,
                        is_speaking, std::move(promise), date);
@@ -4768,7 +4769,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
     } else {
       LOG(INFO) << "Failed to find participant with source " << audio_source << " in " << group_call_id << " from "
                 << group_call->dialog_id;
-      promise.set_value(Unit());
+      promise.set_value(nullptr);
     }
     return;
   }
@@ -4784,7 +4785,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(GroupCallId group_
     }
   }
 
-  promise.set_value(Unit());
+  promise.set_value(get_message_sender_object(td_, dialog_id, "set_group_call_participant_is_speaking"));
 }
 
 void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_call_id, DialogId dialog_id,

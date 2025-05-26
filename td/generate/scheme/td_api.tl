@@ -11563,11 +11563,11 @@ toggleGroupCallIsMyVideoPaused group_call_id:int32 is_my_video_paused:Bool = Ok;
 //@description Toggles whether current user's video is enabled @group_call_id Group call identifier @is_my_video_enabled Pass true if the current user's video is enabled
 toggleGroupCallIsMyVideoEnabled group_call_id:int32 is_my_video_enabled:Bool = Ok;
 
-//@description Informs TDLib that speaking state of a participant of an active group call has changed
+//@description Informs TDLib that speaking state of a participant of an active group call has changed. Returns identifier of the participant if it is found
 //@group_call_id Group call identifier
 //@audio_source Group call participant's synchronization audio source identifier, or 0 for the current user
 //@is_speaking Pass true if the user is speaking
-setGroupCallParticipantIsSpeaking group_call_id:int32 audio_source:int32 is_speaking:Bool = Ok;
+setGroupCallParticipantIsSpeaking group_call_id:int32 audio_source:int32 is_speaking:Bool = MessageSender;
 
 //@description Toggles whether a participant of an active group call is muted, unmuted, or allowed to unmute themselves
 //@group_call_id Group call identifier
