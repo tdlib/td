@@ -4843,23 +4843,13 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       if (is_visible_message_reactions(dialog_id, m)) {
         need_update |= need_update_reactions;
         if (need_update_unread_reactions) {
-          if (unread_reaction_diff != 0) {
+          if (unread_reaction_diff == -1) {
             // remove_message_notification_id(d, m, true, true);
-
-            if (d->unread_reaction_count + unread_reaction_diff < 0) {
-              if (is_dialog_inited(d)) {
-                LOG(ERROR) << "Unread reaction count of " << dialog_id << " became negative from " << source;
-              }
-            } else {
-              set_dialog_unread_reaction_count(d, d->unread_reaction_count + unread_reaction_diff);
-              on_dialog_updated(dialog_id, "update_message_interaction_info");
-            }
-          }
-
-          if (unread_reaction_diff < 0) {
-            send_update_message_unread_reactions(dialog_id, m, d->unread_reaction_count);
-          } else {
+            on_unread_message_reaction_removed(d, m, source);
+          } else if (unread_reaction_diff == 1) {
+            set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
             new_dialog_unread_reaction_count = d->unread_reaction_count;
+            on_dialog_updated(dialog_id, "update_message_interaction_info");
           }
         }
       }
