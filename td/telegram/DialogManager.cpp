@@ -2673,6 +2673,9 @@ Status DialogManager::can_pin_messages(DialogId dialog_id) const {
     }
     case DialogType::Channel: {
       auto status = td_->chat_manager_->get_channel_permissions(dialog_id.get_channel_id());
+      if (is_monoforum_channel(dialog_id)) {
+        break;
+      }
       bool can_pin = is_broadcast_channel(dialog_id) ? status.can_edit_messages() : status.can_pin_messages();
       if (!can_pin) {
         return Status::Error(400, "Not enough rights to manage pinned messages in the chat");
