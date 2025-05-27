@@ -7678,6 +7678,7 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
   if (!m->ttl.is_empty()) {
     return false;
   }
+  CHECK(!m->is_content_secret);
   if (m->message_id.is_scheduled()) {
     return false;
   }
@@ -7699,10 +7700,13 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
 }
 
 bool MessagesManager::can_save_message(DialogId dialog_id, const Message *m) const {
-  if (m == nullptr || m->noforwards || m->is_content_secret) {
+  if (m == nullptr || m->is_content_secret) {
     return false;
   }
-  return !td_->dialog_manager_->get_dialog_has_protected_content(dialog_id);
+  if (m->noforwards || td_->dialog_manager_->get_dialog_has_protected_content(dialog_id)) {
+    return false;
+  }
+  return true;
 }
 
 bool MessagesManager::can_share_message_in_story(MessageFullId message_full_id) {
