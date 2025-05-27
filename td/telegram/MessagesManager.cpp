@@ -4835,6 +4835,8 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
       unread_reaction_diff += (has_unread_message_reactions(dialog_id, m) ? 1 : 0);
       auto new_chosen_tags = get_chosen_tags(m->reactions);
 
+      // add/remove_message_reaction_notification_id(d, m, true, true);
+
       if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
         td_->reaction_manager_->update_saved_messages_tags(m->saved_messages_topic_id, old_chosen_tags,
                                                            new_chosen_tags);
@@ -4844,12 +4846,10 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
         need_update |= need_update_reactions;
         if (need_update_unread_reactions) {
           if (unread_reaction_diff == -1) {
-            // remove_message_notification_id(d, m, true, true);
             on_unread_message_reaction_removed(d, m, source);
           } else if (unread_reaction_diff == 1) {
-            set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
+            on_unread_message_reaction_added(d, m, "update_message_interaction_info");
             new_dialog_unread_reaction_count = d->unread_reaction_count;
-            on_dialog_updated(dialog_id, "update_message_interaction_info");
           }
         }
       }
@@ -5015,6 +5015,11 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
     return true;
   }
   return false;
+}
+
+void MessagesManager::on_unread_message_reaction_added(Dialog *d, const Message *m, const char *source) {
+  set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
+  on_dialog_updated(d->dialog_id, source);
 }
 
 void MessagesManager::on_unread_message_reaction_removed(Dialog *d, const Message *m, const char *source) {
@@ -29639,7 +29644,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
     send_update_chat_unread_mention_count(d);
   }
   if (need_update && has_unread_message_reactions(dialog_id, m)) {
-    set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
+    on_unread_message_reaction_added(d, m, "add_message_to_dialog_message_list");
     send_update_chat_unread_reaction_count(d, "add_message_to_dialog_message_list");
   }
   if (need_update) {
