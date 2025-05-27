@@ -43,7 +43,7 @@ struct GroupParticipant {
   td::int64 user_id{0};
   td::int32 flags{0};
   PublicKey public_key{};
-  td::int32 version{0};
+  td::int32 version{1};
   bool add_users() const {
     return (flags & GroupParticipantFlags::AddUsers) != 0;
   }

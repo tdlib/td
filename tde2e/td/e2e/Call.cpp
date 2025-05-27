@@ -698,10 +698,6 @@ td::Result<td::SecureString> Call::decrypt_shared_key() {
       if (decrypted_shared_key.size() != 32) {
         return td::Status::Error("Invalid shared key (size != 32)");
       }
-      group_shared_key_ = td::SecureString(
-          MessageEncryption::hmac_sha512(group_shared_key_, blockchain_.get_last_block_hash().as_slice())
-              .as_slice()
-              .substr(0, 32));
       return decrypted_shared_key;
     }
   }
@@ -726,6 +722,12 @@ td::Status Call::update_group_shared_key() {
   }
 
   TRY_RESULT_ASSIGN(group_shared_key_, decrypt_shared_key());
+  if (group_state->version() >= 1) {
+    group_shared_key_ = td::SecureString(
+        MessageEncryption::hmac_sha512(group_shared_key_, blockchain_.get_last_block_hash().as_slice())
+            .as_slice()
+            .substr(0, 32));
+  }
 
   return call_encryption_.add_shared_key(td::narrow_cast<td::int32>(blockchain_.get_height()),
                                          blockchain_.get_last_block_hash(), group_shared_key_.copy(), group_state);
