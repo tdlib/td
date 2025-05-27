@@ -76,6 +76,19 @@ bool ForumTopic::update_unread_mention_count(int32 count, bool is_relative) {
   return true;
 }
 
+bool ForumTopic::update_unread_reaction_count(int32 count, bool is_relative) {
+  auto new_unread_reaction_count = is_relative ? unread_reaction_count_ + count : count;
+  if (new_unread_reaction_count < 0) {
+    LOG(ERROR) << "Tried to change unread reaction count to " << new_unread_reaction_count;
+    new_unread_reaction_count = 0;
+  }
+  if (unread_reaction_count_ == new_unread_reaction_count) {
+    return false;
+  }
+  unread_reaction_count_ = new_unread_reaction_count;
+  return true;
+}
+
 int64 ForumTopic::get_forum_topic_order(Td *td, DialogId dialog_id) const {
   int64 order = DEFAULT_ORDER;
   if (last_message_id_ != MessageId()) {

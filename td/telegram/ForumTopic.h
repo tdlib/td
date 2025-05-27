@@ -50,6 +50,8 @@ class ForumTopic {
 
   bool update_unread_mention_count(int32 count, bool is_relative);
 
+  bool update_unread_reaction_count(int32 count, bool is_relative);
+
   bool set_is_pinned(bool is_pinned) {
     if (is_pinned_ == is_pinned) {
       return false;

@@ -5018,11 +5018,21 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
 }
 
 void MessagesManager::on_unread_message_reaction_added(Dialog *d, const Message *m, const char *source) {
+  if (td_->dialog_manager_->is_forum_channel(d->dialog_id)) {
+    td_->forum_topic_manager_->on_topic_reaction_count_changed(
+        d->dialog_id, m->top_thread_message_id.is_valid() ? m->top_thread_message_id : MessageId(ServerMessageId(1)),
+        +1, true);
+  }
   set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
   on_dialog_updated(d->dialog_id, source);
 }
 
 void MessagesManager::on_unread_message_reaction_removed(Dialog *d, const Message *m, const char *source) {
+  if (td_->dialog_manager_->is_forum_channel(d->dialog_id)) {
+    td_->forum_topic_manager_->on_topic_reaction_count_changed(
+        d->dialog_id, m->top_thread_message_id.is_valid() ? m->top_thread_message_id : MessageId(ServerMessageId(1)),
+        -1, true);
+  }
   if (d->unread_reaction_count == 0) {
     if (is_dialog_inited(d)) {
       LOG(ERROR) << "Unread reaction count of " << d->dialog_id << " became negative from " << source;
@@ -8629,6 +8639,9 @@ void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, MessageId to
 
   if (top_thread_message_id.is_valid()) {
     LOG(INFO) << "Receive readAllChatReactions request in thread of " << top_thread_message_id << " in " << dialog_id;
+    if (td_->dialog_manager_->is_forum_channel(dialog_id)) {
+      td_->forum_topic_manager_->on_topic_reaction_count_changed(dialog_id, top_thread_message_id, 0, false);
+    }
     return td_->message_query_manager_->read_all_topic_reactions_on_server(
         dialog_id, top_thread_message_id, SavedMessagesTopicId(), 0, std::move(promise));
   } else {
