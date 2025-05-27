@@ -9572,7 +9572,7 @@ deleteChat chat_id:int53 = Ok;
 //-(searchSecretMessages must be used instead), or without an enabled message database. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit.
 //-A combination of query, sender_id, filter and message_thread_id search criteria is expected to be supported, only if it is required for Telegram official application implementation
 //@chat_id Identifier of the chat in which to search messages
-//@topic_id Pass topic identifier to search messages only in specific topic; pass null to search for messages in all threads
+//@topic_id Pass topic identifier to search messages only in specific topic; pass null to search for messages in all topics
 //@query Query to search for
 //@sender_id Identifier of the sender of messages to search for; pass null to search for messages from any sender. Not supported in secret chats
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
@@ -9687,12 +9687,12 @@ getChatSparseMessagePositions chat_id:int53 filter:SearchMessagesFilter from_mes
 //@saved_messages_topic_id If not 0, only messages in the specified Saved Messages topic will be considered; pass 0 to consider all messages, or for chats other than Saved Messages
 getChatMessageCalendar chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 saved_messages_topic_id:int53 = MessageCalendar;
 
-//@description Returns approximate number of messages of the specified type in the chat
+//@description Returns approximate number of messages of the specified type in the chat or its topic
 //@chat_id Identifier of the chat in which to count messages
+//@topic_id Pass topic identifier to get number of messages only in specific topic; pass null to get number of messages in all topics
 //@filter Filter for message content; searchMessagesFilterEmpty is unsupported in this function
-//@saved_messages_topic_id If not 0, only messages in the specified Saved Messages topic will be counted; pass 0 to count all messages, or for chats other than Saved Messages
 //@return_local Pass true to get the number of messages without sending network requests, or -1 if the number of messages is unknown locally
-getChatMessageCount chat_id:int53 filter:SearchMessagesFilter saved_messages_topic_id:int53 return_local:Bool = Count;
+getChatMessageCount chat_id:int53 topic_id:MessageTopic filter:SearchMessagesFilter return_local:Bool = Count;
 
 //@description Returns approximate 1-based position of a message among messages, which can be found by the specified filter in the chat and topic. Cannot be used in secret chats
 //@chat_id Identifier of the chat in which to find message position

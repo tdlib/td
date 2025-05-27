@@ -206,8 +206,8 @@ class MessagesManager final : public Actor {
 
   void on_failed_dialog_messages_search(DialogId dialog_id, int64 random_id);
 
-  void on_get_dialog_message_count(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                   MessageSearchFilter filter, int32 total_count, Promise<int32> &&promise);
+  void on_get_dialog_message_count(DialogId dialog_id, MessageTopic message_topic, MessageSearchFilter filter,
+                                   int32 total_count, Promise<int32> &&promise);
 
   void on_get_scheduled_server_messages(DialogId dialog_id, uint32 generation,
                                         vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_not_modified);
@@ -735,7 +735,7 @@ class MessagesManager final : public Actor {
       telegram_api::object_ptr<telegram_api::messages_searchResultsPositions> positions,
       Promise<td_api::object_ptr<td_api::messagePositions>> &&promise);
 
-  void get_dialog_message_count(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+  void get_dialog_message_count(DialogId dialog_id, const td_api::object_ptr<td_api::MessageTopic> &topic_id,
                                 MessageSearchFilter filter, bool return_local, Promise<int32> &&promise);
 
   void get_dialog_message_position(MessageFullId message_full_id, MessageSearchFilter filter,
@@ -1652,8 +1652,8 @@ class MessagesManager final : public Actor {
 
   void delete_update_message_id(DialogId dialog_id, MessageId message_id);
 
-  void get_dialog_message_count_from_server(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                            MessageSearchFilter filter, Promise<int32> &&promise);
+  void get_dialog_message_count_from_server(DialogId dialog_id, MessageTopic message_topic, MessageSearchFilter filter,
+                                            Promise<int32> &&promise);
 
   MessageFullId on_get_message(MessageInfo &&message_info, const bool from_update, const bool is_channel_message,
                                const char *source);
