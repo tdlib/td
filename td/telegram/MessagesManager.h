@@ -2001,6 +2001,8 @@ class MessagesManager final : public Actor {
 
   bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);
 
+  void on_unread_message_reaction_removed(Dialog *d, const Message *m, const char *source);
+
   bool remove_message_unread_reactions(Dialog *d, Message *m, const char *source);
 
   void read_message_content_from_updates(MessageId message_id, int32 read_date);

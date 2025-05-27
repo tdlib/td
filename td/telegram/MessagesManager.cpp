@@ -4995,6 +4995,18 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
   return false;
 }
 
+void MessagesManager::on_unread_message_reaction_removed(Dialog *d, const Message *m, const char *source) {
+  if (d->unread_reaction_count == 0) {
+    if (is_dialog_inited(d)) {
+      LOG(ERROR) << "Unread reaction count of " << d->dialog_id << " became negative from " << source;
+    }
+  } else {
+    set_dialog_unread_reaction_count(d, d->unread_reaction_count - 1);
+    send_update_message_unread_reactions(d->dialog_id, m, d->unread_reaction_count);
+    on_dialog_updated(d->dialog_id, "on_unread_message_reaction_removed");
+  }
+}
+
 bool MessagesManager::remove_message_unread_reactions(Dialog *d, Message *m, const char *source) {
   CHECK(m != nullptr);
   CHECK(!m->message_id.is_scheduled());
@@ -5004,18 +5016,11 @@ bool MessagesManager::remove_message_unread_reactions(Dialog *d, Message *m, con
   // remove_message_notification_id(d, m, true, true);
 
   m->reactions->unread_reactions_.clear();
-  if (d->unread_reaction_count == 0) {
-    if (is_dialog_inited(d)) {
-      LOG(ERROR) << "Unread reaction count of " << d->dialog_id << " became negative from " << source;
-    }
-  } else {
-    set_dialog_unread_reaction_count(d, d->unread_reaction_count - 1);
-    on_dialog_updated(d->dialog_id, "remove_message_unread_reactions");
-  }
+
   LOG(INFO) << "Update unread reaction count in " << d->dialog_id << " to " << d->unread_reaction_count
             << " by reading " << m->message_id << " from " << source;
 
-  send_update_message_unread_reactions(d->dialog_id, m, d->unread_reaction_count);
+  on_unread_message_reaction_removed(d, m, source);
 
   return true;
 }
@@ -12848,15 +12853,7 @@ void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message 
     }
   }
   if (has_unread_message_reactions(d->dialog_id, m)) {
-    if (d->unread_reaction_count == 0) {
-      if (is_dialog_inited(d)) {
-        LOG(ERROR) << "Unread reaction count became negative in " << d->dialog_id << " after deletion of "
-                   << message_id;
-      }
-    } else {
-      set_dialog_unread_reaction_count(d, d->unread_reaction_count - 1);
-      send_update_chat_unread_reaction_count(d, source);
-    }
+    on_unread_message_reaction_removed(d, m, source);
   }
 
   update_message_count_by_index(d, -1, m);
@@ -25786,7 +25783,6 @@ void MessagesManager::send_update_message_unread_reactions(DialogId dialog_id, c
     return;
   }
   if (!m->is_update_sent) {
-    LOG(INFO) << "Update unread reaction message count in " << dialog_id << " to " << unread_reaction_count;
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateChatUnreadReactionCount>(
                      get_chat_id_object(dialog_id, "updateChatUnreadReactionCount"), unread_reaction_count));
