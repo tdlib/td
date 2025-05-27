@@ -901,6 +901,30 @@ void SavedMessagesManager::on_update_topic_is_marked_as_unread(DialogId dialog_i
   on_topic_changed(topic_list, topic, "on_update_topic_is_marked_as_unread");
 }
 
+void SavedMessagesManager::on_topic_reaction_count_changed(DialogId dialog_id,
+                                                           SavedMessagesTopicId saved_messages_topic_id, int32 count,
+                                                           bool is_relative) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return;
+  }
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
+  if (topic == nullptr) {
+    return;
+  }
+  CHECK(topic->dialog_id_ == dialog_id);
+
+  LOG(INFO) << "Change " << (is_relative ? "by" : "to") << ' ' << count << " number of reactions in "
+            << saved_messages_topic_id << " of " << dialog_id;
+
+  do_set_topic_unread_reaction_count(topic, is_relative ? topic->unread_reaction_count_ + count : count);
+  on_topic_changed(topic_list, topic, "on_topic_reaction_count_changed");
+}
+
 int64 SavedMessagesManager::get_topic_order(int32 message_date, MessageId message_id) {
   return (static_cast<int64>(message_date) << 31) +
          message_id.get_prev_server_message_id().get_server_message_id().get();
@@ -1880,6 +1904,11 @@ void SavedMessagesManager::read_all_monoforum_topic_reactions(DialogId dialog_id
   }
   if (topic->dialog_id_ != dialog_id) {
     return promise.set_error(Status::Error(400, "Topic messages can't have reactions"));
+  }
+
+  do_set_topic_unread_reaction_count(topic, 0);
+  if (!topic->is_changed_) {
+    return promise.set_value(Unit());
   }
 
   td_->message_query_manager_->read_all_topic_reactions_on_server(dialog_id, MessageId(), saved_messages_topic_id, 0,

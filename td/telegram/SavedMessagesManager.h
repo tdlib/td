@@ -72,6 +72,9 @@ class SavedMessagesManager final : public Actor {
   void on_update_topic_is_marked_as_unread(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                            bool is_marked_as_unread);
 
+  void on_topic_reaction_count_changed(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, int32 count,
+                                       bool is_relative);
+
   void load_saved_messages_topics(int32 limit, Promise<Unit> &&promise);
 
   void load_monoforum_topics(DialogId dialog_id, int32 limit, Promise<Unit> &&promise);

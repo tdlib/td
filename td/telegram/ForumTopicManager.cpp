@@ -1267,7 +1267,7 @@ void ForumTopicManager::on_topic_mention_count_changed(DialogId dialog_id, Messa
 
 void ForumTopicManager::on_topic_reaction_count_changed(DialogId dialog_id, MessageId top_thread_message_id,
                                                         int32 count, bool is_relative) {
-  LOG(INFO) << "Change " << (is_relative ? "by" : "to") << ' ' << count << " number of mentions in thread of "
+  LOG(INFO) << "Change " << (is_relative ? "by" : "to") << ' ' << count << " number of reactions in thread of "
             << top_thread_message_id << " in " << dialog_id;
   auto dialog_topics = get_dialog_topics(dialog_id);
   auto topic = get_topic(dialog_topics, top_thread_message_id);

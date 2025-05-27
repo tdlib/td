@@ -5022,6 +5022,8 @@ void MessagesManager::on_unread_message_reaction_added(Dialog *d, const Message 
     td_->forum_topic_manager_->on_topic_reaction_count_changed(
         d->dialog_id, m->top_thread_message_id.is_valid() ? m->top_thread_message_id : MessageId(ServerMessageId(1)),
         +1, true);
+  } else if (td_->dialog_manager_->is_monoforum_channel(d->dialog_id)) {
+    td_->saved_messages_manager_->on_topic_reaction_count_changed(d->dialog_id, m->saved_messages_topic_id, +1, true);
   }
   set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
   on_dialog_updated(d->dialog_id, source);
@@ -5032,6 +5034,8 @@ void MessagesManager::on_unread_message_reaction_removed(Dialog *d, const Messag
     td_->forum_topic_manager_->on_topic_reaction_count_changed(
         d->dialog_id, m->top_thread_message_id.is_valid() ? m->top_thread_message_id : MessageId(ServerMessageId(1)),
         -1, true);
+  } else if (td_->dialog_manager_->is_monoforum_channel(d->dialog_id)) {
+    td_->saved_messages_manager_->on_topic_reaction_count_changed(d->dialog_id, m->saved_messages_topic_id, -1, true);
   }
   if (d->unread_reaction_count == 0) {
     if (is_dialog_inited(d)) {
