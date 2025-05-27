@@ -4967,6 +4967,21 @@ void MessagesManager::on_update_message_content(MessageFullId message_full_id) {
   on_message_notification_changed(d, m, "on_update_message_content 3");
 }
 
+void MessagesManager::on_unread_message_mention_removed(Dialog *d, const Message *m, const char *source) {
+  if (d->unread_mention_count == 0) {
+    if (is_dialog_inited(d)) {
+      LOG(ERROR) << "Unread mention count of " << d->dialog_id << " became negative from " << source;
+    }
+  } else {
+    set_dialog_unread_mention_count(d, d->unread_mention_count - 1);
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateMessageMentionRead>(
+                     get_chat_id_object(d->dialog_id, "updateMessageMentionRead"), m->message_id.get(),
+                     d->unread_mention_count));
+    on_dialog_updated(d->dialog_id, "on_unread_message_mention_removed");
+  }
+}
+
 bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention,
                                                              const char *source) {
   LOG_CHECK(m != nullptr) << source;
@@ -4975,21 +4990,11 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
     remove_message_notification_id(d, m, true, true);  // must be called before contains_unread_mention is updated
 
     m->contains_unread_mention = false;
-    if (d->unread_mention_count == 0) {
-      if (is_dialog_inited(d)) {
-        LOG(ERROR) << "Unread mention count of " << d->dialog_id << " became negative from " << source;
-      }
-    } else {
-      set_dialog_unread_mention_count(d, d->unread_mention_count - 1);
-      on_dialog_updated(d->dialog_id, "update_message_contains_unread_mention");
-    }
+
     LOG(INFO) << "Update unread mention message count in " << d->dialog_id << " to " << d->unread_mention_count
               << " by reading " << m->message_id << " from " << source;
 
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateMessageMentionRead>(
-                     get_chat_id_object(d->dialog_id, "updateMessageMentionRead"), m->message_id.get(),
-                     d->unread_mention_count));
+    on_unread_message_mention_removed(d, m, source);
     return true;
   }
   return false;
@@ -12843,14 +12848,7 @@ void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message 
     }
   }
   if (m->contains_unread_mention) {
-    if (d->unread_mention_count == 0) {
-      if (is_dialog_inited(d)) {
-        LOG(ERROR) << "Unread mention count became negative in " << d->dialog_id << " after deletion of " << message_id;
-      }
-    } else {
-      set_dialog_unread_mention_count(d, d->unread_mention_count - 1);
-      send_update_chat_unread_mention_count(d);
-    }
+    on_unread_message_mention_removed(d, m, source);
   }
   if (has_unread_message_reactions(d->dialog_id, m)) {
     on_unread_message_reaction_removed(d, m, source);

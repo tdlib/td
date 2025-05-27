@@ -1999,6 +1999,8 @@ class MessagesManager final : public Actor {
 
   bool update_message_fact_check(const Dialog *d, Message *m, unique_ptr<FactCheck> &&fact_check, bool need_save);
 
+  void on_unread_message_mention_removed(Dialog *d, const Message *m, const char *source);
+
   bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);
 
   void on_unread_message_reaction_removed(Dialog *d, const Message *m, const char *source);
