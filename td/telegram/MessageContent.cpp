@@ -4731,9 +4731,15 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       if (!permissions.can_send_polls()) {
         return Status::Error(400, "Not enough rights to send polls to the chat");
       }
-      if (dialog_type == DialogType::Channel && td->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id()) &&
-          !td->poll_manager_->get_poll_is_anonymous(static_cast<const MessagePoll *>(content)->poll_id)) {
-        return Status::Error(400, "Non-anonymous polls can't be sent to channel chats");
+      if (dialog_type == DialogType::Channel) {
+        auto channel_id = dialog_id.get_channel_id();
+        if (td->chat_manager_->is_broadcast_channel(channel_id) &&
+            !td->poll_manager_->get_poll_is_anonymous(static_cast<const MessagePoll *>(content)->poll_id)) {
+          return Status::Error(400, "Non-anonymous polls can't be sent to channel chats");
+        }
+        if (td->chat_manager_->is_monoforum_channel(channel_id)) {
+          return Status::Error(400, "Polls can't be sent to feedback chats");
+        }
       }
       if (dialog_type == DialogType::User && !is_forward && !td->auth_manager_->is_bot() &&
           !td->user_manager_->is_user_bot(dialog_id.get_user_id()) &&
