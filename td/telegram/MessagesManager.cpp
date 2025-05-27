@@ -14645,6 +14645,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_report_supergroup_spam =
       dialog_id.get_type() == DialogType::Channel &&
       td_->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id()) &&
+      !td_->chat_manager_->is_monoforum_channel(dialog_id.get_channel_id()) &&
       td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_administrator() &&
       can_report_message(m->message_id).is_ok();
   auto can_set_fact_check = can_set_message_fact_check(dialog_id, m);
@@ -14754,6 +14755,7 @@ Status MessagesManager::can_report_message(MessageId message_id) {
 bool MessagesManager::can_report_message_reactions(DialogId dialog_id, const Message *m) const {
   CHECK(m != nullptr);
   if (dialog_id.get_type() != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(dialog_id) ||
+      td_->dialog_manager_->is_monoforum_channel(dialog_id) ||
       !td_->chat_manager_->is_channel_public(dialog_id.get_channel_id())) {
     return false;
   }
