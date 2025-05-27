@@ -2017,7 +2017,8 @@ class MessagesManager final : public Actor {
 
   void read_message_content_from_updates(MessageId message_id, int32 read_date);
 
-  void read_channel_message_content_from_updates(Dialog *d, MessageId message_id);
+  void read_channel_message_content_from_updates(Dialog *d, MessageId message_id, MessageId top_thread_message_id,
+                                                 SavedMessagesTopicId saved_messages_topic_id);
 
   bool read_message_content(Dialog *d, Message *m, bool is_local_read, int32 read_date, const char *source);
 

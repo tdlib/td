@@ -1279,4 +1279,13 @@ void ForumTopicManager::on_topic_reaction_count_changed(DialogId dialog_id, Mess
   }
 }
 
+void ForumTopicManager::repair_topic_unread_mention_count(DialogId dialog_id, MessageId top_thread_message_id) {
+  if (!td_->dialog_manager_->is_forum_channel(dialog_id) ||
+      can_be_message_thread_id(top_thread_message_id).is_error()) {
+    return;
+  }
+
+  td_->create_handler<GetForumTopicQuery>(Auto())->send(dialog_id.get_channel_id(), top_thread_message_id);
+}
+
 }  // namespace td

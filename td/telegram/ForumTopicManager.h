@@ -121,6 +121,8 @@ class ForumTopicManager final : public Actor {
   void on_topic_reaction_count_changed(DialogId dialog_id, MessageId top_thread_message_id, int32 count,
                                        bool is_relative);
 
+  void repair_topic_unread_mention_count(DialogId dialog_id, MessageId top_thread_message_id);
+
  private:
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server-side limit for forum topic title
 

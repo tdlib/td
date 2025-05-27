@@ -4295,14 +4295,13 @@ void MessagesManager::on_update_read_channel_messages_contents(
     return;
   }
 
-  if (update->top_msg_id_ > 0) {
-    // TODO
-    return;
+  SavedMessagesTopicId saved_messages_topic_id;
+  if (update->saved_peer_id_ != nullptr) {
+    saved_messages_topic_id = SavedMessagesTopicId(DialogId(update->saved_peer_id_));
   }
-  // ignore update->saved_peer_id_
-
   for (auto &server_message_id : update->messages_) {
-    read_channel_message_content_from_updates(d, MessageId(ServerMessageId(server_message_id)));
+    read_channel_message_content_from_updates(d, MessageId(ServerMessageId(server_message_id)),
+                                              MessageId(ServerMessageId(update->top_msg_id_)), saved_messages_topic_id);
   }
 }
 
@@ -8705,7 +8704,9 @@ void MessagesManager::read_message_content_from_updates(MessageId message_id, in
   }
 }
 
-void MessagesManager::read_channel_message_content_from_updates(Dialog *d, MessageId message_id) {
+void MessagesManager::read_channel_message_content_from_updates(Dialog *d, MessageId message_id,
+                                                                MessageId top_thread_message_id,
+                                                                SavedMessagesTopicId saved_messages_topic_id) {
   CHECK(d != nullptr);
   if (!message_id.is_valid() || !message_id.is_server()) {
     LOG(ERROR) << "Incoming update tries to read content of " << message_id << " in " << d->dialog_id;
@@ -8714,6 +8715,7 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  (void)saved_messages_topic_id;  // it isn't needed
 
   Message *m = get_message_force(d, message_id, "read_channel_message_content_from_updates");
   if (m != nullptr) {
@@ -8733,6 +8735,9 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
       if (d->unread_mention_count > 0) {
         // but if the chat has unread mentions, then number of unread mentions could have been changed
         repair_dialog_unread_mention_count(d, "read_channel_message_content_from_updates");
+      }
+      if (top_thread_message_id.is_valid()) {
+        td_->forum_topic_manager_->repair_topic_unread_mention_count(d->dialog_id, top_thread_message_id);
       }
     }
   }
