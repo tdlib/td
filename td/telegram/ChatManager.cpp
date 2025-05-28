@@ -2748,8 +2748,9 @@ bool ChatManager::have_input_peer_channel(const Channel *c, ChannelId channel_id
 
   if (!from_linked && c->is_monoforum) {
     auto monoforum_channel_id = get_monoforum_channel_id(channel_id);
-    if (monoforum_channel_id.is_valid() && have_channel(monoforum_channel_id)) {
-      return have_input_peer_channel(get_channel(monoforum_channel_id), monoforum_channel_id, access_rights, true);
+    auto *monoforum_channel = get_channel(monoforum_channel_id);
+    if (monoforum_channel != nullptr) {
+      return have_input_peer_channel(monoforum_channel, monoforum_channel_id, access_rights, true);
     }
     return true;
   }
