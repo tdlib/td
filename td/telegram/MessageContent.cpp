@@ -3747,7 +3747,7 @@ static Result<InputMessageContent> create_input_message_content(
       if (input_poll->options_.size() <= 1) {
         return Status::Error(400, "Poll must have at least 2 option");
       }
-      if (input_poll->options_.size() > max_poll_options) {
+      if (static_cast<int64>(input_poll->options_.size()) > max_poll_options) {
         return Status::Error(400, PSLICE() << "Poll can't have more than " << max_poll_options << " options");
       }
       vector<FormattedText> options;
