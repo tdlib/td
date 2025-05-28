@@ -7757,9 +7757,9 @@ bool MessagesManager::can_reply_to_message(DialogId dialog_id, MessageId message
          can_send_message(dialog_id).is_ok();
 }
 
-bool MessagesManager::can_reply_to_message_in_another_dialog(DialogId dialog_id, const Message *m,
+bool MessagesManager::can_reply_to_message_in_another_dialog(DialogId dialog_id, MessageId message_id,
                                                              bool can_be_forwarded) const {
-  return can_be_forwarded && m->message_id.is_valid() && m->message_id.is_server() &&
+  return can_be_forwarded && message_id.is_valid() && message_id.is_server() &&
          !td_->dialog_manager_->is_monoforum_channel(dialog_id);
 }
 
@@ -14646,7 +14646,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_be_paid = get_invoice_message_info({dialog_id, m->message_id}).is_ok();
   auto can_be_pinned = can_pin_message(dialog_id, m).is_ok();
   auto can_be_replied = can_reply_to_message(dialog_id, message_id);
-  auto can_be_replied_in_another_chat = can_reply_to_message_in_another_dialog(dialog_id, m, can_be_forwarded);
+  auto can_be_replied_in_another_chat = can_reply_to_message_in_another_dialog(dialog_id, message_id, can_be_forwarded);
   auto can_be_shared_in_story = can_share_message_in_story(dialog_id, m);
   auto can_edit_media = can_edit_message_media(dialog_id, m, false);
   auto can_edit_scheduling_state = can_edit_message_scheduling_state(m);
@@ -20259,7 +20259,8 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
         return {};
       }
       const Message *m = get_message_force(reply_d, message_id, "create_message_input_reply_to 2");
-      if (!can_reply_to_message_in_another_dialog(reply_dialog_id, m, can_forward_message(reply_dialog_id, m, false))) {
+      if (!can_reply_to_message_in_another_dialog(reply_dialog_id, message_id,
+                                                  can_forward_message(reply_dialog_id, m, false))) {
         LOG(INFO) << "Can't reply in another chat " << message_id << " in " << reply_d->dialog_id;
         return {};
       }
