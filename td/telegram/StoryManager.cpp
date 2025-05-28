@@ -1850,6 +1850,20 @@ bool StoryManager::can_get_story_view_count(DialogId owner_dialog_id) {
   }
 }
 
+bool StoryManager::can_have_stories(DialogId owner_dialog_id) const {
+  switch (owner_dialog_id.get_type()) {
+    case DialogType::User:
+      return !td_->user_manager_->is_user_bot(owner_dialog_id.get_user_id());
+    case DialogType::Channel:
+      return !td_->chat_manager_->is_monoforum_channel(owner_dialog_id.get_channel_id());
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      return false;
+  }
+}
+
 bool StoryManager::can_post_stories(DialogId owner_dialog_id) const {
   switch (owner_dialog_id.get_type()) {
     case DialogType::User:
@@ -2539,6 +2553,9 @@ void StoryManager::get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId f
   if (from_story_id != StoryId() && !from_story_id.is_server()) {
     return promise.set_error(Status::Error(400, "Invalid value of parameter from_story_id specified"));
   }
+  if (!can_have_stories(owner_dialog_id)) {
+    return promise.set_value(td_api::make_object<td_api::stories>());
+  }
 
   auto query_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), owner_dialog_id, promise = std::move(promise)](
@@ -2621,6 +2638,8 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
     }
     promise.set_value(get_chat_active_stories_object(owner_dialog_id, active_stories));
     promise = {};
+  } else if (!can_have_stories(owner_dialog_id)) {
+    return promise.set_value(td_api::make_object<td_api::chatActiveStories>());
   }
 
   auto query_promise =
@@ -2636,7 +2655,7 @@ void StoryManager::get_dialog_expiring_stories(DialogId owner_dialog_id,
 }
 
 void StoryManager::reload_dialog_expiring_stories(DialogId dialog_id) {
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) || !can_have_stories(dialog_id)) {
     return;
   }
   td_->dialog_manager_->force_create_dialog(dialog_id, "reload_dialog_expiring_stories");
@@ -2665,12 +2684,13 @@ uint64 StoryManager::save_load_dialog_expiring_stories_log_event(DialogId owner_
 }
 
 void StoryManager::load_dialog_expiring_stories(DialogId owner_dialog_id, uint64 log_event_id, const char *source) {
-  if (load_expiring_stories_log_event_ids_.count(owner_dialog_id) > 0) {
+  if (load_expiring_stories_log_event_ids_.count(owner_dialog_id) > 0 || !can_have_stories(owner_dialog_id)) {
     if (log_event_id != 0) {
       binlog_erase(G()->td_db()->get_binlog(), log_event_id);
     }
     return;
   }
+
   LOG(INFO) << "Load active stories in " << owner_dialog_id << " from " << source;
   if (log_event_id == 0 && G()->use_message_database()) {
     log_event_id = save_load_dialog_expiring_stories_log_event(owner_dialog_id);

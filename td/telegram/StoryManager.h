@@ -436,6 +436,8 @@ class StoryManager final : public Actor {
 
   bool can_get_story_view_count(DialogId owner_dialog_id);
 
+  bool can_have_stories(DialogId owner_dialog_id) const;
+
   bool can_post_stories(DialogId owner_dialog_id) const;
 
   bool can_edit_stories(DialogId owner_dialog_id) const;
