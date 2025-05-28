@@ -8662,11 +8662,45 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, MessageId top
   td_->message_query_manager_->read_all_dialog_mentions_on_server(dialog_id, 0, std::move(promise));
 }
 
+bool MessagesManager::read_all_local_dialog_reactions(DialogId dialog_id, MessageId top_thread_message_id,
+                                                      SavedMessagesTopicId saved_messages_topic_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+  auto *d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    return false;
+  }
+  auto message_ids =
+      find_dialog_messages(d, [this, dialog_id, top_thread_message_id, saved_messages_topic_id](const Message *m) {
+        return has_unread_message_reactions(dialog_id, m) &&
+               (!top_thread_message_id.is_valid() ||
+                (m->is_topic_message && m->top_thread_message_id == top_thread_message_id)) &&
+               (!saved_messages_topic_id.is_valid() || m->saved_messages_topic_id == saved_messages_topic_id);
+      });
+
+  LOG(INFO) << "Found " << message_ids.size() << " messages with unread reactions in memory";
+  for (auto message_id : message_ids) {
+    auto m = get_message(d, message_id);
+    CHECK(m != nullptr);
+    CHECK(has_unread_message_reactions(dialog_id, m));
+    CHECK(m->message_id == message_id);
+    CHECK(m->message_id.is_valid());
+    // remove_message_notification_id(d, m, true, false);  // must be called before unread_reactions are cleared
+    m->reactions->unread_reactions_.clear();
+
+    send_update_message_unread_reactions(dialog_id, m, 0);
+    on_message_changed(d, m, true, "read_all_dialog_reactions");
+  }
+  return !message_ids.empty();
+}
+
 void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, MessageId top_thread_message_id,
                                                 Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "read_all_dialog_reactions"));
   TRY_STATUS_PROMISE(promise, can_use_top_thread_message_id(d, top_thread_message_id, MessageInputReplyTo()));
 
+  auto is_update_sent = read_all_local_dialog_reactions(dialog_id, top_thread_message_id, SavedMessagesTopicId());
   if (top_thread_message_id.is_valid()) {
     LOG(INFO) << "Receive readAllChatReactions request in thread of " << top_thread_message_id << " in " << dialog_id;
     if (td_->dialog_manager_->is_forum_channel(dialog_id)) {
@@ -8682,25 +8716,6 @@ void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, MessageId to
   if (dialog_id.get_type() == DialogType::SecretChat) {
     CHECK(d->unread_reaction_count == 0);
     return promise.set_value(Unit());
-  }
-
-  auto message_ids = find_dialog_messages(
-      d, [this, dialog_id](const Message *m) { return has_unread_message_reactions(dialog_id, m); });
-
-  LOG(INFO) << "Found " << message_ids.size() << " messages with unread reactions in memory";
-  bool is_update_sent = false;
-  for (auto message_id : message_ids) {
-    auto m = get_message(d, message_id);
-    CHECK(m != nullptr);
-    CHECK(has_unread_message_reactions(dialog_id, m));
-    CHECK(m->message_id == message_id);
-    CHECK(m->message_id.is_valid());
-    // remove_message_notification_id(d, m, true, false);  // must be called before unread_reactions are cleared
-    m->reactions->unread_reactions_.clear();
-
-    send_update_message_unread_reactions(dialog_id, m, 0);
-    is_update_sent = true;
-    on_message_changed(d, m, true, "read_all_dialog_reactions");
   }
 
   if (d->unread_reaction_count != 0) {

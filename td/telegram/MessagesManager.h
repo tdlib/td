@@ -396,6 +396,9 @@ class MessagesManager final : public Actor {
 
   void read_all_dialog_mentions(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
+  bool read_all_local_dialog_reactions(DialogId dialog_id, MessageId top_thread_message_id,
+                                       SavedMessagesTopicId saved_messages_topic_id);
+
   void read_all_dialog_reactions(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
   void get_dialog_send_message_as_dialog_ids(DialogId dialog_id,

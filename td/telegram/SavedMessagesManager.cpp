@@ -1903,6 +1903,8 @@ void SavedMessagesManager::read_all_monoforum_topic_reactions(DialogId dialog_id
     return promise.set_error(Status::Error(400, "Topic messages can't have reactions"));
   }
 
+  td_->messages_manager_->read_all_local_dialog_reactions(dialog_id, MessageId(), saved_messages_topic_id);
+
   do_set_topic_unread_reaction_count(topic, 0);
   if (!topic->is_changed_) {
     return promise.set_value(Unit());
