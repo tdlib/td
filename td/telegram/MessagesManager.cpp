@@ -7713,6 +7713,10 @@ string MessagesManager::get_message_search_text(const Message *m) const {
   return get_message_content_search_text(td_, m->content.get());
 }
 
+bool MessagesManager::get_message_has_protected_content(DialogId dialog_id, const Message *m) const {
+  return m->noforwards || td_->dialog_manager_->get_dialog_has_protected_content(dialog_id);
+}
+
 bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message *m) {
   if (m == nullptr) {
     return false;
@@ -7745,7 +7749,7 @@ bool MessagesManager::can_save_message(DialogId dialog_id, const Message *m) con
   if (m == nullptr || m->is_content_secret) {
     return false;
   }
-  if (m->noforwards || td_->dialog_manager_->get_dialog_has_protected_content(dialog_id)) {
+  if (get_message_has_protected_content(dialog_id, m)) {
     return false;
   }
   return true;
