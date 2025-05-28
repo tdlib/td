@@ -14611,7 +14611,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   message_id = m->message_id;
 
   bool can_delete = can_delete_message(dialog_id, m);
-  bool is_scheduled = m->message_id.is_scheduled();
+  bool is_scheduled = message_id.is_scheduled();
   bool is_from_saved_messages = (dialog_id == td_->dialog_manager_->get_my_dialog_id());
   bool can_delete_for_self = false;
   bool can_delete_for_all_users = can_delete && can_revoke_message(dialog_id, m);
@@ -14621,7 +14621,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
       case DialogType::User:
       case DialogType::Chat:
         // TODO allow to delete yet unsent message just for self
-        can_delete_for_self = !m->message_id.is_yet_unsent() || is_from_saved_messages;
+        can_delete_for_self = !message_id.is_yet_unsent() || is_from_saved_messages;
         break;
       case DialogType::Channel:
       case DialogType::SecretChat:
@@ -14643,7 +14643,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_be_edited = can_edit_message(dialog_id, m, false, is_bot);
   auto can_be_forwarded = can_forward_message(dialog_id, m, false);
   auto can_be_copied_to_secret_chat = can_be_copied && can_send_message_content_to_secret_chat(m->content->get_type());
-  auto can_be_paid = get_invoice_message_info({dialog_id, m->message_id}).is_ok();
+  auto can_be_paid = get_invoice_message_info({dialog_id, message_id}).is_ok();
   auto can_be_pinned = can_pin_message(dialog_id, m).is_ok();
   auto can_be_replied = can_reply_to_message(dialog_id, message_id);
   auto can_be_replied_in_another_chat = can_reply_to_message_in_another_dialog(dialog_id, message_id, can_be_forwarded);
@@ -14658,15 +14658,14 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_get_link = can_get_media_timestamp_links && dialog_type == DialogType::Channel;
   auto can_get_embedding_code = can_get_message_embedding_code(dialog_id, m).is_ok();
   auto can_recognize_speech = can_recognize_message_speech(dialog_id, m);
-  auto can_report_chat =
-      td_->dialog_manager_->can_report_dialog(dialog_id) && can_report_message(m->message_id).is_ok();
+  auto can_report_chat = td_->dialog_manager_->can_report_dialog(dialog_id) && can_report_message(message_id).is_ok();
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
   auto can_report_supergroup_spam =
       dialog_id.get_type() == DialogType::Channel &&
       td_->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id()) &&
       !td_->chat_manager_->is_monoforum_channel(dialog_id.get_channel_id()) &&
       td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_administrator() &&
-      can_report_message(m->message_id).is_ok();
+      can_report_message(message_id).is_ok();
   auto can_set_fact_check = can_set_message_fact_check(dialog_id, m);
   auto need_show_statistics = can_get_statistics && (m->view_count >= 100 || m->forward_count > 0);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
