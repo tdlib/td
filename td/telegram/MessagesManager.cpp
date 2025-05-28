@@ -7750,6 +7750,13 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
   return true;
 }
 
+bool MessagesManager::can_reply_to_message(DialogId dialog_id, MessageId message_id) const {
+  return message_id.is_valid() &&
+         !(message_id == MessageId(ServerMessageId(1)) && dialog_id.get_type() == DialogType::Channel) &&
+         !message_id.is_yet_unsent() && (!message_id.is_local() || dialog_id.get_type() == DialogType::SecretChat) &&
+         can_send_message(dialog_id).is_ok();
+}
+
 bool MessagesManager::can_reply_to_message_in_another_dialog(DialogId dialog_id, const Message *m,
                                                              bool can_be_forwarded) const {
   return can_be_forwarded && m->message_id.is_valid() && m->message_id.is_server() &&
@@ -14601,6 +14608,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
     }
     return promise.set_error(Status::Error(400, "Message not found"));
   }
+  message_id = m->message_id;
 
   bool can_delete = can_delete_message(dialog_id, m);
   bool is_scheduled = m->message_id.is_scheduled();
@@ -14637,11 +14645,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_be_copied_to_secret_chat = can_be_copied && can_send_message_content_to_secret_chat(m->content->get_type());
   auto can_be_paid = get_invoice_message_info({dialog_id, m->message_id}).is_ok();
   auto can_be_pinned = can_pin_message(dialog_id, m).is_ok();
-  auto can_be_replied =
-      message_id.is_valid() && !(message_id == MessageId(ServerMessageId(1)) && dialog_type == DialogType::Channel) &&
-      !m->message_id.is_yet_unsent() && (!m->message_id.is_local() || dialog_type == DialogType::SecretChat) &&
-      (dialog_type != DialogType::Chat || td_->chat_manager_->get_chat_is_active(dialog_id.get_chat_id())) &&
-      can_send_message(dialog_id).is_ok();
+  auto can_be_replied = can_reply_to_message(dialog_id, message_id);
   auto can_be_replied_in_another_chat = can_reply_to_message_in_another_dialog(dialog_id, m, can_be_forwarded);
   auto can_be_shared_in_story = can_share_message_in_story(dialog_id, m);
   auto can_edit_media = can_edit_message_media(dialog_id, m, false);
@@ -20174,12 +20178,17 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
     Dialog *d, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
     bool for_draft) {
   CHECK(d != nullptr);
+  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server() ||
+      top_thread_message_id == MessageId(ServerMessageId(1))) {
+    LOG(INFO) << "Ignore thread of " << top_thread_message_id;
+    top_thread_message_id = {};
+  }
   if (top_thread_message_id.is_valid() &&
       !have_message_force(d, top_thread_message_id, "create_message_input_reply_to 1")) {
     LOG(INFO) << "Have reply in the thread of unknown " << top_thread_message_id;
   }
   if (reply_to == nullptr) {
-    if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
+    if (!for_draft && top_thread_message_id.is_valid()) {
       return MessageInputReplyTo{top_thread_message_id, DialogId(), MessageQuote()};
     }
     return {};
@@ -20206,27 +20215,25 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
       auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToMessage>(reply_to);
       auto message_id = MessageId(reply_to_message->message_id_);
       if (!message_id.is_valid()) {
-        if (!for_draft && message_id == MessageId() && top_thread_message_id.is_valid() &&
-            top_thread_message_id.is_server()) {
+        if (message_id == MessageId() && !for_draft && top_thread_message_id.is_valid()) {
           return MessageInputReplyTo{top_thread_message_id, DialogId(), MessageQuote()};
         }
         return {};
       }
       message_id = get_persistent_message_id(d, message_id);
-      if (message_id == MessageId(ServerMessageId(1)) && d->dialog_id.get_type() == DialogType::Channel) {
-        return {};
+      if (!can_reply_to_message(d->dialog_id, message_id)) {
+        message_id = {};
       }
       const Message *m = get_message_force(d, message_id, "create_message_input_reply_to 2");
-      if (m == nullptr || m->message_id.is_yet_unsent() ||
-          (m->message_id.is_local() && d->dialog_id.get_type() != DialogType::SecretChat)) {
+      if (m == nullptr) {
         if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
-            message_id > d->last_new_message_id &&
+            d->last_new_message_id.is_valid() && message_id > d->last_new_message_id &&
             (d->notification_info != nullptr &&
              message_id <= d->notification_info->max_push_notification_message_id_)) {
           // allow to reply yet unreceived server message in the same chat
           return MessageInputReplyTo{message_id, DialogId(), MessageQuote{td_, std::move(reply_to_message->quote_)}};
         }
-        if (!for_draft && top_thread_message_id.is_valid() && top_thread_message_id.is_server()) {
+        if (!for_draft && top_thread_message_id.is_valid()) {
           return MessageInputReplyTo{top_thread_message_id, DialogId(), MessageQuote()};
         }
         LOG(INFO) << "Can't find " << message_id << " in " << d->dialog_id;
