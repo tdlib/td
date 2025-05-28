@@ -29829,8 +29829,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                    << debug_channel_difference_dialog_ << " "
                    << to_string(get_message_object(dialog_id, message.get(), "add_message_to_dialog"));
 
-        if (need_channel_difference_to_add_message(dialog_id, nullptr)) {
-          schedule_get_channel_difference(dialog_id, 0, MessageId(), 0.001, "add_message_to_dialog");
+        if (need_channel_difference_to_add_message(dialog_id, message_id)) {
+          schedule_get_channel_difference(dialog_id, 0, message_id, 0.001, "add_message_to_dialog");
         }
       } else {
         LOG(INFO) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source;
