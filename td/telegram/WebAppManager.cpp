@@ -532,7 +532,8 @@ void WebAppManager::reload_web_app(UserId bot_user_id, const string &web_app_sho
 void WebAppManager::request_app_web_view(DialogId dialog_id, UserId bot_user_id, string &&web_app_short_name,
                                          string &&start_parameter, const WebAppOpenParameters &parameters,
                                          bool allow_write_access, Promise<string> &&promise) {
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) ||
+      td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
     dialog_id = DialogId(bot_user_id);
   }
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
@@ -546,7 +547,8 @@ void WebAppManager::request_app_web_view(DialogId dialog_id, UserId bot_user_id,
 void WebAppManager::request_main_web_view(DialogId dialog_id, UserId bot_user_id, string &&start_parameter,
                                           const WebAppOpenParameters &parameters,
                                           Promise<td_api::object_ptr<td_api::mainWebApp>> &&promise) {
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) ||
+      td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
     dialog_id = DialogId(bot_user_id);
   }
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
