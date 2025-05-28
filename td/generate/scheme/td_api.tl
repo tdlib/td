@@ -2200,7 +2200,7 @@ factCheck text:formattedText country_code:string = FactCheck;
 //@is_outgoing True, if the message is outgoing
 //@is_pinned True, if the message is pinned
 //@is_from_offline True, if the message was sent because of a scheduled action by the message sender, for example, as away, or greeting service message
-//@can_be_saved True, if content of the message can be saved locally or copied using inputMessageForwarded or forwardMessages with copy options
+//@can_be_saved True, if content of the message can be saved locally
 //@has_timestamped_media True, if media timestamp entities refers to a media in this message as opposed to a media in the replied message
 //@is_channel_post True, if the message is a channel post. All messages to channels are channel posts, all other messages are not channel posts
 //@contains_unread_mention True, if the message contains an unread mention for the current user
@@ -4487,7 +4487,7 @@ messageSendOptions feedback_chat_topic_id:int53 disable_notification:Bool from_b
 
 //@description Options to be used when a message content is copied without reference to the original sender. Service messages, messages with messageInvoice, messagePaidMedia, messageGiveaway, or messageGiveawayWinners content can't be copied
 //@send_copy True, if content of the message needs to be copied without reference to the original sender. Always true if the message is forwarded to a secret chat or is local.
-//-Use messageProperties.can_be_saved and messageProperties.can_be_copied_to_secret_chat to check whether the message is suitable
+//-Use messageProperties.can_be_copied and messageProperties.can_be_copied_to_secret_chat to check whether the message is suitable
 //@replace_caption True, if media caption of the message copy needs to be replaced. Ignored if send_copy is false
 //@new_caption New message caption; pass null to copy message without caption. Ignored if replace_caption is false
 //@new_show_caption_above_media True, if new caption must be shown above the media; otherwise, new caption must be shown below the media; not supported in secret chats. Ignored if replace_caption is false
@@ -4652,17 +4652,18 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 
 
 //@description Contains properties of a message and describes actions that can be done with the message right now
+//@can_be_copied True, if content of the message can be copied using inputMessageForwarded or forwardMessages with copy options
 //@can_be_copied_to_secret_chat True, if content of the message can be copied to a secret chat using inputMessageForwarded or forwardMessages with copy options
 //@can_be_deleted_only_for_self True, if the message can be deleted only for the current user while other users will continue to see it using the method deleteMessages with revoke == false
 //@can_be_deleted_for_all_users True, if the message can be deleted for all users using the method deleteMessages with revoke == true
 //@can_be_edited True, if the message can be edited using the methods editMessageText, editMessageCaption, or editMessageReplyMarkup.
 //-For live location and poll messages this fields shows whether editMessageLiveLocation or stopPoll can be used with this message
-//@can_be_forwarded True, if the message can be forwarded using inputMessageForwarded or forwardMessages
+//@can_be_forwarded True, if the message can be forwarded using inputMessageForwarded or forwardMessages without copy options
 //@can_be_paid True, if the message can be paid using inputInvoiceMessage
 //@can_be_pinned True, if the message can be pinned or unpinned in the chat using pinChatMessage or unpinChatMessage
 //@can_be_replied True, if the message can be replied in the same chat and forum topic using inputMessageReplyToMessage
 //@can_be_replied_in_another_chat True, if the message can be replied in another chat or forum topic using inputMessageReplyToExternalMessage
-//@can_be_saved True, if content of the message can be saved locally or copied using inputMessageForwarded or forwardMessages with copy options
+//@can_be_saved True, if content of the message can be saved locally
 //@can_be_shared_in_story True, if the message can be shared in a story using inputStoryAreaTypeMessage
 //@can_edit_media True, if the message can be edited using the method editMessageMedia
 //@can_edit_scheduling_state True, if scheduling state of the message can be edited
@@ -4679,7 +4680,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 //@can_report_supergroup_spam True, if the message can be reported using reportSupergroupSpam
 //@can_set_fact_check True, if fact check for the message can be changed through setMessageFactCheck
 //@need_show_statistics True, if message statistics must be available from context menu of the message
-messageProperties can_be_copied_to_secret_chat:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_pinned:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_edit_media:Bool can_edit_scheduling_state:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_viewers:Bool can_recognize_speech:Bool can_report_chat:Bool can_report_reactions:Bool can_report_supergroup_spam:Bool can_set_fact_check:Bool need_show_statistics:Bool = MessageProperties;
+messageProperties can_be_copied:Bool can_be_copied_to_secret_chat:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_pinned:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_edit_media:Bool can_edit_scheduling_state:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_viewers:Bool can_recognize_speech:Bool can_report_chat:Bool can_report_reactions:Bool can_report_supergroup_spam:Bool can_set_fact_check:Bool need_show_statistics:Bool = MessageProperties;
 
 
 //@class SearchMessagesFilter @description Represents a filter for message search results
@@ -9836,7 +9837,7 @@ sendInlineQueryResultMessage chat_id:int53 message_thread_id:int53 reply_to:Inpu
 //@message_ids Identifiers of the messages to forward. Message identifiers must be in a strictly increasing order. At most 100 messages can be forwarded simultaneously. A message can be forwarded only if messageProperties.can_be_forwarded
 //@options Options to be used to send the messages; pass null to use default options
 //@send_copy Pass true to copy content of the messages without reference to the original sender. Always true if the messages are forwarded to a secret chat or are local.
-//-Use messageProperties.can_be_saved and messageProperties.can_be_copied_to_secret_chat to check whether the message is suitable
+//-Use messageProperties.can_be_copied and messageProperties.can_be_copied_to_secret_chat to check whether the message is suitable
 //@remove_caption Pass true to remove media captions of message copies. Ignored if send_copy is false
 forwardMessages chat_id:int53 message_thread_id:int53 from_chat_id:int53 message_ids:vector<int53> options:messageSendOptions send_copy:Bool remove_caption:Bool = Messages;
 
