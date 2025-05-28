@@ -92,7 +92,6 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
       }
       SavedMessagesTopicId saved_messages_topic_id(
           DialogId(static_cast<const td_api::messageTopicFeedbackChat *>(topic.get())->feedback_chat_topic_id_));
-      TRY_STATUS(saved_messages_topic_id.is_valid_status(td));
       TRY_STATUS(saved_messages_topic_id.is_valid_in(td, dialog_id));
       if (!td->saved_messages_manager_->have_topic(dialog_id, saved_messages_topic_id)) {
         return Status::Error(400, "Topic not found");
@@ -107,7 +106,6 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
       }
       SavedMessagesTopicId saved_messages_topic_id(
           DialogId(static_cast<const td_api::messageTopicSavedMessages *>(topic.get())->saved_messages_topic_id_));
-      TRY_STATUS(saved_messages_topic_id.is_valid_status(td));
       TRY_STATUS(saved_messages_topic_id.is_valid_in(td, dialog_id));
       if (!td->saved_messages_manager_->have_topic(dialog_id, saved_messages_topic_id)) {
         return Status::Error(400, "Topic not found");

@@ -17287,7 +17287,9 @@ void MessagesManager::get_dialog_message_calendar(DialogId dialog_id, SavedMessa
 
   TRY_RESULT_PROMISE(promise, d,
                      check_dialog_access(dialog_id, true, AccessRights::Read, "get_dialog_message_calendar"));
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
+  if (saved_messages_topic_id != SavedMessagesTopicId()) {
+    TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
+  }
 
   CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
   if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Mention ||
@@ -18359,7 +18361,9 @@ void MessagesManager::get_dialog_sparse_message_positions(
   } else {
     from_message_id = from_message_id.get_next_server_message_id();
   }
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
+  if (saved_messages_topic_id != SavedMessagesTopicId()) {
+    TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
+  }
 
   if (filter == MessageSearchFilter::FailedToSend || dialog_id.get_type() == DialogType::SecretChat) {
     if (saved_messages_topic_id.is_valid()) {

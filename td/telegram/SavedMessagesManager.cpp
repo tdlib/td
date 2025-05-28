@@ -1515,7 +1515,6 @@ void SavedMessagesManager::set_last_topic_date(TopicList *topic_list, TopicDate 
 void SavedMessagesManager::get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                                Promise<td_api::object_ptr<td_api::feedbackChatTopic>> &&promise) {
   TRY_RESULT_PROMISE(promise, topic_list, get_monoforum_topic_list(dialog_id));
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
@@ -1598,7 +1597,6 @@ void SavedMessagesManager::get_topic_history(DialogId dialog_id, SavedMessagesTo
     return promise.set_error(Status::Error(400, "Parameter offset must be greater than or equal to -limit"));
   }
 
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
   if (from_message_id == MessageId() || from_message_id.get() > MessageId::max().get()) {
@@ -1686,7 +1684,6 @@ void SavedMessagesManager::delete_saved_messages_topic_history(SavedMessagesTopi
 
 void SavedMessagesManager::delete_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                                 Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
   MessageQueryManager::AffectedHistoryQuery query = [td = td_, saved_messages_topic_id](
@@ -1713,7 +1710,6 @@ void SavedMessagesManager::get_saved_messages_topic_message_by_date(
 void SavedMessagesManager::get_topic_message_by_date(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                                      int32 date,
                                                      Promise<td_api::object_ptr<td_api::message>> &&promise) {
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
   if (date <= 0) {
@@ -1741,7 +1737,6 @@ void SavedMessagesManager::delete_saved_messages_topic_messages_by_date(SavedMes
 void SavedMessagesManager::delete_topic_messages_by_date(DialogId dialog_id,
                                                          SavedMessagesTopicId saved_messages_topic_id, int32 min_date,
                                                          int32 max_date, Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
   TRY_STATUS_PROMISE(promise, MessagesManager::fix_delete_message_min_max_dates(min_date, max_date));
