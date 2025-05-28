@@ -7750,6 +7750,12 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
   return true;
 }
 
+bool MessagesManager::can_reply_to_message_in_another_dialog(DialogId dialog_id, const Message *m,
+                                                             bool can_be_forwarded) const {
+  return can_be_forwarded && m->message_id.is_valid() && m->message_id.is_server() &&
+         !td_->dialog_manager_->is_monoforum_channel(dialog_id);
+}
+
 bool MessagesManager::can_save_message(DialogId dialog_id, const Message *m) const {
   if (m == nullptr || m->is_content_secret) {
     return false;
@@ -14636,7 +14642,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
       !m->message_id.is_yet_unsent() && (!m->message_id.is_local() || dialog_type == DialogType::SecretChat) &&
       (dialog_type != DialogType::Chat || td_->chat_manager_->get_chat_is_active(dialog_id.get_chat_id())) &&
       can_send_message(dialog_id).is_ok();
-  auto can_be_replied_in_another_chat = can_be_forwarded && m->message_id.is_server();
+  auto can_be_replied_in_another_chat = can_reply_to_message_in_another_dialog(dialog_id, m, can_be_forwarded);
   auto can_be_shared_in_story = can_share_message_in_story(dialog_id, m);
   auto can_edit_media = can_edit_message_media(dialog_id, m, false);
   auto can_edit_scheduling_state = can_edit_message_scheduling_state(m);
@@ -20246,7 +20252,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
         return {};
       }
       const Message *m = get_message_force(reply_d, message_id, "create_message_input_reply_to 2");
-      if (!can_forward_message(reply_dialog_id, m, false) || !m->message_id.is_valid() || !m->message_id.is_server()) {
+      if (!can_reply_to_message_in_another_dialog(reply_dialog_id, m, can_forward_message(reply_dialog_id, m, false))) {
         LOG(INFO) << "Can't reply in another chat " << message_id << " in " << reply_d->dialog_id;
         return {};
       }
