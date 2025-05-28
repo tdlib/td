@@ -7717,7 +7717,7 @@ bool MessagesManager::get_message_has_protected_content(DialogId dialog_id, cons
   return m->noforwards || td_->dialog_manager_->get_dialog_has_protected_content(dialog_id);
 }
 
-bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message *m) {
+bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message *m, bool is_copy) const {
   if (m == nullptr) {
     return false;
   }
@@ -7741,8 +7741,13 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
       UNREACHABLE();
       return false;
   }
-
-  return can_forward_message_content(m->content.get());
+  if (!can_forward_message_content(m->content.get())) {
+    return false;
+  }
+  if (!(is_copy && td_->auth_manager_->is_bot()) && get_message_has_protected_content(from_dialog_id, m)) {
+    return false;
+  }
+  return true;
 }
 
 bool MessagesManager::can_save_message(DialogId dialog_id, const Message *m) const {
@@ -14621,7 +14626,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto is_bot = td_->auth_manager_->is_bot();
   auto can_be_saved = can_save_message(dialog_id, m);
   auto can_be_edited = can_edit_message(dialog_id, m, false, is_bot);
-  auto can_be_forwarded = can_be_saved && can_forward_message(dialog_id, m);
+  auto can_be_forwarded = can_forward_message(dialog_id, m, false);
   auto can_be_copied_to_secret_chat =
       can_be_forwarded && can_send_message_content_to_secret_chat(m->content->get_type());
   auto can_be_paid = get_invoice_message_info({dialog_id, m->message_id}).is_ok();
@@ -20240,7 +20245,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
         return {};
       }
       const Message *m = get_message_force(reply_d, message_id, "create_message_input_reply_to 2");
-      if (!can_forward_message(reply_dialog_id, m) || !m->message_id.is_valid() || !m->message_id.is_server()) {
+      if (!can_forward_message(reply_dialog_id, m, false) || !m->message_id.is_valid() || !m->message_id.is_server()) {
         LOG(INFO) << "Can't reply in another chat " << message_id << " in " << reply_d->dialog_id;
         return {};
       }
@@ -20796,11 +20801,8 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
     if (copied_message == nullptr) {
       return Status::Error(400, "Can't find message to copy");
     }
-    if (!can_forward_message(from_dialog_id, copied_message)) {
+    if (!can_forward_message(from_dialog_id, copied_message, true)) {
       return Status::Error(400, "Can't copy message");
-    }
-    if (!can_save_message(from_dialog_id, copied_message) && !td_->auth_manager_->is_bot()) {
-      return Status::Error(400, "Message copying is restricted");
     }
 
     auto new_invert_media =
@@ -23686,7 +23688,8 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     CHECK(message_id.is_valid());
     CHECK(message_id == forwarded_message->message_id);
 
-    if (!can_forward_message(from_dialog_id, forwarded_message)) {
+    bool need_copy = !message_id.is_server() || to_secret || copy_options[i].send_copy;
+    if (!can_forward_message(from_dialog_id, forwarded_message, need_copy)) {
       LOG(INFO) << "Can't forward " << message_id;
       continue;
     }
@@ -23700,13 +23703,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
       }
     }();
 
-    bool need_copy = !message_id.is_server() || to_secret || copy_options[i].send_copy;
     bool is_local_copy = need_copy && !(message_id.is_server() && can_use_server_forward && !is_broken_server_copy);
-    if (!(need_copy && td_->auth_manager_->is_bot()) && !can_save_message(from_dialog_id, forwarded_message)) {
-      LOG(INFO) << "Forward of " << message_id << " is restricted";
-      continue;
-    }
-
     auto type = need_copy ? (is_local_copy ? MessageContentDupType::Copy : MessageContentDupType::ServerCopy)
                           : MessageContentDupType::Forward;
     auto input_reply_to = std::move(copy_options[i].input_reply_to);
