@@ -7287,6 +7287,11 @@ void ChatManager::on_update_channel_title(Channel *c, ChannelId channel_id, stri
 }
 
 void ChatManager::on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status) {
+  if (c->is_monoforum) {
+    if (status.is_administrator()) {
+      status = status.is_member() ? DialogParticipantStatus::Member(0) : DialogParticipantStatus::Left();
+    }
+  }
   if (c->status != status) {
     LOG(INFO) << "Update " << channel_id << " status from " << c->status << " to " << status;
     if (c->is_update_supergroup_sent) {
@@ -8194,9 +8199,6 @@ DialogParticipantStatus ChatManager::get_channel_status(ChannelId channel_id) co
 
 DialogParticipantStatus ChatManager::get_channel_status(const Channel *c) {
   c->status.update_restrictions();
-  if (c->is_monoforum && c->status.is_administrator()) {
-    return c->status.is_member() ? DialogParticipantStatus::Member(0) : DialogParticipantStatus::Left();
-  }
   return c->status;
 }
 
