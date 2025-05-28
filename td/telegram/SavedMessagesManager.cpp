@@ -1760,7 +1760,8 @@ int32 SavedMessagesManager::get_pinned_saved_messages_topic_limit() const {
 
 void SavedMessagesManager::toggle_saved_messages_topic_is_pinned(SavedMessagesTopicId saved_messages_topic_id,
                                                                  bool is_pinned, Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
+  auto dialog_id = td_->dialog_manager_->get_my_dialog_id();
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
   auto *topic_list = &topic_list_;
   if (!topic_list->are_pinned_saved_messages_topics_inited_) {
     return promise.set_error(Status::Error(400, "Pinned Saved Messages topics must be loaded first"));
@@ -1782,9 +1783,10 @@ void SavedMessagesManager::toggle_saved_messages_topic_is_pinned(SavedMessagesTo
 
 void SavedMessagesManager::set_pinned_saved_messages_topics(vector<SavedMessagesTopicId> saved_messages_topic_ids,
                                                             Promise<Unit> &&promise) {
+  auto dialog_id = td_->dialog_manager_->get_my_dialog_id();
   auto *topic_list = &topic_list_;
   for (const auto &saved_messages_topic_id : saved_messages_topic_ids) {
-    TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_status(td_));
+    TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
     if (get_topic(topic_list, saved_messages_topic_id) == nullptr) {
       return promise.set_error(Status::Error(400, "Can't find Saved Messages topic"));
     }

@@ -44,8 +44,6 @@ class SavedMessagesTopicId {
     return dialog_id_.is_valid();
   }
 
-  Status is_valid_status(Td *td) const;
-
   Status is_valid_in(Td *td, DialogId dialog_id) const;
 
   bool is_author_hidden() const;
