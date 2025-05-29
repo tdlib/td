@@ -90,19 +90,19 @@ class ChatManager final : public Actor {
   const DialogPhoto *get_chat_dialog_photo(ChatId chat_id) const;
   const DialogPhoto *get_channel_dialog_photo(ChannelId channel_id, bool is_recursive = false) const;
 
-  AccentColorId get_channel_accent_color_id(ChannelId channel_id) const;
+  AccentColorId get_channel_accent_color_id(ChannelId channel_id, bool is_recursive = false) const;
 
   int32 get_chat_accent_color_id_object(ChatId chat_id) const;
   int32 get_channel_accent_color_id_object(ChannelId channel_id) const;
 
   CustomEmojiId get_chat_background_custom_emoji_id(ChatId chat_id) const;
-  CustomEmojiId get_channel_background_custom_emoji_id(ChannelId channel_id) const;
+  CustomEmojiId get_channel_background_custom_emoji_id(ChannelId channel_id, bool is_recursive = false) const;
 
   int32 get_chat_profile_accent_color_id_object(ChatId chat_id) const;
-  int32 get_channel_profile_accent_color_id_object(ChannelId channel_id) const;
+  int32 get_channel_profile_accent_color_id_object(ChannelId channel_id, bool is_recursive = false) const;
 
   CustomEmojiId get_chat_profile_background_custom_emoji_id(ChatId chat_id) const;
-  CustomEmojiId get_channel_profile_background_custom_emoji_id(ChannelId channel_id) const;
+  CustomEmojiId get_channel_profile_background_custom_emoji_id(ChannelId channel_id, bool is_recursive = false) const;
 
   string get_chat_title(ChatId chat_id) const;
   string get_channel_title(ChannelId channel_id, bool is_recursive = false) const;

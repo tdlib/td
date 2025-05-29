@@ -2825,7 +2825,7 @@ int32 ChatManager::get_chat_accent_color_id_object(ChatId chat_id) const {
   return td_->theme_manager_->get_accent_color_id_object(AccentColorId(chat_id));
 }
 
-AccentColorId ChatManager::get_channel_accent_color_id(ChannelId channel_id) const {
+AccentColorId ChatManager::get_channel_accent_color_id(ChannelId channel_id, bool is_recursive) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     auto min_channel = get_min_channel(channel_id);
@@ -2833,6 +2833,9 @@ AccentColorId ChatManager::get_channel_accent_color_id(ChannelId channel_id) con
       return min_channel->accent_color_id_;
     }
     return AccentColorId(channel_id);
+  }
+  if (c->is_monoforum && !is_recursive) {
+    return get_channel_accent_color_id(c->monoforum_channel_id, true);
   }
   if (!c->accent_color_id.is_valid()) {
     return AccentColorId(channel_id);
@@ -2850,10 +2853,13 @@ CustomEmojiId ChatManager::get_chat_background_custom_emoji_id(ChatId chat_id) c
   return CustomEmojiId();
 }
 
-CustomEmojiId ChatManager::get_channel_background_custom_emoji_id(ChannelId channel_id) const {
+CustomEmojiId ChatManager::get_channel_background_custom_emoji_id(ChannelId channel_id, bool is_recursive) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return CustomEmojiId();
+  }
+  if (c->is_monoforum && !is_recursive) {
+    return get_channel_background_custom_emoji_id(c->monoforum_channel_id, true);
   }
 
   return c->background_custom_emoji_id;
@@ -2863,10 +2869,13 @@ int32 ChatManager::get_chat_profile_accent_color_id_object(ChatId chat_id) const
   return -1;
 }
 
-int32 ChatManager::get_channel_profile_accent_color_id_object(ChannelId channel_id) const {
+int32 ChatManager::get_channel_profile_accent_color_id_object(ChannelId channel_id, bool is_recursive) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return -1;
+  }
+  if (c->is_monoforum && !is_recursive) {
+    return get_channel_profile_accent_color_id_object(c->monoforum_channel_id, true);
   }
   return td_->theme_manager_->get_profile_accent_color_id_object(c->profile_accent_color_id);
 }
@@ -2875,10 +2884,14 @@ CustomEmojiId ChatManager::get_chat_profile_background_custom_emoji_id(ChatId ch
   return CustomEmojiId();
 }
 
-CustomEmojiId ChatManager::get_channel_profile_background_custom_emoji_id(ChannelId channel_id) const {
+CustomEmojiId ChatManager::get_channel_profile_background_custom_emoji_id(ChannelId channel_id,
+                                                                          bool is_recursive) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return CustomEmojiId();
+  }
+  if (c->is_monoforum && !is_recursive) {
+    return get_channel_profile_background_custom_emoji_id(c->monoforum_channel_id, true);
   }
 
   return c->profile_background_custom_emoji_id;
@@ -5142,6 +5155,9 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
   }
   if (c->is_accent_color_changed) {
     td_->messages_manager_->on_dialog_accent_colors_updated(DialogId(channel_id));
+    if (c->monoforum_channel_id.is_valid() && !c->is_megagroup) {
+      td_->messages_manager_->on_dialog_accent_colors_updated(DialogId(c->monoforum_channel_id));
+    }
     c->is_accent_color_changed = false;
   }
   if (c->is_title_changed) {
