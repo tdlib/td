@@ -2942,9 +2942,16 @@ td_api::object_ptr<td_api::emojiStatus> ChatManager::get_chat_emoji_status_objec
   return nullptr;
 }
 
-td_api::object_ptr<td_api::emojiStatus> ChatManager::get_channel_emoji_status_object(ChannelId channel_id) const {
+td_api::object_ptr<td_api::emojiStatus> ChatManager::get_channel_emoji_status_object(ChannelId channel_id,
+                                                                                     bool is_recursive) const {
   auto c = get_channel(channel_id);
-  if (c == nullptr || c->last_sent_emoji_status == nullptr) {
+  if (c == nullptr) {
+    return nullptr;
+  }
+  if (c->is_monoforum && !is_recursive) {
+    return get_channel_emoji_status_object(c->monoforum_channel_id, true);
+  }
+  if (c->last_sent_emoji_status == nullptr) {
     return nullptr;
   }
   return c->last_sent_emoji_status->get_emoji_status_object();
@@ -5258,6 +5265,9 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
     }
 
     td_->messages_manager_->on_dialog_emoji_status_updated(DialogId(channel_id));
+    if (c->monoforum_channel_id.is_valid() && !c->is_megagroup) {
+      td_->messages_manager_->on_dialog_emoji_status_updated(DialogId(c->monoforum_channel_id));
+    }
   }
   c->is_emoji_status_changed = false;
 

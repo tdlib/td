@@ -111,7 +111,8 @@ class ChatManager final : public Actor {
   RestrictedRights get_channel_default_permissions(ChannelId channel_id) const;
 
   td_api::object_ptr<td_api::emojiStatus> get_chat_emoji_status_object(ChatId chat_id) const;
-  td_api::object_ptr<td_api::emojiStatus> get_channel_emoji_status_object(ChannelId channel_id) const;
+  td_api::object_ptr<td_api::emojiStatus> get_channel_emoji_status_object(ChannelId channel_id,
+                                                                          bool is_recursive = false) const;
 
   string get_chat_about(ChatId chat_id);
   string get_channel_about(ChannelId channel_id);
