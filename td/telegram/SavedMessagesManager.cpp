@@ -1034,12 +1034,11 @@ bool SavedMessagesManager::is_admined_monoforum_dialog(DialogId dialog_id) const
 Status SavedMessagesManager::check_monoforum_dialog_id(DialogId dialog_id) const {
   TRY_STATUS(
       td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_monoforum_topic_list"));
-  if (dialog_id.get_type() != DialogType::Channel ||
-      !td_->chat_manager_->is_monoforum_channel(dialog_id.get_channel_id())) {
+  if (!td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
     return Status::Error(400, "Chat is not a monoforum");
   }
   auto broadcast_channel_id = td_->chat_manager_->get_monoforum_channel_id(dialog_id.get_channel_id());
-  if (!td_->chat_manager_->get_channel_status(broadcast_channel_id).is_administrator()) {
+  if (!td_->chat_manager_->get_channel_status(broadcast_channel_id).can_post_messages()) {
     return Status::Error(400, "Not enough rights in the chat");
   }
   return Status::OK();

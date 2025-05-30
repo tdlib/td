@@ -4667,6 +4667,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 //@can_be_shared_in_story True, if the message can be shared in a story using inputStoryAreaTypeMessage
 //@can_edit_media True, if the message can be edited using the method editMessageMedia
 //@can_edit_scheduling_state True, if scheduling state of the message can be edited
+//@can_get_author True, if author of the message sent on behalf of a chat can be received through getMessageAuthor
 //@can_get_embedding_code True, if code for message embedding can be received using getMessageEmbeddingCode
 //@can_get_link True, if a link can be generated for the message using getMessageLink
 //@can_get_media_timestamp_links True, if media timestamp links can be generated for media timestamp entities in the message text, caption or link preview description using getMessageLink
@@ -4680,7 +4681,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 //@can_report_supergroup_spam True, if the message can be reported using reportSupergroupSpam
 //@can_set_fact_check True, if fact check for the message can be changed through setMessageFactCheck
 //@need_show_statistics True, if message statistics must be available from context menu of the message
-messageProperties can_be_copied:Bool can_be_copied_to_secret_chat:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_pinned:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_edit_media:Bool can_edit_scheduling_state:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_viewers:Bool can_recognize_speech:Bool can_report_chat:Bool can_report_reactions:Bool can_report_supergroup_spam:Bool can_set_fact_check:Bool need_show_statistics:Bool = MessageProperties;
+messageProperties can_be_copied:Bool can_be_copied_to_secret_chat:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_pinned:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_edit_media:Bool can_edit_scheduling_state:Bool can_get_author:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_viewers:Bool can_recognize_speech:Bool can_report_chat:Bool can_report_reactions:Bool can_report_supergroup_spam:Bool can_set_fact_check:Bool need_show_statistics:Bool = MessageProperties;
 
 
 //@class SearchMessagesFilter @description Represents a filter for message search results
@@ -9497,7 +9498,7 @@ readAllFeedbackChatTopicReactions chat_id:int53 topic_id:int53 = Ok;
 
 //@description Returns information about actual author of a message sent by an administrator in a feedback group topic; requires can_post_messages administrator right in the corresponding channel chat
 //@chat_id Chat identifier of the feedback group
-//@message_id Identifier of the message
+//@message_id Identifier of the message. A message author can be received only if messageProperties.can_get_author
 getFeedbackChatMessageAuthor chat_id:int53 message_id:int53 = User;
 
 

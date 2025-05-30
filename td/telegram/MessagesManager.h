@@ -1920,6 +1920,8 @@ class MessagesManager final : public Actor {
 
   bool can_share_message_in_story(DialogId dialog_id, const Message *m) const;
 
+  bool can_get_message_author(DialogId dialog_id, const Message *m) const;
+
   bool can_get_message_statistics(DialogId dialog_id, const Message *m) const;
 
   Status can_get_message_embedding_code(DialogId dialog_id, const Message *m) const;
