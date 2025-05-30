@@ -3019,11 +3019,11 @@ void GroupCallManager::on_update_dialog_about(DialogId dialog_id, const string &
 int32 GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_group_call_id, GroupCall *group_call) {
   auto it = pending_join_requests_.find(input_group_call_id);
   if (it == pending_join_requests_.end()) {
-    CHECK(group_call == nullptr || !group_call->is_being_joined);
+    CHECK(group_call == nullptr || !group_call->is_being_joined || group_call->is_conference);
     return 0;
   }
   CHECK(group_call != nullptr);
-  CHECK(group_call->is_being_joined);
+  CHECK(group_call->is_being_joined || group_call->is_conference);
   group_call->is_being_joined = false;
 
   CHECK(it->second != nullptr);
