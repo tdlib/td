@@ -19341,6 +19341,9 @@ DialogId MessagesManager::get_my_reaction_dialog_id(const Dialog *d) const {
   if (td_->dialog_manager_->is_broadcast_channel(d->dialog_id)) {
     return my_dialog_id;
   }
+  if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id)) {
+    return DialogId(td_->chat_manager_->get_monoforum_channel_id(d->dialog_id.get_channel_id()));
+  }
   auto reaction_dialog_id =
       d->default_send_message_as_dialog_id.is_valid() ? d->default_send_message_as_dialog_id : my_dialog_id;
   if (reaction_dialog_id == my_dialog_id && td_->dialog_manager_->is_anonymous_administrator(d->dialog_id, nullptr)) {
