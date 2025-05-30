@@ -5026,7 +5026,7 @@ void MessagesManager::on_unread_message_reaction_added(Dialog *d, const Message 
     td_->forum_topic_manager_->on_topic_reaction_count_changed(
         d->dialog_id, m->top_thread_message_id.is_valid() ? m->top_thread_message_id : MessageId(ServerMessageId(1)),
         +1, true);
-  } else if (td_->dialog_manager_->is_monoforum_channel(d->dialog_id)) {
+  } else if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id)) {
     td_->saved_messages_manager_->on_topic_reaction_count_changed(d->dialog_id, m->saved_messages_topic_id, +1, true);
   }
   set_dialog_unread_reaction_count(d, d->unread_reaction_count + 1);
@@ -5038,7 +5038,7 @@ void MessagesManager::on_unread_message_reaction_removed(Dialog *d, const Messag
     td_->forum_topic_manager_->on_topic_reaction_count_changed(
         d->dialog_id, m->top_thread_message_id.is_valid() ? m->top_thread_message_id : MessageId(ServerMessageId(1)),
         -1, true);
-  } else if (td_->dialog_manager_->is_monoforum_channel(d->dialog_id)) {
+  } else if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id)) {
     td_->saved_messages_manager_->on_topic_reaction_count_changed(d->dialog_id, m->saved_messages_topic_id, -1, true);
   }
   if (d->unread_reaction_count == 0) {
@@ -11207,7 +11207,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       LOG(ERROR) << "Receive no Saved Messages topic for " << message_id << " in " << dialog_id;
       message->saved_messages_topic_id = SavedMessagesTopicId(my_dialog_id, message->forward_info.get(), DialogId());
     }
-  } else if (td->dialog_manager_->is_monoforum_channel(dialog_id)) {
+  } else if (td->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
     if (!message->saved_messages_topic_id.is_valid() && !is_service_message_content(message->content->get_type())) {
       LOG(ERROR) << "Receive no topic for " << message_id << " in " << dialog_id;
       message->saved_messages_topic_id = SavedMessagesTopicId(get_message_sender(message.get()));
@@ -15948,8 +15948,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   // get topic identifier for the messages
   SavedMessagesTopicId saved_messages_topic_id;
   if (source == MessageSource::MonoforumHistory) {
-    if (!td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
-      return Status::Error(400, "Chat is not a feedback chat");
+    if (!td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
+      return Status::Error(400, "Chat is not a channel direct messages chat");
     }
 
     for (auto message_id : message_ids) {
@@ -15957,7 +15957,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
       if (m != nullptr) {
         if (saved_messages_topic_id.is_valid()) {
           if (m->saved_messages_topic_id != saved_messages_topic_id) {
-            return Status::Error(400, "All messages must be from the same feedback chat topic");
+            return Status::Error(400, "All messages must be from the same chat topic");
           }
         } else {
           saved_messages_topic_id = m->saved_messages_topic_id;
@@ -18684,7 +18684,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
     if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
       m->saved_messages_topic_id =
           SavedMessagesTopicId(dialog_id, m->forward_info.get(), m->real_forward_from_dialog_id);
-    } else if (td_->dialog_manager_->is_monoforum_channel(dialog_id) &&
+    } else if (td_->dialog_manager_->is_admined_monoforum_channel(dialog_id) &&
                !is_service_message_content(m->content->get_type())) {
       m->saved_messages_topic_id = SavedMessagesTopicId(get_message_sender(m));
     }
@@ -27265,7 +27265,7 @@ void MessagesManager::clear_dialog_draft_by_sent_message(Dialog *d, const Messag
   if (td_->auth_manager_->is_bot()) {
     return;
   }
-  if (td_->dialog_manager_->is_monoforum_channel(d->dialog_id) && m->saved_messages_topic_id.is_valid()) {
+  if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id) && m->saved_messages_topic_id.is_valid()) {
     td_->saved_messages_manager_->clear_monoforum_topic_draft_by_sent_message(d->dialog_id, m->saved_messages_topic_id,
                                                                               m->clear_draft, m->content->get_type());
   }

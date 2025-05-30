@@ -47,7 +47,6 @@ MessageTopic::MessageTopic(Td *td, DialogId dialog_id, bool is_topic_message, Me
     type_ = Type::Forum;
     dialog_id_ = dialog_id;
     top_thread_message_id_ = MessageId(ServerMessageId(1));
-    return;
   }
 }
 
@@ -88,7 +87,7 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
     }
     case td_api::messageTopicFeedbackChat::ID: {
       if (!td->dialog_manager_->is_monoforum_channel(dialog_id)) {
-        return Status::Error(400, "Chat is not a feedback chat");
+        return Status::Error(400, "Chat is not a channel direct messages chat");
       }
       SavedMessagesTopicId saved_messages_topic_id(
           DialogId(static_cast<const td_api::messageTopicFeedbackChat *>(topic.get())->feedback_chat_topic_id_));
