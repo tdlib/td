@@ -4473,7 +4473,7 @@ messageSelfDestructTypeImmediately = MessageSelfDestructType;
 
 
 //@description Options to be used when a message is sent
-//@feedback_chat_topic_id Unique identifier of the feedback chat topic; pass 0 if the chat isn't a feedback chat or the user doesn't have can_post_messages administrator right in the corresponding channel chat
+//@feedback_chat_topic_id Unique identifier of the feedback chat topic; pass 0 if the chat isn't an administered feedback chat
 //@disable_notification Pass true to disable notification for the message
 //@from_background Pass true if the message is sent from the background
 //@protect_content Pass true if the content of the message must be protected from forwarding and saving; for bots only
@@ -9440,19 +9440,18 @@ getInactiveSupergroupChats = Chats;
 getSuitablePersonalChats = Chats;
 
 
-//@description Loads more topics in a feedback group; requires can_post_messages administrator right in the corresponding channel chat. The loaded topics will be sent through updateFeedbackChatTopic.
+//@description Loads more topics in an administered feedback group. The loaded topics will be sent through updateFeedbackChatTopic.
 //-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
 //@chat_id Chat identifier of the feedback group
 //@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
 loadFeedbackChatTopics chat_id:int53 limit:int32 = Ok;
 
-//@description Returns information about a feedback group topic; requires can_post_messages administrator right in the corresponding channel chat
+//@description Returns information about an administered feedback group topic
 //@chat_id Chat identifier of the feedback group
 //@topic_id Identifier of the topic to get
 getFeedbackChatTopic chat_id:int53 topic_id:int53 = FeedbackChatTopic;
 
-//@description Returns messages in a feedback group topic; requires can_post_messages administrator right in the corresponding channel chat.
-//-The messages are returned in reverse chronological order (i.e., in order of decreasing message_id)
+//@description Returns messages in an administered feedback group topic. The messages are returned in reverse chronological order (i.e., in order of decreasing message_id)
 //@chat_id Chat identifier of the feedback group
 //@topic_id Identifier of the topic which messages will be fetched
 //@from_message_id Identifier of the message starting from which messages must be fetched; use 0 to get results from the last message
@@ -9461,18 +9460,18 @@ getFeedbackChatTopic chat_id:int53 topic_id:int53 = FeedbackChatTopic;
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getFeedbackChatTopicHistory chat_id:int53 topic_id:int53 from_message_id:int53 offset:int32 limit:int32 = Messages;
 
-//@description Returns the last message sent in a feedback group topic no later than the specified date; requires can_post_messages administrator right in the corresponding channel chat
+//@description Returns the last message sent in an administered feedback group topic no later than the specified date
 //@chat_id Chat identifier of the feedback group
 //@topic_id Identifier of the topic which messages will be fetched
 //@date Point in time (Unix timestamp) relative to which to search for messages
 getFeedbackChatTopicMessageByDate chat_id:int53 topic_id:int53 date:int32 = Message;
 
-//@description Deletes all messages in a feedback group topic; requires can_post_messages administrator right in the corresponding channel chat
+//@description Deletes all messages in an administered feedback group topic
 //@chat_id Chat identifier of the feedback group
 //@topic_id Identifier of the topic which messages will be deleted
 deleteFeedbackChatTopicHistory chat_id:int53 topic_id:int53 = Ok;
 
-//@description Deletes all messages between the specified dates in a feedback group topic; requires can_post_messages administrator right in the corresponding channel chat.
+//@description Deletes all messages between the specified dates in an administered feedback group topic
 //-Messages sent in the last 30 seconds will not be deleted
 //@chat_id Chat identifier of the feedback group
 //@topic_id Identifier of the topic which messages will be deleted
@@ -9480,24 +9479,24 @@ deleteFeedbackChatTopicHistory chat_id:int53 topic_id:int53 = Ok;
 //@max_date The maximum date of the messages to delete
 deleteFeedbackChatTopicMessagesByDate chat_id:int53 topic_id:int53 min_date:int32 max_date:int32 = Ok;
 
-//@description Changes the marked as unread state of a feedback chat topic; requires can_post_messages administrator right in the corresponding channel chat
+//@description Changes the marked as unread state of an administered feedback chat topic
 //@chat_id Chat identifier of the feedback group
 //@topic_id Topic identifier
 //@is_marked_as_unread New value of is_marked_as_unread
 setFeedbackChatTopicIsMarkedAsUnread chat_id:int53 topic_id:int53 is_marked_as_unread:Bool = Ok;
 
-//@description Changes the draft message in a feedback chat topic
+//@description Changes the draft message in an administered feedback chat topic
 //@chat_id Chat identifier
 //@topic_id Topic identifier
 //@draft_message New draft message; pass null to remove the draft. All files in draft message content must be of the type inputFileLocal. Media thumbnails and captions are ignored
 setFeedbackChatTopicDraftMessage chat_id:int53 topic_id:int53 draft_message:draftMessage = Ok;
 
-//@description Removes all pinned messages from a feedback chat topic; requires can_post_messages administrator right in the corresponding channel chat
+//@description Removes all pinned messages from an administered feedback chat topic
 //@chat_id Identifier of the chat
 //@topic_id Topic identifier
 unpinAllFeedbackChatTopicMessages chat_id:int53 topic_id:int53 = Ok;
 
-//@description Removes all unread reactions in a feedback chat topic; requires can_post_messages administrator right in the corresponding channel chat
+//@description Removes all unread reactions in an administered feedback chat topic
 //@chat_id Identifier of the chat
 //@topic_id Topic identifier
 readAllFeedbackChatTopicReactions chat_id:int53 topic_id:int53 = Ok;
