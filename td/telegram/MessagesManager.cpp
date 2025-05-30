@@ -20502,7 +20502,8 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, d,
                      check_dialog_access(dialog_id, true, AccessRights::Read, "get_dialog_send_message_as_dialog_ids"));
-  if (!d->default_send_message_as_dialog_id.is_valid() || can_send_message(dialog_id).is_error()) {
+  if (!d->default_send_message_as_dialog_id.is_valid() || can_send_message(dialog_id).is_error() ||
+      td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
     return promise.set_value(td_api::make_object<td_api::chatMessageSenders>());
   }
   // checked in on_update_dialog_default_send_message_as_dialog_id
@@ -20593,7 +20594,8 @@ void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dial
   TRY_RESULT_PROMISE(
       promise, d,
       check_dialog_access(dialog_id, false, AccessRights::Read, "set_dialog_default_send_message_as_dialog_id"));
-  if (!d->default_send_message_as_dialog_id.is_valid() || can_send_message(dialog_id).is_error()) {
+  if (!d->default_send_message_as_dialog_id.is_valid() || can_send_message(dialog_id).is_error() ||
+      td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
     return promise.set_error(Status::Error(400, "Can't change message sender in the chat"));
   }
   // checked in on_update_dialog_default_send_message_as_dialog_id
@@ -28069,6 +28071,9 @@ void MessagesManager::on_update_dialog_default_send_message_as_dialog_id(DialogI
       LOG(ERROR) << "Receive message sender " << default_send_as_dialog_id << " in " << dialog_id;
     }
     return;
+  }
+  if (td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
+    default_send_as_dialog_id = DialogId();
   }
 
   auto d = get_dialog_force(dialog_id, "on_update_dialog_default_send_message_as_dialog_id");
