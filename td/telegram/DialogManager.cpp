@@ -1848,6 +1848,11 @@ bool DialogManager::is_monoforum_channel(DialogId dialog_id) const {
          td_->chat_manager_->is_monoforum_channel(dialog_id.get_channel_id());
 }
 
+bool DialogManager::is_admined_monoforum_channel(DialogId dialog_id) const {
+  return dialog_id.get_type() == DialogType::Channel &&
+         td_->chat_manager_->is_admined_monoforum_channel(dialog_id.get_channel_id());
+}
+
 bool DialogManager::is_broadcast_channel(DialogId dialog_id) const {
   if (dialog_id.get_type() != DialogType::Channel) {
     return false;

@@ -7800,11 +7800,7 @@ bool MessagesManager::can_get_message_statistics(DialogId dialog_id, const Messa
 }
 
 bool MessagesManager::can_get_message_author(DialogId dialog_id, const Message *m) const {
-  if (td_->auth_manager_->is_bot() || !td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
-    return false;
-  }
-  auto broadcast_channel_id = td_->chat_manager_->get_monoforum_channel_id(dialog_id.get_channel_id());
-  if (!td_->chat_manager_->get_channel_status(broadcast_channel_id).can_post_messages()) {
+  if (td_->auth_manager_->is_bot() || !td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
     return false;
   }
   if (m == nullptr || !m->message_id.is_valid() || !m->message_id.is_server() ||
@@ -20932,15 +20928,15 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
   TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
   result.sending_id = options->sending_id_;
   if (options->feedback_chat_topic_id_ != 0) {
-    if (td_->saved_messages_manager_->is_admined_monoforum_dialog(dialog_id)) {
+    if (td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
       result.monoforum_topic_id =
           td_->saved_messages_manager_->get_topic_id(dialog_id, options->feedback_chat_topic_id_);
       if (!result.monoforum_topic_id.is_valid()) {
-        return Status::Error(400, "Invalid feedback chat topic specified");
+        return Status::Error(400, "Invalid channel direct messages topic specified");
       }
     }
-  } else if (td_->saved_messages_manager_->is_admined_monoforum_dialog(dialog_id)) {
-    return Status::Error(400, "Feedback chat topic must be specified");
+  } else if (td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
+    return Status::Error(400, "Channel direct messages topic must be specified");
   }
 
   if (result.schedule_date != 0) {

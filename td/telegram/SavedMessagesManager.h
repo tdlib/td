@@ -34,8 +34,6 @@ class SavedMessagesManager final : public Actor {
  public:
   SavedMessagesManager(Td *td, ActorShared<> parent);
 
-  bool is_admined_monoforum_dialog(DialogId dialog_id) const;
-
   bool have_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) const;
 
   SavedMessagesTopicId get_topic_id(DialogId dialog_id, int64 topic_id) const;

@@ -1027,19 +1027,11 @@ void SavedMessagesManager::on_topic_changed(TopicList *topic_list, SavedMessages
   update_saved_messages_topic_sent_total_count(topic_list, source);
 }
 
-bool SavedMessagesManager::is_admined_monoforum_dialog(DialogId dialog_id) const {
-  return check_monoforum_dialog_id(dialog_id).is_ok();
-}
-
 Status SavedMessagesManager::check_monoforum_dialog_id(DialogId dialog_id) const {
   TRY_STATUS(
       td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_monoforum_topic_list"));
-  if (!td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
-    return Status::Error(400, "Chat is not a monoforum");
-  }
-  auto broadcast_channel_id = td_->chat_manager_->get_monoforum_channel_id(dialog_id.get_channel_id());
-  if (!td_->chat_manager_->get_channel_status(broadcast_channel_id).can_post_messages()) {
-    return Status::Error(400, "Not enough rights in the chat");
+  if (!td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
+    return Status::Error(400, "Chat is not a channel direct messages chat");
   }
   return Status::OK();
 }
@@ -1057,7 +1049,7 @@ const SavedMessagesManager::TopicList *SavedMessagesManager::get_topic_list(Dial
   if (dialog_id == DialogId() || dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     return &topic_list_;
   }
-  if (!is_admined_monoforum_dialog(dialog_id)) {
+  if (!td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
     return nullptr;
   }
   auto it = monoforum_topic_lists_.find(dialog_id);
