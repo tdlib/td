@@ -3233,6 +3233,11 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::readAllFeedbackChatTopicReactions>(chat_id, feedback_chat_topic_id_));
+    } else if (op == "gfcma") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_id);
+      send_request(td_api::make_object<td_api::getFeedbackChatMessageAuthor>(chat_id, message_id));
     } else if (op == "lsmt") {
       string limit;
       get_args(args, limit);

@@ -3074,6 +3074,13 @@ void Requests::on_request(uint64 id, const td_api::readAllFeedbackChatTopicReact
       dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getFeedbackChatMessageAuthor &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->saved_messages_manager_->get_monoforum_message_author(
+      {DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::loadSavedMessagesTopics &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -9495,6 +9495,12 @@ unpinAllFeedbackChatTopicMessages chat_id:int53 topic_id:int53 = Ok;
 //@topic_id Topic identifier
 readAllFeedbackChatTopicReactions chat_id:int53 topic_id:int53 = Ok;
 
+//@description Returns information about actual author of a message sent by an administrator in a feedback group topic; requires can_post_messages administrator right in the corresponding channel chat
+//@chat_id Chat identifier of the feedback group
+//@message_id Identifier of the message
+getFeedbackChatMessageAuthor chat_id:int53 message_id:int53 = User;
+
+
 
 //@description Loads more Saved Messages topics. The loaded topics will be sent through updateSavedMessagesTopic. Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
 //@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached

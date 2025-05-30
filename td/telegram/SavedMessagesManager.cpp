@@ -440,6 +440,41 @@ class ReadSavedHistoryQuery final : public Td::ResultHandler {
   }
 };
 
+class GetMessageAuthorQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::user>> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit GetMessageAuthorQuery(Promise<td_api::object_ptr<td_api::user>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, MessageId message_id) {
+    channel_id_ = channel_id;
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_getMessageAuthor(std::move(input_channel), message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_getMessageAuthor>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetMessageAuthorQuery: " << to_string(ptr);
+    auto user_id = UserManager::get_user_id(ptr);
+    td_->user_manager_->on_get_user(std::move(ptr), "GetMessageAuthorQuery");
+    promise_.set_value(td_->user_manager_->get_user_object(user_id));
+  }
+
+  void on_error(Status status) final {
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetMessageAuthorQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 SavedMessagesManager::SavedMessagesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -1912,6 +1947,21 @@ void SavedMessagesManager::read_all_monoforum_topic_reactions(DialogId dialog_id
 
   td_->message_query_manager_->read_all_topic_reactions_on_server(dialog_id, MessageId(), saved_messages_topic_id, 0,
                                                                   std::move(promise));
+}
+
+void SavedMessagesManager::get_monoforum_message_author(MessageFullId message_full_id,
+                                                        Promise<td_api::object_ptr<td_api::user>> &&promise) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  TRY_STATUS_PROMISE(promise, check_monoforum_dialog_id(dialog_id));
+  if (!td_->messages_manager_->have_message_force(message_full_id, "get_monoforum_message_author")) {
+    return promise.set_error(Status::Error(400, "Message not found"));
+  }
+  auto message_id = message_full_id.get_message_id();
+  if (!message_id.is_valid() || !message_id.is_server()) {
+    return promise.set_error(Status::Error(400, "Can't get message author"));
+  }
+
+  td_->create_handler<GetMessageAuthorQuery>(std::move(promise))->send(dialog_id.get_channel_id(), message_id);
 }
 
 void SavedMessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
