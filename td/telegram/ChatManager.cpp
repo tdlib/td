@@ -2045,6 +2045,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(broadcast_messages_allowed);
     STORE_FLAG(has_monoforum_channel_id);
     STORE_FLAG(is_forum_tabs);
+    STORE_FLAG(is_admined_monoforum);
     END_STORE_FLAGS();
   }
 
@@ -2193,6 +2194,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(broadcast_messages_allowed);
     PARSE_FLAG(has_monoforum_channel_id);
     PARSE_FLAG(is_forum_tabs);
+    PARSE_FLAG(is_admined_monoforum);
     END_PARSE_FLAGS();
   }
 
@@ -5249,6 +5251,10 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
                        DialogId(channel_id), "update_channel stories_hidden");
     c->is_stories_hidden_changed = false;
   }
+  if (c->is_admined_monoforum_changed) {
+    // TODO
+    c->is_admined_monoforum_changed = false;
+  }
   auto unix_time = G()->unix_time();
   auto effective_emoji_status = EmojiStatus::get_effective_emoji_status(c->emoji_status, true, unix_time);
   if (effective_emoji_status != c->last_sent_emoji_status) {
@@ -8200,6 +8206,14 @@ bool ChatManager::is_monoforum_channel(ChannelId channel_id) const {
   return c->is_monoforum;
 }
 
+bool ChatManager::is_admined_monoforum_channel(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return c->is_admined_monoforum;
+}
+
 ChannelId ChatManager::get_monoforum_channel_id(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
@@ -8830,7 +8844,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
   bool autotranslation = channel.autotranslation_;
   bool broadcast_messages_allowed = channel.broadcast_messages_allowed_;
   auto monoforum_channel_id = ChannelId(channel.linked_monoforum_id_);
-  if (monoforum_channel_id != ChannelId() && !monoforum_channel_id.is_valid()) {
+  if ((monoforum_channel_id != ChannelId() && !monoforum_channel_id.is_valid()) || monoforum_channel_id == channel_id) {
     LOG(ERROR) << "Receive feedback " << monoforum_channel_id << " for " << channel_id;
     monoforum_channel_id = ChannelId();
   }
@@ -8993,6 +9007,21 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     get_channel_force(channel_id, source);
   }
 
+  bool is_admined_monoforum = false;
+  if (monoforum_channel_id.is_valid()) {
+    Channel *monoforum_c = get_channel(monoforum_channel_id);
+    if (monoforum_c != nullptr) {
+      if (is_monoforum) {
+        is_admined_monoforum = monoforum_c->status.can_post_messages();
+      } else if (status.can_post_messages() && !monoforum_c->is_admined_monoforum) {
+        monoforum_c->is_admined_monoforum = true;
+        monoforum_c->is_admined_monoforum_changed = true;
+        monoforum_c->is_changed = true;
+        update_channel(monoforum_c, monoforum_channel_id);
+      }
+    }
+  }
+
   Channel *c = add_channel(channel_id, "on_get_channel");
   auto old_join_to_send = get_channel_join_to_send(c);
   auto old_join_request = get_channel_join_request(c);
@@ -9064,6 +9093,11 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     c->is_changed = true;
   }
   if (old_join_to_send != get_channel_join_to_send(c) || old_join_request != get_channel_join_request(c)) {
+    c->is_changed = true;
+  }
+  if (c->is_admined_monoforum != is_admined_monoforum) {
+    c->is_admined_monoforum = is_admined_monoforum;
+    c->is_admined_monoforum_changed = true;
     c->is_changed = true;
   }
 
@@ -9162,6 +9196,7 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
   bool is_fake = false;
   bool autotranslation = false;
   bool broadcast_messages_allowed = false;
+  bool is_admined_monoforum = false;
 
   LOG_IF(ERROR, channel.broadcast_ == is_megagroup)
       << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << " from " << source << ": "
@@ -9206,6 +9241,11 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
     c->is_changed = true;
   }
   if (old_join_to_send != get_channel_join_to_send(c) || old_join_request != get_channel_join_request(c)) {
+    c->is_changed = true;
+  }
+  if (c->is_admined_monoforum != is_admined_monoforum) {
+    c->is_admined_monoforum = is_admined_monoforum;
+    c->is_admined_monoforum_changed = true;
     c->is_changed = true;
   }
 
@@ -9324,8 +9364,8 @@ td_api::object_ptr<td_api::updateSupergroup> ChatManager::get_update_unknown_sup
   bool is_megagroup = min_channel == nullptr ? false : min_channel->is_megagroup_;
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, 0, false,
-      false, false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, nullptr, false,
-      false, false, string(), 0, false, false));
+      false, false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, false, nullptr,
+      false, false, false, string(), 0, false, false));
 }
 
 int64 ChatManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -9365,7 +9405,8 @@ td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(Channe
       get_channel_status(c).get_chat_member_status_object(), c->participant_count, c->boost_level, c->autotranslation,
       c->has_linked_channel, c->has_location, c->sign_messages, c->show_message_sender, get_channel_join_to_send(c),
       get_channel_join_request(c), c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_forum,
-      c->is_monoforum, get_channel_verification_status_object(c), c->broadcast_messages_allowed, c->is_forum_tabs,
+      c->is_monoforum, c->is_admined_monoforum, get_channel_verification_status_object(c),
+      c->broadcast_messages_allowed, c->is_forum_tabs,
       get_restriction_reason_has_sensitive_content(c->restriction_reasons),
       get_restriction_reason_description(c->restriction_reasons), c->paid_message_star_count,
       c->max_active_story_id.is_valid(), get_channel_has_unread_stories(c));

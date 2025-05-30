@@ -360,6 +360,7 @@ class ChatManager final : public Actor {
   bool is_megagroup_channel(ChannelId channel_id) const;
   bool is_forum_channel(ChannelId channel_id) const;
   bool is_monoforum_channel(ChannelId channel_id) const;
+  bool is_admined_monoforum_channel(ChannelId channel_id) const;
   ChannelId get_monoforum_channel_id(ChannelId channel_id) const;
   int32 get_channel_date(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_status(ChannelId channel_id) const;
@@ -528,6 +529,7 @@ class ChatManager final : public Actor {
     bool is_forum = false;
     bool is_forum_tabs = false;
     bool is_monoforum = false;
+    bool is_admined_monoforum = false;
     bool is_verified = false;
     bool is_scam = false;
     bool is_fake = false;
@@ -543,6 +545,7 @@ class ChatManager final : public Actor {
     bool is_has_location_changed = true;
     bool is_noforwards_changed = true;
     bool is_creator_changed = true;
+    bool is_admined_monoforum_changed = false;
     bool had_read_access = true;
     bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
