@@ -2652,6 +2652,13 @@ void Requests::on_request(uint64 id, const td_api::getMessageViewers &request) {
                                                    std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getMessageAuthor &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->saved_messages_manager_->get_monoforum_message_author(
+      {DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getMessageLink &request) {
   auto r_message_link = td_->messages_manager_->get_message_link(
       {DialogId(request.chat_id_), MessageId(request.message_id_)}, request.media_timestamp_, request.for_album_,
@@ -3072,13 +3079,6 @@ void Requests::on_request(uint64 id, const td_api::readAllFeedbackChatTopicReact
   DialogId dialog_id(request.chat_id_);
   td_->saved_messages_manager_->read_all_monoforum_topic_reactions(
       dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), std::move(promise));
-}
-
-void Requests::on_request(uint64 id, const td_api::getFeedbackChatMessageAuthor &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  td_->saved_messages_manager_->get_monoforum_message_author(
-      {DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::loadSavedMessagesTopics &request) {

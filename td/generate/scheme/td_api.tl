@@ -9327,6 +9327,11 @@ getMessageReadDate chat_id:int53 message_id:int53 = MessageReadDate;
 //@message_id Identifier of the message
 getMessageViewers chat_id:int53 message_id:int53 = MessageViewers;
 
+//@description Returns information about actual author of a message sent on behalf of a channel. The method can be called if messageProperties.can_get_author == true
+//@chat_id Chat identifier
+//@message_id Identifier of the message
+getMessageAuthor chat_id:int53 message_id:int53 = User;
+
 //@description Returns information about a file. This is an offline method @file_id Identifier of the file to get
 getFile file_id:int32 = File;
 
@@ -9495,11 +9500,6 @@ unpinAllFeedbackChatTopicMessages chat_id:int53 topic_id:int53 = Ok;
 //@chat_id Identifier of the chat
 //@topic_id Topic identifier
 readAllFeedbackChatTopicReactions chat_id:int53 topic_id:int53 = Ok;
-
-//@description Returns information about actual author of a message sent by an administrator in a feedback group topic; requires can_post_messages administrator right in the corresponding channel chat
-//@chat_id Chat identifier of the feedback group
-//@message_id Identifier of the message. A message author can be received only if messageProperties.can_get_author
-getFeedbackChatMessageAuthor chat_id:int53 message_id:int53 = User;
 
 
 
