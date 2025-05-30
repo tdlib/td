@@ -1256,6 +1256,9 @@ void ForumTopicManager::on_topic_mention_count_changed(DialogId dialog_id, Messa
   LOG(INFO) << "Change " << (is_relative ? "by" : "to") << ' ' << count << " number of mentions in thread of "
             << top_thread_message_id << " in " << dialog_id;
   auto dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr) {
+    return;
+  }
   auto topic = get_topic(dialog_topics, top_thread_message_id);
   if (topic == nullptr || topic->topic_ == nullptr) {
     return;
@@ -1270,6 +1273,9 @@ void ForumTopicManager::on_topic_reaction_count_changed(DialogId dialog_id, Mess
   LOG(INFO) << "Change " << (is_relative ? "by" : "to") << ' ' << count << " number of reactions in thread of "
             << top_thread_message_id << " in " << dialog_id;
   auto dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr) {
+    return;
+  }
   auto topic = get_topic(dialog_topics, top_thread_message_id);
   if (topic == nullptr || topic->topic_ == nullptr) {
     return;
