@@ -5176,6 +5176,11 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
     }
     c->is_title_changed = false;
   }
+  if (c->is_admined_monoforum_changed) {
+    // TODO drop chat history
+    on_update_channel_status(c, channel_id, DialogParticipantStatus(c->status));
+    c->is_admined_monoforum_changed = false;
+  }
   if (c->is_status_changed) {
     c->status.update_restrictions();
     auto until_date = c->status.get_until_date();
@@ -5250,10 +5255,6 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
     send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
                        DialogId(channel_id), "update_channel stories_hidden");
     c->is_stories_hidden_changed = false;
-  }
-  if (c->is_admined_monoforum_changed) {
-    // TODO
-    c->is_admined_monoforum_changed = false;
   }
   auto unix_time = G()->unix_time();
   auto effective_emoji_status = EmojiStatus::get_effective_emoji_status(c->emoji_status, true, unix_time);
@@ -7321,8 +7322,15 @@ void ChatManager::on_update_channel_title(Channel *c, ChannelId channel_id, stri
 
 void ChatManager::on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status) {
   if (c->is_monoforum) {
-    if (status.is_administrator()) {
-      status = status.is_member() ? DialogParticipantStatus::Member(0) : DialogParticipantStatus::Left();
+    if (status.is_member()) {
+      status = c->is_admined_monoforum
+                   ? DialogParticipantStatus::Administrator(
+                         AdministratorRights(true, true, false, false, false, false, false, false, false, false, false,
+                                             false, false, false, false, ChannelType::Megagroup),
+                         string(), false)
+                   : DialogParticipantStatus::Member(0);
+    } else {
+      status = DialogParticipantStatus::Left();
     }
   }
   if (c->status != status) {
