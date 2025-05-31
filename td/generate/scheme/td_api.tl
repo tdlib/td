@@ -2096,7 +2096,7 @@ unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadRea
 //@description A topic in a forum supergroup chat @forum_topic_id Unique identifier of the forum topic; all messages in a non-forum supergroup chats belongs to the General topic
 messageTopicForum forum_topic_id:int53 = MessageTopic;
 
-//@description A topic in a feedback chat @feedback_chat_topic_id Unique identifier of the feedback chat topic
+//@description A topic in an administered feedback chat @feedback_chat_topic_id Unique identifier of the feedback chat topic
 messageTopicFeedbackChat feedback_chat_topic_id:int53 = MessageTopic;
 
 //@description A topic in Saved Messages chat @saved_messages_topic_id Unique identifier of the Saved Messages topic
@@ -9692,10 +9692,10 @@ getChatSparseMessagePositions chat_id:int53 filter:SearchMessagesFilter from_mes
 
 //@description Returns information about the next messages of the specified type in the chat split by days. Returns the results in reverse chronological order. Can return partial result for the last returned day. Behavior of this method depends on the value of the option "utc_time_offset"
 //@chat_id Identifier of the chat in which to return information about messages
+//@topic_id Pass topic identifier to get the result only in specific topic; pass null to get the result in all topics; forum topics aren't supported
 //@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterMention, searchMessagesFilterUnreadMention, and searchMessagesFilterUnreadReaction are unsupported in this function
 //@from_message_id The message identifier from which to return information about messages; use 0 to get results from the last message
-//@saved_messages_topic_id If not 0, only messages in the specified Saved Messages topic will be considered; pass 0 to consider all messages, or for chats other than Saved Messages
-getChatMessageCalendar chat_id:int53 filter:SearchMessagesFilter from_message_id:int53 saved_messages_topic_id:int53 = MessageCalendar;
+getChatMessageCalendar chat_id:int53 topic_id:MessageTopic filter:SearchMessagesFilter from_message_id:int53 = MessageCalendar;
 
 //@description Returns approximate number of messages of the specified type in the chat or its topic
 //@chat_id Identifier of the chat in which to count messages

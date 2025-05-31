@@ -3552,8 +3552,8 @@ class CliClient final : public Actor {
       string filter;
       MessageId from_message_id;
       get_args(args, chat_id, filter, from_message_id);
-      send_request(td_api::make_object<td_api::getChatMessageCalendar>(chat_id, as_search_messages_filter(filter),
-                                                                       from_message_id, get_saved_messages_topic_id()));
+      send_request(td_api::make_object<td_api::getChatMessageCalendar>(
+          chat_id, get_message_topic_id(), as_search_messages_filter(filter), from_message_id));
     } else if (op == "SearchAudio" || op == "SearchDocument" || op == "SearchPhoto" || op == "SearchChatPhoto") {
       ChatId chat_id;
       MessageId offset_message_id;

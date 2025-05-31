@@ -187,8 +187,8 @@ class MessagesManager final : public Actor {
                       int32 limit, bool from_the_end, vector<tl_object_ptr<telegram_api::Message>> &&messages,
                       Promise<Unit> &&promise);
 
-  void on_get_message_search_result_calendar(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                             MessageId from_message_id, MessageSearchFilter filter, int32 total_count,
+  void on_get_message_search_result_calendar(DialogId dialog_id, MessageTopic message_topic, MessageId from_message_id,
+                                             MessageSearchFilter filter, int32 total_count,
                                              vector<tl_object_ptr<telegram_api::Message>> &&messages,
                                              vector<tl_object_ptr<telegram_api::searchResultsCalendarPeriod>> &&periods,
                                              Promise<td_api::object_ptr<td_api::messageCalendar>> &&promise);
@@ -686,7 +686,7 @@ class MessagesManager final : public Actor {
                                                                     int32 limit, int64 &random_id,
                                                                     Promise<Unit> &&promise);
 
-  void get_dialog_message_calendar(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+  void get_dialog_message_calendar(DialogId dialog_id, const td_api::object_ptr<td_api::MessageTopic> &topic_id,
                                    MessageId from_message_id, MessageSearchFilter filter,
                                    Promise<td_api::object_ptr<td_api::messageCalendar>> &&promise);
 
@@ -2806,7 +2806,7 @@ class MessagesManager final : public Actor {
 
   static MessageId get_first_database_message_id_by_index(const Dialog *d, MessageSearchFilter filter);
 
-  void get_message_calendar_from_server(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+  void get_message_calendar_from_server(DialogId dialog_id, const MessageTopic &message_topic,
                                         MessageId from_message_id, MessageSearchFilter filter,
                                         Promise<td_api::object_ptr<td_api::messageCalendar>> &&promise);
 

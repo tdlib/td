@@ -3326,10 +3326,9 @@ void Requests::on_request(uint64 id, const td_api::getMessageThreadHistory &requ
 void Requests::on_request(uint64 id, const td_api::getChatMessageCalendar &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  DialogId dialog_id(request.chat_id_);
-  td_->messages_manager_->get_dialog_message_calendar(
-      dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.saved_messages_topic_id_),
-      MessageId(request.from_message_id_), get_message_search_filter(request.filter_), std::move(promise));
+  td_->messages_manager_->get_dialog_message_calendar(DialogId(request.chat_id_), request.topic_id_,
+                                                      MessageId(request.from_message_id_),
+                                                      get_message_search_filter(request.filter_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::searchChatMessages &request) {
