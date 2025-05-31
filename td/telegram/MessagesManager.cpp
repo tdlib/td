@@ -4987,7 +4987,7 @@ void MessagesManager::on_update_message_content(MessageFullId message_full_id) {
 }
 
 void MessagesManager::on_unread_message_mention_removed(Dialog *d, const Message *m, const char *source) {
-  if (td_->dialog_manager_->is_forum_channel(d->dialog_id)) {
+  if (d->is_forum) {
     td_->forum_topic_manager_->on_topic_mention_count_changed(
         d->dialog_id, m->top_thread_message_id.is_valid() ? m->top_thread_message_id : MessageId(ServerMessageId(1)),
         -1, true);
@@ -5025,7 +5025,7 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
 }
 
 void MessagesManager::on_unread_message_reaction_added(Dialog *d, const Message *m, const char *source) {
-  if (td_->dialog_manager_->is_forum_channel(d->dialog_id)) {
+  if (d->is_forum) {
     td_->forum_topic_manager_->on_topic_reaction_count_changed(
         d->dialog_id, m->top_thread_message_id.is_valid() ? m->top_thread_message_id : MessageId(ServerMessageId(1)),
         +1, true);
@@ -5037,7 +5037,7 @@ void MessagesManager::on_unread_message_reaction_added(Dialog *d, const Message 
 }
 
 void MessagesManager::on_unread_message_reaction_removed(Dialog *d, const Message *m, const char *source) {
-  if (td_->dialog_manager_->is_forum_channel(d->dialog_id)) {
+  if (d->is_forum) {
     td_->forum_topic_manager_->on_topic_reaction_count_changed(
         d->dialog_id, m->top_thread_message_id.is_valid() ? m->top_thread_message_id : MessageId(ServerMessageId(1)),
         -1, true);
@@ -8123,8 +8123,7 @@ MessagesManager::CanDeleteDialog MessagesManager::can_delete_dialog(const Dialog
       // private non-forum joined supergroups can be deleted for self
       auto channel_id = d->dialog_id.get_channel_id();
       return {!td_->chat_manager_->is_broadcast_channel(channel_id) &&
-                  !td_->chat_manager_->is_channel_public(channel_id) &&
-                  !td_->chat_manager_->is_forum_channel(channel_id) &&
+                  !td_->chat_manager_->is_channel_public(channel_id) && !d->is_forum &&
                   td_->chat_manager_->get_channel_status(channel_id).is_member(),
               td_->chat_manager_->get_channel_can_be_deleted(channel_id)};
     }
@@ -8623,7 +8622,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, MessageId top
 
   if (top_thread_message_id.is_valid()) {
     LOG(INFO) << "Receive readAllChatMentions request in thread of " << top_thread_message_id << " in " << dialog_id;
-    if (td_->dialog_manager_->is_forum_channel(dialog_id)) {
+    if (d->is_forum) {
       td_->forum_topic_manager_->on_topic_mention_count_changed(dialog_id, top_thread_message_id, 0, false);
     }
     return td_->message_query_manager_->read_all_topic_mentions_on_server(dialog_id, top_thread_message_id, 0,
@@ -8717,7 +8716,7 @@ void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, MessageId to
   auto is_update_sent = read_all_local_dialog_reactions(dialog_id, top_thread_message_id, SavedMessagesTopicId());
   if (top_thread_message_id.is_valid()) {
     LOG(INFO) << "Receive readAllChatReactions request in thread of " << top_thread_message_id << " in " << dialog_id;
-    if (td_->dialog_manager_->is_forum_channel(dialog_id)) {
+    if (d->is_forum) {
       td_->forum_topic_manager_->on_topic_reaction_count_changed(dialog_id, top_thread_message_id, 0, false);
     }
     return td_->message_query_manager_->read_all_topic_reactions_on_server(
@@ -13716,7 +13715,7 @@ void MessagesManager::on_get_dialogs_from_list(int64 task_id, Result<Unit> &&res
 }
 
 void MessagesManager::mark_dialog_as_read(Dialog *d) {
-  if (td_->dialog_manager_->is_forum_channel(d->dialog_id)) {
+  if (d->is_forum) {
     // TODO read forum topics
   }
   if (d->server_unread_count + d->local_unread_count > 0 && d->last_message_id.is_valid()) {
@@ -14123,7 +14122,7 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
   }
 
   MessageFullId top_thread_message_full_id;
-  if (message_id == MessageId(ServerMessageId(1)) && td_->dialog_manager_->is_forum_channel(dialog_id)) {
+  if (message_id == MessageId(ServerMessageId(1)) && d->is_forum) {
     top_thread_message_full_id = MessageFullId{dialog_id, message_id};
   } else {
     message_id = get_persistent_message_id(d, message_id);
@@ -14183,7 +14182,7 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
       return promise.set_error(Status::Error(400, "Message has no comments"));
     }
     expected_dialog_id = DialogId(m->reply_info.channel_id_);
-  } else if (message_id == MessageId(ServerMessageId(1)) && td_->dialog_manager_->is_forum_channel(dialog_id)) {
+  } else if (message_id == MessageId(ServerMessageId(1)) && d->is_forum) {
     // General forum topic
     expected_dialog_id = dialog_id;
   } else {
@@ -14243,8 +14242,7 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
         if (static_cast<const td_api::messageTopicForum *>(message->topic_id_.get())->forum_topic_id_ !=
             MessageId(ServerMessageId(1)).get()) {
           is_forum_topic = true;
-        } else if (info.message_ids[0] == MessageId(ServerMessageId(1)) &&
-                   td_->dialog_manager_->is_forum_channel(info.dialog_id)) {
+        } else if (info.message_ids[0] == MessageId(ServerMessageId(1)) && d->is_forum) {
           // General forum topic
           is_forum_topic = true;
         }
@@ -14895,7 +14893,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
     }
   }
 
-  bool is_forum = td_->dialog_manager_->is_forum_channel(dialog_id);
+  bool is_forum = d->is_forum;
   if (in_message_thread && !is_forum &&
       (!m->top_thread_message_id.is_valid() || !m->top_thread_message_id.is_server() ||
        is_deleted_message(d, m->top_thread_message_id) || td_->dialog_manager_->is_broadcast_channel(dialog_id))) {
@@ -15160,9 +15158,8 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
       for_album = !info.is_single && m->media_album_id != 0;
       if (info.comment_dialog_id.is_valid() || info.for_comment || m->is_topic_message) {
         top_thread_message_id = m->top_thread_message_id;
-      } else if (td_->dialog_manager_->is_forum_channel(dialog_id) &&
-                 (info.top_thread_message_id == MessageId(ServerMessageId(1)) ||
-                  m->message_id == MessageId(ServerMessageId(1)))) {
+      } else if (d->is_forum && (info.top_thread_message_id == MessageId(ServerMessageId(1)) ||
+                                 m->message_id == MessageId(ServerMessageId(1)))) {
         // General topic
         top_thread_message_id = MessageId(ServerMessageId(1));
       } else {
@@ -15529,7 +15526,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
 Status MessagesManager::toggle_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages) {
   TRY_RESULT(d, check_dialog_access(dialog_id, false, AccessRights::Read, "toggle_dialog_view_as_messages"));
   bool is_saved_messages = dialog_id == td_->dialog_manager_->get_my_dialog_id();
-  if (!is_saved_messages && !td_->dialog_manager_->is_forum_channel(dialog_id)) {
+  if (!is_saved_messages && !d->is_forum) {
     return Status::Error(400, "The method is available only in forum channels");
   }
 
@@ -15929,7 +15926,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   // get forum topic identifier for the messages
   MessageId forum_topic_id;
   if (source == MessageSource::ForumTopicHistory) {
-    if (!td_->dialog_manager_->is_forum_channel(dialog_id)) {
+    if (!d->is_forum) {
       return Status::Error(400, "Chat is not a forum");
     }
 
@@ -17175,7 +17172,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
   }
 
   MessageFullId top_thread_message_full_id;
-  if (message_id == MessageId(ServerMessageId(1)) && td_->dialog_manager_->is_forum_channel(dialog_id)) {
+  if (message_id == MessageId(ServerMessageId(1)) && d->is_forum) {
     top_thread_message_full_id = MessageFullId{dialog_id, message_id};
   } else {
     message_id = get_persistent_message_id(d, message_id);
@@ -29734,7 +29731,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
     }
   }
   if (need_update && m->contains_unread_mention) {
-    if (td_->dialog_manager_->is_forum_channel(dialog_id)) {
+    if (d->is_forum) {
       td_->forum_topic_manager_->on_topic_mention_count_changed(
           dialog_id, m->top_thread_message_id.is_valid() ? m->top_thread_message_id : MessageId(ServerMessageId(1)), +1,
           true);
@@ -31953,7 +31950,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
     } else if (!d->is_message_ttl_inited &&
                td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Write)) {
       reload_source = "fix_new_dialog init message_auto_delete_time";
-    } else if (!d->is_view_as_messages_inited && td_->dialog_manager_->is_forum_channel(dialog_id)) {
+    } else if (!d->is_view_as_messages_inited && d->is_forum) {
       reload_source = "fix_new_dialog init view_as_messages";
     } else if (!d->is_last_pinned_message_id_inited) {
       get_dialog_pinned_message(dialog_id, Auto());
