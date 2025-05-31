@@ -2096,7 +2096,7 @@ unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadRea
 //@description A topic in a forum supergroup chat @forum_topic_id Unique identifier of the forum topic; all messages in a non-forum supergroup chats belongs to the General topic
 messageTopicForum forum_topic_id:int53 = MessageTopic;
 
-//@description A topic in an administered feedback chat @feedback_chat_topic_id Unique identifier of the feedback chat topic
+//@description A topic in an administered feedback chat @feedback_chat_topic_id Unique identifier of the topic
 messageTopicFeedbackChat feedback_chat_topic_id:int53 = MessageTopic;
 
 //@description A topic in Saved Messages chat @saved_messages_topic_id Unique identifier of the Saved Messages topic
@@ -2266,13 +2266,13 @@ businessMessages messages:vector<businessMessage> = BusinessMessages;
 //@description The message is from a chat history
 messageSourceChatHistory = MessageSource;
 
-//@description The message is from a message thread history
+//@description The message is from history of a message thread
 messageSourceMessageThreadHistory = MessageSource;
 
-//@description The message is from a forum topic history
+//@description The message is from history of a forum topic
 messageSourceForumTopicHistory = MessageSource;
 
-//@description The message is from a feedback chat topic history
+//@description The message is from history of a topic in an administered feedback chat
 messageSourceFeedbackChatTopicHistory = MessageSource;
 
 //@description The message is from chat, message thread or forum topic history preview
@@ -2906,7 +2906,7 @@ savedMessagesTopicTypeSavedFromChat chat_id:int53 = SavedMessagesTopicType;
 savedMessagesTopic id:int53 type:SavedMessagesTopicType is_pinned:Bool order:int64 last_message:message draft_message:draftMessage = SavedMessagesTopic;
 
 
-//@description Contains information about a topic in a feedback chat
+//@description Contains information about a topic in an administered feedback chat
 //@chat_id Identifier of the chat to which the topic belongs
 //@id Unique topic identifier
 //@sender_id Identifier of the user or chat that sends the feedback
@@ -4473,7 +4473,7 @@ messageSelfDestructTypeImmediately = MessageSelfDestructType;
 
 
 //@description Options to be used when a message is sent
-//@feedback_chat_topic_id Unique identifier of the feedback chat topic; pass 0 if the chat isn't an administered feedback chat
+//@feedback_chat_topic_id Unique identifier of the topic in an administered feedback chat; pass 0 if the chat isn't an administered feedback chat
 //@disable_notification Pass true to disable notification for the message
 //@from_background Pass true if the message is sent from the background
 //@protect_content Pass true if the content of the message must be protected from forwarding and saving; for bots only
@@ -8536,7 +8536,7 @@ updateSavedMessagesTopic topic:savedMessagesTopic = Update;
 //@description Number of Saved Messages topics has changed @topic_count Approximate total number of Saved Messages topics
 updateSavedMessagesTopicCount topic_count:int32 = Update;
 
-//@description Basic information about a topic in a feedback group has changed. This update is guaranteed to come before the topic identifier is returned to the application
+//@description Basic information about a topic in an administered feedback chat has changed. This update is guaranteed to come before the topic identifier is returned to the application
 //@topic New data about the topic
 updateFeedbackChatTopic topic:feedbackChatTopic = Update;
 
@@ -9442,19 +9442,19 @@ getInactiveSupergroupChats = Chats;
 getSuitablePersonalChats = Chats;
 
 
-//@description Loads more topics in an administered feedback group. The loaded topics will be sent through updateFeedbackChatTopic.
+//@description Loads more topics in the administered feedback chat. The loaded topics will be sent through updateFeedbackChatTopic.
 //-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
-//@chat_id Chat identifier of the feedback group
+//@chat_id Chat identifier of the feedback chat
 //@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
 loadFeedbackChatTopics chat_id:int53 limit:int32 = Ok;
 
-//@description Returns information about an administered feedback group topic
-//@chat_id Chat identifier of the feedback group
+//@description Returns information about the topic in the administered feedback chat
+//@chat_id Chat identifier of the feedback chat
 //@topic_id Identifier of the topic to get
 getFeedbackChatTopic chat_id:int53 topic_id:int53 = FeedbackChatTopic;
 
-//@description Returns messages in an administered feedback group topic. The messages are returned in reverse chronological order (i.e., in order of decreasing message_id)
-//@chat_id Chat identifier of the feedback group
+//@description Returns messages in the topic in the administered feedback chat. The messages are returned in reverse chronological order (i.e., in order of decreasing message_id)
+//@chat_id Chat identifier of the feedback chat
 //@topic_id Identifier of the topic which messages will be fetched
 //@from_message_id Identifier of the message starting from which messages must be fetched; use 0 to get results from the last message
 //@offset Specify 0 to get results from exactly the message from_message_id or a negative offset up to 99 to get additionally some newer messages
@@ -9462,43 +9462,43 @@ getFeedbackChatTopic chat_id:int53 topic_id:int53 = FeedbackChatTopic;
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 getFeedbackChatTopicHistory chat_id:int53 topic_id:int53 from_message_id:int53 offset:int32 limit:int32 = Messages;
 
-//@description Returns the last message sent in an administered feedback group topic no later than the specified date
-//@chat_id Chat identifier of the feedback group
+//@description Returns the last message sent in the topic in the administered feedback chat no later than the specified date
+//@chat_id Chat identifier of the feedback chat
 //@topic_id Identifier of the topic which messages will be fetched
 //@date Point in time (Unix timestamp) relative to which to search for messages
 getFeedbackChatTopicMessageByDate chat_id:int53 topic_id:int53 date:int32 = Message;
 
-//@description Deletes all messages in an administered feedback group topic
-//@chat_id Chat identifier of the feedback group
+//@description Deletes all messages in the topic in the administered feedback chat
+//@chat_id Chat identifier of the feedback chat
 //@topic_id Identifier of the topic which messages will be deleted
 deleteFeedbackChatTopicHistory chat_id:int53 topic_id:int53 = Ok;
 
-//@description Deletes all messages between the specified dates in an administered feedback group topic
+//@description Deletes all messages between the specified dates in the topic in the administered feedback chat
 //-Messages sent in the last 30 seconds will not be deleted
-//@chat_id Chat identifier of the feedback group
+//@chat_id Chat identifier of the feedback chat
 //@topic_id Identifier of the topic which messages will be deleted
 //@min_date The minimum date of the messages to delete
 //@max_date The maximum date of the messages to delete
 deleteFeedbackChatTopicMessagesByDate chat_id:int53 topic_id:int53 min_date:int32 max_date:int32 = Ok;
 
-//@description Changes the marked as unread state of an administered feedback chat topic
-//@chat_id Chat identifier of the feedback group
+//@description Changes the marked as unread state of the topic in the administered feedback chat
+//@chat_id Chat identifier of the feedback chat
 //@topic_id Topic identifier
 //@is_marked_as_unread New value of is_marked_as_unread
 setFeedbackChatTopicIsMarkedAsUnread chat_id:int53 topic_id:int53 is_marked_as_unread:Bool = Ok;
 
-//@description Changes the draft message in an administered feedback chat topic
+//@description Changes the draft message in the topic in the administered feedback chat
 //@chat_id Chat identifier
 //@topic_id Topic identifier
 //@draft_message New draft message; pass null to remove the draft. All files in draft message content must be of the type inputFileLocal. Media thumbnails and captions are ignored
 setFeedbackChatTopicDraftMessage chat_id:int53 topic_id:int53 draft_message:draftMessage = Ok;
 
-//@description Removes all pinned messages from an administered feedback chat topic
+//@description Removes all pinned messages from the topic in the administered feedback chat
 //@chat_id Identifier of the chat
 //@topic_id Topic identifier
 unpinAllFeedbackChatTopicMessages chat_id:int53 topic_id:int53 = Ok;
 
-//@description Removes all unread reactions in an administered feedback chat topic
+//@description Removes all unread reactions in the topic in the administered feedback chat
 //@chat_id Identifier of the chat
 //@topic_id Topic identifier
 readAllFeedbackChatTopicReactions chat_id:int53 topic_id:int53 = Ok;
