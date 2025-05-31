@@ -143,6 +143,8 @@ class DialogManager final : public Actor {
 
   bool is_forum_channel(DialogId dialog_id) const;
 
+  bool is_forum_tabs_channel(DialogId dialog_id) const;
+
   bool is_monoforum_channel(DialogId dialog_id) const;
 
   bool is_admined_monoforum_channel(DialogId dialog_id) const;

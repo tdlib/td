@@ -359,6 +359,7 @@ class ChatManager final : public Actor {
   bool is_broadcast_channel(ChannelId channel_id) const;
   bool is_megagroup_channel(ChannelId channel_id) const;
   bool is_forum_channel(ChannelId channel_id) const;
+  bool is_forum_tabs_channel(ChannelId channel_id) const;
   bool is_monoforum_channel(ChannelId channel_id) const;
   bool is_admined_monoforum_channel(ChannelId channel_id) const;
   ChannelId get_monoforum_channel_id(ChannelId channel_id) const;

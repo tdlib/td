@@ -3097,6 +3097,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(is_forum);
     STORE_FLAG(is_saved_messages_view_as_messages_inited);
     STORE_FLAG(has_business_bot_manage_bar);
+    STORE_FLAG(is_forum_tabs);
     END_STORE_FLAGS();
   }
 
@@ -3379,6 +3380,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(is_forum);
     PARSE_FLAG(is_saved_messages_view_as_messages_inited);
     PARSE_FLAG(has_business_bot_manage_bar);
+    PARSE_FLAG(is_forum_tabs);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -3390,6 +3392,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     is_view_as_messages_inited = false;
     is_forum = false;
     is_saved_messages_view_as_messages_inited = false;
+    is_forum_tabs = false;
   }
 
   parse(last_new_message_id, parser);
@@ -15927,7 +15930,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   MessageId forum_topic_id;
   if (source == MessageSource::ForumTopicHistory) {
     if (!td_->dialog_manager_->is_forum_channel(dialog_id)) {
-      return Status::Error(400, "Chat has no topics");
+      return Status::Error(400, "Chat is not a forum");
     }
 
     for (auto message_id : message_ids) {
@@ -27363,7 +27366,7 @@ void MessagesManager::on_update_dialog_view_as_topics(Dialog *d, bool old_view_a
   // TODO update unread counters in chat lists
 }
 
-void MessagesManager::on_update_dialog_is_forum(DialogId dialog_id, bool is_forum) {
+void MessagesManager::on_update_dialog_is_forum(DialogId dialog_id, bool is_forum, bool is_forum_tabs) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive is_forum for invalid " << dialog_id;
     return;
@@ -27374,19 +27377,20 @@ void MessagesManager::on_update_dialog_is_forum(DialogId dialog_id, bool is_foru
     // nothing to do
     return;
   }
-  set_dialog_is_forum(d, is_forum);
+  set_dialog_is_forum(d, is_forum, is_forum_tabs);
 }
 
-void MessagesManager::set_dialog_is_forum(Dialog *d, bool is_forum) {
+void MessagesManager::set_dialog_is_forum(Dialog *d, bool is_forum, bool is_forum_tabs) {
   CHECK(d != nullptr);
-  if (d->is_forum == is_forum) {
+  if (d->is_forum == is_forum && d->is_forum_tabs == is_forum_tabs) {
     return;
   }
   auto old_view_as_topics = get_dialog_view_as_topics(d);
   d->is_forum = is_forum;
+  d->is_forum_tabs = is_forum_tabs;
   on_dialog_updated(d->dialog_id, "set_dialog_is_forum");
 
-  LOG(INFO) << "Set " << d->dialog_id << " is_forum to " << is_forum;
+  LOG(INFO) << "Set " << d->dialog_id << " is_forum to " << is_forum << '/' << is_forum_tabs;
   on_update_dialog_view_as_topics(d, old_view_as_topics);
 }
 
@@ -28553,7 +28557,8 @@ void MessagesManager::on_dialog_usernames_updated(DialogId dialog_id, const User
 }
 
 bool MessagesManager::get_dialog_view_as_topics(const Dialog *d) const {
-  return !d->view_as_messages && (d->is_forum || d->dialog_id == td_->dialog_manager_->get_my_dialog_id());
+  return !d->view_as_messages &&
+         ((d->is_forum && !d->is_forum_tabs) || d->dialog_id == td_->dialog_manager_->get_my_dialog_id());
 }
 
 bool MessagesManager::get_dialog_has_scheduled_messages(const Dialog *d) const {
@@ -31967,7 +31972,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
   if (d->has_active_group_call && !d->active_group_call_id.is_valid() && !td_->auth_manager_->is_bot()) {
     repair_dialog_active_group_call_id(dialog_id);
   }
-  set_dialog_is_forum(d, td_->dialog_manager_->is_forum_channel(dialog_id));
+  set_dialog_is_forum(d, td_->dialog_manager_->is_forum_channel(dialog_id),
+                      td_->dialog_manager_->is_forum_tabs_channel(dialog_id));
 
   if (d->notification_settings.is_synchronized && !d->notification_settings.is_use_default_fixed &&
       td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read) && !td_->auth_manager_->is_bot()) {

@@ -1843,6 +1843,11 @@ bool DialogManager::is_forum_channel(DialogId dialog_id) const {
          td_->chat_manager_->is_forum_channel(dialog_id.get_channel_id());
 }
 
+bool DialogManager::is_forum_tabs_channel(DialogId dialog_id) const {
+  return dialog_id.get_type() == DialogType::Channel &&
+         td_->chat_manager_->is_forum_tabs_channel(dialog_id.get_channel_id());
+}
+
 bool DialogManager::is_monoforum_channel(DialogId dialog_id) const {
   return dialog_id.get_type() == DialogType::Channel &&
          td_->chat_manager_->is_monoforum_channel(dialog_id.get_channel_id());

@@ -8206,6 +8206,14 @@ bool ChatManager::is_forum_channel(ChannelId channel_id) const {
   return c->is_forum;
 }
 
+bool ChatManager::is_forum_tabs_channel(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return c->is_forum_tabs;
+}
+
 bool ChatManager::is_monoforum_channel(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
@@ -8927,12 +8935,12 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
         c->is_scam = is_scam;
         c->is_fake = is_fake;
         c->is_gigagroup = is_gigagroup;
-        if (c->is_forum != is_forum) {
+        if (c->is_forum != is_forum || c->is_forum_tabs != is_forum_tabs) {
           c->is_forum = is_forum;
+          c->is_forum_tabs = is_forum_tabs;
           send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_is_forum, DialogId(channel_id),
-                             is_forum);
+                             is_forum, is_forum_tabs);
         }
-        c->is_forum_tabs = is_forum_tabs;
         c->is_monoforum = is_monoforum;
         c->boost_level = boost_level;
         c->paid_message_star_count = paid_message_star_count;
@@ -9061,12 +9069,12 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     c->is_scam = is_scam;
     c->is_fake = is_fake;
     c->is_gigagroup = is_gigagroup;
-    if (c->is_forum != is_forum) {
+    if (c->is_forum != is_forum || c->is_forum_tabs != is_forum_tabs) {
       c->is_forum = is_forum;
+      c->is_forum_tabs = is_forum_tabs;
       send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_is_forum, DialogId(channel_id),
-                         is_forum);
+                         is_forum, is_forum_tabs);
     }
-    c->is_forum_tabs = is_forum_tabs;
     c->is_monoforum = is_monoforum;
     c->boost_level = boost_level;
     c->paid_message_star_count = paid_message_star_count;
