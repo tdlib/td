@@ -29593,6 +29593,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
   auto dialog_id = d->dialog_id;
   auto dialog_type = dialog_id.get_type();
   auto message_id = m->message_id;
+  CHECK(message_id.is_valid());
   if (d->have_full_history && !from_database && !from_update && !message_id.is_local() && !message_id.is_yet_unsent()) {
     LOG(ERROR) << "Have full history in " << dialog_id << ", but receive unknown " << message_id
                << " with content of type " << m->content->get_type() << " from " << source << ". Last new is "
@@ -29639,6 +29640,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
   }
 
   auto old_last_message_id = d->last_message_id;
+  bool is_new = message_id >= d->last_new_message_id;
 
   if (need_update && message_id > d->last_read_inbox_message_id) {
     if (has_incoming_notification(dialog_id, m)) {
@@ -29677,11 +29679,11 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
   if (need_update) {
     update_message_count_by_index(d, +1, m);
   }
-  if (from_update && message_id > d->last_message_id && message_id >= d->last_new_message_id) {
+  if (from_update && message_id > d->last_message_id && is_new) {
     set_dialog_last_message_id(d, message_id, "add_message_to_dialog_message_list", m);
     *need_update_dialog_pos = true;
   }
-  if (from_update && !message_id.is_yet_unsent() && message_id >= d->last_new_message_id &&
+  if (from_update && !message_id.is_yet_unsent() && is_new &&
       (d->last_new_message_id.is_valid() ||
        (message_id.is_local() && d->last_message_id.is_valid() &&
         (message_id >= d->last_message_id ||
@@ -29722,6 +29724,11 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
   }
 
   d->ordered_messages.insert(message_id, from_update, old_last_message_id, source);
+
+  if (m->saved_messages_topic_id.is_valid()) {
+    td_->saved_messages_manager_->on_topic_message_added(dialog_id, m->saved_messages_topic_id, message_id, m->date,
+                                                         from_update, need_update, is_new, source);
+  }
 }
 
 // keep synced with add_scheduled_message_to_dialog
@@ -30256,11 +30263,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     // must be called after the message is added to correctly update replies
     update_message_max_reply_media_timestamp(d, result_message, false);
     update_message_max_own_media_timestamp(d, result_message);
-
-    if (from_update && m->saved_messages_topic_id.is_valid()) {
-      td_->saved_messages_manager_->set_topic_last_message_id(dialog_id, m->saved_messages_topic_id, m->message_id,
-                                                              m->date);
-    }
   }
 
   result_message->debug_source = source;

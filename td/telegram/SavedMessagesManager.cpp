@@ -576,15 +576,26 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(TopicL
   return result.get();
 }
 
-void SavedMessagesManager::set_topic_last_message_id(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                                     MessageId last_message_id, int32 last_message_date) {
+void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                                  MessageId message_id, int32 message_date, const bool from_update,
+                                                  const bool need_update, const bool is_new, const char *source) {
   auto *topic_list = get_topic_list(dialog_id);
   if (topic_list == nullptr) {
     return;
   }
   auto *topic = add_topic(topic_list, saved_messages_topic_id, false);
-  do_set_topic_last_message_id(topic, last_message_id, last_message_date);
-  on_topic_changed(topic_list, topic, "set_topic_last_message_id");
+
+  auto old_last_message_id = topic->last_message_id_;
+  if (need_update && message_id > topic->read_inbox_max_message_id_ &&
+      td_->messages_manager_->get_is_counted_as_unread(dialog_id, MessageType::Server)(message_id)) {
+    do_set_topic_read_inbox_max_message_id(topic, topic->read_inbox_max_message_id_, topic->unread_count_ + 1);
+  }
+  if (from_update && is_new && message_id > topic->last_message_id_) {
+    do_set_topic_last_message_id(topic, message_id, message_date);
+  }
+  topic->ordered_messages_.insert(message_id, from_update, old_last_message_id, source);
+
+  on_topic_changed(topic_list, topic, "on_topic_message_added");
 }
 
 void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id,

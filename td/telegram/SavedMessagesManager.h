@@ -11,6 +11,7 @@
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesInfo.h"
+#include "td/telegram/OrderedMessage.h"
 #include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -42,8 +43,9 @@ class SavedMessagesManager final : public Actor {
 
   int64 get_saved_messages_topic_id_object(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id);
 
-  void set_topic_last_message_id(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                 MessageId last_message_id, int32 last_message_date);
+  void on_topic_message_added(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId message_id,
+                              int32 message_date, const bool from_update, const bool need_update, const bool is_new,
+                              const char *source);
 
   void on_topic_message_updated(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId message_id);
 
@@ -156,6 +158,7 @@ class SavedMessagesManager final : public Actor {
   struct SavedMessagesTopic {
     DialogId dialog_id_;
     SavedMessagesTopicId saved_messages_topic_id_;
+    OrderedMessages ordered_messages_;
     MessageId last_message_id_;
     MessageId read_inbox_max_message_id_;
     MessageId read_outbox_max_message_id_;
