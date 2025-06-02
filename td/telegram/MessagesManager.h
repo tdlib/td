@@ -2048,14 +2048,16 @@ class MessagesManager final : public Actor {
 
   void mark_dialog_as_read(Dialog *d);
 
-  int32 calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id, int32 old_unread_count,
+  int32 calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id,
+                                               MessageId last_read_inbox_message_id, int32 old_unread_count,
                                                std::function<bool(MessageId)> is_counted_as_unread) const;
 
-  int32 calc_new_unread_count_from_the_end(Dialog *d, MessageId max_message_id,
+  int32 calc_new_unread_count_from_the_end(Dialog *d, MessageId max_message_id, MessageId last_message_id,
                                            std::function<bool(MessageId)> is_counted_as_unread,
                                            int32 hint_unread_count) const;
 
-  int32 calc_new_unread_count(Dialog *d, MessageId max_message_id, int32 old_unread_count,
+  int32 calc_new_unread_count(Dialog *d, MessageId max_message_id, MessageId last_read_inbox_message_id,
+                              int32 old_unread_count, MessageId last_message_id,
                               std::function<bool(MessageId)> is_counted_as_unread, int32 hint_unread_count) const;
 
   void repair_server_unread_count(DialogId dialog_id, int32 unread_count, const char *source);
