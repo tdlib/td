@@ -8833,18 +8833,18 @@ bool MessagesManager::has_incoming_notification(DialogId dialog_id, const Messag
   return !m->message_id.is_scheduled() && !m->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id();
 }
 
-int32 MessagesManager::calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id,
-                                                              MessageType type) const {
+int32 MessagesManager::calc_new_unread_count_from_last_unread(
+    Dialog *d, MessageId max_message_id, int32 old_unread_count,
+    std::function<bool(MessageId)> is_counted_as_unread) const {
   CHECK(!max_message_id.is_scheduled());
   auto it = d->ordered_messages.get_const_iterator(max_message_id);
   if (*it == nullptr || (*it)->get_message_id() != max_message_id) {
     return -1;
   }
 
-  int32 unread_count = type == MessageType::Server ? d->server_unread_count : d->local_unread_count;
+  auto unread_count = old_unread_count;
   while (*it != nullptr && (*it)->get_message_id() > d->last_read_inbox_message_id) {
-    auto message_id = (*it)->get_message_id();
-    if (message_id.get_type() == type && has_incoming_notification(d->dialog_id, get_message(d, message_id))) {
+    if (is_counted_as_unread((*it)->get_message_id())) {
       unread_count--;
     }
     --it;
@@ -8857,14 +8857,14 @@ int32 MessagesManager::calc_new_unread_count_from_last_unread(Dialog *d, Message
   return unread_count;
 }
 
-int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId max_message_id, MessageType type,
+int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId max_message_id,
+                                                          std::function<bool(MessageId)> is_counted_as_unread,
                                                           int32 hint_unread_count) const {
   CHECK(!max_message_id.is_scheduled());
   int32 unread_count = 0;
   auto it = d->ordered_messages.get_const_iterator(MessageId::max());
   while (*it != nullptr && (*it)->get_message_id() > max_message_id) {
-    auto message_id = (*it)->get_message_id();
-    if (message_id.get_type() == type && has_incoming_notification(d->dialog_id, get_message(d, message_id))) {
+    if (is_counted_as_unread((*it)->get_message_id())) {
       unread_count++;
     }
     --it;
@@ -8899,7 +8899,8 @@ int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId m
   return unread_count;
 }
 
-int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id, MessageType type,
+int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id, int32 old_unread_count,
+                                             std::function<bool(MessageId)> is_counted_as_unread,
                                              int32 hint_unread_count) const {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(!max_message_id.is_scheduled());
@@ -8908,17 +8909,21 @@ int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id
   }
 
   if (!d->last_read_inbox_message_id.is_valid()) {
-    return calc_new_unread_count_from_the_end(d, max_message_id, type, hint_unread_count);
+    return calc_new_unread_count_from_the_end(d, max_message_id, is_counted_as_unread, hint_unread_count);
   }
 
   if (!d->last_message_id.is_valid() ||
       (d->last_message_id.get() - max_message_id.get() > max_message_id.get() - d->last_read_inbox_message_id.get())) {
-    int32 unread_count = calc_new_unread_count_from_last_unread(d, max_message_id, type);
-    return unread_count >= 0 ? unread_count
-                             : calc_new_unread_count_from_the_end(d, max_message_id, type, hint_unread_count);
+    int32 unread_count =
+        calc_new_unread_count_from_last_unread(d, max_message_id, old_unread_count, is_counted_as_unread);
+    return unread_count >= 0
+               ? unread_count
+               : calc_new_unread_count_from_the_end(d, max_message_id, is_counted_as_unread, hint_unread_count);
   } else {
-    int32 unread_count = calc_new_unread_count_from_the_end(d, max_message_id, type, hint_unread_count);
-    return unread_count >= 0 ? unread_count : calc_new_unread_count_from_last_unread(d, max_message_id, type);
+    int32 unread_count = calc_new_unread_count_from_the_end(d, max_message_id, is_counted_as_unread, hint_unread_count);
+    return unread_count >= 0
+               ? unread_count
+               : calc_new_unread_count_from_last_unread(d, max_message_id, old_unread_count, is_counted_as_unread);
   }
 }
 
@@ -9070,9 +9075,12 @@ void MessagesManager::read_history_inbox(Dialog *d, MessageId max_message_id, in
     schedule_get_channel_difference(dialog_id, 0, max_message_id, 0.001, "read_history_inbox");
   }
 
-  int32 server_unread_count = calc_new_unread_count(d, max_message_id, MessageType::Server, unread_count);
-  int32 local_unread_count =
-      d->local_unread_count == 0 ? 0 : calc_new_unread_count(d, max_message_id, MessageType::Local, -1);
+  int32 server_unread_count = calc_new_unread_count(d, max_message_id, d->server_unread_count,
+                                                    get_is_counted_as_unread(d, MessageType::Server), unread_count);
+  int32 local_unread_count = d->local_unread_count == 0
+                                 ? 0
+                                 : calc_new_unread_count(d, max_message_id, d->local_unread_count,
+                                                         get_is_counted_as_unread(d, MessageType::Local), -1);
 
   if (server_unread_count < 0) {
     server_unread_count = unread_count >= 0 ? unread_count : d->server_unread_count;
@@ -18283,6 +18291,19 @@ std::function<int32(MessageId)> MessagesManager::get_get_message_date(const Dial
     const auto *m = get_message_static(d, message_id);
     CHECK(m != nullptr);
     return m->date;
+  };
+}
+
+std::function<bool(MessageId)> MessagesManager::get_is_counted_as_unread(DialogId dialog_id,
+                                                                         MessageType message_type) const {
+  return get_is_counted_as_unread(get_dialog(dialog_id), message_type);
+}
+
+std::function<bool(MessageId)> MessagesManager::get_is_counted_as_unread(const Dialog *d,
+                                                                         MessageType message_type) const {
+  CHECK(d != nullptr);
+  return [this, d, message_type](MessageId message_id) {
+    return message_id.get_type() == message_type && has_incoming_notification(d->dialog_id, get_message(d, message_id));
   };
 }
 

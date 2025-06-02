@@ -614,6 +614,8 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::messageLinkInfo> get_message_link_info_object(const MessageLinkInfo &info) const;
 
+  std::function<bool(MessageId)> get_is_counted_as_unread(DialogId dialog_id, MessageType message_type) const;
+
   bool is_dialog_in_dialog_list(DialogId dialog_id) const;
 
   Status can_add_dialog_to_filter(DialogId dialog_id);
@@ -1977,6 +1979,8 @@ class MessagesManager final : public Actor {
 
   std::function<int32(MessageId)> get_get_message_date(const Dialog *d) const;
 
+  std::function<bool(MessageId)> get_is_counted_as_unread(const Dialog *d, MessageType message_type) const;
+
   vector<MessageId> find_unloadable_messages(const Dialog *d, int32 unload_before_date,
                                              bool &has_left_to_unload_messages) const;
 
@@ -2044,12 +2048,15 @@ class MessagesManager final : public Actor {
 
   void mark_dialog_as_read(Dialog *d);
 
-  int32 calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id, MessageType type) const;
+  int32 calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id, int32 old_unread_count,
+                                               std::function<bool(MessageId)> is_counted_as_unread) const;
 
-  int32 calc_new_unread_count_from_the_end(Dialog *d, MessageId max_message_id, MessageType type,
+  int32 calc_new_unread_count_from_the_end(Dialog *d, MessageId max_message_id,
+                                           std::function<bool(MessageId)> is_counted_as_unread,
                                            int32 hint_unread_count) const;
 
-  int32 calc_new_unread_count(Dialog *d, MessageId max_message_id, MessageType type, int32 hint_unread_count) const;
+  int32 calc_new_unread_count(Dialog *d, MessageId max_message_id, int32 old_unread_count,
+                              std::function<bool(MessageId)> is_counted_as_unread, int32 hint_unread_count) const;
 
   void repair_server_unread_count(DialogId dialog_id, int32 unread_count, const char *source);
 
