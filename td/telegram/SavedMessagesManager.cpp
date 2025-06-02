@@ -36,13 +36,15 @@ namespace td {
 
 class GetPinnedSavedDialogsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  uint32 generation_;
   int32 limit_;
 
  public:
   explicit GetPinnedSavedDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(int32 limit) {
+  void send(uint32 generation, int32 limit) {
+    generation_ = generation;
     limit_ = limit;
     send_query(G()->net_query_creator().create(telegram_api::messages_getPinnedSavedDialogs()));
   }
@@ -55,8 +57,8 @@ class GetPinnedSavedDialogsQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetPinnedSavedDialogsQuery: " << to_string(result);
-    td_->saved_messages_manager_->on_get_saved_messages_topics(DialogId(), SavedMessagesTopicId(), true, limit_,
-                                                               std::move(result), std::move(promise_));
+    td_->saved_messages_manager_->on_get_saved_messages_topics(DialogId(), generation_, SavedMessagesTopicId(), true,
+                                                               limit_, std::move(result), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -67,15 +69,17 @@ class GetPinnedSavedDialogsQuery final : public Td::ResultHandler {
 class GetSavedDialogsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  uint32 generation_;
   int32 limit_;
 
  public:
   explicit GetSavedDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, int32 offset_date, MessageId offset_message_id, DialogId offset_dialog_id,
-            int32 limit) {
+  void send(DialogId dialog_id, uint32 generation, int32 offset_date, MessageId offset_message_id,
+            DialogId offset_dialog_id, int32 limit) {
     dialog_id_ = dialog_id;
+    generation_ = generation;
     limit_ = limit;
     auto offset_input_peer = DialogManager::get_input_peer_force(offset_dialog_id);
     CHECK(offset_input_peer != nullptr);
@@ -101,8 +105,8 @@ class GetSavedDialogsQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetSavedDialogsQuery: " << to_string(result);
-    td_->saved_messages_manager_->on_get_saved_messages_topics(dialog_id_, SavedMessagesTopicId(), false, limit_,
-                                                               std::move(result), std::move(promise_));
+    td_->saved_messages_manager_->on_get_saved_messages_topics(dialog_id_, generation_, SavedMessagesTopicId(), false,
+                                                               limit_, std::move(result), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -113,14 +117,16 @@ class GetSavedDialogsQuery final : public Td::ResultHandler {
 class GetSavedDialogsByIdQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  uint32 generation_;
   SavedMessagesTopicId saved_messages_topic_id_;
 
  public:
   explicit GetSavedDialogsByIdQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) {
+  void send(DialogId dialog_id, uint32 generation, SavedMessagesTopicId saved_messages_topic_id) {
     dialog_id_ = dialog_id;
+    generation_ = generation;
     saved_messages_topic_id_ = saved_messages_topic_id;
 
     auto saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
@@ -150,8 +156,8 @@ class GetSavedDialogsByIdQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetSavedDialogsByIdQuery: " << to_string(result);
-    td_->saved_messages_manager_->on_get_saved_messages_topics(dialog_id_, saved_messages_topic_id_, false, -1,
-                                                               std::move(result), std::move(promise_));
+    td_->saved_messages_manager_->on_get_saved_messages_topics(dialog_id_, generation_, saved_messages_topic_id_, false,
+                                                               -1, std::move(result), std::move(promise_));
   }
 
   void on_error(Status status) final {
@@ -1107,6 +1113,7 @@ SavedMessagesManager::TopicList *SavedMessagesManager::add_topic_list(DialogId d
   if (topic_list == nullptr) {
     topic_list = make_unique<TopicList>();
     topic_list->dialog_id_ = dialog_id;
+    topic_list->generation_ = ++current_topic_list_generation_;
     topic_list->are_pinned_saved_messages_topics_inited_ = true;
   }
   return topic_list.get();
@@ -1144,7 +1151,7 @@ void SavedMessagesManager::get_pinned_saved_dialogs(int32 limit, Promise<Unit> &
     auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<Unit> &&result) {
       send_closure(actor_id, &SavedMessagesManager::on_get_pinned_saved_dialogs, std::move(result));
     });
-    td_->create_handler<GetPinnedSavedDialogsQuery>(std::move(query_promise))->send(limit);
+    td_->create_handler<GetPinnedSavedDialogsQuery>(std::move(query_promise))->send(topic_list_.generation_, limit);
   }
 }
 
@@ -1164,8 +1171,8 @@ void SavedMessagesManager::get_saved_dialogs(TopicList *topic_list, int32 limit,
       send_closure(actor_id, &SavedMessagesManager::on_get_saved_dialogs, topic_list, std::move(result));
     });
     td_->create_handler<GetSavedDialogsQuery>(std::move(query_promise))
-        ->send(topic_list->dialog_id_, topic_list->offset_date_, topic_list->offset_message_id_,
-               topic_list->offset_dialog_id_, limit);
+        ->send(topic_list->dialog_id_, topic_list->generation_, topic_list->offset_date_,
+               topic_list->offset_message_id_, topic_list->offset_dialog_id_, limit);
   }
 }
 
@@ -1209,11 +1216,15 @@ void SavedMessagesManager::on_get_saved_dialogs(TopicList *topic_list, Result<Un
 }
 
 void SavedMessagesManager::on_get_saved_messages_topics(
-    DialogId dialog_id, SavedMessagesTopicId expected_saved_messages_topic_id, bool is_pinned, int32 limit,
-    telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr, Promise<Unit> &&promise) {
+    DialogId dialog_id, uint32 generation, SavedMessagesTopicId expected_saved_messages_topic_id, bool is_pinned,
+    int32 limit, telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
+    Promise<Unit> &&promise) {
   auto *topic_list = get_topic_list(dialog_id);
   if (topic_list == nullptr) {
     return promise.set_error(Status::Error(400, "Chat has no topics"));
+  }
+  if (topic_list->generation_ != generation) {
+    return promise.set_error(Status::Error(400, "Topic was deleted"));
   }
 
   CHECK(saved_dialogs_ptr != nullptr);
@@ -1591,21 +1602,25 @@ void SavedMessagesManager::get_monoforum_topic(DialogId dialog_id, SavedMessages
   auto &queries = topic_list->get_topic_queries_[saved_messages_topic_id];
   queries.push_back(std::move(promise));
   if (queries.size() == 1u) {
-    auto query_promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), dialog_id, saved_messages_topic_id](Result<Unit> &&result) mutable {
-          send_closure(actor_id, &SavedMessagesManager::on_get_monoforum_topic, dialog_id, saved_messages_topic_id,
-                       std::move(result));
+    auto query_promise =
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, generation = topic_list->generation_,
+                                saved_messages_topic_id](Result<Unit> &&result) mutable {
+          send_closure(actor_id, &SavedMessagesManager::on_get_monoforum_topic, dialog_id, generation,
+                       saved_messages_topic_id, std::move(result));
         });
-    td_->create_handler<GetSavedDialogsByIdQuery>(std::move(query_promise))->send(dialog_id, saved_messages_topic_id);
+    td_->create_handler<GetSavedDialogsByIdQuery>(std::move(query_promise))
+        ->send(dialog_id, topic_list->generation_, saved_messages_topic_id);
   }
 }
 
-void SavedMessagesManager::on_get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                                  Result<Unit> &&result) {
+void SavedMessagesManager::on_get_monoforum_topic(DialogId dialog_id, uint32 generation,
+                                                  SavedMessagesTopicId saved_messages_topic_id, Result<Unit> &&result) {
   G()->ignore_result_if_closing(result);
 
   auto *topic_list = get_topic_list(dialog_id);
-  CHECK(topic_list != nullptr);
+  if (topic_list == nullptr || topic_list->generation_ != generation) {
+    return;
+  }
   auto it = topic_list->get_topic_queries_.find(saved_messages_topic_id);
   CHECK(it != topic_list->get_topic_queries_.end());
   auto promises = std::move(it->second);
@@ -1644,6 +1659,11 @@ void SavedMessagesManager::get_saved_messages_topic_history(SavedMessagesTopicId
 void SavedMessagesManager::get_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                              MessageId from_message_id, int32 offset, int32 limit,
                                              Promise<td_api::object_ptr<td_api::messages>> &&promise) {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat has no topics"));
+  }
+
   if (limit <= 0) {
     return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
   }
@@ -1671,10 +1691,10 @@ void SavedMessagesManager::get_topic_history(DialogId dialog_id, SavedMessagesTo
     return promise.set_error(Status::Error(400, "Invalid value of parameter from_message_id specified"));
   }
 
-  auto query_promise =
-      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, saved_messages_topic_id, from_message_id,
-                              promise = std::move(promise)](Result<MessagesInfo> &&r_info) mutable {
-        send_closure(actor_id, &SavedMessagesManager::on_get_saved_messages_topic_history, dialog_id,
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_id, generation = topic_list->generation_, saved_messages_topic_id,
+       from_message_id, promise = std::move(promise)](Result<MessagesInfo> &&r_info) mutable {
+        send_closure(actor_id, &SavedMessagesManager::on_get_saved_messages_topic_history, dialog_id, generation,
                      saved_messages_topic_id, from_message_id, std::move(r_info), std::move(promise));
       });
   td_->create_handler<GetSavedHistoryQuery>(std::move(query_promise))
@@ -1682,11 +1702,14 @@ void SavedMessagesManager::get_topic_history(DialogId dialog_id, SavedMessagesTo
 }
 
 void SavedMessagesManager::on_get_saved_messages_topic_history(
-    DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
+    DialogId dialog_id, uint32 generation, SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
     Result<MessagesInfo> &&r_info, Promise<td_api::object_ptr<td_api::messages>> &&promise) {
   auto *topic_list = get_topic_list(dialog_id);
   if (topic_list == nullptr) {
     return promise.set_error(Status::Error(400, "Chat has no topics"));
+  }
+  if (topic_list->generation_ != generation) {
+    return promise.set_error(Status::Error(400, "Topic was deleted"));
   }
 
   G()->ignore_result_if_closing(r_info);

@@ -84,8 +84,8 @@ class SavedMessagesManager final : public Actor {
 
   void load_monoforum_topics(DialogId dialog_id, int32 limit, Promise<Unit> &&promise);
 
-  void on_get_saved_messages_topics(DialogId dialog_id, SavedMessagesTopicId expected_saved_messages_topic_id,
-                                    bool is_pinned, int32 limit,
+  void on_get_saved_messages_topics(DialogId dialog_id, uint32 generation,
+                                    SavedMessagesTopicId expected_saved_messages_topic_id, bool is_pinned, int32 limit,
                                     telegram_api::object_ptr<telegram_api::messages_SavedDialogs> &&saved_dialogs_ptr,
                                     Promise<Unit> &&promise);
 
@@ -216,6 +216,7 @@ class SavedMessagesManager final : public Actor {
     DialogId dialog_id_;
     int32 server_total_count_ = -1;
     int32 sent_total_count_ = -1;
+    uint32 generation_ = 0;
 
     vector<SavedMessagesTopicId> pinned_saved_messages_topic_ids_;
     bool are_pinned_saved_messages_topics_inited_ = false;
@@ -260,10 +261,12 @@ class SavedMessagesManager final : public Actor {
 
   void on_get_saved_dialogs(TopicList *topic_list, Result<Unit> &&result);
 
-  void on_get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, Result<Unit> &&result);
+  void on_get_monoforum_topic(DialogId dialog_id, uint32 generation, SavedMessagesTopicId saved_messages_topic_id,
+                              Result<Unit> &&result);
 
-  void on_get_saved_messages_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                           MessageId from_message_id, Result<MessagesInfo> &&r_info,
+  void on_get_saved_messages_topic_history(DialogId dialog_id, uint32 generation,
+                                           SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
+                                           Result<MessagesInfo> &&r_info,
                                            Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   void do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id, int32 last_message_date);
@@ -348,6 +351,8 @@ class SavedMessagesManager final : public Actor {
   TopicList topic_list_;
 
   FlatHashMap<DialogId, unique_ptr<TopicList>, DialogIdHash> monoforum_topic_lists_;
+
+  uint32 current_topic_list_generation_ = 0;
 };
 
 }  // namespace td
