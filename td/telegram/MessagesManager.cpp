@@ -12437,13 +12437,19 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   // don't want to unload the newest pinned message
   // don't want to unload last edited message, because server can send updateEditChannelMessage again
   // don't want to unload messages from the last album
-  // can't unload from memory last dialog, last database messages, yet unsent messages, being edited media messages and active live locations
+  // can't unload from memory last dialog and last database messages
+  // can't unload yet unsent messages, being edited media messages, and active live locations
+  // can't unload from memory last topic message
   // can't unload messages in dialog with active suffix load query
   {
     auto it = dialog_suffix_load_queries_.find(d->dialog_id);
     if (it != dialog_suffix_load_queries_.end() && !it->second->suffix_load_queries_.empty()) {
       return false;
     }
+  }
+  if (m->saved_messages_topic_id.is_valid() &&
+      td_->saved_messages_manager_->is_last_topic_message(d->dialog_id, m->saved_messages_topic_id, m->message_id)) {
+    return false;
   }
   return d->open_count == 0 && m->message_id != d->last_message_id && m->message_id != d->last_database_message_id &&
          !m->message_id.is_yet_unsent() && active_live_location_message_full_ids_.count(message_full_id) == 0 &&

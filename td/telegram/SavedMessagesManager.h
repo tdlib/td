@@ -43,6 +43,9 @@ class SavedMessagesManager final : public Actor {
 
   int64 get_saved_messages_topic_id_object(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id);
 
+  bool is_last_topic_message(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                             MessageId message_id) const;
+
   void on_topic_message_added(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId message_id,
                               int32 message_date, const bool from_update, const bool need_update, const bool is_new,
                               const char *source);

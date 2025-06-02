@@ -517,6 +517,16 @@ int64 SavedMessagesManager::get_saved_messages_topic_id_object(DialogId dialog_i
   return saved_messages_topic_id.get_unique_id();
 }
 
+bool SavedMessagesManager::is_last_topic_message(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                                 MessageId message_id) const {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return false;
+  }
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
+  return topic != nullptr && topic->last_message_id_ == message_id;
+}
+
 SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
     DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) {
   return const_cast<SavedMessagesTopic *>(
