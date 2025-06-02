@@ -786,6 +786,49 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
   topic->ordered_messages_.erase(message_id, only_from_memory);
 }
 
+void SavedMessagesManager::on_all_dialog_messages_deleted(DialogId dialog_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return;
+  }
+
+  fail_promises(topic_list->load_pinned_queries_, Status::Error(400, "Topic list was cleared"));
+  fail_promises(topic_list->load_queries_, Status::Error(400, "Topic list was cleared"));
+  for (auto &it : topic_list->get_topic_queries_) {
+    fail_promises(it.second, Status::Error(400, "Topic list was cleared"));
+  }
+  for (auto &it : topic_list->topics_) {
+    auto *topic = it.second.get();
+    do_set_topic_last_message_id(topic, MessageId(), 0);
+    do_set_topic_read_inbox_max_message_id(topic, topic->read_inbox_max_message_id_, 0);
+    do_set_topic_is_marked_as_unread(topic, false);
+    do_set_topic_unread_reaction_count(topic, 0);
+    // do_set_topic_reply_markup(topic, MessageId());
+    do_set_topic_draft_message(topic, nullptr, false);
+    topic->pinned_order_ = 0;
+    on_topic_changed(topic_list, topic, "on_all_dialog_messages_deleted");
+  }
+
+  if (topic_list->dialog_id_ == DialogId()) {
+    topic_list->sent_total_count_ = 0;
+    send_closure(G()->td(), &Td::send_update, get_update_saved_messages_topic_count_object());
+
+    Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), topic_list->ordered_topics_,
+                                                topic_list->topics_);
+    topic_list_ = TopicList();
+    topic_list_.generation_ = ++current_topic_list_generation_;
+  } else {
+    auto it = monoforum_topic_lists_.find(dialog_id);
+    CHECK(it != monoforum_topic_lists_.end());
+    Scheduler::instance()->destroy_on_scheduler_unique_ptr(G()->get_gc_scheduler_id(), it->second);
+    monoforum_topic_lists_.erase(it);
+  }
+}
+
 void SavedMessagesManager::on_topic_draft_message_updated(DialogId dialog_id,
                                                           SavedMessagesTopicId saved_messages_topic_id,
                                                           int32 draft_message_date) {

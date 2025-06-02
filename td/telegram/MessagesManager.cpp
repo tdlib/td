@@ -8532,6 +8532,8 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
       last_message_date = m->date;
     }
     clear_dialog_message_list(d, remove_from_dialog_list, last_message_date);
+
+    td_->saved_messages_manager_->on_all_dialog_messages_deleted(d->dialog_id);
   }
 
   bool was_live_location_deleted = false;
@@ -8548,9 +8550,9 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     if (delete_active_live_location({d->dialog_id, m->message_id})) {
       was_live_location_deleted = true;
     }
-    remove_message_file_sources(d->dialog_id, m, "do_delete_all_dialog_messages");
+    remove_message_file_sources(d->dialog_id, m, "delete_all_dialog_messages");
 
-    on_message_deleted(d, m, is_permanently_deleted, "do_delete_all_dialog_messages");
+    on_message_deleted(d, m, is_permanently_deleted, "delete_all_dialog_messages");
 
     if (is_permanently_deleted) {
       d->deleted_message_ids.insert(m->message_id);
