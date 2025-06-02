@@ -12845,6 +12845,10 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
   if (!td_->auth_manager_->is_bot()) {
     d->ordered_messages.erase(message_id, only_from_memory);
+    if (m->saved_messages_topic_id.is_valid()) {
+      td_->saved_messages_manager_->on_topic_message_deleted(d->dialog_id, m->saved_messages_topic_id, m->message_id,
+                                                             only_from_memory);
+    }
   }
 
   d->being_deleted_message_id = MessageId();
@@ -12963,9 +12967,6 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
   }
   if (m->is_topic_message) {
     td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, m->top_thread_message_id, -1);
-  }
-  if (is_permanently_deleted && !td_->auth_manager_->is_bot() && m->saved_messages_topic_id.is_valid()) {
-    td_->saved_messages_manager_->on_topic_message_deleted(d->dialog_id, m->saved_messages_topic_id, m->message_id);
   }
 
   added_message_count_--;
@@ -18198,6 +18199,10 @@ void MessagesManager::get_dialog_message_by_date(DialogId dialog_id, int32 date,
   } else {
     get_dialog_message_by_date_from_server(d, date, false, std::move(promise));
   }
+}
+
+std::function<int32(MessageId)> MessagesManager::get_get_message_date(DialogId dialog_id) const {
+  return get_get_message_date(get_dialog(dialog_id));
 }
 
 std::function<int32(MessageId)> MessagesManager::get_get_message_date(const Dialog *d) const {

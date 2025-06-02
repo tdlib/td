@@ -52,7 +52,8 @@ class SavedMessagesManager final : public Actor {
 
   void on_topic_message_updated(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId message_id);
 
-  void on_topic_message_deleted(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId message_id);
+  void on_topic_message_deleted(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId message_id,
+                                bool only_from_memory);
 
   void on_topic_draft_message_updated(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                       int32 draft_message_date);

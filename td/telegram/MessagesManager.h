@@ -614,6 +614,8 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::messageLinkInfo> get_message_link_info_object(const MessageLinkInfo &info) const;
 
+  std::function<int32(MessageId)> get_get_message_date(DialogId dialog_id) const;
+
   std::function<bool(MessageId)> get_is_counted_as_unread(DialogId dialog_id, MessageType message_type) const;
 
   bool is_dialog_in_dialog_list(DialogId dialog_id) const;
