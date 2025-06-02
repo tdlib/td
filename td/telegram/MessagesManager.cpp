@@ -30964,8 +30964,12 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       LOG(ERROR) << "Saved Messages topic for " << message_id << " in " << dialog_id << " changed from "
                  << old_message->saved_messages_topic_id << " to " << new_message->saved_messages_topic_id;
     }
-    old_message->saved_messages_topic_id = new_message->saved_messages_topic_id;
-    need_send_update = true;
+    if (!is_message_in_dialog) {
+      LOG(ERROR) << "Ignore change of message topic for " << message_id << " in " << dialog_id;
+    } else {
+      old_message->saved_messages_topic_id = new_message->saved_messages_topic_id;
+      need_send_update = true;
+    }
   }
   if (old_message->notification_id != new_message->notification_id) {
     CHECK(!is_scheduled);
