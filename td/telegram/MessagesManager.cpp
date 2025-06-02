@@ -20906,6 +20906,9 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
     if (result.paid_message_star_count > 0) {
       return Status::Error(400, "Can't schedule paid messages");
     }
+    if (td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
+      return Status::Error(400, "Can't schedule messages in channel direct messages chats");
+    }
   }
   if (options->effect_id_ != 0) {
     auto dialog_type = dialog_id.get_type();
