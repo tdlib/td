@@ -271,6 +271,8 @@ class SavedMessagesManager final : public Actor {
                                            Result<MessagesInfo> &&r_info,
                                            Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
+  void read_topic_messages(SavedMessagesTopic *topic, MessageId read_inbox_max_message_id, int32 hint_unread_count);
+
   void do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id, int32 last_message_date);
 
   void do_set_topic_read_inbox_max_message_id(SavedMessagesTopic *topic, MessageId read_inbox_max_message_id,

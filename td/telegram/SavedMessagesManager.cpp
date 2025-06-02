@@ -878,6 +878,23 @@ void SavedMessagesManager::clear_monoforum_topic_draft_by_sent_message(DialogId 
   do_set_topic_draft_message(topic, nullptr, false);
 }
 
+void SavedMessagesManager::read_topic_messages(SavedMessagesTopic *topic, MessageId read_inbox_max_message_id,
+                                               int32 hint_unread_count) {
+  auto dialog_id = topic->dialog_id_;
+  CHECK(dialog_id != DialogId());
+  auto unread_count = topic->ordered_messages_.calc_new_unread_count(
+      read_inbox_max_message_id, topic->read_inbox_max_message_id_, topic->unread_count_, topic->last_message_id_,
+      td_->messages_manager_->get_is_counted_as_unread(dialog_id, MessageType::Server), hint_unread_count);
+  if (unread_count < 0) {
+    unread_count = topic->unread_count_;
+    if (td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+      // topic->need_repair_unread_count_ = true;
+      // repair_topic_message_unread_count(dialog_id, saved_messages_topic_id, unread_count, "read_monoforum_topic_messages");
+    }
+  }
+  do_set_topic_read_inbox_max_message_id(topic, read_inbox_max_message_id, unread_count);
+}
+
 void SavedMessagesManager::read_monoforum_topic_messages(DialogId dialog_id,
                                                          SavedMessagesTopicId saved_messages_topic_id,
                                                          MessageId read_inbox_max_message_id) {
@@ -890,9 +907,11 @@ void SavedMessagesManager::read_monoforum_topic_messages(DialogId dialog_id,
   if (topic == nullptr) {
     return;
   }
+  if (topic->dialog_id_ != dialog_id) {
+    return;
+  }
 
-  // TODO update unread count
-  do_set_topic_read_inbox_max_message_id(topic, read_inbox_max_message_id, topic->unread_count_);
+  read_topic_messages(topic, read_inbox_max_message_id, -1);
 
   if (topic->is_changed_) {
     td_->create_handler<ReadSavedHistoryQuery>()->send(dialog_id, saved_messages_topic_id,
@@ -924,8 +943,7 @@ void SavedMessagesManager::on_update_read_monoforum_inbox(DialogId dialog_id,
     return;
   }
 
-  // TODO update unread count
-  do_set_topic_read_inbox_max_message_id(topic, read_inbox_max_message_id, topic->unread_count_);
+  read_topic_messages(topic, read_inbox_max_message_id, -1);
 
   on_topic_changed(topic_list, topic, "on_update_read_monoforum_inbox");
 }
