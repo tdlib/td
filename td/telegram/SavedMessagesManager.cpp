@@ -653,7 +653,7 @@ void SavedMessagesManager::do_set_topic_read_outbox_max_message_id(SavedMessages
                << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_;
     read_outbox_max_message_id = MessageId();
   }
-  if (topic->read_outbox_max_message_id_ == read_outbox_max_message_id) {
+  if (read_outbox_max_message_id <= topic->read_outbox_max_message_id_) {
     return;
   }
 
@@ -1456,9 +1456,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
         }
         do_set_topic_read_inbox_max_message_id(topic, topic_info.read_inbox_max_message_id_, topic_info.unread_count_);
       }
-      if (topic->read_outbox_max_message_id_ < topic_info.read_outbox_max_message_id_) {
-        do_set_topic_read_outbox_max_message_id(topic, topic_info.read_outbox_max_message_id_);
-      }
+      do_set_topic_read_outbox_max_message_id(topic, topic_info.read_outbox_max_message_id_);
       do_set_topic_unread_reaction_count(topic, topic_info.unread_reaction_count_);
       do_set_topic_is_marked_as_unread(topic, topic_info.is_marked_as_unread_);
       do_set_topic_draft_message(topic, std::move(topic_info.draft_message_), true);
