@@ -23,6 +23,8 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/actor/SleepActor.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/FlatHashSet.h"
@@ -629,6 +631,9 @@ void SavedMessagesManager::do_set_topic_read_inbox_max_message_id(SavedMessagesT
   if (topic->read_inbox_max_message_id_ == read_inbox_max_message_id && topic->unread_count_ == unread_count) {
     return;
   }
+  if (read_inbox_max_message_id < topic->read_inbox_max_message_id_) {
+    return;
+  }
 
   LOG(INFO) << "Set read inbox max message in " << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_
             << " to " << read_inbox_max_message_id << " with " << unread_count << " unread messages";
@@ -878,6 +883,27 @@ void SavedMessagesManager::clear_monoforum_topic_draft_by_sent_message(DialogId 
   do_set_topic_draft_message(topic, nullptr, false);
 }
 
+void SavedMessagesManager::repair_topic_unread_count(const SavedMessagesTopic *topic) {
+  if (td_->auth_manager_->is_bot() ||
+      !td_->dialog_manager_->have_input_peer(topic->dialog_id_, false, AccessRights::Read)) {
+    return;
+  }
+  // if (pending_read_history_timeout_.has_timeout(dialog_id.get())) {
+  //   return;  // postpone until read history request is sent
+  // }
+
+  LOG(INFO) << "Repair unread count in " << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_;
+  void get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                           Promise<td_api::object_ptr<td_api::feedbackChatTopic>> && promise);
+  create_actor<SleepActor>("RepairTopicUnreadCountSleepActor", 0.2,
+                           PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = topic->dialog_id_,
+                                                   saved_messages_topic_id = topic->saved_messages_topic_id_](Unit) {
+                             send_closure(actor_id, &SavedMessagesManager::get_monoforum_topic, dialog_id,
+                                          saved_messages_topic_id, Auto());
+                           }))
+      .release();
+}
+
 void SavedMessagesManager::read_topic_messages(SavedMessagesTopic *topic, MessageId read_inbox_max_message_id,
                                                int32 hint_unread_count) {
   auto dialog_id = topic->dialog_id_;
@@ -888,8 +914,8 @@ void SavedMessagesManager::read_topic_messages(SavedMessagesTopic *topic, Messag
   if (unread_count < 0) {
     unread_count = topic->unread_count_;
     if (td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
-      // topic->need_repair_unread_count_ = true;
-      // repair_topic_message_unread_count(dialog_id, saved_messages_topic_id, unread_count, "read_monoforum_topic_messages");
+      topic->need_repair_unread_count_ = true;
+      repair_topic_unread_count(topic);
     }
   }
   do_set_topic_read_inbox_max_message_id(topic, read_inbox_max_message_id, unread_count);
@@ -1410,7 +1436,24 @@ void SavedMessagesManager::on_get_saved_messages_topics(
       if (topic->last_message_id_ == MessageId() && last_topic_message_id.is_valid()) {
         do_set_topic_last_message_id(topic, last_topic_message_id, message_date);
       }
-      if (topic->read_inbox_max_message_id_ == MessageId()) {
+      if (topic->read_inbox_max_message_id_ == MessageId() || topic->need_repair_unread_count_) {
+        auto read_inbox_max_message_id = topic_info.read_inbox_max_message_id_;
+        if (topic->read_inbox_max_message_id_.is_valid() && !topic->read_inbox_max_message_id_.is_server() &&
+            read_inbox_max_message_id == topic->read_inbox_max_message_id_.get_prev_server_message_id()) {
+          read_inbox_max_message_id = topic->read_inbox_max_message_id_;
+        }
+        if (topic->need_repair_unread_count_ &&
+            (topic->read_inbox_max_message_id_ <= read_inbox_max_message_id ||
+             !td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read))) {
+          LOG(INFO) << "Repaired server unread count in " << dialog_id << " from " << topic->read_inbox_max_message_id_
+                    << '/' << topic->unread_count_ << " to " << read_inbox_max_message_id << '/'
+                    << topic_info.unread_count_;
+          topic->need_repair_unread_count_ = false;
+        }
+        if (topic->need_repair_unread_count_) {
+          LOG(ERROR) << "Failed to repair server unread count in " << saved_messages_topic_id << " of " << dialog_id;
+          topic->need_repair_unread_count_ = false;
+        }
         do_set_topic_read_inbox_max_message_id(topic, topic_info.read_inbox_max_message_id_, topic_info.unread_count_);
       }
       if (topic->read_outbox_max_message_id_ < topic_info.read_outbox_max_message_id_) {

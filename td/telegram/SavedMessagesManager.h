@@ -177,6 +177,7 @@ class SavedMessagesManager final : public Actor {
     int64 private_order_ = 0;
     bool is_marked_as_unread_ = false;
     bool is_received_from_server_ = false;
+    bool need_repair_unread_count_ = false;
     bool is_changed_ = false;
   };
 
@@ -270,6 +271,8 @@ class SavedMessagesManager final : public Actor {
                                            SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
                                            Result<MessagesInfo> &&r_info,
                                            Promise<td_api::object_ptr<td_api::messages>> &&promise);
+
+  void repair_topic_unread_count(const SavedMessagesTopic *topic);
 
   void read_topic_messages(SavedMessagesTopic *topic, MessageId read_inbox_max_message_id, int32 hint_unread_count);
 
