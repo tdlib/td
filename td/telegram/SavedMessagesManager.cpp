@@ -1873,6 +1873,17 @@ void SavedMessagesManager::delete_topic_messages_by_date(DialogId dialog_id,
     return promise.set_value(Unit());
   }
 
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list != nullptr) {
+    auto *topic = get_topic(topic_list, saved_messages_topic_id);
+    if (topic != nullptr) {
+      auto message_ids = topic->ordered_messages_.find_messages_by_date(
+          min_date, max_date, td_->messages_manager_->get_get_message_date(dialog_id));
+      td_->messages_manager_->delete_dialog_messages(dialog_id, message_ids, false,
+                                                     MessagesManager::DELETE_MESSAGE_USER_REQUEST_SOURCE);
+    }
+  }
+
   MessageQueryManager::AffectedHistoryQuery query = [td = td_, saved_messages_topic_id, min_date, max_date](
                                                         DialogId dialog_id, Promise<AffectedHistory> &&query_promise) {
     td->create_handler<DeleteSavedMessagesByDateQuery>(std::move(query_promise))
