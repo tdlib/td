@@ -182,6 +182,10 @@ class OrderedMessages {
   vector<MessageId> get_history(MessageId last_message_id, MessageId &from_message_id, int32 &offset, int32 &limit,
                                 bool force) const;
 
+  int32 calc_new_unread_count(MessageId max_message_id, MessageId last_read_inbox_message_id, int32 old_unread_count,
+                              MessageId last_message_id, std::function<bool(MessageId)> is_counted_as_unread,
+                              int32 hint_unread_count) const;
+
   bool empty() const {
     return messages_ == nullptr;
   }
@@ -221,6 +225,14 @@ class OrderedMessages {
   static void do_traverse_messages(const OrderedMessage *ordered_message,
                                    const std::function<bool(MessageId)> &need_scan_older,
                                    const std::function<bool(MessageId)> &need_scan_newer);
+
+  int32 calc_new_unread_count_from_last_unread(MessageId max_message_id, MessageId last_read_inbox_message_id,
+                                               int32 old_unread_count,
+                                               std::function<bool(MessageId)> is_counted_as_unread) const;
+
+  int32 calc_new_unread_count_from_the_end(MessageId max_message_id, MessageId last_message_id,
+                                           std::function<bool(MessageId)> is_counted_as_unread,
+                                           int32 hint_unread_count) const;
 
   unique_ptr<OrderedMessage> messages_;
 };
