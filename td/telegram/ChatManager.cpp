@@ -5199,7 +5199,9 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
     }
 
     if (c->is_megagroup) {
-      update_dialogs_for_discussion(DialogId(channel_id), c->status.is_administrator() && c->status.can_pin_messages());
+      update_dialogs_for_discussion(DialogId(channel_id), c->status.is_administrator() &&
+                                                              c->status.can_pin_messages() && !c->is_monoforum &&
+                                                              !c->is_forum);
     }
     if (!c->status.is_member()) {
       remove_inactive_channel(channel_id);
