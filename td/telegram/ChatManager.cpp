@@ -5282,6 +5282,11 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
     td_->messages_manager_->on_dialog_has_protected_content_updated(DialogId(channel_id));
     c->is_noforwards_changed = false;
   }
+  if (c->is_is_forum_changed) {
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_is_forum, DialogId(channel_id),
+                       c->is_forum, c->is_forum_tabs);
+    c->is_is_forum_changed = false;
+  }
   if (c->is_stories_hidden_changed) {
     send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
                        DialogId(channel_id), "update_channel stories_hidden");
@@ -7472,6 +7477,16 @@ void ChatManager::on_update_channel_noforwards(Channel *c, ChannelId channel_id,
   }
 }
 
+void ChatManager::on_update_channel_is_forum(Channel *c, ChannelId channel_id, bool is_forum, bool is_forum_tabs) {
+  if (c->is_forum != is_forum || c->is_forum_tabs != is_forum_tabs) {
+    LOG(INFO) << "Update " << channel_id << " is_forum to " << is_forum << '/' << is_forum_tabs;
+    c->is_forum = is_forum;
+    c->is_forum_tabs = is_forum_tabs;
+    c->is_is_forum_changed = true;
+    c->is_changed = true;
+  }
+}
+
 void ChatManager::on_update_channel_story_ids(ChannelId channel_id, StoryId max_active_story_id,
                                               StoryId max_read_story_id) {
   if (!channel_id.is_valid()) {
@@ -8952,12 +8967,12 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
       }
       on_update_channel_has_location(c, channel_id, channel.has_geo_);
       on_update_channel_noforwards(c, channel_id, channel.noforwards_);
+      on_update_channel_is_forum(c, channel_id, is_forum, is_forum_tabs);
       on_update_channel_emoji_status(c, channel_id, EmojiStatus::get_emoji_status(std::move(channel.emoji_status_)));
 
       if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
           c->is_megagroup != is_megagroup || c->is_scam != is_scam || c->is_fake != is_fake ||
-          c->is_gigagroup != is_gigagroup || c->is_forum != is_forum || c->is_forum_tabs != is_forum_tabs ||
-          c->is_monoforum != is_monoforum || c->boost_level != boost_level ||
+          c->is_gigagroup != is_gigagroup || c->is_monoforum != is_monoforum || c->boost_level != boost_level ||
           c->paid_message_star_count != paid_message_star_count || c->autotranslation != autotranslation ||
           c->broadcast_messages_allowed != broadcast_messages_allowed) {
         c->has_linked_channel = has_linked_channel;
@@ -8966,12 +8981,6 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
         c->is_scam = is_scam;
         c->is_fake = is_fake;
         c->is_gigagroup = is_gigagroup;
-        if (c->is_forum != is_forum || c->is_forum_tabs != is_forum_tabs) {
-          c->is_forum = is_forum;
-          c->is_forum_tabs = is_forum_tabs;
-          send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_is_forum, DialogId(channel_id),
-                             is_forum, is_forum_tabs);
-        }
         c->is_monoforum = is_monoforum;
         c->boost_level = boost_level;
         c->paid_message_star_count = paid_message_star_count;
@@ -9090,8 +9099,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
   bool need_invalidate_channel_full = false;
   if (c->has_linked_channel != has_linked_channel || c->is_slow_mode_enabled != is_slow_mode_enabled ||
       c->is_megagroup != is_megagroup || c->is_scam != is_scam || c->is_fake != is_fake ||
-      c->is_gigagroup != is_gigagroup || c->is_forum != is_forum || c->is_forum_tabs != is_forum_tabs ||
-      c->is_monoforum != is_monoforum || c->boost_level != boost_level ||
+      c->is_gigagroup != is_gigagroup || c->is_monoforum != is_monoforum || c->boost_level != boost_level ||
       c->paid_message_star_count != paid_message_star_count ||
       c->broadcast_messages_allowed != broadcast_messages_allowed) {
     c->has_linked_channel = has_linked_channel;
@@ -9100,12 +9108,6 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     c->is_scam = is_scam;
     c->is_fake = is_fake;
     c->is_gigagroup = is_gigagroup;
-    if (c->is_forum != is_forum || c->is_forum_tabs != is_forum_tabs) {
-      c->is_forum = is_forum;
-      c->is_forum_tabs = is_forum_tabs;
-      send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_is_forum, DialogId(channel_id),
-                         is_forum, is_forum_tabs);
-    }
     c->is_monoforum = is_monoforum;
     c->boost_level = boost_level;
     c->paid_message_star_count = paid_message_star_count;
@@ -9163,6 +9165,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
                 std::move(channel.usernames_)));  // uses status, must be called after on_update_channel_status
   on_update_channel_has_location(c, channel_id, channel.has_geo_);
   on_update_channel_noforwards(c, channel_id, channel.noforwards_);
+  on_update_channel_is_forum(c, channel_id, is_forum, is_forum_tabs);
   on_update_channel_emoji_status(c, channel_id, EmojiStatus::get_emoji_status(std::move(channel.emoji_status_)));
   if (!td_->auth_manager_->is_bot() && !channel.stories_hidden_min_) {
     on_update_channel_stories_hidden(c, channel_id, channel.stories_hidden_);

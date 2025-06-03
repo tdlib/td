@@ -545,6 +545,7 @@ class ChatManager final : public Actor {
     bool is_stories_hidden_changed = true;
     bool is_has_location_changed = true;
     bool is_noforwards_changed = true;
+    bool is_is_forum_changed = true;
     bool is_creator_changed = true;
     bool is_admined_monoforum_changed = false;
     bool had_read_access = true;
@@ -743,6 +744,7 @@ class ChatManager final : public Actor {
                                                     RestrictedRights default_permissions);
   static void on_update_channel_has_location(Channel *c, ChannelId channel_id, bool has_location);
   static void on_update_channel_noforwards(Channel *c, ChannelId channel_id, bool noforwards);
+  static void on_update_channel_is_forum(Channel *c, ChannelId channel_id, bool is_forum, bool is_forum_tabs);
   void on_update_channel_stories_hidden(Channel *c, ChannelId channel_id, bool stories_hidden);
   void on_update_channel_story_ids_impl(Channel *c, ChannelId channel_id, StoryId max_active_story_id,
                                         StoryId max_read_story_id);
