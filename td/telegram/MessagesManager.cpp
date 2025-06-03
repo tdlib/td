@@ -33904,20 +33904,9 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
         new_pts = request_pts + 1;
       }
 
-      if (difference->new_messages_.size() > 1) {
-        // check that new messages are received in increasing message_id order
-        MessageId cur_message_id;
-        for (const auto &message : difference->new_messages_) {
-          auto message_id = MessageId::get_message_id(message, false);
-          if (message_id <= cur_message_id) {
-            LOG(ERROR) << "Receive " << cur_message_id << " after " << message_id << " in channelDifference of "
-                       << dialog_id << " from " << source << " with PTS " << request_pts << " and limit "
-                       << request_limit << ": " << to_string(difference);
-            after_get_channel_difference(dialog_id, false);
-            return;
-          }
-          cur_message_id = message_id;
-        }
+      if (!MessageId::is_message_id_order_ascending(difference->new_messages_)) {
+        after_get_channel_difference(dialog_id, false);
+        return;
       }
       if (!is_final && !difference->new_messages_.empty() && td_->auth_manager_->is_bot()) {
         auto date = get_message_date(difference->new_messages_.back());

@@ -80,6 +80,8 @@ class MessageId {
 
   static MessageId get_max_message_id(const vector<telegram_api::object_ptr<telegram_api::Message>> &messages);
 
+  static bool is_message_id_order_ascending(const vector<telegram_api::object_ptr<telegram_api::Message>> &messages);
+
   static bool is_message_id_order_descending(const vector<telegram_api::object_ptr<telegram_api::Message>> &messages);
 
   static vector<MessageId> get_message_ids(const vector<int64> &input_message_ids);
