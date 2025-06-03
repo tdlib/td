@@ -5208,12 +5208,13 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
     }
     c->is_title_changed = false;
   }
-  if (c->is_admined_monoforum_changed) {
-    // TODO drop chat history
+  if (c->is_admined_monoforum_changed) {  // must be before c->is_status_changed
     on_update_channel_status(c, channel_id, DialogParticipantStatus(c->status));
+    send_closure_later(G()->messages_manager(), &MessagesManager::on_dialog_deleted, DialogId(channel_id),
+                       Promise<Unit>());
     c->is_admined_monoforum_changed = false;
   }
-  if (c->is_status_changed) {
+  if (c->is_status_changed) {  // must be after c->is_admined_monoforum_changed
     c->status.update_restrictions();
     auto until_date = c->status.get_until_date();
     double left_time = 0;
