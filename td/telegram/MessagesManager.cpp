@@ -11116,12 +11116,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       LOG(ERROR) << "Receive no topic for " << message_id << " in " << dialog_id;
       message->saved_messages_topic_id = SavedMessagesTopicId(get_message_sender(message.get()));
     }
-  } else {
-    if (message->saved_messages_topic_id.is_valid()) {
+  } else if (message->saved_messages_topic_id.is_valid()) {
+    if (!td->dialog_manager_->is_monoforum_channel(dialog_id)) {
       LOG(ERROR) << "Receive Saved Messages " << message->saved_messages_topic_id << " for " << message_id << " in "
                  << dialog_id;
-      message->saved_messages_topic_id = SavedMessagesTopicId();
     }
+    message->saved_messages_topic_id = SavedMessagesTopicId();
   }
 
   Dependencies dependencies;
