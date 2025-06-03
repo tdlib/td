@@ -63,6 +63,24 @@ MessageId MessageId::get_max_message_id(const vector<telegram_api::object_ptr<te
   return max_message_id;
 }
 
+bool MessageId::is_message_id_order_descending(
+    const vector<telegram_api::object_ptr<telegram_api::Message>> &messages) {
+  MessageId cur_message_id = MessageId::max();
+  for (const auto &message : messages) {
+    auto message_id = get_message_id(message, false);
+    if (message_id >= cur_message_id || !message_id.is_valid()) {
+      string error;
+      for (const auto &debug_message : messages) {
+        error += to_string(debug_message);
+      }
+      LOG(ERROR) << error;
+      return false;
+    }
+    cur_message_id = message_id;
+  }
+  return true;
+}
+
 vector<MessageId> MessageId::get_message_ids(const vector<int64> &input_message_ids) {
   return transform(input_message_ids, [](int64 input_message_id) { return MessageId(input_message_id); });
 }

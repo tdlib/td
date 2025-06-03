@@ -6958,24 +6958,9 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     return;
   }
 
-  if (messages.size() > 1) {
-    // check that messages are received in decreasing message_id order
-    MessageId cur_message_id = MessageId::max();
-    for (const auto &message : messages) {
-      MessageId message_id = MessageId::get_message_id(message, false);
-      if (message_id >= cur_message_id) {
-        string error = PSTRING() << "Receive messages in the wrong order in history of " << dialog_id << " from "
-                                 << from_message_id << " with offset " << offset << ", limit " << limit
-                                 << ", from_the_end = " << from_the_end << ": ";
-        for (const auto &debug_message : messages) {
-          error += to_string(debug_message);
-        }
-        LOG(ERROR) << error;
-        promise.set_value(Unit());
-        return;
-      }
-      cur_message_id = message_id;
-    }
+  if (!MessageId::is_message_id_order_descending(messages)) {
+    promise.set_value(Unit());
+    return;
   }
 
   // be aware that returned messages are guaranteed to be consecutive messages, but if !from_the_end they
