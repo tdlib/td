@@ -4123,6 +4123,29 @@ vector<DialogId> ChatManager::get_dialogs_for_discussion(Promise<Unit> &&promise
 void ChatManager::on_get_dialogs_for_discussion(vector<tl_object_ptr<telegram_api::Chat>> &&chats) {
   dialogs_for_discussion_inited_ = true;
   dialogs_for_discussion_ = get_dialog_ids(std::move(chats), "on_get_dialogs_for_discussion");
+  td::remove_if(dialogs_for_discussion_, [this](DialogId dialog_id) {
+    switch (dialog_id.get_type()) {
+      case DialogType::Chat: {
+        auto *c = get_chat(dialog_id.get_chat_id());
+        if (c == nullptr || !is_suitable_discussion_chat(c)) {
+          LOG(ERROR) << "Receive " << dialog_id << " as discussion chat";
+          return true;
+        }
+        return false;
+      }
+      case DialogType::Channel: {
+        auto *c = get_channel(dialog_id.get_channel_id());
+        if (c == nullptr || !is_suitable_discussion_channel(c)) {
+          LOG(ERROR) << "Receive " << dialog_id << " as discussion chat";
+          return true;
+        }
+        return false;
+      }
+      default:
+        LOG(ERROR) << "Receive " << dialog_id;
+        return true;
+    }
+  });
 }
 
 void ChatManager::update_dialogs_for_discussion(DialogId dialog_id, bool is_suitable) {
