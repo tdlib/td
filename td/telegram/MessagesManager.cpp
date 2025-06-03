@@ -7242,22 +7242,22 @@ void MessagesManager::on_get_call_messages(MessageId from_message_id, int32 limi
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive " << messages.size() << " found call messages";
+  if (!MessageId::is_message_id_order_descending(messages)) {
+    messages.clear();
+  }
   MessageId first_added_message_id;
   if (messages.empty()) {
     // messages may be empty because there are no more messages or they can't be found due to global limit
-    // anyway pretend that there are no more messages
+    // anyway, pretend that there are no more messages
     first_added_message_id = MessageId::min();
   }
-
   FoundMessages found_messages;
   auto &result = found_messages.message_full_ids;
   int32 added_message_count = 0;
   MessageId next_offset_message_id;
   for (auto &message : messages) {
     auto message_id = MessageId::get_message_id(message, false);
-    if (message_id.is_valid() && (!next_offset_message_id.is_valid() || message_id < next_offset_message_id)) {
-      next_offset_message_id = message_id;
-    }
+    next_offset_message_id = message_id;
     auto new_message_full_id = on_get_message(std::move(message), false, false, false, "on_get_call_messages");
     if (new_message_full_id == MessageFullId()) {
       continue;
@@ -7268,9 +7268,7 @@ void MessagesManager::on_get_call_messages(MessageId from_message_id, int32 limi
 
     CHECK(message_id == new_message_full_id.get_message_id());
     CHECK(message_id.is_valid());
-    if (message_id < first_added_message_id || !first_added_message_id.is_valid()) {
-      first_added_message_id = message_id;
-    }
+    first_added_message_id = message_id;
   }
   if (total_count < added_message_count) {
     LOG(ERROR) << "Receive total_count = " << total_count << ", but added " << added_message_count
@@ -7325,10 +7323,13 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
 
   auto &result = it->second.message_ids;
   CHECK(result.empty());
+  if (!MessageId::is_message_id_order_descending(messages)) {
+    messages.clear();
+  }
   MessageId first_added_message_id;
   if (messages.empty()) {
     // messages may be empty because there are no more messages or they can't be found due to global limit
-    // anyway pretend that there are no more messages
+    // anyway, pretend that there are no more messages
     first_added_message_id = MessageId::min();
   }
   bool can_be_in_different_dialog =
@@ -7339,9 +7340,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
   CHECK(d != nullptr);
   for (auto &message : messages) {
     auto message_id = MessageId::get_message_id(message, false);
-    if (message_id.is_valid() && (!next_from_message_id.is_valid() || message_id < next_from_message_id)) {
-      next_from_message_id = message_id;
-    }
+    next_from_message_id = message_id;
     auto new_message_full_id = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
                                               false, "on_get_dialog_messages_search_result");
     if (new_message_full_id == MessageFullId()) {
@@ -7385,10 +7384,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
       }
     }
 
-    // TODO check that messages are returned in decreasing message_id order
-    if (message_id < first_added_message_id || !first_added_message_id.is_valid()) {
-      first_added_message_id = message_id;
-    }
+    first_added_message_id = message_id;
     result.push_back(message_id);
   }
   if (total_count < static_cast<int32>(result.size())) {
