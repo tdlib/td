@@ -3933,6 +3933,11 @@ void ChatManager::return_created_public_dialogs(Promise<td_api::object_ptr<td_ap
       total_count, transform(channel_ids, [](ChannelId channel_id) { return DialogId(channel_id).get(); })));
 }
 
+bool ChatManager::is_suitable_discussion_channel(const Channel *c) {
+  return c->is_megagroup && c->status.is_administrator() && c->status.can_pin_messages() && !c->is_monoforum &&
+         !c->is_forum;
+}
+
 bool ChatManager::is_suitable_created_public_channel(PublicDialogType type, const Channel *c) {
   if (c == nullptr || !c->status.is_creator()) {
     return false;
@@ -5198,11 +5203,8 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
       channel_unban_timeout_.cancel_timeout(channel_id.get());
     }
 
-    if (c->is_megagroup) {
-      update_dialogs_for_discussion(DialogId(channel_id), c->status.is_administrator() &&
-                                                              c->status.can_pin_messages() && !c->is_monoforum &&
-                                                              !c->is_forum);
-    }
+    update_dialogs_for_discussion(DialogId(channel_id), is_suitable_discussion_channel(c));
+
     if (!c->status.is_member()) {
       remove_inactive_channel(channel_id);
     }
