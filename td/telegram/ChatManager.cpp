@@ -3933,6 +3933,10 @@ void ChatManager::return_created_public_dialogs(Promise<td_api::object_ptr<td_ap
       total_count, transform(channel_ids, [](ChannelId channel_id) { return DialogId(channel_id).get(); })));
 }
 
+bool ChatManager::is_suitable_discussion_chat(const Chat *c) {
+  return c->is_active && c->status.is_creator();
+}
+
 bool ChatManager::is_suitable_discussion_channel(const Channel *c) {
   return c->is_megagroup && c->status.is_administrator() && c->status.can_pin_messages() && !c->is_monoforum &&
          !c->is_forum;
@@ -5069,7 +5073,7 @@ void ChatManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, bool fr
     c->is_default_permissions_changed = false;
   }
   if (c->is_is_active_changed) {
-    update_dialogs_for_discussion(DialogId(chat_id), c->is_active && c->status.is_creator());
+    update_dialogs_for_discussion(DialogId(chat_id), is_suitable_discussion_chat(c));
     c->is_is_active_changed = false;
     td_->messages_manager_->on_dialog_access_updated(DialogId(chat_id));
   }

@@ -830,6 +830,8 @@ class ChatManager final : public Actor {
 
   static bool is_channel_public(const Channel *c);
 
+  static bool is_suitable_discussion_chat(const Chat *c);
+
   static bool is_suitable_discussion_channel(const Channel *c);
 
   static bool is_suitable_created_public_channel(PublicDialogType type, const Channel *c);
