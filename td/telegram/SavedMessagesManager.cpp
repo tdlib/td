@@ -1820,6 +1820,10 @@ void SavedMessagesManager::on_get_saved_messages_topic_history(
   }
   auto info = r_info.move_as_ok();
 
+  if (!MessageId::is_message_id_order_descending(info.messages)) {
+    return promise.set_error(Status::Error(500, "Receive invalid response"));
+  }
+
   vector<td_api::object_ptr<td_api::message>> messages;
   MessageId last_message_id;
   int32 last_message_date = 0;
