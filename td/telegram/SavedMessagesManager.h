@@ -269,7 +269,7 @@ class SavedMessagesManager final : public Actor {
 
   void on_get_saved_messages_topic_history(DialogId dialog_id, uint32 generation,
                                            SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
-                                           Result<MessagesInfo> &&r_info,
+                                           int32 offset, int32 limit, Result<MessagesInfo> &&r_info,
                                            Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   void repair_topic_unread_count(const SavedMessagesTopic *topic);

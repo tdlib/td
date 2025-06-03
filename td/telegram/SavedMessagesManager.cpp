@@ -1795,9 +1795,9 @@ void SavedMessagesManager::get_topic_history(DialogId dialog_id, SavedMessagesTo
 
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), dialog_id, generation = topic_list->generation_, saved_messages_topic_id,
-       from_message_id, promise = std::move(promise)](Result<MessagesInfo> &&r_info) mutable {
+       from_message_id, offset, limit, promise = std::move(promise)](Result<MessagesInfo> &&r_info) mutable {
         send_closure(actor_id, &SavedMessagesManager::on_get_saved_messages_topic_history, dialog_id, generation,
-                     saved_messages_topic_id, from_message_id, std::move(r_info), std::move(promise));
+                     saved_messages_topic_id, from_message_id, offset, limit, std::move(r_info), std::move(promise));
       });
   td_->create_handler<GetSavedHistoryQuery>(std::move(query_promise))
       ->send(dialog_id, saved_messages_topic_id, from_message_id, offset, limit);
@@ -1805,7 +1805,7 @@ void SavedMessagesManager::get_topic_history(DialogId dialog_id, SavedMessagesTo
 
 void SavedMessagesManager::on_get_saved_messages_topic_history(
     DialogId dialog_id, uint32 generation, SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
-    Result<MessagesInfo> &&r_info, Promise<td_api::object_ptr<td_api::messages>> &&promise) {
+    int32 offset, int32 limit, Result<MessagesInfo> &&r_info, Promise<td_api::object_ptr<td_api::messages>> &&promise) {
   auto *topic_list = get_topic_list(dialog_id);
   if (topic_list == nullptr) {
     return promise.set_error(Status::Error(400, "Chat has no topics"));
