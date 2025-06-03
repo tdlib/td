@@ -8582,8 +8582,6 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
     G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(dialog_id));
   }
 
-  close_dialog(d);
-
   td_->forum_topic_manager_->delete_all_dialog_topics(dialog_id);
 
   promise.set_value(Unit());
