@@ -1790,11 +1790,9 @@ void MessageQueryManager::on_get_outgoing_document_messages(
   MessagesManager::FoundMessages found_messages;
   for (auto &message : messages) {
     auto dialog_id = DialogId::get_message_dialog_id(message);
-    auto message_full_id = td_->messages_manager_->on_get_message(DialogId(), std::move(message), false,
-                                                                  dialog_id.get_type() == DialogType::Channel, false,
+    auto message_full_id = td_->messages_manager_->on_get_message(dialog_id, std::move(message), false, false, false,
                                                                   "on_get_outgoing_document_messages");
     if (message_full_id != MessageFullId()) {
-      CHECK(dialog_id == message_full_id.get_dialog_id());
       found_messages.message_full_ids.push_back(message_full_id);
     }
   }
@@ -1902,8 +1900,7 @@ void MessageQueryManager::on_get_recent_locations(DialogId dialog_id, int32 limi
   LOG(INFO) << "Receive " << messages.size() << " recent locations in " << dialog_id;
   vector<MessageId> message_ids;
   for (auto &message : messages) {
-    auto new_message_full_id = td_->messages_manager_->on_get_message(dialog_id, std::move(message), false,
-                                                                      dialog_id.get_type() == DialogType::Channel,
+    auto new_message_full_id = td_->messages_manager_->on_get_message(dialog_id, std::move(message), false, false,
                                                                       false, "on_get_recent_locations");
     if (new_message_full_id != MessageFullId()) {
       message_ids.push_back(new_message_full_id.get_message_id());

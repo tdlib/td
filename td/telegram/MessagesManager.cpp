@@ -6970,7 +6970,6 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   // be aware that returned messages are guaranteed to be consecutive messages, but if !from_the_end they
   // may be older (if some messages were deleted) or newer (if some messages were added) than an expected answer
   // be aware that any subset of the returned messages may be already deleted and returned as MessageEmpty
-  bool is_channel_message = dialog_id.get_type() == DialogType::Channel;
   MessageId first_added_message_id;
   MessageId last_added_message_id;
   bool have_next = false;
@@ -7018,8 +7017,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   }
 
   for (auto &message : messages) {
-    auto message_full_id =
-        on_get_message(dialog_id, std::move(message), false, is_channel_message, false, "get history");
+    auto message_full_id = on_get_message(dialog_id, std::move(message), false, false, false, "get history");
     auto message_id = message_full_id.get_message_id();
     if (message_id.is_valid()) {
       if (!have_next && from_the_end && message_id < d->last_message_id) {
@@ -7182,8 +7180,7 @@ void MessagesManager::on_get_message_search_result_calendar(
   int32 received_message_count = 0;
   for (auto &message : messages) {
     auto new_message_full_id =
-        on_get_message(dialog_id, std::move(message), false, dialog_id.get_type() == DialogType::Channel, false,
-                       "on_get_message_search_result_calendar");
+        on_get_message(dialog_id, std::move(message), false, false, false, "on_get_message_search_result_calendar");
     if (new_message_full_id == MessageFullId()) {
       total_count--;
       continue;
@@ -7332,8 +7329,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
     auto message_id = MessageId::get_message_id(message, false);
     next_from_message_id = message_id;
     auto expected_dialog_id = can_be_in_different_dialog ? real_dialog_id : dialog_id;
-    auto new_message_full_id = on_get_message(expected_dialog_id, std::move(message), false,
-                                              expected_dialog_id.get_type() == DialogType::Channel, false,
+    auto new_message_full_id = on_get_message(expected_dialog_id, std::move(message), false, false, false,
                                               "on_get_dialog_messages_search_result");
     if (new_message_full_id == MessageFullId()) {
       total_count--;
@@ -7493,11 +7489,10 @@ void MessagesManager::on_get_scheduled_server_messages(DialogId dialog_id, uint3
     }
   }
 
-  bool is_channel_message = dialog_id.get_type() == DialogType::Channel;
   bool has_scheduled_server_messages = false;
   for (auto &message : messages) {
-    auto message_full_id = on_get_message(dialog_id, std::move(message), d->sent_scheduled_messages, is_channel_message,
-                                          true, "on_get_scheduled_server_messages");
+    auto message_full_id = on_get_message(dialog_id, std::move(message), d->sent_scheduled_messages, false, true,
+                                          "on_get_scheduled_server_messages");
     auto message_id = message_full_id.get_message_id();
     if (message_id.is_valid_scheduled()) {
       CHECK(message_id.is_scheduled_server());
@@ -11144,6 +11139,9 @@ MessageFullId MessagesManager::on_get_message(DialogId dialog_id,
                                               telegram_api::object_ptr<telegram_api::Message> message_ptr,
                                               bool from_update, bool is_channel_message, bool is_scheduled,
                                               const char *source) {
+  if (dialog_id != DialogId() && !is_channel_message && dialog_id.get_type() == DialogType::Channel) {
+    is_channel_message = true;
+  }
   auto message_full_id =
       on_get_message(parse_telegram_api_message(td_, std::move(message_ptr), is_scheduled, false, source), from_update,
                      is_channel_message, source);
@@ -18242,8 +18240,8 @@ void MessagesManager::on_get_dialog_message_by_date(DialogId dialog_id, int32 da
   for (auto &message : messages) {
     auto message_date = get_message_date(message);
     if (message_date != 0 && message_date <= date) {
-      auto result = on_get_message(dialog_id, std::move(message), false, dialog_id.get_type() == DialogType::Channel,
-                                   false, "on_get_dialog_message_by_date_success");
+      auto result =
+          on_get_message(dialog_id, std::move(message), false, false, false, "on_get_dialog_message_by_date_success");
       if (result != MessageFullId()) {
         const Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
@@ -19561,7 +19559,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
     DialogId dialog_id, tl_object_ptr<telegram_api::Message> &&message, DialogId &sender_dialog_id) {
   auto dialog_message = create_message(
       td_, parse_telegram_api_message(td_, std::move(message), false, false, "get_dialog_event_log_message_object"),
-      dialog_id.get_type() == DialogType::Channel, false, "get_dialog_event_log_message_object");
+      true, false, "get_dialog_event_log_message_object");
   const Message *m = dialog_message.second.get();
   if (m == nullptr || dialog_message.first != dialog_id) {
     LOG(ERROR) << "Failed to create event log message in " << dialog_id;

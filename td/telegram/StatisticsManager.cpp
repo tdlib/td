@@ -895,11 +895,9 @@ void StatisticsManager::on_get_public_forwards(
       case telegram_api::publicForwardMessage::ID: {
         auto forward = telegram_api::move_object_as<telegram_api::publicForwardMessage>(forward_ptr);
         auto dialog_id = DialogId::get_message_dialog_id(forward->message_);
-        auto message_full_id = td_->messages_manager_->on_get_message(DialogId(), std::move(forward->message_), false,
-                                                                      dialog_id.get_type() == DialogType::Channel,
-                                                                      false, "on_get_public_forwards");
+        auto message_full_id = td_->messages_manager_->on_get_message(dialog_id, std::move(forward->message_), false,
+                                                                      false, false, "on_get_public_forwards");
         if (message_full_id != MessageFullId()) {
-          CHECK(dialog_id == message_full_id.get_dialog_id());
           result.push_back(td_api::make_object<td_api::publicForwardMessage>(
               td_->messages_manager_->get_message_object(message_full_id, "on_get_public_forwards")));
           CHECK(result.back() != nullptr);
