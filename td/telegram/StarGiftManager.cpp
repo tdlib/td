@@ -1216,8 +1216,8 @@ StarGiftManager::StarGiftManager(Td *td, ActorShared<> parent) : td_(td), parent
 }
 
 StarGiftManager::~StarGiftManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), gift_full_message_ids_,
-                                              gift_full_message_ids_by_id_, being_reloaded_gift_messages_);
+  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), gift_message_full_ids_,
+                                              gift_message_full_ids_by_id_, being_reloaded_gift_messages_);
 }
 
 void StarGiftManager::start_up() {
@@ -1569,8 +1569,8 @@ void StarGiftManager::register_gift(MessageFullId message_full_id, const char *s
   CHECK(message_id.is_server());
   LOG(INFO) << "Register gift in " << message_full_id << " from " << source;
   auto gift_message_number = ++gift_message_count_;
-  gift_full_message_ids_.set(message_full_id, gift_message_number);
-  gift_full_message_ids_by_id_.set(gift_message_number, message_full_id);
+  gift_message_full_ids_.set(message_full_id, gift_message_number);
+  gift_message_full_ids_by_id_.set(gift_message_number, message_full_id);
   update_gift_message_timeout_.add_timeout_in(gift_message_number, 0);
 }
 
@@ -1583,13 +1583,13 @@ void StarGiftManager::unregister_gift(MessageFullId message_full_id, const char 
   CHECK(message_id.is_valid());
   CHECK(message_id.is_server());
   LOG(INFO) << "Unregister gift in " << message_full_id << " from " << source;
-  auto message_number = gift_full_message_ids_[message_full_id];
+  auto message_number = gift_message_full_ids_[message_full_id];
   LOG_CHECK(message_number != 0) << source << ' ' << message_full_id;
-  gift_full_message_ids_by_id_.erase(message_number);
+  gift_message_full_ids_by_id_.erase(message_number);
   if (!G()->close_flag()) {
     update_gift_message_timeout_.cancel_timeout(message_number);
   }
-  gift_full_message_ids_.erase(message_full_id);
+  gift_message_full_ids_.erase(message_full_id);
 }
 
 double StarGiftManager::get_gift_message_polling_timeout() const {
@@ -1602,7 +1602,7 @@ void StarGiftManager::on_online() {
     return;
   }
 
-  gift_full_message_ids_.foreach([&](MessageFullId, int64 message_number) {
+  gift_message_full_ids_.foreach([&](MessageFullId, int64 message_number) {
     if (update_gift_message_timeout_.has_timeout(message_number)) {
       update_gift_message_timeout_.set_timeout_in(message_number, Random::fast(3, 30));
     }
@@ -1624,7 +1624,7 @@ void StarGiftManager::on_update_gift_message_timeout(int64 message_number) {
     return;
   }
   CHECK(!td_->auth_manager_->is_bot());
-  auto message_full_id = gift_full_message_ids_by_id_.get(message_number);
+  auto message_full_id = gift_message_full_ids_by_id_.get(message_number);
   if (message_full_id.get_message_id() == MessageId()) {
     return;
   }
@@ -1645,7 +1645,7 @@ void StarGiftManager::on_update_gift_message(MessageFullId message_full_id) {
   }
   auto is_erased = being_reloaded_gift_messages_.erase(message_full_id) > 0;
   CHECK(is_erased);
-  auto message_number = gift_full_message_ids_.get(message_full_id);
+  auto message_number = gift_message_full_ids_.get(message_full_id);
   if (message_number == 0) {
     return;
   }

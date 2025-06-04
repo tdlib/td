@@ -1406,17 +1406,17 @@ void SavedMessagesManager::on_get_saved_messages_topics(
         last_message_id = last_topic_message_id;
         last_dialog_id = topic_info.peer_dialog_id_;
       }
-      auto full_message_id = td_->messages_manager_->on_get_message(
+      auto message_full_id = td_->messages_manager_->on_get_message(
           is_saved_messages ? td_->dialog_manager_->get_my_dialog_id() : dialog_id, std::move(it->second), false, false,
           false, "on_get_saved_messages_topics");
       message_id_to_message.erase(it);
 
-      if (full_message_id.get_message_id() == MessageId()) {
+      if (message_full_id.get_message_id() == MessageId()) {
         LOG(ERROR) << "Can't add last " << last_topic_message_id << " to " << saved_messages_topic_id;
         total_count--;
         continue;
       }
-      CHECK(full_message_id.get_message_id() == last_topic_message_id);
+      CHECK(message_full_id.get_message_id() == last_topic_message_id);
     } else if (!is_get_topic) {
       // skip topics without messages
       LOG(ERROR) << "Receive " << saved_messages_topic_id << " without last message";
@@ -1822,19 +1822,19 @@ void SavedMessagesManager::on_get_saved_messages_topic_history(
   int32 last_message_date = 0;
   for (auto &message : info.messages) {
     auto message_date = MessagesManager::get_message_date(message);
-    auto full_message_id = td_->messages_manager_->on_get_message(dialog_id, std::move(message), false, false, false,
+    auto message_full_id = td_->messages_manager_->on_get_message(dialog_id, std::move(message), false, false, false,
                                                                   "on_get_saved_messages_topic_history");
-    auto message_dialog_id = full_message_id.get_dialog_id();
+    auto message_dialog_id = message_full_id.get_dialog_id();
     if (message_dialog_id == DialogId()) {
       info.total_count--;
       continue;
     }
     if (!last_message_id.is_valid()) {
-      last_message_id = full_message_id.get_message_id();
+      last_message_id = message_full_id.get_message_id();
       last_message_date = message_date;
     }
     messages.push_back(
-        td_->messages_manager_->get_message_object(full_message_id, "on_get_saved_messages_topic_history"));
+        td_->messages_manager_->get_message_object(message_full_id, "on_get_saved_messages_topic_history"));
   }
   if (from_message_id == MessageId::max()) {
     auto *topic = add_topic(topic_list, saved_messages_topic_id, false);

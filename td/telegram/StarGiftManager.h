@@ -113,8 +113,8 @@ class StarGiftManager final : public Actor {
   FlatHashMap<int64, std::pair<int64, int64>> gift_prices_;
 
   int64 gift_message_count_ = 0;
-  WaitFreeHashMap<MessageFullId, int64, MessageFullIdHash> gift_full_message_ids_;
-  WaitFreeHashMap<int64, MessageFullId> gift_full_message_ids_by_id_;
+  WaitFreeHashMap<MessageFullId, int64, MessageFullIdHash> gift_message_full_ids_;
+  WaitFreeHashMap<int64, MessageFullId> gift_message_full_ids_by_id_;
   FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_gift_messages_;
   MultiTimeout update_gift_message_timeout_{"UpdateGiftMessageTimeout"};
 };
