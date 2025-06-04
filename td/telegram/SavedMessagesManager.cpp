@@ -2241,6 +2241,9 @@ void SavedMessagesManager::get_current_state(vector<td_api::object_ptr<td_api::U
     for (const auto &it : topic_list->topics_) {
       const auto *topic = it.second.get();
       updates.push_back(get_update_feedback_chat_topic_object(topic_list, topic));
+      if (topic->sent_message_count_ >= 0) {
+        updates.push_back(get_update_topic_message_count_object(topic));
+      }
     }
   }
 }
