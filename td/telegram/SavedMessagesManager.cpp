@@ -1806,6 +1806,7 @@ void SavedMessagesManager::on_get_saved_messages_topic_history(
   if (topic_list->generation_ != generation) {
     return promise.set_error(Status::Error(400, "Topic was deleted"));
   }
+  auto *topic = add_topic(topic_list, saved_messages_topic_id, false);
 
   G()->ignore_result_if_closing(r_info);
   if (r_info.is_error()) {
@@ -1818,33 +1819,42 @@ void SavedMessagesManager::on_get_saved_messages_topic_history(
   }
 
   vector<td_api::object_ptr<td_api::message>> messages;
+  MessageId first_message_id;
   MessageId last_message_id;
   int32 last_message_date = 0;
+  bool from_the_end = from_message_id == MessageId::max();
+  bool have_next = false;
   for (auto &message : info.messages) {
     auto message_date = MessagesManager::get_message_date(message);
     auto message_full_id = td_->messages_manager_->on_get_message(dialog_id, std::move(message), false, false, false,
                                                                   "on_get_saved_messages_topic_history");
-    auto message_dialog_id = message_full_id.get_dialog_id();
-    if (message_dialog_id == DialogId()) {
+    auto message_id = message_full_id.get_message_id();
+    if (message_id == MessageId()) {
       info.total_count--;
       continue;
     }
+    if (!have_next && from_the_end && message_id < topic->last_message_id_) {
+      // last message in the dialog should be attached to the next message if there is some
+      have_next = true;
+    }
+    if (have_next) {
+      topic->ordered_messages_.attach_message_to_next(message_id, "on_get_saved_messages_topic_history");
+    }
     if (!last_message_id.is_valid()) {
-      last_message_id = message_full_id.get_message_id();
+      last_message_id = message_id;
       last_message_date = message_date;
     }
+    if (!have_next) {
+      have_next = true;
+    } else if (first_message_id.is_valid()) {
+      topic->ordered_messages_.attach_message_to_previous(first_message_id, "on_get_saved_messages_topic_history");
+    }
+    first_message_id = message_id;
     messages.push_back(
         td_->messages_manager_->get_message_object(message_full_id, "on_get_saved_messages_topic_history"));
   }
-  if (from_message_id == MessageId::max()) {
-    auto *topic = add_topic(topic_list, saved_messages_topic_id, false);
-    if (info.messages.empty()) {
-      do_set_topic_last_message_id(topic, MessageId(), 0);
-    } else {
-      if (last_message_id.is_valid() && topic->last_message_id_ == MessageId()) {
-        do_set_topic_last_message_id(topic, last_message_id, last_message_date);
-      }
-    }
+  if (from_the_end && last_message_id.is_valid() && last_message_id > topic->last_message_id_) {
+    do_set_topic_last_message_id(topic, last_message_id, last_message_date);
     on_topic_changed(topic_list, topic, "on_get_saved_messages_topic_history");
   }
   promise.set_value(td_api::make_object<td_api::messages>(info.total_count, std::move(messages)));
