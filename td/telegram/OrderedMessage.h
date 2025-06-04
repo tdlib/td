@@ -178,6 +178,8 @@ class OrderedMessages {
   void traverse_messages(const std::function<bool(MessageId)> &need_scan_older,
                          const std::function<bool(MessageId)> &need_scan_newer) const;
 
+  MessageId get_last_sent_message_id() const;
+
   // returns identifiers of the requested messages; adjust from_message_id, offset and limit accordingly
   vector<MessageId> get_history(MessageId last_message_id, MessageId &from_message_id, int32 &offset, int32 &limit,
                                 bool force) const;
