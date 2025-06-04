@@ -37,8 +37,8 @@ StoryViewer::StoryViewer(Td *td, telegram_api::object_ptr<telegram_api::StoryVie
     case telegram_api::storyViewPublicForward::ID: {
       auto story_view = telegram_api::move_object_as<telegram_api::storyViewPublicForward>(story_view_ptr);
       auto date = MessagesManager::get_message_date(story_view->message_);
-      auto message_full_id = td->messages_manager_->on_get_message(std::move(story_view->message_), false, true, false,
-                                                                   "storyViewPublicForward");
+      auto message_full_id = td->messages_manager_->on_get_message(DialogId(), std::move(story_view->message_), false,
+                                                                   true, false, "storyViewPublicForward");
       if (!message_full_id.get_message_id().is_valid() || date <= 0) {
         break;
       }
@@ -97,8 +97,8 @@ StoryViewer::StoryViewer(Td *td, telegram_api::object_ptr<telegram_api::StoryRea
     case telegram_api::storyReactionPublicForward::ID: {
       auto story_reaction = telegram_api::move_object_as<telegram_api::storyReactionPublicForward>(story_reaction_ptr);
       auto date = MessagesManager::get_message_date(story_reaction->message_);
-      auto message_full_id = td->messages_manager_->on_get_message(std::move(story_reaction->message_), false, true,
-                                                                   false, "storyReactionPublicForward");
+      auto message_full_id = td->messages_manager_->on_get_message(DialogId(), std::move(story_reaction->message_),
+                                                                   false, true, false, "storyReactionPublicForward");
       if (!message_full_id.get_message_id().is_valid() || date <= 0) {
         break;
       }

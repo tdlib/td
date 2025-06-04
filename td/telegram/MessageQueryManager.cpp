@@ -1747,8 +1747,8 @@ void MessageQueryManager::on_get_messages_search_result(
     next_offset.update_from_message(message);
 
     bool is_channel_message = DialogId::get_message_dialog_id(message).get_type() == DialogType::Channel;
-    auto new_message_full_id =
-        td_->messages_manager_->on_get_message(std::move(message), false, is_channel_message, false, "search messages");
+    auto new_message_full_id = td_->messages_manager_->on_get_message(DialogId(), std::move(message), false,
+                                                                      is_channel_message, false, "search messages");
     if (new_message_full_id != MessageFullId()) {
       result.push_back(new_message_full_id);
     } else {
@@ -1790,9 +1790,9 @@ void MessageQueryManager::on_get_outgoing_document_messages(
   MessagesManager::FoundMessages found_messages;
   for (auto &message : messages) {
     auto dialog_id = DialogId::get_message_dialog_id(message);
-    auto message_full_id =
-        td_->messages_manager_->on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel,
-                                               false, "on_get_outgoing_document_messages");
+    auto message_full_id = td_->messages_manager_->on_get_message(DialogId(), std::move(message), false,
+                                                                  dialog_id.get_type() == DialogType::Channel, false,
+                                                                  "on_get_outgoing_document_messages");
     if (message_full_id != MessageFullId()) {
       CHECK(dialog_id == message_full_id.get_dialog_id());
       found_messages.message_full_ids.push_back(message_full_id);
@@ -1844,7 +1844,7 @@ void MessageQueryManager::on_get_hashtag_search_result(
     next_offset.update_from_message(message);
 
     auto new_message_full_id =
-        td_->messages_manager_->on_get_message(std::move(message), false, true, false, "search hashtag");
+        td_->messages_manager_->on_get_message(DialogId(), std::move(message), false, true, false, "search hashtag");
     if (new_message_full_id != MessageFullId()) {
       result.push_back(new_message_full_id);
     } else {
@@ -1902,15 +1902,10 @@ void MessageQueryManager::on_get_recent_locations(DialogId dialog_id, int32 limi
   LOG(INFO) << "Receive " << messages.size() << " recent locations in " << dialog_id;
   vector<MessageId> message_ids;
   for (auto &message : messages) {
-    auto new_message_full_id = td_->messages_manager_->on_get_message(
-        std::move(message), false, dialog_id.get_type() == DialogType::Channel, false, "on_get_recent_locations");
+    auto new_message_full_id = td_->messages_manager_->on_get_message(dialog_id, std::move(message), false,
+                                                                      dialog_id.get_type() == DialogType::Channel,
+                                                                      false, "on_get_recent_locations");
     if (new_message_full_id != MessageFullId()) {
-      if (new_message_full_id.get_dialog_id() != dialog_id) {
-        LOG(ERROR) << "Receive " << new_message_full_id << " instead of a message in " << dialog_id;
-        total_count--;
-        continue;
-      }
-
       message_ids.push_back(new_message_full_id.get_message_id());
     } else {
       total_count--;
@@ -2186,13 +2181,6 @@ void MessageQueryManager::process_discussion_message(
   td_->chat_manager_->on_get_chats(std::move(result->chats_), "process_discussion_message");
 
   for (auto &message : result->messages_) {
-    auto message_dialog_id = DialogId::get_message_dialog_id(message);
-    if (message_dialog_id != expected_dialog_id) {
-      return promise.set_error(Status::Error(500, "Expected messages in a different chat"));
-    }
-  }
-
-  for (auto &message : result->messages_) {
     if (td_->messages_manager_->need_channel_difference_to_add_message(expected_dialog_id, message)) {
       auto max_message_id = MessageId::get_max_message_id(result->messages_);
       return td_->messages_manager_->run_after_channel_difference(
@@ -2222,10 +2210,9 @@ void MessageQueryManager::process_discussion_message_impl(
   message_thread_info.unread_message_count = max(0, result->unread_count_);
   MessageId top_message_id;
   for (auto &message : result->messages_) {
-    auto message_full_id = td_->messages_manager_->on_get_message(std::move(message), false, true, false,
-                                                                  "process_discussion_message_impl");
+    auto message_full_id = td_->messages_manager_->on_get_message(expected_dialog_id, std::move(message), false, true,
+                                                                  false, "process_discussion_message_impl");
     if (message_full_id.get_message_id().is_valid()) {
-      CHECK(message_full_id.get_dialog_id() == expected_dialog_id);
       message_thread_info.message_ids.push_back(message_full_id.get_message_id());
       if (message_full_id.get_message_id() == expected_message_id) {
         top_message_id = expected_message_id;

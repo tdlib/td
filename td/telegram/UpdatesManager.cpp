@@ -1914,11 +1914,11 @@ void UpdatesManager::process_get_difference_updates(
     */
   }
 
-  MessageId::is_message_id_order_ascending(new_messages); // ignore errors
+  MessageId::is_message_id_order_ascending(new_messages);  // ignore errors
 
   for (auto &message : new_messages) {
     // channel messages must not be received in this vector
-    td_->messages_manager_->on_get_message(std::move(message), true, false, false, "get difference");
+    td_->messages_manager_->on_get_message(DialogId(), std::move(message), true, false, false, "get difference");
     CHECK(!running_get_difference_);
   }
 
@@ -4521,7 +4521,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePollVote
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewScheduledMessage> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_get_message(std::move(update->message_), true, false, true, "updateNewScheduledMessage");
+  td_->messages_manager_->on_get_message(DialogId(), std::move(update->message_), true, false, true,
+                                         "updateNewScheduledMessage");
   promise.set_value(Unit());
 }
 
