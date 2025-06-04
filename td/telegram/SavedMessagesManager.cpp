@@ -796,8 +796,13 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
 
   if (!only_from_memory) {
     if (message_id.is_server()) {
-      topic->server_message_count_--;
+      if (topic->server_message_count_ > 0) {
+        topic->server_message_count_--;
+      } else if (topic->is_server_message_count_inited_) {
+        LOG(ERROR) << "Server message count become negative in " << saved_messages_topic_id << " of " << dialog_id;
+      }
     } else {
+      CHECK(topic->local_message_count_ > 0);
       topic->local_message_count_--;
     }
     on_topic_message_count_changed(topic, "on_topic_message_deleted");
@@ -1900,6 +1905,7 @@ void SavedMessagesManager::on_get_topic_history(DialogId dialog_id, uint32 gener
     do_set_topic_last_message_id(topic, last_message_id, last_message_date);
     on_topic_changed(topic_list, topic, "on_get_topic_history");
   }
+  topic->is_server_message_count_inited_ = true;
   if (info.total_count != topic->server_message_count_) {
     topic->server_message_count_ = info.total_count;
     on_topic_message_count_changed(topic, "on_get_topic_history");

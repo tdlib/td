@@ -177,6 +177,7 @@ class SavedMessagesManager final : public Actor {
     int32 draft_message_date_ = 0;
     int64 pinned_order_ = 0;
     int64 private_order_ = 0;
+    bool is_server_message_count_inited_ = false;
     bool is_marked_as_unread_ = false;
     bool is_received_from_server_ = false;
     bool need_repair_unread_count_ = false;
