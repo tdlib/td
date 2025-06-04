@@ -205,10 +205,12 @@ class GetSavedHistoryQuery final : public Td::ResultHandler {
     auto info = get_messages_info(td_, dialog_id_, result_ptr.move_as_ok(), "GetSavedHistoryQuery");
     LOG_IF(ERROR, info.is_channel_messages != (dialog_id_.get_type() == DialogType::Channel))
         << "Receive channel messages in GetSavedHistoryQuery";
-    promise_.set_value(std::move(info));
+    td_->messages_manager_->get_channel_difference_if_needed(dialog_id_, std::move(info), std::move(promise_),
+                                                             "GetSavedHistoryQuery");
   }
 
   void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetSavedHistoryQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -253,6 +255,7 @@ class GetSavedMessageByDateQuery final : public Td::ResultHandler {
     auto info = get_messages_info(td_, dialog_id_, result_ptr.move_as_ok(), "GetSavedMessageByDateQuery");
     LOG_IF(ERROR, info.is_channel_messages == is_saved_messages)
         << "Receive channel messages in GetSavedMessageByDateQuery";
+    // TODO td_->messages_manager_->get_channel_difference_if_needed(dialog_id_, std::move(info), std::move(promise_), "GetSavedMessageByDateQuery");
     for (auto &message : info.messages) {
       auto message_date = MessagesManager::get_message_date(message);
       auto message_dialog_id = DialogId::get_message_dialog_id(message);
