@@ -17,6 +17,7 @@
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageQueryManager.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/MessageTopic.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
@@ -1176,7 +1177,33 @@ void SavedMessagesManager::on_topic_changed(TopicList *topic_list, SavedMessages
 }
 
 void SavedMessagesManager::on_topic_message_count_changed(const SavedMessagesTopic *topic, const char *source) {
-  // TODO
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  LOG(INFO) << "Schedule update of number of messages in " << topic->saved_messages_topic_id_ << " of "
+            << topic->dialog_id_ << " from " << source;
+  send_closure_later(actor_id(this), &SavedMessagesManager::update_topic_message_count, topic->dialog_id_,
+                     topic->saved_messages_topic_id_);
+}
+
+void SavedMessagesManager::update_topic_message_count(DialogId dialog_id,
+                                                      SavedMessagesTopicId saved_messages_topic_id) {
+  CHECK(!td_->auth_manager_->is_bot());
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return;
+  }
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
+  if (topic == nullptr || !topic->is_server_message_count_inited_) {
+    return;
+  }
+  auto new_message_count = topic->local_message_count_ + topic->server_message_count_;
+  if (new_message_count == topic->sent_message_count_) {
+    return;
+  }
+  CHECK(new_message_count >= 0);
+  topic->sent_message_count_ = new_message_count;
+  send_closure(G()->td(), &Td::send_update, get_update_topic_message_count_object(topic));
 }
 
 Status SavedMessagesManager::check_monoforum_dialog_id(DialogId dialog_id) const {
@@ -1619,6 +1646,18 @@ void SavedMessagesManager::update_saved_messages_topic_sent_total_count(TopicLis
   }
 }
 
+td_api::object_ptr<td_api::updateTopicMessageCount> SavedMessagesManager::get_update_topic_message_count_object(
+    const SavedMessagesTopic *topic) const {
+  CHECK(topic != nullptr);
+  auto dialog_id = topic->dialog_id_ == DialogId() ? td_->dialog_manager_->get_my_dialog_id() : topic->dialog_id_;
+  auto message_topic = topic->dialog_id_ == DialogId()
+                           ? MessageTopic::saved_messages(dialog_id, topic->saved_messages_topic_id_)
+                           : MessageTopic::monoforum(dialog_id, topic->saved_messages_topic_id_);
+  return td_api::make_object<td_api::updateTopicMessageCount>(
+      td_->dialog_manager_->get_chat_id_object(dialog_id, "updateTopicMessageCount"),
+      message_topic.get_message_topic_object(td_), topic->sent_message_count_);
+}
+
 bool SavedMessagesManager::set_pinned_saved_messages_topics(vector<SavedMessagesTopicId> saved_messages_topic_ids) {
   auto *topic_list = &topic_list_;
   if (topic_list->pinned_saved_messages_topic_ids_ == saved_messages_topic_ids) {
@@ -1905,11 +1944,10 @@ void SavedMessagesManager::on_get_topic_history(DialogId dialog_id, uint32 gener
     do_set_topic_last_message_id(topic, last_message_id, last_message_date);
     on_topic_changed(topic_list, topic, "on_get_topic_history");
   }
+  topic->server_message_count_ = info.total_count;
   topic->is_server_message_count_inited_ = true;
-  if (info.total_count != topic->server_message_count_) {
-    topic->server_message_count_ = info.total_count;
-    on_topic_message_count_changed(topic, "on_get_topic_history");
-  }
+  update_topic_message_count(dialog_id, saved_messages_topic_id);
+
   do_get_topic_history(topic_list, topic, dialog_id, saved_messages_topic_id, from_message_id, offset, limit,
                        left_tries - 1, std::move(promise));
 }

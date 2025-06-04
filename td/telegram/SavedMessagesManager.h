@@ -171,6 +171,7 @@ class SavedMessagesManager final : public Actor {
     unique_ptr<DraftMessage> draft_message_;
     int32 local_message_count_ = 0;
     int32 server_message_count_ = 0;
+    int32 sent_message_count_ = -1;
     int32 unread_count_ = 0;
     int32 unread_reaction_count_ = 0;
     int32 last_message_date_ = 0;
@@ -315,6 +316,8 @@ class SavedMessagesManager final : public Actor {
 
   void on_topic_message_count_changed(const SavedMessagesTopic *topic, const char *source);
 
+  void update_topic_message_count(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id);
+
   void get_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
                          int32 offset, int32 limit, int32 left_tries,
                          Promise<td_api::object_ptr<td_api::messages>> &&promise);
@@ -348,6 +351,9 @@ class SavedMessagesManager final : public Actor {
   td_api::object_ptr<td_api::updateSavedMessagesTopicCount> get_update_saved_messages_topic_count_object() const;
 
   void update_saved_messages_topic_sent_total_count(TopicList *topic_list, const char *source);
+
+  td_api::object_ptr<td_api::updateTopicMessageCount> get_update_topic_message_count_object(
+      const SavedMessagesTopic *topic) const;
 
   Status check_monoforum_dialog_id(DialogId dialog_id) const;
 
