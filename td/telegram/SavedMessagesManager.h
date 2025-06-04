@@ -169,6 +169,8 @@ class SavedMessagesManager final : public Actor {
     MessageId read_inbox_max_message_id_;
     MessageId read_outbox_max_message_id_;
     unique_ptr<DraftMessage> draft_message_;
+    int32 local_message_count_ = 0;
+    int32 server_message_count_ = 0;
     int32 unread_count_ = 0;
     int32 unread_reaction_count_ = 0;
     int32 last_message_date_ = 0;
@@ -267,10 +269,9 @@ class SavedMessagesManager final : public Actor {
   void on_get_monoforum_topic(DialogId dialog_id, uint32 generation, SavedMessagesTopicId saved_messages_topic_id,
                               Result<Unit> &&result);
 
-  void on_get_saved_messages_topic_history(DialogId dialog_id, uint32 generation,
-                                           SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
-                                           int32 offset, int32 limit, int32 left_tries, Result<MessagesInfo> &&r_info,
-                                           Promise<td_api::object_ptr<td_api::messages>> &&promise);
+  void on_get_topic_history(DialogId dialog_id, uint32 generation, SavedMessagesTopicId saved_messages_topic_id,
+                            MessageId from_message_id, int32 offset, int32 limit, int32 left_tries,
+                            Result<MessagesInfo> &&r_info, Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   void repair_topic_unread_count(const SavedMessagesTopic *topic);
 
@@ -310,6 +311,8 @@ class SavedMessagesManager final : public Actor {
   void set_last_topic_date(TopicList *topic_list, TopicDate topic_date);
 
   void on_topic_changed(TopicList *topic_list, SavedMessagesTopic *topic, const char *source);
+
+  void on_topic_message_count_changed(const SavedMessagesTopic *topic, const char *source);
 
   void get_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
                          int32 offset, int32 limit, int32 left_tries,
