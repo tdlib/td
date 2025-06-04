@@ -269,7 +269,7 @@ class SavedMessagesManager final : public Actor {
 
   void on_get_saved_messages_topic_history(DialogId dialog_id, uint32 generation,
                                            SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
-                                           int32 offset, int32 limit, Result<MessagesInfo> &&r_info,
+                                           int32 offset, int32 limit, int32 left_tries, Result<MessagesInfo> &&r_info,
                                            Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   void repair_topic_unread_count(const SavedMessagesTopic *topic);
@@ -312,7 +312,12 @@ class SavedMessagesManager final : public Actor {
   void on_topic_changed(TopicList *topic_list, SavedMessagesTopic *topic, const char *source);
 
   void get_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id,
-                         int32 offset, int32 limit, Promise<td_api::object_ptr<td_api::messages>> &&promise);
+                         int32 offset, int32 limit, int32 left_tries,
+                         Promise<td_api::object_ptr<td_api::messages>> &&promise);
+
+  void do_get_topic_history(const TopicList *topic_list, const SavedMessagesTopic *topic, DialogId dialog_id,
+                            SavedMessagesTopicId saved_messages_topic_id, MessageId from_message_id, int32 offset,
+                            int32 limit, int32 left_tries, Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   void get_topic_message_by_date(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, int32 date,
                                  Promise<td_api::object_ptr<td_api::message>> &&promise);
