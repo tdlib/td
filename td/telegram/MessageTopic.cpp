@@ -59,6 +59,22 @@ MessageTopic MessageTopic::forum(DialogId dialog_id, MessageId top_thread_messag
   return result;
 }
 
+MessageTopic MessageTopic::monoforum(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) {
+  MessageTopic result;
+  result.type_ = Type::Monoforum;
+  result.dialog_id_ = dialog_id;
+  result.saved_messages_topic_id_ = saved_messages_topic_id;
+  return result;
+}
+
+MessageTopic MessageTopic::saved_messages(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) {
+  MessageTopic result;
+  result.type_ = Type::SavedMessages;
+  result.dialog_id_ = dialog_id;
+  result.saved_messages_topic_id_ = saved_messages_topic_id;
+  return result;
+}
+
 Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
                                                      const td_api::object_ptr<td_api::MessageTopic> &topic) {
   if (topic == nullptr) {
