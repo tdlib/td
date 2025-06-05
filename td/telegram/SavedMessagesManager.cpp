@@ -711,10 +711,12 @@ void SavedMessagesManager::do_set_topic_draft_message(SavedMessagesTopic *topic,
 void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                                   MessageId message_id, int32 message_date, const bool from_update,
                                                   const bool need_update, const bool is_new, const char *source) {
-  auto *topic_list = get_topic_list(dialog_id);
-  if (topic_list == nullptr) {
+  if (td_->auth_manager_->is_bot()) {
     return;
   }
+
+  auto *topic_list = add_topic_list(dialog_id);
+  CHECK(topic_list != nullptr);
   auto *topic = add_topic(topic_list, saved_messages_topic_id, false);
 
   auto old_last_message_id = topic->last_message_id_;
@@ -764,13 +766,9 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
   }
 
   auto *topic_list = get_topic_list(dialog_id);
-  if (topic_list == nullptr) {
-    return;
-  }
+  CHECK(topic_list != nullptr);
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
-  if (topic == nullptr) {
-    return;
-  }
+  CHECK(topic != nullptr);
 
   if (message_id == topic->last_message_id_) {
     CHECK(!only_from_memory);
