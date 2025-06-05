@@ -1772,6 +1772,11 @@ void SavedMessagesManager::reload_monoforum_topic(DialogId dialog_id, SavedMessa
   if (topic_list == nullptr) {
     return promise.set_error(Status::Error(400, "Topic list not found"));
   }
+  if (saved_messages_topic_id.is_valid_in(td_, dialog_id).is_error()) {
+    LOG(ERROR) << "Can't load " << saved_messages_topic_id << " of " << dialog_id << ": "
+               << saved_messages_topic_id.is_valid_in(td_, dialog_id);
+    return promise.set_error(Status::Error(500, "Can't load topic info"));
+  }
   auto &queries = topic_list->get_topic_queries_[saved_messages_topic_id];
   queries.push_back(std::move(promise));
   if (queries.size() == 1u) {
