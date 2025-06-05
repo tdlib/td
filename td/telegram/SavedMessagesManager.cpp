@@ -606,19 +606,19 @@ void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topi
 
 void SavedMessagesManager::do_set_topic_read_inbox_max_message_id(SavedMessagesTopic *topic,
                                                                   MessageId read_inbox_max_message_id,
-                                                                  int32 unread_count) {
+                                                                  int32 unread_count, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
   if (unread_count < 0) {
     LOG(ERROR) << "Receive " << unread_count << " unread messages in " << topic->saved_messages_topic_id_ << " of "
-               << topic->dialog_id_;
+               << topic->dialog_id_ << " from " << source;
     unread_count = 0;
   }
   if (!read_inbox_max_message_id.is_valid() && read_inbox_max_message_id != MessageId()) {
     LOG(ERROR) << "Receive " << read_inbox_max_message_id << " last read message in " << topic->saved_messages_topic_id_
-               << " of " << topic->dialog_id_;
+               << " of " << topic->dialog_id_ << " from " << source;
     read_inbox_max_message_id = MessageId();
   }
   if (read_inbox_max_message_id == topic->last_message_id_) {
@@ -632,7 +632,7 @@ void SavedMessagesManager::do_set_topic_read_inbox_max_message_id(SavedMessagesT
   }
 
   LOG(INFO) << "Set read inbox max message in " << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_
-            << " to " << read_inbox_max_message_id << " with " << unread_count << " unread messages";
+            << " to " << read_inbox_max_message_id << " with " << unread_count << " unread messages from " << source;
   topic->read_inbox_max_message_id_ = read_inbox_max_message_id;
   topic->unread_count_ = unread_count;
   topic->is_changed_ = true;
@@ -715,7 +715,8 @@ void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessa
     return;
   }
 
-  LOG(INFO) << "Add " << message_id << " to " << saved_messages_topic_id << " of " << dialog_id;
+  LOG(INFO) << "Add " << message_id << " to " << saved_messages_topic_id << " of " << dialog_id
+            << " with need_update = " << need_update << " and is_new = " << is_new;
   auto *topic_list = add_topic_list(dialog_id);
   CHECK(topic_list != nullptr);
   auto *topic = add_topic(topic_list, saved_messages_topic_id, false);
@@ -723,7 +724,8 @@ void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessa
   auto old_last_message_id = topic->last_message_id_;
   if (topic->dialog_id_.is_valid() && need_update && message_id > topic->read_inbox_max_message_id_ &&
       td_->messages_manager_->get_is_counted_as_unread(dialog_id, MessageType::Server)(message_id)) {
-    do_set_topic_read_inbox_max_message_id(topic, topic->read_inbox_max_message_id_, topic->unread_count_ + 1);
+    do_set_topic_read_inbox_max_message_id(topic, topic->read_inbox_max_message_id_, topic->unread_count_ + 1,
+                                           "on_topic_message_added");
   }
   if (from_update && is_new && message_id > topic->last_message_id_) {
     do_set_topic_last_message_id(topic, message_id, message_date);
@@ -828,7 +830,8 @@ void SavedMessagesManager::on_all_dialog_messages_deleted(DialogId dialog_id) {
   for (auto &it : topic_list->topics_) {
     auto *topic = it.second.get();
     do_set_topic_last_message_id(topic, MessageId(), 0);
-    do_set_topic_read_inbox_max_message_id(topic, topic->read_inbox_max_message_id_, 0);
+    do_set_topic_read_inbox_max_message_id(topic, topic->read_inbox_max_message_id_, 0,
+                                           "on_all_dialog_messages_deleted");
     do_set_topic_is_marked_as_unread(topic, false);
     do_set_topic_unread_reaction_count(topic, 0);
     // do_set_topic_reply_markup(topic, MessageId());
@@ -912,8 +915,6 @@ void SavedMessagesManager::repair_topic_unread_count(const SavedMessagesTopic *t
   // }
 
   LOG(INFO) << "Repair unread count in " << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_;
-  void get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                           Promise<td_api::object_ptr<td_api::feedbackChatTopic>> && promise);
   create_actor<SleepActor>("RepairTopicUnreadCountSleepActor", 0.2,
                            PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = topic->dialog_id_,
                                                    saved_messages_topic_id = topic->saved_messages_topic_id_](Unit) {
@@ -937,7 +938,7 @@ void SavedMessagesManager::read_topic_messages(SavedMessagesTopic *topic, Messag
       repair_topic_unread_count(topic);
     }
   }
-  do_set_topic_read_inbox_max_message_id(topic, read_inbox_max_message_id, unread_count);
+  do_set_topic_read_inbox_max_message_id(topic, read_inbox_max_message_id, unread_count, "read_topic_messages");
 }
 
 void SavedMessagesManager::read_monoforum_topic_messages(DialogId dialog_id,
@@ -1501,7 +1502,8 @@ void SavedMessagesManager::on_get_saved_messages_topics(
           LOG(ERROR) << "Failed to repair server unread count in " << saved_messages_topic_id << " of " << dialog_id;
           topic->need_repair_unread_count_ = false;
         }
-        do_set_topic_read_inbox_max_message_id(topic, topic_info.read_inbox_max_message_id_, topic_info.unread_count_);
+        do_set_topic_read_inbox_max_message_id(topic, topic_info.read_inbox_max_message_id_, topic_info.unread_count_,
+                                               "on_get_saved_messages_topics");
       }
       do_set_topic_read_outbox_max_message_id(topic, topic_info.read_outbox_max_message_id_);
       do_set_topic_unread_reaction_count(topic, topic_info.unread_reaction_count_);
@@ -1753,7 +1755,7 @@ void SavedMessagesManager::get_monoforum_topic(DialogId dialog_id, SavedMessages
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
-  if (topic != nullptr && topic->is_received_from_server_) {
+  if (topic != nullptr && topic->is_received_from_server_ ) {
     if (!promise) {
       return promise.set_value(nullptr);
     }

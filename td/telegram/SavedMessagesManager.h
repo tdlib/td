@@ -282,7 +282,7 @@ class SavedMessagesManager final : public Actor {
   void do_set_topic_last_message_id(SavedMessagesTopic *topic, MessageId last_message_id, int32 last_message_date);
 
   void do_set_topic_read_inbox_max_message_id(SavedMessagesTopic *topic, MessageId read_inbox_max_message_id,
-                                              int32 unread_count);
+                                              int32 unread_count, const char *source);
 
   void do_set_topic_read_outbox_max_message_id(SavedMessagesTopic *topic, MessageId read_outbox_max_message_id);
 
