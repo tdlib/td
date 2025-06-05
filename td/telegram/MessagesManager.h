@@ -1940,7 +1940,8 @@ class MessagesManager final : public Actor {
   };
   CanDeleteDialog can_delete_dialog(const Dialog *d) const;
 
-  static bool can_delete_channel_message(const DialogParticipantStatus &status, const Message *m, bool is_bot);
+  static bool can_delete_channel_message(bool is_admined_monoforum, const DialogParticipantStatus &status,
+                                         const Message *m, bool is_bot);
 
   bool can_delete_message(DialogId dialog_id, const Message *m) const;
 

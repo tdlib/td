@@ -7762,7 +7762,8 @@ bool MessagesManager::can_get_message_author(DialogId dialog_id, const Message *
   return true;
 }
 
-bool MessagesManager::can_delete_channel_message(const DialogParticipantStatus &status, const Message *m, bool is_bot) {
+bool MessagesManager::can_delete_channel_message(bool is_admined_monoforum, const DialogParticipantStatus &status,
+                                                 const Message *m, bool is_bot) {
   if (m == nullptr) {
     return true;
   }
@@ -7791,7 +7792,7 @@ bool MessagesManager::can_delete_channel_message(const DialogParticipantStatus &
     return false;
   }
 
-  if (status.can_delete_messages()) {
+  if (status.can_delete_messages() || is_admined_monoforum) {
     return true;
   }
 
@@ -7819,8 +7820,10 @@ bool MessagesManager::can_delete_message(DialogId dialog_id, const Message *m) c
     case DialogType::Chat:
       return true;
     case DialogType::Channel: {
-      auto dialog_status = td_->chat_manager_->get_channel_permissions(dialog_id.get_channel_id());
-      return can_delete_channel_message(dialog_status, m, td_->auth_manager_->is_bot());
+      auto channel_id = dialog_id.get_channel_id();
+      auto is_admined_monoforum = td_->chat_manager_->is_admined_monoforum_channel(channel_id);
+      auto dialog_status = td_->chat_manager_->get_channel_permissions(channel_id);
+      return can_delete_channel_message(is_admined_monoforum, dialog_status, m, td_->auth_manager_->is_bot());
     }
     case DialogType::SecretChat:
       return true;
@@ -8227,8 +8230,9 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
           Status::Error(400, "All messages from a sender can be deleted only in supergroup chats"));
     case DialogType::Channel: {
       channel_id = dialog_id.get_channel_id();
-      if (!td_->chat_manager_->is_megagroup_channel(channel_id)) {
-        return promise.set_error(Status::Error(400, "The method is available only in supergroup chats"));
+      if (!td_->chat_manager_->is_megagroup_channel(channel_id) ||
+          td_->chat_manager_->is_monoforum_channel(channel_id)) {
+        return promise.set_error(Status::Error(400, "The method is available only in regular supergroup chats"));
       }
       channel_status = td_->chat_manager_->get_channel_permissions(channel_id);
       if (!channel_status.can_delete_messages()) {
@@ -8255,7 +8259,7 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
   }
 
   vector<MessageId> message_ids = find_dialog_messages(d, [sender_dialog_id, channel_status, is_bot](const Message *m) {
-    return sender_dialog_id == get_message_sender(m) && can_delete_channel_message(channel_status, m, is_bot);
+    return sender_dialog_id == get_message_sender(m) && can_delete_channel_message(false, channel_status, m, is_bot);
   });
 
   delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
