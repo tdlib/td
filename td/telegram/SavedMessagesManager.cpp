@@ -1848,7 +1848,7 @@ void SavedMessagesManager::get_topic_history(DialogId dialog_id, SavedMessagesTo
     limit += offset;
     offset = 0;
   }
-  if (!from_message_id.is_valid() || !from_message_id.is_server()) {
+  if (!from_message_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid value of parameter from_message_id specified"));
   }
 
@@ -1881,7 +1881,7 @@ void SavedMessagesManager::do_get_topic_history(const TopicList *topic_list, con
                  from_message_id, offset, limit, left_tries, std::move(r_info), std::move(promise));
   });
   td_->create_handler<GetSavedHistoryQuery>(std::move(query_promise))
-      ->send(dialog_id, saved_messages_topic_id, from_message_id, offset, limit);
+      ->send(dialog_id, saved_messages_topic_id, from_message_id.get_next_server_message_id(), offset, limit);
 }
 
 void SavedMessagesManager::on_get_topic_history(DialogId dialog_id, uint32 generation,
