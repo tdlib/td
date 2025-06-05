@@ -585,7 +585,7 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(TopicL
   if (from_server) {
     result->is_received_from_server_ = true;
   } else if (!result->is_received_from_server_ && !is_saved_messages) {
-    reload_monoforum_topic(topic_list->dialog_id_, saved_messages_topic_id, Auto());
+    reload_monoforum_topic(result->dialog_id_, saved_messages_topic_id, Auto());
   }
   return result.get();
 }
@@ -1767,6 +1767,7 @@ void SavedMessagesManager::get_monoforum_topic(DialogId dialog_id, SavedMessages
 
 void SavedMessagesManager::reload_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                                   Promise<td_api::object_ptr<td_api::feedbackChatTopic>> &&promise) {
+  CHECK(dialog_id != DialogId());
   auto topic_list = get_topic_list(dialog_id);
   if (topic_list == nullptr) {
     return promise.set_error(Status::Error(400, "Topic list not found"));
