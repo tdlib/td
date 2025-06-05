@@ -1878,6 +1878,22 @@ void SavedMessagesManager::do_get_topic_history(const TopicList *topic_list, con
     send_closure(actor_id, &SavedMessagesManager::on_get_topic_history, dialog_id, generation, saved_messages_topic_id,
                  from_message_id, offset, limit, left_tries, std::move(r_info), std::move(promise));
   });
+  bool from_the_end = from_message_id == MessageId::max();
+  if (from_the_end) {
+    // load only 10 messages when repairing the last message
+    limit = !promise ? max(limit, 10) : MAX_GET_HISTORY;
+    offset = 0;
+  } else if (offset >= -1) {
+    // get history before some server or local message
+    limit = clamp(limit + offset + 1, MAX_GET_HISTORY / 2, MAX_GET_HISTORY);
+    offset = -1;
+  } else {
+    // get history around some server or local message
+    int32 messages_to_load = max(MAX_GET_HISTORY, limit);
+    int32 max_add = max(messages_to_load - limit - 2, 0);
+    offset -= max_add;
+    limit = MAX_GET_HISTORY;
+  }
   td_->create_handler<GetSavedHistoryQuery>(std::move(query_promise))
       ->send(dialog_id, saved_messages_topic_id, from_message_id.get_next_server_message_id(), offset, limit);
 }
