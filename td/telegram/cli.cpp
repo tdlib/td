@@ -3196,10 +3196,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getFeedbackChatTopic>(chat_id, feedback_chat_topic_id));
     } else if (op == "gfcth") {
       ChatId chat_id;
+      string limit;
       MessageId from_message_id;
       int32 offset;
-      string limit;
-      get_args(args, chat_id, from_message_id, offset, limit);
+      get_args(args, chat_id, limit, from_message_id, offset);
       send_request(td_api::make_object<td_api::getFeedbackChatTopicHistory>(chat_id, feedback_chat_topic_id_,
                                                                             from_message_id, offset, as_limit(limit)));
     } else if (op == "gfctmbd") {
@@ -3238,10 +3238,10 @@ class CliClient final : public Actor {
       get_args(args, limit);
       send_request(td_api::make_object<td_api::loadSavedMessagesTopics>(as_limit(limit)));
     } else if (op == "gsmth") {
+      string limit;
       MessageId from_message_id;
       int32 offset;
-      string limit;
-      get_args(args, from_message_id, offset, limit);
+      get_args(args, limit, from_message_id, offset);
       send_request(td_api::make_object<td_api::getSavedMessagesTopicHistory>(get_saved_messages_topic_id(),
                                                                              from_message_id, offset, as_limit(limit)));
     } else if (op == "gsmtmbd") {
@@ -3274,14 +3274,14 @@ class CliClient final : public Actor {
     } else if (op == "gh" || op == "ghl" || op == "gmth") {
       ChatId chat_id;
       MessageId thread_message_id;
+      string limit;
       MessageId from_message_id;
       int32 offset;
-      string limit;
       get_args(args, chat_id, args);
       if (op == "gmth") {
         get_args(args, thread_message_id, args);
       }
-      get_args(args, from_message_id, offset, limit);
+      get_args(args, limit, from_message_id, offset);
       if (op == "gmth") {
         send_request(td_api::make_object<td_api::getMessageThreadHistory>(chat_id, thread_message_id, from_message_id,
                                                                           offset, as_limit(limit)));
