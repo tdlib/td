@@ -1526,7 +1526,7 @@ void SavedMessagesManager::on_get_saved_messages_topics(
 
   if (is_get_topic) {
     if (added_saved_messages_topic_ids.size() != 1u) {
-      return promise.set_error(Status::Error(500, "Receive no topic"));
+      return promise.set_error(Status::Error(404, "Not Found"));
     }
   } else if (is_pinned) {
     if (!topic_list->are_pinned_saved_messages_topics_inited_ && total_count < limit) {
