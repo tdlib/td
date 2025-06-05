@@ -11079,7 +11079,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       message->saved_messages_topic_id = SavedMessagesTopicId(my_dialog_id, message->forward_info.get(), DialogId());
     }
   } else if (td->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
-    if (!message->saved_messages_topic_id.is_valid() && !is_service_message_content(message->content->get_type())) {
+    if (!message->saved_messages_topic_id.is_valid()) {
       LOG(ERROR) << "Receive no topic for " << message_id << " in " << dialog_id;
       message->saved_messages_topic_id = SavedMessagesTopicId(get_message_sender(message.get()));
     }
@@ -18581,9 +18581,13 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
     if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
       m->saved_messages_topic_id =
           SavedMessagesTopicId(dialog_id, m->forward_info.get(), m->real_forward_from_dialog_id);
-    } else if (td_->dialog_manager_->is_admined_monoforum_channel(dialog_id) &&
-               !is_service_message_content(m->content->get_type())) {
+    } else if (td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
       m->saved_messages_topic_id = SavedMessagesTopicId(get_message_sender(m));
+    }
+  } else {
+    if (dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
+        !td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
+      message->saved_messages_topic_id = SavedMessagesTopicId();
     }
   }
 
