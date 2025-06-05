@@ -7350,7 +7350,7 @@ class CliClient final : public Actor {
     } else if (op == "rrh") {
       const string &hashtag = args;
       send_request(td_api::make_object<td_api::removeRecentHashtag>(hashtag));
-    } else if (op == "view" || op == "viewh" || op == "viewt" || op == "views") {
+    } else if (op == "view" || op == "viewh" || op == "viewt" || op == "views" || op == "viewf") {
       ChatId chat_id;
       string message_ids;
       get_args(args, chat_id, message_ids);
@@ -7359,6 +7359,8 @@ class CliClient final : public Actor {
         source = td_api::make_object<td_api::messageSourceChatHistory>();
       } else if (op == "viewt") {
         source = td_api::make_object<td_api::messageSourceMessageThreadHistory>();
+      } else if (op == "viewf") {
+        source = td_api::make_object<td_api::messageSourceFeedbackChatTopicHistory>();
       } else if (op == "views") {
         source = td_api::make_object<td_api::messageSourceScreenshot>();
       }
