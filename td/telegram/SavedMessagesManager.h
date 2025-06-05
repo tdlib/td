@@ -275,6 +275,9 @@ class SavedMessagesManager final : public Actor {
                             MessageId from_message_id, int32 offset, int32 limit, int32 left_tries,
                             Result<MessagesInfo> &&r_info, Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
+  void reload_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                              Promise<td_api::object_ptr<td_api::feedbackChatTopic>> &&promise);
+
   void repair_topic_unread_count(const SavedMessagesTopic *topic);
 
   void read_topic_messages(SavedMessagesTopic *topic, MessageId read_inbox_max_message_id, int32 hint_unread_count);

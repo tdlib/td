@@ -585,7 +585,7 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(TopicL
   if (from_server) {
     result->is_received_from_server_ = true;
   } else if (!result->is_received_from_server_ && !is_saved_messages) {
-    get_monoforum_topic(topic_list->dialog_id_, saved_messages_topic_id, Auto());
+    reload_monoforum_topic(topic_list->dialog_id_, saved_messages_topic_id, Auto());
   }
   return result.get();
 }
@@ -918,7 +918,7 @@ void SavedMessagesManager::repair_topic_unread_count(const SavedMessagesTopic *t
   create_actor<SleepActor>("RepairTopicUnreadCountSleepActor", 0.2,
                            PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = topic->dialog_id_,
                                                    saved_messages_topic_id = topic->saved_messages_topic_id_](Unit) {
-                             send_closure(actor_id, &SavedMessagesManager::get_monoforum_topic, dialog_id,
+                             send_closure(actor_id, &SavedMessagesManager::reload_monoforum_topic, dialog_id,
                                           saved_messages_topic_id, Auto());
                            }))
       .release();
@@ -1755,13 +1755,22 @@ void SavedMessagesManager::get_monoforum_topic(DialogId dialog_id, SavedMessages
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
-  if (topic != nullptr && topic->is_received_from_server_ ) {
+  if (topic != nullptr && topic->is_received_from_server_) {
     if (!promise) {
       return promise.set_value(nullptr);
     }
     return promise.set_value(get_feedback_chat_topic_object(topic_list, topic));
   }
 
+  reload_monoforum_topic(dialog_id, saved_messages_topic_id, std::move(promise));
+}
+
+void SavedMessagesManager::reload_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                                  Promise<td_api::object_ptr<td_api::feedbackChatTopic>> &&promise) {
+  auto topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return promise.set_error(Status::Error(400, "Topic list not found"));
+  }
   auto &queries = topic_list->get_topic_queries_[saved_messages_topic_id];
   queries.push_back(std::move(promise));
   if (queries.size() == 1u) {
