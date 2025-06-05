@@ -1592,7 +1592,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   auto max_poll_options = clamp(td_->option_manager_->get_option_integer("poll_answer_count_max"),
                                 static_cast<int64>(10), static_cast<int64>(1000));
   if (poll_server != nullptr &&
-      (poll_server->answers_.size() <= 1 || poll_server->answers_.size() > 10 * max_poll_options)) {
+      (poll_server->answers_.size() <= 1 || static_cast<int64>(poll_server->answers_.size()) > 10 * max_poll_options)) {
     LOG(ERROR) << "Receive " << poll_id << " from " << source
                << " with wrong number of answers: " << to_string(poll_server);
     return PollId();
