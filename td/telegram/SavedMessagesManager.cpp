@@ -715,6 +715,7 @@ void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessa
     return;
   }
 
+  LOG(INFO) << "Add " << message_id << " to " << saved_messages_topic_id << " of " << dialog_id;
   auto *topic_list = add_topic_list(dialog_id);
   CHECK(topic_list != nullptr);
   auto *topic = add_topic(topic_list, saved_messages_topic_id, false);
@@ -765,6 +766,7 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
     return;
   }
 
+  LOG(INFO) << "Delete " << message_id << " from " << saved_messages_topic_id << " of " << dialog_id;
   auto *topic_list = get_topic_list(dialog_id);
   CHECK(topic_list != nullptr);
   auto *topic = get_topic(topic_list, saved_messages_topic_id);

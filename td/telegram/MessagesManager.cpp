@@ -12801,6 +12801,13 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
   }
 
+  if (!td_->auth_manager_->is_bot()) {
+    if (m->saved_messages_topic_id.is_valid()) {
+      td_->saved_messages_manager_->on_topic_message_deleted(d->dialog_id, m->saved_messages_topic_id, m->message_id,
+                                                             only_from_memory);
+    }
+  }
+
   auto result = std::move(d->messages[message_id]);
   CHECK(m == result.get());
   d->messages.erase(message_id);
@@ -12809,10 +12816,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
   if (!td_->auth_manager_->is_bot()) {
     d->ordered_messages.erase(message_id, only_from_memory);
-    if (m->saved_messages_topic_id.is_valid()) {
-      td_->saved_messages_manager_->on_topic_message_deleted(d->dialog_id, m->saved_messages_topic_id, m->message_id,
-                                                             only_from_memory);
-    }
   }
 
   d->being_deleted_message_id = MessageId();
@@ -29690,11 +29693,6 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
   }
 
   d->ordered_messages.insert(message_id, from_update, old_last_message_id, source);
-
-  if (m->saved_messages_topic_id.is_valid()) {
-    td_->saved_messages_manager_->on_topic_message_added(dialog_id, m->saved_messages_topic_id, message_id, m->date,
-                                                         from_update, need_update, is_new, source);
-  }
 }
 
 // keep synced with add_scheduled_message_to_dialog
@@ -30208,6 +30206,12 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (!td_->auth_manager_->is_bot()) {
+    if (m->saved_messages_topic_id.is_valid()) {
+      td_->saved_messages_manager_->on_topic_message_added(dialog_id, m->saved_messages_topic_id, message_id, m->date,
+                                                           from_update, need_update,
+                                                           message_id >= d->last_new_message_id, source);
+    }
+
     if (m->message_id.is_yet_unsent() && !m->message_id.is_scheduled() && m->top_thread_message_id.is_valid()) {
       auto is_inserted = yet_unsent_thread_message_ids_[MessageFullId{dialog_id, m->top_thread_message_id}]
                              .insert(m->message_id)
