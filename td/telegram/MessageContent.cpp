@@ -8946,21 +8946,27 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     case MessageContentType::StarGift: {
       const auto *m = static_cast<const MessageStarGift *>(content);
       StarGiftId star_gift_id;
+      DialogId receiver_dialog_id;
       if (m->owner_dialog_id != DialogId()) {
         star_gift_id = StarGiftId(m->owner_dialog_id, m->saved_id);
-      } else if (dialog_id.get_type() == DialogType::User && !is_outgoing && is_server && message_id.is_server()) {
-        auto user_id = dialog_id.get_user_id();
-        if (user_id != UserManager::get_service_notifications_user_id()) {
-          star_gift_id = StarGiftId(message_id.get_server_message_id());
+        receiver_dialog_id = m->owner_dialog_id;
+      } else {
+        if (dialog_id.get_type() == DialogType::User && !is_outgoing && is_server && message_id.is_server()) {
+          auto user_id = dialog_id.get_user_id();
+          if (user_id != UserManager::get_service_notifications_user_id()) {
+            star_gift_id = StarGiftId(message_id.get_server_message_id());
+          }
         }
+        receiver_dialog_id = is_outgoing ? dialog_id : td->dialog_manager_->get_my_dialog_id();
       }
       if (m->sender_dialog_id != DialogId()) {
         sender_dialog_id = m->sender_dialog_id;
       }
       return td_api::make_object<td_api::messageGift>(
-          m->star_gift.get_gift_object(td), get_message_sender_object(td, sender_dialog_id, "messageGift"),
-          star_gift_id.get_star_gift_id(), get_text_object(m->text), m->convert_star_count, m->upgrade_star_count,
-          m->name_hidden, m->is_saved, m->can_upgrade, m->was_converted, m->was_upgraded, m->was_refunded,
+          m->star_gift.get_gift_object(td), get_message_sender_object(td, sender_dialog_id, "messageGift sender"),
+          get_message_sender_object(td, receiver_dialog_id, "messageGift receiver"), star_gift_id.get_star_gift_id(),
+          get_text_object(m->text), m->convert_star_count, m->upgrade_star_count, m->name_hidden, m->is_saved,
+          m->can_upgrade, m->was_converted, m->was_upgraded, m->was_refunded,
           StarGiftId(m->upgrade_message_id.get_server_message_id()).get_star_gift_id());
     }
     case MessageContentType::StarGiftUnique: {
@@ -8968,10 +8974,17 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       if (m->sender_dialog_id != DialogId()) {
         sender_dialog_id = m->sender_dialog_id;
       }
+      DialogId receiver_dialog_id;
+      if (m->owner_dialog_id != DialogId()) {
+        receiver_dialog_id = m->owner_dialog_id;
+      } else {
+        receiver_dialog_id = m->is_upgrade != is_outgoing ? dialog_id : td->dialog_manager_->get_my_dialog_id();
+      }
       if (m->was_refunded) {
         return td_api::make_object<td_api::messageRefundedUpgradedGift>(
             m->star_gift.get_gift_object(td),
-            get_message_sender_object(td, sender_dialog_id, "messageRefundedUpgradedGift"), m->is_upgrade);
+            get_message_sender_object(td, sender_dialog_id, "messageRefundedUpgradedGift sender"),
+            get_message_sender_object(td, receiver_dialog_id, "messageRefundedUpgradedGift receiver"), m->is_upgrade);
       }
       StarGiftId star_gift_id;
       if (m->owner_dialog_id != DialogId()) {
@@ -8987,7 +9000,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
           m->star_gift.get_upgraded_gift_object(td),
           sender_dialog_id == DialogId(UserManager::get_service_notifications_user_id())
               ? nullptr
-              : get_message_sender_object(td, sender_dialog_id, "messageUpgradedGift"),
+              : get_message_sender_object(td, sender_dialog_id, "messageUpgradedGift sender"),
+          get_message_sender_object(td, receiver_dialog_id, "messageUpgradedGift receiver"),
           star_gift_id.get_star_gift_id(), m->is_upgrade, m->is_saved, m->can_transfer, m->was_transferred,
           m->resale_star_count, m->transfer_star_count, m->can_transfer_at, m->can_resell_at, m->can_export_at);
     }

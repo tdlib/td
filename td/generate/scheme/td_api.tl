@@ -4274,6 +4274,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@description A regular gift was received or sent by the current user, or the current user was notified about a channel gift
 //@gift The gift
 //@sender_id Sender of the gift
+//@receiver_id Receiver of the gift
 //@received_gift_id Unique identifier of the received gift for the current user; only for the receiver of the gift
 //@text Message added to the gift
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift; 0 if the gift can't be sold by the receiver
@@ -4285,11 +4286,12 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@was_upgraded True, if the gift was upgraded to a unique gift
 //@was_refunded True, if the gift was refunded and isn't available anymore
 //@upgraded_received_gift_id Identifier of the corresponding upgraded gift; may be empty if unknown. Use getReceivedGift to get information about the gift
-messageGift gift:gift sender_id:MessageSender received_gift_id:string text:formattedText sell_star_count:int53 prepaid_upgrade_star_count:int53 is_private:Bool is_saved:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool was_refunded:Bool upgraded_received_gift_id:string = MessageContent;
+messageGift gift:gift sender_id:MessageSender receiver_id:MessageSender received_gift_id:string text:formattedText sell_star_count:int53 prepaid_upgrade_star_count:int53 is_private:Bool is_saved:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool was_refunded:Bool upgraded_received_gift_id:string = MessageContent;
 
 //@description An upgraded gift was received or sent by the current user, or the current user was notified about a channel gift
 //@gift The gift
 //@sender_id Sender of the gift; may be null for anonymous gifts
+//@receiver_id Receiver of the gift
 //@received_gift_id Unique identifier of the received gift for the current user; only for the receiver of the gift
 //@is_upgrade True, if the gift was obtained by upgrading of a previously received gift; otherwise, this is a transferred or resold gift
 //@is_saved True, if the gift is displayed on the user's or the channel's profile page; only for the receiver of the gift
@@ -4300,13 +4302,14 @@ messageGift gift:gift sender_id:MessageSender received_gift_id:string text:forma
 //@next_transfer_date Point in time (Unix timestamp) when the gift can be transferred to another owner; 0 if the gift can be transferred immediately or transfer isn't possible; only for the receiver of the gift
 //@next_resale_date Point in time (Unix timestamp) when the gift can be resold to another user; 0 if the gift can't be resold; only for the receiver of the gift
 //@export_date Point in time (Unix timestamp) when the gift can be transferred to the TON blockchain as an NFT; 0 if NFT export isn't possible; only for the receiver of the gift
-messageUpgradedGift gift:upgradedGift sender_id:MessageSender received_gift_id:string is_upgrade:Bool is_saved:Bool can_be_transferred:Bool was_transferred:Bool last_resale_star_count:int53 transfer_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 = MessageContent;
+messageUpgradedGift gift:upgradedGift sender_id:MessageSender receiver_id:MessageSender received_gift_id:string is_upgrade:Bool is_saved:Bool can_be_transferred:Bool was_transferred:Bool last_resale_star_count:int53 transfer_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 = MessageContent;
 
 //@description A gift which purchase, upgrade or transfer were refunded
 //@gift The gift
 //@sender_id Sender of the gift
+//@receiver_id Receiver of the gift
 //@is_upgrade True, if the gift was obtained by upgrading of a previously received gift; otherwise, this is a transferred or resold gift
-messageRefundedUpgradedGift gift:gift sender_id:MessageSender is_upgrade:Bool = MessageContent;
+messageRefundedUpgradedGift gift:gift sender_id:MessageSender receiver_id:MessageSender is_upgrade:Bool = MessageContent;
 
 //@description Paid messages were refunded @message_count The number of refunded messages @star_count The number of refunded Telegram Stars
 messagePaidMessagesRefunded message_count:int32 star_count:int53 = MessageContent;
