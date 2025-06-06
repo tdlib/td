@@ -6,8 +6,10 @@
 //
 #include "td/telegram/SavedMessagesManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AffectedHistory.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogFilterManager.h"
 #include "td/telegram/DialogId.h"

@@ -9,6 +9,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/SavedMessagesManager.h"
+#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 
 namespace td {

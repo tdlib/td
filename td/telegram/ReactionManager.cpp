@@ -9,6 +9,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
