@@ -8874,6 +8874,7 @@ void MessagesManager::read_history_inbox(Dialog *d, MessageId max_message_id, in
   }
 
   auto dialog_id = d->dialog_id;
+  auto need_update_always = d->need_repair_channel_server_unread_count;
   if (d->need_repair_channel_server_unread_count) {
     d->need_repair_channel_server_unread_count = false;
     on_dialog_updated(dialog_id, "read_history_inbox");
@@ -8888,7 +8889,7 @@ void MessagesManager::read_history_inbox(Dialog *d, MessageId max_message_id, in
     LOG(INFO) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source
               << ", but all messages have already been read up to " << d->last_read_inbox_message_id;
     if (max_message_id == d->last_read_inbox_message_id && unread_count >= 0 &&
-        unread_count != d->server_unread_count) {
+        unread_count != d->server_unread_count && need_update_always) {
       set_dialog_last_read_inbox_message_id(d, MessageId::min(), unread_count, d->local_unread_count, true, source);
     }
     return;
