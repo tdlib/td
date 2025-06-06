@@ -1924,6 +1924,8 @@ void SavedMessagesManager::on_get_topic_history(DialogId dialog_id, uint32 gener
                                                 int32 offset, int32 limit, int32 left_tries,
                                                 Result<MessagesInfo> &&r_info,
                                                 Promise<td_api::object_ptr<td_api::messages>> &&promise) {
+  G()->ignore_result_if_closing(r_info);
+
   auto *topic_list = get_topic_list(dialog_id);
   if (topic_list == nullptr) {
     return promise.set_error(Status::Error(400, "Chat has no topics"));
@@ -1933,7 +1935,6 @@ void SavedMessagesManager::on_get_topic_history(DialogId dialog_id, uint32 gener
   }
   auto *topic = add_topic(topic_list, saved_messages_topic_id, false);
 
-  G()->ignore_result_if_closing(r_info);
   if (r_info.is_error()) {
     return promise.set_error(r_info.move_as_error());
   }
