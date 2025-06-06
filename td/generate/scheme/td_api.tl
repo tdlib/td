@@ -2214,7 +2214,7 @@ factCheck text:formattedText country_code:string = FactCheck;
 //@fact_check Information about fact-check added to the message; may be null if none
 //@reply_to Information about the message or the story this message is replying to; may be null if none
 //@message_thread_id If non-zero, the identifier of the message thread the message belongs to; unique within the chat to which the message belongs
-//@topic_id Identifier of the topic within the chat to which the message belongs; null if none
+//@topic_id Identifier of the topic within the chat to which the message belongs; may be null if none
 //@self_destruct_type The message's self-destruct type; may be null if none
 //@self_destruct_in Time left before the message self-destruct timer expires, in seconds; 0 if self-destruction isn't scheduled yet
 //@auto_delete_in Time left before the message will be automatically deleted by message_auto_delete_time setting of the chat, in seconds; 0 if never
@@ -9479,8 +9479,7 @@ getFeedbackChatTopicMessageByDate chat_id:int53 topic_id:int53 date:int32 = Mess
 //@topic_id Identifier of the topic which messages will be deleted
 deleteFeedbackChatTopicHistory chat_id:int53 topic_id:int53 = Ok;
 
-//@description Deletes all messages between the specified dates in the topic in the administered feedback chat
-//-Messages sent in the last 30 seconds will not be deleted
+//@description Deletes all messages between the specified dates in the topic in the administered feedback chat. Messages sent in the last 30 seconds will not be deleted
 //@chat_id Chat identifier of the feedback chat
 //@topic_id Identifier of the topic which messages will be deleted
 //@min_date The minimum date of the messages to delete
