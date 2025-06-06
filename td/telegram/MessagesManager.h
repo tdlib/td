@@ -415,6 +415,8 @@ class MessagesManager final : public Actor {
 
   bool get_dialog_silent_send_message(DialogId dialog_id) const;
 
+  MessageId get_dialog_last_read_inbox_message_id(DialogId dialog_id) const;
+
   bool get_dialog_has_last_message(DialogId dialog_id) const;
 
   DialogId get_dialog_default_send_message_as_dialog_id(DialogId dialog_id) const;

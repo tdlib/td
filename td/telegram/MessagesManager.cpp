@@ -19845,6 +19845,14 @@ bool MessagesManager::get_dialog_silent_send_message(DialogId dialog_id) const {
   return d->notification_settings.silent_send_message;
 }
 
+MessageId MessagesManager::get_dialog_last_read_inbox_message_id(DialogId dialog_id) const {
+  auto *d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    return MessageId();
+  }
+  return d->last_read_inbox_message_id;
+}
+
 bool MessagesManager::get_dialog_has_last_message(DialogId dialog_id) const {
   const auto *d = get_dialog(dialog_id);
   return d != nullptr && d->last_message_id.is_valid();

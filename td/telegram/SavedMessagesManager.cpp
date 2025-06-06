@@ -932,6 +932,8 @@ void SavedMessagesManager::read_topic_messages(SavedMessagesTopic *topic, Messag
                                                int32 hint_unread_count) {
   auto dialog_id = topic->dialog_id_;
   CHECK(dialog_id != DialogId());
+  read_inbox_max_message_id =
+      max(read_inbox_max_message_id, td_->messages_manager_->get_dialog_last_read_inbox_message_id(dialog_id));
   auto unread_count = topic->ordered_messages_.calc_new_unread_count(
       read_inbox_max_message_id, topic->read_inbox_max_message_id_, topic->unread_count_, topic->last_message_id_,
       td_->messages_manager_->get_is_counted_as_unread(dialog_id, MessageType::Server), hint_unread_count);
