@@ -838,7 +838,7 @@ class FileManager final : public Actor {
   FileIdInfo *get_file_id_info(FileId file_id);
 
   struct RemoteInfo {
-    // mutable is set to to enable changing of access hash
+    // mutable is used to allow changing of access hash
     mutable FullRemoteFileLocation remote_;
     mutable FileLocationSource file_location_source_;
     FileId file_id_;

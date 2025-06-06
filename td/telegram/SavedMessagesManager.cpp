@@ -439,7 +439,7 @@ class ReadSavedHistoryQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    // two dailogs are involved
+    // two dialogs are involved
     // td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReadSavedHistoryQuery");
   }
 };
