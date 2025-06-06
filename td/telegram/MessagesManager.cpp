@@ -9246,6 +9246,27 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
             << d->local_unread_count << " to " << server_unread_count << " + " << local_unread_count << " from "
             << source;
   if (message_id != MessageId::min()) {
+    if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id)) {
+      FlatHashMap<SavedMessagesTopicId, MessageId, SavedMessagesTopicIdHash> last_read_message_ids;
+      auto it = d->ordered_messages.get_const_iterator(message_id);
+      while (*it && (*it)->get_message_id() > d->last_read_inbox_message_id) {
+        auto *m = get_message(d, (*it)->get_message_id());
+        CHECK(m != nullptr);
+        if (m->saved_messages_topic_id.is_valid() && !m->is_outgoing) {
+          auto &last_read_message_id = last_read_message_ids[m->saved_messages_topic_id];
+          if (last_read_message_id == MessageId()) {
+            last_read_message_id = m->message_id;
+          }
+        }
+      }
+      if (*it) {
+        for (const auto &message_id_it : last_read_message_ids) {
+          td_->saved_messages_manager_->on_update_read_monoforum_inbox(d->dialog_id, message_id_it.first,
+                                                                       message_id_it.second);
+        }
+      }
+    }
+
     d->last_read_inbox_message_id = message_id;
     d->is_last_read_inbox_message_id_inited = true;
   }
