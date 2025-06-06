@@ -334,7 +334,7 @@ class DeleteSavedMessagesByDateQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(telegram_api::messages_deleteSavedHistory(
-        flags, std::move(saved_input_peer), std::move(saved_input_peer), 0, min_date, max_date)));
+        flags, std::move(parent_input_peer), std::move(saved_input_peer), 0, min_date, max_date)));
   }
 
   void on_result(BufferSlice packet) final {
