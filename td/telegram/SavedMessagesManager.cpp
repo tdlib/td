@@ -623,7 +623,7 @@ void SavedMessagesManager::do_set_topic_read_inbox_max_message_id(SavedMessagesT
                << " of " << topic->dialog_id_ << " from " << source;
     read_inbox_max_message_id = MessageId();
   }
-  if (read_inbox_max_message_id == topic->last_message_id_) {
+  if (topic->last_message_id_.is_valid() && read_inbox_max_message_id >= topic->last_message_id_) {
     unread_count = 0;
   }
   if (topic->read_inbox_max_message_id_ == read_inbox_max_message_id && topic->unread_count_ == unread_count) {
@@ -996,6 +996,30 @@ void SavedMessagesManager::on_update_read_monoforum_inbox(DialogId dialog_id,
   read_topic_messages(topic, read_inbox_max_message_id, -1);
 
   on_topic_changed(topic_list, topic, "on_update_read_monoforum_inbox");
+}
+
+void SavedMessagesManager::on_update_read_all_monoforum_inbox(DialogId dialog_id, MessageId read_inbox_max_message_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return;
+  }
+  if (topic_list->dialog_id_ != dialog_id) {
+    LOG(ERROR) << "Can't update read inbox in " << dialog_id;
+    return;
+  }
+
+  for (auto &it : topic_list->topics_) {
+    auto *topic = it.second.get();
+    if (topic->read_inbox_max_message_id_ < read_inbox_max_message_id &&
+        (!topic->last_message_id_.is_valid() || topic->read_inbox_max_message_id_ < topic->last_message_id_)) {
+      read_topic_messages(topic, read_inbox_max_message_id, -1);
+      on_topic_changed(topic_list, topic, "on_update_read_all_monoforum_inbox");
+    }
+  }
 }
 
 void SavedMessagesManager::on_update_read_monoforum_outbox(DialogId dialog_id,

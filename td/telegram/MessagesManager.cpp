@@ -9264,6 +9264,8 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
           td_->saved_messages_manager_->on_update_read_monoforum_inbox(d->dialog_id, message_id_it.first,
                                                                        message_id_it.second);
         }
+      } else {
+        td_->saved_messages_manager_->on_update_read_all_monoforum_inbox(d->dialog_id, message_id);
       }
     }
 
