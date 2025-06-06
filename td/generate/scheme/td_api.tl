@@ -1860,7 +1860,7 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@is_administered_feedback_group True, if the supergroup is a feedback group for a channel chat that is administered by the current user
 //@verification_status Information about verification status of the supergroup or channel; may be null if none
 //@has_feedback_group True, if the channel has feedback group
-//@has_forum_tabs True, if the supergroup is a forum, which topics are shown in the same was as in feedback groups
+//@has_forum_tabs True, if the supergroup is a forum, which topics are shown in the same way as in feedback groups
 //@has_sensitive_content True, if content of media messages in the supergroup or channel chat must be hidden with 18+ spoiler
 //@restriction_reason If non-empty, contains a human-readable description of the reason why access to this supergroup or channel must be restricted
 //@paid_message_star_count Number of Telegram Stars that must be paid by non-administrator users of the supergroup chat for each sent message
