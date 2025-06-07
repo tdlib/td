@@ -9588,7 +9588,7 @@ deleteChat chat_id:int53 = Ok;
 
 //@description Searches for messages with given words in the chat. Returns the results in reverse chronological order, i.e. in order of decreasing message_id. Cannot be used in secret chats with a non-empty query
 //-(searchSecretMessages must be used instead), or without an enabled message database. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit.
-//-A combination of query, sender_id, filter and message_thread_id search criteria is expected to be supported, only if it is required for Telegram official application implementation
+//-A combination of query, sender_id, filter and topic_id search criteria is expected to be supported, only if it is required for Telegram official application implementation
 //@chat_id Identifier of the chat in which to search messages
 //@topic_id Pass topic identifier to search messages only in specific topic; pass null to search for messages in all topics
 //@query Query to search for
