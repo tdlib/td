@@ -9258,6 +9258,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
             last_read_message_id = m->message_id;
           }
         }
+        --it;
       }
       if (*it) {
         for (const auto &message_id_it : last_read_message_ids) {
