@@ -27323,12 +27323,10 @@ void MessagesManager::on_update_dialog_is_forum(DialogId dialog_id, bool is_foru
     return;
   }
 
-  auto d = get_dialog_force(dialog_id, "on_update_dialog_is_forum");
-  if (d == nullptr) {
-    // nothing to do
-    return;
+  auto d = get_dialog(dialog_id);  // called from update_channel, must not create the dialog
+  if (d != nullptr && d->is_update_new_chat_sent) {
+    set_dialog_is_forum(d, is_forum, is_forum_tabs);
   }
-  set_dialog_is_forum(d, is_forum, is_forum_tabs);
 }
 
 void MessagesManager::set_dialog_is_forum(Dialog *d, bool is_forum, bool is_forum_tabs) {
@@ -31691,10 +31689,13 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
       d->is_view_as_messages_inited = true;
       break;
     case DialogType::Channel: {
-      if (td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
+      auto channel_id = dialog_id.get_channel_id();
+      if (td_->chat_manager_->is_broadcast_channel(channel_id)) {
         d->last_read_outbox_message_id = MessageId::max();
         d->is_last_read_outbox_message_id_inited = true;
       }
+      d->is_forum = td_->chat_manager_->is_forum_channel(channel_id);
+      d->is_forum_tabs = td_->chat_manager_->is_forum_tabs_channel(channel_id);
 
       auto pts = load_channel_pts(dialog_id);
       if (pts > 0) {

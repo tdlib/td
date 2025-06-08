@@ -5286,8 +5286,7 @@ void ChatManager::update_channel(Channel *c, ChannelId channel_id, bool from_bin
   }
   if (c->is_is_forum_changed) {
     update_dialogs_for_discussion(DialogId(channel_id), is_suitable_discussion_channel(c));
-    send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_is_forum, DialogId(channel_id),
-                       c->is_forum, c->is_forum_tabs);
+    td_->messages_manager_->on_update_dialog_is_forum(DialogId(channel_id), c->is_forum, c->is_forum_tabs);
     c->is_is_forum_changed = false;
   }
   if (c->is_stories_hidden_changed) {
