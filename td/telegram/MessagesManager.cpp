@@ -5002,10 +5002,7 @@ void MessagesManager::on_unread_message_mention_removed(Dialog *d, const Message
     }
   } else {
     set_dialog_unread_mention_count(d, d->unread_mention_count - 1);
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateMessageMentionRead>(
-                     get_chat_id_object(d->dialog_id, "updateMessageMentionRead"), m->message_id.get(),
-                     d->unread_mention_count));
+    send_update_message_mention_read(d->dialog_id, m, d->unread_mention_count);
     on_dialog_updated(d->dialog_id, "on_unread_message_mention_removed");
   }
 }
@@ -8606,10 +8603,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, MessageId top
     CHECK(m->message_id.is_valid());
     remove_message_notification_id(d, m, true, false);  // must be called before contains_unread_mention is updated
     m->contains_unread_mention = false;
-
-    send_closure(G()->td(), &Td::send_update,
-                 td_api::make_object<td_api::updateMessageMentionRead>(
-                     get_chat_id_object(dialog_id, "updateMessageMentionRead"), m->message_id.get(), 0));
+    send_update_message_mention_read(dialog_id, m, 0);
     is_update_sent = true;
     on_message_changed(d, m, true, "read_all_dialog_mentions");
   }
@@ -25894,6 +25888,25 @@ void MessagesManager::send_update_message_interaction_info(DialogId dialog_id, c
                td_api::make_object<td_api::updateMessageInteractionInfo>(
                    get_chat_id_object(dialog_id, "updateMessageInteractionInfo"), m->message_id.get(),
                    get_message_interaction_info_object(dialog_id, m)));
+}
+
+void MessagesManager::send_update_message_mention_read(DialogId dialog_id, const Message *m,
+                                                       int32 unread_mention_count) const {
+  CHECK(m != nullptr);
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (!m->is_update_sent) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateChatUnreadMentionCount>(
+                     get_chat_id_object(dialog_id, "updateChatUnreadMentionCount"), unread_mention_count));
+    return;
+  }
+
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateMessageMentionRead>(get_chat_id_object(dialog_id, "updateMessageMentionRead"),
+                                                            m->message_id.get(), unread_mention_count));
 }
 
 void MessagesManager::send_update_message_unread_reactions(DialogId dialog_id, const Message *m,

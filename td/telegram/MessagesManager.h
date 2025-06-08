@@ -2329,6 +2329,8 @@ class MessagesManager final : public Actor {
 
   void send_update_message_fact_check(DialogId dialog_id, const Message *m) const;
 
+  void send_update_message_mention_read(DialogId dialog_id, const Message *m, int32 unread_mention_count) const;
+
   void send_update_message_unread_reactions(DialogId dialog_id, const Message *m, int32 unread_reaction_count) const;
 
   void send_update_message_live_location_viewed(MessageFullId message_full_id);
