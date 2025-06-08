@@ -1910,8 +1910,11 @@ void SavedMessagesManager::do_get_topic_history(const TopicList *topic_list, con
                                                 Promise<td_api::object_ptr<td_api::messages>> &&promise) {
   int32 total_count = -1;
   vector<MessageId> message_ids;
-  if (topic != nullptr) {
+  if (topic != nullptr && topic->is_server_message_count_inited_) {
     total_count = topic->server_message_count_ + topic->local_message_count_;
+    LOG(INFO) << "Have local last " << topic->last_message_id_ << " and " << total_count
+              << " messages. Get history from " << from_message_id << " with offset " << offset << " and limit "
+              << limit;
     message_ids = topic->ordered_messages_.get_history(topic->last_message_id_, from_message_id, offset, limit,
                                                        left_tries == 0 /* && !only_local*/);
   }
