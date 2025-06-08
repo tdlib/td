@@ -2351,12 +2351,13 @@ void DialogParticipantManager::add_channel_participant(
     return promise.set_error(Status::Error(400, "Chat info not found"));
   }
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
-  if (td_->chat_manager_->is_monoforum_channel(channel_id)) {
-    return promise.set_error(Status::Error(400, "Members can't be added to the chat explicitly"));
-  }
 
   if (user_id == td_->user_manager_->get_my_id()) {
     // join the channel
+    if (td_->chat_manager_->is_monoforum_channel(channel_id) &&
+        !td_->chat_manager_->is_admined_monoforum_channel(channel_id)) {
+      return promise.set_error(Status::Error(400, "The chat can't be joined explicitly; send a message instead"));
+    }
     auto my_status = td_->chat_manager_->get_channel_status(channel_id);
     if (my_status.is_banned()) {
       return promise.set_error(Status::Error(400, "Can't return to kicked from chat"));
@@ -2384,6 +2385,9 @@ void DialogParticipantManager::add_channel_participant(
       td_->create_handler<JoinChannelQuery>(std::move(query_promise))->send(channel_id);
     }
     return;
+  }
+  if (td_->chat_manager_->is_monoforum_channel(channel_id)) {
+    return promise.set_error(Status::Error(400, "Members can't be added to the chat explicitly"));
   }
 
   if (!td_->chat_manager_->get_channel_permissions(channel_id).can_invite_users()) {
