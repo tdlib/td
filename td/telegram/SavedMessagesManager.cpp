@@ -1910,6 +1910,10 @@ void SavedMessagesManager::do_get_topic_history(const TopicList *topic_list, con
                                                 Promise<td_api::object_ptr<td_api::messages>> &&promise) {
   int32 total_count = -1;
   vector<MessageId> message_ids;
+  auto initial_from_message_id = from_message_id;
+  auto initial_offset = offset;
+  auto initial_limit = limit;
+  bool from_the_end = from_message_id == MessageId::max();
   if (topic != nullptr && topic->is_server_message_count_inited_) {
     total_count = topic->server_message_count_ + topic->local_message_count_;
     LOG(INFO) << "Have local last " << topic->last_message_id_ << " and " << total_count
@@ -1923,14 +1927,14 @@ void SavedMessagesManager::do_get_topic_history(const TopicList *topic_list, con
         td_->messages_manager_->get_messages_object(total_count, dialog_id, message_ids, true, "do_get_topic_history"));
   }
 
-  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
-                                               generation = topic_list->generation_, saved_messages_topic_id,
-                                               from_message_id, offset, limit, left_tries,
-                                               promise = std::move(promise)](Result<MessagesInfo> &&r_info) mutable {
-    send_closure(actor_id, &SavedMessagesManager::on_get_topic_history, dialog_id, generation, saved_messages_topic_id,
-                 from_message_id, offset, limit, left_tries, std::move(r_info), std::move(promise));
-  });
-  bool from_the_end = from_message_id == MessageId::max();
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_id, generation = topic_list->generation_, saved_messages_topic_id,
+       from_message_id = initial_from_message_id, offset = initial_offset, limit = initial_limit, left_tries,
+       promise = std::move(promise)](Result<MessagesInfo> &&r_info) mutable {
+        send_closure(actor_id, &SavedMessagesManager::on_get_topic_history, dialog_id, generation,
+                     saved_messages_topic_id, from_message_id, offset, limit, left_tries, std::move(r_info),
+                     std::move(promise));
+      });
   if (from_the_end) {
     // load only 10 messages when repairing the last message
     limit = !promise ? max(limit, 10) : MAX_GET_HISTORY;
