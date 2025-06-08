@@ -3193,7 +3193,8 @@ class CliClient final : public Actor {
       ChatId chat_id;
       ChatId feedback_chat_topic_id;
       get_args(args, chat_id, feedback_chat_topic_id);
-      send_request(td_api::make_object<td_api::getFeedbackChatTopic>(chat_id, feedback_chat_topic_id));
+      send_request(td_api::make_object<td_api::getFeedbackChatTopic>(
+          chat_id, feedback_chat_topic_id ? feedback_chat_topic_id : feedback_chat_topic_id_));
     } else if (op == "gfcth") {
       ChatId chat_id;
       string limit;
