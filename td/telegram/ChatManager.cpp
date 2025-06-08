@@ -4760,16 +4760,17 @@ void ChatManager::on_load_channel_from_database(ChannelId channel_id, string val
   }
 
   if (c != nullptr && c->monoforum_channel_id.is_valid() && !have_channel(c->monoforum_channel_id)) {
-    if (is_recursive || loaded_from_database_channels_.count(channel_id) != 0) {
+    if (is_recursive || loaded_from_database_channels_.count(c->monoforum_channel_id) != 0) {
       LOG(INFO) << "Can't find " << c->monoforum_channel_id << " from " << channel_id;
     } else {
       if (force) {
         if (get_channel_force(c->monoforum_channel_id, "on_load_channel_from_database", true) == nullptr) {
-          LOG(INFO) << "Can't find " << c->monoforum_channel_id << " from " << channel_id;
+          LOG(INFO) << "Can't load " << c->monoforum_channel_id << " from " << channel_id;
         }
       } else {
-        for (auto &promise : promises)
-          load_channel_from_database_impl(channel_id, true, std::move(promise));
+        for (auto &promise : promises) {
+          load_channel_from_database_impl(c->monoforum_channel_id, true, std::move(promise));
+        }
       }
       return;
     }
