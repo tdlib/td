@@ -29431,7 +29431,6 @@ vector<MessageId> MessagesManager::on_get_messages_from_database(Dialog *d, vect
   bool need_update = false;
   bool need_update_dialog_pos = false;
   auto next_message_id = MessageId::max();
-  Dependencies dependencies;
   for (auto &message_slice : messages) {
     auto message = parse_message(d, message_slice.message_id, message_slice.data, false);
     if (message == nullptr) {
@@ -29453,13 +29452,13 @@ vector<MessageId> MessagesManager::on_get_messages_from_database(Dialog *d, vect
     result.push_back(message->message_id);
     auto *m = get_message(d, message->message_id);
     if (m == nullptr) {
-      m = add_message_to_dialog(d, std::move(message), true, false, &need_update, &need_update_dialog_pos, source);
-      if (m != nullptr) {
-        add_message_dependencies(dependencies, m);
-      }
+      Dependencies dependencies;
+      add_message_dependencies(dependencies, message.get());
+      dependencies.resolve_force(td_, source);
+
+      add_message_to_dialog(d, std::move(message), true, false, &need_update, &need_update_dialog_pos, source);
     }
   }
-  dependencies.resolve_force(td_, source);
   if (need_update_dialog_pos) {
     LOG(ERROR) << "Need update chat position after loading of " << result << " in " << d->dialog_id << " from "
                << source;
