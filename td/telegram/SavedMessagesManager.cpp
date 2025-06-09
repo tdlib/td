@@ -1533,7 +1533,9 @@ void SavedMessagesManager::on_get_saved_messages_topics(
           topic->need_repair_unread_count_ = false;
         }
         if (topic->need_repair_unread_count_) {
-          LOG(ERROR) << "Failed to repair server unread count in " << saved_messages_topic_id << " of " << dialog_id;
+          LOG(INFO) << "Failed to repair server unread count in " << saved_messages_topic_id << " of " << dialog_id
+                    << ", because locally read messages up to " << topic->read_inbox_max_message_id_
+                    << ", but server-side only up to " << read_inbox_max_message_id;
           topic->need_repair_unread_count_ = false;
         }
         do_set_topic_read_inbox_max_message_id(topic, topic_info.read_inbox_max_message_id_, topic_info.unread_count_,
