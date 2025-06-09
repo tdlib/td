@@ -5334,7 +5334,7 @@ chatBoostSlots slots:vector<chatBoostSlot> = ChatBoostSlots;
 resendCodeReasonUserRequest = ResendCodeReason;
 
 //@description The code is re-sent, because device verification has failed
-//@error_message Cause of the verification failure, for example, PLAY_SERVICES_NOT_AVAILABLE, APNS_RECEIVE_TIMEOUT, or APNS_INIT_FAILED
+//@error_message Cause of the verification failure, for example, "PLAY_SERVICES_NOT_AVAILABLE", "APNS_RECEIVE_TIMEOUT", or "APNS_INIT_FAILED"
 resendCodeReasonVerificationFailed error_message:string = ResendCodeReason;
 
 
@@ -9445,7 +9445,7 @@ checkCreatedPublicChatsLimit type:PublicChatType = Ok;
 //-To set a returned supergroup as a discussion group, access to its old messages must be enabled using toggleSupergroupIsAllHistoryAvailable first
 getSuitableDiscussionChats = Chats;
 
-//@description Returns a list of recently inactive supergroups and channels. Can be used when user reaches limit on the number of joined supergroups and channels and receives CHANNELS_TOO_MUCH error. Also, the limit can be increased with Telegram Premium
+//@description Returns a list of recently inactive supergroups and channels. Can be used when user reaches limit on the number of joined supergroups and channels and receives the error "CHANNELS_TOO_MUCH". Also, the limit can be increased with Telegram Premium
 getInactiveSupergroupChats = Chats;
 
 //@description Returns a list of channel chats, which can be used as a personal chat
@@ -11329,7 +11329,7 @@ searchFileDownloads query:string only_active:Bool only_completed:Bool offset:str
 //@description Application or reCAPTCHA verification has been completed. Can be called before authorization
 //@verification_id Unique identifier for the verification process as received from updateApplicationVerificationRequired or updateApplicationRecaptchaVerificationRequired
 //@token Play Integrity API token for the Android application, or secret from push notification for the iOS application for application verification, or reCAPTCHA token for reCAPTCHA verifications;
-//-pass an empty string to abort verification and receive error VERIFICATION_FAILED for the request
+//-pass an empty string to abort verification and receive the error "VERIFICATION_FAILED" for the request
 setApplicationVerificationToken verification_id:int53 token:string = Ok;
 
 
