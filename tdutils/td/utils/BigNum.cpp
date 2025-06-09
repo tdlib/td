@@ -291,16 +291,19 @@ Result<BigNum> BigNum::mod_inverse(BigNum &a, const BigNum &m, BigNumContext &co
   return std::move(r);
 }
 
-void BigNum::div(BigNum *quotient, BigNum *remainder, const BigNum &dividend, const BigNum &divisor,
-                 BigNumContext &context) {
+Status BigNum::div(BigNum *quotient, BigNum *remainder, const BigNum &dividend, const BigNum &divisor,
+                   BigNumContext &context) {
   auto q = quotient == nullptr ? nullptr : quotient->impl_->big_num;
   auto r = remainder == nullptr ? nullptr : remainder->impl_->big_num;
   if (q == nullptr && r == nullptr) {
-    return;
+    return Status::OK();
   }
 
   auto result = BN_div(q, r, dividend.impl_->big_num, divisor.impl_->big_num, context.impl_->big_num_context);
-  LOG_IF(FATAL, result != 1);
+  if (result != 1) {
+    return Status::Error("Failed to compute quotient");
+  }
+  return Status::OK();
 }
 
 void BigNum::mod_exp(BigNum &r, const BigNum &a, const BigNum &p, const BigNum &m, BigNumContext &context) {

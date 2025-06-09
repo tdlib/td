@@ -99,8 +99,8 @@ class BigNum {
 
   static Result<BigNum> mod_inverse(BigNum &a, const BigNum &m, BigNumContext &context);
 
-  static void div(BigNum *quotient, BigNum *remainder, const BigNum &dividend, const BigNum &divisor,
-                  BigNumContext &context);
+  static Status div(BigNum *quotient, BigNum *remainder, const BigNum &dividend, const BigNum &divisor,
+                    BigNumContext &context) TD_WARN_UNUSED_RESULT;
 
   static void mod_exp(BigNum &r, const BigNum &a, const BigNum &p, const BigNum &m, BigNumContext &context);
 

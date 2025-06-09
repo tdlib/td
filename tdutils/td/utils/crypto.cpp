@@ -214,7 +214,8 @@ static int pq_factorize_big(Slice pq_str, string *p_str, string *q_str) {
   }
 
   if (found) {
-    BigNum::div(&q, nullptr, pq, p, context);
+    auto status = BigNum::div(&q, nullptr, pq, p, context);
+    CHECK(status.is_ok());
     if (BigNum::compare(p, q) > 0) {
       std::swap(p, q);
     }
