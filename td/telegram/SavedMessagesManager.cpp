@@ -683,8 +683,9 @@ void SavedMessagesManager::do_set_topic_unread_reaction_count(SavedMessagesTopic
   }
 
   if (unread_reaction_count < 0) {
-    LOG(ERROR) << "Receive " << unread_reaction_count << " unread reactions in " << topic->saved_messages_topic_id_
-               << " of " << topic->dialog_id_;
+    // can happen after local read of all reactions in the topic or chat
+    LOG(INFO) << "Receive " << unread_reaction_count << " unread reactions in " << topic->saved_messages_topic_id_
+              << " of " << topic->dialog_id_;
     unread_reaction_count = 0;
   }
   if (topic->unread_reaction_count_ == unread_reaction_count) {

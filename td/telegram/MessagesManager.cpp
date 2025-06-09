@@ -4998,7 +4998,8 @@ void MessagesManager::on_unread_message_mention_removed(Dialog *d, const Message
   }
   if (d->unread_mention_count == 0) {
     if (is_dialog_inited(d)) {
-      LOG(ERROR) << "Unread mention count of " << d->dialog_id << " became negative from " << source;
+      // can happen after local read of all mentions in the chat
+      LOG(INFO) << "Unread mention count of " << d->dialog_id << " became negative from " << source;
     }
   } else {
     set_dialog_unread_mention_count(d, d->unread_mention_count - 1);
@@ -5047,7 +5048,8 @@ void MessagesManager::on_unread_message_reaction_removed(Dialog *d, const Messag
   }
   if (d->unread_reaction_count == 0) {
     if (is_dialog_inited(d)) {
-      LOG(ERROR) << "Unread reaction count of " << d->dialog_id << " became negative from " << source;
+      // can happen after local read of all reactions in the topic or chat
+      LOG(INFO) << "Unread reaction count of " << d->dialog_id << " became negative from " << source;
     }
   } else {
     set_dialog_unread_reaction_count(d, d->unread_reaction_count - 1);
