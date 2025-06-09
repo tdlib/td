@@ -1071,8 +1071,8 @@ class CliClient final : public Actor {
     if (saved_messages_topic_id_ != 0) {
       return td_api::make_object<td_api::messageTopicSavedMessages>(get_saved_messages_topic_id());
     }
-    if (feedback_chat_topic_id_ != 0) {
-      return td_api::make_object<td_api::messageTopicDirectMessages>(feedback_chat_topic_id_);
+    if (direct_messages_chat_topic_id_ != 0) {
+      return td_api::make_object<td_api::messageTopicDirectMessages>(direct_messages_chat_topic_id_);
     }
     if (message_thread_id_ != 0) {
       return td_api::make_object<td_api::messageTopicForum>(message_thread_id_);
@@ -2609,10 +2609,10 @@ class CliClient final : public Actor {
     }
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
         chat_id, message_thread_id_, get_input_message_reply_to(),
-        td_api::make_object<td_api::messageSendOptions>(feedback_chat_topic_id_, disable_notification, from_background,
-                                                        false, use_test_dc_, paid_message_star_count_, false,
-                                                        as_message_scheduling_state(schedule_date_), message_effect_id_,
-                                                        Random::fast(1, 1000), only_preview_),
+        td_api::make_object<td_api::messageSendOptions>(direct_messages_chat_topic_id_, disable_notification,
+                                                        from_background, false, use_test_dc_, paid_message_star_count_,
+                                                        false, as_message_scheduling_state(schedule_date_),
+                                                        message_effect_id_, Random::fast(1, 1000), only_preview_),
         nullptr, std::move(input_message_content)));
     if (id != 0) {
       query_id_to_send_message_info_[id].start_time = Time::now();
@@ -2621,14 +2621,14 @@ class CliClient final : public Actor {
 
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
     return td_api::make_object<td_api::messageSendOptions>(
-        feedback_chat_topic_id_, false, false, false, use_test_dc_, paid_message_star_count_, true,
+        direct_messages_chat_topic_id_, false, false, false, use_test_dc_, paid_message_star_count_, true,
         as_message_scheduling_state(schedule_date_), message_effect_id_, Random::fast(1, 1000), only_preview_);
   }
 
   void set_draft_message(ChatId chat_id, td_api::object_ptr<td_api::draftMessage> &&draft_message) {
-    if (feedback_chat_topic_id_ != 0) {
-      send_request(td_api::make_object<td_api::setFeedbackChatTopicDraftMessage>(chat_id, feedback_chat_topic_id_,
-                                                                                 std::move(draft_message)));
+    if (direct_messages_chat_topic_id_ != 0) {
+      send_request(td_api::make_object<td_api::setFeedbackChatTopicDraftMessage>(
+          chat_id, direct_messages_chat_topic_id_, std::move(draft_message)));
     } else {
       send_request(
           td_api::make_object<td_api::setChatDraftMessage>(chat_id, message_thread_id_, std::move(draft_message)));
@@ -3191,49 +3191,52 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::loadFeedbackChatTopics>(chat_id, as_limit(limit)));
     } else if (op == "gfct") {
       ChatId chat_id;
-      ChatId feedback_chat_topic_id;
-      get_args(args, chat_id, feedback_chat_topic_id);
+      ChatId direct_messages_chat_topic_id;
+      get_args(args, chat_id, direct_messages_chat_topic_id);
       send_request(td_api::make_object<td_api::getFeedbackChatTopic>(
-          chat_id, feedback_chat_topic_id ? feedback_chat_topic_id : feedback_chat_topic_id_));
+          chat_id, direct_messages_chat_topic_id ? direct_messages_chat_topic_id : direct_messages_chat_topic_id_));
     } else if (op == "gfcth") {
       ChatId chat_id;
       string limit;
       MessageId from_message_id;
       int32 offset;
       get_args(args, chat_id, limit, from_message_id, offset);
-      send_request(td_api::make_object<td_api::getFeedbackChatTopicHistory>(chat_id, feedback_chat_topic_id_,
+      send_request(td_api::make_object<td_api::getFeedbackChatTopicHistory>(chat_id, direct_messages_chat_topic_id_,
                                                                             from_message_id, offset, as_limit(limit)));
     } else if (op == "gfctmbd") {
       ChatId chat_id;
       int32 date;
       get_args(args, chat_id, date);
-      send_request(
-          td_api::make_object<td_api::getFeedbackChatTopicMessageByDate>(chat_id, feedback_chat_topic_id_, date));
+      send_request(td_api::make_object<td_api::getFeedbackChatTopicMessageByDate>(
+          chat_id, direct_messages_chat_topic_id_, date));
     } else if (op == "dfcth") {
       ChatId chat_id;
       get_args(args, chat_id);
-      send_request(td_api::make_object<td_api::deleteFeedbackChatTopicHistory>(chat_id, feedback_chat_topic_id_));
+      send_request(
+          td_api::make_object<td_api::deleteFeedbackChatTopicHistory>(chat_id, direct_messages_chat_topic_id_));
     } else if (op == "dfctmbd") {
       ChatId chat_id;
       int32 min_date;
       int32 max_date;
       get_args(args, chat_id, min_date, max_date);
-      send_request(td_api::make_object<td_api::deleteFeedbackChatTopicMessagesByDate>(chat_id, feedback_chat_topic_id_,
-                                                                                      min_date, max_date));
+      send_request(td_api::make_object<td_api::deleteFeedbackChatTopicMessagesByDate>(
+          chat_id, direct_messages_chat_topic_id_, min_date, max_date));
     } else if (op == "sfctimau") {
       ChatId chat_id;
       bool is_marked_as_unread;
       get_args(args, chat_id, is_marked_as_unread);
-      send_request(td_api::make_object<td_api::setFeedbackChatTopicIsMarkedAsUnread>(chat_id, feedback_chat_topic_id_,
-                                                                                     is_marked_as_unread));
+      send_request(td_api::make_object<td_api::setFeedbackChatTopicIsMarkedAsUnread>(
+          chat_id, direct_messages_chat_topic_id_, is_marked_as_unread));
     } else if (op == "uafctm") {
       ChatId chat_id;
       get_args(args, chat_id);
-      send_request(td_api::make_object<td_api::unpinAllFeedbackChatTopicMessages>(chat_id, feedback_chat_topic_id_));
+      send_request(
+          td_api::make_object<td_api::unpinAllFeedbackChatTopicMessages>(chat_id, direct_messages_chat_topic_id_));
     } else if (op == "rafctr") {
       ChatId chat_id;
       get_args(args, chat_id);
-      send_request(td_api::make_object<td_api::readAllFeedbackChatTopicReactions>(chat_id, feedback_chat_topic_id_));
+      send_request(
+          td_api::make_object<td_api::readAllFeedbackChatTopicReactions>(chat_id, direct_messages_chat_topic_id_));
     } else if (op == "lsmt") {
       string limit;
       get_args(args, limit);
@@ -5482,7 +5485,7 @@ class CliClient final : public Actor {
       string url;
       get_args(args, chat_id, bot_user_id, url);
       send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, message_thread_id_,
-                                                           feedback_chat_topic_id_, get_input_message_reply_to(),
+                                                           direct_messages_chat_topic_id_, get_input_message_reply_to(),
                                                            as_web_app_open_parameters()));
     } else if (op == "cwa") {
       int64 launch_id;
@@ -5536,8 +5539,8 @@ class CliClient final : public Actor {
       only_preview_ = as_bool(args);
     } else if (op == "smti") {
       get_args(args, message_thread_id_);
-    } else if (op == "sfcti") {
-      get_args(args, feedback_chat_topic_id_);
+    } else if (op == "sdmcti") {
+      get_args(args, direct_messages_chat_topic_id_);
     } else if (op == "sbci") {
       business_connection_id_ = args;
     } else if (op == "shs") {
@@ -7908,7 +7911,7 @@ class CliClient final : public Actor {
   int64 message_effect_id_ = 0;
   bool only_preview_ = false;
   MessageThreadId message_thread_id_;
-  ChatId feedback_chat_topic_id_;
+  ChatId direct_messages_chat_topic_id_;
   string business_connection_id_;
   bool has_spoiler_ = false;
   int32 message_self_destruct_time_ = 0;

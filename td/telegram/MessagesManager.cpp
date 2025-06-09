@@ -20862,10 +20862,10 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
   result.only_preview = options->only_preview_;
   TRY_RESULT_ASSIGN(result.schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
   result.sending_id = options->sending_id_;
-  if (options->feedback_chat_topic_id_ != 0) {
+  if (options->direct_messages_chat_topic_id_ != 0) {
     if (td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
       result.monoforum_topic_id =
-          td_->saved_messages_manager_->get_topic_id(dialog_id, options->feedback_chat_topic_id_);
+          td_->saved_messages_manager_->get_topic_id(dialog_id, options->direct_messages_chat_topic_id_);
       if (!result.monoforum_topic_id.is_valid()) {
         return Status::Error(400, "Invalid channel direct messages topic specified");
       }

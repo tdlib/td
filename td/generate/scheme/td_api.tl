@@ -2096,8 +2096,8 @@ unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadRea
 //@description A topic in a forum supergroup chat @forum_topic_id Unique identifier of the forum topic; all messages in a non-forum supergroup chats belongs to the General topic
 messageTopicForum forum_topic_id:int53 = MessageTopic;
 
-//@description A topic in a channel direct messages chat administered by the current user @feedback_chat_topic_id Unique identifier of the topic
-messageTopicDirectMessages feedback_chat_topic_id:int53 = MessageTopic;
+//@description A topic in a channel direct messages chat administered by the current user @direct_messages_chat_topic_id Unique identifier of the topic
+messageTopicDirectMessages direct_messages_chat_topic_id:int53 = MessageTopic;
 
 //@description A topic in Saved Messages chat @saved_messages_topic_id Unique identifier of the Saved Messages topic
 messageTopicSavedMessages saved_messages_topic_id:int53 = MessageTopic;
@@ -4476,7 +4476,7 @@ messageSelfDestructTypeImmediately = MessageSelfDestructType;
 
 
 //@description Options to be used when a message is sent
-//@feedback_chat_topic_id Unique identifier of the topic in a channel direct messages chat administered by the current user; pass 0 if the chat isn't a channel direct messages chat administered by the current user
+//@direct_messages_chat_topic_id Unique identifier of the topic in a channel direct messages chat administered by the current user; pass 0 if the chat isn't a channel direct messages chat administered by the current user
 //@disable_notification Pass true to disable notification for the message
 //@from_background Pass true if the message is sent from the background
 //@protect_content Pass true if the content of the message must be protected from forwarding and saving; for bots only
@@ -4488,7 +4488,7 @@ messageSelfDestructTypeImmediately = MessageSelfDestructType;
 //@effect_id Identifier of the effect to apply to the message; pass 0 if none; applicable only to sendMessage and sendMessageAlbum in private chats
 //@sending_id Non-persistent identifier, which will be returned back in messageSendingStatePending object and can be used to match sent messages and corresponding updateNewMessage updates
 //@only_preview Pass true to get a fake message instead of actually sending them
-messageSendOptions feedback_chat_topic_id:int53 disable_notification:Bool from_background:Bool protect_content:Bool allow_paid_broadcast:Bool paid_message_star_count:int53 update_order_of_installed_sticker_sets:Bool scheduling_state:MessageSchedulingState effect_id:int64 sending_id:int32 only_preview:Bool = MessageSendOptions;
+messageSendOptions direct_messages_chat_topic_id:int53 disable_notification:Bool from_background:Bool protect_content:Bool allow_paid_broadcast:Bool paid_message_star_count:int53 update_order_of_installed_sticker_sets:Bool scheduling_state:MessageSchedulingState effect_id:int64 sending_id:int32 only_preview:Bool = MessageSendOptions;
 
 //@description Options to be used when a message content is copied without reference to the original sender. Service messages, messages with messageInvoice, messagePaidMedia, messageGiveaway, or messageGiveawayWinners content can't be copied
 //@send_copy True, if content of the message needs to be copied without reference to the original sender. Always true if the message is forwarded to a secret chat or is local.
@@ -10525,10 +10525,10 @@ sendWebAppData bot_user_id:int53 button_text:string data:string = Ok;
 //@bot_user_id Identifier of the bot, providing the Web App. If the bot is restricted for the current user, then show an error instead of calling the method
 //@url The URL from an inlineKeyboardButtonTypeWebApp button, a botMenuButton button, an internalLinkTypeAttachmentMenuBot link, or an empty string otherwise
 //@message_thread_id If not 0, the message thread identifier to which the message will be sent
-//@feedback_chat_topic_id If not 0, unique identifier of the topic of channel direct messages chat to which the message will be sent
+//@direct_messages_chat_topic_id If not 0, unique identifier of the topic of channel direct messages chat to which the message will be sent
 //@reply_to Information about the message or story to be replied in the message sent by the Web App; pass null if none
 //@parameters Parameters to use to open the Web App
-openWebApp chat_id:int53 bot_user_id:int53 url:string message_thread_id:int53 feedback_chat_topic_id:int53 reply_to:InputMessageReplyTo parameters:webAppOpenParameters = WebAppInfo;
+openWebApp chat_id:int53 bot_user_id:int53 url:string message_thread_id:int53 direct_messages_chat_topic_id:int53 reply_to:InputMessageReplyTo parameters:webAppOpenParameters = WebAppInfo;
 
 //@description Informs TDLib that a previously opened Web App was closed @web_app_launch_id Identifier of Web App launch, received from openWebApp
 closeWebApp web_app_launch_id:int64 = Ok;
