@@ -452,7 +452,12 @@ class TlsHelloStore {
     BigNum::mod_sub(numerator, numerator, one, mod, big_num_context);
     BigNum::mod_mul(numerator, numerator, numerator, mod, big_num_context);
 
-    BigNum::mod_inverse(denominator, denominator, mod, big_num_context);
+    auto r_inverse = BigNum::mod_inverse(denominator, mod, big_num_context);
+    if (r_inverse.is_error()) {
+      LOG(ERROR) << r_inverse.error();
+    } else {
+      denominator = r_inverse.move_as_ok();
+    }
     BigNum::mod_mul(numerator, numerator, denominator, mod, big_num_context);
     return numerator;
   }

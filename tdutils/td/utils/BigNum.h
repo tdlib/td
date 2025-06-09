@@ -97,7 +97,7 @@ class BigNum {
 
   static void mod_mul(BigNum &r, BigNum &a, BigNum &b, const BigNum &m, BigNumContext &context);
 
-  static void mod_inverse(BigNum &r, BigNum &a, const BigNum &m, BigNumContext &context);
+  static Result<BigNum> mod_inverse(BigNum &a, const BigNum &m, BigNumContext &context);
 
   static void div(BigNum *quotient, BigNum *remainder, const BigNum &dividend, const BigNum &divisor,
                   BigNumContext &context);
