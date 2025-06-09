@@ -1106,7 +1106,10 @@ void ReactionManager::on_get_saved_messages_tags(
   switch (tags_ptr->get_id()) {
     case telegram_api::messages_savedReactionTagsNotModified::ID:
       if (!reaction_tags->is_inited_) {
-        LOG(ERROR) << "Receive messages.savedReactionTagsNotModified for non-inited tags";
+        // the list of tags is empty
+        CHECK(reaction_tags->tags_.empty());
+        reaction_tags->is_inited_ = true;
+        need_send_update = true;
       }
       break;
     case telegram_api::messages_savedReactionTags::ID: {
