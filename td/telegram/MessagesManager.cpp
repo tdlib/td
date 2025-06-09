@@ -20143,8 +20143,9 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
     Dialog *d, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
     bool for_draft) {
   CHECK(d != nullptr);
-  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server() ||
-      top_thread_message_id == MessageId(ServerMessageId(1))) {
+  if (top_thread_message_id != MessageId() &&
+      (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server() ||
+       top_thread_message_id == MessageId(ServerMessageId(1)))) {
     LOG(INFO) << "Ignore thread of " << top_thread_message_id;
     top_thread_message_id = {};
   }
