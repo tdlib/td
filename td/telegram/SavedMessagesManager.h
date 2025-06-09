@@ -94,7 +94,7 @@ class SavedMessagesManager final : public Actor {
                                     Promise<Unit> &&promise);
 
   void get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                           Promise<td_api::object_ptr<td_api::feedbackChatTopic>> &&promise);
+                           Promise<td_api::object_ptr<td_api::directMessagesChatTopic>> &&promise);
 
   void get_monoforum_topic_history(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                    MessageId from_message_id, int32 offset, int32 limit,
@@ -242,7 +242,7 @@ class SavedMessagesManager final : public Actor {
     MessageId offset_message_id_;
 
     FlatHashMap<SavedMessagesTopicId, unique_ptr<SavedMessagesTopic>, SavedMessagesTopicIdHash> topics_;
-    FlatHashMap<SavedMessagesTopicId, vector<Promise<td_api::object_ptr<td_api::feedbackChatTopic>>>,
+    FlatHashMap<SavedMessagesTopicId, vector<Promise<td_api::object_ptr<td_api::directMessagesChatTopic>>>,
                 SavedMessagesTopicIdHash>
         get_topic_queries_;
   };
@@ -278,7 +278,7 @@ class SavedMessagesManager final : public Actor {
                             Result<MessagesInfo> &&r_info, Promise<td_api::object_ptr<td_api::messages>> &&promise);
 
   void reload_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                              Promise<td_api::object_ptr<td_api::feedbackChatTopic>> &&promise);
+                              Promise<td_api::object_ptr<td_api::directMessagesChatTopic>> &&promise);
 
   void repair_topic_unread_count(const SavedMessagesTopic *topic);
 
@@ -347,10 +347,10 @@ class SavedMessagesManager final : public Actor {
   void send_update_saved_messages_topic(const TopicList *topic_list, const SavedMessagesTopic *topic,
                                         const char *source) const;
 
-  td_api::object_ptr<td_api::feedbackChatTopic> get_feedback_chat_topic_object(const TopicList *topic_list,
-                                                                               const SavedMessagesTopic *topic) const;
+  td_api::object_ptr<td_api::directMessagesChatTopic> get_direct_messages_chat_topic_object(
+      const TopicList *topic_list, const SavedMessagesTopic *topic) const;
 
-  td_api::object_ptr<td_api::updateFeedbackChatTopic> get_update_feedback_chat_topic_object(
+  td_api::object_ptr<td_api::updateDirectMessagesChatTopic> get_update_direct_messages_chat_topic_object(
       const TopicList *topic_list, const SavedMessagesTopic *topic) const;
 
   td_api::object_ptr<td_api::updateSavedMessagesTopicCount> get_update_saved_messages_topic_count_object() const;

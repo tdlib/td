@@ -9012,7 +9012,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     case MessageContentType::PaidMessagesPrice: {
       const auto *m = static_cast<const MessagePaidMessagesPrice *>(content);
       if (td->dialog_manager_->is_broadcast_channel(dialog_id)) {
-        return td_api::make_object<td_api::messageFeedbackMessagePriceChanged>(
+        return td_api::make_object<td_api::messageDirectMessagePriceChanged>(
             m->broadcast_messages_allowed, !m->broadcast_messages_allowed ? 0 : m->star_count);
       }
       return td_api::make_object<td_api::messagePaidMessagePriceChanged>(m->star_count);

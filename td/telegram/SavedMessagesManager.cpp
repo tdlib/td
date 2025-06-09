@@ -1610,17 +1610,17 @@ td_api::object_ptr<td_api::updateSavedMessagesTopic> SavedMessagesManager::get_u
   return td_api::make_object<td_api::updateSavedMessagesTopic>(get_saved_messages_topic_object(topic));
 }
 
-td_api::object_ptr<td_api::feedbackChatTopic> SavedMessagesManager::get_feedback_chat_topic_object(
+td_api::object_ptr<td_api::directMessagesChatTopic> SavedMessagesManager::get_direct_messages_chat_topic_object(
     const TopicList *topic_list, const SavedMessagesTopic *topic) const {
   CHECK(topic != nullptr);
   CHECK(topic->dialog_id_ != DialogId());
   td_api::object_ptr<td_api::message> last_message_object;
   if (topic->last_message_id_ != MessageId()) {
     last_message_object = td_->messages_manager_->get_message_object({topic->dialog_id_, topic->last_message_id_},
-                                                                     "get_feedback_chat_topic_object");
+                                                                     "get_direct_messages_chat_topic_object");
   }
-  return td_api::make_object<td_api::feedbackChatTopic>(
-      td_->dialog_manager_->get_chat_id_object(topic->dialog_id_, "feedbackChatTopic"),
+  return td_api::make_object<td_api::directMessagesChatTopic>(
+      td_->dialog_manager_->get_chat_id_object(topic->dialog_id_, "directMessagesChatTopic"),
       topic->saved_messages_topic_id_.get_unique_id(),
       topic->saved_messages_topic_id_.get_monoforum_message_sender_object(td_),
       get_topic_public_order(topic_list, topic), topic->is_marked_as_unread_, topic->unread_count_,
@@ -1628,9 +1628,11 @@ td_api::object_ptr<td_api::feedbackChatTopic> SavedMessagesManager::get_feedback
       std::move(last_message_object), get_draft_message_object(td_, topic->draft_message_));
 }
 
-td_api::object_ptr<td_api::updateFeedbackChatTopic> SavedMessagesManager::get_update_feedback_chat_topic_object(
-    const TopicList *topic_list, const SavedMessagesTopic *topic) const {
-  return td_api::make_object<td_api::updateFeedbackChatTopic>(get_feedback_chat_topic_object(topic_list, topic));
+td_api::object_ptr<td_api::updateDirectMessagesChatTopic>
+SavedMessagesManager::get_update_direct_messages_chat_topic_object(const TopicList *topic_list,
+                                                                   const SavedMessagesTopic *topic) const {
+  return td_api::make_object<td_api::updateDirectMessagesChatTopic>(
+      get_direct_messages_chat_topic_object(topic_list, topic));
 }
 
 void SavedMessagesManager::send_update_saved_messages_topic(const TopicList *topic_list,
@@ -1642,7 +1644,7 @@ void SavedMessagesManager::send_update_saved_messages_topic(const TopicList *top
   if (topic->dialog_id_ == DialogId()) {
     send_closure(G()->td(), &Td::send_update, get_update_saved_messages_topic_object(topic));
   } else {
-    send_closure(G()->td(), &Td::send_update, get_update_feedback_chat_topic_object(topic_list, topic));
+    send_closure(G()->td(), &Td::send_update, get_update_direct_messages_chat_topic_object(topic_list, topic));
   }
 }
 
@@ -1780,7 +1782,7 @@ void SavedMessagesManager::set_last_topic_date(TopicList *topic_list, TopicDate 
 }
 
 void SavedMessagesManager::get_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                               Promise<td_api::object_ptr<td_api::feedbackChatTopic>> &&promise) {
+                                               Promise<td_api::object_ptr<td_api::directMessagesChatTopic>> &&promise) {
   TRY_RESULT_PROMISE(promise, topic_list, get_monoforum_topic_list(dialog_id));
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
@@ -1789,14 +1791,15 @@ void SavedMessagesManager::get_monoforum_topic(DialogId dialog_id, SavedMessages
     if (!promise) {
       return promise.set_value(nullptr);
     }
-    return promise.set_value(get_feedback_chat_topic_object(topic_list, topic));
+    return promise.set_value(get_direct_messages_chat_topic_object(topic_list, topic));
   }
 
   reload_monoforum_topic(dialog_id, saved_messages_topic_id, std::move(promise));
 }
 
-void SavedMessagesManager::reload_monoforum_topic(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                                  Promise<td_api::object_ptr<td_api::feedbackChatTopic>> &&promise) {
+void SavedMessagesManager::reload_monoforum_topic(
+    DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+    Promise<td_api::object_ptr<td_api::directMessagesChatTopic>> &&promise) {
   CHECK(dialog_id != DialogId());
   auto topic_list = get_topic_list(dialog_id);
   if (topic_list == nullptr) {
@@ -1846,7 +1849,7 @@ void SavedMessagesManager::on_get_monoforum_topic(DialogId dialog_id, uint32 gen
     if (!promise) {
       return promise.set_value(nullptr);
     }
-    promise.set_value(get_feedback_chat_topic_object(topic_list, topic));
+    promise.set_value(get_direct_messages_chat_topic_object(topic_list, topic));
   }
 }
 
@@ -2311,7 +2314,7 @@ void SavedMessagesManager::get_current_state(vector<td_api::object_ptr<td_api::U
     const auto *topic_list = dialog_it.second.get();
     for (const auto &it : topic_list->topics_) {
       const auto *topic = it.second.get();
-      updates.push_back(get_update_feedback_chat_topic_object(topic_list, topic));
+      updates.push_back(get_update_direct_messages_chat_topic_object(topic_list, topic));
       if (topic->sent_message_count_ >= 0) {
         updates.push_back(get_update_topic_message_count_object(topic));
       }

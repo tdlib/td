@@ -7365,7 +7365,7 @@ class CliClient final : public Actor {
       } else if (op == "viewt") {
         source = td_api::make_object<td_api::messageSourceMessageThreadHistory>();
       } else if (op == "viewf") {
-        source = td_api::make_object<td_api::messageSourceFeedbackChatTopicHistory>();
+        source = td_api::make_object<td_api::messageSourceDirectMessagesChatTopicHistory>();
       } else if (op == "views") {
         source = td_api::make_object<td_api::messageSourceScreenshot>();
       }
