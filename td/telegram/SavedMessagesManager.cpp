@@ -797,8 +797,6 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
       get_topic_history(dialog_id, saved_messages_topic_id, MessageId(), 0, 1, 2, Auto());
     }
     do_set_topic_last_message_id(topic, new_last_message_id, new_last_message_date);
-
-    on_topic_changed(topic_list, topic, "on_topic_message_deleted");
   }
 
   topic->ordered_messages_.erase(message_id, only_from_memory);
@@ -815,7 +813,15 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
       topic->local_message_count_--;
     }
     on_topic_message_count_changed(topic, "on_topic_message_deleted");
+
+    if (message_id > topic->read_inbox_max_message_id_ && topic->read_inbox_max_message_id_.is_valid() &&
+        td_->messages_manager_->get_is_counted_as_unread(dialog_id, MessageType::Server)(message_id)) {
+      do_set_topic_read_inbox_max_message_id(topic, topic->read_inbox_max_message_id_, topic->unread_count_ - 1,
+                                             "on_topic_message_deleted");
+    }
   }
+
+  on_topic_changed(topic_list, topic, "on_topic_message_deleted");
 }
 
 void SavedMessagesManager::on_all_dialog_messages_deleted(DialogId dialog_id) {

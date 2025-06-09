@@ -12859,6 +12859,7 @@ void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message 
   }
 
   auto message_id = m->message_id;
+  // TODO update reply_markup in topics
   if (d->reply_markup_message_id == message_id) {
     set_dialog_reply_markup(d, MessageId());
   }
