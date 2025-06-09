@@ -150,7 +150,8 @@ class GetSavedDialogsByIdQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_getSavedDialogsByID(flags, std::move(parent_input_peer), std::move(saved_input_peers))));
+        telegram_api::messages_getSavedDialogsByID(flags, std::move(parent_input_peer), std::move(saved_input_peers)),
+        {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -921,7 +922,7 @@ void SavedMessagesManager::repair_topic_unread_count(const SavedMessagesTopic *t
   // }
 
   LOG(INFO) << "Repair unread count in " << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_;
-  create_actor<SleepActor>("RepairTopicUnreadCountSleepActor", 0.2,
+  create_actor<SleepActor>("RepairTopicUnreadCountSleepActor", 0.05,
                            PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = topic->dialog_id_,
                                                    saved_messages_topic_id = topic->saved_messages_topic_id_](Unit) {
                              send_closure(actor_id, &SavedMessagesManager::reload_monoforum_topic, dialog_id,
