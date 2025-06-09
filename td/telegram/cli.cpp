@@ -2627,7 +2627,7 @@ class CliClient final : public Actor {
 
   void set_draft_message(ChatId chat_id, td_api::object_ptr<td_api::draftMessage> &&draft_message) {
     if (direct_messages_chat_topic_id_ != 0) {
-      send_request(td_api::make_object<td_api::setFeedbackChatTopicDraftMessage>(
+      send_request(td_api::make_object<td_api::setDirectMessagesChatTopicDraftMessage>(
           chat_id, direct_messages_chat_topic_id_, std::move(draft_message)));
     } else {
       send_request(
@@ -3184,59 +3184,59 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getChats>(nullptr, 1));
       send_request(td_api::make_object<td_api::getChats>(nullptr, 10));
       send_request(td_api::make_object<td_api::getChats>(nullptr, 5));
-    } else if (op == "lfct") {
+    } else if (op == "ldmct") {
       ChatId chat_id;
       string limit;
       get_args(args, chat_id, limit);
-      send_request(td_api::make_object<td_api::loadFeedbackChatTopics>(chat_id, as_limit(limit)));
-    } else if (op == "gfct") {
+      send_request(td_api::make_object<td_api::loadDirectMessagesChatTopics>(chat_id, as_limit(limit)));
+    } else if (op == "gdmct") {
       ChatId chat_id;
       ChatId direct_messages_chat_topic_id;
       get_args(args, chat_id, direct_messages_chat_topic_id);
-      send_request(td_api::make_object<td_api::getFeedbackChatTopic>(
+      send_request(td_api::make_object<td_api::getDirectMessagesChatTopic>(
           chat_id, direct_messages_chat_topic_id ? direct_messages_chat_topic_id : direct_messages_chat_topic_id_));
-    } else if (op == "gfcth") {
+    } else if (op == "gdmcth") {
       ChatId chat_id;
       string limit;
       MessageId from_message_id;
       int32 offset;
       get_args(args, chat_id, limit, from_message_id, offset);
-      send_request(td_api::make_object<td_api::getFeedbackChatTopicHistory>(chat_id, direct_messages_chat_topic_id_,
-                                                                            from_message_id, offset, as_limit(limit)));
-    } else if (op == "gfctmbd") {
+      send_request(td_api::make_object<td_api::getDirectMessagesChatTopicHistory>(
+          chat_id, direct_messages_chat_topic_id_, from_message_id, offset, as_limit(limit)));
+    } else if (op == "gdmctmbd") {
       ChatId chat_id;
       int32 date;
       get_args(args, chat_id, date);
-      send_request(td_api::make_object<td_api::getFeedbackChatTopicMessageByDate>(
+      send_request(td_api::make_object<td_api::getDirectMessagesChatTopicMessageByDate>(
           chat_id, direct_messages_chat_topic_id_, date));
-    } else if (op == "dfcth") {
+    } else if (op == "ddmcth") {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(
-          td_api::make_object<td_api::deleteFeedbackChatTopicHistory>(chat_id, direct_messages_chat_topic_id_));
-    } else if (op == "dfctmbd") {
+          td_api::make_object<td_api::deleteDirectMessagesChatTopicHistory>(chat_id, direct_messages_chat_topic_id_));
+    } else if (op == "ddmctmbd") {
       ChatId chat_id;
       int32 min_date;
       int32 max_date;
       get_args(args, chat_id, min_date, max_date);
-      send_request(td_api::make_object<td_api::deleteFeedbackChatTopicMessagesByDate>(
+      send_request(td_api::make_object<td_api::deleteDirectMessagesChatTopicMessagesByDate>(
           chat_id, direct_messages_chat_topic_id_, min_date, max_date));
-    } else if (op == "sfctimau") {
+    } else if (op == "sdmctimau") {
       ChatId chat_id;
       bool is_marked_as_unread;
       get_args(args, chat_id, is_marked_as_unread);
-      send_request(td_api::make_object<td_api::setFeedbackChatTopicIsMarkedAsUnread>(
+      send_request(td_api::make_object<td_api::setDirectMessagesChatTopicIsMarkedAsUnread>(
           chat_id, direct_messages_chat_topic_id_, is_marked_as_unread));
-    } else if (op == "uafctm") {
+    } else if (op == "uadmctm") {
       ChatId chat_id;
       get_args(args, chat_id);
-      send_request(
-          td_api::make_object<td_api::unpinAllFeedbackChatTopicMessages>(chat_id, direct_messages_chat_topic_id_));
-    } else if (op == "rafctr") {
+      send_request(td_api::make_object<td_api::unpinAllDirectMessagesChatTopicMessages>(
+          chat_id, direct_messages_chat_topic_id_));
+    } else if (op == "radmctr") {
       ChatId chat_id;
       get_args(args, chat_id);
-      send_request(
-          td_api::make_object<td_api::readAllFeedbackChatTopicReactions>(chat_id, direct_messages_chat_topic_id_));
+      send_request(td_api::make_object<td_api::readAllDirectMessagesChatTopicReactions>(
+          chat_id, direct_messages_chat_topic_id_));
     } else if (op == "lsmt") {
       string limit;
       get_args(args, limit);
@@ -6875,12 +6875,13 @@ class CliClient final : public Actor {
       ChatId group_chat_id;
       get_args(args, chat_id, group_chat_id);
       send_request(td_api::make_object<td_api::setChatDiscussionGroup>(chat_id, group_chat_id));
-    } else if (op == "scfg") {
+    } else if (op == "scdmg") {
       ChatId chat_id;
       bool is_enabled;
       int64 paid_message_star_count;
       get_args(args, chat_id, is_enabled, paid_message_star_count);
-      send_request(td_api::make_object<td_api::setChatFeedbackGroup>(chat_id, is_enabled, paid_message_star_count));
+      send_request(
+          td_api::make_object<td_api::setChatDirectMessagesGroup>(chat_id, is_enabled, paid_message_star_count));
     } else if (op == "scl") {
       ChatId chat_id;
       string latitude;

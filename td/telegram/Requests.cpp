@@ -3001,20 +3001,20 @@ void Requests::on_request(uint64 id, const td_api::getChats &request) {
   td_->messages_manager_->get_dialogs_from_list(DialogListId(request.chat_list_), request.limit_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::loadFeedbackChatTopics &request) {
+void Requests::on_request(uint64 id, const td_api::loadDirectMessagesChatTopics &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->saved_messages_manager_->load_monoforum_topics(DialogId(request.chat_id_), request.limit_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getFeedbackChatTopic &request) {
+void Requests::on_request(uint64 id, const td_api::getDirectMessagesChatTopic &request) {
   CREATE_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
   td_->saved_messages_manager_->get_monoforum_topic(dialog_id, SavedMessagesTopicId(DialogId(request.topic_id_)),
                                                     std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getFeedbackChatTopicHistory &request) {
+void Requests::on_request(uint64 id, const td_api::getDirectMessagesChatTopicHistory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
@@ -3023,7 +3023,7 @@ void Requests::on_request(uint64 id, const td_api::getFeedbackChatTopicHistory &
       MessageId(request.from_message_id_), request.offset_, request.limit_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getFeedbackChatTopicMessageByDate &request) {
+void Requests::on_request(uint64 id, const td_api::getDirectMessagesChatTopicMessageByDate &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
@@ -3032,7 +3032,7 @@ void Requests::on_request(uint64 id, const td_api::getFeedbackChatTopicMessageBy
       std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::deleteFeedbackChatTopicHistory &request) {
+void Requests::on_request(uint64 id, const td_api::deleteDirectMessagesChatTopicHistory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
@@ -3040,7 +3040,7 @@ void Requests::on_request(uint64 id, const td_api::deleteFeedbackChatTopicHistor
       dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::deleteFeedbackChatTopicMessagesByDate &request) {
+void Requests::on_request(uint64 id, const td_api::deleteDirectMessagesChatTopicMessagesByDate &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
@@ -3049,7 +3049,7 @@ void Requests::on_request(uint64 id, const td_api::deleteFeedbackChatTopicMessag
       request.max_date_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::setFeedbackChatTopicIsMarkedAsUnread &request) {
+void Requests::on_request(uint64 id, const td_api::setDirectMessagesChatTopicIsMarkedAsUnread &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
@@ -3058,7 +3058,7 @@ void Requests::on_request(uint64 id, const td_api::setFeedbackChatTopicIsMarkedA
       std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::setFeedbackChatTopicDraftMessage &request) {
+void Requests::on_request(uint64 id, td_api::setDirectMessagesChatTopicDraftMessage &request) {
   CHECK_IS_USER();
   DialogId dialog_id(request.chat_id_);
   answer_ok_query(id, td_->saved_messages_manager_->set_monoforum_topic_draft_message(
@@ -3066,14 +3066,14 @@ void Requests::on_request(uint64 id, td_api::setFeedbackChatTopicDraftMessage &r
                           std::move(request.draft_message_)));
 }
 
-void Requests::on_request(uint64 id, const td_api::unpinAllFeedbackChatTopicMessages &request) {
+void Requests::on_request(uint64 id, const td_api::unpinAllDirectMessagesChatTopicMessages &request) {
   CREATE_OK_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
   td_->saved_messages_manager_->unpin_all_monoforum_topic_messages(
       dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::readAllFeedbackChatTopicReactions &request) {
+void Requests::on_request(uint64 id, const td_api::readAllDirectMessagesChatTopicReactions &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
@@ -5343,7 +5343,7 @@ void Requests::on_request(uint64 id, const td_api::setChatDiscussionGroup &reque
                                                    std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::setChatFeedbackGroup &request) {
+void Requests::on_request(uint64 id, const td_api::setChatDirectMessagesGroup &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->chat_manager_->set_channel_monoforum_group(DialogId(request.chat_id_), request.is_enabled_,

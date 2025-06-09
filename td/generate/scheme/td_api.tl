@@ -9456,12 +9456,12 @@ getSuitablePersonalChats = Chats;
 //-Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
 //@chat_id Chat identifier of the channel direct messages chat
 //@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached
-loadFeedbackChatTopics chat_id:int53 limit:int32 = Ok;
+loadDirectMessagesChatTopics chat_id:int53 limit:int32 = Ok;
 
 //@description Returns information about the topic in a channel direct messages chat administered by the current user
 //@chat_id Chat identifier of the channel direct messages chat
 //@topic_id Identifier of the topic to get
-getFeedbackChatTopic chat_id:int53 topic_id:int53 = FeedbackChatTopic;
+getDirectMessagesChatTopic chat_id:int53 topic_id:int53 = FeedbackChatTopic;
 
 //@description Returns messages in the topic in a channel direct messages chat administered by the current user. The messages are returned in reverse chronological order (i.e., in order of decreasing message_id)
 //@chat_id Chat identifier of the channel direct messages chat
@@ -9470,47 +9470,47 @@ getFeedbackChatTopic chat_id:int53 topic_id:int53 = FeedbackChatTopic;
 //@offset Specify 0 to get results from exactly the message from_message_id or a negative offset up to 99 to get additionally some newer messages
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than or equal to -offset.
 //-For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
-getFeedbackChatTopicHistory chat_id:int53 topic_id:int53 from_message_id:int53 offset:int32 limit:int32 = Messages;
+getDirectMessagesChatTopicHistory chat_id:int53 topic_id:int53 from_message_id:int53 offset:int32 limit:int32 = Messages;
 
 //@description Returns the last message sent in the topic in a channel direct messages chat administered by the current user no later than the specified date
 //@chat_id Chat identifier of the channel direct messages chat
 //@topic_id Identifier of the topic which messages will be fetched
 //@date Point in time (Unix timestamp) relative to which to search for messages
-getFeedbackChatTopicMessageByDate chat_id:int53 topic_id:int53 date:int32 = Message;
+getDirectMessagesChatTopicMessageByDate chat_id:int53 topic_id:int53 date:int32 = Message;
 
 //@description Deletes all messages in the topic in a channel direct messages chat administered by the current user
 //@chat_id Chat identifier of the channel direct messages chat
 //@topic_id Identifier of the topic which messages will be deleted
-deleteFeedbackChatTopicHistory chat_id:int53 topic_id:int53 = Ok;
+deleteDirectMessagesChatTopicHistory chat_id:int53 topic_id:int53 = Ok;
 
 //@description Deletes all messages between the specified dates in the topic in a channel direct messages chat administered by the current user. Messages sent in the last 30 seconds will not be deleted
 //@chat_id Chat identifier of the channel direct messages chat
 //@topic_id Identifier of the topic which messages will be deleted
 //@min_date The minimum date of the messages to delete
 //@max_date The maximum date of the messages to delete
-deleteFeedbackChatTopicMessagesByDate chat_id:int53 topic_id:int53 min_date:int32 max_date:int32 = Ok;
+deleteDirectMessagesChatTopicMessagesByDate chat_id:int53 topic_id:int53 min_date:int32 max_date:int32 = Ok;
 
 //@description Changes the marked as unread state of the topic in a channel direct messages chat administered by the current user
 //@chat_id Chat identifier of the channel direct messages chat
 //@topic_id Topic identifier
 //@is_marked_as_unread New value of is_marked_as_unread
-setFeedbackChatTopicIsMarkedAsUnread chat_id:int53 topic_id:int53 is_marked_as_unread:Bool = Ok;
+setDirectMessagesChatTopicIsMarkedAsUnread chat_id:int53 topic_id:int53 is_marked_as_unread:Bool = Ok;
 
 //@description Changes the draft message in the topic in a channel direct messages chat administered by the current user
 //@chat_id Chat identifier
 //@topic_id Topic identifier
 //@draft_message New draft message; pass null to remove the draft. All files in draft message content must be of the type inputFileLocal. Media thumbnails and captions are ignored
-setFeedbackChatTopicDraftMessage chat_id:int53 topic_id:int53 draft_message:draftMessage = Ok;
+setDirectMessagesChatTopicDraftMessage chat_id:int53 topic_id:int53 draft_message:draftMessage = Ok;
 
 //@description Removes all pinned messages from the topic in a channel direct messages chat administered by the current user
 //@chat_id Identifier of the chat
 //@topic_id Topic identifier
-unpinAllFeedbackChatTopicMessages chat_id:int53 topic_id:int53 = Ok;
+unpinAllDirectMessagesChatTopicMessages chat_id:int53 topic_id:int53 = Ok;
 
 //@description Removes all unread reactions in the topic in a channel direct messages chat administered by the current user
 //@chat_id Identifier of the chat
 //@topic_id Topic identifier
-readAllFeedbackChatTopicReactions chat_id:int53 topic_id:int53 = Ok;
+readAllDirectMessagesChatTopicReactions chat_id:int53 topic_id:int53 = Ok;
 
 
 //@description Loads more Saved Messages topics. The loaded topics will be sent through updateSavedMessagesTopic. Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
@@ -9873,7 +9873,7 @@ sendQuickReplyShortcutMessages chat_id:int53 shortcut_id:int32 sending_id:int32 
 resendMessages chat_id:int53 message_ids:vector<int53> quote:inputTextQuote paid_message_star_count:int53 = Messages;
 
 //@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message
-//@chat_id Target chat; feedback chats aren't supported
+//@chat_id Target chat; channel direct messages chats aren't supported
 //@sender_id Identifier of the sender of the message
 //@reply_to Information about the message or story to be replied; pass null if none
 //@disable_notification Pass true to disable notification for the message
@@ -10874,12 +10874,12 @@ setChatDescription chat_id:int53 description:string = Ok;
 //-Basic group chats must be first upgraded to supergroup chats. If new chat members don't have access to old messages in the supergroup, then toggleSupergroupIsAllHistoryAvailable must be used first to change that
 setChatDiscussionGroup chat_id:int53 discussion_chat_id:int53 = Ok;
 
-//@description Changes feedback group settings for a channel chat; requires owner privileges in the chat
+//@description Changes direct messages group settings for a channel chat; requires owner privileges in the chat
 //@chat_id Identifier of the channel chat
-//@is_enabled Pass true if the feedback group is enabled for the channel chat; pass false otherwise
-//@paid_message_star_count The new number of Telegram Stars that must be paid for each message that is sent to the feedback supergroup chat unless the sender is an administrator of the channel chat; 0-getOption("paid_message_star_count_max").
+//@is_enabled Pass true if the direct messages group is enabled for the channel chat; pass false otherwise
+//@paid_message_star_count The new number of Telegram Stars that must be paid for each message that is sent to the direct messages chat unless the sender is an administrator of the channel chat; 0-getOption("paid_message_star_count_max").
 //-The channel will receive getOption("paid_message_earnings_per_mille") Telegram Stars for each 1000 Telegram Stars paid for message sending. Requires supergroupFullInfo.can_enable_paid_messages for positive amounts
-setChatFeedbackGroup chat_id:int53 is_enabled:Bool paid_message_star_count:int53 = Ok;
+setChatDirectMessagesGroup chat_id:int53 is_enabled:Bool paid_message_star_count:int53 = Ok;
 
 //@description Changes the location of a chat. Available only for some location-based supergroups, use supergroupFullInfo.can_set_location to check whether the method is allowed to use @chat_id Chat identifier @location New location for the chat; must be valid and not null
 setChatLocation chat_id:int53 location:chatLocation = Ok;

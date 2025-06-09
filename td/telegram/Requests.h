@@ -359,25 +359,25 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getChats &request);
 
-  void on_request(uint64 id, const td_api::loadFeedbackChatTopics &request);
+  void on_request(uint64 id, const td_api::loadDirectMessagesChatTopics &request);
 
-  void on_request(uint64 id, const td_api::getFeedbackChatTopic &request);
+  void on_request(uint64 id, const td_api::getDirectMessagesChatTopic &request);
 
-  void on_request(uint64 id, const td_api::getFeedbackChatTopicHistory &request);
+  void on_request(uint64 id, const td_api::getDirectMessagesChatTopicHistory &request);
 
-  void on_request(uint64 id, const td_api::getFeedbackChatTopicMessageByDate &request);
+  void on_request(uint64 id, const td_api::getDirectMessagesChatTopicMessageByDate &request);
 
-  void on_request(uint64 id, const td_api::deleteFeedbackChatTopicHistory &request);
+  void on_request(uint64 id, const td_api::deleteDirectMessagesChatTopicHistory &request);
 
-  void on_request(uint64 id, const td_api::deleteFeedbackChatTopicMessagesByDate &request);
+  void on_request(uint64 id, const td_api::deleteDirectMessagesChatTopicMessagesByDate &request);
 
-  void on_request(uint64 id, const td_api::setFeedbackChatTopicIsMarkedAsUnread &request);
+  void on_request(uint64 id, const td_api::setDirectMessagesChatTopicIsMarkedAsUnread &request);
 
-  void on_request(uint64 id, td_api::setFeedbackChatTopicDraftMessage &request);
+  void on_request(uint64 id, td_api::setDirectMessagesChatTopicDraftMessage &request);
 
-  void on_request(uint64 id, const td_api::unpinAllFeedbackChatTopicMessages &request);
+  void on_request(uint64 id, const td_api::unpinAllDirectMessagesChatTopicMessages &request);
 
-  void on_request(uint64 id, const td_api::readAllFeedbackChatTopicReactions &request);
+  void on_request(uint64 id, const td_api::readAllDirectMessagesChatTopicReactions &request);
 
   void on_request(uint64 id, const td_api::loadSavedMessagesTopics &request);
 
@@ -979,7 +979,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::setChatDiscussionGroup &request);
 
-  void on_request(uint64 id, const td_api::setChatFeedbackGroup &request);
+  void on_request(uint64 id, const td_api::setChatDirectMessagesGroup &request);
 
   void on_request(uint64 id, td_api::setChatLocation &request);
 
