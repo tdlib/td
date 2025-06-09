@@ -169,7 +169,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageTopic &mes
       return string_builder << "Forum[topic " << message_topic.top_thread_message_id_.get_server_message_id().get()
                             << ']';
     case MessageTopic::Type::Monoforum:
-      return string_builder << "Feedback[" << message_topic.saved_messages_topic_id_ << ']';
+      return string_builder << "DirectMessages[" << message_topic.saved_messages_topic_id_ << ']';
     case MessageTopic::Type::SavedMessages:
       return string_builder << "SavedMessages[" << message_topic.saved_messages_topic_id_ << ']';
     default:

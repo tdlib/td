@@ -3345,7 +3345,8 @@ void ChatManager::toggle_channel_is_all_history_available(ChannelId channel_id, 
     return promise.set_error(Status::Error(400, "Message history can be hidden in supergroups only"));
   }
   if ((c->is_forum || c->is_monoforum) && !is_all_history_available) {
-    return promise.set_error(Status::Error(400, "Message history can't be hidden in forum and feedback supergroups"));
+    return promise.set_error(
+        Status::Error(400, "Message history can't be hidden in forum and channel direct messages supergroups"));
   }
   if (c->has_linked_channel && !is_all_history_available) {
     return promise.set_error(Status::Error(400, "Message history can't be hidden in discussion supergroups"));
@@ -3596,12 +3597,12 @@ void ChatManager::set_channel_discussion_group(DialogId dialog_id, DialogId disc
              std::move(group_input_channel));
 }
 
-void ChatManager::set_channel_feedback_group(DialogId dialog_id, bool is_enabled, int64 paid_message_star_count,
-                                             Promise<Unit> &&promise) {
+void ChatManager::set_channel_monoforum_group(DialogId dialog_id, bool is_enabled, int64 paid_message_star_count,
+                                              Promise<Unit> &&promise) {
   if (!dialog_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Invalid chat identifier specified"));
   }
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_channel_feedback_group")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_channel_monoforum_group")) {
     return promise.set_error(Status::Error(400, "Chat not found"));
   }
 
@@ -8909,7 +8910,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
   bool broadcast_messages_allowed = channel.broadcast_messages_allowed_;
   auto monoforum_channel_id = ChannelId(channel.linked_monoforum_id_);
   if ((monoforum_channel_id != ChannelId() && !monoforum_channel_id.is_valid()) || monoforum_channel_id == channel_id) {
-    LOG(ERROR) << "Receive feedback " << monoforum_channel_id << " for " << channel_id;
+    LOG(ERROR) << "Receive channel direct messages " << monoforum_channel_id << " for " << channel_id;
     monoforum_channel_id = ChannelId();
   }
 
@@ -8932,16 +8933,16 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
   if (is_megagroup) {
     LOG_IF(ERROR, sign_messages) << "Need to sign messages in the " << channel_id << " from " << source;
     LOG_IF(ERROR, broadcast_messages_allowed)
-        << "Receive supergroup with feedback group as " << channel_id << " from " << source;
+        << "Receive supergroup with channel direct messages group as " << channel_id << " from " << source;
     sign_messages = true;
     show_message_sender = true;
     broadcast_messages_allowed = false;
   } else {
     LOG_IF(ERROR, is_slow_mode_enabled && channel_id.get() >= 8000000000)
         << "Slow mode enabled in the " << channel_id << " from " << source;
-    LOG_IF(ERROR, is_gigagroup) << "Receive broadcast group as " << channel_id << " from " << source;
+    LOG_IF(ERROR, is_gigagroup) << "Receive broadcast gigagroup as " << channel_id << " from " << source;
     LOG_IF(ERROR, is_forum) << "Receive broadcast forum as " << channel_id << " from " << source;
-    LOG_IF(ERROR, is_monoforum) << "Receive broadcast feedback group as " << channel_id << " from " << source;
+    LOG_IF(ERROR, is_monoforum) << "Receive broadcast monoforum group as " << channel_id << " from " << source;
     is_slow_mode_enabled = false;
     is_gigagroup = false;
     is_forum = false;

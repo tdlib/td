@@ -5346,8 +5346,8 @@ void Requests::on_request(uint64 id, const td_api::setChatDiscussionGroup &reque
 void Requests::on_request(uint64 id, const td_api::setChatFeedbackGroup &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->chat_manager_->set_channel_feedback_group(DialogId(request.chat_id_), request.is_enabled_,
-                                                 request.paid_message_star_count_, std::move(promise));
+  td_->chat_manager_->set_channel_monoforum_group(DialogId(request.chat_id_), request.is_enabled_,
+                                                  request.paid_message_star_count_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setChatLocation &request) {

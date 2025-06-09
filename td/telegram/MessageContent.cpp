@@ -4738,7 +4738,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
           return Status::Error(400, "Non-anonymous polls can't be sent to channel chats");
         }
         if (td->chat_manager_->is_monoforum_channel(channel_id)) {
-          return Status::Error(400, "Polls can't be sent to feedback chats");
+          return Status::Error(400, "Polls can't be sent to channel direct messages chats");
         }
       }
       if (dialog_type == DialogType::User && !is_forward && !td->auth_manager_->is_bot() &&

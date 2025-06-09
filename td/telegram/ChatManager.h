@@ -279,8 +279,8 @@ class ChatManager final : public Actor {
 
   void set_channel_discussion_group(DialogId dialog_id, DialogId discussion_dialog_id, Promise<Unit> &&promise);
 
-  void set_channel_feedback_group(DialogId dialog_id, bool is_enabled, int64 paid_message_star_count,
-                                  Promise<Unit> &&promise);
+  void set_channel_monoforum_group(DialogId dialog_id, bool is_enabled, int64 paid_message_star_count,
+                                   Promise<Unit> &&promise);
 
   void set_channel_location(ChannelId dialog_id, const DialogLocation &location, Promise<Unit> &&promise);
 

@@ -1622,7 +1622,7 @@ td_api::object_ptr<td_api::feedbackChatTopic> SavedMessagesManager::get_feedback
   return td_api::make_object<td_api::feedbackChatTopic>(
       td_->dialog_manager_->get_chat_id_object(topic->dialog_id_, "feedbackChatTopic"),
       topic->saved_messages_topic_id_.get_unique_id(),
-      topic->saved_messages_topic_id_.get_feedback_message_sender_object(td_),
+      topic->saved_messages_topic_id_.get_monoforum_message_sender_object(td_),
       get_topic_public_order(topic_list, topic), topic->is_marked_as_unread_, topic->unread_count_,
       topic->read_inbox_max_message_id_.get(), topic->read_outbox_max_message_id_.get(), topic->unread_reaction_count_,
       std::move(last_message_object), get_draft_message_object(td_, topic->draft_message_));

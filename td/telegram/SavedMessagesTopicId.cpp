@@ -65,9 +65,9 @@ td_api::object_ptr<td_api::SavedMessagesTopicType> SavedMessagesTopicId::get_sav
       td->dialog_manager_->get_chat_id_object(dialog_id_, "savedMessagesTopicTypeSavedFromChat"));
 }
 
-td_api::object_ptr<td_api::MessageSender> SavedMessagesTopicId::get_feedback_message_sender_object(Td *td) const {
+td_api::object_ptr<td_api::MessageSender> SavedMessagesTopicId::get_monoforum_message_sender_object(Td *td) const {
   CHECK(dialog_id_ != DialogId());
-  return get_message_sender_object(td, dialog_id_, "get_feedback_message_sender_object");
+  return get_message_sender_object(td, dialog_id_, "get_monoforum_message_sender_object");
 }
 
 bool SavedMessagesTopicId::have_input_peer(Td *td) const {
