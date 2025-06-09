@@ -2097,7 +2097,7 @@ unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadRea
 messageTopicForum forum_topic_id:int53 = MessageTopic;
 
 //@description A topic in a channel direct messages chat administered by the current user @feedback_chat_topic_id Unique identifier of the topic
-messageTopicFeedbackChat feedback_chat_topic_id:int53 = MessageTopic;
+messageTopicDirectMessages feedback_chat_topic_id:int53 = MessageTopic;
 
 //@description A topic in Saved Messages chat @saved_messages_topic_id Unique identifier of the Saved Messages topic
 messageTopicSavedMessages saved_messages_topic_id:int53 = MessageTopic;

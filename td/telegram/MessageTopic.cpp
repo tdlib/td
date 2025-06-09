@@ -102,12 +102,12 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
       result.top_thread_message_id_ = top_thread_message_id;
       break;
     }
-    case td_api::messageTopicFeedbackChat::ID: {
+    case td_api::messageTopicDirectMessages::ID: {
       if (!td->dialog_manager_->is_monoforum_channel(dialog_id)) {
         return Status::Error(400, "Chat is not a channel direct messages chat");
       }
       SavedMessagesTopicId saved_messages_topic_id(
-          DialogId(static_cast<const td_api::messageTopicFeedbackChat *>(topic.get())->feedback_chat_topic_id_));
+          DialogId(static_cast<const td_api::messageTopicDirectMessages *>(topic.get())->feedback_chat_topic_id_));
       TRY_STATUS(saved_messages_topic_id.is_valid_in(td, dialog_id));
       if (!td->saved_messages_manager_->have_topic(dialog_id, saved_messages_topic_id)) {
         return Status::Error(400, "Topic not found");
@@ -144,7 +144,7 @@ td_api::object_ptr<td_api::MessageTopic> MessageTopic::get_message_topic_object(
       // TODO send updateForumTopic before sending its identifier
       return td_api::make_object<td_api::messageTopicForum>(top_thread_message_id_.get());
     case Type::Monoforum:
-      return td_api::make_object<td_api::messageTopicFeedbackChat>(
+      return td_api::make_object<td_api::messageTopicDirectMessages>(
           td->saved_messages_manager_->get_saved_messages_topic_id_object(dialog_id_, saved_messages_topic_id_));
     case Type::SavedMessages:
       return td_api::make_object<td_api::messageTopicSavedMessages>(

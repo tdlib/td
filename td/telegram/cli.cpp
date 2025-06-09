@@ -1072,7 +1072,7 @@ class CliClient final : public Actor {
       return td_api::make_object<td_api::messageTopicSavedMessages>(get_saved_messages_topic_id());
     }
     if (feedback_chat_topic_id_ != 0) {
-      return td_api::make_object<td_api::messageTopicFeedbackChat>(feedback_chat_topic_id_);
+      return td_api::make_object<td_api::messageTopicDirectMessages>(feedback_chat_topic_id_);
     }
     if (message_thread_id_ != 0) {
       return td_api::make_object<td_api::messageTopicForum>(message_thread_id_);
