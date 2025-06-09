@@ -2204,6 +2204,7 @@ void SavedMessagesManager::set_monoforum_topic_is_marked_as_unread(DialogId dial
                                                                       is_marked_as_unread, 0);
     on_topic_changed(topic_list, topic, "set_monoforum_topic_is_marked_as_unread");
   }
+  promise.set_value(Unit());
 }
 
 Status SavedMessagesManager::set_monoforum_topic_draft_message(
