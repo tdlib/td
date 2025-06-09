@@ -900,6 +900,7 @@ void SavedMessagesManager::clear_monoforum_topic_draft_by_sent_message(DialogId 
     return;
   }
 
+  LOG(INFO) << "Clear draft in " << saved_messages_topic_id << " of " << dialog_id << " by sent message";
   if (!message_clear_draft) {
     const auto *draft_message = topic->draft_message_.get();
     if (draft_message == nullptr || !draft_message->need_clear_local(message_content_type)) {
@@ -907,6 +908,7 @@ void SavedMessagesManager::clear_monoforum_topic_draft_by_sent_message(DialogId 
     }
   }
   do_set_topic_draft_message(topic, nullptr, false);
+  on_topic_changed(topic_list, topic, "clear_monoforum_topic_draft_by_sent_message");
 }
 
 void SavedMessagesManager::repair_topic_unread_count(const SavedMessagesTopic *topic) {
@@ -945,6 +947,8 @@ void SavedMessagesManager::read_topic_messages(SavedMessagesTopic *topic, Messag
     }
   }
   do_set_topic_read_inbox_max_message_id(topic, read_inbox_max_message_id, unread_count, "read_topic_messages");
+
+  // on_topic_changed must be called by the caller
 }
 
 void SavedMessagesManager::read_monoforum_topic_messages(DialogId dialog_id,
@@ -2280,6 +2284,8 @@ void SavedMessagesManager::read_all_monoforum_topic_reactions(DialogId dialog_id
 
   td_->message_query_manager_->read_all_topic_reactions_on_server(dialog_id, MessageId(), saved_messages_topic_id, 0,
                                                                   std::move(promise));
+
+  on_topic_changed(topic_list, topic, "read_all_monoforum_topic_reactions");
 }
 
 void SavedMessagesManager::get_monoforum_message_author(MessageFullId message_full_id,

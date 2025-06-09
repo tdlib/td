@@ -27220,6 +27220,7 @@ void MessagesManager::clear_dialog_draft_by_sent_message(Dialog *d, const Messag
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  LOG(INFO) << "Clear draft in " << d->dialog_id << " by sent " << m->message_id;
   if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id) && m->saved_messages_topic_id.is_valid()) {
     td_->saved_messages_manager_->clear_monoforum_topic_draft_by_sent_message(d->dialog_id, m->saved_messages_topic_id,
                                                                               m->clear_draft, m->content->get_type());
