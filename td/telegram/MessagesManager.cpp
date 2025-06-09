@@ -16802,7 +16802,8 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
   bool need_delay = d->open_count > 0 && !is_secret &&
                     (d->server_unread_count > 0 || (!need_unread_counter(d->order) && d->last_message_id.is_valid() &&
-                                                    max_message_id < d->last_message_id));
+                                                    max_message_id < d->last_message_id)) &&
+                    !d->is_forum_tabs && !td_->dialog_manager_->is_admined_monoforum_channel(dialog_id);
   LOG(INFO) << "Read history in " << dialog_id << " on server up to " << max_message_id << " with"
             << (need_delay ? "" : "out") << " delay";
 
