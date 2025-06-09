@@ -3686,15 +3686,15 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDisc
   auto last_read_inbox_message_id = MessageId(ServerMessageId(update->read_max_id_));
   if (!last_read_inbox_message_id.is_valid()) {
     LOG(ERROR) << "Receive " << to_string(update);
-    return;
-  }
-  td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->channel_id_)),
-                                                          MessageId(ServerMessageId(update->top_msg_id_)), MessageId(),
-                                                          last_read_inbox_message_id, MessageId(), -1);
-  if (update->broadcast_id_ != 0) {
-    td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->broadcast_id_)),
-                                                            MessageId(ServerMessageId(update->broadcast_post_)),
+  } else {
+    td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->channel_id_)),
+                                                            MessageId(ServerMessageId(update->top_msg_id_)),
                                                             MessageId(), last_read_inbox_message_id, MessageId(), -1);
+    if (update->broadcast_id_ != 0) {
+      td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->broadcast_id_)),
+                                                              MessageId(ServerMessageId(update->broadcast_post_)),
+                                                              MessageId(), last_read_inbox_message_id, MessageId(), -1);
+    }
   }
   promise.set_value(Unit());
 }
@@ -3704,11 +3704,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelDisc
   auto last_read_outbox_message_id = MessageId(ServerMessageId(update->read_max_id_));
   if (!last_read_outbox_message_id.is_valid()) {
     LOG(ERROR) << "Receive " << to_string(update);
-    return;
+  } else {
+    td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->channel_id_)),
+                                                            MessageId(ServerMessageId(update->top_msg_id_)),
+                                                            MessageId(), MessageId(), last_read_outbox_message_id, -1);
   }
-  td_->messages_manager_->on_update_read_message_comments(DialogId(ChannelId(update->channel_id_)),
-                                                          MessageId(ServerMessageId(update->top_msg_id_)), MessageId(),
-                                                          MessageId(), last_read_outbox_message_id, -1);
   promise.set_value(Unit());
 }
 
@@ -3716,11 +3716,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadMonoForumIn
   auto read_inbox_max_message_id = MessageId(ServerMessageId(update->read_max_id_));
   if (!read_inbox_max_message_id.is_valid()) {
     LOG(ERROR) << "Receive " << to_string(update);
-    return;
+  } else {
+    td_->saved_messages_manager_->on_update_read_monoforum_inbox(DialogId(ChannelId(update->channel_id_)),
+                                                                 SavedMessagesTopicId(DialogId(update->saved_peer_id_)),
+                                                                 read_inbox_max_message_id);
   }
-  td_->saved_messages_manager_->on_update_read_monoforum_inbox(DialogId(ChannelId(update->channel_id_)),
-                                                               SavedMessagesTopicId(DialogId(update->saved_peer_id_)),
-                                                               read_inbox_max_message_id);
   promise.set_value(Unit());
 }
 
@@ -3728,11 +3728,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadMonoForumOu
   auto read_outbox_max_message_id = MessageId(ServerMessageId(update->read_max_id_));
   if (!read_outbox_max_message_id.is_valid()) {
     LOG(ERROR) << "Receive " << to_string(update);
-    return;
+  } else {
+    td_->saved_messages_manager_->on_update_read_monoforum_outbox(
+        DialogId(ChannelId(update->channel_id_)), SavedMessagesTopicId(DialogId(update->saved_peer_id_)),
+        read_outbox_max_message_id);
   }
-  td_->saved_messages_manager_->on_update_read_monoforum_outbox(DialogId(ChannelId(update->channel_id_)),
-                                                                SavedMessagesTopicId(DialogId(update->saved_peer_id_)),
-                                                                read_outbox_max_message_id);
   promise.set_value(Unit());
 }
 
