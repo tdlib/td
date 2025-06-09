@@ -30266,7 +30266,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (!td_->auth_manager_->is_bot()) {
     if (m->saved_messages_topic_id.is_valid()) {
       td_->saved_messages_manager_->on_topic_message_added(dialog_id, m->saved_messages_topic_id, message_id, m->date,
-                                                           from_update, need_update,
+                                                           from_update, *need_update,
                                                            message_id >= d->last_new_message_id, source);
     }
 

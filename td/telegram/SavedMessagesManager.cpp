@@ -720,7 +720,7 @@ void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessa
   }
 
   LOG(INFO) << "Add " << message_id << " to " << saved_messages_topic_id << " of " << dialog_id
-            << " with need_update = " << need_update << " and is_new = " << is_new;
+            << " with from_update = " << from_update << ", need_update = " << need_update << " and is_new = " << is_new;
   auto *topic_list = add_topic_list(dialog_id);
   if (topic_list == nullptr) {
     return;
