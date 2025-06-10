@@ -8771,12 +8771,21 @@ bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_
   return false;
 }
 
-bool MessagesManager::has_incoming_notification(DialogId dialog_id, const Message *m) const {
+bool MessagesManager::has_incoming_notification(const Dialog *d, const Message *m) const {
   CHECK(m != nullptr);
   if (m->is_from_scheduled) {
     return true;
   }
-  return !m->message_id.is_scheduled() && !m->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id();
+  if (m->message_id.is_scheduled()) {
+    return false;
+  }
+  if (m->is_outgoing) {
+    return false;
+  }
+  if (d->dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+    return false;
+  }
+  return true;
 }
 
 void MessagesManager::repair_server_unread_count(DialogId dialog_id, int32 unread_count, const char *source) {
@@ -12864,7 +12873,7 @@ void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message 
     set_dialog_reply_markup(d, MessageId());
   }
   // if last_read_inbox_message_id is not known, we can't be sure whether unread_count should be decreased or not
-  if (has_incoming_notification(d->dialog_id, m) && message_id > d->last_read_inbox_message_id &&
+  if (has_incoming_notification(d, m) && message_id > d->last_read_inbox_message_id &&
       d->is_last_read_inbox_message_id_inited) {
     int32 server_unread_count = d->server_unread_count;
     int32 local_unread_count = d->local_unread_count;
@@ -18207,7 +18216,7 @@ std::function<bool(MessageId)> MessagesManager::get_is_counted_as_unread(const D
                                                                          MessageType message_type) const {
   CHECK(d != nullptr);
   return [this, d, message_type](MessageId message_id) {
-    return message_id.get_type() == message_type && has_incoming_notification(d->dialog_id, get_message(d, message_id));
+    return message_id.get_type() == message_type && has_incoming_notification(d, get_message(d, message_id));
   };
 }
 
@@ -25456,7 +25465,7 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
   CHECK(d != nullptr);
   CHECK(m != nullptr);
 
-  if (!has_incoming_notification(d->dialog_id, m) || td_->auth_manager_->is_bot()) {
+  if (!has_incoming_notification(d, m) || td_->auth_manager_->is_bot()) {
     return true;
   }
   if (m->is_from_scheduled && d->dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
@@ -29669,7 +29678,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
   bool is_new = message_id >= d->last_new_message_id;
 
   if (need_update && message_id > d->last_read_inbox_message_id) {
-    if (has_incoming_notification(dialog_id, m)) {
+    if (has_incoming_notification(d, m)) {
       int32 server_unread_count = d->server_unread_count;
       int32 local_unread_count = d->local_unread_count;
       if (message_id.is_server()) {
