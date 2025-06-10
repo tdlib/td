@@ -516,6 +516,9 @@ int64 SavedMessagesManager::get_saved_messages_topic_id_object(DialogId dialog_i
   }
   auto *topic_list = add_topic_list(dialog_id);
   if (topic_list == nullptr) {
+    if (td_->auth_manager_->is_bot()) {
+      return saved_messages_topic_id.get_unique_id();
+    }
     return 0;
   }
 
@@ -567,6 +570,7 @@ const SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
 SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(TopicList *topic_list,
                                                                           SavedMessagesTopicId saved_messages_topic_id,
                                                                           bool from_server) {
+  CHECK(!td_->auth_manager_->is_bot());
   CHECK(saved_messages_topic_id.is_valid());
   auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   bool is_saved_messages = topic_list->dialog_id_ == DialogId();
@@ -1283,6 +1287,9 @@ const SavedMessagesManager::TopicList *SavedMessagesManager::get_topic_list(Dial
 }
 
 SavedMessagesManager::TopicList *SavedMessagesManager::add_topic_list(DialogId dialog_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return nullptr;
+  }
   if (dialog_id == DialogId() || dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     return &topic_list_;
   }
