@@ -25468,6 +25468,9 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
   if (!has_incoming_notification(d, m) || td_->auth_manager_->is_bot()) {
     return true;
   }
+  if (m->sender_dialog_id.is_valid() && td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id)) {
+    return true;
+  }
   if (m->is_from_scheduled && d->dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
       td_->option_manager_->get_option_boolean("disable_sent_scheduled_message_notifications")) {
     return true;
