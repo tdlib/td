@@ -1448,6 +1448,37 @@ void SavedMessagesManager::on_get_saved_messages_topics(
   td_->user_manager_->on_get_users(std::move(users), "on_get_saved_messages_topics");
   td_->chat_manager_->on_get_chats(std::move(chats), "on_get_saved_messages_topics");
 
+  MessagesInfo messages_info;
+  messages_info.messages = std::move(messages);
+  td_->messages_manager_->get_channel_difference_if_needed(
+      dialog_id, std::move(messages_info),
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, generation, expected_saved_messages_topic_id,
+                              is_pinned, limit, total_count, dialogs = std::move(dialogs), is_last,
+                              promise = std::move(promise)](Result<MessagesInfo> &&r_info) mutable {
+        if (r_info.is_error()) {
+          return promise.set_error(r_info.move_as_error());
+        }
+        auto info = r_info.move_as_ok();
+        send_closure(actor_id, &SavedMessagesManager::process_saved_messages_topics, dialog_id, generation,
+                     expected_saved_messages_topic_id, is_pinned, limit, total_count, std::move(dialogs),
+                     std::move(info.messages), is_last, std::move(promise));
+      }),
+      "on_get_saved_messages_topics");
+}
+
+void SavedMessagesManager::process_saved_messages_topics(
+    DialogId dialog_id, uint32 generation, SavedMessagesTopicId expected_saved_messages_topic_id, bool is_pinned,
+    int32 limit, int32 total_count, vector<telegram_api::object_ptr<telegram_api::SavedDialog>> &&dialogs,
+    vector<telegram_api::object_ptr<telegram_api::Message>> &&messages, bool is_last, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return promise.set_error(Status::Error(400, "Chat has no topics"));
+  }
+  if (topic_list->generation_ != generation) {
+    return promise.set_error(Status::Error(400, "Topic was deleted"));
+  }
+
   FlatHashMap<MessageId, telegram_api::object_ptr<telegram_api::Message>, MessageIdHash> message_id_to_message;
   for (auto &message : messages) {
     auto message_id = MessageId::get_message_id(message, false);

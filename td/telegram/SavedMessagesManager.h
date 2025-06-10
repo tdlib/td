@@ -268,6 +268,13 @@ class SavedMessagesManager final : public Actor {
   static SavedMessagesTopicInfo get_saved_messages_topic_info(
       Td *td, telegram_api::object_ptr<telegram_api::SavedDialog> &&dialog_ptr, bool is_saved_messages);
 
+  void process_saved_messages_topics(DialogId dialog_id, uint32 generation,
+                                     SavedMessagesTopicId expected_saved_messages_topic_id, bool is_pinned, int32 limit,
+                                     int32 total_count,
+                                     vector<telegram_api::object_ptr<telegram_api::SavedDialog>> &&dialogs,
+                                     vector<telegram_api::object_ptr<telegram_api::Message>> &&messages, bool is_last,
+                                     Promise<Unit> &&promise);
+
   void on_get_saved_dialogs(TopicList *topic_list, Result<Unit> &&result);
 
   void on_get_monoforum_topic(DialogId dialog_id, uint32 generation, SavedMessagesTopicId saved_messages_topic_id,
