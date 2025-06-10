@@ -1292,7 +1292,8 @@ void ForumTopicManager::repair_topic_unread_mention_count(DialogId dialog_id, Me
     return;
   }
 
-  td_->create_handler<GetForumTopicQuery>(Auto())->send(dialog_id.get_channel_id(), top_thread_message_id);
+  td_->create_handler<GetForumTopicQuery>(Promise<td_api::object_ptr<td_api::forumTopic>>())
+      ->send(dialog_id.get_channel_id(), top_thread_message_id);
 }
 
 }  // namespace td
