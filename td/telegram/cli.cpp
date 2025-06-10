@@ -6933,8 +6933,7 @@ class CliClient final : public Actor {
       get_args(args, message_ids);
       send_request(
           td_api::make_object<td_api::deleteBusinessMessages>(business_connection_id_, as_message_ids(message_ids)));
-    }
-    if (op == "ebsp" || op == "ebsv") {
+    } else if (op == "ebsp" || op == "ebsv") {
       ChatId story_poster_chat_id;
       StoryId story_id;
       string story;

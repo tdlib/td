@@ -1312,7 +1312,13 @@ class UpdatePaidMessagesPriceQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->chat_manager_->on_get_channel_error(channel_id_, status, "UpdatePaidMessagesPriceQuery");
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        return promise_.set_value(Unit());
+      }
+    } else {
+      td_->chat_manager_->on_get_channel_error(channel_id_, status, "UpdatePaidMessagesPriceQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
