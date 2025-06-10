@@ -369,7 +369,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             }
             if (transaction->paid_messages_) {
               if (is_purchase) {
-                if (!td_->dialog_manager_->is_broadcast_channel(dialog_id) && for_user) {
+                if (for_user) {
                   SCOPE_EXIT {
                     product_info = nullptr;
                     transaction->paid_messages_ = 0;
