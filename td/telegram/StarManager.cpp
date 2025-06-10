@@ -381,7 +381,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                                                                                          transaction->paid_messages_);
                 }
               } else {
-                if ((for_user || for_supergroup) && affiliate != nullptr) {
+                if ((for_user || for_supergroup || for_channel) && affiliate != nullptr) {
                   SCOPE_EXIT {
                     product_info = nullptr;
                     transaction->paid_messages_ = 0;

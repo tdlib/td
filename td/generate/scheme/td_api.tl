@@ -1390,7 +1390,7 @@ starTransactionTypeAffiliateProgramCommission chat_id:int53 commission_per_mille
 //@description The transaction is a sending of a paid message; for regular users only @chat_id Identifier of the chat that received the payment @message_count Number of sent paid messages
 starTransactionTypePaidMessageSend chat_id:int53 message_count:int32 = StarTransactionType;
 
-//@description The transaction is a receiving of a paid message; for regular users and supergroup chats only
+//@description The transaction is a receiving of a paid message; for regular users, supergroup and channel chats only
 //@sender_id Identifier of the sender of the message
 //@message_count Number of received paid messages
 //@commission_per_mille The number of Telegram Stars received by the Telegram for each 1000 Telegram Stars paid for message sending
