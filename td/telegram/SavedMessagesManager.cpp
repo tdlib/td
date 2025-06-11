@@ -743,12 +743,13 @@ void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessa
   }
   topic->ordered_messages_.insert(message_id, from_update, old_last_message_id, source);
 
-  if (from_update) {
-    if (message_id.is_server()) {
+  if (message_id.is_server()) {
+    if (from_update) {
       topic->server_message_count_++;
-    } else {
-      topic->local_message_count_++;
+      on_topic_message_count_changed(topic, "on_topic_message_added");
     }
+  } else {
+    topic->local_message_count_++;
     on_topic_message_count_changed(topic, "on_topic_message_added");
   }
 
