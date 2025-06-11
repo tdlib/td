@@ -744,7 +744,7 @@ void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessa
   topic->ordered_messages_.insert(message_id, from_update, old_last_message_id, source);
 
   if (message_id.is_server()) {
-    if (from_update) {
+    if (from_update && topic->is_server_message_count_inited_) {
       topic->server_message_count_++;
       on_topic_message_count_changed(topic, "on_topic_message_added");
     }
@@ -809,16 +809,19 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
 
   if (!only_from_memory) {
     if (message_id.is_server()) {
-      if (topic->server_message_count_ > 0) {
-        topic->server_message_count_--;
-      } else if (topic->is_server_message_count_inited_) {
-        LOG(ERROR) << "Server message count become negative in " << saved_messages_topic_id << " of " << dialog_id;
+      if (topic->is_server_message_count_inited_) {
+        if (topic->server_message_count_ > 0) {
+          topic->server_message_count_--;
+          on_topic_message_count_changed(topic, "on_topic_message_deleted");
+        } else {
+          LOG(ERROR) << "Server message count become negative in " << saved_messages_topic_id << " of " << dialog_id;
+        }
       }
     } else {
       CHECK(topic->local_message_count_ > 0);
       topic->local_message_count_--;
+      on_topic_message_count_changed(topic, "on_topic_message_deleted");
     }
-    on_topic_message_count_changed(topic, "on_topic_message_deleted");
 
     if (message_id > topic->read_inbox_max_message_id_ && topic->read_inbox_max_message_id_.is_valid() &&
         td_->messages_manager_->get_is_counted_as_unread(dialog_id, MessageType::Server)(message_id)) {
