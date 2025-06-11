@@ -570,8 +570,8 @@ Status Session::on_pong(double ping_time, double pong_time, double current_time)
       status = Status::Error(PSLICE() << "No state info for " << unknown_queries_.size() << " queries from auth key "
                                       << auth_data_.get_auth_key().id() << " for "
                                       << format::as_time(Time::now() - current_info_->created_at_)
-                                      << " after ping sent at " << ping_time << " and answered at " << pong_time
-                                      << " with the current server time " << current_time);
+                                      << " after ping expected to be answered at " << ping_time << " and answered at "
+                                      << pong_time << " with the current server time " << current_time);
     }
     if (!sent_query_list_.empty()) {
       double query_timeout = 60 + (current_time - ping_time);
@@ -582,8 +582,8 @@ Status Session::on_pong(double ping_time, double pong_time, double current_time)
             status =
                 Status::Error(PSLICE() << "No answer from auth key " << auth_data_.get_auth_key().id() << " for "
                                        << query->net_query_ << " for " << format::as_time(Time::now() - query->sent_at_)
-                                       << " after ping sent at " << ping_time << " and answered at " << pong_time
-                                       << " with the current server time " << current_time);
+                                       << " after ping expected to be answered at " << ping_time << " and answered at "
+                                       << pong_time << " with the current server time " << current_time);
           }
           query->is_acknowledged_ = false;
         } else {
