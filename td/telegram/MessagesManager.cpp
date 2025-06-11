@@ -33921,8 +33921,9 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
                                << dialog_id << ", but it is not final";
 
       // bots can receive channelDifferenceEmpty with PTS bigger than known PTS
-      // also, this can happen for deleted channels
+      // also, this can happen for monoforum and deleted channels
       if (request_pts != difference->pts_ && !td_->auth_manager_->is_bot() &&
+          !td_->dialog_manager_->is_monoforum_channel(dialog_id) &&
           td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
         LOG(ERROR) << "Receive channelDifferenceEmpty as result of getChannelDifference from " << source
                    << " with PTS = " << request_pts << " and limit = " << request_limit << " in " << dialog_id
