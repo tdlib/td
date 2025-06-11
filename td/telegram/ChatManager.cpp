@@ -2755,7 +2755,7 @@ bool ChatManager::have_input_peer_channel(const Channel *c, ChannelId channel_id
   }
 
   if (!from_linked && c->is_monoforum) {
-    auto monoforum_channel_id = get_monoforum_channel_id(channel_id);
+    auto monoforum_channel_id = c->monoforum_channel_id;
     auto *monoforum_channel = get_channel(monoforum_channel_id);
     if (monoforum_channel != nullptr) {
       return have_input_peer_channel(monoforum_channel, monoforum_channel_id, access_rights, true);
@@ -6172,13 +6172,21 @@ bool ChatManager::on_get_channel_error(ChannelId channel_id, const Status &statu
     }
 
     auto c = get_channel(channel_id);
+
+    auto initial_channel_id = channel_id;
+    auto initial_c = c;
+    if (c != nullptr && c->is_monoforum) {
+      channel_id = c->monoforum_channel_id;
+      c = get_channel(channel_id);
+    }
     if (c == nullptr) {
       if (Slice(source) == Slice("GetChannelDifferenceQuery") || Slice(source) == Slice("GetChannelsQuery")) {
         // get channel difference after restart
         // get channel from server by its identifier
         return true;
       }
-      LOG(ERROR) << "Receive " << status.message() << " in not found " << channel_id << " from " << source;
+      LOG(ERROR) << "Receive " << status.message() << " in not found " << initial_channel_id << '/' << channel_id
+                 << " from " << source;
       return false;
     }
 
@@ -6204,8 +6212,11 @@ bool ChatManager::on_get_channel_error(ChannelId channel_id, const Status &statu
       td_->dialog_invite_link_manager_->remove_dialog_access_by_invite_link(DialogId(channel_id));
     }
     invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, source);
-    LOG_IF(ERROR, have_input_peer_channel(c, channel_id, AccessRights::Read))
-        << "Have read access to channel after receiving CHANNEL_PRIVATE. Channel state: "
+    if (channel_id != initial_channel_id) {
+      invalidate_channel_full(initial_channel_id, !initial_c->is_slow_mode_enabled, source);
+    }
+    LOG_IF(ERROR, have_input_peer_channel(initial_c, initial_channel_id, AccessRights::Read))
+        << "Have read access to " << initial_channel_id << " after receiving CHANNEL_PRIVATE. Channel state: "
         << oneline(to_string(get_supergroup_object(channel_id, c)))
         << ". Previous channel state: " << debug_channel_object;
 
