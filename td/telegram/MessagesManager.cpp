@@ -11242,8 +11242,7 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
 
     if (!new_message->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
       // sent message is not from me
-      LOG(ERROR) << "Sent in " << dialog_id << " " << message_id << " is sent by " << new_message->sender_user_id << "/"
-                 << new_message->sender_dialog_id;
+      LOG(ERROR) << "Sent in " << dialog_id << " " << message_id << " is sent by " << get_message_sender(new_message.get());
       return MessageFullId();
     }
 
@@ -19588,11 +19587,10 @@ tl_object_ptr<td_api::MessageSchedulingState> MessagesManager::get_message_sched
 td_api::object_ptr<td_api::MessageContent> MessagesManager::get_message_message_content_object(DialogId dialog_id,
                                                                                                const Message *m) const {
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
-  return get_message_content_object(
-      m->content.get(), td_, dialog_id, m->message_id, m->is_outgoing,
-      m->sender_dialog_id != DialogId() ? m->sender_dialog_id : DialogId(m->sender_user_id), live_location_date,
-      m->is_content_secret, need_skip_bot_commands(dialog_id, m), get_message_max_media_timestamp(m), m->invert_media,
-      m->disable_web_page_preview);
+  return get_message_content_object(m->content.get(), td_, dialog_id, m->message_id, m->is_outgoing,
+                                    get_message_sender(m), live_location_date, m->is_content_secret,
+                                    need_skip_bot_commands(dialog_id, m), get_message_max_media_timestamp(m),
+                                    m->invert_media, m->disable_web_page_preview);
 }
 
 td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_message_object(
@@ -19634,8 +19632,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
   auto edit_date = m->hide_edit_date ? 0 : m->edit_date;
   auto reply_markup = get_reply_markup_object(td_->user_manager_.get(), m->reply_markup);
   auto content = get_message_content_object(
-      m->content.get(), td_, dialog_id, m->message_id, m->is_outgoing,
-      m->sender_dialog_id != DialogId() ? m->sender_dialog_id : DialogId(m->sender_user_id), 0, false, true,
+      m->content.get(), td_, dialog_id, m->message_id, m->is_outgoing, get_message_sender(m), 0, false, true,
       get_message_own_max_media_timestamp(m), m->invert_media, m->disable_web_page_preview);
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
@@ -29898,17 +29895,17 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (*need_update && d->reply_markup_message_id != MessageId()) {
-    UserId bot_user_id;
+    DialogId bot_dialog_id;
     if (message->reply_markup != nullptr && message->reply_markup->type == ReplyMarkup::Type::RemoveKeyboard &&
         message_id > d->reply_markup_message_id) {
-      bot_user_id = message->sender_user_id;
+      bot_dialog_id = get_message_sender(message.get());
     } else {
-      bot_user_id = get_message_content_deleted_user_id(message->content.get());
+      bot_dialog_id = DialogId(get_message_content_deleted_user_id(message->content.get()));
       // do not check for is_user_bot to allow deleted bots
     }
-    if (bot_user_id.is_valid()) {
+    if (bot_dialog_id.is_valid()) {
       const Message *old_message = get_message_force(d, d->reply_markup_message_id, "add_message_to_dialog 1");
-      if (old_message == nullptr || old_message->sender_user_id == bot_user_id) {
+      if (old_message == nullptr || get_message_sender(old_message) == bot_dialog_id) {
         set_dialog_reply_markup(d, MessageId());
       }
     }
@@ -30931,8 +30928,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
   if (old_message->author_signature != new_message->author_signature) {
     LOG(DEBUG) << "Author signature has changed for " << message_id << " in " << dialog_id << " sent by "
-               << old_message->sender_user_id << "/" << new_message->sender_user_id << " or "
-               << old_message->sender_dialog_id << "/" << new_message->sender_dialog_id << " from "
+               << get_message_sender(old_message) << '/' << get_message_sender(new_message.get()) << " from "
                << old_message->author_signature << " to " << new_message->author_signature;
     old_message->author_signature = std::move(new_message->author_signature);
     need_send_update = true;
@@ -30980,11 +30976,11 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     if (!replace_legacy && is_new_available &&
         MessageForwardInfo::need_change_warning(old_message->forward_info.get(), new_message->forward_info.get(),
                                                 message_id)) {
-      LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id << "/"
-                 << old_message->sender_dialog_id << " has changed forward info from " << old_message->forward_info
-                 << " to " << new_message->forward_info << ", really forwarded from "
-                 << old_message->real_forward_from_message_id << " in " << old_message->real_forward_from_dialog_id
-                 << ", message content type is " << old_content_type << '/' << new_content_type;
+      LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << get_message_sender(old_message)
+                 << " has changed forward info from " << old_message->forward_info << " to "
+                 << new_message->forward_info << ", really forwarded from " << old_message->real_forward_from_message_id
+                 << " in " << old_message->real_forward_from_dialog_id << ", message content type is "
+                 << old_content_type << '/' << new_content_type;
     } else {
       LOG(DEBUG) << "Message forward info has changed from " << old_message->forward_info << " to "
                  << new_message->forward_info;
@@ -31306,8 +31302,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       } else {
         // if the message is not accessible anymore, then we don't need a warning
         if (need_message_changed_warning(old_message) && is_new_available) {
-          LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id << "/"
-                     << old_message->sender_dialog_id << " has lost reply markup " << *old_message->reply_markup
+          LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << get_message_sender(old_message)
+                     << " has lost reply markup " << *old_message->reply_markup
                      << ". Old message: " << to_string(get_message_object(dialog_id, old_message, "update_message"))
                      << ". New message: "
                      << to_string(get_message_object(dialog_id, new_message.get(), "update_message"));
