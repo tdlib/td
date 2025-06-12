@@ -86,7 +86,7 @@ Status SavedMessagesTopicId::is_valid_in(Td *td, DialogId dialog_id) const {
     return Status::Error(400, "Invalid Saved Messages topic specified");
   }
   if (dialog_id != td->dialog_manager_->get_my_dialog_id() &&
-      (!td->dialog_manager_->is_monoforum_channel(dialog_id) || is_author_hidden())) {
+      (!td->dialog_manager_->is_admined_monoforum_channel(dialog_id) || is_author_hidden())) {
     return Status::Error(400, "Can't use topic in the chat");
   }
   if (!have_input_peer(td)) {
