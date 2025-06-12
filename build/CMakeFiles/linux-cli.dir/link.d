@@ -46,10 +46,8 @@ linux-cli: \
   /usr/lib/gcc/x86_64-linux-gnu/14/crtendS.o \
   /usr/lib/gcc/x86_64-linux-gnu/14/../../../x86_64-linux-gnu/crtn.o \
   /usr/lib/x86_64-linux-gnu/libssl.so \
-  /usr/lib/x86_64-linux-gnu/libcrypto.so \
   /usr/lib/x86_64-linux-gnu/libz.so \
   /lib/x86_64-linux-gnu/libm.so.6 \
-  /lib64/ld-linux-x86-64.so.2 \
   /lib/i386-linux-gnu/libzstd.so.1 \
   /usr/lib/i386-linux-gnu/libzstd.so.1 \
   /lib/x86_64-linux-gnu/libzstd.so.1
@@ -148,13 +146,9 @@ CMakeFiles/linux-cli.dir/src/main.cpp.o:
 
 /usr/lib/x86_64-linux-gnu/libssl.so:
 
-/usr/lib/x86_64-linux-gnu/libcrypto.so:
-
 /usr/lib/x86_64-linux-gnu/libz.so:
 
 /lib/x86_64-linux-gnu/libm.so.6:
-
-/lib64/ld-linux-x86-64.so.2:
 
 /lib/i386-linux-gnu/libzstd.so.1:
 
