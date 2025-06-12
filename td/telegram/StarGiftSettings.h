@@ -31,6 +31,8 @@ class StarGiftSettings {
 
   explicit StarGiftSettings(const td_api::object_ptr<td_api::giftSettings> &settings);
 
+  static StarGiftSettings allow_nothing();
+
   td_api::object_ptr<td_api::giftSettings> get_gift_settings_object() const;
 
   bool get_display_gifts_button() const {

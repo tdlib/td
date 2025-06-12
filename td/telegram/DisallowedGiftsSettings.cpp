@@ -27,6 +27,15 @@ DisallowedGiftsSettings::DisallowedGiftsSettings(const td_api::object_ptr<td_api
   }
 }
 
+DisallowedGiftsSettings DisallowedGiftsSettings::allow_nothing() {
+  DisallowedGiftsSettings result;
+  result.disallow_unlimited_stargifts_ = true;
+  result.disallow_limited_stargifts_ = true;
+  result.disallow_unique_stargifts_ = true;
+  result.disallow_premium_gifts_ = true;
+  return result;
+}
+
 td_api::object_ptr<td_api::acceptedGiftTypes> DisallowedGiftsSettings::get_accepted_gift_types_object() const {
   return td_api::make_object<td_api::acceptedGiftTypes>(!disallow_unlimited_stargifts_, !disallow_limited_stargifts_,
                                                         !disallow_unique_stargifts_, !disallow_premium_gifts_);

@@ -20,6 +20,12 @@ StarGiftSettings::StarGiftSettings(const td_api::object_ptr<td_api::giftSettings
   }
 }
 
+StarGiftSettings StarGiftSettings::allow_nothing() {
+  StarGiftSettings result;
+  result.disallowed_gifts_ = DisallowedGiftsSettings::allow_nothing();
+  return result;
+}
+
 td_api::object_ptr<td_api::giftSettings> StarGiftSettings::get_gift_settings_object() const {
   return td_api::make_object<td_api::giftSettings>(display_gifts_button_,
                                                    disallowed_gifts_.get_accepted_gift_types_object());

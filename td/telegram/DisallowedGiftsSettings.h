@@ -31,6 +31,8 @@ class DisallowedGiftsSettings {
 
   explicit DisallowedGiftsSettings(const td_api::object_ptr<td_api::acceptedGiftTypes> &types);
 
+  static DisallowedGiftsSettings allow_nothing();
+
   td_api::object_ptr<td_api::acceptedGiftTypes> get_accepted_gift_types_object() const;
 
   telegram_api::object_ptr<telegram_api::disallowedGiftsSettings> get_input_disallowed_gifts_settings() const;

@@ -7435,6 +7435,9 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   auto can_view_revenue = user->can_view_revenue_;
   auto bot_verification = BotVerification::get_bot_verification(std::move(user->bot_verification_));
   auto gift_settings = StarGiftSettings(user->display_gifts_button_, std::move(user->disallowed_gifts_));
+  if (u->is_deleted) {
+    gift_settings = StarGiftSettings::allow_nothing();
+  }
   if (user_full->can_be_called != can_be_called || user_full->supports_video_calls != supports_video_calls ||
       user_full->has_private_calls != has_private_calls ||
       user_full->voice_messages_forbidden != voice_messages_forbidden ||
@@ -7855,7 +7858,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->read_dates_private = false;
   user_full->contact_require_premium = false;
   user_full->birthdate = {};
-  user_full->gift_settings = {};
+  user_full->gift_settings = StarGiftSettings::allow_nothing();
   user_full->sponsored_enabled = false;
   user_full->has_preview_medias = false;
   user_full->can_view_revenue = false;
