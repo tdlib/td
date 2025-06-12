@@ -609,6 +609,10 @@ void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topi
   topic->last_message_id_ = last_message_id;
   topic->last_message_date_ = last_message_date;
   topic->is_changed_ = true;
+
+  if (last_message_id != MessageId()) {
+    CHECK(topic->ordered_messages_.get_last_message_id() == last_message_id);
+  }
 }
 
 void SavedMessagesManager::do_set_topic_read_inbox_max_message_id(SavedMessagesTopic *topic,
@@ -732,7 +736,8 @@ void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessa
   }
   auto *topic = add_topic(topic_list, saved_messages_topic_id, false);
 
-  auto old_last_message_id = topic->last_message_id_;
+  topic->ordered_messages_.insert(message_id, from_update, topic->last_message_id_, source);
+
   if (from_update && is_new && message_id > topic->last_message_id_) {
     do_set_topic_last_message_id(topic, message_id, message_date);
   }
@@ -742,7 +747,6 @@ void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessa
     do_set_topic_read_inbox_max_message_id(topic, topic->read_inbox_max_message_id_, topic->unread_count_ + 1,
                                            "on_topic_message_added");
   }
-  topic->ordered_messages_.insert(message_id, from_update, old_last_message_id, source);
 
   if (message_id.is_server()) {
     if (from_update && topic->is_server_message_count_inited_) {
@@ -789,17 +793,14 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
   CHECK(topic != nullptr);
 
+  topic->ordered_messages_.erase(message_id, only_from_memory);
+
   if (message_id == topic->last_message_id_) {
     CHECK(!only_from_memory);
 
-    auto it = topic->ordered_messages_.get_const_iterator(message_id);
-    CHECK(*it != nullptr);
-    CHECK((*it)->get_message_id() == message_id);
-    --it;
-    MessageId new_last_message_id;
+    MessageId new_last_message_id = topic->ordered_messages_.get_last_message_id();
     int32 new_last_message_date = 0;
-    if (*it != nullptr) {
-      new_last_message_id = (*it)->get_message_id();
+    if (new_last_message_id != MessageId()) {
       new_last_message_date = td_->messages_manager_->get_get_message_date(dialog_id)(new_last_message_id);
     } else {
       new_last_message_date = topic->last_message_date_;
@@ -807,9 +808,6 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
     }
     do_set_topic_last_message_id(topic, new_last_message_id, new_last_message_date);
   }
-
-  topic->ordered_messages_.erase(message_id, only_from_memory);
-
   if (!only_from_memory) {
     if (message_id.is_server()) {
       if (topic->is_server_message_count_inited_) {
@@ -1569,7 +1567,8 @@ void SavedMessagesManager::process_saved_messages_topics(
 
     auto *topic = add_topic(topic_list, saved_messages_topic_id, true);
     if (!td_->auth_manager_->is_bot()) {
-      if (topic->last_message_id_ == MessageId() && last_topic_message_id.is_valid()) {
+      if (topic->last_message_id_ == MessageId() && last_topic_message_id.is_valid() &&
+          topic->ordered_messages_.get_last_message_id() == last_topic_message_id) {
         do_set_topic_last_message_id(topic, last_topic_message_id, message_date);
       }
       if (topic->read_inbox_max_message_id_ == MessageId() || topic->need_repair_unread_count_) {
@@ -2074,7 +2073,8 @@ void SavedMessagesManager::on_get_topic_history(DialogId dialog_id, uint32 gener
     }
     first_message_id = message_id;
   }
-  if (from_the_end && last_message_id.is_valid() && last_message_id > topic->last_message_id_) {
+  if (from_the_end && last_message_id.is_valid() && last_message_id > topic->last_message_id_ &&
+      topic->ordered_messages_.get_last_message_id() == last_message_id) {
     do_set_topic_last_message_id(topic, last_message_id, last_message_date);
     on_topic_changed(topic_list, topic, "on_get_topic_history");
   }

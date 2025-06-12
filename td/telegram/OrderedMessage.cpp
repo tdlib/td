@@ -328,6 +328,14 @@ MessageId OrderedMessages::get_last_sent_message_id() const {
   return MessageId();
 }
 
+MessageId OrderedMessages::get_last_message_id() const {
+  auto it = get_const_iterator(MessageId::max());
+  if (*it != nullptr) {
+    return (*it)->get_message_id();
+  }
+  return MessageId();
+}
+
 vector<MessageId> OrderedMessages::get_history(MessageId last_message_id, MessageId &from_message_id, int32 &offset,
                                                int32 &limit, bool force) const {
   CHECK(limit > 0);
