@@ -83,14 +83,14 @@ bool SavedMessagesTopicId::have_input_peer(Td *td) const {
 
 Status SavedMessagesTopicId::is_valid_in(Td *td, DialogId dialog_id) const {
   if (!dialog_id_.is_valid()) {
-    return Status::Error(400, "Invalid Saved Messages topic specified");
+    return Status::Error(400, "Invalid topic specified");
   }
   if (dialog_id != td->dialog_manager_->get_my_dialog_id() &&
       (!td->dialog_manager_->is_admined_monoforum_channel(dialog_id) || is_author_hidden())) {
     return Status::Error(400, "Can't use topic in the chat");
   }
   if (!have_input_peer(td)) {
-    return Status::Error(400, "Unknown Saved Messages topic specified");
+    return Status::Error(400, "Unknown topic specified");
   }
   return Status::OK();
 }
@@ -118,7 +118,7 @@ void SavedMessagesTopicId::add_dependencies(Dependencies &dependencies) const {
 
 StringBuilder &operator<<(StringBuilder &string_builder, SavedMessagesTopicId saved_messages_topic_id) {
   if (!saved_messages_topic_id.dialog_id_.is_valid()) {
-    return string_builder << "[no Saved Messages topic]";
+    return string_builder << "[no topic]";
   }
   if (saved_messages_topic_id.is_author_hidden()) {
     return string_builder << "[Author Hidden topic]";
