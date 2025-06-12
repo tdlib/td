@@ -804,9 +804,12 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
       new_last_message_date = td_->messages_manager_->get_get_message_date(dialog_id)(new_last_message_id);
     } else {
       new_last_message_date = topic->last_message_date_;
-      get_topic_history(dialog_id, saved_messages_topic_id, MessageId(), 0, 1, 2, Auto());
     }
     do_set_topic_last_message_id(topic, new_last_message_id, new_last_message_date);
+    if (new_last_message_id == MessageId()) {
+      do_get_topic_history(topic_list, nullptr /*force request*/, dialog_id, saved_messages_topic_id, MessageId::max(),
+                           0, 1, 2, Auto());
+    }
   }
   if (!only_from_memory) {
     if (message_id.is_server()) {
