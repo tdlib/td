@@ -42,3 +42,7 @@ sudo make install
   *Поддержка секретных чатов ---> в разработке
 
   *Поддержка мультиязычности --->в разработке
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
