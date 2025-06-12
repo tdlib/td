@@ -722,6 +722,7 @@ void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessa
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  CHECK(message_id.is_valid());
 
   LOG(INFO) << "Add " << message_id << " to " << saved_messages_topic_id << " of " << dialog_id
             << " with from_update = " << from_update << ", need_update = " << need_update << " and is_new = " << is_new;
@@ -761,6 +762,7 @@ void SavedMessagesManager::on_topic_message_updated(DialogId dialog_id, SavedMes
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  CHECK(message_id.is_valid());
 
   auto *topic_list = get_topic_list(dialog_id);
   if (topic_list == nullptr) {
@@ -779,6 +781,7 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  CHECK(message_id.is_valid());
 
   LOG(INFO) << "Delete " << message_id << " from " << saved_messages_topic_id << " of " << dialog_id;
   auto *topic_list = get_topic_list(dialog_id);
