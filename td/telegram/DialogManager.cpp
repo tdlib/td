@@ -1807,20 +1807,22 @@ bool DialogManager::is_anonymous_administrator(DialogId dialog_id, string *autho
   if (is_broadcast_channel(dialog_id)) {
     return true;
   }
-
-  if (td_->auth_manager_->is_bot()) {
-    return false;
-  }
-
   if (dialog_id.get_type() != DialogType::Channel) {
     return false;
   }
 
-  auto status = td_->chat_manager_->get_channel_status(dialog_id.get_channel_id());
-  if (!status.is_anonymous()) {
+  auto channel_id = dialog_id.get_channel_id();
+  if (td_->chat_manager_->is_admined_monoforum_channel(channel_id)) {
+    return true;
+  }
+  if (td_->auth_manager_->is_bot()) {
     return false;
   }
 
+  auto status = td_->chat_manager_->get_channel_status(channel_id);
+  if (!status.is_anonymous()) {
+    return false;
+  }
   if (author_signature != nullptr) {
     *author_signature = status.get_rank();
   }
