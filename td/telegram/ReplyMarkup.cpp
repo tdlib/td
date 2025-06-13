@@ -809,8 +809,9 @@ Result<unique_ptr<ReplyMarkup>> get_inline_reply_markup(td_api::object_ptr<td_ap
 }
 
 Result<unique_ptr<ReplyMarkup>> get_reply_markup(td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr,
-                                                 DialogType dialog_type, bool is_bot, bool is_anonymous) {
-  bool only_inline_keyboard = is_anonymous;
+                                                 DialogType dialog_type, bool is_admined_monoforum, bool is_bot,
+                                                 bool is_anonymous) {
+  bool only_inline_keyboard = is_anonymous && !is_admined_monoforum;
   bool request_buttons_allowed = dialog_type == DialogType::User;
   bool switch_inline_buttons_allowed = !is_anonymous;
   bool allow_personal = dialog_type != DialogType::User;

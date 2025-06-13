@@ -23326,7 +23326,8 @@ bool MessagesManager::can_set_game_score(DialogId dialog_id, const Message *m) c
 
 Result<unique_ptr<ReplyMarkup>> MessagesManager::get_dialog_reply_markup(
     DialogId dialog_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup) const {
-  return get_reply_markup(std::move(reply_markup), dialog_id.get_type(), td_->auth_manager_->is_bot(),
+  return get_reply_markup(std::move(reply_markup), dialog_id.get_type(),
+                          td_->dialog_manager_->is_admined_monoforum_channel(dialog_id), td_->auth_manager_->is_bot(),
                           td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr));
 }
 

@@ -1212,7 +1212,7 @@ void BusinessConnectionManager::send_message(BusinessConnectionId business_conne
   TRY_RESULT_PROMISE(promise, input_content, process_input_message_content(std::move(input_message_content)));
   auto input_reply_to = create_business_message_input_reply_to(std::move(reply_to));
   TRY_RESULT_PROMISE(promise, message_reply_markup,
-                     get_reply_markup(std::move(reply_markup), DialogType::User, true, false));
+                     get_reply_markup(std::move(reply_markup), DialogType::User, false, true, false));
 
   auto message = create_business_message_to_send(std::move(business_connection_id), dialog_id,
                                                  std::move(input_reply_to), disable_notification, protect_content,
