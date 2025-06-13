@@ -1,0 +1,3 @@
+/home/guts/Projects/linux-cli/build/CMakeFiles/linux-cli.dir
+/home/guts/Projects/linux-cli/build/CMakeFiles/edit_cache.dir
+/home/guts/Projects/linux-cli/build/CMakeFiles/rebuild_cache.dir
