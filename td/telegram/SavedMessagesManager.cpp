@@ -263,6 +263,7 @@ class GetSavedMessageByDateQuery final : public Td::ResultHandler {
         auto message_full_id = td_->messages_manager_->on_get_message(dialog_id_, std::move(message), false, false,
                                                                       false, "GetSavedMessageByDateQuery");
         if (message_full_id != MessageFullId()) {
+          // TODO check message topic_id
           return promise_.set_value(
               td_->messages_manager_->get_message_object(message_full_id, "GetSavedMessageByDateQuery"));
         }
@@ -1560,12 +1561,13 @@ void SavedMessagesManager::process_saved_messages_topics(
           false, "on_get_saved_messages_topics");
       message_id_to_message.erase(it);
 
-      if (message_full_id.get_message_id() == MessageId()) {
+      auto message_id = message_full_id.get_message_id();
+      if (message_id == MessageId()) {
         LOG(ERROR) << "Can't add last " << last_topic_message_id << " to " << saved_messages_topic_id;
         total_count--;
         continue;
       }
-      CHECK(message_full_id.get_message_id() == last_topic_message_id);
+      CHECK(message_id == last_topic_message_id);
     } else if (!is_get_topic) {
       // skip topics without messages
       LOG(ERROR) << "Receive " << saved_messages_topic_id << " without last message";
@@ -1574,6 +1576,12 @@ void SavedMessagesManager::process_saved_messages_topics(
     }
 
     auto *topic = add_topic(topic_list, saved_messages_topic_id, true);
+    if (last_topic_message_id.is_valid() && !topic->ordered_messages_.has_message(last_topic_message_id)) {
+      LOG(ERROR) << "Receive " << last_topic_message_id << " in " << dialog_id << ", which isn't from "
+                 << saved_messages_topic_id;
+      total_count--;
+      continue;
+    }
     if (!td_->auth_manager_->is_bot()) {
       if (topic->last_message_id_ == MessageId() && last_topic_message_id.is_valid() &&
           topic->ordered_messages_.get_last_message_id() == last_topic_message_id) {
@@ -2060,6 +2068,11 @@ void SavedMessagesManager::on_get_topic_history(DialogId dialog_id, uint32 gener
                                                                   "on_get_topic_history");
     auto message_id = message_full_id.get_message_id();
     if (message_id == MessageId()) {
+      info.total_count--;
+      continue;
+    }
+    if (!topic->ordered_messages_.has_message(message_id)) {
+      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << ", which isn't from " << saved_messages_topic_id;
       info.total_count--;
       continue;
     }

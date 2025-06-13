@@ -316,6 +316,13 @@ void OrderedMessages::traverse_messages(const std::function<bool(MessageId)> &ne
   do_traverse_messages(messages_.get(), need_scan_older, need_scan_newer);
 }
 
+bool OrderedMessages::has_message(MessageId message_id) const {
+  CHECK(message_id.is_valid());
+  auto it = get_const_iterator(message_id);
+  const OrderedMessage *ordered_message = *it;
+  return ordered_message != nullptr && ordered_message->message_id_ == message_id;
+}
+
 MessageId OrderedMessages::get_last_sent_message_id() const {
   auto it = get_const_iterator(MessageId::max());
   while (*it != nullptr) {
