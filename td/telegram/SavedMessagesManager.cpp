@@ -784,19 +784,20 @@ void SavedMessagesManager::on_topic_message_updated(DialogId dialog_id, SavedMes
 }
 
 void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                                    MessageId message_id, bool only_from_memory) {
+                                                    MessageId message_id, bool only_from_memory, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
   CHECK(message_id.is_valid());
 
-  LOG(INFO) << "Delete " << message_id << " from " << saved_messages_topic_id << " of " << dialog_id;
+  LOG(INFO) << "Delete " << message_id << " from " << saved_messages_topic_id << " of " << dialog_id << " from "
+            << source;
   auto *topic_list = get_topic_list(dialog_id);
   CHECK(topic_list != nullptr);
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
   CHECK(topic != nullptr);
 
-  topic->ordered_messages_.erase(message_id, only_from_memory);
+  topic->ordered_messages_.erase(message_id, only_from_memory, source);
 
   if (message_id == topic->last_message_id_) {
     CHECK(!only_from_memory);
@@ -821,7 +822,8 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
           topic->server_message_count_--;
           on_topic_message_count_changed(topic, "on_topic_message_deleted");
         } else {
-          LOG(ERROR) << "Server message count become negative in " << saved_messages_topic_id << " of " << dialog_id;
+          LOG(ERROR) << "Server message count become negative in " << saved_messages_topic_id << " of " << dialog_id
+                     << " after deletion of " << message_id << " from " << source;
         }
       }
     } else {

@@ -12836,7 +12836,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   if (!td_->auth_manager_->is_bot()) {
     if (m->saved_messages_topic_id.is_valid()) {
       td_->saved_messages_manager_->on_topic_message_deleted(d->dialog_id, m->saved_messages_topic_id, m->message_id,
-                                                             only_from_memory);
+                                                             only_from_memory, source);
     }
   }
 
@@ -12847,7 +12847,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   static_cast<ListNode *>(result.get())->remove();
 
   if (!td_->auth_manager_->is_bot()) {
-    d->ordered_messages.erase(message_id, only_from_memory);
+    d->ordered_messages.erase(message_id, only_from_memory, source);
   }
 
   d->being_deleted_message_id = MessageId();

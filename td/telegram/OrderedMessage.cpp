@@ -66,7 +66,7 @@ void OrderedMessages::insert(MessageId message_id, bool auto_attach, MessageId o
   *v = std::move(message);
 }
 
-void OrderedMessages::erase(MessageId message_id, bool only_from_memory) {
+void OrderedMessages::erase(MessageId message_id, bool only_from_memory, const char *source) {
   unique_ptr<OrderedMessage> *v = &messages_;
   while (*v != nullptr) {
     if ((*v)->message_id_.get() < message_id.get()) {
@@ -78,21 +78,21 @@ void OrderedMessages::erase(MessageId message_id, bool only_from_memory) {
     }
   }
 
-  CHECK(*v != nullptr);
+  LOG_CHECK(*v != nullptr) << message_id << ' ' << only_from_memory << ' ' << source;
   if ((*v)->have_previous_ && (only_from_memory || !(*v)->have_next_)) {
     auto it = get_iterator(message_id);
-    CHECK(*it == v->get());
+    LOG_CHECK(*it == v->get()) << message_id << ' ' << only_from_memory << ' ' << source;
     --it;
     OrderedMessage *prev_m = *it;
-    CHECK(prev_m != nullptr);
+    LOG_CHECK(prev_m != nullptr) << message_id << ' ' << only_from_memory << ' ' << source;
     prev_m->have_next_ = false;
   }
   if ((*v)->have_next_ && (only_from_memory || !(*v)->have_previous_)) {
     auto it = get_iterator(message_id);
-    CHECK(*it == v->get());
+    LOG_CHECK(*it == v->get()) << message_id << ' ' << only_from_memory << ' ' << source;
     ++it;
     OrderedMessage *next_m = *it;
-    CHECK(next_m != nullptr);
+    LOG_CHECK(next_m != nullptr) << message_id << ' ' << only_from_memory << ' ' << source;
     next_m->have_previous_ = false;
   }
 

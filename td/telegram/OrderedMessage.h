@@ -160,7 +160,7 @@ class OrderedMessages {
 
   void insert(MessageId message_id, bool auto_attach, MessageId old_last_message_id, const char *source);
 
-  void erase(MessageId message_id, bool only_from_memory);
+  void erase(MessageId message_id, bool only_from_memory, const char *source);
 
   void attach_message_to_previous(MessageId message_id, const char *source);
 
