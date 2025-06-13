@@ -11242,7 +11242,8 @@ MessageFullId MessagesManager::on_get_message(MessageInfo &&message_info, const 
 
     if (!new_message->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
       // sent message is not from me
-      LOG(ERROR) << "Sent in " << dialog_id << " " << message_id << " is sent by " << get_message_sender(new_message.get());
+      LOG(ERROR) << "Sent in " << dialog_id << " " << message_id << " is sent by "
+                 << get_message_sender(new_message.get());
       return MessageFullId();
     }
 
@@ -22561,7 +22562,7 @@ void MessagesManager::edit_message_text(MessageFullId message_full_id,
       process_input_message_text(td_, dialog_id, std::move(input_message_content), td_->auth_manager_->is_bot()));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                      has_message_sender_user_id(dialog_id, m)));
+                                      has_message_sender_user_id(dialog_id, m), false));
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(
@@ -22603,7 +22604,7 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                      has_message_sender_user_id(dialog_id, m)));
+                                      has_message_sender_user_id(dialog_id, m), false));
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
 
   int32 flags = 0;
@@ -22794,7 +22795,7 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                      has_message_sender_user_id(dialog_id, m)));
+                                      has_message_sender_user_id(dialog_id, m), false));
 
   cancel_edit_message_media(dialog_id, m, "Canceled by new editMessageMedia request");
 
@@ -22838,7 +22839,7 @@ void MessagesManager::edit_message_caption(MessageFullId message_full_id,
       get_formatted_text(td_, dialog_id, std::move(input_caption), td_->auth_manager_->is_bot(), true, false, false));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                      has_message_sender_user_id(dialog_id, m)));
+                                      has_message_sender_user_id(dialog_id, m), false));
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
 
   td_->create_handler<EditMessageQuery>(std::move(promise))
@@ -22865,7 +22866,7 @@ void MessagesManager::edit_message_reply_markup(MessageFullId message_full_id,
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                      has_message_sender_user_id(dialog_id, m)));
+                                      has_message_sender_user_id(dialog_id, m), false));
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(dialog_id, m->message_id, false, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(),
@@ -35196,7 +35197,7 @@ void MessagesManager::stop_poll(MessageFullId message_full_id, td_api::object_pt
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
-                                      has_message_sender_user_id(message_full_id.get_dialog_id(), m)));
+                                      has_message_sender_user_id(message_full_id.get_dialog_id(), m), false));
 
   stop_message_content_poll(td_, m->content.get(), message_full_id, std::move(new_reply_markup), std::move(promise));
 }

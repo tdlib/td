@@ -1730,7 +1730,7 @@ void BusinessConnectionManager::edit_business_message_text(
       promise, input_message_text,
       process_input_message_text(td_, DialogId(), std::move(input_message_content), td_->auth_manager_->is_bot()));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true, false));
 
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
@@ -1755,7 +1755,7 @@ void BusinessConnectionManager::edit_business_message_live_location(
   }
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true, false));
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
 
   int32 flags = 0;
@@ -1802,7 +1802,7 @@ void BusinessConnectionManager::edit_business_message_media(
   }
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true, false));
 
   auto message = create_business_message_to_send(business_connection_id, dialog_id, MessageInputReplyTo(), false, false,
                                                  MessageEffectId(), std::move(new_reply_markup), std::move(content));
@@ -1863,7 +1863,7 @@ void BusinessConnectionManager::edit_business_message_caption(
                      get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(input_caption),
                                         td_->auth_manager_->is_bot(), true, false, false));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true, false));
 
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
       ->send(business_connection_id, dialog_id, message_id, true, caption.text,
@@ -1878,7 +1878,7 @@ void BusinessConnectionManager::edit_business_message_reply_markup(
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
   TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true, false));
 
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
       ->send(business_connection_id, dialog_id, message_id, false, string(),
@@ -1892,7 +1892,7 @@ void BusinessConnectionManager::stop_poll(BusinessConnectionId business_connecti
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
   TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true));
+                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true, false));
 
   td_->create_handler<StopBusinessPollQuery>(std::move(promise))
       ->send(business_connection_id, dialog_id, message_id, std::move(new_reply_markup));
