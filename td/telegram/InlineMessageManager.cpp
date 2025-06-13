@@ -226,7 +226,7 @@ void InlineMessageManager::edit_inline_message_text(
       promise, input_message_text,
       process_input_message_text(td_, DialogId(), std::move(input_message_content), td_->auth_manager_->is_bot()));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true, false));
+                     get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true));
   TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
@@ -245,7 +245,7 @@ void InlineMessageManager::edit_inline_message_live_location(const string &inlin
   CHECK(td_->auth_manager_->is_bot());
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true, false));
+                     get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true));
   TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   Location location(input_location);
@@ -294,7 +294,7 @@ void InlineMessageManager::edit_inline_message_media(
   }
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true, false));
+                     get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true));
   TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   auto input_media =
@@ -321,7 +321,7 @@ void InlineMessageManager::edit_inline_message_caption(const string &inline_mess
                      get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(input_caption),
                                         td_->auth_manager_->is_bot(), true, false, false));
   TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true, false));
+                     get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true));
   TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
@@ -336,7 +336,7 @@ void InlineMessageManager::edit_inline_message_reply_markup(const string &inline
   CHECK(td_->auth_manager_->is_bot());
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true, false));
+                     get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true));
   TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))

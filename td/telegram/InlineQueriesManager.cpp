@@ -441,7 +441,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
   if (input_message_content == nullptr) {
     return Status::Error(400, "Inline message must be non-empty");
   }
-  TRY_RESULT(reply_markup, get_reply_markup(std::move(reply_markup_ptr), true, true, false, true, false));
+  TRY_RESULT(reply_markup, get_inline_reply_markup(std::move(reply_markup_ptr), td_->auth_manager_->is_bot(), true));
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), reply_markup);
 
   auto constructor_id = input_message_content->get_id();
@@ -861,7 +861,7 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
     }
     case td_api::inputInlineQueryResultGame::ID: {
       auto game = move_tl_object_as<td_api::inputInlineQueryResultGame>(result);
-      auto r_reply_markup = get_reply_markup(std::move(game->reply_markup_), true, true, false, true, false);
+      auto r_reply_markup = get_inline_reply_markup(std::move(game->reply_markup_), true, true);
       if (r_reply_markup.is_error()) {
         return r_reply_markup.move_as_error();
       }
