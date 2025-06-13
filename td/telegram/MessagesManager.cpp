@@ -29560,11 +29560,14 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
     }
   }
 
-  if (m->reply_markup != nullptr && !m->reply_markup->is_personal &&
-      (m->reply_markup->type == ReplyMarkup::Type::ForceReply ||
-       m->reply_markup->type == ReplyMarkup::Type::RemoveKeyboard) &&
-      !td_->auth_manager_->is_bot()) {
-    m->reply_markup = nullptr;
+  if (m->reply_markup != nullptr && !td_->auth_manager_->is_bot()) {
+    if (!m->reply_markup->is_personal && (m->reply_markup->type == ReplyMarkup::Type::ForceReply ||
+                                          m->reply_markup->type == ReplyMarkup::Type::RemoveKeyboard)) {
+      m->reply_markup = nullptr;
+    } else if (m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard &&
+               td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
+      m->reply_markup = nullptr;
+    }
   }
 }
 
