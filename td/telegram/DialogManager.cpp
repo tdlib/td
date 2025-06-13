@@ -1802,17 +1802,14 @@ std::pair<int32, vector<DialogId>> DialogManager::get_recently_opened_dialogs(in
 }
 
 bool DialogManager::is_anonymous_administrator(DialogId dialog_id, string *author_signature) const {
-  CHECK(dialog_id.is_valid());
-
-  if (is_broadcast_channel(dialog_id)) {
-    return true;
-  }
   if (dialog_id.get_type() != DialogType::Channel) {
+    CHECK(dialog_id.is_valid());
     return false;
   }
 
   auto channel_id = dialog_id.get_channel_id();
-  if (td_->chat_manager_->is_admined_monoforum_channel(channel_id)) {
+  if (td_->chat_manager_->is_broadcast_channel(channel_id) ||
+      td_->chat_manager_->is_admined_monoforum_channel(channel_id)) {
     return true;
   }
   if (td_->auth_manager_->is_bot()) {
