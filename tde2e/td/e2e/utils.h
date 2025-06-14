@@ -63,8 +63,7 @@ inline td::Status Error(E error_code) {
 
 inline td::Status Error(E error_code, td::Slice message) {
   auto msg = tde2e_api::error_string(error_code);
-  return td::Status::Error(static_cast<int>(error_code), PSLICE()
-                                                             << td::Slice(msg.data(), msg.size()) << ": " << message);
+  return td::Status::Error(static_cast<int>(error_code), PSLICE() << td::Slice(msg.data(), msg.size()) << ": " << message);
 }
 
 template <typename T, typename = void>
