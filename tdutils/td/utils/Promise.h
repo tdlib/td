@@ -31,9 +31,11 @@ class PromiseInterface {
   virtual void set_value(T &&value) {
     set_result(std::move(value));
   }
+
   virtual void set_error(Status &&error) {
     set_result(std::move(error));
   }
+
   virtual void set_result(Result<T> &&result) {
     if (result.is_ok()) {
       set_value(result.move_as_ok());
@@ -45,6 +47,7 @@ class PromiseInterface {
   virtual bool is_cancellable() const {
     return false;
   }
+
   virtual bool is_canceled() const {
     return false;
   }
@@ -105,6 +108,7 @@ class LambdaPromise : public PromiseInterface<ValueT> {
       state_ = State::Complete;
     }
   }
+
   LambdaPromise(const LambdaPromise &) = delete;
   LambdaPromise &operator=(const LambdaPromise &) = delete;
   LambdaPromise(LambdaPromise &&) = default;
@@ -201,6 +205,7 @@ class Promise {
     promise_->set_value(std::move(value));
     promise_.reset();
   }
+
   void set_error(Status &&error) {
     if (!promise_) {
       return;
@@ -208,6 +213,15 @@ class Promise {
     promise_->set_error(std::move(error));
     promise_.reset();
   }
+
+  void set_error(int err, Slice message) {
+    set_error(Status::Error(err, message));
+  }
+
+  void set_error(Slice message) {
+    set_error(Status::Error(message));
+  }
+
   void set_result(Result<T> &&result) {
     if (!promise_) {
       return;
@@ -215,21 +229,25 @@ class Promise {
     promise_->set_result(std::move(result));
     promise_.reset();
   }
+
   void reset() {
     promise_.reset();
   }
+
   bool is_cancellable() const {
     if (!promise_) {
       return false;
     }
     return promise_->is_cancellable();
   }
+
   bool is_canceled() const {
     if (!promise_) {
       return false;
     }
     return promise_->is_canceled();
   }
+
   unique_ptr<PromiseInterface<T>> release() {
     return std::move(promise_);
   }

@@ -458,7 +458,7 @@ Result<std::pair<string, bool>> BoostManager::get_dialog_boost_link(DialogId dia
 void BoostManager::get_dialog_boost_link_info(Slice url, Promise<DialogBoostLinkInfo> &&promise) {
   auto r_dialog_boost_link_info = LinkManager::get_dialog_boost_link_info(url);
   if (r_dialog_boost_link_info.is_error()) {
-    return promise.set_error(Status::Error(400, r_dialog_boost_link_info.error().message()));
+    return promise.set_error(400, r_dialog_boost_link_info.error().message());
   }
 
   auto info = r_dialog_boost_link_info.move_as_ok();
@@ -483,7 +483,7 @@ void BoostManager::get_dialog_boosts(DialogId dialog_id, bool only_gift_codes, c
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_dialog_boosts"));
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
 
   td_->create_handler<GetBoostsListQuery>(std::move(promise))->send(dialog_id, only_gift_codes, offset, limit);
@@ -494,7 +494,7 @@ void BoostManager::get_user_dialog_boosts(DialogId dialog_id, UserId user_id,
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
                                                                         "get_user_dialog_boosts"));
   if (!user_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "User not found"));
+    return promise.set_error(400, "User not found");
   }
 
   td_->create_handler<GetUserBoostsQuery>(std::move(promise))->send(dialog_id, user_id);

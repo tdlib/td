@@ -182,10 +182,10 @@ class GenAuthKeyActor final : public Actor {
 
   void hangup() final {
     if (connection_promise_) {
-      connection_promise_.set_error(Status::Error(1, "Canceled"));
+      connection_promise_.set_error(1, "Canceled");
     }
     if (handshake_promise_) {
-      handshake_promise_.set_error(Status::Error(1, "Canceled"));
+      handshake_promise_.set_error(1, "Canceled");
     }
     stop();
   }

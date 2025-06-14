@@ -580,22 +580,22 @@ void InlineQueriesManager::answer_inline_query(
   telegram_api::object_ptr<telegram_api::inlineBotWebView> web_view;
   if (button != nullptr) {
     if (!clean_input_string(button->text_)) {
-      return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
+      return promise.set_error(400, "Strings must be encoded in UTF-8");
     }
     if (button->type_ == nullptr) {
-      return promise.set_error(Status::Error(400, "Button type must be non-empty"));
+      return promise.set_error(400, "Button type must be non-empty");
     }
     switch (button->type_->get_id()) {
       case td_api::inlineQueryResultsButtonTypeStartBot::ID: {
         auto type = td_api::move_object_as<td_api::inlineQueryResultsButtonTypeStartBot>(button->type_);
         if (type->parameter_.empty()) {
-          return promise.set_error(Status::Error(400, "Can't use empty start_parameter"));
+          return promise.set_error(400, "Can't use empty start_parameter");
         }
         if (type->parameter_.size() > 64) {
-          return promise.set_error(Status::Error(400, "Too long start_parameter specified"));
+          return promise.set_error(400, "Too long start_parameter specified");
         }
         if (!is_base64url_characters(type->parameter_)) {
-          return promise.set_error(Status::Error(400, "Unallowed characters in start_parameter are used"));
+          return promise.set_error(400, "Unallowed characters in start_parameter are used");
         }
         switch_pm = telegram_api::make_object<telegram_api::inlineBotSwitchPM>(button->text_, type->parameter_);
         break;
@@ -604,12 +604,11 @@ void InlineQueriesManager::answer_inline_query(
         auto type = td_api::move_object_as<td_api::inlineQueryResultsButtonTypeWebApp>(button->type_);
         auto user_id = LinkManager::get_link_user_id(type->url_);
         if (user_id.is_valid()) {
-          return promise.set_error(Status::Error(400, "Link to a user can't be used in the Web App button"));
+          return promise.set_error(400, "Link to a user can't be used in the Web App button");
         }
         auto r_url = LinkManager::check_link(type->url_, true, !G()->is_test_dc());
         if (r_url.is_error()) {
-          return promise.set_error(
-              Status::Error(400, PSLICE() << "Inline query button Web App " << r_url.error().message()));
+          return promise.set_error(400, PSLICE() << "Inline query button Web App " << r_url.error().message());
         }
         web_view = telegram_api::make_object<telegram_api::inlineBotWebView>(button->text_, type->url_);
         break;
@@ -660,7 +659,7 @@ void InlineQueriesManager::get_prepared_inline_message(
   auto it = inline_query_results_.find(query_hash);
   if (it != inline_query_results_.end()) {
     if (it->second.is_inline_query) {
-      return promise.set_error(Status::Error(500, "Request hash collision"));
+      return promise.set_error(500, "Request hash collision");
     }
     it->second.pending_request_count++;
     if (Time::now() < it->second.cache_expire_time) {
@@ -1111,12 +1110,12 @@ Result<tl_object_ptr<telegram_api::InputBotInlineResult>> InlineQueriesManager::
 void InlineQueriesManager::get_weather(Location location,
                                        Promise<td_api::object_ptr<td_api::currentWeather>> &&promise) {
   if (location.empty()) {
-    return promise.set_error(Status::Error(400, "Location must be non-empty"));
+    return promise.set_error(400, "Location must be non-empty");
   }
   auto bot_username = td_->option_manager_->get_option_string("weather_bot_username");
   if (bot_username.empty()) {
     LOG(ERROR) << "Have no weather bot";
-    return promise.set_error(Status::Error(500, "Not supported"));
+    return promise.set_error(500, "Not supported");
   }
   td_->dialog_manager_->resolve_dialog(
       bot_username, ChannelId(),
@@ -1135,14 +1134,14 @@ void InlineQueriesManager::do_get_weather(DialogId dialog_id, Location location,
   TRY_STATUS_PROMISE(promise, G()->close_status());
   if (dialog_id.get_type() != DialogType::User) {
     LOG(ERROR) << "Weather bot isn't a user";
-    return promise.set_error(Status::Error(500, "Not supported"));
+    return promise.set_error(500, "Not supported");
   }
   send_inline_query(
       dialog_id.get_user_id(), DialogId(), std::move(location), string(), string(),
       PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
                                  Result<td_api::object_ptr<td_api::inlineQueryResults>> r_results) mutable {
         if (r_results.is_error()) {
-          return promise.set_error(Status::Error(500, "Not supported"));
+          return promise.set_error(500, "Not supported");
         }
         send_closure(actor_id, &InlineQueriesManager::on_get_weather, r_results.move_as_ok(), std::move(promise));
       }));
@@ -1153,12 +1152,12 @@ void InlineQueriesManager::on_get_weather(td_api::object_ptr<td_api::inlineQuery
   TRY_STATUS_PROMISE(promise, G()->close_status());
   if (results->results_.size() != 1u || results->results_[0]->get_id() != td_api::inlineQueryResultArticle::ID) {
     LOG(ERROR) << "Receive " << to_string(results);
-    return promise.set_error(Status::Error(500, "Not supported"));
+    return promise.set_error(500, "Not supported");
   }
   auto result = td_api::move_object_as<td_api::inlineQueryResultArticle>(results->results_[0]);
   if (!is_emoji(result->title_)) {
     LOG(ERROR) << "Receive " << to_string(results);
-    return promise.set_error(Status::Error(500, "Not supported"));
+    return promise.set_error(500, "Not supported");
   }
   promise.set_value(td_api::make_object<td_api::currentWeather>(to_double(result->description_), result->title_));
 }
@@ -1170,7 +1169,7 @@ void InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dialog
 
   TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
   if (!bot_data.is_inline) {
-    return promise.set_error(Status::Error(400, "Bot doesn't support inline queries"));
+    return promise.set_error(400, "Bot doesn't support inline queries");
   }
 
   auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
@@ -1214,7 +1213,7 @@ void InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dialog
   auto it = inline_query_results_.find(query_hash);
   if (it != inline_query_results_.end()) {
     if (!it->second.is_inline_query) {
-      return promise.set_error(Status::Error(500, "Request hash collision"));
+      return promise.set_error(500, "Request hash collision");
     }
     it->second.pending_request_count++;
     if (Time::now() < it->second.cache_expire_time) {
@@ -1228,7 +1227,7 @@ void InlineQueriesManager::send_inline_query(UserId bot_user_id, DialogId dialog
     LOG(INFO) << "Drop inline query " << pending_inline_query_->query_hash;
     on_get_inline_query_results(pending_inline_query_->dialog_id, pending_inline_query_->bot_user_id,
                                 pending_inline_query_->query_hash, nullptr, Auto());
-    pending_inline_query_->promise.set_error(Status::Error(406, "Request canceled"));
+    pending_inline_query_->promise.set_error(406, "Request canceled");
   }
 
   pending_inline_query_ = make_unique<PendingInlineQuery>(PendingInlineQuery{
@@ -2115,7 +2114,7 @@ void InlineQueriesManager::on_get_inline_query_results(
   LOG(INFO) << "Receive results for inline query " << query_hash;
   if (results == nullptr || results->query_id_ == 0) {
     get_inline_query_results_object(query_hash);
-    return promise.set_error(Status::Error(500, "Receive no response"));
+    return promise.set_error(500, "Receive no response");
   }
   LOG(INFO) << to_string(results);
 
@@ -2158,7 +2157,7 @@ void InlineQueriesManager::on_get_prepared_inline_message(
     Promise<td_api::object_ptr<td_api::preparedInlineMessage>> promise) {
   if (prepared_message == nullptr || prepared_message->query_id_ == 0) {
     get_prepared_inline_message_object(query_hash);
-    return promise.set_error(Status::Error(500, "Receive no response"));
+    return promise.set_error(500, "Receive no response");
   }
 
   td_->user_manager_->on_get_users(std::move(prepared_message->users_), "on_get_prepared_inline_message");
@@ -2169,7 +2168,7 @@ void InlineQueriesManager::on_get_prepared_inline_message(
       get_inline_query_result_object(prepared_message->query_id_, DialogId(), std::move(prepared_message->result_));
   if (output_result == nullptr) {
     get_prepared_inline_message_object(query_hash);
-    return promise.set_error(Status::Error(500, "Receive invalid response"));
+    return promise.set_error(500, "Receive invalid response");
   }
 
   auto it = inline_query_results_.find(query_hash);

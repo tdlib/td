@@ -119,13 +119,13 @@ void GameManager::set_game_score(MessageFullId message_full_id, bool edit_messag
   TRY_STATUS_PROMISE(promise,
                      td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Edit, "set_game_score"));
   if (!td_->messages_manager_->have_message_force(message_full_id, "set_game_score")) {
-    return promise.set_error(Status::Error(400, "Message not found"));
+    return promise.set_error(400, "Message not found");
   }
 
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
   if (!td_->messages_manager_->can_set_game_score(message_full_id)) {
-    return promise.set_error(Status::Error(400, "Game score can't be set"));
+    return promise.set_error(400, "Game score can't be set");
   }
 
   auto query_promise = PromiseCreator::lambda(
@@ -153,12 +153,12 @@ void GameManager::get_game_high_scores(MessageFullId message_full_id, UserId use
       promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_game_high_scores"));
 
   if (!td_->messages_manager_->have_message_force(message_full_id, "get_game_high_scores")) {
-    return promise.set_error(Status::Error(400, "Message not found"));
+    return promise.set_error(400, "Message not found");
   }
 
   auto message_id = message_full_id.get_message_id();
   if (message_id.is_scheduled() || !message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Wrong message identifier specified"));
+    return promise.set_error(400, "Wrong message identifier specified");
   }
 
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));

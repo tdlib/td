@@ -212,7 +212,7 @@ void PhoneNumberManager::on_send_code_result(Result<telegram_api::object_ptr<tel
     return promise.set_error(r_sent_code.move_as_error());
   }
   if (generation != generation_) {
-    return promise.set_error(Status::Error(500, "Request was canceled"));
+    return promise.set_error(500, "Request was canceled");
   }
   auto sent_code = r_sent_code.move_as_ok();
 
@@ -221,7 +221,7 @@ void PhoneNumberManager::on_send_code_result(Result<telegram_api::object_ptr<tel
   switch (sent_code->type_->get_id()) {
     case telegram_api::auth_sentCodeTypeSetUpEmailRequired::ID:
     case telegram_api::auth_sentCodeTypeEmailCode::ID:
-      return promise.set_error(Status::Error(500, "Receive incorrect response"));
+      return promise.set_error(500, "Receive incorrect response");
     default:
       break;
   }
@@ -238,10 +238,10 @@ void PhoneNumberManager::set_phone_number(string phone_number,
                                           Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise) {
   inc_generation();
   if (phone_number.empty()) {
-    return promise.set_error(Status::Error(400, "Phone number must be non-empty"));
+    return promise.set_error(400, "Phone number must be non-empty");
   }
   if (type == nullptr) {
-    return promise.set_error(Status::Error(400, "Type must be non-empty"));
+    return promise.set_error(400, "Type must be non-empty");
   }
 
   switch (type->get_id()) {
@@ -258,10 +258,10 @@ void PhoneNumberManager::set_phone_number(string phone_number,
     case td_api::phoneNumberCodeTypeConfirmOwnership::ID: {
       auto hash = std::move(static_cast<td_api::phoneNumberCodeTypeConfirmOwnership *>(type.get())->hash_);
       if (!clean_input_string(hash)) {
-        return promise.set_error(Status::Error(400, "Hash must be encoded in UTF-8"));
+        return promise.set_error(400, "Hash must be encoded in UTF-8");
       }
       if (hash.empty()) {
-        return promise.set_error(Status::Error(400, "Hash must be non-empty"));
+        return promise.set_error(400, "Hash must be non-empty");
       }
 
       type_ = Type::ConfirmPhone;
@@ -275,7 +275,7 @@ void PhoneNumberManager::set_phone_number(string phone_number,
 
 void PhoneNumberManager::send_firebase_sms(const string &token, Promise<Unit> &&promise) {
   if (state_ != State::WaitCode) {
-    return promise.set_error(Status::Error(400, "Can't send Firebase SMS"));
+    return promise.set_error(400, "Can't send Firebase SMS");
   }
 
   td_->create_handler<RequestFirebaseSmsQuery>(std::move(promise))->send(send_code_helper_.request_firebase_sms(token));
@@ -283,7 +283,7 @@ void PhoneNumberManager::send_firebase_sms(const string &token, Promise<Unit> &&
 
 void PhoneNumberManager::report_missing_code(const string &mobile_network_code, Promise<Unit> &&promise) {
   if (state_ != State::WaitCode) {
-    return promise.set_error(Status::Error(400, "Can't report missing code"));
+    return promise.set_error(400, "Can't report missing code");
   }
 
   td_->create_handler<ReportMissingCodeQuery>(std::move(promise))
@@ -294,7 +294,7 @@ void PhoneNumberManager::resend_authentication_code(
     td_api::object_ptr<td_api::ResendCodeReason> &&reason,
     Promise<td_api::object_ptr<td_api::authenticationCodeInfo>> &&promise) {
   if (state_ != State::WaitCode) {
-    return promise.set_error(Status::Error(400, "Can't resend code"));
+    return promise.set_error(400, "Can't resend code");
   }
 
   TRY_RESULT_PROMISE(promise, resend_code, send_code_helper_.resend_code(std::move(reason)));
@@ -303,7 +303,7 @@ void PhoneNumberManager::resend_authentication_code(
 
 void PhoneNumberManager::check_code(string code, Promise<Unit> &&promise) {
   if (state_ != State::WaitCode) {
-    return promise.set_error(Status::Error(400, "Can't check code"));
+    return promise.set_error(400, "Can't check code");
   }
 
   auto query_promise = PromiseCreator::lambda(
@@ -335,7 +335,7 @@ void PhoneNumberManager::on_check_code_result(Result<Unit> result, int64 generat
     return promise.set_error(result.move_as_error());
   }
   if (generation != generation_) {
-    return promise.set_error(Status::Error(500, "Request was canceled"));
+    return promise.set_error(500, "Request was canceled");
   }
 
   inc_generation();

@@ -62,7 +62,7 @@ void http_send(NSURLRequest *request, Promise<BufferSlice> promise) {
           if (error == nil) {
             callback.set_value(BufferSlice(Slice((const char *)([data bytes]), [data length])));
           } else {
-            callback.set_error(Status::Error(static_cast<int32>([error code]), "HTTP request failed"));
+            callback.set_error(static_cast<int32>([error code]), "HTTP request failed");
           }
         }];
   [dataTask resume];

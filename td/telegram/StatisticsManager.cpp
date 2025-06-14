@@ -460,7 +460,7 @@ class GetMessageStatsQuery final : public Td::ResultHandler {
 
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(400, "Supergroup not found"));
+      return promise_.set_error(400, "Supergroup not found");
     }
 
     send_query(
@@ -504,7 +504,7 @@ class GetStoryStatsQuery final : public Td::ResultHandler {
 
     auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Read);
     if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Chat not found"));
+      return promise_.set_error(400, "Chat not found");
     }
 
     send_query(G()->net_query_creator().create(
@@ -692,7 +692,7 @@ void StatisticsManager::get_dialog_revenue_withdrawal_url(DialogId dialog_id, co
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
                                                                         "get_dialog_revenue_withdrawal_url"));
   if (password.empty()) {
-    return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
+    return promise.set_error(400, "PASSWORD_HASH_INVALID");
   }
   send_closure(
       td_->password_manager_, &PasswordManager::get_input_check_password_srp, password,
@@ -742,10 +742,10 @@ void StatisticsManager::send_get_channel_message_stats_query(
 
   auto dialog_id = message_full_id.get_dialog_id();
   if (!td_->messages_manager_->have_message_force(message_full_id, "send_get_channel_message_stats_query")) {
-    return promise.set_error(Status::Error(400, "Message not found"));
+    return promise.set_error(400, "Message not found");
   }
   if (!td_->messages_manager_->can_get_message_statistics(message_full_id)) {
-    return promise.set_error(Status::Error(400, "Message statistics are inaccessible"));
+    return promise.set_error(400, "Message statistics are inaccessible");
   }
   CHECK(dialog_id.get_type() == DialogType::Channel);
   td_->create_handler<GetMessageStatsQuery>(std::move(promise))
@@ -772,10 +772,10 @@ void StatisticsManager::send_get_channel_story_stats_query(
 
   auto dialog_id = story_full_id.get_dialog_id();
   if (!td_->story_manager_->have_story_force(story_full_id)) {
-    return promise.set_error(Status::Error(400, "Story not found"));
+    return promise.set_error(400, "Story not found");
   }
   if (!td_->story_manager_->can_get_story_statistics(story_full_id)) {
-    return promise.set_error(Status::Error(400, "Story statistics are inaccessible"));
+    return promise.set_error(400, "Story statistics are inaccessible");
   }
   CHECK(dialog_id.get_type() == DialogType::Channel);
   td_->create_handler<GetStoryStatsQuery>(std::move(promise))
@@ -805,7 +805,7 @@ void StatisticsManager::send_load_async_graph_query(DcId dc_id, string token, in
 void StatisticsManager::get_message_public_forwards(MessageFullId message_full_id, string offset, int32 limit,
                                                     Promise<td_api::object_ptr<td_api::publicForwards>> &&promise) {
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
 
   auto dc_id_promise = PromiseCreator::lambda([actor_id = actor_id(this), message_full_id, offset = std::move(offset),
@@ -823,10 +823,10 @@ void StatisticsManager::send_get_message_public_forwards_query(
     DcId dc_id, MessageFullId message_full_id, string offset, int32 limit,
     Promise<td_api::object_ptr<td_api::publicForwards>> &&promise) {
   if (!td_->messages_manager_->have_message_force(message_full_id, "send_get_message_public_forwards_query")) {
-    return promise.set_error(Status::Error(400, "Message not found"));
+    return promise.set_error(400, "Message not found");
   }
   if (!td_->messages_manager_->can_get_message_statistics(message_full_id)) {
-    return promise.set_error(Status::Error(400, "Message forwards are inaccessible"));
+    return promise.set_error(400, "Message forwards are inaccessible");
   }
 
   static constexpr int32 MAX_MESSAGE_FORWARDS = 100;  // server-side limit
@@ -840,12 +840,12 @@ void StatisticsManager::send_get_message_public_forwards_query(
 void StatisticsManager::get_story_public_forwards(StoryFullId story_full_id, string offset, int32 limit,
                                                   Promise<td_api::object_ptr<td_api::publicForwards>> &&promise) {
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   auto dialog_id = story_full_id.get_dialog_id();
   if (dialog_id.get_type() == DialogType::User) {
     if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
-      return promise.set_error(Status::Error(400, "Have no access to story statistics"));
+      return promise.set_error(400, "Have no access to story statistics");
     }
     return send_get_story_public_forwards_query(DcId::main(), story_full_id, std::move(offset), limit,
                                                 std::move(promise));
@@ -866,11 +866,11 @@ void StatisticsManager::send_get_story_public_forwards_query(
     DcId dc_id, StoryFullId story_full_id, string offset, int32 limit,
     Promise<td_api::object_ptr<td_api::publicForwards>> &&promise) {
   if (!td_->story_manager_->have_story_force(story_full_id)) {
-    return promise.set_error(Status::Error(400, "Story not found"));
+    return promise.set_error(400, "Story not found");
   }
   if (!td_->story_manager_->can_get_story_statistics(story_full_id) &&
       story_full_id.get_dialog_id() != td_->dialog_manager_->get_my_dialog_id()) {
-    return promise.set_error(Status::Error(400, "Story forwards are inaccessible"));
+    return promise.set_error(400, "Story forwards are inaccessible");
   }
 
   static constexpr int32 MAX_STORY_FORWARDS = 100;  // server-side limit

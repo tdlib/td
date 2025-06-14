@@ -257,11 +257,11 @@ void CallbackQueriesManager::send_callback_query(MessageFullId message_full_id,
                                                  tl_object_ptr<td_api::CallbackQueryPayload> &&payload,
                                                  Promise<td_api::object_ptr<td_api::callbackQueryAnswer>> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Bot can't send callback queries to other bot"));
+    return promise.set_error(400, "Bot can't send callback queries to other bot");
   }
 
   if (payload == nullptr) {
-    return promise.set_error(Status::Error(400, "Payload must be non-empty"));
+    return promise.set_error(400, "Payload must be non-empty");
   }
 
   auto dialog_id = message_full_id.get_dialog_id();
@@ -269,13 +269,13 @@ void CallbackQueriesManager::send_callback_query(MessageFullId message_full_id,
       promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "send_callback_query"));
 
   if (!td_->messages_manager_->have_message_force(message_full_id, "send_callback_query")) {
-    return promise.set_error(Status::Error(400, "Message not found"));
+    return promise.set_error(400, "Message not found");
   }
   if (message_full_id.get_message_id().is_valid_scheduled()) {
-    return promise.set_error(Status::Error(400, "Can't send callback queries from scheduled messages"));
+    return promise.set_error(400, "Can't send callback queries from scheduled messages");
   }
   if (!message_full_id.get_message_id().is_server()) {
-    return promise.set_error(Status::Error(400, "Bad message identifier"));
+    return promise.set_error(400, "Bad message identifier");
   }
 
   if (payload->get_id() == td_api::callbackQueryPayloadDataWithPassword::ID) {
@@ -304,7 +304,7 @@ void CallbackQueriesManager::send_get_callback_answer_query(
   TRY_STATUS_PROMISE(promise,
                      td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, false, AccessRights::Read));
   if (!td_->messages_manager_->have_message_force(message_full_id, "send_get_callback_answer_query")) {
-    return promise.set_error(Status::Error(400, "Message not found"));
+    return promise.set_error(400, "Message not found");
   }
 
   td_->create_handler<GetBotCallbackAnswerQuery>(std::move(promise))

@@ -107,7 +107,7 @@ class SaveGifQuery final : public Td::ResultHandler {
           file_id_, PromiseCreator::lambda([animation_id = file_id_, unsave = unsave_,
                                             promise = std::move(promise_)](Result<Unit> result) mutable {
             if (result.is_error()) {
-              return promise.set_error(Status::Error(400, "Failed to find the animation"));
+              return promise.set_error(400, "Failed to find the animation");
             }
 
             send_closure(G()->animations_manager(), &AnimationsManager::send_save_gif_query, animation_id, unsave,
@@ -479,7 +479,7 @@ void AnimationsManager::reload_saved_animations(bool force) {
 
 void AnimationsManager::repair_saved_animations(Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Bots have no saved animations"));
+    return promise.set_error(400, "Bots have no saved animations");
   }
 
   repair_saved_animations_queries_.push_back(std::move(promise));
@@ -672,7 +672,7 @@ void AnimationsManager::add_saved_animation_impl(FileId animation_id, bool add_o
 
   auto file_view = td_->file_manager_->get_file_view(animation_id);
   if (file_view.empty()) {
-    return promise.set_error(Status::Error(400, "Animation file not found"));
+    return promise.set_error(400, "Animation file not found");
   }
 
   LOG(INFO) << "Add saved animation " << animation_id << " with main file " << file_view.get_main_file_id();
@@ -706,21 +706,21 @@ void AnimationsManager::add_saved_animation_impl(FileId animation_id, bool add_o
 
   auto animation = get_animation(animation_id);
   if (animation == nullptr) {
-    return promise.set_error(Status::Error(400, "Animation not found"));
+    return promise.set_error(400, "Animation not found");
   }
   if (animation->mime_type != "video/mp4") {
-    return promise.set_error(Status::Error(400, "Only MPEG4 animations can be saved"));
+    return promise.set_error(400, "Only MPEG4 animations can be saved");
   }
 
   const auto *full_remote_location = file_view.get_full_remote_location();
   if (full_remote_location == nullptr) {
-    return promise.set_error(Status::Error(400, "Can save only sent animations"));
+    return promise.set_error(400, "Can save only sent animations");
   }
   if (full_remote_location->is_web()) {
-    return promise.set_error(Status::Error(400, "Can't save web animations"));
+    return promise.set_error(400, "Can't save web animations");
   }
   if (!full_remote_location->is_document()) {
-    return promise.set_error(Status::Error(400, "Can't save encrypted animations"));
+    return promise.set_error(400, "Can't save encrypted animations");
   }
 
   add_to_top_if(saved_animation_ids_, static_cast<size_t>(saved_animations_limit_), animation_id, is_equal);
@@ -756,7 +756,7 @@ void AnimationsManager::remove_saved_animation(const tl_object_ptr<td_api::Input
 
   auto animation = get_animation(file_id);
   if (animation == nullptr) {
-    return promise.set_error(Status::Error(400, "Animation not found"));
+    return promise.set_error(400, "Animation not found");
   }
 
   send_save_gif_query(file_id, true, std::move(promise));

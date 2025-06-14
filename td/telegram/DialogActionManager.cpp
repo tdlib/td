@@ -304,11 +304,11 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
     TRY_STATUS_PROMISE(promise,
                        td_->business_connection_manager_->check_business_connection(business_connection_id, dialog_id));
   } else if (!td_->dialog_manager_->have_dialog_force(dialog_id, "send_dialog_action")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
   if (top_thread_message_id != MessageId() &&
       (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server())) {
-    return promise.set_error(Status::Error(400, "Invalid message thread specified"));
+    return promise.set_error(400, "Invalid message thread specified");
   }
 
   if (!as_business && td_->dialog_manager_->is_forum_channel(dialog_id) && !top_thread_message_id.is_valid()) {
@@ -318,18 +318,18 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
   tl_object_ptr<telegram_api::InputPeer> input_peer;
   if (action == DialogAction::get_speaking_action()) {
     if (as_business) {
-      return promise.set_error(Status::Error(400, "Can't use the action"));
+      return promise.set_error(400, "Can't use the action");
     }
     input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return promise.set_error(Status::Error(400, "Have no access to the chat"));
+      return promise.set_error(400, "Have no access to the chat");
     }
   } else if (as_business) {
     input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Know);
   } else {
     if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Write)) {
       if (td_->auth_manager_->is_bot()) {
-        return promise.set_error(Status::Error(400, "Have no write access to the chat"));
+        return promise.set_error(400, "Have no write access to the chat");
       }
       return promise.set_value(Unit());
     }

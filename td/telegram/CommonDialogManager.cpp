@@ -102,11 +102,11 @@ std::pair<int32, vector<DialogId>> CommonDialogManager::get_common_dialogs(UserI
   }
 
   if (user_id == td_->user_manager_->get_my_id()) {
-    promise.set_error(Status::Error(400, "Can't get common chats with self"));
+    promise.set_error(400, "Can't get common chats with self");
     return {};
   }
   if (limit <= 0) {
-    promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    promise.set_error(400, "Parameter limit must be positive");
     return {};
   }
   if (limit > MAX_GET_DIALOGS) {
@@ -128,7 +128,7 @@ std::pair<int32, vector<DialogId>> CommonDialogManager::get_common_dialogs(UserI
     // fallthrough
     case DialogType::User:
     case DialogType::SecretChat:
-      promise.set_error(Status::Error(400, "Wrong offset_chat_id"));
+      promise.set_error(400, "Wrong offset_chat_id");
       return {};
     default:
       UNREACHABLE();
@@ -147,7 +147,7 @@ std::pair<int32, vector<DialogId>> CommonDialogManager::get_common_dialogs(UserI
       if (offset_dialog_id != DialogId()) {
         offset_it = std::find(common_dialog_ids.begin(), common_dialog_ids.end(), offset_dialog_id);
         if (offset_it == common_dialog_ids.end()) {
-          promise.set_error(Status::Error(400, "Wrong offset_chat_id"));
+          promise.set_error(400, "Wrong offset_chat_id");
           return {};
         }
         ++offset_it;

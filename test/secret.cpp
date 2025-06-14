@@ -633,7 +633,7 @@ class Master final : public Actor {
     int32 binlog_generation_ = 0;
     void sync_binlog(int32 binlog_generation, Promise<> promise) {
       if (binlog_generation != binlog_generation_) {
-        return promise.set_error(Status::Error("Binlog generation mismatch"));
+        return promise.set_error("Binlog generation mismatch");
       }
       binlog_->force_sync(std::move(promise), "sync_binlog");
     }
@@ -992,10 +992,10 @@ void FakeSecretChatContext::on_delete_messages(std::vector<int64> random_id, Pro
   promise.set_value(Unit());
 }
 void FakeSecretChatContext::on_flush_history(bool, MessageId, Promise<> promise) {
-  promise.set_error(Status::Error("Unsupported"));
+  promise.set_error("Unsupported");
 }
 void FakeSecretChatContext::on_read_message(int64, Promise<> promise) {
-  promise.set_error(Status::Error("Unsupported"));
+  promise.set_error("Unsupported");
 }
 
 TEST(Secret, go) {

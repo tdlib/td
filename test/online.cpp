@@ -184,7 +184,7 @@ class Task : public TestClient::Listener {
           TRY_RESULT_PROMISE(callback, obj, std::move(r_obj));
           if (obj->get_id() == td::td_api::error::ID) {
             auto err = move_tl_object_as<td_api::error>(std::move(obj));
-            callback.set_error(Status::Error(err->code_, err->message_));
+            callback.set_error(err->code_, err->message_);
             return;
           }
           callback.set_value(move_tl_object_as<typename ResultT::element_type>(std::move(obj)));
@@ -251,8 +251,7 @@ class InitTask : public Task {
       }
       default:
         LOG(ERROR) << "???";
-        promise_.set_error(
-            Status::Error(PSLICE() << "Unexpected authorization state " << to_string(authorization_state)));
+        promise_.set_error(PSLICE() << "Unexpected authorization state " << to_string(authorization_state));
         stop();
         break;
     }

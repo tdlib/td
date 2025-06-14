@@ -989,7 +989,7 @@ void WebPagesManager::on_get_web_page_preview(unique_ptr<GetWebPagePreviewOption
     }
 
     LOG(ERROR) << "Receive " << to_string(message_media_ptr) << " instead of web page";
-    return promise.set_error(Status::Error(500, "Receive not web page in GetWebPagePreview"));
+    return promise.set_error(500, "Receive not web page in GetWebPagePreview");
   }
 
   auto message_media_web_page = move_tl_object_as<telegram_api::messageMediaWebPage>(message_media_ptr);
@@ -2129,7 +2129,7 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
       auto requests = std::move(it->second);
       pending_get_web_pages_.erase(it);
       for (auto &request : requests) {
-        request.second.set_error(Status::Error(500, "Request timeout exceeded"));
+        request.second.set_error(500, "Request timeout exceeded");
         count++;
       }
     }

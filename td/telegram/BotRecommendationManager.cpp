@@ -139,10 +139,10 @@ void BotRecommendationManager::get_bot_recommendations(UserId bot_user_id, bool 
   }
   if (!td_->user_manager_->is_user_bot(bot_user_id)) {
     if (users_promise) {
-      users_promise.set_error(Status::Error(400, "Bot not found"));
+      users_promise.set_error(400, "Bot not found");
     }
     if (count_promise) {
-      count_promise.set_error(Status::Error(400, "Bot not found"));
+      count_promise.set_error(400, "Bot not found");
     }
     return;
   }
@@ -354,7 +354,7 @@ void BotRecommendationManager::on_get_bot_recommendations(
 void BotRecommendationManager::open_bot_recommended_bot(UserId bot_user_id, UserId opened_bot_user_id,
                                                         Promise<Unit> &&promise) {
   if (!td_->user_manager_->is_user_bot(bot_user_id) || !td_->user_manager_->is_user_bot(opened_bot_user_id)) {
-    return promise.set_error(Status::Error(400, "Bot not found"));
+    return promise.set_error(400, "Bot not found");
   }
   vector<telegram_api::object_ptr<telegram_api::jsonObjectValue>> data;
   data.push_back(telegram_api::make_object<telegram_api::jsonObjectValue>(

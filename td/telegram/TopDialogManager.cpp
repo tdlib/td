@@ -229,7 +229,7 @@ void TopDialogManager::on_dialog_used(TopDialogCategory category, DialogId dialo
 
 void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog_id, Promise<Unit> &&promise) {
   if (category == TopDialogCategory::Size) {
-    return promise.set_error(Status::Error(400, "Top chat category must be non-empty"));
+    return promise.set_error(400, "Top chat category must be non-empty");
   }
   TRY_STATUS_PROMISE(promise,
                      td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "remove_dialog"));
@@ -266,13 +266,13 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
 void TopDialogManager::get_top_dialogs(TopDialogCategory category, int32 limit,
                                        Promise<td_api::object_ptr<td_api::chats>> &&promise) {
   if (category == TopDialogCategory::Size) {
-    return promise.set_error(Status::Error(400, "Top chat category must be non-empty"));
+    return promise.set_error(400, "Top chat category must be non-empty");
   }
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Limit must be positive"));
+    return promise.set_error(400, "Limit must be positive");
   }
   if (!is_enabled_) {
-    return promise.set_error(Status::Error(400, "Top chat computation is disabled"));
+    return promise.set_error(400, "Top chat computation is disabled");
   }
 
   GetTopDialogsQuery query;

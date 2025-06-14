@@ -217,13 +217,13 @@ class DownloadManagerImpl final : public DownloadManager {
     }
 
     if (limit <= 0) {
-      return promise.set_error(Status::Error(400, "Limit must be positive"));
+      return promise.set_error(400, "Limit must be positive");
     }
     int64 offset_int64 = std::numeric_limits<int64>::max();
     if (!offset.empty()) {
       auto r_offset = to_integer_safe<int64>(offset);
       if (r_offset.is_error()) {
-        return promise.set_error(Status::Error(400, "Invalid offset"));
+        return promise.set_error(400, "Invalid offset");
       }
       offset_int64 = r_offset.move_as_ok();
     }

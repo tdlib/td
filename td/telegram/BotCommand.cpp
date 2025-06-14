@@ -172,13 +172,13 @@ void set_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_pt
   vector<BotCommand> new_commands;
   for (auto &command : commands) {
     if (command == nullptr) {
-      return promise.set_error(Status::Error(400, "Command must be non-empty"));
+      return promise.set_error(400, "Command must be non-empty");
     }
     if (!clean_input_string(command->command_)) {
-      return promise.set_error(Status::Error(400, "Command must be encoded in UTF-8"));
+      return promise.set_error(400, "Command must be encoded in UTF-8");
     }
     if (!clean_input_string(command->description_)) {
-      return promise.set_error(Status::Error(400, "Command description must be encoded in UTF-8"));
+      return promise.set_error(400, "Command description must be encoded in UTF-8");
     }
 
     const size_t MAX_COMMAND_TEXT_LENGTH = 32;
@@ -187,22 +187,21 @@ void set_commands(Td *td, td_api::object_ptr<td_api::BotCommandScope> &&scope_pt
       command->command_ = command->command_.substr(1);
     }
     if (command->command_.empty()) {
-      return promise.set_error(Status::Error(400, "Command must be non-empty"));
+      return promise.set_error(400, "Command must be non-empty");
     }
     if (utf8_length(command->command_) > MAX_COMMAND_TEXT_LENGTH) {
-      return promise.set_error(
-          Status::Error(400, PSLICE() << "Command length must not exceed " << MAX_COMMAND_TEXT_LENGTH));
+      return promise.set_error(400, PSLICE() << "Command length must not exceed " << MAX_COMMAND_TEXT_LENGTH);
     }
 
     const size_t MAX_COMMAND_DESCRIPTION_LENGTH = 256;
     command->description_ = trim(command->description_);
     auto description_length = utf8_length(command->description_);
     if (command->description_.empty()) {
-      return promise.set_error(Status::Error(400, "Command description must be non-empty"));
+      return promise.set_error(400, "Command description must be non-empty");
     }
     if (description_length > MAX_COMMAND_DESCRIPTION_LENGTH) {
-      return promise.set_error(Status::Error(
-          400, PSLICE() << "Command description length must not exceed " << MAX_COMMAND_DESCRIPTION_LENGTH));
+      return promise.set_error(
+          400, PSLICE() << "Command description length must not exceed " << MAX_COMMAND_DESCRIPTION_LENGTH);
     }
 
     new_commands.emplace_back(std::move(command->command_), std::move(command->description_));

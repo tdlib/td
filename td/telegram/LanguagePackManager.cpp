@@ -860,7 +860,7 @@ td_api::object_ptr<td_api::languagePackStrings> LanguagePackManager::get_languag
 void LanguagePackManager::get_languages(bool only_local,
                                         Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise) {
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
+    return promise.set_error(400, "Option \"localization_target\" needs to be set first");
   }
 
   if (only_local) {
@@ -881,7 +881,7 @@ void LanguagePackManager::get_languages(bool only_local,
 void LanguagePackManager::search_language_info(string language_code,
                                                Promise<td_api::object_ptr<td_api::languagePackInfo>> promise) {
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
+    return promise.set_error(400, "Option \"localization_target\" needs to be set first");
   }
 
   auto request_promise =
@@ -1094,14 +1094,14 @@ void LanguagePackManager::on_get_language(tl_object_ptr<telegram_api::langPackLa
 void LanguagePackManager::get_language_pack_strings(string language_code, vector<string> keys,
                                                     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise) {
   if (!check_language_code_name(language_code) || language_code.empty()) {
-    return promise.set_error(Status::Error(400, "Language pack ID is invalid"));
+    return promise.set_error(400, "Language pack ID is invalid");
   }
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
+    return promise.set_error(400, "Option \"localization_target\" needs to be set first");
   }
   for (auto &key : keys) {
     if (!is_valid_key(key)) {
-      return promise.set_error(Status::Error(400, "Invalid key name"));
+      return promise.set_error(400, "Invalid key name");
     }
   }
 
@@ -1114,7 +1114,7 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
   }
 
   if (is_custom_language_code(language_code)) {
-    return promise.set_error(Status::Error(400, "Custom language pack not found"));
+    return promise.set_error(400, "Custom language pack not found");
   }
 
   if (keys.empty()) {
@@ -1171,10 +1171,10 @@ void LanguagePackManager::load_empty_language_pack(const string &language_code) 
 
 void LanguagePackManager::synchronize_language_pack(string language_code, Promise<Unit> promise) {
   if (!check_language_code_name(language_code) || language_code.empty()) {
-    return promise.set_error(Status::Error(400, "Language pack ID is invalid"));
+    return promise.set_error(400, "Language pack ID is invalid");
   }
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
+    return promise.set_error(400, "Option \"localization_target\" needs to be set first");
   }
   if (is_custom_language_code(language_code)) {
     return promise.set_value(Unit());
@@ -1533,18 +1533,17 @@ void LanguagePackManager::on_failed_get_difference(string language_pack, string 
 
 void LanguagePackManager::add_custom_server_language(string language_code, Promise<Unit> &&promise) {
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
+    return promise.set_error(400, "Option \"localization_target\" needs to be set first");
   }
   if (!check_language_code_name(language_code)) {
-    return promise.set_error(Status::Error(400, "Language pack ID must contain only letters, digits and hyphen"));
+    return promise.set_error(400, "Language pack ID must contain only letters, digits and hyphen");
   }
   if (is_custom_language_code(language_code)) {
-    return promise.set_error(
-        Status::Error(400, "Custom local language pack can't be added through addCustomServerLanguagePack"));
+    return promise.set_error(400, "Custom local language pack can't be added through addCustomServerLanguagePack");
   }
 
   if (get_language(database_, language_pack_, language_code) == nullptr) {
-    return promise.set_error(Status::Error(400, "Language pack not found"));
+    return promise.set_error(400, "Language pack not found");
   }
 
   std::lock_guard<std::mutex> packs_lock(database_->mutex_);
@@ -1554,7 +1553,7 @@ void LanguagePackManager::add_custom_server_language(string language_code, Promi
   std::lock_guard<std::mutex> pack_lock(pack->mutex_);
   auto it = pack->all_server_language_pack_infos_.find(language_code);
   if (it == pack->all_server_language_pack_infos_.end()) {
-    return promise.set_error(Status::Error(400, "Language pack info not found"));
+    return promise.set_error(400, "Language pack info not found");
   }
   auto &info = pack->custom_language_pack_infos_[language_code];
   info = *it->second;
@@ -1709,13 +1708,13 @@ void LanguagePackManager::set_custom_language(td_api::object_ptr<td_api::languag
                                               vector<tl_object_ptr<td_api::languagePackString>> strings,
                                               Promise<Unit> &&promise) {
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
+    return promise.set_error(400, "Option \"localization_target\" needs to be set first");
   }
 
   TRY_RESULT_PROMISE(promise, language_info, get_language_info(language_pack_info.get()));
   auto language_code = std::move(language_pack_info->id_);
   if (!is_custom_language_code(language_code)) {
-    return promise.set_error(Status::Error(400, "Custom language pack ID must begin with 'X'"));
+    return promise.set_error(400, "Custom language pack ID must begin with 'X'");
   }
 
   vector<tl_object_ptr<telegram_api::LangPackString>> server_strings;
@@ -1745,13 +1744,13 @@ void LanguagePackManager::set_custom_language(td_api::object_ptr<td_api::languag
 void LanguagePackManager::edit_custom_language_info(td_api::object_ptr<td_api::languagePackInfo> &&language_pack_info,
                                                     Promise<Unit> &&promise) {
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
+    return promise.set_error(400, "Option \"localization_target\" needs to be set first");
   }
 
   TRY_RESULT_PROMISE(promise, language_info, get_language_info(language_pack_info.get()));
   auto language_code = std::move(language_pack_info->id_);
   if (!is_custom_language_code(language_code)) {
-    return promise.set_error(Status::Error(400, "Custom language pack ID must begin with 'X'"));
+    return promise.set_error(400, "Custom language pack ID must begin with 'X'");
   }
 
   std::lock_guard<std::mutex> packs_lock(database_->mutex_);
@@ -1761,7 +1760,7 @@ void LanguagePackManager::edit_custom_language_info(td_api::object_ptr<td_api::l
   std::lock_guard<std::mutex> pack_lock(pack->mutex_);
   auto language_info_it = pack->custom_language_pack_infos_.find(language_code);
   if (language_info_it == pack->custom_language_pack_infos_.end()) {
-    return promise.set_error(Status::Error(400, "Custom language pack is not found"));
+    return promise.set_error(400, "Custom language pack is not found");
   }
   auto &info = language_info_it->second;
   info = std::move(language_info);
@@ -1776,20 +1775,20 @@ void LanguagePackManager::set_custom_language_string(string language_code,
                                                      tl_object_ptr<td_api::languagePackString> str,
                                                      Promise<Unit> &&promise) {
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
+    return promise.set_error(400, "Option \"localization_target\" needs to be set first");
   }
   if (!check_language_code_name(language_code)) {
-    return promise.set_error(Status::Error(400, "Language pack ID must contain only letters, digits and hyphen"));
+    return promise.set_error(400, "Language pack ID must contain only letters, digits and hyphen");
   }
   if (!is_custom_language_code(language_code)) {
-    return promise.set_error(Status::Error(400, "Custom language pack ID must begin with 'X'"));
+    return promise.set_error(400, "Custom language pack ID must begin with 'X'");
   }
 
   if (get_language(database_, language_pack_, language_code) == nullptr) {
-    return promise.set_error(Status::Error(400, "Custom language pack not found"));
+    return promise.set_error(400, "Custom language pack not found");
   }
   if (str == nullptr) {
-    return promise.set_error(Status::Error(400, "Language pack strings must not be null"));
+    return promise.set_error(400, "Language pack strings must not be null");
   }
 
   vector<string> keys{str->key_};
@@ -1806,16 +1805,16 @@ void LanguagePackManager::set_custom_language_string(string language_code,
 
 void LanguagePackManager::delete_language(string language_code, Promise<Unit> &&promise) {
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
+    return promise.set_error(400, "Option \"localization_target\" needs to be set first");
   }
   if (!check_language_code_name(language_code)) {
-    return promise.set_error(Status::Error(400, "Language pack ID is invalid"));
+    return promise.set_error(400, "Language pack ID is invalid");
   }
   if (language_code.empty()) {
-    return promise.set_error(Status::Error(400, "Language pack ID is empty"));
+    return promise.set_error(400, "Language pack ID is empty");
   }
   if (language_code_ == language_code || base_language_code_ == language_code) {
-    return promise.set_error(Status::Error(400, "Currently used language pack can't be deleted"));
+    return promise.set_error(400, "Currently used language pack can't be deleted");
   }
 
   auto status = do_delete_language(language_code);

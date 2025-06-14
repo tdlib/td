@@ -473,7 +473,7 @@ void WebAppManager::schedule_ping_web_view() {
 void WebAppManager::get_popular_app_bots(const string &offset, int32 limit,
                                          Promise<td_api::object_ptr<td_api::foundUsers>> &&promise) {
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Limit must be positive"));
+    return promise.set_error(400, "Limit must be positive");
   }
   td_->create_handler<GetPopularAppBotsQuery>(std::move(promise))->send(offset, limit);
 }
@@ -502,7 +502,7 @@ void WebAppManager::on_get_web_app(UserId bot_user_id, string web_app_short_name
   if (bot_app->app_->get_id() != telegram_api::botApp::ID) {
     CHECK(bot_app->app_->get_id() != telegram_api::botAppNotModified::ID);
     LOG(ERROR) << "Receive " << to_string(bot_app);
-    return promise.set_error(Status::Error(500, "Receive invalid response"));
+    return promise.set_error(500, "Receive invalid response");
   }
 
   WebApp web_app(td_, telegram_api::move_object_as<telegram_api::botApp>(bot_app->app_), DialogId(bot_user_id));
@@ -554,7 +554,7 @@ void WebAppManager::request_main_web_view(DialogId dialog_id, UserId bot_user_id
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
   TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
   if (!bot_data.has_main_app) {
-    return promise.set_error(Status::Error(400, "The bot has no main Mini App"));
+    return promise.set_error(400, "The bot has no main Mini App");
   }
   on_dialog_used(TopDialogCategory::BotApp, DialogId(bot_user_id), G()->unix_time());
 
@@ -632,7 +632,7 @@ void WebAppManager::check_download_file_params(UserId bot_user_id, const string 
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
   if (file_name.size() >= 256u || url.size() > 32768u || file_name.find('/') != string::npos ||
       file_name.find('\\') != string::npos) {
-    return promise.set_error(Status::Error(400, "The file can't be downloaded"));
+    return promise.set_error(400, "The file can't be downloaded");
   }
   td_->create_handler<CheckDownloadFileParamsQuery>(std::move(promise))->send(std::move(input_user), file_name, url);
 }

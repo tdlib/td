@@ -378,10 +378,10 @@ void MessageImportManager::on_upload_imported_messages(FileUploadId file_upload_
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (input_file == nullptr && main_remote_location != nullptr) {
     if (main_remote_location->is_web()) {
-      return promise.set_error(Status::Error(400, "Can't use web file"));
+      return promise.set_error(400, "Can't use web file");
     }
     if (is_reupload) {
-      return promise.set_error(Status::Error(400, "Failed to reupload the file"));
+      return promise.set_error(400, "Failed to reupload the file");
     }
 
     CHECK(file_view.get_type() == FileType::Document);
@@ -481,10 +481,10 @@ void MessageImportManager::on_upload_imported_message_attachment(
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (input_file == nullptr && main_remote_location != nullptr) {
     if (main_remote_location->is_web()) {
-      return promise.set_error(Status::Error(400, "Can't use web file"));
+      return promise.set_error(400, "Can't use web file");
     }
     if (is_reupload) {
-      return promise.set_error(Status::Error(400, "Failed to reupload the file"));
+      return promise.set_error(400, "Failed to reupload the file");
     }
 
     // delete file reference and forcely reupload the file

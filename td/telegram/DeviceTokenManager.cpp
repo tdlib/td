@@ -134,7 +134,7 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
                                          const vector<UserId> &other_user_ids,
                                          Promise<td_api::object_ptr<td_api::pushReceiverId>> promise) {
   if (device_token_ptr == nullptr) {
-    return promise.set_error(Status::Error(400, "Device token must be non-empty"));
+    return promise.set_error(400, "Device token must be non-empty");
   }
   TokenType token_type;
   string token;
@@ -196,16 +196,16 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
     case td_api::deviceTokenWebPush::ID: {
       auto device_token = static_cast<td_api::deviceTokenWebPush *>(device_token_ptr.get());
       if (device_token->endpoint_.find(',') != string::npos) {
-        return promise.set_error(Status::Error(400, "Illegal endpoint value"));
+        return promise.set_error(400, "Illegal endpoint value");
       }
       if (!is_base64url(device_token->p256dh_base64url_)) {
-        return promise.set_error(Status::Error(400, "Public key must be base64url-encoded"));
+        return promise.set_error(400, "Public key must be base64url-encoded");
       }
       if (!is_base64url(device_token->auth_base64url_)) {
-        return promise.set_error(Status::Error(400, "Authentication secret must be base64url-encoded"));
+        return promise.set_error(400, "Authentication secret must be base64url-encoded");
       }
       if (!clean_input_string(device_token->endpoint_)) {
-        return promise.set_error(Status::Error(400, "Endpoint must be encoded in UTF-8"));
+        return promise.set_error(400, "Endpoint must be encoded in UTF-8");
       }
 
       if (!device_token->endpoint_.empty()) {
@@ -244,11 +244,11 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
   }
 
   if (!clean_input_string(token)) {
-    return promise.set_error(Status::Error(400, "Device token must be encoded in UTF-8"));
+    return promise.set_error(400, "Device token must be encoded in UTF-8");
   }
   for (auto &other_user_id : other_user_ids) {
     if (!other_user_id.is_valid()) {
-      return promise.set_error(Status::Error(400, "Invalid user_id among other user_ids"));
+      return promise.set_error(400, "Invalid user_id among other user_ids");
     }
   }
   auto input_user_ids = UserId::get_input_user_ids(other_user_ids);
@@ -452,7 +452,7 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
       }
       info.promise.set_error(r_flag.move_as_error());
     } else {
-      info.promise.set_error(Status::Error(400, "Receive false as result of registerDevice server request"));
+      info.promise.set_error(400, "Receive false as result of registerDevice server request");
     }
     if (info.state == TokenInfo::State::Reregister) {
       // keep trying to reregister the token

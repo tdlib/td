@@ -1189,7 +1189,7 @@ class CheckGroupCallQuery final : public Td::ResultHandler {
     if (!active_audio_sources.empty()) {
       promise_.set_value(Unit());
     } else {
-      promise_.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+      promise_.set_error(400, "GROUPCALL_JOIN_MISSING");
     }
   }
 
@@ -1770,22 +1770,22 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
   switch (as_dialog_id.get_type()) {
     case DialogType::User:
       if (as_dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
-        return promise.set_error(Status::Error(400, "Can't join video chat as another user"));
+        return promise.set_error(400, "Can't join video chat as another user");
       }
       break;
     case DialogType::Chat:
     case DialogType::Channel:
       if (!td_->dialog_manager_->have_dialog_force(as_dialog_id, "set_group_call_default_join_as 2")) {
-        return promise.set_error(Status::Error(400, "Participant chat not found"));
+        return promise.set_error(400, "Participant chat not found");
       }
       break;
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't join video chat as a secret chat"));
+      return promise.set_error(400, "Can't join video chat as a secret chat");
     default:
-      return promise.set_error(Status::Error(400, "Invalid default participant identifier specified"));
+      return promise.set_error(400, "Invalid default participant identifier specified");
   }
   if (!td_->dialog_manager_->have_input_peer(as_dialog_id, false, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access specified default participant chat"));
+    return promise.set_error(400, "Can't access specified default participant chat");
   }
 
   td_->create_handler<SaveDefaultGroupCallJoinAsQuery>(std::move(promise))->send(dialog_id, as_dialog_id);
@@ -1823,7 +1823,7 @@ void GroupCallManager::create_group_call(td_api::object_ptr<td_api::groupCallJoi
     data.is_join_ = true;
     auto r_private_key_id = tde2e_api::key_generate_temporary_private_key();
     if (r_private_key_id.is_error()) {
-      return promise.set_error(Status::Error(400, "Failed to generate encryption key"));
+      return promise.set_error(400, "Failed to generate encryption key");
     }
     data.private_key_id_ = tde2e_move_as_ok(r_private_key_id);
 
@@ -1903,7 +1903,7 @@ void GroupCallManager::on_create_group_call_finished(InputGroupCallId input_grou
   if (is_join) {
     auto it = group_call_join_payloads_.find(input_group_call_id);
     if (it == group_call_join_payloads_.end()) {
-      promise.set_error(Status::Error(500, "Receive no join payload"));
+      promise.set_error(500, "Receive no join payload");
       return finish_join_group_call(input_group_call_id, 1, Status::Error(500, "Receive no join payload"));
     }
     payload = std::move(it->second);
@@ -1980,10 +1980,10 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
 void GroupCallManager::reload_group_call(InputGroupCallId input_group_call_id,
                                          Promise<td_api::object_ptr<td_api::groupCall>> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Bots can't get group call info"));
+    return promise.set_error(400, "Bots can't get group call info");
   }
   if (!input_group_call_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid group call identifier specified"));
+    return promise.set_error(400, "Invalid group call identifier specified");
   }
 
   auto &queries = load_group_call_queries_[input_group_call_id];
@@ -3032,7 +3032,7 @@ int32 GroupCallManager::cancel_join_group_call_request(InputGroupCallId input_gr
   }
   tde2e_api::key_destroy(it->second->private_key_id);
   tde2e_api::key_destroy(it->second->public_key_id);
-  it->second->promise.set_error(Status::Error(200, "Canceled"));
+  it->second->promise.set_error(200, "Canceled");
   auto audio_source = it->second->audio_source;
   pending_join_requests_.erase(it);
   return audio_source;
@@ -3048,7 +3048,7 @@ int32 GroupCallManager::cancel_join_group_call_presentation_request(InputGroupCa
   if (!it->second->query_ref.empty()) {
     cancel_query(it->second->query_ref);
   }
-  it->second->promise.set_error(Status::Error(200, "Canceled"));
+  it->second->promise.set_error(200, "Canceled");
   auto audio_source = it->second->audio_source;
   pending_join_presentation_requests_.erase(it);
   return audio_source;
@@ -3074,7 +3074,7 @@ void GroupCallManager::get_group_call_streams(GroupCallId group_call_id,
     return;
   }
   if (group_call->is_conference || !group_call->is_active || !group_call->stream_dc_id.is_exact()) {
-    return promise.set_error(Status::Error(400, "Group call can't be streamed"));
+    return promise.set_error(400, "Group call can't be streamed");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -3088,7 +3088,7 @@ void GroupCallManager::get_group_call_streams(GroupCallId group_call_id,
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
   auto query_promise = PromiseCreator::lambda(
@@ -3137,7 +3137,7 @@ void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, 
     return;
   }
   if (group_call->is_conference || !group_call->is_active || !group_call->stream_dc_id.is_exact()) {
-    return promise.set_error(Status::Error(400, "Group call can't be streamed"));
+    return promise.set_error(400, "Group call can't be streamed");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -3153,7 +3153,7 @@ void GroupCallManager::get_group_call_stream_segment(GroupCallId group_call_id, 
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
   int32 video_quality = 0;
@@ -3223,13 +3223,13 @@ void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Pro
     return;
   }
   if (group_call->is_conference) {
-    return promise.set_error(Status::Error(400, "The group call isn't scheduled"));
+    return promise.set_error(400, "The group call isn't scheduled");
   }
   if (!group_call->can_be_managed) {
-    return promise.set_error(Status::Error(400, "Not enough rights to start the group call"));
+    return promise.set_error(400, "Not enough rights to start the group call");
   }
   if (!group_call->is_active) {
-    return promise.set_error(Status::Error(400, "Group call already ended"));
+    return promise.set_error(400, "Group call already ended");
   }
   if (group_call->scheduled_start_date == 0) {
     return promise.set_value(Unit());
@@ -3278,33 +3278,33 @@ void GroupCallManager::do_join_group_call(InputGroupCall &&input_group_call, Gro
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call != nullptr) {
     if (group_call->is_inited && !group_call->is_active) {
-      return promise.set_error(Status::Error(400, "Video chat is finished"));
+      return promise.set_error(400, "Video chat is finished");
     }
     if (group_call->is_inited && !group_call->is_conference) {
       // shouldn't happen
-      return promise.set_error(Status::Error(400, "The group call must be joined using joinVideoChat"));
+      return promise.set_error(400, "The group call must be joined using joinVideoChat");
     }
     if (group_call->is_joined) {
-      return promise.set_error(Status::Error(400, "The group call is already joined"));
+      return promise.set_error(400, "The group call is already joined");
     }
   }
 
   if (updates->get_id() != telegram_api::updates::ID) {
-    return promise.set_error(Status::Error(500, "Receive invalid block"));
+    return promise.set_error(500, "Receive invalid block");
   }
   auto &blocks = static_cast<telegram_api::updates *>(updates.get())->updates_;
   if (blocks.size() != 1u || blocks[0]->get_id() != telegram_api::updateGroupCallChainBlocks::ID) {
-    return promise.set_error(Status::Error(500, "Receive invalid block updates"));
+    return promise.set_error(500, "Receive invalid block updates");
   }
   auto update = telegram_api::move_object_as<telegram_api::updateGroupCallChainBlocks>(blocks[0]);
   if (update->blocks_.size() > 1u) {
-    return promise.set_error(Status::Error(500, "Receive invalid blocks"));
+    return promise.set_error(500, "Receive invalid blocks");
   }
   real_input_group_call_ids_[input_group_call] = InputGroupCallId(update->call_);
 
   auto r_private_key_id = tde2e_api::key_generate_temporary_private_key();
   if (r_private_key_id.is_error()) {
-    return promise.set_error(Status::Error(400, "Failed to generate encryption key"));
+    return promise.set_error(400, "Failed to generate encryption key");
   }
   auto private_key_id = tde2e_move_as_ok(r_private_key_id);
 
@@ -3330,7 +3330,7 @@ void GroupCallManager::do_join_group_call(InputGroupCall &&input_group_call, Gro
     if (r_block.is_error()) {
       tde2e_api::key_destroy(private_key_id);
       tde2e_api::key_destroy(public_key_id);
-      return promise.set_error(Status::Error(500, "Receive invalid previous block"));
+      return promise.set_error(500, "Receive invalid previous block");
     }
     block = tde2e_move_as_ok(std::move(r_block));
   }
@@ -3421,10 +3421,10 @@ void GroupCallManager::join_video_chat(GroupCallId group_call_id, DialogId as_di
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
   if (group_call->is_inited && !group_call->is_active) {
-    return promise.set_error(Status::Error(400, "Video chat is finished"));
+    return promise.set_error(400, "Video chat is finished");
   }
   if (group_call->is_inited && group_call->is_conference) {
-    return promise.set_error(Status::Error(400, "The group call must be joined using joinGroupCall"));
+    return promise.set_error(400, "The group call must be joined using joinGroupCall");
   }
   bool need_update = false;
   bool old_is_joined = get_group_call_is_joined(group_call);
@@ -3445,18 +3445,18 @@ void GroupCallManager::join_video_chat(GroupCallId group_call_id, DialogId as_di
     auto dialog_type = as_dialog_id.get_type();
     if (dialog_type == DialogType::User) {
       if (as_dialog_id != my_dialog_id) {
-        return promise.set_error(Status::Error(400, "Can't join video chat as another user"));
+        return promise.set_error(400, "Can't join video chat as another user");
       }
       if (!td_->user_manager_->have_user_force(as_dialog_id.get_user_id(), "join_video_chat 1")) {
         have_as_dialog_id = false;
       }
     } else {
       if (!td_->dialog_manager_->have_dialog_force(as_dialog_id, "join_video_chat 2")) {
-        return promise.set_error(Status::Error(400, "Join as chat not found"));
+        return promise.set_error(400, "Join as chat not found");
       }
     }
     if (!td_->dialog_manager_->have_input_peer(as_dialog_id, false, AccessRights::Read)) {
-      return promise.set_error(Status::Error(400, "Can't access the join as participant"));
+      return promise.set_error(400, "Can't access the join as participant");
     }
   }
 
@@ -3541,10 +3541,10 @@ void GroupCallManager::encrypt_group_call_data(GroupCallId group_call_id,
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
   if (!group_call->is_inited || !group_call->is_active) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_conference || group_call->call_id == tde2e_api::CallId()) {
-    return promise.set_error(Status::Error(400, "Group call doesn't support encryption"));
+    return promise.set_error(400, "Group call doesn't support encryption");
   }
   if (!group_call->is_joined || group_call->is_being_left) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -3552,7 +3552,7 @@ void GroupCallManager::encrypt_group_call_data(GroupCallId group_call_id,
           [actor_id = actor_id(this), group_call_id, data_channel = std::move(data_channel), data = std::move(data),
            unencrypted_prefix_size, promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
-              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::encrypt_group_call_data, group_call_id, std::move(data_channel),
                            std::move(data), unencrypted_prefix_size, std::move(promise));
@@ -3560,7 +3560,7 @@ void GroupCallManager::encrypt_group_call_data(GroupCallId group_call_id,
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
   tde2e_api::CallChannelId channel_id{};
@@ -3569,7 +3569,7 @@ void GroupCallManager::encrypt_group_call_data(GroupCallId group_call_id,
   }
   auto r_data = tde2e_api::call_encrypt(group_call->call_id, channel_id, data, unencrypted_prefix_size);
   if (r_data.is_error()) {
-    return promise.set_error(Status::Error(400, r_data.error().message));
+    return promise.set_error(400, r_data.error().message);
   }
   promise.set_value(std::move(r_data.value()));
 }
@@ -3583,10 +3583,10 @@ void GroupCallManager::decrypt_group_call_data(GroupCallId group_call_id, Dialog
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
   if (!group_call->is_inited || !group_call->is_active) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_conference || group_call->call_id == tde2e_api::CallId()) {
-    return promise.set_error(Status::Error(400, "Group call doesn't support decryption"));
+    return promise.set_error(400, "Group call doesn't support decryption");
   }
   if (!group_call->is_joined || group_call->is_being_left) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -3594,7 +3594,7 @@ void GroupCallManager::decrypt_group_call_data(GroupCallId group_call_id, Dialog
           [actor_id = actor_id(this), group_call_id, participant_dialog_id, data_channel = std::move(data_channel),
            data = std::move(data), promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
-              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::decrypt_group_call_data, group_call_id, participant_dialog_id,
                            std::move(data_channel), std::move(data), std::move(promise));
@@ -3602,7 +3602,7 @@ void GroupCallManager::decrypt_group_call_data(GroupCallId group_call_id, Dialog
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
   tde2e_api::CallChannelId channel_id{};
@@ -3611,7 +3611,7 @@ void GroupCallManager::decrypt_group_call_data(GroupCallId group_call_id, Dialog
   }
   auto r_data = tde2e_api::call_decrypt(group_call->call_id, participant_dialog_id.get(), channel_id, data);
   if (r_data.is_error()) {
-    return promise.set_error(Status::Error(400, r_data.error().message));
+    return promise.set_error(400, r_data.error().message);
   }
   promise.set_value(std::move(r_data.value()));
 }
@@ -3624,7 +3624,7 @@ void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
   if (!group_call->is_inited || !group_call->is_active) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_joined || group_call->is_being_left) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -3632,7 +3632,7 @@ void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, audio_source, payload = std::move(payload),
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
-              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::start_group_call_screen_sharing, group_call_id, audio_source,
                            std::move(payload), std::move(promise));
@@ -3640,7 +3640,7 @@ void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
   cancel_join_group_call_presentation_request(input_group_call_id);
@@ -3668,14 +3668,14 @@ void GroupCallManager::end_group_call_screen_sharing(GroupCallId group_call_id, 
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
   if (!group_call->is_inited || !group_call->is_active) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_joined || group_call->is_being_left) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(PromiseCreator::lambda(
           [actor_id = actor_id(this), group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
-              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::end_group_call_screen_sharing, group_call_id,
                            std::move(promise));
@@ -3683,7 +3683,7 @@ void GroupCallManager::end_group_call_screen_sharing(GroupCallId group_call_id, 
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
   cancel_join_group_call_presentation_request(input_group_call_id);
@@ -3766,7 +3766,7 @@ void GroupCallManager::process_join_video_chat_response(InputGroupCallId input_g
 
   td_->updates_manager_->on_get_updates(std::move(updates),
                                         PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable {
-                                          promise.set_error(Status::Error(500, "Wrong join response received"));
+                                          promise.set_error(500, "Wrong join response received");
                                         }));
 }
 
@@ -3790,8 +3790,7 @@ void GroupCallManager::process_join_group_call_presentation_response(InputGroupC
 
   string params = UpdatesManager::extract_join_group_call_presentation_params(updates.get());
   if (params.empty()) {
-    return promise.set_error(
-        Status::Error(500, "Wrong start group call screen sharing response received: parameters are missing"));
+    return promise.set_error(500, "Wrong start group call screen sharing response received: parameters are missing");
   }
   td_->updates_manager_->on_get_updates(
       std::move(updates), PromiseCreator::lambda([params = std::move(params), promise = std::move(promise)](
@@ -3954,7 +3953,7 @@ void GroupCallManager::set_group_call_title(GroupCallId group_call_id, string ti
     return;
   }
   if (group_call->is_conference || !group_call->is_active || !group_call->can_be_managed) {
-    return promise.set_error(Status::Error(400, "Can't change group call title"));
+    return promise.set_error(400, "Can't change group call title");
   }
 
   title = clean_name(title, MAX_TITLE_LENGTH);
@@ -4014,7 +4013,7 @@ void GroupCallManager::toggle_group_call_is_my_video_paused(GroupCallId group_ca
 
   auto *group_call = get_group_call(input_group_call_id);
   if (!is_group_call_active(group_call)) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -4022,7 +4021,7 @@ void GroupCallManager::toggle_group_call_is_my_video_paused(GroupCallId group_ca
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, is_my_video_paused,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
-              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::toggle_group_call_is_my_video_paused, group_call_id,
                            is_my_video_paused, std::move(promise));
@@ -4030,7 +4029,7 @@ void GroupCallManager::toggle_group_call_is_my_video_paused(GroupCallId group_ca
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
   if (is_my_video_paused == get_group_call_is_my_video_paused(group_call)) {
@@ -4098,7 +4097,7 @@ void GroupCallManager::toggle_group_call_is_my_video_enabled(GroupCallId group_c
 
   auto *group_call = get_group_call(input_group_call_id);
   if (!is_group_call_active(group_call)) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -4106,7 +4105,7 @@ void GroupCallManager::toggle_group_call_is_my_video_enabled(GroupCallId group_c
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, is_my_video_enabled,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
-              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::toggle_group_call_is_my_video_enabled, group_call_id,
                            is_my_video_enabled, std::move(promise));
@@ -4114,7 +4113,7 @@ void GroupCallManager::toggle_group_call_is_my_video_enabled(GroupCallId group_c
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
   if (is_my_video_enabled == get_group_call_is_my_video_enabled(group_call)) {
@@ -4185,7 +4184,7 @@ void GroupCallManager::toggle_group_call_is_my_presentation_paused(GroupCallId g
 
   auto *group_call = get_group_call(input_group_call_id);
   if (!is_group_call_active(group_call)) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -4193,7 +4192,7 @@ void GroupCallManager::toggle_group_call_is_my_presentation_paused(GroupCallId g
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, is_my_presentation_paused,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
-              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::toggle_group_call_is_my_presentation_paused, group_call_id,
                            is_my_presentation_paused, std::move(promise));
@@ -4201,7 +4200,7 @@ void GroupCallManager::toggle_group_call_is_my_presentation_paused(GroupCallId g
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
   if (is_my_presentation_paused == get_group_call_is_my_presentation_paused(group_call)) {
@@ -4286,7 +4285,7 @@ void GroupCallManager::toggle_group_call_start_subscribed(GroupCallId group_call
     return;
   }
   if (group_call->is_conference || !group_call->is_active || group_call->scheduled_start_date <= 0) {
-    return promise.set_error(Status::Error(400, "The group call isn't scheduled"));
+    return promise.set_error(400, "The group call isn't scheduled");
   }
 
   if (start_subscribed == get_group_call_start_subscribed(group_call)) {
@@ -4370,7 +4369,7 @@ void GroupCallManager::toggle_group_call_mute_new_participants(GroupCallId group
   }
   if (group_call->is_conference || !group_call->is_active || !group_call->can_be_managed ||
       !group_call->allowed_toggle_mute_new_participants) {
-    return promise.set_error(Status::Error(400, "Can't change mute_new_participants setting"));
+    return promise.set_error(400, "Can't change mute_new_participants setting");
   }
 
   if (mute_new_participants == get_group_call_mute_new_participants(group_call)) {
@@ -4454,7 +4453,7 @@ void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, 
     return;
   }
   if (!group_call->is_active || !(group_call->is_conference ? group_call->is_creator : group_call->can_be_managed)) {
-    return promise.set_error(Status::Error(400, "Can't revoke invite link in the group call"));
+    return promise.set_error(400, "Can't revoke invite link in the group call");
   }
 
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))->send(input_group_call_id, true, false, false);
@@ -4470,10 +4469,10 @@ void GroupCallManager::invite_group_call_participant(
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
   if (!group_call->is_conference) {
-    return promise.set_error(Status::Error(400, "Use inviteVideoChatParticipants for video chats"));
+    return promise.set_error(400, "Use inviteVideoChatParticipants for video chats");
   }
   if (!is_group_call_active(group_call) || group_call->is_being_left) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -4481,7 +4480,7 @@ void GroupCallManager::invite_group_call_participant(
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, user_id, is_video,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
-              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::invite_group_call_participant, group_call_id, user_id, is_video,
                            std::move(promise));
@@ -4489,7 +4488,7 @@ void GroupCallManager::invite_group_call_participant(
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
   td_->create_handler<InviteConferenceCallParticipantQuery>(std::move(promise))
@@ -4509,7 +4508,7 @@ void GroupCallManager::delete_group_call_participants(GroupCallId group_call_id,
   auto my_user_id = td_->user_manager_->get_my_id();
   for (auto &user_id : user_ids) {
     if (user_id == my_user_id.get()) {
-      return promise.set_error(Status::Error(400, "Use leaveGroupCall to leave the group call"));
+      return promise.set_error(400, "Use leaveGroupCall to leave the group call");
     }
   }
 
@@ -4521,11 +4520,11 @@ void GroupCallManager::do_delete_group_call_participants(InputGroupCallId input_
   TRY_STATUS_PROMISE(promise, G()->close_status());
   auto *group_call = get_group_call(input_group_call_id);
   if (!is_group_call_active(group_call) || group_call->is_being_left) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_conference) {
     return promise.set_error(
-        Status::Error(400, "Use setChatMemberStatus to ban participants from video chats and the corresponding chats"));
+        400, "Use setChatMemberStatus to ban participants from video chats and the corresponding chats");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -4541,7 +4540,7 @@ void GroupCallManager::do_delete_group_call_participants(InputGroupCallId input_
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   auto state = tde2e_move_as_ok(tde2e_api::call_get_state(group_call->call_id));
   if (!td::remove_if(state.participants,
@@ -4561,10 +4560,10 @@ void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id,
 
   auto *group_call = get_group_call(input_group_call_id);
   if (!is_group_call_active(group_call)) {
-    return promise.set_error(Status::Error(400, "Group call is not active"));
+    return promise.set_error(400, "Group call is not active");
   }
   if (group_call->is_conference) {
-    return promise.set_error(Status::Error(400, "The call is not a video chat"));
+    return promise.set_error(400, "The call is not a video chat");
   }
 
   vector<telegram_api::object_ptr<telegram_api::InputUser>> input_users;
@@ -4607,11 +4606,11 @@ void GroupCallManager::get_group_call_invite_link(GroupCallId group_call_id, boo
     return;
   }
   if (group_call->is_conference || !group_call->is_active) {
-    return promise.set_error(Status::Error(400, "Can't get group call invite link"));
+    return promise.set_error(400, "Can't get group call invite link");
   }
 
   if (can_self_unmute && !group_call->can_be_managed) {
-    return promise.set_error(Status::Error(400, "Not enough rights in the group call"));
+    return promise.set_error(400, "Not enough rights in the group call");
   }
 
   td_->create_handler<ExportGroupCallInviteQuery>(std::move(promise))->send(input_group_call_id, can_self_unmute);
@@ -4640,7 +4639,7 @@ void GroupCallManager::toggle_group_call_recording(GroupCallId group_call_id, bo
     return;
   }
   if (group_call->is_conference || !group_call->is_active || !group_call->can_be_managed) {
-    return promise.set_error(Status::Error(400, "Can't manage group call recording"));
+    return promise.set_error(400, "Can't manage group call recording");
   }
 
   title = clean_name(title, MAX_TITLE_LENGTH);
@@ -4716,7 +4715,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(
 
   auto *group_call = get_group_call(input_group_call_id);
   if (!is_group_call_active(group_call)) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -4732,12 +4731,12 @@ void GroupCallManager::set_group_call_participant_is_speaking(
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (audio_source == 0) {
     audio_source = group_call->audio_source;
     if (audio_source == 0) {
-      return promise.set_error(Status::Error(400, "Can't speak without joining the group call"));
+      return promise.set_error(400, "Can't speak without joining the group call");
     }
   }
 
@@ -4795,7 +4794,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
 
   auto *group_call = get_group_call(input_group_call_id);
   if (!is_group_call_active(group_call) || group_call->is_being_left) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -4803,7 +4802,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, dialog_id, is_muted,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
-              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::toggle_group_call_participant_is_muted, group_call_id,
                            dialog_id, is_muted, std::move(promise));
@@ -4811,13 +4810,13 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
   auto participants = add_group_call_participants(input_group_call_id, "toggle_group_call_participant_is_muted");
   auto participant = get_group_call_participant(participants, dialog_id);
   if (participant == nullptr) {
-    return promise.set_error(Status::Error(400, "Can't find group call participant"));
+    return promise.set_error(400, "Can't find group call participant");
   }
   dialog_id = participant->dialog_id;
 
@@ -4827,7 +4826,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
 
   auto participant_copy = *participant;
   if (!participant_copy.set_pending_is_muted(is_muted, can_manage, is_admin)) {
-    return promise.set_error(Status::Error(400, PSLICE() << "Can't " << (is_muted ? "" : "un") << "mute user"));
+    return promise.set_error(400, PSLICE() << "Can't " << (is_muted ? "" : "un") << "mute user");
   }
   if (participant_copy == *participant) {
     return promise.set_value(Unit());
@@ -4897,12 +4896,12 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
   if (volume_level < GroupCallParticipant::MIN_VOLUME_LEVEL || volume_level > GroupCallParticipant::MAX_VOLUME_LEVEL) {
-    return promise.set_error(Status::Error(400, "Wrong volume level specified"));
+    return promise.set_error(400, "Wrong volume level specified");
   }
 
   auto *group_call = get_group_call(input_group_call_id);
   if (!is_group_call_active(group_call) || group_call->is_being_left) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -4910,7 +4909,7 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, dialog_id, volume_level,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
-              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::set_group_call_participant_volume_level, group_call_id,
                            dialog_id, volume_level, std::move(promise));
@@ -4918,18 +4917,18 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
   auto participant =
       get_group_call_participant(input_group_call_id, dialog_id, "set_group_call_participant_volume_level");
   if (participant == nullptr) {
-    return promise.set_error(Status::Error(400, "Can't find group call participant"));
+    return promise.set_error(400, "Can't find group call participant");
   }
   dialog_id = participant->dialog_id;
 
   if (participant->is_self) {
-    return promise.set_error(Status::Error(400, "Can't change self volume level"));
+    return promise.set_error(400, "Can't change self volume level");
   }
 
   if (participant->get_volume_level() == volume_level) {
@@ -4996,7 +4995,7 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
 
   auto *group_call = get_group_call(input_group_call_id);
   if (!is_group_call_active(group_call) || group_call->is_being_left) {
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -5004,7 +5003,7 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
           PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, dialog_id, is_hand_raised,
                                   promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
-              promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::toggle_group_call_participant_is_hand_raised, group_call_id,
                            dialog_id, is_hand_raised, std::move(promise));
@@ -5012,16 +5011,16 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
           }));
       return;
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (group_call->is_conference) {
-    return promise.set_error(Status::Error(400, "The method can be used only in video chats"));
+    return promise.set_error(400, "The method can be used only in video chats");
   }
 
   auto participants = add_group_call_participants(input_group_call_id, "toggle_group_call_participant_is_hand_raised");
   auto participant = get_group_call_participant(participants, dialog_id);
   if (participant == nullptr) {
-    return promise.set_error(Status::Error(400, "Can't find group call participant"));
+    return promise.set_error(400, "Can't find group call participant");
   }
   dialog_id = participant->dialog_id;
 
@@ -5031,10 +5030,10 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
 
   if (!participant->is_self) {
     if (is_hand_raised) {
-      return promise.set_error(Status::Error(400, "Can't raise others hand"));
+      return promise.set_error(400, "Can't raise others hand");
     } else {
       if (!can_manage_group_call(group_call, false)) {
-        return promise.set_error(Status::Error(400, "Have not enough rights in the group call"));
+        return promise.set_error(400, "Have not enough rights in the group call");
       }
     }
   }
@@ -5097,21 +5096,21 @@ void GroupCallManager::get_group_call_participants(
     Promise<td_api::object_ptr<td_api::groupCallParticipants>> &&promise) {
   TRY_RESULT_PROMISE(promise, group_call, InputGroupCall::get_input_group_call(td_, std::move(input_group_call)));
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   td_->create_handler<GetInputGroupCallParticipantsQuery>(std::move(promise))->send(group_call, limit);
 }
 
 void GroupCallManager::load_group_call_participants(GroupCallId group_call_id, int32 limit, Promise<Unit> &&promise) {
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
 
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
   if (!need_group_call_participants(input_group_call_id, group_call)) {
-    return promise.set_error(Status::Error(400, "Can't load group call participants"));
+    return promise.set_error(400, "Can't load group call participants");
   }
   CHECK(group_call != nullptr && group_call->is_inited);
   if (group_call->loaded_all_participants) {
@@ -5158,7 +5157,7 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
       process_group_call_after_join_requests(input_group_call_id, "leave_group_call 2");
       return promise.set_value(Unit());
     }
-    return promise.set_error(Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   auto audio_source = cancel_join_group_call_request(input_group_call_id, group_call);
   if (audio_source == 0) {

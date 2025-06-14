@@ -973,13 +973,13 @@ bool ReactionManager::is_active_reaction(const ReactionType &reaction_type) cons
 
 void ReactionManager::set_default_reaction(ReactionType reaction_type, Promise<Unit> &&promise) {
   if (reaction_type.is_empty()) {
-    return promise.set_error(Status::Error(400, "Default reaction must be non-empty"));
+    return promise.set_error(400, "Default reaction must be non-empty");
   }
   if (reaction_type.is_paid_reaction()) {
-    return promise.set_error(Status::Error(400, "Can't set paid reaction as default"));
+    return promise.set_error(400, "Can't set paid reaction as default");
   }
   if (!reaction_type.is_custom_reaction() && !is_active_reaction(reaction_type)) {
-    return promise.set_error(Status::Error(400, "Can't set inactive reaction as default"));
+    return promise.set_error(400, "Can't set inactive reaction as default");
   }
 
   if (td_->option_manager_->get_option_string("default_reaction", "-") != reaction_type.get_string()) {
@@ -1052,7 +1052,7 @@ ReactionManager::SavedReactionTags *ReactionManager::get_saved_reaction_tags(
 void ReactionManager::get_saved_messages_tags(SavedMessagesTopicId saved_messages_topic_id,
                                               Promise<td_api::object_ptr<td_api::savedMessagesTags>> &&promise) {
   if (!saved_messages_topic_id.is_valid() && saved_messages_topic_id != SavedMessagesTopicId()) {
-    return promise.set_error(Status::Error(400, "Invalid Saved Messages topic specified"));
+    return promise.set_error(400, "Invalid Saved Messages topic specified");
   }
   const auto *tags = get_saved_reaction_tags(saved_messages_topic_id);
   if (tags->is_inited_) {
@@ -1198,10 +1198,10 @@ void ReactionManager::update_saved_messages_tags(SavedMessagesTopicId saved_mess
 
 void ReactionManager::set_saved_messages_tag_title(ReactionType reaction_type, string title, Promise<Unit> &&promise) {
   if (reaction_type.is_empty()) {
-    return promise.set_error(Status::Error(400, "Reaction type must be non-empty"));
+    return promise.set_error(400, "Reaction type must be non-empty");
   }
   if (reaction_type.is_paid_reaction()) {
-    return promise.set_error(Status::Error(400, "Invalid reaction specified"));
+    return promise.set_error(400, "Invalid reaction specified");
   }
   title = clean_name(title, MAX_TAG_TITLE_LENGTH);
 

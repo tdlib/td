@@ -864,13 +864,13 @@ class GetBusinessStarTransferPaymentFormQuery final : public Td::ResultHandler {
     switch (payment_form_ptr->get_id()) {
       case telegram_api::payments_paymentForm::ID:
         LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
-        promise_.set_error(Status::Error(500, "Unsupported"));
+        promise_.set_error(500, "Unsupported");
         break;
       case telegram_api::payments_paymentFormStars::ID: {
         auto payment_form = static_cast<const telegram_api::payments_paymentFormStars *>(payment_form_ptr.get());
         if (payment_form->invoice_->prices_.size() != 1u ||
             payment_form->invoice_->prices_[0]->amount_ != star_count_) {
-          return promise_.set_error(Status::Error(400, "Wrong transfer price specified"));
+          return promise_.set_error(400, "Wrong transfer price specified");
         }
         td_->create_handler<TransferBusinessStarsQuery>(std::move(promise_))
             ->send(business_connection_id_, payment_form->form_id_, star_count_);
@@ -880,7 +880,7 @@ class GetBusinessStarTransferPaymentFormQuery final : public Td::ResultHandler {
         auto payment_form = static_cast<const telegram_api::payments_paymentFormStarGift *>(payment_form_ptr.get());
         if (payment_form->invoice_->prices_.size() != 1u ||
             payment_form->invoice_->prices_[0]->amount_ != star_count_) {
-          return promise_.set_error(Status::Error(400, "Wrong transfer price specified"));
+          return promise_.set_error(400, "Wrong transfer price specified");
         }
         td_->create_handler<TransferBusinessStarsQuery>(std::move(promise_))
             ->send(business_connection_id_, payment_form->form_id_, star_count_);
@@ -1075,7 +1075,7 @@ void BusinessConnectionManager::get_business_connection(
   }
 
   if (connection_id.is_empty()) {
-    return promise.set_error(Status::Error(400, "Connection iedntifier must be non-empty"));
+    return promise.set_error(400, "Connection iedntifier must be non-empty");
   }
 
   auto &queries = get_business_connection_queries_[connection_id];
@@ -1298,7 +1298,7 @@ void BusinessConnectionManager::do_send_message(unique_ptr<PendingMessage> &&mes
   }
   if (content_type == MessageContentType::Game || content_type == MessageContentType::Poll ||
       content_type == MessageContentType::Story) {
-    return promise.set_error(Status::Error(400, "Message has no file"));
+    return promise.set_error(400, "Message has no file");
   }
   upload_media(std::move(message), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
                                                               Result<UploadMediaResult> &&result) mutable {
@@ -1317,13 +1317,13 @@ void BusinessConnectionManager::process_sent_business_message(
     Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
   if (updates_ptr->get_id() != telegram_api::updates::ID) {
     LOG(ERROR) << "Receive " << to_string(updates_ptr);
-    return promise.set_error(Status::Error(500, "Receive invalid business connection messages"));
+    return promise.set_error(500, "Receive invalid business connection messages");
   }
   auto updates = telegram_api::move_object_as<telegram_api::updates>(updates_ptr);
   if (updates->updates_.size() != 1 ||
       updates->updates_[0]->get_id() != telegram_api::updateBotNewBusinessMessage::ID) {
     LOG(ERROR) << "Receive " << to_string(updates);
-    return promise.set_error(Status::Error(500, "Receive invalid business connection messages"));
+    return promise.set_error(500, "Receive invalid business connection messages");
   }
   auto update = telegram_api::move_object_as<telegram_api::updateBotNewBusinessMessage>(updates->updates_[0]);
 
@@ -1341,11 +1341,11 @@ void BusinessConnectionManager::upload_media(unique_ptr<PendingMessage> &&messag
   CHECK(file_id.is_valid());
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
-    return promise.set_error(Status::Error(400, "Can't use encrypted file"));
+    return promise.set_error(400, "Can't use encrypted file");
   }
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (main_remote_location != nullptr && main_remote_location->is_web()) {
-    return promise.set_error(Status::Error(400, "Can't use a web file"));
+    return promise.set_error(400, "Can't use a web file");
   }
 
   BeingUploadedMedia media;
@@ -1489,7 +1489,7 @@ void BusinessConnectionManager::complete_upload_media(unique_ptr<PendingMessage>
   auto input_media =
       get_message_content_input_media(message->content_.get(), td_, message->ttl_, message->send_emoji_, true);
   if (input_media == nullptr) {
-    return promise.set_error(Status::Error(400, "Failed to upload file"));
+    return promise.set_error(400, "Failed to upload file");
   }
   UploadMediaResult result;
   result.message_ = std::move(message);
@@ -1635,13 +1635,13 @@ void BusinessConnectionManager::process_sent_business_message_album(
     Promise<td_api::object_ptr<td_api::businessMessages>> &&promise) {
   if (updates_ptr->get_id() != telegram_api::updates::ID) {
     LOG(ERROR) << "Receive " << to_string(updates_ptr);
-    return promise.set_error(Status::Error(500, "Receive invalid business connection messages"));
+    return promise.set_error(500, "Receive invalid business connection messages");
   }
   auto updates = telegram_api::move_object_as<telegram_api::updates>(updates_ptr);
   for (auto &update : updates->updates_) {
     if (update->get_id() != telegram_api::updateBotNewBusinessMessage::ID) {
       LOG(ERROR) << "Receive " << to_string(updates);
-      return promise.set_error(Status::Error(500, "Receive invalid business connection messages"));
+      return promise.set_error(500, "Receive invalid business connection messages");
     }
   }
   td_->user_manager_->on_get_users(std::move(updates->users_), "process_sent_business_message_album");
@@ -1719,11 +1719,11 @@ void BusinessConnectionManager::edit_business_message_text(
   TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
 
   if (input_message_content == nullptr) {
-    return promise.set_error(Status::Error(400, "Can't edit message without new content"));
+    return promise.set_error(400, "Can't edit message without new content");
   }
   int32 new_message_content_type = input_message_content->get_id();
   if (new_message_content_type != td_api::inputMessageText::ID) {
-    return promise.set_error(Status::Error(400, "Input message content type must be InputMessageText"));
+    return promise.set_error(400, "Input message content type must be InputMessageText");
   }
 
   TRY_RESULT_PROMISE(
@@ -1751,7 +1751,7 @@ void BusinessConnectionManager::edit_business_message_live_location(
 
   Location location(input_location);
   if (location.empty() && input_location != nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid location specified"));
+    return promise.set_error(400, "Invalid location specified");
   }
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
@@ -1783,7 +1783,7 @@ void BusinessConnectionManager::edit_business_message_media(
   TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
 
   if (input_message_content == nullptr) {
-    return promise.set_error(Status::Error(400, "Can't edit message without new content"));
+    return promise.set_error(400, "Can't edit message without new content");
   }
   int32 new_message_content_type = input_message_content->get_id();
   if (new_message_content_type != td_api::inputMessageAnimation::ID &&
@@ -1791,14 +1791,14 @@ void BusinessConnectionManager::edit_business_message_media(
       new_message_content_type != td_api::inputMessageDocument::ID &&
       new_message_content_type != td_api::inputMessagePhoto::ID &&
       new_message_content_type != td_api::inputMessageVideo::ID) {
-    return promise.set_error(Status::Error(400, "Unsupported input message content type"));
+    return promise.set_error(400, "Unsupported input message content type");
   }
 
   bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
   TRY_RESULT_PROMISE(promise, content,
                      get_input_message_content(DialogId(), std::move(input_message_content), td_, is_premium));
   if (!content.ttl.is_empty()) {
-    return promise.set_error(Status::Error(400, "Can't enable self-destruction for media"));
+    return promise.set_error(400, "Can't enable self-destruction for media");
   }
 
   TRY_RESULT_PROMISE(promise, new_reply_markup,
@@ -1915,7 +1915,7 @@ void BusinessConnectionManager::delete_business_messages(BusinessConnectionId bu
     TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
   }
   if (message_ids.size() > 100u) {
-    return promise.set_error(Status::Error(400, "Too many messages identifiers specified"));
+    return promise.set_error(400, "Too many messages identifiers specified");
   }
 
   td_->create_handler<DeleteBusinessMessagesQuery>(std::move(promise))->send(business_connection_id, message_ids);
@@ -1951,7 +1951,7 @@ void BusinessConnectionManager::set_business_username(BusinessConnectionId busin
                                                       const string &username, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
   if (!username.empty() && !is_allowed_username(username)) {
-    return promise.set_error(Status::Error(400, "Username is invalid"));
+    return promise.set_error(400, "Username is invalid");
   }
   auto user_id = get_business_connection_user_id(business_connection_id);
 
@@ -1977,7 +1977,7 @@ void BusinessConnectionManager::transfer_business_stars(BusinessConnectionId bus
                                                         Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id));
   if (star_count <= 0 || star_count > 1000000000) {
-    return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars to transfer specified"));
+    return promise.set_error(400, "Invalid amount of Telegram Stars to transfer specified");
   }
 
   td_->create_handler<GetBusinessStarTransferPaymentFormQuery>(std::move(promise))

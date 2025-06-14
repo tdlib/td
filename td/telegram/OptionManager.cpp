@@ -752,15 +752,14 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       set_option_empty(option_name);
     } else {
       if (value_constructor_id != td_api::optionValueInteger::ID) {
-        promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have integer value"));
+        promise.set_error(400, PSLICE() << "Option \"" << name << "\" must have integer value");
         return false;
       }
 
       int64 int_value = static_cast<td_api::optionValueInteger *>(value.get())->value_;
       if (int_value < min_value || int_value > max_value) {
-        promise.set_error(Status::Error(400, PSLICE() << "Option's \"" << name << "\" value " << int_value
-                                                      << " is outside of the valid range [" << min_value << ", "
-                                                      << max_value << "]"));
+        promise.set_error(400, PSLICE() << "Option's \"" << name << "\" value " << int_value
+                                        << " is outside of the valid range [" << min_value << ", " << max_value << "]");
         return false;
       }
       set_option_integer(name, int_value);
@@ -777,7 +776,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       set_option_empty(name);
     } else {
       if (value_constructor_id != td_api::optionValueBoolean::ID) {
-        promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have boolean value"));
+        promise.set_error(400, PSLICE() << "Option \"" << name << "\" must have boolean value");
         return false;
       }
 
@@ -796,7 +795,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       set_option_empty(name);
     } else {
       if (value_constructor_id != td_api::optionValueString::ID) {
-        promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" must have string value"));
+        promise.set_error(400, PSLICE() << "Option \"" << name << "\" must have string value");
         return false;
       }
 
@@ -807,7 +806,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
         if (check_value(str_value)) {
           set_option_string(name, str_value);
         } else {
-          promise.set_error(Status::Error(400, PSLICE() << "Option \"" << name << "\" can't have specified value"));
+          promise.set_error(400, PSLICE() << "Option \"" << name << "\" can't have specified value");
           return false;
         }
       }
@@ -890,14 +889,13 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       }
       if (!is_bot && name == "ignore_sensitive_content_restrictions") {
         if (!get_option_boolean("can_ignore_sensitive_content_restrictions")) {
-          return promise.set_error(
-              Status::Error(400, "Option \"ignore_sensitive_content_restrictions\" can't be changed by the user"));
+          return promise.set_error(400,
+                                   "Option \"ignore_sensitive_content_restrictions\" can't be changed by the user");
         }
 
         if (value_constructor_id != td_api::optionValueBoolean::ID &&
             value_constructor_id != td_api::optionValueEmpty::ID) {
-          return promise.set_error(
-              Status::Error(400, "Option \"ignore_sensitive_content_restrictions\" must have boolean value"));
+          return promise.set_error(400, "Option \"ignore_sensitive_content_restrictions\" must have boolean value");
         }
 
         auto ignore_sensitive_content_restrictions = value_constructor_id == td_api::optionValueBoolean::ID &&
@@ -939,7 +937,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       if (name == "online") {
         if (value_constructor_id != td_api::optionValueBoolean::ID &&
             value_constructor_id != td_api::optionValueEmpty::ID) {
-          return promise.set_error(Status::Error(400, "Option \"online\" must have boolean value"));
+          return promise.set_error(400, "Option \"online\" must have boolean value");
         }
         bool is_online = value_constructor_id == td_api::optionValueEmpty::ID ||
                          static_cast<const td_api::optionValueBoolean *>(value.get())->value_;
@@ -1004,7 +1002,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
     case 'X':
     case 'x': {
       if (name.size() > 255) {
-        return promise.set_error(Status::Error(400, "Option name is too long"));
+        return promise.set_error(400, "Option name is too long");
       }
       switch (value_constructor_id) {
         case td_api::optionValueBoolean::ID:
@@ -1027,7 +1025,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
   }
 
   if (promise) {
-    promise.set_error(Status::Error(400, "Option can't be set"));
+    promise.set_error(400, "Option can't be set");
   }
 }
 

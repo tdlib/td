@@ -65,7 +65,7 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetStarGiftsQuery: " << to_string(ptr);
     if (ptr->get_id() != telegram_api::payments_starGifts::ID) {
       LOG(ERROR) << "Receive " << to_string(ptr);
-      return promise_.set_error(Status::Error(500, "Receive unexpected response"));
+      return promise_.set_error(500, "Receive unexpected response");
     }
     auto results = telegram_api::move_object_as<telegram_api::payments_starGifts>(ptr);
     vector<td_api::object_ptr<td_api::availableGift>> options;
@@ -188,7 +188,7 @@ class GetGiftPaymentFormQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentFormStars::ID:
         LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
         td_->star_manager_->add_pending_owned_star_count(star_count_, false);
-        promise_.set_error(Status::Error(500, "Unsupported"));
+        promise_.set_error(500, "Unsupported");
         break;
       case telegram_api::payments_paymentFormStarGift::ID: {
         auto payment_form = static_cast<const telegram_api::payments_paymentFormStarGift *>(payment_form_ptr.get());
@@ -423,18 +423,18 @@ static Promise<Unit> get_gift_upgrade_promise(Td *td, const telegram_api::object
   vector<std::pair<const telegram_api::Message *, bool>> new_messages = UpdatesManager::get_new_messages(updates.get());
   if (new_messages.size() != 1u || new_messages[0].second ||
       new_messages[0].first->get_id() != telegram_api::messageService::ID) {
-    promise.set_error(Status::Error(500, "Receive invalid server response"));
+    promise.set_error(500, "Receive invalid server response");
     return Auto();
   }
   auto message = static_cast<const telegram_api::messageService *>(new_messages[0].first);
   if (message->action_->get_id() != telegram_api::messageActionStarGiftUnique::ID) {
-    promise.set_error(Status::Error(500, "Receive invalid server response"));
+    promise.set_error(500, "Receive invalid server response");
     return Auto();
   }
   auto action = static_cast<const telegram_api::messageActionStarGiftUnique *>(message->action_.get());
   if (!action->upgrade_ || action->transferred_ || action->refunded_ ||
       action->gift_->get_id() != telegram_api::starGiftUnique::ID) {
-    promise.set_error(Status::Error(500, "Receive invalid server response"));
+    promise.set_error(500, "Receive invalid server response");
     return Auto();
   }
   auto message_full_id = MessageFullId::get_message_full_id(new_messages[0].first, false);
@@ -573,14 +573,14 @@ class GetGiftUpgradePaymentFormQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentFormStars::ID:
         LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
         td_->star_manager_->add_pending_owned_star_count(star_count_, false);
-        promise_.set_error(Status::Error(500, "Unsupported"));
+        promise_.set_error(500, "Unsupported");
         break;
       case telegram_api::payments_paymentFormStarGift::ID: {
         auto payment_form = static_cast<const telegram_api::payments_paymentFormStarGift *>(payment_form_ptr.get());
         if (payment_form->invoice_->prices_.size() != 1u ||
             payment_form->invoice_->prices_[0]->amount_ != star_count_) {
           td_->star_manager_->add_pending_owned_star_count(star_count_, false);
-          return promise_.set_error(Status::Error(400, "Wrong upgrade price specified"));
+          return promise_.set_error(400, "Wrong upgrade price specified");
         }
         td_->create_handler<UpgradeGiftQuery>(std::move(promise_))
             ->send(business_connection_id_, std::move(upgrade_input_invoice_), payment_form->form_id_, star_count_);
@@ -720,14 +720,14 @@ class GetGiftTransferPaymentFormQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentFormStars::ID:
         LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
         td_->star_manager_->add_pending_owned_star_count(star_count_, false);
-        promise_.set_error(Status::Error(500, "Unsupported"));
+        promise_.set_error(500, "Unsupported");
         break;
       case telegram_api::payments_paymentFormStarGift::ID: {
         auto payment_form = static_cast<const telegram_api::payments_paymentFormStarGift *>(payment_form_ptr.get());
         if (payment_form->invoice_->prices_.size() != 1u ||
             payment_form->invoice_->prices_[0]->amount_ != star_count_) {
           td_->star_manager_->add_pending_owned_star_count(star_count_, false);
-          return promise_.set_error(Status::Error(400, "Wrong transfer price specified"));
+          return promise_.set_error(400, "Wrong transfer price specified");
         }
         td_->create_handler<TransferGiftQuery>(std::move(promise_))
             ->send(business_connection_id_, std::move(transfer_input_invoice_), payment_form->form_id_, star_count_);
@@ -824,14 +824,14 @@ class GetGiftResalePaymentFormQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentFormStars::ID:
         LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
         td_->star_manager_->add_pending_owned_star_count(star_count_, false);
-        promise_.set_error(Status::Error(500, "Unsupported"));
+        promise_.set_error(500, "Unsupported");
         break;
       case telegram_api::payments_paymentFormStarGift::ID: {
         auto payment_form = static_cast<const telegram_api::payments_paymentFormStarGift *>(payment_form_ptr.get());
         if (payment_form->invoice_->prices_.size() != 1u ||
             payment_form->invoice_->prices_[0]->amount_ != star_count_) {
           td_->star_manager_->add_pending_owned_star_count(star_count_, false);
-          return promise_.set_error(Status::Error(400, "Wrong resale price specified"));
+          return promise_.set_error(400, "Wrong resale price specified");
         }
         td_->create_handler<ResaleGiftQuery>(std::move(promise_))
             ->send(std::move(resale_input_invoice_), payment_form->form_id_, star_count_);
@@ -959,7 +959,7 @@ class GetSavedStarGiftQuery final : public Td::ResultHandler {
       }
       return promise_.set_value(user_gift.get_received_gift_object(td_));
     }
-    promise_.set_error(Status::Error(400, "Gift not found"));
+    promise_.set_error(400, "Gift not found");
   }
 
   void on_error(Status status) final {
@@ -993,7 +993,7 @@ class GetUniqueStarGiftQuery final : public Td::ResultHandler {
     StarGift star_gift(td_, std::move(ptr->gift_), true);
     if (!star_gift.is_valid() || !star_gift.is_unique()) {
       LOG(ERROR) << "Receive invalid user gift";
-      return promise_.set_error(Status::Error(400, "Gift not found"));
+      return promise_.set_error(400, "Gift not found");
     }
     promise_.set_value(star_gift.get_upgraded_gift_object(td_));
   }
@@ -1264,20 +1264,20 @@ void StarGiftManager::send_gift(int64 gift_id, DialogId dialog_id, td_api::objec
   if (!td_->auth_manager_->is_bot()) {
     auto it = gift_prices_.find(gift_id);
     if (it == gift_prices_.end()) {
-      return promise.set_error(Status::Error(400, "Gift not found"));
+      return promise.set_error(400, "Gift not found");
     }
     star_count = it->second.first;
     if (pay_for_upgrade) {
       star_count += it->second.second;
     }
     if (!td_->star_manager_->has_owned_star_count(star_count)) {
-      return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
+      return promise.set_error(400, "Have not enough Telegram Stars");
     }
   }
   auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
   auto send_input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
   if (input_peer == nullptr || send_input_peer == nullptr) {
-    return promise.set_error(Status::Error(400, "Have no access to the gift receiver"));
+    return promise.set_error(400, "Have no access to the gift receiver");
   }
   TRY_RESULT_PROMISE(
       promise, message,
@@ -1305,7 +1305,7 @@ void StarGiftManager::convert_gift(BusinessConnectionId business_connection_id, 
     TRY_STATUS_PROMISE(promise, td_->business_connection_manager_->check_business_connection(business_connection_id));
   }
   if (star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
+    return promise.set_error(400, "Invalid gift identifier specified");
   }
   auto dialog_id =
       business_connection_id.is_valid()
@@ -1325,7 +1325,7 @@ void StarGiftManager::convert_gift(BusinessConnectionId business_connection_id, 
 
 void StarGiftManager::save_gift(StarGiftId star_gift_id, bool is_saved, Promise<Unit> &&promise) {
   if (star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
+    return promise.set_error(400, "Invalid gift identifier specified");
   }
   td_->create_handler<SaveStarGiftQuery>(std::move(promise))->send(star_gift_id, is_saved);
 }
@@ -1334,10 +1334,10 @@ void StarGiftManager::set_dialog_pinned_gifts(DialogId dialog_id, const vector<S
                                               Promise<Unit> &&promise) {
   for (const auto &star_gift_id : star_gift_ids) {
     if (star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
-      return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
+      return promise.set_error(400, "Invalid gift identifier specified");
     }
     if (star_gift_id.get_dialog_id(td_) != dialog_id) {
-      return promise.set_error(Status::Error(400, "The gift is not from the chat"));
+      return promise.set_error(400, "The gift is not from the chat");
     }
   }
   td_->create_handler<ToggleStarGiftsPinnedToTopQuery>(std::move(promise))->send(dialog_id, star_gift_ids);
@@ -1349,7 +1349,7 @@ void StarGiftManager::toggle_chat_star_gift_notifications(DialogId dialog_id, bo
                                                                         "toggle_chat_star_gift_notifications"));
   if (!td_->dialog_manager_->is_broadcast_channel(dialog_id) ||
       !td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).can_post_messages()) {
-    return promise.set_error(Status::Error(400, "Wrong chat specified"));
+    return promise.set_error(400, "Wrong chat specified");
   }
   td_->create_handler<ToggleChatStarGiftNotificationsQuery>(std::move(promise))->send(dialog_id, are_enabled);
 }
@@ -1368,14 +1368,14 @@ void StarGiftManager::upgrade_gift(BusinessConnectionId business_connection_id, 
   }
   auto input_saved_star_gift = star_gift_id.get_input_saved_star_gift(td_);
   if (input_saved_star_gift == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
+    return promise.set_error(400, "Invalid gift identifier specified");
   }
   if (star_count < 0) {
-    return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars specified"));
+    return promise.set_error(400, "Invalid amount of Telegram Stars specified");
   }
   if (star_count != 0) {
     if (!as_business && !td_->star_manager_->has_owned_star_count(star_count)) {
-      return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
+      return promise.set_error(400, "Have not enough Telegram Stars");
     }
     auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftUpgrade>(
         0, keep_original_details, std::move(input_saved_star_gift));
@@ -1399,14 +1399,14 @@ void StarGiftManager::transfer_gift(BusinessConnectionId business_connection_id,
   auto input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, access_rights);
   auto transfer_input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, access_rights);
   if (input_peer == nullptr || transfer_input_peer == nullptr) {
-    return promise.set_error(Status::Error(400, "Have no access to the new gift owner"));
+    return promise.set_error(400, "Have no access to the new gift owner");
   }
   auto input_saved_star_gift = star_gift_id.get_input_saved_star_gift(td_);
   if (input_saved_star_gift == nullptr) {
-    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
+    return promise.set_error(400, "Invalid gift identifier specified");
   }
   if (star_count < 0) {
-    return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars specified"));
+    return promise.set_error(400, "Invalid amount of Telegram Stars specified");
   }
   auto dialog_id =
       as_business ? DialogId(td_->business_connection_manager_->get_business_connection_user_id(business_connection_id))
@@ -1421,7 +1421,7 @@ void StarGiftManager::transfer_gift(BusinessConnectionId business_connection_id,
   });
   if (star_count != 0) {
     if (!as_business && !td_->star_manager_->has_owned_star_count(star_count)) {
-      return query_promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
+      return query_promise.set_error(400, "Have not enough Telegram Stars");
     }
     auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftTransfer>(
         std::move(input_saved_star_gift), std::move(input_peer));
@@ -1457,13 +1457,13 @@ void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receive
   auto input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read);
   auto resale_input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read);
   if (input_peer == nullptr || resale_input_peer == nullptr) {
-    return promise.set_error(Status::Error(400, "Have no access to the new gift owner"));
+    return promise.set_error(400, "Have no access to the new gift owner");
   }
   if (star_count < 0) {
-    return promise.set_error(Status::Error(400, "Invalid amount of Telegram Stars specified"));
+    return promise.set_error(400, "Invalid amount of Telegram Stars specified");
   }
   if (!td_->star_manager_->has_owned_star_count(star_count)) {
-    return promise.set_error(Status::Error(400, "Have not enough Telegram Stars"));
+    return promise.set_error(400, "Have not enough Telegram Stars");
   }
   auto input_invoice =
       telegram_api::make_object<telegram_api::inputInvoiceStarGiftResale>(gift_name, std::move(input_peer));
@@ -1479,7 +1479,7 @@ void StarGiftManager::get_saved_star_gifts(BusinessConnectionId business_connect
                                            const string &offset, int32 limit,
                                            Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise) {
   if (limit < 0) {
-    return promise.set_error(Status::Error(400, "Limit must be non-negative"));
+    return promise.set_error(400, "Limit must be non-negative");
   }
   if (business_connection_id.is_valid()) {
     TRY_STATUS_PROMISE(promise, td_->business_connection_manager_->check_business_connection(business_connection_id));
@@ -1492,7 +1492,7 @@ void StarGiftManager::get_saved_star_gifts(BusinessConnectionId business_connect
 void StarGiftManager::get_saved_star_gift(StarGiftId star_gift_id,
                                           Promise<td_api::object_ptr<td_api::receivedGift>> &&promise) {
   if (!star_gift_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
+    return promise.set_error(400, "Invalid gift identifier specified");
   }
   td_->create_handler<GetSavedStarGiftQuery>(std::move(promise))->send(star_gift_id);
 }
@@ -1505,10 +1505,10 @@ void StarGiftManager::get_upgraded_gift(const string &name,
 void StarGiftManager::get_star_gift_withdrawal_url(StarGiftId star_gift_id, const string &password,
                                                    Promise<string> &&promise) {
   if (!star_gift_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
+    return promise.set_error(400, "Invalid gift identifier specified");
   }
   if (password.empty()) {
-    return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
+    return promise.set_error(400, "PASSWORD_HASH_INVALID");
   }
   send_closure(
       td_->password_manager_, &PasswordManager::get_input_check_password_srp, password,
@@ -1533,12 +1533,12 @@ void StarGiftManager::send_get_star_gift_withdrawal_url_query(
 
 void StarGiftManager::set_star_gift_price(StarGiftId star_gift_id, int64 resale_star_count, Promise<Unit> &&promise) {
   if (!star_gift_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid gift identifier specified"));
+    return promise.set_error(400, "Invalid gift identifier specified");
   }
   if ((resale_star_count != 0 &&
        resale_star_count < td_->option_manager_->get_option_integer("gift_resale_star_count_min")) ||
       resale_star_count > td_->option_manager_->get_option_integer("gift_resale_star_count_max")) {
-    return promise.set_error(Status::Error(400, "Invalid resale price specified"));
+    return promise.set_error(400, "Invalid resale price specified");
   }
 
   td_->create_handler<UpdateStarGiftPriceQuery>(std::move(promise))->send(star_gift_id, resale_star_count);
@@ -1549,10 +1549,10 @@ void StarGiftManager::get_resale_star_gifts(
     const vector<td_api::object_ptr<td_api::UpgradedGiftAttributeId>> &attributes, const string &offset, int32 limit,
     Promise<td_api::object_ptr<td_api::giftsForResale>> &&promise) {
   if (limit < 0) {
-    return promise.set_error(Status::Error(400, "Limit must be non-negative"));
+    return promise.set_error(400, "Limit must be non-negative");
   }
   if (order == nullptr) {
-    return promise.set_error(Status::Error(400, "Gift sort order must be non-empty"));
+    return promise.set_error(400, "Gift sort order must be non-empty");
   }
   TRY_RESULT_PROMISE(promise, attribute_ids, StarGiftAttributeId::get_star_gift_attribute_ids(attributes));
 

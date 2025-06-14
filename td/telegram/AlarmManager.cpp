@@ -47,7 +47,7 @@ void AlarmManager::on_alarm_timeout(int64 alarm_id) {
 
 void AlarmManager::set_alarm(double seconds, Promise<Unit> &&promise) {
   if (seconds < 0 || seconds > 3e9) {
-    return promise.set_error(Status::Error(400, "Wrong parameter seconds specified"));
+    return promise.set_error(400, "Wrong parameter seconds specified");
   }
 
   auto alarm_id = alarm_id_++;

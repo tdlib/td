@@ -582,7 +582,7 @@ class GetPaymentFormQuery final : public Td::ResultHandler {
       }
       case telegram_api::payments_paymentFormStarGift::ID:
         LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
-        promise_.set_error(Status::Error(500, "Unsupported"));
+        promise_.set_error(500, "Unsupported");
         break;
       default:
         UNREACHABLE();
@@ -1008,25 +1008,25 @@ void answer_shipping_query(Td *td, int64 shipping_query_id,
   vector<tl_object_ptr<telegram_api::shippingOption>> options;
   for (auto &option : shipping_options) {
     if (option == nullptr) {
-      return promise.set_error(Status::Error(400, "Shipping option must be non-empty"));
+      return promise.set_error(400, "Shipping option must be non-empty");
     }
     if (!clean_input_string(option->id_)) {
-      return promise.set_error(Status::Error(400, "Shipping option identifier must be encoded in UTF-8"));
+      return promise.set_error(400, "Shipping option identifier must be encoded in UTF-8");
     }
     if (!clean_input_string(option->title_)) {
-      return promise.set_error(Status::Error(400, "Shipping option title must be encoded in UTF-8"));
+      return promise.set_error(400, "Shipping option title must be encoded in UTF-8");
     }
 
     vector<tl_object_ptr<telegram_api::labeledPrice>> prices;
     for (auto &price_part : option->price_parts_) {
       if (price_part == nullptr) {
-        return promise.set_error(Status::Error(400, "Shipping option price part must be non-empty"));
+        return promise.set_error(400, "Shipping option price part must be non-empty");
       }
       if (!clean_input_string(price_part->label_)) {
-        return promise.set_error(Status::Error(400, "Shipping option price part label must be encoded in UTF-8"));
+        return promise.set_error(400, "Shipping option price part label must be encoded in UTF-8");
       }
       if (!check_currency_amount(price_part->amount_)) {
-        return promise.set_error(Status::Error(400, "Too big amount of the currency specified"));
+        return promise.set_error(400, "Too big amount of the currency specified");
       }
 
       prices.push_back(make_tl_object<telegram_api::labeledPrice>(std::move(price_part->label_), price_part->amount_));
@@ -1066,32 +1066,32 @@ void validate_order_info(Td *td, td_api::object_ptr<td_api::InputInvoice> &&inpu
 
   if (order_info != nullptr) {
     if (!clean_input_string(order_info->name_)) {
-      return promise.set_error(Status::Error(400, "Name must be encoded in UTF-8"));
+      return promise.set_error(400, "Name must be encoded in UTF-8");
     }
     if (!clean_input_string(order_info->phone_number_)) {
-      return promise.set_error(Status::Error(400, "Phone number must be encoded in UTF-8"));
+      return promise.set_error(400, "Phone number must be encoded in UTF-8");
     }
     if (!clean_input_string(order_info->email_address_)) {
-      return promise.set_error(Status::Error(400, "Email address must be encoded in UTF-8"));
+      return promise.set_error(400, "Email address must be encoded in UTF-8");
     }
     if (order_info->shipping_address_ != nullptr) {
       if (!clean_input_string(order_info->shipping_address_->country_code_)) {
-        return promise.set_error(Status::Error(400, "Country code must be encoded in UTF-8"));
+        return promise.set_error(400, "Country code must be encoded in UTF-8");
       }
       if (!clean_input_string(order_info->shipping_address_->state_)) {
-        return promise.set_error(Status::Error(400, "State must be encoded in UTF-8"));
+        return promise.set_error(400, "State must be encoded in UTF-8");
       }
       if (!clean_input_string(order_info->shipping_address_->city_)) {
-        return promise.set_error(Status::Error(400, "City must be encoded in UTF-8"));
+        return promise.set_error(400, "City must be encoded in UTF-8");
       }
       if (!clean_input_string(order_info->shipping_address_->street_line1_)) {
-        return promise.set_error(Status::Error(400, "Street address must be encoded in UTF-8"));
+        return promise.set_error(400, "Street address must be encoded in UTF-8");
       }
       if (!clean_input_string(order_info->shipping_address_->street_line2_)) {
-        return promise.set_error(Status::Error(400, "Street address must be encoded in UTF-8"));
+        return promise.set_error(400, "Street address must be encoded in UTF-8");
       }
       if (!clean_input_string(order_info->shipping_address_->postal_code_)) {
-        return promise.set_error(Status::Error(400, "Postal code must be encoded in UTF-8"));
+        return promise.set_error(400, "Postal code must be encoded in UTF-8");
       }
     }
   }
@@ -1108,10 +1108,10 @@ void send_payment_form(Td *td, td_api::object_ptr<td_api::InputInvoice> &&input_
 
   if (credentials == nullptr) {
     if (tip_amount != 0 || !order_info_id.empty() || !shipping_option_id.empty()) {
-      return promise.set_error(Status::Error(400, "Invalid payment form parameters specified"));
+      return promise.set_error(400, "Invalid payment form parameters specified");
     }
     if (!td->star_manager_->has_owned_star_count(input_invoice_info.star_count_)) {
-      return promise.set_error(Status::Error(400, "Have not enough Telegram Stars to complete payment"));
+      return promise.set_error(400, "Have not enough Telegram Stars to complete payment");
     }
     td->create_handler<SendStarPaymentFormQuery>(std::move(promise))
         ->send(std::move(input_invoice_info), payment_form_id);
@@ -1124,11 +1124,11 @@ void send_payment_form(Td *td, td_api::object_ptr<td_api::InputInvoice> &&input_
       auto credentials_saved = static_cast<const td_api::inputCredentialsSaved *>(credentials.get());
       auto credentials_id = credentials_saved->saved_credentials_id_;
       if (!clean_input_string(credentials_id)) {
-        return promise.set_error(Status::Error(400, "Credentials identifier must be encoded in UTF-8"));
+        return promise.set_error(400, "Credentials identifier must be encoded in UTF-8");
       }
       auto temp_password_state = PasswordManager::get_temp_password_state_sync();
       if (!temp_password_state.has_temp_password) {
-        return promise.set_error(Status::Error(400, "Temporary password required to use saved credentials"));
+        return promise.set_error(400, "Temporary password required to use saved credentials");
       }
 
       input_credentials = make_tl_object<telegram_api::inputPaymentCredentialsSaved>(
@@ -1185,7 +1185,7 @@ void delete_saved_credentials(Td *td, Promise<Unit> &&promise) {
 void export_invoice(Td *td, BusinessConnectionId business_connection_id,
                     td_api::object_ptr<td_api::InputMessageContent> &&invoice, Promise<string> &&promise) {
   if (invoice == nullptr) {
-    return promise.set_error(Status::Error(400, "Invoice must be non-empty"));
+    return promise.set_error(400, "Invoice must be non-empty");
   }
   TRY_RESULT_PROMISE(promise, input_invoice,
                      InputInvoice::process_input_message_invoice(std::move(invoice), td, DialogId()));
@@ -1208,13 +1208,13 @@ void get_bank_card_info(Td *td, const string &bank_card_number,
 void get_collectible_info(Td *td, td_api::object_ptr<td_api::CollectibleItemType> type,
                           Promise<td_api::object_ptr<td_api::collectibleItemInfo>> &&promise) {
   if (type == nullptr) {
-    return promise.set_error(Status::Error(400, "Item type must be non-empty"));
+    return promise.set_error(400, "Item type must be non-empty");
   }
   switch (type->get_id()) {
     case td_api::collectibleItemTypeUsername::ID: {
       auto username = td_api::move_object_as<td_api::collectibleItemTypeUsername>(type);
       if (!clean_input_string(username->username_)) {
-        return promise.set_error(Status::Error(400, "Username must be encoded in UTF-8"));
+        return promise.set_error(400, "Username must be encoded in UTF-8");
       }
       td->create_handler<GetCollectibleInfoQuery>(std::move(promise))
           ->send(telegram_api::make_object<telegram_api::inputCollectibleUsername>(username->username_));
@@ -1223,7 +1223,7 @@ void get_collectible_info(Td *td, td_api::object_ptr<td_api::CollectibleItemType
     case td_api::collectibleItemTypePhoneNumber::ID: {
       auto phone_number = td_api::move_object_as<td_api::collectibleItemTypePhoneNumber>(type);
       if (!clean_input_string(phone_number->phone_number_)) {
-        return promise.set_error(Status::Error(400, "Phone number must be encoded in UTF-8"));
+        return promise.set_error(400, "Phone number must be encoded in UTF-8");
       }
       td->create_handler<GetCollectibleInfoQuery>(std::move(promise))
           ->send(telegram_api::make_object<telegram_api::inputCollectiblePhone>(phone_number->phone_number_));

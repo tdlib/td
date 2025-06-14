@@ -209,7 +209,7 @@ class GetFactCheckQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Can't access the chat"));
+      return promise_.set_error(400, "Can't access the chat");
     }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getFactCheck(std::move(input_peer), MessageId::get_server_message_ids(message_ids))));
@@ -584,7 +584,7 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
         auto messages = telegram_api::move_object_as<telegram_api::messages_messages>(messages_ptr);
         if (messages->messages_.size() != 1 ||
             MessageId::get_message_id(messages->messages_[0], false) != message_id_) {
-          return promise_.set_error(Status::Error(400, "Message not found by the filter"));
+          return promise_.set_error(400, "Message not found by the filter");
         }
         return promise_.set_value(narrow_cast<int32>(messages->messages_.size()));
       }
@@ -592,12 +592,12 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
         auto messages = telegram_api::move_object_as<telegram_api::messages_messagesSlice>(messages_ptr);
         if (messages->messages_.size() != 1 ||
             MessageId::get_message_id(messages->messages_[0], false) != message_id_) {
-          return promise_.set_error(Status::Error(400, "Message not found by the filter"));
+          return promise_.set_error(400, "Message not found by the filter");
         }
         if (messages->offset_id_offset_ <= 0) {
           LOG(ERROR) << "Failed to receive position for " << message_id_ << " in " << message_topic_ << " in "
                      << dialog_id_ << " by " << filter_;
-          return promise_.set_error(Status::Error(400, "Message position is unknown"));
+          return promise_.set_error(400, "Message position is unknown");
         }
         return promise_.set_value(std::move(messages->offset_id_offset_));
       }
@@ -605,17 +605,17 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
         auto messages = telegram_api::move_object_as<telegram_api::messages_channelMessages>(messages_ptr);
         if (messages->messages_.size() != 1 ||
             MessageId::get_message_id(messages->messages_[0], false) != message_id_) {
-          return promise_.set_error(Status::Error(400, "Message not found by the filter"));
+          return promise_.set_error(400, "Message not found by the filter");
         }
         if (messages->offset_id_offset_ <= 0) {
           LOG(ERROR) << "Failed to receive position for " << message_id_ << " in " << dialog_id_ << " by " << filter_;
-          return promise_.set_error(Status::Error(500, "Message position is unknown"));
+          return promise_.set_error(500, "Message position is unknown");
         }
         return promise_.set_value(std::move(messages->offset_id_offset_));
       }
       case telegram_api::messages_messagesNotModified::ID:
         LOG(ERROR) << "Server returned messagesNotModified in response to GetMessagePositionQuery";
-        return promise_.set_error(Status::Error(500, "Receive invalid response"));
+        return promise_.set_error(500, "Receive invalid response");
       default:
         UNREACHABLE();
         break;
@@ -921,11 +921,11 @@ class DeleteParticipantHistoryQuery final : public Td::ResultHandler {
 
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(400, "Chat is not accessible"));
+      return promise_.set_error(400, "Chat is not accessible");
     }
     auto input_peer = td_->dialog_manager_->get_input_peer(sender_dialog_id, AccessRights::Know);
     if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Message sender is not accessible"));
+      return promise_.set_error(400, "Message sender is not accessible");
     }
 
     send_query(G()->net_query_creator().create(
@@ -962,7 +962,7 @@ class DeleteHistoryQuery final : public Td::ResultHandler {
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Chat is not accessible"));
+      return promise_.set_error(400, "Chat is not accessible");
     }
 
     send_query(G()->net_query_creator().create(
@@ -1040,7 +1040,7 @@ class DeleteMessagesByDateQuery final : public Td::ResultHandler {
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Chat is not accessible"));
+      return promise_.set_error(400, "Chat is not accessible");
     }
 
     int32 flags =
@@ -1247,7 +1247,7 @@ class ReadMentionsQuery final : public Td::ResultHandler {
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Chat is not accessible"));
+      return promise_.set_error(400, "Chat is not accessible");
     }
 
     int32 flags = 0;
@@ -1289,7 +1289,7 @@ class ReadReactionsQuery final : public Td::ResultHandler {
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
-      return promise_.set_error(Status::Error(400, "Chat is not accessible"));
+      return promise_.set_error(400, "Chat is not accessible");
     }
 
     int32 flags = 0;
@@ -1606,15 +1606,15 @@ void MessageQueryManager::complete_upload_message_cover(
   send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
 
   if (media_ptr->get_id() != telegram_api::messageMediaPhoto::ID) {
-    return promise.set_error(Status::Error(500, "Receive invalid response"));
+    return promise.set_error(500, "Receive invalid response");
   }
   auto media = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media_ptr);
   if (media->photo_ == nullptr || media->ttl_seconds_ != 0) {
-    return promise.set_error(Status::Error(500, "Receive invalid response without photo"));
+    return promise.set_error(500, "Receive invalid response without photo");
   }
   auto new_photo = get_photo(td_, std::move(media->photo_), dialog_id, FileType::Photo);
   if (new_photo.is_empty()) {
-    return promise.set_error(Status::Error(500, "Receive invalid photo in response"));
+    return promise.set_error(500, "Receive invalid photo in response");
   }
   bool is_content_changed = false;
   bool need_update = false;
@@ -1622,7 +1622,7 @@ void MessageQueryManager::complete_upload_message_cover(
 
   auto input_media = photo_get_cover_input_media(td_->file_manager_.get(), photo, true, true);
   if (input_media == nullptr) {
-    return promise.set_error(Status::Error(500, "Failed to upload file"));
+    return promise.set_error(500, "Failed to upload file");
   }
   promise.set_value(Unit());
 }
@@ -1704,10 +1704,10 @@ void MessageQueryManager::search_messages(DialogListId dialog_list_id, bool igno
                                           int32 min_date, int32 max_date,
                                           Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
   if (!dialog_list_id.is_folder()) {
-    return promise.set_error(Status::Error(400, "Wrong chat list specified"));
+    return promise.set_error(400, "Wrong chat list specified");
   }
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   if (limit > MAX_SEARCH_MESSAGES) {
     limit = MAX_SEARCH_MESSAGES;
@@ -1719,7 +1719,7 @@ void MessageQueryManager::search_messages(DialogListId dialog_list_id, bool igno
   if (filter == MessageSearchFilter::Mention || filter == MessageSearchFilter::UnreadMention ||
       filter == MessageSearchFilter::UnreadReaction || filter == MessageSearchFilter::FailedToSend ||
       filter == MessageSearchFilter::Pinned) {
-    return promise.set_error(Status::Error(400, "The filter is not supported"));
+    return promise.set_error(400, "The filter is not supported");
   }
 
   if (query.empty() && filter == MessageSearchFilter::Empty) {
@@ -1773,7 +1773,7 @@ void MessageQueryManager::on_get_messages_search_result(
 void MessageQueryManager::search_outgoing_document_messages(
     const string &query, int32 limit, Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   if (limit > MAX_SEARCH_MESSAGES) {
     limit = MAX_SEARCH_MESSAGES;
@@ -1806,7 +1806,7 @@ void MessageQueryManager::on_get_outgoing_document_messages(
 void MessageQueryManager::search_hashtag_posts(string hashtag, string offset_str, int32 limit,
                                                Promise<td_api::object_ptr<td_api::foundMessages>> &&promise) {
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   if (limit > MAX_SEARCH_MESSAGES) {
     limit = MAX_SEARCH_MESSAGES;
@@ -1869,7 +1869,7 @@ void MessageQueryManager::search_dialog_recent_location_messages(
   LOG(INFO) << "Search recent location messages in " << dialog_id << " with limit " << limit;
 
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   if (limit > MAX_SEARCH_MESSAGES) {
     limit = MAX_SEARCH_MESSAGES;
@@ -1888,7 +1888,7 @@ void MessageQueryManager::search_dialog_recent_location_messages(
                                                                            "search_dialog_recent_location_messages"));
     default:
       UNREACHABLE();
-      promise.set_error(Status::Error(500, "Message search is not supported"));
+      promise.set_error(500, "Message search is not supported");
   }
 }
 
@@ -1932,7 +1932,7 @@ void MessageQueryManager::get_dialog_message_position_from_server(DialogId dialo
                                                                   Promise<int32> &&promise) {
   if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
       filter == MessageSearchFilter::FailedToSend) {
-    return promise.set_error(Status::Error(400, "The filter is not supported"));
+    return promise.set_error(400, "The filter is not supported");
   }
 
   td_->create_handler<GetMessagePositionQuery>(std::move(promise))->send(dialog_id, message_id, filter, message_topic);
@@ -2842,7 +2842,7 @@ void MessageQueryManager::read_message_contents_on_server(DialogId dialog_id, ve
         send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_open_message,
                      dialog_id.get_secret_chat_id(), random_id, std::move(promise));
       } else {
-        promise.set_error(Status::Error(400, "Message not found"));
+        promise.set_error(400, "Message not found");
       }
       break;
     }

@@ -550,7 +550,7 @@ std::pair<BackgroundId, BackgroundType> BackgroundManager::search_background(con
   }
 
   if (slug.empty()) {
-    promise.set_error(Status::Error(400, "Background name must be non-empty"));
+    promise.set_error(400, "Background name must be non-empty");
     return {};
   }
 
@@ -694,10 +694,10 @@ void BackgroundManager::set_background(const td_api::InputBackground *input_back
 
   if (input_background == nullptr) {
     if (type.has_file() || background_type == nullptr) {
-      return promise.set_error(Status::Error(400, "Input background must be non-empty for the background type"));
+      return promise.set_error(400, "Input background must be non-empty for the background type");
     }
     if (background_type->get_id() == td_api::backgroundTypeChatTheme::ID) {
-      return promise.set_error(Status::Error(400, "Background type isn't supported"));
+      return promise.set_error(400, "Background type isn't supported");
     }
 
     auto background_id = add_local_background(type);
@@ -712,7 +712,7 @@ void BackgroundManager::set_background(const td_api::InputBackground *input_back
   switch (input_background->get_id()) {
     case td_api::inputBackgroundLocal::ID: {
       if (!type.has_file()) {
-        return promise.set_error(Status::Error(400, "Can't specify local file for the background type"));
+        return promise.set_error(400, "Can't specify local file for the background type");
       }
       CHECK(background_type != nullptr);
 
@@ -735,7 +735,7 @@ void BackgroundManager::set_background(const td_api::InputBackground *input_back
                             std::move(promise));
     }
     case td_api::inputBackgroundPrevious::ID:
-      return promise.set_error(Status::Error(400, "Can't use a previous background"));
+      return promise.set_error(400, "Can't use a previous background");
     default:
       UNREACHABLE();
   }
@@ -784,7 +784,7 @@ void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::
 
   if (input_background == nullptr) {
     if (type.has_file() || background_type == nullptr) {
-      return promise.set_error(Status::Error(400, "Input background must be non-empty for the background type"));
+      return promise.set_error(400, "Input background must be non-empty for the background type");
     }
     return send_set_dialog_background_query(dialog_id, telegram_api::make_object<telegram_api::inputWallPaperNoFile>(0),
                                             type.get_input_wallpaper_settings(), MessageId(), for_both,
@@ -794,7 +794,7 @@ void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::
   switch (input_background->get_id()) {
     case td_api::inputBackgroundLocal::ID: {
       if (!type.has_file()) {
-        return promise.set_error(Status::Error(400, "Can't specify local file for the background type"));
+        return promise.set_error(400, "Can't specify local file for the background type");
       }
       CHECK(background_type != nullptr);
 
@@ -829,7 +829,7 @@ void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::
       auto background_previous = static_cast<const td_api::inputBackgroundPrevious *>(input_background);
       MessageId message_id(background_previous->message_id_);
       if (!message_id.is_valid() || !message_id.is_server()) {
-        return promise.set_error(Status::Error(400, "Invalid message identifier specified"));
+        return promise.set_error(400, "Invalid message identifier specified");
       }
       return send_set_dialog_background_query(
           dialog_id, nullptr, background_type == nullptr ? nullptr : type.get_input_wallpaper_settings(), message_id,
@@ -851,12 +851,12 @@ void BackgroundManager::do_set_dialog_background(DialogId dialog_id, BackgroundI
   TRY_STATUS_PROMISE(promise, G()->close_status());
   const auto *background = get_background(background_id);
   if (background == nullptr) {
-    return promise.set_error(Status::Error(400, "Background to set not found"));
+    return promise.set_error(400, "Background to set not found");
   }
   if (!type.has_file()) {
     type = background->type;
   } else if (!background->type.has_equal_type(type)) {
-    return promise.set_error(Status::Error(400, "Background type mismatch"));
+    return promise.set_error(400, "Background type mismatch");
   }
 
   send_set_dialog_background_query(
@@ -877,12 +877,12 @@ void BackgroundManager::set_background(BackgroundId background_id, BackgroundTyp
   LOG(INFO) << "Set " << background_id << " with " << type;
   const auto *background = get_background(background_id);
   if (background == nullptr) {
-    return promise.set_error(Status::Error(400, "Background to set not found"));
+    return promise.set_error(400, "Background to set not found");
   }
   if (!type.has_file()) {
     type = background->type;
   } else if (!background->type.has_equal_type(type)) {
-    return promise.set_error(Status::Error(400, "Background type mismatch"));
+    return promise.set_error(400, "Background type mismatch");
   }
   if (set_background_id_[for_dark_theme] == background_id && set_background_type_[for_dark_theme] == type) {
     return promise.set_value(get_background_object(background_id, for_dark_theme, nullptr));
@@ -1025,8 +1025,8 @@ void BackgroundManager::on_upload_background_file_error(FileUploadId file_upload
 
   being_uploaded_files_.erase(it);
 
-  promise.set_error(Status::Error(status.code() > 0 ? status.code() : 500,
-                                  status.message()));  // TODO CHECK that status has always a code
+  promise.set_error(status.code() > 0 ? status.code() : 500,
+                    status.message());  // TODO CHECK that status has always a code
 }
 
 void BackgroundManager::do_upload_background_file(FileUploadId file_upload_id, const BackgroundType &type,
@@ -1044,7 +1044,7 @@ void BackgroundManager::do_upload_background_file(FileUploadId file_upload_id, c
       }
       return set_background(it->second, type, for_dark_theme, std::move(promise));
     }
-    return promise.set_error(Status::Error(500, "Failed to reupload background"));
+    return promise.set_error(500, "Failed to reupload background");
   }
 
   td_->create_handler<UploadBackgroundQuery>(std::move(promise))
@@ -1061,7 +1061,7 @@ void BackgroundManager::on_uploaded_background_file(FileUploadId file_upload_id,
   auto background_id = added_background.first;
   if (!background_id.is_valid()) {
     td_->file_manager_->cancel_upload(file_upload_id);
-    return promise.set_error(Status::Error(500, "Receive wrong uploaded background"));
+    return promise.set_error(500, "Receive wrong uploaded background");
   }
   LOG_IF(ERROR, added_background.second != type)
       << "Type of uploaded background has changed from " << type << " to " << added_background.second;
@@ -1070,7 +1070,7 @@ void BackgroundManager::on_uploaded_background_file(FileUploadId file_upload_id,
   CHECK(background != nullptr);
   if (!background->file_id.is_valid()) {
     td_->file_manager_->cancel_upload(file_upload_id);
-    return promise.set_error(Status::Error(500, "Receive wrong uploaded background without file"));
+    return promise.set_error(500, "Receive wrong uploaded background without file");
   }
   LOG_STATUS(td_->file_manager_->merge(background->file_id, file_upload_id.get_file_id()));
   td_->file_manager_->cancel_upload(file_upload_id);
@@ -1083,7 +1083,7 @@ void BackgroundManager::on_uploaded_background_file(FileUploadId file_upload_id,
 void BackgroundManager::remove_background(BackgroundId background_id, Promise<Unit> &&promise) {
   const auto *background = get_background(background_id);
   if (background == nullptr) {
-    return promise.set_error(Status::Error(400, "Background not found"));
+    return promise.set_error(400, "Background not found");
   }
 
   auto query_promise = PromiseCreator::lambda(

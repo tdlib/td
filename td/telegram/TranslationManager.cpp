@@ -80,7 +80,7 @@ void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText
                                         const string &to_language_code,
                                         Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
   if (text == nullptr) {
-    return promise.set_error(Status::Error(400, "Text must be non-empty"));
+    return promise.set_error(400, "Text must be non-empty");
   }
   bool skip_bot_commands = true;
   int32 max_media_timestamp = -1;
@@ -137,9 +137,9 @@ void TranslationManager::on_get_translated_texts(vector<telegram_api::object_ptr
   TRY_STATUS_PROMISE(promise, G()->close_status());
   if (texts.size() != 1u) {
     if (texts.empty()) {
-      return promise.set_error(Status::Error(500, "Translation failed"));
+      return promise.set_error(500, "Translation failed");
     }
-    return promise.set_error(Status::Error(500, "Receive invalid number of results"));
+    return promise.set_error(500, "Receive invalid number of results");
   }
   auto formatted_text = get_formatted_text(td_->user_manager_.get(), std::move(texts[0]), max_media_timestamp == -1,
                                            true, "on_get_translated_texts");

@@ -155,7 +155,7 @@ void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port,
   TRY_RESULT_PROMISE(promise, new_proxy, Proxy::create_proxy(std::move(server), port, proxy_type.get()));
   if (old_proxy_id >= 0) {
     if (proxies_.count(old_proxy_id) == 0) {
-      return promise.set_error(Status::Error(400, "Proxy not found"));
+      return promise.set_error(400, "Proxy not found");
     }
     auto &old_proxy = proxies_[old_proxy_id];
     if (old_proxy == new_proxy) {
@@ -175,7 +175,7 @@ void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port,
     proxy_last_used_saved_date_.erase(old_proxy_id);
   } else {
 #if TD_EMSCRIPTEN || TD_DARWIN_WATCH_OS
-    return promise.set_error(Status::Error(400, "The method is unsupported for the platform"));
+    return promise.set_error(400, "The method is unsupported for the platform");
 #endif
   }
 
@@ -206,7 +206,7 @@ void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port,
 
 void ConnectionCreator::enable_proxy(int32 proxy_id, Promise<Unit> promise) {
   if (proxies_.count(proxy_id) == 0) {
-    return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
+    return promise.set_error(400, "Unknown proxy identifier");
   }
 
   enable_proxy_impl(proxy_id);
@@ -221,7 +221,7 @@ void ConnectionCreator::disable_proxy(Promise<Unit> promise) {
 
 void ConnectionCreator::remove_proxy(int32 proxy_id, Promise<Unit> promise) {
   if (proxies_.count(proxy_id) == 0) {
-    return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
+    return promise.set_error(400, "Unknown proxy identifier");
   }
 
   if (proxy_id == active_proxy_id_) {
@@ -243,7 +243,7 @@ void ConnectionCreator::get_proxies(Promise<td_api::object_ptr<td_api::proxies>>
 void ConnectionCreator::get_proxy_link(int32 proxy_id, Promise<string> promise) {
   auto it = proxies_.find(proxy_id);
   if (it == proxies_.end()) {
-    return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
+    return promise.set_error(400, "Unknown proxy identifier");
   }
 
   promise.set_result(LinkManager::get_proxy_link(it->second, false));
@@ -281,7 +281,7 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
     bool prefer_ipv6 = G()->get_option_boolean("prefer_ipv6");
     auto infos = dc_options_set_.find_all_connections(main_dc_id, false, false, prefer_ipv6, false);
     if (infos.empty()) {
-      return promise.set_error(Status::Error(400, "Can't find valid DC address"));
+      return promise.set_error(400, "Can't find valid DC address");
     }
     const size_t MAX_CONNECTIONS = 10;
     if (infos.size() > MAX_CONNECTIONS) {
@@ -322,7 +322,7 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
 
   auto it = proxies_.find(proxy_id);
   if (it == proxies_.end()) {
-    return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
+    return promise.set_error(400, "Unknown proxy identifier");
   }
   const Proxy &proxy = it->second;
   bool prefer_ipv6 = G()->get_option_boolean("prefer_ipv6");
@@ -330,7 +330,7 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
                PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
                                        proxy_id](Result<IPAddress> result) mutable {
                  if (result.is_error()) {
-                   return promise.set_error(Status::Error(400, result.error().public_message()));
+                   return promise.set_error(400, result.error().public_message());
                  }
                  send_closure(actor_id, &ConnectionCreator::ping_proxy_resolved, proxy_id, result.move_as_ok(),
                               std::move(promise));
@@ -340,14 +340,14 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
 void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address, Promise<double> promise) {
   auto it = proxies_.find(proxy_id);
   if (it == proxies_.end()) {
-    return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
+    return promise.set_error(400, "Unknown proxy identifier");
   }
   const Proxy &proxy = it->second;
   auto main_dc_id = G()->net_query_dispatcher().get_main_dc_id();
   FindConnectionExtra extra;
   auto r_socket_fd = find_connection(proxy, ip_address, main_dc_id, false, extra);
   if (r_socket_fd.is_error()) {
-    return promise.set_error(Status::Error(400, r_socket_fd.error().public_message()));
+    return promise.set_error(400, r_socket_fd.error().public_message());
   }
   auto socket_fd = r_socket_fd.move_as_ok();
 
@@ -355,7 +355,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
       [actor_id = actor_id(this), ip_address, promise = std::move(promise), transport_type = extra.transport_type,
        debug_str = extra.debug_str](Result<ConnectionData> r_connection_data) mutable {
         if (r_connection_data.is_error()) {
-          return promise.set_error(Status::Error(400, r_connection_data.error().public_message()));
+          return promise.set_error(400, r_connection_data.error().public_message());
         }
         auto connection_data = r_connection_data.move_as_ok();
         send_closure(actor_id, &ConnectionCreator::ping_proxy_buffered_socket_fd, ip_address,
@@ -383,7 +383,7 @@ void ConnectionCreator::ping_proxy_buffered_socket_fd(IPAddress ip_address, Buff
                                PromiseCreator::lambda([promise = std::move(promise)](
                                                           Result<unique_ptr<mtproto::RawConnection>> result) mutable {
                                  if (result.is_error()) {
-                                   return promise.set_error(Status::Error(400, result.error().public_message()));
+                                   return promise.set_error(400, result.error().public_message());
                                  }
                                  auto ping_time = result.ok()->extra().rtt;
                                  promise.set_value(std::move(ping_time));
@@ -397,11 +397,11 @@ void ConnectionCreator::test_proxy(Proxy &&proxy, int32 dc_id, double timeout, P
   IPAddress ip_address;
   auto status = ip_address.init_host_port(proxy.server(), proxy.port());
   if (status.is_error()) {
-    return promise.set_error(Status::Error(400, status.public_message()));
+    return promise.set_error(400, status.public_message());
   }
   auto r_socket_fd = SocketFd::open(ip_address);
   if (r_socket_fd.is_error()) {
-    return promise.set_error(Status::Error(400, r_socket_fd.error().public_message()));
+    return promise.set_error(400, r_socket_fd.error().public_message());
   }
 
   auto dc_options = get_default_dc_options(false);
@@ -413,7 +413,7 @@ void ConnectionCreator::test_proxy(Proxy &&proxy, int32 dc_id, double timeout, P
     }
   }
   if (!mtproto_ip_address.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid datacenter identifier specified"));
+    return promise.set_error(400, "Invalid datacenter identifier specified");
   }
 
   auto request_id = ++test_proxy_request_id_;
@@ -489,7 +489,7 @@ void ConnectionCreator::on_test_proxy_handshake_connection(
     }
     auto promise = std::move(it->second->promise_);
     test_proxy_requests_.erase(it);
-    return promise.set_error(Status::Error(400, r_raw_connection.move_as_error().public_message()));
+    return promise.set_error(400, r_raw_connection.move_as_error().public_message());
   }
 }
 
@@ -503,11 +503,11 @@ void ConnectionCreator::on_test_proxy_handshake(uint64 request_id,
   test_proxy_requests_.erase(it);
 
   if (r_handshake.is_error()) {
-    return promise.set_error(Status::Error(400, r_handshake.move_as_error().public_message()));
+    return promise.set_error(400, r_handshake.move_as_error().public_message());
   }
   auto handshake = r_handshake.move_as_ok();
   if (!handshake->is_ready_for_finish()) {
-    return promise.set_error(Status::Error(400, "Handshake is not ready"));
+    return promise.set_error(400, "Handshake is not ready");
   }
   promise.set_value(Unit());
 }
@@ -520,7 +520,7 @@ void ConnectionCreator::on_test_proxy_timeout(uint64 request_id) {
   auto promise = std::move(it->second->promise_);
   test_proxy_requests_.erase(it);
 
-  promise.set_error(Status::Error(400, "Timeout expired"));
+  promise.set_error(400, "Timeout expired");
 }
 
 void ConnectionCreator::set_active_proxy_id(int32 proxy_id, bool from_binlog) {
@@ -760,7 +760,7 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtpro
                                                     transport_type, network_generation = network_generation_,
                                                     ip_address](Result<ConnectionData> r_connection_data) mutable {
     if (r_connection_data.is_error()) {
-      return promise.set_error(Status::Error(400, r_connection_data.error().public_message()));
+      return promise.set_error(400, r_connection_data.error().public_message());
     }
     auto connection_data = r_connection_data.move_as_ok();
     auto raw_connection = mtproto::RawConnection::create(ip_address, std::move(connection_data.buffered_socket_fd),
@@ -873,7 +873,7 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
           if (was_connected_ && stats_callback_) {
             stats_callback_->on_error();
           }
-          promise_.set_error(Status::Error(400, r_buffered_socket_fd.error().public_message()));
+          promise_.set_error(400, r_buffered_socket_fd.error().public_message());
         } else {
           ConnectionData data;
           data.ip_address = ip_address_;
@@ -1204,7 +1204,7 @@ void ConnectionCreator::add_dc_options(DcOptions &&new_dc_options) {
 
 void ConnectionCreator::on_dc_update(DcId dc_id, string ip_port, Promise<> promise) {
   if (!dc_id.is_exact()) {
-    return promise.set_error(Status::Error("Invalid dc_id"));
+    return promise.set_error("Invalid dc_id");
   }
 
   IPAddress ip_address;
@@ -1495,7 +1495,7 @@ void ConnectionCreator::on_ping_main_dc_result(uint64 token, Result<double> resu
 
   if (--request.left_queries == 0) {
     if (request.result.is_error()) {
-      request.promise.set_error(Status::Error(400, request.result.error().public_message()));
+      request.promise.set_error(400, request.result.error().public_message());
     } else {
       request.promise.set_value(request.result.move_as_ok());
     }

@@ -206,7 +206,7 @@ void CallActor::create_call(UserId user_id, CallProtocol &&protocol, bool is_vid
 
 void CallActor::accept_call(CallProtocol &&protocol, Promise<Unit> promise) {
   if (state_ != State::SendAcceptQuery) {
-    return promise.set_error(Status::Error(400, "Unexpected acceptCall"));
+    return promise.set_error(400, "Unexpected acceptCall");
   }
   is_accepted_ = true;
   call_state_.protocol = std::move(protocol);
@@ -229,7 +229,7 @@ void CallActor::update_call_signaling_data(string data) {
 void CallActor::send_call_signaling_data(string &&data, Promise<Unit> promise) {
   if (call_state_.type != CallState::Type::Ready &&
       call_state_.discard_reason.type_ != CallDiscardReason::Type::UpgradeToGroupCall) {
-    return promise.set_error(Status::Error(400, "Call is not active"));
+    return promise.set_error(400, "Call is not active");
   }
 
   auto query = G()->net_query_creator().create(
@@ -268,7 +268,7 @@ void CallActor::discard_call(bool is_disconnected, const string &invite_link, in
       if (!invite_link.empty()) {
         auto slug = LinkManager::get_group_call_invite_link_slug(invite_link);
         if (slug.empty()) {
-          return promise.set_error(Status::Error(400, "Invalid invite link specified"));
+          return promise.set_error(400, "Invalid invite link specified");
         }
         call_state_.discard_reason.type_ = CallDiscardReason::Type::UpgradeToGroupCall;
         call_state_.discard_reason.slug_ = std::move(slug);
@@ -305,7 +305,7 @@ void CallActor::discard_call(bool is_disconnected, const string &invite_link, in
 void CallActor::rate_call(int32 rating, string comment, vector<td_api::object_ptr<td_api::CallProblem>> &&problems,
                           Promise<Unit> promise) {
   if (!call_state_.need_rating) {
-    return promise.set_error(Status::Error(400, "Unexpected sendCallRating"));
+    return promise.set_error(400, "Unexpected sendCallRating");
   }
   promise.set_value(Unit());
 
@@ -379,7 +379,7 @@ void CallActor::on_set_rating_query_result(Result<NetQueryPtr> r_net_query) {
 
 void CallActor::send_call_debug_information(string data, Promise<Unit> promise) {
   if (!call_state_.need_debug_information) {
-    return promise.set_error(Status::Error(400, "Unexpected sendCallDebugInformation"));
+    return promise.set_error(400, "Unexpected sendCallDebugInformation");
   }
   promise.set_value(Unit());
   auto tl_query = telegram_api::phone_saveCallDebug(get_input_phone_call("send_call_debug_information"),
@@ -412,7 +412,7 @@ void CallActor::send_call_log(td_api::object_ptr<td_api::InputFile> log_file, Pr
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!call_state_.need_log) {
-    return promise.set_error(Status::Error(400, "Unexpected sendCallLog"));
+    return promise.set_error(400, "Unexpected sendCallLog");
   }
 
   auto *file_manager = td_->file_manager_.get();
@@ -421,10 +421,10 @@ void CallActor::send_call_log(td_api::object_ptr<td_api::InputFile> log_file, Pr
 
   FileView file_view = file_manager->get_file_view(file_id);
   if (file_view.is_encrypted()) {
-    return promise.set_error(Status::Error(400, "Can't use encrypted file"));
+    return promise.set_error(400, "Can't use encrypted file");
   }
   if (!file_view.has_full_local_location() && !file_view.has_generate_location()) {
-    return promise.set_error(Status::Error(400, "Need local or generate location to upload call log"));
+    return promise.set_error(400, "Need local or generate location to upload call log");
   }
 
   upload_log_file({file_id, FileManager::get_internal_upload_id()}, std::move(promise));
@@ -472,15 +472,15 @@ void CallActor::on_upload_log_file_error(FileUploadId file_upload_id, Promise<Un
   LOG(WARNING) << "Log " << file_upload_id << " has upload error " << status;
   CHECK(status.is_error());
 
-  promise.set_error(Status::Error(status.code() > 0 ? status.code() : 500,
-                                  status.message()));  // TODO CHECK that status has always a code
+  promise.set_error(status.code() > 0 ? status.code() : 500,
+                    status.message());  // TODO CHECK that status has always a code
 }
 
 void CallActor::do_upload_log_file(FileUploadId file_upload_id,
                                    telegram_api::object_ptr<telegram_api::InputFile> &&input_file,
                                    Promise<Unit> &&promise) {
   if (input_file == nullptr) {
-    return promise.set_error(Status::Error(500, "Failed to reupload call log"));
+    return promise.set_error(500, "Failed to reupload call log");
   }
 
   auto tl_query = telegram_api::phone_saveCallLog(get_input_phone_call("do_upload_log_file"), std::move(input_file));

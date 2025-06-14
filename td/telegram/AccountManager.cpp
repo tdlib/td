@@ -860,11 +860,11 @@ void AccountManager::confirm_qr_code_authentication(const string &link,
                                                     Promise<td_api::object_ptr<td_api::session>> &&promise) {
   Slice prefix("tg://login?token=");
   if (!begins_with(to_lower(link), prefix)) {
-    return promise.set_error(Status::Error(400, "AUTH_TOKEN_INVALID"));
+    return promise.set_error(400, "AUTH_TOKEN_INVALID");
   }
   auto r_token = base64url_decode(Slice(link).substr(prefix.size()));
   if (r_token.is_error()) {
-    return promise.set_error(Status::Error(400, "AUTH_TOKEN_INVALID"));
+    return promise.set_error(400, "AUTH_TOKEN_INVALID");
   }
   td_->create_handler<AcceptLoginTokenQuery>(std::move(promise))->send(r_token.ok());
 }

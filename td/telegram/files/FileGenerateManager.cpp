@@ -367,7 +367,7 @@ class FileExternalGenerateActor final : public FileGenerateActor {
       if (status.is_ok() || status.code() == -1) {
         promise.set_value(Unit());
       } else {
-        promise.set_error(Status::Error(400, status.message()));
+        promise.set_error(400, status.message());
       }
     }
 
@@ -465,7 +465,7 @@ void FileGenerateManager::external_file_generate_write_part(QueryId query_id, in
                                                             Promise<> promise) {
   auto it = query_id_to_query_.find(query_id);
   if (it == query_id_to_query_.end()) {
-    return promise.set_error(Status::Error(400, "Unknown generation_id"));
+    return promise.set_error(400, "Unknown generation_id");
   }
   auto safe_promise = SafePromise<>(std::move(promise), Status::Error(400, "Generation has already been finished"));
   send_closure(it->second.worker_, &FileGenerateActor::file_generate_write_part, offset, std::move(data),
@@ -476,7 +476,7 @@ void FileGenerateManager::external_file_generate_progress(QueryId query_id, int6
                                                           int64 local_prefix_size, Promise<> promise) {
   auto it = query_id_to_query_.find(query_id);
   if (it == query_id_to_query_.end()) {
-    return promise.set_error(Status::Error(400, "Unknown generation_id"));
+    return promise.set_error(400, "Unknown generation_id");
   }
   auto safe_promise = SafePromise<>(std::move(promise), Status::Error(400, "Generation has already been finished"));
   send_closure(it->second.worker_, &FileGenerateActor::file_generate_progress, expected_size, local_prefix_size,
@@ -486,7 +486,7 @@ void FileGenerateManager::external_file_generate_progress(QueryId query_id, int6
 void FileGenerateManager::external_file_generate_finish(QueryId query_id, Status status, Promise<> promise) {
   auto it = query_id_to_query_.find(query_id);
   if (it == query_id_to_query_.end()) {
-    return promise.set_error(Status::Error(400, "Unknown generation_id"));
+    return promise.set_error(400, "Unknown generation_id");
   }
   auto safe_promise = SafePromise<>(std::move(promise), Status::Error(400, "Generation has already been finished"));
   send_closure(it->second.worker_, &FileGenerateActor::file_generate_finish, std::move(status),

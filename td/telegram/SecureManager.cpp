@@ -164,7 +164,7 @@ class SetSecureValueErrorsQuery final : public Td::ResultHandler {
     if (status.code() != 0) {
       promise_.set_error(std::move(status));
     } else {
-      promise_.set_error(Status::Error(400, status.message()));
+      promise_.set_error(400, status.message());
     }
   }
 };
@@ -181,7 +181,7 @@ void GetSecureValue::on_error(Status error) {
   if (error.code() > 0) {
     promise_.set_error(std::move(error));
   } else {
-    promise_.set_error(Status::Error(400, error.message()));
+    promise_.set_error(400, error.message());
   }
   stop();
 }
@@ -260,7 +260,7 @@ void GetAllSecureValues::on_error(Status error) {
   if (error.code() > 0) {
     promise_.set_error(std::move(error));
   } else {
-    promise_.set_error(Status::Error(400, error.message()));
+    promise_.set_error(400, error.message());
   }
   stop();
 }
@@ -395,7 +395,7 @@ void SetSecureValue::on_error(Status error) {
   if (error.code() > 0) {
     promise_.set_error(std::move(error));
   } else {
-    promise_.set_error(Status::Error(400, error.message()));
+    promise_.set_error(400, error.message());
   }
   stop();
 }
@@ -708,7 +708,7 @@ class GetPassportAuthorizationForm final : public NetQueryCallback {
     if (error.code() > 0) {
       promise_.set_error(std::move(error));
     } else {
-      promise_.set_error(Status::Error(400, error.message()));
+      promise_.set_error(400, error.message());
     }
     stop();
   }
@@ -785,7 +785,7 @@ class GetPassportConfig final : public NetQueryCallback {
     auto config = r_result.move_as_ok();
     switch (config->get_id()) {
       case telegram_api::help_passportConfigNotModified::ID:
-        promise_.set_error(Status::Error(500, "Wrong server response"));
+        promise_.set_error(500, "Wrong server response");
         break;
       case telegram_api::help_passportConfig::ID: {
         const string &data =
@@ -799,7 +799,7 @@ class GetPassportConfig final : public NetQueryCallback {
         begin_pos += 4 + country_code_.size();
         auto end_pos = data.find('"', begin_pos);
         if (end_pos == string::npos) {
-          return promise_.set_error(Status::Error(500, "Wrong server response"));
+          return promise_.set_error(500, "Wrong server response");
         }
         promise_.set_value(td_api::make_object<td_api::text>(data.substr(begin_pos, end_pos - begin_pos)));
         break;
@@ -834,7 +834,7 @@ void SecureManager::set_secure_value(string password, SecureValue secure_value, 
         auto r_passport_element = get_passport_element_object(file_manager, r_secure_value.move_as_ok().value);
         if (r_passport_element.is_error()) {
           LOG(ERROR) << "Failed to get passport element object: " << r_passport_element.error();
-          return promise.set_error(Status::Error(500, "Failed to get passport element object"));
+          return promise.set_error(500, "Failed to get passport element object");
         }
         promise.set_value(r_passport_element.move_as_ok());
       });
@@ -868,16 +868,16 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
   vector<tl_object_ptr<telegram_api::SecureValueError>> input_errors;
   for (auto &error : errors) {
     if (error == nullptr) {
-      return promise.set_error(Status::Error(400, "Error must be non-empty"));
+      return promise.set_error(400, "Error must be non-empty");
     }
     if (error->type_ == nullptr) {
-      return promise.set_error(Status::Error(400, "Type must be non-empty"));
+      return promise.set_error(400, "Type must be non-empty");
     }
     if (!clean_input_string(error->message_)) {
-      return promise.set_error(Status::Error(400, "Error message must be encoded in UTF-8"));
+      return promise.set_error(400, "Error message must be encoded in UTF-8");
     }
     if (error->source_ == nullptr) {
-      return promise.set_error(Status::Error(400, "Error source must be non-empty"));
+      return promise.set_error(400, "Error source must be non-empty");
     }
 
     auto type = get_input_secure_value_type(get_secure_value_type_td_api(error->type_));
@@ -891,7 +891,7 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
       case td_api::inputPassportElementErrorSourceDataField::ID: {
         auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceDataField>(error->source_);
         if (!clean_input_string(source->field_name_)) {
-          return promise.set_error(Status::Error(400, "Field name must be encoded in UTF-8"));
+          return promise.set_error(400, "Field name must be encoded in UTF-8");
         }
 
         input_errors.push_back(make_tl_object<telegram_api::secureValueErrorData>(
@@ -925,7 +925,7 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
       case td_api::inputPassportElementErrorSourceTranslationFiles::ID: {
         auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceTranslationFiles>(error->source_);
         if (source->file_hashes_.empty()) {
-          return promise.set_error(Status::Error(400, "File hashes must be non-empty"));
+          return promise.set_error(400, "File hashes must be non-empty");
         }
         auto file_hashes = transform(source->file_hashes_, [](Slice hash) { return BufferSlice(hash); });
         input_errors.push_back(make_tl_object<telegram_api::secureValueErrorTranslationFiles>(
@@ -941,7 +941,7 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
       case td_api::inputPassportElementErrorSourceFiles::ID: {
         auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceFiles>(error->source_);
         if (source->file_hashes_.empty()) {
-          return promise.set_error(Status::Error(400, "File hashes must be non-empty"));
+          return promise.set_error(400, "File hashes must be non-empty");
         }
         auto file_hashes = transform(source->file_hashes_, [](Slice hash) { return BufferSlice(hash); });
         input_errors.push_back(make_tl_object<telegram_api::secureValueErrorFiles>(
@@ -1045,11 +1045,11 @@ void SecureManager::get_passport_authorization_form_available_elements(int32 aut
                                                                        Promise<TdApiSecureValuesWithErrors> promise) {
   auto it = authorization_forms_.find(authorization_form_id);
   if (it == authorization_forms_.end()) {
-    return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
+    return promise.set_error(400, "Unknown authorization_form_id");
   }
   CHECK(it->second != nullptr);
   if (!it->second->is_received) {
-    return promise.set_error(Status::Error(400, "Authorization form isn't received yet"));
+    return promise.set_error(400, "Authorization form isn't received yet");
   }
 
   refcnt_++;
@@ -1066,12 +1066,12 @@ void SecureManager::on_get_passport_authorization_form_secret(int32 authorizatio
                                                               Result<secure_storage::Secret> r_secret) {
   auto it = authorization_forms_.find(authorization_form_id);
   if (it == authorization_forms_.end()) {
-    return promise.set_error(Status::Error(400, "Authorization form has already been sent"));
+    return promise.set_error(400, "Authorization form has already been sent");
   }
   CHECK(it->second != nullptr);
   CHECK(it->second->is_received);
   if (it->second->is_decrypted) {
-    return promise.set_error(Status::Error(400, "Authorization form has already been decrypted"));
+    return promise.set_error(400, "Authorization form has already been decrypted");
   }
 
   if (r_secret.is_error()) {
@@ -1236,15 +1236,15 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
                                                      Promise<> promise) {
   auto it = authorization_forms_.find(authorization_form_id);
   if (it == authorization_forms_.end()) {
-    return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
+    return promise.set_error(400, "Unknown authorization_form_id");
   }
   CHECK(it->second != nullptr);
   if (!it->second->is_received) {
-    return promise.set_error(Status::Error(400, "Authorization form isn't received yet"));
+    return promise.set_error(400, "Authorization form isn't received yet");
   }
   // there is no need to check for is_decrypted
   if (types.empty()) {
-    return promise.set_error(Status::Error(400, "Types must be non-empty"));
+    return promise.set_error(400, "Types must be non-empty");
   }
 
   std::vector<SecureValueCredentials> credentials;
@@ -1252,7 +1252,7 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
   for (auto type : types) {
     auto value_it = secure_value_cache_.find(type);
     if (value_it == secure_value_cache_.end()) {
-      return promise.set_error(Status::Error(400, "Passport Element with the specified type is not found"));
+      return promise.set_error(400, "Passport Element with the specified type is not found");
     }
     credentials.push_back(value_it->second.credentials);
   }
@@ -1263,7 +1263,7 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
                                                                               BufferSlice(c.hash)));
     auto options_it = it->second->options.find(c.type);
     if (options_it == it->second->options.end()) {
-      return promise.set_error(Status::Error(400, "Passport Element with the specified type was not requested"));
+      return promise.set_error(400, "Passport Element with the specified type was not requested");
     }
     auto &options = options_it->second;
     if (!options.is_selfie_required) {

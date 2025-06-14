@@ -629,20 +629,20 @@ void get_dialog_event_log(Td *td, DialogId dialog_id, const string &query, int64
                           const td_api::object_ptr<td_api::chatEventLogFilters> &filters,
                           const vector<UserId> &user_ids, Promise<td_api::object_ptr<td_api::chatEvents>> &&promise) {
   if (!td->dialog_manager_->have_dialog_force(dialog_id, "get_dialog_event_log")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   if (dialog_id.get_type() != DialogType::Channel) {
-    return promise.set_error(Status::Error(400, "Chat is not a supergroup chat"));
+    return promise.set_error(400, "Chat is not a supergroup chat");
   }
 
   auto channel_id = dialog_id.get_channel_id();
   if (!td->chat_manager_->have_channel(channel_id)) {
-    return promise.set_error(Status::Error(400, "Chat info not found"));
+    return promise.set_error(400, "Chat info not found");
   }
 
   if (!td->chat_manager_->get_channel_status(channel_id).is_administrator()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to get event log"));
+    return promise.set_error(400, "Not enough rights to get event log");
   }
 
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;

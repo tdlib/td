@@ -283,7 +283,7 @@ bool remove_suggested_action(const UserManager *user_manager, vector<SuggestedAc
 void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
   switch (action.type_) {
     case SuggestedAction::Type::Empty:
-      return promise.set_error(Status::Error(400, "Action must be non-empty"));
+      return promise.set_error(400, "Action must be non-empty");
     case SuggestedAction::Type::EnableArchiveAndMuteNewChats:
     case SuggestedAction::Type::CheckPassword:
     case SuggestedAction::Type::CheckPhoneNumber:
@@ -302,7 +302,7 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
                                 std::move(action), std::move(promise));
     case SuggestedAction::Type::SetPassword: {
       if (action.otherwise_relogin_days_ < 0) {
-        return promise.set_error(Status::Error(400, "Invalid authorization_delay specified"));
+        return promise.set_error(400, "Invalid authorization_delay specified");
       }
       if (action.otherwise_relogin_days_ == 0) {
         return send_closure_later(G()->suggested_action_manager(), &SuggestedActionManager::dismiss_suggested_action,

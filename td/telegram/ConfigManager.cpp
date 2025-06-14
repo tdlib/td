@@ -257,7 +257,7 @@ static string generate_firebase_remote_config_payload() {
 ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> promise, bool prefer_ipv6,
                                                     Slice domain_name, bool is_test, int32 scheduler_id) {
   if (is_test) {
-    promise.set_error(Status::Error(400, "Test config is not supported"));
+    promise.set_error(400, "Test config is not supported");
     return ActorOwn<>();
   }
 
@@ -281,7 +281,7 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
 ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
                                                bool is_test, int32 scheduler_id) {
   if (is_test) {
-    promise.set_error(Status::Error(400, "Test config is not supported"));
+    promise.set_error(400, "Test config is not supported");
     return ActorOwn<>();
   }
 
@@ -296,7 +296,7 @@ ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promi
 ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> promise, bool prefer_ipv6,
                                                 Slice domain_name, bool is_test, int32 scheduler_id) {
   if (is_test) {
-    promise.set_error(Status::Error(400, "Test config is not supported"));
+    promise.set_error(400, "Test config is not supported");
     return ActorOwn<>();
   }
 
@@ -467,7 +467,7 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
     void hangup_shared() final {
       if (get_link_token() == 1) {
         if (promise_) {
-          promise_.set_error(Status::Error("Failed"));
+          promise_.set_error("Failed");
         }
         stop();
       }
@@ -476,7 +476,7 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
       session_.reset();
     }
     void timeout_expired() final {
-      promise_.set_error(Status::Error("Timeout expired"));
+      promise_.set_error("Timeout expired");
       session_.reset();
     }
 

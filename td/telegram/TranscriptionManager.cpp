@@ -263,12 +263,12 @@ TranscriptionInfo *TranscriptionManager::get_transcription_info(const FileInfo &
 
 void TranscriptionManager::recognize_speech(MessageFullId message_full_id, Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_message_force(message_full_id, "recognize_speech")) {
-    return promise.set_error(Status::Error(400, "Message not found"));
+    return promise.set_error(400, "Message not found");
   }
 
   auto it = message_file_ids_.find(message_full_id);
   if (it == message_file_ids_.end()) {
-    return promise.set_error(Status::Error(400, "Message can't be transcribed"));
+    return promise.set_error(400, "Message can't be transcribed");
   }
 
   auto *transcription_info = get_transcription_info(it->second, true);
@@ -374,12 +374,12 @@ void TranscriptionManager::on_transcription_completed(FileId file_id) {
 void TranscriptionManager::rate_speech_recognition(MessageFullId message_full_id, bool is_good,
                                                    Promise<Unit> &&promise) {
   if (!td_->messages_manager_->have_message_force(message_full_id, "rate_speech_recognition")) {
-    return promise.set_error(Status::Error(400, "Message not found"));
+    return promise.set_error(400, "Message not found");
   }
 
   auto it = message_file_ids_.find(message_full_id);
   if (it == message_file_ids_.end()) {
-    return promise.set_error(Status::Error(400, "Message can't be transcribed"));
+    return promise.set_error(400, "Message can't be transcribed");
   }
 
   const auto *transcription_info = get_transcription_info(it->second, false);

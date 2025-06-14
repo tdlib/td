@@ -9786,12 +9786,12 @@ void set_message_content_video_start_timestamp(MessageContent *content, int32 st
 void get_message_content_animated_emoji_click_sticker(const MessageContent *content, MessageFullId message_full_id,
                                                       Td *td, Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
   if (content->get_type() != MessageContentType::Text) {
-    return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
+    return promise.set_error(400, "Message is not an animated emoji message");
   }
 
   const auto &text = static_cast<const MessageText *>(content)->text;
   if (!can_be_animated_emoji(text)) {
-    return promise.set_error(Status::Error(400, "Message is not an animated emoji message"));
+    return promise.set_error(400, "Message is not an animated emoji message");
   }
   td->stickers_manager_->get_animated_emoji_click_sticker(text.text, message_full_id, std::move(promise));
 }

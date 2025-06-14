@@ -95,12 +95,12 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
     auto message = UpdatesManager::get_message_by_random_id(ptr.get(), DialogId(channel_id_), random_id_);
     if (message == nullptr || message->get_id() != telegram_api::messageService::ID) {
       LOG(ERROR) << "Receive invalid result for CreateForumTopicQuery: " << to_string(ptr);
-      return promise_.set_error(Status::Error(400, "Invalid result received"));
+      return promise_.set_error(400, "Invalid result received");
     }
     auto service_message = static_cast<const telegram_api::messageService *>(message);
     if (service_message->action_->get_id() != telegram_api::messageActionTopicCreate::ID) {
       LOG(ERROR) << "Receive invalid result for CreateForumTopicQuery: " << to_string(ptr);
-      return promise_.set_error(Status::Error(400, "Invalid result received"));
+      return promise_.set_error(400, "Invalid result received");
     }
 
     auto action = static_cast<const telegram_api::messageActionTopicCreate *>(service_message->action_.get());
@@ -502,12 +502,12 @@ void ForumTopicManager::create_forum_topic(DialogId dialog_id, string &&title,
   auto channel_id = dialog_id.get_channel_id();
 
   if (!td_->chat_manager_->get_channel_permissions(channel_id).can_create_topics()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to create a topic"));
+    return promise.set_error(400, "Not enough rights to create a topic");
   }
 
   auto new_title = clean_name(std::move(title), MAX_FORUM_TOPIC_TITLE_LENGTH);
   if (new_title.empty()) {
-    return promise.set_error(Status::Error(400, "Title must be non-empty"));
+    return promise.set_error(400, "Title must be non-empty");
   }
 
   int32 icon_color = -1;
@@ -515,7 +515,7 @@ void ForumTopicManager::create_forum_topic(DialogId dialog_id, string &&title,
   if (icon != nullptr) {
     icon_color = icon->color_;
     if (icon_color < 0 || icon_color > 0xFFFFFF) {
-      return promise.set_error(Status::Error(400, "Invalid icon color specified"));
+      return promise.set_error(400, "Invalid icon color specified");
     }
     icon_custom_emoji_id = CustomEmojiId(icon->custom_emoji_id_);
   }
@@ -553,14 +553,14 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_threa
   if (!td_->chat_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
     auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
     if (topic_info != nullptr && !topic_info->is_outgoing()) {
-      return promise.set_error(Status::Error(400, "Not enough rights to edit the topic"));
+      return promise.set_error(400, "Not enough rights to edit the topic");
     }
   }
 
   bool edit_title = !title.empty();
   auto new_title = clean_name(std::move(title), MAX_FORUM_TOPIC_TITLE_LENGTH);
   if (edit_title && new_title.empty()) {
-    return promise.set_error(Status::Error(400, "Title must be non-empty"));
+    return promise.set_error(400, "Title must be non-empty");
   }
   if (!edit_title && !edit_icon_custom_emoji) {
     return promise.set_value(Unit());
@@ -772,7 +772,7 @@ void ForumTopicManager::on_get_forum_topic(ChannelId channel_id, MessageId expec
     return promise.set_value(nullptr);
   }
   if (top_thread_message_id != expected_top_thread_message_id) {
-    return promise.set_error(Status::Error(500, "Wrong forum topic received"));
+    return promise.set_error(500, "Wrong forum topic received");
   }
   promise.set_value(get_forum_topic_object(dialog_id, top_thread_message_id));
 }
@@ -806,16 +806,16 @@ void ForumTopicManager::get_forum_topics(DialogId dialog_id, string query, int32
   auto channel_id = dialog_id.get_channel_id();
 
   if (offset_date < 0) {
-    return promise.set_error(Status::Error(400, "Invalid offset date specified"));
+    return promise.set_error(400, "Invalid offset date specified");
   }
   if (offset_message_id != MessageId() && !offset_message_id.is_valid() && !offset_message_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid offset message identifier specified"));
+    return promise.set_error(400, "Invalid offset message identifier specified");
   }
   if (offset_top_thread_message_id != MessageId()) {
     TRY_STATUS_PROMISE(promise, can_be_message_thread_id(offset_top_thread_message_id));
   }
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Invalid limit specified"));
+    return promise.set_error(400, "Invalid limit specified");
   }
   td_->create_handler<GetForumTopicsQuery>(std::move(promise))
       ->send(channel_id, query, offset_date, offset_message_id, offset_top_thread_message_id, limit);
@@ -864,7 +864,7 @@ void ForumTopicManager::toggle_forum_topic_is_closed(DialogId dialog_id, Message
   if (!td_->chat_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
     auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
     if (topic_info != nullptr && !topic_info->is_outgoing()) {
-      return promise.set_error(Status::Error(400, "Not enough rights to close or open the topic"));
+      return promise.set_error(400, "Not enough rights to close or open the topic");
     }
   }
 
@@ -876,7 +876,7 @@ void ForumTopicManager::toggle_forum_topic_is_hidden(DialogId dialog_id, bool is
   auto channel_id = dialog_id.get_channel_id();
 
   if (!td_->chat_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to close or open the topic"));
+    return promise.set_error(400, "Not enough rights to close or open the topic");
   }
 
   td_->create_handler<EditForumTopicQuery>(std::move(promise))->send(channel_id, is_hidden);
@@ -889,7 +889,7 @@ void ForumTopicManager::toggle_forum_topic_is_pinned(DialogId dialog_id, Message
   auto channel_id = dialog_id.get_channel_id();
 
   if (!td_->chat_manager_->get_channel_permissions(channel_id).can_pin_topics()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to pin or unpin the topic"));
+    return promise.set_error(400, "Not enough rights to pin or unpin the topic");
   }
 
   td_->create_handler<UpdatePinnedForumTopicQuery>(std::move(promise))
@@ -905,7 +905,7 @@ void ForumTopicManager::set_pinned_forum_topics(DialogId dialog_id, vector<Messa
   auto channel_id = dialog_id.get_channel_id();
 
   if (!td_->chat_manager_->get_channel_permissions(channel_id).can_pin_topics()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to reorder forum topics"));
+    return promise.set_error(400, "Not enough rights to reorder forum topics");
   }
 
   td_->create_handler<ReorderPinnedForumTopicsQuery>(std::move(promise))->send(channel_id, top_thread_message_ids);
@@ -920,7 +920,7 @@ void ForumTopicManager::delete_forum_topic(DialogId dialog_id, MessageId top_thr
   if (!td_->chat_manager_->get_channel_permissions(channel_id).can_delete_messages()) {
     auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
     if (topic_info != nullptr && !topic_info->is_outgoing()) {
-      return promise.set_error(Status::Error(400, "Not enough rights to delete the topic"));
+      return promise.set_error(400, "Not enough rights to delete the topic");
     }
   }
 

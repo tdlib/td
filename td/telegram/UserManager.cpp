@@ -658,7 +658,7 @@ class UpdateProfilePhotoQuery final : public Td::ResultHandler {
                                               old_photo_id = old_photo_id_,
                                               promise = std::move(promise_)](Result<Unit> result) mutable {
               if (result.is_error()) {
-                return promise.set_error(Status::Error(400, "Can't find the photo"));
+                return promise.set_error(400, "Can't find the photo");
               }
 
               send_closure(G()->user_manager(), &UserManager::send_update_profile_photo_query, user_id, file_id,
@@ -917,7 +917,7 @@ class UpdateUserEmojiStatusQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (status.message() == "USER_PERMISSION_DENIED") {
-      return promise_.set_error(Status::Error(403, "Not enough rights to change the user's emoji status"));
+      return promise_.set_error(403, "Not enough rights to change the user's emoji status");
     }
     promise_.set_error(std::move(status));
   }
@@ -1144,7 +1144,7 @@ class UpdateBirthdayQuery final : public Td::ResultHandler {
     if (result_ptr.ok()) {
       promise_.set_value(Unit());
     } else {
-      promise_.set_error(Status::Error(400, "Failed to change birthdate"));
+      promise_.set_error(400, "Failed to change birthdate");
     }
   }
 
@@ -1184,7 +1184,7 @@ class UpdatePersonalChannelQuery final : public Td::ResultHandler {
     if (result_ptr.ok()) {
       promise_.set_value(Unit());
     } else {
-      promise_.set_error(Status::Error(400, "Failed to change personal chat"));
+      promise_.set_error(400, "Failed to change personal chat");
     }
   }
 
@@ -1218,7 +1218,7 @@ class UpdateEmojiStatusQuery final : public Td::ResultHandler {
     if (result_ptr.ok()) {
       promise_.set_value(Unit());
     } else {
-      promise_.set_error(Status::Error(400, "Failed to change Premium badge"));
+      promise_.set_error(400, "Failed to change Premium badge");
     }
   }
 
@@ -4389,7 +4389,7 @@ UserId UserManager::get_me(Promise<Unit> &&promise) {
 
 bool UserManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&promise) {
   if (!user_id.is_valid()) {
-    promise.set_error(Status::Error(400, "Invalid user identifier"));
+    promise.set_error(400, "Invalid user identifier");
     return false;
   }
 
@@ -4409,7 +4409,7 @@ bool UserManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&promi
       if (r_input_user.is_error()) {
         promise.set_error(r_input_user.move_as_error());
       } else {
-        promise.set_error(Status::Error(400, "User not found"));
+        promise.set_error(400, "User not found");
       }
       return false;
     }
@@ -4424,7 +4424,7 @@ bool UserManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&promi
 
 void UserManager::reload_user(UserId user_id, Promise<Unit> &&promise, const char *source) {
   if (!user_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid user identifier"));
+    return promise.set_error(400, "Invalid user identifier");
   }
 
   have_user_force(user_id, source);
@@ -5028,7 +5028,7 @@ void UserManager::set_name(const string &first_name, const string &last_name, Pr
   auto new_first_name = clean_name(first_name, MAX_NAME_LENGTH);
   auto new_last_name = clean_name(last_name, MAX_NAME_LENGTH);
   if (new_first_name.empty()) {
-    return promise.set_error(Status::Error(400, "First name must be non-empty"));
+    return promise.set_error(400, "First name must be non-empty");
   }
 
   const User *u = get_user(get_my_id());
@@ -5110,13 +5110,13 @@ void UserManager::set_bot_profile_photo(UserId bot_user_id,
                                         Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     if (bot_user_id != UserId() && bot_user_id != get_my_id()) {
-      return promise.set_error(Status::Error(400, "Invalid bot user identifier specified"));
+      return promise.set_error(400, "Invalid bot user identifier specified");
     }
     bot_user_id = get_my_id();
   } else {
     TRY_RESULT_PROMISE(promise, bot_data, get_bot_data(bot_user_id));
     if (!bot_data.can_be_edited) {
-      return promise.set_error(Status::Error(400, "The bot can't be edited"));
+      return promise.set_error(400, "The bot can't be edited");
     }
   }
   if (input_photo == nullptr) {
@@ -5136,7 +5136,7 @@ void UserManager::set_business_profile_photo(BusinessConnectionId business_conne
     return;
   }
   if (input_photo->get_id() == td_api::inputChatPhotoPrevious::ID) {
-    return promise.set_error(Status::Error(400, "Unsupported"));
+    return promise.set_error(400, "Unsupported");
   }
   auto user_id = td_->business_connection_manager_->get_business_connection_user_id(business_connection_id);
   set_profile_photo_impl(user_id, input_photo, is_fallback, false, std::move(promise));
@@ -5151,7 +5151,7 @@ void UserManager::set_profile_photo(const td_api::object_ptr<td_api::InputChatPh
 void UserManager::set_profile_photo_impl(UserId user_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
                                          bool is_fallback, bool only_suggest, Promise<Unit> &&promise) {
   if (input_photo == nullptr) {
-    return promise.set_error(Status::Error(400, "New profile photo must be non-empty"));
+    return promise.set_error(400, "New profile photo must be non-empty");
   }
 
   const td_api::object_ptr<td_api::InputFile> *input_file = nullptr;
@@ -5160,7 +5160,7 @@ void UserManager::set_profile_photo_impl(UserId user_id, const td_api::object_pt
   switch (input_photo->get_id()) {
     case td_api::inputChatPhotoPrevious::ID: {
       if (user_id != get_my_id() || td_->auth_manager_->is_bot()) {
-        return promise.set_error(Status::Error(400, "Can't use inputChatPhotoPrevious"));
+        return promise.set_error(400, "Can't use inputChatPhotoPrevious");
       }
       auto photo = static_cast<const td_api::inputChatPhotoPrevious *>(input_photo.get());
       auto photo_id = photo->chat_photo_id_;
@@ -5172,7 +5172,7 @@ void UserManager::set_profile_photo_impl(UserId user_id, const td_api::object_pt
 
       auto file_id = get_profile_photo_file_id(photo_id);
       if (!file_id.is_valid()) {
-        return promise.set_error(Status::Error(400, "Unknown profile photo ID specified"));
+        return promise.set_error(400, "Unknown profile photo ID specified");
       }
       return send_update_profile_photo_query(user_id, file_id, photo_id, is_fallback, std::move(promise));
     }
@@ -5203,7 +5203,7 @@ void UserManager::set_profile_photo_impl(UserId user_id, const td_api::object_pt
 
   const double MAX_ANIMATION_DURATION = 10.0;
   if (main_frame_timestamp < 0.0 || main_frame_timestamp > MAX_ANIMATION_DURATION) {
-    return promise.set_error(Status::Error(400, "Wrong main frame timestamp specified"));
+    return promise.set_error(400, "Wrong main frame timestamp specified");
   }
 
   auto file_type = is_animation ? FileType::Animation : FileType::Photo;
@@ -5218,13 +5218,13 @@ void UserManager::set_user_profile_photo(UserId user_id, const td_api::object_pt
                                          bool only_suggest, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
   if (!only_suggest && !is_user_contact(user_id)) {
-    return promise.set_error(Status::Error(400, "User isn't a contact"));
+    return promise.set_error(400, "User isn't a contact");
   }
   if (user_id == get_my_id()) {
-    return promise.set_error(Status::Error(400, "Can't set personal or suggest photo to self"));
+    return promise.set_error(400, "Can't set personal or suggest photo to self");
   }
   if (is_user_bot(user_id)) {
-    return promise.set_error(Status::Error(400, "Can't set personal or suggest photo to bots"));
+    return promise.set_error(400, "Can't set personal or suggest photo to bots");
   }
   if (input_photo == nullptr) {
     td_->create_handler<DeleteContactProfilePhotoQuery>(std::move(promise))->send(user_id, std::move(input_user));
@@ -5240,7 +5240,7 @@ void UserManager::send_update_profile_photo_query(UserId user_id, FileId file_id
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (main_remote_location == nullptr) {
-    return promise.set_error(Status::Error(500, "Failed to upload the file"));
+    return promise.set_error(500, "Failed to upload the file");
   }
   td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
       ->send(user_id, file_id, old_photo_id, is_fallback, main_remote_location->as_input_photo());
@@ -5281,10 +5281,10 @@ void UserManager::on_upload_profile_photo(FileUploadId file_upload_id,
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (main_remote_location != nullptr && input_file == nullptr) {
     if (main_remote_location->is_web()) {
-      return promise.set_error(Status::Error(400, "Can't use web photo as profile photo"));
+      return promise.set_error(400, "Can't use web photo as profile photo");
     }
     if (reupload_count == 3) {  // upload, ForceReupload repair file reference, reupload
-      return promise.set_error(Status::Error(400, "Failed to reupload the file"));
+      return promise.set_error(400, "Failed to reupload the file");
     }
 
     // delete file reference and forcely reupload the file
@@ -5524,7 +5524,7 @@ void UserManager::delete_profile_photo(int64 profile_photo_id, bool is_recursive
   if (user_full == nullptr) {
     // must load UserFull first, because fallback photo can't be deleted via DeleteProfilePhotoQuery
     if (is_recursive) {
-      return promise.set_error(Status::Error(500, "Failed to load UserFullInfo"));
+      return promise.set_error(500, "Failed to load UserFullInfo");
     }
     auto reload_promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), profile_photo_id, promise = std::move(promise)](Result<Unit> result) mutable {
@@ -5559,7 +5559,7 @@ void UserManager::toggle_user_can_manage_emoji_status(UserId user_id, bool can_m
                                                       Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
   if (!is_user_bot(user_id)) {
-    return promise.set_error(Status::Error(400, "The user must be a bot"));
+    return promise.set_error(400, "The user must be a bot");
   }
   td_->create_handler<ToggleUserEmojiStatusPermissionQuery>(std::move(promise))
       ->send(user_id, std::move(input_user), can_manage_emoji_status);
@@ -5584,7 +5584,7 @@ void UserManager::on_set_user_emoji_status(UserId user_id, unique_ptr<EmojiStatu
 
 void UserManager::set_username(const string &username, Promise<Unit> &&promise) {
   if (!username.empty() && !is_allowed_username(username)) {
-    return promise.set_error(Status::Error(400, "Username is invalid"));
+    return promise.set_error(400, "Username is invalid");
   }
   td_->create_handler<UpdateUsernameQuery>(std::move(promise))->send(username);
 }
@@ -5606,7 +5606,7 @@ void UserManager::toggle_username_is_active_impl(string &&username, bool is_acti
   const User *u = get_user(get_my_id());
   CHECK(u != nullptr);
   if (!u->usernames.can_toggle(username)) {
-    return promise.set_error(Status::Error(400, "Wrong username specified"));
+    return promise.set_error(400, "Wrong username specified");
   }
   td_->create_handler<ToggleUsernameQuery>(std::move(promise))->send(std::move(username), is_active);
 }
@@ -5627,7 +5627,7 @@ void UserManager::reorder_usernames_impl(vector<string> &&usernames, Promise<Uni
   const User *u = get_user(get_my_id());
   CHECK(u != nullptr);
   if (!u->usernames.can_reorder_to(usernames)) {
-    return promise.set_error(Status::Error(400, "Invalid username order specified"));
+    return promise.set_error(400, "Invalid username order specified");
   }
   if (usernames.size() <= 1) {
     return promise.set_value(Unit());
@@ -5663,12 +5663,12 @@ void UserManager::toggle_bot_username_is_active(UserId bot_user_id, string &&use
                                                 Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, bot_data, get_bot_data(bot_user_id));
   if (!bot_data.can_be_edited) {
-    return promise.set_error(Status::Error(400, "The bot can't be edited"));
+    return promise.set_error(400, "The bot can't be edited");
   }
   const User *u = get_user(bot_user_id);
   CHECK(u != nullptr);
   if (!u->usernames.can_toggle(username)) {
-    return promise.set_error(Status::Error(400, "Wrong username specified"));
+    return promise.set_error(400, "Wrong username specified");
   }
   td_->create_handler<ToggleBotUsernameQuery>(std::move(promise))->send(bot_user_id, std::move(username), is_active);
 }
@@ -5676,12 +5676,12 @@ void UserManager::toggle_bot_username_is_active(UserId bot_user_id, string &&use
 void UserManager::reorder_bot_usernames(UserId bot_user_id, vector<string> &&usernames, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, bot_data, get_bot_data(bot_user_id));
   if (!bot_data.can_be_edited) {
-    return promise.set_error(Status::Error(400, "The bot can't be edited"));
+    return promise.set_error(400, "The bot can't be edited");
   }
   const User *u = get_user(bot_user_id);
   CHECK(u != nullptr);
   if (!u->usernames.can_reorder_to(usernames)) {
-    return promise.set_error(Status::Error(400, "Invalid username order specified"));
+    return promise.set_error(400, "Invalid username order specified");
   }
   if (usernames.size() <= 1) {
     return promise.set_value(Unit());
@@ -5692,7 +5692,7 @@ void UserManager::reorder_bot_usernames(UserId bot_user_id, vector<string> &&use
 void UserManager::set_accent_color(AccentColorId accent_color_id, CustomEmojiId background_custom_emoji_id,
                                    Promise<Unit> &&promise) {
   if (!accent_color_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid accent color identifier specified"));
+    return promise.set_error(400, "Invalid accent color identifier specified");
   }
   if (accent_color_id == AccentColorId(get_my_id())) {
     accent_color_id = AccentColorId();
@@ -5751,10 +5751,10 @@ void UserManager::set_personal_channel(DialogId dialog_id, Promise<Unit> &&promi
   ChannelId channel_id;
   if (dialog_id != DialogId()) {
     if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_personal_channel")) {
-      return promise.set_error(Status::Error(400, "Chat not found"));
+      return promise.set_error(400, "Chat not found");
     }
     if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
-      return promise.set_error(Status::Error(400, "Chat can't be set as a personal chat"));
+      return promise.set_error(400, "Chat can't be set as a personal chat");
     }
     channel_id = dialog_id.get_channel_id();
   }
@@ -5782,7 +5782,7 @@ void UserManager::on_set_personal_channel(ChannelId channel_id, Promise<Unit> &&
 
 void UserManager::set_emoji_status(const unique_ptr<EmojiStatus> &emoji_status, Promise<Unit> &&promise) {
   if (!td_->option_manager_->get_option_boolean("is_premium")) {
-    return promise.set_error(Status::Error(400, "The method is available only to Telegram Premium users"));
+    return promise.set_error(400, "The method is available only to Telegram Premium users");
   }
   if (emoji_status != nullptr) {
     add_recent_emoji_status(td_, *emoji_status);
@@ -5853,7 +5853,7 @@ void UserManager::on_get_support_user(UserId user_id, Promise<td_api::object_ptr
 
   const User *u = get_user(user_id);
   if (u == nullptr) {
-    return promise.set_error(Status::Error(500, "Can't find support user"));
+    return promise.set_error(500, "Can't find support user");
   }
   if (!u->is_support) {
     LOG(ERROR) << "Receive non-support " << user_id << ", but expected a support user";
@@ -5866,10 +5866,10 @@ void UserManager::on_get_support_user(UserId user_id, Promise<td_api::object_ptr
 void UserManager::get_user_profile_photos(UserId user_id, int32 offset, int32 limit,
                                           Promise<td_api::object_ptr<td_api::chatPhotos>> &&promise) {
   if (offset < 0) {
-    return promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
+    return promise.set_error(400, "Parameter offset must be non-negative");
   }
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   if (limit > MAX_GET_PROFILE_PHOTOS) {
     limit = MAX_GET_PROFILE_PHOTOS;
@@ -5879,7 +5879,7 @@ void UserManager::get_user_profile_photos(UserId user_id, int32 offset, int32 li
 
   auto *u = get_user(user_id);
   if (u == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
+    return promise.set_error(400, "User not found");
   }
 
   apply_pending_user_photo(u, user_id, "get_user_profile_photos");
@@ -5961,7 +5961,7 @@ void UserManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&resu
     CHECK(have_user(user_id));
     // received result has just been dropped; resend request
     if (++pending_requests[0].retry_count >= 3) {
-      pending_requests[0].promise.set_error(Status::Error(500, "Failed to return profile photos"));
+      pending_requests[0].promise.set_error(500, "Failed to return profile photos");
       pending_requests.erase(pending_requests.begin());
       if (pending_requests.empty()) {
         return;
@@ -6001,7 +6001,7 @@ void UserManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&resu
     }
 
     if (request_index == 0 && ++request.retry_count >= 3) {
-      request.promise.set_error(Status::Error(500, "Failed to get profile photos"));
+      request.promise.set_error(500, "Failed to get profile photos");
       continue;
     }
 
@@ -6251,7 +6251,7 @@ void UserManager::on_get_is_premium_required_to_contact_users(
     Promise<Unit> &&promise) {
   if (user_ids.size() != requirements.size()) {
     LOG(ERROR) << "Receive " << requirements.size() << " flags instead of " << user_ids.size();
-    return promise.set_error(Status::Error(500, "Receive invalid response"));
+    return promise.set_error(500, "Receive invalid response");
   }
   for (size_t i = 0; i < user_ids.size(); i++) {
     auto user_id = user_ids[i];
@@ -6917,7 +6917,7 @@ std::pair<vector<UserId>, vector<int32>> UserManager::change_imported_contacts(v
   }
 
   if (are_imported_contacts_changing_) {
-    promise.set_error(Status::Error(400, "ChangeImportedContacts can be called only once at the same time"));
+    promise.set_error(400, "ChangeImportedContacts can be called only once at the same time");
     return {};
   }
 
@@ -7098,7 +7098,7 @@ std::pair<int32, vector<UserId>> UserManager::search_contacts(const string &quer
   LOG(INFO) << "Search contacts with query = \"" << query << "\" and limit = " << limit;
 
   if (limit < 0) {
-    promise.set_error(Status::Error(400, "Limit must be non-negative"));
+    promise.set_error(400, "Limit must be non-negative");
     return {};
   }
 
@@ -7208,7 +7208,7 @@ vector<UserId> UserManager::get_close_friends(Promise<Unit> &&promise) {
 void UserManager::set_close_friends(vector<UserId> user_ids, Promise<Unit> &&promise) {
   for (auto &user_id : user_ids) {
     if (!have_user(user_id)) {
-      return promise.set_error(Status::Error(400, "User not found"));
+      return promise.set_error(400, "User not found");
     }
   }
 
@@ -7234,7 +7234,7 @@ void UserManager::on_set_close_friends(const vector<UserId> &user_ids, Promise<U
 UserId UserManager::search_user_by_phone_number(string phone_number, bool only_local, Promise<Unit> &&promise) {
   clean_phone_number(phone_number);
   if (phone_number.empty()) {
-    promise.set_error(Status::Error(200, "Phone number is invalid"));
+    promise.set_error(200, "Phone number is invalid");
     return UserId();
   }
 
@@ -7323,7 +7323,7 @@ UserManager::UserFull *UserManager::get_user_full_force(UserId user_id, const ch
 void UserManager::load_user_full(UserId user_id, bool force, Promise<Unit> &&promise, const char *source) {
   auto u = get_user(user_id);
   if (u == nullptr) {
-    return promise.set_error(Status::Error(400, "User not found"));
+    return promise.set_error(400, "User not found");
   }
 
   auto user_full = get_user_full_force(user_id, source);
@@ -7354,7 +7354,7 @@ void UserManager::send_get_user_full_query(UserId user_id,
                                            Promise<Unit> &&promise, const char *source) {
   LOG(INFO) << "Get full " << user_id << " from " << source;
   if (!user_id.is_valid()) {
-    return promise.set_error(Status::Error(500, "Invalid user_id"));
+    return promise.set_error(500, "Invalid user_id");
   }
   auto send_query =
       PromiseCreator::lambda([td = td_, input_user = std::move(input_user)](Result<Promise<Unit>> &&promise) mutable {
@@ -7923,7 +7923,7 @@ UserManager::SecretChat *UserManager::get_secret_chat_force(SecretChatId secret_
 
 bool UserManager::get_secret_chat(SecretChatId secret_chat_id, bool force, Promise<Unit> &&promise) {
   if (!secret_chat_id.is_valid()) {
-    promise.set_error(Status::Error(400, "Invalid secret chat identifier"));
+    promise.set_error(400, "Invalid secret chat identifier");
     return false;
   }
 
@@ -7934,7 +7934,7 @@ bool UserManager::get_secret_chat(SecretChatId secret_chat_id, bool force, Promi
       return false;
     }
 
-    promise.set_error(Status::Error(400, "Secret chat not found"));
+    promise.set_error(400, "Secret chat not found");
     return false;
   }
 
@@ -8110,7 +8110,7 @@ void UserManager::on_load_secret_chat_from_database(SecretChatId secret_chat_id,
 void UserManager::create_new_secret_chat(UserId user_id, Promise<td_api::object_ptr<td_api::chat>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
   if (input_user->get_id() != telegram_api::inputUser::ID) {
-    return promise.set_error(Status::Error(400, "Can't create secret chat with the user"));
+    return promise.set_error(400, "Can't create secret chat with the user");
   }
   auto user = static_cast<const telegram_api::inputUser *>(input_user.get());
 

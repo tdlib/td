@@ -1182,7 +1182,7 @@ void StarManager::get_star_transactions(td_api::object_ptr<td_api::MessageSender
   TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
   TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
   if (limit < 0) {
-    return promise.set_error(Status::Error(400, "Limit must be non-negative"));
+    return promise.set_error(400, "Limit must be non-negative");
   }
   td_->stickers_manager_->load_premium_gift_sticker_set(PromiseCreator::lambda(
       [actor_id = actor_id(this), dialog_id, subscription_id, offset, limit, direction = std::move(direction),
@@ -1246,7 +1246,7 @@ void StarManager::get_star_withdrawal_url(const td_api::object_ptr<td_api::Messa
   TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
   TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
   if (password.empty()) {
-    return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
+    return promise.set_error(400, "PASSWORD_HASH_INVALID");
   }
   send_closure(
       td_->password_manager_, &PasswordManager::get_input_check_password_srp, password,

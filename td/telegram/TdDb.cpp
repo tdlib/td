@@ -563,7 +563,7 @@ void TdDb::open_impl(Parameters parameters, Promise<OpenedDatabase> &&promise) {
     SqliteDb::destroy(get_sqlite_path(parameters)).ignore();
     init_sqlite_status = db->init_sqlite(parameters, new_sqlite_key, old_sqlite_key, *binlog_pmc);
     if (init_sqlite_status.is_error()) {
-      return promise.set_error(Status::Error(400, init_sqlite_status.message()));
+      return promise.set_error(400, init_sqlite_status.message());
     }
   }
   if (drop_sqlite_key) {

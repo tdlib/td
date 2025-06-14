@@ -443,7 +443,7 @@ void NetQueryDispatcher::check_authorization_is_ok() {
 
 void NetQueryDispatcher::set_verification_token(int64 verification_id, string &&token, Promise<Unit> &&promise) {
   if (verifier_.empty()) {
-    return promise.set_error(Status::Error(400, "Application verification not allowed"));
+    return promise.set_error(400, "Application verification not allowed");
   }
   send_closure_later(verifier_, &NetQueryVerifier::set_verification_token, verification_id, std::move(token),
                      std::move(promise));

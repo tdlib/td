@@ -2824,14 +2824,14 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
 void FileManager::get_content(FileId file_id, Promise<BufferSlice> promise) {
   auto node = get_sync_file_node(file_id);
   if (!node) {
-    return promise.set_error(Status::Error("Unknown file_id"));
+    return promise.set_error("Unknown file_id");
   }
   check_local_location(node, true).ignore();
 
   auto file_view = FileView(node);
   const auto *full_local_location = file_view.get_full_local_location();
   if (full_local_location == nullptr) {
-    return promise.set_error(Status::Error("No local location"));
+    return promise.set_error("No local location");
   }
 
   send_closure(file_load_manager_, &FileLoadManager::get_content, full_local_location->path_, std::move(promise));
@@ -2841,17 +2841,17 @@ void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int 
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!file_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "File identifier is invalid"));
+    return promise.set_error(400, "File identifier is invalid");
   }
   auto node = get_sync_file_node(file_id);
   if (!node) {
-    return promise.set_error(Status::Error(400, "File not found"));
+    return promise.set_error(400, "File not found");
   }
   if (offset < 0) {
-    return promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
+    return promise.set_error(400, "Parameter offset must be non-negative");
   }
   if (count < 0) {
-    return promise.set_error(Status::Error(400, "Parameter count must be non-negative"));
+    return promise.set_error(400, "Parameter count must be non-negative");
   }
 
   auto file_view = FileView(node);
@@ -2863,10 +2863,10 @@ void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int 
     }
   } else if (file_view.downloaded_prefix(offset) < count) {
     // TODO this check is safer to do in another thread
-    return promise.set_error(Status::Error(400, "There is not enough downloaded bytes in the file to read"));
+    return promise.set_error(400, "There is not enough downloaded bytes in the file to read");
   }
   if (count >= static_cast<int64>(std::numeric_limits<size_t>::max() / 2 - 1)) {
-    return promise.set_error(Status::Error(400, "Part length is too big"));
+    return promise.set_error(400, "Part length is too big");
   }
 
   const string *path = nullptr;
@@ -2875,7 +2875,7 @@ void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int 
   if (full_local_location != nullptr) {
     path = &full_local_location->path_;
     if (!begins_with(*path, get_files_dir(file_view.get_type()))) {
-      return promise.set_error(Status::Error(400, "File is not inside the cache"));
+      return promise.set_error(400, "File is not inside the cache");
     }
   } else {
     CHECK(node->local_.type() == LocalFileLocation::Type::Partial);
@@ -2889,7 +2889,7 @@ void FileManager::read_file_part(FileId file_id, int64 offset, int64 count, int 
         if (r_bytes.is_error()) {
           LOG(INFO) << "Failed to read file bytes: " << r_bytes.error();
           if (left_tries == 1 || !is_partial) {
-            return promise.set_error(Status::Error(400, "Failed to read the file"));
+            return promise.set_error(400, "Failed to read the file");
           }
 
           // the temporary file could be moved from temp to persistent directory
@@ -2959,15 +2959,15 @@ void FileManager::download_file(FileId file_id, int32 priority, int64 offset, in
                                 Promise<td_api::object_ptr<td_api::file>> &&promise) {
   TRY_STATUS_PROMISE(promise, check_priority(priority));
   if (offset < 0) {
-    return promise.set_error(Status::Error(400, "Download offset must be non-negative"));
+    return promise.set_error(400, "Download offset must be non-negative");
   }
   if (limit < 0) {
-    return promise.set_error(Status::Error(400, "Download limit must be non-negative"));
+    return promise.set_error(400, "Download limit must be non-negative");
   }
 
   auto file_view = get_file_view(file_id);
   if (file_view.empty()) {
-    return promise.set_error(Status::Error(400, "File not found"));
+    return promise.set_error(400, "File not found");
   }
 
   auto info_it = pending_user_file_downloads_.find(file_id);
@@ -3021,7 +3021,7 @@ void FileManager::on_user_file_download_finished(FileId file_id) {
           download_offset + downloaded_size - offset >= limit))) {
       promise.set_value(std::move(file_object));
     } else {
-      promise.set_error(Status::Error(400, "File download has failed or was canceled"));
+      promise.set_error(400, "File download has failed or was canceled");
     }
   }
 }
@@ -5160,7 +5160,7 @@ void FileManager::preliminary_upload_file(const td_api::object_ptr<td_api::Input
   auto r_file_id =
       get_input_file_id(file_type, input_file, DialogId(), false, is_secret, !is_secure && !is_secret, is_secure);
   if (r_file_id.is_error()) {
-    return promise.set_error(Status::Error(r_file_id.error().code(), r_file_id.error().message()));
+    return promise.set_error(r_file_id.error().code(), r_file_id.error().message());
   }
   auto file_id = r_file_id.ok();
 

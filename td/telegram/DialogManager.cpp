@@ -1575,7 +1575,7 @@ void DialogManager::reload_dialog_info(DialogId dialog_id, Promise<Unit> &&promi
     case DialogType::Channel:
       return td_->chat_manager_->reload_channel(dialog_id.get_channel_id(), std::move(promise), "reload_dialog_info");
     default:
-      return promise.set_error(Status::Error("Invalid chat identifier to reload"));
+      return promise.set_error("Invalid chat identifier to reload");
   }
 }
 
@@ -1598,7 +1598,7 @@ void DialogManager::get_dialog_info_full(DialogId dialog_id, Promise<Unit> &&pro
     case DialogType::None:
     default:
       UNREACHABLE();
-      return promise.set_error(Status::Error(500, "Wrong chat type"));
+      return promise.set_error(500, "Wrong chat type");
   }
 }
 
@@ -1704,15 +1704,15 @@ NotificationSettingsScope DialogManager::get_dialog_notification_setting_scope(D
 void DialogManager::migrate_dialog_to_megagroup(DialogId dialog_id,
                                                 Promise<td_api::object_ptr<td_api::chat>> &&promise) {
   if (!have_dialog_force(dialog_id, "migrate_dialog_to_megagroup")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
   if (dialog_id.get_type() != DialogType::Chat) {
-    return promise.set_error(Status::Error(400, "Only basic group chats can be converted to supergroup"));
+    return promise.set_error(400, "Only basic group chats can be converted to supergroup");
   }
 
   auto chat_id = dialog_id.get_chat_id();
   if (!td_->chat_manager_->get_chat_status(chat_id).is_creator()) {
-    return promise.set_error(Status::Error(400, "Need creator rights in the chat"));
+    return promise.set_error(400, "Need creator rights in the chat");
   }
   if (td_->chat_manager_->get_chat_migrated_to_channel_id(chat_id).is_valid()) {
     return on_migrate_chat_to_megagroup(chat_id, std::move(promise));
@@ -1732,11 +1732,11 @@ void DialogManager::on_migrate_chat_to_megagroup(ChatId chat_id, Promise<td_api:
   auto channel_id = td_->chat_manager_->get_chat_migrated_to_channel_id(chat_id);
   if (!channel_id.is_valid()) {
     LOG(ERROR) << "Can't find the supergroup to which the basic group has migrated";
-    return promise.set_error(Status::Error(500, "Supergroup not found"));
+    return promise.set_error(500, "Supergroup not found");
   }
   if (!td_->chat_manager_->have_channel(channel_id)) {
     LOG(ERROR) << "Can't find info about the supergroup to which the basic group has migrated";
-    return promise.set_error(Status::Error(500, "Supergroup info is not found"));
+    return promise.set_error(500, "Supergroup info is not found");
   }
 
   auto dialog_id = DialogId(channel_id);
@@ -1901,7 +1901,7 @@ bool DialogManager::on_get_dialog_error(DialogId dialog_id, const Status &status
 
 void DialogManager::delete_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
   if (!have_dialog_force(dialog_id, "delete_dialog")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
@@ -2144,35 +2144,35 @@ bool DialogManager::is_dialog_action_unneeded(DialogId dialog_id) const {
 
 void DialogManager::set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise) {
   if (!have_dialog_force(dialog_id, "set_dialog_title")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   auto new_title = clean_name(title, MAX_TITLE_LENGTH);
   if (new_title.empty()) {
-    return promise.set_error(Status::Error(400, "Title must be non-empty"));
+    return promise.set_error(400, "Title must be non-empty");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(400, "Can't change private chat title"));
+      return promise.set_error(400, "Can't change private chat title");
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
       auto status = td_->chat_manager_->get_chat_permissions(chat_id);
       if (!status.can_change_info_and_settings() ||
           (td_->auth_manager_->is_bot() && !td_->chat_manager_->is_appointed_chat_administrator(chat_id))) {
-        return promise.set_error(Status::Error(400, "Not enough rights to change chat title"));
+        return promise.set_error(400, "Not enough rights to change chat title");
       }
       break;
     }
     case DialogType::Channel: {
       auto status = td_->chat_manager_->get_channel_permissions(dialog_id.get_channel_id());
       if (!status.can_change_info_and_settings()) {
-        return promise.set_error(Status::Error(400, "Not enough rights to change chat title"));
+        return promise.set_error(400, "Not enough rights to change chat title");
       }
       break;
     }
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't change secret chat title"));
+      return promise.set_error(400, "Can't change secret chat title");
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -2189,30 +2189,30 @@ void DialogManager::set_dialog_title(DialogId dialog_id, const string &title, Pr
 void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_ptr<td_api::InputChatPhoto> &input_photo,
                                      Promise<Unit> &&promise) {
   if (!have_dialog_force(dialog_id, "set_dialog_photo")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(400, "Can't change private chat photo"));
+      return promise.set_error(400, "Can't change private chat photo");
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
       auto status = td_->chat_manager_->get_chat_permissions(chat_id);
       if (!status.can_change_info_and_settings() ||
           (td_->auth_manager_->is_bot() && !td_->chat_manager_->is_appointed_chat_administrator(chat_id))) {
-        return promise.set_error(Status::Error(400, "Not enough rights to change chat photo"));
+        return promise.set_error(400, "Not enough rights to change chat photo");
       }
       break;
     }
     case DialogType::Channel: {
       auto status = td_->chat_manager_->get_channel_permissions(dialog_id.get_channel_id());
       if (!status.can_change_info_and_settings()) {
-        return promise.set_error(Status::Error(400, "Not enough rights to change chat photo"));
+        return promise.set_error(400, "Not enough rights to change chat photo");
       }
       break;
     }
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't change secret chat photo"));
+      return promise.set_error(400, "Can't change secret chat photo");
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -2227,13 +2227,13 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
         auto photo = static_cast<const td_api::inputChatPhotoPrevious *>(input_photo.get());
         auto file_id = td_->user_manager_->get_profile_photo_file_id(photo->chat_photo_id_);
         if (!file_id.is_valid()) {
-          return promise.set_error(Status::Error(400, "Unknown profile photo identifier specified"));
+          return promise.set_error(400, "Unknown profile photo identifier specified");
         }
 
         auto file_view = td_->file_manager_->get_file_view(file_id);
         const auto *main_remote_location = file_view.get_main_remote_location();
         if (main_remote_location == nullptr) {
-          return promise.set_error(Status::Error(400, "Invalid profile photo identifier specified"));
+          return promise.set_error(400, "Invalid profile photo identifier specified");
         }
         auto input_chat_photo =
             telegram_api::make_object<telegram_api::inputChatPhoto>(main_remote_location->as_input_photo());
@@ -2274,7 +2274,7 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
 
   const double MAX_ANIMATION_DURATION = 10.0;
   if (main_frame_timestamp < 0.0 || main_frame_timestamp > MAX_ANIMATION_DURATION) {
-    return promise.set_error(Status::Error(400, "Wrong main frame timestamp specified"));
+    return promise.set_error(400, "Wrong main frame timestamp specified");
   }
 
   auto file_type = is_animation ? FileType::Animation : FileType::Photo;
@@ -2329,10 +2329,10 @@ void DialogManager::on_upload_dialog_photo(FileUploadId file_upload_id,
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (input_file == nullptr && main_remote_location != nullptr) {
     if (main_remote_location->is_web()) {
-      return promise.set_error(Status::Error(400, "Can't use web photo as profile photo"));
+      return promise.set_error(400, "Can't use web photo as profile photo");
     }
     if (is_reupload) {
-      return promise.set_error(Status::Error(400, "Failed to reupload the file"));
+      return promise.set_error(400, "Failed to reupload the file");
     }
 
     if (is_animation) {
@@ -2392,7 +2392,7 @@ void DialogManager::on_upload_dialog_photo_error(FileUploadId file_upload_id, St
 void DialogManager::set_dialog_accent_color(DialogId dialog_id, AccentColorId accent_color_id,
                                             CustomEmojiId background_custom_emoji_id, Promise<Unit> &&promise) {
   if (!have_dialog_force(dialog_id, "set_dialog_accent_color")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
@@ -2412,14 +2412,14 @@ void DialogManager::set_dialog_accent_color(DialogId dialog_id, AccentColorId ac
     default:
       UNREACHABLE();
   }
-  promise.set_error(Status::Error(400, "Can't change accent color in the chat"));
+  promise.set_error(400, "Can't change accent color in the chat");
 }
 
 void DialogManager::set_dialog_profile_accent_color(DialogId dialog_id, AccentColorId profile_accent_color_id,
                                                     CustomEmojiId profile_background_custom_emoji_id,
                                                     Promise<Unit> &&promise) {
   if (!have_dialog_force(dialog_id, "set_dialog_profile_accent_color")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
@@ -2440,7 +2440,7 @@ void DialogManager::set_dialog_profile_accent_color(DialogId dialog_id, AccentCo
     default:
       UNREACHABLE();
   }
-  promise.set_error(Status::Error(400, "Can't change profile accent color in the chat"));
+  promise.set_error(400, "Can't change profile accent color in the chat");
 }
 
 void DialogManager::set_dialog_permissions(DialogId dialog_id,
@@ -2449,28 +2449,28 @@ void DialogManager::set_dialog_permissions(DialogId dialog_id,
   TRY_STATUS_PROMISE(promise, check_dialog_access(dialog_id, false, AccessRights::Write, "set_dialog_permissions"));
 
   if (permissions == nullptr) {
-    return promise.set_error(Status::Error(400, "New permissions must be non-empty"));
+    return promise.set_error(400, "New permissions must be non-empty");
   }
 
   ChannelType channel_type = ChannelType::Unknown;
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(400, "Can't change private chat permissions"));
+      return promise.set_error(400, "Can't change private chat permissions");
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
       auto status = td_->chat_manager_->get_chat_permissions(chat_id);
       if (!status.can_restrict_members()) {
-        return promise.set_error(Status::Error(400, "Not enough rights to change chat permissions"));
+        return promise.set_error(400, "Not enough rights to change chat permissions");
       }
       break;
     }
     case DialogType::Channel: {
       if (is_broadcast_channel(dialog_id)) {
-        return promise.set_error(Status::Error(400, "Can't change channel chat permissions"));
+        return promise.set_error(400, "Can't change channel chat permissions");
       }
       auto status = td_->chat_manager_->get_channel_permissions(dialog_id.get_channel_id());
       if (!status.can_restrict_members()) {
-        return promise.set_error(Status::Error(400, "Not enough rights to change chat permissions"));
+        return promise.set_error(400, "Not enough rights to change chat permissions");
       }
       channel_type = ChannelType::Megagroup;
       break;
@@ -2494,7 +2494,7 @@ void DialogManager::set_dialog_permissions(DialogId dialog_id,
 void DialogManager::set_dialog_emoji_status(DialogId dialog_id, const unique_ptr<EmojiStatus> &emoji_status,
                                             Promise<Unit> &&promise) {
   if (!have_dialog_force(dialog_id, "set_dialog_emoji_status")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
@@ -2513,7 +2513,7 @@ void DialogManager::set_dialog_emoji_status(DialogId dialog_id, const unique_ptr
     default:
       UNREACHABLE();
   }
-  promise.set_error(Status::Error(400, "Can't change emoji status in the chat"));
+  promise.set_error(400, "Can't change emoji status in the chat");
 }
 
 void DialogManager::toggle_dialog_has_protected_content(DialogId dialog_id, bool has_protected_content,
@@ -2523,19 +2523,19 @@ void DialogManager::toggle_dialog_has_protected_content(DialogId dialog_id, bool
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(400, "Can't restrict saving content in the chat"));
+      return promise.set_error(400, "Can't restrict saving content in the chat");
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
       auto status = td_->chat_manager_->get_chat_status(chat_id);
       if (!status.is_creator()) {
-        return promise.set_error(Status::Error(400, "Only owner can restrict saving content"));
+        return promise.set_error(400, "Only owner can restrict saving content");
       }
       break;
     }
     case DialogType::Channel: {
       auto status = td_->chat_manager_->get_channel_status(dialog_id.get_channel_id());
       if (!status.is_creator()) {
-        return promise.set_error(Status::Error(400, "Only owner can restrict saving content"));
+        return promise.set_error(400, "Only owner can restrict saving content");
       }
       break;
     }
@@ -2555,18 +2555,18 @@ void DialogManager::toggle_dialog_has_protected_content(DialogId dialog_id, bool
 
 void DialogManager::set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise) {
   if (!have_dialog_force(dialog_id, "set_dialog_description")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(400, "Can't change private chat description"));
+      return promise.set_error(400, "Can't change private chat description");
     case DialogType::Chat:
       return td_->chat_manager_->set_chat_description(dialog_id.get_chat_id(), description, std::move(promise));
     case DialogType::Channel:
       return td_->chat_manager_->set_channel_description(dialog_id.get_channel_id(), description, std::move(promise));
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't change secret chat description"));
+      return promise.set_error(400, "Can't change secret chat description");
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -2575,14 +2575,14 @@ void DialogManager::set_dialog_description(DialogId dialog_id, const string &des
 
 void DialogManager::set_dialog_location(DialogId dialog_id, const DialogLocation &location, Promise<Unit> &&promise) {
   if (!have_dialog_force(dialog_id, "set_dialog_location")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "The chat can't have location"));
+      return promise.set_error(400, "The chat can't have location");
     case DialogType::Channel:
       return td_->chat_manager_->set_channel_location(dialog_id.get_channel_id(), location, std::move(promise));
     case DialogType::None:
@@ -2633,7 +2633,7 @@ void DialogManager::report_dialog(DialogId dialog_id, const string &option_id, c
       return promise.set_value(td_api::make_object<td_api::reportChatResultOk>());
     }
 
-    return promise.set_error(Status::Error(400, "Chat can't be reported"));
+    return promise.set_error(400, "Chat can't be reported");
   }
 
   for (auto message_id : message_ids) {
@@ -2648,19 +2648,19 @@ void DialogManager::report_dialog_photo(DialogId dialog_id, FileId file_id, Repo
   TRY_STATUS_PROMISE(promise, check_dialog_access(dialog_id, false, AccessRights::Read, "report_dialog_photo"));
 
   if (!can_report_dialog(dialog_id)) {
-    return promise.set_error(Status::Error(400, "Chat photo can't be reported"));
+    return promise.set_error(400, "Chat photo can't be reported");
   }
 
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.empty()) {
-    return promise.set_error(Status::Error(400, "Unknown file identifier"));
+    return promise.set_error(400, "Unknown file identifier");
   }
   if (get_main_file_type(file_view.get_type()) != FileType::Photo) {
-    return promise.set_error(Status::Error(400, "Only full chat photos can be reported"));
+    return promise.set_error(400, "Only full chat photos can be reported");
   }
   const auto *full_remote_location = file_view.get_full_remote_location();
   if (full_remote_location == nullptr || !full_remote_location->is_photo()) {
-    return promise.set_error(Status::Error(400, "Invalid photo identifier specified"));
+    return promise.set_error(400, "Invalid photo identifier specified");
   }
 
   td_->create_handler<ReportProfilePhotoQuery>(std::move(promise))
@@ -2797,20 +2797,20 @@ void DialogManager::check_dialog_username(DialogId dialog_id, const string &user
                                           Promise<CheckDialogUsernameResult> &&promise) {
   if (dialog_id != DialogId() && dialog_id.get_type() != DialogType::User &&
       !have_dialog_force(dialog_id, "check_dialog_username")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       if (dialog_id != get_my_dialog_id()) {
-        return promise.set_error(Status::Error(400, "Can't check username for private chat with other user"));
+        return promise.set_error(400, "Can't check username for private chat with other user");
       }
       break;
     }
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
       if (!td_->chat_manager_->get_channel_status(channel_id).is_creator()) {
-        return promise.set_error(Status::Error(400, "Not enough rights to change username"));
+        return promise.set_error(400, "Not enough rights to change username");
       }
       if (username == td_->chat_manager_->get_channel_editable_username(channel_id)) {
         return promise.set_value(CheckDialogUsernameResult::Ok);
@@ -2822,7 +2822,7 @@ void DialogManager::check_dialog_username(DialogId dialog_id, const string &user
     case DialogType::Chat:
     case DialogType::SecretChat:
       if (!username.empty()) {
-        return promise.set_error(Status::Error(400, "The chat can't have a username"));
+        return promise.set_error(400, "The chat can't have a username");
       }
       break;
     default:
@@ -2979,7 +2979,7 @@ void DialogManager::on_resolve_dialog(const string &username, ChannelId channel_
   DialogId dialog_id;
   if (username.empty()) {
     if (!td_->chat_manager_->have_channel(channel_id)) {
-      return promise.set_error(Status::Error(500, "Chat info not found"));
+      return promise.set_error(500, "Chat info not found");
     }
 
     dialog_id = DialogId(channel_id);
@@ -2991,7 +2991,7 @@ void DialogManager::on_resolve_dialog(const string &username, ChannelId channel_
     }
   }
   if (!have_dialog_force(dialog_id, "on_resolve_dialog")) {
-    return promise.set_error(Status::Error(500, "Chat not found"));
+    return promise.set_error(500, "Chat not found");
   }
   promise.set_value(std::move(dialog_id));
 }
@@ -3028,7 +3028,7 @@ DialogId DialogManager::search_public_dialog(const string &username_to_search, b
     username = username.substr(1);
   }
   if (username.empty()) {
-    promise.set_error(Status::Error(200, "Username is invalid"));
+    promise.set_error(200, "Username is invalid");
     return DialogId();
   }
 
@@ -3139,7 +3139,7 @@ vector<DialogId> DialogManager::search_dialogs_on_server(const string &query, in
   LOG(INFO) << "Search chats on server with query \"" << query << "\" and limit " << limit;
 
   if (limit < 0) {
-    promise.set_error(Status::Error(400, "Limit must be non-negative"));
+    promise.set_error(400, "Limit must be non-negative");
     return {};
   }
   if (limit > MAX_GET_DIALOGS) {
@@ -3294,7 +3294,7 @@ void DialogManager::toggle_dialog_report_spam_state_on_server(DialogId dialog_id
       } else {
         auto user_id = td_->user_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
         if (!user_id.is_valid()) {
-          return promise.set_error(Status::Error(400, "Peer user not found"));
+          return promise.set_error(400, "Peer user not found");
         }
         return td_->create_handler<UpdatePeerSettingsQuery>(std::move(promise))->send(DialogId(user_id), false);
       }
@@ -3308,16 +3308,16 @@ void DialogManager::toggle_dialog_report_spam_state_on_server(DialogId dialog_id
 void DialogManager::get_blocked_dialogs(const td_api::object_ptr<td_api::BlockList> &block_list, int32 offset,
                                         int32 limit, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
   if (offset < 0) {
-    return promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
+    return promise.set_error(400, "Parameter offset must be non-negative");
   }
 
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
 
   auto block_list_id = BlockListId(block_list);
   if (!block_list_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Block list must be non-empty"));
+    return promise.set_error(400, "Block list must be non-empty");
   }
 
   td_->create_handler<GetBlockedDialogsQuery>(std::move(promise))->send(block_list_id, offset, limit);

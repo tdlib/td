@@ -648,13 +648,13 @@ class GetPremiumGiftPaymentFormQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentForm::ID:
       case telegram_api::payments_paymentFormStarGift::ID:
         LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
-        promise_.set_error(Status::Error(500, "Unsupported"));
+        promise_.set_error(500, "Unsupported");
         break;
       case telegram_api::payments_paymentFormStars::ID: {
         auto payment_form = static_cast<const telegram_api::payments_paymentFormStars *>(payment_form_ptr.get());
         if (payment_form->invoice_->prices_.size() != 1u ||
             payment_form->invoice_->prices_[0]->amount_ != star_count_) {
-          return promise_.set_error(Status::Error(400, "Wrong purchase price specified"));
+          return promise_.set_error(400, "Wrong purchase price specified");
         }
         td_->create_handler<SendPremiumGiftQuery>(std::move(promise_))
             ->send(std::move(send_input_invoice_), payment_form->form_id_);
@@ -1209,7 +1209,7 @@ static td_api::object_ptr<td_api::premiumLimit> get_premium_limit_object(Slice k
 void get_premium_limit(const td_api::object_ptr<td_api::PremiumLimitType> &limit_type,
                        Promise<td_api::object_ptr<td_api::premiumLimit>> &&promise) {
   if (limit_type == nullptr) {
-    return promise.set_error(Status::Error(400, "Limit type must be non-empty"));
+    return promise.set_error(400, "Limit type must be non-empty");
   }
 
   promise.set_value(get_premium_limit_object(get_limit_type_key(limit_type.get())));
@@ -1301,7 +1301,7 @@ void get_business_features(Td *td, const td_api::object_ptr<td_api::BusinessFeat
 void view_premium_feature(Td *td, const td_api::object_ptr<td_api::PremiumFeature> &feature, Promise<Unit> &&promise) {
   auto source = get_premium_source(feature.get());
   if (source.empty()) {
-    return promise.set_error(Status::Error(400, "Feature must be non-empty"));
+    return promise.set_error(400, "Feature must be non-empty");
   }
 
   vector<tl_object_ptr<telegram_api::jsonObjectValue>> data;
@@ -1390,7 +1390,7 @@ void can_purchase_premium(Td *td, td_api::object_ptr<td_api::StorePaymentPurpose
 void assign_store_transaction(Td *td, td_api::object_ptr<td_api::StoreTransaction> &&transaction,
                               td_api::object_ptr<td_api::StorePaymentPurpose> &&purpose, Promise<Unit> &&promise) {
   if (transaction == nullptr) {
-    return promise.set_error(Status::Error(400, "Transaction must be non-empty"));
+    return promise.set_error(400, "Transaction must be non-empty");
   }
   if (purpose != nullptr && purpose->get_id() == td_api::storePaymentPurposePremiumSubscription::ID) {
     dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::UpgradePremium}, Promise<Unit>());
@@ -1407,7 +1407,7 @@ void assign_store_transaction(Td *td, td_api::object_ptr<td_api::StoreTransactio
       auto type = td_api::move_object_as<td_api::storeTransactionGooglePlay>(transaction);
       if (!clean_input_string(type->package_name_) || !clean_input_string(type->store_product_id_) ||
           !clean_input_string(type->purchase_token_)) {
-        return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
+        return promise.set_error(400, "Strings must be encoded in UTF-8");
       }
 
       td->create_handler<AssignPlayMarketTransactionQuery>(std::move(promise))

@@ -82,11 +82,11 @@ void SecretChatActor::update_chat(telegram_api::object_ptr<telegram_api::Encrypt
 void SecretChatActor::create_chat(UserId user_id, int64 user_access_hash, int32 random_id,
                                   Promise<SecretChatId> promise) {
   if (close_flag_) {
-    promise.set_error(Status::Error(400, "Chat is closed"));
+    promise.set_error(400, "Chat is closed");
     return;
   }
   if (auth_state_.state != State::Empty) {
-    promise.set_error(Status::Error(500, "Bad random_id"));
+    promise.set_error(500, "Bad random_id");
     check_status(Status::Error("Unexpected request_chat"));
     loop();
     return;
@@ -231,7 +231,7 @@ Result<BufferSlice> SecretChatActor::create_encrypted_message(int32 my_in_seq_no
 void SecretChatActor::send_message(tl_object_ptr<secret_api::DecryptedMessage> message,
                                    telegram_api::object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise) {
   if (close_flag_) {
-    promise.set_error(Status::Error(400, "Chat is closed"));
+    promise.set_error(400, "Chat is closed");
     return;
   }
   send_message_impl(std::move(message), std::move(file), SendFlag::External | SendFlag::Push, std::move(promise));
@@ -241,12 +241,12 @@ void SecretChatActor::send_message_impl(tl_object_ptr<secret_api::DecryptedMessa
                                         telegram_api::object_ptr<telegram_api::InputEncryptedFile> file, int32 flags,
                                         Promise<> promise) {
   if (close_flag_) {
-    promise.set_error(Status::Error(400, "Chat is closed"));
+    promise.set_error(400, "Chat is closed");
     return;
   }
   if (auth_state_.state != State::Ready) {
     LOG(ERROR) << "Ignore send_message: " << tag("message", to_string(message)) << tag("file", to_string(file));
-    return promise.set_error(Status::Error(400, "Chat is not accessible"));
+    return promise.set_error(400, "Chat is not accessible");
   }
   LOG_CHECK(binlog_replay_finish_flag_) << "Trying to send message before binlog replay is finished: "
                                         << to_string(*message) << to_string(file);
@@ -305,12 +305,12 @@ void SecretChatActor::send_message_action(tl_object_ptr<secret_api::SendMessageA
 
 void SecretChatActor::send_read_history(int32 date, Promise<> promise) {
   if (close_flag_) {
-    promise.set_error(Status::Error(400, "Chat is closed"));
+    promise.set_error(400, "Chat is closed");
     return;
   }
   if (auth_state_.state != State::Ready) {
     LOG(ERROR) << "Ignore send_read_history: " << tag("date", date);
-    promise.set_error(Status::Error(400, "Can't access the chat"));
+    promise.set_error(400, "Can't access the chat");
     return;
   }
 
@@ -335,11 +335,11 @@ void SecretChatActor::send_read_history(int32 date, Promise<> promise) {
 
 void SecretChatActor::send_open_message(int64 random_id, Promise<> promise) {
   if (close_flag_) {
-    promise.set_error(Status::Error(400, "Chat is closed"));
+    promise.set_error(400, "Chat is closed");
     return;
   }
   if (auth_state_.state != State::Ready) {
-    promise.set_error(Status::Error(400, "Can't access the chat"));
+    promise.set_error(400, "Can't access the chat");
     return;
   }
   std::vector<int64> random_ids{random_id};
@@ -353,11 +353,11 @@ void SecretChatActor::delete_message(int64 random_id, Promise<> promise) {
     return;
   }
   if (close_flag_) {
-    promise.set_error(Status::Error(400, "Chat is closed"));
+    promise.set_error(400, "Chat is closed");
     return;
   }
   if (auth_state_.state != State::Ready) {
-    promise.set_error(Status::Error(400, "Can't access the chat"));
+    promise.set_error(400, "Can't access the chat");
     return;
   }
   return delete_messages(std::vector<int64>{random_id}, std::move(promise));
@@ -369,11 +369,11 @@ void SecretChatActor::delete_messages(std::vector<int64> random_ids, Promise<> p
     return;
   }
   if (close_flag_) {
-    promise.set_error(Status::Error(400, "Chat is closed"));
+    promise.set_error(400, "Chat is closed");
     return;
   }
   if (auth_state_.state != State::Ready) {
-    promise.set_error(Status::Error(400, "Can't access the chat"));
+    promise.set_error(400, "Can't access the chat");
     return;
   }
   send_action(make_tl_object<secret_api::decryptedMessageActionDeleteMessages>(std::move(random_ids)), SendFlag::Push,
@@ -385,11 +385,11 @@ void SecretChatActor::delete_all_messages(Promise<> promise) {
     return;
   }
   if (close_flag_) {
-    promise.set_error(Status::Error(400, "Chat is closed"));
+    promise.set_error(400, "Chat is closed");
     return;
   }
   if (auth_state_.state != State::Ready) {
-    promise.set_error(Status::Error(400, "Can't access the chat"));
+    promise.set_error(400, "Can't access the chat");
     return;
   }
   send_action(make_tl_object<secret_api::decryptedMessageActionFlushHistory>(), SendFlag::Push, std::move(promise));
@@ -397,11 +397,11 @@ void SecretChatActor::delete_all_messages(Promise<> promise) {
 
 void SecretChatActor::notify_screenshot_taken(Promise<> promise) {
   if (close_flag_) {
-    promise.set_error(Status::Error(400, "Chat is closed"));
+    promise.set_error(400, "Chat is closed");
     return;
   }
   if (auth_state_.state != State::Ready) {
-    promise.set_error(Status::Error(400, "Can't access the chat"));
+    promise.set_error(400, "Can't access the chat");
     return;
   }
   send_action(make_tl_object<secret_api::decryptedMessageActionScreenshotMessages>(vector<int64>()), SendFlag::Push,
@@ -410,11 +410,11 @@ void SecretChatActor::notify_screenshot_taken(Promise<> promise) {
 
 void SecretChatActor::send_set_ttl_message(int32 ttl, int64 random_id, Promise<> promise) {
   if (close_flag_) {
-    promise.set_error(Status::Error(400, "Chat is closed"));
+    promise.set_error(400, "Chat is closed");
     return;
   }
   if (auth_state_.state != State::Ready) {
-    promise.set_error(Status::Error(400, "Can't access the chat"));
+    promise.set_error(400, "Can't access the chat");
     return;
   }
   send_message_impl(secret_api::make_object<secret_api::decryptedMessageService>(
@@ -1700,7 +1700,7 @@ void SecretChatActor::on_outbound_ack(uint64 state_id) {
 
 void SecretChatActor::on_outbound_outer_send_message_promise(uint64 state_id, Promise<> promise) {
   if (close_flag_) {
-    promise.set_error(Status::Error(400, "Chat is closed"));
+    promise.set_error(400, "Chat is closed");
     return;
   }
   auto *state = outbound_message_states_.get(state_id);

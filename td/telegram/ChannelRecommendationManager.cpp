@@ -71,7 +71,7 @@ class GetChannelRecommendationsQuery final : public Td::ResultHandler {
       }
       default:
         UNREACHABLE();
-        return promise_.set_error(Status::Error("Unreachable"));
+        return promise_.set_error("Unreachable");
     }
   }
 
@@ -300,10 +300,10 @@ void ChannelRecommendationManager::get_channel_recommendations(
     Promise<int32> &&count_promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_channel_recommendations")) {
     if (chats_promise) {
-      chats_promise.set_error(Status::Error(400, "Chat not found"));
+      chats_promise.set_error(400, "Chat not found");
     }
     if (count_promise) {
-      count_promise.set_error(Status::Error(400, "Chat not found"));
+      count_promise.set_error(400, "Chat not found");
     }
     return;
   }
@@ -525,10 +525,10 @@ void ChannelRecommendationManager::open_channel_recommended_channel(DialogId dia
                                                                     Promise<Unit> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "open_channel_recommended_channel") ||
       !td_->dialog_manager_->have_dialog_force(opened_dialog_id, "open_channel_recommended_channel")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
   if (dialog_id.get_type() != DialogType::Channel || opened_dialog_id.get_type() != DialogType::Channel) {
-    return promise.set_error(Status::Error(400, "Invalid chat specified"));
+    return promise.set_error(400, "Invalid chat specified");
   }
   vector<telegram_api::object_ptr<telegram_api::jsonObjectValue>> data;
   data.push_back(telegram_api::make_object<telegram_api::jsonObjectValue>(

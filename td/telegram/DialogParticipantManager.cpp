@@ -245,7 +245,7 @@ class GetChannelAdministratorsQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, int64 hash) {
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(400, "Supergroup not found"));
+      return promise_.set_error(400, "Supergroup not found");
     }
 
     hash = 0;  // to load even only ranks or creator changed
@@ -318,7 +318,7 @@ class GetChannelParticipantQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, DialogId participant_dialog_id, tl_object_ptr<telegram_api::InputPeer> &&input_peer) {
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(400, "Supergroup not found"));
+      return promise_.set_error(400, "Supergroup not found");
     }
 
     CHECK(input_peer != nullptr);
@@ -343,7 +343,7 @@ class GetChannelParticipantQuery final : public Td::ResultHandler {
     DialogParticipant result(std::move(participant->participant_), td_->chat_manager_->get_channel_type(channel_id_));
     if (!result.is_valid()) {
       LOG(ERROR) << "Receive invalid " << result;
-      return promise_.set_error(Status::Error(500, "Receive invalid chat member"));
+      return promise_.set_error(500, "Receive invalid chat member");
     }
     promise_.set_value(std::move(result));
   }
@@ -374,7 +374,7 @@ class GetChannelParticipantsQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, const ChannelParticipantFilter &filter, int32 offset, int32 limit) {
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(400, "Supergroup not found"));
+      return promise_.set_error(400, "Supergroup not found");
     }
 
     channel_id_ = channel_id;
@@ -734,7 +734,7 @@ class CanEditChannelCreatorQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(ERROR) << "Receive result for CanEditChannelCreatorQuery: " << to_string(ptr);
-    promise_.set_error(Status::Error(500, "Server doesn't returned error"));
+    promise_.set_error(500, "Server doesn't returned error");
   }
 
   void on_error(Status status) final {
@@ -757,7 +757,7 @@ class EditChannelCreatorQuery final : public Td::ResultHandler {
     user_id_ = user_id;
     auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
-      return promise_.set_error(Status::Error(400, "Have no access to the chat"));
+      return promise_.set_error(400, "Have no access to the chat");
     }
     TRY_RESULT_PROMISE(promise_, input_user, td_->user_manager_->get_input_user(user_id));
     send_query(G()->net_query_creator().create(
@@ -1129,7 +1129,7 @@ void DialogParticipantManager::get_dialog_join_requests(
   TRY_STATUS_PROMISE(promise, can_manage_dialog_join_requests(dialog_id));
 
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
 
   UserId offset_user_id;
@@ -1207,7 +1207,7 @@ td_api::object_ptr<td_api::chatAdministrators> DialogParticipantManager::get_cha
 void DialogParticipantManager::get_dialog_administrators(
     DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatAdministrators>> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "get_dialog_administrators")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
@@ -1362,7 +1362,7 @@ void DialogParticipantManager::reload_dialog_administrators(
       auto channel_id = dialog_id.get_channel_id();
       if (td_->chat_manager_->is_broadcast_channel(channel_id) &&
           !td_->chat_manager_->get_channel_status(channel_id).is_administrator()) {
-        return query_promise.set_error(Status::Error(400, "Administrator list is inaccessible"));
+        return query_promise.set_error(400, "Administrator list is inaccessible");
       }
       auto hash = get_vector_hash(transform(dialog_administrators, [](const DialogAdministrator &administrator) {
         return static_cast<uint64>(administrator.get_user_id().get());
@@ -1385,7 +1385,7 @@ void DialogParticipantManager::on_reload_dialog_administrators(
   }
 
   LOG(ERROR) << "Failed to load administrators in " << dialog_id;
-  promise.set_error(Status::Error(500, "Failed to find chat administrators"));
+  promise.set_error(500, "Failed to find chat administrators");
 }
 
 void DialogParticipantManager::send_update_chat_member(DialogId dialog_id, UserId agent_user_id, int32 date,
@@ -1587,7 +1587,7 @@ void DialogParticipantManager::finish_get_dialog_participant(
   bool is_user = participant_dialog_id.get_type() == DialogType::User;
   if ((is_user && !td_->user_manager_->have_user(participant_dialog_id.get_user_id())) ||
       (!is_user && !td_->messages_manager_->have_dialog(participant_dialog_id))) {
-    return promise.set_error(Status::Error(400, "Member not found"));
+    return promise.set_error(400, "Member not found");
   }
 
   promise.set_value(td_->chat_manager_->get_chat_member_object(dialog_participant, "finish_get_dialog_participant"));
@@ -1597,7 +1597,7 @@ void DialogParticipantManager::do_get_dialog_participant(DialogId dialog_id, Dia
                                                          Promise<DialogParticipant> &&promise) {
   LOG(INFO) << "Receive getChatMember request to get " << participant_dialog_id << " in " << dialog_id;
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "do_get_dialog_participant")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
@@ -1611,7 +1611,7 @@ void DialogParticipantManager::do_get_dialog_participant(DialogId dialog_id, Dia
         return promise.set_value(DialogParticipant::private_member(peer_user_id, my_user_id));
       }
 
-      return promise.set_error(Status::Error(400, "Member not found"));
+      return promise.set_error(400, "Member not found");
     }
     case DialogType::Chat:
       if (participant_dialog_id.get_type() != DialogType::User) {
@@ -1631,7 +1631,7 @@ void DialogParticipantManager::do_get_dialog_participant(DialogId dialog_id, Dia
         return promise.set_value(DialogParticipant::private_member(peer_user_id, my_user_id));
       }
 
-      return promise.set_error(Status::Error(400, "Member not found"));
+      return promise.set_error(400, "Member not found");
     }
     case DialogType::None:
     default:
@@ -1646,11 +1646,11 @@ void DialogParticipantManager::get_channel_participant(ChannelId channel_id, Dia
 
   auto input_peer = td_->dialog_manager_->get_input_peer(participant_dialog_id, AccessRights::Know);
   if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(400, "Member not found"));
+    return promise.set_error(400, "Member not found");
   }
   if (td_->chat_manager_->is_broadcast_channel(channel_id) &&
       !td_->chat_manager_->get_channel_status(channel_id).is_administrator()) {
-    return promise.set_error(Status::Error(400, "Member list is inaccessible"));
+    return promise.set_error(400, "Member list is inaccessible");
   }
 
   if (have_channel_participant_cache(channel_id)) {
@@ -1690,7 +1690,7 @@ void DialogParticipantManager::finish_get_channel_participant(ChannelId channel_
   if (dialog_participant.dialog_id_ != participant_dialog_id) {
     LOG(ERROR) << "Receive " << dialog_participant.dialog_id_ << " in " << channel_id << " instead of requested "
                << participant_dialog_id;
-    return promise.set_error(Status::Error(500, "Data is unavailable"));
+    return promise.set_error(500, "Data is unavailable");
   }
 
   LOG(INFO) << "Receive " << dialog_participant.dialog_id_ << " as a member of a channel " << channel_id;
@@ -1750,7 +1750,7 @@ void DialogParticipantManager::search_chat_participants(ChatId chat_id, const st
                                                         DialogParticipantFilter filter,
                                                         Promise<DialogParticipants> &&promise) {
   if (limit < 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be non-negative"));
+    return promise.set_error(400, "Parameter limit must be non-negative");
   }
 
   auto load_chat_full_promise = PromiseCreator::lambda([actor_id = actor_id(this), chat_id, query, limit, filter,
@@ -1772,7 +1772,7 @@ void DialogParticipantManager::do_search_chat_participants(ChatId chat_id, const
 
   const auto *participants = td_->chat_manager_->get_chat_participants(chat_id);
   if (participants == nullptr) {
-    return promise.set_error(Status::Error(500, "Can't find basic group full info"));
+    return promise.set_error(500, "Can't find basic group full info");
   }
 
   vector<DialogId> dialog_ids;
@@ -1802,20 +1802,20 @@ void DialogParticipantManager::get_channel_participants(ChannelId channel_id,
                                                         string additional_query, int32 offset, int32 limit,
                                                         int32 additional_limit, Promise<DialogParticipants> &&promise) {
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   if (limit > MAX_GET_CHANNEL_PARTICIPANTS) {
     limit = MAX_GET_CHANNEL_PARTICIPANTS;
   }
 
   if (offset < 0) {
-    return promise.set_error(Status::Error(400, "Parameter offset must be non-negative"));
+    return promise.set_error(400, "Parameter offset must be non-negative");
   }
 
   if (td_->chat_manager_->is_monoforum_channel(channel_id) ||
       (td_->chat_manager_->is_broadcast_channel(channel_id) &&
        !td_->chat_manager_->get_channel_status(channel_id).is_administrator())) {
-    return promise.set_error(Status::Error(400, "Member list is inaccessible"));
+    return promise.set_error(400, "Member list is inaccessible");
   }
 
   ChannelParticipantFilter participant_filter(filter);
@@ -1992,10 +1992,10 @@ void DialogParticipantManager::search_dialog_participants(DialogId dialog_id, co
   LOG(INFO) << "Receive searchChatMembers request to search for \"" << query << "\" in " << dialog_id << " with filter "
             << filter;
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "search_dialog_participants")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
   if (limit < 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be non-negative"));
+    return promise.set_error(400, "Parameter limit must be non-negative");
   }
 
   switch (dialog_id.get_type()) {
@@ -2020,7 +2020,7 @@ void DialogParticipantManager::search_dialog_participants(DialogId dialog_id, co
     case DialogType::None:
     default:
       UNREACHABLE();
-      promise.set_error(Status::Error(500, "Wrong chat type"));
+      promise.set_error(500, "Wrong chat type");
   }
 }
 
@@ -2028,19 +2028,19 @@ void DialogParticipantManager::add_dialog_participant(
     DialogId dialog_id, UserId user_id, int32 forward_limit,
     Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_participant")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(400, "Can't add members to a private chat"));
+      return promise.set_error(400, "Can't add members to a private chat");
     case DialogType::Chat:
       return add_chat_participant(dialog_id.get_chat_id(), user_id, forward_limit, std::move(promise));
     case DialogType::Channel:
       return add_channel_participant(dialog_id.get_channel_id(), user_id, DialogParticipantStatus::Left(),
                                      std::move(promise));
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't add members to a secret chat"));
+      return promise.set_error(400, "Can't add members to a secret chat");
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -2051,21 +2051,21 @@ void DialogParticipantManager::add_dialog_participants(
     DialogId dialog_id, const vector<UserId> &user_ids,
     Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "add_dialog_participants")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(400, "Can't add members to a private chat"));
+      return promise.set_error(400, "Can't add members to a private chat");
     case DialogType::Chat:
       if (user_ids.size() == 1) {
         return add_chat_participant(dialog_id.get_chat_id(), user_ids[0], 0, std::move(promise));
       }
-      return promise.set_error(Status::Error(400, "Can't add many members at once to a basic group chat"));
+      return promise.set_error(400, "Can't add many members at once to a basic group chat");
     case DialogType::Channel:
       return add_channel_participants(dialog_id.get_channel_id(), user_ids, std::move(promise));
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't add members to a secret chat"));
+      return promise.set_error(400, "Can't add members to a secret chat");
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -2076,19 +2076,19 @@ void DialogParticipantManager::set_dialog_participant_status(
     DialogId dialog_id, DialogId participant_dialog_id,
     td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status, Promise<Unit> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "set_dialog_participant_status")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(400, "Chat member status can't be changed in private chats"));
+      return promise.set_error(400, "Chat member status can't be changed in private chats");
     case DialogType::Chat: {
       auto status = get_dialog_participant_status(chat_member_status, ChannelType::Unknown);
       if (participant_dialog_id.get_type() != DialogType::User) {
         if (status == DialogParticipantStatus::Left()) {
           return promise.set_value(Unit());
         } else {
-          return promise.set_error(Status::Error(400, "Chats can't be members of basic groups"));
+          return promise.set_error(400, "Chats can't be members of basic groups");
         }
       }
       return set_chat_participant_status(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), status, false,
@@ -2098,7 +2098,7 @@ void DialogParticipantManager::set_dialog_participant_status(
       return set_channel_participant_status(dialog_id.get_channel_id(), participant_dialog_id,
                                             std::move(chat_member_status), std::move(promise));
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Chat member status can't be changed in secret chats"));
+      return promise.set_error(400, "Chat member status can't be changed in secret chats");
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -2109,15 +2109,15 @@ void DialogParticipantManager::ban_dialog_participant(DialogId dialog_id, Dialog
                                                       int32 banned_until_date, bool revoke_messages,
                                                       Promise<Unit> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "ban_dialog_participant")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(400, "Can't ban members in private chats"));
+      return promise.set_error(400, "Can't ban members in private chats");
     case DialogType::Chat:
       if (participant_dialog_id.get_type() != DialogType::User) {
-        return promise.set_error(Status::Error(400, "Can't ban chats in basic groups"));
+        return promise.set_error(400, "Can't ban chats in basic groups");
       }
       return delete_chat_participant(dialog_id.get_chat_id(), participant_dialog_id.get_user_id(), revoke_messages,
                                      std::move(promise));
@@ -2127,7 +2127,7 @@ void DialogParticipantManager::ban_dialog_participant(DialogId dialog_id, Dialog
                                             td_api::make_object<td_api::chatMemberStatusBanned>(banned_until_date),
                                             std::move(promise));
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't ban members in secret chats"));
+      return promise.set_error(400, "Can't ban members in secret chats");
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -2136,12 +2136,12 @@ void DialogParticipantManager::ban_dialog_participant(DialogId dialog_id, Dialog
 
 void DialogParticipantManager::leave_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "leave_dialog")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return promise.set_error(Status::Error(400, "Can't leave private chats"));
+      return promise.set_error(400, "Can't leave private chats");
     case DialogType::Chat:
       return delete_chat_participant(dialog_id.get_chat_id(), td_->user_manager_->get_my_id(), false,
                                      std::move(promise));
@@ -2154,7 +2154,7 @@ void DialogParticipantManager::leave_dialog(DialogId dialog_id, Promise<Unit> &&
                                           std::move(old_status), std::move(promise));
     }
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't leave secret chats"));
+      return promise.set_error(400, "Can't leave secret chats");
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -2169,7 +2169,7 @@ Promise<td_api::object_ptr<td_api::failedToAddMembers>> DialogParticipantManager
           if (result.ok()->failed_to_add_members_.empty()) {
             promise.set_value(Unit());
           } else {
-            promise.set_error(Status::Error(403, "USER_PRIVACY_RESTRICTED"));
+            promise.set_error(403, "USER_PRIVACY_RESTRICTED");
           }
         } else {
           promise.set_error(result.move_as_error());
@@ -2181,20 +2181,20 @@ void DialogParticipantManager::add_chat_participant(ChatId chat_id, UserId user_
                                                     Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   if (!td_->chat_manager_->get_chat_is_active(chat_id)) {
     if (!td_->chat_manager_->have_chat(chat_id)) {
-      return promise.set_error(Status::Error(400, "Chat info not found"));
+      return promise.set_error(400, "Chat info not found");
     }
-    return promise.set_error(Status::Error(400, "Chat is deactivated"));
+    return promise.set_error(400, "Chat is deactivated");
   }
   if (forward_limit < 0) {
-    return promise.set_error(Status::Error(400, "Can't forward negative number of messages"));
+    return promise.set_error(400, "Can't forward negative number of messages");
   }
   auto permissions = td_->chat_manager_->get_chat_permissions(chat_id);
   if (user_id != td_->user_manager_->get_my_id()) {
     if (!permissions.can_invite_users()) {
-      return promise.set_error(Status::Error(400, "Not enough rights to invite members to the group chat"));
+      return promise.set_error(400, "Not enough rights to invite members to the group chat");
     }
   } else if (permissions.is_banned()) {
-    return promise.set_error(Status::Error(400, "User was kicked from the chat"));
+    return promise.set_error(400, "User was kicked from the chat");
   }
   // TODO upper bound on forward_limit
 
@@ -2213,17 +2213,17 @@ void DialogParticipantManager::set_chat_participant_status(ChatId chat_id, UserI
     return delete_chat_participant(chat_id, user_id, false, std::move(promise));
   }
   if (status.is_creator()) {
-    return promise.set_error(Status::Error(400, "Can't change owner in basic group chats"));
+    return promise.set_error(400, "Can't change owner in basic group chats");
   }
   if (status.is_restricted()) {
-    return promise.set_error(Status::Error(400, "Can't restrict users in basic group chats"));
+    return promise.set_error(400, "Can't restrict users in basic group chats");
   }
 
   if (!td_->chat_manager_->get_chat_is_active(chat_id)) {
     if (!td_->chat_manager_->have_chat(chat_id)) {
-      return promise.set_error(Status::Error(400, "Chat info not found"));
+      return promise.set_error(400, "Chat info not found");
     }
-    return promise.set_error(Status::Error(400, "Chat is deactivated"));
+    return promise.set_error(400, "Chat is deactivated");
   }
 
   if (!is_recursive) {
@@ -2249,11 +2249,11 @@ void DialogParticipantManager::set_chat_participant_status(ChatId chat_id, UserI
 
   auto permissions = td_->chat_manager_->get_chat_permissions(chat_id);
   if (!permissions.can_promote_members()) {
-    return promise.set_error(Status::Error(400, "Need owner rights in the group chat"));
+    return promise.set_error(400, "Need owner rights in the group chat");
   }
 
   if (user_id == td_->user_manager_->get_my_id()) {
-    return promise.set_error(Status::Error(400, "Can't promote or demote self"));
+    return promise.set_error(400, "Can't promote or demote self");
   }
 
   if (participant == nullptr) {
@@ -2265,7 +2265,7 @@ void DialogParticipantManager::set_chat_participant_status(ChatId chat_id, UserI
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else if (!result.ok()->failed_to_add_members_.empty()) {
-            promise.set_error(Status::Error(403, "USER_PRIVACY_RESTRICTED"));
+            promise.set_error(403, "USER_PRIVACY_RESTRICTED");
           } else {
             send_closure(actor_id, &DialogParticipantManager::send_edit_chat_admin_query, chat_id, user_id, true,
                          std::move(promise));
@@ -2291,9 +2291,9 @@ void DialogParticipantManager::delete_chat_participant(ChatId chat_id, UserId us
                                                        Promise<Unit> &&promise) {
   if (!td_->chat_manager_->get_chat_is_active(chat_id)) {
     if (!td_->chat_manager_->have_chat(chat_id)) {
-      return promise.set_error(Status::Error(400, "Chat info not found"));
+      return promise.set_error(400, "Chat info not found");
     }
-    return promise.set_error(Status::Error(400, "Chat is deactivated"));
+    return promise.set_error(400, "Chat is deactivated");
   }
 
   auto my_id = td_->user_manager_->get_my_id();
@@ -2305,7 +2305,7 @@ void DialogParticipantManager::delete_chat_participant(ChatId chat_id, UserId us
       }
       return promise.set_value(Unit());
     } else {
-      return promise.set_error(Status::Error(400, "Not in the chat"));
+      return promise.set_error(400, "Not in the chat");
     }
   }
   /* TODO
@@ -2316,17 +2316,17 @@ void DialogParticipantManager::delete_chat_participant(ChatId chat_id, UserId us
         if (c->everyone_is_administrator) {
           // if all are administrators, only invited by me participants can be deleted
           if (participant->inviter_user_id_ != my_id) {
-            return promise.set_error(Status::Error(400, "Need to be inviter of a user to kick it from a basic group"));
+            return promise.set_error(400, "Need to be inviter of a user to kick it from a basic group");
           }
         } else {
           // otherwise, only creator can kick administrators
           if (participant->status_.is_administrator()) {
             return promise.set_error(
-                Status::Error(400, "Only the creator of a basic group can kick group administrators"));
+                400, "Only the creator of a basic group can kick group administrators");
           }
           // regular users can be kicked by administrators and their inviters
           if (!permissions.is_administrator() && participant->inviter_user_id_ != my_id) {
-            return promise.set_error(Status::Error(400, "Need to be inviter of a user to kick it from a basic group"));
+            return promise.set_error(400, "Need to be inviter of a user to kick it from a basic group");
           }
         }
       }
@@ -2344,11 +2344,11 @@ void DialogParticipantManager::add_channel_participant(
     Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Bots can't add new chat members"));
+    return promise.set_error(400, "Bots can't add new chat members");
   }
 
   if (!td_->chat_manager_->have_channel(channel_id)) {
-    return promise.set_error(Status::Error(400, "Chat info not found"));
+    return promise.set_error(400, "Chat info not found");
   }
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
 
@@ -2356,11 +2356,11 @@ void DialogParticipantManager::add_channel_participant(
     // join the channel
     if (td_->chat_manager_->is_monoforum_channel(channel_id) &&
         !td_->chat_manager_->is_admined_monoforum_channel(channel_id)) {
-      return promise.set_error(Status::Error(400, "The chat can't be joined explicitly; send a message instead"));
+      return promise.set_error(400, "The chat can't be joined explicitly; send a message instead");
     }
     auto my_status = td_->chat_manager_->get_channel_status(channel_id);
     if (my_status.is_banned()) {
-      return promise.set_error(Status::Error(400, "Can't return to kicked from chat"));
+      return promise.set_error(400, "Can't return to kicked from chat");
     }
     if (my_status.is_member()) {
       return promise.set_value(MissingInvitees().get_failed_to_add_members_object(td_->user_manager_.get()));
@@ -2387,11 +2387,11 @@ void DialogParticipantManager::add_channel_participant(
     return;
   }
   if (td_->chat_manager_->is_monoforum_channel(channel_id)) {
-    return promise.set_error(Status::Error(400, "Members can't be added to the chat explicitly"));
+    return promise.set_error(400, "Members can't be added to the chat explicitly");
   }
 
   if (!td_->chat_manager_->get_channel_permissions(channel_id).can_invite_users()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to invite members to the supergroup chat"));
+    return promise.set_error(400, "Not enough rights to invite members to the supergroup chat");
   }
 
   speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(0), old_status);
@@ -2427,16 +2427,16 @@ void DialogParticipantManager::add_channel_participants(
     ChannelId channel_id, const vector<UserId> &user_ids,
     Promise<td_api::object_ptr<td_api::failedToAddMembers>> &&promise) {
   if (td_->auth_manager_->is_bot()) {
-    return promise.set_error(Status::Error(400, "Bots can't add new chat members"));
+    return promise.set_error(400, "Bots can't add new chat members");
   }
 
   if (!td_->chat_manager_->have_channel(channel_id)) {
-    return promise.set_error(Status::Error(400, "Chat info not found"));
+    return promise.set_error(400, "Chat info not found");
   }
 
   if (!td_->chat_manager_->get_channel_permissions(channel_id).can_invite_users() ||
       td_->chat_manager_->is_monoforum_channel(channel_id)) {
-    return promise.set_error(Status::Error(400, "Not enough rights to invite members to the supergroup chat"));
+    return promise.set_error(400, "Not enough rights to invite members to the supergroup chat");
   }
 
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
@@ -2464,7 +2464,7 @@ void DialogParticipantManager::set_channel_participant_status(
     ChannelId channel_id, DialogId participant_dialog_id,
     td_api::object_ptr<td_api::ChatMemberStatus> &&chat_member_status, Promise<Unit> &&promise) {
   if (!td_->chat_manager_->have_channel(channel_id)) {
-    return promise.set_error(Status::Error(400, "Chat info not found"));
+    return promise.set_error(400, "Chat info not found");
   }
   auto new_status = get_dialog_participant_status(chat_member_status, td_->chat_manager_->get_channel_type(channel_id));
 
@@ -2475,7 +2475,7 @@ void DialogParticipantManager::set_channel_participant_status(
   }
   if (participant_dialog_id.get_type() != DialogType::User) {
     if (new_status.is_administrator() || new_status.is_member() || new_status.is_restricted()) {
-      return promise.set_error(Status::Error(400, "Other chats can be only banned or unbanned"));
+      return promise.set_error(400, "Other chats can be only banned or unbanned");
     }
     // always pretend that old_status is different
     return restrict_channel_participant(
@@ -2515,17 +2515,17 @@ void DialogParticipantManager::set_channel_participant_status_impl(ChannelId cha
   bool need_restrict = false;
   if (new_status.is_creator() || old_status.is_creator()) {
     if (td_->chat_manager_->is_monoforum_channel(channel_id)) {
-      return promise.set_error(Status::Error(400, "Can't edit chat owner"));
+      return promise.set_error(400, "Can't edit chat owner");
     }
     if (!old_status.is_creator()) {
-      return promise.set_error(Status::Error(400, "Can't add another owner to the chat"));
+      return promise.set_error(400, "Can't add another owner to the chat");
     }
     if (!new_status.is_creator()) {
-      return promise.set_error(Status::Error(400, "Can't remove chat owner"));
+      return promise.set_error(400, "Can't remove chat owner");
     }
     auto user_id = td_->user_manager_->get_my_id();
     if (participant_dialog_id != DialogId(user_id)) {
-      return promise.set_error(Status::Error(400, "Not enough rights to edit chat owner rights"));
+      return promise.set_error(400, "Not enough rights to edit chat owner rights");
     }
     if (new_status.is_member() == old_status.is_member()) {
       // change rank and is_anonymous
@@ -2573,7 +2573,7 @@ void DialogParticipantManager::set_channel_participant_status_impl(ChannelId cha
 
   if (need_promote) {
     if (participant_dialog_id.get_type() != DialogType::User) {
-      return promise.set_error(Status::Error(400, "Can't promote chats to chat administrators"));
+      return promise.set_error(400, "Can't promote chats to chat administrators");
     }
     return promote_channel_participant(channel_id, participant_dialog_id.get_user_id(), new_status, old_status,
                                        std::move(promise));
@@ -2583,7 +2583,7 @@ void DialogParticipantManager::set_channel_participant_status_impl(ChannelId cha
   } else {
     CHECK(need_add);
     if (participant_dialog_id.get_type() != DialogType::User) {
-      return promise.set_error(Status::Error(400, "Can't add chats as chat members"));
+      return promise.set_error(400, "Can't add chats as chat members");
     }
     return add_channel_participant(channel_id, participant_dialog_id.get_user_id(), old_status,
                                    wrap_failed_to_add_members_promise(std::move(promise)));
@@ -2596,17 +2596,17 @@ void DialogParticipantManager::promote_channel_participant(ChannelId channel_id,
                                                            Promise<Unit> &&promise) {
   LOG(INFO) << "Promote " << user_id << " in " << channel_id << " from " << old_status << " to " << new_status;
   if (td_->chat_manager_->is_monoforum_channel(channel_id)) {
-    return promise.set_error(Status::Error(400, "Can't promote members in the chat"));
+    return promise.set_error(400, "Can't promote members in the chat");
   }
   if (user_id == td_->user_manager_->get_my_id()) {
     if (new_status.is_administrator()) {
-      return promise.set_error(Status::Error(400, "Can't promote self"));
+      return promise.set_error(400, "Can't promote self");
     }
     CHECK(new_status.is_member());
     // allow to demote self. TODO is it allowed server-side?
   } else {
     if (!td_->chat_manager_->get_channel_permissions(channel_id).can_promote_members()) {
-      return promise.set_error(Status::Error(400, "Not enough rights"));
+      return promise.set_error(400, "Not enough rights");
     }
 
     CHECK(!old_status.is_creator());
@@ -2629,30 +2629,30 @@ void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id
   LOG(INFO) << "Restrict " << participant_dialog_id << " in " << channel_id << " from " << old_status << " to "
             << new_status;
   if (!td_->chat_manager_->have_channel(channel_id)) {
-    return promise.set_error(Status::Error(400, "Chat info not found"));
+    return promise.set_error(400, "Chat info not found");
   }
   auto my_status = td_->chat_manager_->get_channel_status(channel_id);
   if (!my_status.is_member() && !my_status.is_creator()) {
     if (participant_dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
       if (new_status.is_member()) {
-        return promise.set_error(Status::Error(400, "Can't unrestrict self"));
+        return promise.set_error(400, "Can't unrestrict self");
       }
       return promise.set_value(Unit());
     } else {
-      return promise.set_error(Status::Error(400, "Not in the chat"));
+      return promise.set_error(400, "Not in the chat");
     }
   }
   auto input_peer = td_->dialog_manager_->get_input_peer(participant_dialog_id, AccessRights::Know);
   if (input_peer == nullptr) {
-    return promise.set_error(Status::Error(400, "Member not found"));
+    return promise.set_error(400, "Member not found");
   }
 
   if (participant_dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     if (new_status.is_restricted() || new_status.is_banned()) {
-      return promise.set_error(Status::Error(400, "Can't restrict self"));
+      return promise.set_error(400, "Can't restrict self");
     }
     if (new_status.is_member()) {
-      return promise.set_error(Status::Error(400, "Can't unrestrict self"));
+      return promise.set_error(400, "Can't unrestrict self");
     }
 
     // leave the channel
@@ -2667,22 +2667,22 @@ void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id
       break;
     case DialogType::Channel:
       if (new_status.is_administrator() || new_status.is_member() || new_status.is_restricted()) {
-        return promise.set_error(Status::Error(400, "Other chats can be only banned or unbanned"));
+        return promise.set_error(400, "Other chats can be only banned or unbanned");
       }
       break;
     default:
-      return promise.set_error(Status::Error(400, "Can't restrict the chat"));
+      return promise.set_error(400, "Can't restrict the chat");
   }
 
   CHECK(!old_status.is_creator());
   CHECK(!new_status.is_creator());
 
   if (td_->chat_manager_->is_monoforum_channel(channel_id)) {
-    return promise.set_error(Status::Error(
-        400, "Can't restrict members in the chat; users must be banned in the corresponding channel chat"));
+    return promise.set_error(
+        400, "Can't restrict members in the chat; users must be banned in the corresponding channel chat");
   }
   if (!td_->chat_manager_->get_channel_permissions(channel_id).can_restrict_members()) {
-    return promise.set_error(Status::Error(400, "Not enough rights to restrict/unrestrict chat member"));
+    return promise.set_error(400, "Not enough rights to restrict/unrestrict chat member");
   }
 
   if (old_status.is_member() && !new_status.is_member() && !new_status.is_banned()) {
@@ -3001,26 +3001,26 @@ DialogParticipantManager::get_can_transfer_ownership_result_object(CanTransferOw
 void DialogParticipantManager::transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password,
                                                          Promise<Unit> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "transfer_dialog_ownership")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
   if (!td_->user_manager_->have_user_force(user_id, "transfer_dialog_ownership")) {
-    return promise.set_error(Status::Error(400, "User not found"));
+    return promise.set_error(400, "User not found");
   }
   if (td_->user_manager_->is_user_bot(user_id)) {
-    return promise.set_error(Status::Error(400, "User is a bot"));
+    return promise.set_error(400, "User is a bot");
   }
   if (td_->user_manager_->is_user_deleted(user_id)) {
-    return promise.set_error(Status::Error(400, "User is deleted"));
+    return promise.set_error(400, "User is deleted");
   }
   if (password.empty()) {
-    return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
+    return promise.set_error(400, "PASSWORD_HASH_INVALID");
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::SecretChat:
-      return promise.set_error(Status::Error(400, "Can't transfer chat ownership"));
+      return promise.set_error(400, "Can't transfer chat ownership");
     case DialogType::Channel:
       send_closure(
           td_->password_manager_, &PasswordManager::get_input_check_password_srp, password,

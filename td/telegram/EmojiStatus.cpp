@@ -185,7 +185,7 @@ class GetDefaultEmojiStatusesQuery final : public Td::ResultHandler {
 
     if (emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatusesNotModified::ID) {
       if (promise_) {
-        promise_.set_error(Status::Error(500, "Receive wrong server response"));
+        promise_.set_error(500, "Receive wrong server response");
       }
       return;
     }
@@ -228,7 +228,7 @@ class GetChannelDefaultEmojiStatusesQuery final : public Td::ResultHandler {
 
     if (emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatusesNotModified::ID) {
       if (promise_) {
-        promise_.set_error(Status::Error(500, "Receive wrong server response"));
+        promise_.set_error(500, "Receive wrong server response");
       }
       return;
     }
@@ -271,7 +271,7 @@ class GetRecentEmojiStatusesQuery final : public Td::ResultHandler {
 
     if (emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatusesNotModified::ID) {
       if (promise_) {
-        promise_.set_error(Status::Error(500, "Receive wrong server response"));
+        promise_.set_error(500, "Receive wrong server response");
       }
       return;
     }
@@ -339,7 +339,7 @@ class GetCollectibleEmojiStatusesQuery final : public Td::ResultHandler {
 
     if (emoji_statuses_ptr->get_id() == telegram_api::account_emojiStatusesNotModified::ID) {
       if (promise_) {
-        promise_.set_error(Status::Error(500, "Receive wrong server response"));
+        promise_.set_error(500, "Receive wrong server response");
       }
       return;
     }

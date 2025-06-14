@@ -440,10 +440,10 @@ void AutosaveManager::set_autosave_settings(td_api::object_ptr<td_api::AutosaveS
                                             td_api::object_ptr<td_api::scopeAutosaveSettings> &&settings,
                                             Promise<Unit> &&promise) {
   if (scope == nullptr) {
-    return promise.set_error(Status::Error(400, "Scope must be non-empty"));
+    return promise.set_error(400, "Scope must be non-empty");
   }
   if (!settings_.are_inited_) {
-    return promise.set_error(Status::Error(400, "Autosave settings must be loaded first"));
+    return promise.set_error(400, "Autosave settings must be loaded first");
   }
   auto new_settings = DialogAutosaveSettings(settings.get());
   DialogAutosaveSettings *old_settings = nullptr;
@@ -497,7 +497,7 @@ void AutosaveManager::set_autosave_settings(td_api::object_ptr<td_api::AutosaveS
 
 void AutosaveManager::clear_autosave_settings_exceptions(Promise<Unit> &&promise) {
   if (!settings_.are_inited_) {
-    return promise.set_error(Status::Error(400, "Autosave settings must be loaded first"));
+    return promise.set_error(400, "Autosave settings must be loaded first");
   }
   for (const auto &exception : settings_.exceptions_) {
     send_update_autosave_settings(td_api::make_object<td_api::autosaveSettingsScopeChat>(exception.first.get()),

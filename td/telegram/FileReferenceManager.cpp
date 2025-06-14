@@ -314,9 +314,9 @@ void FileReferenceManager::run_node(NodeId node_id) {
     VLOG(file_references) << "Have no more file sources to repair file reference for file " << node_id;
     for (auto &p : node.query->promises) {
       if (node.file_source_ids.empty()) {
-        p.set_error(Status::Error(400, "File source is not found"));
+        p.set_error(400, "File source is not found");
       } else {
-        p.set_error(Status::Error(429, "Too Many Requests: retry after 1"));
+        p.set_error(429, "Too Many Requests: retry after 1");
       }
     }
     node.query = {};
@@ -325,7 +325,7 @@ void FileReferenceManager::run_node(NodeId node_id) {
   if (node.last_successful_repair_time >= Time::now() - 60) {
     VLOG(file_references) << "Recently repaired file reference for file " << node_id << ", do not try again";
     for (auto &p : node.query->promises) {
-      p.set_error(Status::Error(429, "Too Many Requests: retry after 60"));
+      p.set_error(429, "Too Many Requests: retry after 60");
     }
     node.query = {};
     return;
@@ -372,7 +372,7 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
         send_closure_later(G()->chat_manager(), &ChatManager::reload_channel, source.channel_id, std::move(promise),
                            "FileSourceChannelPhoto");
       },
-      [&](const FileSourceWallpapers &source) { promise.set_error(Status::Error("Can't repair old wallpapers")); },
+      [&](const FileSourceWallpapers &source) { promise.set_error("Can't repair old wallpapers"); },
       [&](const FileSourceWebPage &source) {
         send_closure_later(G()->web_pages_manager(), &WebPagesManager::reload_web_page_by_url, source.url, false,
                            PromiseCreator::lambda([promise = std::move(promise)](Result<WebPageId> &&result) mutable {
@@ -524,7 +524,7 @@ void FileReferenceManager::reload_photo(PhotoSizeSource source, Promise<Unit> pr
     case PhotoSizeSource::Type::Legacy:
     case PhotoSizeSource::Type::FullLegacy:
     case PhotoSizeSource::Type::Thumbnail:
-      promise.set_error(Status::Error("Unexpected PhotoSizeSource type"));
+      promise.set_error("Unexpected PhotoSizeSource type");
       break;
     default:
       UNREACHABLE();
@@ -540,7 +540,7 @@ void FileReferenceManager::get_file_search_text(FileSourceId file_source_id, str
         send_closure_later(G()->messages_manager(), &MessagesManager::get_message_file_search_text,
                            source.message_full_id, std::move(unique_file_id), std::move(promise));
       },
-      [&](const auto &source) { promise.set_error(Status::Error(500, "Unsupported file source")); }));
+      [&](const auto &source) { promise.set_error(500, "Unsupported file source"); }));
 }
 
 td_api::object_ptr<td_api::message> FileReferenceManager::get_message_object(FileSourceId file_source_id) const {

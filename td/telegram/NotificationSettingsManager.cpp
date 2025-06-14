@@ -139,7 +139,7 @@ class SaveRingtoneQuery final : public Td::ResultHandler {
           file_id_, PromiseCreator::lambda([ringtone_id = file_id_, unsave = unsave_,
                                             promise = std::move(promise_)](Result<Unit> result) mutable {
             if (result.is_error()) {
-              return promise.set_error(Status::Error(400, "Failed to find the ringtone"));
+              return promise.set_error(400, "Failed to find the ringtone");
             }
 
             send_closure(G()->notification_settings_manager(), &NotificationSettingsManager::send_save_ringtone_query,
@@ -891,7 +891,7 @@ bool NotificationSettingsManager::update_scope_notification_settings(Notificatio
 void NotificationSettingsManager::send_get_reaction_notification_settings_query(Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Can't get reaction notification settings";
-    return promise.set_error(Status::Error(500, "Wrong getReactionNotificationSettings query"));
+    return promise.set_error(500, "Wrong getReactionNotificationSettings query");
   }
 
   td_->create_handler<GetReactionsNotifySettingsQuery>(std::move(promise))->send();
@@ -1047,7 +1047,7 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
   auto file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(!file_view.empty());
   if (file_view.size() > td_->option_manager_->get_option_integer("notification_sound_size_max")) {
-    return promise.set_error(Status::Error(400, "Notification sound file is too big"));
+    return promise.set_error(400, "Notification sound file is too big");
   }
   auto file_type = file_view.get_type();
   int32 duration = 0;
@@ -1062,19 +1062,19 @@ void NotificationSettingsManager::add_saved_ringtone(td_api::object_ptr<td_api::
       break;
   }
   if (duration > td_->option_manager_->get_option_integer("notification_sound_duration_max")) {
-    return promise.set_error(Status::Error(400, "Notification sound is too long"));
+    return promise.set_error(400, "Notification sound is too long");
   }
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (main_remote_location != nullptr && !file_view.is_encrypted()) {
     CHECK(main_remote_location->is_document());
     if (main_remote_location->is_web()) {
-      return promise.set_error(Status::Error(400, "Can't use web document as notification sound"));
+      return promise.set_error(400, "Can't use web document as notification sound");
     }
 
     FileId ringtone_file_id = file_view.get_main_file_id();
     if (file_type != FileType::Ringtone) {
       if (file_type != FileType::Audio && file_type != FileType::VoiceNote) {
-        return promise.set_error(Status::Error(400, "Unsupported file specified"));
+        return promise.set_error(400, "Unsupported file specified");
       }
       auto &remote = *main_remote_location;
       ringtone_file_id = td_->file_manager_->register_remote(
@@ -1140,10 +1140,10 @@ void NotificationSettingsManager::on_upload_ringtone(FileUploadId file_upload_id
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (input_file == nullptr && main_remote_location != nullptr) {
     if (main_remote_location->is_web()) {
-      return promise.set_error(Status::Error(400, "Can't use web document as notification sound"));
+      return promise.set_error(400, "Can't use web document as notification sound");
     }
     if (is_reupload) {
-      return promise.set_error(Status::Error(400, "Failed to reupload the file"));
+      return promise.set_error(400, "Failed to reupload the file");
     }
 
     auto main_file_id = file_view.get_main_file_id();
@@ -1225,7 +1225,7 @@ void NotificationSettingsManager::on_add_saved_ringtone(
       }
     }
     if (saved_ringtone == nullptr) {
-      return promise.set_error(Status::Error(500, "Failed to find saved notification sound"));
+      return promise.set_error(500, "Failed to find saved notification sound");
     }
   }
 
@@ -1359,7 +1359,7 @@ void NotificationSettingsManager::on_load_saved_ringtones(Promise<Unit> &&promis
 
 void NotificationSettingsManager::reload_saved_ringtones(Promise<Unit> &&promise) {
   if (!is_active()) {
-    return promise.set_error(Status::Error(400, "Don't need to reload saved notification sounds"));
+    return promise.set_error(400, "Don't need to reload saved notification sounds");
   }
   reload_saved_ringtones_queries_.push_back(std::move(promise));
   if (reload_saved_ringtones_queries_.size() == 1) {
@@ -1374,7 +1374,7 @@ void NotificationSettingsManager::reload_saved_ringtones(Promise<Unit> &&promise
 
 void NotificationSettingsManager::repair_saved_ringtones(Promise<Unit> &&promise) {
   if (!is_active()) {
-    return promise.set_error(Status::Error(400, "Don't need to repair saved notification sounds"));
+    return promise.set_error(400, "Don't need to repair saved notification sounds");
   }
 
   repair_saved_ringtones_queries_.push_back(std::move(promise));
@@ -1507,7 +1507,7 @@ void NotificationSettingsManager::send_get_dialog_notification_settings_query(Di
                                                                               Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Can't get notification settings for " << dialog_id;
-    return promise.set_error(Status::Error(500, "Wrong getDialogNotificationSettings query"));
+    return promise.set_error(500, "Wrong getDialogNotificationSettings query");
   }
   TRY_STATUS_PROMISE(promise,
                      td_->dialog_manager_->check_dialog_access_in_memory(dialog_id, false, AccessRights::Read));
@@ -1539,7 +1539,7 @@ void NotificationSettingsManager::send_get_scope_notification_settings_query(Not
                                                                              Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Can't get notification settings for " << scope;
-    return promise.set_error(Status::Error(500, "Wrong getScopeNotificationSettings query"));
+    return promise.set_error(500, "Wrong getScopeNotificationSettings query");
   }
 
   td_->create_handler<GetScopeNotifySettingsQuery>(std::move(promise))->send(scope);

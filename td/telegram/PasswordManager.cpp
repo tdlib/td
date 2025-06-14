@@ -196,17 +196,17 @@ void PasswordManager::set_login_email_address(string new_login_email_address, Pr
 
 void PasswordManager::resend_login_email_address_code(Promise<SentEmailCode> promise) {
   if (last_set_login_email_address_.empty()) {
-    return promise.set_error(Status::Error(400, "No login email address code was sent"));
+    return promise.set_error(400, "No login email address code was sent");
   }
   set_login_email_address(last_set_login_email_address_, std::move(promise));
 }
 
 void PasswordManager::check_login_email_address_code(EmailVerification &&code, Promise<Unit> promise) {
   if (last_set_login_email_address_.empty()) {
-    return promise.set_error(Status::Error(400, "No login email address code was sent"));
+    return promise.set_error(400, "No login email address code was sent");
   }
   if (code.is_empty()) {
-    return promise.set_error(Status::Error(400, "Verification code must be non-empty"));
+    return promise.set_error(400, "Verification code must be non-empty");
   }
   auto query = G()->net_query_creator().create(telegram_api::account_verifyEmail(
       make_tl_object<telegram_api::emailVerifyPurposeLoginChange>(), code.get_input_email_verification()));
@@ -237,7 +237,7 @@ void PasswordManager::do_get_secure_secret(bool allow_recursive, string password
     return promise.set_value(secret_.value().clone());
   }
   if (password.empty()) {
-    return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
+    return promise.set_error(400, "PASSWORD_HASH_INVALID");
   }
   get_full_state(
       password, PromiseCreator::lambda([actor_id = actor_id(this), password, allow_recursive,
@@ -247,14 +247,14 @@ void PasswordManager::do_get_secure_secret(bool allow_recursive, string password
         }
         auto state = r_state.move_as_ok();
         if (!state.state.has_password) {
-          return promise.set_error(Status::Error(400, "2-step verification is disabled"));
+          return promise.set_error(400, "2-step verification is disabled");
         }
         if (state.private_state.secret) {
           send_closure(actor_id, &PasswordManager::cache_secret, state.private_state.secret.value().clone());
           return promise.set_value(std::move(state.private_state.secret.value()));
         }
         if (!allow_recursive) {
-          return promise.set_error(Status::Error(400, "Failed to get Telegram Passport secret"));
+          return promise.set_error(400, "Failed to get Telegram Passport secret");
         }
 
         auto new_promise =
@@ -290,7 +290,7 @@ TempPasswordState PasswordManager::get_temp_password_state_sync() {
 
 void PasswordManager::create_temp_password(string password, int32 timeout, Promise<TempState> promise) {
   if (create_temp_password_promise_) {
-    return promise.set_error(Status::Error(400, "Another create_temp_password query is active"));
+    return promise.set_error(400, "Another create_temp_password query is active");
   }
   create_temp_password_promise_ = std::move(promise);
 
@@ -480,14 +480,14 @@ void PasswordManager::send_email_address_verification_code(string email, Promise
 
 void PasswordManager::resend_email_address_verification_code(Promise<SentEmailCode> promise) {
   if (last_verified_email_address_.empty()) {
-    return promise.set_error(Status::Error(400, "No email address verification was sent"));
+    return promise.set_error(400, "No email address verification was sent");
   }
   send_email_address_verification_code(last_verified_email_address_, std::move(promise));
 }
 
 void PasswordManager::check_email_address_verification_code(string code, Promise<Unit> promise) {
   if (last_verified_email_address_.empty()) {
-    return promise.set_error(Status::Error(400, "No email address verification was sent"));
+    return promise.set_error(400, "No email address verification was sent");
   }
   auto verification_code = make_tl_object<telegram_api::emailVerificationCode>(std::move(code));
   auto query = G()->net_query_creator().create(telegram_api::account_verifyEmail(
@@ -516,7 +516,7 @@ void PasswordManager::check_password_recovery_code(string code, Promise<Unit> pr
                       TRY_RESULT_PROMISE(promise, result,
                                          fetch_result<telegram_api::auth_checkRecoveryPassword>(std::move(r_query)));
                       if (!result) {
-                        return promise.set_error(Status::Error(400, "Invalid recovery code"));
+                        return promise.set_error(400, "Invalid recovery code");
                       }
                       promise.set_value(Unit());
                     }));
@@ -604,7 +604,7 @@ void PasswordManager::update_password_settings(UpdateSettings update_settings, P
           return promise.set_error(r_update_settings.move_as_error());
         }
         if (!r_update_settings.ok()) {
-          return promise.set_error(Status::Error(400, "account_updatePasswordSettings returned false"));
+          return promise.set_error(400, "account_updatePasswordSettings returned false");
         }
         send_closure(actor_id, &PasswordManager::get_state, std::move(promise));
       });
@@ -780,7 +780,7 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
 
           switch (password->current_algo_->get_id()) {
             case telegram_api::passwordKdfAlgoUnknown::ID:
-              return promise.set_error(Status::Error(400, "Please update client to continue"));
+              return promise.set_error(400, "Please update client to continue");
             case telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow::ID: {
               auto algo =
                   move_tl_object_as<telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow>(

@@ -589,7 +589,7 @@ class EditStoryCoverQuery final : public Td::ResultHandler {
                                             main_frame_timestamp = main_frame_timestamp_,
                                             promise = std::move(promise_)](Result<Unit> result) mutable {
             if (result.is_error()) {
-              return promise.set_error(Status::Error(400, "Failed to edit cover"));
+              return promise.set_error(400, "Failed to edit cover");
             }
 
             send_closure(G()->story_manager(), &StoryManager::edit_story_cover, dialog_id, story_id,
@@ -2178,11 +2178,11 @@ void StoryManager::add_pending_story_dependencies(Dependencies &dependencies, co
 
 void StoryManager::load_active_stories(StoryListId story_list_id, Promise<Unit> &&promise) {
   if (!story_list_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Story list must be non-empty"));
+    return promise.set_error(400, "Story list must be non-empty");
   }
   auto &story_list = get_story_list(story_list_id);
   if (story_list.list_last_story_date_ == MAX_DIALOG_DATE) {
-    return promise.set_error(Status::Error(404, "Not found"));
+    return promise.set_error(404, "Not found");
   }
 
   if (story_list.database_has_more_) {
@@ -2211,7 +2211,7 @@ void StoryManager::load_active_stories(StoryListId story_list_id, Promise<Unit> 
       }
       update_story_list_sent_total_count(story_list_id, story_list, "load_active_stories");
     }
-    return promise.set_error(Status::Error(404, "Not found"));
+    return promise.set_error(404, "Not found");
   }
 
   load_active_stories_from_server(story_list_id, story_list, !story_list.state_.empty(), std::move(promise));
@@ -2535,7 +2535,7 @@ void StoryManager::toggle_dialog_stories_hidden(DialogId dialog_id, StoryListId 
     return promise.set_value(Unit());
   }
   if (!story_list_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Story list must be non-empty"));
+    return promise.set_error(400, "Story list must be non-empty");
   }
 
   td_->create_handler<ToggleStoriesHiddenQuery>(std::move(promise))
@@ -2545,13 +2545,13 @@ void StoryManager::toggle_dialog_stories_hidden(DialogId dialog_id, StoryListId 
 void StoryManager::get_dialog_pinned_stories(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
                                              Promise<td_api::object_ptr<td_api::stories>> &&promise) {
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
                                                                         "get_dialog_pinned_stories"));
 
   if (from_story_id != StoryId() && !from_story_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid value of parameter from_story_id specified"));
+    return promise.set_error(400, "Invalid value of parameter from_story_id specified");
   }
   if (!can_have_stories(owner_dialog_id)) {
     return promise.set_value(td_api::make_object<td_api::stories>());
@@ -2585,16 +2585,16 @@ void StoryManager::on_get_dialog_pinned_stories(DialogId owner_dialog_id,
 void StoryManager::get_story_archive(DialogId owner_dialog_id, StoryId from_story_id, int32 limit,
                                      Promise<td_api::object_ptr<td_api::stories>> &&promise) {
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   if (from_story_id != StoryId() && !from_story_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid value of parameter from_story_id specified"));
+    return promise.set_error(400, "Invalid value of parameter from_story_id specified");
   }
   if (!td_->dialog_manager_->have_dialog_force(owner_dialog_id, "get_story_archive")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
   if (!can_edit_stories(owner_dialog_id)) {
-    return promise.set_error(Status::Error(400, "Can't get story archive in the chat"));
+    return promise.set_error(400, "Can't get story archive in the chat");
   }
 
   auto query_promise =
@@ -2745,7 +2745,7 @@ void StoryManager::on_get_dialog_expiring_stories(DialogId owner_dialog_id,
 void StoryManager::search_hashtag_posts(DialogId dialog_id, string hashtag, string offset, int32 limit,
                                         Promise<td_api::object_ptr<td_api::foundStories>> &&promise) {
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   if (limit > MAX_SEARCH_STORIES) {
     limit = MAX_SEARCH_STORIES;
@@ -2773,7 +2773,7 @@ void StoryManager::search_hashtag_posts(DialogId dialog_id, string hashtag, stri
 void StoryManager::search_location_posts(td_api::object_ptr<td_api::locationAddress> &&address, string offset,
                                          int32 limit, Promise<td_api::object_ptr<td_api::foundStories>> &&promise) {
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   if (limit > MAX_SEARCH_STORIES) {
     limit = MAX_SEARCH_STORIES;
@@ -2785,7 +2785,7 @@ void StoryManager::search_location_posts(td_api::object_ptr<td_api::locationAddr
 void StoryManager::search_venue_posts(string venue_provider, string venue_id, string offset, int32 limit,
                                       Promise<td_api::object_ptr<td_api::foundStories>> &&promise) {
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   if (limit > MAX_SEARCH_STORIES) {
     limit = MAX_SEARCH_STORIES;
@@ -2798,19 +2798,19 @@ void StoryManager::set_pinned_stories(DialogId owner_dialog_id, vector<StoryId> 
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Write,
                                                                         "set_pinned_stories"));
   if (!can_edit_stories(owner_dialog_id)) {
-    return promise.set_error(Status::Error(400, "Can't change pinned stories in the chat"));
+    return promise.set_error(400, "Can't change pinned stories in the chat");
   }
   for (const auto &story_id : story_ids) {
     StoryFullId story_full_id{owner_dialog_id, story_id};
     const Story *story = get_story(story_full_id);
     if (story == nullptr) {
-      return promise.set_error(Status::Error(400, "Story not found"));
+      return promise.set_error(400, "Story not found");
     }
     if (!story->is_pinned_) {
-      return promise.set_error(Status::Error(400, "The story must be posted to the chat page first"));
+      return promise.set_error(400, "The story must be posted to the chat page first");
     }
     if (!story_id.is_server()) {
-      return promise.set_error(Status::Error(400, "Story must be sent first"));
+      return promise.set_error(400, "Story must be sent first");
     }
   }
   td_->create_handler<TogglePinnedStoriesToTopQuery>(std::move(promise))->send(owner_dialog_id, std::move(story_ids));
@@ -2820,7 +2820,7 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read, "open_story"));
   if (!story_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid story identifier specified"));
+    return promise.set_error(400, "Invalid story identifier specified");
   }
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
@@ -2879,14 +2879,14 @@ void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promi
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read, "close_story"));
   if (!story_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid story identifier specified"));
+    return promise.set_error(400, "Invalid story identifier specified");
   }
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
   if (can_get_story_view_count(owner_dialog_id) && story_id.is_server()) {
     auto &open_count = opened_stories_with_view_count_[story_full_id];
     if (open_count == 0) {
-      return promise.set_error(Status::Error(400, "The story wasn't opened"));
+      return promise.set_error(400, "The story wasn't opened");
     }
     if (--open_count == 0) {
       opened_stories_with_view_count_.erase(story_full_id);
@@ -2990,19 +2990,19 @@ void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType re
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
                                                                         "set_story_reaction"));
   if (!story_full_id.get_story_id().is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid story identifier specified"));
+    return promise.set_error(400, "Invalid story identifier specified");
   }
   if (!story_full_id.get_story_id().is_server()) {
-    return promise.set_error(Status::Error(400, "Can't react to the story"));
+    return promise.set_error(400, "Can't react to the story");
   }
 
   Story *story = get_story_force(story_full_id, "set_story_reaction");
   if (story == nullptr) {
-    return promise.set_error(Status::Error(400, "Story not found"));
+    return promise.set_error(400, "Story not found");
   }
 
   if (!can_use_story_reaction(story, reaction_type)) {
-    return promise.set_error(Status::Error(400, "The reaction isn't available for the story"));
+    return promise.set_error(400, "The reaction isn't available for the story");
   }
 
   if (story->chosen_reaction_type_ == reaction_type) {
@@ -3216,10 +3216,10 @@ void StoryManager::get_story_interactions(StoryId story_id, const string &query,
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
   if (story == nullptr) {
-    return promise.set_error(Status::Error(400, "Story not found"));
+    return promise.set_error(400, "Story not found");
   }
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   if (!story_id.is_server()) {
     return promise.set_value(td_api::make_object<td_api::storyInteractions>());
@@ -3320,16 +3320,16 @@ void StoryManager::get_dialog_story_interactions(StoryFullId story_full_id, Reac
                                                  Promise<td_api::object_ptr<td_api::storyInteractions>> &&promise) {
   const Story *story = get_story(story_full_id);
   if (story == nullptr) {
-    return promise.set_error(Status::Error(400, "Story not found"));
+    return promise.set_error(400, "Story not found");
   }
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
   if (!story_full_id.get_story_id().is_server()) {
     return promise.set_value(td_api::make_object<td_api::storyInteractions>());
   }
   if (reaction_type.is_paid_reaction()) {
-    return promise.set_error(Status::Error(400, "Stories can't have paid reactions"));
+    return promise.set_error(400, "Stories can't have paid reactions");
   }
 
   auto query_promise = PromiseCreator::lambda(
@@ -3374,10 +3374,10 @@ void StoryManager::on_get_dialog_story_interactions(
 void StoryManager::report_story(StoryFullId story_full_id, const string &option_id, const string &text,
                                 Promise<td_api::object_ptr<td_api::ReportStoryResult>> &&promise) {
   if (!have_story_force(story_full_id)) {
-    return promise.set_error(Status::Error(400, "Story not found"));
+    return promise.set_error(400, "Story not found");
   }
   if (!story_full_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Story can't be reported"));
+    return promise.set_error(400, "Story can't be reported");
   }
 
   td_->create_handler<ReportStoryQuery>(std::move(promise))->send(story_full_id, option_id, text);
@@ -4950,7 +4950,7 @@ void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promi
   auto dialog_id = story_full_id.get_dialog_id();
   auto story_id = story_full_id.get_story_id();
   if (!story_id.is_server()) {
-    return promise.set_error(Status::Error(400, "Invalid story identifier"));
+    return promise.set_error(400, "Invalid story identifier");
   }
 
   auto &queries = reload_story_queries_[story_full_id];
@@ -4991,7 +4991,7 @@ void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id, bool on
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read, "get_story"));
   if (!story_id.is_valid()) {
-    return promise.set_error(Status::Error(400, "Invalid story identifier specified"));
+    return promise.set_error(400, "Invalid story identifier specified");
   }
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
@@ -5173,10 +5173,10 @@ void StoryManager::save_channels_to_send_stories() {
 void StoryManager::can_send_story(DialogId dialog_id,
                                   Promise<td_api::object_ptr<td_api::CanPostStoryResult>> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "can_send_story")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
   if (!can_post_stories(dialog_id)) {
-    return promise.set_error(Status::Error(400, "Not enough rights to post stories in the chat"));
+    return promise.set_error(400, "Not enough rights to post stories in the chat");
   }
   td_->create_handler<CanSendStoryQuery>(std::move(promise))->send(dialog_id);
 }
@@ -5188,10 +5188,10 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
                               td_api::object_ptr<td_api::storyFullId> &&from_story_full_id, bool is_pinned,
                               bool protect_content, Promise<td_api::object_ptr<td_api::story>> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "send_story")) {
-    return promise.set_error(Status::Error(400, "Chat not found"));
+    return promise.set_error(400, "Chat not found");
   }
   if (!can_post_stories(dialog_id)) {
-    return promise.set_error(Status::Error(400, "Not enough rights to post stories in the chat"));
+    return promise.set_error(400, "Not enough rights to post stories in the chat");
   }
 
   bool is_bot = td_->auth_manager_->is_bot();
@@ -5207,16 +5207,16 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   StoryFullId forward_from_story_full_id;
   if (from_story_full_id != nullptr) {
     if (is_bot) {
-      return promise.set_error(Status::Error(400, "Bots can't repost stories"));
+      return promise.set_error(400, "Bots can't repost stories");
     }
     forward_from_story_full_id =
         StoryFullId(DialogId(from_story_full_id->poster_chat_id_), StoryId(from_story_full_id->story_id_));
     const Story *story = get_story(forward_from_story_full_id);
     if (story == nullptr || story->content_ == nullptr) {
-      return promise.set_error(Status::Error(400, "Story to repost not found"));
+      return promise.set_error(400, "Story to repost not found");
     }
     if (story->noforwards_) {
-      return promise.set_error(Status::Error(400, "Story can't be reposted"));
+      return promise.set_error(400, "Story can't be reposted");
     }
     if (story->forward_info_ != nullptr) {
       forward_info = make_unique<StoryForwardInfo>(*story->forward_info_);
@@ -5228,7 +5228,7 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   if (active_period != 86400 && !(G()->is_test_dc() && (active_period == 60 || active_period == 300))) {
     bool is_premium = td_->option_manager_->get_option_boolean("is_premium") || is_bot;
     if (!is_premium || !td::contains(vector<int32>{6 * 3600, 12 * 3600, 2 * 86400}, active_period)) {
-      return promise.set_error(Status::Error(400, "Invalid story active period specified"));
+      return promise.set_error(400, "Invalid story active period specified");
     }
   }
   TRY_RESULT_PROMISE(promise, story_id, get_next_yet_unsent_story_id(dialog_id));
@@ -5548,10 +5548,10 @@ void StoryManager::edit_story(DialogId owner_dialog_id, StoryId story_id,
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
   if (story == nullptr || story->content_ == nullptr) {
-    return promise.set_error(Status::Error(400, "Story not found"));
+    return promise.set_error(400, "Story not found");
   }
   if (!can_edit_story(story_full_id, story)) {
-    return promise.set_error(Status::Error(400, "Story can't be edited"));
+    return promise.set_error(400, "Story can't be edited");
   }
 
   bool is_bot = td_->auth_manager_->is_bot();
@@ -5579,7 +5579,7 @@ void StoryManager::edit_story(DialogId owner_dialog_id, StoryId story_id,
     if (*current_areas == areas) {
       are_media_areas_edited = false;
     } else if (content == nullptr) {
-      return promise.set_error(Status::Error(400, "Can't edit story areas without content"));
+      return promise.set_error(400, "Can't edit story areas without content");
     }
   }
   if (is_caption_edited) {
@@ -5661,7 +5661,7 @@ void StoryManager::edit_business_story(DialogId owner_dialog_id, StoryId story_i
   CHECK(td_->auth_manager_->is_bot());
   StoryFullId story_full_id{owner_dialog_id, story_id};
   if (!can_edit_story(story_full_id, nullptr)) {
-    return promise.set_error(Status::Error(400, "Story can't be edited"));
+    return promise.set_error(400, "Story can't be edited");
   }
 
   bool is_bot = true;
@@ -5720,12 +5720,12 @@ void StoryManager::on_edit_business_story(unique_ptr<PendingStory> &&pending_sto
   auto story = UpdatesManager::extract_story(updates.get(), pending_story->dialog_id_);
   if (story == nullptr) {
     LOG(ERROR) << "Receive unexpected edit story result: " << to_string(updates);
-    promise.set_error(Status::Error(400, "Failed to edit story"));
+    promise.set_error(400, "Failed to edit story");
   } else {
     auto story_id = on_get_story(pending_story->dialog_id_, std::move(story));
     if (story_id != pending_story->story_id_) {
       LOG(ERROR) << "Receive unexpected " << story_id << " instead of " << pending_story->story_id_;
-      promise.set_error(Status::Error(400, "Failed to edit story"));
+      promise.set_error(400, "Failed to edit story");
     } else {
       promise.set_value(get_story_object({pending_story->dialog_id_, story_id}));
     }
@@ -5760,23 +5760,23 @@ void StoryManager::edit_story_cover(DialogId owner_dialog_id, StoryId story_id, 
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
   if (story == nullptr || story->content_ == nullptr) {
-    return promise.set_error(Status::Error(400, "Story not found"));
+    return promise.set_error(400, "Story not found");
   }
   if (!can_edit_story(story_full_id, story)) {
-    return promise.set_error(Status::Error(400, "Story can't be edited"));
+    return promise.set_error(400, "Story can't be edited");
   }
   if (being_edited_stories_.count(story_full_id) > 0) {
-    return promise.set_error(Status::Error(400, "Story is being edited"));
+    return promise.set_error(400, "Story is being edited");
   }
   if (main_frame_timestamp < 0.0) {
-    return promise.set_error(Status::Error(400, "Wrong cover timestamp specified"));
+    return promise.set_error(400, "Wrong cover timestamp specified");
   }
   if (story->content_->get_type() != StoryContentType::Video) {
-    return promise.set_error(Status::Error(400, "Cover timestamp can't be edited for the story"));
+    return promise.set_error(400, "Cover timestamp can't be edited for the story");
   }
   auto input_media = get_story_content_document_input_media(td_, story->content_.get(), main_frame_timestamp);
   if (input_media == nullptr) {
-    return promise.set_error(Status::Error(400, "Can't edit story cover"));
+    return promise.set_error(400, "Can't edit story cover");
   }
 
   td_->create_handler<EditStoryCoverQuery>(std::move(promise))
@@ -5877,10 +5877,10 @@ void StoryManager::set_story_privacy_settings(StoryId story_id,
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
   if (story == nullptr || story->content_ == nullptr) {
-    return promise.set_error(Status::Error(400, "Story not found"));
+    return promise.set_error(400, "Story not found");
   }
   if (!can_edit_story(story_full_id, story)) {
-    return promise.set_error(Status::Error(400, "Story privacy settings can't be edited"));
+    return promise.set_error(400, "Story privacy settings can't be edited");
   }
   TRY_RESULT_PROMISE(promise, privacy_rules,
                      UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(settings)));
@@ -5893,10 +5893,10 @@ void StoryManager::toggle_story_is_pinned(DialogId owner_dialog_id, StoryId stor
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
   if (story == nullptr || story->content_ == nullptr) {
-    return promise.set_error(Status::Error(400, "Story not found"));
+    return promise.set_error(400, "Story not found");
   }
   if (!can_toggle_story_is_pinned(story_full_id, story)) {
-    return promise.set_error(Status::Error(400, "Story can't be pinned/unpinned"));
+    return promise.set_error(400, "Story can't be pinned/unpinned");
   }
   auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), story_full_id, is_pinned,
                                                promise = std::move(promise)](Result<Unit> &&result) mutable {
@@ -5923,20 +5923,20 @@ void StoryManager::delete_story(DialogId owner_dialog_id, StoryId story_id, Prom
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
   if (story == nullptr) {
-    return promise.set_error(Status::Error(400, "Story not found"));
+    return promise.set_error(400, "Story not found");
   }
   if (!can_delete_story(story_full_id, story)) {
-    return promise.set_error(Status::Error(400, "Story can't be deleted"));
+    return promise.set_error(400, "Story can't be deleted");
   }
   if (!story_id.is_server()) {
     auto file_upload_id_it = being_uploaded_file_upload_ids_.find(story_full_id);
     if (file_upload_id_it == being_uploaded_file_upload_ids_.end()) {
-      return promise.set_error(Status::Error(400, "Story upload has been already completed"));
+      return promise.set_error(400, "Story upload has been already completed");
     }
     auto file_upload_id = file_upload_id_it->second;
     auto random_id_it = being_sent_story_random_ids_.find(story_full_id);
     if (random_id_it == being_sent_story_random_ids_.end()) {
-      return promise.set_error(Status::Error(400, "Story not found"));
+      return promise.set_error(400, "Story not found");
     }
     int64 random_id = random_id_it->second;
     CHECK(random_id != 0);

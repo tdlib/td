@@ -632,7 +632,7 @@ void DialogInviteLinkManager::check_dialog_invite_link(const string &invite_link
   }
 
   if (!DialogInviteLink::is_valid_invite_link(invite_link)) {
-    return promise.set_error(Status::Error(400, "Wrong invite link"));
+    return promise.set_error(400, "Wrong invite link");
   }
 
   CHECK(!invite_link.empty());
@@ -641,7 +641,7 @@ void DialogInviteLinkManager::check_dialog_invite_link(const string &invite_link
 
 void DialogInviteLinkManager::import_dialog_invite_link(const string &invite_link, Promise<DialogId> &&promise) {
   if (!DialogInviteLink::is_valid_invite_link(invite_link)) {
-    return promise.set_error(Status::Error(400, "Wrong invite link"));
+    return promise.set_error(400, "Wrong invite link");
   }
 
   td_->create_handler<ImportChatInviteQuery>(std::move(promise))->send(invite_link);
@@ -958,15 +958,14 @@ void DialogInviteLinkManager::export_dialog_invite_link(DialogId dialog_id, stri
                                                         Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   if (is_subscription) {
     if (subscription_pricing.is_empty()) {
-      return promise.set_error(Status::Error(400, "Invalid subscription pricing specified"));
+      return promise.set_error(400, "Invalid subscription pricing specified");
     }
     CHECK(expire_date == 0 && usage_limit == 0 && !creates_join_request);
   } else {
     CHECK(subscription_pricing.is_empty());
   }
   if (creates_join_request && usage_limit > 0) {
-    return promise.set_error(
-        Status::Error(400, "Member limit can't be specified for links requiring administrator approval"));
+    return promise.set_error(400, "Member limit can't be specified for links requiring administrator approval");
   }
 
   td_->user_manager_->get_me(PromiseCreator::lambda(
@@ -1000,12 +999,11 @@ void DialogInviteLinkManager::edit_dialog_invite_link(DialogId dialog_id, const 
                                                       Promise<td_api::object_ptr<td_api::chatInviteLink>> &&promise) {
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
   if (creates_join_request && usage_limit > 0) {
-    return promise.set_error(
-        Status::Error(400, "Member limit can't be specified for links requiring administrator approval"));
+    return promise.set_error(400, "Member limit can't be specified for links requiring administrator approval");
   }
 
   if (invite_link.empty()) {
-    return promise.set_error(Status::Error(400, "Invite link must be non-empty"));
+    return promise.set_error(400, "Invite link must be non-empty");
   }
 
   auto new_title = clean_name(std::move(title), MAX_INVITE_LINK_TITLE_LENGTH);
@@ -1018,7 +1016,7 @@ void DialogInviteLinkManager::get_dialog_invite_link(DialogId dialog_id, const s
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
   if (invite_link.empty()) {
-    return promise.set_error(Status::Error(400, "Invite link must be non-empty"));
+    return promise.set_error(400, "Invite link must be non-empty");
   }
 
   td_->create_handler<GetExportedChatInviteQuery>(std::move(promise))->send(dialog_id, invite_link);
@@ -1039,7 +1037,7 @@ void DialogInviteLinkManager::get_dialog_invite_links(DialogId dialog_id, UserId
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(creator_user_id));
 
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
 
   td_->create_handler<GetExportedChatInvitesQuery>(std::move(promise))
@@ -1053,11 +1051,11 @@ void DialogInviteLinkManager::get_dialog_invite_link_users(
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
   if (limit <= 0) {
-    return promise.set_error(Status::Error(400, "Parameter limit must be positive"));
+    return promise.set_error(400, "Parameter limit must be positive");
   }
 
   if (invite_link.empty()) {
-    return promise.set_error(Status::Error(400, "Invite link must be non-empty"));
+    return promise.set_error(400, "Invite link must be non-empty");
   }
 
   UserId offset_user_id;
@@ -1076,7 +1074,7 @@ void DialogInviteLinkManager::revoke_dialog_invite_link(
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
   if (invite_link.empty()) {
-    return promise.set_error(Status::Error(400, "Invite link must be non-empty"));
+    return promise.set_error(400, "Invite link must be non-empty");
   }
 
   td_->create_handler<RevokeChatInviteLinkQuery>(std::move(promise))->send(dialog_id, invite_link);
@@ -1087,7 +1085,7 @@ void DialogInviteLinkManager::delete_revoked_dialog_invite_link(DialogId dialog_
   TRY_STATUS_PROMISE(promise, can_manage_dialog_invite_links(dialog_id));
 
   if (invite_link.empty()) {
-    return promise.set_error(Status::Error(400, "Invite link must be non-empty"));
+    return promise.set_error(400, "Invite link must be non-empty");
   }
 
   td_->create_handler<DeleteExportedChatInviteQuery>(std::move(promise))->send(dialog_id, invite_link);

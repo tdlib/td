@@ -541,7 +541,7 @@ void BusinessManager::get_business_connected_bot(Promise<td_api::object_ptr<td_a
 void BusinessManager::set_business_connected_bot(td_api::object_ptr<td_api::businessConnectedBot> &&bot,
                                                  Promise<Unit> &&promise) {
   if (bot == nullptr) {
-    return promise.set_error(Status::Error(400, "Bot must be non-empty"));
+    return promise.set_error(400, "Bot must be non-empty");
   }
   BusinessConnectedBot connected_bot(std::move(bot));
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(connected_bot.get_user_id()));
@@ -559,7 +559,7 @@ void BusinessManager::toggle_business_connected_bot_dialog_is_paused(DialogId di
                      td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
                                                                "toggle_business_connected_bot_dialog_is_paused"));
   if (dialog_id.get_type() != DialogType::User) {
-    return promise.set_error(Status::Error(400, "The chat has no connected bot"));
+    return promise.set_error(400, "The chat has no connected bot");
   }
   td_->messages_manager_->on_update_dialog_business_bot_is_paused(dialog_id, is_paused);
   td_->create_handler<ToggleConnectedBotPausedQuery>(std::move(promise))->send(dialog_id, is_paused);
@@ -569,7 +569,7 @@ void BusinessManager::remove_business_connected_bot_from_dialog(DialogId dialog_
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
                                                                         "remove_business_connected_bot_from_dialog"));
   if (dialog_id.get_type() != DialogType::User) {
-    return promise.set_error(Status::Error(400, "The chat has no connected bot"));
+    return promise.set_error(400, "The chat has no connected bot");
   }
   td_->messages_manager_->on_update_dialog_business_bot_removed(dialog_id);
   td_->create_handler<DisablePeerConnectedBotQuery>(std::move(promise))->send(dialog_id);

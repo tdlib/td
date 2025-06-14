@@ -87,7 +87,7 @@ void NetQueryVerifier::check_recaptcha(NetQueryPtr query, string action, string 
 void NetQueryVerifier::set_verification_token(int64 query_id, string &&token, Promise<Unit> &&promise) {
   auto it = queries_.find(query_id);
   if (it == queries_.end()) {
-    return promise.set_error(Status::Error(400, "Verification not found"));
+    return promise.set_error(400, "Verification not found");
   }
   auto query = std::move(it->second.first);
   auto verification_query = std::move(it->second.second);

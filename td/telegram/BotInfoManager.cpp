@@ -285,7 +285,7 @@ class BotInfoManager::AddPreviewMediaQuery final : public Td::ResultHandler {
     auto preview = convert_bot_media_preview(td_, std::move(ptr), bot_user_id, file_ids);
     if (preview == nullptr) {
       LOG(ERROR) << "Receive invalid sent media preview";
-      return pending_preview_->promise_.set_error(Status::Error(500, "Receive invalid preview"));
+      return pending_preview_->promise_.set_error(500, "Receive invalid preview");
     }
     if (!file_ids.empty()) {
       auto file_source_id = td_->bot_info_manager_->get_bot_media_preview_info_file_source_id(
@@ -399,7 +399,7 @@ class CanBotSendMessageQuery final : public Td::ResultHandler {
     if (result_ptr.ok()) {
       promise_.set_value(Unit());
     } else {
-      promise_.set_error(Status::Error(404, "Not Found"));
+      promise_.set_error(404, "Not Found");
     }
   }
 
@@ -861,7 +861,7 @@ void BotInfoManager::edit_bot_media_preview(UserId bot_user_id, const string &la
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_content), DialogId(bot_user_id)));
   auto input_media = get_fake_input_media(file_id);
   if (input_media == nullptr) {
-    return promise.set_error(Status::Error(400, "Wrong media to edit specified"));
+    return promise.set_error(400, "Wrong media to edit specified");
   }
   auto pending_preview = make_unique<PendingBotMediaPreview>();
   pending_preview->edited_file_id_ = file_id;
@@ -914,10 +914,10 @@ void BotInfoManager::on_upload_bot_media_preview(FileUploadId file_upload_id,
   const auto *main_remote_location = file_view.get_main_remote_location();
   if (input_file == nullptr && main_remote_location != nullptr) {
     if (main_remote_location->is_web()) {
-      return pending_preview->promise_.set_error(Status::Error(400, "Can't use web photo as a preview"));
+      return pending_preview->promise_.set_error(400, "Can't use web photo as a preview");
     }
     if (pending_preview->was_reuploaded_) {
-      return pending_preview->promise_.set_error(Status::Error(500, "Failed to reupload preview"));
+      return pending_preview->promise_.set_error(500, "Failed to reupload preview");
     }
     pending_preview->was_reuploaded_ = true;
 
@@ -983,7 +983,7 @@ void BotInfoManager::reorder_bot_media_previews(UserId bot_user_id, const string
   for (auto file_id : file_ids) {
     auto input_media = get_fake_input_media(FileId(file_id, 0));
     if (input_media == nullptr) {
-      return promise.set_error(Status::Error(400, "Wrong media to delete specified"));
+      return promise.set_error(400, "Wrong media to delete specified");
     }
     input_medias.push_back(std::move(input_media));
   }
@@ -1002,7 +1002,7 @@ void BotInfoManager::delete_bot_media_previews(UserId bot_user_id, const string 
   for (auto file_id : file_ids) {
     auto input_media = get_fake_input_media(FileId(file_id, 0));
     if (input_media == nullptr) {
-      return promise.set_error(Status::Error(400, "Wrong media to delete specified"));
+      return promise.set_error(400, "Wrong media to delete specified");
     }
     input_medias.push_back(std::move(input_media));
   }
@@ -1067,7 +1067,7 @@ void BotInfoManager::set_custom_bot_verification(UserId bot_user_id, DialogId di
     TRY_RESULT_PROMISE_ASSIGN(promise, bot_input_user, td_->user_manager_->get_input_user(bot_user_id));
   }
   if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the verified entity"));
+    return promise.set_error(400, "Can't access the verified entity");
   }
   td_->create_handler<SetCustomVerificationQuery>(std::move(promise))
       ->send(std::move(bot_input_user), dialog_id, is_verified, custom_description);
