@@ -1332,26 +1332,16 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string animation_search_provider;
   string animation_search_emojis;
   bool can_archive_and_mute_new_chats_from_unknown_users = false;
-  int32 chat_read_mark_expire_period = 0;
-  int32 chat_read_mark_size_threshold = 0;
   double animated_emoji_zoom = 0.0;
-  int32 reactions_uniq_max = 0;
   vector<string> premium_features;
   auto &premium_limit_keys = get_premium_limit_keys();
   string premium_bot_username;
   string premium_invoice_slug;
   bool is_premium_available = false;
-  int32 stickers_premium_by_emoji_num = 0;
-  int32 stickers_normal_by_emoji_per_premium_num = 2;
-  int32 telegram_antispam_group_size_min = 100;
-  int32 topics_pinned_limit = -1;
   vector<string> fragment_prefixes;
   bool premium_gift_attach_menu_icon = false;
   bool premium_gift_text_field_icon = false;
-  int32 dialog_filter_update_period = 300;
   // bool archive_all_stories = false;
-  int32 story_viewers_expire_period = 86400;
-  int64 stories_changelog_user_id = UserManager::get_service_notifications_user_id().get();
   int32 transcribe_audio_trial_weekly_number = 0;
   int32 transcribe_audio_trial_duration_max = 0;
   int32 transcribe_audio_trial_cooldown_until = 0;
@@ -1380,6 +1370,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"channel_profile_bg_icon_level_min", ""},
       {"channel_restrict_sponsored_level_min", ""},
       {"channel_wallpaper_level_min", ""},
+      {"chat_read_mark_expire_period", ""},
+      {"chat_read_mark_size_threshold", ""},
+      {"chatlist_update_period", "chat_folder_new_chats_update_period"},
       {"conference_call_size_limit", "group_call_participant_count_max"},
       {"factcheck_length_limit", "fact_check_length_max"},
       {"giveaway_add_peers_max", "giveaway_additional_chat_count_max"},
@@ -1401,6 +1394,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"quick_reply_messages_limit", "quick_reply_shortcut_message_count_max"},
       {"quote_length_max", "message_reply_quote_length_max"},
       {"reactions_in_chat_max", "chat_available_reaction_count_max"},
+      {"reactions_uniq_max", ""},
       {"reactions_user_max_default", ""},
       {"reactions_user_max_premium", ""},
       {"ringtone_duration_max", "notification_sound_duration_max"},
@@ -1423,12 +1417,18 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"stars_subscription_amount_max", "subscription_star_count_max"},
       {"stars_usd_sell_rate_x1000", "usd_to_thousand_star_rate"},
       {"stars_usd_withdraw_rate_x1000", "thousand_star_to_usd_rate"},
+      {"stickers_premium_by_emoji_num", ""},
+      {"stickers_normal_by_emoji_per_premium_num", ""},
       {"stories_area_url_max", "story_link_area_count_max"},
+      {"stories_changelog_user_id", ""},
       {"stories_pinned_to_top_count_max", "pinned_story_count_max"},
       {"stories_stealth_cooldown_period", "story_stealth_mode_cooldown_period"},
       {"stories_stealth_future_period", "story_stealth_mode_future_period"},
       {"stories_stealth_past_period", "story_stealth_mode_past_period"},
+      {"story_viewers_expire_period", "story_viewers_expiration_delay"},
+      {"telegram_antispam_group_size_min", "aggressive_anti_spam_supergroup_member_count_min"},
       {"telegram_antispam_user_id", "anti_spam_bot_user_id"},
+      {"topics_pinned_limit", "pinned_forum_topic_count_max"},
       {"upload_premium_speedup_download", "premium_download_speedup"},
       {"upload_premium_speedup_notify_period", ""},
       {"upload_premium_speedup_upload", "premium_upload_speedup"}};
@@ -1678,18 +1678,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
-      if (key == "chat_read_mark_expire_period") {
-        chat_read_mark_expire_period = get_json_value_int(std::move(key_value->value_), key);
-        continue;
-      }
-      if (key == "chat_read_mark_size_threshold") {
-        chat_read_mark_size_threshold = get_json_value_int(std::move(key_value->value_), key);
-        continue;
-      }
-      if (key == "reactions_uniq_max") {
-        reactions_uniq_max = get_json_value_int(std::move(key_value->value_), key);
-        continue;
-      }
       if (key == "premium_promo_order") {
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto features = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
@@ -1735,18 +1723,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         is_premium_available = !get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
-      if (key == "stickers_premium_by_emoji_num") {
-        stickers_premium_by_emoji_num = get_json_value_int(std::move(key_value->value_), key);
-        continue;
-      }
-      if (key == "stickers_normal_by_emoji_per_premium_num") {
-        stickers_normal_by_emoji_per_premium_num = get_json_value_int(std::move(key_value->value_), key);
-        continue;
-      }
-      if (key == "telegram_antispam_group_size_min") {
-        telegram_antispam_group_size_min = get_json_value_int(std::move(key_value->value_), key);
-        continue;
-      }
       if (key == "fragment_prefixes") {
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto prefixes = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
@@ -1764,10 +1740,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
-      if (key == "topics_pinned_limit") {
-        topics_pinned_limit = get_json_value_int(std::move(key_value->value_), key);
-        continue;
-      }
       if (key == "premium_gift_attach_menu_icon") {
         premium_gift_attach_menu_icon = get_json_value_bool(std::move(key_value->value_), key);
         continue;
@@ -1776,20 +1748,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         premium_gift_text_field_icon = get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
-      if (key == "chatlist_update_period") {
-        dialog_filter_update_period = get_json_value_int(std::move(key_value->value_), key);
-        continue;
-      }
       if (key == "stories_all_hidden") {
         // archive_all_stories = get_json_value_bool(std::move(key_value->value_), key);
-        continue;
-      }
-      if (key == "story_viewers_expire_period") {
-        story_viewers_expire_period = get_json_value_int(std::move(key_value->value_), key);
-        continue;
-      }
-      if (key == "stories_changelog_user_id") {
-        stories_changelog_user_id = get_json_value_long(std::move(key_value->value_), key);
         continue;
       }
       if (key == "stories_venue_search_username") {
@@ -2005,27 +1965,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_boolean("can_archive_and_mute_new_chats_from_unknown_users",
                                can_archive_and_mute_new_chats_from_unknown_users);
   }
-  if (chat_read_mark_expire_period <= 0) {
-    options.set_option_empty("chat_read_mark_expire_period");
-  } else {
-    options.set_option_integer("chat_read_mark_expire_period", chat_read_mark_expire_period);
-  }
-  if (chat_read_mark_size_threshold <= 0) {
-    options.set_option_empty("chat_read_mark_size_threshold");
-  } else {
-    options.set_option_integer("chat_read_mark_size_threshold", chat_read_mark_size_threshold);
-  }
-  if (reactions_uniq_max <= 0 || reactions_uniq_max == 11) {
-    options.set_option_empty("reactions_uniq_max");
-  } else {
-    options.set_option_integer("reactions_uniq_max", reactions_uniq_max);
-  }
-  if (telegram_antispam_group_size_min >= 0) {
-    options.set_option_integer("aggressive_anti_spam_supergroup_member_count_min", telegram_antispam_group_size_min);
-  }
-  if (dialog_filter_update_period > 0) {
-    options.set_option_integer("chat_folder_new_chats_update_period", dialog_filter_update_period);
-  }
+
   options.set_option_boolean("can_accept_calls", can_accept_calls);
 
   if (!is_premium_available) {
@@ -2049,11 +1989,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     options.set_option_string("premium_invoice_slug", premium_invoice_slug);
   }
-  if (topics_pinned_limit >= 0) {
-    options.set_option_integer("pinned_forum_topic_count_max", topics_pinned_limit);
-  } else {
-    options.set_option_empty("pinned_forum_topic_count_max");
-  }
 
   if (premium_gift_attach_menu_icon) {
     options.set_option_boolean("gift_premium_from_attachment_menu", premium_gift_attach_menu_icon);
@@ -2065,28 +2000,16 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     options.set_option_empty("gift_premium_from_input_field");
   }
-  if (stories_changelog_user_id != UserManager::get_service_notifications_user_id().get()) {
-    options.set_option_integer("stories_changelog_user_id", stories_changelog_user_id);
-  } else {
-    options.set_option_empty("stories_changelog_user_id");
-  }
   if (can_edit_fact_check) {
     options.set_option_boolean("can_edit_fact_check", can_edit_fact_check);
   } else {
     options.set_option_empty("can_edit_fact_check");
   }
 
-  if (story_viewers_expire_period >= 0) {
-    options.set_option_integer("story_viewers_expiration_delay", story_viewers_expire_period);
-  }
-
   if (!options.get_option_boolean("need_synchronize_archive_all_stories")) {
     // options.set_option_boolean("archive_all_stories", archive_all_stories);
   }
   options.set_option_empty("archive_all_stories");
-
-  options.set_option_integer("stickers_premium_by_emoji_num", stickers_premium_by_emoji_num);
-  options.set_option_integer("stickers_normal_by_emoji_per_premium_num", stickers_normal_by_emoji_per_premium_num);
 
   options.set_option_boolean("can_withdraw_chat_revenue", channel_revenue_withdrawal_enabled);
   options.set_option_boolean("need_premium_for_new_chat_privacy", need_premium_for_new_chat_privacy);
