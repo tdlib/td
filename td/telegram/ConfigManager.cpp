@@ -1439,7 +1439,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       auto it = integer_keys.find(key);
       if (it != integer_keys.end()) {
         G()->set_option_integer(it->second.empty() ? key : it->second,
-                                get_json_value_int(std::move(key_value->value_), key));
+                                max(0, get_json_value_int(std::move(key_value->value_), key)));
         continue;
       }
 
