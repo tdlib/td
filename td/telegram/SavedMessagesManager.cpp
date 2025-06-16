@@ -614,9 +614,7 @@ void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topi
   topic->last_message_date_ = last_message_date;
   topic->is_changed_ = true;
 
-  if (last_message_id != MessageId()) {
-    CHECK(topic->ordered_messages_.get_last_message_id() == last_message_id);
-  } else if (last_message_date != 0) {
+  if (last_message_id == MessageId() && last_message_date != 0) {
     do_get_topic_history(get_topic_list(topic->dialog_id_), nullptr /*force request*/,
                          topic->dialog_id_ == DialogId() ? td_->dialog_manager_->get_my_dialog_id() : topic->dialog_id_,
                          topic->saved_messages_topic_id_, MessageId::max(), 0, 1, 2, Auto());
@@ -806,20 +804,24 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
   auto *topic = get_topic(topic_list, saved_messages_topic_id);
   CHECK(topic != nullptr);
 
-  topic->ordered_messages_.erase(message_id, only_from_memory, source);
-
   if (message_id == topic->last_message_id_) {
     CHECK(!only_from_memory);
 
-    MessageId new_last_message_id = topic->ordered_messages_.get_last_message_id();
-    int32 new_last_message_date = 0;
-    if (new_last_message_id != MessageId()) {
+    MessageId new_last_message_id;
+    int32 new_last_message_date;
+    auto it = topic->ordered_messages_.get_const_iterator(message_id);
+    CHECK(*it != nullptr);
+    CHECK((*it)->get_message_id() == message_id);
+    --it;
+    if (*it != nullptr) {
+      new_last_message_id = (*it)->get_message_id();
       new_last_message_date = td_->messages_manager_->get_get_message_date(dialog_id)(new_last_message_id);
     } else {
       new_last_message_date = topic->last_message_date_;
     }
     do_set_topic_last_message_id(topic, new_last_message_id, new_last_message_date);
   }
+  topic->ordered_messages_.erase(message_id, only_from_memory, source);
   if (!only_from_memory) {
     if (message_id.is_server()) {
       if (topic->is_server_message_count_inited_) {
