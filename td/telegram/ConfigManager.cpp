@@ -1435,8 +1435,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   static const FlatHashSet<Slice, SliceHash> ignored_options(
       {"default_emoji_statuses_stickerset_id", "forum_upgrade_participants_min", "getfile_experimental_params",
        "message_animated_emoji_max", "stickers_emoji_cache_time", "stories_export_nopublic_link", "test",
-       "upload_max_fileparts_default", "upload_max_fileparts_premium", "wallet_blockchain_name", "wallet_config",
-       "wallet_enabled", "channel_color_level_min"});
+       "upload_max_fileparts_default", "upload_max_fileparts_premium", "channel_color_level_min"});
   if (config->get_id() == telegram_api::jsonObject::ID) {
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
