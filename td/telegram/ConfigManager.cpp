@@ -54,6 +54,7 @@
 #include "td/utils/crypto.h"
 #include "td/utils/emoji.h"
 #include "td/utils/FlatHashMap.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/format.h"
 #include "td/utils/HttpDate.h"
 #include "td/utils/JsonBuilder.h"
