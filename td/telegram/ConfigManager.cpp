@@ -1421,14 +1421,12 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"stickers_premium_by_emoji_num", ""},
       {"stickers_normal_by_emoji_per_premium_num", ""},
       {"stories_area_url_max", "story_link_area_count_max"},
-      {"stories_changelog_user_id", ""},
       {"stories_pinned_to_top_count_max", "pinned_story_count_max"},
       {"stories_stealth_cooldown_period", "story_stealth_mode_cooldown_period"},
       {"stories_stealth_future_period", "story_stealth_mode_future_period"},
       {"stories_stealth_past_period", "story_stealth_mode_past_period"},
       {"story_viewers_expire_period", "story_viewers_expiration_delay"},
       {"telegram_antispam_group_size_min", "aggressive_anti_spam_supergroup_member_count_min"},
-      {"telegram_antispam_user_id", "anti_spam_bot_user_id"},
       {"topics_pinned_limit", "pinned_forum_topic_count_max"},
       {"upload_premium_speedup_download", "premium_download_speedup"},
       {"upload_premium_speedup_notify_period", ""},
@@ -1751,6 +1749,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       }
       if (key == "premium_gift_text_field_icon") {
         premium_gift_text_field_icon = get_json_value_bool(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "telegram_antispam_user_id") {
+        G()->set_option_integer("anti_spam_bot_user_id", get_json_value_long(std::move(key_value->value_), key));
+        continue;
+      }
+      if (key == "stories_changelog_user_id") {
+        G()->set_option_integer("stories_changelog_user_id", get_json_value_long(std::move(key_value->value_), key));
         continue;
       }
       if (key == "stories_all_hidden") {
