@@ -10750,7 +10750,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.author_signature = std::move(message->post_author_);
       message_info.sender_boost_count = message->from_boosts_applied_;
       message_info.paid_message_star_count = StarManager::get_star_count(message->paid_message_stars_);
-      if (!is_bot && message->saved_peer_id_ != nullptr) {
+      if (message->saved_peer_id_ != nullptr) {
         message_info.saved_messages_topic_id = SavedMessagesTopicId(DialogId(message->saved_peer_id_));
       }
       // update QuickReplyManager::create_message
@@ -10784,8 +10784,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
                                      message_info.reply_header.replied_message_info_, is_business_message);
       message_info.reply_header.replied_message_info_ = RepliedMessageInfo();
       message_info.reply_header.story_full_id_ = StoryFullId();
-      if (!is_bot && message_info.dialog_id == td->dialog_manager_->get_my_dialog_id()) {
-        message_info.saved_messages_topic_id = SavedMessagesTopicId(message_info.dialog_id);
+      if (message->saved_peer_id_ != nullptr) {
+        message_info.saved_messages_topic_id = SavedMessagesTopicId(DialogId(message->saved_peer_id_));
       }
       break;
     }
