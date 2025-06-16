@@ -47,7 +47,8 @@ class GetSponsoredMessagesQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::messages_getSponsoredMessages(std::move(input_peer))));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_getSponsoredMessages(0, std::move(input_peer), 0)));
   }
 
   void on_result(BufferSlice packet) final {

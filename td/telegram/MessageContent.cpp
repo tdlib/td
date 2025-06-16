@@ -7604,6 +7604,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       return td::make_unique<MessagePaidMedia>(std::move(extended_media), std::move(message),
                                                StarManager::get_star_count(media->stars_amount_), string());
     }
+    case telegram_api::messageMediaToDo::ID:
+      return make_unique<MessageUnsupported>();
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<MessageUnsupported>();
     default:
@@ -7917,6 +7919,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionStarGiftUnique::ID:
       case telegram_api::messageActionPaidMessagesRefunded::ID:
       case telegram_api::messageActionConferenceCall::ID:
+      case telegram_api::messageActionTodoCompletions::ID:
+      case telegram_api::messageActionTodoAppendTasks::ID:
         // ok
         break;
       default:
@@ -8461,6 +8465,12 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageConferenceCall>(action->call_id_, max(0, action->duration_),
                                                     std::move(other_participant_dialog_ids), action->active_,
                                                     action->video_, action->missed_);
+    }
+    case telegram_api::messageActionTodoCompletions::ID: {
+      return make_unique<MessageUnsupported>();
+    }
+    case telegram_api::messageActionTodoAppendTasks::ID: {
+      return make_unique<MessageUnsupported>();
     }
     default:
       UNREACHABLE();

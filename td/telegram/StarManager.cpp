@@ -1035,7 +1035,8 @@ class GetPaidMessageRevenueQuery final : public Td::ResultHandler {
   }
 
   void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
-    send_query(G()->net_query_creator().create(telegram_api::account_getPaidMessagesRevenue(std::move(input_user))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_getPaidMessagesRevenue(0, nullptr, std::move(input_user))));
   }
 
   void on_result(BufferSlice packet) final {
