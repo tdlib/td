@@ -140,6 +140,9 @@ class SavedMessagesManager final : public Actor {
   void read_all_monoforum_topic_reactions(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                           Promise<Unit> &&promise);
 
+  void get_monoforum_topic_revenue(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                   Promise<td_api::object_ptr<td_api::starCount>> &&promise);
+
   void get_monoforum_message_author(MessageFullId message_full_id, Promise<td_api::object_ptr<td_api::user>> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;

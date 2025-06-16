@@ -3081,6 +3081,14 @@ void Requests::on_request(uint64 id, const td_api::readAllDirectMessagesChatTopi
       dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getDirectMessagesChatTopicRevenue &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  DialogId dialog_id(request.chat_id_);
+  td_->saved_messages_manager_->get_monoforum_topic_revenue(
+      dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::loadSavedMessagesTopics &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

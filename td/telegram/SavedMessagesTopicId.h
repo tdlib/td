@@ -56,6 +56,8 @@ class SavedMessagesTopicId {
 
   td_api::object_ptr<td_api::MessageSender> get_monoforum_message_sender_object(Td *td) const;
 
+  Result<telegram_api::object_ptr<telegram_api::InputUser>> get_input_user(const Td *td) const;
+
   telegram_api::object_ptr<telegram_api::InputPeer> get_input_peer(const Td *td) const;
 
   telegram_api::object_ptr<telegram_api::InputDialogPeer> get_input_dialog_peer(const Td *td) const;

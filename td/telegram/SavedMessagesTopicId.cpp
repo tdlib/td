@@ -99,6 +99,13 @@ bool SavedMessagesTopicId::is_author_hidden() const {
   return dialog_id_ == HIDDEN_AUTHOR_DIALOG_ID;
 }
 
+Result<telegram_api::object_ptr<telegram_api::InputUser>> SavedMessagesTopicId::get_input_user(const Td *td) const {
+  if (dialog_id_.get_type() == DialogType::User) {
+    return td->user_manager_->get_input_user(dialog_id_.get_user_id());
+  }
+  return Status::Error(400, "Invalid topic identifier");
+}
+
 telegram_api::object_ptr<telegram_api::InputPeer> SavedMessagesTopicId::get_input_peer(const Td *td) const {
   return td->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Know);
 }

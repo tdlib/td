@@ -22,6 +22,7 @@
 #include "td/telegram/MessageTopic.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserManager.h"
@@ -445,6 +446,38 @@ class ReadSavedHistoryQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     // two dialogs are involved
     // td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReadSavedHistoryQuery");
+  }
+};
+
+class GetMonoforumPaidMessageRevenueQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::starCount>> promise_;
+
+ public:
+  explicit GetMonoforumPaidMessageRevenueQuery(Promise<td_api::object_ptr<td_api::starCount>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user) {
+    int32 flags = telegram_api::account_getPaidMessagesRevenue::PARENT_PEER_MASK;
+    auto parent_input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    CHECK(parent_input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_getPaidMessagesRevenue(flags, std::move(parent_input_peer), std::move(input_user))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getPaidMessagesRevenue>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetMonoforumPaidMessageRevenueQuery: " << to_string(ptr);
+    promise_.set_value(td_api::make_object<td_api::starCount>(StarManager::get_star_count(ptr->stars_amount_)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -2393,6 +2426,23 @@ void SavedMessagesManager::read_all_monoforum_topic_reactions(DialogId dialog_id
                                                                   std::move(promise));
 
   on_topic_changed(topic_list, topic, "read_all_monoforum_topic_reactions");
+}
+
+void SavedMessagesManager::get_monoforum_topic_revenue(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+                                                       Promise<td_api::object_ptr<td_api::starCount>> &&promise) {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return promise.set_error(400, "Topic not found");
+  }
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
+  if (topic == nullptr) {
+    return promise.set_error(400, "Topic not found");
+  }
+  if (topic->dialog_id_ != dialog_id) {
+    return promise.set_error(400, "Topic messages can't be paid");
+  }
+  TRY_RESULT_PROMISE(promise, input_user, saved_messages_topic_id.get_input_user(td_));
+  td_->create_handler<GetMonoforumPaidMessageRevenueQuery>(std::move(promise))->send(dialog_id, std::move(input_user));
 }
 
 void SavedMessagesManager::get_monoforum_message_author(MessageFullId message_full_id,

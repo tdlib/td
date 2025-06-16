@@ -3237,6 +3237,11 @@ class CliClient final : public Actor {
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::readAllDirectMessagesChatTopicReactions>(
           chat_id, direct_messages_chat_topic_id_));
+    } else if (op == "gdmctr") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(
+          td_api::make_object<td_api::getDirectMessagesChatTopicRevenue>(chat_id, direct_messages_chat_topic_id_));
     } else if (op == "lsmt") {
       string limit;
       get_args(args, limit);
