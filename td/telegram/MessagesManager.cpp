@@ -34173,17 +34173,27 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
   }
 }
 
-void MessagesManager::reget_message_from_server_if_needed(DialogId dialog_id, const Message *m) {
+bool MessagesManager::need_reload_message_from_server(DialogId dialog_id, const Message *m) const {
   if (!m->message_id.is_any_server() || dialog_id.get_type() == DialogType::SecretChat) {
+    return false;
+  }
+  if (need_reget_message_content(m->content.get()) || m->reply_info.need_reget(td_) ||
+      m->replied_message_info.need_reget()) {
+    return true;
+  }
+  if (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER) {
+    return true;
+  }
+  return false;
+}
+
+void MessagesManager::reget_message_from_server_if_needed(DialogId dialog_id, const Message *m) {
+  if (!need_reload_message_from_server(dialog_id, m)) {
     return;
   }
-
-  if (need_reget_message_content(m->content.get()) || (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER) ||
-      m->reply_info.need_reget(td_) || m->replied_message_info.need_reget()) {
-    MessageFullId message_full_id{dialog_id, m->message_id};
-    LOG(INFO) << "Reget from server " << message_full_id;
-    get_message_from_server(message_full_id, Auto(), "reget_message_from_server_if_needed");
-  }
+  MessageFullId message_full_id{dialog_id, m->message_id};
+  LOG(INFO) << "Reget from server " << message_full_id;
+  get_message_from_server(message_full_id, Auto(), "reget_message_from_server_if_needed");
 }
 
 void MessagesManager::speculatively_update_active_group_call_id(Dialog *d, const Message *m) {

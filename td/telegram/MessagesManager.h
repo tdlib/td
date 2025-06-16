@@ -3029,6 +3029,8 @@ class MessagesManager final : public Actor {
 
   static MessageId get_next_yet_unsent_scheduled_message_id(Dialog *d, int32 date);
 
+  bool need_reload_message_from_server(DialogId dialog_id, const Message *m) const;
+
   void reget_message_from_server_if_needed(DialogId dialog_id, const Message *m);
 
   void speculatively_update_active_group_call_id(Dialog *d, const Message *m);
