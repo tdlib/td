@@ -616,6 +616,10 @@ void SavedMessagesManager::do_set_topic_last_message_id(SavedMessagesTopic *topi
 
   if (last_message_id != MessageId()) {
     CHECK(topic->ordered_messages_.get_last_message_id() == last_message_id);
+  } else if (last_message_date != 0) {
+    do_get_topic_history(get_topic_list(topic->dialog_id_), nullptr /*force request*/,
+                         topic->dialog_id_ == DialogId() ? td_->dialog_manager_->get_my_dialog_id() : topic->dialog_id_,
+                         topic->saved_messages_topic_id_, MessageId::max(), 0, 1, 2, Auto());
   }
 }
 
@@ -811,10 +815,6 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
       new_last_message_date = topic->last_message_date_;
     }
     do_set_topic_last_message_id(topic, new_last_message_id, new_last_message_date);
-    if (new_last_message_id == MessageId()) {
-      do_get_topic_history(topic_list, nullptr /*force request*/, dialog_id, saved_messages_topic_id, MessageId::max(),
-                           0, 1, 2, Auto());
-    }
   }
   if (!only_from_memory) {
     if (message_id.is_server()) {
@@ -1986,6 +1986,7 @@ void SavedMessagesManager::do_get_topic_history(const TopicList *topic_list, con
                                                 DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                                 MessageId from_message_id, int32 offset, int32 limit, int32 left_tries,
                                                 Promise<td_api::object_ptr<td_api::messages>> &&promise) {
+  CHECK(topic_list != nullptr);
   int32 total_count = -1;
   vector<MessageId> message_ids;
   auto initial_from_message_id = from_message_id;
