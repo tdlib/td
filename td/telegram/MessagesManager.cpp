@@ -30988,12 +30988,21 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   }
   if (old_message->saved_messages_topic_id != new_message->saved_messages_topic_id) {
     if (!(message_id.is_yet_unsent() && (old_message->saved_messages_topic_id.is_author_hidden() ||
-                                         new_message->saved_messages_topic_id.is_author_hidden()))) {
+                                         new_message->saved_messages_topic_id.is_author_hidden())) &&
+        !is_service_message_content(new_content_type)) {
       LOG(ERROR) << "Saved Messages topic for " << message_id << " in " << dialog_id << " changed from "
                  << old_message->saved_messages_topic_id << " to " << new_message->saved_messages_topic_id;
     }
     if (is_message_in_dialog) {
-      LOG(ERROR) << "Ignore change of message topic for " << message_id << " in " << dialog_id;
+      if (!old_message->saved_messages_topic_id.is_valid()) {
+        old_message->saved_messages_topic_id = new_message->saved_messages_topic_id;
+        need_send_update = true;
+        td_->saved_messages_manager_->on_topic_message_added(dialog_id, old_message->saved_messages_topic_id,
+                                                             message_id, old_message->date, false, false, false,
+                                                             "fix saved_messages_topic_id");
+      } else {
+        LOG(ERROR) << "Ignore change of message topic for " << message_id << " in " << dialog_id;
+      }
     } else {
       old_message->saved_messages_topic_id = new_message->saved_messages_topic_id;
       need_send_update = true;
@@ -34182,6 +34191,10 @@ bool MessagesManager::need_reload_message_from_server(DialogId dialog_id, const 
     return true;
   }
   if (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER) {
+    return true;
+  }
+  if (m->saved_messages_topic_id == SavedMessagesTopicId() &&
+      td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
     return true;
   }
   return false;
