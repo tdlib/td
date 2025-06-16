@@ -746,6 +746,7 @@ void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessa
 
   if (message_id > topic->last_message_id_) {
     if (from_update && is_new) {
+      CHECK(topic->ordered_messages_.get_last_message_id() == message_id);
       do_set_topic_last_message_id(topic, message_id, message_date);
     } else {
       do_set_topic_last_message_id(topic, MessageId(), message_date);
@@ -822,6 +823,9 @@ void SavedMessagesManager::on_topic_message_deleted(DialogId dialog_id, SavedMes
     do_set_topic_last_message_id(topic, new_last_message_id, new_last_message_date);
   }
   topic->ordered_messages_.erase(message_id, only_from_memory, source);
+  if (topic->last_message_id_ != MessageId()) {
+    CHECK(topic->ordered_messages_.get_last_message_id() == topic->last_message_id_);
+  }
   if (!only_from_memory) {
     if (message_id.is_server()) {
       if (topic->is_server_message_count_inited_) {
