@@ -746,8 +746,12 @@ void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessa
 
   topic->ordered_messages_.insert(message_id, from_update, topic->last_message_id_, source);
 
-  if (from_update && is_new && message_id > topic->last_message_id_) {
-    do_set_topic_last_message_id(topic, message_id, message_date);
+  if (message_id > topic->last_message_id_) {
+    if (from_update && is_new) {
+      do_set_topic_last_message_id(topic, message_id, message_date);
+    } else {
+      do_set_topic_last_message_id(topic, MessageId(), message_date);
+    }
   }
   if (topic->dialog_id_.is_valid() && need_update && message_id > topic->read_inbox_max_message_id_ &&
       td_->messages_manager_->get_is_counted_as_unread(dialog_id, MessageType::Server)(message_id)) {
