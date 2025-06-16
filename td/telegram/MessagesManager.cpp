@@ -30998,7 +30998,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       LOG(ERROR) << "Saved Messages topic for " << message_id << " in " << dialog_id << " changed from "
                  << old_message->saved_messages_topic_id << " to " << new_message->saved_messages_topic_id;
     }
-    if (!is_message_in_dialog) {
+    if (is_message_in_dialog) {
       LOG(ERROR) << "Ignore change of message topic for " << message_id << " in " << dialog_id;
     } else {
       old_message->saved_messages_topic_id = new_message->saved_messages_topic_id;
