@@ -2911,6 +2911,7 @@ savedMessagesTopic id:int53 type:SavedMessagesTopicType is_pinned:Bool order:int
 //@id Unique topic identifier
 //@sender_id Identifier of the user or chat that sends the messages to the topic
 //@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order
+//@can_send_unpaid_messages True if the other party can send unpaid messages even if the chat has paid messages enabled
 //@is_marked_as_unread True, if the forum topic is marked as unread
 //@unread_count Number of unread messages in the chat
 //@last_read_inbox_message_id Identifier of the last read incoming message
@@ -2918,7 +2919,7 @@ savedMessagesTopic id:int53 type:SavedMessagesTopicType is_pinned:Bool order:int
 //@unread_reaction_count Number of messages with unread reactions in the chat
 //@last_message Last message in the topic; may be null if none or unknown
 //@draft_message A draft of a message in the topic; may be null if none
-directMessagesChatTopic chat_id:int53 id:int53 sender_id:MessageSender order:int64 is_marked_as_unread:Bool unread_count:int53 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_reaction_count:int53 last_message:message draft_message:draftMessage = DirectMessagesChatTopic;
+directMessagesChatTopic chat_id:int53 id:int53 sender_id:MessageSender order:int64 can_send_unpaid_messages:Bool is_marked_as_unread:Bool unread_count:int53 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_reaction_count:int53 last_message:message draft_message:draftMessage = DirectMessagesChatTopic;
 
 
 //@description Describes a forum topic icon @color Color of the topic icon in RGB format @custom_emoji_id Unique identifier of the custom emoji shown on the topic icon; 0 if none

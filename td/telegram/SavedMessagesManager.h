@@ -159,6 +159,7 @@ class SavedMessagesManager final : public Actor {
     int32 unread_count_ = 0;
     int32 unread_reaction_count_ = 0;
     bool is_marked_as_unread_ = false;
+    bool nopaid_messages_exception_ = false;
 
     bool is_pinned_ = false;
   };
@@ -182,6 +183,7 @@ class SavedMessagesManager final : public Actor {
     int64 private_order_ = 0;
     bool is_server_message_count_inited_ = false;
     bool is_marked_as_unread_ = false;
+    bool nopaid_messages_exception_ = false;
     bool is_received_from_server_ = false;
     bool need_repair_unread_count_ = false;
     bool is_changed_ = false;
@@ -299,6 +301,8 @@ class SavedMessagesManager final : public Actor {
   void do_set_topic_read_outbox_max_message_id(SavedMessagesTopic *topic, MessageId read_outbox_max_message_id);
 
   void do_set_topic_is_marked_as_unread(SavedMessagesTopic *topic, bool is_marked_as_unread);
+
+  void do_set_topic_nopaid_messages_exception(SavedMessagesTopic *topic, bool nopaid_messages_exception);
 
   void do_set_topic_unread_reaction_count(SavedMessagesTopic *topic, int32 unread_reaction_count);
 

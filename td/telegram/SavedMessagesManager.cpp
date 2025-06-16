@@ -691,6 +691,22 @@ void SavedMessagesManager::do_set_topic_is_marked_as_unread(SavedMessagesTopic *
   topic->is_changed_ = true;
 }
 
+void SavedMessagesManager::do_set_topic_nopaid_messages_exception(SavedMessagesTopic *topic,
+                                                                  bool nopaid_messages_exception) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  if (topic->nopaid_messages_exception_ == nopaid_messages_exception) {
+    return;
+  }
+
+  LOG(INFO) << "Set can_send_unpaid_messages in " << topic->saved_messages_topic_id_ << " of " << topic->dialog_id_
+            << " to " << nopaid_messages_exception;
+  topic->nopaid_messages_exception_ = nopaid_messages_exception;
+  topic->is_changed_ = true;
+}
+
 void SavedMessagesManager::do_set_topic_unread_reaction_count(SavedMessagesTopic *topic, int32 unread_reaction_count) {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -1412,6 +1428,7 @@ SavedMessagesManager::SavedMessagesTopicInfo SavedMessagesManager::get_saved_mes
     result.unread_count_ = max(0, dialog->unread_count_);
     result.unread_reaction_count_ = dialog->unread_reactions_count_;
     result.is_marked_as_unread_ = dialog->unread_mark_;
+    result.nopaid_messages_exception_ = dialog->nopaid_messages_exception_;
     result.draft_message_ = get_draft_message(td, std::move(dialog->draft_));
   }
   return result;
@@ -1623,6 +1640,7 @@ void SavedMessagesManager::process_saved_messages_topics(
       do_set_topic_read_outbox_max_message_id(topic, topic_info.read_outbox_max_message_id_);
       do_set_topic_unread_reaction_count(topic, topic_info.unread_reaction_count_);
       do_set_topic_is_marked_as_unread(topic, topic_info.is_marked_as_unread_);
+      do_set_topic_nopaid_messages_exception(topic, topic_info.nopaid_messages_exception_);
       do_set_topic_draft_message(topic, std::move(topic_info.draft_message_), true);
     }
     on_topic_changed(topic_list, topic, "on_get_saved_messages_topics");
@@ -1708,9 +1726,10 @@ td_api::object_ptr<td_api::directMessagesChatTopic> SavedMessagesManager::get_di
       td_->dialog_manager_->get_chat_id_object(topic->dialog_id_, "directMessagesChatTopic"),
       topic->saved_messages_topic_id_.get_unique_id(),
       topic->saved_messages_topic_id_.get_monoforum_message_sender_object(td_),
-      get_topic_public_order(topic_list, topic), topic->is_marked_as_unread_, topic->unread_count_,
-      topic->read_inbox_max_message_id_.get(), topic->read_outbox_max_message_id_.get(), topic->unread_reaction_count_,
-      std::move(last_message_object), get_draft_message_object(td_, topic->draft_message_));
+      get_topic_public_order(topic_list, topic), topic->nopaid_messages_exception_, topic->is_marked_as_unread_,
+      topic->unread_count_, topic->read_inbox_max_message_id_.get(), topic->read_outbox_max_message_id_.get(),
+      topic->unread_reaction_count_, std::move(last_message_object),
+      get_draft_message_object(td_, topic->draft_message_));
 }
 
 td_api::object_ptr<td_api::updateDirectMessagesChatTopic>
@@ -2322,7 +2341,7 @@ Status SavedMessagesManager::set_monoforum_topic_draft_message(
     if (!is_local_draft_message(topic->draft_message_)) {
       save_draft_message(td_, dialog_id, saved_messages_topic_id, topic->draft_message_, Auto());
     }
-    on_topic_changed(topic_list, topic, "set_monoforum_topic_is_marked_as_unread");
+    on_topic_changed(topic_list, topic, "set_monoforum_topic_draft_message");
   }
   return Status::OK();
 }
