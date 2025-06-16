@@ -41,11 +41,6 @@ if (CMAKE_CROSSCOMPILING)
   endif()
   target_compile_definitions(tdjni PRIVATE PACKAGE_NAME="org/drinkless/tdlib")
 
-  if (${ANDROID_ABI} STREQUAL "arm64-v8a" OR ${ANDROID_ABI} STREQUAL "x86_64")
-    # Enable 16 KB ELF alignment.
-    target_link_options(tdjni PRIVATE "-Wl,-z,max-page-size=16384")
-  endif()
-
   add_custom_command(TARGET tdjni POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E rename $<TARGET_FILE:tdjni> $<TARGET_FILE:tdjni>.debug
     COMMAND ${CMAKE_STRIP} --strip-debug --strip-unneeded $<TARGET_FILE:tdjni>.debug -o $<TARGET_FILE:tdjni>)
