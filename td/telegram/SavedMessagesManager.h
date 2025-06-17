@@ -143,6 +143,11 @@ class SavedMessagesManager final : public Actor {
   void get_monoforum_topic_revenue(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                    Promise<td_api::object_ptr<td_api::starCount>> &&promise);
 
+  void toggle_monoforum_topic_nopaid_messages_exception(DialogId dialog_id,
+                                                        SavedMessagesTopicId saved_messages_topic_id,
+                                                        bool nopaid_messages_exception, bool refund_payments,
+                                                        Promise<Unit> &&promise);
+
   void get_monoforum_message_author(MessageFullId message_full_id, Promise<td_api::object_ptr<td_api::user>> &&promise);
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;

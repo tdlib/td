@@ -3242,6 +3242,13 @@ class CliClient final : public Actor {
       get_args(args, chat_id);
       send_request(
           td_api::make_object<td_api::getDirectMessagesChatTopicRevenue>(chat_id, direct_messages_chat_topic_id_));
+    } else if (op == "tdmctcsum") {
+      ChatId chat_id;
+      bool can_send_unpaid_messages;
+      bool refund_payments;
+      get_args(args, chat_id, can_send_unpaid_messages, refund_payments);
+      send_request(td_api::make_object<td_api::toggleDirectMessagesChatTopicCanSendUnpaidMessages>(
+          chat_id, direct_messages_chat_topic_id_, can_send_unpaid_messages, refund_payments));
     } else if (op == "lsmt") {
       string limit;
       get_args(args, limit);

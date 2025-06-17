@@ -3089,6 +3089,15 @@ void Requests::on_request(uint64 id, const td_api::getDirectMessagesChatTopicRev
       dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::toggleDirectMessagesChatTopicCanSendUnpaidMessages &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  DialogId dialog_id(request.chat_id_);
+  td_->saved_messages_manager_->toggle_monoforum_topic_nopaid_messages_exception(
+      dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_),
+      request.can_send_unpaid_messages_, request.refund_payments_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::loadSavedMessagesTopics &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

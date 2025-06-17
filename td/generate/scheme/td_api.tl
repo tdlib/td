@@ -9518,6 +9518,13 @@ readAllDirectMessagesChatTopicReactions chat_id:int53 topic_id:int53 = Ok;
 //@topic_id Identifier of the topic
 getDirectMessagesChatTopicRevenue chat_id:int53 topic_id:int53 = StarCount;
 
+//@description Allows to send unpaid messages to the given topic of the channel direct messages chat administered by the current user
+//@chat_id Chat identifier
+//@topic_id Identifier of the topic
+//@can_send_unpaid_messages Pass true to allow unpaid messages; pass false to disallow unpaid messages
+//@refund_payments Pass true to refund the user previously paid messages
+toggleDirectMessagesChatTopicCanSendUnpaidMessages chat_id:int53 topic_id:int53 can_send_unpaid_messages:Bool refund_payments:Bool = Ok;
+
 
 //@description Loads more Saved Messages topics. The loaded topics will be sent through updateSavedMessagesTopic. Topics are sorted by their topic.order in descending order. Returns a 404 error if all topics have been loaded
 //@limit The maximum number of topics to be loaded. For optimal performance, the number of loaded topics is chosen by TDLib and can be smaller than the specified limit, even if the end of the list is not reached

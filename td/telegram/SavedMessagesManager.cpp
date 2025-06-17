@@ -481,6 +481,36 @@ class GetMonoforumPaidMessageRevenueQuery final : public Td::ResultHandler {
   }
 };
 
+class AddMonoforumNoPaidMessageExceptionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit AddMonoforumNoPaidMessageExceptionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user, bool require_payment,
+            bool refund_charged) {
+    int32 flags = telegram_api::account_toggleNoPaidMessagesException::PARENT_PEER_MASK;
+    auto parent_input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    CHECK(parent_input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::account_toggleNoPaidMessagesException(
+        flags, refund_charged, require_payment, std::move(parent_input_peer), std::move(input_user))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_toggleNoPaidMessagesException>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetMessageAuthorQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::user>> promise_;
   ChannelId channel_id_;
@@ -2443,6 +2473,32 @@ void SavedMessagesManager::get_monoforum_topic_revenue(DialogId dialog_id, Saved
   }
   TRY_RESULT_PROMISE(promise, input_user, saved_messages_topic_id.get_input_user(td_));
   td_->create_handler<GetMonoforumPaidMessageRevenueQuery>(std::move(promise))->send(dialog_id, std::move(input_user));
+}
+
+void SavedMessagesManager::toggle_monoforum_topic_nopaid_messages_exception(
+    DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, bool nopaid_messages_exception,
+    bool refund_payments, Promise<Unit> &&promise) {
+  auto *topic_list = get_topic_list(dialog_id);
+  if (topic_list == nullptr) {
+    return promise.set_error(400, "Topic not found");
+  }
+  auto *topic = get_topic(topic_list, saved_messages_topic_id);
+  if (topic == nullptr) {
+    return promise.set_error(400, "Topic not found");
+  }
+  if (topic->dialog_id_ != dialog_id) {
+    return promise.set_error(400, "Topic messages can't be paid");
+  }
+  TRY_RESULT_PROMISE(promise, input_user, saved_messages_topic_id.get_input_user(td_));
+
+  do_set_topic_nopaid_messages_exception(topic, nopaid_messages_exception);
+  if (!topic->is_changed_ && !refund_payments) {
+    return promise.set_value(Unit());
+  }
+  on_topic_changed(topic_list, topic, "read_all_monoforum_topic_reactions");
+
+  td_->create_handler<AddMonoforumNoPaidMessageExceptionQuery>(std::move(promise))
+      ->send(dialog_id, std::move(input_user), !nopaid_messages_exception, refund_payments);
 }
 
 void SavedMessagesManager::get_monoforum_message_author(MessageFullId message_full_id,
