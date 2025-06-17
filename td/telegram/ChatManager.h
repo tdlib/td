@@ -585,6 +585,8 @@ class ChatManager final : public Actor {
     int32 unrestrict_boost_count = 0;
     int32 gift_count = 0;
 
+    int64 send_paid_message_stars = 0;
+
     DialogInviteLink invite_link;
 
     vector<BotCommands> bot_commands;
