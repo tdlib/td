@@ -1437,7 +1437,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
        "upload_max_fileparts_default", "upload_max_fileparts_premium", "channel_color_level_min",
        "groupcall_video_participants_max", "story_expire_period", "stories_posting",
        "giveaway_gifts_purchase_available", "stars_purchase_blocked", "stargifts_blocked", "starref_program_allowed",
-       "starref_connect_allowed", "qr_login_code", "dialog_filters_enabled",
+       "starref_connect_allowed", "qr_login_camera", "qr_login_code", "dialog_filters_enabled",
        //
        "dialog_filters_tooltip"});
   if (config->get_id() == telegram_api::jsonObject::ID) {
