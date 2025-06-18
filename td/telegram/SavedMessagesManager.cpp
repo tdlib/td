@@ -627,6 +627,7 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
 
 const SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::get_topic(
     const TopicList *topic_list, SavedMessagesTopicId saved_messages_topic_id) {
+  CHECK(topic_list != nullptr);
   auto it = topic_list->topics_.find(saved_messages_topic_id);
   if (it == topic_list->topics_.end()) {
     return nullptr;
@@ -638,6 +639,7 @@ SavedMessagesManager::SavedMessagesTopic *SavedMessagesManager::add_topic(TopicL
                                                                           SavedMessagesTopicId saved_messages_topic_id,
                                                                           bool from_server) {
   CHECK(!td_->auth_manager_->is_bot());
+  CHECK(topic_list != nullptr);
   CHECK(saved_messages_topic_id.is_valid());
   auto my_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   bool is_saved_messages = topic_list->dialog_id_ == DialogId();
@@ -1266,6 +1268,7 @@ int64 SavedMessagesManager::get_topic_order(int32 message_date, MessageId messag
 }
 
 int64 SavedMessagesManager::get_topic_public_order(const TopicList *topic_list, const SavedMessagesTopic *topic) {
+  CHECK(topic_list != nullptr);
   if (TopicDate(topic->private_order_, topic->saved_messages_topic_id_) <= topic_list->last_topic_date_) {
     return topic->private_order_;
   }
@@ -1273,6 +1276,7 @@ int64 SavedMessagesManager::get_topic_public_order(const TopicList *topic_list, 
 }
 
 void SavedMessagesManager::on_topic_changed(TopicList *topic_list, SavedMessagesTopic *topic, const char *source) {
+  CHECK(topic_list != nullptr);
   CHECK(topic != nullptr);
   if (!topic->is_changed_) {
     return;
@@ -1419,6 +1423,7 @@ void SavedMessagesManager::load_saved_messages_topics(int32 limit, Promise<Unit>
 }
 
 void SavedMessagesManager::load_topics(TopicList *topic_list, int32 limit, Promise<Unit> &&promise) {
+  CHECK(topic_list != nullptr);
   if (limit < 0) {
     return promise.set_error(400, "Limit must be non-negative");
   }
@@ -1455,6 +1460,7 @@ void SavedMessagesManager::on_get_pinned_saved_dialogs(Result<Unit> &&result) {
 }
 
 void SavedMessagesManager::get_saved_dialogs(TopicList *topic_list, int32 limit, Promise<Unit> &&promise) {
+  CHECK(topic_list != nullptr);
   topic_list->load_queries_.push_back(std::move(promise));
   if (topic_list->load_queries_.size() == 1) {
     auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), topic_list](Result<Unit> &&result) {
@@ -1498,6 +1504,7 @@ SavedMessagesManager::SavedMessagesTopicInfo SavedMessagesManager::get_saved_mes
 }
 
 void SavedMessagesManager::on_get_saved_dialogs(TopicList *topic_list, Result<Unit> &&result) {
+  CHECK(topic_list != nullptr);
   G()->ignore_result_if_closing(result);
   if (result.is_error()) {
     fail_promises(topic_list->load_queries_, result.move_as_error());
@@ -1778,6 +1785,7 @@ td_api::object_ptr<td_api::updateSavedMessagesTopic> SavedMessagesManager::get_u
 
 td_api::object_ptr<td_api::directMessagesChatTopic> SavedMessagesManager::get_direct_messages_chat_topic_object(
     const TopicList *topic_list, const SavedMessagesTopic *topic) const {
+  CHECK(topic_list != nullptr);
   CHECK(topic != nullptr);
   CHECK(topic->dialog_id_ != DialogId());
   td_api::object_ptr<td_api::message> last_message_object;
@@ -1804,6 +1812,7 @@ SavedMessagesManager::get_update_direct_messages_chat_topic_object(const TopicLi
 
 void SavedMessagesManager::send_update_saved_messages_topic(const TopicList *topic_list,
                                                             const SavedMessagesTopic *topic, const char *source) const {
+  CHECK(topic_list != nullptr);
   CHECK(topic != nullptr);
   LOG(INFO) << "Send update about " << topic->saved_messages_topic_id_ << " in " << topic->dialog_id_ << " with order "
             << get_topic_public_order(topic_list, topic) << " and last " << topic->last_message_id_ << " sent at "
@@ -1828,7 +1837,11 @@ SavedMessagesManager::get_update_saved_messages_topic_count_object() const {
 }
 
 void SavedMessagesManager::update_saved_messages_topic_sent_total_count(TopicList *topic_list, const char *source) {
-  if (td_->auth_manager_->is_bot() || topic_list->dialog_id_ != DialogId()) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  CHECK(topic_list != nullptr);
+  if (topic_list->dialog_id_ != DialogId()) {
     return;
   }
   if (topic_list->server_total_count_ == -1) {
@@ -1935,6 +1948,7 @@ bool SavedMessagesManager::set_saved_messages_topic_is_pinned(SavedMessagesTopic
 }
 
 void SavedMessagesManager::set_last_topic_date(TopicList *topic_list, TopicDate topic_date) {
+  CHECK(topic_list != nullptr);
   if (topic_date <= topic_list->last_topic_date_) {
     return;
   }
