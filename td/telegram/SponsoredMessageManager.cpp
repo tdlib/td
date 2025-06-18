@@ -43,12 +43,16 @@ class GetSponsoredMessagesQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id) {
+  void send(DialogId dialog_id, MessageId message_id) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_getSponsoredMessages(0, std::move(input_peer), 0)));
+    int32 flags = 0;
+    if (message_id != MessageId()) {
+      flags |= telegram_api::messages_getSponsoredMessages::MSG_ID_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_getSponsoredMessages(
+        flags, std::move(input_peer), message_id.get_server_message_id().get())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -422,7 +426,7 @@ void SponsoredMessageManager::get_dialog_sponsored_messages(
           send_closure(actor_id, &SponsoredMessageManager::on_get_dialog_sponsored_messages, dialog_id,
                        std::move(result));
         });
-    td_->create_handler<GetSponsoredMessagesQuery>(std::move(query_promise))->send(dialog_id);
+    td_->create_handler<GetSponsoredMessagesQuery>(std::move(query_promise))->send(dialog_id, MessageId());
   }
 }
 
