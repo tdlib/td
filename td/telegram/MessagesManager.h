@@ -561,6 +561,8 @@ class MessagesManager final : public Actor {
 
   bool can_share_message_in_story(MessageFullId message_full_id);
 
+  bool can_get_message_video_advertisements(MessageFullId message_full_id);
+
   Status can_get_message_viewers(MessageFullId message_full_id) TD_WARN_UNUSED_RESULT;
 
   bool can_get_message_statistics(MessageFullId message_full_id);
@@ -1732,6 +1734,8 @@ class MessagesManager final : public Actor {
   bool can_set_message_fact_check(DialogId dialog_id, const Message *m) const;
 
   Status can_get_message_read_date(DialogId dialog_id, const Message *m) const TD_WARN_UNUSED_RESULT;
+
+  bool can_get_message_video_advertisements(DialogId dialog_id, const Message *m) const;
 
   Status can_get_message_viewers(DialogId dialog_id, const Message *m) const TD_WARN_UNUSED_RESULT;
 

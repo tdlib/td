@@ -14246,6 +14246,28 @@ void MessagesManager::get_message_read_date(MessageFullId message_full_id,
   td_->message_query_manager_->get_message_read_date_from_server(message_full_id, std::move(promise));
 }
 
+bool MessagesManager::can_get_message_video_advertisements(MessageFullId message_full_id) {
+  auto m = get_message_force(message_full_id, "can_get_message_video_advertisements");
+  if (m == nullptr) {
+    return false;
+  }
+
+  return can_get_message_video_advertisements(message_full_id.get_dialog_id(), m);
+}
+
+bool MessagesManager::can_get_message_video_advertisements(DialogId dialog_id, const Message *m) const {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+  CHECK(m != nullptr);
+  if (!td_->dialog_manager_->is_broadcast_channel(dialog_id) ||
+      !td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) ||
+      m->content->get_type() != MessageContentType::Video || !m->message_id.is_server()) {
+    return false;
+  }
+  return true;
+}
+
 Status MessagesManager::can_get_message_viewers(MessageFullId message_full_id) {
   auto dialog_id = message_full_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id, "can_get_message_viewers");
@@ -14592,6 +14614,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_get_statistics = can_get_message_statistics(dialog_id, m);
   auto can_get_message_thread = get_top_thread_message_full_id(dialog_id, m, false).is_ok();
   auto can_get_read_date = can_get_message_read_date(dialog_id, m).is_ok();
+  auto can_get_video_advertisements = can_get_message_video_advertisements(dialog_id, m);
   auto can_get_viewers = can_get_message_viewers(dialog_id, m).is_ok();
   auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
   auto can_get_link = can_get_media_timestamp_links && dialog_type == DialogType::Channel;
@@ -14612,8 +14635,8 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
       can_be_forwarded, can_be_paid, can_be_pinned, can_be_replied, can_be_replied_in_another_chat, can_be_saved,
       can_be_shared_in_story, can_edit_media, can_edit_scheduling_state, can_get_author, can_get_embedding_code,
       can_get_link, can_get_media_timestamp_links, can_get_message_thread, can_get_read_date, can_get_statistics,
-      can_get_viewers, can_recognize_speech, can_report_chat, can_report_reactions, can_report_supergroup_spam,
-      can_set_fact_check, need_show_statistics));
+      can_get_video_advertisements, can_get_viewers, can_recognize_speech, can_report_chat, can_report_reactions,
+      can_report_supergroup_spam, can_set_fact_check, need_show_statistics));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
