@@ -243,8 +243,6 @@ struct SponsoredMessageManager::DialogSponsoredMessages {
   vector<SponsoredMessage> messages;
   FlatHashMap<int64, SponsoredContentInfo> message_infos;
   int32 messages_between = 0;
-  int32 start_delay = 0;
-  int32 between_delay = 0;
   bool is_premium = false;
   bool sponsored_enabled = false;
 };
@@ -267,6 +265,15 @@ struct SponsoredMessageManager::SponsoredDialogs {
   int64 local_id = 0;
   vector<Promise<td_api::object_ptr<td_api::sponsoredChats>>> promises;
   vector<SponsoredDialog> dialogs;
+  bool is_premium = false;
+  bool sponsored_enabled = false;
+};
+
+struct SponsoredMessageManager::VideoSponsoredMessages {
+  vector<Promise<td_api::object_ptr<td_api::videoMessageAdvertisements>>> video_promises;
+  vector<SponsoredMessage> messages;
+  int32 start_delay = 0;
+  int32 between_delay = 0;
   bool is_premium = false;
   bool sponsored_enabled = false;
 };
@@ -389,7 +396,7 @@ td_api::object_ptr<td_api::videoMessageAdvertisement> SponsoredMessageManager::g
 }
 
 td_api::object_ptr<td_api::videoMessageAdvertisements> SponsoredMessageManager::get_video_message_advertisements_object(
-    const DialogSponsoredMessages &sponsored_messages) const {
+    const VideoSponsoredMessages &sponsored_messages) const {
   auto advertisements = transform(sponsored_messages.messages, [this](const SponsoredMessage &message) {
     return get_video_message_advertisement_object(message);
   });
