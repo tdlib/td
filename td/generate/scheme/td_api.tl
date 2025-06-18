@@ -2330,6 +2330,23 @@ sponsoredChat unique_id:int53 chat_id:int53 sponsor_info:string additional_info:
 //@description Contains a list of sponsored chats @chats List of sponsored chats
 sponsoredChats chats:vector<sponsoredChat> = SponsoredChats;
 
+//@description Describes an advertisent to be shown while a video from a message is watched
+//@unique_id Unique identifier of this result
+//@text Text of the advertisement
+//@min_display_duration The minimum amount of time the advertisement must be dispalyed before it can be hidden by the user, in seconds
+//@max_display_duration The maximum amount of time the advertisement must be dispalyed before it must be automatically hidden, in seconds
+//@can_be_reported True, if the advertisement can be reported to Telegram moderators through reportVideoMessageAdvertisement
+//@sponsor Information about the sponsor of the advertisement
+//@title Title of the sponsored message
+//@additional_info If non-empty, additional information about the sponsored message to be shown along with the message
+videoMessageAdvertisement unique_id:int53 text:string min_display_duration:int32 max_display_duration:int32 can_be_reported:Bool sponsor:advertisementSponsor title:string additional_info:string = VideoMessageAdvertisement;
+
+//@description Contains a list of advertisements to be shown while a video from a message is watched
+//@advertisements List of advertisements
+//@start_delay Delay before the first advertisement is shown, in seconds
+//@between_delay Delay between consecutive advertisements, in seconds
+videoMessageAdvertisements advertisements:vector<videoMessageAdvertisement> start_delay:int32 between_delay:int32 = VideoMessageAdvertisements;
+
 
 //@description Describes an option to report an entity to Telegram @id Unique identifier of the option @text Text of the option
 reportOption id:bytes text:string = ReportOption;

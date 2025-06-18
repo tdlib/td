@@ -84,6 +84,12 @@ class SponsoredMessageManager final : public Actor {
   td_api::object_ptr<td_api::sponsoredChats> get_sponsored_chats_object(
       const SponsoredDialogs &sponsored_dialogs) const;
 
+  td_api::object_ptr<td_api::videoMessageAdvertisement> get_video_message_advertisement_object(
+      const SponsoredMessage &sponsored_message) const;
+
+  td_api::object_ptr<td_api::videoMessageAdvertisements> get_video_message_advertisements_object(
+      const DialogSponsoredMessages &sponsored_messages) const;
+
   void on_get_dialog_sponsored_messages(
       DialogId dialog_id, Result<telegram_api::object_ptr<telegram_api::messages_SponsoredMessages>> &&result);
 

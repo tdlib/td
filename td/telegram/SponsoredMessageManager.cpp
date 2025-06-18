@@ -205,6 +205,8 @@ struct SponsoredMessageManager::SponsoredMessage {
   bool is_recommended = false;
   bool can_be_reported = false;
   unique_ptr<MessageContent> content;
+  int32 min_display_duration = 0;
+  int32 max_display_duration = 0;
   string url;
   Photo photo;
   string title;
@@ -214,12 +216,14 @@ struct SponsoredMessageManager::SponsoredMessage {
   string additional_info;
 
   SponsoredMessage(int64 local_id, bool is_recommended, bool can_be_reported, unique_ptr<MessageContent> content,
-                   string url, Photo photo, string title, string button_text, PeerColor peer_color, string sponsor_info,
-                   string additional_info)
+                   int32 min_display_duration, int32 max_display_duration, string url, Photo photo, string title,
+                   string button_text, PeerColor peer_color, string sponsor_info, string additional_info)
       : local_id(local_id)
       , is_recommended(is_recommended)
       , can_be_reported(can_be_reported)
       , content(std::move(content))
+      , min_display_duration(min_display_duration)
+      , max_display_duration(max_display_duration)
       , url(std::move(url))
       , photo(std::move(photo))
       , title(std::move(title))
@@ -235,6 +239,8 @@ struct SponsoredMessageManager::DialogSponsoredMessages {
   vector<SponsoredMessage> messages;
   FlatHashMap<int64, SponsoredContentInfo> message_infos;
   int32 messages_between = 0;
+  int32 start_delay = 0;
+  int32 between_delay = 0;
   bool is_premium = false;
   bool sponsored_enabled = false;
 };
@@ -373,6 +379,25 @@ td_api::object_ptr<td_api::sponsoredChats> SponsoredMessageManager::get_sponsore
       sponsored_dialogs.dialogs, [this](const SponsoredDialog &dialog) { return get_sponsored_chat_object(dialog); }));
 }
 
+td_api::object_ptr<td_api::videoMessageAdvertisement> SponsoredMessageManager::get_video_message_advertisement_object(
+    const SponsoredMessage &sponsored_message) const {
+  auto text = get_message_content_text(sponsored_message.content.get());
+  CHECK(text != nullptr);
+  return td_api::make_object<td_api::videoMessageAdvertisement>(
+      sponsored_message.local_id, text->text, sponsored_message.min_display_duration,
+      sponsored_message.max_display_duration, sponsored_message.can_be_reported,
+      get_advertisement_sponsor_object(sponsored_message), sponsored_message.title, sponsored_message.additional_info);
+}
+
+td_api::object_ptr<td_api::videoMessageAdvertisements> SponsoredMessageManager::get_video_message_advertisements_object(
+    const DialogSponsoredMessages &sponsored_messages) const {
+  auto advertisements = transform(sponsored_messages.messages, [this](const SponsoredMessage &message) {
+    return get_video_message_advertisement_object(message);
+  });
+  return td_api::make_object<td_api::videoMessageAdvertisements>(
+      std::move(advertisements), sponsored_messages.start_delay, sponsored_messages.between_delay);
+}
+
 void SponsoredMessageManager::get_dialog_sponsored_messages(
     DialogId dialog_id, Promise<td_api::object_ptr<td_api::sponsoredMessages>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
@@ -460,6 +485,9 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
           LOG(ERROR) << "Receive sponsored message with " << content->get_type();
           continue;
         }
+        if (sponsored_message->min_display_duration_ != 0 || sponsored_message->max_display_duration_ != 0) {
+          LOG(ERROR) << "Receive sponsored message with display duration";
+        }
 
         current_sponsored_message_id_ = current_sponsored_message_id_.get_next_message_id(MessageType::Local);
         if (!current_sponsored_message_id_.is_valid_sponsored()) {
@@ -476,11 +504,15 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
         CHECK(is_inserted);
         messages->messages.emplace_back(
             local_id, sponsored_message->recommended_, sponsored_message->can_report_, std::move(content),
+            sponsored_message->min_display_duration_, sponsored_message->max_display_duration_,
             std::move(sponsored_message->url_), std::move(photo), std::move(sponsored_message->title_),
             std::move(sponsored_message->button_text_), PeerColor(sponsored_message->color_),
             std::move(sponsored_message->sponsor_info_), std::move(sponsored_message->additional_info_));
       }
       messages->messages_between = sponsored_messages->posts_between_;
+      if (sponsored_messages->start_delay_ != 0 || sponsored_messages->between_delay_ != 0) {
+        LOG(ERROR) << "Receive delay for regular sponsored messages";
+      }
       break;
     }
     case telegram_api::messages_sponsoredMessagesEmpty::ID:
