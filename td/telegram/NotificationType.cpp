@@ -28,7 +28,7 @@ namespace td {
 
 class NotificationTypeMessage final : public NotificationType {
   bool can_be_delayed() const final {
-    return message_id_.is_valid() && message_id_.is_server();
+    return message_id_.is_server();
   }
 
   bool is_temporary() const final {

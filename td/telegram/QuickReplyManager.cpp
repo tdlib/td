@@ -1059,7 +1059,7 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
         LOG(ERROR) << "Receive invalid quick reply " << shortcut_id << " from " << source;
         break;
       }
-      if (!message_id.is_valid() || !message_id.is_server()) {
+      if (!message_id.is_server()) {
         LOG(ERROR) << "Receive invalid " << message_id << " in quick reply " << shortcut_id << " from " << source;
         break;
       }
@@ -3420,7 +3420,7 @@ Result<QuickReplyManager::Shortcut *> QuickReplyManager::create_new_local_shortc
 }
 
 MessageId QuickReplyManager::get_input_reply_to_message_id(const Shortcut *s, MessageId reply_to_message_id) {
-  if (s == nullptr || !reply_to_message_id.is_valid() || !reply_to_message_id.is_server()) {
+  if (s == nullptr || !reply_to_message_id.is_server()) {
     return MessageId();
   }
   for (const auto &message : s->messages_) {

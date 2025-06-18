@@ -3824,7 +3824,7 @@ void ChatManager::report_channel_anti_spam_false_positive(ChannelId channel_id, 
     return promise.set_error(400, "Anti-spam checks false positives can be reported only by chat administrators");
   }
 
-  if (!message_id.is_valid() || !message_id.is_server()) {
+  if (!message_id.is_server()) {
     return promise.set_error(400, "Invalid message identifier specified");
   }
 

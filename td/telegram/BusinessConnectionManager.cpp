@@ -1152,7 +1152,7 @@ MessageInputReplyTo BusinessConnectionManager::create_business_message_input_rep
     case td_api::inputMessageReplyToMessage::ID: {
       auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToMessage>(reply_to);
       auto message_id = MessageId(reply_to_message->message_id_);
-      if (!message_id.is_valid() || !message_id.is_server()) {
+      if (!message_id.is_server()) {
         return {};
       }
       return MessageInputReplyTo{message_id, DialogId(), MessageQuote(td_, std::move(reply_to_message->quote_))};

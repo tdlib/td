@@ -9042,7 +9042,7 @@ td_api::object_ptr<td_api::upgradeGiftResult> get_message_content_upgrade_gift_r
       StarGiftId star_gift_id;
       if (m->owner_dialog_id != DialogId()) {
         star_gift_id = StarGiftId(m->owner_dialog_id, m->saved_id);
-      } else if (dialog_id.get_type() == DialogType::User && message_id.is_valid() && message_id.is_server()) {
+      } else if (dialog_id.get_type() == DialogType::User && message_id.is_server()) {
         star_gift_id = StarGiftId(message_id.get_server_message_id());
       }
       return td_api::make_object<td_api::upgradeGiftResult>(

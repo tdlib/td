@@ -828,7 +828,7 @@ void BackgroundManager::set_dialog_background(DialogId dialog_id, const td_api::
     case td_api::inputBackgroundPrevious::ID: {
       auto background_previous = static_cast<const td_api::inputBackgroundPrevious *>(input_background);
       MessageId message_id(background_previous->message_id_);
-      if (!message_id.is_valid() || !message_id.is_server()) {
+      if (!message_id.is_server()) {
         return promise.set_error(400, "Invalid message identifier specified");
       }
       return send_set_dialog_background_query(

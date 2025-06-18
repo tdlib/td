@@ -1565,7 +1565,6 @@ void StarGiftManager::register_gift(MessageFullId message_full_id, const char *s
     return;
   }
   CHECK(!td_->auth_manager_->is_bot());
-  CHECK(message_id.is_valid());
   CHECK(message_id.is_server());
   LOG(INFO) << "Register gift in " << message_full_id << " from " << source;
   auto gift_message_number = ++gift_message_count_;
@@ -1580,7 +1579,6 @@ void StarGiftManager::unregister_gift(MessageFullId message_full_id, const char 
     return;
   }
   CHECK(!td_->auth_manager_->is_bot());
-  CHECK(message_id.is_valid());
   CHECK(message_id.is_server());
   LOG(INFO) << "Unregister gift in " << message_full_id << " from " << source;
   auto message_number = gift_message_full_ids_[message_full_id];

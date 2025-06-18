@@ -67,7 +67,7 @@ ChannelParticipantFilter::ChannelParticipantFilter(const tl_object_ptr<td_api::S
       type_ = Type::Mention;
       query_ = mention_filter->query_;
       top_thread_message_id_ = MessageId(mention_filter->message_thread_id_);
-      if (!top_thread_message_id_.is_valid() || !top_thread_message_id_.is_server()) {
+      if (!top_thread_message_id_.is_server()) {
         top_thread_message_id_ = MessageId();
       }
       return;

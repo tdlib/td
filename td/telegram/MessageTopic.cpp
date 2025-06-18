@@ -94,7 +94,7 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
           !td->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
         return Status::Error(400, "Chat is not a forum");
       }
-      if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
+      if (!top_thread_message_id.is_server()) {
         return Status::Error(400, "Invalid topic identifier specified");
       }
       // TODO TRY_STATUS(forum_id.is_valid_in(td, dialog_id));

@@ -808,7 +808,7 @@ void ForumTopicManager::get_forum_topics(DialogId dialog_id, string query, int32
   if (offset_date < 0) {
     return promise.set_error(400, "Invalid offset date specified");
   }
-  if (offset_message_id != MessageId() && !offset_message_id.is_valid() && !offset_message_id.is_server()) {
+  if (offset_message_id != MessageId() && !offset_message_id.is_server()) {
     return promise.set_error(400, "Invalid offset message identifier specified");
   }
   if (offset_top_thread_message_id != MessageId()) {
@@ -1088,7 +1088,7 @@ bool ForumTopicManager::can_be_forum(DialogId dialog_id) const {
 }
 
 Status ForumTopicManager::can_be_message_thread_id(MessageId top_thread_message_id) {
-  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server()) {
+  if (!top_thread_message_id.is_server()) {
     return Status::Error(400, "Invalid message thread identifier specified");
   }
   return Status::OK();

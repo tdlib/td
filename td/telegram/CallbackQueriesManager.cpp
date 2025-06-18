@@ -275,7 +275,7 @@ void CallbackQueriesManager::send_callback_query(MessageFullId message_full_id,
     return promise.set_error(400, "Can't send callback queries from scheduled messages");
   }
   if (!message_full_id.get_message_id().is_server()) {
-    return promise.set_error(400, "Bad message identifier");
+    return promise.set_error(400, "Wrong message identifier");
   }
 
   if (payload->get_id() == td_api::callbackQueryPayloadDataWithPassword::ID) {

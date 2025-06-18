@@ -2384,7 +2384,7 @@ void SavedMessagesManager::get_monoforum_message_author(MessageFullId message_fu
     return promise.set_error(400, "Message not found");
   }
   auto message_id = message_full_id.get_message_id();
-  if (!message_id.is_valid() || !message_id.is_server()) {
+  if (!message_id.is_server()) {
     return promise.set_error(400, "Can't get message author");
   }
 

@@ -1172,8 +1172,7 @@ void get_message_added_reactions(Td *td, MessageFullId message_full_id, Reaction
   }
 
   auto message_id = message_full_id.get_message_id();
-  if (message_full_id.get_dialog_id().get_type() == DialogType::SecretChat || !message_id.is_valid() ||
-      !message_id.is_server()) {
+  if (message_full_id.get_dialog_id().get_type() == DialogType::SecretChat || !message_id.is_server()) {
     return promise.set_value(td_api::make_object<td_api::addedReactions>(0, Auto(), string()));
   }
 

@@ -117,8 +117,8 @@ class MessageId {
   }
 
   bool is_server() const {
-    CHECK(is_valid());
-    return (id & FULL_TYPE_MASK) == 0;
+    // also checks validness
+    return (id & FULL_TYPE_MASK) == 0 && id > 0 && id <= max().get();
   }
 
   bool is_scheduled_server() const {

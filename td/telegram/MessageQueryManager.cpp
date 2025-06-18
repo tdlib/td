@@ -140,7 +140,6 @@ class ReportMessageDeliveryQuery final : public Td::ResultHandler {
       return;
     }
     auto message_id = message_full_id.get_message_id();
-    CHECK(message_id.is_valid());
     CHECK(message_id.is_server());
     send_query(G()->net_query_creator().create(telegram_api::messages_reportMessagesDelivery(
         0, from_push, std::move(input_peer), {message_id.get_server_message_id().get()})));
@@ -244,7 +243,6 @@ class EditMessageFactCheckQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    CHECK(message_id.is_valid());
     CHECK(message_id.is_server());
     auto server_message_id = message_id.get_server_message_id().get();
     if (text.text.empty()) {
@@ -2101,7 +2099,6 @@ void MessageQueryManager::try_reload_message_reactions(DialogId dialog_id, bool 
   }
 
   for (const auto &message_id : message_ids) {
-    CHECK(message_id.is_valid());
     CHECK(message_id.is_server());
   }
 

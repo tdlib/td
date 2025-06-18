@@ -306,8 +306,7 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
   } else if (!td_->dialog_manager_->have_dialog_force(dialog_id, "send_dialog_action")) {
     return promise.set_error(400, "Chat not found");
   }
-  if (top_thread_message_id != MessageId() &&
-      (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server())) {
+  if (top_thread_message_id != MessageId() && !top_thread_message_id.is_server()) {
     return promise.set_error(400, "Invalid message thread specified");
   }
 

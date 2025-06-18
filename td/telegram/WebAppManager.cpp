@@ -574,8 +574,7 @@ void WebAppManager::request_web_view(DialogId dialog_id, UserId bot_user_id, Mes
       promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write, "request_web_view"));
   on_dialog_used(TopDialogCategory::BotApp, DialogId(bot_user_id), G()->unix_time());
 
-  if (!top_thread_message_id.is_valid() || !top_thread_message_id.is_server() ||
-      dialog_id.get_type() != DialogType::Channel ||
+  if (!top_thread_message_id.is_server() || dialog_id.get_type() != DialogType::Channel ||
       !td_->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
     top_thread_message_id = MessageId();
   }
