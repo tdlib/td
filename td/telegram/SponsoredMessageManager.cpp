@@ -344,15 +344,11 @@ td_api::object_ptr<td_api::advertisementSponsor> SponsoredMessageManager::get_ad
 
 td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponsored_message_object(
     DialogId dialog_id, const SponsoredMessage &sponsored_message) const {
-  auto sponsor = get_advertisement_sponsor_object(sponsored_message);
-  if (sponsor == nullptr) {
-    return nullptr;
-  }
   return td_api::make_object<td_api::sponsoredMessage>(
       sponsored_message.local_id, sponsored_message.is_recommended, sponsored_message.can_be_reported,
       get_message_content_object(sponsored_message.content.get(), td_, dialog_id, MessageId(ServerMessageId(1)), false,
                                  dialog_id, 0, false, true, -1, false, true),
-      std::move(sponsor), sponsored_message.title, sponsored_message.button_text,
+      get_advertisement_sponsor_object(sponsored_message), sponsored_message.title, sponsored_message.button_text,
       td_->theme_manager_->get_accent_color_id_object(sponsored_message.peer_color.accent_color_id_, AccentColorId()),
       sponsored_message.peer_color.background_custom_emoji_id_.get(), sponsored_message.additional_info);
 }
@@ -362,7 +358,6 @@ td_api::object_ptr<td_api::sponsoredMessages> SponsoredMessageManager::get_spons
   auto messages = transform(sponsored_messages.messages, [this, dialog_id](const SponsoredMessage &message) {
     return get_sponsored_message_object(dialog_id, message);
   });
-  td::remove_if(messages, [](const auto &message) { return message == nullptr; });
   return td_api::make_object<td_api::sponsoredMessages>(std::move(messages), sponsored_messages.messages_between);
 }
 
