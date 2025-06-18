@@ -329,16 +329,16 @@ void SponsoredMessageManager::delete_cached_sponsored_dialogs(int64 local_id) {
   }
 }
 
-td_api::object_ptr<td_api::messageSponsor> SponsoredMessageManager::get_message_sponsor_object(
+td_api::object_ptr<td_api::advertisementSponsor> SponsoredMessageManager::get_advertisement_sponsor_object(
     const SponsoredMessage &sponsored_message) const {
-  return td_api::make_object<td_api::messageSponsor>(
+  return td_api::make_object<td_api::advertisementSponsor>(
       sponsored_message.url, get_photo_object(td_->file_manager_.get(), sponsored_message.photo),
       sponsored_message.sponsor_info);
 }
 
 td_api::object_ptr<td_api::sponsoredMessage> SponsoredMessageManager::get_sponsored_message_object(
     DialogId dialog_id, const SponsoredMessage &sponsored_message) const {
-  auto sponsor = get_message_sponsor_object(sponsored_message);
+  auto sponsor = get_advertisement_sponsor_object(sponsored_message);
   if (sponsor == nullptr) {
     return nullptr;
   }
