@@ -5355,6 +5355,9 @@ void GroupCallManager::poll_group_call_blocks(GroupCall *group_call, int32 sub_c
 void GroupCallManager::on_poll_group_call_blocks(InputGroupCallId input_group_call_id, int32 sub_chain_id) {
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
+  if (!group_call->is_active) {
+    return;
+  }
   CHECK(group_call->is_blockchain_being_polled[sub_chain_id]);
   group_call->is_blockchain_being_polled[sub_chain_id] = false;
   poll_group_call_blocks_timeout_.set_timeout_in(group_call->group_call_id.get() * 2 + sub_chain_id,
