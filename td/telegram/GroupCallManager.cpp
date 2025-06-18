@@ -5185,6 +5185,34 @@ void GroupCallManager::leave_group_call(GroupCallId group_call_id, Promise<Unit>
   td_->create_handler<LeaveGroupCallQuery>(std::move(query_promise))->send(input_group_call_id, audio_source);
 }
 
+void GroupCallManager::clear_group_call(GroupCall *group_call) {
+  if (group_call->is_conference) {
+    tde2e_api::key_destroy(group_call->private_key_id);
+    tde2e_api::key_destroy(group_call->public_key_id);
+    tde2e_api::call_destroy(group_call->call_id);
+    set_blockchain_participant_ids(group_call, {});
+    if (!get_emojis_fingerprint(group_call).empty()) {
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateGroupCallVerificationState>(
+                       group_call->group_call_id.get(), group_call->call_verification_state.height, vector<string>()));
+    }
+
+    group_call->private_key_id = {};
+    group_call->public_key_id = {};
+    group_call->call_id = {};
+    group_call->block_next_offset[0] = -1;
+    group_call->block_next_offset[1] = -1;
+    group_call->call_verification_state = {};
+
+    poll_group_call_blocks_timeout_.cancel_timeout(group_call->group_call_id.get() * 2);
+    poll_group_call_blocks_timeout_.cancel_timeout(group_call->group_call_id.get() * 2 + 1);
+  }
+  fail_promises(group_call->after_join, Status::Error(400, "GROUPCALL_JOIN_MISSING"));
+  check_group_call_is_joined_timeout_.cancel_timeout(group_call->group_call_id.get());
+  auto input_group_call_id = get_input_group_call_id(group_call->group_call_id).ok();
+  try_clear_group_call_participants(input_group_call_id);
+}
+
 void GroupCallManager::on_group_call_left(InputGroupCallId input_group_call_id, int32 audio_source, bool need_rejoin) {
   if (G()->close_flag()) {
     return;
@@ -5224,36 +5252,8 @@ void GroupCallManager::on_group_call_left_impl(GroupCall *group_call, bool need_
   }
   group_call->joined_date = 0;
   group_call->audio_source = 0;
-  check_group_call_is_joined_timeout_.cancel_timeout(group_call->group_call_id.get());
-  auto input_group_call_id = get_input_group_call_id(group_call->group_call_id).ok();
-  try_clear_group_call_participants(input_group_call_id);
-  if (!group_call->need_rejoin) {
-    if (group_call->is_being_joined) {
-      LOG(ERROR) << "Left a being joined group call. Did you change audio_source_id without leaving the group call?";
-    } else {
-      process_group_call_after_join_requests(input_group_call_id, "on_group_call_left_impl");
-    }
-  }
-  if (group_call->is_conference) {
-    tde2e_api::key_destroy(group_call->private_key_id);
-    tde2e_api::key_destroy(group_call->public_key_id);
-    tde2e_api::call_destroy(group_call->call_id);
-    group_call->private_key_id = {};
-    group_call->public_key_id = {};
-    group_call->call_id = {};
-    group_call->block_next_offset[0] = -1;
-    group_call->block_next_offset[1] = -1;
-    set_blockchain_participant_ids(group_call, {});
-    if (!get_emojis_fingerprint(group_call).empty()) {
-      group_call->call_verification_state.emoji_hash = {};
-      send_closure(G()->td(), &Td::send_update,
-                   td_api::make_object<td_api::updateGroupCallVerificationState>(
-                       group_call->group_call_id.get(), group_call->call_verification_state.height, vector<string>()));
-    }
 
-    poll_group_call_blocks_timeout_.cancel_timeout(group_call->group_call_id.get() * 2);
-    poll_group_call_blocks_timeout_.cancel_timeout(group_call->group_call_id.get() * 2 + 1);
-  }
+  clear_group_call(group_call);
 }
 
 void GroupCallManager::discard_group_call(GroupCallId group_call_id, Promise<Unit> &&promise) {
@@ -5556,7 +5556,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       // never update ended calls
     } else if (!call.is_active) {
       // always update to an ended call, dropping also is_joined, is_speaking and other local flags
-      fail_promises(group_call->after_join, Status::Error(400, "Group call ended"));
+      clear_group_call(group_call);
       *group_call = std::move(call);
       need_update = true;
     } else {

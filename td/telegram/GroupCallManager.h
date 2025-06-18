@@ -438,6 +438,8 @@ class GroupCallManager final : public Actor {
   void on_toggle_group_call_participant_is_hand_raised(InputGroupCallId input_group_call_id, DialogId dialog_id,
                                                        uint64 generation, Promise<Unit> &&promise);
 
+  void clear_group_call(GroupCall *group_call);
+
   void on_group_call_left(InputGroupCallId input_group_call_id, int32 audio_source, bool need_rejoin);
 
   void on_group_call_left_impl(GroupCall *group_call, bool need_rejoin, const char *source);
