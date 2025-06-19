@@ -293,6 +293,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::reportSponsoredChat &request);
 
+  void on_request(uint64 id, const td_api::getVideoMessageAdvertisements &request);
+
   void on_request(uint64 id, const td_api::getMessageLink &request);
 
   void on_request(uint64 id, const td_api::getMessageEmbeddingCode &request);

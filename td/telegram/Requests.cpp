@@ -2633,6 +2633,13 @@ void Requests::on_request(uint64 id, const td_api::reportSponsoredChat &request)
                                                            std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getVideoMessageAdvertisements &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->sponsored_message_manager_->get_video_sponsored_messages(
+      {DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getMessageThread &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(GetMessageThreadRequest, request.chat_id_, request.message_id_);

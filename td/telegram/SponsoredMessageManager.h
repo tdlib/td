@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -52,6 +53,9 @@ class SponsoredMessageManager final : public Actor {
   void report_sponsored_dialog(int64 local_id, const string &option_id,
                                Promise<td_api::object_ptr<td_api::ReportSponsoredResult>> &&promise);
 
+  void get_video_sponsored_messages(MessageFullId message_full_id,
+                                    Promise<td_api::object_ptr<td_api::videoMessageAdvertisements>> &&promise);
+
  private:
   struct SponsoredContentInfo;
   struct SponsoredMessage;
@@ -67,9 +71,13 @@ class SponsoredMessageManager final : public Actor {
 
   static void on_delete_cached_sponsored_dialogs_timeout_callback(void *sponsored_message_manager_ptr, int64 local_id);
 
+  static void on_delete_cached_sponsored_videos_timeout_callback(void *sponsored_message_manager_ptr, int64 local_id);
+
   void delete_cached_sponsored_messages(DialogId dialog_id);
 
   void delete_cached_sponsored_dialogs(int64 local_id);
+
+  void delete_cached_sponsored_videos(int64 local_id);
 
   td_api::object_ptr<td_api::advertisementSponsor> get_advertisement_sponsor_object(
       const SponsoredMessage &sponsored_message) const;
@@ -97,11 +105,19 @@ class SponsoredMessageManager final : public Actor {
   void on_get_search_sponsored_dialogs(
       const string &query, Result<telegram_api::object_ptr<telegram_api::contacts_SponsoredPeers>> &&result);
 
+  void on_get_video_sponsored_messages(
+      MessageFullId message_full_id,
+      Result<telegram_api::object_ptr<telegram_api::messages_SponsoredMessages>> &&result);
+
   FlatHashMap<DialogId, unique_ptr<DialogSponsoredMessages>, DialogIdHash> dialog_sponsored_messages_;
 
   FlatHashMap<string, unique_ptr<SponsoredDialogs>> search_sponsored_dialogs_;
   FlatHashMap<int64, string> local_id_to_search_query_;
   FlatHashMap<int64, unique_ptr<SponsoredContentInfo>> dialog_infos_;
+
+  FlatHashMap<MessageFullId, unique_ptr<VideoSponsoredMessages>, MessageFullIdHash> video_sponsored_ads_;
+  FlatHashMap<int64, MessageFullId> local_id_to_message_full_id_;
+  FlatHashMap<int64, unique_ptr<SponsoredContentInfo>> video_ad_infos_;
 
   MessageId current_sponsored_message_id_ = MessageId::max();
 
@@ -110,6 +126,8 @@ class SponsoredMessageManager final : public Actor {
   MultiTimeout delete_cached_sponsored_messages_timeout_{"DeleteCachedSponsoredMessagesTimeout"};
 
   MultiTimeout delete_cached_sponsored_dialogs_timeout_{"DeleteCachedSponsoredDialogsTimeout"};
+
+  MultiTimeout delete_cached_sponsored_videos_timeout_{"DeleteCachedSponsoredVideosTimeout"};
 
   Td *td_;
   ActorShared<> parent_;

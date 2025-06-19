@@ -4466,6 +4466,11 @@ class CliClient final : public Actor {
       string option_id;
       get_args(args, unique_id, option_id);
       send_request(td_api::make_object<td_api::reportSponsoredChat>(unique_id, option_id));
+    } else if (op == "gvma") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_id);
+      send_request(td_api::make_object<td_api::getVideoMessageAdvertisements>(chat_id, message_id));
     } else if (op == "gmlink") {
       ChatId chat_id;
       MessageId message_id;
