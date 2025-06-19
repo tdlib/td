@@ -58,6 +58,8 @@ class SponsoredMessageManager final : public Actor {
 
   void view_video_advertisement(int64 local_id, Promise<Unit> &&promise);
 
+  void click_video_advertisement(int64 local_id, Promise<Unit> &&promise);
+
  private:
   struct SponsoredContentInfo;
   struct SponsoredMessage;
