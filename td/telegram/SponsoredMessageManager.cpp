@@ -880,4 +880,16 @@ void SponsoredMessageManager::on_get_video_sponsored_messages(
   delete_cached_sponsored_videos_timeout_.set_timeout_in(local_id, 300.0);
 }
 
+void SponsoredMessageManager::view_video_advertisement(int64 local_id, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+
+  auto it = video_ad_infos_.find(local_id);
+  if (it == video_ad_infos_.end() || it->second->is_viewed_) {
+    return;
+  }
+
+  it->second->is_viewed_ = true;
+  td_->create_handler<ViewSponsoredMessageQuery>()->send(it->second->random_id_);
+}
+
 }  // namespace td

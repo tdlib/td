@@ -56,6 +56,8 @@ class SponsoredMessageManager final : public Actor {
   void get_video_sponsored_messages(MessageFullId message_full_id,
                                     Promise<td_api::object_ptr<td_api::videoMessageAdvertisements>> &&promise);
 
+  void view_video_advertisement(int64 local_id, Promise<Unit> &&promise);
+
  private:
   struct SponsoredContentInfo;
   struct SponsoredMessage;
