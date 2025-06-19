@@ -13196,10 +13196,10 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     vector<InputDialogId> input_dialog_ids;
     for (const auto &input_dialog_id : td_->dialog_filter_manager_->get_pinned_input_dialog_ids(dialog_filter_id)) {
       auto dialog_id = input_dialog_id.get_dialog_id();
-      if (!have_dialog_force(dialog_id, "get_dialogs")) {
+      if (!have_dialog_force(dialog_id, "get_dialogs pinned filter")) {
         if (dialog_id.get_type() == DialogType::SecretChat) {
-          if (td_->dialog_manager_->have_dialog_info_force(dialog_id, "get_dialogs")) {
-            force_create_dialog(dialog_id, "get_dialogs");
+          if (td_->dialog_manager_->have_dialog_info_force(dialog_id, "get_dialogs pinned filter")) {
+            force_create_dialog(dialog_id, "get_dialogs pinned filter");
           }
         } else {
           input_dialog_ids.push_back(input_dialog_id);
@@ -13225,7 +13225,7 @@ vector<DialogId> MessagesManager::get_dialogs(DialogListId dialog_list_id, Dialo
     for (auto &pinned_dialog : list.pinned_dialogs_) {
       if (offset < pinned_dialog) {
         auto dialog_id = pinned_dialog.get_dialog_id();
-        auto d = get_dialog_force(dialog_id, "get_dialogs");
+        auto d = get_dialog_force(dialog_id, "get_dialogs pinned");
         if (d == nullptr) {
           LOG(ERROR) << "Failed to load pinned " << dialog_id << " from " << dialog_list_id;
           if (dialog_id.get_type() != DialogType::SecretChat) {
@@ -13968,7 +13968,7 @@ MessageFullId MessagesManager::get_replied_message(DialogId dialog_id, MessageId
   auto replied_message_id = get_replied_message_id(dialog_id, m);
   if (replied_message_id.get_dialog_id() != dialog_id) {
     dialog_id = replied_message_id.get_dialog_id();
-    if (!td_->dialog_manager_->have_dialog_info_force(dialog_id, "get_replied_message")) {
+    if (!td_->dialog_manager_->have_dialog_info_force(dialog_id, "get_replied_message 2")) {
       promise.set_value(Unit());
       return {};
     }
@@ -13977,8 +13977,8 @@ MessageFullId MessagesManager::get_replied_message(DialogId dialog_id, MessageId
       return {};
     }
 
-    force_create_dialog(dialog_id, "get_replied_message");
-    d = get_dialog_force(dialog_id, "get_replied_message");
+    force_create_dialog(dialog_id, "get_replied_message 2");
+    d = get_dialog_force(dialog_id, "get_replied_message 2");
     if (d == nullptr) {
       promise.set_error(500, "Chat with replied message not found");
       return {};
@@ -20679,8 +20679,8 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
     if (td_->auth_manager_->is_bot() && options != nullptr && options->allow_paid_broadcast_ &&
         dialog_id.get_type() == DialogType::User) {
       td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), nullptr);
-      force_create_dialog(dialog_id, "send_message");
-      d = get_dialog_force(dialog_id, "send_message");
+      force_create_dialog(dialog_id, "send_message paid");
+      d = get_dialog_force(dialog_id, "send_message paid");
     }
     if (d == nullptr) {
       return Status::Error(400, "Chat not found");
@@ -20984,8 +20984,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
     if (td_->auth_manager_->is_bot() && options != nullptr && options->allow_paid_broadcast_ &&
         dialog_id.get_type() == DialogType::User) {
       td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), nullptr);
-      force_create_dialog(dialog_id, "send_message_group");
-      d = get_dialog_force(dialog_id, "send_message_group");
+      force_create_dialog(dialog_id, "send_message_group paid");
+      d = get_dialog_force(dialog_id, "send_message_group paid");
     }
     if (d == nullptr) {
       return Status::Error(400, "Chat not found");
@@ -24609,7 +24609,8 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   if (d == nullptr) {
     return Status::Error(406, "Ignore notification in unknown chat");
   }
-  if (sender_dialog_id.is_valid() && !have_dialog_force(sender_dialog_id, "get_message_push_notification_info")) {
+  if (sender_dialog_id.is_valid() &&
+      !have_dialog_force(sender_dialog_id, "get_message_push_notification_info sender")) {
     return Status::Error(406, "Ignore notification sent by unknown chat");
   }
 
@@ -24669,7 +24670,7 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
     auto real_sender_dialog_id = sender_dialog_id.is_valid() ? sender_dialog_id : DialogId(sender_user_id);
     if (real_sender_dialog_id.is_valid()) {
       settings_dialog_id = real_sender_dialog_id;
-      settings_dialog = get_dialog_force(settings_dialog_id, "get_message_push_notification_info");
+      settings_dialog = get_dialog_force(settings_dialog_id, "get_message_push_notification_info sender 2");
     }
   }
 
@@ -27190,7 +27191,7 @@ void MessagesManager::on_update_dialog_draft_message(
   if (try_count < static_cast<int32>(input_dialog_ids.size())) {
     for (const auto &input_dialog_id : input_dialog_ids) {
       auto reply_in_dialog_id = input_dialog_id.get_dialog_id();
-      if (reply_in_dialog_id.is_valid() && !have_dialog_force(reply_in_dialog_id, "on_update_dialog_draft_message")) {
+      if (reply_in_dialog_id.is_valid() && !have_dialog_force(reply_in_dialog_id, "on_update_dialog_draft_message 2")) {
         td_->dialog_filter_manager_->load_input_dialog(
             input_dialog_id, [actor_id = actor_id(this), dialog_id, top_thread_message_id,
                               draft_message = std::move(draft_message), try_count](Unit) mutable {

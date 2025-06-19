@@ -523,8 +523,8 @@ void ChannelRecommendationManager::on_get_channel_recommendations(
 
 void ChannelRecommendationManager::open_channel_recommended_channel(DialogId dialog_id, DialogId opened_dialog_id,
                                                                     Promise<Unit> &&promise) {
-  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "open_channel_recommended_channel") ||
-      !td_->dialog_manager_->have_dialog_force(opened_dialog_id, "open_channel_recommended_channel")) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "open_channel_recommended_channel 1") ||
+      !td_->dialog_manager_->have_dialog_force(opened_dialog_id, "open_channel_recommended_channel 2")) {
     return promise.set_error(400, "Chat not found");
   }
   if (dialog_id.get_type() != DialogType::Channel || opened_dialog_id.get_type() != DialogType::Channel) {
