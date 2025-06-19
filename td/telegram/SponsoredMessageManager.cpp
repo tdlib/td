@@ -902,4 +902,14 @@ void SponsoredMessageManager::click_video_advertisement(int64 local_id, Promise<
   td_->create_handler<ClickSponsoredMessageQuery>(std::move(promise))->send(it->second->random_id_, false, false);
 }
 
+void SponsoredMessageManager::report_video_advertisement(
+    int64 local_id, const string &option_id, Promise<td_api::object_ptr<td_api::ReportSponsoredResult>> &&promise) {
+  auto it = video_ad_infos_.find(local_id);
+  if (it == video_ad_infos_.end()) {
+    return promise.set_value(td_api::make_object<td_api::reportSponsoredResultFailed>());
+  }
+
+  td_->create_handler<ReportSponsoredMessageQuery>(std::move(promise))->send(it->second->random_id_, option_id);
+}
+
 }  // namespace td

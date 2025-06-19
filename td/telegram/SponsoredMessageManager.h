@@ -60,6 +60,9 @@ class SponsoredMessageManager final : public Actor {
 
   void click_video_advertisement(int64 local_id, Promise<Unit> &&promise);
 
+  void report_video_advertisement(int64 local_id, const string &option_id,
+                                  Promise<td_api::object_ptr<td_api::ReportSponsoredResult>> &&promise);
+
  private:
   struct SponsoredContentInfo;
   struct SponsoredMessage;

@@ -4473,8 +4473,13 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getVideoMessageAdvertisements>(chat_id, message_id));
     } else if (op == "vvma") {
       send_request(td_api::make_object<td_api::viewVideoMessageAdvertisement>(to_integer<int64>(args)));
-    } else if (op == "vvma") {
+    } else if (op == "cvma") {
       send_request(td_api::make_object<td_api::clickVideoMessageAdvertisement>(to_integer<int64>(args)));
+    } else if (op == "rvma") {
+      int64 unique_id;
+      string option_id;
+      get_args(args, unique_id, option_id);
+      send_request(td_api::make_object<td_api::reportVideoMessageAdvertisement>(unique_id, option_id));
     } else if (op == "gmlink") {
       ChatId chat_id;
       MessageId message_id;
