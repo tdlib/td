@@ -9,11 +9,13 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ToDoCompletion.h"
 
 #include "td/utils/common.h"
 
 namespace td {
 
+class Td;
 class UserManager;
 
 class ToDoItem {
@@ -28,6 +30,9 @@ class ToDoItem {
   ToDoItem(const UserManager *user_manager, telegram_api::object_ptr<telegram_api::todoItem> &&item);
 
   void validate(const char *source);
+
+  td_api::object_ptr<td_api::toDoListTask> get_to_do_list_task_object(Td *td,
+                                                                      const vector<ToDoCompletion> &completions) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

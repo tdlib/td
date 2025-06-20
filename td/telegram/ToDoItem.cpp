@@ -6,6 +6,9 @@
 //
 #include "td/telegram/ToDoItem.h"
 
+#include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
+
 #include "td/utils/utf8.h"
 
 namespace td {
@@ -25,6 +28,20 @@ void ToDoItem::validate(const char *source) {
     LOG(ERROR) << "Receive invalid to do list task from " << source;
     title_ = {};
   }
+}
+
+td_api::object_ptr<td_api::toDoListTask> ToDoItem::get_to_do_list_task_object(
+    Td *td, const vector<ToDoCompletion> &completions) const {
+  auto result = td_api::make_object<td_api::toDoListTask>(
+      id_, get_formatted_text_object(td->user_manager_.get(), title_, true, -1), 0, 0);
+  for (auto &completion : completions) {
+    if (completion.id_ == id_) {
+      result->completed_by_user_id_ =
+          td->user_manager_->get_user_id_object(completion.completed_by_user_id_, "toDoListTask");
+      result->completion_date_ = completion.date_;
+    }
+  }
+  return result;
 }
 
 bool operator==(const ToDoItem &lhs, const ToDoItem &rhs) {
