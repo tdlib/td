@@ -774,7 +774,7 @@ void SavedMessagesManager::on_topic_message_added(DialogId dialog_id, SavedMessa
 
 void SavedMessagesManager::on_topic_message_updated(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                                     MessageId message_id) {
-  if (td_->auth_manager_->is_bot()) {
+  if (td_->auth_manager_->is_bot() || message_id.is_scheduled()) {
     return;
   }
   CHECK(message_id.is_valid());
