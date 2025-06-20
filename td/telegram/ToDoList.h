@@ -9,25 +9,26 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
-
-#include "td/utils/common.h"
+#include "td/telegram/ToDoItem.h"
 
 namespace td {
 
 class UserManager;
 
-class ToDoItem {
-  int32 id_ = 0;
+class ToDoList {
   FormattedText title_;
-
-  friend bool operator==(const ToDoItem &lhs, const ToDoItem &rhs);
-
- public:
-  ToDoItem() = default;
-
-  ToDoItem(const UserManager *user_manager, telegram_api::object_ptr<telegram_api::todoItem> &&item);
+  vector<ToDoItem> items_;
+  bool others_can_append_ = false;
+  bool others_can_complete_ = false;
 
   void validate(const char *source);
+
+  friend bool operator==(const ToDoList &lhs, const ToDoList &rhs);
+
+ public:
+  ToDoList() = default;
+
+  ToDoList(const UserManager *user_manager, telegram_api::object_ptr<telegram_api::todoList> &&list);
 
   template <class StorerT>
   void store(StorerT &storer) const;
@@ -36,7 +37,7 @@ class ToDoItem {
   void parse(ParserT &parser);
 };
 
-bool operator==(const ToDoItem &lhs, const ToDoItem &rhs);
-bool operator!=(const ToDoItem &lhs, const ToDoItem &rhs);
+bool operator==(const ToDoList &lhs, const ToDoList &rhs);
+bool operator!=(const ToDoList &lhs, const ToDoList &rhs);
 
 }  // namespace td

@@ -643,6 +643,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ThemeSettings.cpp
   td/telegram/TimeZoneManager.cpp
   td/telegram/ToDoItem.cpp
+  td/telegram/ToDoList.cpp
   td/telegram/TopDialogCategory.cpp
   td/telegram/TopDialogManager.cpp
   td/telegram/TranscriptionInfo.cpp
@@ -1029,6 +1030,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ThemeSettings.h
   td/telegram/TimeZoneManager.h
   td/telegram/ToDoItem.h
+  td/telegram/ToDoList.h
   td/telegram/TopDialogCategory.h
   td/telegram/TopDialogManager.h
   td/telegram/TranscriptionInfo.h
@@ -1148,6 +1150,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/TermsOfService.hpp
   td/telegram/ThemeSettings.hpp
   td/telegram/ToDoItem.hpp
+  td/telegram/ToDoList.hpp
   td/telegram/TranscriptionInfo.hpp
   td/telegram/VideoNotesManager.hpp
   td/telegram/VideosManager.hpp
