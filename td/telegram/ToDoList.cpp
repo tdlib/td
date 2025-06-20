@@ -6,6 +6,9 @@
 //
 #include "td/telegram/ToDoList.h"
 
+#include "td/telegram/Td.h"
+
+#include "td/utils/algorithm.h"
 #include "td/utils/utf8.h"
 
 namespace td {
@@ -28,6 +31,14 @@ void ToDoList::validate(const char *source) {
   for (auto &item : items_) {
     item.validate(source);
   }
+}
+
+td_api::object_ptr<td_api::toDoList> ToDoList::get_to_do_list_object(Td *td,
+                                                                     const vector<ToDoCompletion> &completions) const {
+  auto tasks = transform(
+      items_, [td, &completions](const auto &item) { return item.get_to_do_list_task_object(td, completions); });
+  return td_api::make_object<td_api::toDoList>(get_formatted_text_object(td->user_manager_.get(), title_, true, -1),
+                                               std::move(tasks), others_can_append_, others_can_complete_);
 }
 
 bool operator==(const ToDoList &lhs, const ToDoList &rhs) {

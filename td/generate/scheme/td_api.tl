@@ -399,6 +399,13 @@ toDoListTask id:int32 text:formattedText completed_by_user_id:int53 completion_d
 //@text Text of the task; 1-getOption("to_do_list_task_text_length_max") characters. May contain only CustomEmoji entities
 inputToDoListTask id:int32 text:formattedText = InputToDoListTask;
 
+//@description Describes a to do list
+//@title Title of the to do list; may contain only CustomEmoji entities
+//@tasks List of tasks in the to do list
+//@can_be_appended_by_others True, if users other than creator of the list can add tasks
+//@can_be_completed_by_others True, if users other than creator of the list can complete tasks
+toDoList title:formattedText tasks:vector<toDoListTask> can_be_appended_by_others:Bool can_be_completed_by_others:Bool = ToDoList;
+
 
 //@description Describes an animation file. The animation must be encoded in GIF or MPEG4 format
 //@duration Duration of the animation, in seconds; as defined by the sender
