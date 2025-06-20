@@ -394,6 +394,11 @@ pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
 //@completion_date Point in time (Unix timestamp) when the task was completed; 0 if the task isn't completed
 toDoListTask id:int32 text:formattedText completed_by_user_id:int53 completion_date:int32 = ToDoListTask;
 
+//@description Describes a task in a to do list
+//@id Unique identifier of the task
+//@text Text of the task; 1-getOption("to_do_list_task_text_length_max") characters. May contain only CustomEmoji entities
+inputToDoListTask id:int32 text:formattedText = InputToDoListTask;
+
 
 //@description Describes an animation file. The animation must be encoded in GIF or MPEG4 format
 //@duration Duration of the animation, in seconds; as defined by the sender

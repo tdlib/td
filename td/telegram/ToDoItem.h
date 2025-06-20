@@ -6,12 +6,14 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ToDoCompletion.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -28,6 +30,9 @@ class ToDoItem {
   ToDoItem() = default;
 
   ToDoItem(const UserManager *user_manager, telegram_api::object_ptr<telegram_api::todoItem> &&item);
+
+  Result<ToDoItem> get_to_do_item(const Td *td, DialogId dialog_id,
+                                  td_api::object_ptr<td_api::inputToDoListTask> &&task);
 
   void validate(const char *source);
 

@@ -6,9 +6,12 @@
 //
 #include "td/telegram/ToDoItem.h"
 
+#include "td/telegram/AuthManager.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/utils/SliceBuilder.h"
 #include "td/utils/utf8.h"
 
 namespace td {
@@ -18,6 +21,23 @@ ToDoItem::ToDoItem(const UserManager *user_manager, telegram_api::object_ptr<tel
   id_ = item->id_;
   title_ = get_formatted_text(user_manager, std::move(item->title_), true, true, "ToDoItem");
   validate("telegram_api::todoItem");
+}
+
+Result<ToDoItem> ToDoItem::get_to_do_item(const Td *td, DialogId dialog_id,
+                                          td_api::object_ptr<td_api::inputToDoListTask> &&task) {
+  if (task == nullptr) {
+    return Status::Error(400, "To do task must be non-empty");
+  }
+  TRY_RESULT(title, get_formatted_text(td, dialog_id, std::move(task->text_), td->auth_manager_->is_bot(), false, true,
+                                       false));
+  auto max_length = td->option_manager_->get_option_integer("to_do_list_task_text_length_max", 12);
+  if (static_cast<int64>(utf8_length(title.text)) > max_length) {
+    return Status::Error(400, PSLICE() << "To do task text length must not exceed " << max_length);
+  }
+  ToDoItem result;
+  result.id_ = task->id_;
+  result.title_ = std::move(title);
+  return result;
 }
 
 void ToDoItem::validate(const char *source) {
