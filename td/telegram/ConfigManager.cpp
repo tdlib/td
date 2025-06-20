@@ -1427,6 +1427,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"stories_stealth_past_period", "story_stealth_mode_past_period"},
       {"story_viewers_expire_period", "story_viewers_expiration_delay"},
       {"telegram_antispam_group_size_min", "aggressive_anti_spam_supergroup_member_count_min"},
+      {"todo_item_length_max", "to_do_list_task_text_length_max"},
       {"topics_pinned_limit", "pinned_forum_topic_count_max"},
       {"upload_premium_speedup_download", "premium_download_speedup"},
       {"upload_premium_speedup_notify_period", ""},
