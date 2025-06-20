@@ -7,6 +7,7 @@
 #include "td/telegram/ToDoList.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 
@@ -72,6 +73,13 @@ td_api::object_ptr<td_api::toDoList> ToDoList::get_to_do_list_object(Td *td,
       items_, [td, &completions](const auto &item) { return item.get_to_do_list_task_object(td, completions); });
   return td_api::make_object<td_api::toDoList>(get_formatted_text_object(td->user_manager_.get(), title_, true, -1),
                                                std::move(tasks), others_can_append_, others_can_complete_);
+}
+
+void ToDoList::add_dependencies(Dependencies &dependencies) const {
+  add_formatted_text_dependencies(dependencies, &title_);
+  for (auto &item : items_) {
+    item.add_dependencies(dependencies);
+  }
 }
 
 bool operator==(const ToDoList &lhs, const ToDoList &rhs) {

@@ -7,6 +7,7 @@
 #include "td/telegram/ToDoItem.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
@@ -68,6 +69,10 @@ td_api::object_ptr<td_api::toDoListTask> ToDoItem::get_to_do_list_task_object(
     }
   }
   return result;
+}
+
+void ToDoItem::add_dependencies(Dependencies &dependencies) const {
+  add_formatted_text_dependencies(dependencies, &title_);
 }
 
 bool operator==(const ToDoItem &lhs, const ToDoItem &rhs) {

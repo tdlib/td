@@ -17,6 +17,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 class UserManager;
 
@@ -40,6 +41,8 @@ class ToDoItem {
                                                                       const vector<ToDoCompletion> &completions) const;
 
   telegram_api::object_ptr<telegram_api::todoItem> get_input_todo_item(const UserManager *user_manager) const;
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
