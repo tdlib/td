@@ -40,6 +40,11 @@ Result<ToDoItem> ToDoItem::get_to_do_item(const Td *td, DialogId dialog_id,
   return result;
 }
 
+telegram_api::object_ptr<telegram_api::todoItem> ToDoItem::get_input_todo_item(const UserManager *user_manager) const {
+  return telegram_api::make_object<telegram_api::todoItem>(
+      id_, get_input_text_with_entities(nullptr, title_, "get_input_todo_item"));
+}
+
 void ToDoItem::validate(const char *source) {
   if (keep_only_custom_emoji(title_)) {
     LOG(ERROR) << "Receive unexpected to do list task entities from " << source;
