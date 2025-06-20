@@ -50,6 +50,13 @@ Result<ToDoList> ToDoList::get_to_do_list(const Td *td, DialogId dialog_id,
   return result;
 }
 
+telegram_api::object_ptr<telegram_api::todoList> ToDoList::get_input_todo_list(const UserManager *user_manager) const {
+  auto items = transform(items_, [user_manager](const auto &item) { return item.get_input_todo_item(user_manager); });
+  return telegram_api::make_object<telegram_api::todoList>(
+      0, others_can_append_, others_can_complete_,
+      get_input_text_with_entities(user_manager, title_, "get_input_todo_list"), std::move(items));
+}
+
 void ToDoList::validate(const char *source) {
   if (keep_only_custom_emoji(title_)) {
     LOG(ERROR) << "Receive unexpected to do list title entities from " << source;
