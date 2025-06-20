@@ -1976,8 +1976,6 @@ void SavedMessagesManager::get_topic_history(DialogId dialog_id, SavedMessagesTo
     return promise.set_error(400, "Parameter offset must be greater than or equal to -limit");
   }
 
-  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
-
   if (from_message_id == MessageId() || from_message_id.get() > MessageId::max().get()) {
     from_message_id = MessageId::max();
     limit += offset;
@@ -1996,6 +1994,8 @@ void SavedMessagesManager::do_get_topic_history(const TopicList *topic_list, con
                                                 DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                                 MessageId from_message_id, int32 offset, int32 limit, int32 left_tries,
                                                 Promise<td_api::object_ptr<td_api::messages>> &&promise) {
+  TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
+
   CHECK(topic_list != nullptr);
   int32 total_count = -1;
   vector<MessageId> message_ids;
