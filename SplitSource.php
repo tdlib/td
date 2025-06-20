@@ -455,6 +455,7 @@ function split_file($file, $chunks, $undo) {
             'theme_manager[_(-](?![.]get[(][)])|ThemeManager' => 'ThemeManager',
             'ThemeSettings' => 'ThemeSettings',
             'time_zone_manager[_(-](?![.]get[(][)])|TimeZoneManager' => 'TimeZoneManager',
+            'ToDoCompletion' => 'ToDoCompletion',
             'ToDoItem' => 'ToDoItem',
             'ToDoList' => 'ToDoList',
             'TopDialogCategory|get_top_dialog_category' => 'TopDialogCategory',
