@@ -164,6 +164,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "PaidMessagesPrice";
     case MessageContentType::ConferenceCall:
       return string_builder << "ConferenceCall";
+    case MessageContentType::ToDoList:
+      return string_builder << "ToDoList";
     default:
       return string_builder << "Invalid type " << static_cast<int32>(content_type);
   }
@@ -260,6 +262,7 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
     case MessageContentType::ConferenceCall:
+    case MessageContentType::ToDoList:
       return false;
     default:
       UNREACHABLE();
@@ -350,6 +353,7 @@ bool can_be_secret_message_content(MessageContentType content_type) {
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
     case MessageContentType::ConferenceCall:
+    case MessageContentType::ToDoList:
       return false;
     default:
       UNREACHABLE();
@@ -436,6 +440,7 @@ bool can_be_local_message_content(MessageContentType content_type) {
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
     case MessageContentType::ConferenceCall:
+    case MessageContentType::ToDoList:
       return false;
     default:
       UNREACHABLE();
@@ -466,6 +471,7 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::Sticker:
     case MessageContentType::Story:
     case MessageContentType::Text:
+    case MessageContentType::ToDoList:
     case MessageContentType::Unsupported:
     case MessageContentType::Venue:
     case MessageContentType::Video:
@@ -608,6 +614,7 @@ bool is_editable_message_content(MessageContentType content_type) {
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
     case MessageContentType::ConferenceCall:
+    case MessageContentType::ToDoList:
       return false;
     default:
       UNREACHABLE();
@@ -633,6 +640,7 @@ bool is_supported_reply_message_content(MessageContentType content_type) {
     case MessageContentType::Sticker:
     case MessageContentType::Story:
     case MessageContentType::Text:
+    case MessageContentType::ToDoList:
     case MessageContentType::Unsupported:
     case MessageContentType::Venue:
     case MessageContentType::Video:
@@ -758,6 +766,7 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
     case MessageContentType::ConferenceCall:
+    case MessageContentType::ToDoList:
       return false;
     default:
       UNREACHABLE();
@@ -789,6 +798,7 @@ bool can_send_message_content_to_secret_chat(MessageContentType content_type) {
     case MessageContentType::PaidMedia:
     case MessageContentType::Poll:
     case MessageContentType::Story:
+    case MessageContentType::ToDoList:
       return false;
     case MessageContentType::None:
     case MessageContentType::ChatCreate:
@@ -893,6 +903,7 @@ bool get_default_service_message_content_reactions_are_possible(MessageContentTy
     case MessageContentType::Sticker:
     case MessageContentType::Story:
     case MessageContentType::Text:
+    case MessageContentType::ToDoList:
     case MessageContentType::Unsupported:
     case MessageContentType::Venue:
     case MessageContentType::Video:
