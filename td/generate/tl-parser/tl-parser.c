@@ -945,7 +945,7 @@ struct tree *tl_parse_lex (struct parse *_parse) {
 
 int mystrcmp2 (const char *b, int len, const char *a) {
   int c = strncmp (b, a, len);
-  return c ? a[len] ? -1 : 0 : c;
+  return c ? c : a[len] ? -1 : 0;
 }
 
 char *mystrdup (const char *a, int len) {
