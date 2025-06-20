@@ -31,6 +31,9 @@ class ToDoList {
 
   ToDoList(const UserManager *user_manager, telegram_api::object_ptr<telegram_api::todoList> &&list);
 
+  static Result<ToDoList> get_to_do_list(const Td *td, DialogId dialog_id,
+                                         td_api::object_ptr<td_api::inputToDoList> &&list);
+
   td_api::object_ptr<td_api::toDoList> get_to_do_list_object(Td *td, const vector<ToDoCompletion> &completions) const;
 
   template <class StorerT>

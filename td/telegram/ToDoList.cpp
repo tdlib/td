@@ -6,6 +6,8 @@
 //
 #include "td/telegram/ToDoList.h"
 
+#include "td/telegram/AuthManager.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/algorithm.h"
@@ -22,6 +24,30 @@ ToDoList::ToDoList(const UserManager *user_manager, telegram_api::object_ptr<tel
     items_.push_back(ToDoItem(user_manager, std::move(item)));
   }
   validate("telegram_api::todoList");
+}
+
+Result<ToDoList> ToDoList::get_to_do_list(const Td *td, DialogId dialog_id,
+                                          td_api::object_ptr<td_api::inputToDoList> &&list) {
+  if (list == nullptr) {
+    return Status::Error(400, "To do list must be non-empty");
+  }
+  TRY_RESULT(title, get_formatted_text(td, dialog_id, std::move(list->title_), td->auth_manager_->is_bot(), false, true,
+                                       false));
+  auto max_length = td->option_manager_->get_option_integer("to_do_list_title_length_max", 0);
+  if (static_cast<int64>(utf8_length(title.text)) > max_length) {
+    return Status::Error(400, PSLICE() << "To do list title length must not exceed " << max_length);
+  }
+  keep_only_custom_emoji(title);
+
+  ToDoList result;
+  result.title_ = std::move(title);
+  for (auto &task : list->tasks_) {
+    TRY_RESULT(item, ToDoItem::get_to_do_item(td, dialog_id, std::move(task)));
+    result.items_.push_back(std::move(item));
+  }
+  result.others_can_append_ = list->can_be_appended_by_others_;
+  result.others_can_complete_ = list->can_be_completed_by_others_;
+  return result;
 }
 
 void ToDoList::validate(const char *source) {
