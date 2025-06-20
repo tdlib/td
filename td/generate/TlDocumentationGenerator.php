@@ -81,6 +81,21 @@ abstract class TlDocumentationGenerator
         return $str.'.';
     }
 
+    protected function isStandaloneFile()
+    {
+        return false;
+    }
+
+    protected function getDocumentationBegin()
+    {
+        return "";
+    }
+
+    protected function getDocumentationEnd()
+    {
+        return "";
+    }
+
     abstract protected function escapeDocumentation($doc);
 
     abstract protected function getFieldName($name, $class_name);
@@ -308,6 +323,18 @@ abstract class TlDocumentationGenerator
                 $description = '';
                 $description_line_count = 0;
             }
+        }
+
+        if ($this->isStandaloneFile()) {
+            $result = $this->getDocumentationBegin()."\n";
+            foreach ($this->documentation as $value) {
+                $result .= $value."\n";
+            }
+            $result .= $this->getDocumentationEnd();
+            if (!file_exists($source_file) || file_get_contents($source_file) !== $result) {
+                file_put_contents($source_file, $result);
+            }
+            return;
         }
 
         $lines = file($source_file);

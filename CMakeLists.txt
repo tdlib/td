@@ -1285,7 +1285,6 @@ if (TD_ENABLE_DOTNET)
     add_dependencies(tddotnet generate_dotnet_api)
   endif()
 
-  target_compile_options(tddotnet PRIVATE "/doc")
   if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
     set_target_properties(tddotnet PROPERTIES VS_WINRT_COMPONENT "true")
     target_compile_options(tddotnet PUBLIC "/ZW")
@@ -1293,6 +1292,11 @@ if (TD_ENABLE_DOTNET)
     set_target_properties(tddotnet PROPERTIES COMPILE_FLAGS "/GR /clr")
     target_compile_options(tddotnet PUBLIC "/EHa")
   endif()
+
+  add_custom_command(TARGET tddotnet POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/Telegram.Td.xml
+        $<TARGET_FILE_DIR:tddotnet>)
 endif()
 
 # tdc - TDLib interface in pure C
