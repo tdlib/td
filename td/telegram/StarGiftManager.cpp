@@ -62,7 +62,7 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetStarGiftsQuery: " << to_string(ptr);
+    LOG(DEBUG) << "Receive result for GetStarGiftsQuery: " << to_string(ptr);
     if (ptr->get_id() != telegram_api::payments_starGifts::ID) {
       LOG(ERROR) << "Receive " << to_string(ptr);
       return promise_.set_error(500, "Receive unexpected response");
@@ -75,20 +75,26 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
       string title;
       if (gift->get_id() == telegram_api::starGift::ID) {
         auto star_gift = static_cast<const telegram_api::starGift *>(gift.get());
-        availability_resale = star_gift->availability_resale_;
-        resell_min_stars = StarManager::get_star_count(star_gift->resell_min_stars_);
-        title = star_gift->title_;
-        if (availability_resale < 0 || availability_resale > 1000000000) {
-          LOG(ERROR) << "Receive " << availability_resale << " available gifts";
-          availability_resale = 0;
-        } else if (resell_min_stars == 0 && availability_resale > 0) {
-          LOG(ERROR) << "Receive " << availability_resale << " available gifts with the minimum price of "
-                     << resell_min_stars;
-          availability_resale = 0;
-        }
-        if (availability_resale == 0) {
-          resell_min_stars = 0;
-          title.clear();
+        if (td_->auth_manager_->is_bot()) {
+          if (star_gift->availability_total_ > 0 && star_gift->availability_remains_ == 0) {
+            continue;
+          }
+        } else {
+          availability_resale = star_gift->availability_resale_;
+          resell_min_stars = StarManager::get_star_count(star_gift->resell_min_stars_);
+          title = star_gift->title_;
+          if (availability_resale < 0 || availability_resale > 1000000000) {
+            LOG(ERROR) << "Receive " << availability_resale << " available gifts";
+            availability_resale = 0;
+          } else if (resell_min_stars == 0 && availability_resale > 0) {
+            LOG(ERROR) << "Receive " << availability_resale << " available gifts with the minimum price of "
+                       << resell_min_stars;
+            availability_resale = 0;
+          }
+          if (availability_resale == 0) {
+            resell_min_stars = 0;
+            title.clear();
+          }
         }
       }
 
