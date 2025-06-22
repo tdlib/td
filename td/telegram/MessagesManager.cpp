@@ -8526,6 +8526,10 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
 
 void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Delete " << dialog_id;
+  if (dialog_id.get_type() == DialogType::Channel) {
+    G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(dialog_id));
+  }
+
   Dialog *d = get_dialog_force(dialog_id, "on_dialog_deleted");
   if (d == nullptr) {
     return promise.set_value(Unit());
@@ -8540,9 +8544,6 @@ void MessagesManager::on_dialog_deleted(DialogId dialog_id, Promise<Unit> &&prom
     on_dialog_updated(dialog_id, "on_dialog_deleted");
   }
   td_->dialog_manager_->on_dialog_deleted(dialog_id);
-  if (dialog_id.get_type() == DialogType::Channel) {
-    G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(dialog_id));
-  }
 
   td_->forum_topic_manager_->delete_all_dialog_topics(dialog_id);
 
