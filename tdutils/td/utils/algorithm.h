@@ -309,4 +309,12 @@ bool table_remove_if(WaitFreeHashMap<KeyT, ValueT, HashT, EqT> &table, const Fun
   return table.remove_if(func);
 }
 
+template <class KeyT, class HashT, class EqT>
+class WaitFreeHashSet;
+
+template <class KeyT, class HashT, class EqT, class FuncT>
+bool table_remove_if(WaitFreeHashSet<KeyT, HashT, EqT> &table, const FuncT &func) {
+  return table.remove_if(func);
+}
+
 }  // namespace td

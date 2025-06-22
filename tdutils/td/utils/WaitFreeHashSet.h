@@ -97,6 +97,21 @@ class WaitFreeHashSet {
     }
   }
 
+  template <class F>
+  bool remove_if(const F &f) {
+    if (wait_free_storage_ == nullptr) {
+      return default_set_.remove_if(f);
+    }
+
+    bool is_removed = false;
+    for (auto &it : wait_free_storage_->sets_) {
+      if (it.remove_if(f)) {
+        is_removed = true;
+      }
+    }
+    return is_removed;
+  }
+
   KeyT get_random() const {
     if (wait_free_storage_ != nullptr) {
       for (size_t i = 0; i < MAX_STORAGE_COUNT; i++) {
