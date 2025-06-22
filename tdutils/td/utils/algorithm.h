@@ -301,4 +301,12 @@ bool table_remove_if(FlatHashTable<NodeT, HashT, EqT> &table, FuncT &&func) {
   return table.remove_if(func);
 }
 
+template <class KeyT, class ValueT, class HashT, class EqT>
+class WaitFreeHashMap;
+
+template <class KeyT, class ValueT, class HashT, class EqT, class FuncT>
+bool table_remove_if(WaitFreeHashMap<KeyT, ValueT, HashT, EqT> &table, const FuncT &func) {
+  return table.remove_if(func);
+}
+
 }  // namespace td

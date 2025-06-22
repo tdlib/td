@@ -161,6 +161,21 @@ class WaitFreeHashMap {
     }
   }
 
+  template <class F>
+  bool remove_if(const F &f) {
+    if (wait_free_storage_ == nullptr) {
+      return default_map_.remove_if(f);
+    }
+
+    bool is_removed = false;
+    for (auto &it : wait_free_storage_->maps_) {
+      if (it.remove_if(f)) {
+        is_removed = true;
+      }
+    }
+    return is_removed;
+  }
+
   size_t calc_size() const {
     if (wait_free_storage_ == nullptr) {
       return default_map_.size();

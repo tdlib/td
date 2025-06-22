@@ -93,3 +93,22 @@ TEST(WaitFreeHashMap, stress_test) {
     }
   }
 }
+
+TEST(WaitFreeHashMap, remove_if) {
+  td::WaitFreeHashMap<td::uint64, td::uint64> map;
+  bool is_removed;
+  for (td::uint64 i = 0; i < 10000; i++) {
+    map[2 * i + 1] = 0;
+    map[2 * i + 2] = 1;
+    is_removed = map.remove_if([i](const auto &num) { return num.first <= i; });
+    CHECK(!is_removed);
+    CHECK(map.calc_size() == i + 2);
+    is_removed = map.remove_if([i](const auto &num) { return num.first <= i + 1; });
+    CHECK(is_removed);
+    CHECK(map.calc_size() == i + 1);
+  }
+  is_removed = map.remove_if([](const auto &num) { return num.first <= 19999; });
+  CHECK(map.calc_size() == 1);
+  is_removed = map.remove_if([](const auto &num) { return num.first <= 20000; });
+  CHECK(map.calc_size() == 0);
+}
