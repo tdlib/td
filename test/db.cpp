@@ -524,6 +524,85 @@ TEST(DB, key_value_set_all) {
   td::SqliteDb::destroy(sqlite_kv_name).ignore();
 }
 
+TEST(DB, binlog_key_value) {
+  td::BinlogKeyValue<td::Binlog> kv;
+
+  td::CSlice kv_name = "test_kv";
+  td::Binlog::destroy(kv_name).ignore();
+  kv.init(kv_name.str()).ensure();
+
+  size_t max_len = 5;
+  for (char i = 'a'; i <= 'z'; i++) {
+    for (size_t len = 1; len <= max_len; len++) {
+      kv.set(td::string(len, i), td::string(2 * len, i));
+    }
+  }
+
+  ASSERT_TRUE(kv.isset("qqq"));
+  ASSERT_EQ("qqqqqq", kv.get("qqq"));
+  ASSERT_TRUE(kv.erase("qqq") != 0);
+  ASSERT_FALSE(kv.isset("qqq"));
+  ASSERT_EQ("", kv.get("qqq"));
+  ASSERT_TRUE(kv.erase("qqq") == 0);
+  ASSERT_TRUE(kv.erase("qqq") == 0);
+
+  ASSERT_FALSE(kv.isset("ab"));
+  ASSERT_EQ("", kv.get("ab"));
+  ASSERT_TRUE(kv.erase("ab") == 0);
+
+  ASSERT_TRUE(kv.isset("rr"));
+  ASSERT_EQ("rrrr", kv.get("rr"));
+  ASSERT_TRUE(kv.isset("rrr"));
+  ASSERT_EQ("rrrrrr", kv.get("rrr"));
+  ASSERT_TRUE(kv.isset("ccc"));
+  ASSERT_EQ("cccccc", kv.get("ccc"));
+  ASSERT_TRUE(kv.erase_batch({"qqq", "qqq", "qqq"}) == 0);
+  ASSERT_TRUE(kv.erase_batch({"rr", "rrr", "ccc", "qqq"}) != 0);
+  ASSERT_TRUE(kv.erase_batch({"rr", "rrr", "ccc", "qqq"}) == 0);
+  ASSERT_FALSE(kv.isset("rr"));
+  ASSERT_EQ("", kv.get("rr"));
+  ASSERT_FALSE(kv.isset("rrr"));
+  ASSERT_EQ("", kv.get("rrr"));
+  ASSERT_FALSE(kv.isset("ccc"));
+  ASSERT_EQ("", kv.get("ccc"));
+
+  for (int round = 0; round < 3; round++) {
+    size_t key_len = 0;
+    size_t value_len = 0;
+    kv.for_each([&](td::Slice key, td::Slice value) {
+      ASSERT_NE(key, "ccc");
+      key_len += key.size();
+      value_len += value.size();
+    });
+    ASSERT_EQ(key_len, round >= 1 ? 25 * max_len * (max_len + 1) / 2 - 8 : 26 * max_len * (max_len + 1) / 2 - 11);
+    ASSERT_EQ(2 * key_len, value_len);
+
+    auto r = kv.prefix_get("r");
+    ASSERT_EQ(max_len - 2, r.size());
+    ASSERT_EQ(1u, r.count(""));
+    ASSERT_EQ(0u, r.count("r"));
+    ASSERT_EQ(0u, r.count("rr"));
+    ASSERT_EQ(1u, r.count("rrr"));
+    ASSERT_EQ("rr", r[""]);
+    ASSERT_EQ("rrrrrrrr", r["rrr"]);
+
+    auto all = kv.get_all();
+    ASSERT_EQ(26 * max_len - 4 - (round >= 1 ? max_len - 2 : 0), all.size());
+    ASSERT_EQ(0u, all.count(""));
+    ASSERT_EQ(1u, all.count("r"));
+    ASSERT_EQ(0u, all.count("rr"));
+    ASSERT_EQ(0u, all.count("rrr"));
+    ASSERT_EQ(1u, all.count("rrrr"));
+
+    kv.erase_by_prefix("sss");
+
+    kv.close();
+    kv.init(kv_name.str()).ensure();
+  }
+
+  td::Binlog::destroy(kv_name).ignore();
+}
+
 #if !TD_THREAD_UNSUPPORTED
 TEST(DB, thread_key_value) {
   td::vector<td::string> keys;
