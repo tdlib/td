@@ -91,7 +91,8 @@ enum class MessageContentType : int32 {
   PaidMessagesPrice,
   ConferenceCall,
   ToDoList,
-  TodoCompletions
+  TodoCompletions,
+  TodoAppendTasks
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 

@@ -4378,6 +4378,11 @@ messageDirectMessagePriceChanged is_enabled:Bool paid_message_star_count:int53 =
 //@marked_as_not_done_task_ids Identifiers of tasks that were marked as not done
 messageToDoTasksDone to_do_list_message_id:int53 marked_as_done_task_ids:vector<int32> marked_as_not_done_task_ids:vector<int32> = MessageContent;
 
+//@description Some tasks were added to a to do list
+//@to_do_list_message_id Identifier of the message with the to do list; can be 0 if the message was deleted
+//@tasks List of tasks added to the to do list
+messageToDoTasksAdded to_do_list_message_id:int53 tasks:vector<toDoListTask> = MessageContent;
+
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
 
@@ -9365,7 +9370,7 @@ getMessageLocally chat_id:int53 message_id:int53 = Message;
 
 //@description Returns information about a non-bundled message that is replied by a given message. Also, returns the pinned message, the game message, the invoice message,
 //-the message with a previously set same background, the giveaway message, the to do list message, and the topic creation message for messages of the types
-//-messagePinMessage, messageGameScore, messagePaymentSuccessful, messageChatSetBackground, messageGiveawayCompleted, messageToDoTasksDone and topic messages without non-bundled replied message respectively.
+//-messagePinMessage, messageGameScore, messagePaymentSuccessful, messageChatSetBackground, messageGiveawayCompleted, messageToDoTasksDone and messageToDoTasksAdded, and topic messages without non-bundled replied message respectively.
 //-Returns a 404 error if the message doesn't exist
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message

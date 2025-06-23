@@ -433,6 +433,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::ConferenceCall:
     case MessageContentType::ToDoList:
     case MessageContentType::TodoCompletions:
+    case MessageContentType::TodoAppendTasks:
       return false;
     default:
       UNREACHABLE();
