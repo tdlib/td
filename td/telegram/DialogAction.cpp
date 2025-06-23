@@ -432,6 +432,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::PaidMessagesPrice:
     case MessageContentType::ConferenceCall:
     case MessageContentType::ToDoList:
+    case MessageContentType::TodoCompletions:
       return false;
     default:
       UNREACHABLE();
