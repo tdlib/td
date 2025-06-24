@@ -7691,12 +7691,15 @@ bool MessagesManager::can_add_message_tasks(DialogId dialog_id, const Message *m
   if (!m->is_outgoing && !get_message_content_to_do_list_others_can_append(m->content.get())) {
     return false;
   }
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+    return false;
+  }
   return true;
 }
 
 bool MessagesManager::can_mark_message_tasks_as_done(MessageFullId message_full_id) {
   return can_mark_message_tasks_as_done(message_full_id.get_dialog_id(),
-                               get_message_force(message_full_id, "can_mark_message_tasks_as_done"));
+                                        get_message_force(message_full_id, "can_mark_message_tasks_as_done"));
 }
 
 bool MessagesManager::can_mark_message_tasks_as_done(DialogId dialog_id, const Message *m) const {
@@ -7710,6 +7713,9 @@ bool MessagesManager::can_mark_message_tasks_as_done(DialogId dialog_id, const M
     return false;
   }
   if (!m->is_outgoing && !get_message_content_to_do_list_others_can_complete(m->content.get())) {
+    return false;
+  }
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return false;
   }
   return true;

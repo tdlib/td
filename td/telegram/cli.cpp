@@ -6577,6 +6577,15 @@ class CliClient final : public Actor {
       } else {
         send_request(td_api::make_object<td_api::stopPoll>(chat_id, message_id, nullptr));
       }
+    } else if (op == "atdlt") {
+      ChatId chat_id;
+      MessageId message_id;
+      int32 task_id;
+      get_args(args, chat_id, message_id, task_id, args);
+      auto tasks = transform(autosplit_str(args), [&task_id](const string &task) {
+        return td_api::make_object<td_api::inputToDoListTask>(task_id++, as_formatted_text(task));
+      });
+      send_request(td_api::make_object<td_api::addToDoListTasks>(chat_id, message_id, std::move(tasks)));
     } else {
       op_not_found_count++;
     }

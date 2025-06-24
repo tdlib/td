@@ -10501,6 +10501,13 @@ getPollVoters chat_id:int53 message_id:int53 option_id:int32 offset:int32 limit:
 stopPoll chat_id:int53 message_id:int53 reply_markup:ReplyMarkup = Ok;
 
 
+//@description Adds tasks to a to do list in a message
+//@chat_id Identifier of the chat with the message
+//@message_id Identifier of the message containing the to do list. Use messageProperties.can_add_tasks to check whether the tasks can be added
+//@tasks List of added tasks
+addToDoListTasks chat_id:int53 message_id:int53 tasks:vector<inputToDoListTask> = Ok;
+
+
 //@description Hides a suggested action @action Suggested action to hide
 hideSuggestedAction action:SuggestedAction = Ok;
 
