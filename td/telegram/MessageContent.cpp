@@ -3963,6 +3963,12 @@ static Result<InputMessageContent> create_input_message_content(
       content = make_unique<MessageStory>(story_full_id, false);
       break;
     }
+    case td_api::inputMessageToDoList::ID: {
+      auto input_to_do_list = static_cast<td_api::inputMessageToDoList *>(input_message_content.get());
+      TRY_RESULT(to_do_list, ToDoList::get_to_do_list(td, dialog_id, std::move(input_to_do_list->to_do_list_)));
+      content = td::make_unique<MessageToDoList>(std::move(to_do_list), vector<ToDoCompletion>());
+      break;
+    }
     default:
       UNREACHABLE();
   }

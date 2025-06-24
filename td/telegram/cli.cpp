@@ -6146,6 +6146,17 @@ class CliClient final : public Actor {
       send_message(chat_id,
                    td_api::make_object<td_api::inputMessagePoll>(as_formatted_text(question), std::move(options),
                                                                  op != "spollp", std::move(poll_type), 0, 0, false));
+    } else if (op == "stodo") {
+      ChatId chat_id;
+      string title;
+      get_args(args, chat_id, title, args);
+      int32 count = 0;
+      auto tasks = transform(autosplit_str(args), [&count](const string &task) {
+        return td_api::make_object<td_api::inputToDoListTask>(++count, as_formatted_text(task));
+      });
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessageToDoList>(td_api::make_object<td_api::inputToDoList>(
+                       as_formatted_text(title), std::move(tasks), rand_bool(), rand_bool())));
     } else if (op == "sp") {
       ChatId chat_id;
       string photo;

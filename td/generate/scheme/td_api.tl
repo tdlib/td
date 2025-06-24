@@ -4706,6 +4706,10 @@ inputMessagePoll question:formattedText options:vector<formattedText> is_anonymo
 //@story_id Story identifier
 inputMessageStory story_poster_chat_id:int53 story_id:int32 = InputMessageContent;
 
+//@description A message with a to do list. To do lists can't be sent to secret chats, channel chats and channel direct messages chats; for Telegram Premium users only
+//@to_do_list The to do list to send
+inputMessageToDoList to_do_list:inputToDoList = InputMessageContent;
+
 //@description A forwarded message
 //@from_chat_id Identifier for the chat this forwarded message came from
 //@message_id Identifier of the message to forward. A message can be forwarded only if messageProperties.can_be_forwarded
