@@ -7667,6 +7667,11 @@ bool MessagesManager::get_message_has_protected_content(DialogId dialog_id, cons
   return m->noforwards || td_->dialog_manager_->get_dialog_has_protected_content(dialog_id);
 }
 
+bool MessagesManager::can_add_message_tasks(MessageFullId message_full_id) {
+  return can_add_message_tasks(message_full_id.get_dialog_id(),
+                               get_message_force(message_full_id, "can_add_message_tasks"));
+}
+
 bool MessagesManager::can_add_message_tasks(DialogId dialog_id, const Message *m) const {
   if (m == nullptr) {
     return false;
