@@ -1431,6 +1431,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"upload_premium_speedup_download", "premium_download_speedup"},
       {"upload_premium_speedup_notify_period", ""},
       {"upload_premium_speedup_upload", "premium_upload_speedup"}};
+  static const FlatHashMap<Slice, Slice, SliceHash> long_keys = {
+      {"telegram_antispam_user_id", "anti_spam_bot_user_id"},
+      {"stories_changelog_user_id", "stories_changelog_user_id"}};
   static const FlatHashSet<Slice, SliceHash> ignored_options(
       {"default_emoji_statuses_stickerset_id", "forum_upgrade_participants_min", "getfile_experimental_params",
        "message_animated_emoji_max", "stickers_emoji_cache_time", "stories_export_nopublic_link", "test",
@@ -1444,11 +1447,21 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
 
-      auto it = integer_keys.find(key);
-      if (it != integer_keys.end()) {
-        G()->set_option_integer(it->second.empty() ? key : it->second,
-                                max(0, get_json_value_int(std::move(key_value->value_), key)));
-        continue;
+      {
+        auto it = integer_keys.find(key);
+        if (it != integer_keys.end()) {
+          G()->set_option_integer(it->second.empty() ? key : it->second,
+                                  max(0, get_json_value_int(std::move(key_value->value_), key)));
+          continue;
+        }
+      }
+      {
+        auto it = long_keys.find(key);
+        if (it != long_keys.end()) {
+          G()->set_option_integer(it->second.empty() ? key : it->second,
+                                  max(static_cast<int64>(0), get_json_value_long(std::move(key_value->value_), key)));
+          continue;
+        }
       }
       if (ignored_options.count(key)) {
         continue;
@@ -1749,14 +1762,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       }
       if (key == "premium_gift_text_field_icon") {
         premium_gift_text_field_icon = get_json_value_bool(std::move(key_value->value_), key);
-        continue;
-      }
-      if (key == "telegram_antispam_user_id") {
-        G()->set_option_integer("anti_spam_bot_user_id", get_json_value_long(std::move(key_value->value_), key));
-        continue;
-      }
-      if (key == "stories_changelog_user_id") {
-        G()->set_option_integer("stories_changelog_user_id", get_json_value_long(std::move(key_value->value_), key));
         continue;
       }
       if (key == "stories_all_hidden") {
