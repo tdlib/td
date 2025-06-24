@@ -403,14 +403,14 @@ inputToDoListTask id:int32 text:formattedText = InputToDoListTask;
 //@title Title of the to do list; may contain only CustomEmoji entities
 //@tasks List of tasks in the to do list
 //@can_be_appended_by_others True, if users other than creator of the list can add tasks to the list
-//@can_be_completed_by_others True, if users other than creator of the list can complete tasks in the list
-toDoList title:formattedText tasks:vector<toDoListTask> can_be_appended_by_others:Bool can_be_completed_by_others:Bool = ToDoList;
+//@can_mark_tasks_as_done True, if the current user can mark tasks as done or not done if they have Telegram Premium subscription
+toDoList title:formattedText tasks:vector<toDoListTask> can_be_appended_by_others:Bool can_mark_tasks_as_done:Bool = ToDoList;
 
 //@description Describes a to do list to be sent
 //@title Title of the to do list; 1-getOption("to_do_list_title_length_max") characters. May contain only CustomEmoji entities
 //@tasks List of tasks in the to do list
 //@can_be_appended_by_others True, if other users can add tasks to the list
-//@can_be_completed_by_others True, if other users can complete tasks in the list
+//@can_be_completed_by_others True, if other users can mark tasks as done or not done
 inputToDoList title:formattedText tasks:vector<inputToDoListTask> can_be_appended_by_others:Bool can_be_completed_by_others:Bool = InputToDoList;
 
 
@@ -4721,7 +4721,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 
 
 //@description Contains properties of a message and describes actions that can be done with the message right now
-//@can_add_tasks True, if tasks can be added to the message's to do list using addToDoListTasks
+//@can_add_tasks True, if tasks can be added to the message's to do list using addToDoListTasks if the current user has Telegram Premium subscription
 //@can_be_copied True, if content of the message can be copied using inputMessageForwarded or forwardMessages with copy options
 //@can_be_copied_to_secret_chat True, if content of the message can be copied to a secret chat using inputMessageForwarded or forwardMessages with copy options
 //@can_be_deleted_only_for_self True, if the message can be deleted only for the current user while other users will continue to see it using the method deleteMessages with revoke == false
@@ -4746,7 +4746,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 //@can_get_statistics True, if message statistics are available through getMessageStatistics and message forwards can be received using getMessagePublicForwards
 //@can_get_video_advertisements True, if advertisements for video of the message can be received though getVideoMessageAdvertisements
 //@can_get_viewers True, if chat members already viewed the message can be received through getMessageViewers
-//@can_mark_tasks_as_done True, if tasks can be marked as done or not done in the message's to do list using markToDoListTasksAsDone
+//@can_mark_tasks_as_done True, if tasks can be marked as done or not done in the message's to do list using markToDoListTasksAsDone if the current user has Telegram Premium subscription
 //@can_recognize_speech True, if speech can be recognized for the message through recognizeSpeech
 //@can_report_chat True, if the message can be reported using reportChat
 //@can_report_reactions True, if reactions on the message can be reported through reportMessageReactions

@@ -9336,7 +9336,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::ToDoList: {
       const auto *m = static_cast<const MessageToDoList *>(content);
-      return td_api::make_object<td_api::messageToDoList>(m->list.get_to_do_list_object(td, m->completions));
+      return td_api::make_object<td_api::messageToDoList>(
+          m->list.get_to_do_list_object(td, m->completions, message_id, is_outgoing));
     }
     case MessageContentType::TodoCompletions: {
       const auto *m = static_cast<const MessageTodoCompletions *>(content);

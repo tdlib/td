@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ToDoCompletion.h"
@@ -43,7 +44,8 @@ class ToDoList {
     return others_can_complete_;
   }
 
-  td_api::object_ptr<td_api::toDoList> get_to_do_list_object(Td *td, const vector<ToDoCompletion> &completions) const;
+  td_api::object_ptr<td_api::toDoList> get_to_do_list_object(Td *td, const vector<ToDoCompletion> &completions,
+                                                             MessageId message_id, bool is_outgoing) const;
 
   telegram_api::object_ptr<telegram_api::todoList> get_input_todo_list(const UserManager *user_manager) const;
 
