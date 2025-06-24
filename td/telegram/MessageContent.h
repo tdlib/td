@@ -192,6 +192,8 @@ bool get_message_content_poll_is_closed(const Td *td, const MessageContent *cont
 
 bool get_message_content_to_do_list_others_can_append(const MessageContent *content);
 
+bool get_message_content_to_do_list_others_can_complete(const MessageContent *content);
+
 const Venue *get_message_content_venue(const MessageContent *content);
 
 bool has_message_content_web_page(const MessageContent *content);

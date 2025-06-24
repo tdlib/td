@@ -39,6 +39,10 @@ class ToDoList {
     return others_can_append_;
   }
 
+  bool get_others_can_complete() const {
+    return others_can_complete_;
+  }
+
   td_api::object_ptr<td_api::toDoList> get_to_do_list_object(Td *td, const vector<ToDoCompletion> &completions) const;
 
   telegram_api::object_ptr<telegram_api::todoList> get_input_todo_list(const UserManager *user_manager) const;

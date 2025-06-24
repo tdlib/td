@@ -5640,6 +5640,15 @@ bool get_message_content_to_do_list_others_can_append(const MessageContent *cont
   }
 }
 
+bool get_message_content_to_do_list_others_can_complete(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::ToDoList:
+      return static_cast<const MessageToDoList *>(content)->list.get_others_can_complete();
+    default:
+      return false;
+  }
+}
+
 const Venue *get_message_content_venue(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Venue:
