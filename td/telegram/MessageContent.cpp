@@ -5305,6 +5305,7 @@ MessageFullId get_message_content_replied_message_id(DialogId dialog_id, const M
 
       return {dialog_id, m->to_do_message_id};
     }
+    // update getRepliedMessage documentation
     default:
       return MessageFullId();
   }
