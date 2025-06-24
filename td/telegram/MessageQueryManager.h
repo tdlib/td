@@ -133,6 +133,9 @@ class MessageQueryManager final : public Actor {
   void add_to_do_list_tasks(MessageFullId message_full_id,
                             vector<td_api::object_ptr<td_api::inputToDoListTask>> &&tasks, Promise<Unit> &&promise);
 
+  void mark_to_do_list_tasks_as_done(MessageFullId message_full_id, vector<int32> done_task_ids,
+                                     vector<int32> not_done_task_ids, Promise<Unit> &&promise);
+
   void get_discussion_message(DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
                               MessageId expected_message_id, Promise<MessageThreadInfo> &&promise);
 

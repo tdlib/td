@@ -7222,6 +7222,14 @@ void Requests::on_request(uint64 id, td_api::addToDoListTasks &request) {
                                                     std::move(request.tasks_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::markToDoListTasksAsDone &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->message_query_manager_->mark_to_do_list_tasks_as_done(
+      {DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(request.marked_as_done_task_ids_),
+      std::move(request.marked_as_not_done_task_ids_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::hideSuggestedAction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

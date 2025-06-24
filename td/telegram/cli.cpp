@@ -6586,6 +6586,14 @@ class CliClient final : public Actor {
         return td_api::make_object<td_api::inputToDoListTask>(task_id++, as_formatted_text(task));
       });
       send_request(td_api::make_object<td_api::addToDoListTasks>(chat_id, message_id, std::move(tasks)));
+    } else if (op == "mtdltad") {
+      ChatId chat_id;
+      MessageId message_id;
+      string done_task_ids;
+      string not_done_task_ids;
+      get_args(args, chat_id, message_id, done_task_ids, not_done_task_ids);
+      send_request(td_api::make_object<td_api::markToDoListTasksAsDone>(
+          chat_id, message_id, to_integers<int32>(done_task_ids), to_integers<int32>(not_done_task_ids)));
     } else {
       op_not_found_count++;
     }

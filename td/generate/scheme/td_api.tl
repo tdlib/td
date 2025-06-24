@@ -10507,6 +10507,13 @@ stopPoll chat_id:int53 message_id:int53 reply_markup:ReplyMarkup = Ok;
 //@tasks List of added tasks
 addToDoListTasks chat_id:int53 message_id:int53 tasks:vector<inputToDoListTask> = Ok;
 
+//@description Adds tasks of a to do list in a message as done or not done
+//@chat_id Identifier of the chat with the message
+//@message_id Identifier of the message containing the to do list. Use messageProperties.can_mark_tasks_as_done to check whether the tasks can be marked as done or not done
+//@marked_as_done_task_ids Identifiers of tasks that were marked as done
+//@marked_as_not_done_task_ids Identifiers of tasks that were marked as not done
+markToDoListTasksAsDone chat_id:int53 message_id:int53 marked_as_done_task_ids:vector<int32> marked_as_not_done_task_ids:vector<int32> = Ok;
+
 
 //@description Hides a suggested action @action Suggested action to hide
 hideSuggestedAction action:SuggestedAction = Ok;
