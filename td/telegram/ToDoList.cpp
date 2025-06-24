@@ -46,8 +46,8 @@ Result<ToDoList> ToDoList::get_to_do_list(const Td *td, DialogId dialog_id,
     TRY_RESULT(item, ToDoItem::get_to_do_item(td, dialog_id, std::move(task)));
     result.items_.push_back(std::move(item));
   }
-  result.others_can_append_ = list->can_be_appended_by_others_;
-  result.others_can_complete_ = list->can_be_completed_by_others_;
+  result.others_can_append_ = list->others_can_add_tasks_;
+  result.others_can_complete_ = list->others_can_mark_tasks_as_done_;
   return result;
 }
 
