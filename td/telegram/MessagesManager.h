@@ -569,6 +569,8 @@ class MessagesManager final : public Actor {
 
   bool can_add_message_tasks(MessageFullId message_full_id);
 
+  bool can_mark_message_tasks_as_done(MessageFullId message_full_id);
+
   DialogId get_dialog_message_sender(MessageFullId message_full_id);
 
   bool have_message_force(MessageFullId message_full_id, const char *source);
