@@ -403,9 +403,10 @@ inputToDoListTask id:int32 text:formattedText = InputToDoListTask;
 //@title Title of the to do list; may contain only CustomEmoji entities
 //@tasks List of tasks in the to do list
 //@others_can_add_tasks True, if users other than creator of the list can add tasks to the list
+//@can_add_tasks True, if the current user can add tasks to the list if they have Telegram Premium subscription
 //@others_can_mark_tasks_as_done True, if users other than creator of the list can mark tasks as done or not done
 //@can_mark_tasks_as_done True, if the current user can mark tasks as done or not done if they have Telegram Premium subscription
-toDoList title:formattedText tasks:vector<toDoListTask> others_can_add_tasks:Bool others_can_mark_tasks_as_done:Bool can_mark_tasks_as_done:Bool = ToDoList;
+toDoList title:formattedText tasks:vector<toDoListTask> others_can_add_tasks:Bool can_add_tasks:Bool others_can_mark_tasks_as_done:Bool can_mark_tasks_as_done:Bool = ToDoList;
 
 //@description Describes a to do list to be sent
 //@title Title of the to do list; 1-getOption("to_do_list_title_length_max") characters. May contain only CustomEmoji entities
