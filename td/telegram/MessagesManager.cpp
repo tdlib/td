@@ -7689,6 +7689,22 @@ bool MessagesManager::can_add_message_tasks(DialogId dialog_id, const Message *m
   return true;
 }
 
+bool MessagesManager::can_mark_message_tasks_as_done(DialogId dialog_id, const Message *m) const {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+  if (m == nullptr) {
+    return false;
+  }
+  if (!m->message_id.is_server() || m->content->get_type() != MessageContentType::ToDoList) {
+    return false;
+  }
+  if (!m->is_outgoing && !get_message_content_to_do_list_others_can_complete(m->content.get())) {
+    return false;
+  }
+  return true;
+}
+
 bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message *m, bool is_copy) const {
   if (m == nullptr) {
     return false;
@@ -14642,6 +14658,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
   auto can_get_link = can_get_media_timestamp_links && dialog_type == DialogType::Channel;
   auto can_get_embedding_code = can_get_message_embedding_code(dialog_id, m).is_ok();
+  auto can_mark_tasks_as_done = can_mark_message_tasks_as_done(dialog_id, m);
   auto can_recognize_speech = can_recognize_message_speech(dialog_id, m);
   auto can_report_chat = td_->dialog_manager_->can_report_dialog(dialog_id) && can_report_message(message_id).is_ok();
   auto can_report_reactions = can_report_message_reactions(dialog_id, m);
@@ -14658,8 +14675,8 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
       can_be_edited, can_be_forwarded, can_be_paid, can_be_pinned, can_be_replied, can_be_replied_in_another_chat,
       can_be_saved, can_be_shared_in_story, can_edit_media, can_edit_scheduling_state, can_get_author,
       can_get_embedding_code, can_get_link, can_get_media_timestamp_links, can_get_message_thread, can_get_read_date,
-      can_get_statistics, can_get_video_advertisements, can_get_viewers, can_recognize_speech, can_report_chat,
-      can_report_reactions, can_report_supergroup_spam, can_set_fact_check, need_show_statistics));
+      can_get_statistics, can_get_video_advertisements, can_get_viewers, can_mark_tasks_as_done, can_recognize_speech,
+      can_report_chat, can_report_reactions, can_report_supergroup_spam, can_set_fact_check, need_show_statistics));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
