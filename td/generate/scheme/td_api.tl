@@ -410,7 +410,7 @@ toDoList title:formattedText tasks:vector<toDoListTask> others_can_add_tasks:Boo
 
 //@description Describes a to do list to be sent
 //@title Title of the to do list; 1-getOption("to_do_list_title_length_max") characters. May contain only CustomEmoji entities
-//@tasks List of tasks in the to do list
+//@tasks List of tasks in the to do list; 1-getOption("to_do_list_task_count_max") tasks
 //@others_can_add_tasks True, if other users can add tasks to the list
 //@others_can_mark_tasks_as_done True, if other users can mark tasks as done or not done
 inputToDoList title:formattedText tasks:vector<inputToDoListTask> others_can_add_tasks:Bool others_can_mark_tasks_as_done:Bool = InputToDoList;

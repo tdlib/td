@@ -47,6 +47,13 @@ Result<ToDoList> ToDoList::get_to_do_list(const Td *td, DialogId dialog_id,
     TRY_RESULT(item, ToDoItem::get_to_do_item(td, dialog_id, std::move(task)));
     result.items_.push_back(std::move(item));
   }
+  if (result.items_.empty()) {
+    return Status::Error(400, "To do list must have at least 1 task");
+  }
+  auto max_task_count = td->option_manager_->get_option_integer("to_do_list_task_count_max", 0);
+  if (static_cast<int64>(result.items_.size()) > max_task_count) {
+    return Status::Error(400, PSLICE() << "To do list must have at most " << max_task_count << " tasks");
+  }
   result.others_can_append_ = list->others_can_add_tasks_;
   result.others_can_complete_ = list->others_can_mark_tasks_as_done_;
   return result;
