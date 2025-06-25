@@ -94,7 +94,7 @@ class BusinessConnectionManager final : public Actor {
 
   void edit_business_message_to_do_list(BusinessConnectionId business_connection_id, DialogId dialog_id,
                                         MessageId message_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                        td_api::object_ptr<td_api::inputToDoList> &&input_to_do_list,
+                                        td_api::object_ptr<td_api::inputChecklist> &&input_to_do_list,
                                         Promise<td_api::object_ptr<td_api::businessMessage>> &&promise);
 
   void edit_business_message_media(BusinessConnectionId business_connection_id, DialogId dialog_id,

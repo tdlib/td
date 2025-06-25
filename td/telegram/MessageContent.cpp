@@ -3963,9 +3963,9 @@ static Result<InputMessageContent> create_input_message_content(
       content = make_unique<MessageStory>(story_full_id, false);
       break;
     }
-    case td_api::inputMessageToDoList::ID: {
-      auto input_to_do_list = static_cast<td_api::inputMessageToDoList *>(input_message_content.get());
-      TRY_RESULT(to_do_list, ToDoList::get_to_do_list(td, dialog_id, std::move(input_to_do_list->to_do_list_)));
+    case td_api::inputMessageChecklist::ID: {
+      auto input_to_do_list = static_cast<td_api::inputMessageChecklist *>(input_message_content.get());
+      TRY_RESULT(to_do_list, ToDoList::get_to_do_list(td, dialog_id, std::move(input_to_do_list->checklist_)));
       content = td::make_unique<MessageToDoList>(std::move(to_do_list), vector<ToDoCompletion>());
       break;
     }
@@ -4937,15 +4937,15 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       break;
     case MessageContentType::ToDoList:
       if (!permissions.can_send_polls()) {
-        return Status::Error(400, "Not enough rights to send to do lists to the chat");
+        return Status::Error(400, "Not enough rights to send checklists to the chat");
       }
       if (dialog_type == DialogType::Channel) {
         auto channel_id = dialog_id.get_channel_id();
         if (td->chat_manager_->is_broadcast_channel(channel_id)) {
-          return Status::Error(400, "To do lists can't be sent to channel chats");
+          return Status::Error(400, "Checklists can't be sent to channel chats");
         }
         if (td->chat_manager_->is_monoforum_channel(channel_id)) {
-          return Status::Error(400, "To do lists can't be sent to channel direct messages chats");
+          return Status::Error(400, "Checklists can't be sent to channel direct messages chats");
         }
       }
       break;
@@ -8746,7 +8746,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto action = telegram_api::move_object_as<telegram_api::messageActionTodoCompletions>(action_ptr);
       auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
       if (!reply_to_message_id.is_valid() && reply_to_message_id != MessageId()) {
-        LOG(ERROR) << "Receive to do list task marks change message with " << reply_to_message_id << " in "
+        LOG(ERROR) << "Receive checklist task marks change message with " << reply_to_message_id << " in "
                    << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
@@ -8757,7 +8757,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       auto action = telegram_api::move_object_as<telegram_api::messageActionTodoAppendTasks>(action_ptr);
       auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
       if (!reply_to_message_id.is_valid() && reply_to_message_id != MessageId()) {
-        LOG(ERROR) << "Receive to do list task addition message with " << reply_to_message_id << " in "
+        LOG(ERROR) << "Receive checklist task addition message with " << reply_to_message_id << " in "
                    << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
@@ -9336,19 +9336,19 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::ToDoList: {
       const auto *m = static_cast<const MessageToDoList *>(content);
-      return td_api::make_object<td_api::messageToDoList>(
-          m->list.get_to_do_list_object(td, m->completions, dialog_id, message_id, is_outgoing));
+      return td_api::make_object<td_api::messageChecklist>(
+          m->list.get_checklist_object(td, m->completions, dialog_id, message_id, is_outgoing));
     }
     case MessageContentType::TodoCompletions: {
       const auto *m = static_cast<const MessageTodoCompletions *>(content);
-      return td_api::make_object<td_api::messageToDoTasksDone>(
+      return td_api::make_object<td_api::messageChecklistTasksDone>(
           m->to_do_message_id.get(), vector<int32>(m->completed_task_ids), vector<int32>(m->incompleted_task_ids));
     }
     case MessageContentType::TodoAppendTasks: {
       const auto *m = static_cast<const MessageTodoAppendTasks *>(content);
-      return td_api::make_object<td_api::messageToDoTasksAdded>(
+      return td_api::make_object<td_api::messageChecklistTasksAdded>(
           m->to_do_message_id.get(),
-          transform(m->items, [td](const ToDoItem &item) { return item.get_to_do_list_task_object(td, {}); }));
+          transform(m->items, [td](const ToDoItem &item) { return item.get_checklist_task_object(td, {}); }));
     }
     default:
       UNREACHABLE();

@@ -1317,21 +1317,21 @@ class CliClient final : public Actor {
     }
   }
 
-  struct InputToDoList {
+  struct InputChecklist {
     string title;
     string tasks;
 
-    operator td_api::object_ptr<td_api::inputToDoList>() const {
+    operator td_api::object_ptr<td_api::inputChecklist>() const {
       int32 count = 0;
       auto input_tasks = transform(autosplit_str(tasks), [&count](const string &task) {
-        return td_api::make_object<td_api::inputToDoListTask>(++count, as_formatted_text(task));
+        return td_api::make_object<td_api::inputChecklistTask>(++count, as_formatted_text(task));
       });
-      return td_api::make_object<td_api::inputToDoList>(as_formatted_text(title), std::move(input_tasks), rand_bool(),
-                                                        rand_bool());
+      return td_api::make_object<td_api::inputChecklist>(as_formatted_text(title), std::move(input_tasks), rand_bool(),
+                                                         rand_bool());
     }
   };
 
-  void get_args(string &args, InputToDoList &arg) const {
+  void get_args(string &args, InputChecklist &arg) const {
     get_args(args, arg.title, arg.tasks);
   }
 
@@ -5868,12 +5868,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::editMessageLiveLocation>(chat_id, message_id, nullptr,
                                                                         as_location(latitude, longitude, accuracy),
                                                                         live_period, heading, proximity_alert_radius));
-    } else if (op == "emtodo") {
+    } else if (op == "emchl") {
       ChatId chat_id;
       MessageId message_id;
-      InputToDoList to_do_list;
-      get_args(args, chat_id, message_id, to_do_list);
-      send_request(td_api::make_object<td_api::editMessageToDoList>(chat_id, message_id, nullptr, to_do_list));
+      InputChecklist checklist;
+      get_args(args, chat_id, message_id, checklist);
+      send_request(td_api::make_object<td_api::editMessageChecklist>(chat_id, message_id, nullptr, checklist));
     } else if (op == "emss") {
       ChatId chat_id;
       MessageId message_id;
@@ -6170,11 +6170,11 @@ class CliClient final : public Actor {
       send_message(chat_id,
                    td_api::make_object<td_api::inputMessagePoll>(as_formatted_text(question), std::move(options),
                                                                  op != "spollp", std::move(poll_type), 0, 0, false));
-    } else if (op == "stodo") {
+    } else if (op == "schl") {
       ChatId chat_id;
-      InputToDoList to_do_list;
-      get_args(args, chat_id, to_do_list);
-      send_message(chat_id, td_api::make_object<td_api::inputMessageToDoList>(to_do_list));
+      InputChecklist checklist;
+      get_args(args, chat_id, checklist);
+      send_message(chat_id, td_api::make_object<td_api::inputMessageChecklist>(checklist));
     } else if (op == "sp") {
       ChatId chat_id;
       string photo;
@@ -6601,16 +6601,16 @@ class CliClient final : public Actor {
       int32 task_id;
       get_args(args, chat_id, message_id, task_id, args);
       auto tasks = transform(autosplit_str(args), [&task_id](const string &task) {
-        return td_api::make_object<td_api::inputToDoListTask>(task_id++, as_formatted_text(task));
+        return td_api::make_object<td_api::inputChecklistTask>(task_id++, as_formatted_text(task));
       });
-      send_request(td_api::make_object<td_api::addToDoListTasks>(chat_id, message_id, std::move(tasks)));
+      send_request(td_api::make_object<td_api::addChecklistTasks>(chat_id, message_id, std::move(tasks)));
     } else if (op == "mtdltad") {
       ChatId chat_id;
       MessageId message_id;
       string done_task_ids;
       string not_done_task_ids;
       get_args(args, chat_id, message_id, done_task_ids, not_done_task_ids);
-      send_request(td_api::make_object<td_api::markToDoListTasksAsDone>(
+      send_request(td_api::make_object<td_api::markChecklistTasksAsDone>(
           chat_id, message_id, to_integers<int32>(done_task_ids), to_integers<int32>(not_done_task_ids)));
     } else {
       op_not_found_count++;

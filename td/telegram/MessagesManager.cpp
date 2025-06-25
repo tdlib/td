@@ -22695,7 +22695,7 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
 
 void MessagesManager::edit_message_to_do_list(MessageFullId message_full_id,
                                               td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                              td_api::object_ptr<td_api::inputToDoList> &&input_to_do_list,
+                                              td_api::object_ptr<td_api::inputChecklist> &&input_to_do_list,
                                               Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
   TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Edit, "edit_message_to_do_list"));
@@ -22710,7 +22710,7 @@ void MessagesManager::edit_message_to_do_list(MessageFullId message_full_id,
 
   MessageContentType old_message_content_type = m->content->get_type();
   if (old_message_content_type != MessageContentType::ToDoList) {
-    return promise.set_error(400, "There is no to do list in the message to edit");
+    return promise.set_error(400, "There is no checklist in the message to edit");
   }
 
   TRY_RESULT_PROMISE(promise, to_do_list, ToDoList::get_to_do_list(td_, dialog_id, std::move(input_to_do_list)));

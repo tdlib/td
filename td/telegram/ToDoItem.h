@@ -33,11 +33,11 @@ class ToDoItem {
   ToDoItem(const UserManager *user_manager, telegram_api::object_ptr<telegram_api::todoItem> &&item);
 
   static Result<ToDoItem> get_to_do_item(const Td *td, DialogId dialog_id,
-                                         td_api::object_ptr<td_api::inputToDoListTask> &&task);
+                                         td_api::object_ptr<td_api::inputChecklistTask> &&task);
 
   void validate(const char *source);
 
-  td_api::object_ptr<td_api::toDoListTask> get_to_do_list_task_object(Td *td,
+  td_api::object_ptr<td_api::checklistTask> get_checklist_task_object(Td *td,
                                                                       const vector<ToDoCompletion> &completions) const;
 
   telegram_api::object_ptr<telegram_api::todoItem> get_input_todo_item(const UserManager *user_manager) const;

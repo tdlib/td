@@ -29,15 +29,15 @@ ToDoList::ToDoList(const UserManager *user_manager, telegram_api::object_ptr<tel
 }
 
 Result<ToDoList> ToDoList::get_to_do_list(const Td *td, DialogId dialog_id,
-                                          td_api::object_ptr<td_api::inputToDoList> &&list) {
+                                          td_api::object_ptr<td_api::inputChecklist> &&list) {
   if (list == nullptr) {
-    return Status::Error(400, "To do list must be non-empty");
+    return Status::Error(400, "Checklist must be non-empty");
   }
   TRY_RESULT(title, get_formatted_text(td, dialog_id, std::move(list->title_), td->auth_manager_->is_bot(), false, true,
                                        false));
-  auto max_length = td->option_manager_->get_option_integer("to_do_list_title_length_max", 0);
+  auto max_length = td->option_manager_->get_option_integer("checklist_title_length_max", 0);
   if (static_cast<int64>(utf8_length(title.text)) > max_length) {
-    return Status::Error(400, PSLICE() << "To do list title length must not exceed " << max_length);
+    return Status::Error(400, PSLICE() << "Checklist title length must not exceed " << max_length);
   }
   keep_only_custom_emoji(title);
 
@@ -48,11 +48,11 @@ Result<ToDoList> ToDoList::get_to_do_list(const Td *td, DialogId dialog_id,
     result.items_.push_back(std::move(item));
   }
   if (result.items_.empty()) {
-    return Status::Error(400, "To do list must have at least 1 task");
+    return Status::Error(400, "Checklist must have at least 1 task");
   }
-  auto max_task_count = td->option_manager_->get_option_integer("to_do_list_task_count_max", 0);
+  auto max_task_count = td->option_manager_->get_option_integer("checklist_task_count_max", 0);
   if (static_cast<int64>(result.items_.size()) > max_task_count) {
-    return Status::Error(400, PSLICE() << "To do list must have at most " << max_task_count << " tasks");
+    return Status::Error(400, PSLICE() << "Checklist must have at most " << max_task_count << " tasks");
   }
   result.others_can_append_ = list->others_can_add_tasks_;
   result.others_can_complete_ = list->others_can_mark_tasks_as_done_;
@@ -68,26 +68,26 @@ telegram_api::object_ptr<telegram_api::todoList> ToDoList::get_input_todo_list(c
 
 void ToDoList::validate(const char *source) {
   if (keep_only_custom_emoji(title_)) {
-    LOG(ERROR) << "Receive unexpected to do list title entities from " << source;
+    LOG(ERROR) << "Receive unexpected checklist title entities from " << source;
   }
   for (auto &item : items_) {
     item.validate(source);
   }
 }
 
-td_api::object_ptr<td_api::toDoList> ToDoList::get_to_do_list_object(Td *td, const vector<ToDoCompletion> &completions,
+td_api::object_ptr<td_api::checklist> ToDoList::get_checklist_object(Td *td, const vector<ToDoCompletion> &completions,
                                                                      DialogId dialog_id, MessageId message_id,
                                                                      bool is_outgoing) const {
   auto tasks = transform(
-      items_, [td, &completions](const auto &item) { return item.get_to_do_list_task_object(td, completions); });
+      items_, [td, &completions](const auto &item) { return item.get_checklist_task_object(td, completions); });
   if (!is_outgoing && dialog_id == td->dialog_manager_->get_my_dialog_id()) {
     is_outgoing = true;
   }
   bool can_complete = !td->auth_manager_->is_bot() && message_id.is_server() && (is_outgoing || others_can_complete_);
   bool can_add_tasks = message_id.is_server() && (is_outgoing || others_can_append_);
-  return td_api::make_object<td_api::toDoList>(get_formatted_text_object(td->user_manager_.get(), title_, true, -1),
-                                               std::move(tasks), others_can_append_, can_add_tasks,
-                                               others_can_complete_, can_complete);
+  return td_api::make_object<td_api::checklist>(get_formatted_text_object(td->user_manager_.get(), title_, true, -1),
+                                                std::move(tasks), others_can_append_, can_add_tasks,
+                                                others_can_complete_, can_complete);
 }
 
 void ToDoList::add_dependencies(Dependencies &dependencies) const {

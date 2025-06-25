@@ -1778,7 +1778,7 @@ void BusinessConnectionManager::edit_business_message_live_location(
 void BusinessConnectionManager::edit_business_message_to_do_list(
     BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
     td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
-    td_api::object_ptr<td_api::inputToDoList> &&input_to_do_list,
+    td_api::object_ptr<td_api::inputChecklist> &&input_to_do_list,
     Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
   TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
   TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));

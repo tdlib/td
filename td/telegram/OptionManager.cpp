@@ -179,9 +179,9 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("gift_resale_earnings_per_mille", 800);
   set_default_integer_option("poll_answer_count_max", 12);
   set_default_integer_option("direct_channel_message_star_count_default", 10);
-  set_default_integer_option("to_do_list_task_text_length_max", 100);
-  set_default_integer_option("to_do_list_title_length_max", 255);
-  set_default_integer_option("to_do_list_task_count_max", is_test_dc ? 10 : 30);
+  set_default_integer_option("checklist_task_text_length_max", 100);
+  set_default_integer_option("checklist_title_length_max", 255);
+  set_default_integer_option("checklist_task_count_max", is_test_dc ? 10 : 30);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
@@ -199,6 +199,9 @@ OptionManager::OptionManager(Td *td)
   set_option_empty("usd_to_1000_star_rate");
   set_option_empty("1000_star_to_usd_rate");
   set_option_empty("is_location_visible");
+  set_option_empty("to_do_list_task_text_length_max");
+  set_option_empty("to_do_list_title_length_max");
+  set_option_empty("to_do_list_task_count_max");
 }
 
 OptionManager::~OptionManager() = default;

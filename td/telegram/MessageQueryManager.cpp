@@ -2236,7 +2236,7 @@ void MessageQueryManager::get_paid_message_reaction_senders(
 }
 
 void MessageQueryManager::add_to_do_list_tasks(MessageFullId message_full_id,
-                                               vector<td_api::object_ptr<td_api::inputToDoListTask>> &&tasks,
+                                               vector<td_api::object_ptr<td_api::inputChecklistTask>> &&tasks,
                                                Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
   if (!td_->messages_manager_->can_add_message_tasks(message_full_id)) {

@@ -393,13 +393,13 @@ class NotificationTypePushMessage final : public NotificationType {
           return td_api::make_object<td_api::pushMessageContentText>(arg, is_pinned);
         }
         if (key == "MESSAGE_TODO") {
-          return td_api::make_object<td_api::pushMessageContentToDoList>(arg, is_pinned);
+          return td_api::make_object<td_api::pushMessageContentChecklist>(arg, is_pinned);
         }
         if (key == "MESSAGE_TODO_APPEND") {
-          return td_api::make_object<td_api::pushMessageContentToDoTasksAdded>(to_integer<int32>(arg));
+          return td_api::make_object<td_api::pushMessageContentChecklistTasksAdded>(to_integer<int32>(arg));
         }
         if (key == "MESSAGE_TODO_DONE") {
-          return td_api::make_object<td_api::pushMessageContentToDoTasksDone>(to_integer<int32>(arg));
+          return td_api::make_object<td_api::pushMessageContentChecklistTasksDone>(to_integer<int32>(arg));
         }
         break;
       case 'V':

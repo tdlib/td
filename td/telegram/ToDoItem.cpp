@@ -25,18 +25,18 @@ ToDoItem::ToDoItem(const UserManager *user_manager, telegram_api::object_ptr<tel
 }
 
 Result<ToDoItem> ToDoItem::get_to_do_item(const Td *td, DialogId dialog_id,
-                                          td_api::object_ptr<td_api::inputToDoListTask> &&task) {
+                                          td_api::object_ptr<td_api::inputChecklistTask> &&task) {
   if (task == nullptr) {
-    return Status::Error(400, "To do list task must be non-empty");
+    return Status::Error(400, "Checklist task must be non-empty");
   }
   TRY_RESULT(title, get_formatted_text(td, dialog_id, std::move(task->text_), td->auth_manager_->is_bot(), false, true,
                                        false));
-  auto max_length = td->option_manager_->get_option_integer("to_do_list_task_text_length_max", 12);
+  auto max_length = td->option_manager_->get_option_integer("checklist_task_text_length_max", 12);
   if (static_cast<int64>(utf8_length(title.text)) > max_length) {
-    return Status::Error(400, PSLICE() << "To do list task text length must not exceed " << max_length);
+    return Status::Error(400, PSLICE() << "Checklist task text length must not exceed " << max_length);
   }
   if (task->id_ <= 0) {
-    return Status::Error(400, "To do list task identifier must be positive");
+    return Status::Error(400, "Checklist task identifier must be positive");
   }
   keep_only_custom_emoji(title);
   ToDoItem result;
@@ -52,22 +52,22 @@ telegram_api::object_ptr<telegram_api::todoItem> ToDoItem::get_input_todo_item(c
 
 void ToDoItem::validate(const char *source) {
   if (keep_only_custom_emoji(title_)) {
-    LOG(ERROR) << "Receive unexpected to do list task entities from " << source;
+    LOG(ERROR) << "Receive unexpected checklist task entities from " << source;
   }
   if (!check_utf8(title_.text)) {
-    LOG(ERROR) << "Receive invalid to do list task from " << source;
+    LOG(ERROR) << "Receive invalid checklist task from " << source;
     title_ = {};
   }
 }
 
-td_api::object_ptr<td_api::toDoListTask> ToDoItem::get_to_do_list_task_object(
+td_api::object_ptr<td_api::checklistTask> ToDoItem::get_checklist_task_object(
     Td *td, const vector<ToDoCompletion> &completions) const {
-  auto result = td_api::make_object<td_api::toDoListTask>(
+  auto result = td_api::make_object<td_api::checklistTask>(
       id_, get_formatted_text_object(td->user_manager_.get(), title_, true, -1), 0, 0);
   for (auto &completion : completions) {
     if (completion.id_ == id_) {
       result->completed_by_user_id_ =
-          td->user_manager_->get_user_id_object(completion.completed_by_user_id_, "toDoListTask");
+          td->user_manager_->get_user_id_object(completion.completed_by_user_id_, "checklistTask");
       result->completion_date_ = completion.date_;
     }
   }
