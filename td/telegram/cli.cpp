@@ -1317,6 +1317,24 @@ class CliClient final : public Actor {
     }
   }
 
+  struct InputToDoList {
+    string title;
+    string tasks;
+
+    operator td_api::object_ptr<td_api::inputToDoList>() const {
+      int32 count = 0;
+      auto input_tasks = transform(autosplit_str(tasks), [&count](const string &task) {
+        return td_api::make_object<td_api::inputToDoListTask>(++count, as_formatted_text(task));
+      });
+      return td_api::make_object<td_api::inputToDoList>(as_formatted_text(title), std::move(input_tasks), rand_bool(),
+                                                        rand_bool());
+    }
+  };
+
+  void get_args(string &args, InputToDoList &arg) const {
+    get_args(args, arg.title, arg.tasks);
+  }
+
   struct InputBackground {
     string background_file;
     // or
@@ -6148,15 +6166,9 @@ class CliClient final : public Actor {
                                                                  op != "spollp", std::move(poll_type), 0, 0, false));
     } else if (op == "stodo") {
       ChatId chat_id;
-      string title;
-      get_args(args, chat_id, title, args);
-      int32 count = 0;
-      auto tasks = transform(autosplit_str(args), [&count](const string &task) {
-        return td_api::make_object<td_api::inputToDoListTask>(++count, as_formatted_text(task));
-      });
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessageToDoList>(td_api::make_object<td_api::inputToDoList>(
-                       as_formatted_text(title), std::move(tasks), rand_bool(), rand_bool())));
+      InputToDoList to_do_list;
+      get_args(args, chat_id, to_do_list);
+      send_message(chat_id, td_api::make_object<td_api::inputMessageToDoList>(to_do_list));
     } else if (op == "sp") {
       ChatId chat_id;
       string photo;
