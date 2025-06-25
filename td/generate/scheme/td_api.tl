@@ -4729,7 +4729,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 //@can_be_deleted_only_for_self True, if the message can be deleted only for the current user while other users will continue to see it using the method deleteMessages with revoke == false
 //@can_be_deleted_for_all_users True, if the message can be deleted for all users using the method deleteMessages with revoke == true
 //@can_be_edited True, if the message can be edited using the methods editMessageText, editMessageCaption, or editMessageReplyMarkup.
-//-For live location and poll messages this fields shows whether editMessageLiveLocation or stopPoll can be used with this message
+//-For live location, poll, and to do list messages this fields shows whether editMessageLiveLocation, stopPoll, or editMessageToDoList respectively can be used with this message
 //@can_be_forwarded True, if the message can be forwarded using inputMessageForwarded or forwardMessages without copy options
 //@can_be_paid True, if the message can be paid using inputInvoiceMessage
 //@can_be_pinned True, if the message can be pinned or unpinned in the chat using pinChatMessage or unpinChatMessage
@@ -10023,6 +10023,13 @@ editMessageText chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_me
 //@heading The new direction in which the location moves, in degrees; 1-360. Pass 0 if unknown
 //@proximity_alert_radius The new maximum distance for proximity alerts, in meters (0-100000). Pass 0 if the notification is disabled
 editMessageLiveLocation chat_id:int53 message_id:int53 reply_markup:ReplyMarkup location:location live_period:int32 heading:int32 proximity_alert_radius:int32 = Message;
+
+//@description Edits the message content of a to do list. Returns the edited message after the edit is completed on the server side
+//@chat_id The chat the message belongs to
+//@message_id Identifier of the message. Use messageProperties.can_be_edited to check whether the message can be edited
+//@reply_markup The new message reply markup; pass null if none; for bots only
+//@to_do_list The new to do list. If some tasks were completed, this information will be kept
+editMessageToDoList chat_id:int53 message_id:int53 reply_markup:ReplyMarkup to_do_list:inputToDoList = Message;
 
 //@description Edits the media content of a message, including message caption. If only the caption needs to be edited, use editMessageCaption instead.
 //-The type of message content in an album can't be changed with exception of replacing a photo with a video or vice versa. Returns the edited message after the edit is completed on the server side

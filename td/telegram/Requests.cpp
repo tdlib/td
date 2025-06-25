@@ -826,6 +826,31 @@ class EditMessageLiveLocationRequest final : public RequestOnceActor {
   }
 };
 
+class EditMessageToDoListRequest final : public RequestOnceActor {
+  MessageFullId message_full_id_;
+  td_api::object_ptr<td_api::ReplyMarkup> reply_markup_;
+  td_api::object_ptr<td_api::inputToDoList> input_to_do_list_;
+
+  void do_run(Promise<Unit> &&promise) final {
+    td_->messages_manager_->edit_message_to_do_list(message_full_id_, std::move(reply_markup_),
+                                                    std::move(input_to_do_list_), std::move(promise));
+  }
+
+  void do_send_result() final {
+    send_result(td_->messages_manager_->get_message_object(message_full_id_, "EditMessageToDoListRequest"));
+  }
+
+ public:
+  EditMessageToDoListRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
+                             td_api::object_ptr<td_api::ReplyMarkup> reply_markup,
+                             td_api::object_ptr<td_api::inputToDoList> input_to_do_list)
+      : RequestOnceActor(std::move(td), request_id)
+      , message_full_id_(DialogId(dialog_id), MessageId(message_id))
+      , reply_markup_(std::move(reply_markup))
+      , input_to_do_list_(std::move(input_to_do_list)) {
+  }
+};
+
 class EditMessageMediaRequest final : public RequestOnceActor {
   MessageFullId message_full_id_;
   td_api::object_ptr<td_api::ReplyMarkup> reply_markup_;
@@ -3852,6 +3877,11 @@ void Requests::on_request(uint64 id, td_api::editMessageLiveLocation &request) {
   CREATE_REQUEST(EditMessageLiveLocationRequest, request.chat_id_, request.message_id_,
                  std::move(request.reply_markup_), std::move(request.location_), request.live_period_, request.heading_,
                  request.proximity_alert_radius_);
+}
+
+void Requests::on_request(uint64 id, td_api::editMessageToDoList &request) {
+  CREATE_REQUEST(EditMessageToDoListRequest, request.chat_id_, request.message_id_, std::move(request.reply_markup_),
+                 std::move(request.to_do_list_));
 }
 
 void Requests::on_request(uint64 id, td_api::editMessageMedia &request) {

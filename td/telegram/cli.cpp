@@ -5868,6 +5868,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::editMessageLiveLocation>(chat_id, message_id, nullptr,
                                                                         as_location(latitude, longitude, accuracy),
                                                                         live_period, heading, proximity_alert_radius));
+    } else if (op == "emtodo") {
+      ChatId chat_id;
+      MessageId message_id;
+      InputToDoList to_do_list;
+      get_args(args, chat_id, message_id, to_do_list);
+      send_request(td_api::make_object<td_api::editMessageToDoList>(chat_id, message_id, nullptr, to_do_list));
     } else if (op == "emss") {
       ChatId chat_id;
       MessageId message_id;

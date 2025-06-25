@@ -90,6 +90,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ToDoList.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/TranslationManager.h"
@@ -22687,6 +22688,39 @@ void MessagesManager::edit_message_live_location(MessageFullId message_full_id,
   flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
   auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
       flags, location.empty(), location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
+  td_->create_handler<EditMessageQuery>(std::move(promise))
+      ->send(dialog_id, m->message_id, false, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), false,
+             std::move(input_media), false, std::move(input_reply_markup), get_message_schedule_date(m));
+}
+
+void MessagesManager::edit_message_to_do_list(MessageFullId message_full_id,
+                                              td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                              td_api::object_ptr<td_api::inputToDoList> &&input_to_do_list,
+                                              Promise<Unit> &&promise) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Edit, "edit_message_to_do_list"));
+
+  const Message *m = get_message_force(d, message_full_id.get_message_id(), "edit_message_to_do_list");
+  if (m == nullptr) {
+    return promise.set_error(400, "Message not found");
+  }
+  if (!can_edit_message(dialog_id, m, true)) {
+    return promise.set_error(400, "Message can't be edited");
+  }
+
+  MessageContentType old_message_content_type = m->content->get_type();
+  if (old_message_content_type != MessageContentType::ToDoList) {
+    return promise.set_error(400, "There is no to do list in the message to edit");
+  }
+
+  TRY_RESULT_PROMISE(promise, to_do_list, ToDoList::get_to_do_list(td_, dialog_id, std::move(input_to_do_list)));
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(),
+                                             has_message_sender_user_id(dialog_id, m)));
+  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
+
+  auto input_media =
+      telegram_api::make_object<telegram_api::inputMediaTodo>(to_do_list.get_input_todo_list(td_->user_manager_.get()));
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(dialog_id, m->message_id, false, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), false,
              std::move(input_media), false, std::move(input_reply_markup), get_message_schedule_date(m));
