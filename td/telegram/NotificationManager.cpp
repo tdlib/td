@@ -2873,6 +2873,7 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       {"MESSAGE_TEXT", "MESSAGE_TEXT"},
       {"MESSAGE_THEME", "MESSAGE_CHAT_CHANGE_THEME"},
       {"MESSAGE_TODO", "MESSAGE_TODO"},
+      {"MESSAGE_TODO_DONE", "MESSAGE_TODO_DONE"},
       {"MESSAGE_UNIQUE_STARGIFT", "MESSAGE_STARGIFT_TRANSFER"},
       {"MESSAGE_VIDEO", "MESSAGE_VIDEO"},
       {"MESSAGE_VIDEOS", "MESSAGE_VIDEOS"},

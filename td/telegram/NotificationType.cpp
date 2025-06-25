@@ -395,6 +395,9 @@ class NotificationTypePushMessage final : public NotificationType {
         if (key == "MESSAGE_TODO") {
           return td_api::make_object<td_api::pushMessageContentToDoList>(arg, is_pinned);
         }
+        if (key == "MESSAGE_TODO_DONE") {
+          return td_api::make_object<td_api::pushMessageContentToDoTasksDone>(to_integer<int32>(arg));
+        }
         break;
       case 'V':
         if (key == "MESSAGE_VIDEO") {
