@@ -8,6 +8,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 
@@ -68,9 +69,13 @@ void ToDoList::validate(const char *source) {
 }
 
 td_api::object_ptr<td_api::toDoList> ToDoList::get_to_do_list_object(Td *td, const vector<ToDoCompletion> &completions,
-                                                                     MessageId message_id, bool is_outgoing) const {
+                                                                     DialogId dialog_id, MessageId message_id,
+                                                                     bool is_outgoing) const {
   auto tasks = transform(
       items_, [td, &completions](const auto &item) { return item.get_to_do_list_task_object(td, completions); });
+  if (!is_outgoing && dialog_id == td->dialog_manager_->get_my_dialog_id()) {
+    is_outgoing = true;
+  }
   bool can_complete = !td->auth_manager_->is_bot() && message_id.is_server() && (is_outgoing || others_can_complete_);
   bool can_add_tasks = message_id.is_server() && (is_outgoing || others_can_append_);
   return td_api::make_object<td_api::toDoList>(get_formatted_text_object(td->user_manager_.get(), title_, true, -1),

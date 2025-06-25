@@ -7688,7 +7688,8 @@ bool MessagesManager::can_add_message_tasks(DialogId dialog_id, const Message *m
   if (m->reply_markup != nullptr && m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
     return false;
   }
-  if (!m->is_outgoing && !get_message_content_to_do_list_others_can_append(m->content.get())) {
+  if (!m->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
+      !get_message_content_to_do_list_others_can_append(m->content.get())) {
     return false;
   }
   if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
@@ -7712,7 +7713,8 @@ bool MessagesManager::can_mark_message_tasks_as_done(DialogId dialog_id, const M
   if (!m->message_id.is_server() || m->content->get_type() != MessageContentType::ToDoList) {
     return false;
   }
-  if (!m->is_outgoing && !get_message_content_to_do_list_others_can_complete(m->content.get())) {
+  if (!m->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
+      !get_message_content_to_do_list_others_can_complete(m->content.get())) {
     return false;
   }
   if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
