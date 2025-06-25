@@ -33233,9 +33233,17 @@ string MessagesManager::get_channel_pts_key(DialogId dialog_id) {
   return PSTRING() << "ch.p" << channel_id.get();
 }
 
+bool MessagesManager::need_persistent_channel_pts(DialogId dialog_id) const {
+  if (td_->ignore_background_updates() || dialog_id.get_type() != DialogType::Channel) {
+    return false;
+  }
+  auto channel_id = dialog_id.get_channel_id();
+  return G()->use_message_database() ? td_->chat_manager_->have_input_peer_channel(channel_id, AccessRights::Read)
+                                     : td_->chat_manager_->get_channel_status(channel_id).is_member();
+}
+
 int32 MessagesManager::load_channel_pts(DialogId dialog_id) const {
-  if (td_->ignore_background_updates() ||
-      !td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+  if (!need_persistent_channel_pts(dialog_id)) {
     G()->td_db()->get_binlog_pmc()->erase(get_channel_pts_key(dialog_id));  // just in case
     return 0;
   }
@@ -33282,8 +33290,7 @@ void MessagesManager::set_channel_pts(Dialog *d, int32 new_pts, const char *sour
         repair_channel_server_unread_count(d);
       }
     }
-    if (!td_->ignore_background_updates() &&
-        td_->dialog_manager_->have_input_peer(d->dialog_id, false, AccessRights::Read)) {
+    if (need_persistent_channel_pts(d->dialog_id)) {
       G()->td_db()->get_binlog_pmc()->set(get_channel_pts_key(d->dialog_id), to_string(new_pts));
     }
   } else if (new_pts < d->pts) {

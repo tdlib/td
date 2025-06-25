@@ -2928,6 +2928,8 @@ class MessagesManager final : public Actor {
 
   static string get_channel_pts_key(DialogId dialog_id);
 
+  bool need_persistent_channel_pts(DialogId dialog_id) const;
+
   int32 load_channel_pts(DialogId dialog_id) const;
 
   void set_channel_pts(Dialog *d, int32 new_pts, const char *source);
