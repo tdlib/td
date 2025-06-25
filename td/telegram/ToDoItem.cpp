@@ -35,6 +35,9 @@ Result<ToDoItem> ToDoItem::get_to_do_item(const Td *td, DialogId dialog_id,
   if (static_cast<int64>(utf8_length(title.text)) > max_length) {
     return Status::Error(400, PSLICE() << "To do list task text length must not exceed " << max_length);
   }
+  if (task->id_ <= 0) {
+    return Status::Error(400, "To do list task identifier must be positive");
+  }
   keep_only_custom_emoji(title);
   ToDoItem result;
   result.id_ = task->id_;

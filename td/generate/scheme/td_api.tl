@@ -395,7 +395,7 @@ pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
 toDoListTask id:int32 text:formattedText completed_by_user_id:int53 completion_date:int32 = ToDoListTask;
 
 //@description Describes a task in a to do list to be sent
-//@id Unique identifier of the task
+//@id Unique identifier of the task; must be positive
 //@text Text of the task; 1-getOption("to_do_list_task_text_length_max") characters. May contain only CustomEmoji entities
 inputToDoListTask id:int32 text:formattedText = InputToDoListTask;
 
