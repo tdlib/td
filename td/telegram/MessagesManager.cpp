@@ -22365,7 +22365,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
   auto content_type = m->content->get_type();
   DialogId my_dialog_id(my_id);
   bool has_edit_time_limit = !(is_bot && m->is_outgoing) && dialog_id != my_dialog_id &&
-                             content_type != MessageContentType::Poll &&
+                             content_type != MessageContentType::Poll && content_type != MessageContentType::ToDoList &&
                              content_type != MessageContentType::LiveLocation && !m->message_id.is_scheduled();
   switch (dialog_id.get_type()) {
     case DialogType::User:
