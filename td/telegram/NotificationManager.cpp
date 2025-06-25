@@ -2872,6 +2872,7 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       {"MESSAGE_SUGGEST_USERPIC", "MESSAGE_SUGGEST_PHOTO"},
       {"MESSAGE_TEXT", "MESSAGE_TEXT"},
       {"MESSAGE_THEME", "MESSAGE_CHAT_CHANGE_THEME"},
+      {"MESSAGE_TODO", "MESSAGE_TODO"},
       {"MESSAGE_UNIQUE_STARGIFT", "MESSAGE_STARGIFT_TRANSFER"},
       {"MESSAGE_VIDEO", "MESSAGE_VIDEO"},
       {"MESSAGE_VIDEOS", "MESSAGE_VIDEOS"},
@@ -2897,6 +2898,7 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       {"PINNED_STICKER", "PINNED_MESSAGE_STICKER"},
       {"PINNED_STORY", "PINNED_MESSAGE_STORY"},
       {"PINNED_TEXT", "PINNED_MESSAGE_TEXT"},
+      {"PINNED_TODO", "PINNED_MESSAGE_TODO"},
       {"PINNED_VIDEO", "PINNED_MESSAGE_VIDEO"}};
   auto it = loc_keys.find(loc_key);
   if (it != loc_keys.end()) {

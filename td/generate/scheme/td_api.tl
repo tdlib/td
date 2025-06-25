@@ -7020,6 +7020,11 @@ pushMessageContentStory is_mention:Bool is_pinned:Bool = PushMessageContent;
 //@description A text message @text Message text @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentText text:string is_pinned:Bool = PushMessageContent;
 
+//@description A message with a to do list
+//@title To do list title
+//@is_pinned True, if the message is a pinned message with the specified content
+pushMessageContentToDoList title:string is_pinned:Bool = PushMessageContent;
+
 //@description A video message
 //@video Message content; may be null
 //@caption Video caption
