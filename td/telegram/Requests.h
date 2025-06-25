@@ -609,6 +609,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::editBusinessMessageLiveLocation &request);
 
+  void on_request(uint64 id, td_api::editBusinessMessageToDoList &request);
+
   void on_request(uint64 id, td_api::editBusinessMessageMedia &request);
 
   void on_request(uint64 id, td_api::editBusinessMessageCaption &request);

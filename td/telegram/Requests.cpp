@@ -3994,6 +3994,15 @@ void Requests::on_request(uint64 id, td_api::editBusinessMessageLiveLocation &re
       request.live_period_, request.heading_, request.proximity_alert_radius_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::editBusinessMessageToDoList &request) {
+  CHECK_IS_BOT();
+  CREATE_REQUEST_PROMISE();
+  td_->business_connection_manager_->edit_business_message_to_do_list(
+      BusinessConnectionId(std::move(request.business_connection_id_)), DialogId(request.chat_id_),
+      MessageId(request.message_id_), std::move(request.reply_markup_), std::move(request.to_do_list_),
+      std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::editBusinessMessageMedia &request) {
   CHECK_IS_BOT();
   CREATE_REQUEST_PROMISE();

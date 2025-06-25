@@ -10143,6 +10143,14 @@ editBusinessMessageText business_connection_id:string chat_id:int53 message_id:i
 //@proximity_alert_radius The new maximum distance for proximity alerts, in meters (0-100000). Pass 0 if the notification is disabled
 editBusinessMessageLiveLocation business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup location:location live_period:int32 heading:int32 proximity_alert_radius:int32 = BusinessMessage;
 
+//@description Edits the content of a to do list in a message sent on behalf of a business account; for bots only
+//@business_connection_id Unique identifier of business connection on behalf of which the message was sent
+//@chat_id The chat the message belongs to
+//@message_id Identifier of the message
+//@reply_markup The new message reply markup; pass null if none
+//@to_do_list The new to do list. If some tasks were completed, this information will be kept
+editBusinessMessageToDoList business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup to_do_list:inputToDoList = BusinessMessage;
+
 //@description Edits the media content of a message with a text, an animation, an audio, a document, a photo or a video in a message sent on behalf of a business account; for bots only
 //@business_connection_id Unique identifier of business connection on behalf of which the message was sent
 //@chat_id The chat the message belongs to

@@ -35,6 +35,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/ToDoList.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
 
@@ -1768,6 +1769,26 @@ void BusinessConnectionManager::edit_business_message_live_location(
   flags |= telegram_api::inputMediaGeoLive::PROXIMITY_NOTIFICATION_RADIUS_MASK;
   auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
       flags, location.empty(), location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
+  td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
+      ->send(business_connection_id, dialog_id, message_id, false, string(),
+             vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), false, std::move(input_media), false,
+             std::move(input_reply_markup));
+}
+
+void BusinessConnectionManager::edit_business_message_to_do_list(
+    BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
+    td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
+    td_api::object_ptr<td_api::inputToDoList> &&input_to_do_list,
+    Promise<td_api::object_ptr<td_api::businessMessage>> &&promise) {
+  TRY_STATUS_PROMISE(promise, check_business_connection(business_connection_id, dialog_id));
+  TRY_STATUS_PROMISE(promise, check_business_message_id(message_id));
+
+  TRY_RESULT_PROMISE(promise, to_do_list, ToDoList::get_to_do_list(td_, dialog_id, std::move(input_to_do_list)));
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true));
+  auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
+  auto input_media =
+      telegram_api::make_object<telegram_api::inputMediaTodo>(to_do_list.get_input_todo_list(td_->user_manager_.get()));
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
       ->send(business_connection_id, dialog_id, message_id, false, string(),
              vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), false, std::move(input_media), false,
