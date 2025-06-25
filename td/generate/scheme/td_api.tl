@@ -7090,8 +7090,10 @@ pushMessageContentSuggestProfilePhoto = PushMessageContent;
 //@description A user in the chat came within proximity alert range from the current user @distance The distance to the user
 pushMessageContentProximityAlertTriggered distance:int32 = PushMessageContent;
 
-//@description Some tasks from a to do list were marked as done or not done
-//@task_count Number of changed tasks
+//@description Some tasks were added to a to do list @task_count Number of added tasks
+pushMessageContentToDoTasksAdded task_count:int32 = PushMessageContent;
+
+//@description Some tasks from a to do list were marked as done or not done @task_count Number of changed tasks
 pushMessageContentToDoTasksDone task_count:int32 = PushMessageContent;
 
 //@description A forwarded messages @total_count Number of forwarded messages
