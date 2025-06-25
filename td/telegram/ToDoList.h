@@ -26,6 +26,8 @@ class ToDoList {
 
   void validate(const char *source);
 
+  telegram_api::object_ptr<telegram_api::todoList> get_input_todo_list(const UserManager *user_manager) const;
+
   friend bool operator==(const ToDoList &lhs, const ToDoList &rhs);
 
  public:
@@ -48,7 +50,7 @@ class ToDoList {
                                                              DialogId dialog_id, MessageId message_id,
                                                              bool is_outgoing) const;
 
-  telegram_api::object_ptr<telegram_api::todoList> get_input_todo_list(const UserManager *user_manager) const;
+  telegram_api::object_ptr<telegram_api::inputMediaTodo> get_input_media_todo(const UserManager *user_manager) const;
 
   void add_dependencies(Dependencies &dependencies) const;
 

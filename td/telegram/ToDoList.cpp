@@ -66,6 +66,11 @@ telegram_api::object_ptr<telegram_api::todoList> ToDoList::get_input_todo_list(c
       get_input_text_with_entities(user_manager, title_, "get_input_todo_list"), std::move(items));
 }
 
+telegram_api::object_ptr<telegram_api::inputMediaTodo> ToDoList::get_input_media_todo(
+    const UserManager *user_manager) const {
+  return telegram_api::make_object<telegram_api::inputMediaTodo>(get_input_todo_list(user_manager));
+}
+
 void ToDoList::validate(const char *source) {
   if (keep_only_custom_emoji(title_)) {
     LOG(ERROR) << "Receive unexpected checklist title entities from " << source;

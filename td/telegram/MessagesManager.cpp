@@ -22719,8 +22719,7 @@ void MessagesManager::edit_message_to_do_list(MessageFullId message_full_id,
                                              has_message_sender_user_id(dialog_id, m)));
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
 
-  auto input_media =
-      telegram_api::make_object<telegram_api::inputMediaTodo>(to_do_list.get_input_todo_list(td_->user_manager_.get()));
+  auto input_media = to_do_list.get_input_media_todo(td_->user_manager_.get());
   td_->create_handler<EditMessageQuery>(std::move(promise))
       ->send(dialog_id, m->message_id, false, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), false,
              std::move(input_media), false, std::move(input_reply_markup), get_message_schedule_date(m));

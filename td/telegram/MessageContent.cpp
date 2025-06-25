@@ -4458,8 +4458,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     }
     case MessageContentType::ToDoList: {
       const auto *m = static_cast<const MessageToDoList *>(content);
-      return telegram_api::make_object<telegram_api::inputMediaTodo>(
-          m->list.get_input_todo_list(td->user_manager_.get()));
+      return m->list.get_input_media_todo(td->user_manager_.get());
     }
     case MessageContentType::Venue: {
       const auto *m = static_cast<const MessageVenue *>(content);

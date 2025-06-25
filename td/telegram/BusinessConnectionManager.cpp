@@ -1787,8 +1787,7 @@ void BusinessConnectionManager::edit_business_message_to_do_list(
   TRY_RESULT_PROMISE(promise, new_reply_markup,
                      get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true));
   auto input_reply_markup = get_input_reply_markup(td_->user_manager_.get(), new_reply_markup);
-  auto input_media =
-      telegram_api::make_object<telegram_api::inputMediaTodo>(to_do_list.get_input_todo_list(td_->user_manager_.get()));
+  auto input_media = to_do_list.get_input_media_todo(td_->user_manager_.get());
   td_->create_handler<EditBusinessMessageQuery>(std::move(promise))
       ->send(business_connection_id, dialog_id, message_id, false, string(),
              vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), false, std::move(input_media), false,
