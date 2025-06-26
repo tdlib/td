@@ -121,6 +121,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "effects") {
     return td_api::make_object<td_api::premiumFeatureMessageEffects>();
   }
+  if (premium_feature == "todo") {
+    return td_api::make_object<td_api::premiumFeatureChecklists>();
+  }
   if (G()->is_test_dc()) {
     LOG(ERROR) << "Receive unsupported premium feature " << premium_feature;
   }
@@ -1034,6 +1037,8 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
       return "business";
     case td_api::premiumFeatureMessageEffects::ID:
       return "effects";
+    case td_api::premiumFeatureChecklists::ID:
+      return "todo";
     default:
       UNREACHABLE();
   }

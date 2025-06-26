@@ -6508,6 +6508,9 @@ premiumFeatureBusiness = PremiumFeature;
 //@description The ability to use all available message effects
 premiumFeatureMessageEffects = PremiumFeature;
 
+//@description The ability to create and use checklist messages
+premiumFeatureChecklists = PremiumFeature;
+
 
 //@class BusinessFeature @description Describes a feature available to Business user accounts
 
