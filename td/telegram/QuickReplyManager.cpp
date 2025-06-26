@@ -1117,8 +1117,7 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
 
       auto content_type = content->get_type();
       if (is_service_message_content(content_type) || content_type == MessageContentType::LiveLocation ||
-          is_expired_message_content(content_type) || content_type == MessageContentType::Poll ||
-          content_type == MessageContentType::PaidMedia) {
+          is_expired_message_content(content_type) || content_type == MessageContentType::PaidMedia) {
         LOG(ERROR) << "Receive " << content_type << " from " << source;
         break;
       }
@@ -3441,9 +3440,6 @@ Result<InputMessageContent> QuickReplyManager::process_input_message_content(
   if (message_content_id == td_api::inputMessageForwarded::ID) {
     return Status::Error(400, "Can't forward messages to quick replies");
   }
-  if (message_content_id == td_api::inputMessagePoll::ID) {
-    return Status::Error(400, "Can't add poll as a quick reply");
-  }
   if (message_content_id == td_api::inputMessagePaidMedia::ID) {
     return Status::Error(400, "Can't add paid media as a quick reply");
   }
@@ -3451,6 +3447,7 @@ Result<InputMessageContent> QuickReplyManager::process_input_message_content(
       static_cast<const td_api::inputMessageLocation *>(input_message_content.get())->live_period_ != 0) {
     return Status::Error(400, "Can't add live location as a quick reply");
   }
+  // update addQuickReplyShortcutMessage documentation
   return get_input_message_content(DialogId(), std::move(input_message_content), td_, true);
 }
 
