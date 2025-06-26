@@ -741,7 +741,6 @@ void PollManager::unregister_poll(PollId poll_id, MessageFullId message_full_id,
 
 void PollManager::register_reply_poll(PollId poll_id) {
   CHECK(have_poll(poll_id));
-  CHECK(!is_local_poll_id(poll_id));
   LOG(INFO) << "Register replied " << poll_id;
   reply_poll_counts_[poll_id]++;
   if (!G()->close_flag()) {
@@ -751,11 +750,14 @@ void PollManager::register_reply_poll(PollId poll_id) {
 
 void PollManager::unregister_reply_poll(PollId poll_id) {
   CHECK(have_poll(poll_id));
-  CHECK(!is_local_poll_id(poll_id));
   LOG(INFO) << "Unregister replied " << poll_id;
   auto &count = reply_poll_counts_[poll_id];
   CHECK(count > 0);
   count--;
+  if (is_local_poll_id(poll_id)) {
+    CHECK(count == 0);
+    forget_local_poll(poll_id);
+  }
   if (count == 0) {
     reply_poll_counts_.erase(poll_id);
     schedule_poll_unload(poll_id);

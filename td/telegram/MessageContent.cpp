@@ -6866,6 +6866,8 @@ void register_quick_reply_message_content(Td *td, const MessageContent *content,
       }
       return;
     }
+    case MessageContentType::Poll:
+      return td->poll_manager_->register_reply_poll(static_cast<const MessagePoll *>(content)->poll_id);
     case MessageContentType::Dice: {
       auto dice = static_cast<const MessageDice *>(content);
       return td->stickers_manager_->register_dice(dice->emoji, dice->dice_value, {}, message_full_id, source);
@@ -6891,6 +6893,8 @@ void unregister_quick_reply_message_content(Td *td, const MessageContent *conten
       }
       return;
     }
+    case MessageContentType::Poll:
+      return td->poll_manager_->unregister_reply_poll(static_cast<const MessagePoll *>(content)->poll_id);
     case MessageContentType::Dice: {
       auto dice = static_cast<const MessageDice *>(content);
       return td->stickers_manager_->unregister_dice(dice->emoji, dice->dice_value, {}, message_full_id, source);
