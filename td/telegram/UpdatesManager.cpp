@@ -853,7 +853,7 @@ bool UpdatesManager::is_acceptable_message_media(
       /*
       // the users and chats are always min, so no need to check
       auto message_media_poll = static_cast<const telegram_api::messageMediaPoll *>(media_ptr.get());
-      for (auto recent_voter : message_media_poll->results_->recent_voters_) {
+      for (const auto &recent_voter : message_media_poll->results_->recent_voters_) {
         if (!is_acceptable_peer(recent_voter)) {
           return false;
         }
@@ -887,6 +887,18 @@ bool UpdatesManager::is_acceptable_message_media(
       }
       */
       return true;
+    case telegram_api::messageMediaToDo::ID: {
+      /*
+      // the users are always min, so no need to check
+      auto message_media_to_do = static_cast<const telegram_api::messageMediaToDo *>(media_ptr.get());
+      for (const auto &completion : message_media_to_do->completions_) {
+        if (!is_acceptable_user(UserId(completion->completed_by_))) {
+          return false;
+        }
+      }
+      */
+      return true;
+    }
     default:
       return true;
   }
