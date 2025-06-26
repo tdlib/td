@@ -556,6 +556,7 @@ bool is_editable_message_content(MessageContentType content_type) {
     case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
     case MessageContentType::Text:
+    case MessageContentType::ToDoList:
     case MessageContentType::Video:
     case MessageContentType::VoiceNote:
       return true;
@@ -626,7 +627,6 @@ bool is_editable_message_content(MessageContentType content_type) {
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
     case MessageContentType::ConferenceCall:
-    case MessageContentType::ToDoList:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
       return false;
