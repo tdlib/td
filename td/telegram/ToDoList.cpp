@@ -88,8 +88,9 @@ td_api::object_ptr<td_api::checklist> ToDoList::get_checklist_object(Td *td, con
   if (!is_outgoing && dialog_id == td->dialog_manager_->get_my_dialog_id()) {
     is_outgoing = true;
   }
-  bool can_complete = !td->auth_manager_->is_bot() && message_id.is_server() && (is_outgoing || others_can_complete_);
-  bool can_add_tasks = message_id.is_server() && (is_outgoing || others_can_append_);
+  bool is_server = dialog_id.is_valid() && message_id.is_server();
+  bool can_complete = !td->auth_manager_->is_bot() && is_server && (is_outgoing || others_can_complete_);
+  bool can_add_tasks = is_server && (is_outgoing || others_can_append_);
   return td_api::make_object<td_api::checklist>(get_formatted_text_object(td->user_manager_.get(), title_, true, -1),
                                                 std::move(tasks), others_can_append_, can_add_tasks,
                                                 others_can_complete_, can_complete);
