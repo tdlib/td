@@ -7683,12 +7683,6 @@ bool MessagesManager::can_add_message_tasks(DialogId dialog_id, const Message *m
   if (m->forward_info != nullptr || m->had_forward_info) {
     return false;
   }
-  if (m->had_reply_markup) {
-    return false;
-  }
-  if (m->reply_markup != nullptr && m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
-    return false;
-  }
   if (!m->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
       !get_message_content_to_do_list_others_can_append(m->content.get())) {
     return false;
