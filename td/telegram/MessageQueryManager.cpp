@@ -2239,13 +2239,16 @@ void MessageQueryManager::add_to_do_list_tasks(MessageFullId message_full_id,
                                                vector<td_api::object_ptr<td_api::inputChecklistTask>> &&tasks,
                                                Promise<Unit> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
-  if (!td_->messages_manager_->can_add_message_tasks(message_full_id)) {
-    return promise.set_error(400, "Can't add to-do list tasks to the message");
+  if (!td_->messages_manager_->can_add_message_tasks(message_full_id, static_cast<int32>(tasks.size()))) {
+    return promise.set_error(400, "Can't add the checklist tasks to the message");
   }
   vector<ToDoItem> items;
   for (auto &task : tasks) {
     TRY_RESULT_PROMISE(promise, item, ToDoItem::get_to_do_item(td_, dialog_id, std::move(task)));
     items.push_back(std::move(item));
+  }
+  if (items.empty()) {
+    return promise.set_error(400, "The list of new tasks must be non-empty");
   }
   td_->create_handler<AppendToDoListQuery>(std::move(promise))
       ->send(dialog_id, message_full_id.get_message_id(), items);

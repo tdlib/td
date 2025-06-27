@@ -5639,6 +5639,15 @@ bool get_message_content_to_do_list_others_can_append(const MessageContent *cont
   }
 }
 
+bool get_message_content_to_do_list_can_append_items(const Td *td, const MessageContent *content, int32 item_count) {
+  switch (content->get_type()) {
+    case MessageContentType::ToDoList:
+      return static_cast<const MessageToDoList *>(content)->list.get_can_append_items(td, item_count);
+    default:
+      return false;
+  }
+}
+
 bool get_message_content_to_do_list_others_can_complete(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::ToDoList:

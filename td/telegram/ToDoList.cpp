@@ -59,6 +59,17 @@ Result<ToDoList> ToDoList::get_to_do_list(const Td *td, DialogId dialog_id,
   return result;
 }
 
+bool ToDoList::get_can_append_items(const Td *td, int32 item_count) const {
+  if (item_count < 0) {
+    return false;
+  }
+  auto max_task_count = td->option_manager_->get_option_integer("checklist_task_count_max", 0);
+  if (static_cast<int64>(items_.size()) + item_count > max_task_count) {
+    return false;
+  }
+  return true;
+}
+
 string ToDoList::get_search_text() const {
   string result = title_.text;
   for (auto &item : items_) {
