@@ -8,7 +8,7 @@
 
 namespace td {
 
-td_api::object_ptr<td_api::MessageContent> ForumTopicEditedData::get_message_content_object() const {
+td_api::object_ptr<td_api::MessageContent> ForumTopicEditedData::get_edited_data_message_content_object() const {
   if (edit_is_hidden_ && !(!is_hidden_ && edit_is_closed_ && !is_closed_)) {
     return td_api::make_object<td_api::messageForumTopicIsHiddenToggled>(is_hidden_);
   }

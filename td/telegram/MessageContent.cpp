@@ -9096,7 +9096,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::TopicEdit: {
       const auto *m = static_cast<const MessageTopicEdit *>(content);
-      return m->edited_data.get_message_content_object();
+      return m->edited_data.get_edited_data_message_content_object();
     }
     case MessageContentType::SuggestProfilePhoto: {
       const auto *m = static_cast<const MessageSuggestProfilePhoto *>(content);
