@@ -7717,6 +7717,9 @@ bool MessagesManager::can_mark_message_tasks_as_done(DialogId dialog_id, const M
   if (!m->message_id.is_server() || m->content->get_type() != MessageContentType::ToDoList) {
     return false;
   }
+  if (m->forward_info != nullptr || m->had_forward_info) {
+    return false;
+  }
   if (!m->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
       !get_message_content_to_do_list_others_can_complete(m->content.get())) {
     return false;
