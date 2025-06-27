@@ -37,6 +37,10 @@ class ToDoItem {
 
   void validate(const char *source);
 
+  const string &get_search_text() const {
+    return title_.text;
+  }
+
   td_api::object_ptr<td_api::checklistTask> get_checklist_task_object(Td *td,
                                                                       const vector<ToDoCompletion> &completions) const;
 

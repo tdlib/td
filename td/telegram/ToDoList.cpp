@@ -59,6 +59,15 @@ Result<ToDoList> ToDoList::get_to_do_list(const Td *td, DialogId dialog_id,
   return result;
 }
 
+string ToDoList::get_search_text() const {
+  string result = title_.text;
+  for (auto &item : items_) {
+    result += ' ';
+    result += item.get_search_text();
+  }
+  return result;
+}
+
 telegram_api::object_ptr<telegram_api::todoList> ToDoList::get_input_todo_list(const UserManager *user_manager) const {
   auto items = transform(items_, [user_manager](const auto &item) { return item.get_input_todo_item(user_manager); });
   return telegram_api::make_object<telegram_api::todoList>(

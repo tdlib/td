@@ -46,6 +46,8 @@ class ToDoList {
     return others_can_complete_;
   }
 
+  string get_search_text() const;
+
   td_api::object_ptr<td_api::checklist> get_checklist_object(Td *td, const vector<ToDoCompletion> &completions,
                                                              DialogId dialog_id, MessageId message_id,
                                                              bool is_outgoing) const;

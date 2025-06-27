@@ -9964,6 +9964,10 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
       const auto *m = static_cast<const MessageStarGift *>(content);
       return m->text.text;
     }
+    case MessageContentType::ToDoList: {
+      const auto *to_do_list = static_cast<const MessageToDoList *>(content);
+      return to_do_list->list.get_search_text();
+    }
     case MessageContentType::Contact:
     case MessageContentType::Game:
     case MessageContentType::LiveLocation:
@@ -10026,7 +10030,6 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::PaidMessagesRefunded:
     case MessageContentType::PaidMessagesPrice:
     case MessageContentType::ConferenceCall:
-    case MessageContentType::ToDoList:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
       return string();
