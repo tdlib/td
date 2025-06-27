@@ -5839,6 +5839,13 @@ class CliClient final : public Actor {
                                                          start_timestamp_, get_added_sticker_file_ids(), 1, 2, 3, true,
                                                          get_caption(), show_caption_above_media_,
                                                          get_message_self_destruct_type(), has_spoiler_)));
+    } else if (op == "eqrmchl") {
+      ShortcutId shortcut_id;
+      MessageId message_id;
+      InputChecklist checklist;
+      get_args(args, shortcut_id, message_id, checklist);
+      send_request(td_api::make_object<td_api::editQuickReplyMessage>(
+          shortcut_id, message_id, td_api::make_object<td_api::inputMessageChecklist>(checklist)));
     } else if (op == "emv") {
       ChatId chat_id;
       MessageId message_id;

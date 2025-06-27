@@ -2824,6 +2824,11 @@ void QuickReplyManager::edit_quick_reply_message(
         return promise.set_error(400, "Only caption can be edited in voice note messages");
       }
       break;
+    case MessageContentType::ToDoList:
+      if (new_message_content_type != MessageContentType::ToDoList) {
+        return promise.set_error(400, "Checklists can be edited only to a checklist");
+      }
+      break;
     default:
       UNREACHABLE();
   }
