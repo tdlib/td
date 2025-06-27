@@ -14078,8 +14078,10 @@ Result<MessageFullId> MessagesManager::get_top_thread_message_full_id(DialogId d
   }
 }
 
-void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_id,
-                                         Promise<MessageThreadInfo> &&promise) {
+void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_id, Promise<MessageThreadInfo> &&promise,
+                                         bool is_recursive) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
   LOG(INFO) << "Get message thread from " << message_id << " in " << dialog_id;
   TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, false, AccessRights::Read, "get_message_thread"));
   if (dialog_id.get_type() != DialogType::Channel) {
@@ -14096,7 +14098,16 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
     message_id = get_persistent_message_id(d, message_id);
     auto m = get_message_force(d, message_id, "get_message_thread");
     if (m == nullptr) {
-      return promise.set_error(400, "Message not found");
+      if (is_recursive || !message_id.is_server()) {
+        return promise.set_error(400, "Message not found");
+      }
+      return get_message_from_server({dialog_id, message_id},
+                                     PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id,
+                                                             promise = std::move(promise)](Unit) mutable {
+                                       send_closure(actor_id, &MessagesManager::get_message_thread, dialog_id,
+                                                    message_id, std::move(promise), true);
+                                     }),
+                                     "get_message_thread");
     }
 
     TRY_RESULT_PROMISE_ASSIGN(promise, top_thread_message_full_id, get_top_thread_message_full_id(dialog_id, m, true));
