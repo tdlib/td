@@ -1504,8 +1504,8 @@ SavedMessagesManager::SavedMessagesTopicInfo SavedMessagesManager::get_saved_mes
 }
 
 void SavedMessagesManager::on_get_saved_dialogs(TopicList *topic_list, Result<Unit> &&result) {
-  CHECK(topic_list != nullptr);
   G()->ignore_result_if_closing(result);
+  CHECK(topic_list != nullptr);
   if (result.is_error()) {
     fail_promises(topic_list->load_queries_, result.move_as_error());
   } else {

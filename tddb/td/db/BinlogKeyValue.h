@@ -11,7 +11,6 @@
 #include "td/db/DbKey.h"
 #include "td/db/KeyValueSyncInterface.h"
 
-#include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"

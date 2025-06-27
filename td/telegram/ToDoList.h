@@ -6,12 +6,16 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ToDoCompletion.h"
 #include "td/telegram/ToDoItem.h"
+
+#include "td/utils/common.h"
+#include "td/utils/Status.h"
 
 namespace td {
 

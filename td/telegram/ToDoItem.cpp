@@ -12,6 +12,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/utf8.h"
 

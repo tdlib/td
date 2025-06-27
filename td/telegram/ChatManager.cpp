@@ -5749,7 +5749,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
     auto gift_count = channel->stargifts_count_;
     auto has_stargifts_available = channel->stargifts_available_;
     auto has_paid_messages_available = channel->paid_messages_available_;
-    auto send_paid_message_stars = channel->send_paid_messages_stars_;
+    auto send_paid_message_stars = StarManager::get_star_count(channel->send_paid_messages_stars_);
     StickerSetId sticker_set_id;
     if (channel->stickerset_ != nullptr) {
       sticker_set_id =

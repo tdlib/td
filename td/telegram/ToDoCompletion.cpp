@@ -8,8 +8,6 @@
 
 #include "td/telegram/Dependencies.h"
 
-#include "td/utils/utf8.h"
-
 namespace td {
 
 ToDoCompletion::ToDoCompletion(telegram_api::object_ptr<telegram_api::todoCompletion> &&completion) {

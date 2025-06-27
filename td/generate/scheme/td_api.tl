@@ -2958,7 +2958,7 @@ savedMessagesTopic id:int53 type:SavedMessagesTopicType is_pinned:Bool order:int
 //@id Unique topic identifier
 //@sender_id Identifier of the user or chat that sends the messages to the topic
 //@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order
-//@can_send_unpaid_messages True if the other party can send unpaid messages even if the chat has paid messages enabled
+//@can_send_unpaid_messages True, if the other party can send unpaid messages even if the chat has paid messages enabled
 //@is_marked_as_unread True, if the forum topic is marked as unread
 //@unread_count Number of unread messages in the chat
 //@last_read_inbox_message_id Identifier of the last read incoming message
