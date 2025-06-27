@@ -1759,6 +1759,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
     auto photo = get_photo_object(td_->file_manager_.get(), web_page->photo_);
     if (photo != nullptr) {
       return td_api::make_object<td_api::linkPreviewTypePhoto>(std::move(photo));
+    } else if (web_page->site_name_ == "Telegram") {
+      // unavailable photo
+      return td_api::make_object<td_api::linkPreviewTypeArticle>(nullptr);
     } else {
       LOG(ERROR) << "Receive photo without photo for " << web_page->url_;
       return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
