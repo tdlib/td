@@ -17180,27 +17180,22 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
   } else {
     message_id = get_persistent_message_id(d, message_id);
     Message *m = get_message_force(d, message_id, "get_message_thread_history 1");
-    if (m == nullptr) {
-      promise.set_error(400, "Message not found");
-      return {};
+    if (m != nullptr) {
+      auto r_top_thread_message_full_id = get_top_thread_message_full_id(dialog_id, m, true);
+      if (r_top_thread_message_full_id.is_error()) {
+        promise.set_error(r_top_thread_message_full_id.move_as_error());
+        return {};
+      }
+      top_thread_message_full_id = r_top_thread_message_full_id.move_as_ok();
+      if ((m->reply_info.is_empty() || !m->reply_info.is_comment_) &&
+          top_thread_message_full_id.get_message_id() != m->message_id) {
+        CHECK(dialog_id == top_thread_message_full_id.get_dialog_id());
+        // get information about the thread from the top message
+        message_id = top_thread_message_full_id.get_message_id();
+        CHECK(message_id.is_valid());
+      }
     }
-
-    auto r_top_thread_message_full_id = get_top_thread_message_full_id(dialog_id, m, true);
-    if (r_top_thread_message_full_id.is_error()) {
-      promise.set_error(r_top_thread_message_full_id.move_as_error());
-      return {};
-    }
-    top_thread_message_full_id = r_top_thread_message_full_id.move_as_ok();
-    if ((m->reply_info.is_empty() || !m->reply_info.is_comment_) &&
-        top_thread_message_full_id.get_message_id() != m->message_id) {
-      CHECK(dialog_id == top_thread_message_full_id.get_dialog_id());
-      // get information about the thread from the top message
-      message_id = top_thread_message_full_id.get_message_id();
-      CHECK(message_id.is_valid());
-    }
-
     if (!top_thread_message_full_id.get_message_id().is_valid()) {
-      CHECK(m->reply_info.is_comment_);
       get_message_thread(
           dialog_id, message_id,
           PromiseCreator::lambda([promise = std::move(promise)](Result<MessageThreadInfo> &&result) mutable {
