@@ -5809,8 +5809,8 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       const auto *old_ = static_cast<const MessageText *>(old_content);
       const auto *new_ = static_cast<const MessageText *>(new_content);
       auto get_content_object = [td, dialog_id](const MessageContent *content) {
-        return to_string(get_message_content_object(content, td, dialog_id, MessageId(), false, DialogId(), -1, false,
-                                                    false, std::numeric_limits<int32>::max(), false, false));
+        return to_string(get_message_content_object(content, td, dialog_id, MessageId(), false, false, DialogId(), -1,
+                                                    false, false, std::numeric_limits<int32>::max(), false, false));
       };
       if (old_->text.text != new_->text.text) {
         if (need_message_changed_warning && need_message_text_changed_warning(old_, new_)) {
@@ -8782,7 +8782,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
 }
 
 td_api::object_ptr<td_api::MessageContent> get_message_content_object(
-    const MessageContent *content, Td *td, DialogId dialog_id, MessageId message_id, bool is_outgoing,
+    const MessageContent *content, Td *td, DialogId dialog_id, MessageId message_id, bool is_outgoing, bool is_forward,
     DialogId sender_dialog_id, int32 message_date, bool is_content_secret, bool skip_bot_commands,
     int32 max_media_timestamp, bool invert_media, bool disable_web_page_preview) {
   CHECK(content != nullptr);
@@ -9345,7 +9345,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     case MessageContentType::ToDoList: {
       const auto *m = static_cast<const MessageToDoList *>(content);
       return td_api::make_object<td_api::messageChecklist>(
-          m->list.get_checklist_object(td, m->completions, dialog_id, message_id, is_outgoing));
+          m->list.get_checklist_object(td, m->completions, dialog_id, message_id, is_outgoing, is_forward));
     }
     case MessageContentType::TodoCompletions: {
       const auto *m = static_cast<const MessageTodoCompletions *>(content);

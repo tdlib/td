@@ -102,15 +102,15 @@ void ToDoList::validate(const char *source) {
 
 td_api::object_ptr<td_api::checklist> ToDoList::get_checklist_object(Td *td, const vector<ToDoCompletion> &completions,
                                                                      DialogId dialog_id, MessageId message_id,
-                                                                     bool is_outgoing) const {
+                                                                     bool is_outgoing, bool is_forward) const {
   auto tasks = transform(
       items_, [td, &completions](const auto &item) { return item.get_checklist_task_object(td, completions); });
   if (!is_outgoing && dialog_id == td->dialog_manager_->get_my_dialog_id()) {
     is_outgoing = true;
   }
   bool is_server = dialog_id.is_valid() && message_id.is_server();
-  bool can_complete = !td->auth_manager_->is_bot() && is_server && (is_outgoing || others_can_complete_);
-  bool can_add_tasks = is_server && (is_outgoing || others_can_append_) && get_can_append_items(td, 1);
+  bool can_complete = !td->auth_manager_->is_bot() && is_server && !is_forward && (is_outgoing || others_can_complete_);
+  bool can_add_tasks = is_server && !is_forward && (is_outgoing || others_can_append_) && get_can_append_items(td, 1);
   return td_api::make_object<td_api::checklist>(get_formatted_text_object(td->user_manager_.get(), title_, true, -1),
                                                 std::move(tasks), others_can_append_, can_add_tasks,
                                                 others_can_complete_, can_complete);
