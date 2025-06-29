@@ -3750,6 +3750,14 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadMonoForumOu
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMonoForumNoPaidException> update,
+                               Promise<Unit> &&promise) {
+  td_->saved_messages_manager_->on_update_monoforum_nopaid_messages_exception(
+      DialogId(ChannelId(update->channel_id_)), SavedMessagesTopicId(DialogId(update->saved_peer_id_)),
+      update->exception_);
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelPinnedTopic> update, Promise<Unit> &&promise) {
   td_->forum_topic_manager_->on_update_forum_topic_is_pinned(
       DialogId(ChannelId(update->channel_id_)), MessageId(ServerMessageId(update->topic_id_)), update->pinned_);
@@ -4763,11 +4771,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueSta
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMonoForumNoPaidException> update,
-                               Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 
