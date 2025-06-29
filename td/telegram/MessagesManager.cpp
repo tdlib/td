@@ -12095,6 +12095,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
   }
 
   DialogDate max_dialog_date = MIN_DIALOG_DATE;
+  size_t empty_message_count = 0;
   for (auto &dialog : dialogs) {
     //    LOG(INFO) << to_string(dialog);
     DialogId dialog_id(dialog->peer_);
@@ -12146,6 +12147,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         DialogDate dialog_date = it->second;
         if (dialog_date.get_date() > 0 && dialog_date.get_dialog_id() == dialog_id && max_dialog_date < dialog_date) {
           max_dialog_date = dialog_date;
+        } else if (dialog_date.get_date() == 0 && dialog_date.get_dialog_id() == DialogId()) {
+          empty_message_count++;
         }
       } else {
         LOG(ERROR) << "Receive " << last_message_id << " as last chat message";
@@ -12426,7 +12429,11 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
     if (dialogs.empty()) {
       // if there are no more dialogs on the server
       max_dialog_date = MAX_DIALOG_DATE;
+    } else if (empty_message_count == dialogs.size()) {
+      // if all dialogs were returned without last message pretend that there are no more dialogs
+      max_dialog_date = MAX_DIALOG_DATE;
     }
+
     if (folder->last_server_dialog_date_ < max_dialog_date) {
       folder->last_server_dialog_date_ = max_dialog_date;
       update_last_dialog_date(folder_id);
