@@ -72,7 +72,7 @@ class RepliedMessageInfo {
     return origin_date_ != 0;
   }
 
-  bool need_reget() const;
+  bool need_reget(const Td *td) const;
 
   static bool need_reply_changed_warning(
       const Td *td, const RepliedMessageInfo &old_info, const RepliedMessageInfo &new_info,

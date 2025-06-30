@@ -10234,7 +10234,7 @@ void on_message_content_animated_emoji_clicked(const MessageContent *content, Me
   }
 }
 
-bool need_reget_message_content(const MessageContent *content) {
+bool need_reget_message_content(const Td *td, const MessageContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Unsupported: {
@@ -10249,6 +10249,16 @@ bool need_reget_message_content(const MessageContent *content) {
       const auto *m = static_cast<const MessagePaidMedia *>(content);
       for (const auto &media : m->media) {
         if (media.need_reget()) {
+          return true;
+        }
+      }
+      return false;
+    }
+    case MessageContentType::Video: {
+      const auto *m = static_cast<const MessageVideo *>(content);
+      for (auto file_id : m->alternative_file_ids) {
+        const string &mime_type = td->videos_manager_->get_video_mime_type(file_id);
+        if (mime_type == "application/x-tgstoryboard" || mime_type == "application/x-tgstoryboardmap") {
           return true;
         }
       }

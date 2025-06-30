@@ -3675,7 +3675,7 @@ void QuickReplyManager::load_quick_reply_shortcuts() {
       register_new_message(message.get(), "load_quick_reply_shortcuts");
 
       if (message->message_id.is_server()) {
-        if (need_reget_message_content(message->content.get()) ||
+        if (need_reget_message_content(td_, message->content.get()) ||
             (message->legacy_layer != 0 && message->legacy_layer < MTPROTO_LAYER)) {
           reload_quick_reply_message(shortcut->shortcut_id_, message->message_id, Promise<Unit>());
         }

@@ -168,8 +168,8 @@ RepliedMessageInfo RepliedMessageInfo::clone(Td *td) const {
   return result;
 }
 
-bool RepliedMessageInfo::need_reget() const {
-  return content_ != nullptr && need_reget_message_content(content_.get());
+bool RepliedMessageInfo::need_reget(const Td *td) const {
+  return content_ != nullptr && need_reget_message_content(td, content_.get());
 }
 
 bool RepliedMessageInfo::need_reply_changed_warning(

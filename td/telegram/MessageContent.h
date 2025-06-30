@@ -340,7 +340,7 @@ void get_message_content_animated_emoji_click_sticker(const MessageContent *cont
 void on_message_content_animated_emoji_clicked(const MessageContent *content, MessageFullId message_full_id, Td *td,
                                                string &&emoji, string &&data);
 
-bool need_reget_message_content(const MessageContent *content);
+bool need_reget_message_content(const Td *td, const MessageContent *content);
 
 bool need_delay_message_content_notification(const MessageContent *content, UserId my_user_id);
 

@@ -34316,8 +34316,8 @@ bool MessagesManager::need_reload_message_from_server(DialogId dialog_id, const 
   if (!m->message_id.is_any_server() || dialog_id.get_type() == DialogType::SecretChat) {
     return false;
   }
-  if (need_reget_message_content(m->content.get()) || m->reply_info.need_reget(td_) ||
-      m->replied_message_info.need_reget()) {
+  if (need_reget_message_content(td_, m->content.get()) || m->reply_info.need_reget(td_) ||
+      m->replied_message_info.need_reget(td_)) {
     return true;
   }
   if (m->legacy_layer != 0 && m->legacy_layer < MTPROTO_LAYER) {
