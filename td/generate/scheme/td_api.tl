@@ -569,6 +569,13 @@ poll id:int64 question:formattedText options:vector<pollOption> total_voter_coun
 //@video File containing the video
 alternativeVideo id:int64 width:int32 height:int32 codec:string hls_file:file video:file = AlternativeVideo;
 
+//@description Describes a storyboard for a video
+//@storyboard_file A JPEG file that contains tiled previews of video
+//@width Width of a tile
+//@height Height of a tile
+//@map_file File that describes mapping of position in the video to a tile in the JPEG file
+videoStoryboard storyboard_file:file width:int32 height:int32 map_file:file = VideoStoryboard;
+
 
 //@description Describes a chat background
 //@id Unique background identifier
@@ -4029,13 +4036,14 @@ messageSticker sticker:sticker is_premium:Bool = MessageContent;
 //@description A video message
 //@video The video description
 //@alternative_videos Alternative qualities of the video
+//@storyboards Available storyboards for the video
 //@cover Cover of the video; may be null if none
 //@start_timestamp Timestamp from which the video playing must start, in seconds
 //@caption Video caption
 //@show_caption_above_media True, if the caption must be shown above the video; otherwise, the caption must be shown below the video
 //@has_spoiler True, if the video preview must be covered by a spoiler animation
 //@is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
-messageVideo video:video alternative_videos:vector<alternativeVideo> cover:photo start_timestamp:int32 caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
+messageVideo video:video alternative_videos:vector<alternativeVideo> storyboards:vector<videoStoryboard> cover:photo start_timestamp:int32 caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
 
 //@description A video note message @video_note The video note description @is_viewed True, if at least one of the recipients has viewed the video note @is_secret True, if the video note thumbnail must be blurred and the video note must be shown only while tapped
 messageVideoNote video_note:videoNote is_viewed:Bool is_secret:Bool = MessageContent;

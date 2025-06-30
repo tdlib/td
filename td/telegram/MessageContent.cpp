@@ -8961,6 +8961,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     case MessageContentType::Video: {
       const auto *m = static_cast<const MessageVideo *>(content);
       vector<td_api::object_ptr<td_api::alternativeVideo>> alternative_videos;
+      vector<td_api::object_ptr<td_api::videoStoryboard>> storyboards;
       if (!td->option_manager_->get_option_boolean("video_ignore_alt_documents")) {
         for (auto file_id : m->alternative_file_ids) {
           auto video = td->videos_manager_->get_alternative_video_object(file_id, m->hls_file_ids);
@@ -8968,9 +8969,15 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
             alternative_videos.push_back(std::move(video));
           }
         }
+        for (auto file_id : m->storyboard_file_ids) {
+          auto storyboard = td->documents_manager_->get_video_storyboard_object(file_id, m->storyboard_map_file_ids);
+          if (storyboard != nullptr) {
+            storyboards.push_back(std::move(storyboard));
+          }
+        }
       }
       return make_tl_object<td_api::messageVideo>(
-          td->videos_manager_->get_video_object(m->file_id), std::move(alternative_videos),
+          td->videos_manager_->get_video_object(m->file_id), std::move(alternative_videos), std::move(storyboards),
           get_photo_object(td->file_manager_.get(), m->cover), m->start_timestamp, get_text_object(m->caption),
           invert_media, m->has_spoiler, is_content_secret);
     }

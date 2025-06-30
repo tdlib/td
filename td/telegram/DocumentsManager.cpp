@@ -71,6 +71,27 @@ tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId fil
       td_->file_manager_->get_file_object(file_id));
 }
 
+td_api::object_ptr<td_api::videoStoryboard> DocumentsManager::get_video_storyboard_object(
+    FileId file_id, const vector<FileId> &map_file_ids) const {
+  auto document = get_document(file_id);
+  CHECK(document != nullptr);
+  auto file_view = td_->file_manager_->get_file_view(file_id);
+  const auto *full_remote_location = file_view.get_full_remote_location();
+  CHECK(full_remote_location != nullptr);
+  CHECK(full_remote_location->is_document());
+  int64 document_id = full_remote_location->get_id();
+  auto name = PSTRING() << "mtproto:" << document_id;
+  for (const auto &map_file_id : map_file_ids) {
+    auto map = get_document(map_file_id);
+    if (map->file_name == name && map->dimensions != Dimensions()) {
+      return td_api::make_object<td_api::videoStoryboard>(td_->file_manager_->get_file_object(file_id),
+                                                          map->dimensions.width, map->dimensions.height,
+                                                          td_->file_manager_->get_file_object(map_file_id));
+    }
+  }
+  return nullptr;
+}
+
 Document DocumentsManager::on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
                                            bool is_self_destructing, MultiPromiseActor *load_data_multipromise_ptr,
                                            Document::Type default_document_type, Subtype document_subtype) {
