@@ -27,6 +27,8 @@ class ToDoItem {
 
   friend bool operator==(const ToDoItem &lhs, const ToDoItem &rhs);
 
+  static bool remove_unsupported_entities(FormattedText &text);
+
  public:
   ToDoItem() = default;
 

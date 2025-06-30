@@ -12,6 +12,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/utf8.h"
@@ -39,7 +40,7 @@ Result<ToDoItem> ToDoItem::get_to_do_item(const Td *td, DialogId dialog_id,
   if (task->id_ <= 0) {
     return Status::Error(400, "Checklist task identifier must be positive");
   }
-  keep_only_custom_emoji(title);
+  remove_unsupported_entities(title);
   ToDoItem result;
   result.id_ = task->id_;
   result.title_ = std::move(title);
@@ -51,8 +52,21 @@ telegram_api::object_ptr<telegram_api::todoItem> ToDoItem::get_input_todo_item(c
       id_, get_input_text_with_entities(user_manager, title_, "get_input_todo_item"));
 }
 
+bool ToDoItem::remove_unsupported_entities(FormattedText &text) {
+  return td::remove_if(text.entities, [&](const MessageEntity &entity) {
+    switch (entity.type) {
+      case MessageEntity::Type::CustomEmoji:
+      case MessageEntity::Type::Url:
+      case MessageEntity::Type::EmailAddress:
+        return false;
+      default:
+        return true;
+    }
+  });
+}
+
 void ToDoItem::validate(const char *source) {
-  if (keep_only_custom_emoji(title_)) {
+  if (remove_unsupported_entities(title_)) {
     LOG(ERROR) << "Receive unexpected checklist task entities from " << source;
   }
   if (!check_utf8(title_.text)) {
