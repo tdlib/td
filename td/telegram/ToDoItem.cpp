@@ -55,6 +55,11 @@ telegram_api::object_ptr<telegram_api::todoItem> ToDoItem::get_input_todo_item(c
 bool ToDoItem::remove_unsupported_entities(FormattedText &text) {
   return td::remove_if(text.entities, [&](const MessageEntity &entity) {
     switch (entity.type) {
+      case MessageEntity::Type::Bold:
+      case MessageEntity::Type::Italic:
+      case MessageEntity::Type::Underline:
+      case MessageEntity::Type::Strikethrough:
+      case MessageEntity::Type::Spoiler:
       case MessageEntity::Type::CustomEmoji:
       case MessageEntity::Type::Url:
       case MessageEntity::Type::EmailAddress:
