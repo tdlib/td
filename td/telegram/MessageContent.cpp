@@ -3783,7 +3783,7 @@ static Result<InputMessageContent> create_input_message_content(
     }
     case td_api::inputMessageDocument::ID:
       td->documents_manager_->create_document(file_id, string(), std::move(thumbnail), std::move(file_name),
-                                              std::move(mime_type), false);
+                                              std::move(mime_type), Dimensions(), false);
 
       content = make_unique<MessageDocument>(file_id, std::move(caption));
       break;

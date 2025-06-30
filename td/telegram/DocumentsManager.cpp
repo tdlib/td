@@ -542,7 +542,7 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     }
     case Document::Type::General:
       create_document(file_id, std::move(minithumbnail), std::move(thumbnail), std::move(file_name),
-                      std::move(mime_type), !is_web);
+                      std::move(mime_type), dimensions, !is_web);
       break;
     case Document::Type::Sticker:
       if (thumbnail_format == PhotoFormat::Jpeg) {
@@ -591,11 +591,13 @@ FileId DocumentsManager::on_get_document(unique_ptr<GeneralDocument> new_documen
   } else if (replace) {
     CHECK(d->file_id == new_document->file_id);
     if (d->mime_type != new_document->mime_type || d->file_name != new_document->file_name ||
-        d->minithumbnail != new_document->minithumbnail || d->thumbnail != new_document->thumbnail) {
+        d->minithumbnail != new_document->minithumbnail || d->thumbnail != new_document->thumbnail ||
+        d->dimensions != new_document->dimensions) {
       d->mime_type = std::move(new_document->mime_type);
       d->file_name = std::move(new_document->file_name);
       d->minithumbnail = std::move(new_document->minithumbnail);
       d->thumbnail = std::move(new_document->thumbnail);
+      d->dimensions = new_document->dimensions;
     }
   }
 
@@ -603,7 +605,7 @@ FileId DocumentsManager::on_get_document(unique_ptr<GeneralDocument> new_documen
 }
 
 void DocumentsManager::create_document(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name,
-                                       string mime_type, bool replace) {
+                                       string mime_type, Dimensions dimensions, bool replace) {
   auto d = make_unique<GeneralDocument>();
   d->file_id = file_id;
   d->file_name = std::move(file_name);
@@ -612,6 +614,7 @@ void DocumentsManager::create_document(FileId file_id, string minithumbnail, Pho
     d->minithumbnail = std::move(minithumbnail);
   }
   d->thumbnail = std::move(thumbnail);
+  d->dimensions = dimensions;
   on_get_document(std::move(d), replace);
 }
 
@@ -641,6 +644,10 @@ SecretInputMedia DocumentsManager::get_secret_input_media(
   vector<secret_api::object_ptr<secret_api::DocumentAttribute>> attributes;
   if (!document->file_name.empty()) {
     attributes.push_back(secret_api::make_object<secret_api::documentAttributeFilename>(document->file_name));
+  }
+  if (document->dimensions != Dimensions()) {
+    attributes.push_back(secret_api::make_object<secret_api::documentAttributeImageSize>(document->dimensions.width,
+                                                                                         document->dimensions.height));
   }
   return {std::move(input_file),
           std::move(thumbnail),

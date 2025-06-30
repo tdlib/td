@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/Dimensions.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/EncryptedFile.h"
 #include "td/telegram/files/FileId.h"
@@ -91,7 +92,7 @@ class DocumentsManager {
                            Subtype document_subtype = Subtype::Other);
 
   void create_document(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name, string mime_type,
-                       bool replace);
+                       Dimensions dimensions, bool replace);
 
   SecretInputMedia get_secret_input_media(FileId document_file_id,
                                           telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
@@ -128,6 +129,7 @@ class DocumentsManager {
     string mime_type;
     string minithumbnail;
     PhotoSize thumbnail;
+    Dimensions dimensions;
     FileId file_id;
   };
 

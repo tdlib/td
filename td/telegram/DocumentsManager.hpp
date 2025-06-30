@@ -24,11 +24,13 @@ void DocumentsManager::store_document(FileId file_id, StorerT &storer) const {
   bool has_mime_type = !document->mime_type.empty();
   bool has_minithumbnail = !document->minithumbnail.empty();
   bool has_thumbnail = document->thumbnail.file_id.is_valid();
+  bool has_dimensions = document->dimensions != Dimensions();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_file_name);
   STORE_FLAG(has_mime_type);
   STORE_FLAG(has_minithumbnail);
   STORE_FLAG(has_thumbnail);
+  STORE_FLAG(has_dimensions);
   END_STORE_FLAGS();
   if (has_file_name) {
     store(document->file_name, storer);
@@ -42,6 +44,9 @@ void DocumentsManager::store_document(FileId file_id, StorerT &storer) const {
   if (has_thumbnail) {
     store(document->thumbnail, storer);
   }
+  if (has_dimensions) {
+    store(document->dimensions, storer);
+  }
   store(file_id, storer);
 }
 
@@ -52,18 +57,21 @@ FileId DocumentsManager::parse_document(ParserT &parser) {
   bool has_mime_type;
   bool has_minithumbnail;
   bool has_thumbnail;
+  bool has_dimensions;
   if (parser.version() >= static_cast<int32>(Version::AddDocumentFlags)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_file_name);
     PARSE_FLAG(has_mime_type);
     PARSE_FLAG(has_minithumbnail);
     PARSE_FLAG(has_thumbnail);
+    PARSE_FLAG(has_dimensions);
     END_PARSE_FLAGS();
   } else {
     has_file_name = true;
     has_mime_type = true;
     has_minithumbnail = parser.version() >= static_cast<int32>(Version::SupportMinithumbnails);
     has_thumbnail = true;
+    has_dimensions = false;
   }
   if (has_file_name) {
     parse(document->file_name, parser);
@@ -76,6 +84,9 @@ FileId DocumentsManager::parse_document(ParserT &parser) {
   }
   if (has_thumbnail) {
     parse(document->thumbnail, parser);
+  }
+  if (has_dimensions) {
+    parse(document->dimensions, parser);
   }
   parse(document->file_id, parser);
   if (parser.get_error() != nullptr || !document->file_id.is_valid()) {

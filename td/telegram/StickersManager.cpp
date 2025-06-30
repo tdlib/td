@@ -7762,9 +7762,11 @@ Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(
     create_sticker(file_id, FileId(), string(), PhotoSize(), get_dimensions(width, width, "prepare_input_file"),
                    nullptr, nullptr, sticker_format, nullptr);
   } else if (sticker_format == StickerFormat::Webm) {
-    td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.webm", "video/webm", false);
+    td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.webm", "video/webm", Dimensions(),
+                                             false);
   } else {
-    td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.png", "image/png", false);
+    td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.png", "image/png", Dimensions(),
+                                             false);
   }
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
@@ -8126,7 +8128,7 @@ void StickersManager::on_uploaded_sticker_file(FileUploadId file_upload_id, bool
                                               sticker_file_view.size(), 0, sticker_file_view.remote_name());
       CHECK(document_file_id.is_valid());
       td_->documents_manager_->create_document(document_file_id, string(), PhotoSize(), "sticker.webp", "image/webp",
-                                               false);
+                                               Dimensions(), false);
       td_->documents_manager_->merge_documents(document_file_id, file_id);
       td_->file_manager_->cancel_upload(file_upload_id);
       return promise.set_value(Unit());
