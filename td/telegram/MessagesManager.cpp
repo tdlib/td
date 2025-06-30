@@ -14081,6 +14081,9 @@ Result<MessageFullId> MessagesManager::get_top_thread_message_full_id(DialogId d
         !td_->chat_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id())) {
       return Status::Error(400, "Root message must be used to get the message thread");
     }
+    if (!m->is_topic_message && td_->chat_manager_->is_forum_channel(dialog_id.get_channel_id())) {
+      return Status::Error(400, "Threads can't be used in General topic");
+    }
     return MessageFullId{dialog_id, m->top_thread_message_id};
   }
 }
