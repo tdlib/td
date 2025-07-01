@@ -63,6 +63,10 @@ bool ToDoItem::remove_unsupported_entities(FormattedText &text) {
       case MessageEntity::Type::CustomEmoji:
       case MessageEntity::Type::Url:
       case MessageEntity::Type::EmailAddress:
+      case MessageEntity::Type::Mention:
+      case MessageEntity::Type::Hashtag:
+      case MessageEntity::Type::Cashtag:
+      case MessageEntity::Type::PhoneNumber:
         return false;
       default:
         return true;
