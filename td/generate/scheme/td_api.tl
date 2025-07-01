@@ -404,7 +404,7 @@ inputChecklistTask id:int32 text:formattedText = InputChecklistTask;
 //@tasks List of tasks in the checklist
 //@others_can_add_tasks True, if users other than creator of the list can add tasks to the list
 //@can_add_tasks True, if the current user can add tasks to the list if they have Telegram Premium subscription
-//@others_can_mark_tasks_as_done True, if users other than creator of the list can mark tasks as done or not done
+//@others_can_mark_tasks_as_done True, if users other than creator of the list can mark tasks as done or not done. If true, then the checklist is called "group checklist"
 //@can_mark_tasks_as_done True, if the current user can mark tasks as done or not done if they have Telegram Premium subscription
 checklist title:formattedText tasks:vector<checklistTask> others_can_add_tasks:Bool can_add_tasks:Bool others_can_mark_tasks_as_done:Bool can_mark_tasks_as_done:Bool = Checklist;
 
