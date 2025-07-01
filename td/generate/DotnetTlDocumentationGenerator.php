@@ -4,6 +4,17 @@ require_once 'TlDocumentationGenerator.php';
 
 class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
 {
+    public $cpp_cli = false;
+
+    private function getArrayType($typeName)
+    {
+        if ($this->cpp_cli) {
+            return $typeName.'[]';
+        }
+
+        return 'System.Collections.Generic.IList{'.$typeName.'}';
+    }
+
     protected function isStandaloneFile()
     {
         return true;
@@ -11,22 +22,13 @@ class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
 
     protected function getDocumentationBegin()
     {
-        return <<<EOT
+        $documentation = <<<EOT
 <?xml version="1.0"?>
 <doc>
     <assembly>
         "Telegram.Td"
     </assembly>
     <members>
-        <member name="M:Telegram.Td.Client.SetLogMessageCallback(System.Int32,Telegram.Td.LogMessageCallback)">
-            <summary>
-Sets the callback that will be called when a message is added to the internal TDLib log.
-None of the TDLib methods can be called from the callback.
-</summary>
-            <param name="max_verbosity_level">The maximum verbosity level of messages for which the callback will be called.</param>
-            <param name="callback">Callback that will be called when a message is added to the internal TDLib log.
-Pass null to remove the callback.</param>
-        </member>
         <member name="M:Telegram.Td.Client.Create(Telegram.Td.ClientResultHandler)">
             <summary>
 Creates new Client.
@@ -74,6 +76,22 @@ Callback called on result of query to TDLib or incoming update from TDLib.
 Interface for handler for results of queries to TDLib and incoming updates from TDLib.
 </summary>
         </member>
+EOT;
+
+        if ($this->cpp_cli) {
+            return $documentation;
+        }
+
+        $documentation .= <<<EOT
+        <member name="M:Telegram.Td.Client.SetLogMessageCallback(System.Int32,Telegram.Td.LogMessageCallback)">
+            <summary>
+Sets the callback that will be called when a message is added to the internal TDLib log.
+None of the TDLib methods can be called from the callback.
+</summary>
+            <param name="max_verbosity_level">The maximum verbosity level of messages for which the callback will be called.</param>
+            <param name="callback">Callback that will be called when a message is added to the internal TDLib log.
+Pass null to remove the callback.</param>
+        </member>
         <member name="T:Telegram.Td.LogMessageCallback">
             <summary>
 A type of callback function that will be called when a message is added to the internal TDLib log.
@@ -84,6 +102,8 @@ None of the TDLib methods can be called from the callback.</param>
             <param name="message">The message added to the log.</param>
         </member>
 EOT;
+
+        return $documentation;
     }
 
     protected function getDocumentationEnd()
@@ -144,7 +164,7 @@ EOT;
             case 'string':
                 return 'System.String';
             case 'bytes':
-                return 'Windows.Foundation.Collections.IVector`1{System.Byte}';
+                return $this->getArrayType('System.Byte');
             case 'bool':
             case 'int':
             case 'long':
@@ -164,7 +184,7 @@ EOT;
                         $this->printError("Wrong vector subtype in $type");
                         return '';
                     }
-                    return 'System.Collections.Generic.IList{'.$this->getTypeName(substr($type, 7, -1)).'}';
+                    return $this->getArrayType($this->getTypeName(substr($type, 7, -1)));
                 }
 
                 if (preg_match('/[^A-Za-z0-9.]/', $type)) {
@@ -301,8 +321,8 @@ EOT
         foreach ($known_fields as $name => $type) {
             $field_type = $this->getTypeName($type);
             $pos = 0;
-            while (substr($field_type, $pos, 35) === 'System.Collections.Generic.IList`1{') {
-                $pos += 35;
+            while (substr($field_type, $pos, 33) === 'System.Collections.Generic.IList{') {
+                $pos += 33;
             }
             if (substr($field_type, $pos, 7) !== 'System.') {
                 $field_type = substr($field_type, 0, $pos).'Telegram.Td.Api.'.substr($field_type, $pos);
@@ -326,4 +346,5 @@ EOT;
 }
 
 $generator = new DotnetTlDocumentationGenerator();
+$generator->cpp_cli = $argv[3] !== "WindowsStore";
 $generator->generate($argv[1], $argv[2]);
