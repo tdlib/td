@@ -396,7 +396,7 @@ checklistTask id:int32 text:formattedText completed_by_user_id:int53 completion_
 
 //@description Describes a task in a checklist to be sent
 //@id Unique identifier of the task; must be positive
-//@text Text of the task; 1-getOption("checklist_task_text_length_max") characters. May contain only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities
+//@text Text of the task; 1-getOption("checklist_task_text_length_max") characters without line feeds. May contain only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities
 inputChecklistTask id:int32 text:formattedText = InputChecklistTask;
 
 //@description Describes a checklist

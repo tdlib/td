@@ -33,12 +33,17 @@ Result<ToDoItem> ToDoItem::get_to_do_item(const Td *td, DialogId dialog_id,
   }
   TRY_RESULT(title, get_formatted_text(td, dialog_id, std::move(task->text_), td->auth_manager_->is_bot(), false, true,
                                        false));
-  auto max_length = td->option_manager_->get_option_integer("checklist_task_text_length_max", 12);
+  auto max_length = td->option_manager_->get_option_integer("checklist_task_text_length_max", 0);
   if (static_cast<int64>(utf8_length(title.text)) > max_length) {
     return Status::Error(400, PSLICE() << "Checklist task text length must not exceed " << max_length);
   }
   if (task->id_ <= 0) {
     return Status::Error(400, "Checklist task identifier must be positive");
+  }
+  for (auto &c : title.text) {
+    if (c == '\n') {
+      c = ' ';
+    }
   }
   remove_unsupported_entities(title);
   ToDoItem result;
