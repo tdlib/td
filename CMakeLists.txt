@@ -1276,7 +1276,6 @@ target_link_libraries(tdclient PUBLIC tdapi PRIVATE tdcore)
 if (TD_ENABLE_DOTNET)
   add_library(tddotnet SHARED
     td/telegram/ClientDotNet.cpp
-    td/telegram/LogDotNet.cpp
     ${TL_DOTNET_SCHEME_SOURCE}
   )
   set_target_properties(tddotnet PROPERTIES OUTPUT_NAME Telegram.Td)
