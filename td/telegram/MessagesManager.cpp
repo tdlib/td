@@ -14056,17 +14056,18 @@ MessageFullId MessagesManager::get_replied_message(DialogId dialog_id, MessageId
   return replied_message_id;
 }
 
-Result<MessageFullId> MessagesManager::get_top_thread_message_full_id(DialogId dialog_id, const Message *m,
+Result<MessageFullId> MessagesManager::get_top_thread_message_full_id(const Dialog *d, const Message *m,
                                                                       bool allow_non_root) const {
+  CHECK(d != nullptr);
   CHECK(m != nullptr);
   if (m->message_id.is_scheduled()) {
     return Status::Error(400, "Message is scheduled");
   }
-  if (dialog_id.get_type() != DialogType::Channel) {
+  if (d->dialog_id.get_type() != DialogType::Channel) {
     return Status::Error(400, "Chat can't have message threads");
   }
   if (!m->reply_info.is_empty() && m->reply_info.is_comment_) {
-    if (!is_visible_message_reply_info(dialog_id, m)) {
+    if (!is_visible_message_reply_info(d->dialog_id, m)) {
       return Status::Error(400, "Message has no comments");
     }
     if (m->message_id.is_yet_unsent()) {
@@ -14078,13 +14079,13 @@ Result<MessageFullId> MessagesManager::get_top_thread_message_full_id(DialogId d
       return Status::Error(400, "Message has no thread");
     }
     if (!allow_non_root && m->top_thread_message_id != m->message_id &&
-        !td_->chat_manager_->get_channel_has_linked_channel(dialog_id.get_channel_id())) {
+        !td_->chat_manager_->get_channel_has_linked_channel(d->dialog_id.get_channel_id())) {
       return Status::Error(400, "Root message must be used to get the message thread");
     }
-    if (!m->is_topic_message && td_->chat_manager_->is_forum_channel(dialog_id.get_channel_id())) {
+    if (!m->is_topic_message && d->is_forum) {
       return Status::Error(400, "Threads can't be used in General topic");
     }
-    return MessageFullId{dialog_id, m->top_thread_message_id};
+    return MessageFullId{d->dialog_id, m->top_thread_message_id};
   }
 }
 
@@ -14120,7 +14121,7 @@ void MessagesManager::get_message_thread(DialogId dialog_id, MessageId message_i
                                      "get_message_thread");
     }
 
-    TRY_RESULT_PROMISE_ASSIGN(promise, top_thread_message_full_id, get_top_thread_message_full_id(dialog_id, m, true));
+    TRY_RESULT_PROMISE_ASSIGN(promise, top_thread_message_full_id, get_top_thread_message_full_id(d, m, true));
     if ((m->reply_info.is_empty() || !m->reply_info.is_comment_) &&
         top_thread_message_full_id.get_message_id() != m->message_id) {
       CHECK(dialog_id == top_thread_message_full_id.get_dialog_id());
@@ -14691,7 +14692,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_edit_scheduling_state = can_edit_message_scheduling_state(m);
   auto can_get_author = can_get_message_author(dialog_id, m);
   auto can_get_statistics = can_get_message_statistics(dialog_id, m);
-  auto can_get_message_thread = get_top_thread_message_full_id(dialog_id, m, false).is_ok();
+  auto can_get_message_thread = get_top_thread_message_full_id(d, m, false).is_ok();
   auto can_get_read_date = can_get_message_read_date(dialog_id, m).is_ok();
   auto can_get_video_advertisements = can_get_message_video_advertisements(dialog_id, m);
   auto can_get_viewers = can_get_message_viewers(dialog_id, m).is_ok();
@@ -17191,7 +17192,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
     message_id = get_persistent_message_id(d, message_id);
     Message *m = get_message_force(d, message_id, "get_message_thread_history 1");
     if (m != nullptr) {
-      auto r_top_thread_message_full_id = get_top_thread_message_full_id(dialog_id, m, true);
+      auto r_top_thread_message_full_id = get_top_thread_message_full_id(d, m, true);
       if (r_top_thread_message_full_id.is_error()) {
         promise.set_error(r_top_thread_message_full_id.move_as_error());
         return {};
