@@ -222,7 +222,4 @@ if (NOT CMAKE_CROSSCOMPILING)
       DEPENDS td_generate_dotnet_api tl_generate_tlo ${TD_API_TLO_FILE} ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl ${CMAKE_CURRENT_SOURCE_DIR}/DotnetTlDocumentationGenerator.php
     )
   endif()
-
-  add_executable(remove_documentation remove_documentation.cpp)
-  target_link_libraries(remove_documentation PRIVATE tdtl)
 endif()

@@ -164,14 +164,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   endif()
   add_custom_target(prepare_cross_compiling ${TD_ALWAYS_GENERATE_SOURCE} DEPENDS tl_generate_mtproto tl_generate_common tdmime_auto tl_generate_json)
   if (TD_ENABLE_DOTNET)
-    add_custom_target(remove_cpp_documentation
-      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-      COMMAND remove_documentation ${TL_TD_API_AUTO_SOURCE} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
-      COMMENT "Remove C++ documentation from sources"
-      DEPENDS remove_documentation tl_generate_mtproto tl_generate_common generate_dotnet_api ${TL_TD_API_AUTO_SOURCE} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
-    )
-
-    add_dependencies(prepare_cross_compiling generate_dotnet_api remove_cpp_documentation)
+    add_dependencies(prepare_cross_compiling generate_dotnet_api)
   endif()
 endif()
 
@@ -1264,9 +1257,6 @@ if (NOT CMAKE_CROSSCOMPILING)
   if (TD_ENABLE_JNI)
     add_dependencies(tdcore td_generate_java_api)
   endif()
-  if (TD_ENABLE_DOTNET)
-    add_dependencies(tdcore remove_cpp_documentation)
-  endif()
 endif()
 
 add_library(tdclient STATIC td/telegram/Client.cpp td/telegram/Client.h td/telegram/Log.cpp td/telegram/Log.h)
@@ -1312,9 +1302,6 @@ target_include_directories(tdjson_private PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRE
 target_link_libraries(tdjson_private PUBLIC tdclient tdutils)
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdjson_private tl_generate_common tl_generate_json)
-  if (TD_ENABLE_DOTNET)
-    add_dependencies(tdjson_private remove_cpp_documentation)
-  endif()
 endif()
 
 set(TD_JSON_HEADERS td/telegram/td_json_client.h td/telegram/td_log.h)
