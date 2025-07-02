@@ -4,6 +4,116 @@ require_once 'TlDocumentationGenerator.php';
 
 class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
 {
+    public $cpp_cli = false;
+
+    private function getArrayType($typeName)
+    {
+        if ($this->cpp_cli) {
+            return $typeName.'[]';
+        }
+
+        return 'System.Collections.Generic.IList{'.$typeName.'}';
+    }
+
+    protected function isStandaloneFile()
+    {
+        return true;
+    }
+
+    protected function getDocumentationBegin()
+    {
+        $documentation = <<<EOT
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        "Telegram.Td"
+    </assembly>
+    <members>
+        <member name="M:Telegram.Td.Client.Create(Telegram.Td.ClientResultHandler)">
+            <summary>
+Creates new Client.
+</summary>
+            <param name="updateHandler">Handler for incoming updates.</param>
+            <returns>Returns created Client.</returns>
+        </member>
+        <member name="M:Telegram.Td.Client.Run">
+            <summary>
+Launches a cycle which will fetch all results of queries to TDLib and incoming updates from TDLib.
+Must be called once on a separate dedicated thread on which all updates and query results from all Clients will be handled.
+Never returns.
+</summary>
+        </member>
+        <member name="M:Telegram.Td.Client.Execute(Telegram.Td.Api.Function)">
+            <summary>
+Synchronously executes a TDLib request. Only a few marked accordingly requests can be executed synchronously.
+</summary>
+            <param name="function">Object representing a query to the TDLib.</param>
+            <returns>Returns request result.</returns>
+            <exception cref="T:System.NullReferenceException">Thrown when query is null.</exception>
+        </member>
+        <member name="M:Telegram.Td.Client.Send(Telegram.Td.Api.Function,Telegram.Td.ClientResultHandler)">
+            <summary>
+Sends a request to the TDLib.
+</summary>
+            <param name="function">Object representing a query to the TDLib.</param>
+            <param name="handler">Result handler with OnResult method which will be called with result
+of the query or with Telegram.Td.Api.Error as parameter. If it is null, nothing will be called.</param>
+            <exception cref="T:System.NullReferenceException">Thrown when query is null.</exception>
+        </member>
+        <member name="T:Telegram.Td.Client">
+            <summary>
+Main class for interaction with the TDLib.
+</summary>
+        </member>
+        <member name="M:Telegram.Td.ClientResultHandler.OnResult(Telegram.Td.Api.Object)">
+            <summary>
+Callback called on result of query to TDLib or incoming update from TDLib.
+</summary>
+            <param name="object">Result of query or update of type Telegram.Td.Api.Update about new events.</param>
+        </member>
+        <member name="T:Telegram.Td.ClientResultHandler">
+            <summary>
+Interface for handler for results of queries to TDLib and incoming updates from TDLib.
+</summary>
+        </member>
+EOT;
+
+        if ($this->cpp_cli) {
+            return $documentation;
+        }
+
+        $documentation .= <<<EOT
+        <member name="M:Telegram.Td.Client.SetLogMessageCallback(System.Int32,Telegram.Td.LogMessageCallback)">
+            <summary>
+Sets the callback that will be called when a message is added to the internal TDLib log.
+None of the TDLib methods can be called from the callback.
+</summary>
+            <param name="max_verbosity_level">The maximum verbosity level of messages for which the callback will be called.</param>
+            <param name="callback">Callback that will be called when a message is added to the internal TDLib log.
+Pass null to remove the callback.</param>
+        </member>
+        <member name="T:Telegram.Td.LogMessageCallback">
+            <summary>
+A type of callback function that will be called when a message is added to the internal TDLib log.
+</summary>
+            <param name="verbosityLevel">Log verbosity level with which the message was added from -1 up to 1024.
+If 0, then TDLib will crash as soon as the callback returns.
+None of the TDLib methods can be called from the callback.</param>
+            <param name="message">The message added to the log.</param>
+        </member>
+EOT;
+
+        return $documentation;
+    }
+
+    protected function getDocumentationEnd()
+    {
+        return <<<EOT
+    </members>
+</doc>
+EOT;
+    }
+
     protected function escapeDocumentation($doc)
     {
         $doc = preg_replace_callback('/(?<!["A-Za-z_\/])[A-Za-z]*_[A-Za-z_]*/',
@@ -43,18 +153,18 @@ class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
     {
         switch ($type) {
             case 'Bool':
-                return 'bool';
+                return 'System.Boolean';
             case 'int32':
-                return 'int32';
+                return 'System.Int32';
             case 'int53':
             case 'int64':
-                return 'int64';
+                return 'System.Int64';
             case 'double':
-                return 'float64';
+                return 'System.Double';
             case 'string':
-                return 'String^';
+                return 'System.String';
             case 'bytes':
-                return 'Array<BYTE>^';
+                return $this->getArrayType('System.Byte');
             case 'bool':
             case 'int':
             case 'long':
@@ -74,14 +184,14 @@ class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
                         $this->printError("Wrong vector subtype in $type");
                         return '';
                     }
-                    return 'Array<'.$this->getTypeName(substr($type, 7, -1)).'>^';
+                    return $this->getArrayType($this->getTypeName(substr($type, 7, -1)));
                 }
 
                 if (preg_match('/[^A-Za-z0-9.]/', $type)) {
                     $this->printError("Wrong type $type");
                     return '';
                 }
-                return $this->getClassName($type).'^';
+                return $this->getClassName($type);
         }
     }
 
@@ -124,114 +234,117 @@ class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
 
     protected function addGlobalDocumentation()
     {
-        $this->addDocumentation('public interface class Object : BaseObject {', <<<EOT
-/// <summary>
-/// This class is a base class for all TDLib interface classes.
-/// </summary>
+        $this->addDocumentation('T:Object', <<<EOT
+        <member name="T:Telegram.Td.Api.Object">
+            <summary>
+This class is a base class for all TDLib interface classes.
+</summary>
+        </member>
 EOT
 );
 
-        $this->addDocumentation('  virtual String^ ToString() override;', <<<EOT
-  /// <summary>
-  /// Returns string representation of the object.
-  /// </summary>
-  /// <returns>Returns string representation of the object.</returns>
-EOT
-);
-
-        $this->addDocumentation('public interface class Function : BaseObject {', <<<EOT
-/// <summary>
-/// This class is a base class for all TDLib interface function-classes.
-/// </summary>
+        $this->addDocumentation('T:Function', <<<EOT
+        <member name="T:Telegram.Td.Api.Function">
+            <summary>
+This class is a base class for all TDLib interface function-classes.
+</summary>
+        </member>
 EOT
 );
     }
 
     protected function addAbstractClassDocumentation($class_name, $documentation)
     {
-        $this->addDocumentation("public interface class $class_name : Object {", <<<EOT
-/// <summary>
-/// This class is an abstract base class.
-/// $documentation
-/// </summary>
+        $this->addDocumentation("T:$class_name", <<<EOT
+        <member name="T:Telegram.Td.Api.$class_name">
+            <summary>
+This class is an abstract base class.
+$documentation
+</summary>
+        </member>
 EOT
 );
+
     }
 
     protected function getFunctionReturnTypeDescription($return_type, $for_constructor)
     {
-        $shift = $for_constructor ? '  ' : '';
-        return "\r\n$shift/// <para>Returns <see cref=\"".substr($return_type, 0, -1).'"/>.</para>';
+        return "\r\n            <para>Returns <see cref=\"T:Telegram.Td.Api.$return_type\"/>.</para>";
     }
 
     protected function addClassDocumentation($class_name, $base_class_name, $return_type, $description)
     {
-        $this->addDocumentation("public ref class $class_name sealed : $base_class_name {", <<<EOT
-/// <summary>
-/// $description
-/// </summary>
+        $this->addDocumentation("T:$class_name", <<<EOT
+        <member name="T:Telegram.Td.Api.$class_name">
+            <summary>
+$description
+</summary>
+        </member>
 EOT
 );
     }
 
     protected function addFieldDocumentation($class_name, $field_name, $type_name, $field_info, $may_be_null)
     {
-        $end = ';';
-        if ($type_name == $field_name.'^' || ($type_name == 'Message^' && $field_name == 'ReplyToMessage')) {
-            $type_name = '::Telegram::Td::Api::'.$type_name;
-            $end = ' {';
-        } else if ($class_name == "WebPage" && $field_name == "Stickers" && $type_name == "Array<Sticker^>^") {
-            $type_name = 'Array<::Telegram::Td::Api::Sticker^>^';
-            $end = ' {';
-        }
-        $full_line = $class_name."  property $type_name $field_name$end";
-        $this->addDocumentation($full_line, <<<EOT
-  /// <summary>
-  /// $field_info
-  /// </summary>
+        $this->addDocumentation("P:$class_name.$field_name", <<<EOT
+        <member name="P:Telegram.Td.Api.$class_name.$field_name">
+            <summary>
+$field_info
+</summary>
+        </member>
 EOT
 );
     }
 
     protected function addDefaultConstructorDocumentation($class_name, $class_description)
     {
-        $this->addDocumentation("  $class_name();", <<<EOT
-  /// <summary>
-  /// $class_description
-  /// </summary>
+        $this->addDocumentation("M:$class_name.#ctor", <<<EOT
+        <member name="M:Telegram.Td.Api.$class_name.ToString">
+            <summary>
+Returns string representation of the object.
+</summary>
+            <returns>Returns string representation of the object.</returns>
+        </member>
+        <member name="M:Telegram.Td.Api.$class_name.#ctor">
+            <summary>
+$class_description
+</summary>
+        </member>
 EOT
 );
     }
 
     protected function addFullConstructorDocumentation($class_name, $class_description, $known_fields, $info)
     {
-        $full_constructor = "  $class_name(";
+        $full_constructor = "";
         $colon = '';
         foreach ($known_fields as $name => $type) {
             $field_type = $this->getTypeName($type);
             $pos = 0;
-            while (substr($field_type, $pos, 6) === 'Array<') {
-                $pos += 6;
+            while (substr($field_type, $pos, 33) === 'System.Collections.Generic.IList{') {
+                $pos += 33;
             }
-            if (substr($field_type, $pos, 4) !== 'BYTE' && substr($field_type, $pos, 6) !== 'String' && ucfirst(substr($field_type, $pos)) === substr($field_type, $pos)) {
-                $field_type = substr($field_type, 0, $pos).'::Telegram::Td::Api::'.substr($field_type, $pos);
+            if (substr($field_type, $pos, 7) !== 'System.') {
+                $field_type = substr($field_type, 0, $pos).'Telegram.Td.Api.'.substr($field_type, $pos);
             }
-            $full_constructor .= $colon.$field_type.' '.$this->getParameterName($name, $class_name);
-            $colon = ', ';
+            $full_constructor .= $colon.$field_type;
+            $colon = ',';
         }
-        $full_constructor .= ');';
 
         $full_doc = <<<EOT
-  /// <summary>
-  /// $class_description
-  /// </summary>
+        <member name="M:Telegram.Td.Api.$class_name.#ctor($full_constructor)">
+            <summary>
+$class_description
+</summary>
 EOT;
         foreach ($known_fields as $name => $type) {
-            $full_doc .= "\r\n  /// <param name=\"".$this->getParameterName($name, $class_name).'">'.$info[$name]."</param>";
+            $full_doc .= "\r\n            <param name=\"".$this->getParameterName($name, $class_name).'">'.$info[$name]."</param>";
         }
-        $this->addDocumentation($full_constructor, $full_doc);
+        $full_doc .= "\r\n        </member>";
+        $this->addDocumentation("M:$class_name.#ctor($full_constructor)", $full_doc);
     }
 }
 
 $generator = new DotnetTlDocumentationGenerator();
+$generator->cpp_cli = $argv[3] !== "WindowsStore";
 $generator->generate($argv[1], $argv[2]);
