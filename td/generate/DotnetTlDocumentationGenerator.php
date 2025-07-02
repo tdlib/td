@@ -6,13 +6,13 @@ class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
 {
     private $cpp_cli = false;
 
-    private function getArrayType($typeName)
+    private function getArrayType($type_name)
     {
         if ($this->cpp_cli) {
-            return $typeName.'[]';
+            return $type_name.'[]';
         }
 
-        return 'System.Collections.Generic.IList{'.$typeName.'}';
+        return 'System.Collections.Generic.IList{'.$type_name.'}';
     }
 
     protected function isStandaloneFile()
@@ -22,7 +22,7 @@ class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
 
     protected function getDocumentationBegin()
     {
-        $exceptionName = $this->cpp_cli ? 'System.NullReferenceException' : 'Platform.NullReferenceException';
+        $exception_name = $this->cpp_cli ? 'System.NullReferenceException' : 'Platform.NullReferenceException';
         $documentation = <<<EOT
 <?xml version="1.0"?>
 <doc>
@@ -50,7 +50,7 @@ Synchronously executes a TDLib request. Only a few marked accordingly requests c
 </summary>
             <param name="function">Object representing a query to the TDLib.</param>
             <returns>Returns request result.</returns>
-            <exception cref="T:{$exceptionName}">Thrown when query is null.</exception>
+            <exception cref="T:{$exception_name}">Thrown when query is null.</exception>
         </member>
         <member name="M:Telegram.Td.Client.Send(Telegram.Td.Api.Function,Telegram.Td.ClientResultHandler)">
             <summary>
@@ -59,7 +59,7 @@ Sends a request to the TDLib.
             <param name="function">Object representing a query to the TDLib.</param>
             <param name="handler">Result handler with OnResult method which will be called with result
 of the query or with Telegram.Td.Api.Error as parameter. If it is null, nothing will be called.</param>
-            <exception cref="T:{$exceptionName}">Thrown when query is null.</exception>
+            <exception cref="T:{$exception_name}">Thrown when query is null.</exception>
         </member>
         <member name="T:Telegram.Td.Client">
             <summary>
