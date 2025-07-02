@@ -4,7 +4,7 @@ require_once 'TlDocumentationGenerator.php';
 
 class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
 {
-    public $cpp_cli = false;
+    private $cpp_cli = false;
 
     private function getArrayType($typeName)
     {
@@ -343,8 +343,13 @@ EOT;
         $full_doc .= "\r\n        </member>";
         $this->addDocumentation("M:$class_name.#ctor($full_constructor)", $full_doc);
     }
+
+    public function __construct($system_name) {
+        $this->cpp_cli = $system_name !== 'WindowsStore';
+    }
 }
 
-$generator = new DotnetTlDocumentationGenerator();
-$generator->cpp_cli = $argv[3] !== "WindowsStore";
+$system_name = isset($argv[3]) ? $argv[3] : 'Windows';
+
+$generator = new DotnetTlDocumentationGenerator($system_name);
 $generator->generate($argv[1], $argv[2]);
