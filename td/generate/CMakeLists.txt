@@ -208,7 +208,7 @@ if (NOT CMAKE_CROSSCOMPILING)
 
   if (TD_ENABLE_DOTNET)
     if (PHP_EXECUTABLE)
-      set(GENERATE_DOTNET_API_CMD td_generate_dotnet_api ${TD_API_TLO_FILE} && ${PHP_EXECUTABLE} ../DotnetTlDocumentationGenerator.php ../scheme/td_api.tl td/telegram/Telegram.Td.xml ${CMAKE_SYSTEM_NAME})
+      set(GENERATE_DOTNET_API_CMD td_generate_dotnet_api ${TD_API_TLO_FILE} && ${PHP_EXECUTABLE} ../DotnetTlDocumentationGenerator.php ../scheme/td_api.tl td/telegram/Telegram.Td.xml ${TD_ENABLE_DOTNET})
     else()
       set(GENERATE_DOTNET_API_CMD td_generate_dotnet_api ${TD_API_TLO_FILE})
     endif()

@@ -40,7 +40,7 @@ function prepare {
 
   cd build-native
 
-  cmake -A Win32 -DTD_GENERATE_SOURCE_FILES=ON -DTD_ENABLE_DOTNET=ON "$td_root"
+  cmake -A Win32 -DTD_GENERATE_SOURCE_FILES=ON -DTD_ENABLE_DOTNET=CX "$td_root"
   CheckLastExitCode
   cmake --build .
   CheckLastExitCode
@@ -61,7 +61,7 @@ function config {
     if ($arch -eq "x86") {
       $fixed_arch = "win32"
     }
-    cmake -A $fixed_arch -DCMAKE_SYSTEM_VERSION="10.0" -DCMAKE_SYSTEM_NAME="WindowsStore" -DCMAKE_TOOLCHAIN_FILE="$vcpkg_cmake" -DTD_ENABLE_DOTNET=ON "$td_root"
+    cmake -A $fixed_arch -DCMAKE_SYSTEM_VERSION="10.0" -DCMAKE_SYSTEM_NAME="WindowsStore" -DCMAKE_TOOLCHAIN_FILE="$vcpkg_cmake" -DTD_ENABLE_DOTNET=CX "$td_root"
     CheckLastExitCode
     cd ..
   }

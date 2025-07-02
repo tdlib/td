@@ -345,12 +345,12 @@ EOT;
         $this->addDocumentation("M:$class_name.#ctor($full_constructor)", $full_doc);
     }
 
-    public function __construct($system_name) {
-        $this->cpp_cli = $system_name !== 'WindowsStore';
+    public function __construct($flavor_name) {
+        $this->cpp_cli = $flavor_name !== 'CX';
     }
 }
 
-$system_name = isset($argv[3]) ? $argv[3] : 'Windows';
+$flavor_name = isset($argv[3]) ? $argv[3] : 'Windows';
 
-$generator = new DotnetTlDocumentationGenerator($system_name);
+$generator = new DotnetTlDocumentationGenerator($flavor_name);
 $generator->generate($argv[1], $argv[2]);

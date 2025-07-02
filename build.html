@@ -1008,7 +1008,10 @@ function onOptionsChanged() {
     if (target === 'JNI') {
       cmake_init_options.push('-DTD_ENABLE_JNI=ON');
     }
-    if (target === 'C++/CX' || target === 'C++/CLI') {
+    if (target === 'C++/CX') {
+      cmake_init_options.push('-DTD_ENABLE_DOTNET=CX');
+    }
+    if (target === 'C++/CLI') {
       cmake_init_options.push('-DTD_ENABLE_DOTNET=ON');
     }
     if (use_lto) {
