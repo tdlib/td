@@ -66,7 +66,7 @@ of the query or with Telegram.Td.Api.Error as parameter. If it is null, nothing 
 Main class for interaction with the TDLib.
 </summary>
         </member>
-        <member name="M:Telegram.Td.ClientResultHandler.OnResult(Telegram.Td.Api.Object)">
+        <member name="M:Telegram.Td.ClientResultHandler.OnResult(Telegram.Td.Api.BaseObject)">
             <summary>
 Callback called on result of query to TDLib or incoming update from TDLib.
 </summary>
