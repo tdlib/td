@@ -22,7 +22,6 @@ class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
 
     protected function getDocumentationBegin()
     {
-        $exception_name = $this->cpp_cli ? 'System.NullReferenceException' : 'Platform.NullReferenceException';
         $documentation = <<<EOT
 <?xml version="1.0"?>
 <doc>
@@ -50,7 +49,7 @@ Synchronously executes a TDLib request. Only a few marked accordingly requests c
 </summary>
             <param name="function">Object representing a query to the TDLib.</param>
             <returns>Returns request result.</returns>
-            <exception cref="T:{$exception_name}">Thrown when query is null.</exception>
+            <exception cref="T:System.NullReferenceException">Thrown when query is null.</exception>
         </member>
         <member name="M:Telegram.Td.Client.Send(Telegram.Td.Api.Function,Telegram.Td.ClientResultHandler)">
             <summary>
@@ -59,7 +58,7 @@ Sends a request to the TDLib.
             <param name="function">Object representing a query to the TDLib.</param>
             <param name="handler">Result handler with OnResult method which will be called with result
 of the query or with Telegram.Td.Api.Error as parameter. If it is null, nothing will be called.</param>
-            <exception cref="T:{$exception_name}">Thrown when query is null.</exception>
+            <exception cref="T:System.NullReferenceException">Thrown when query is null.</exception>
         </member>
         <member name="T:Telegram.Td.Client">
             <summary>
