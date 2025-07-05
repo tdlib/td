@@ -370,8 +370,8 @@ td::Status State::set_group_state(GroupStateRef group_state, const Permissions &
   }
 
   td::int32 needed_flags = 0;
-  for (const auto &[p, flags] : old_participants) {
-    if (!new_participants.count(p)) {
+  for (const auto &participant : old_participants) {
+    if (!new_participants.count(participant.first)) {
       if (!permissions.may_remove_users()) {
         return Error(E::InvalidBlock_NoPermissions, "Can't remove users");
       }

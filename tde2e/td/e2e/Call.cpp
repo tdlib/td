@@ -369,7 +369,8 @@ td::Result<std::string> CallEncryption::encrypt(td::int32 channel_id, td::Slice 
   using td::store;
   std::string header_a = lambda_serialize([&](auto &storer) {
     store(epochs_n, storer);
-    for (auto &[epoch_i, epoch] : epochs_) {
+    for (const auto &it : epochs_) {
+      const auto &epoch = it.second;
       store(epoch.epoch_hash_, storer);
     }
   });
@@ -380,7 +381,8 @@ td::Result<std::string> CallEncryption::encrypt(td::int32 channel_id, td::Slice 
                                                           decrypted_data, one_time_secret));
 
   std::vector<td::SecureString> encrypted_headers;
-  for (auto &[epoch_i, epoch] : epochs_) {
+  for (const auto &it : epochs_) {
+    const auto &epoch = it.second;
     TRY_RESULT(encrypted_header, MessageEncryption::encrypt_header(one_time_secret, encrypted_packet, epoch.secret_));
     encrypted_headers.emplace_back(std::move(encrypted_header));
   }
