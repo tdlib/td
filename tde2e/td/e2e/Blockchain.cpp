@@ -766,13 +766,13 @@ td::Result<ClientBlockchain> ClientBlockchain::create_from_block(td::Slice block
   TRY_RESULT(blockchain, Blockchain::create_from_block(std::move(block)));
   ClientBlockchain res;
   res.blockchain_ = std::move(blockchain);
-  return res;
+  return std::move(res);
 }
 
 td::Result<ClientBlockchain> ClientBlockchain::create_empty() {
   ClientBlockchain res;
   res.blockchain_ = Blockchain::create_empty();
-  return res;
+  return std::move(res);
 }
 
 td::Result<std::vector<Change>> ClientBlockchain::try_apply_block(td::Slice block_slice) {

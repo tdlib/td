@@ -621,7 +621,7 @@ td::Result<Call> Call::create(td::int64 user_id, PrivateKey private_key, td::Sli
   TRY_RESULT(blockchain, ClientBlockchain::create_from_block(last_block, private_key.to_public_key()));
   auto call = Call(user_id, std::move(private_key), std::move(blockchain));
   TRY_STATUS(call.update_group_shared_key());
-  return call;
+  return std::move(call);
 }
 
 td::Result<std::string> Call::build_change_state(GroupStateRef new_group_state) const {
@@ -700,7 +700,7 @@ td::Result<td::SecureString> Call::decrypt_shared_key() {
       if (decrypted_shared_key.size() != 32) {
         return td::Status::Error("Invalid shared key (size != 32)");
       }
-      return decrypted_shared_key;
+      return std::move(decrypted_shared_key);
     }
   }
   return td::Status::Error("Could not find user_id in group_shared_key");

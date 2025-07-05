@@ -170,7 +170,7 @@ td::Result<td::SecureString> MessageEncryption::encrypt_header(td::Slice decrypt
 
   td::SecureString encrypted_header(32, 0);
   cbc_state.encrypt(decrypted_header, encrypted_header.as_mutable_slice());
-  return encrypted_header;
+  return std::move(encrypted_header);
 }
 
 td::Result<td::SecureString> MessageEncryption::decrypt_header(td::Slice encrypted_header, td::Slice encrypted_message,
@@ -190,7 +190,7 @@ td::Result<td::SecureString> MessageEncryption::decrypt_header(td::Slice encrypt
 
   td::SecureString decrypted_header(32, 0);
   cbc_state.decrypt(encrypted_header, decrypted_header.as_mutable_slice());
-  return decrypted_header;
+  return std::move(decrypted_header);
 }
 
 }  // namespace tde2e_core
