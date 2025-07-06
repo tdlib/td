@@ -265,58 +265,75 @@ static int64 get_amount(int64 amount, bool allow_negative = false) {
   }
   return amount;
 }
-/*
-static td_api::object_ptr<td_api::chatRevenueAmount> convert_broadcast_revenue_balances(
-    telegram_api::object_ptr<telegram_api::broadcastRevenueBalances> obj) {
+
+static int64 get_amount(const telegram_api::object_ptr<telegram_api::StarsAmount> &amount,
+                        bool allow_negative = false) {
+  CHECK(amount != nullptr);
+  if (amount->get_id() != telegram_api::starsTonAmount::ID) {
+    LOG(ERROR) << "Receive " << to_string(amount);
+    return 0;
+  }
+  return get_amount(static_cast<const telegram_api::starsTonAmount *>(amount.get())->amount_, allow_negative);
+}
+
+static td_api::object_ptr<td_api::chatRevenueAmount> convert_stars_revenue_status(
+    telegram_api::object_ptr<telegram_api::starsRevenueStatus> obj) {
   CHECK(obj != nullptr);
   return td_api::make_object<td_api::chatRevenueAmount>("TON", get_amount(obj->overall_revenue_),
                                                         get_amount(obj->current_balance_),
                                                         get_amount(obj->available_balance_), obj->withdrawal_enabled_);
 }
 
-static td_api::object_ptr<td_api::chatRevenueStatistics> convert_broadcast_revenue_stats(
-    telegram_api::object_ptr<telegram_api::stats_broadcastRevenueStats> obj) {
+static td_api::object_ptr<td_api::chatRevenueStatistics> convert_ton_revenue_stats(
+    telegram_api::object_ptr<telegram_api::payments_starsRevenueStats> obj) {
   CHECK(obj != nullptr);
   return td_api::make_object<td_api::chatRevenueStatistics>(
       convert_stats_graph(std::move(obj->top_hours_graph_)), convert_stats_graph(std::move(obj->revenue_graph_)),
-      convert_broadcast_revenue_balances(std::move(obj->balances_)),
+      convert_stars_revenue_status(std::move(obj->status_)),
       obj->usd_rate_ > 0 ? clamp(obj->usd_rate_ * 1e-7, 1e-18, 1e18) : 1.0);
 }
 
-class GetBroadcastRevenueStatsQuery final : public Td::ResultHandler {
+class GetTonRevenueStatsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetBroadcastRevenueStatsQuery(Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise)
+  explicit GetTonRevenueStatsQuery(Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise)
       : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, bool is_dark) {
     dialog_id_ = dialog_id;
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
-        telegram_api::stats_getBroadcastRevenueStats(0, is_dark, std::move(input_peer))));
+        telegram_api::payments_getStarsRevenueStats(0, is_dark, true, std::move(input_peer))));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::stats_getBroadcastRevenueStats>(packet);
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsRevenueStats>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(convert_broadcast_revenue_stats(result_ptr.move_as_ok()));
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetTonRevenueStatsQuery: " << to_string(ptr);
+    if (ptr->top_hours_graph_ == nullptr) {
+      LOG(ERROR) << "Receive " << to_string(ptr);
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+    promise_.set_value(convert_ton_revenue_stats(std::move(ptr)));
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetBroadcastRevenueStatsQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetTonRevenueStatsQuery");
     promise_.set_error(std::move(status));
   }
 };
 
+/*
 class GetBroadcastRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
   Promise<string> promise_;
   DialogId dialog_id_;
@@ -668,8 +685,7 @@ void StatisticsManager::get_dialog_revenue_statistics(
     DialogId dialog_id, bool is_dark, Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
                                                                         "get_dialog_revenue_statistics"));
-  promise.set_error(500, "Unsupported");
-  // td_->create_handler<GetBroadcastRevenueStatsQuery>(std::move(promise))->send(dialog_id, is_dark);
+  td_->create_handler<GetTonRevenueStatsQuery>(std::move(promise))->send(dialog_id, is_dark);
 }
 /*
 void StatisticsManager::on_update_dialog_revenue_transactions(
