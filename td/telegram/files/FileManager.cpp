@@ -4315,16 +4315,8 @@ Result<FileId> FileManager::get_audio_thumbnail_file_id(string title, string per
   if (!clean_input_string(performer)) {
     return Status::Error(400, "Performer must be encoded in UTF-8");
   }
-  for (auto &c : title) {
-    if (c == '\n' || c == '#') {
-      c = ' ';
-    }
-  }
-  for (auto &c : performer) {
-    if (c == '\n' || c == '#') {
-      c = ' ';
-    }
-  }
+  replace_with_spaces(title, "#\n");
+  replace_with_spaces(performer, "#\n");
   title = trim(title);
   performer = trim(performer);
   if (title.empty() && performer.empty()) {

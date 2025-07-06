@@ -5051,11 +5051,7 @@ void UserManager::set_name(const string &first_name, const string &last_name, Pr
 void UserManager::set_bio(const string &bio, Promise<Unit> &&promise) {
   auto max_bio_length = static_cast<size_t>(td_->option_manager_->get_option_integer("bio_length_max"));
   auto new_bio = strip_empty_characters(bio, max_bio_length);
-  for (auto &c : new_bio) {
-    if (c == '\n') {
-      c = ' ';
-    }
-  }
+  replace_with_spaces(new_bio, "\n");
 
   const UserFull *user_full = get_user_full(get_my_id());
   int32 flags = 0;

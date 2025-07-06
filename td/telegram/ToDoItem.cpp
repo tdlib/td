@@ -14,6 +14,7 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/utf8.h"
 
@@ -40,11 +41,7 @@ Result<ToDoItem> ToDoItem::get_to_do_item(const Td *td, DialogId dialog_id,
   if (task->id_ <= 0) {
     return Status::Error(400, "Checklist task identifier must be positive");
   }
-  for (auto &c : title.text) {
-    if (c == '\n') {
-      c = ' ';
-    }
-  }
+  replace_with_spaces(title.text, "\n");
   remove_unsupported_entities(title);
   ToDoItem result;
   result.id_ = task->id_;

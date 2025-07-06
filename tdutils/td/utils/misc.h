@@ -102,6 +102,8 @@ inline string to_upper(Slice slice) {
   return result;
 }
 
+void replace_with_spaces(MutableSlice str, Slice characters);
+
 inline bool is_space(char c) {
   return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\0' || c == '\v';
 }

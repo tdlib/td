@@ -18,6 +18,14 @@
 
 namespace td {
 
+void replace_with_spaces(MutableSlice str, Slice characters) {
+  for (auto &c : str) {
+    if (characters.find(c) != Slice::npos) {
+      c = ' ';
+    }
+  }
+}
+
 char *str_dup(Slice str) {
   auto *res = static_cast<char *>(std::malloc(str.size() + 1));
   if (res == nullptr) {

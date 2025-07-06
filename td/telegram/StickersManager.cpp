@@ -7734,11 +7734,7 @@ Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_sticker(td
     if (!clean_input_string(keyword)) {
       return Status::Error(400, "Keywords must be encoded in UTF-8");
     }
-    for (auto &c : keyword) {
-      if (c == ',' || c == '\n') {
-        c = ' ';
-      }
-    }
+    replace_with_spaces(keyword, ",\n");
   }
 
   return prepare_input_file(sticker->sticker_, ::td::get_sticker_format(sticker->format_), sticker_type, false);
@@ -8547,11 +8543,7 @@ void StickersManager::set_sticker_keywords(const td_api::object_ptr<td_api::Inpu
   TRY_RESULT_PROMISE(promise, input_document, get_sticker_input_document(sticker));
 
   for (auto &keyword : keywords) {
-    for (auto &c : keyword) {
-      if (c == ',' || c == '\n') {
-        c = ' ';
-      }
-    }
+    replace_with_spaces(keyword, ",\n");
   }
   td_->create_handler<ChangeStickerQuery>(std::move(promise))
       ->send(input_document.sticker_set_unique_name_, std::move(input_document.input_document_), false, string(),
