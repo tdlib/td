@@ -942,6 +942,21 @@ TEST(Misc, full_split) {
   test_full_split("ab cd ef gh", ' ', 3, {"ab", "cd", "ef gh"});
 }
 
+static void test_replace_with_spaces(td::MutableSlice str, td::Slice characters, td::Slice expected) {
+  replace_with_spaces(str, characters);
+  ASSERT_EQ(expected, str);
+}
+
+TEST(Misc, replace_with_spaces) {
+  td::string s("asd\nasd");
+  test_replace_with_spaces(s, "", s);
+  test_replace_with_spaces(s, "bcef", s);
+  test_replace_with_spaces(s, "\n", "asd asd");
+  test_replace_with_spaces(s, "as", "  d   d");
+  test_replace_with_spaces(s, "as", "  d   d");
+  test_replace_with_spaces(s, "asd", "       ");
+}
+
 TEST(Misc, StringBuilder) {
   auto small_str = td::string{"abcdefghij"};
   auto big_str = td::string(1000, 'a');
