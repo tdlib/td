@@ -333,13 +333,12 @@ class GetTonRevenueStatsQuery final : public Td::ResultHandler {
   }
 };
 
-/*
-class GetBroadcastRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
+class GetTonRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
   Promise<string> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetBroadcastRevenueWithdrawalUrlQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  explicit GetTonRevenueWithdrawalUrlQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password) {
@@ -347,15 +346,15 @@ class GetBroadcastRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      return on_error(Status::Error(500, "Chat not found"));
+      return on_error(Status::Error(400, "Have no access to the chat"));
     }
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::stats_getBroadcastRevenueWithdrawalUrl(std::move(input_peer), std::move(input_check_password))));
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarsRevenueWithdrawalUrl(
+        0, true, std::move(input_peer), 0, std::move(input_check_password))));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::stats_getBroadcastRevenueWithdrawalUrl>(packet);
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsRevenueWithdrawalUrl>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
@@ -364,11 +363,12 @@ class GetBroadcastRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetBroadcastRevenueWithdrawalUrlQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetTonRevenueWithdrawalUrlQuery");
     promise_.set_error(std::move(status));
   }
 };
 
+/*
 class GetBroadcastRevenueTransactionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> promise_;
   DialogId dialog_id_;
@@ -727,9 +727,8 @@ void StatisticsManager::send_get_dialog_revenue_withdrawal_url_query(
     DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
     Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  promise.set_error(500, "Unsupported");
-  // td_->create_handler<GetBroadcastRevenueWithdrawalUrlQuery>(std::move(promise))
-  //    ->send(dialog_id, std::move(input_check_password));
+  td_->create_handler<GetTonRevenueWithdrawalUrlQuery>(std::move(promise))
+      ->send(dialog_id, std::move(input_check_password));
 }
 
 void StatisticsManager::get_dialog_revenue_transactions(
