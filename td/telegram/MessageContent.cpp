@@ -8220,6 +8220,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionGiveawayResults::ID:
       case telegram_api::messageActionBoostApply::ID:
       case telegram_api::messageActionPaidMessagesPrice::ID:
+      case telegram_api::messageActionSuggestedPostApproval::ID:
+      case telegram_api::messageActionSuggestedPostSuccess::ID:
+      case telegram_api::messageActionSuggestedPostRefund::ID:
         LOG(ERROR) << "Receive business " << to_string(action_ptr);
         break;
       case telegram_api::messageActionHistoryClear::ID:
@@ -8248,6 +8251,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionConferenceCall::ID:
       case telegram_api::messageActionTodoCompletions::ID:
       case telegram_api::messageActionTodoAppendTasks::ID:
+      case telegram_api::messageActionGiftTon::ID:
         // ok
         break;
       default:
@@ -8817,6 +8821,14 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       });
       return td::make_unique<MessageTodoAppendTasks>(reply_to_message_id, std::move(items));
     }
+    case telegram_api::messageActionSuggestedPostApproval::ID:
+      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionSuggestedPostSuccess::ID:
+      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionSuggestedPostRefund::ID:
+      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionGiftTon::ID:
+      return td::make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

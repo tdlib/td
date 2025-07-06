@@ -265,7 +265,7 @@ static int64 get_amount(int64 amount, bool allow_negative = false) {
   }
   return amount;
 }
-
+/*
 static td_api::object_ptr<td_api::chatRevenueAmount> convert_broadcast_revenue_balances(
     telegram_api::object_ptr<telegram_api::broadcastRevenueBalances> obj) {
   CHECK(obj != nullptr);
@@ -438,7 +438,7 @@ class GetBroadcastRevenueTransactionsQuery final : public Td::ResultHandler {
     promise_.set_error(std::move(status));
   }
 };
-
+*/
 static td_api::object_ptr<td_api::messageStatistics> convert_message_stats(
     telegram_api::object_ptr<telegram_api::stats_messageStats> obj) {
   return td_api::make_object<td_api::messageStatistics>(
@@ -668,9 +668,10 @@ void StatisticsManager::get_dialog_revenue_statistics(
     DialogId dialog_id, bool is_dark, Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
                                                                         "get_dialog_revenue_statistics"));
-  td_->create_handler<GetBroadcastRevenueStatsQuery>(std::move(promise))->send(dialog_id, is_dark);
+  promise.set_error(500, "Unsupported");
+  // td_->create_handler<GetBroadcastRevenueStatsQuery>(std::move(promise))->send(dialog_id, is_dark);
 }
-
+/*
 void StatisticsManager::on_update_dialog_revenue_transactions(
     DialogId dialog_id, telegram_api::object_ptr<telegram_api::broadcastRevenueBalances> balances) {
   if (!dialog_id.is_valid()) {
@@ -686,7 +687,7 @@ void StatisticsManager::on_update_dialog_revenue_transactions(
                    td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatRevenueAmount"),
                    convert_broadcast_revenue_balances(std::move(balances))));
 }
-
+*/
 void StatisticsManager::get_dialog_revenue_withdrawal_url(DialogId dialog_id, const string &password,
                                                           Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
@@ -710,8 +711,9 @@ void StatisticsManager::send_get_dialog_revenue_withdrawal_url_query(
     DialogId dialog_id, telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
     Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  td_->create_handler<GetBroadcastRevenueWithdrawalUrlQuery>(std::move(promise))
-      ->send(dialog_id, std::move(input_check_password));
+  promise.set_error(500, "Unsupported");
+  // td_->create_handler<GetBroadcastRevenueWithdrawalUrlQuery>(std::move(promise))
+  //    ->send(dialog_id, std::move(input_check_password));
 }
 
 void StatisticsManager::get_dialog_revenue_transactions(
@@ -719,7 +721,8 @@ void StatisticsManager::get_dialog_revenue_transactions(
     Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
                                                                         "get_dialog_revenue_transactions"));
-  td_->create_handler<GetBroadcastRevenueTransactionsQuery>(std::move(promise))->send(dialog_id, offset, limit);
+  promise.set_error(500, "Unsupported");
+  // td_->create_handler<GetBroadcastRevenueTransactionsQuery>(std::move(promise))->send(dialog_id, offset, limit);
 }
 
 void StatisticsManager::get_channel_message_statistics(

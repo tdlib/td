@@ -193,7 +193,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       }
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_getStarsTransactions(
-        flags, inbound, outbound, ascending, subscription_id, std::move(input_peer), offset, limit)));
+        flags, inbound, outbound, ascending, false, subscription_id, std::move(input_peer), offset, limit)));
   }
 
   void send(DialogId dialog_id, const string &transaction_id, bool is_refund) {
@@ -206,7 +206,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     transaction_ids.push_back(
         telegram_api::make_object<telegram_api::inputStarsTransaction>(0, is_refund, transaction_id));
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_getStarsTransactionsByID(std::move(input_peer), std::move(transaction_ids))));
+        telegram_api::payments_getStarsTransactionsByID(0, false, std::move(input_peer), std::move(transaction_ids))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -224,6 +224,11 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     td_->user_manager_->on_get_users(std::move(result->users_), "GetStarsTransactionsQuery");
     td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetStarsTransactionsQuery");
 
+    if (result->balance_->get_id() != telegram_api::starsAmount::ID) {
+      LOG(ERROR) << "Receive " << to_string(result);
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+
     bool for_bot =
         dialog_id_.get_type() == DialogType::User && td_->user_manager_->is_user_bot(dialog_id_.get_user_id());
     bool for_user = dialog_id_.get_type() == DialogType::User && !for_bot;
@@ -232,6 +237,10 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     bool for_supergroup = for_chat && !for_channel;
     vector<td_api::object_ptr<td_api::starTransaction>> transactions;
     for (auto &transaction : result->history_) {
+      if (transaction->amount_->get_id() != telegram_api::starsAmount::ID) {
+        LOG(ERROR) << "Receive " << to_string(transaction);
+        continue;
+      }
       vector<FileId> file_ids;
       td_api::object_ptr<td_api::productInfo> product_info;
       string bot_payload;
@@ -254,11 +263,16 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         if (transaction->starref_commission_permille_ > 0 && transaction->starref_commission_permille_ < 1000 &&
             referrer_dialog_id.is_valid()) {
           td_->dialog_manager_->force_create_dialog(referrer_dialog_id, "affiliateInfo", true);
-          auto referrer_star_amount = StarAmount(std::move(transaction->starref_amount_), true);
-          affiliate = td_api::make_object<td_api::affiliateInfo>(
-              transaction->starref_commission_permille_,
-              td_->dialog_manager_->get_chat_id_object(referrer_dialog_id, "affiliateInfo"),
-              referrer_star_amount.get_star_amount_object());
+          if (transaction->starref_amount_->get_id() != telegram_api::starsAmount::ID) {
+            LOG(ERROR) << "Receive invalid starref_amount: " << to_string(transaction);
+          } else {
+            auto referrer_star_amount =
+                StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(transaction->starref_amount_), true);
+            affiliate = td_api::make_object<td_api::affiliateInfo>(
+                transaction->starref_commission_permille_,
+                td_->dialog_manager_->get_chat_id_object(referrer_dialog_id, "affiliateInfo"),
+                referrer_star_amount.get_star_amount_object());
+          }
         } else {
           LOG(ERROR) << "Receive invalid affiliate info: " << to_string(transaction);
         }
@@ -290,7 +304,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         transaction->msg_id_ = 0;
         return message_id.get();
       };
-      auto transaction_amount = StarAmount(std::move(transaction->stars_), true);
+      auto transaction_amount =
+          StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(transaction->amount_), true);
       auto is_refund = transaction->refund_;
       auto is_purchase = transaction_amount.is_positive() == is_refund;
       auto type = [&]() -> td_api::object_ptr<td_api::StarTransactionType> {
@@ -733,7 +748,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
       transactions.push_back(std::move(star_transaction));
     }
 
-    auto star_amount = StarAmount(std::move(result->balance_), true);
+    auto star_amount = StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(result->balance_), true);
     if (dialog_id_ == td_->dialog_manager_->get_my_dialog_id()) {
       td_->star_manager_->on_update_owned_star_amount(star_amount);
     }
@@ -772,6 +787,11 @@ class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
     td_->user_manager_->on_get_users(std::move(result->users_), "GetStarsSubscriptionsQuery");
     td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetStarsSubscriptionsQuery");
 
+    if (result->balance_->get_id() != telegram_api::starsAmount::ID) {
+      LOG(ERROR) << "Receive " << to_string(result);
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+
     vector<td_api::object_ptr<td_api::starSubscription>> subscriptions;
     for (auto &subscription : result->subscriptions_) {
       StarSubscription star_subscription(td_, std::move(subscription));
@@ -782,7 +802,7 @@ class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
       }
     }
 
-    auto star_amount = StarAmount(std::move(result->balance_), true);
+    auto star_amount = StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(result->balance_), true);
     td_->star_manager_->on_update_owned_star_amount(star_amount);
     promise_.set_value(td_api::make_object<td_api::starSubscriptions>(
         star_amount.get_star_amount_object(), std::move(subscriptions),
@@ -909,11 +929,22 @@ static td_api::object_ptr<td_api::starRevenueStatus> convert_stars_revenue_statu
   if (obj->withdrawal_enabled_ && obj->next_withdrawal_at_ > 0) {
     next_withdrawal_in = max(obj->next_withdrawal_at_ - G()->unix_time(), 1);
   }
+  StarAmount overall_revenue;
+  StarAmount current_balance;
+  StarAmount available_balance;
+  if (obj->overall_revenue_->get_id() != telegram_api::starsAmount::ID ||
+      obj->current_balance_->get_id() != telegram_api::starsAmount::ID ||
+      obj->available_balance_->get_id() != telegram_api::starsAmount::ID) {
+    LOG(ERROR) << "Receive " << to_string(obj);
+  } else {
+    overall_revenue = StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(obj->overall_revenue_), true);
+    current_balance = StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(obj->current_balance_), true);
+    available_balance =
+        StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(obj->available_balance_), true);
+  }
   return td_api::make_object<td_api::starRevenueStatus>(
-      StarAmount(std::move(obj->overall_revenue_), true).get_star_amount_object(),
-      StarAmount(std::move(obj->current_balance_), true).get_star_amount_object(),
-      StarAmount(std::move(obj->available_balance_), true).get_star_amount_object(), obj->withdrawal_enabled_,
-      next_withdrawal_in);
+      overall_revenue.get_star_amount_object(), current_balance.get_star_amount_object(),
+      available_balance.get_star_amount_object(), obj->withdrawal_enabled_, next_withdrawal_in);
 }
 
 class GetStarsRevenueStatsQuery final : public Td::ResultHandler {
@@ -934,7 +965,7 @@ class GetStarsRevenueStatsQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_getStarsRevenueStats(0, is_dark, std::move(input_peer))));
+        telegram_api::payments_getStarsRevenueStats(0, is_dark, false, std::move(input_peer))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -974,8 +1005,9 @@ class GetStarsRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Have no access to the chat"));
     }
 
+    int32 flags = telegram_api::payments_getStarsRevenueWithdrawalUrl::AMOUNT_MASK;
     send_query(G()->net_query_creator().create(telegram_api::payments_getStarsRevenueWithdrawalUrl(
-        std::move(input_peer), star_count, std::move(input_check_password))));
+        flags, false, std::move(input_peer), star_count, std::move(input_check_password))));
   }
 
   void on_result(BufferSlice packet) final {

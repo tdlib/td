@@ -702,8 +702,6 @@ class UpdatesManager final : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateBotDeleteBusinessMessage> update, Promise<Unit> &&promise);
 
-  void on_update(tl_object_ptr<telegram_api::updateBroadcastRevenueTransactions> update, Promise<Unit> &&promise);
-
   void on_update(tl_object_ptr<telegram_api::updateStarsBalance> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateStarsRevenueStatus> update, Promise<Unit> &&promise);

@@ -1008,6 +1008,10 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionPaidMessagesPrice::ID:
         case telegram_api::messageActionTodoCompletions::ID:
         case telegram_api::messageActionTodoAppendTasks::ID:
+        case telegram_api::messageActionSuggestedPostApproval::ID:
+        case telegram_api::messageActionSuggestedPostSuccess::ID:
+        case telegram_api::messageActionSuggestedPostRefund::ID:
+        case telegram_api::messageActionGiftTon::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
@@ -1214,12 +1218,12 @@ void UpdatesManager::on_get_updates_impl(telegram_api::object_ptr<telegram_api::
       auto from_id = update->out_ ? td_->user_manager_->get_my_id().get() : update->user_id_;
       auto message = telegram_api::make_object<telegram_api::message>(
           0 /*unused*/, update->out_, update->mentioned_, update->media_unread_, update->silent_, false, false, false,
-          false, false, false, false, false, 0, false, update->id_,
+          false, false, false, false, false, 0, false, false, false, update->id_,
           telegram_api::make_object<telegram_api::peerUser>(from_id), 0,
           telegram_api::make_object<telegram_api::peerUser>(update->user_id_), nullptr, std::move(update->fwd_from_),
           update->via_bot_id_, 0, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
           std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_, 0, 0,
-          nullptr, 0, 0);
+          nullptr, 0, 0, nullptr);
       on_pending_update(telegram_api::make_object<telegram_api::updateNewMessage>(std::move(message), update->pts_,
                                                                                   update->pts_count_),
                         0, std::move(promise), "telegram_api::updateShortMessage");
@@ -1229,12 +1233,12 @@ void UpdatesManager::on_get_updates_impl(telegram_api::object_ptr<telegram_api::
       auto update = telegram_api::move_object_as<telegram_api::updateShortChatMessage>(updates_ptr);
       auto message = telegram_api::make_object<telegram_api::message>(
           0 /*unused*/, update->out_, update->mentioned_, update->media_unread_, update->silent_, false, false, false,
-          false, false, false, false, false, 0, false, update->id_,
+          false, false, false, false, false, 0, false, false, false, update->id_,
           telegram_api::make_object<telegram_api::peerUser>(update->from_id_), 0,
           telegram_api::make_object<telegram_api::peerChat>(update->chat_id_), nullptr, std::move(update->fwd_from_),
           update->via_bot_id_, 0, std::move(update->reply_to_), update->date_, update->message_, nullptr, nullptr,
           std::move(update->entities_), 0, 0, nullptr, 0, string(), 0, nullptr, Auto(), update->ttl_period_, 0, 0,
-          nullptr, 0, 0);
+          nullptr, 0, 0, nullptr);
       on_pending_update(telegram_api::make_object<telegram_api::updateNewMessage>(std::move(message), update->pts_,
                                                                                   update->pts_count_),
                         0, std::move(promise), "telegram_api::updateShortChatMessage");
@@ -4753,15 +4757,18 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotDeleteBusine
   add_pending_qts_update(std::move(update), qts, std::move(promise));
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBroadcastRevenueTransactions> update,
-                               Promise<Unit> &&promise) {
-  td_->statistics_manager_->on_update_dialog_revenue_transactions(DialogId(update->peer_),
-                                                                  std::move(update->balances_));
-  promise.set_value(Unit());
-}
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> update, Promise<Unit> &&promise) {
-  td_->star_manager_->on_update_owned_star_amount(StarAmount(std::move(update->balance_), true));
+  switch (update->balance_->get_id()) {
+    case telegram_api::starsAmount::ID:
+      td_->star_manager_->on_update_owned_star_amount(
+          StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(update->balance_), true));
+      break;
+    case telegram_api::starsTonAmount::ID:
+      // TODO
+      break;
+    default:
+      UNREACHABLE();
+  }
   promise.set_value(Unit());
 }
 

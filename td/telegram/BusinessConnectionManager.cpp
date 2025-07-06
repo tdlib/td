@@ -189,12 +189,12 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
 
     send_query(G()->net_query_creator().create_with_prefix(
         message_->business_connection_id_.get_invoke_prefix(),
-        telegram_api::messages_sendMessage(flags, message_->disable_web_page_preview_, message_->disable_notification_,
-                                           false, false, message_->noforwards_, false, message_->invert_media_, false,
-                                           std::move(input_peer), std::move(reply_to), message_text->text,
-                                           message_->random_id_,
-                                           get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_),
-                                           std::move(entities), 0, nullptr, nullptr, message_->effect_id_.get(), 0),
+        telegram_api::messages_sendMessage(
+            flags, message_->disable_web_page_preview_, message_->disable_notification_, false, false,
+            message_->noforwards_, false, message_->invert_media_, false, std::move(input_peer), std::move(reply_to),
+            message_text->text, message_->random_id_,
+            get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_), std::move(entities), 0, nullptr,
+            nullptr, message_->effect_id_.get(), 0, nullptr),
         td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
         {{message_->dialog_id_}}));
   }
@@ -254,12 +254,12 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
 
     send_query(G()->net_query_creator().create_with_prefix(
         message_->business_connection_id_.get_invoke_prefix(),
-        telegram_api::messages_sendMedia(flags, message_->disable_notification_, false, false, message_->noforwards_,
-                                         false, message_->invert_media_, false, std::move(input_peer),
-                                         std::move(reply_to), std::move(input_media),
-                                         message_text == nullptr ? string() : message_text->text, message_->random_id_,
-                                         get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_),
-                                         std::move(entities), 0, nullptr, nullptr, message_->effect_id_.get(), 0),
+        telegram_api::messages_sendMedia(
+            flags, message_->disable_notification_, false, false, message_->noforwards_, false, message_->invert_media_,
+            false, std::move(input_peer), std::move(reply_to), std::move(input_media),
+            message_text == nullptr ? string() : message_text->text, message_->random_id_,
+            get_input_reply_markup(td_->user_manager_.get(), message_->reply_markup_), std::move(entities), 0, nullptr,
+            nullptr, message_->effect_id_.get(), 0, nullptr),
         td_->business_connection_manager_->get_business_connection_dc_id(message_->business_connection_id_),
         {{message_->dialog_id_}}));
   }
@@ -764,7 +764,8 @@ class GetBusinessStarsStatusQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create_with_prefix(
-        business_connection_id.get_invoke_prefix(), telegram_api::payments_getStarsStatus(std::move(input_peer)),
+        business_connection_id.get_invoke_prefix(),
+        telegram_api::payments_getStarsStatus(0, false, std::move(input_peer)),
         td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id)));
   }
 
@@ -776,8 +777,12 @@ class GetBusinessStarsStatusQuery final : public Td::ResultHandler {
 
     auto result = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for GetBusinessStarsStatusQuery: " << to_string(result);
+    if (result->balance_->get_id() != telegram_api::starsAmount::ID) {
+      LOG(ERROR) << "Receive " << to_string(result);
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
 
-    auto star_amount = StarAmount(std::move(result->balance_), true);
+    auto star_amount = StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(result->balance_), true);
     promise_.set_value(star_amount.get_star_amount_object());
   }
 

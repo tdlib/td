@@ -73,6 +73,9 @@ SpecialStickerSetType::SpecialStickerSetType(
     case telegram_api::inputStickerSetEmojiDefaultTopicIcons::ID:
       *this = default_topic_icons();
       break;
+    case telegram_api::inputStickerSetTonGifts::ID:
+      *this = default_topic_icons();
+      break;
     default:
       UNREACHABLE();
       break;
