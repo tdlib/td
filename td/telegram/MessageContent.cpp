@@ -9697,16 +9697,6 @@ vector<const Photo *> get_message_content_need_to_upload_covers(Td *td, const Me
   return {};
 }
 
-const Photo *get_message_content_photo(const MessageContent *content) {
-  switch (content->get_type()) {
-    case MessageContentType::Photo:
-      return &static_cast<const MessagePhoto *>(content)->photo;
-    default:
-      break;
-  }
-  return nullptr;
-}
-
 FileId get_message_content_any_file_id(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
