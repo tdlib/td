@@ -38,6 +38,8 @@ class SpecialStickerSetType {
 
   static SpecialStickerSetType default_topic_icons();
 
+  static SpecialStickerSetType ton_gifts();
+
   string get_dice_emoji() const;
 
   bool is_empty() const {

@@ -875,6 +875,8 @@ class StickersManager final : public Actor {
 
   void try_update_premium_gift_messages();
 
+  void try_update_ton_gift_messages();
+
   const StickerSet *get_animated_emoji_sticker_set();
 
   static std::pair<FileId, int> get_animated_emoji_sticker(const StickerSet *sticker_set, const string &emoji);
@@ -1116,6 +1118,7 @@ class StickersManager final : public Actor {
   vector<Promise<Unit>> pending_get_default_statuses_queries_;
   vector<Promise<Unit>> pending_get_default_channel_statuses_queries_;
   vector<Promise<Unit>> pending_get_default_topic_icons_queries_;
+  vector<Promise<Unit>> pending_get_ton_gift_sticker_queries_;
 
   double next_click_animated_emoji_message_time_ = 0;
   double next_update_animated_emoji_clicked_time_ = 0;

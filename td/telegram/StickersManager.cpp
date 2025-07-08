@@ -1762,6 +1762,10 @@ void StickersManager::init() {
     auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::default_topic_icons());
     load_special_sticker_set_info_from_binlog(sticker_set);
   }
+  {
+    auto &sticker_set = add_special_sticker_set(SpecialStickerSetType::ton_gifts());
+    load_special_sticker_set_info_from_binlog(sticker_set);
+  }
 
   dice_emojis_str_ = td_->option_manager_->get_option_string("dice_emojis", "🎲\x01🎯\x01🏀\x01⚽\x01⚽️\x01🎰\x01🎳");
   dice_emojis_ = full_split(dice_emojis_str_, '\x01');
@@ -1781,6 +1785,7 @@ void StickersManager::init() {
     load_special_sticker_set(add_special_sticker_set(SpecialStickerSetType::animated_emoji()));
   }
   load_special_sticker_set(add_special_sticker_set(SpecialStickerSetType::premium_gifts()));
+  load_special_sticker_set(add_special_sticker_set(SpecialStickerSetType::ton_gifts()));
 
   if (G()->use_sqlite_pmc()) {
     auto old_featured_sticker_set_count_str = G()->td_db()->get_binlog_pmc()->get("old_featured_sticker_set_count");
@@ -1953,6 +1958,9 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
     if (type == SpecialStickerSetType::premium_gifts()) {
       set_promises(pending_get_premium_gift_option_sticker_queries_);
     }
+    if (type == SpecialStickerSetType::ton_gifts()) {
+      set_promises(pending_get_ton_gift_sticker_queries_);
+    }
 
     // failed to load the special sticker set; repeat after some time
     create_actor<SleepActor>("RetryLoadSpecialStickerSetActor", Random::fast(300, 600),
@@ -1990,6 +1998,11 @@ void StickersManager::on_load_special_sticker_set(const SpecialStickerSetType &t
   }
   if (type == SpecialStickerSetType::default_topic_icons()) {
     set_promises(pending_get_default_topic_icons_queries_);
+    return;
+  }
+  if (type == SpecialStickerSetType::ton_gifts()) {
+    set_promises(pending_get_ton_gift_sticker_queries_);
+    try_update_ton_gift_messages();
     return;
   }
 
@@ -3808,6 +3821,9 @@ StickerSetId StickersManager::on_get_messages_sticker_set(StickerSetId sticker_s
   }
   if (set_id == add_special_sticker_set(SpecialStickerSetType::premium_gifts()).id_) {
     try_update_premium_gift_messages();
+  }
+  if (set_id == add_special_sticker_set(SpecialStickerSetType::ton_gifts()).id_) {
+    try_update_ton_gift_messages();
   }
 
   return set_id;
@@ -5733,6 +5749,10 @@ void StickersManager::try_update_premium_gift_messages() {
   for (const auto &message_full_id : message_full_ids) {
     td_->messages_manager_->on_external_update_message_content(message_full_id, "try_update_premium_gift_messages");
   }
+}
+
+void StickersManager::try_update_ton_gift_messages() {
+  // TODO
 }
 
 void StickersManager::register_premium_gift(int32 months, int64 star_count, MessageFullId message_full_id,

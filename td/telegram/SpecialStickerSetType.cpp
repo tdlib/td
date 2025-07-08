@@ -45,6 +45,10 @@ SpecialStickerSetType SpecialStickerSetType::default_topic_icons() {
   return SpecialStickerSetType("default_topic_icons_sticker_set");
 }
 
+SpecialStickerSetType SpecialStickerSetType::ton_gifts() {
+  return SpecialStickerSetType("ton_gifts_sticker_set");
+}
+
 SpecialStickerSetType::SpecialStickerSetType(
     const telegram_api::object_ptr<telegram_api::InputStickerSet> &input_sticker_set) {
   CHECK(input_sticker_set != nullptr);
@@ -74,7 +78,7 @@ SpecialStickerSetType::SpecialStickerSetType(
       *this = default_topic_icons();
       break;
     case telegram_api::inputStickerSetTonGifts::ID:
-      *this = default_topic_icons();
+      *this = ton_gifts();
       break;
     default:
       UNREACHABLE();
@@ -111,6 +115,9 @@ telegram_api::object_ptr<telegram_api::InputStickerSet> SpecialStickerSetType::g
   }
   if (*this == default_topic_icons()) {
     return telegram_api::make_object<telegram_api::inputStickerSetEmojiDefaultTopicIcons>();
+  }
+  if (*this == ton_gifts()) {
+    return telegram_api::make_object<telegram_api::inputStickerSetTonGifts>();
   }
   auto emoji = get_dice_emoji();
   if (!emoji.empty()) {
