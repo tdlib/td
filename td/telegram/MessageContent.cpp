@@ -1448,6 +1448,29 @@ class MessageTodoAppendTasks final : public MessageContent {
   }
 };
 
+class MessageGiftTon final : public MessageContent {
+ public:
+  string currency;
+  int64 amount = 0;
+  string crypto_currency;
+  int64 crypto_amount = 0;
+  string transaction_id;
+
+  MessageGiftTon() = default;
+  MessageGiftTon(string &&currency, int64 amount, string &&crypto_currency, int64 crypto_amount,
+                 string &&transaction_id)
+      : currency(std::move(currency))
+      , amount(amount)
+      , crypto_currency(std::move(crypto_currency))
+      , crypto_amount(crypto_amount)
+      , transaction_id(std::move(transaction_id)) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::GiftTon;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -2328,6 +2351,21 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       if (has_items) {
         store(m->items, storer);
+      }
+      break;
+    }
+    case MessageContentType::GiftTon: {
+      const auto *m = static_cast<const MessageGiftTon *>(content);
+      bool has_transaction_id = !m->transaction_id.empty();
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_transaction_id);
+      END_STORE_FLAGS();
+      store(m->currency, storer);
+      store(m->amount, storer);
+      store(m->crypto_currency, storer);
+      store(m->crypto_amount, storer);
+      if (has_transaction_id) {
+        store(m->transaction_id, storer);
       }
       break;
     }
@@ -3454,6 +3492,22 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::GiftTon: {
+      auto m = make_unique<MessageGiftTon>();
+      bool has_transaction_id;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_transaction_id);
+      END_PARSE_FLAGS();
+      parse(m->currency, parser);
+      parse(m->amount, parser);
+      parse(m->crypto_currency, parser);
+      parse(m->crypto_amount, parser);
+      if (has_transaction_id) {
+        parse(m->transaction_id, parser);
+      }
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -4249,6 +4303,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::ConferenceCall:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -4404,6 +4459,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::ConferenceCall:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       break;
     default:
       UNREACHABLE();
@@ -4588,6 +4644,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::ConferenceCall:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       break;
     default:
       UNREACHABLE();
@@ -4809,6 +4866,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
     case MessageContentType::ToDoList:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       break;
     default:
       UNREACHABLE();
@@ -5057,6 +5115,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::ConferenceCall:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       UNREACHABLE();
   }
   return Status::OK();
@@ -5224,6 +5283,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::ToDoList:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       return 0;
     default:
       UNREACHABLE();
@@ -5561,6 +5621,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::TodoCompletions:
       break;
     case MessageContentType::TodoAppendTasks:
+      break;
+    case MessageContentType::GiftTon:
       break;
     default:
       UNREACHABLE();
@@ -6026,6 +6088,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::ToDoList:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       break;
     default:
       UNREACHABLE();
@@ -6189,6 +6252,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::ToDoList:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -6869,6 +6933,16 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *lhs = static_cast<const MessageTodoAppendTasks *>(old_content);
       const auto *rhs = static_cast<const MessageTodoAppendTasks *>(new_content);
       if (lhs->to_do_message_id != rhs->to_do_message_id || lhs->items != rhs->items) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::GiftTon: {
+      const auto *lhs = static_cast<const MessageGiftTon *>(old_content);
+      const auto *rhs = static_cast<const MessageGiftTon *>(new_content);
+      if (lhs->currency != rhs->currency || lhs->amount != rhs->amount ||
+          lhs->crypto_currency != rhs->crypto_currency || lhs->crypto_amount != rhs->crypto_amount ||
+          lhs->transaction_id != rhs->transaction_id) {
         need_update = true;
       }
       break;
@@ -8178,6 +8252,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::ConferenceCall:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       return nullptr;
     default:
       UNREACHABLE();
@@ -8827,8 +8902,25 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageUnsupported>();
     case telegram_api::messageActionSuggestedPostRefund::ID:
       return td::make_unique<MessageUnsupported>();
-    case telegram_api::messageActionGiftTon::ID:
-      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionGiftTon::ID: {
+      auto action = telegram_api::move_object_as<telegram_api::messageActionGiftTon>(action_ptr);
+      if (action->amount_ <= 0 || !check_currency_amount(action->amount_)) {
+        LOG(ERROR) << "Receive invalid gifted TON price " << action->amount_;
+        action->amount_ = 0;
+      }
+      if (action->crypto_currency_.empty()) {
+        if (action->crypto_amount_ != 0) {
+          LOG(ERROR) << "Receive gifted TON crypto price " << action->crypto_amount_ << " without currency";
+          action->crypto_amount_ = 0;
+        }
+      } else if (action->crypto_amount_ <= 0) {
+        LOG(ERROR) << "Receive invalid gifted TON crypto amount " << action->crypto_amount_;
+        action->crypto_amount_ = 0;
+      }
+      return td::make_unique<MessageGiftTon>(std::move(action->currency_), action->amount_,
+                                             std::move(action->crypto_currency_), action->crypto_amount_,
+                                             std::move(action->transaction_id_));
+    }
     default:
       UNREACHABLE();
   }
@@ -9420,6 +9512,26 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       return td_api::make_object<td_api::messageChecklistTasksAdded>(
           m->to_do_message_id.get(),
           transform(m->items, [td](const ToDoItem &item) { return item.get_checklist_task_object(td, {}); }));
+    }
+    case MessageContentType::GiftTon: {
+      const auto *m = static_cast<const MessageGiftTon *>(content);
+      int64 gifter_user_id = 0;
+      int64 receiver_user_id = 0;
+      if (dialog_id.get_type() == DialogType::User) {
+        auto user_id = dialog_id.get_user_id();
+        if (is_outgoing) {
+          receiver_user_id = td->user_manager_->get_user_id_object(user_id, "MessageGiftStars 2");
+        } else {
+          if (user_id != UserManager::get_service_notifications_user_id() && !td->user_manager_->is_user_bot(user_id) &&
+              !td->user_manager_->is_user_support(user_id)) {
+            gifter_user_id = td->user_manager_->get_user_id_object(user_id, "MessageGiftStars 3");
+          }
+        }
+      } else {
+        LOG(ERROR) << "Receive gifted TON in " << dialog_id;
+      }
+      return td_api::make_object<td_api::messageGiftedTon>(gifter_user_id, receiver_user_id, m->crypto_amount,
+                                                           m->transaction_id, nullptr);
     }
     default:
       UNREACHABLE();
@@ -10100,6 +10212,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::ConferenceCall:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       return string();
     default:
       UNREACHABLE();
@@ -10571,6 +10684,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::TodoCompletions:
       break;
     case MessageContentType::TodoAppendTasks:
+      break;
+    case MessageContentType::GiftTon:
       break;
     default:
       UNREACHABLE();

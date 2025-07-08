@@ -170,6 +170,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "ToDoCompleted";
     case MessageContentType::TodoAppendTasks:
       return string_builder << "ToDoAppendTasks";
+    case MessageContentType::GiftTon:
+      return string_builder << "GiftTon";
     default:
       return string_builder << "Invalid type " << static_cast<int32>(content_type);
   }
@@ -269,6 +271,7 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
     case MessageContentType::ToDoList:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       return false;
     default:
       UNREACHABLE();
@@ -362,6 +365,7 @@ bool can_be_secret_message_content(MessageContentType content_type) {
     case MessageContentType::ToDoList:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       return false;
     default:
       UNREACHABLE();
@@ -451,6 +455,7 @@ bool can_be_local_message_content(MessageContentType content_type) {
     case MessageContentType::ToDoList:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       return false;
     default:
       UNREACHABLE();
@@ -540,6 +545,7 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::ConferenceCall:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       return true;
     default:
       UNREACHABLE();
@@ -629,6 +635,7 @@ bool is_editable_message_content(MessageContentType content_type) {
     case MessageContentType::ConferenceCall:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       return false;
     default:
       UNREACHABLE();
@@ -783,6 +790,7 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::ToDoList:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       return false;
     default:
       UNREACHABLE();
@@ -874,6 +882,7 @@ bool can_send_message_content_to_secret_chat(MessageContentType content_type) {
     case MessageContentType::ConferenceCall:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
     default:
       UNREACHABLE();
       return false;
@@ -980,6 +989,7 @@ bool get_default_service_message_content_reactions_are_possible(MessageContentTy
     case MessageContentType::ConferenceCall:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
+    case MessageContentType::GiftTon:
       return true;
     default:
       UNREACHABLE();

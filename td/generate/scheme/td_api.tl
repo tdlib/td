@@ -4321,6 +4321,14 @@ messageGiveawayWinners boosted_chat_id:int53 giveaway_message_id:int53 additiona
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 star_count:int53 transaction_id:string sticker:sticker = MessageContent;
 
+//@description TON was gifted to a user
+//@gifter_user_id The identifier of a user that gifted TON; 0 if the gift was anonymous or is outgoing
+//@receiver_user_id The identifier of a user that received TON; 0 if the gift is incoming
+//@ton_amount The received amount of TON, in the smallest units of the cryptocurrency
+//@transaction_id Identifier of the transaction for TON credit; for receiver only
+//@sticker A sticker to be shown in the message; may be null if unknown
+messageGiftedTon gifter_user_id:int53 receiver_user_id:int53 ton_amount:int64 transaction_id:string sticker:sticker = MessageContent;
+
 //@description A Telegram Stars were received by the current user from a giveaway
 //@star_count Number of Telegram Stars that were received
 //@transaction_id Identifier of the transaction for Telegram Stars credit
