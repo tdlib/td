@@ -108,6 +108,8 @@ class StickersManager final : public Actor {
 
   td_api::object_ptr<td_api::sticker> get_premium_gift_sticker_object(int32 month_count, int64 star_count);
 
+  td_api::object_ptr<td_api::sticker> get_ton_gift_sticker_object(int64 ton_count);
+
   td_api::object_ptr<td_api::animatedEmoji> get_animated_emoji_object(const string &emoji,
                                                                       CustomEmojiId custom_emoji_id);
 
@@ -121,6 +123,14 @@ class StickersManager final : public Actor {
   void register_premium_gift(int32 months, int64 star_count, MessageFullId message_full_id, const char *source);
 
   void unregister_premium_gift(int32 months, int64 star_count, MessageFullId message_full_id, const char *source);
+
+  void load_ton_gift_sticker_set(Promise<Unit> &&promise);
+
+  void load_ton_gift_sticker(int64 ton_count, Promise<td_api::object_ptr<td_api::sticker>> &&promise);
+
+  void register_ton_gift(int64 ton_count, MessageFullId message_full_id, const char *source);
+
+  void unregister_ton_gift(int64 ton_count, MessageFullId message_full_id, const char *source);
 
   void register_dice(const string &emoji, int32 value, MessageFullId message_full_id,
                      QuickReplyMessageFullId quick_reply_message_full_id, const char *source);
@@ -609,6 +619,8 @@ class StickersManager final : public Actor {
 
   class UploadStickerFileCallback;
 
+  static int32 get_ton_count_num(int64 ton_count);
+
   CustomEmojiId get_custom_emoji_id(FileId sticker_id) const;
 
   PhotoFormat get_sticker_set_thumbnail_format(const StickerSet *sticker_set) const;
@@ -866,12 +878,20 @@ class StickersManager final : public Actor {
 
   const StickerSet *get_premium_gift_sticker_set();
 
+  const StickerSet *get_ton_gift_sticker_set();
+
   void return_premium_gift_sticker(int32 month_count, int64 star_count,
                                    Promise<td_api::object_ptr<td_api::sticker>> &&promise);
 
+  void return_ton_gift_sticker(int64 ton_count, Promise<td_api::object_ptr<td_api::sticker>> &&promise);
+
   static FileId get_premium_gift_option_sticker_id(const StickerSet *sticker_set, int32 month_count);
 
+  static FileId get_ton_gift_sticker_id(const StickerSet *sticker_set, int32 num);
+
   FileId get_premium_gift_option_sticker_id(int32 month_count);
+
+  FileId get_ton_gift_sticker_id(int32 num);
 
   void try_update_premium_gift_messages();
 
@@ -1152,6 +1172,7 @@ class StickersManager final : public Actor {
     FileId sticker_id_;
   };
   FlatHashMap<int32, unique_ptr<GiftPremiumMessages>> premium_gift_messages_;
+  FlatHashMap<int32, unique_ptr<GiftPremiumMessages>> ton_gift_messages_;
 
   FlatHashMap<string, WaitFreeHashSet<MessageFullId, MessageFullIdHash>> dice_messages_;
   FlatHashMap<string, WaitFreeHashSet<QuickReplyMessageFullId, QuickReplyMessageFullIdHash>> dice_quick_reply_messages_;

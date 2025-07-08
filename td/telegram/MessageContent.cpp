@@ -7043,6 +7043,10 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
     }
     case MessageContentType::ConferenceCall:
       return td->group_call_manager_->register_group_call(message_full_id, source);
+    case MessageContentType::GiftTon: {
+      auto crypto_amount = static_cast<const MessageGiftTon *>(content)->crypto_amount;
+      return td->stickers_manager_->register_ton_gift(crypto_amount, message_full_id, source);
+    }
     default:
       return;
   }
@@ -7131,6 +7135,12 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
           return;
         }
         break;
+      case MessageContentType::GiftTon:
+        if (static_cast<const MessageGiftTon *>(old_content)->crypto_amount ==
+            static_cast<const MessageGiftTon *>(new_content)->crypto_amount) {
+          return;
+        }
+        break;
       default:
         return;
     }
@@ -7197,6 +7207,10 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
       return td->star_gift_manager_->unregister_gift(message_full_id, source);
     case MessageContentType::ConferenceCall:
       return td->group_call_manager_->unregister_group_call(message_full_id, source);
+    case MessageContentType::GiftTon: {
+      auto crypto_amount = static_cast<const MessageGiftTon *>(content)->crypto_amount;
+      return td->stickers_manager_->unregister_ton_gift(crypto_amount, message_full_id, source);
+    }
     default:
       return;
   }
@@ -9530,8 +9544,9 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       } else {
         LOG(ERROR) << "Receive gifted TON in " << dialog_id;
       }
-      return td_api::make_object<td_api::messageGiftedTon>(gifter_user_id, receiver_user_id, m->crypto_amount,
-                                                           m->transaction_id, nullptr);
+      return td_api::make_object<td_api::messageGiftedTon>(
+          gifter_user_id, receiver_user_id, m->crypto_amount, m->transaction_id,
+          td->stickers_manager_->get_ton_gift_sticker_object(m->crypto_amount));
     }
     default:
       UNREACHABLE();

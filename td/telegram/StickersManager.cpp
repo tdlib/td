@@ -1711,8 +1711,8 @@ StickersManager::~StickersManager() {
       G()->get_gc_scheduler_id(), stickers_, sticker_sets_, short_name_to_sticker_set_id_, attached_sticker_sets_,
       found_stickers_[0], found_stickers_[1], found_stickers_[2], found_sticker_sets_[0], found_sticker_sets_[1],
       found_sticker_sets_[2], emoji_language_codes_, emoji_language_code_versions_,
-      emoji_language_code_last_difference_times_, reloaded_emoji_keywords_, premium_gift_messages_, dice_messages_,
-      dice_quick_reply_messages_, emoji_messages_, custom_emoji_messages_, custom_emoji_to_sticker_id_);
+      emoji_language_code_last_difference_times_, reloaded_emoji_keywords_, premium_gift_messages_, ton_gift_messages_,
+      dice_messages_, dice_quick_reply_messages_, emoji_messages_, custom_emoji_messages_, custom_emoji_to_sticker_id_);
 }
 
 void StickersManager::start_up() {
@@ -2487,11 +2487,51 @@ td_api::object_ptr<td_api::sticker> StickersManager::get_premium_gift_sticker_ob
   }
 }
 
+int32 StickersManager::get_ton_count_num(int64 ton_count) {
+  if (ton_count < 10) {
+    return 1;
+  }
+  if (ton_count < 50) {
+    return 2;
+  }
+  return 3;
+}
+
+td_api::object_ptr<td_api::sticker> StickersManager::get_ton_gift_sticker_object(int64 ton_count) {
+  auto num = get_ton_count_num(ton_count);
+  auto it = ton_gift_messages_.find(num);
+  if (it == ton_gift_messages_.end()) {
+    return get_sticker_object(get_ton_gift_sticker_id(num));
+  } else {
+    return get_sticker_object(it->second->sticker_id_);
+  }
+}
+
 const StickersManager::StickerSet *StickersManager::get_premium_gift_sticker_set() {
   if (td_->auth_manager_->is_bot()) {
     return nullptr;
   }
   auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::premium_gifts());
+  if (!special_sticker_set.id_.is_valid()) {
+    load_special_sticker_set(special_sticker_set);
+    return nullptr;
+  }
+
+  auto sticker_set = get_sticker_set(special_sticker_set.id_);
+  CHECK(sticker_set != nullptr);
+  if (!sticker_set->was_loaded_) {
+    load_special_sticker_set(special_sticker_set);
+    return nullptr;
+  }
+
+  return sticker_set;
+}
+
+const StickersManager::StickerSet *StickersManager::get_ton_gift_sticker_set() {
+  if (td_->auth_manager_->is_bot()) {
+    return nullptr;
+  }
+  auto &special_sticker_set = add_special_sticker_set(SpecialStickerSetType::ton_gifts());
   if (!special_sticker_set.id_.is_valid()) {
     load_special_sticker_set(special_sticker_set);
     return nullptr;
@@ -2544,8 +2584,32 @@ FileId StickersManager::get_premium_gift_option_sticker_id(const StickerSet *sti
   return sticker_set->sticker_ids_[0];
 }
 
+FileId StickersManager::get_ton_gift_sticker_id(const StickerSet *sticker_set, int32 num) {
+  if (sticker_set == nullptr || sticker_set->sticker_ids_.empty() || num <= 0) {
+    return {};
+  }
+
+  for (auto sticker_id : sticker_set->sticker_ids_) {
+    auto it = sticker_set->sticker_emojis_map_.find(sticker_id);
+    if (it != sticker_set->sticker_emojis_map_.end()) {
+      for (auto &emoji : it->second) {
+        if (get_emoji_number(emoji) == num) {
+          return sticker_id;
+        }
+      }
+    }
+  }
+
+  // there is no match; return the first sticker
+  return sticker_set->sticker_ids_[0];
+}
+
 FileId StickersManager::get_premium_gift_option_sticker_id(int32 month_count) {
   return get_premium_gift_option_sticker_id(get_premium_gift_sticker_set(), month_count);
+}
+
+FileId StickersManager::get_ton_gift_sticker_id(int32 num) {
+  return get_ton_gift_sticker_id(get_ton_gift_sticker_set(), num);
 }
 
 void StickersManager::load_premium_gift_sticker_set(Promise<Unit> &&promise) {
@@ -2553,6 +2617,13 @@ void StickersManager::load_premium_gift_sticker_set(Promise<Unit> &&promise) {
     return promise.set_value(Unit());
   }
   pending_get_premium_gift_option_sticker_queries_.push_back(std::move(promise));
+}
+
+void StickersManager::load_ton_gift_sticker_set(Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot() || get_ton_gift_sticker_set() != nullptr) {
+    return promise.set_value(Unit());
+  }
+  pending_get_ton_gift_sticker_queries_.push_back(std::move(promise));
 }
 
 void StickersManager::load_premium_gift_sticker(int32 month_count, int64 star_count,
@@ -2570,9 +2641,27 @@ void StickersManager::load_premium_gift_sticker(int32 month_count, int64 star_co
   pending_get_premium_gift_option_sticker_queries_.push_back(std::move(query_promise));
 }
 
+void StickersManager::load_ton_gift_sticker(int64 ton_count, Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
+  if (get_ton_gift_sticker_set() != nullptr) {
+    return return_ton_gift_sticker(ton_count, std::move(promise));
+  }
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), ton_count, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &StickersManager::return_ton_gift_sticker, ton_count, std::move(promise));
+      });
+  pending_get_ton_gift_sticker_queries_.push_back(std::move(query_promise));
+}
+
 void StickersManager::return_premium_gift_sticker(int32 month_count, int64 star_count,
                                                   Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
   promise.set_value(get_premium_gift_sticker_object(month_count, star_count));
+}
+
+void StickersManager::return_ton_gift_sticker(int64 ton_count, Promise<td_api::object_ptr<td_api::sticker>> &&promise) {
+  promise.set_value(get_ton_gift_sticker_object(ton_count));
 }
 
 const StickersManager::StickerSet *StickersManager::get_animated_emoji_sticker_set() {
@@ -5752,7 +5841,20 @@ void StickersManager::try_update_premium_gift_messages() {
 }
 
 void StickersManager::try_update_ton_gift_messages() {
-  // TODO
+  auto sticker_set = get_ton_gift_sticker_set();
+  vector<MessageFullId> message_full_ids;
+  for (auto &it : ton_gift_messages_) {
+    auto new_sticker_id = get_ton_gift_sticker_id(sticker_set, it.first);
+    if (new_sticker_id != it.second->sticker_id_) {
+      it.second->sticker_id_ = new_sticker_id;
+      for (const auto &message_full_id : it.second->message_full_ids_) {
+        message_full_ids.push_back(message_full_id);
+      }
+    }
+  }
+  for (const auto &message_full_id : message_full_ids) {
+    td_->messages_manager_->on_external_update_message_content(message_full_id, "try_update_ton_gift_messages");
+  }
 }
 
 void StickersManager::register_premium_gift(int32 months, int64 star_count, MessageFullId message_full_id,
@@ -5797,6 +5899,45 @@ void StickersManager::unregister_premium_gift(int32 months, int64 star_count, Me
 
   if (message_ids.empty()) {
     premium_gift_messages_.erase(it);
+  }
+}
+
+void StickersManager::register_ton_gift(int64 ton_count, MessageFullId message_full_id, const char *source) {
+  if (td_->auth_manager_->is_bot() || ton_count <= 0) {
+    return;
+  }
+
+  LOG(INFO) << "Register TON gift for " << ton_count << " from " << message_full_id << " from " << source;
+  auto num = get_ton_count_num(ton_count);
+  auto &ton_gift_messages_ptr = ton_gift_messages_[num];
+  if (ton_gift_messages_ptr == nullptr) {
+    ton_gift_messages_ptr = make_unique<GiftPremiumMessages>();
+  }
+  auto &ton_gift_messages = *ton_gift_messages_ptr;
+
+  if (ton_gift_messages.message_full_ids_.empty()) {
+    ton_gift_messages.sticker_id_ = get_ton_gift_sticker_id(num);
+  }
+
+  bool is_inserted = ton_gift_messages.message_full_ids_.insert(message_full_id).second;
+  LOG_CHECK(is_inserted) << source << ' ' << ton_count << ' ' << message_full_id;
+}
+
+void StickersManager::unregister_ton_gift(int64 ton_count, MessageFullId message_full_id, const char *source) {
+  if (td_->auth_manager_->is_bot() || ton_count <= 0) {
+    return;
+  }
+
+  LOG(INFO) << "Unregister TON gift for " << ton_count << " from " << message_full_id << " from " << source;
+  auto num = get_ton_count_num(ton_count);
+  auto it = ton_gift_messages_.find(num);
+  CHECK(it != ton_gift_messages_.end());
+  auto &message_ids = it->second->message_full_ids_;
+  auto is_deleted = message_ids.erase(message_full_id) > 0;
+  LOG_CHECK(is_deleted) << source << ' ' << ton_count << ' ' << message_full_id;
+
+  if (message_ids.empty()) {
+    ton_gift_messages_.erase(it);
   }
 }
 
