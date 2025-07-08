@@ -11,6 +11,7 @@
 #include "td/telegram/StarAmount.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TonAmount.h"
 #include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
@@ -33,6 +34,12 @@ class StarManager final : public Actor {
   void add_pending_owned_star_count(int64 star_count, bool move_to_owned);
 
   bool has_owned_star_count(int64 star_count) const;
+
+  void on_update_owned_ton_amount(TonAmount ton_amount);
+
+  void add_pending_owned_ton_count(int64 ton_count, bool move_to_owned);
+
+  bool has_owned_ton_count(int64 ton_count) const;
 
   void get_star_payment_options(Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise);
 
@@ -72,6 +79,8 @@ class StarManager final : public Actor {
 
   void reload_owned_star_count();
 
+  void reload_owned_ton_count();
+
   void on_update_stars_revenue_status(telegram_api::object_ptr<telegram_api::updateStarsRevenueStatus> &&update);
 
   FileSourceId get_star_transaction_file_source_id(DialogId dialog_id, const string &transaction_id, bool is_refund);
@@ -101,6 +110,8 @@ class StarManager final : public Actor {
 
   td_api::object_ptr<td_api::updateOwnedStarCount> get_update_owned_star_count_object() const;
 
+  td_api::object_ptr<td_api::updateOwnedTonCount> get_update_owned_ton_count_object() const;
+
   Td *td_;
   ActorShared<> parent_;
 
@@ -110,6 +121,11 @@ class StarManager final : public Actor {
   int64 pending_owned_star_count_ = 0;
   int64 sent_star_count_ = 0;
   int32 sent_nanostar_count_ = 0;
+
+  bool is_owned_ton_count_inited_ = false;
+  int64 owned_ton_count_ = 0;
+  int64 pending_owned_ton_count_ = 0;
+  int64 sent_ton_count_ = 0;
 
   FlatHashMap<DialogId, FlatHashMap<string, FileSourceId>, DialogIdHash> star_transaction_file_source_ids_[2];
 };

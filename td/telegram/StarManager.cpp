@@ -1109,6 +1109,13 @@ void StarManager::start_up() {
     sent_nanostar_count_ = owned_nanostar_count_;
     send_closure(G()->td(), &Td::send_update, get_update_owned_star_count_object());
   }
+  auto owned_ton_count = G()->td_db()->get_binlog_pmc()->get("owned_ton_count");
+  if (!owned_ton_count.empty()) {
+    is_owned_ton_count_inited_ = true;
+    owned_ton_count_ = to_integer<int64>(owned_ton_count);
+    sent_ton_count_ = owned_ton_count_;
+    send_closure(G()->td(), &Td::send_update, get_update_owned_ton_count_object());
+  }
 }
 
 void StarManager::tear_down() {
@@ -1120,6 +1127,12 @@ td_api::object_ptr<td_api::updateOwnedStarCount> StarManager::get_update_owned_s
   // sent_star_count_ can be negative as well as owned_star_count_
   return td_api::make_object<td_api::updateOwnedStarCount>(
       td_api::make_object<td_api::starAmount>(sent_star_count_, sent_nanostar_count_));
+}
+
+td_api::object_ptr<td_api::updateOwnedTonCount> StarManager::get_update_owned_ton_count_object() const {
+  CHECK(is_owned_ton_count_inited_);
+  // sent_ton_count_ can be negative as well as owned_ton_count_
+  return td_api::make_object<td_api::updateOwnedTonCount>(sent_ton_count_);
 }
 
 void StarManager::on_update_owned_star_amount(StarAmount star_amount) {
@@ -1144,6 +1157,23 @@ void StarManager::on_update_owned_star_amount(StarAmount star_amount) {
                                                               << owned_star_count_ << ' ' << owned_nanostar_count_);
 }
 
+void StarManager::on_update_owned_ton_amount(TonAmount ton_amount) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto ton_count = ton_amount.get_ton_amount();
+  if (is_owned_ton_count_inited_ && ton_count == owned_ton_count_) {
+    return;
+  }
+  is_owned_ton_count_inited_ = true;
+  owned_ton_count_ = ton_count;
+  if (owned_ton_count_ + pending_owned_ton_count_ != sent_ton_count_) {
+    sent_ton_count_ = owned_ton_count_ + pending_owned_ton_count_;
+    send_closure(G()->td(), &Td::send_update, get_update_owned_ton_count_object());
+  }
+  G()->td_db()->get_binlog_pmc()->set("owned_ton_count", to_string(owned_ton_count_));
+}
+
 void StarManager::add_pending_owned_star_count(int64 star_count, bool move_to_owned) {
   if (star_count == 0) {
     return;
@@ -1161,11 +1191,34 @@ void StarManager::add_pending_owned_star_count(int64 star_count, bool move_to_ow
   }
 }
 
+void StarManager::add_pending_owned_ton_count(int64 ton_count, bool move_to_owned) {
+  if (ton_count == 0) {
+    return;
+  }
+  pending_owned_ton_count_ += ton_count;
+  if (is_owned_ton_count_inited_) {
+    if (move_to_owned) {
+      owned_ton_count_ -= ton_count;
+      G()->td_db()->get_binlog_pmc()->set("owned_ton_count", to_string(owned_ton_count_));
+    } else {
+      sent_ton_count_ += ton_count;
+      send_closure(G()->td(), &Td::send_update, get_update_owned_ton_count_object());
+    }
+  }
+}
+
 bool StarManager::has_owned_star_count(int64 star_count) const {
   if (star_count <= 0 || !is_owned_star_count_inited_) {
     return true;
   }
   return sent_star_count_ >= star_count;
+}
+
+bool StarManager::has_owned_ton_count(int64 ton_count) const {
+  if (ton_count <= 0 || !is_owned_ton_count_inited_) {
+    return true;
+  }
+  return sent_ton_count_ >= ton_count;
 }
 
 Status StarManager::can_manage_stars(DialogId dialog_id, bool allow_self) const {
@@ -1337,6 +1390,10 @@ void StarManager::reload_owned_star_count() {
   do_get_star_transactions(td_->dialog_manager_->get_my_dialog_id(), string(), string(), 1, nullptr, Auto());
 }
 
+void StarManager::reload_owned_ton_count() {
+  // do_get_ton_transactions(td_->dialog_manager_->get_my_dialog_id(), string(), 1, nullptr, Auto());
+}
+
 void StarManager::on_update_stars_revenue_status(
     telegram_api::object_ptr<telegram_api::updateStarsRevenueStatus> &&update) {
   DialogId dialog_id(update->peer_);
@@ -1413,6 +1470,9 @@ int32 StarManager::get_months_by_star_count(int64 star_count) {
 void StarManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (is_owned_star_count_inited_) {
     updates.push_back(get_update_owned_star_count_object());
+  }
+  if (is_owned_ton_count_inited_) {
+    updates.push_back(get_update_owned_ton_count_object());
   }
 }
 

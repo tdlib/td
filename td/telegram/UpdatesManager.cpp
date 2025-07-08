@@ -2347,6 +2347,7 @@ void UpdatesManager::try_reload_data() {
     td_->reaction_manager_->reload_reaction_list(reaction_list_type, "try_reload_data");
   }
   td_->star_manager_->reload_owned_star_count();
+  td_->star_manager_->reload_owned_ton_count();
   for (int32 type = 0; type < MAX_STICKER_TYPE; type++) {
     auto sticker_type = static_cast<StickerType>(type);
     td_->stickers_manager_->get_installed_sticker_sets(sticker_type, Auto());
@@ -4764,7 +4765,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> u
           StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(update->balance_), true));
       break;
     case telegram_api::starsTonAmount::ID:
-      // TODO
+      td_->star_manager_->on_update_owned_ton_amount(
+          TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(update->balance_), true));
       break;
     default:
       UNREACHABLE();
