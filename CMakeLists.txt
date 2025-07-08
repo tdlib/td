@@ -638,6 +638,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ToDoCompletion.cpp
   td/telegram/ToDoItem.cpp
   td/telegram/ToDoList.cpp
+  td/telegram/TonAmount.cpp
   td/telegram/TopDialogCategory.cpp
   td/telegram/TopDialogManager.cpp
   td/telegram/TranscriptionInfo.cpp
@@ -1026,6 +1027,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ToDoCompletion.h
   td/telegram/ToDoItem.h
   td/telegram/ToDoList.h
+  td/telegram/TonAmount.h
   td/telegram/TopDialogCategory.h
   td/telegram/TopDialogManager.h
   td/telegram/TranscriptionInfo.h
@@ -1147,6 +1149,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ToDoCompletion.hpp
   td/telegram/ToDoItem.hpp
   td/telegram/ToDoList.hpp
+  td/telegram/TonAmount.hpp
   td/telegram/TranscriptionInfo.hpp
   td/telegram/VideoNotesManager.hpp
   td/telegram/VideosManager.hpp

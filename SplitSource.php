@@ -458,6 +458,7 @@ function split_file($file, $chunks, $undo) {
             'ToDoCompletion' => 'ToDoCompletion',
             'ToDoItem' => 'ToDoItem',
             'ToDoList' => 'ToDoList',
+            'TonAmount' => 'TonAmount',
             'TopDialogCategory|get_top_dialog_category' => 'TopDialogCategory',
             'top_dialog_manager[_(-](?![.]get[(][)])|TopDialogManager' => 'TopDialogManager',
             'translation_manager[_(-](?![.]get[(][)])|TranslationManager' => 'TranslationManager',
