@@ -2369,8 +2369,8 @@ sponsoredChats chats:vector<sponsoredChat> = SponsoredChats;
 //@description Describes an advertisent to be shown while a video from a message is watched
 //@unique_id Unique identifier of this result
 //@text Text of the advertisement
-//@min_display_duration The minimum amount of time the advertisement must be dispalyed before it can be hidden by the user, in seconds
-//@max_display_duration The maximum amount of time the advertisement must be dispalyed before it must be automatically hidden, in seconds
+//@min_display_duration The minimum amount of time the advertisement must be displayed before it can be hidden by the user, in seconds
+//@max_display_duration The maximum amount of time the advertisement must be displayed before it must be automatically hidden, in seconds
 //@can_be_reported True, if the advertisement can be reported to Telegram moderators through reportVideoMessageAdvertisement
 //@sponsor Information about the sponsor of the advertisement
 //@title Title of the sponsored message
