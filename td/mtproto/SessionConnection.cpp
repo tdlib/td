@@ -1122,8 +1122,8 @@ double SessionConnection::flush(SessionConnection::Callback *callback) {
   auto status = do_flush();
   // check error
   if (status.is_error()) {
+    LOG(DEBUG) << "Close session because of " << status;
     do_close(std::move(status));
-    LOG(DEBUG) << "Close session because of an error";
     return 0;
   }
 
