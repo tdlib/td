@@ -4773,7 +4773,17 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> u
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueStatus> update, Promise<Unit> &&promise) {
-  td_->star_manager_->on_update_stars_revenue_status(std::move(update));
+  switch (update->status_->current_balance_->get_id()) {
+    case telegram_api::starsAmount::ID:
+      td_->star_manager_->on_update_stars_revenue_status(std::move(update));
+      break;
+    case telegram_api::starsTonAmount::ID:
+      td_->statistics_manager_->on_update_dialog_revenue_transactions(DialogId(update->peer_),
+                                                                      std::move(update->status_));
+      break;
+    default:
+      UNREACHABLE();
+  }
   promise.set_value(Unit());
 }
 

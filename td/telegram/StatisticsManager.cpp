@@ -785,23 +785,23 @@ void StatisticsManager::get_dialog_revenue_statistics(
                                                                         "get_dialog_revenue_statistics"));
   td_->create_handler<GetTonRevenueStatsQuery>(std::move(promise))->send(dialog_id, is_dark);
 }
-/*
+
 void StatisticsManager::on_update_dialog_revenue_transactions(
-    DialogId dialog_id, telegram_api::object_ptr<telegram_api::broadcastRevenueBalances> balances) {
+    DialogId dialog_id, telegram_api::object_ptr<telegram_api::starsRevenueStatus> &&status) {
   if (!dialog_id.is_valid()) {
-    LOG(ERROR) << "Receive updateBroadcastRevenueTransactions in invalid " << dialog_id;
+    LOG(ERROR) << "Receive updateStarsRevenueStatus in invalid " << dialog_id;
     return;
   }
   if (!td_->messages_manager_->have_dialog(dialog_id)) {
-    LOG(INFO) << "Ignore unneeded updateBroadcastRevenueTransactions in " << dialog_id;
+    LOG(INFO) << "Ignore unneeded updateStarsRevenueStatus in " << dialog_id;
     return;
   }
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatRevenueAmount>(
                    td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatRevenueAmount"),
-                   convert_broadcast_revenue_balances(std::move(balances))));
+                   convert_stars_revenue_status(std::move(status))));
 }
-*/
+
 void StatisticsManager::get_dialog_revenue_withdrawal_url(DialogId dialog_id, const string &password,
                                                           Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
