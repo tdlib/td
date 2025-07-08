@@ -260,27 +260,18 @@ class GetBroadcastStatsQuery final : public Td::ResultHandler {
   }
 };
 
-static int64 get_amount(int64 amount, bool allow_negative = false) {
-  if (!allow_negative && amount < 0) {
-    LOG(ERROR) << "Receive currency amount = " << amount;
-    return 0;
-  }
-  return amount;
-}
-
-static int64 get_amount(const telegram_api::object_ptr<telegram_api::StarsAmount> &amount,
-                        bool allow_negative = false) {
-  CHECK(amount != nullptr);
-  if (amount->get_id() != telegram_api::starsTonAmount::ID) {
-    LOG(ERROR) << "Receive " << to_string(amount);
-    return 0;
-  }
-  return get_amount(static_cast<const telegram_api::starsTonAmount *>(amount.get())->amount_, allow_negative);
-}
-
 static td_api::object_ptr<td_api::chatRevenueAmount> convert_stars_revenue_status(
     telegram_api::object_ptr<telegram_api::starsRevenueStatus> obj) {
   CHECK(obj != nullptr);
+  auto get_amount = [](telegram_api::object_ptr<telegram_api::StarsAmount> &amount) -> int64 {
+    CHECK(amount != nullptr);
+    if (amount->get_id() != telegram_api::starsTonAmount::ID) {
+      LOG(ERROR) << "Receive " << to_string(amount);
+      return 0;
+    }
+    return TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(amount), false).get_ton_amount();
+  };
+
   return td_api::make_object<td_api::chatRevenueAmount>("TON", get_amount(obj->overall_revenue_),
                                                         get_amount(obj->current_balance_),
                                                         get_amount(obj->available_balance_), obj->withdrawal_enabled_);
