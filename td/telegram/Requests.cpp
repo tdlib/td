@@ -7053,8 +7053,9 @@ void Requests::on_request(uint64 id, const td_api::getChatRevenueWithdrawalUrl &
                                                               std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getChatRevenueTransactions &request) {
+void Requests::on_request(uint64 id, td_api::getChatRevenueTransactions &request) {
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
   td_->statistics_manager_->get_dialog_revenue_transactions(DialogId(request.chat_id_), request.offset_, request.limit_,
                                                             std::move(promise));

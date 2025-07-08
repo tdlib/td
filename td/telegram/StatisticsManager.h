@@ -35,7 +35,7 @@ class StatisticsManager final : public Actor {
 
   void get_dialog_revenue_withdrawal_url(DialogId dialog_id, const string &password, Promise<string> &&promise);
 
-  void get_dialog_revenue_transactions(DialogId dialog_id, int32 offset, int32 limit,
+  void get_dialog_revenue_transactions(DialogId dialog_id, const string &offset, int32 limit,
                                        Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise);
 
   // void on_update_dialog_revenue_transactions(DialogId dialog_id,

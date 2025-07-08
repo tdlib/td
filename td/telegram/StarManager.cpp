@@ -737,6 +737,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         if (transaction->stargift_resale_) {
           LOG(ERROR) << "Receive gift resale with " << to_string(star_transaction);
         }
+        if (transaction->ads_proceeds_from_date_ != 0 || transaction->ads_proceeds_to_date_ != 0) {
+          LOG(ERROR) << "Receive ads proceeds with " << to_string(star_transaction);
+        }
       }
       if (!file_ids.empty()) {
         auto file_source_id =

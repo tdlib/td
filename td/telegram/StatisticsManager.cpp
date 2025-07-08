@@ -18,6 +18,7 @@
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TonAmount.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
 
@@ -25,6 +26,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -368,94 +370,190 @@ class GetTonRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
   }
 };
 
-/*
-class GetBroadcastRevenueTransactionsQuery final : public Td::ResultHandler {
+class GetTonRevenueTransactionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetBroadcastRevenueTransactionsQuery(Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise)
+  explicit GetTonRevenueTransactionsQuery(Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, int32 offset, int32 limit) {
+  void send(DialogId dialog_id, const string &offset, int32 limit) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::stats_getBroadcastRevenueTransactions(std::move(input_peer), offset, limit)));
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarsTransactions(
+        0, false, false, false, true, string(), std::move(input_peer), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::stats_getBroadcastRevenueTransactions>(packet);
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsTransactions>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetBroadcastRevenueTransactionsQuery: " << to_string(ptr);
-    auto total_count = ptr->count_;
-    if (total_count < static_cast<int32>(ptr->transactions_.size())) {
-      LOG(ERROR) << "Receive total_count = " << total_count << " and " << ptr->transactions_.size() << " transactions";
-      total_count = static_cast<int32>(ptr->transactions_.size());
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetTonRevenueTransactionsQuery: " << to_string(result);
+
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetTonRevenueTransactionsQuery");
+    td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetTonRevenueTransactionsQuery");
+
+    if (result->balance_->get_id() != telegram_api::starsTonAmount::ID) {
+      LOG(ERROR) << "Receive " << to_string(result);
+      return on_error(Status::Error(500, "Receive invalid response"));
     }
+
     vector<td_api::object_ptr<td_api::chatRevenueTransaction>> transactions;
-    for (auto &transaction_ptr : ptr->transactions_) {
-      int64 amount = 0;
+    for (auto &transaction : result->history_) {
+      if (transaction->amount_->get_id() != telegram_api::starsTonAmount::ID) {
+        LOG(ERROR) << "Receive " << to_string(transaction);
+        continue;
+      }
+      auto transaction_amount =
+          TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(transaction->amount_), true);
+      auto is_refund = transaction->refund_;
+      // auto is_purchase = transaction_amount.is_positive() == is_refund;
       auto type = [&]() -> td_api::object_ptr<td_api::ChatRevenueTransactionType> {
-        switch (transaction_ptr->get_id()) {
-          case telegram_api::broadcastRevenueTransactionProceeds::ID: {
-            auto transaction =
-                telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionProceeds>(transaction_ptr);
-            amount = get_amount(transaction->amount_);
-            return td_api::make_object<td_api::chatRevenueTransactionTypeEarnings>(transaction->from_date_,
-                                                                                   transaction->to_date_);
-          }
-          case telegram_api::broadcastRevenueTransactionWithdrawal::ID: {
-            auto transaction =
-                telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionWithdrawal>(transaction_ptr);
-            amount = get_amount(transaction->amount_, true);
+        switch (transaction->peer_->get_id()) {
+          case telegram_api::starsTransactionPeerUnsupported::ID:
+          case telegram_api::starsTransactionPeerPremiumBot::ID:
+          case telegram_api::starsTransactionPeerAppStore::ID:
+          case telegram_api::starsTransactionPeerPlayMarket::ID:
+          case telegram_api::starsTransactionPeer::ID:
+          case telegram_api::starsTransactionPeerAPI::ID:
+            return td_api::make_object<td_api::chatRevenueTransactionTypeUnsupported>();
+          case telegram_api::starsTransactionPeerFragment::ID: {
+            if (is_refund) {
+              return td_api::make_object<td_api::chatRevenueTransactionTypeFragmentRefund>(transaction->date_);
+            }
             auto state = [&]() -> td_api::object_ptr<td_api::RevenueWithdrawalState> {
               if (transaction->transaction_date_ > 0) {
+                SCOPE_EXIT {
+                  transaction->transaction_date_ = 0;
+                  transaction->transaction_url_.clear();
+                };
                 return td_api::make_object<td_api::revenueWithdrawalStateSucceeded>(transaction->transaction_date_,
                                                                                     transaction->transaction_url_);
               }
               if (transaction->pending_) {
+                transaction->pending_ = false;
                 return td_api::make_object<td_api::revenueWithdrawalStatePending>();
               }
-              if (!transaction->failed_) {
-                LOG(ERROR) << "Transaction has unknown state";
+              if (transaction->failed_) {
+                transaction->failed_ = false;
+                return td_api::make_object<td_api::revenueWithdrawalStateFailed>();
               }
-              return td_api::make_object<td_api::revenueWithdrawalStateFailed>();
+              return nullptr;
             }();
-            return td_api::make_object<td_api::chatRevenueTransactionTypeWithdrawal>(
-                transaction->date_, transaction->provider_, std::move(state));
+            if (state != nullptr) {
+              return td_api::make_object<td_api::chatRevenueTransactionTypeFragmentWithdrawal>(transaction->date_,
+                                                                                               std::move(state));
+            }
+            return nullptr;
           }
-          case telegram_api::broadcastRevenueTransactionRefund::ID: {
-            auto transaction =
-                telegram_api::move_object_as<telegram_api::broadcastRevenueTransactionRefund>(transaction_ptr);
-            amount = get_amount(transaction->amount_);
-            return td_api::make_object<td_api::chatRevenueTransactionTypeRefund>(transaction->date_,
-                                                                                 transaction->provider_);
-          }
+          case telegram_api::starsTransactionPeerAds::ID:
+            if (transaction->ads_proceeds_from_date_ > 0 &&
+                transaction->ads_proceeds_from_date_ <= transaction->ads_proceeds_to_date_) {
+              SCOPE_EXIT {
+                transaction->ads_proceeds_from_date_ = 0;
+                transaction->ads_proceeds_to_date_ = 0;
+              };
+              return td_api::make_object<td_api::chatRevenueTransactionTypeEarnings>(
+                  transaction->ads_proceeds_from_date_, transaction->ads_proceeds_to_date_);
+            }
+            return nullptr;
           default:
             UNREACHABLE();
             return nullptr;
         }
       }();
-      transactions.push_back(td_api::make_object<td_api::chatRevenueTransaction>("TON", amount, std::move(type)));
+      if (type == nullptr) {
+        LOG(ERROR) << "Receive unsupported TON transaction in " << dialog_id_ << ": " << to_string(transaction);
+        type = td_api::make_object<td_api::chatRevenueTransactionTypeUnsupported>();
+      }
+      auto ton_transaction = td_api::make_object<td_api::chatRevenueTransaction>(
+          "TON", transaction_amount.get_ton_amount(), std::move(type));
+      if (ton_transaction->type_->get_id() != td_api::chatRevenueTransactionTypeUnsupported::ID) {
+        /*
+        if (product_info != nullptr) {
+          LOG(ERROR) << "Receive product info with " << to_string(ton_transaction);
+        }
+        if (!bot_payload.empty()) {
+          LOG(ERROR) << "Receive bot payload with " << to_string(ton_transaction);
+        }
+        */
+        if (transaction->transaction_date_ || !transaction->transaction_url_.empty() || transaction->pending_ ||
+            transaction->failed_) {
+          LOG(ERROR) << "Receive withdrawal state with " << to_string(ton_transaction);
+        }
+        if (transaction->msg_id_ != 0) {
+          LOG(ERROR) << "Receive message identifier with " << to_string(ton_transaction);
+        }
+        if (transaction->gift_) {
+          LOG(ERROR) << "Receive gift with " << to_string(ton_transaction);
+        }
+        if (transaction->subscription_period_ != 0) {
+          LOG(ERROR) << "Receive subscription period with " << to_string(ton_transaction);
+        }
+        if (transaction->reaction_) {
+          LOG(ERROR) << "Receive reaction with " << to_string(ton_transaction);
+        }
+        if (!transaction->extended_media_.empty()) {
+          LOG(ERROR) << "Receive paid media with " << to_string(ton_transaction);
+        }
+        if (transaction->giveaway_post_id_ != 0) {
+          LOG(ERROR) << "Receive giveaway message with " << to_string(ton_transaction);
+        }
+        if (transaction->stargift_ != nullptr) {
+          LOG(ERROR) << "Receive gift with " << to_string(ton_transaction);
+        }
+        if (transaction->floodskip_number_ != 0) {
+          LOG(ERROR) << "Receive API payment with " << to_string(ton_transaction);
+        }
+        /*
+        if (affiliate != nullptr) {
+          LOG(ERROR) << "Receive affiliate with " << to_string(ton_transaction);
+        }
+        if (commission_per_mille != 0) {
+          LOG(ERROR) << "Receive commission with " << to_string(ton_transaction);
+        }
+        */
+        if (transaction->stargift_upgrade_) {
+          LOG(ERROR) << "Receive gift upgrade with " << to_string(ton_transaction);
+        }
+        if (transaction->paid_messages_) {
+          LOG(ERROR) << "Receive paid messages with " << to_string(ton_transaction);
+        }
+        if (transaction->premium_gift_months_) {
+          LOG(ERROR) << "Receive Telegram Premium purchase with " << to_string(ton_transaction);
+        }
+        if (transaction->business_transfer_) {
+          LOG(ERROR) << "Receive business bot transfer with " << to_string(ton_transaction);
+        }
+        if (transaction->stargift_resale_) {
+          LOG(ERROR) << "Receive gift resale with " << to_string(ton_transaction);
+        }
+        if (transaction->ads_proceeds_from_date_ != 0 || transaction->ads_proceeds_to_date_ != 0) {
+          LOG(ERROR) << "Receive ads proceeds with " << to_string(ton_transaction);
+        }
+      }
+      transactions.push_back(std::move(ton_transaction));
     }
-    promise_.set_value(td_api::make_object<td_api::chatRevenueTransactions>(total_count, std::move(transactions)));
+
+    auto ton_amount = TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(result->balance_), true);
+    promise_.set_value(td_api::make_object<td_api::chatRevenueTransactions>(
+        ton_amount.get_ton_amount(), std::move(transactions), result->next_offset_));
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetBroadcastRevenueTransactionsQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetTonRevenueTransactionsQuery");
     promise_.set_error(std::move(status));
   }
 };
-*/
+
 static td_api::object_ptr<td_api::messageStatistics> convert_message_stats(
     telegram_api::object_ptr<telegram_api::stats_messageStats> obj) {
   return td_api::make_object<td_api::messageStatistics>(
@@ -732,12 +830,11 @@ void StatisticsManager::send_get_dialog_revenue_withdrawal_url_query(
 }
 
 void StatisticsManager::get_dialog_revenue_transactions(
-    DialogId dialog_id, int32 offset, int32 limit,
+    DialogId dialog_id, const string &offset, int32 limit,
     Promise<td_api::object_ptr<td_api::chatRevenueTransactions>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
                                                                         "get_dialog_revenue_transactions"));
-  promise.set_error(500, "Unsupported");
-  // td_->create_handler<GetBroadcastRevenueTransactionsQuery>(std::move(promise))->send(dialog_id, offset, limit);
+  td_->create_handler<GetTonRevenueTransactionsQuery>(std::move(promise))->send(dialog_id, offset, limit);
 }
 
 void StatisticsManager::get_channel_message_statistics(

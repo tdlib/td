@@ -1467,7 +1467,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getChatRevenueWithdrawalUrl &request);
 
-  void on_request(uint64 id, const td_api::getChatRevenueTransactions &request);
+  void on_request(uint64 id, td_api::getChatRevenueTransactions &request);
 
   void on_request(uint64 id, const td_api::getStarRevenueStatistics &request);
 

@@ -7625,7 +7625,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getChatRevenueWithdrawalUrl>(chat_id, password));
     } else if (op == "gcrt") {
       ChatId chat_id;
-      int32 offset;
+      string offset;
       string limit;
       get_args(args, chat_id, offset, limit);
       send_request(td_api::make_object<td_api::getChatRevenueTransactions>(chat_id, offset, as_limit(limit)));

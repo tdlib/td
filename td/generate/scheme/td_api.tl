@@ -8334,21 +8334,23 @@ revenueWithdrawalStateFailed = RevenueWithdrawalState;
 
 //@class ChatRevenueTransactionType @description Describes type of transaction for revenue earned from sponsored messages in a chat
 
+//@description Describes an unsupported transaction
+chatRevenueTransactionTypeUnsupported = ChatRevenueTransactionType;
+
 //@description Describes earnings from sponsored messages in a chat in some time frame
 //@start_date Point in time (Unix timestamp) when the earnings started
 //@end_date Point in time (Unix timestamp) when the earnings ended
 chatRevenueTransactionTypeEarnings start_date:int32 end_date:int32 = ChatRevenueTransactionType;
 
-//@description Describes a withdrawal of earnings
+//@description Describes a withdrawal of earnings through Fragment
 //@withdrawal_date Point in time (Unix timestamp) when the earnings withdrawal started
-//@provider Name of the payment provider
 //@state State of the withdrawal
-chatRevenueTransactionTypeWithdrawal withdrawal_date:int32 provider:string state:RevenueWithdrawalState = ChatRevenueTransactionType;
+chatRevenueTransactionTypeFragmentWithdrawal withdrawal_date:int32 state:RevenueWithdrawalState = ChatRevenueTransactionType;
 
-//@description Describes a refund for failed withdrawal of earnings
+//@description Describes a refund for failed withdrawal of earnings through Fragment
 //@refund_date Point in time (Unix timestamp) when the transaction was refunded
-//@provider Name of the payment provider
-chatRevenueTransactionTypeRefund refund_date:int32 provider:string = ChatRevenueTransactionType;
+chatRevenueTransactionTypeFragmentRefund refund_date:int32 = ChatRevenueTransactionType;
+
 
 //@description Contains a chat revenue transactions
 //@cryptocurrency Cryptocurrency in which revenue is calculated
@@ -8356,8 +8358,11 @@ chatRevenueTransactionTypeRefund refund_date:int32 provider:string = ChatRevenue
 //@type Type of the transaction
 chatRevenueTransaction cryptocurrency:string cryptocurrency_amount:int64 type:ChatRevenueTransactionType = ChatRevenueTransaction;
 
-//@description Contains a list of chat revenue transactions @total_count Total number of transactions @transactions List of transactions
-chatRevenueTransactions total_count:int32 transactions:vector<chatRevenueTransaction> = ChatRevenueTransactions;
+//@description Contains a list of chat revenue transactions
+//@ton_amount The amount of owned TON
+//@transactions List of transactions
+//@next_offset The offset for the next request. If empty, then there are no more results
+chatRevenueTransactions ton_amount:int53 transactions:vector<chatRevenueTransaction> next_offset:string = ChatRevenueTransactions;
 
 
 //@description Contains information about Telegram Stars earned by a bot or a chat
@@ -12815,9 +12820,9 @@ getChatRevenueWithdrawalUrl chat_id:int53 password:string = HttpUrl;
 //@description Returns the list of revenue transactions for a chat. Currently, this method can be used only
 //-for channels if supergroupFullInfo.can_get_revenue_statistics == true or bots if userFullInfo.bot_info.can_get_revenue_statistics == true
 //@chat_id Chat identifier
-//@offset Number of transactions to skip
-//@limit The maximum number of transactions to be returned; up to 200
-getChatRevenueTransactions chat_id:int53 offset:int32 limit:int32 = ChatRevenueTransactions;
+//@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of transactions to be returned; up to 100
+getChatRevenueTransactions chat_id:int53 offset:string limit:int32 = ChatRevenueTransactions;
 
 
 //@description Returns detailed Telegram Star revenue statistics
