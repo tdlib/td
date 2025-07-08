@@ -1284,13 +1284,13 @@ receivedGifts total_count:int32 gifts:vector<receivedGift> are_notifications_ena
 giftUpgradePreview models:vector<upgradedGiftModel> symbols:vector<upgradedGiftSymbol> backdrops:vector<upgradedGiftBackdrop> = GiftUpgradePreview;
 
 
-//@class StarTransactionDirection @description Describes direction of a transaction with Telegram Stars
+//@class TransactionDirection @description Describes direction of transactions in a transaction list
 
-//@description The transaction is incoming and increases the number of owned Telegram Stars
-starTransactionDirectionIncoming = StarTransactionDirection;
+//@description The transaction is incoming and increases the amount of owned currency
+transactionDirectionIncoming = TransactionDirection;
 
-//@description The transaction is outgoing and decreases the number of owned Telegram Stars
-starTransactionDirectionOutgoing = StarTransactionDirection;
+//@description The transaction is outgoing and decreases the amount of owned currency
+transactionDirectionOutgoing = TransactionDirection;
 
 
 //@class StarTransactionType @description Describes type of transaction with Telegram Stars
@@ -13138,7 +13138,7 @@ getStarGiveawayPaymentOptions = StarGiveawayPaymentOptions;
 //@direction Direction of the transactions to receive; pass null to get all transactions
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of transactions to return
-getStarTransactions owner_id:MessageSender subscription_id:string direction:StarTransactionDirection offset:string limit:int32 = StarTransactions;
+getStarTransactions owner_id:MessageSender subscription_id:string direction:TransactionDirection offset:string limit:int32 = StarTransactions;
 
 //@description Returns the list of Telegram Star subscriptions for the current user
 //@only_expiring Pass true to receive only expiring subscriptions for which there are no enough Telegram Stars to extend

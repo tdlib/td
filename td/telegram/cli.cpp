@@ -3930,11 +3930,11 @@ class CliClient final : public Actor {
       string offset;
       string subscription_id;
       get_args(args, owner_id, limit, offset, subscription_id);
-      td_api::object_ptr<td_api::StarTransactionDirection> direction;
+      td_api::object_ptr<td_api::TransactionDirection> direction;
       if (op == "gsti") {
-        direction = td_api::make_object<td_api::starTransactionDirectionIncoming>();
+        direction = td_api::make_object<td_api::transactionDirectionIncoming>();
       } else if (op == "gsto") {
-        direction = td_api::make_object<td_api::starTransactionDirectionOutgoing>();
+        direction = td_api::make_object<td_api::transactionDirectionOutgoing>();
       }
       send_request(td_api::make_object<td_api::getStarTransactions>(as_message_sender(owner_id), subscription_id,
                                                                     std::move(direction), offset, as_limit(limit)));

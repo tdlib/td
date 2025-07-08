@@ -167,7 +167,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, const string &subscription_id, const string &offset, int32 limit,
-            td_api::object_ptr<td_api::StarTransactionDirection> &&direction) {
+            td_api::object_ptr<td_api::TransactionDirection> &&direction) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -182,10 +182,10 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
     bool ascending = td_->auth_manager_->is_bot();
     if (direction != nullptr) {
       switch (direction->get_id()) {
-        case td_api::starTransactionDirectionIncoming::ID:
+        case td_api::transactionDirectionIncoming::ID:
           inbound = true;
           break;
-        case td_api::starTransactionDirectionOutgoing::ID:
+        case td_api::transactionDirectionOutgoing::ID:
           outbound = true;
           break;
         default:
@@ -1268,7 +1268,7 @@ void StarManager::get_star_giveaway_payment_options(
 
 void StarManager::get_star_transactions(td_api::object_ptr<td_api::MessageSender> owner_id,
                                         const string &subscription_id, const string &offset, int32 limit,
-                                        td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
+                                        td_api::object_ptr<td_api::TransactionDirection> &&direction,
                                         Promise<td_api::object_ptr<td_api::starTransactions>> &&promise) {
   TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
   TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
@@ -1288,8 +1288,7 @@ void StarManager::get_star_transactions(td_api::object_ptr<td_api::MessageSender
 }
 
 void StarManager::do_get_star_transactions(DialogId dialog_id, const string &subscription_id, const string &offset,
-                                           int32 limit,
-                                           td_api::object_ptr<td_api::StarTransactionDirection> &&direction,
+                                           int32 limit, td_api::object_ptr<td_api::TransactionDirection> &&direction,
                                            Promise<td_api::object_ptr<td_api::starTransactions>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
