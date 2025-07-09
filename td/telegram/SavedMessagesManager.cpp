@@ -565,6 +565,10 @@ SavedMessagesTopicId SavedMessagesManager::get_topic_id(DialogId dialog_id, int6
   if (td_->auth_manager_->is_bot() && saved_messages_topic_id.is_valid_in(td_, dialog_id).is_ok()) {
     return saved_messages_topic_id;
   }
+  if (dialog_id == DialogId() &&
+      saved_messages_topic_id.is_valid_in(td_, td_->dialog_manager_->get_my_dialog_id()).is_ok()) {
+    return saved_messages_topic_id;
+  }
   if (get_topic(dialog_id, saved_messages_topic_id) == nullptr) {
     return SavedMessagesTopicId(DialogId(std::numeric_limits<int64>::max()));  // an invalid topic identifier
   }
