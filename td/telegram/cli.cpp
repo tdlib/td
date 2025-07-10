@@ -1335,6 +1335,24 @@ class CliClient final : public Actor {
     get_args(args, arg.title, arg.tasks);
   }
 
+  struct SuggestedPostPrice {
+    string price;
+
+    operator td_api::object_ptr<td_api::SuggestedPostPrice>() const {
+      if (price[0] == 't') {
+        return td_api::make_object<td_api::suggestedPostPriceTon>(to_integer<int64>(price.substr(1)));
+      }
+      if (price[0] == 's') {
+        return td_api::make_object<td_api::suggestedPostPriceStar>(to_integer<int64>(price.substr(1)));
+      }
+      return nullptr;
+    }
+  };
+
+  void get_args(string &args, SuggestedPostPrice &arg) const {
+    arg.price = std::move(args);
+  }
+
   struct InputBackground {
     string background_file;
     // or
