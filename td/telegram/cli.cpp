@@ -2655,6 +2655,10 @@ class CliClient final : public Actor {
     }
   }
 
+  td_api::object_ptr<td_api::inputSuggestedPostInfo> get_input_suggested_post_info() const {
+    return td_api::make_object<td_api::inputSuggestedPostInfo>(suggested_post_price_, suggested_post_send_date_);
+  }
+
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
     return td_api::make_object<td_api::messageSendOptions>(
         direct_messages_chat_topic_id_, false, false, false, use_test_dc_, paid_message_star_count_, true,
@@ -5647,6 +5651,10 @@ class CliClient final : public Actor {
       start_timestamp_ = to_integer<int32>(args);
     } else if (op == "sugai") {
       upgraded_gift_attribute_ids_ = full_split(args);
+    } else if (op == "sspp") {
+      get_args(args, suggested_post_price_);
+    } else if (op == "sspsd") {
+      get_args(args, suggested_post_send_date_);
     } else if (op == "sm" || op == "sms" || op == "smf") {
       ChatId chat_id;
       string message;
@@ -8047,6 +8055,8 @@ class CliClient final : public Actor {
   string thumbnail_;
   int32 start_timestamp_ = 0;
   vector<string> upgraded_gift_attribute_ids_;
+  SuggestedPostPrice suggested_post_price_;
+  int32 suggested_post_send_date_ = 0;
 
   ConcurrentScheduler *scheduler_{nullptr};
 
