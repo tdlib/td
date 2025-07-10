@@ -625,6 +625,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StoryViewer.cpp
   td/telegram/SuggestedAction.cpp
   td/telegram/SuggestedActionManager.cpp
+  td/telegram/SuggestedPostPrice.cpp
   td/telegram/Support.cpp
   td/telegram/SynchronousRequests.cpp
   td/telegram/TargetDialogTypes.cpp
@@ -1013,6 +1014,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StoryViewer.h
   td/telegram/SuggestedAction.h
   td/telegram/SuggestedActionManager.h
+  td/telegram/SuggestedPostPrice.h
   td/telegram/Support.h
   td/telegram/SynchronousRequests.h
   td/telegram/TargetDialogTypes.h
@@ -1144,6 +1146,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StoryInteractionInfo.hpp
   td/telegram/StoryStealthMode.hpp
   td/telegram/SuggestedAction.hpp
+  td/telegram/SuggestedPostPrice.hpp
   td/telegram/TermsOfService.hpp
   td/telegram/ThemeSettings.hpp
   td/telegram/ToDoCompletion.hpp
