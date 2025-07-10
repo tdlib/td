@@ -34,6 +34,11 @@ class SuggestedPost {
 
   telegram_api::object_ptr<telegram_api::suggestedPost> get_input_suggested_post() const;
 
+  td_api::object_ptr<td_api::suggestedPostInfo> get_suggested_post_info_object() const;
+
+  static td_api::object_ptr<td_api::suggestedPostInfo> get_suggested_post_info_object(
+      const unique_ptr<SuggestedPost> &post);
+
   template <class StorerT>
   void store(StorerT &storer) const;
 

@@ -49,6 +49,19 @@ td_api::object_ptr<td_api::SuggestedPostState> SuggestedPost::get_suggested_post
   return td_api::make_object<td_api::suggestedPostStatePending>();
 }
 
+td_api::object_ptr<td_api::suggestedPostInfo> SuggestedPost::get_suggested_post_info_object() const {
+  return td_api::make_object<td_api::suggestedPostInfo>(price_.get_suggested_post_price_object(), schedule_date_,
+                                                        get_suggested_post_state_object());
+}
+
+td_api::object_ptr<td_api::suggestedPostInfo> SuggestedPost::get_suggested_post_info_object(
+    const unique_ptr<SuggestedPost> &post) {
+  if (post == nullptr) {
+    return nullptr;
+  }
+  return post->get_suggested_post_info_object();
+}
+
 bool operator==(const SuggestedPost &lhs, const SuggestedPost &rhs) {
   return lhs.price_ == rhs.price_ && lhs.schedule_date_ == rhs.schedule_date_ && lhs.is_accepted_ == rhs.is_accepted_ &&
          lhs.is_rejected_ == rhs.is_rejected_;

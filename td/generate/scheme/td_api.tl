@@ -912,6 +912,13 @@ suggestedPostStateApproved = SuggestedPostState;
 suggestedPostStateDeclined = SuggestedPostState;
 
 
+//@description Contains information about a suggested post
+//@price Price of the suggested post; may be null if the post is non-paid
+//@send_date Point in time (Unix timestamp) when the post is expected to be published
+//@state State of the post
+suggestedPostInfo price:SuggestedPostPrice send_date:int32 state:SuggestedPostState = SuggestedPostInfo;
+
+
 //@description Describes a possibly non-integer amount of Telegram Stars
 //@star_count The integer amount of Telegram Stars rounded to 0
 //@nanostar_count The number of 1/1000000000 shares of Telegram Stars; from -999999999 to 999999999
