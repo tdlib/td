@@ -36,6 +36,10 @@ class SuggestedPostPrice {
   static Result<SuggestedPostPrice> get_suggested_post_price(const Td *td,
                                                              td_api::object_ptr<td_api::SuggestedPostPrice> &&price);
 
+  bool is_empty() const {
+    return type_ == Type::None;
+  }
+
   telegram_api::object_ptr<telegram_api::StarsAmount> get_input_stars_amount() const;
 
   td_api::object_ptr<td_api::SuggestedPostPrice> get_suggested_post_price_object() const;
