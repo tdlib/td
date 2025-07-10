@@ -891,7 +891,8 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 
 //@class SuggestedPostPrice @description Describes price of a suggested post
 
-//@description Describes price of a suggested post in Telegram Stars @star_count The amount of Telegram Stars agreed to pay for the post
+//@description Describes price of a suggested post in Telegram Stars
+//@star_count The amount of Telegram Stars agreed to pay for the post; getOption("suggested_post_star_count_min")-getOption("suggested_post_star_count_max")
 suggestedPostPriceStar star_count:int53 = SuggestedPostPrice;
 
 //@description Describes price of a suggested post in Toncoins @toncoin_cent_count The amount of 1/100 of Toncoin agreed to pay for the post

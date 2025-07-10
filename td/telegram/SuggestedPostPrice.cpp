@@ -6,7 +6,9 @@
 //
 #include "td/telegram/SuggestedPostPrice.h"
 
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/StarAmount.h"
+#include "td/telegram/Td.h"
 #include "td/telegram/TonAmount.h"
 
 #include "td/utils/logging.h"
@@ -50,7 +52,7 @@ SuggestedPostPrice::SuggestedPostPrice(telegram_api::object_ptr<telegram_api::St
 }
 
 Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
-    td_api::object_ptr<td_api::SuggestedPostPrice> &&price) {
+    const Td *td, td_api::object_ptr<td_api::SuggestedPostPrice> &&price) {
   if (price == nullptr) {
     return SuggestedPostPrice();
   }
@@ -60,7 +62,8 @@ Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
       if (amount == 0) {
         return SuggestedPostPrice();
       }
-      if (amount < 0 || amount > 1000000000) {
+      if (amount < td->option_manager_->get_option_integer("suggested_post_star_count_min") ||
+          amount > td->option_manager_->get_option_integer("suggested_post_star_count_max")) {
         return Status::Error(400, "Invalid amount of Telegram Stars specified");
       }
       SuggestedPostPrice result;
@@ -74,7 +77,7 @@ Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
         return SuggestedPostPrice();
       }
       if (amount < 0 || amount > 1000000000) {
-        return Status::Error(400, "Invalid amount of Telegram Stars specified");
+        return Status::Error(400, "Invalid amount of toncoin cents specified");
       }
       SuggestedPostPrice result;
       result.type_ = Type::Ton;

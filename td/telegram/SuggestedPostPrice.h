@@ -15,6 +15,8 @@
 
 namespace td {
 
+class Td;
+
 class SuggestedPostPrice {
   enum class Type : int32 { None, Star, Ton };
   Type type_ = Type::None;
@@ -31,7 +33,8 @@ class SuggestedPostPrice {
 
   explicit SuggestedPostPrice(telegram_api::object_ptr<telegram_api::StarsAmount> &&amount_ptr);
 
-  static Result<SuggestedPostPrice> get_suggested_post_price(td_api::object_ptr<td_api::SuggestedPostPrice> &&price);
+  static Result<SuggestedPostPrice> get_suggested_post_price(const Td *td,
+                                                             td_api::object_ptr<td_api::SuggestedPostPrice> &&price);
 
   telegram_api::object_ptr<telegram_api::StarsAmount> get_input_stars_amount() const;
 

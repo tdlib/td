@@ -1416,6 +1416,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"stars_stargift_resale_amount_min", "gift_resale_star_count_min"},
       {"stars_stargift_resale_commission_permille", "gift_resale_earnings_per_mille"},
       {"stars_subscription_amount_max", "subscription_star_count_max"},
+      {"stars_suggested_post_amount_min", "suggested_post_star_count_min"},
+      {"stars_suggested_post_amount_max", "suggested_post_star_count_max"},
       {"stars_usd_sell_rate_x1000", "usd_to_thousand_star_rate"},
       {"stars_usd_withdraw_rate_x1000", "thousand_star_to_usd_rate"},
       {"stickers_premium_by_emoji_num", ""},
