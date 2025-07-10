@@ -248,7 +248,7 @@ class GetChannelAdministratorsQuery final : public Td::ResultHandler {
       return promise_.set_error(400, "Supergroup not found");
     }
 
-    hash = 0;  // to load even only ranks or creator changed
+    hash = 0;  // to load even if only ranks or creator changed
 
     channel_id_ = channel_id;
     send_query(G()->net_query_creator().create(telegram_api::channels_getParticipants(

@@ -4080,7 +4080,7 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
     auto update_new_message = static_cast<telegram_api::updateNewMessage *>(update.get());
     auto message_full_id = MessageFullId::get_message_full_id(update_new_message->message_, false);
     if (update_message_ids_.count(message_full_id) > 0) {
-      // apply the sent message anyway, even it could have been deleted or edited already
+      // apply the sent message anyway even if it could have been deleted or edited already
 
       CHECK(message_full_id.get_dialog_id().get_type() == DialogType::User ||
             message_full_id.get_dialog_id().get_type() == DialogType::Chat);  // checked in check_pts_update
@@ -4097,7 +4097,7 @@ void MessagesManager::skip_old_pending_pts_update(tl_object_ptr<telegram_api::Up
   if (update->get_id() == updateSentMessage::ID) {
     auto update_sent_message = static_cast<updateSentMessage *>(update.get());
     if (being_sent_messages_.count(update_sent_message->random_id_) > 0) {
-      // apply the sent message anyway, even it could have been deleted or edited already
+      // apply the sent message anyway even if it could have been deleted or edited already
       delete_messages_from_updates({update_sent_message->message_id_}, false);
       on_send_message_success(update_sent_message->random_id_, update_sent_message->message_id_,
                               update_sent_message->date_, update_sent_message->ttl_period_, FileId(),
@@ -11494,7 +11494,7 @@ void MessagesManager::remove_dialog_newer_messages(Dialog *d, MessageId from_mes
   CHECK(!td_->auth_manager_->is_bot());
 
   // the function is called to handle channel gaps, and hence must always delete all database messages,
-  // even first_database_message_id and last_database_message_id are empty
+  // even if first_database_message_id and last_database_message_id are empty
   delete_all_dialog_messages_from_database(d, MessageId::max(), "remove_dialog_newer_messages");
   set_dialog_first_database_message_id(d, MessageId(), "remove_dialog_newer_messages");
   set_dialog_last_database_message_id(d, MessageId(), source);
@@ -21496,7 +21496,7 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, const
   }
   */
   // TODO use file_upload_id, was_uploaded,
-  // invalidate partial remote location for file_upload_id in case of failed upload even message has already been deleted
+  // invalidate partial remote location for file_upload_id in case of failed upload even if message has already been deleted
   send_closure_later(actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, m->message_id,
                      PromiseCreator::lambda([this, dialog_id, secret_input_media = std::move(secret_input_media)](
                                                 Result<Message *> result) mutable {
@@ -29942,7 +29942,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (message_id.is_server()) {
       if (d->being_added_message_id.is_valid()) {
         // if a too new message not from update has failed to preload before being_added_message_id was set,
-        // then it should fail to load even after it is set and last_new_message_id has changed
+        // then it should fail to load even after being_added_message_id was set and last_new_message_id has changed
         max_message_id = d->being_updated_last_new_message_id;
       } else {
         max_message_id = d->last_new_message_id;
@@ -33611,7 +33611,7 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
               << " because it has already been run";
     return;
   }
-  // must work even we know nothing about the dialog
+  // must work even when we know nothing about the dialog
 
   // can be called multiple times before after_get_channel_difference
   const Dialog *d = get_dialog(dialog_id);
