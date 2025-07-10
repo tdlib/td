@@ -23,6 +23,9 @@ SuggestedPostPrice::SuggestedPostPrice(telegram_api::object_ptr<telegram_api::St
       if (star_amount.get_nanostar_count() != 0) {
         LOG(ERROR) << "Receive suggested post price of " << star_amount << " Telegram Stars";
       }
+      if (star_amount.get_star_count() == 0) {
+        return;
+      }
       type_ = Type::Star;
       amount_ = star_amount.get_star_count();
       break;
@@ -33,9 +36,50 @@ SuggestedPostPrice::SuggestedPostPrice(telegram_api::object_ptr<telegram_api::St
       if (ton_amount % TON_MULTIPLIER != 0) {
         LOG(ERROR) << "Receive suggested post price of " << ton_amount << " TONs";
       }
+      ton_amount /= TON_MULTIPLIER;
+      if (ton_amount == 0) {
+        return;
+      }
       type_ = Type::Ton;
-      amount_ = ton_amount / TON_MULTIPLIER;
+      amount_ = ton_amount;
       break;
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
+Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
+    td_api::object_ptr<td_api::SuggestedPostPrice> &&price) {
+  if (price == nullptr) {
+    return SuggestedPostPrice();
+  }
+  switch (price->get_id()) {
+    case td_api::suggestedPostPriceStar::ID: {
+      auto amount = static_cast<const td_api::suggestedPostPriceStar *>(price.get())->star_count_;
+      if (amount == 0) {
+        return SuggestedPostPrice();
+      }
+      if (amount < 0 || amount > 1000000000) {
+        return Status::Error(400, "Invalid amount of Telegram Stars specified");
+      }
+      SuggestedPostPrice result;
+      result.type_ = Type::Star;
+      result.amount_ = amount;
+      return result;
+    }
+    case td_api::suggestedPostPriceTon::ID: {
+      auto amount = static_cast<const td_api::suggestedPostPriceTon *>(price.get())->toncoin_cent_count_;
+      if (amount == 0) {
+        return SuggestedPostPrice();
+      }
+      if (amount < 0 || amount > 1000000000) {
+        return Status::Error(400, "Invalid amount of Telegram Stars specified");
+      }
+      SuggestedPostPrice result;
+      result.type_ = Type::Ton;
+      result.amount_ = amount;
+      return result;
     }
     default:
       UNREACHABLE();
@@ -50,6 +94,20 @@ telegram_api::object_ptr<telegram_api::StarsAmount> SuggestedPostPrice::get_inpu
       return telegram_api::make_object<telegram_api::starsAmount>(amount_, 0);
     case Type::Ton:
       return telegram_api::make_object<telegram_api::starsTonAmount>(amount_ * TON_MULTIPLIER);
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+td_api::object_ptr<td_api::SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price_object() const {
+  switch (type_) {
+    case Type::None:
+      return nullptr;
+    case Type::Star:
+      return td_api::make_object<td_api::suggestedPostPriceStar>(amount_);
+    case Type::Ton:
+      return td_api::make_object<td_api::suggestedPostPriceTon>(amount_);
     default:
       UNREACHABLE();
       return nullptr;

@@ -889,6 +889,15 @@ chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_docum
 chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_manage_topics:Bool can_promote_members:Bool can_manage_video_chats:Bool can_post_stories:Bool can_edit_stories:Bool can_delete_stories:Bool is_anonymous:Bool = ChatAdministratorRights;
 
 
+//@class SuggestedPostPrice @description Describes price of a suggested post
+
+//@description Describes price of a suggested post in Telegram Stars @star_count The amount of Telegram Stars agreed to pay for the post
+suggestedPostPriceStar star_count:int53 = SuggestedPostPrice;
+
+//@description Describes price of a suggested post in Toncoins @toncoin_cent_count The amount of 1/100 of Toncoin agreed to pay for the post
+suggestedPostPriceTon toncoin_cent_count:int53 = SuggestedPostPrice;
+
+
 //@description Describes a possibly non-integer amount of Telegram Stars
 //@star_count The integer amount of Telegram Stars rounded to 0
 //@nanostar_count The number of 1/1000000000 shares of Telegram Stars; from -999999999 to 999999999

@@ -6,9 +6,11 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {
@@ -29,7 +31,11 @@ class SuggestedPostPrice {
 
   explicit SuggestedPostPrice(telegram_api::object_ptr<telegram_api::StarsAmount> &&amount_ptr);
 
+  static Result<SuggestedPostPrice> get_suggested_post_price(td_api::object_ptr<td_api::SuggestedPostPrice> &&price);
+
   telegram_api::object_ptr<telegram_api::StarsAmount> get_input_stars_amount() const;
+
+  td_api::object_ptr<td_api::SuggestedPostPrice> get_suggested_post_price_object() const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
