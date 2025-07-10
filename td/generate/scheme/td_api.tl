@@ -900,6 +900,18 @@ suggestedPostPriceStar star_count:int53 = SuggestedPostPrice;
 suggestedPostPriceTon toncoin_cent_count:int53 = SuggestedPostPrice;
 
 
+//@class SuggestedPostState @description Describes state of a suggested post
+
+//@description The post must be approved by a channel administrator or declined
+suggestedPostStatePending = SuggestedPostState;
+
+//@description The post was approved by a channel administrator
+suggestedPostStateApproved = SuggestedPostState;
+
+//@description The post was declined
+suggestedPostStateDeclined = SuggestedPostState;
+
+
 //@description Describes a possibly non-integer amount of Telegram Stars
 //@star_count The integer amount of Telegram Stars rounded to 0
 //@nanostar_count The number of 1/1000000000 shares of Telegram Stars; from -999999999 to 999999999

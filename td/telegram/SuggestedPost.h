@@ -25,6 +25,8 @@ class SuggestedPost {
 
   friend bool operator==(const SuggestedPost &lhs, const SuggestedPost &rhs);
 
+  td_api::object_ptr<td_api::SuggestedPostState> get_suggested_post_state_object() const;
+
  public:
   SuggestedPost() = default;
 

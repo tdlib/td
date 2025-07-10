@@ -39,6 +39,16 @@ telegram_api::object_ptr<telegram_api::suggestedPost> SuggestedPost::get_input_s
                                                                 schedule_date_);
 }
 
+td_api::object_ptr<td_api::SuggestedPostState> SuggestedPost::get_suggested_post_state_object() const {
+  if (is_accepted_) {
+    return td_api::make_object<td_api::suggestedPostStateApproved>();
+  }
+  if (is_rejected_) {
+    return td_api::make_object<td_api::suggestedPostStateDeclined>();
+  }
+  return td_api::make_object<td_api::suggestedPostStatePending>();
+}
+
 bool operator==(const SuggestedPost &lhs, const SuggestedPost &rhs) {
   return lhs.price_ == rhs.price_ && lhs.schedule_date_ == rhs.schedule_date_ && lhs.is_accepted_ == rhs.is_accepted_ &&
          lhs.is_rejected_ == rhs.is_rejected_;
