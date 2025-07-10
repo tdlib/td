@@ -32,6 +32,9 @@ class SuggestedPost {
 
   static unique_ptr<SuggestedPost> get_suggested_post(telegram_api::object_ptr<telegram_api::suggestedPost> &&post);
 
+  static Result<unique_ptr<SuggestedPost>> get_suggested_post(
+      const Td *td, td_api::object_ptr<td_api::inputSuggestedPostInfo> &&post);
+
   telegram_api::object_ptr<telegram_api::suggestedPost> get_input_suggested_post() const;
 
   td_api::object_ptr<td_api::suggestedPostInfo> get_suggested_post_info_object() const;

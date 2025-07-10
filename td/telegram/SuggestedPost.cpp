@@ -26,6 +26,22 @@ unique_ptr<SuggestedPost> SuggestedPost::get_suggested_post(
   return result;
 }
 
+Result<unique_ptr<SuggestedPost>> SuggestedPost::get_suggested_post(
+    const Td *td, td_api::object_ptr<td_api::inputSuggestedPostInfo> &&post) {
+  if (post == nullptr) {
+    return nullptr;
+  }
+  TRY_RESULT(price, SuggestedPostPrice::get_suggested_post_price(td, std::move(post->price_)));
+  auto send_date = post->send_date_;
+  if (send_date < 0) {
+    return Status::Error(400, "Invalid post send date specified");
+  }
+  auto result = make_unique<SuggestedPost>();
+  result->price_ = std::move(price);
+  result->schedule_date_ = send_date;
+  return result;
+}
+
 telegram_api::object_ptr<telegram_api::suggestedPost> SuggestedPost::get_input_suggested_post() const {
   int32 flags = 0;
   auto price = price_.get_input_stars_amount();

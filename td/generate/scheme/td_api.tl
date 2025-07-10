@@ -914,9 +914,14 @@ suggestedPostStateDeclined = SuggestedPostState;
 
 //@description Contains information about a suggested post
 //@price Price of the suggested post; may be null if the post is non-paid
-//@send_date Point in time (Unix timestamp) when the post is expected to be published
+//@send_date Point in time (Unix timestamp) when the post is expected to be published; 0 if the specific date isn't set yet
 //@state State of the post
 suggestedPostInfo price:SuggestedPostPrice send_date:int32 state:SuggestedPostState = SuggestedPostInfo;
+
+//@description Contains information about a post to suggest
+//@price Price of the suggested post; pass null to suggest a post without payment
+//@send_date Point in time (Unix timestamp) when the post is expected to be published; pass 0 if the date isn't restricted
+inputSuggestedPostInfo price:SuggestedPostPrice send_date:int32 = InputSuggestedPostInfo;
 
 
 //@description Describes a possibly non-integer amount of Telegram Stars
