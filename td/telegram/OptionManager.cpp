@@ -184,6 +184,8 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("checklist_task_count_max", is_test_dc ? 10 : 30);
   set_default_integer_option("suggested_post_star_count_min", 5);
   set_default_integer_option("suggested_post_star_count_max", 100000);
+  set_default_integer_option("suggested_post_toncoin_cent_count_min", 1);
+  set_default_integer_option("suggested_post_toncoin_cent_count_max", 1000000);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();

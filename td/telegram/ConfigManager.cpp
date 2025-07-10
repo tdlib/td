@@ -1900,6 +1900,16 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         can_accept_calls = !get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "ton_suggested_post_amount_min") {
+        G()->set_option_integer("suggested_post_toncoin_cent_count_min",
+                                get_json_value_long(std::move(key_value->value_), key) / 10000000);
+        continue;
+      }
+      if (key == "ton_suggested_post_amount_max") {
+        G()->set_option_integer("suggested_post_toncoin_cent_count_max",
+                                get_json_value_long(std::move(key_value->value_), key) / 10000000);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }

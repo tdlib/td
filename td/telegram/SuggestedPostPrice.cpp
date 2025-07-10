@@ -76,7 +76,8 @@ Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
       if (amount == 0) {
         return SuggestedPostPrice();
       }
-      if (amount < 0 || amount > 1000000000) {
+      if (amount < td->option_manager_->get_option_integer("suggested_post_toncoin_cent_count_min") ||
+          amount > td->option_manager_->get_option_integer("suggested_post_toncoin_cent_count_max")) {
         return Status::Error(400, "Invalid amount of toncoin cents specified");
       }
       SuggestedPostPrice result;
