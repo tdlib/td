@@ -31,6 +31,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TonAmount.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
 
@@ -765,6 +766,110 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetTonTransactionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonTransactions>> promise_;
+
+ public:
+  explicit GetTonTransactionsQuery(Promise<td_api::object_ptr<td_api::tonTransactions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &offset, int32 limit, td_api::object_ptr<td_api::TransactionDirection> &&direction) {
+    auto input_peer =
+        td_->dialog_manager_->get_input_peer(td_->dialog_manager_->get_my_dialog_id(), AccessRights::Write);
+    CHECK(input_peer != nullptr);
+    bool inbound = false;
+    bool outbound = false;
+    if (direction != nullptr) {
+      switch (direction->get_id()) {
+        case td_api::transactionDirectionIncoming::ID:
+          inbound = true;
+          break;
+        case td_api::transactionDirectionOutgoing::ID:
+          outbound = true;
+          break;
+        default:
+          UNREACHABLE();
+      }
+    }
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarsTransactions(
+        0, inbound, outbound, false, true, string(), std::move(input_peer), offset, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsTransactions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetTonTransactionsQuery: " << to_string(result);
+
+    td_->user_manager_->on_get_users(std::move(result->users_), "GetTonTransactionsQuery");
+    td_->chat_manager_->on_get_chats(std::move(result->chats_), "GetTonTransactionsQuery");
+
+    if (result->balance_->get_id() != telegram_api::starsTonAmount::ID) {
+      LOG(ERROR) << "Receive " << to_string(result);
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+
+    vector<td_api::object_ptr<td_api::tonTransaction>> transactions;
+    for (auto &transaction : result->history_) {
+      if (transaction->amount_->get_id() != telegram_api::starsTonAmount::ID) {
+        LOG(ERROR) << "Receive " << to_string(transaction);
+        continue;
+      }
+      auto transaction_amount =
+          TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(transaction->amount_), true);
+      auto is_refund = transaction->refund_;
+      // auto is_purchase = transaction_amount.is_positive() == is_refund;
+      auto type = [&]() -> td_api::object_ptr<td_api::TonTransactionType> {
+        switch (transaction->peer_->get_id()) {
+          case telegram_api::starsTransactionPeerUnsupported::ID:
+            return td_api::make_object<td_api::tonTransactionTypeUnsupported>();
+          case telegram_api::starsTransactionPeerPremiumBot::ID:
+          case telegram_api::starsTransactionPeerAppStore::ID:
+          case telegram_api::starsTransactionPeerPlayMarket::ID:
+          case telegram_api::starsTransactionPeer::ID:
+          case telegram_api::starsTransactionPeerAds::ID:
+          case telegram_api::starsTransactionPeerAPI::ID:
+            return nullptr;
+          case telegram_api::starsTransactionPeerFragment::ID: {
+            SCOPE_EXIT {
+              transaction->gift_ = false;
+            };
+            return td_api::make_object<td_api::tonTransactionTypeFragmentDeposit>(
+                transaction->gift_,
+                td_->stickers_manager_->get_ton_gift_sticker_object(transaction_amount.get_ton_amount()));
+          }
+          default:
+            UNREACHABLE();
+            return nullptr;
+        }
+      }();
+      if (type == nullptr) {
+        LOG(ERROR) << "Receive unsupported TON transaction: " << to_string(transaction);
+        type = td_api::make_object<td_api::tonTransactionTypeUnsupported>();
+      }
+      auto ton_transaction = td_api::make_object<td_api::tonTransaction>(
+          transaction->id_, transaction_amount.get_ton_amount(), is_refund, transaction->date_, std::move(type));
+      if (ton_transaction->type_->get_id() != td_api::tonTransactionTypeUnsupported::ID) {
+        // TODO warnings
+      }
+      transactions.push_back(std::move(ton_transaction));
+    }
+
+    auto ton_amount = TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(result->balance_), true);
+    td_->star_manager_->on_update_owned_ton_amount(ton_amount);
+    promise_.set_value(td_api::make_object<td_api::tonTransactions>(ton_amount.get_ton_amount(),
+                                                                    std::move(transactions), result->next_offset_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStarsSubscriptionsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::starSubscriptions>> promise_;
 
@@ -1295,6 +1400,32 @@ void StarManager::do_get_star_transactions(DialogId dialog_id, const string &sub
 
   td_->create_handler<GetStarsTransactionsQuery>(std::move(promise))
       ->send(dialog_id, subscription_id, offset, limit, std::move(direction));
+}
+
+void StarManager::get_ton_transactions(const string &offset, int32 limit,
+                                       td_api::object_ptr<td_api::TransactionDirection> &&direction,
+                                       Promise<td_api::object_ptr<td_api::tonTransactions>> &&promise) {
+  if (limit < 0) {
+    return promise.set_error(400, "Limit must be non-negative");
+  }
+  td_->stickers_manager_->load_ton_gift_sticker_set(
+      PromiseCreator::lambda([actor_id = actor_id(this), offset, limit, direction = std::move(direction),
+                              promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure(actor_id, &StarManager::do_get_ton_transactions, offset, limit, std::move(direction),
+                       std::move(promise));
+        }
+      }));
+}
+
+void StarManager::do_get_ton_transactions(const string &offset, int32 limit,
+                                          td_api::object_ptr<td_api::TransactionDirection> &&direction,
+                                          Promise<td_api::object_ptr<td_api::tonTransactions>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  td_->create_handler<GetTonTransactionsQuery>(std::move(promise))->send(offset, limit, std::move(direction));
 }
 
 void StarManager::get_star_subscriptions(bool only_expiring, const string &offset,

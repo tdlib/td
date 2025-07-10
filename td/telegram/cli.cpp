@@ -7629,6 +7629,17 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, offset, limit);
       send_request(td_api::make_object<td_api::getChatRevenueTransactions>(chat_id, offset, as_limit(limit)));
+    } else if (op == "gtta" || op == "gtti" || op == "gtto") {
+      string limit;
+      string offset;
+      get_args(args, limit, offset);
+      td_api::object_ptr<td_api::TransactionDirection> direction;
+      if (op == "gtti") {
+        direction = td_api::make_object<td_api::transactionDirectionIncoming>();
+      } else if (op == "gtto") {
+        direction = td_api::make_object<td_api::transactionDirectionOutgoing>();
+      }
+      send_request(td_api::make_object<td_api::getTonTransactions>(std::move(direction), offset, as_limit(limit)));
     } else if (op == "gsrs") {
       string owner_id;
       bool is_dark;

@@ -52,6 +52,10 @@ class StarManager final : public Actor {
                              td_api::object_ptr<td_api::TransactionDirection> &&direction,
                              Promise<td_api::object_ptr<td_api::starTransactions>> &&promise);
 
+  void get_ton_transactions(const string &offset, int32 limit,
+                            td_api::object_ptr<td_api::TransactionDirection> &&direction,
+                            Promise<td_api::object_ptr<td_api::tonTransactions>> &&promise);
+
   void get_star_subscriptions(bool only_expiring, const string &offset,
                               Promise<td_api::object_ptr<td_api::starSubscriptions>> &&promise);
 
@@ -103,6 +107,10 @@ class StarManager final : public Actor {
   void do_get_star_transactions(DialogId dialog_id, const string &subscription_id, const string &offset, int32 limit,
                                 td_api::object_ptr<td_api::TransactionDirection> &&direction,
                                 Promise<td_api::object_ptr<td_api::starTransactions>> &&promise);
+
+  void do_get_ton_transactions(const string &offset, int32 limit,
+                               td_api::object_ptr<td_api::TransactionDirection> &&direction,
+                               Promise<td_api::object_ptr<td_api::tonTransactions>> &&promise);
 
   void send_get_star_withdrawal_url_query(
       DialogId dialog_id, int64 star_count,

@@ -1464,6 +1464,32 @@ starTransaction id:string star_amount:starAmount is_refund:Bool date:int32 type:
 starTransactions star_amount:starAmount transactions:vector<starTransaction> next_offset:string = StarTransactions;
 
 
+//@class TonTransactionType @description Describes type of transaction with TON
+
+//@description The transaction is a deposit of TON from Fragment
+//@is_gift True, if the transaction is a gift from another user
+//@sticker The sticker to be shown in the transaction information; may be null if unknown
+tonTransactionTypeFragmentDeposit is_gift:Bool sticker:sticker = TonTransactionType;
+
+//@description The transaction is a transaction of an unsupported type
+tonTransactionTypeUnsupported = TonTransactionType;
+
+
+//@description Represents a transaction changing the amount of owned TON
+//@id Unique identifier of the transaction
+//@ton_amount The amount of added owned TON; negative for outgoing transactions
+//@is_refund True, if the transaction is a refund of a previous transaction
+//@date Point in time (Unix timestamp) when the transaction was completed
+//@type Type of the transaction
+tonTransaction id:string ton_amount:int53 is_refund:Bool date:int32 type:TonTransactionType = TonTransaction;
+
+//@description Represents a list of TON transactions
+//@ton_amount The amount of owned TON
+//@transactions List of TON transactions
+//@next_offset The offset for the next request. If empty, then there are no more results
+tonTransactions ton_amount:int53 transactions:vector<tonTransaction> next_offset:string = TonTransactions;
+
+
 //@class GiveawayParticipantStatus @description Contains information about status of a user in a giveaway
 
 //@description The user is eligible for the giveaway
@@ -12834,6 +12860,12 @@ getChatRevenueWithdrawalUrl chat_id:int53 password:string = HttpUrl;
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of transactions to be returned; up to 100
 getChatRevenueTransactions chat_id:int53 offset:string limit:int32 = ChatRevenueTransactions;
+
+//@description Returns the list of TON transactions of the current user
+//@direction Direction of the transactions to receive; pass null to get all transactions
+//@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of transactions to return
+getTonTransactions direction:TransactionDirection offset:string limit:int32 = TonTransactions;
 
 
 //@description Returns detailed Telegram Star revenue statistics
