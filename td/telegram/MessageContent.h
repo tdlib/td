@@ -143,9 +143,6 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_med
                                                                                    const string &emoji, bool force,
                                                                                    int32 media_pos = -1);
 
-telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_fake_input_media(
-    Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file, FileId file_id);
-
 telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_input_media_web_page(
     const Td *td, const MessageContent *content);
 
