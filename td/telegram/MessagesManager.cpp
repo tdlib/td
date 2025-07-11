@@ -2301,6 +2301,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_new_video_start_timestamp = new_video_start_timestamp >= 0;
   bool has_paid_message_star_count = paid_message_star_count > 0;
   bool has_suggested_post = suggested_post != nullptr;
+  bool has_flags4 = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -2397,6 +2398,13 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(has_new_video_start_timestamp);  // 25
     STORE_FLAG(has_paid_message_star_count);
     STORE_FLAG(has_suggested_post);
+    STORE_FLAG(is_paid_suggested_post_stars);
+    STORE_FLAG(has_flags4);
+    END_STORE_FLAGS();
+  }
+  if (has_flags4) {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_paid_suggested_post_ton);
     END_STORE_FLAGS();
   }
 
@@ -2605,6 +2613,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_new_video_start_timestamp = false;
   bool has_paid_message_star_count = false;
   bool has_suggested_post = false;
+  bool has_flags4 = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -2701,6 +2710,13 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(has_new_video_start_timestamp);
     PARSE_FLAG(has_paid_message_star_count);
     PARSE_FLAG(has_suggested_post);
+    PARSE_FLAG(is_paid_suggested_post_stars);
+    PARSE_FLAG(has_flags4);
+    END_PARSE_FLAGS();
+  }
+  if (has_flags4) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_paid_suggested_post_ton);
     END_PARSE_FLAGS();
   }
 
@@ -10743,6 +10759,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.has_unread_content = message->media_unread_;
       message_info.invert_media = message->invert_media_;
       message_info.video_processing_pending = message->video_processing_pending_;
+      message_info.is_paid_suggested_post_stars = message->paid_suggested_post_stars_;
+      message_info.is_paid_suggested_post_ton = message->paid_suggested_post_ton_;
       message_info.effect_id = MessageEffectId(message->effect_);
 
       bool is_content_read = true;
@@ -10874,6 +10892,12 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   if (is_channel_post && !td->dialog_manager_->is_broadcast_channel(dialog_id)) {
     LOG(ERROR) << "Receive is_channel_post for " << message_id << " in " << dialog_id;
     is_channel_post = false;
+  }
+  if (!is_channel_post && (message_info.is_paid_suggested_post_stars || message_info.is_paid_suggested_post_ton)) {
+    LOG(ERROR) << "Receive " << message_info.is_paid_suggested_post_stars << ' '
+               << message_info.is_paid_suggested_post_ton << " for " << message_id << " in " << dialog_id;
+    message_info.is_paid_suggested_post_stars = false;
+    message_info.is_paid_suggested_post_ton = false;
   }
 
   UserId my_id = td->user_manager_->get_my_id();
@@ -11084,6 +11108,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->is_pinned = is_pinned;
   message->noforwards = noforwards;
   message->video_processing_pending = message_info.video_processing_pending;
+  message->is_paid_suggested_post_stars = message_info.is_paid_suggested_post_stars;
+  message->is_paid_suggested_post_ton = message_info.is_paid_suggested_post_ton;
   message->reactions_are_possible = message_info.reactions_are_possible;
   message->interaction_info_update_date = G()->unix_time();
   message->view_count = view_count;
@@ -19693,9 +19719,10 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       get_message_own_max_media_timestamp(m), m->invert_media, m->disable_web_page_preview);
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
-      nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, can_be_saved, true, m->is_channel_post, false,
-      m->date, edit_date, std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr,
-      nullptr, std::move(reply_to), 0, nullptr, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count,
+      nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, can_be_saved, true, m->is_channel_post,
+      m->is_paid_suggested_post_stars, m->is_paid_suggested_post_ton, false, m->date, edit_date,
+      std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr, nullptr,
+      std::move(reply_to), 0, nullptr, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count,
       m->paid_message_star_count, m->author_signature, 0, 0,
       get_restriction_reason_has_sensitive_content(m->restriction_reasons),
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
@@ -19762,8 +19789,8 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
 
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_business_message_message_object"),
-      nullptr, nullptr, m->is_outgoing, false, m->is_from_offline, can_be_saved, false, false, false, m->date,
-      m->edit_date, std::move(forward_info), std::move(import_info), nullptr, Auto(), nullptr, nullptr,
+      nullptr, nullptr, m->is_outgoing, false, m->is_from_offline, can_be_saved, false, false, false, false, false,
+      m->date, m->edit_date, std::move(forward_info), std::move(import_info), nullptr, Auto(), nullptr, nullptr,
       std::move(reply_to), 0, nullptr, std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id,
       via_business_bot_user_id, m->sender_boost_count, m->paid_message_star_count, string(), m->media_album_id,
       m->effect_id.get(), get_restriction_reason_has_sensitive_content(m->restriction_reasons),
@@ -19859,12 +19886,13 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_message_object"),
       std::move(sending_state), std::move(scheduling_state), is_outgoing, m->is_pinned, m->is_from_offline,
-      can_be_saved, has_timestamped_media, m->is_channel_post, m->contains_unread_mention, date, edit_date,
-      std::move(forward_info), std::move(import_info), std::move(interaction_info), std::move(unread_reactions),
-      std::move(fact_check), std::move(suggested_post), std::move(reply_to), top_thread_message_id,
-      topic.get_message_topic_object(td_), std::move(self_destruct_type), ttl_expires_in, auto_delete_in,
-      via_bot_user_id, via_business_bot_user_id, m->sender_boost_count, m->paid_message_star_count, m->author_signature,
-      m->media_album_id, m->effect_id.get(), get_restriction_reason_has_sensitive_content(m->restriction_reasons),
+      can_be_saved, has_timestamped_media, m->is_channel_post, m->is_paid_suggested_post_stars,
+      m->is_paid_suggested_post_ton, m->contains_unread_mention, date, edit_date, std::move(forward_info),
+      std::move(import_info), std::move(interaction_info), std::move(unread_reactions), std::move(fact_check),
+      std::move(suggested_post), std::move(reply_to), top_thread_message_id, topic.get_message_topic_object(td_),
+      std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, via_business_bot_user_id,
+      m->sender_boost_count, m->paid_message_star_count, m->author_signature, m->media_album_id, m->effect_id.get(),
+      get_restriction_reason_has_sensitive_content(m->restriction_reasons),
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
@@ -31357,6 +31385,15 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
   }
   if (old_message->is_from_offline != new_message->is_from_offline) {
     old_message->is_from_offline = new_message->is_from_offline;
+    need_send_update = true;
+  }
+  if (old_message->is_paid_suggested_post_stars != new_message->is_paid_suggested_post_stars) {
+    old_message->is_paid_suggested_post_stars = new_message->is_paid_suggested_post_stars;
+    need_send_update = true;
+  }
+  if (old_message->is_paid_suggested_post_ton != new_message->is_paid_suggested_post_ton) {
+    old_message->is_paid_suggested_post_ton = new_message->is_paid_suggested_post_ton;
+    need_send_update = true;
   }
   if (old_message->video_processing_pending != new_message->video_processing_pending) {
     old_message->video_processing_pending = new_message->video_processing_pending;
