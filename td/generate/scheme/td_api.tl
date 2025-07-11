@@ -873,7 +873,7 @@ chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_docum
 //@can_manage_chat True, if the administrator can access the chat event log, get boost list, see hidden supergroup and channel members, report supergroup spam messages,
 //-ignore slow mode, and send messages to the chat without paying Telegram Stars. Implied by any other privilege; applicable to supergroups and channels only
 //@can_change_info True, if the administrator can change the chat title, photo, and other settings
-//@can_post_messages True, if the administrator can create channel posts, answer to channel direct messages, or view channel statistics; applicable to channels only
+//@can_post_messages True, if the administrator can create channel posts, approve suggested channel posts, or view channel statistics; applicable to channels only
 //@can_edit_messages True, if the administrator can edit messages of other users and pin messages; applicable to channels only
 //@can_delete_messages True, if the administrator can delete messages of other users
 //@can_invite_users True, if the administrator can invite new users to the chat
@@ -885,8 +885,9 @@ chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_docum
 //@can_post_stories True, if the administrator can create new chat stories, or edit and delete posted stories; applicable to supergroups and channels only
 //@can_edit_stories True, if the administrator can edit stories posted by other users, post stories to the chat page, pin chat stories, and access story archive; applicable to supergroups and channels only
 //@can_delete_stories True, if the administrator can delete stories posted by other users; applicable to supergroups and channels only
+//@can_manage_direct_messages True, if the administrator can answer to channel direct messages; applicable to channels only
 //@is_anonymous True, if the administrator isn't shown in the chat member list and sends messages anonymously; applicable to supergroups only
-chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_manage_topics:Bool can_promote_members:Bool can_manage_video_chats:Bool can_post_stories:Bool can_edit_stories:Bool can_delete_stories:Bool is_anonymous:Bool = ChatAdministratorRights;
+chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_manage_topics:Bool can_promote_members:Bool can_manage_video_chats:Bool can_post_stories:Bool can_edit_stories:Bool can_delete_stories:Bool can_manage_direct_messages:Bool is_anonymous:Bool = ChatAdministratorRights;
 
 
 //@class SuggestedPostPrice @description Describes price of a suggested post

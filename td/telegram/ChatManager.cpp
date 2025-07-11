@@ -7392,7 +7392,7 @@ void ChatManager::on_update_channel_status(Channel *c, ChannelId channel_id, Dia
       status = c->is_admined_monoforum
                    ? DialogParticipantStatus::Administrator(
                          AdministratorRights(true, true, false, false, false, false, false, false, false, false, false,
-                                             false, false, false, false, ChannelType::Megagroup),
+                                             false, false, false, false, false, ChannelType::Megagroup),
                          string(), false)
                    : DialogParticipantStatus::Member(0);
     } else {
@@ -9098,8 +9098,8 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
     Channel *monoforum_c = get_channel(monoforum_channel_id);
     if (monoforum_c != nullptr) {
       if (is_monoforum) {
-        is_admined_monoforum = monoforum_c->status.can_post_messages();
-      } else if (status.can_post_messages() && !monoforum_c->is_admined_monoforum) {
+        is_admined_monoforum = monoforum_c->status.can_manage_direct_messages();
+      } else if (status.can_manage_direct_messages() && !monoforum_c->is_admined_monoforum) {
         monoforum_c->is_admined_monoforum = true;
         monoforum_c->is_admined_monoforum_changed = true;
         monoforum_c->is_changed = true;

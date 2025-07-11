@@ -38,12 +38,13 @@ class AdministratorRights {
   static constexpr uint64 CAN_POST_STORIES = static_cast<uint64>(1) << 48;
   static constexpr uint64 CAN_EDIT_STORIES = static_cast<uint64>(1) << 49;
   static constexpr uint64 CAN_DELETE_STORIES = static_cast<uint64>(1) << 50;
+  static constexpr uint64 CAN_MANAGE_DIRECT_MESSAGES = static_cast<uint64>(1) << 51;
   static constexpr uint64 IS_ANONYMOUS = 1 << 13;
 
   static constexpr uint64 ALL_ADMINISTRATOR_RIGHTS =
       CAN_CHANGE_INFO_AND_SETTINGS | CAN_POST_MESSAGES | CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS |
       CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES | CAN_MANAGE_TOPICS | CAN_PROMOTE_MEMBERS | CAN_MANAGE_CALLS |
-      CAN_MANAGE_DIALOG | CAN_POST_STORIES | CAN_EDIT_STORIES | CAN_DELETE_STORIES;
+      CAN_MANAGE_DIALOG | CAN_POST_STORIES | CAN_EDIT_STORIES | CAN_DELETE_STORIES | CAN_MANAGE_DIRECT_MESSAGES;
 
   uint64 flags_;
 
@@ -65,7 +66,7 @@ class AdministratorRights {
                       bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
                       bool can_restrict_members, bool can_pin_messages, bool can_manage_topics,
                       bool can_promote_members, bool can_manage_calls, bool can_post_stories, bool can_edit_stories,
-                      bool can_delete_stories, ChannelType channel_type);
+                      bool can_delete_stories, bool can_manage_direct_messages, ChannelType channel_type);
 
   telegram_api::object_ptr<telegram_api::chatAdminRights> get_chat_admin_rights() const;
 
@@ -125,6 +126,10 @@ class AdministratorRights {
 
   bool can_delete_stories() const {
     return (flags_ & CAN_DELETE_STORIES) != 0;
+  }
+
+  bool can_manage_direct_messages() const {
+    return (flags_ & CAN_MANAGE_DIRECT_MESSAGES) != 0;
   }
 
   bool is_anonymous() const {
@@ -459,6 +464,10 @@ class DialogParticipantStatus {
 
   bool can_delete_stories() const {
     return get_administrator_rights().can_delete_stories();
+  }
+
+  bool can_manage_direct_messages() const {
+    return get_administrator_rights().can_manage_direct_messages();
   }
 
   bool can_be_edited() const {
