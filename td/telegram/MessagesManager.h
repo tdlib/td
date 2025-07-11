@@ -119,6 +119,7 @@ class MessageContent;
 class MessageForwardInfo;
 struct MessageReactions;
 class MissingInvitees;
+class SuggestedPost;
 class Td;
 class Usernames;
 
@@ -1000,15 +1001,16 @@ class MessagesManager final : public Actor {
     MessageSelfDestructType ttl;
     bool disable_web_page_preview = false;
     int64 random_id = 0;
-    tl_object_ptr<telegram_api::messageFwdHeader> forward_header;
+    telegram_api::object_ptr<telegram_api::messageFwdHeader> forward_header;
     MessageReplyHeader reply_header;
     UserId via_bot_user_id;
     UserId via_business_bot_user_id;
     int32 view_count = 0;
     int32 forward_count = 0;
-    tl_object_ptr<telegram_api::messageReplies> reply_info;
-    tl_object_ptr<telegram_api::messageReactions> reactions;
-    tl_object_ptr<telegram_api::factCheck> fact_check;
+    telegram_api::object_ptr<telegram_api::messageReplies> reply_info;
+    telegram_api::object_ptr<telegram_api::messageReactions> reactions;
+    telegram_api::object_ptr<telegram_api::factCheck> fact_check;
+    telegram_api::object_ptr<telegram_api::suggestedPost> suggested_post;
     int32 sender_boost_count = 0;
     int32 edit_date = 0;
     vector<RestrictionReason> restriction_reasons;
@@ -1122,6 +1124,7 @@ class MessagesManager final : public Actor {
     MessageReplyInfo reply_info;
     unique_ptr<MessageReactions> reactions;
     unique_ptr<FactCheck> fact_check;
+    unique_ptr<SuggestedPost> suggested_post;
     unique_ptr<DraftMessage> thread_draft_message;
     uint32 available_reactions_generation = 0;
     int32 interaction_info_update_date = 0;
@@ -2344,6 +2347,8 @@ class MessagesManager final : public Actor {
   void send_update_message_interaction_info(DialogId dialog_id, const Message *m) const;
 
   void send_update_message_fact_check(DialogId dialog_id, const Message *m) const;
+
+  void send_update_message_suggested_post_info(DialogId dialog_id, const Message *m) const;
 
   void send_update_message_mention_read(DialogId dialog_id, const Message *m, int32 unread_mention_count) const;
 

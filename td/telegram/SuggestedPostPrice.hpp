@@ -18,9 +18,9 @@ void SuggestedPostPrice::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_amount);
   END_STORE_FLAGS();
-  store(type_, storer);
+  td::store(type_, storer);
   if (has_amount) {
-    store(amount_, storer);
+    td::store(amount_, storer);
   }
 }
 
@@ -30,9 +30,9 @@ void SuggestedPostPrice::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_amount);
   END_PARSE_FLAGS();
-  parse(type_, parser);
+  td::parse(type_, parser);
   if (has_amount) {
-    parse(amount_, parser);
+    td::parse(amount_, parser);
   }
 }
 

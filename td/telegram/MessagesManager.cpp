@@ -87,6 +87,8 @@
 #include "td/telegram/StickerType.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
+#include "td/telegram/SuggestedPost.h"
+#include "td/telegram/SuggestedPost.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -2298,6 +2300,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_reactions_are_possible = true;
   bool has_new_video_start_timestamp = new_video_start_timestamp >= 0;
   bool has_paid_message_star_count = paid_message_star_count > 0;
+  bool has_suggested_post = suggested_post != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -2393,6 +2396,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(reactions_are_possible);
     STORE_FLAG(has_new_video_start_timestamp);  // 25
     STORE_FLAG(has_paid_message_star_count);
+    STORE_FLAG(has_suggested_post);
     END_STORE_FLAGS();
   }
 
@@ -2534,6 +2538,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_paid_message_star_count) {
     store(paid_message_star_count, storer);
   }
+  if (has_suggested_post) {
+    store(suggested_post, storer);
+  }
 }
 
 // do not forget to resolve message dependencies
@@ -2597,6 +2604,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_reactions_are_possible = false;
   bool has_new_video_start_timestamp = false;
   bool has_paid_message_star_count = false;
+  bool has_suggested_post = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -2692,6 +2700,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(reactions_are_possible);
     PARSE_FLAG(has_new_video_start_timestamp);
     PARSE_FLAG(has_paid_message_star_count);
+    PARSE_FLAG(has_suggested_post);
     END_PARSE_FLAGS();
   }
 
@@ -2898,6 +2907,9 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   if (has_paid_message_star_count) {
     parse(paid_message_star_count, parser);
+  }
+  if (has_suggested_post) {
+    parse(suggested_post, parser);
   }
 
   CHECK(content != nullptr);
@@ -10714,6 +10726,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.reply_info = std::move(message->replies_);
       message_info.reactions = std::move(message->reactions_);
       message_info.fact_check = std::move(message->factcheck_);
+      message_info.suggested_post = std::move(message->suggested_post_);
       message_info.edit_date = message->edit_date_;
       message_info.media_album_id = message->grouped_id_;
       message_info.ttl_period = message->ttl_period_;
@@ -10970,6 +10983,11 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with " << to_string(message_info.fact_check);
       message_info.fact_check = nullptr;
     }
+    if (message_info.suggested_post != nullptr) {
+      LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " with "
+                 << to_string(message_info.suggested_post);
+      message_info.suggested_post = nullptr;
+    }
   }
   int32 view_count = message_info.view_count;
   if (view_count < 0) {
@@ -11002,6 +11020,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     reactions->fix_my_recent_chooser_dialog_id(my_dialog_id);
   }
   auto fact_check = FactCheck::get_fact_check(td->user_manager_.get(), std::move(message_info.fact_check), is_bot);
+  auto suggested_post = SuggestedPost::get_suggested_post(std::move(message_info.suggested_post));
 
   bool has_forward_info = message_info.forward_header != nullptr;
   bool noforwards = message_info.noforwards;
@@ -11072,6 +11091,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->reply_info = std::move(reply_info);
   message->reactions = std::move(reactions);
   message->fact_check = std::move(fact_check);
+  message->suggested_post = std::move(suggested_post);
   message->effect_id = message_info.effect_id;
   message->legacy_layer = (message_info.is_legacy ? MTPROTO_LAYER : 0);
   message->invert_media = message_info.invert_media;
@@ -19675,7 +19695,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_dialog_event_log_message_object"),
       nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, can_be_saved, true, m->is_channel_post, false,
       m->date, edit_date, std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr,
-      std::move(reply_to), 0, nullptr, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count,
+      nullptr, std::move(reply_to), 0, nullptr, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count,
       m->paid_message_star_count, m->author_signature, 0, 0,
       get_restriction_reason_has_sensitive_content(m->restriction_reasons),
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
@@ -19743,10 +19763,10 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
   return td_api::make_object<td_api::message>(
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_business_message_message_object"),
       nullptr, nullptr, m->is_outgoing, false, m->is_from_offline, can_be_saved, false, false, false, m->date,
-      m->edit_date, std::move(forward_info), std::move(import_info), nullptr, Auto(), nullptr, std::move(reply_to), 0,
-      nullptr, std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, via_business_bot_user_id,
-      m->sender_boost_count, m->paid_message_star_count, string(), m->media_album_id, m->effect_id.get(),
-      get_restriction_reason_has_sensitive_content(m->restriction_reasons),
+      m->edit_date, std::move(forward_info), std::move(import_info), nullptr, Auto(), nullptr, nullptr,
+      std::move(reply_to), 0, nullptr, std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id,
+      via_business_bot_user_id, m->sender_boost_count, m->paid_message_star_count, string(), m->media_album_id,
+      m->effect_id.get(), get_restriction_reason_has_sensitive_content(m->restriction_reasons),
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
@@ -19806,6 +19826,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   auto interaction_info = is_bot ? nullptr : get_message_interaction_info_object(dialog_id, m);
   auto unread_reactions = get_unread_reactions_object(dialog_id, m);
   auto fact_check = get_message_fact_check_object(m);
+  auto suggested_post = SuggestedPost::get_suggested_post_info_object(m->suggested_post);
   auto can_be_saved = can_save_message(dialog_id, m);
   auto via_bot_user_id =
       td_->user_manager_->get_user_id_object(m->via_bot_user_id, "get_message_object via_bot_user_id");
@@ -19840,10 +19861,10 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
       std::move(sending_state), std::move(scheduling_state), is_outgoing, m->is_pinned, m->is_from_offline,
       can_be_saved, has_timestamped_media, m->is_channel_post, m->contains_unread_mention, date, edit_date,
       std::move(forward_info), std::move(import_info), std::move(interaction_info), std::move(unread_reactions),
-      std::move(fact_check), std::move(reply_to), top_thread_message_id, topic.get_message_topic_object(td_),
-      std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, via_business_bot_user_id,
-      m->sender_boost_count, m->paid_message_star_count, m->author_signature, m->media_album_id, m->effect_id.get(),
-      get_restriction_reason_has_sensitive_content(m->restriction_reasons),
+      std::move(fact_check), std::move(suggested_post), std::move(reply_to), top_thread_message_id,
+      topic.get_message_topic_object(td_), std::move(self_destruct_type), ttl_expires_in, auto_delete_in,
+      via_bot_user_id, via_business_bot_user_id, m->sender_boost_count, m->paid_message_star_count, m->author_signature,
+      m->media_album_id, m->effect_id.get(), get_restriction_reason_has_sensitive_content(m->restriction_reasons),
       get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
@@ -26028,6 +26049,18 @@ void MessagesManager::send_update_message_fact_check(DialogId dialog_id, const M
                                                           m->message_id.get(), get_message_fact_check_object(m)));
 }
 
+void MessagesManager::send_update_message_suggested_post_info(DialogId dialog_id, const Message *m) const {
+  CHECK(m != nullptr);
+  if (td_->auth_manager_->is_bot() || !m->is_update_sent) {
+    return;
+  }
+
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateMessageSuggestedPostInfo>(
+                   get_chat_id_object(dialog_id, "updateMessageSuggestedPostInfo"), m->message_id.get(),
+                   SuggestedPost::get_suggested_post_info_object(m->suggested_post)));
+}
+
 void MessagesManager::send_update_message_live_location_viewed(MessageFullId message_full_id) {
   CHECK(get_message(message_full_id) != nullptr);
   send_closure(G()->td(), &Td::send_update,
@@ -31418,6 +31451,11 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     need_send_update = true;
   }
   if (update_message_fact_check(d, old_message, std::move(new_message->fact_check), false)) {
+    need_send_update = true;
+  }
+  if (old_message->suggested_post != new_message->suggested_post) {
+    old_message->suggested_post = std::move(new_message->suggested_post);
+    send_update_message_suggested_post_info(dialog_id, old_message);
     need_send_update = true;
   }
 
