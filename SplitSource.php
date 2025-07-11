@@ -337,6 +337,7 @@ function split_file($file, $chunks, $undo) {
             'common_dialog_manager[_(-](?![.]get[(][)])|CommonDialogManager' => 'CommonDialogManager',
             'connection_state_manager[_(-](?![.]get[(][)])|ConnectionStateManager' => 'ConnectionStateManager',
             'country_info_manager[_(-](?![.]get[(][)])|CountryInfoManager' => 'CountryInfoManager',
+            'CurrencyAmount' => 'CurrencyAmount',
             'CustomEmojiId' => 'CustomEmojiId',
             'device_token_manager[_(-](?![.]get[(][)])|DeviceTokenManager' => 'DeviceTokenManager',
             'DialogAction[^M]' => 'DialogAction',

@@ -78,7 +78,7 @@ Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
       }
       if (amount < td->option_manager_->get_option_integer("suggested_post_toncoin_cent_count_min") ||
           amount > td->option_manager_->get_option_integer("suggested_post_toncoin_cent_count_max")) {
-        return Status::Error(400, "Invalid amount of toncoin cents specified");
+        return Status::Error(400, "Invalid amount of Toncoin cents specified");
       }
       SuggestedPostPrice result;
       result.type_ = Type::Ton;
@@ -133,7 +133,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const SuggestedPostPric
     case SuggestedPostPrice::Type::Star:
       return string_builder << '[' << amount.amount_ << " Stars]";
     case SuggestedPostPrice::Type::Ton:
-      return string_builder << '[' << amount.amount_ << " toncoin cents]";
+      return string_builder << '[' << amount.amount_ << " Toncoin cents]";
     default:
       UNREACHABLE();
       return string_builder;

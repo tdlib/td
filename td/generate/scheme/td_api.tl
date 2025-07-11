@@ -2304,7 +2304,7 @@ factCheck text:formattedText country_code:string = FactCheck;
 //@has_timestamped_media True, if media timestamp entities refers to a media in this message as opposed to a media in the replied message
 //@is_channel_post True, if the message is a channel post. All messages to channels are channel posts, all other messages are not channel posts
 //@is_paid_star_suggested_post True, if the message is a suggested channel post which was paid in Telegram Stars; a warning must be shown if the message is deleted in less then 24 hours after sending
-//@is_paid_ton_suggested_post True, if the message is a suggested channel post which was paid in toncoins; a warning must be shown if the message is deleted in less then 24 hours after sending
+//@is_paid_ton_suggested_post True, if the message is a suggested channel post which was paid in Toncoins; a warning must be shown if the message is deleted in less then 24 hours after sending
 //@contains_unread_mention True, if the message contains an unread mention for the current user
 //@date Point in time (Unix timestamp) when the message was sent; 0 for scheduled messages
 //@edit_date Point in time (Unix timestamp) when the message was last edited; 0 for scheduled messages
@@ -4469,7 +4469,7 @@ messageChecklistTasksAdded checklist_message_id:int53 tasks:vector<checklistTask
 //@description A suggested post was published for 24 hours and payment for the post was received
 //@suggested_post_message_id Identifier of the message with the checklist; can be 0 if the message was deleted
 //@star_amount The amount of received Telegram Stars
-//@ton_amount The amount of received toncoins; in the smallest units of the cryptocurrency
+//@ton_amount The amount of received Toncoins; in the smallest units of the cryptocurrency
 messageSuggestedPostPaid suggested_post_message_id:int53 star_amount:starAmount ton_amount:int64 = MessageContent;
 
 //@description A contact has registered with Telegram

@@ -393,6 +393,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/ConnectionStateManager.cpp
   td/telegram/Contact.cpp
   td/telegram/CountryInfoManager.cpp
+  td/telegram/CurrencyAmount.cpp
   td/telegram/DelayDispatcher.cpp
   td/telegram/Dependencies.cpp
   td/telegram/DeviceTokenManager.cpp
@@ -726,6 +727,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ConnectionStateManager.h
   td/telegram/Contact.h
   td/telegram/CountryInfoManager.h
+  td/telegram/CurrencyAmount.h
   td/telegram/CustomEmojiId.h
   td/telegram/DelayDispatcher.h
   td/telegram/Dependencies.h
@@ -1076,6 +1078,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/BusinessRecipients.hpp
   td/telegram/BusinessWorkHours.hpp
   td/telegram/ChatReactions.hpp
+  td/telegram/CurrencyAmount.hpp
   td/telegram/DialogFilter.hpp
   td/telegram/DialogInviteLink.hpp
   td/telegram/DialogNotificationSettings.hpp
