@@ -19,6 +19,8 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/Contact.h"
+#include "td/telegram/CurrencyAmount.h"
+#include "td/telegram/CurrencyAmount.hpp"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
@@ -73,8 +75,6 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/SharedDialog.h"
 #include "td/telegram/SharedDialog.hpp"
-#include "td/telegram/StarAmount.h"
-#include "td/telegram/StarAmount.hpp"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarGift.hpp"
 #include "td/telegram/StarGiftId.h"
@@ -95,8 +95,6 @@
 #include "td/telegram/ToDoItem.hpp"
 #include "td/telegram/ToDoList.h"
 #include "td/telegram/ToDoList.hpp"
-#include "td/telegram/TonAmount.h"
-#include "td/telegram/TonAmount.hpp"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/TranscriptionManager.h"
 #include "td/telegram/UserId.h"
@@ -1478,12 +1476,11 @@ class MessageGiftTon final : public MessageContent {
 class MessageSuggestedPostSuccess final : public MessageContent {
  public:
   MessageId suggested_post_message_id;
-  StarAmount star_amount;
-  TonAmount ton_amount;
+  CurrencyAmount amount;
 
   MessageSuggestedPostSuccess() = default;
-  MessageSuggestedPostSuccess(MessageId suggested_post_message_id, StarAmount star_amount, TonAmount ton_amount)
-      : suggested_post_message_id(suggested_post_message_id), star_amount(star_amount), ton_amount(ton_amount) {
+  MessageSuggestedPostSuccess(MessageId suggested_post_message_id, CurrencyAmount amount)
+      : suggested_post_message_id(suggested_post_message_id), amount(amount) {
   }
 
   MessageContentType get_type() const final {
@@ -2392,21 +2389,16 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::SuggestedPostSuccess: {
       const auto *m = static_cast<const MessageSuggestedPostSuccess *>(content);
       bool has_suggested_post_message_id = m->suggested_post_message_id.is_valid();
-      bool has_star_amount = m->star_amount != StarAmount();
-      bool has_ton_amount = m->ton_amount != TonAmount();
+      bool has_amount = m->amount != CurrencyAmount();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_suggested_post_message_id);
-      STORE_FLAG(has_star_amount);
-      STORE_FLAG(has_ton_amount);
+      STORE_FLAG(has_amount);
       END_STORE_FLAGS();
       if (has_suggested_post_message_id) {
         store(m->suggested_post_message_id, storer);
       }
-      if (has_star_amount) {
-        store(m->star_amount, storer);
-      }
-      if (has_ton_amount) {
-        store(m->ton_amount, storer);
+      if (has_amount) {
+        store(m->amount, storer);
       }
       break;
     }
@@ -3552,21 +3544,16 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::SuggestedPostSuccess: {
       auto m = make_unique<MessageSuggestedPostSuccess>();
       bool has_suggested_post_message_id;
-      bool has_star_amount;
-      bool has_ton_amount;
+      bool has_amount;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_suggested_post_message_id);
-      PARSE_FLAG(has_star_amount);
-      PARSE_FLAG(has_ton_amount);
+      PARSE_FLAG(has_amount);
       END_PARSE_FLAGS();
       if (has_suggested_post_message_id) {
         parse(m->suggested_post_message_id, parser);
       }
-      if (has_star_amount) {
-        parse(m->star_amount, parser);
-      }
-      if (has_ton_amount) {
-        parse(m->ton_amount, parser);
+      if (has_amount) {
+        parse(m->amount, parser);
       }
       content = std::move(m);
       break;
@@ -7031,8 +7018,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::SuggestedPostSuccess: {
       const auto *lhs = static_cast<const MessageSuggestedPostSuccess *>(old_content);
       const auto *rhs = static_cast<const MessageSuggestedPostSuccess *>(new_content);
-      if (lhs->suggested_post_message_id != rhs->suggested_post_message_id || lhs->star_amount != rhs->star_amount ||
-          lhs->ton_amount != rhs->ton_amount) {
+      if (lhs->suggested_post_message_id != rhs->suggested_post_message_id || lhs->amount != rhs->amount) {
         need_update = true;
       }
       break;
@@ -9011,20 +8997,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                    << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
-      StarAmount star_amount;
-      TonAmount ton_amount;
-      switch (action->price_->get_id()) {
-        case telegram_api::starsAmount::ID:
-          star_amount = StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(action->price_), false);
-          break;
-        case telegram_api::starsTonAmount::ID:
-          ton_amount = TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(action->price_), false);
-          break;
-        default:
-          UNREACHABLE();
-      }
-
-      return td::make_unique<MessageSuggestedPostSuccess>(reply_to_message_id, star_amount, ton_amount);
+      return td::make_unique<MessageSuggestedPostSuccess>(reply_to_message_id,
+                                                          CurrencyAmount(std::move(action->price_), false));
     }
     case telegram_api::messageActionSuggestedPostRefund::ID:
       return td::make_unique<MessageUnsupported>();
@@ -9662,8 +9636,9 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::SuggestedPostSuccess: {
       const auto *m = static_cast<const MessageSuggestedPostSuccess *>(content);
-      return td_api::make_object<td_api::messageSuggestedPostPaid>(
-          m->suggested_post_message_id.get(), m->star_amount.get_star_amount_object(), m->ton_amount.get_ton_amount());
+      return td_api::make_object<td_api::messageSuggestedPostPaid>(m->suggested_post_message_id.get(),
+                                                                   m->amount.get_star_amount().get_star_amount_object(),
+                                                                   m->amount.get_ton_amount().get_ton_amount());
     }
     default:
       UNREACHABLE();
