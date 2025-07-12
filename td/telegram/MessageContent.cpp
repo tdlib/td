@@ -9355,7 +9355,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       StarGiftId star_gift_id;
       if (m->owner_dialog_id != DialogId()) {
         star_gift_id = StarGiftId(m->owner_dialog_id, m->saved_id);
-      } else if (dialog_id.get_type() == DialogType::User && m->is_upgrade == is_outgoing && is_server &&
+      } else if (dialog_id.get_type() == DialogType::User &&
+                 m->is_upgrade == (is_outgoing || dialog_id == td->dialog_manager_->get_my_dialog_id()) && is_server &&
                  message_id.is_server()) {
         auto user_id = dialog_id.get_user_id();
         if (user_id != UserManager::get_service_notifications_user_id() || m->is_upgrade) {
