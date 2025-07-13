@@ -445,6 +445,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                     }
                   } else {
                     if (for_user || for_bot) {
+                      product_info = nullptr;
                       return td_api::make_object<td_api::starTransactionTypeGiftPurchase>(
                           get_message_sender_object(td_, user_id, DialogId(), "starTransactionTypeGiftPurchase"),
                           gift.get_gift_object(td_));
@@ -593,6 +594,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   }
                 } else {
                   if (for_user || for_bot) {
+                    product_info = nullptr;
                     return td_api::make_object<td_api::starTransactionTypeGiftPurchase>(
                         get_message_sender_object(td_, UserId(), dialog_id, "starTransactionTypeGiftPurchase"),
                         gift.get_gift_object(td_));
