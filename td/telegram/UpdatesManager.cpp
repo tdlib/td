@@ -1928,7 +1928,9 @@ void UpdatesManager::process_get_difference_updates(
     */
   }
 
-  MessageId::is_message_id_order_ascending(new_messages);  // ignore errors
+  if (td_->option_manager_->get_option_integer("session_count") <= 1) {
+    MessageId::is_message_id_order_ascending(new_messages);  // ignore errors
+  }
 
   for (auto &message : new_messages) {
     // channel messages must not be received in this vector
