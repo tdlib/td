@@ -6961,7 +6961,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
     return;
   }
 
-  if (!MessageId::is_message_id_order_descending(messages)) {
+  if (!MessageId::is_message_id_order_descending(messages, "on_get_history")) {
     promise.set_value(Unit());
     return;
   }
@@ -7227,7 +7227,7 @@ void MessagesManager::on_get_call_messages(MessageId from_message_id, int32 limi
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   LOG(INFO) << "Receive " << messages.size() << " found call messages";
-  if (!MessageId::is_message_id_order_descending(messages)) {
+  if (!MessageId::is_message_id_order_descending(messages, "on_get_call_messages")) {
     messages.clear();
   }
   MessageId first_added_message_id;
@@ -7309,7 +7309,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
 
   auto &result = it->second.message_ids;
   CHECK(result.empty());
-  if (!MessageId::is_message_id_order_descending(messages)) {
+  if (!MessageId::is_message_id_order_descending(messages, "on_get_dialog_messages_search_result")) {
     messages.clear();
   }
   MessageId first_added_message_id;
@@ -34082,7 +34082,7 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
         new_pts = request_pts + 1;
       }
 
-      if (!MessageId::is_message_id_order_ascending(difference->new_messages_)) {
+      if (!MessageId::is_message_id_order_ascending(difference->new_messages_, "on_get_channel_difference")) {
         after_get_channel_difference(dialog_id, false);
         return;
       }

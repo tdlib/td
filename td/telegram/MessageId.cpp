@@ -63,7 +63,8 @@ MessageId MessageId::get_max_message_id(const vector<telegram_api::object_ptr<te
   return max_message_id;
 }
 
-bool MessageId::is_message_id_order_ascending(const vector<telegram_api::object_ptr<telegram_api::Message>> &messages) {
+bool MessageId::is_message_id_order_ascending(const vector<telegram_api::object_ptr<telegram_api::Message>> &messages,
+                                              const char *source) {
   MessageId cur_message_id;
   for (const auto &message : messages) {
     auto message_id = get_message_id(message, false);
@@ -72,7 +73,7 @@ bool MessageId::is_message_id_order_ascending(const vector<telegram_api::object_
       for (const auto &debug_message : messages) {
         error += to_string(debug_message);
       }
-      LOG(ERROR) << "Receive " << message_id << " after " << cur_message_id << " in " << error;
+      LOG(ERROR) << "Receive " << message_id << " after " << cur_message_id << " from " << source << " in " << error;
       return false;
     }
     cur_message_id = message_id;
@@ -80,8 +81,8 @@ bool MessageId::is_message_id_order_ascending(const vector<telegram_api::object_
   return true;
 }
 
-bool MessageId::is_message_id_order_descending(
-    const vector<telegram_api::object_ptr<telegram_api::Message>> &messages) {
+bool MessageId::is_message_id_order_descending(const vector<telegram_api::object_ptr<telegram_api::Message>> &messages,
+                                               const char *source) {
   MessageId cur_message_id = MessageId::max();
   for (const auto &message : messages) {
     auto message_id = get_message_id(message, false);
@@ -90,7 +91,7 @@ bool MessageId::is_message_id_order_descending(
       for (const auto &debug_message : messages) {
         error += to_string(debug_message);
       }
-      LOG(ERROR) << "Receive " << message_id << " after " << cur_message_id << " in " << error;
+      LOG(ERROR) << "Receive " << message_id << " after " << cur_message_id << " from " << source << " in " << error;
       return false;
     }
     cur_message_id = message_id;

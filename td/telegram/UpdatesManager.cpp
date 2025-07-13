@@ -1929,7 +1929,7 @@ void UpdatesManager::process_get_difference_updates(
   }
 
   if (td_->option_manager_->get_option_integer("session_count") <= 1) {
-    MessageId::is_message_id_order_ascending(new_messages);  // ignore errors
+    MessageId::is_message_id_order_ascending(new_messages, "process_get_difference_updates");  // ignore errors
   }
 
   for (auto &message : new_messages) {

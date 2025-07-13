@@ -2191,7 +2191,7 @@ void SavedMessagesManager::on_get_topic_history(DialogId dialog_id, uint32 gener
     return promise.set_value(
         td_->messages_manager_->get_messages_object(0, dialog_id, {}, true, "on_get_topic_history"));
   }
-  if (!MessageId::is_message_id_order_descending(info.messages)) {
+  if (!MessageId::is_message_id_order_descending(info.messages, "on_get_topic_history")) {
     return promise.set_error(500, "Receive invalid response");
   }
 
