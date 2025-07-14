@@ -23126,8 +23126,8 @@ void MessagesManager::update_message_max_reply_media_timestamp(const Dialog *d, 
     return;
   }
 
-  LOG(INFO) << "Set max_reply_media_timestamp in " << m->message_id << " in " << d->dialog_id << " to "
-            << new_max_reply_media_timestamp;
+  // LOG(INFO) << "Set max_reply_media_timestamp in " << m->message_id << " in " << d->dialog_id << " to "
+  //           << new_max_reply_media_timestamp;
   auto old_max_media_timestamp = get_message_max_media_timestamp(m);
   m->max_reply_media_timestamp = new_max_reply_media_timestamp;
   auto new_max_media_timestamp = get_message_max_media_timestamp(m);
@@ -23153,8 +23153,8 @@ void MessagesManager::update_message_max_own_media_timestamp(const Dialog *d, Me
     return;
   }
 
-  LOG(INFO) << "Set max_own_media_timestamp in " << m->message_id << " in " << d->dialog_id << " to "
-            << new_max_own_media_timestamp;
+  // LOG(INFO) << "Set max_own_media_timestamp in " << m->message_id << " in " << d->dialog_id << " to "
+  //           << new_max_own_media_timestamp;
   m->max_own_media_timestamp = new_max_own_media_timestamp;
 
   update_message_max_reply_media_timestamp_in_replied_messages(d->dialog_id, m->message_id);
@@ -23176,7 +23176,7 @@ void MessagesManager::update_message_max_reply_media_timestamp_in_replied_messag
     return;
   }
 
-  LOG(INFO) << "Update max_reply_media_timestamp for replies of " << message_full_id;
+  // LOG(INFO) << "Update max_reply_media_timestamp for replies of " << message_full_id;
 
   for (const auto &replied_message_full_id : it->second) {
     auto replied_dialog_id = replied_message_full_id.get_dialog_id();
@@ -23194,7 +23194,7 @@ void MessagesManager::update_story_max_reply_media_timestamp_in_replied_messages
     return;
   }
 
-  LOG(INFO) << "Update max_reply_media_timestamp for replies of " << story_full_id;
+  // LOG(INFO) << "Update max_reply_media_timestamp for replies of " << story_full_id;
 
   for (const auto &replied_message_full_id : it->second) {
     auto replied_dialog_id = replied_message_full_id.get_dialog_id();
