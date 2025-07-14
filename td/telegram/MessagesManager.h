@@ -3102,6 +3102,8 @@ class MessagesManager final : public Actor {
 
   static DialogId get_message_sender(const Message *m);
 
+  static MessageId get_message_forum_topic_id(const Message *m);
+
   static SavedMessagesTopicId get_message_monoforum_topic_id(const Message *m);
 
   MessageTopic get_message_topic(DialogId dialog_id, const Message *m) const;

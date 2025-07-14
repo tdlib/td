@@ -4993,8 +4993,7 @@ void MessagesManager::on_update_message_content(MessageFullId message_full_id) {
 
 void MessagesManager::on_unread_message_mention_removed(Dialog *d, const Message *m, const char *source) {
   if (d->is_forum) {
-    td_->forum_topic_manager_->on_topic_mention_count_changed(
-        d->dialog_id, m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1)), -1, true);
+    td_->forum_topic_manager_->on_topic_mention_count_changed(d->dialog_id, get_message_forum_topic_id(m), -1, true);
   }
   if (d->unread_mention_count == 0) {
     if (is_dialog_inited(d)) {
@@ -5028,8 +5027,7 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
 
 void MessagesManager::on_unread_message_reaction_added(Dialog *d, const Message *m, const char *source) {
   if (d->is_forum) {
-    td_->forum_topic_manager_->on_topic_reaction_count_changed(
-        d->dialog_id, m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1)), +1, true);
+    td_->forum_topic_manager_->on_topic_reaction_count_changed(d->dialog_id, get_message_forum_topic_id(m), +1, true);
   } else if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id)) {
     td_->saved_messages_manager_->on_topic_reaction_count_changed(d->dialog_id, m->saved_messages_topic_id, +1, true);
   }
@@ -5039,8 +5037,7 @@ void MessagesManager::on_unread_message_reaction_added(Dialog *d, const Message 
 
 void MessagesManager::on_unread_message_reaction_removed(Dialog *d, const Message *m, const char *source) {
   if (d->is_forum) {
-    td_->forum_topic_manager_->on_topic_reaction_count_changed(
-        d->dialog_id, m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1)), -1, true);
+    td_->forum_topic_manager_->on_topic_reaction_count_changed(d->dialog_id, get_message_forum_topic_id(m), -1, true);
   } else if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id)) {
     td_->saved_messages_manager_->on_topic_reaction_count_changed(d->dialog_id, m->saved_messages_topic_id, -1, true);
   }
@@ -14969,7 +14966,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
     sb << "c/" << dialog_id.get_channel_id().get();
   }
   if (in_message_thread && is_forum) {
-    auto top_thread_message_id = m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1));
+    auto top_thread_message_id = get_message_forum_topic_id(m);
     if (top_thread_message_id != message_id) {
       sb << '/' << top_thread_message_id.get_server_message_id().get();
     }
@@ -15171,7 +15168,7 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
       if (info.comment_dialog_id.is_valid() || info.for_comment) {
         top_thread_message_id = m->top_thread_message_id;
       } else if (d->is_forum) {
-        top_thread_message_id = m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1));
+        top_thread_message_id = get_message_forum_topic_id(m);
       } else {
         top_thread_message_id = MessageId();
       }
@@ -15942,7 +15939,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     for (auto message_id : message_ids) {
       auto *m = get_message_force(d, message_id, "view_messages 3");
       if (m != nullptr) {
-        auto message_forum_topic_id = m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1));
+        auto message_forum_topic_id = get_message_forum_topic_id(m);
         if (forum_topic_id.is_valid()) {
           if (message_forum_topic_id != forum_topic_id) {
             return Status::Error(400, "All messages must be from the same forum topic");
@@ -22599,6 +22596,10 @@ DialogId MessagesManager::get_message_original_sender(const Message *m) {
 DialogId MessagesManager::get_message_sender(const Message *m) {
   CHECK(m != nullptr);
   return m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id);
+}
+
+MessageId MessagesManager::get_message_forum_topic_id(const Message *m) {
+  return m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1));
 }
 
 SavedMessagesTopicId MessagesManager::get_message_monoforum_topic_id(const Message *m) {
@@ -29819,8 +29820,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
   }
   if (need_update && m->contains_unread_mention) {
     if (d->is_forum) {
-      td_->forum_topic_manager_->on_topic_mention_count_changed(
-          dialog_id, m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1)), +1, true);
+      td_->forum_topic_manager_->on_topic_mention_count_changed(dialog_id, get_message_forum_topic_id(m), +1, true);
     }
     set_dialog_unread_mention_count(d, d->unread_mention_count + 1);
     send_update_chat_unread_mention_count(d);
