@@ -15171,12 +15171,10 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
     if (m != nullptr) {
       message = get_message_object(dialog_id, m, "get_message_link_info_object");
       for_album = !info.is_single && m->media_album_id != 0;
-      if (info.comment_dialog_id.is_valid() || info.for_comment || m->is_topic_message) {
+      if (info.comment_dialog_id.is_valid() || info.for_comment) {
         top_thread_message_id = m->top_thread_message_id;
-      } else if (d->is_forum && (info.top_thread_message_id == MessageId(ServerMessageId(1)) ||
-                                 m->message_id == MessageId(ServerMessageId(1)))) {
-        // General topic
-        top_thread_message_id = MessageId(ServerMessageId(1));
+      } else if (d->is_forum) {
+        top_thread_message_id = m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1));
       } else {
         top_thread_message_id = MessageId();
       }
