@@ -11716,6 +11716,12 @@ processChatJoinRequests chat_id:int53 invite_link:string approve:Bool = Ok;
 //@send_date Point in time (Unix timestamp) when the post is expected to be published; pass 0 if the date has already been chosen
 approveSuggestedPost chat_id:int53 message_id:int53 send_date:int32 = Ok;
 
+//@description Declines a suggested post in a channel direct messages chat
+//@chat_id Chat identifier of the channel direct messages chat
+//@message_id Identifier of the message with the suggested post
+//@comment Comment for the creator of the suggested post
+declineSuggestedPost chat_id:int53 message_id:int53 comment:string = Ok;
+
 
 //@description Creates a new call
 //@user_id Identifier of the user to be called

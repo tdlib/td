@@ -5685,6 +5685,14 @@ void Requests::on_request(uint64 id, const td_api::approveSuggestedPost &request
                                                  request.send_date_, string(), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::declineSuggestedPost &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.comment_);
+  CREATE_OK_REQUEST_PROMISE();
+  td_->messages_manager_->process_suggested_post({DialogId(request.chat_id_), MessageId(request.message_id_)}, true, 0,
+                                                 request.comment_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::revokeChatInviteLink &request) {
   CLEAN_INPUT_STRING(request.invite_link_);
   CREATE_REQUEST_PROMISE();

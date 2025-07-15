@@ -5089,6 +5089,12 @@ class CliClient final : public Actor {
       int32 send_date;
       get_args(args, chat_id, message_id, send_date);
       send_request(td_api::make_object<td_api::approveSuggestedPost>(chat_id, message_id, send_date));
+    } else if (op == "dsp") {
+      ChatId chat_id;
+      MessageId message_id;
+      string comment;
+      get_args(args, chat_id, message_id, comment);
+      send_request(td_api::make_object<td_api::declineSuggestedPost>(chat_id, message_id, comment));
     } else if (op == "sq") {
       string text;
       string quote;
