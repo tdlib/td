@@ -69,7 +69,6 @@ class TimeZoneManager final : public Actor {
   };
 
   friend bool operator==(const TimeZone &lhs, const TimeZone &rhs);
-
   friend bool operator!=(const TimeZone &lhs, const TimeZone &rhs);
 
   void on_get_time_zones(Result<telegram_api::object_ptr<telegram_api::help_TimezonesList>> &&r_time_zones);

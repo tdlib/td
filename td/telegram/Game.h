@@ -36,7 +36,6 @@ class Game {
   FormattedText text_;
 
   friend bool operator==(const Game &lhs, const Game &rhs);
-  friend bool operator!=(const Game &lhs, const Game &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const Game &game);
 

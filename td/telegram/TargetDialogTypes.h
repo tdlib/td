@@ -25,7 +25,6 @@ class TargetDialogTypes {
   static constexpr int64 FULL_MASK = USERS_MASK | BOTS_MASK | CHATS_MASK | BROADCASTS_MASK;
 
   friend bool operator==(const TargetDialogTypes &lhs, const TargetDialogTypes &rhs);
-  friend bool operator!=(const TargetDialogTypes &lhs, const TargetDialogTypes &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const TargetDialogTypes &types);
 

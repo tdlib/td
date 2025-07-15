@@ -29,7 +29,6 @@ class Location {
   mutable int64 access_hash_ = 0;
 
   friend bool operator==(const Location &lhs, const Location &rhs);
-  friend bool operator!=(const Location &lhs, const Location &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const Location &location);
 

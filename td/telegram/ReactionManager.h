@@ -172,7 +172,6 @@ class ReactionManager final : public Actor {
   };
 
   friend bool operator==(const SavedReactionTag &lhs, const SavedReactionTag &rhs);
-
   friend bool operator!=(const SavedReactionTag &lhs, const SavedReactionTag &rhs);
 
   friend bool operator<(const SavedReactionTag &lhs, const SavedReactionTag &rhs);

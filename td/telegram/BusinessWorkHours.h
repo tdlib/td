@@ -68,7 +68,6 @@ class BusinessWorkHours {
   friend bool operator!=(const WorkHoursInterval &lhs, const WorkHoursInterval &rhs);
 
   friend bool operator==(const BusinessWorkHours &lhs, const BusinessWorkHours &rhs);
-  friend bool operator!=(const BusinessWorkHours &lhs, const BusinessWorkHours &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const WorkHoursInterval &interval);
 

@@ -52,7 +52,6 @@ class SharedDialog {
 
  private:
   friend bool operator==(const SharedDialog &lhs, const SharedDialog &rhs);
-  friend bool operator!=(const SharedDialog &lhs, const SharedDialog &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const SharedDialog &shared_dialog);
 

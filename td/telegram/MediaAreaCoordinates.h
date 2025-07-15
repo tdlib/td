@@ -23,7 +23,6 @@ class MediaAreaCoordinates {
   double radius_ = 0.0;
 
   friend bool operator==(const MediaAreaCoordinates &lhs, const MediaAreaCoordinates &rhs);
-  friend bool operator!=(const MediaAreaCoordinates &lhs, const MediaAreaCoordinates &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MediaAreaCoordinates &coordinates);
 

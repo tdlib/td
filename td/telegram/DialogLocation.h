@@ -23,7 +23,6 @@ class DialogLocation {
   string address_;
 
   friend bool operator==(const DialogLocation &lhs, const DialogLocation &rhs);
-  friend bool operator!=(const DialogLocation &lhs, const DialogLocation &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogLocation &location);
 

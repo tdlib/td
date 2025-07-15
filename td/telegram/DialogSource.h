@@ -23,8 +23,6 @@ class DialogSource {
 
   friend bool operator==(const DialogSource &lhs, const DialogSource &rhs);
 
-  friend bool operator!=(const DialogSource &lhs, const DialogSource &rhs);
-
   friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogSource &source);
 
  public:

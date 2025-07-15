@@ -33,7 +33,6 @@ class GiveawayParameters {
   static Result<ChannelId> get_boosted_channel_id(Td *td, DialogId dialog_id);
 
   friend bool operator==(const GiveawayParameters &lhs, const GiveawayParameters &rhs);
-  friend bool operator!=(const GiveawayParameters &lhs, const GiveawayParameters &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const GiveawayParameters &giveaway_parameters);
 

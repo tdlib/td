@@ -112,7 +112,6 @@ class ThemeManager final : public Actor {
   };
 
   friend bool operator==(const ProfileAccentColor &lhs, const ProfileAccentColor &rhs);
-
   friend bool operator!=(const ProfileAccentColor &lhs, const ProfileAccentColor &rhs);
 
   struct ProfileAccentColors {

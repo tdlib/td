@@ -30,7 +30,6 @@ class WebApp {
   int64 hash_ = 0;
 
   friend bool operator==(const WebApp &lhs, const WebApp &rhs);
-  friend bool operator!=(const WebApp &lhs, const WebApp &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const WebApp &web_app);
 

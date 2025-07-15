@@ -60,7 +60,6 @@ class MediaArea {
   bool is_old_message_ = false;
 
   friend bool operator==(const MediaArea &lhs, const MediaArea &rhs);
-  friend bool operator!=(const MediaArea &lhs, const MediaArea &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MediaArea &media_area);
 

@@ -32,7 +32,6 @@ class Contact {
   UserId user_id_;
 
   friend bool operator==(const Contact &lhs, const Contact &rhs);
-  friend bool operator!=(const Contact &lhs, const Contact &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const Contact &contact);
 

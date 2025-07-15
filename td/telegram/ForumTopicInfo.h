@@ -31,7 +31,6 @@ class ForumTopicInfo {
   bool is_hidden_ = false;
 
   friend bool operator==(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs);
-  friend bool operator!=(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicInfo &topic_info);
 
