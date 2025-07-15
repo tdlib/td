@@ -4475,6 +4475,13 @@ messageChecklistTasksDone checklist_message_id:int53 marked_as_done_task_ids:vec
 //@tasks List of tasks added to the checklist
 messageChecklistTasksAdded checklist_message_id:int53 tasks:vector<checklistTask> = MessageContent;
 
+//@description A suggested post was approved or declined
+//@suggested_post_message_id Identifier of the message with the suggested post; can be 0 if the message was deleted
+//@info Information about the suggested post
+//@is_balance_too_low True, if the post was apporved, but there is no enough funds on the balance of the user which proposed the post
+//@comment Comment added by administrator of the channel when the post was declined
+messageSuggestedPostApprovalToggled suggested_post_message_id:int53 info:suggestedPostInfo is_balance_too_low:Bool comment:string = MessageContent;
+
 //@description A suggested post was published for 24 hours and payment for the post was received
 //@suggested_post_message_id Identifier of the message with the suggested post; can be 0 if the message was deleted
 //@star_amount The amount of received Telegram Stars
@@ -9508,7 +9515,7 @@ getMessageLocally chat_id:int53 message_id:int53 = Message;
 //@description Returns information about a non-bundled message that is replied by a given message. Also, returns the pinned message, the game message, the invoice message,
 //-the message with a previously set same background, the giveaway message, the checklist message, and the topic creation message for messages of the types
 //-messagePinMessage, messageGameScore, messagePaymentSuccessful, messageChatSetBackground, messageGiveawayCompleted, messageChecklistTasksDone, messageChecklistTasksAdded,
-//-messageSuggestedPostPaid, messageSuggestedPostRefunded, and topic messages without non-bundled replied message respectively.
+//-messageSuggestedPostApprovalToggled, messageSuggestedPostPaid, messageSuggestedPostRefunded, and topic messages without non-bundled replied message respectively.
 //-Returns a 404 error if the message doesn't exist
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message

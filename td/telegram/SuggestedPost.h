@@ -30,10 +30,18 @@ class SuggestedPost {
  public:
   SuggestedPost() = default;
 
+  SuggestedPost(SuggestedPostPrice price, int32 schedule_date, bool is_accepted, bool is_rejected)
+      : price_(std::move(price)), schedule_date_(schedule_date), is_accepted_(is_accepted), is_rejected_(is_rejected) {
+  }
+
   static unique_ptr<SuggestedPost> get_suggested_post(telegram_api::object_ptr<telegram_api::suggestedPost> &&post);
 
   static Result<unique_ptr<SuggestedPost>> get_suggested_post(
       const Td *td, td_api::object_ptr<td_api::inputSuggestedPostInfo> &&post);
+
+  bool is_empty() const {
+    return price_.is_empty() && schedule_date_ == 0;
+  }
 
   telegram_api::object_ptr<telegram_api::suggestedPost> get_input_suggested_post() const;
 

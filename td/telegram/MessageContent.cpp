@@ -87,6 +87,9 @@
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
+#include "td/telegram/SuggestedPost.h"
+#include "td/telegram/SuggestedPost.hpp"
+#include "td/telegram/SuggestedPostPrice.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ToDoCompletion.h"
@@ -1503,6 +1506,27 @@ class MessageSuggestedPostRefund final : public MessageContent {
   }
 };
 
+class MessageSuggestedPostApproval final : public MessageContent {
+ public:
+  MessageId suggested_post_message_id;
+  SuggestedPost post;
+  string comment;
+  bool is_balance_too_low = false;
+
+  MessageSuggestedPostApproval() = default;
+  MessageSuggestedPostApproval(MessageId suggested_post_message_id, SuggestedPost &&post, string &&comment,
+                               bool is_balance_too_low)
+      : suggested_post_message_id(suggested_post_message_id)
+      , post(std::move(post))
+      , comment(std::move(comment))
+      , is_balance_too_low(is_balance_too_low) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::SuggestedPostApproval;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -2426,6 +2450,28 @@ static void store(const MessageContent *content, StorerT &storer) {
       END_STORE_FLAGS();
       if (has_suggested_post_message_id) {
         store(m->suggested_post_message_id, storer);
+      }
+      break;
+    }
+    case MessageContentType::SuggestedPostApproval: {
+      const auto *m = static_cast<const MessageSuggestedPostApproval *>(content);
+      bool has_suggested_post_message_id = m->suggested_post_message_id.is_valid();
+      bool has_comment = !m->comment.empty();
+      bool has_post = !m->post.is_empty();
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_suggested_post_message_id);
+      STORE_FLAG(has_post);
+      STORE_FLAG(has_comment);
+      STORE_FLAG(m->is_balance_too_low);
+      END_STORE_FLAGS();
+      if (has_suggested_post_message_id) {
+        store(m->suggested_post_message_id, storer);
+      }
+      if (has_post) {
+        store(m->post, storer);
+      }
+      if (has_comment) {
+        store(m->comment, storer);
       }
       break;
     }
@@ -3598,6 +3644,29 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::SuggestedPostApproval: {
+      auto m = make_unique<MessageSuggestedPostApproval>();
+      bool has_suggested_post_message_id;
+      bool has_comment;
+      bool has_post;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_suggested_post_message_id);
+      PARSE_FLAG(has_post);
+      PARSE_FLAG(has_comment);
+      PARSE_FLAG(m->is_balance_too_low);
+      END_PARSE_FLAGS();
+      if (has_suggested_post_message_id) {
+        parse(m->suggested_post_message_id, parser);
+      }
+      if (has_post) {
+        parse(m->post, parser);
+      }
+      if (has_comment) {
+        parse(m->comment, parser);
+      }
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -4396,6 +4465,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::GiftTon:
     case MessageContentType::SuggestedPostSuccess:
     case MessageContentType::SuggestedPostRefund:
+    case MessageContentType::SuggestedPostApproval:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -4554,6 +4624,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::GiftTon:
     case MessageContentType::SuggestedPostSuccess:
     case MessageContentType::SuggestedPostRefund:
+    case MessageContentType::SuggestedPostApproval:
       break;
     default:
       UNREACHABLE();
@@ -4741,6 +4812,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::GiftTon:
     case MessageContentType::SuggestedPostSuccess:
     case MessageContentType::SuggestedPostRefund:
+    case MessageContentType::SuggestedPostApproval:
       break;
     default:
       UNREACHABLE();
@@ -4965,6 +5037,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
     case MessageContentType::GiftTon:
     case MessageContentType::SuggestedPostSuccess:
     case MessageContentType::SuggestedPostRefund:
+    case MessageContentType::SuggestedPostApproval:
       break;
     default:
       UNREACHABLE();
@@ -5216,6 +5289,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::GiftTon:
     case MessageContentType::SuggestedPostSuccess:
     case MessageContentType::SuggestedPostRefund:
+    case MessageContentType::SuggestedPostApproval:
       UNREACHABLE();
   }
   return Status::OK();
@@ -5386,6 +5460,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::GiftTon:
     case MessageContentType::SuggestedPostSuccess:
     case MessageContentType::SuggestedPostRefund:
+    case MessageContentType::SuggestedPostApproval:
       return 0;
     default:
       UNREACHABLE();
@@ -5499,6 +5574,14 @@ MessageFullId get_message_content_replied_message_id(DialogId dialog_id, const M
     }
     case MessageContentType::SuggestedPostRefund: {
       auto *m = static_cast<const MessageSuggestedPostRefund *>(content);
+      if (!m->suggested_post_message_id.is_valid()) {
+        return MessageFullId();
+      }
+
+      return {dialog_id, m->suggested_post_message_id};
+    }
+    case MessageContentType::SuggestedPostApproval: {
+      auto *m = static_cast<const MessageSuggestedPostApproval *>(content);
       if (!m->suggested_post_message_id.is_valid()) {
         return MessageFullId();
       }
@@ -5745,6 +5828,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::SuggestedPostSuccess:
       break;
     case MessageContentType::SuggestedPostRefund:
+      break;
+    case MessageContentType::SuggestedPostApproval:
       break;
     default:
       UNREACHABLE();
@@ -6213,6 +6298,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::GiftTon:
     case MessageContentType::SuggestedPostSuccess:
     case MessageContentType::SuggestedPostRefund:
+    case MessageContentType::SuggestedPostApproval:
       break;
     default:
       UNREACHABLE();
@@ -6379,6 +6465,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::GiftTon:
     case MessageContentType::SuggestedPostSuccess:
     case MessageContentType::SuggestedPostRefund:
+    case MessageContentType::SuggestedPostApproval:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -7086,6 +7173,15 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *rhs = static_cast<const MessageSuggestedPostRefund *>(new_content);
       if (lhs->suggested_post_message_id != rhs->suggested_post_message_id ||
           lhs->is_payer_initiated != rhs->is_payer_initiated) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::SuggestedPostApproval: {
+      const auto *lhs = static_cast<const MessageSuggestedPostApproval *>(old_content);
+      const auto *rhs = static_cast<const MessageSuggestedPostApproval *>(new_content);
+      if (lhs->suggested_post_message_id != rhs->suggested_post_message_id || lhs->post != rhs->post ||
+          lhs->comment != rhs->comment || lhs->is_balance_too_low != rhs->is_balance_too_low) {
         need_update = true;
       }
       break;
@@ -8412,6 +8508,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::GiftTon:
     case MessageContentType::SuggestedPostSuccess:
     case MessageContentType::SuggestedPostRefund:
+    case MessageContentType::SuggestedPostApproval:
       return nullptr;
     default:
       UNREACHABLE();
@@ -9073,8 +9170,18 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       });
       return td::make_unique<MessageTodoAppendTasks>(reply_to_message_id, std::move(items));
     }
-    case telegram_api::messageActionSuggestedPostApproval::ID:
-      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionSuggestedPostApproval::ID: {
+      auto action = telegram_api::move_object_as<telegram_api::messageActionSuggestedPostApproval>(action_ptr);
+      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
+      if (!reply_to_message_id.is_valid() && reply_to_message_id != MessageId()) {
+        LOG(ERROR) << "Receive suggested post refund message with " << reply_to_message_id << " in " << owner_dialog_id;
+        reply_to_message_id = MessageId();
+      }
+      auto post = SuggestedPost(SuggestedPostPrice(std::move(action->price_)), action->schedule_date_,
+                                !action->rejected_, action->rejected_);
+      return td::make_unique<MessageSuggestedPostApproval>(
+          reply_to_message_id, std::move(post), std::move(action->reject_comment_), action->balance_too_low_);
+    }
     case telegram_api::messageActionSuggestedPostSuccess::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionSuggestedPostSuccess>(action_ptr);
       auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
@@ -9743,6 +9850,12 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       }();
       return td_api::make_object<td_api::messageSuggestedPostRefunded>(m->suggested_post_message_id.get(),
                                                                        std::move(reason));
+    }
+    case MessageContentType::SuggestedPostApproval: {
+      const auto *m = static_cast<const MessageSuggestedPostApproval *>(content);
+      return td_api::make_object<td_api::messageSuggestedPostApprovalToggled>(m->suggested_post_message_id.get(),
+                                                                              m->post.get_suggested_post_info_object(),
+                                                                              m->is_balance_too_low, m->comment);
     }
     default:
       UNREACHABLE();
@@ -10426,6 +10539,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::GiftTon:
     case MessageContentType::SuggestedPostSuccess:
     case MessageContentType::SuggestedPostRefund:
+    case MessageContentType::SuggestedPostApproval:
       return string();
     default:
       UNREACHABLE();
@@ -10903,6 +11017,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::SuggestedPostSuccess:
       break;
     case MessageContentType::SuggestedPostRefund:
+      break;
+    case MessageContentType::SuggestedPostApproval:
       break;
     default:
       UNREACHABLE();
