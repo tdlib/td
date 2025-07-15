@@ -8425,6 +8425,24 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
   }
   switch (action_ptr->get_id()) {
+    case telegram_api::messageActionPinMessage::ID:
+    case telegram_api::messageActionGameScore::ID:
+    case telegram_api::messageActionPaymentSent::ID:
+    case telegram_api::messageActionSetChatWallPaper::ID:
+    case telegram_api::messageActionGiveawayResults::ID:
+    case telegram_api::messageActionTodoCompletions::ID:
+    case telegram_api::messageActionTodoAppendTasks::ID:
+    case telegram_api::messageActionSuggestedPostApproval::ID:
+    case telegram_api::messageActionSuggestedPostSuccess::ID:
+    case telegram_api::messageActionSuggestedPostRefund::ID:
+      // ok
+      break;
+    default:
+      if (!replied_message_info.is_empty()) {
+        LOG(ERROR) << "Receive " << replied_message_info << " with " << to_string(action_ptr);
+      }
+  }
+  switch (action_ptr->get_id()) {
     case telegram_api::messageActionEmpty::ID:
       LOG(ERROR) << "Receive empty message action in " << owner_dialog_id;
       break;
