@@ -925,6 +925,15 @@ suggestedPostInfo price:SuggestedPostPrice send_date:int32 state:SuggestedPostSt
 inputSuggestedPostInfo price:SuggestedPostPrice send_date:int32 = InputSuggestedPostInfo;
 
 
+//@class SuggestedPostRefundReason @description Describes reason for refund of the payment for a suggested post
+
+//@description The post was refunded, because it was deleted by channel administrators in less then 24 hours
+suggestedPostRefundReasonPostDeleted = SuggestedPostRefundReason;
+
+//@description The post was refunded, because the payment for the post was refunded
+suggestedPostRefundReasonPaymentRefunded = SuggestedPostRefundReason;
+
+
 //@description Describes a possibly non-integer amount of Telegram Stars
 //@star_count The integer amount of Telegram Stars rounded to 0
 //@nanostar_count The number of 1/1000000000 shares of Telegram Stars; from -999999999 to 999999999
@@ -4467,10 +4476,15 @@ messageChecklistTasksDone checklist_message_id:int53 marked_as_done_task_ids:vec
 messageChecklistTasksAdded checklist_message_id:int53 tasks:vector<checklistTask> = MessageContent;
 
 //@description A suggested post was published for 24 hours and payment for the post was received
-//@suggested_post_message_id Identifier of the message with the checklist; can be 0 if the message was deleted
+//@suggested_post_message_id Identifier of the message with the suggested post; can be 0 if the message was deleted
 //@star_amount The amount of received Telegram Stars
 //@ton_amount The amount of received Toncoins; in the smallest units of the cryptocurrency
 messageSuggestedPostPaid suggested_post_message_id:int53 star_amount:starAmount ton_amount:int64 = MessageContent;
+
+//@description A suggested post was refunded
+//@suggested_post_message_id Identifier of the message with the suggested post; can be 0 if the message was deleted
+//@reason Reason of the refund
+messageSuggestedPostRefunded suggested_post_message_id:int53 reason:SuggestedPostRefundReason = MessageContent;
 
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
@@ -9494,7 +9508,7 @@ getMessageLocally chat_id:int53 message_id:int53 = Message;
 //@description Returns information about a non-bundled message that is replied by a given message. Also, returns the pinned message, the game message, the invoice message,
 //-the message with a previously set same background, the giveaway message, the checklist message, and the topic creation message for messages of the types
 //-messagePinMessage, messageGameScore, messagePaymentSuccessful, messageChatSetBackground, messageGiveawayCompleted, messageChecklistTasksDone, messageChecklistTasksAdded,
-//-messageSuggestedPostPaid, and topic messages without non-bundled replied message respectively.
+//-messageSuggestedPostPaid, messageSuggestedPostRefunded, and topic messages without non-bundled replied message respectively.
 //-Returns a 404 error if the message doesn't exist
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message

@@ -94,7 +94,8 @@ enum class MessageContentType : int32 {
   TodoCompletions,
   TodoAppendTasks,
   GiftTon,
-  SuggestedPostSuccess
+  SuggestedPostSuccess,
+  SuggestedPostRefund
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 

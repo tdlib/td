@@ -435,6 +435,8 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
     case MessageContentType::GiftTon:
+    case MessageContentType::SuggestedPostSuccess:
+    case MessageContentType::SuggestedPostRefund:
       return false;
     default:
       UNREACHABLE();
