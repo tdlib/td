@@ -75,6 +75,9 @@ class MessageQueryManager final : public Actor {
   void set_message_fact_check(MessageFullId message_full_id, const FormattedText &fact_check_text,
                               Promise<Unit> &&promise);
 
+  void toggle_suggested_post_approval(MessageFullId message_full_id, bool is_rejected, int32 schedule_date,
+                                      const string &comment, Promise<Unit> &&promise);
+
   void search_messages(DialogListId dialog_list_id, bool ignore_folder_id, const string &query,
                        const string &offset_str, int32 limit, MessageSearchFilter filter,
                        td_api::object_ptr<td_api::SearchMessagesChatTypeFilter> &&dialog_type_filter, int32 min_date,

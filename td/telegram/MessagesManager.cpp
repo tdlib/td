@@ -24473,6 +24473,20 @@ void MessagesManager::share_dialogs_with_bot(MessageFullId message_full_id, int3
                                                        std::move(promise));
 }
 
+void MessagesManager::process_suggested_post(MessageFullId message_full_id, bool is_rejected, int32 schedule_date,
+                                             const string &comment, Promise<Unit> &&promise) {
+  const Message *m = get_message_force(message_full_id, "process_suggested_post");
+  if (m == nullptr) {
+    return promise.set_error(400, "Message not found");
+  }
+  if (m->suggested_post == nullptr) {
+    return promise.set_error(400, "Message is not a suggested post");
+  }
+  CHECK(m->message_id.is_server());
+  td_->message_query_manager_->toggle_suggested_post_approval(message_full_id, is_rejected, schedule_date, comment,
+                                                              std::move(promise));
+}
+
 Result<MessageId> MessagesManager::add_local_message(
     DialogId dialog_id, td_api::object_ptr<td_api::MessageSender> &&sender,
     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool disable_notification,

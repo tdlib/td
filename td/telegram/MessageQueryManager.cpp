@@ -324,6 +324,50 @@ class EditMessageFactCheckQuery final : public Td::ResultHandler {
   }
 };
 
+class ToggleSuggestedPostApprovalQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  MessageId message_id_;
+
+ public:
+  explicit ToggleSuggestedPostApprovalQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id, bool is_rejected, int32 schedule_date, const string &comment) {
+    dialog_id_ = dialog_id;
+    message_id_ = message_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    CHECK(message_id.is_server());
+    auto server_message_id = message_id.get_server_message_id().get();
+    int32 flags = 0;
+    if (schedule_date) {
+      flags |= telegram_api::messages_toggleSuggestedPostApproval::SCHEDULE_DATE_MASK;
+    }
+    if (!comment.empty()) {
+      flags |= telegram_api::messages_toggleSuggestedPostApproval::REJECT_COMMENT_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_toggleSuggestedPostApproval(
+        flags, is_rejected, std::move(input_peer), server_message_id, schedule_date, comment)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_toggleSuggestedPostApproval>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ToggleSuggestedPostApprovalQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "ToggleSuggestedPostApprovalQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SearchMessagesGlobalQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::foundMessages>> promise_;
   string query_;
@@ -1824,6 +1868,13 @@ void MessageQueryManager::set_message_fact_check(MessageFullId message_full_id, 
                                                  Promise<Unit> &&promise) {
   td_->create_handler<EditMessageFactCheckQuery>(std::move(promise))
       ->send(message_full_id.get_dialog_id(), message_full_id.get_message_id(), fact_check_text);
+}
+
+void MessageQueryManager::toggle_suggested_post_approval(MessageFullId message_full_id, bool is_rejected,
+                                                         int32 schedule_date, const string &comment,
+                                                         Promise<Unit> &&promise) {
+  td_->create_handler<ToggleSuggestedPostApprovalQuery>(std::move(promise))
+      ->send(message_full_id.get_dialog_id(), message_full_id.get_message_id(), is_rejected, schedule_date, comment);
 }
 
 void MessageQueryManager::search_messages(DialogListId dialog_list_id, bool ignore_folder_id, const string &query,

@@ -5083,6 +5083,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkChatInviteLink>(args));
     } else if (op == "jcbil") {
       send_request(td_api::make_object<td_api::joinChatByInviteLink>(args));
+    } else if (op == "asp") {
+      ChatId chat_id;
+      MessageId message_id;
+      int32 send_date;
+      get_args(args, chat_id, message_id, send_date);
+      send_request(td_api::make_object<td_api::approveSuggestedPost>(chat_id, message_id, send_date));
     } else if (op == "sq") {
       string text;
       string quote;

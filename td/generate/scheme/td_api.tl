@@ -3777,7 +3777,7 @@ paidMediaUnsupported = PaidMedia;
 
 //@description Describes parameters of a giveaway
 //@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by the winners of the giveaway for duration of the Telegram Premium subscription,
-//-or for the specified time. If the chat is a channel, then can_post_messages right is required in the channel, otherwise, the user must be an administrator in the supergroup
+//-or for the specified time. If the chat is a channel, then can_post_messages administrator right is required in the channel, otherwise, the user must be an administrator in the supergroup
 //@additional_chat_ids Identifiers of other supergroup or channel chats that must be subscribed by the users to be eligible for the giveaway. There can be up to getOption("giveaway_additional_chat_count_max") additional chats
 //@winners_selection_date Point in time (Unix timestamp) when the giveaway is expected to be performed; must be 60-getOption("giveaway_duration_max") seconds in the future in scheduled giveaways
 //@only_new_members True, if only new members of the chats will be eligible for the giveaway
@@ -11708,6 +11708,13 @@ processChatJoinRequest chat_id:int53 user_id:int53 approve:Bool = Ok;
 //@invite_link Invite link for which to process join requests. If empty, all join requests will be processed. Requires administrator privileges and can_invite_users right in the chat for own links and owner privileges for other links
 //@approve Pass true to approve all requests; pass false to decline them
 processChatJoinRequests chat_id:int53 invite_link:string approve:Bool = Ok;
+
+
+//@description Approves a suggested post in a channel direct messages chat. Requires can_post_messages administrator right in the corresponding channel chat
+//@chat_id Chat identifier of the channel direct messages chat
+//@message_id Identifier of the message with the suggested post; posts sent on behalf of the direct messages chat can be approved only by the administrator which sent them
+//@send_date Point in time (Unix timestamp) when the post is expected to be published; pass 0 if the date has already been chosen
+approveSuggestedPost chat_id:int53 message_id:int53 send_date:int32 = Ok;
 
 
 //@description Creates a new call
