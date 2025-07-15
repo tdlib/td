@@ -1912,6 +1912,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 get_json_value_long(std::move(key_value->value_), key) / 10000000);
         continue;
       }
+      if (key == "ton_usd_rate") {
+        G()->set_option_integer("million_toncoin_to_usd_rate",
+                                static_cast<int64>(get_json_value_double(std::move(key_value->value_), key) * 1000000));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
