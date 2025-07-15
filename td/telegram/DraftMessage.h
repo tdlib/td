@@ -15,6 +15,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/SavedMessagesTopicId.h"
+#include "td/telegram/SuggestedPost.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -50,6 +51,7 @@ class DraftMessage {
   InputMessageText input_message_text_;
   unique_ptr<DraftMessageContent> local_content_;
   MessageEffectId message_effect_id_;
+  unique_ptr<SuggestedPost> suggested_post_;
 
   friend class SaveDraftMessageQuery;
 

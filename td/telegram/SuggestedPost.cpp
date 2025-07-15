@@ -70,6 +70,10 @@ td_api::object_ptr<td_api::suggestedPostInfo> SuggestedPost::get_suggested_post_
                                                         get_suggested_post_state_object());
 }
 
+td_api::object_ptr<td_api::inputSuggestedPostInfo> SuggestedPost::get_input_suggested_post_info_object() const {
+  return td_api::make_object<td_api::inputSuggestedPostInfo>(price_.get_suggested_post_price_object(), schedule_date_);
+}
+
 td_api::object_ptr<td_api::suggestedPostInfo> SuggestedPost::get_suggested_post_info_object(
     const unique_ptr<SuggestedPost> &post) {
   if (post == nullptr) {

@@ -2570,7 +2570,8 @@ reactionNotificationSettings message_reaction_source:ReactionNotificationSource 
 //@date Point in time (Unix timestamp) when the draft was created
 //@input_message_text Content of the message draft; must be of the type inputMessageText, inputMessageVideoNote, or inputMessageVoiceNote
 //@effect_id Identifier of the effect to apply to the message when it is sent; 0 if none
-draftMessage reply_to:InputMessageReplyTo date:int32 input_message_text:InputMessageContent effect_id:int64 = DraftMessage;
+//@suggested_post_info Information about the suggested post; may be null if none
+draftMessage reply_to:InputMessageReplyTo date:int32 input_message_text:InputMessageContent effect_id:int64 suggested_post_info:inputSuggestedPostInfo = DraftMessage;
 
 
 //@class ChatType @description Describes the type of chat

@@ -46,6 +46,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     vector<telegram_api::object_ptr<telegram_api::MessageEntity>> input_message_entities;
     telegram_api::object_ptr<telegram_api::InputMedia> media;
     int64 message_effect_id = 0;
+    telegram_api::object_ptr<telegram_api::suggestedPost> suggested_post;
     bool disable_web_page_preview = false;
     bool invert_media = false;
     if (draft_message != nullptr) {
@@ -73,12 +74,16 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
         flags |= telegram_api::messages_saveDraft::EFFECT_MASK;
         message_effect_id = draft_message->message_effect_id_.get();
       }
+      if (draft_message->suggested_post_ != nullptr) {
+        flags |= telegram_api::messages_saveDraft::SUGGESTED_POST_MASK;
+        suggested_post = draft_message->suggested_post_->get_input_suggested_post();
+      }
     }
     send_query(G()->net_query_creator().create(
         telegram_api::messages_saveDraft(
             flags, disable_web_page_preview, invert_media, std::move(input_reply_to), std::move(input_peer),
             draft_message == nullptr ? string() : draft_message->input_message_text_.text.text,
-            std::move(input_message_entities), std::move(media), message_effect_id, nullptr),
+            std::move(input_message_entities), std::move(media), message_effect_id, std::move(suggested_post)),
         {{dialog_id}}));
   }
 
@@ -392,7 +397,7 @@ bool DraftMessage::need_update_to(const DraftMessage &other, bool from_update) c
     return !from_update || other.is_local();
   }
   if (message_input_reply_to_ == other.message_input_reply_to_ && input_message_text_ == other.input_message_text_ &&
-      message_effect_id_ == other.message_effect_id_) {
+      message_effect_id_ == other.message_effect_id_ && suggested_post_ == other.suggested_post_) {
     return date_ < other.date_;
   } else {
     return !from_update || date_ <= other.date_;
@@ -411,8 +416,10 @@ td_api::object_ptr<td_api::draftMessage> DraftMessage::get_draft_message_object(
   } else {
     input_message_content = input_message_text_.get_input_message_text_object(td->user_manager_.get());
   }
+  auto suggested_post = suggested_post_ == nullptr ? nullptr : suggested_post_->get_input_suggested_post_info_object();
   return td_api::make_object<td_api::draftMessage>(message_input_reply_to_.get_input_message_reply_to_object(td), date_,
-                                                   std::move(input_message_content), message_effect_id_.get());
+                                                   std::move(input_message_content), message_effect_id_.get(),
+                                                   std::move(suggested_post));
 }
 
 DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftMessage> &&draft_message) {
@@ -440,6 +447,7 @@ DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftM
   input_message_text_ = InputMessageText(std::move(draft_text), std::move(web_page_url), draft_message->no_webpage_,
                                          force_small_media, force_large_media, draft_message->invert_media_, false);
   message_effect_id_ = MessageEffectId(draft_message->effect_);
+  suggested_post_ = SuggestedPost::get_suggested_post(std::move(draft_message->suggested_post_));
 }
 
 Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
@@ -453,6 +461,8 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
   result->message_input_reply_to_ = td->messages_manager_->create_message_input_reply_to(
       dialog_id, top_thread_message_id, std::move(draft_message->reply_to_), true);
   result->message_effect_id_ = MessageEffectId(draft_message->effect_id_);
+  TRY_RESULT(suggested_post, SuggestedPost::get_suggested_post(td, std::move(draft_message->suggested_post_info_)));
+  result->suggested_post_ = std::move(suggested_post);
 
   auto input_message_content = std::move(draft_message->input_message_text_);
   if (input_message_content != nullptr) {

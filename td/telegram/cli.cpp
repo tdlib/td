@@ -2679,7 +2679,7 @@ class CliClient final : public Actor {
     send_request(td_api::make_object<td_api::setChatDraftMessage>(
         chat_id, message_thread_id_,
         td_api::make_object<td_api::draftMessage>(get_input_message_reply_to(), 0, std::move(input_message_content),
-                                                  message_effect_id_)));
+                                                  message_effect_id_, get_input_suggested_post_info())));
   }
 
   void send_get_background_url(td_api::object_ptr<td_api::BackgroundType> &&background_type) {
@@ -5196,7 +5196,7 @@ class CliClient final : public Actor {
             std::move(reply_to), 0,
             td_api::make_object<td_api::inputMessageText>(as_formatted_text(message, std::move(entities)),
                                                           get_link_preview_options(), false),
-            message_effect_id_);
+            message_effect_id_, get_input_suggested_post_info());
       }
       set_draft_message(chat_id, std::move(draft_message));
     } else if (op == "scdmvn") {

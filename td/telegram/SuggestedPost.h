@@ -47,6 +47,9 @@ class SuggestedPost {
 
   td_api::object_ptr<td_api::suggestedPostInfo> get_suggested_post_info_object() const;
 
+  // for draftMessage
+  td_api::object_ptr<td_api::inputSuggestedPostInfo> get_input_suggested_post_info_object() const;
+
   static td_api::object_ptr<td_api::suggestedPostInfo> get_suggested_post_info_object(
       const unique_ptr<SuggestedPost> &post);
 
