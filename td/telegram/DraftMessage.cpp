@@ -13,6 +13,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/SuggestedPost.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"

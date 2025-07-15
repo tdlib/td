@@ -15,7 +15,6 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/SavedMessagesTopicId.h"
-#include "td/telegram/SuggestedPost.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -26,6 +25,7 @@
 namespace td {
 
 class Dependencies;
+class SuggestedPost;
 class Td;
 
 enum class DraftMessageContentType : int32 { VideoNote, VoiceNote };
