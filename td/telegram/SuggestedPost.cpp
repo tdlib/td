@@ -82,6 +82,13 @@ td_api::object_ptr<td_api::suggestedPostInfo> SuggestedPost::get_suggested_post_
   return post->get_suggested_post_info_object();
 }
 
+unique_ptr<SuggestedPost> SuggestedPost::clone(const unique_ptr<SuggestedPost> &post) {
+  if (post == nullptr) {
+    return nullptr;
+  }
+  return make_unique<SuggestedPost>(*post);
+}
+
 bool operator==(const SuggestedPost &lhs, const SuggestedPost &rhs) {
   return lhs.price_ == rhs.price_ && lhs.schedule_date_ == rhs.schedule_date_ && lhs.is_accepted_ == rhs.is_accepted_ &&
          lhs.is_rejected_ == rhs.is_rejected_;

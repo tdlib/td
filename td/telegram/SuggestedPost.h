@@ -53,6 +53,8 @@ class SuggestedPost {
   static td_api::object_ptr<td_api::suggestedPostInfo> get_suggested_post_info_object(
       const unique_ptr<SuggestedPost> &post);
 
+  static unique_ptr<SuggestedPost> clone(const unique_ptr<SuggestedPost> &post);
+
   template <class StorerT>
   void store(StorerT &storer) const;
 
