@@ -63,6 +63,9 @@ class MessageQueryManager final : public Actor {
 
   void report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push);
 
+  void send_bot_requested_peer(MessageFullId message_full_id, int32 button_id, vector<DialogId> shared_dialog_ids,
+                               Promise<Unit> &&promise);
+
   void reload_message_extended_media(DialogId dialog_id, vector<MessageId> message_ids);
 
   void finish_get_message_extended_media(DialogId dialog_id, const vector<MessageId> &message_ids);

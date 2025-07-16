@@ -2181,51 +2181,6 @@ class SendScreenshotNotificationQuery final : public Td::ResultHandler {
   }
 };
 
-class SendBotRequestedPeerQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit SendBotRequestedPeerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(MessageFullId message_full_id, int32 button_id, vector<DialogId> &&requested_dialog_ids) {
-    auto dialog_id = message_full_id.get_dialog_id();
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-    if (input_peer == nullptr) {
-      return on_error(Status::Error(400, "Can't access the chat"));
-    }
-    vector<telegram_api::object_ptr<telegram_api::InputPeer>> requested_peers;
-    for (auto requested_dialog_id : requested_dialog_ids) {
-      auto requested_peer = td_->dialog_manager_->get_input_peer(requested_dialog_id, AccessRights::Read);
-      if (requested_peer == nullptr) {
-        return on_error(Status::Error(400, "Can't access the chosen chat"));
-      }
-      requested_peers.push_back(std::move(requested_peer));
-    }
-
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendBotRequestedPeer(std::move(input_peer),
-                                                    message_full_id.get_message_id().get_server_message_id().get(),
-                                                    button_id, std::move(requested_peers)),
-        {{dialog_id, MessageContentType::Text}}));
-  }
-
-  void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::messages_sendBotRequestedPeer>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SendBotRequestedPeerQuery: " << to_string(ptr);
-    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
-  }
-
-  void on_error(Status status) final {
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetChannelDifferenceQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   int32 pts_;
@@ -24465,8 +24420,8 @@ void MessagesManager::share_dialogs_with_bot(MessageFullId message_full_id, int3
     return promise.set_value(Unit());
   }
 
-  td_->create_handler<SendBotRequestedPeerQuery>(std::move(promise))
-      ->send(message_full_id, button_id, std::move(shared_dialog_ids));
+  td_->message_query_manager_->send_bot_requested_peer(message_full_id, button_id, std::move(shared_dialog_ids),
+                                                       std::move(promise));
 }
 
 Result<MessageId> MessagesManager::add_local_message(
