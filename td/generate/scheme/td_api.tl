@@ -920,7 +920,8 @@ suggestedPostStateDeclined = SuggestedPostState;
 suggestedPostInfo price:SuggestedPostPrice send_date:int32 state:SuggestedPostState = SuggestedPostInfo;
 
 //@description Contains information about a post to suggest
-//@price Price of the suggested post; pass null to suggest a post without payment
+//@price Price of the suggested post; pass null to suggest a post without payment. If the current user isn't an administrator of the channel direct messages chat
+//-and has no enough funds to pay for the post, then the error "BALANCE_TOO_LOW" will be returned immediately
 //@send_date Point in time (Unix timestamp) when the post is expected to be published; pass 0 if the date isn't restricted
 inputSuggestedPostInfo price:SuggestedPostPrice send_date:int32 = InputSuggestedPostInfo;
 
