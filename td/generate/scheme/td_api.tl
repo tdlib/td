@@ -903,10 +903,10 @@ suggestedPostPriceTon toncoin_cent_count:int53 = SuggestedPostPrice;
 
 //@class SuggestedPostState @description Describes state of a suggested post
 
-//@description The post must be approved by a channel administrator or declined
+//@description The post must be approved or declined
 suggestedPostStatePending = SuggestedPostState;
 
-//@description The post was approved by a channel administrator
+//@description The post was approved
 suggestedPostStateApproved = SuggestedPostState;
 
 //@description The post was declined
@@ -927,7 +927,7 @@ inputSuggestedPostInfo price:SuggestedPostPrice send_date:int32 = InputSuggested
 
 //@class SuggestedPostRefundReason @description Describes reason for refund of the payment for a suggested post
 
-//@description The post was refunded, because it was deleted by channel administrators in less then 24 hours
+//@description The post was refunded, because it was deleted by channel administrators in less than getOption("suggested_post_lifetime_min") seconds
 suggestedPostRefundReasonPostDeleted = SuggestedPostRefundReason;
 
 //@description The post was refunded, because the payment for the post was refunded
@@ -2312,8 +2312,8 @@ factCheck text:formattedText country_code:string = FactCheck;
 //@can_be_saved True, if content of the message can be saved locally
 //@has_timestamped_media True, if media timestamp entities refers to a media in this message as opposed to a media in the replied message
 //@is_channel_post True, if the message is a channel post. All messages to channels are channel posts, all other messages are not channel posts
-//@is_paid_star_suggested_post True, if the message is a suggested channel post which was paid in Telegram Stars; a warning must be shown if the message is deleted in less then 24 hours after sending
-//@is_paid_ton_suggested_post True, if the message is a suggested channel post which was paid in Toncoins; a warning must be shown if the message is deleted in less then 24 hours after sending
+//@is_paid_star_suggested_post True, if the message is a suggested channel post which was paid in Telegram Stars; a warning must be shown if the message is deleted in less than getOption("suggested_post_lifetime_min") seconds after sending
+//@is_paid_ton_suggested_post True, if the message is a suggested channel post which was paid in Toncoins; a warning must be shown if the message is deleted in less than getOption("suggested_post_lifetime_min") seconds after sending
 //@contains_unread_mention True, if the message contains an unread mention for the current user
 //@date Point in time (Unix timestamp) when the message was sent; 0 for scheduled messages
 //@edit_date Point in time (Unix timestamp) when the message was last edited; 0 for scheduled messages
