@@ -87,9 +87,8 @@
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
-#include "td/telegram/SuggestedPost.h"
-#include "td/telegram/SuggestedPost.hpp"
 #include "td/telegram/SuggestedPostPrice.h"
+#include "td/telegram/SuggestedPostPrice.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ToDoCompletion.h"
@@ -534,7 +533,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 46;
+  static constexpr int32 CURRENT_VERSION = 47;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1509,16 +1508,20 @@ class MessageSuggestedPostRefund final : public MessageContent {
 class MessageSuggestedPostApproval final : public MessageContent {
  public:
   MessageId suggested_post_message_id;
-  SuggestedPost post;
+  SuggestedPostPrice price;
   string comment;
+  int32 send_date = 0;
+  bool is_rejected = false;
   bool is_balance_too_low = false;
 
   MessageSuggestedPostApproval() = default;
-  MessageSuggestedPostApproval(MessageId suggested_post_message_id, SuggestedPost &&post, string &&comment,
-                               bool is_balance_too_low)
+  MessageSuggestedPostApproval(MessageId suggested_post_message_id, SuggestedPostPrice &&price, string &&comment,
+                               int32 send_date, bool is_rejected, bool is_balance_too_low)
       : suggested_post_message_id(suggested_post_message_id)
-      , post(std::move(post))
+      , price(std::move(price))
       , comment(std::move(comment))
+      , send_date(send_date)
+      , is_rejected(is_rejected)
       , is_balance_too_low(is_balance_too_low) {
   }
 
@@ -2457,21 +2460,27 @@ static void store(const MessageContent *content, StorerT &storer) {
       const auto *m = static_cast<const MessageSuggestedPostApproval *>(content);
       bool has_suggested_post_message_id = m->suggested_post_message_id.is_valid();
       bool has_comment = !m->comment.empty();
-      bool has_post = !m->post.is_empty();
+      bool has_price = !m->price.is_empty();
+      bool has_send_date = m->send_date != 0;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_suggested_post_message_id);
-      STORE_FLAG(has_post);
+      STORE_FLAG(has_price);
       STORE_FLAG(has_comment);
+      STORE_FLAG(has_send_date);
+      STORE_FLAG(m->is_rejected);
       STORE_FLAG(m->is_balance_too_low);
       END_STORE_FLAGS();
       if (has_suggested_post_message_id) {
         store(m->suggested_post_message_id, storer);
       }
-      if (has_post) {
-        store(m->post, storer);
+      if (has_price) {
+        store(m->price, storer);
       }
       if (has_comment) {
         store(m->comment, storer);
+      }
+      if (has_send_date) {
+        store(m->send_date, storer);
       }
       break;
     }
@@ -3648,21 +3657,27 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       auto m = make_unique<MessageSuggestedPostApproval>();
       bool has_suggested_post_message_id;
       bool has_comment;
-      bool has_post;
+      bool has_price;
+      bool has_send_date;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_suggested_post_message_id);
-      PARSE_FLAG(has_post);
+      PARSE_FLAG(has_price);
       PARSE_FLAG(has_comment);
+      PARSE_FLAG(has_send_date);
+      PARSE_FLAG(m->is_rejected);
       PARSE_FLAG(m->is_balance_too_low);
       END_PARSE_FLAGS();
       if (has_suggested_post_message_id) {
         parse(m->suggested_post_message_id, parser);
       }
-      if (has_post) {
-        parse(m->post, parser);
+      if (has_price) {
+        parse(m->price, parser);
       }
       if (has_comment) {
         parse(m->comment, parser);
+      }
+      if (has_send_date) {
+        parse(m->send_date, parser);
       }
       content = std::move(m);
       break;
@@ -7180,8 +7195,9 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::SuggestedPostApproval: {
       const auto *lhs = static_cast<const MessageSuggestedPostApproval *>(old_content);
       const auto *rhs = static_cast<const MessageSuggestedPostApproval *>(new_content);
-      if (lhs->suggested_post_message_id != rhs->suggested_post_message_id || lhs->post != rhs->post ||
-          lhs->comment != rhs->comment || lhs->is_balance_too_low != rhs->is_balance_too_low) {
+      if (lhs->suggested_post_message_id != rhs->suggested_post_message_id || lhs->price != rhs->price ||
+          lhs->comment != rhs->comment || lhs->send_date != rhs->send_date || lhs->is_rejected != rhs->is_rejected ||
+          lhs->is_balance_too_low != rhs->is_balance_too_low) {
         need_update = true;
       }
       break;
@@ -9177,10 +9193,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive suggested post refund message with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
-      auto post = SuggestedPost(SuggestedPostPrice(std::move(action->price_)), action->schedule_date_,
-                                !action->rejected_, action->rejected_);
       return td::make_unique<MessageSuggestedPostApproval>(
-          reply_to_message_id, std::move(post), std::move(action->reject_comment_), action->balance_too_low_);
+          reply_to_message_id, SuggestedPostPrice(std::move(action->price_)), std::move(action->reject_comment_),
+          action->schedule_date_, action->rejected_, action->balance_too_low_);
     }
     case telegram_api::messageActionSuggestedPostSuccess::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionSuggestedPostSuccess>(action_ptr);
@@ -9853,9 +9868,21 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::SuggestedPostApproval: {
       const auto *m = static_cast<const MessageSuggestedPostApproval *>(content);
-      return td_api::make_object<td_api::messageSuggestedPostApprovalToggled>(m->suggested_post_message_id.get(),
-                                                                              m->post.get_suggested_post_info_object(),
-                                                                              m->is_balance_too_low, m->comment);
+      if (m->is_balance_too_low) {
+        auto price = m->price.get_suggested_post_price_object();
+        if (price == nullptr) {
+          LOG(ERROR) << "Have no price for messageSuggestedPostApprovalFailed";
+          price = td_api::make_object<td_api::suggestedPostPriceStar>(1);
+        }
+        return td_api::make_object<td_api::messageSuggestedPostApprovalFailed>(m->suggested_post_message_id.get(),
+                                                                               std::move(price));
+      }
+      if (m->is_rejected) {
+        return td_api::make_object<td_api::messageSuggestedPostDeclined>(m->suggested_post_message_id.get(),
+                                                                         m->comment);
+      }
+      return td_api::make_object<td_api::messageSuggestedPostApproved>(
+          m->suggested_post_message_id.get(), m->price.get_suggested_post_price_object(), m->send_date);
     }
     default:
       UNREACHABLE();
