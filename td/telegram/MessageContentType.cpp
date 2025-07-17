@@ -976,6 +976,7 @@ bool get_default_service_message_content_reactions_are_possible(MessageContentTy
     case MessageContentType::RequestedDialog:
     case MessageContentType::GiveawayLaunch:
     case MessageContentType::DialogShared:
+    case MessageContentType::GiftTon:
       return false;
     case MessageContentType::ChatChangeTitle:
     case MessageContentType::ChatChangePhoto:
@@ -1016,7 +1017,6 @@ bool get_default_service_message_content_reactions_are_possible(MessageContentTy
     case MessageContentType::ConferenceCall:
     case MessageContentType::TodoCompletions:
     case MessageContentType::TodoAppendTasks:
-    case MessageContentType::GiftTon:
     case MessageContentType::SuggestedPostSuccess:
     case MessageContentType::SuggestedPostRefund:
     case MessageContentType::SuggestedPostApproval:
