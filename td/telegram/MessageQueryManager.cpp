@@ -132,6 +132,7 @@ class UploadCoverQuery final : public Td::ResultHandler {
 
 class ReportMessageDeliveryQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
+  MessageId message_id_;
 
  public:
   void send(MessageFullId message_full_id, bool from_push) {
@@ -140,10 +141,10 @@ class ReportMessageDeliveryQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return;
     }
-    auto message_id = message_full_id.get_message_id();
-    CHECK(message_id.is_server());
+    message_id_ = message_full_id.get_message_id();
+    CHECK(message_id_.is_server());
     send_query(G()->net_query_creator().create(telegram_api::messages_reportMessagesDelivery(
-        0, from_push, std::move(input_peer), {message_id.get_server_message_id().get()})));
+        0, from_push, std::move(input_peer), {message_id_.get_server_message_id().get()})));
   }
 
   void on_result(BufferSlice packet) final {
@@ -156,7 +157,7 @@ class ReportMessageDeliveryQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportMessageDeliveryQuery");
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "ReportMessageDeliveryQuery");
   }
 };
 
@@ -280,6 +281,7 @@ class GetFactCheckQuery final : public Td::ResultHandler {
 class EditMessageFactCheckQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
+  MessageId message_id_;
 
  public:
   explicit EditMessageFactCheckQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -287,6 +289,7 @@ class EditMessageFactCheckQuery final : public Td::ResultHandler {
 
   void send(DialogId dialog_id, MessageId message_id, const FormattedText &text) {
     dialog_id_ = dialog_id;
+    message_id_ = message_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
     CHECK(message_id.is_server());
@@ -316,7 +319,7 @@ class EditMessageFactCheckQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditMessageFactCheckQuery");
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "EditMessageFactCheckQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -667,7 +670,7 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetMessagePositionQuery");
+    td_->messages_manager_->on_get_message_error(dialog_id_, message_id_, status, "GetMessagePositionQuery");
     promise_.set_error(std::move(status));
   }
 };
