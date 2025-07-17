@@ -11731,7 +11731,7 @@ approveSuggestedPost chat_id:int53 message_id:int53 send_date:int32 = Ok;
 //@description Declines a suggested post in a channel direct messages chat
 //@chat_id Chat identifier of the channel direct messages chat
 //@message_id Identifier of the message with the suggested post
-//@comment Comment for the creator of the suggested post
+//@comment Comment for the creator of the suggested post; 0-128 characters
 declineSuggestedPost chat_id:int53 message_id:int53 comment:string = Ok;
 
 
