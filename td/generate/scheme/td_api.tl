@@ -1531,7 +1531,7 @@ tonTransactionTypeUnsupported = TonTransactionType;
 tonTransaction id:string ton_amount:int53 is_refund:Bool date:int32 type:TonTransactionType = TonTransaction;
 
 //@description Represents a list of TON transactions
-//@ton_amount The amount of owned TON
+//@ton_amount The total amount of owned TON
 //@transactions List of TON transactions
 //@next_offset The offset for the next request. If empty, then there are no more results
 tonTransactions ton_amount:int53 transactions:vector<tonTransaction> next_offset:string = TonTransactions;

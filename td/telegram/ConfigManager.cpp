@@ -1921,6 +1921,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 static_cast<int64>(get_json_value_double(std::move(key_value->value_), key) * 1000000));
         continue;
       }
+      if (key == "ton_topup_url") {
+        G()->set_option_string("toncoin_top_up_url", get_json_value_string(std::move(key_value->value_), key));
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
