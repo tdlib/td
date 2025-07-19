@@ -22577,6 +22577,9 @@ bool MessagesManager::can_edit_message_scheduling_state(const Message *m) const 
   if (!m->message_id.is_valid_scheduled() || !m->message_id.is_scheduled_server()) {
     return false;
   }
+  if (m->is_paid_suggested_post_stars || m->is_paid_suggested_post_ton) {
+    return false;
+  }
   return true;
 }
 
