@@ -1513,9 +1513,9 @@ starTransaction id:string star_amount:starAmount is_refund:Bool date:int32 type:
 starTransactions star_amount:starAmount transactions:vector<starTransaction> next_offset:string = StarTransactions;
 
 
-//@class TonTransactionType @description Describes type of transaction with TON
+//@class TonTransactionType @description Describes type of transaction with Toncoins
 
-//@description The transaction is a deposit of TON from Fragment
+//@description The transaction is a deposit of Toncoins from Fragment
 //@is_gift True, if the transaction is a gift from another user
 //@sticker The sticker to be shown in the transaction information; may be null if unknown
 tonTransactionTypeFragmentDeposit is_gift:Bool sticker:sticker = TonTransactionType;
@@ -1524,17 +1524,17 @@ tonTransactionTypeFragmentDeposit is_gift:Bool sticker:sticker = TonTransactionT
 tonTransactionTypeUnsupported = TonTransactionType;
 
 
-//@description Represents a transaction changing the amount of owned TON
+//@description Represents a transaction changing the amount of owned Toncoins
 //@id Unique identifier of the transaction
-//@ton_amount The amount of added owned TON; negative for outgoing transactions
+//@ton_amount The amount of added owned Toncoins; negative for outgoing transactions
 //@is_refund True, if the transaction is a refund of a previous transaction
 //@date Point in time (Unix timestamp) when the transaction was completed
 //@type Type of the transaction
 tonTransaction id:string ton_amount:int53 is_refund:Bool date:int32 type:TonTransactionType = TonTransaction;
 
-//@description Represents a list of TON transactions
-//@ton_amount The total amount of owned TON
-//@transactions List of TON transactions
+//@description Represents a list of Toncoin transactions
+//@ton_amount The total amount of owned Toncoins
+//@transactions List of Toncoin transactions
 //@next_offset The offset for the next request. If empty, then there are no more results
 tonTransactions ton_amount:int53 transactions:vector<tonTransaction> next_offset:string = TonTransactions;
 
@@ -4400,11 +4400,11 @@ messageGiveawayWinners boosted_chat_id:int53 giveaway_message_id:int53 additiona
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 star_count:int53 transaction_id:string sticker:sticker = MessageContent;
 
-//@description TON was gifted to a user
-//@gifter_user_id The identifier of a user that gifted TON; 0 if the gift was anonymous or is outgoing
-//@receiver_user_id The identifier of a user that received TON; 0 if the gift is incoming
-//@ton_amount The received amount of TON, in the smallest units of the cryptocurrency
-//@transaction_id Identifier of the transaction for TON credit; for receiver only
+//@description Toncoins were gifted to a user
+//@gifter_user_id The identifier of a user that gifted Toncoins; 0 if the gift was anonymous or is outgoing
+//@receiver_user_id The identifier of a user that received Toncoins; 0 if the gift is incoming
+//@ton_amount The received amount of Toncoins, in the smallest units of the cryptocurrency
+//@transaction_id Identifier of the transaction for Toncoin credit; for receiver only
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiftedTon gifter_user_id:int53 receiver_user_id:int53 ton_amount:int64 transaction_id:string sticker:sticker = MessageContent;
 
@@ -8476,7 +8476,7 @@ chatRevenueTransactionTypeFragmentRefund refund_date:int32 = ChatRevenueTransact
 chatRevenueTransaction cryptocurrency:string cryptocurrency_amount:int64 type:ChatRevenueTransactionType = ChatRevenueTransaction;
 
 //@description Contains a list of chat revenue transactions
-//@ton_amount The amount of owned TON; in the smallest units of the cryptocurrency
+//@ton_amount The amount of owned Toncoins; in the smallest units of the cryptocurrency
 //@transactions List of transactions
 //@next_offset The offset for the next request. If empty, then there are no more results
 chatRevenueTransactions ton_amount:int53 transactions:vector<chatRevenueTransaction> next_offset:string = ChatRevenueTransactions;
@@ -9081,7 +9081,7 @@ updateActiveLiveLocationMessages messages:vector<message> = Update;
 //@description The number of Telegram Stars owned by the current user has changed @star_amount The new amount of owned Telegram Stars
 updateOwnedStarCount star_amount:starAmount = Update;
 
-//@description The number of TONs owned by the current user has changed @ton_amount The new amount of owned TON; in the smallest units of the cryptocurrency
+//@description The number of Toncoins owned by the current user has changed @ton_amount The new amount of owned Toncoins; in the smallest units of the cryptocurrency
 updateOwnedTonCount ton_amount:int53 = Update;
 
 //@description The revenue earned from sponsored messages in a chat has changed. If chat revenue screen is opened, then getChatRevenueTransactions may be called to fetch new transactions
@@ -12965,7 +12965,7 @@ getChatRevenueWithdrawalUrl chat_id:int53 password:string = HttpUrl;
 //@limit The maximum number of transactions to be returned; up to 100
 getChatRevenueTransactions chat_id:int53 offset:string limit:int32 = ChatRevenueTransactions;
 
-//@description Returns the list of TON transactions of the current user
+//@description Returns the list of Toncoin transactions of the current user
 //@direction Direction of the transactions to receive; pass null to get all transactions
 //@offset Offset of the first transaction to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of transactions to return
