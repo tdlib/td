@@ -9782,14 +9782,23 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
           star_gift_id = StarGiftId(message_id.get_server_message_id());
         }
       }
+      auto origin = [&]() -> td_api::object_ptr<td_api::UpgradedGiftOrigin> {
+        if (m->resale_star_count != 0) {
+          return td_api::make_object<td_api::upgradedGiftOriginResale>(m->resale_star_count);
+        }
+        if (m->is_upgrade) {
+          return td_api::make_object<td_api::upgradedGiftOriginUpgrade>();
+        }
+        return td_api::make_object<td_api::upgradedGiftOriginTransfer>();
+      }();
       return td_api::make_object<td_api::messageUpgradedGift>(
           m->star_gift.get_upgraded_gift_object(td),
           sender_dialog_id == DialogId(UserManager::get_service_notifications_user_id())
               ? nullptr
               : get_message_sender_object(td, sender_dialog_id, "messageUpgradedGift sender"),
-          get_message_sender_object(td, receiver_dialog_id, "messageUpgradedGift receiver"),
-          star_gift_id.get_star_gift_id(), m->is_upgrade, m->is_saved, m->can_transfer, m->was_transferred,
-          m->resale_star_count, m->transfer_star_count, m->can_transfer_at, m->can_resell_at, m->can_export_at);
+          get_message_sender_object(td, receiver_dialog_id, "messageUpgradedGift receiver"), std::move(origin),
+          star_gift_id.get_star_gift_id(), m->is_saved, m->can_transfer, m->was_transferred, m->transfer_star_count,
+          m->can_transfer_at, m->can_resell_at, m->can_export_at);
     }
     case MessageContentType::PaidMessagesRefunded: {
       const auto *m = static_cast<const MessagePaidMessagesRefunded *>(content);
