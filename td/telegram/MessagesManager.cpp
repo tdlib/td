@@ -7713,12 +7713,13 @@ bool MessagesManager::can_mark_message_tasks_as_done(DialogId dialog_id, const M
 }
 
 bool MessagesManager::can_approve_or_decline_message(DialogId dialog_id, const Message *m) const {
-  if (m == nullptr || m->suggested_post == nullptr || !m->message_id.is_server() || m->is_outgoing ||
-      !td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
+  if (m == nullptr || m->suggested_post == nullptr || !m->suggested_post->is_pending() || !m->message_id.is_server() ||
+      m->is_outgoing || !td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
     return false;
   }
   auto is_from_user = m->sender_user_id != UserId();
   if (!is_from_user && td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
+    // only the user can approve or decline post suggested by a direct messages administrator
     return false;
   }
   return true;
@@ -7732,7 +7733,7 @@ bool MessagesManager::can_approve_message(DialogId dialog_id, const Message *m) 
   if (is_from_user) {
     auto channel_id = td_->chat_manager_->get_monoforum_channel_id(dialog_id.get_channel_id());
     if (!td_->chat_manager_->get_channel_status(channel_id).can_post_messages()) {
-      // there are not enough rights
+      // there are no enough rights
       return false;
     }
   } else {
@@ -7741,6 +7742,18 @@ bool MessagesManager::can_approve_message(DialogId dialog_id, const Message *m) 
   auto schedule_date = m->suggested_post->get_schedule_date();
   if (schedule_date != 0 && schedule_date < G()->unix_time() - 86400) {
     // the post is too old
+    return false;
+  }
+  return true;
+}
+
+bool MessagesManager::can_decline_message(DialogId dialog_id, const Message *m) const {
+  if (!can_approve_or_decline_message(dialog_id, m)) {
+    return false;
+  }
+  auto is_from_user = m->sender_user_id != UserId();
+  if (is_from_user && !td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
+    // only an administrator can decline post suggested by the regular user
     return false;
   }
   return true;
@@ -14719,6 +14732,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto is_bot = td_->auth_manager_->is_bot();
   auto can_add_tasks = can_add_message_tasks(dialog_id, m, 1);
   auto can_be_approved = can_approve_message(dialog_id, m);
+  auto can_be_declined = can_decline_message(dialog_id, m);
   auto can_be_copied = can_forward_message(dialog_id, m, true);
   auto can_be_saved = can_save_message(dialog_id, m);
   auto can_be_edited = can_edit_message(dialog_id, m, false, is_bot);
@@ -14753,7 +14767,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_set_fact_check = can_set_message_fact_check(dialog_id, m);
   auto need_show_statistics = can_get_statistics && (m->view_count >= 100 || m->forward_count > 0);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
-      can_add_tasks, can_be_approved, can_be_copied, can_be_copied_to_secret_chat, can_delete_for_self,
+      can_add_tasks, can_be_approved, can_be_copied, can_be_copied_to_secret_chat, can_be_declined, can_delete_for_self,
       can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_pinned, can_be_replied,
       can_be_replied_in_another_chat, can_be_saved, can_be_shared_in_story, can_edit_media, can_edit_scheduling_state,
       can_get_author, can_get_embedding_code, can_get_link, can_get_media_timestamp_links, can_get_message_thread,

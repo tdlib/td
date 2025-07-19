@@ -1950,6 +1950,8 @@ class MessagesManager final : public Actor {
 
   bool can_approve_message(DialogId dialog_id, const Message *m) const;
 
+  bool can_decline_message(DialogId dialog_id, const Message *m) const;
+
   bool can_forward_message(DialogId from_dialog_id, const Message *m, bool is_copy) const;
 
   bool can_reply_to_message(DialogId dialog_id, MessageId message_id) const;

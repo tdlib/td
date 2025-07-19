@@ -43,6 +43,10 @@ class SuggestedPost {
     return price_.is_empty() && schedule_date_ == 0;
   }
 
+  bool is_pending() const {
+    return !is_empty() && !is_accepted_ && !is_rejected_;
+  }
+
   int32 get_schedule_date() const {
     return schedule_date_;
   }
