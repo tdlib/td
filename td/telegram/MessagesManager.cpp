@@ -7722,7 +7722,7 @@ bool MessagesManager::can_mark_message_tasks_as_done(DialogId dialog_id, const M
 }
 
 bool MessagesManager::can_approve_or_decline_message(DialogId dialog_id, const Message *m) const {
-  if (m == nullptr || m->suggested_post == nullptr || !m->suggested_post->is_pending() || !m->message_id.is_server() ||
+  if (m->suggested_post == nullptr || !m->suggested_post->is_pending() || !m->message_id.is_server() ||
       m->is_outgoing || !td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
     return false;
   }
@@ -24561,8 +24561,9 @@ void MessagesManager::process_suggested_post(MessageFullId message_full_id, bool
   if (m == nullptr) {
     return promise.set_error(400, "Message not found");
   }
-  if (m->suggested_post == nullptr || !m->message_id.is_server()) {
-    return promise.set_error(400, "Message is not a suggested post");
+  auto dialog_id = message_full_id.get_dialog_id();
+  if (is_rejected ? can_decline_message(dialog_id, m) : can_approve_message(dialog_id, m)) {
+    return promise.set_error(400, "Message can't be used in the method");
   }
   td_->message_query_manager_->toggle_suggested_post_approval(message_full_id, is_rejected, schedule_date, comment,
                                                               std::move(promise));
