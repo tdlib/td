@@ -494,6 +494,11 @@ telegram_api::object_ptr<telegram_api::InputMedia> MessageImportManager::get_fak
 
 void MessageImportManager::on_upload_imported_message_attachment(
     FileUploadId file_upload_id, telegram_api::object_ptr<telegram_api::InputFile> input_file) {
+  if (G()->close_flag()) {
+    // do not fail upload if closing
+    return;
+  }
+
   LOG(INFO) << "Imported message attachment " << file_upload_id << " has been uploaded";
 
   auto it = being_uploaded_imported_message_attachments_.find(file_upload_id);

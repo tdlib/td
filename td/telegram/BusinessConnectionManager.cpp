@@ -1430,6 +1430,7 @@ void BusinessConnectionManager::on_upload_thumbnail(
 
 void BusinessConnectionManager::do_upload_media(BeingUploadedMedia &&being_uploaded_media,
                                                 telegram_api::object_ptr<telegram_api::InputFile> input_thumbnail) {
+  TRY_STATUS_PROMISE(being_uploaded_media.promise_, G()->close_status());
   auto file_upload_id = being_uploaded_media.message_->file_upload_id_;
   auto thumbnail_file_upload_id = being_uploaded_media.message_->thumbnail_file_upload_id_;
   auto input_file = std::move(being_uploaded_media.input_file_);

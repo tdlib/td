@@ -513,7 +513,7 @@ class QuickReplyManager::UploadQuickReplyMediaQuery final : public Td::ResultHan
         td_->quick_reply_manager_->on_send_message_file_error(shortcut_id_, random_id_, {-1});
         return;
       } else {
-        LOG(ERROR) << "Receive file reference error for UploadMediaQuery";
+        LOG(ERROR) << "Receive file reference error for UploadQuickReplyMediaQuery";
       }
     }
     if (was_uploaded_) {
