@@ -917,7 +917,9 @@ suggestedPostStateDeclined = SuggestedPostState;
 //@price Price of the suggested post; may be null if the post is non-paid
 //@send_date Point in time (Unix timestamp) when the post is expected to be published; 0 if the specific date isn't set yet
 //@state State of the post
-suggestedPostInfo price:SuggestedPostPrice send_date:int32 state:SuggestedPostState = SuggestedPostInfo;
+//@can_be_approved True, if the suggested post can be approved by the current user using approveSuggestedPost; updates aren't sent when value of this field changes
+//@can_be_declined True, if the suggested post can be declined by the current user using declineSuggestedPost; updates aren't sent when value of this field changes
+suggestedPostInfo price:SuggestedPostPrice send_date:int32 state:SuggestedPostState can_be_approved:Bool can_be_declined:Bool = SuggestedPostInfo;
 
 //@description Contains information about a post to suggest
 //@price Price of the suggested post; pass null to suggest a post without payment. If the current user isn't an administrator of the channel direct messages chat

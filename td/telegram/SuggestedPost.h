@@ -53,13 +53,11 @@ class SuggestedPost {
 
   telegram_api::object_ptr<telegram_api::suggestedPost> get_input_suggested_post() const;
 
-  td_api::object_ptr<td_api::suggestedPostInfo> get_suggested_post_info_object() const;
+  td_api::object_ptr<td_api::suggestedPostInfo> get_suggested_post_info_object(bool can_be_accepted,
+                                                                               bool can_be_rejected) const;
 
   // for draftMessage
   td_api::object_ptr<td_api::inputSuggestedPostInfo> get_input_suggested_post_info_object() const;
-
-  static td_api::object_ptr<td_api::suggestedPostInfo> get_suggested_post_info_object(
-      const unique_ptr<SuggestedPost> &post);
 
   static unique_ptr<SuggestedPost> clone(const unique_ptr<SuggestedPost> &post);
 

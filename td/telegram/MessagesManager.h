@@ -2052,6 +2052,9 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::factCheck> get_message_fact_check_object(const Message *m) const;
 
+  td_api::object_ptr<td_api::suggestedPostInfo> get_message_suggested_post_info_object(DialogId dialog_id,
+                                                                                       const Message *m) const;
+
   vector<td_api::object_ptr<td_api::unreadReaction>> get_unread_reactions_object(DialogId dialog_id,
                                                                                  const Message *m) const;
 

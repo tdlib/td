@@ -4689,6 +4689,15 @@ td_api::object_ptr<td_api::factCheck> MessagesManager::get_message_fact_check_ob
   return m->fact_check->get_fact_check_object(td_->user_manager_.get());
 }
 
+td_api::object_ptr<td_api::suggestedPostInfo> MessagesManager::get_message_suggested_post_info_object(
+    DialogId dialog_id, const Message *m) const {
+  if (m->suggested_post == nullptr) {
+    return nullptr;
+  }
+  return m->suggested_post->get_suggested_post_info_object(can_approve_message(dialog_id, m),
+                                                           can_decline_message(dialog_id, m));
+}
+
 vector<td_api::object_ptr<td_api::unreadReaction>> MessagesManager::get_unread_reactions_object(
     DialogId dialog_id, const Message *m) const {
   if (!has_unread_message_reactions(dialog_id, m)) {
@@ -19914,7 +19923,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
   auto interaction_info = is_bot ? nullptr : get_message_interaction_info_object(dialog_id, m);
   auto unread_reactions = get_unread_reactions_object(dialog_id, m);
   auto fact_check = get_message_fact_check_object(m);
-  auto suggested_post = SuggestedPost::get_suggested_post_info_object(m->suggested_post);
+  auto suggested_post = get_message_suggested_post_info_object(dialog_id, m);
   auto can_be_saved = can_save_message(dialog_id, m);
   auto via_bot_user_id =
       td_->user_manager_->get_user_id_object(m->via_bot_user_id, "get_message_object via_bot_user_id");
@@ -26169,7 +26178,7 @@ void MessagesManager::send_update_message_suggested_post_info(DialogId dialog_id
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateMessageSuggestedPostInfo>(
                    get_chat_id_object(dialog_id, "updateMessageSuggestedPostInfo"), m->message_id.get(),
-                   SuggestedPost::get_suggested_post_info_object(m->suggested_post)));
+                   get_message_suggested_post_info_object(dialog_id, m)));
 }
 
 void MessagesManager::send_update_message_live_location_viewed(MessageFullId message_full_id) {
