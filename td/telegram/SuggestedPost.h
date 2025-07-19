@@ -43,6 +43,10 @@ class SuggestedPost {
     return price_.is_empty() && schedule_date_ == 0;
   }
 
+  int32 get_schedule_date() const {
+    return schedule_date_;
+  }
+
   telegram_api::object_ptr<telegram_api::suggestedPost> get_input_suggested_post() const;
 
   td_api::object_ptr<td_api::suggestedPostInfo> get_suggested_post_info_object() const;

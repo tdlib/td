@@ -4845,6 +4845,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 
 //@description Contains properties of a message and describes actions that can be done with the message right now
 //@can_add_tasks True, if tasks can be added to the message's checklist using addChecklistTasks if the current user has Telegram Premium subscription
+//@can_be_approved True, if the message is a suggested post that can be approved by the user using approveSuggestedPost
 //@can_be_copied True, if content of the message can be copied using inputMessageForwarded or forwardMessages with copy options
 //@can_be_copied_to_secret_chat True, if content of the message can be copied to a secret chat using inputMessageForwarded or forwardMessages with copy options
 //@can_be_deleted_only_for_self True, if the message can be deleted only for the current user while other users will continue to see it using the method deleteMessages with revoke == false
@@ -4876,7 +4877,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 //@can_report_supergroup_spam True, if the message can be reported using reportSupergroupSpam
 //@can_set_fact_check True, if fact check for the message can be changed through setMessageFactCheck
 //@need_show_statistics True, if message statistics must be available from context menu of the message
-messageProperties can_add_tasks:Bool can_be_copied:Bool can_be_copied_to_secret_chat:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_pinned:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_edit_media:Bool can_edit_scheduling_state:Bool can_get_author:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_video_advertisements:Bool can_get_viewers:Bool can_mark_tasks_as_done:Bool can_recognize_speech:Bool can_report_chat:Bool can_report_reactions:Bool can_report_supergroup_spam:Bool can_set_fact_check:Bool need_show_statistics:Bool = MessageProperties;
+messageProperties can_add_tasks:Bool can_be_approved:Bool can_be_copied:Bool can_be_copied_to_secret_chat:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_pinned:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_edit_media:Bool can_edit_scheduling_state:Bool can_get_author:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_video_advertisements:Bool can_get_viewers:Bool can_mark_tasks_as_done:Bool can_recognize_speech:Bool can_report_chat:Bool can_report_reactions:Bool can_report_supergroup_spam:Bool can_set_fact_check:Bool need_show_statistics:Bool = MessageProperties;
 
 
 //@class SearchMessagesFilter @description Represents a filter for message search results
@@ -11723,9 +11724,9 @@ processChatJoinRequest chat_id:int53 user_id:int53 approve:Bool = Ok;
 processChatJoinRequests chat_id:int53 invite_link:string approve:Bool = Ok;
 
 
-//@description Approves a suggested post in a channel direct messages chat. Requires can_post_messages administrator right in the corresponding channel chat
+//@description Approves a suggested post in a channel direct messages chat
 //@chat_id Chat identifier of the channel direct messages chat
-//@message_id Identifier of the message with the suggested post; posts sent on behalf of the direct messages chat can be approved only by the administrator which sent them
+//@message_id Identifier of the message with the suggested post. Use messageProperties.can_be_approved to check whether the suggested post can be approved
 //@send_date Point in time (Unix timestamp) when the post is expected to be published; pass 0 if the date has already been chosen
 approveSuggestedPost chat_id:int53 message_id:int53 send_date:int32 = Ok;
 
