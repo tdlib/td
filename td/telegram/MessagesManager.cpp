@@ -22453,6 +22453,9 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
   if (m->is_paid_suggested_post_stars || m->is_paid_suggested_post_ton) {
     return false;
   }
+  if (m->suggested_post != nullptr && !m->suggested_post->is_pending()) {
+    return false;
+  }
 
   auto my_id = td_->user_manager_->get_my_id();
   bool is_inline_message = m->via_bot_user_id.is_valid();
