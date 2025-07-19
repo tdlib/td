@@ -31483,11 +31483,13 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     old_message->is_from_offline = new_message->is_from_offline;
     need_send_update = true;
   }
-  if (old_message->is_paid_suggested_post_stars != new_message->is_paid_suggested_post_stars) {
+  if (!old_message->is_paid_suggested_post_stars && new_message->is_paid_suggested_post_stars) {
+    // the field can be skipped in a min-message
     old_message->is_paid_suggested_post_stars = new_message->is_paid_suggested_post_stars;
     need_send_update = true;
   }
-  if (old_message->is_paid_suggested_post_ton != new_message->is_paid_suggested_post_ton) {
+  if (!old_message->is_paid_suggested_post_ton && new_message->is_paid_suggested_post_ton) {
+    // the field can be skipped in a min-message
     old_message->is_paid_suggested_post_ton = new_message->is_paid_suggested_post_ton;
     need_send_update = true;
   }
