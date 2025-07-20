@@ -1159,7 +1159,8 @@ giftSettings show_gift_button:Bool accepted_gift_types:acceptedGiftTypes = GiftS
 //@class UpgradedGiftOrigin @description Describes origin from which the upgraded gift was obtained
 
 //@description The gift was obtained by upgrading of a previously received gift
-upgradedGiftOriginUpgrade = UpgradedGiftOrigin;
+//@gift_message_id Identifier of the message with the regular gift that was upgraded; can be 0 or an identifier of a deleted message
+upgradedGiftOriginUpgrade gift_message_id:int53 = UpgradedGiftOrigin;
 
 //@description The gift was transferred from another owner
 upgradedGiftOriginTransfer = UpgradedGiftOrigin;
@@ -9541,12 +9542,12 @@ getMessage chat_id:int53 message_id:int53 = Message;
 //@message_id Identifier of the message to get
 getMessageLocally chat_id:int53 message_id:int53 = Message;
 
-//@description Returns information about a non-bundled message that is replied by a given message. Also, returns the pinned message, the game message, the invoice message,
-//-the message with a previously set same background, the giveaway message, the checklist message, and the topic creation message for messages of the types
-//-messagePinMessage, messageGameScore, messagePaymentSuccessful, messageChatSetBackground, messageGiveawayCompleted, messageChecklistTasksDone, messageChecklistTasksAdded,
-//-messageSuggestedPostApprovalFailed, messageSuggestedPostApproved, messageSuggestedPostDeclined, messageSuggestedPostPaid, messageSuggestedPostRefunded,
-//-and topic messages without non-bundled replied message respectively.
-//-Returns a 404 error if the message doesn't exist
+//@description Returns information about a non-bundled message that is replied by a given message. Also, returns the pinned message for messagePinMessage,
+//-the game message for messageGameScore, the invoice message for messagePaymentSuccessful, the message with a previously set same background for messageChatSetBackground,
+//-the giveaway message for messageGiveawayCompleted, the checklist message for messageChecklistTasksDone, messageChecklistTasksAdded, the message with suggested post information
+//-for messageSuggestedPostApprovalFailed, messageSuggestedPostApproved, messageSuggestedPostDeclined, messageSuggestedPostPaid, messageSuggestedPostRefunded,
+//-the message with the regular gift that was upgraded for messageUpgradedGift with origin of the type upgradedGiftOriginUpgrade,
+//-and the topic creation message for topic messages without non-bundled replied message. Returns a 404 error if the message doesn't exist
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message
 getRepliedMessage chat_id:int53 message_id:int53 = Message;
