@@ -1560,7 +1560,8 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       LOG_IF(ERROR, web_page->document_.type != Document::Type::Unknown)
           << "Receive wrong document for " << web_page->url_;
       return td_api::make_object<td_api::linkPreviewTypeVideoChat>(
-          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), true);
+          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), true,
+          LinkManager::has_video_chat_invite_hash(web_page->url_));
     }
     if (type == "megagroup" || type == "megagroup_request") {
       LOG_IF(ERROR, web_page->document_.type != Document::Type::Unknown)
@@ -1626,7 +1627,8 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       LOG_IF(ERROR, web_page->document_.type != Document::Type::Unknown)
           << "Receive wrong document for " << web_page->url_;
       return td_api::make_object<td_api::linkPreviewTypeVideoChat>(
-          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), false);
+          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_), false,
+          LinkManager::has_video_chat_invite_hash(web_page->url_));
     }
   }
   if (!web_page->embed_type_.empty() || !web_page->embed_url_.empty()) {

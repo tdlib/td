@@ -3165,6 +3165,16 @@ td_api::object_ptr<td_api::BackgroundType> LinkManager::get_background_type_obje
   return r_background_type.ok().get_background_type_object();
 }
 
+bool LinkManager::has_video_chat_invite_hash(Slice link) {
+  auto internal_link = parse_internal_link(link);
+  if (internal_link == nullptr) {
+    return false;
+  }
+  auto internal_link_type = internal_link->get_internal_link_type_object();
+  return internal_link_type->get_id() == td_api::internalLinkTypeVideoChat::ID &&
+         !static_cast<const td_api::internalLinkTypeVideoChat *>(internal_link_type.get())->invite_hash_.empty();
+}
+
 string LinkManager::get_dialog_filter_invite_link_slug(Slice invite_link) {
   auto link_info = get_link_info(invite_link);
   if (link_info.type_ != LinkType::Tg && link_info.type_ != LinkType::TMe) {

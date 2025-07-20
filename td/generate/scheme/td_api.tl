@@ -3534,7 +3534,8 @@ linkPreviewTypeVideo video:video cover:photo start_timestamp:int32 = LinkPreview
 //@description The link is a link to a video chat
 //@photo Photo of the chat with the video chat; may be null if none
 //@is_live_stream True, if the video chat is expected to be a live stream in a channel or a broadcast group
-linkPreviewTypeVideoChat photo:chatPhoto is_live_stream:Bool = LinkPreviewType;
+//@joins_as_speaker True, if the user can use the link to join the video chat without being muted by administrators
+linkPreviewTypeVideoChat photo:chatPhoto is_live_stream:Bool joins_as_speaker:Bool = LinkPreviewType;
 
 //@description The link is a link to a video note message @video_note The video note
 linkPreviewTypeVideoNote video_note:videoNote = LinkPreviewType;
