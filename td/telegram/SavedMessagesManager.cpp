@@ -2187,7 +2187,7 @@ void SavedMessagesManager::on_get_topic_history(DialogId dialog_id, uint32 gener
     return promise.set_error(r_info.move_as_error());
   }
   auto info = r_info.move_as_ok();
-  if (info.messages.empty()) {
+  if (info.messages.empty() && get_topic(topic_list, saved_messages_topic_id) == nullptr) {
     return promise.set_value(
         td_->messages_manager_->get_messages_object(0, dialog_id, {}, true, "on_get_topic_history"));
   }
