@@ -406,14 +406,13 @@ class GetTonRevenueTransactionsQuery final : public Td::ResultHandler {
       auto transaction_amount =
           TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(transaction->amount_), true);
       auto is_refund = transaction->refund_;
-      // auto is_purchase = transaction_amount.is_positive() == is_refund;
+      auto is_purchase = transaction_amount.is_positive() == is_refund;
       auto type = [&]() -> td_api::object_ptr<td_api::ChatRevenueTransactionType> {
         switch (transaction->peer_->get_id()) {
           case telegram_api::starsTransactionPeerUnsupported::ID:
           case telegram_api::starsTransactionPeerPremiumBot::ID:
           case telegram_api::starsTransactionPeerAppStore::ID:
           case telegram_api::starsTransactionPeerPlayMarket::ID:
-          case telegram_api::starsTransactionPeer::ID:
           case telegram_api::starsTransactionPeerAPI::ID:
             return td_api::make_object<td_api::chatRevenueTransactionTypeUnsupported>();
           case telegram_api::starsTransactionPeerFragment::ID: {
@@ -452,10 +451,27 @@ class GetTonRevenueTransactionsQuery final : public Td::ResultHandler {
                 transaction->ads_proceeds_from_date_ = 0;
                 transaction->ads_proceeds_to_date_ = 0;
               };
-              return td_api::make_object<td_api::chatRevenueTransactionTypeEarnings>(
+              return td_api::make_object<td_api::chatRevenueTransactionTypeSponsoredMessageEarnings>(
                   transaction->ads_proceeds_from_date_, transaction->ads_proceeds_to_date_);
             }
             return nullptr;
+          case telegram_api::starsTransactionPeer::ID: {
+            DialogId dialog_id(
+                static_cast<const telegram_api::starsTransactionPeer *>(transaction->peer_.get())->peer_);
+            if (!dialog_id.is_valid()) {
+              return nullptr;
+            }
+            if (transaction->paid_messages_ && !is_purchase && dialog_id.get_type() == DialogType::User) {
+              SCOPE_EXIT {
+                transaction->paid_messages_ = 0;
+                transaction->title_.clear();
+              };
+              return td_api::make_object<td_api::chatRevenueTransactionTypeSuggestedPostEarnings>(
+                  td_->user_manager_->get_user_id_object(dialog_id.get_user_id(),
+                                                         "chatRevenueTransactionTypeSuggestedPostEarnings"));
+            }
+            return nullptr;
+          }
           default:
             UNREACHABLE();
             return nullptr;

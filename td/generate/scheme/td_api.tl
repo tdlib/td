@@ -8482,7 +8482,10 @@ chatRevenueTransactionTypeUnsupported = ChatRevenueTransactionType;
 //@description Describes earnings from sponsored messages in a chat in some time frame
 //@start_date Point in time (Unix timestamp) when the earnings started
 //@end_date Point in time (Unix timestamp) when the earnings ended
-chatRevenueTransactionTypeEarnings start_date:int32 end_date:int32 = ChatRevenueTransactionType;
+chatRevenueTransactionTypeSponsoredMessageEarnings start_date:int32 end_date:int32 = ChatRevenueTransactionType;
+
+//@description Describes earnings from a published suggested post @user_id Identifier of the user that paid for the suggested post
+chatRevenueTransactionTypeSuggestedPostEarnings user_id:int53 = ChatRevenueTransactionType;
 
 //@description Describes a withdrawal of earnings through Fragment
 //@withdrawal_date Point in time (Unix timestamp) when the earnings withdrawal started
