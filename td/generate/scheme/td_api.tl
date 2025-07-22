@@ -4518,7 +4518,7 @@ messageSuggestedPostApproved suggested_post_message_id:int53 price:SuggestedPost
 //@comment Comment added by administrator of the channel when the post was declined
 messageSuggestedPostDeclined suggested_post_message_id:int53 comment:string = MessageContent;
 
-//@description A suggested post was published for 24 hours and payment for the post was received
+//@description A suggested post was published for getOption("suggested_post_lifetime_min") seconds and payment for the post was received
 //@suggested_post_message_id Identifier of the message with the suggested post; can be 0 if the message was deleted
 //@star_amount The amount of received Telegram Stars
 //@ton_amount The amount of received Toncoins; in the smallest units of the cryptocurrency
