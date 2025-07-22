@@ -1500,6 +1500,10 @@ starTransactionTypePaidMessageReceive sender_id:MessageSender message_count:int3
 //@chat_id Identifier of the channel chat
 starTransactionTypeSuggestedPostPaymentSend chat_id:int53 = StarTransactionType;
 
+//@description The transaction is a receiving of a payment for a suggested post by the channel chat; for channel chats only
+//@user_id Identifier of the user that paid for the suggested post
+starTransactionTypeSuggestedPostPaymentReceive user_id:int53 = StarTransactionType;
+
 //@description The transaction is a purchase of Telegram Premium subscription; for regular users and bots only
 //@user_id Identifier of the user that received the Telegram Premium subscription
 //@month_count Number of months the Telegram Premium subscription will be active

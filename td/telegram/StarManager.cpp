@@ -412,6 +412,15 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                       transaction->paid_messages_, affiliate->commission_per_mille_,
                       std::move(affiliate->star_amount_));
                 }
+                if (for_channel && dialog_id.get_type() == DialogType::User) {
+                  SCOPE_EXIT {
+                    product_info = nullptr;
+                    transaction->paid_messages_ = 0;
+                  };
+                  return td_api::make_object<td_api::starTransactionTypeSuggestedPostPaymentReceive>(
+                      td_->user_manager_->get_user_id_object(dialog_id.get_user_id(),
+                                                             "starTransactionTypeSuggestedPostPaymentReceive"));
+                }
               }
               return nullptr;
             }
