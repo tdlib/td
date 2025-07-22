@@ -14148,6 +14148,9 @@ Result<MessageFullId> MessagesManager::get_top_thread_message_full_id(const Dial
     if (!m->is_topic_message && d->is_forum) {
       return Status::Error(400, "Threads can't be used in General topic");
     }
+    if (td_->chat_manager_->is_monoforum_channel(d->dialog_id.get_channel_id())) {
+      return Status::Error(400, "Threads can't be used in channel direct messages chat");
+    }
     return MessageFullId{d->dialog_id, m->top_thread_message_id};
   }
 }
