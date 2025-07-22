@@ -9144,7 +9144,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive unique gift message with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       } else if (reply_to_message_id != MessageId() && !action->upgrade_) {
-        LOG(ERROR) << "Receive " << reply_to_message_id << " in " << owner_dialog_id << " for " << to_string(action);
+        if (message_date >= 17532000000 || action->resale_stars_ == 0) {
+          LOG(ERROR) << "Receive " << replied_message_info << " in " << owner_dialog_id << " for " << to_string(action);
+        }
         reply_to_message_id = MessageId();
       }
       DialogId gift_sender_dialog_id;
