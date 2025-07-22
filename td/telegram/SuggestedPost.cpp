@@ -49,7 +49,7 @@ telegram_api::object_ptr<telegram_api::suggestedPost> SuggestedPost::get_input_s
     flags |= telegram_api::suggestedPost::PRICE_MASK;
   }
   if (schedule_date_ != 0) {
-    flags |= telegram_api::suggestedPost::PRICE_MASK;
+    flags |= telegram_api::suggestedPost::SCHEDULE_DATE_MASK;
   }
   return telegram_api::make_object<telegram_api::suggestedPost>(flags, is_accepted_, is_rejected_, std::move(price),
                                                                 schedule_date_);
