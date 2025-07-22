@@ -24565,7 +24565,7 @@ void MessagesManager::process_suggested_post(MessageFullId message_full_id, bool
     return promise.set_error(400, "Message not found");
   }
   auto dialog_id = message_full_id.get_dialog_id();
-  if (is_rejected ? can_decline_message(dialog_id, m) : can_approve_message(dialog_id, m)) {
+  if (is_rejected ? !can_decline_message(dialog_id, m) : !can_approve_message(dialog_id, m)) {
     return promise.set_error(400, "Message can't be used in the method");
   }
   td_->message_query_manager_->toggle_suggested_post_approval(message_full_id, is_rejected, schedule_date, comment,
