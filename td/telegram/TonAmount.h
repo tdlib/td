@@ -28,6 +28,10 @@ class TonAmount {
     return ton_amount_;
   }
 
+  bool is_positive() const {
+    return ton_amount_ > 0;
+  }
+
   static int64 get_ton_count(int64 amount, bool allow_negative);
 
   template <class StorerT>

@@ -1497,7 +1497,7 @@ starTransactionTypePaidMessageSend chat_id:int53 message_count:int32 = StarTrans
 starTransactionTypePaidMessageReceive sender_id:MessageSender message_count:int32 commission_per_mille:int32 commission_star_amount:starAmount = StarTransactionType;
 
 //@description The transaction is a payment for a suggested post; for regular users only
-//@chat_id Identifier of the channel chat
+//@chat_id Identifier of the channel chat that posted the post
 starTransactionTypeSuggestedPostPaymentSend chat_id:int53 = StarTransactionType;
 
 //@description The transaction is a receiving of a payment for a suggested post by the channel chat; for channel chats only
@@ -1541,6 +1541,9 @@ starTransactions star_amount:starAmount transactions:vector<starTransaction> nex
 //@is_gift True, if the transaction is a gift from another user
 //@sticker The sticker to be shown in the transaction information; may be null if unknown
 tonTransactionTypeFragmentDeposit is_gift:Bool sticker:sticker = TonTransactionType;
+
+//@description The transaction is a payment for a suggested post @chat_id Identifier of the channel chat that posted the post
+tonTransactionTypeSuggestedPostPayment chat_id:int53 = TonTransactionType;
 
 //@description The transaction is a transaction of an unsupported type
 tonTransactionTypeUnsupported = TonTransactionType;
