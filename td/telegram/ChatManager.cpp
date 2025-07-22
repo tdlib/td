@@ -3322,7 +3322,7 @@ void ChatManager::toggle_channel_join_to_send(ChannelId channel_id, bool join_to
   if (c == nullptr) {
     return promise.set_error(400, "Supergroup not found");
   }
-  if (get_channel_type(c) == ChannelType::Broadcast || c->is_gigagroup) {
+  if (get_channel_type(c) == ChannelType::Broadcast || c->is_gigagroup || c->is_monoforum) {
     return promise.set_error(400, "The method can be called only for ordinary supergroups");
   }
   if (!get_channel_status(c).can_restrict_members()) {
@@ -3337,7 +3337,7 @@ void ChatManager::toggle_channel_join_request(ChannelId channel_id, bool join_re
   if (c == nullptr) {
     return promise.set_error(400, "Supergroup not found");
   }
-  if (get_channel_type(c) == ChannelType::Broadcast || c->is_gigagroup) {
+  if (get_channel_type(c) == ChannelType::Broadcast || c->is_gigagroup || c->is_monoforum) {
     return promise.set_error(400, "The method can be called only for ordinary supergroups");
   }
   if (!get_channel_status(c).can_restrict_members()) {
@@ -8435,7 +8435,7 @@ bool ChatManager::get_channel_can_be_deleted(const Channel *c) {
 }
 
 bool ChatManager::get_channel_join_to_send(const Channel *c) {
-  return c->join_to_send || !c->is_megagroup || !c->has_linked_channel;
+  return (c->join_to_send || !c->is_megagroup || !c->has_linked_channel) && !c->is_monoforum;
 }
 
 bool ChatManager::get_channel_join_request(ChannelId channel_id) const {
@@ -8447,7 +8447,7 @@ bool ChatManager::get_channel_join_request(ChannelId channel_id) const {
 }
 
 bool ChatManager::get_channel_join_request(const Channel *c) {
-  return c->join_request && c->is_megagroup && (is_channel_public(c) || c->has_linked_channel);
+  return c->join_request && c->is_megagroup && !c->is_monoforum && (is_channel_public(c) || c->has_linked_channel);
 }
 
 ChannelId ChatManager::get_channel_linked_channel_id(ChannelId channel_id, const char *source) {
