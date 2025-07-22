@@ -2656,7 +2656,11 @@ class CliClient final : public Actor {
   }
 
   td_api::object_ptr<td_api::inputSuggestedPostInfo> get_input_suggested_post_info() const {
-    return td_api::make_object<td_api::inputSuggestedPostInfo>(suggested_post_price_, suggested_post_send_date_);
+    td_api::object_ptr<td_api::SuggestedPostPrice> price = suggested_post_price_;
+    if (price == nullptr) {
+      return nullptr;
+    }
+    return td_api::make_object<td_api::inputSuggestedPostInfo>(std::move(price), suggested_post_send_date_);
   }
 
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
