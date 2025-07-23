@@ -1522,12 +1522,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           // resolve?domain=<username>&story=<story_id>
           return td::make_unique<InternalLinkStory>(std::move(username), StoryId(to_integer<int32>(arg.second)));
         }
-      }
-      if (url_query.has_arg("startapp") && !url_query.has_arg("appname")) {
-        // resolve?domain=<bot_username>&startapp=
-        // resolve?domain=<bot_username>&startapp=<start_parameter>&mode=compact
-        return td::make_unique<InternalLinkMainWebApp>(std::move(username), url_query.get_arg("startapp").str(),
-                                                       url_query.get_arg("mode").str());
+        if (arg.first == "startapp" && is_valid_start_parameter(arg.second) && !url_query.has_arg("appname")) {
+          // resolve?domain=<bot_username>&startapp=
+          // resolve?domain=<bot_username>&startapp=<start_parameter>&mode=compact
+          return td::make_unique<InternalLinkMainWebApp>(std::move(username), arg.second,
+                                                         url_query.get_arg("mode").str());
+        }
       }
       if (!url_query.get_arg("attach").empty()) {
         // resolve?domain=<username>&attach=<bot_username>
