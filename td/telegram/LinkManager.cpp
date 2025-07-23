@@ -54,6 +54,10 @@ static bool is_valid_start_parameter(Slice start_parameter) {
   return is_base64url_characters(start_parameter);
 }
 
+static bool is_valid_video_chat_invite_hash(Slice invite_hash) {
+  return is_base64url_characters(invite_hash);
+}
+
 static bool is_valid_phone_number(Slice phone_number) {
   if (phone_number.empty() || phone_number.size() > 32) {
     return false;
@@ -1464,7 +1468,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
                       << copy_arg("thread") << copy_arg("comment") << copy_arg("t"));
       }
       for (auto &arg : url_query.args_) {
-        if (arg.first == "voicechat" || arg.first == "videochat" || arg.first == "livestream") {
+        if ((arg.first == "voicechat" || arg.first == "videochat" || arg.first == "livestream") &&
+            is_valid_video_chat_invite_hash(arg.second)) {
           // resolve?domain=<username>&videochat
           // resolve?domain=<username>&videochat=<invite_hash>
           if (Scheduler::context() != nullptr) {
@@ -1980,7 +1985,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
                                                  url_query.get_arg("mode").str());
     }
     for (auto &arg : url_query.args_) {
-      if (arg.first == "voicechat" || arg.first == "videochat" || arg.first == "livestream") {
+      if ((arg.first == "voicechat" || arg.first == "videochat" || arg.first == "livestream") &&
+          is_valid_video_chat_invite_hash(arg.second)) {
         // /<username>?videochat
         // /<username>?videochat=<invite_hash>
         if (Scheduler::context() != nullptr) {
@@ -2740,6 +2746,9 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       auto link = static_cast<const td_api::internalLinkTypeVideoChat *>(type_ptr);
       if (!is_valid_username(link->chat_username_)) {
         return Status::Error(400, "Invalid chat username specified");
+      }
+      if (!is_valid_video_chat_invite_hash(link->invite_hash_)) {
+        return Status::Error(400, "Invalid invite hash specified");
       }
       string invite_hash;
       if (!link->invite_hash_.empty()) {
