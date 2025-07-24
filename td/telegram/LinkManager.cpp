@@ -88,6 +88,10 @@ static bool is_valid_upgraded_gift_name(CSlice name) {
   return true;
 }
 
+static bool is_valid_user_token(CSlice token) {
+  return !token.empty() && check_utf8(token);
+}
+
 static bool is_valid_story_id(Slice story_id) {
   auto r_story_id = to_integer_safe<int32>(story_id);
   return r_story_id.is_ok() && StoryId(r_story_id.ok()).is_server();
@@ -882,7 +886,7 @@ class LinkManager::InternalLinkUserToken final : public InternalLink {
   }
 
  public:
-  explicit InternalLinkUserToken(string token) : token_(std::move(token)) {
+  explicit InternalLinkUserToken(string &&token) : token_(std::move(token)) {
   }
 };
 
@@ -1587,8 +1591,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
   } else if (path.size() == 1 && path[0] == "contact") {
     // contact?token=<token>
-    if (has_arg("token")) {
-      return td::make_unique<InternalLinkUserToken>(get_arg("token"));
+    auto token = get_arg("token");
+    if (is_valid_user_token(token)) {
+      return td::make_unique<InternalLinkUserToken>(std::move(token));
     }
   } else if (path.size() == 1 && path[0] == "login") {
     // login?code=123456
@@ -1868,9 +1873,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       }
     }
   } else if (path[0] == "contact") {
-    if (path.size() >= 2 && !path[1].empty()) {
+    if (path.size() >= 2 && is_valid_user_token(path[1])) {
       // /contact/<token>
-      return td::make_unique<InternalLinkUserToken>(path[1]);
+      auto token = path[1];
+      return td::make_unique<InternalLinkUserToken>(std::move(token));
     }
   } else if (path[0] == "addstickers" || path[0] == "addemoji") {
     if (path.size() >= 2 && !path[1].empty()) {
@@ -2756,13 +2762,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypeUserToken::ID: {
       auto link = static_cast<const td_api::internalLinkTypeUserToken *>(type_ptr);
-      if (link->token_.empty()) {
+      if (!is_valid_user_token(link->token_)) {
         return Status::Error(400, "Invalid user token specified");
       }
       if (is_internal) {
-        return PSTRING() << "tg://contact?token=" << link->token_;
+        return PSTRING() << "tg://contact?token=" << url_encode(link->token_);
       } else {
-        return PSTRING() << get_t_me_url() << "contact/" << link->token_;
+        return PSTRING() << get_t_me_url() << "contact/" << url_encode(link->token_);
       }
     }
     case td_api::internalLinkTypeVideoChat::ID: {

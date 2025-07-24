@@ -569,6 +569,10 @@ TEST(Link, parse_internal_link_part1) {
                       user_token("012345678901234567890123456789123"));
   parse_internal_link("tg:contact?token=", unknown_deep_link("tg://contact?token="));
   parse_internal_link("tg:contact?token=+123", user_token(" 123"));
+  parse_internal_link("tg:contact?token=%30123", user_token("0123"));
+  parse_internal_link("tg:contact?token=%29123", user_token(")123"));
+  parse_internal_link("tg:contact?token=%2F123", user_token("/123"));
+  parse_internal_link("tg:contact?token=%FF123", unknown_deep_link("tg://contact?token=%FF123"));
 
   parse_internal_link("tg:nft?slug=1", upgraded_gift("1"));
   parse_internal_link("tg:nft?slug=123456", upgraded_gift("123456"));
@@ -949,6 +953,10 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("t.me/contact/startattach=1", user_token("startattach=1"));
   parse_internal_link("t.me/contact/", nullptr);
   parse_internal_link("t.me/contact/?attach=&startattach", nullptr);
+  parse_internal_link("t.me/contact/%30123", user_token("0123"));
+  parse_internal_link("t.me/contact/%29123", user_token(")123"));
+  parse_internal_link("t.me/contact/%2F123", user_token("/123"));
+  parse_internal_link("t.me/contact/%FF123", nullptr);
 
   parse_internal_link("t.me/nft/startattach/adasd", upgraded_gift("startattach/adasd"));
   parse_internal_link("t.me/nft/startattach", upgraded_gift("startattach"));
