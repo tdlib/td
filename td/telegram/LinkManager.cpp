@@ -1535,12 +1535,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
               nullptr, td::make_unique<InternalLinkPublicDialog>(std::move(username), string(), false), arg.second,
               url_query.get_arg("startattach"));
         }
-      }
-      if (url_query.has_arg("startattach") && url_query.get_arg("attach").empty()) {
-        // resolve?domain=<bot_username>&startattach&choose=users+bots+groups+channels
-        // resolve?domain=<bot_username>&startattach=<start_parameter>&choose=users+bots+groups+channels
-        return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_types(url_query.get_arg("choose")), nullptr,
-                                                          std::move(username), url_query.get_arg("startattach"));
+        if (arg.first == "startattach" && url_query.get_arg("attach").empty()) {
+          // resolve?domain=<bot_username>&startattach&choose=users+bots+groups+channels
+          // resolve?domain=<bot_username>&startattach=<start_parameter>&choose=users+bots+groups+channels
+          return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_types(url_query.get_arg("choose")), nullptr,
+                                                            std::move(username), arg.second);
+        }
       }
       if (username == "telegrampassport") {
         // resolve?domain=telegrampassport&bot_id=...&scope=...&public_key=...&nonce=...&callback_url=...
@@ -2049,12 +2049,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
             nullptr, td::make_unique<InternalLinkPublicDialog>(std::move(username), string(), false), arg.second,
             url_query.get_arg("startattach"));
       }
-    }
-    if (url_query.has_arg("startattach") && url_query.get_arg("attach").empty()) {
-      // /<bot_username>?startattach&choose=users+bots+groups+channels
-      // /<bot_username>?startattach=<start_parameter>&choose=users+bots+groups+channels
-      return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_types(url_query.get_arg("choose")), nullptr,
-                                                        std::move(username), url_query.get_arg("startattach"));
+      if (arg.first == "startattach" && url_query.get_arg("attach").empty()) {
+        // /<bot_username>?startattach&choose=users+bots+groups+channels
+        // /<bot_username>?startattach=<start_parameter>&choose=users+bots+groups+channels
+        return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_types(url_query.get_arg("choose")), nullptr,
+                                                          std::move(username), arg.second);
+      }
     }
 
     // /<username>

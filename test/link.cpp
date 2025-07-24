@@ -487,6 +487,8 @@ TEST(Link, parse_internal_link_part1) {
                       attachment_menu_bot(nullptr, nullptr, "telegram", "1"));
   parse_internal_link("tg:resolve?domain=telegram&startattach=1&choose=users",
                       attachment_menu_bot(target_chat_chosen(true, false, false, false), nullptr, "telegram", "1"));
+  parse_internal_link("tg:resolve?domain=telegram&startattach=*&choose=users",
+                      attachment_menu_bot(target_chat_chosen(true, false, false, false), nullptr, "telegram", ""));
   parse_internal_link("tg:resolve?domain=telegram&startattach=1&choose=bots",
                       attachment_menu_bot(target_chat_chosen(false, true, false, false), nullptr, "telegram", "1"));
   parse_internal_link("tg:resolve?domain=telegram&startattach=1&choose=groups",
@@ -605,6 +607,8 @@ TEST(Link, parse_internal_link_part1) {
                       attachment_menu_bot(nullptr, nullptr, "username", "1"));
   parse_internal_link("t.me/username?startattach=1&choose=users",
                       attachment_menu_bot(target_chat_chosen(true, false, false, false), nullptr, "username", "1"));
+  parse_internal_link("t.me/username?startattach=1*&choose=users",
+                      attachment_menu_bot(target_chat_chosen(true, false, false, false), nullptr, "username", ""));
   parse_internal_link("t.me/username?startattach=1&choose=bots",
                       attachment_menu_bot(target_chat_chosen(false, true, false, false), nullptr, "username", "1"));
   parse_internal_link("t.me/username?startattach=1&choose=groups",
