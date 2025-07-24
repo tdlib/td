@@ -78,6 +78,16 @@ static bool is_valid_web_app_name(Slice name) {
   return name.size() >= 3 && is_valid_username(name);
 }
 
+static bool is_valid_upgraded_gift_name(CSlice name) {
+  if (name.empty()) {
+    return false;
+  }
+  if (!check_utf8(name)) {
+    return false;
+  }
+  return true;
+}
+
 static bool is_valid_story_id(Slice story_id) {
   auto r_story_id = to_integer_safe<int32>(story_id);
   return r_story_id.is_ok() && StoryId(r_story_id.ok()).is_server();
@@ -1571,8 +1581,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
   } else if (path.size() == 1 && path[0] == "nft") {
     // nft?slug=<slug>
-    if (has_arg("slug")) {
-      return td::make_unique<InternalLinkUpgradedGift>(get_arg("slug"));
+    auto name = get_arg("slug");
+    if (is_valid_upgraded_gift_name(name)) {
+      return td::make_unique<InternalLinkUpgradedGift>(name);
     }
   } else if (path.size() == 1 && path[0] == "contact") {
     // contact?token=<token>
@@ -1852,7 +1863,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
         name += '/';
         name += path[i];
       }
-      return td::make_unique<InternalLinkUpgradedGift>(name);
+      if (is_valid_upgraded_gift_name(name)) {
+        return td::make_unique<InternalLinkUpgradedGift>(name);
+      }
     }
   } else if (path[0] == "contact") {
     if (path.size() >= 2 && !path[1].empty()) {

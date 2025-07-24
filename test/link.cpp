@@ -583,6 +583,7 @@ TEST(Link, parse_internal_link_part1) {
                       upgraded_gift("012345678901234567890123456789123"));
   parse_internal_link("tg:nft?slug=", unknown_deep_link("tg://nft?slug="));
   parse_internal_link("tg:nft?slug=+123", upgraded_gift(" 123"));
+  parse_internal_link("tg:nft?slug=%FF", unknown_deep_link("tg://nft?slug=%FF"));
 
   parse_internal_link("t.me/username/12345?single", message("tg://resolve?domain=username&post=12345&single"));
   parse_internal_link("t.me/username/12345?asdasd", message("tg://resolve?domain=username&post=12345"));
@@ -954,6 +955,7 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("t.me/nft/startattach=1", upgraded_gift("startattach=1"));
   parse_internal_link("t.me/nft/", nullptr);
   parse_internal_link("t.me/nft/?attach=&startattach", nullptr);
+  parse_internal_link("t.me/nft/startattach%FF", nullptr);
 
   parse_internal_link("tg:join?invite=abcdef", chat_invite("abcdef"));
   parse_internal_link("tg:join?invite=abc%20def", unknown_deep_link("tg://join?invite=abc%20def"));
