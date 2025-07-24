@@ -2214,8 +2214,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           if (!start_parameter.empty()) {
             start_parameter = "&startattach" + start_parameter;
           }
-          if (target->link_ == nullptr || target->link_->get_id() != td_api::internalLinkTypePublicChat::ID) {
-            if (target->link_->get_id() == td_api::internalLinkTypeUserPhoneNumber::ID) {
+          if (target->link_ == nullptr) {
+            return Status::Error(400, "Target link must be non-empty");
+          }
+          switch (target->link_->get_id()) {
+            case td_api::internalLinkTypeUserPhoneNumber::ID: {
               auto user_phone_number_link =
                   static_cast<const td_api::internalLinkTypeUserPhoneNumber *>(target->link_.get());
               if (user_phone_number_link->open_profile_) {
@@ -2238,21 +2241,24 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
                                  << start_parameter;
               }
             }
-            return Status::Error(400, "Unsupported target link specified");
-          }
-          auto public_chat_link = static_cast<const td_api::internalLinkTypePublicChat *>(target->link_.get());
-          if (public_chat_link->open_profile_) {
-            return Status::Error(400, "Link must not open chat profile information screen");
-          }
-          if (!is_valid_username(public_chat_link->chat_username_)) {
-            return Status::Error(400, "Invalid target public chat username specified");
-          }
-          if (is_internal) {
-            return PSTRING() << "tg://resolve?domain=" << public_chat_link->chat_username_
-                             << "&attach=" << link->bot_username_ << start_parameter;
-          } else {
-            return PSTRING() << get_t_me_url() << public_chat_link->chat_username_ << "?attach=" << link->bot_username_
-                             << start_parameter;
+            case td_api::internalLinkTypePublicChat::ID: {
+              auto public_chat_link = static_cast<const td_api::internalLinkTypePublicChat *>(target->link_.get());
+              if (public_chat_link->open_profile_) {
+                return Status::Error(400, "Link must not open chat profile information screen");
+              }
+              if (!is_valid_username(public_chat_link->chat_username_)) {
+                return Status::Error(400, "Invalid target public chat username specified");
+              }
+              if (is_internal) {
+                return PSTRING() << "tg://resolve?domain=" << public_chat_link->chat_username_
+                                 << "&attach=" << link->bot_username_ << start_parameter;
+              } else {
+                return PSTRING() << get_t_me_url() << public_chat_link->chat_username_
+                                 << "?attach=" << link->bot_username_ << start_parameter;
+              }
+            }
+            default:
+              return Status::Error(400, "Unsupported target link specified");
           }
         }
         default:
