@@ -870,7 +870,7 @@ class LinkManager::InternalLinkUpgradedGift final : public InternalLink {
   }
 
  public:
-  explicit InternalLinkUpgradedGift(string name) : name_(std::move(name)) {
+  explicit InternalLinkUpgradedGift(string &&name) : name_(std::move(name)) {
   }
 };
 
@@ -1583,7 +1583,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     // nft?slug=<slug>
     auto name = get_arg("slug");
     if (is_valid_upgraded_gift_name(name)) {
-      return td::make_unique<InternalLinkUpgradedGift>(name);
+      return td::make_unique<InternalLinkUpgradedGift>(std::move(name));
     }
   } else if (path.size() == 1 && path[0] == "contact") {
     // contact?token=<token>
@@ -1864,7 +1864,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
         name += path[i];
       }
       if (is_valid_upgraded_gift_name(name)) {
-        return td::make_unique<InternalLinkUpgradedGift>(name);
+        return td::make_unique<InternalLinkUpgradedGift>(std::move(name));
       }
     }
   } else if (path[0] == "contact") {
@@ -2715,13 +2715,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
     case td_api::internalLinkTypeUpgradedGift::ID: {
       auto link = static_cast<const td_api::internalLinkTypeUpgradedGift *>(type_ptr);
-      if (link->name_.empty()) {
+      if (!is_valid_upgraded_gift_name(link->name_)) {
         return Status::Error(400, "Invalid gift name specified");
       }
       if (is_internal) {
-        return PSTRING() << "tg://nft?slug=" << link->name_;
+        return PSTRING() << "tg://nft?slug=" << url_encode(link->name_);
       } else {
-        return PSTRING() << get_t_me_url() << "nft/" << link->name_;
+        return PSTRING() << get_t_me_url() << "nft/" << url_encode(link->name_);
       }
     }
     case td_api::internalLinkTypeUserPhoneNumber::ID: {
