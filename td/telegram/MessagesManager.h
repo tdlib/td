@@ -1949,6 +1949,8 @@ class MessagesManager final : public Actor {
 
   bool get_message_has_protected_content(DialogId dialog_id, const Message *m) const;
 
+  bool can_add_message_offer(DialogId dialog_id, const Message *m) const;
+
   bool can_add_message_tasks(DialogId dialog_id, const Message *m, int32 task_count) const;
 
   bool can_mark_message_tasks_as_done(DialogId dialog_id, const Message *m) const;

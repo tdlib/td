@@ -7670,6 +7670,22 @@ bool MessagesManager::get_message_has_protected_content(DialogId dialog_id, cons
   return m->noforwards || td_->dialog_manager_->get_dialog_has_protected_content(dialog_id);
 }
 
+bool MessagesManager::can_add_message_offer(DialogId dialog_id, const Message *m) const {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+  if (!td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
+    return false;
+  }
+  if (m == nullptr || !m->message_id.is_server() || m->suggested_post != nullptr) {
+    return false;
+  }
+  if (!can_forward_message(dialog_id, m, m->forward_info == nullptr)) {
+    return false;
+  }
+  return true;
+}
+
 bool MessagesManager::can_add_message_tasks(MessageFullId message_full_id, int32 task_count) {
   return can_add_message_tasks(message_full_id.get_dialog_id(),
                                get_message_force(message_full_id, "can_add_message_tasks"), task_count);
@@ -14748,6 +14764,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   }
 
   auto is_bot = td_->auth_manager_->is_bot();
+  auto can_add_offer = can_add_message_offer(dialog_id, m);
   auto can_add_tasks = can_add_message_tasks(dialog_id, m, 1);
   auto can_be_approved = can_approve_message(dialog_id, m);
   auto can_be_declined = can_decline_message(dialog_id, m);
@@ -14785,13 +14802,13 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_set_fact_check = can_set_message_fact_check(dialog_id, m);
   auto need_show_statistics = can_get_statistics && (m->view_count >= 100 || m->forward_count > 0);
   promise.set_value(td_api::make_object<td_api::messageProperties>(
-      can_add_tasks, can_be_approved, can_be_copied, can_be_copied_to_secret_chat, can_be_declined, can_delete_for_self,
-      can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_pinned, can_be_replied,
-      can_be_replied_in_another_chat, can_be_saved, can_be_shared_in_story, can_edit_media, can_edit_scheduling_state,
-      can_get_author, can_get_embedding_code, can_get_link, can_get_media_timestamp_links, can_get_message_thread,
-      can_get_read_date, can_get_statistics, can_get_video_advertisements, can_get_viewers, can_mark_tasks_as_done,
-      can_recognize_speech, can_report_chat, can_report_reactions, can_report_supergroup_spam, can_set_fact_check,
-      need_show_statistics));
+      can_add_offer, can_add_tasks, can_be_approved, can_be_copied, can_be_copied_to_secret_chat, can_be_declined,
+      can_delete_for_self, can_delete_for_all_users, can_be_edited, can_be_forwarded, can_be_paid, can_be_pinned,
+      can_be_replied, can_be_replied_in_another_chat, can_be_saved, can_be_shared_in_story, can_edit_media,
+      can_edit_scheduling_state, can_get_author, can_get_embedding_code, can_get_link, can_get_media_timestamp_links,
+      can_get_message_thread, can_get_read_date, can_get_statistics, can_get_video_advertisements, can_get_viewers,
+      can_mark_tasks_as_done, can_recognize_speech, can_report_chat, can_report_reactions, can_report_supergroup_spam,
+      can_set_fact_check, need_show_statistics));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
