@@ -4687,7 +4687,7 @@ messageSelfDestructTypeImmediately = MessageSelfDestructType;
 
 //@description Options to be used when a message is sent
 //@direct_messages_chat_topic_id Unique identifier of the topic in a channel direct messages chat administered by the current user; pass 0 if the chat isn't a channel direct messages chat administered by the current user
-//@suggested_post_info Information about the suggested post; pass null if none. For messages to channel direct messages chat only. Applicable only to sendMessage
+//@suggested_post_info Information about the suggested post; pass null if none. For messages to channel direct messages chat only. Applicable only to sendMessage and addOffer
 //@disable_notification Pass true to disable notification for the message
 //@from_background Pass true if the message is sent from the background
 //@protect_content Pass true if the content of the message must be protected from forwarding and saving; for bots only
@@ -11767,6 +11767,13 @@ approveSuggestedPost chat_id:int53 message_id:int53 send_date:int32 = Ok;
 //@message_id Identifier of the message with the suggested post. Use messageProperties.can_be_declined to check whether the suggested post can be declined
 //@comment Comment for the creator of the suggested post; 0-128 characters
 declineSuggestedPost chat_id:int53 message_id:int53 comment:string = Ok;
+
+//@description Sent a suggested post based on a previously sent message in a channel direct messages chat. Can be also used to suggest price or time change for an existing suggested post.
+//-Returns the sent message
+//@chat_id Identifier of the channel direct messages chat
+//@message_id Identifier of the message in the chat which will be sent as suggested post
+//@options Options to be used to send the message. New information about the suggested post must be always specified
+addOffer chat_id:int53 message_id:int53 options:messageSendOptions = Message;
 
 
 //@description Creates a new call

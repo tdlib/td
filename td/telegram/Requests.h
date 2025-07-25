@@ -1059,6 +1059,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::declineSuggestedPost &request);
 
+  void on_request(uint64 id, td_api::addOffer &request);
+
   void on_request(uint64 id, td_api::revokeChatInviteLink &request);
 
   void on_request(uint64 id, td_api::deleteRevokedChatInviteLink &request);

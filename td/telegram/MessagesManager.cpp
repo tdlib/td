@@ -1924,7 +1924,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
             SavedMessagesTopicId saved_messages_topic_id, DialogId from_dialog_id,
             tl_object_ptr<telegram_api::InputPeer> as_input_peer, const vector<MessageId> &message_ids,
             vector<int64> &&random_ids, int32 schedule_date, int32 new_video_start_timestamp,
-            int64 paid_message_star_count) {
+            int64 paid_message_star_count, const SuggestedPost &suggested_post) {
     random_ids_ = random_ids;
     from_dialog_id_ = from_dialog_id;
     to_dialog_id_ = to_dialog_id;
@@ -1961,13 +1961,18 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
     if (new_video_start_timestamp >= 0) {
       flags |= telegram_api::messages_forwardMessages::VIDEO_TIMESTAMP_MASK;
     }
+    telegram_api::object_ptr<telegram_api::suggestedPost> post;
+    if (!suggested_post.is_empty()) {
+      flags |= telegram_api::messages_forwardMessages::SUGGESTED_POST_MASK;
+      post = suggested_post.get_input_suggested_post();
+    }
 
     auto query = G()->net_query_creator().create(
         telegram_api::messages_forwardMessages(
             flags, false, false, false, false, false, false, false, std::move(from_input_peer),
             MessageId::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer),
             top_thread_message_id.get_server_message_id().get(), std::move(input_reply_to), schedule_date,
-            std::move(as_input_peer), nullptr, new_video_start_timestamp, paid_message_star_count, nullptr),
+            std::move(as_input_peer), nullptr, new_video_start_timestamp, paid_message_star_count, std::move(post)),
         {{to_dialog_id, MessageContentType::Text}, {to_dialog_id, MessageContentType::Photo}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {
       query->quick_ack_promise_ = PromiseCreator::lambda([random_ids = random_ids_](Result<Unit> result) {
@@ -20869,7 +20874,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
         dialog_id, top_thread_message_id, DialogId(input_message->from_chat_id_), MessageId(input_message->message_id_),
         std::move(options), input_message->in_game_share_,
         input_message->replace_video_start_timestamp_ ? max(0, input_message->new_video_start_timestamp_) : -1,
-        std::move(copy_options));
+        std::move(copy_options), false, MessageId());
   }
 
   TRY_STATUS(can_send_message(dialog_id));
@@ -23648,6 +23653,7 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
                      from_dialog_id, std::move(as_input_peer), message_ids, std::move(random_ids), schedule_date,
                      messages[0]->new_video_start_timestamp,
                      messages[0]->paid_message_star_count * static_cast<int32>(messages.size()),
+                     messages[0]->suggested_post == nullptr ? SuggestedPost() : *messages[0]->suggested_post,
                      get_erase_log_event_promise(log_event_id));
 }
 
@@ -23655,29 +23661,59 @@ void MessagesManager::send_forward_message_query(
     int32 flags, DialogId to_dialog_id, const MessageId top_thread_message_id,
     const SavedMessagesTopicId saved_messages_topic_id, DialogId from_dialog_id,
     tl_object_ptr<telegram_api::InputPeer> as_input_peer, vector<MessageId> message_ids, vector<int64> random_ids,
-    int32 schedule_date, int32 new_video_start_timestamp, int64 paid_message_star_count, Promise<Unit> promise) {
+    int32 schedule_date, int32 new_video_start_timestamp, int64 paid_message_star_count,
+    const SuggestedPost &suggested_post, Promise<Unit> promise) {
   td_->create_handler<ForwardMessagesQuery>(std::move(promise))
       ->send(flags, to_dialog_id, top_thread_message_id, saved_messages_topic_id, from_dialog_id,
              std::move(as_input_peer), message_ids, std::move(random_ids), schedule_date, new_video_start_timestamp,
-             paid_message_star_count);
+             paid_message_star_count, suggested_post);
 }
 
 Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
     DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id, MessageId message_id,
     tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share, int32 new_video_start_timestamp,
-    MessageCopyOptions &&copy_options) {
+    MessageCopyOptions &&copy_options, bool add_offer, MessageId reply_to_message_id) {
   bool need_copy = copy_options.send_copy;
   vector<MessageCopyOptions> all_copy_options;
   all_copy_options.push_back(std::move(copy_options));
-  TRY_RESULT(result,
-             forward_messages(to_dialog_id, top_thread_message_id, from_dialog_id, {message_id}, std::move(options),
-                              in_game_share, new_video_start_timestamp, std::move(all_copy_options)));
+  TRY_RESULT(result, forward_messages(to_dialog_id, top_thread_message_id, from_dialog_id, {message_id},
+                                      std::move(options), in_game_share, new_video_start_timestamp,
+                                      std::move(all_copy_options), add_offer, reply_to_message_id));
   CHECK(result->messages_.size() == 1);
   if (result->messages_[0] == nullptr) {
     return Status::Error(400,
                          need_copy ? Slice("The message can't be copied") : Slice("The message can't be forwarded"));
   }
   return std::move(result->messages_[0]);
+}
+
+void MessagesManager::add_offer(DialogId dialog_id, MessageId message_id,
+                                td_api::object_ptr<td_api::messageSendOptions> &&options,
+                                Promise<td_api::object_ptr<td_api::message>> promise) {
+  if (options == nullptr || options->suggested_post_info_ == nullptr) {
+    return promise.set_error(400, "Suggested post info must be non-empty");
+  }
+  Dialog *d = get_dialog_force(dialog_id, "add_offer");
+  if (d == nullptr) {
+    return promise.set_error(400, "Chat not found");
+  }
+  if (!td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
+    return promise.set_error(400, "Chat is not a direct messages chat");
+  }
+  const Message *m = get_message_force(d, message_id, "add_offer");
+  if (m == nullptr) {
+    return promise.set_error(400, "Message not found");
+  }
+  if (!m->message_id.is_server()) {
+    return promise.set_error(400, "Wrong message identifier specified");
+  }
+  MessageCopyOptions copy_options;
+  if (m->forward_info == nullptr) {
+    copy_options = MessageCopyOptions(true, false);
+  }
+  promise.set_result(forward_message(dialog_id, MessageId(), dialog_id, message_id, std::move(options), false, -1,
+                                     std::move(copy_options), true,
+                                     m->suggested_post == nullptr ? MessageId() : message_id));
 }
 
 MessageOrigin MessagesManager::get_forwarded_message_origin(DialogId dialog_id, const Message *m) const {
@@ -23806,7 +23842,7 @@ void MessagesManager::fix_forwarded_message(Message *m, DialogId to_dialog_id, c
 Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messages(
     DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id,
     const vector<MessageId> &message_ids, tl_object_ptr<td_api::messageSendOptions> &&options,
-    int32 new_video_start_timestamp, vector<MessageCopyOptions> &&copy_options) {
+    int32 new_video_start_timestamp, vector<MessageCopyOptions> &&copy_options, bool add_offer) {
   CHECK(copy_options.size() == message_ids.size());
   if (message_ids.size() > 100) {  // TODO replace with const from config or implement mass-forward
     return Status::Error(400, "Too many messages to forward");
@@ -23836,8 +23872,8 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   }
 
   TRY_STATUS(can_send_message(to_dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(to_dialog_id, std::move(options), false, false, false,
-                                                                static_cast<int32>(message_ids.size())));
+  TRY_RESULT(message_send_options, process_message_send_options(to_dialog_id, std::move(options), false, false,
+                                                                add_offer, static_cast<int32>(message_ids.size())));
   TRY_STATUS(can_use_top_thread_message_id(to_dialog, top_thread_message_id, MessageInputReplyTo()));
 
   {
@@ -24018,10 +24054,10 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
 Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     DialogId to_dialog_id, MessageId top_thread_message_id, DialogId from_dialog_id, vector<MessageId> message_ids,
     tl_object_ptr<td_api::messageSendOptions> &&options, bool in_game_share, int32 new_video_start_timestamp,
-    vector<MessageCopyOptions> &&copy_options) {
+    vector<MessageCopyOptions> &&copy_options, bool add_offer, MessageId suggested_post_reply_to_message_id) {
   TRY_RESULT(forwarded_messages_info,
              get_forwarded_messages(to_dialog_id, top_thread_message_id, from_dialog_id, message_ids,
-                                    std::move(options), new_video_start_timestamp, std::move(copy_options)));
+                                    std::move(options), new_video_start_timestamp, std::move(copy_options), add_offer));
   auto from_dialog = forwarded_messages_info.from_dialog;
   auto to_dialog = forwarded_messages_info.to_dialog;
   const auto message_send_options = forwarded_messages_info.message_send_options;
@@ -24053,6 +24089,10 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
         input_reply_to = forwarded_message->replied_message_info.get_message_input_reply_to();
         input_reply_to.set_message_id(it->second);
       }
+    }
+    if (add_offer) {
+      CHECK(input_reply_to == MessageInputReplyTo());
+      input_reply_to = MessageInputReplyTo{suggested_post_reply_to_message_id, DialogId(), MessageQuote()};
     }
 
     unique_ptr<Message> message;
@@ -24120,6 +24160,10 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       if (it != forwarded_message_id_to_new_message_id.end()) {
         input_reply_to = MessageInputReplyTo{it->second, DialogId(), MessageQuote()};
       }
+    }
+    if (add_offer) {
+      CHECK(input_reply_to == MessageInputReplyTo());
+      input_reply_to = MessageInputReplyTo{suggested_post_reply_to_message_id, DialogId(), MessageQuote()};
     }
 
     unique_ptr<Message> message;

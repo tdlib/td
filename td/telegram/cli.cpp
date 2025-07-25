@@ -5100,6 +5100,11 @@ class CliClient final : public Actor {
       string comment;
       get_args(args, chat_id, message_id, comment);
       send_request(td_api::make_object<td_api::declineSuggestedPost>(chat_id, message_id, comment));
+    } else if (op == "ao") {
+      ChatId chat_id;
+      MessageId message_id;
+      get_args(args, chat_id, message_id);
+      send_request(td_api::make_object<td_api::addOffer>(chat_id, message_id, default_message_send_options()));
     } else if (op == "sq") {
       string text;
       string quote;

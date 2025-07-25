@@ -5693,6 +5693,13 @@ void Requests::on_request(uint64 id, td_api::declineSuggestedPost &request) {
                                                  request.comment_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::addOffer &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->messages_manager_->add_offer(DialogId(request.chat_id_), MessageId(request.message_id_),
+                                    std::move(request.options_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::revokeChatInviteLink &request) {
   CLEAN_INPUT_STRING(request.invite_link_);
   CREATE_REQUEST_PROMISE();
