@@ -92,6 +92,10 @@ static bool is_valid_user_token(CSlice token) {
   return !token.empty() && check_utf8(token);
 }
 
+static bool is_valid_login_code(CSlice code) {
+  return !code.empty() && check_utf8(code);
+}
+
 static bool is_valid_story_id(Slice story_id) {
   auto r_story_id = to_integer_safe<int32>(story_id);
   return r_story_id.is_ok() && StoryId(r_story_id.ok()).is_server();
@@ -343,7 +347,7 @@ class LinkManager::InternalLinkAuthenticationCode final : public InternalLink {
   }
 
  public:
-  explicit InternalLinkAuthenticationCode(string code) : code_(std::move(code)) {
+  explicit InternalLinkAuthenticationCode(string &&code) : code_(std::move(code)) {
   }
 };
 
@@ -1597,8 +1601,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
   } else if (path.size() == 1 && path[0] == "login") {
     // login?code=123456
-    if (has_arg("code")) {
-      return td::make_unique<InternalLinkAuthenticationCode>(get_arg("code"));
+    auto code = get_arg("code");
+    if (is_valid_login_code(code)) {
+      return td::make_unique<InternalLinkAuthenticationCode>(std::move(code));
     }
     // login?token=<token>
     if (has_arg("token")) {
@@ -1820,9 +1825,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkDialogBoost>(PSTRING() << "tg://boost?channel=" << to_integer<int64>(path[1]));
     }
   } else if (path[0] == "login") {
-    if (path.size() >= 2 && !path[1].empty()) {
+    if (path.size() >= 2 && is_valid_login_code(path[1])) {
       // /login/<code>
-      return td::make_unique<InternalLinkAuthenticationCode>(path[1]);
+      auto code = path[1];
+      return td::make_unique<InternalLinkAuthenticationCode>(std::move(code));
     }
   } else if (path[0] == "addlist") {
     auto slug = get_url_query_slug(false, url_query, "addlist");
@@ -2274,6 +2280,9 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypeAuthenticationCode::ID: {
       auto link = static_cast<const td_api::internalLinkTypeAuthenticationCode *>(type_ptr);
+      if (!is_valid_login_code(link->code_)) {
+        return Status::Error(400, "Invalid authentication code specified");
+      }
       if (is_internal) {
         return PSTRING() << "tg://login?code=" << url_encode(link->code_);
       } else {

@@ -826,6 +826,8 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg:login", unknown_deep_link("tg://login"));
   parse_internal_link("tg:login?code=abacaba", authentication_code("abacaba"));
   parse_internal_link("tg:login?code=123456", authentication_code("123456"));
+  parse_internal_link("tg:login?code=%2F123456", authentication_code("/123456"));
+  parse_internal_link("tg:login?code=%FF123456", unknown_deep_link("tg://login?code=%FF123456"));
 
   parse_internal_link("t.me/login?codec=12345", nullptr);
   parse_internal_link("t.me/login", nullptr);
@@ -840,6 +842,8 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("t.me/login/12345678901", authentication_code("12345678901"));
   parse_internal_link("t.me/login/123456", authentication_code("123456"));
   parse_internal_link("t.me/login/123456/123123/12/31/a/s//21w/?asdas#test", authentication_code("123456"));
+  parse_internal_link("t.me/login/%2F123456", authentication_code("/123456"));
+  parse_internal_link("t.me/login/%FF123456", nullptr);
 
   parse_internal_link("tg:login?token=abacaba", qr_code_authentication());
   parse_internal_link("tg:login?token=", unknown_deep_link("tg://login?token="));
