@@ -913,7 +913,8 @@ suggestedPostStateApproved = SuggestedPostState;
 suggestedPostStateDeclined = SuggestedPostState;
 
 
-//@description Contains information about a suggested post
+//@description Contains information about a suggested post. If the post can be approved or declined, then changes to the post can be also suggested. Use sendMessage with reply to the message
+//-and suggested post information to suggest message changes. Use addOffer to suggest price or time changes
 //@price Price of the suggested post; may be null if the post is non-paid
 //@send_date Point in time (Unix timestamp) when the post is expected to be published; 0 if the specific date isn't set yet
 //@state State of the post
