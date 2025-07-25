@@ -134,6 +134,8 @@ TEST(HttpUrl, parse_url_query) {
   test_parse_url_query("//", {}, {});
   test_parse_url_query("///?a", {}, {{"a", ""}});
   test_parse_url_query("/a/b/c/", {"a", "b", "c"}, {});
+  test_parse_url_query("/a+/++b+/c/", {"a+", "++b+", "c"}, {});
+  test_parse_url_query("/a%2f/%2F%2Fb%2f/c/", {"a/", "//b/", "c"}, {});
   test_parse_url_query("/a/b/?c/", {td::string("a"), td::string("b")}, {{"c/", ""}});
   test_parse_url_query("?", {}, {});
   test_parse_url_query("???", {}, {{"??", ""}});

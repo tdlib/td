@@ -6,6 +6,7 @@
 //
 #include "td/utils/HttpUrl.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -205,7 +206,8 @@ HttpUrlQuery parse_url_query(Slice query) {
   }
 
   HttpUrlQuery result;
-  result.path_ = full_split(url_decode(query.substr(0, path_size), false), '/');
+  result.path_ = transform(full_split(query.substr(0, path_size), '/'),
+                           [](Slice &&segment) { return url_decode(segment, false); });
   while (!result.path_.empty() && result.path_.back().empty()) {
     result.path_.pop_back();
   }
