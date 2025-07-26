@@ -1470,6 +1470,7 @@ TEST(Link, parse_internal_link_part4) {
 
   parse_internal_link("tg:premium_offer?ref=abcdef", premium_features("abcdef"));
   parse_internal_link("tg:premium_offer?ref=abc%30ef", premium_features("abc0ef"));
+  parse_internal_link("tg:premium_offer?ref=abcde%ff", unknown_deep_link("tg://premium_offer?ref=abcde%ff"));
   parse_internal_link("tg://premium_offer?ref=", premium_features(""));
 
   parse_internal_link("tg:premium_multigift?ref=abcdef", premium_gift("abcdef"));

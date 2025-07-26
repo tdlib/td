@@ -96,6 +96,10 @@ static bool is_valid_login_code(CSlice code) {
   return !code.empty() && check_utf8(code);
 }
 
+static bool is_valid_premium_referrer(CSlice referrer) {
+  return check_utf8(referrer);
+}
+
 static bool is_valid_story_id(Slice story_id) {
   auto r_story_id = to_integer_safe<int32>(story_id);
   return r_story_id.is_ok() && StoryId(r_story_id.ok()).is_server();
@@ -1617,7 +1621,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     return get_internal_link_passport(query, url_query.args_, true);
   } else if (path.size() == 1 && path[0] == "premium_offer") {
     // premium_offer?ref=<referrer>
-    return td::make_unique<InternalLinkPremiumFeatures>(get_arg("ref"));
+    auto referrer = get_arg("ref");
+    if (is_valid_premium_referrer(referrer)) {
+      return td::make_unique<InternalLinkPremiumFeatures>(std::move(referrer));
+    }
   } else if (path.size() == 1 && path[0] == "premium_multigift") {
     // premium_multigift?ref=<referrer>
     return td::make_unique<InternalLinkPremiumGift>(get_arg("ref"));
@@ -2620,6 +2627,9 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       auto link = static_cast<const td_api::internalLinkTypePremiumFeatures *>(type_ptr);
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");
+      }
+      if (!is_valid_premium_referrer(link->referrer_)) {
+        return Status::Error("Invalid referrer specified");
       }
       return PSTRING() << "tg://premium_offer?ref=" << url_encode(link->referrer_);
     }
