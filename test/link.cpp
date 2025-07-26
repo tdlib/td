@@ -1475,6 +1475,7 @@ TEST(Link, parse_internal_link_part4) {
 
   parse_internal_link("tg:premium_multigift?ref=abcdef", premium_gift("abcdef"));
   parse_internal_link("tg:premium_multigift?ref=abc%30ef", premium_gift("abc0ef"));
+  parse_internal_link("tg:premium_multigift?ref=abcde%ff", unknown_deep_link("tg://premium_multigift?ref=abcde%ff"));
   parse_internal_link("tg://premium_multigift?ref=", premium_gift(""));
 
   parse_internal_link("tg://settings", settings());

@@ -694,7 +694,7 @@ class LinkManager::InternalLinkPremiumFeatures final : public InternalLink {
   }
 
  public:
-  explicit InternalLinkPremiumFeatures(string referrer) : referrer_(std::move(referrer)) {
+  explicit InternalLinkPremiumFeatures(string &&referrer) : referrer_(std::move(referrer)) {
   }
 };
 
@@ -706,7 +706,7 @@ class LinkManager::InternalLinkPremiumGift final : public InternalLink {
   }
 
  public:
-  explicit InternalLinkPremiumGift(string referrer) : referrer_(std::move(referrer)) {
+  explicit InternalLinkPremiumGift(string &&referrer) : referrer_(std::move(referrer)) {
   }
 };
 
@@ -1627,7 +1627,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
   } else if (path.size() == 1 && path[0] == "premium_multigift") {
     // premium_multigift?ref=<referrer>
-    return td::make_unique<InternalLinkPremiumGift>(get_arg("ref"));
+    auto referrer = get_arg("ref");
+    if (is_valid_premium_referrer(referrer)) {
+      return td::make_unique<InternalLinkPremiumGift>(std::move(referrer));
+    }
   } else if (!path.empty() && path[0] == "settings") {
     if (path.size() == 2 && path[1] == "auto_delete") {
       // settings/auto_delete
@@ -2637,6 +2640,9 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       auto link = static_cast<const td_api::internalLinkTypePremiumGift *>(type_ptr);
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");
+      }
+      if (!is_valid_premium_referrer(link->referrer_)) {
+        return Status::Error("Invalid referrer specified");
       }
       return PSTRING() << "tg://premium_multigift?ref=" << url_encode(link->referrer_);
     }
