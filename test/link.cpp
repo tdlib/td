@@ -992,7 +992,7 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("t.me/addstickers/?abcdef", nullptr);
   parse_internal_link("t.me/addstickers/#abcdef", nullptr);
   parse_internal_link("t.me/addstickers/abacaba", sticker_set("abacaba", false));
-  parse_internal_link("t.me/addstickers/aba%20aba", sticker_set("aba aba", false));
+  parse_internal_link("t.me/addstickers/aba%20aba", nullptr);
   parse_internal_link("t.me/addstickers/123456a", sticker_set("123456a", false));
   parse_internal_link("t.me/addstickers/12345678901", sticker_set("12345678901", false));
   parse_internal_link("t.me/addstickers/123456", sticker_set("123456", false));
@@ -1000,6 +1000,7 @@ TEST(Link, parse_internal_link_part2) {
 
   parse_internal_link("tg:addstickers?set=abcdef", sticker_set("abcdef", false));
   parse_internal_link("tg:addstickers?set=abc%30ef", sticker_set("abc0ef", false));
+  parse_internal_link("tg:addstickers?set=abc%2Fef", unknown_deep_link("tg://addstickers?set=abc%2Fef"));
   parse_internal_link("tg://addstickers?set=", unknown_deep_link("tg://addstickers?set="));
 
   parse_internal_link("t.me/addemoji?set=abcdef", nullptr);
@@ -1010,7 +1011,7 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("t.me/addemoji/?abcdef", nullptr);
   parse_internal_link("t.me/addemoji/#abcdef", nullptr);
   parse_internal_link("t.me/addemoji/abacaba", sticker_set("abacaba", true));
-  parse_internal_link("t.me/addemoji/aba%20aba", sticker_set("aba aba", true));
+  parse_internal_link("t.me/addemoji/aba%20aba", nullptr);
   parse_internal_link("t.me/addemoji/123456a", sticker_set("123456a", true));
   parse_internal_link("t.me/addemoji/12345678901", sticker_set("12345678901", true));
   parse_internal_link("t.me/addemoji/123456", sticker_set("123456", true));
@@ -1018,6 +1019,7 @@ TEST(Link, parse_internal_link_part2) {
 
   parse_internal_link("tg:addemoji?set=abcdef", sticker_set("abcdef", true));
   parse_internal_link("tg:addemoji?set=abc%30ef", sticker_set("abc0ef", true));
+  parse_internal_link("tg:addemoji?set=abc%2Fef", unknown_deep_link("tg://addemoji?set=abc%2Fef"));
   parse_internal_link("tg://addemoji?set=", unknown_deep_link("tg://addemoji?set="));
 }
 

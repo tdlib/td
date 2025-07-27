@@ -78,6 +78,10 @@ static bool is_valid_web_app_name(Slice name) {
   return name.size() >= 3 && is_valid_username(name);
 }
 
+static bool is_valid_sticker_set_name(Slice name) {
+  return !name.empty() && is_base64url_characters(name);
+}
+
 static bool is_valid_upgraded_gift_name(CSlice name) {
   if (name.empty()) {
     return false;
@@ -802,7 +806,7 @@ class LinkManager::InternalLinkStickerSet final : public InternalLink {
   }
 
  public:
-  InternalLinkStickerSet(string sticker_set_name, bool expect_custom_emoji)
+  InternalLinkStickerSet(string &&sticker_set_name, bool expect_custom_emoji)
       : sticker_set_name_(std::move(sticker_set_name)), expect_custom_emoji_(expect_custom_emoji) {
   }
 };
@@ -1690,8 +1694,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 1 && (path[0] == "addstickers" || path[0] == "addemoji")) {
     // addstickers?set=<name>
     // addemoji?set=<name>
-    if (has_arg("set")) {
-      return td::make_unique<InternalLinkStickerSet>(get_arg("set"), path[0] == "addemoji");
+    auto name = get_arg("set");
+    if (is_valid_sticker_set_name(name)) {
+      return td::make_unique<InternalLinkStickerSet>(std::move(name), path[0] == "addemoji");
     }
   } else if (path.size() == 1 && path[0] == "setlanguage") {
     // setlanguage?lang=<name>
@@ -1895,10 +1900,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkUserToken>(std::move(token));
     }
   } else if (path[0] == "addstickers" || path[0] == "addemoji") {
-    if (path.size() >= 2 && !path[1].empty()) {
+    if (path.size() >= 2 && is_valid_sticker_set_name(path[1])) {
       // /addstickers/<name>
       // /addemoji/<name>
-      return td::make_unique<InternalLinkStickerSet>(path[1], path[0] == "addemoji");
+      auto name = path[1];
+      return td::make_unique<InternalLinkStickerSet>(std::move(name), path[0] == "addemoji");
     }
   } else if (path[0] == "setlanguage") {
     if (path.size() >= 2 && !path[1].empty()) {
@@ -2688,7 +2694,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       return "tg://settings";
     case td_api::internalLinkTypeStickerSet::ID: {
       auto link = static_cast<const td_api::internalLinkTypeStickerSet *>(type_ptr);
-      if (link->sticker_set_name_.empty()) {
+      if (!is_valid_sticker_set_name(link->sticker_set_name_)) {
         return Status::Error(400, "Invalid sticker set name specified");
       }
       if (is_internal) {
