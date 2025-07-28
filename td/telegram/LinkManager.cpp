@@ -17,6 +17,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
@@ -80,6 +81,10 @@ static bool is_valid_web_app_name(Slice name) {
 
 static bool is_valid_sticker_set_name(Slice name) {
   return !name.empty() && is_base64url_characters(name);
+}
+
+static bool is_valid_language_pack_id(Slice language_pack_id) {
+  return !language_pack_id.empty() && LanguagePackManager::check_language_code_name(language_pack_id);
 }
 
 static bool is_valid_upgraded_gift_name(CSlice name) {
@@ -608,7 +613,7 @@ class LinkManager::InternalLinkLanguage final : public InternalLink {
   }
 
  public:
-  explicit InternalLinkLanguage(string language_pack_id) : language_pack_id_(std::move(language_pack_id)) {
+  explicit InternalLinkLanguage(string &&language_pack_id) : language_pack_id_(std::move(language_pack_id)) {
   }
 };
 
@@ -1700,8 +1705,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
   } else if (path.size() == 1 && path[0] == "setlanguage") {
     // setlanguage?lang=<name>
-    if (has_arg("lang")) {
-      return td::make_unique<InternalLinkLanguage>(get_arg("lang"));
+    auto language_pack_id = get_arg("lang");
+    if (is_valid_language_pack_id(language_pack_id)) {
+      return td::make_unique<InternalLinkLanguage>(std::move(language_pack_id));
     }
   } else if (path.size() == 1 && path[0] == "addtheme") {
     // addtheme?slug=<name>
@@ -1907,9 +1913,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkStickerSet>(std::move(name), path[0] == "addemoji");
     }
   } else if (path[0] == "setlanguage") {
-    if (path.size() >= 2 && !path[1].empty()) {
+    if (path.size() >= 2 && is_valid_language_pack_id(path[1])) {
       // /setlanguage/<name>
-      return td::make_unique<InternalLinkLanguage>(path[1]);
+      auto language_pack_id = path[1];
+      return td::make_unique<InternalLinkLanguage>(std::move(language_pack_id));
     }
   } else if (path[0] == "addtheme") {
     if (path.size() >= 2 && !path[1].empty()) {
@@ -2524,6 +2531,9 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypeLanguagePack::ID: {
       auto link = static_cast<const td_api::internalLinkTypeLanguagePack *>(type_ptr);
+      if (!is_valid_language_pack_id(link->language_pack_id_)) {
+        return Status::Error(400, "Invalid language pack specified");
+      }
       if (is_internal) {
         return PSTRING() << "tg://setlanguage?lang=" << url_encode(link->language_pack_id_);
       } else {

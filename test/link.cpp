@@ -1049,14 +1049,18 @@ TEST(Link, parse_internal_link_part3) {
   parse_internal_link("t.me/setlanguage/?abcdef", nullptr);
   parse_internal_link("t.me/setlanguage/#abcdef", nullptr);
   parse_internal_link("t.me/setlanguage/abacaba", language_pack("abacaba"));
-  parse_internal_link("t.me/setlanguage/aba%20aba", language_pack("aba aba"));
+  parse_internal_link("t.me/setlanguage/aba%30ab-a", language_pack("aba0ab-a"));
+  parse_internal_link("t.me/setlanguage/aba%20ab-a", nullptr);
+  parse_internal_link("t.me/setlanguage/aba%2Faba", nullptr);
   parse_internal_link("t.me/setlanguage/123456a", language_pack("123456a"));
   parse_internal_link("t.me/setlanguage/12345678901", language_pack("12345678901"));
   parse_internal_link("t.me/setlanguage/123456", language_pack("123456"));
   parse_internal_link("t.me/setlanguage/123456/123123/12/31/a/s//21w/?asdas#test", language_pack("123456"));
 
   parse_internal_link("tg:setlanguage?lang=abcdef", language_pack("abcdef"));
-  parse_internal_link("tg:setlanguage?lang=abc%30ef", language_pack("abc0ef"));
+  parse_internal_link("tg:setlanguage?lang=abc%30e-f", language_pack("abc0e-f"));
+  parse_internal_link("tg:setlanguage?lang=abc%20ef", unknown_deep_link("tg://setlanguage?lang=abc%20ef"));
+  parse_internal_link("tg:setlanguage?lang=abc%2Fef", unknown_deep_link("tg://setlanguage?lang=abc%2Fef"));
   parse_internal_link("tg://setlanguage?lang=", unknown_deep_link("tg://setlanguage?lang="));
 
   parse_internal_link(
