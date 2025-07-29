@@ -75,6 +75,10 @@ static bool is_valid_game_name(Slice name) {
   return name.size() >= 3 && is_valid_username(name);
 }
 
+static bool is_valid_theme_name(CSlice name) {
+  return !name.empty() && check_utf8(name);
+}
+
 static bool is_valid_web_app_name(Slice name) {
   return name.size() >= 3 && is_valid_username(name);
 }
@@ -838,7 +842,7 @@ class LinkManager::InternalLinkTheme final : public InternalLink {
   }
 
  public:
-  explicit InternalLinkTheme(string theme_name) : theme_name_(std::move(theme_name)) {
+  explicit InternalLinkTheme(string &&theme_name) : theme_name_(std::move(theme_name)) {
   }
 };
 
@@ -1711,8 +1715,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
   } else if (path.size() == 1 && path[0] == "addtheme") {
     // addtheme?slug=<name>
-    if (has_arg("slug")) {
-      return td::make_unique<InternalLinkTheme>(get_arg("slug"));
+    auto theme_name = get_arg("slug");
+    if (is_valid_theme_name(theme_name)) {
+      return td::make_unique<InternalLinkTheme>(std::move(theme_name));
     }
   } else if (path.size() == 1 && path[0] == "confirmphone") {
     if (has_arg("hash") && has_arg("phone")) {
@@ -1919,9 +1924,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkLanguage>(std::move(language_pack_id));
     }
   } else if (path[0] == "addtheme") {
-    if (path.size() >= 2 && !path[1].empty()) {
+    if (path.size() >= 2 && is_valid_theme_name(path[1])) {
       // /addtheme/<name>
-      return td::make_unique<InternalLinkTheme>(path[1]);
+      auto theme_name = path[1];
+      return td::make_unique<InternalLinkTheme>(std::move(theme_name));
     }
   } else if (path[0] == "confirmphone") {
     if (has_arg("hash") && has_arg("phone")) {
@@ -2731,7 +2737,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypeTheme::ID: {
       auto link = static_cast<const td_api::internalLinkTypeTheme *>(type_ptr);
-      if (link->theme_name_.empty()) {
+      if (!is_valid_theme_name(link->theme_name_)) {
         return Status::Error(400, "Invalid theme name specified");
       }
       if (is_internal) {

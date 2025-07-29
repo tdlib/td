@@ -1087,6 +1087,7 @@ TEST(Link, parse_internal_link_part3) {
   parse_internal_link("t.me/addtheme/#abcdef", nullptr);
   parse_internal_link("t.me/addtheme/abacaba", theme("abacaba"));
   parse_internal_link("t.me/addtheme/aba%20aba", theme("aba aba"));
+  parse_internal_link("t.me/addtheme/aba%2Faba", theme("aba/aba"));
   parse_internal_link("t.me/addtheme/123456a", theme("123456a"));
   parse_internal_link("t.me/addtheme/12345678901", theme("12345678901"));
   parse_internal_link("t.me/addtheme/123456", theme("123456"));
@@ -1094,6 +1095,8 @@ TEST(Link, parse_internal_link_part3) {
 
   parse_internal_link("tg:addtheme?slug=abcdef", theme("abcdef"));
   parse_internal_link("tg:addtheme?slug=abc%30ef", theme("abc0ef"));
+  parse_internal_link("tg:addtheme?slug=abc%20ef", theme("abc ef"));
+  parse_internal_link("tg:addtheme?slug=abc%2Fef", theme("abc/ef"));
   parse_internal_link("tg://addtheme?slug=", unknown_deep_link("tg://addtheme?slug="));
 
   parse_internal_link("t.me/proxy?server=1.2.3.4&port=80&secret=1234567890abcdef1234567890ABCDEF",
