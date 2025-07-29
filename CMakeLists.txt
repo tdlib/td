@@ -1284,6 +1284,8 @@ if (TD_ENABLE_DOTNET)
   endif()
 
   add_custom_command(TARGET tddotnet POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E touch
+        ${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/Telegram.Td.xml
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${TL_TD_AUTO_INCLUDE_DIR}/td/telegram/Telegram.Td.xml
         $<TARGET_FILE_DIR:tddotnet>)
