@@ -1029,6 +1029,9 @@ TEST(Link, parse_internal_link_part3) {
                       phone_number_confirmation("abc0ef", "123456789"));
   parse_internal_link("t.me/confirmphone?hash=abc%30ef&phone=123456789",
                       phone_number_confirmation("abc0ef", "123456789"));
+  parse_internal_link("t.me/confirmphone?hash=abc%2Fef&phone=123456789", nullptr);
+  parse_internal_link("t.me/confirmphone?hash=&phone=123456789", nullptr);
+  parse_internal_link("t.me/confirmphone?hash=abc%30ef&phone=+123456789", nullptr);
 
   parse_internal_link("tg:confirmphone?hash=abc%30ef&phone=",
                       unknown_deep_link("tg://confirmphone?hash=abc%30ef&phone="));
@@ -1040,6 +1043,12 @@ TEST(Link, parse_internal_link_part3) {
                       unknown_deep_link("tg://confirmphone?hash=&phone=123456789123456789"));
   parse_internal_link("tg://confirmphone?hash=123456789123456789&phone=",
                       unknown_deep_link("tg://confirmphone?hash=123456789123456789&phone="));
+  parse_internal_link("tg://confirmphone?hash=abc%2Fef&phone=123456789",
+                      unknown_deep_link("tg://confirmphone?hash=abc%2Fef&phone=123456789"));
+  parse_internal_link("tg://confirmphone?hash=&phone=123456789",
+                      unknown_deep_link("tg://confirmphone?hash=&phone=123456789"));
+  parse_internal_link("tg://confirmphone?hash=abc%30ef&phone=+123456789",
+                      unknown_deep_link("tg://confirmphone?hash=abc%30ef&phone=+123456789"));
 
   parse_internal_link("t.me/setlanguage?lang=abcdef", nullptr);
   parse_internal_link("t.me/setlanguage", nullptr);

@@ -71,6 +71,18 @@ static bool is_valid_phone_number(Slice phone_number) {
   return true;
 }
 
+static bool is_valid_phone_number_hash(Slice hash) {
+  if (hash.empty() || hash.size() > 32) {
+    return false;
+  }
+  for (auto c : hash) {
+    if (!is_hex_digit(c)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static bool is_valid_game_name(Slice name) {
   return name.size() >= 3 && is_valid_username(name);
 }
@@ -1720,9 +1732,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       return td::make_unique<InternalLinkTheme>(std::move(theme_name));
     }
   } else if (path.size() == 1 && path[0] == "confirmphone") {
-    if (has_arg("hash") && has_arg("phone")) {
+    auto hash = get_arg("hash");
+    auto phone_number = get_arg("phone");
+    if (is_valid_phone_number_hash(hash) && is_valid_phone_number(phone_number)) {
       // confirmphone?phone=<phone>&hash=<hash>
-      return td::make_unique<InternalLinkConfirmPhone>(get_arg("hash"), get_arg("phone"));
+      return td::make_unique<InternalLinkConfirmPhone>(std::move(hash), std::move(phone_number));
     }
   } else if (path.size() == 1 && path[0] == "socks") {
     if (has_arg("server") && has_arg("port")) {
@@ -1930,9 +1944,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkTheme>(std::move(theme_name));
     }
   } else if (path[0] == "confirmphone") {
-    if (has_arg("hash") && has_arg("phone")) {
+    auto hash = get_arg("hash");
+    auto phone_number = get_arg("phone");
+    if (is_valid_phone_number_hash(hash) && is_valid_phone_number(phone_number)) {
       // /confirmphone?phone=<phone>&hash=<hash>
-      return td::make_unique<InternalLinkConfirmPhone>(get_arg("hash"), get_arg("phone"));
+      return td::make_unique<InternalLinkConfirmPhone>(std::move(hash), std::move(phone_number));
     }
   } else if (path[0] == "socks") {
     if (has_arg("server") && has_arg("port")) {
@@ -2640,6 +2656,12 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypePhoneNumberConfirmation::ID: {
       auto link = static_cast<const td_api::internalLinkTypePhoneNumberConfirmation *>(type_ptr);
+      if (!is_valid_phone_number(link->phone_number_)) {
+        return Status::Error("Invalid phone number specified");
+      }
+      if (!is_valid_phone_number_hash(link->hash_)) {
+        return Status::Error("Invalid phone number hash specified");
+      }
       if (is_internal) {
         return PSTRING() << "tg://confirmphone?phone=" << url_encode(link->phone_number_)
                          << "&hash=" << url_encode(link->hash_);
