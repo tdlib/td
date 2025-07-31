@@ -145,6 +145,10 @@ static bool is_valid_gift_code(CSlice gift_code) {
   return !gift_code.empty() && check_utf8(gift_code);
 }
 
+static bool is_valid_business_link_name(CSlice link_name) {
+  return !link_name.empty() && check_utf8(link_name);
+}
+
 static bool is_valid_story_id(Slice story_id) {
   auto r_story_id = to_integer_safe<int32>(story_id);
   return r_story_id.is_ok() && StoryId(r_story_id.ok()).is_server();
@@ -1830,8 +1834,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
   } else if (path.size() == 1 && path[0] == "message") {
     // message?slug=<name>
-    if (has_arg("slug")) {
-      return td::make_unique<InternalLinkBusinessChat>(url_query.get_arg("slug").str());
+    auto link_name = get_arg("slug");
+    if (is_valid_business_link_name(link_name)) {
+      return td::make_unique<InternalLinkBusinessChat>(std::move(link_name));
     }
   } else if (path.size() == 1 && (path[0] == "share" || path[0] == "msg" || path[0] == "msg_url")) {
     // msg_url?url=<url>
@@ -2024,7 +2029,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkPremiumGiftCode>(path[1]);
     }
   } else if (path[0] == "m") {
-    if (path.size() >= 2 && !path[1].empty()) {
+    if (path.size() >= 2 && is_valid_business_link_name(path[1])) {
       // /m/<link_name>
       return td::make_unique<InternalLinkBusinessChat>(path[1]);
     }
@@ -2440,6 +2445,9 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypeBusinessChat::ID: {
       auto link = static_cast<const td_api::internalLinkTypeBusinessChat *>(type_ptr);
+      if (!is_valid_business_link_name(link->link_name_)) {
+        return Status::Error("Invalid link name specified");
+      }
       if (is_internal) {
         return PSTRING() << "tg://message?slug=" << url_encode(link->link_name_);
       } else {

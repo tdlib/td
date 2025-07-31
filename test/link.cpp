@@ -788,10 +788,12 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("t.me/m/12345678901", business_chat("12345678901"));
   parse_internal_link("t.me/m/123456", business_chat("123456"));
   parse_internal_link("t.me/m/123456/123123/12/31/a/s//21w/?asdas#test", business_chat("123456"));
+  parse_internal_link("t.me/m/aba%FFaba", nullptr);
 
   parse_internal_link("tg:message?slug=abcdef", business_chat("abcdef"));
   parse_internal_link("tg:message?slug=abc%30ef", business_chat("abc0ef"));
   parse_internal_link("tg://message?slug=", unknown_deep_link("tg://message?slug="));
+  parse_internal_link("tg:message?slug=abc%FFef", unknown_deep_link("tg://message?slug=abc%FFef"));
 
   parse_internal_link("tg:share?url=google.com&text=text#asdasd", message_draft("google.com\ntext", true));
   parse_internal_link("tg:share?url=google.com&text=", message_draft("google.com", false));
