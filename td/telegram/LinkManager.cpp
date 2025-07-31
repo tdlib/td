@@ -149,6 +149,10 @@ static bool is_valid_business_link_name(CSlice link_name) {
   return !link_name.empty() && check_utf8(link_name);
 }
 
+static bool is_valid_star_top_up_purpose(CSlice purpose) {
+  return check_utf8(purpose);
+}
+
 static bool is_valid_story_id(Slice story_id) {
   auto r_story_id = to_integer_safe<int32>(story_id);
   return r_story_id.is_ok() && StoryId(r_story_id.ok()).is_server();
@@ -500,8 +504,9 @@ class LinkManager::InternalLinkBuyStars final : public InternalLink {
   }
 
  public:
-  InternalLinkBuyStars(int64 star_count, const string &purpose)
-      : star_count_(clamp(star_count, static_cast<int64>(1), static_cast<int64>(1000000000000))), purpose_(purpose) {
+  InternalLinkBuyStars(int64 star_count, string purpose)
+      : star_count_(clamp(star_count, static_cast<int64>(1), static_cast<int64>(1000000000000)))
+      , purpose_(std::move(purpose)) {
   }
 };
 
@@ -1844,9 +1849,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     return get_internal_link_message_draft(get_arg("url"), get_arg("text"));
   } else if (path.size() == 1 && path[0] == "stars_topup") {
     // stars_topup?balance=<star_count>&purpose=<purpose>
-    if (has_arg("balance")) {
-      return td::make_unique<InternalLinkBuyStars>(to_integer<int64>(url_query.get_arg("balance")),
-                                                   url_query.get_arg("purpose").str());
+    auto purpose = get_arg("purpose");
+    if (has_arg("balance") && is_valid_star_top_up_purpose(purpose)) {
+      return td::make_unique<InternalLinkBuyStars>(to_integer<int64>(url_query.get_arg("balance")), std::move(purpose));
     }
   }
   if (!path.empty() && !path[0].empty()) {
@@ -2460,7 +2465,10 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       if (link->star_count_ <= 0) {
-        return Status::Error(400, "Invalid Telegram Star number provided");
+        return Status::Error(400, "Invalid Telegram Star amount provided");
+      }
+      if (!is_valid_star_top_up_purpose(link->purpose_)) {
+        return Status::Error(400, "Invalid purpose specified");
       }
       return PSTRING() << "tg://stars_topup?balance=" << link->star_count_ << "&purpose=" << url_encode(link->purpose_);
     }

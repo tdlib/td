@@ -1551,6 +1551,8 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://stars_topup?balance=test", buy_stars(1, ""));
   parse_internal_link("tg://stars_topup?balance=10&purpose=%30test", buy_stars(10, "0test"));
   parse_internal_link("tg://stars_topup?balance=100000000000&purpose=subs", buy_stars(100000000000, "subs"));
+  parse_internal_link("tg://stars_topup?balance=10&purpose=%FFtest",
+                      unknown_deep_link("tg://stars_topup?balance=10&purpose=%FFtest"));
 
   parse_internal_link("username.t.me////0/a//s/as?start=", bot_start("username", ""));
   parse_internal_link("username.t.me?start=as", bot_start("username", "as"));
