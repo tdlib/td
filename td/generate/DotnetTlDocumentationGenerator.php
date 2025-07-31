@@ -264,7 +264,6 @@ $documentation
         </member>
 EOT
 );
-
     }
 
     protected function getFunctionReturnTypeDescription($return_type, $for_constructor)

@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/telegram/StarAmount.h"
-#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TonAmount.h"
 

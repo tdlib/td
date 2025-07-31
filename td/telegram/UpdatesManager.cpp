@@ -85,6 +85,7 @@
 #include "td/telegram/telegram_api.hpp"
 #include "td/telegram/ThemeManager.h"
 #include "td/telegram/TimeZoneManager.h"
+#include "td/telegram/TonAmount.h"
 #include "td/telegram/TranscriptionManager.h"
 #include "td/telegram/UserManager.h"
 #include "td/telegram/Usernames.h"

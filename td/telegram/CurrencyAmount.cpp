@@ -6,8 +6,6 @@
 //
 #include "td/telegram/CurrencyAmount.h"
 
-#include "td/utils/logging.h"
-
 namespace td {
 
 CurrencyAmount::CurrencyAmount(telegram_api::object_ptr<telegram_api::StarsAmount> &&amount_ptr, bool allow_negative) {

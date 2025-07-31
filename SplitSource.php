@@ -447,7 +447,7 @@ function split_file($file, $chunks, $undo) {
             'story_manager[_(-](?![.]get[(][)])|StoryManager' => 'StoryManager',
             'SuggestedAction|[a-z_]*_suggested_action' => 'SuggestedAction',
             'suggested_action_manager[_(-](?![.]get[(][)])|SuggestedActionManager' => 'SuggestedActionManager',
-            'SuggestedPost[^P]' => 'SuggestedPost',
+            'SuggestedPost[^A-Z]' => 'SuggestedPost',
             'SuggestedPostPrice' => 'SuggestedPostPrice',
             'SynchronousRequests' => 'SynchronousRequests',
             'TargetDialogTypes' => 'TargetDialogTypes',

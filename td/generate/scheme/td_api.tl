@@ -1987,7 +1987,7 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@has_location True, if the supergroup is connected to a location, i.e. the supergroup is a location-based supergroup
 //@sign_messages True, if messages sent to the channel contains name of the sender. This field is only applicable to channels
 //@show_message_sender True, if messages sent to the channel have information about the sender user. This field is only applicable to channels
-//@join_to_send_messages True, if users need to join the supergroup before they can send messages. Can be false only for discussion supergroups and channel direct messages groups
+//@join_to_send_messages True, if users need to join the supergroup before they can send messages. May be false only for discussion supergroups and channel direct messages groups
 //@join_by_request True, if all users directly joining the supergroup need to be approved by supergroup administrators. Always false for channels and supergroups without username, location, or a linked chat
 //@is_slow_mode_enabled True, if the slow mode is enabled in the supergroup
 //@is_channel True, if the supergroup is a channel
@@ -4433,7 +4433,7 @@ messageGiftedStars gifter_user_id:int53 receiver_user_id:int53 currency:string a
 //@ton_amount The received amount of Toncoins, in the smallest units of the cryptocurrency
 //@transaction_id Identifier of the transaction for Toncoin credit; for receiver only
 //@sticker A sticker to be shown in the message; may be null if unknown
-messageGiftedTon gifter_user_id:int53 receiver_user_id:int53 ton_amount:int64 transaction_id:string sticker:sticker = MessageContent;
+messageGiftedTon gifter_user_id:int53 receiver_user_id:int53 ton_amount:int53 transaction_id:string sticker:sticker = MessageContent;
 
 //@description A Telegram Stars were received by the current user from a giveaway
 //@star_count Number of Telegram Stars that were received
@@ -4526,7 +4526,7 @@ messageSuggestedPostDeclined suggested_post_message_id:int53 comment:string = Me
 //@suggested_post_message_id Identifier of the message with the suggested post; can be 0 if the message was deleted
 //@star_amount The amount of received Telegram Stars
 //@ton_amount The amount of received Toncoins; in the smallest units of the cryptocurrency
-messageSuggestedPostPaid suggested_post_message_id:int53 star_amount:starAmount ton_amount:int64 = MessageContent;
+messageSuggestedPostPaid suggested_post_message_id:int53 star_amount:starAmount ton_amount:int53 = MessageContent;
 
 //@description A suggested post was refunded
 //@suggested_post_message_id Identifier of the message with the suggested post; can be 0 if the message was deleted
@@ -11774,8 +11774,8 @@ declineSuggestedPost chat_id:int53 message_id:int53 comment:string = Ok;
 //-Returns the sent message
 //@chat_id Identifier of the channel direct messages chat
 //@message_id Identifier of the message in the chat which will be sent as suggested post. Use messageProperties.can_add_offer to check whether an offer can be added
-//-or messageProperties.can_change_suggested_post_info to check whether price or time of sending of the post can be changed
-//@options Options to be used to send the message. New information about the suggested post must be always specified
+//-or messageProperties.can_edit_suggested_post_info to check whether price or time of sending of the post can be changed
+//@options Options to be used to send the message. New information about the suggested post must always be specified
 addOffer chat_id:int53 message_id:int53 options:messageSendOptions = Message;
 
 
