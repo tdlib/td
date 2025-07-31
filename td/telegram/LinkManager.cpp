@@ -137,6 +137,10 @@ static bool is_valid_proxy_password(CSlice password) {
   return check_utf8(password);
 }
 
+static bool is_valid_invoice_name(CSlice invoice_name) {
+  return !invoice_name.empty() && check_utf8(invoice_name);
+}
+
 static bool is_valid_story_id(Slice story_id) {
   auto r_story_id = to_integer_safe<int32>(story_id);
   return r_story_id.is_ok() && StoryId(r_story_id.ok()).is_server();
@@ -1810,8 +1814,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
   } else if (path.size() == 1 && path[0] == "invoice") {
     // invoice?slug=<invoice_name>
-    if (has_arg("slug")) {
-      return td::make_unique<InternalLinkInvoice>(url_query.get_arg("slug").str());
+    auto invoice_name = get_arg("slug");
+    if (is_valid_invoice_name(invoice_name)) {
+      return td::make_unique<InternalLinkInvoice>(std::move(invoice_name));
     }
   } else if (path.size() == 1 && path[0] == "giftcode") {
     // giftcode?slug=<code>
@@ -2004,7 +2009,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
                                                      << copy_arg("bg_color") << copy_arg("rotation"));
     }
   } else if (path[0] == "invoice") {
-    if (path.size() >= 2 && !path[1].empty()) {
+    if (path.size() >= 2 && is_valid_invoice_name(path[1])) {
       // /invoice/<name>
       return td::make_unique<InternalLinkInvoice>(path[1]);
     }
@@ -2019,9 +2024,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkBusinessChat>(path[1]);
     }
   } else if (path[0][0] == '$') {
-    if (path[0].size() >= 2) {
+    auto invoice_name = Slice(path[0]).substr(1).str();
+    if (is_valid_invoice_name(invoice_name)) {
       // /$<invoice_name>
-      return td::make_unique<InternalLinkInvoice>(path[0].substr(1));
+      return td::make_unique<InternalLinkInvoice>(std::move(invoice_name));
     }
   } else if (path[0] == "share" || path[0] == "msg") {
     if (!(path.size() > 1 && (path[1] == "bookmarklet" || path[1] == "embed"))) {
@@ -2561,6 +2567,9 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypeInvoice::ID: {
       auto link = static_cast<const td_api::internalLinkTypeInvoice *>(type_ptr);
+      if (!is_valid_invoice_name(link->invoice_name_)) {
+        return Status::Error(400, "Invalid invoice name specified");
+      }
       if (is_internal) {
         return PSTRING() << "tg://invoice?slug=" << url_encode(link->invoice_name_);
       } else {
