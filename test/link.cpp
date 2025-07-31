@@ -768,10 +768,12 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("t.me/giftcode/12345678901", premium_gift_code("12345678901"));
   parse_internal_link("t.me/giftcode/123456", premium_gift_code("123456"));
   parse_internal_link("t.me/giftcode/123456/123123/12/31/a/s//21w/?asdas#test", premium_gift_code("123456"));
+  parse_internal_link("t.me/giftcode/123%FF456", nullptr);
 
   parse_internal_link("tg:giftcode?slug=abcdef", premium_gift_code("abcdef"));
   parse_internal_link("tg:giftcode?slug=abc%30ef", premium_gift_code("abc0ef"));
   parse_internal_link("tg://giftcode?slug=", unknown_deep_link("tg://giftcode?slug="));
+  parse_internal_link("tg://giftcode?slug=%FF", unknown_deep_link("tg://giftcode?slug=%FF"));
 
   parse_internal_link("t.me/m?slug=abcdef", nullptr);
   parse_internal_link("t.me/m", nullptr);

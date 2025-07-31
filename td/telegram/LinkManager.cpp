@@ -141,6 +141,10 @@ static bool is_valid_invoice_name(CSlice invoice_name) {
   return !invoice_name.empty() && check_utf8(invoice_name);
 }
 
+static bool is_valid_gift_code(CSlice gift_code) {
+  return !gift_code.empty() && check_utf8(gift_code);
+}
+
 static bool is_valid_story_id(Slice story_id) {
   auto r_story_id = to_integer_safe<int32>(story_id);
   return r_story_id.is_ok() && StoryId(r_story_id.ok()).is_server();
@@ -1820,8 +1824,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     }
   } else if (path.size() == 1 && path[0] == "giftcode") {
     // giftcode?slug=<code>
-    if (has_arg("slug")) {
-      return td::make_unique<InternalLinkPremiumGiftCode>(url_query.get_arg("slug").str());
+    auto gift_code = get_arg("slug");
+    if (is_valid_gift_code(gift_code)) {
+      return td::make_unique<InternalLinkPremiumGiftCode>(std::move(gift_code));
     }
   } else if (path.size() == 1 && path[0] == "message") {
     // message?slug=<name>
@@ -2014,7 +2019,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkInvoice>(path[1]);
     }
   } else if (path[0] == "giftcode") {
-    if (path.size() >= 2 && !path[1].empty()) {
+    if (path.size() >= 2 && is_valid_gift_code(path[1])) {
       // /giftcode/<code>
       return td::make_unique<InternalLinkPremiumGiftCode>(path[1]);
     }
@@ -2717,6 +2722,9 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypePremiumGiftCode::ID: {
       auto link = static_cast<const td_api::internalLinkTypePremiumGiftCode *>(type_ptr);
+      if (!is_valid_gift_code(link->code_)) {
+        return Status::Error("Invalid gift code specified");
+      }
       if (is_internal) {
         return PSTRING() << "tg://giftcode?slug=" << url_encode(link->code_);
       } else {
