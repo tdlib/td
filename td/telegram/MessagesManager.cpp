@@ -23728,6 +23728,13 @@ void MessagesManager::add_offer(DialogId dialog_id, MessageId message_id,
   if (m->forward_info == nullptr) {
     copy_options = MessageCopyOptions(true, false);
   }
+  if (td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
+    if (options->direct_messages_chat_topic_id_ == 0) {
+      options->direct_messages_chat_topic_id_ = m->saved_messages_topic_id.get_unique_id();
+    } else if (options->direct_messages_chat_topic_id_ != m->saved_messages_topic_id.get_unique_id()) {
+      return promise.set_error(400, "Wrong direct channel messages topic identifier specified");
+    }
+  }
   promise.set_result(forward_message(dialog_id, MessageId(), dialog_id, message_id, std::move(options), false, -1,
                                      std::move(copy_options), true,
                                      m->suggested_post == nullptr ? MessageId() : message_id));
