@@ -125,6 +125,18 @@ static bool is_valid_premium_referrer(CSlice referrer) {
   return check_utf8(referrer);
 }
 
+static bool is_valid_proxy_server(CSlice server) {
+  return !server.empty() && server.size() <= 255u && check_utf8(server);
+}
+
+static bool is_valid_proxy_username(CSlice username) {
+  return check_utf8(username);
+}
+
+static bool is_valid_proxy_password(CSlice password) {
+  return check_utf8(password);
+}
+
 static bool is_valid_story_id(Slice story_id) {
   auto r_story_id = to_integer_safe<int32>(story_id);
   return r_story_id.is_ok() && StoryId(r_story_id.ok()).is_server();
@@ -1739,27 +1751,29 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       return td::make_unique<InternalLinkConfirmPhone>(std::move(hash), std::move(phone_number));
     }
   } else if (path.size() == 1 && path[0] == "socks") {
-    if (has_arg("server") && has_arg("port")) {
-      // socks?server=<server>&port=<port>&user=<user>&pass=<pass>
-      auto port = to_integer<int32>(get_arg("port"));
-      if (0 < port && port < 65536) {
-        return td::make_unique<InternalLinkProxy>(
-            get_arg("server"), port, td_api::make_object<td_api::proxyTypeSocks5>(get_arg("user"), get_arg("pass")));
-      } else {
-        return td::make_unique<InternalLinkUnsupportedProxy>();
-      }
+    // socks?server=<server>&port=<port>&user=<user>&pass=<pass>
+    auto server = get_arg("server");
+    auto port = to_integer<int32>(get_arg("port"));
+    auto username = get_arg("user");
+    auto password = get_arg("pass");
+    if (is_valid_proxy_server(server) && 0 < port && port < 65536 && is_valid_proxy_username(username) &&
+        is_valid_proxy_password(password)) {
+      return td::make_unique<InternalLinkProxy>(
+          std::move(server), port,
+          td_api::make_object<td_api::proxyTypeSocks5>(std::move(username), std::move(password)));
+    } else {
+      return td::make_unique<InternalLinkUnsupportedProxy>();
     }
   } else if (path.size() == 1 && path[0] == "proxy") {
-    if (has_arg("server") && has_arg("port")) {
-      // proxy?server=<server>&port=<port>&secret=<secret>
-      auto port = to_integer<int32>(get_arg("port"));
-      auto r_secret = mtproto::ProxySecret::from_link(get_arg("secret"));
-      if (0 < port && port < 65536 && r_secret.is_ok()) {
-        return td::make_unique<InternalLinkProxy>(
-            get_arg("server"), port, td_api::make_object<td_api::proxyTypeMtproto>(r_secret.ok().get_encoded_secret()));
-      } else {
-        return td::make_unique<InternalLinkUnsupportedProxy>();
-      }
+    // proxy?server=<server>&port=<port>&secret=<secret>
+    auto server = get_arg("server");
+    auto port = to_integer<int32>(get_arg("port"));
+    auto r_secret = mtproto::ProxySecret::from_link(get_arg("secret"));
+    if (is_valid_proxy_server(server) && 0 < port && port < 65536 && r_secret.is_ok()) {
+      return td::make_unique<InternalLinkProxy>(
+          std::move(server), port, td_api::make_object<td_api::proxyTypeMtproto>(r_secret.ok().get_encoded_secret()));
+    } else {
+      return td::make_unique<InternalLinkUnsupportedProxy>();
     }
   } else if (path.size() == 1 && path[0] == "privatepost") {
     // privatepost?channel=123456789&post=12345&single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
@@ -1951,27 +1965,29 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkConfirmPhone>(std::move(hash), std::move(phone_number));
     }
   } else if (path[0] == "socks") {
-    if (has_arg("server") && has_arg("port")) {
-      // /socks?server=<server>&port=<port>&user=<user>&pass=<pass>
-      auto port = to_integer<int32>(get_arg("port"));
-      if (0 < port && port < 65536) {
-        return td::make_unique<InternalLinkProxy>(
-            get_arg("server"), port, td_api::make_object<td_api::proxyTypeSocks5>(get_arg("user"), get_arg("pass")));
-      } else {
-        return td::make_unique<InternalLinkUnsupportedProxy>();
-      }
+    // /socks?server=<server>&port=<port>&user=<user>&pass=<pass>
+    auto server = get_arg("server");
+    auto port = to_integer<int32>(get_arg("port"));
+    auto username = get_arg("user");
+    auto password = get_arg("pass");
+    if (is_valid_proxy_server(server) && 0 < port && port < 65536 && is_valid_proxy_username(username) &&
+        is_valid_proxy_password(password)) {
+      return td::make_unique<InternalLinkProxy>(
+          std::move(server), port,
+          td_api::make_object<td_api::proxyTypeSocks5>(std::move(username), std::move(password)));
+    } else {
+      return td::make_unique<InternalLinkUnsupportedProxy>();
     }
   } else if (path[0] == "proxy") {
-    if (has_arg("server") && has_arg("port")) {
-      // /proxy?server=<server>&port=<port>&secret=<secret>
-      auto port = to_integer<int32>(get_arg("port"));
-      auto r_secret = mtproto::ProxySecret::from_link(get_arg("secret"));
-      if (0 < port && port < 65536 && r_secret.is_ok()) {
-        return td::make_unique<InternalLinkProxy>(
-            get_arg("server"), port, td_api::make_object<td_api::proxyTypeMtproto>(r_secret.ok().get_encoded_secret()));
-      } else {
-        return td::make_unique<InternalLinkUnsupportedProxy>();
-      }
+    // /proxy?server=<server>&port=<port>&secret=<secret>
+    auto server = get_arg("server");
+    auto port = to_integer<int32>(get_arg("port"));
+    auto r_secret = mtproto::ProxySecret::from_link(get_arg("secret"));
+    if (is_valid_proxy_server(server) && 0 < port && port < 65536 && r_secret.is_ok()) {
+      return td::make_unique<InternalLinkProxy>(
+          std::move(server), port, td_api::make_object<td_api::proxyTypeMtproto>(r_secret.ok().get_encoded_secret()));
+    } else {
+      return td::make_unique<InternalLinkUnsupportedProxy>();
     }
   } else if (path[0] == "bg") {
     if (path.size() >= 2 && !path[1].empty()) {
