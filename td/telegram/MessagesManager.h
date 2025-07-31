@@ -1748,6 +1748,8 @@ class MessagesManager final : public Actor {
 
   bool can_edit_message_scheduling_state(const Message *m) const;
 
+  bool can_edit_message_suggested_post(const Message *m) const;
+
   Status can_pin_message(DialogId dialog_id, const Message *m) const TD_WARN_UNUSED_RESULT;
 
   static Status can_get_media_timestamp_link(DialogId dialog_id, const Message *m);
