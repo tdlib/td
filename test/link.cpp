@@ -1504,7 +1504,20 @@ TEST(Link, parse_internal_link_part4) {
                       unknown_deep_link("tg://passport?bot_id=12345&public_key=key&scope=&payload=nonce"));
   parse_internal_link("tg://passport?bot_id=12345&public_key=key&scope=asd&payload=",
                       unknown_deep_link("tg://passport?bot_id=12345&public_key=key&scope=asd&payload="));
+  parse_internal_link("tg://passport?bot_id=12345&public_key=key%FF&scope=asd&payload=nonce",
+                      unknown_deep_link("tg://passport?bot_id=12345&public_key=key%FF&scope=asd&payload=nonce"));
+  parse_internal_link("tg://passport?bot_id=12345&public_key=key&scope=asd%FF&payload=nonce",
+                      unknown_deep_link("tg://passport?bot_id=12345&public_key=key&scope=asd%FF&payload=nonce"));
+  parse_internal_link("tg://passport?bot_id=12345&public_key=key&scope=asd&payload=nonce%FF",
+                      unknown_deep_link("tg://passport?bot_id=12345&public_key=key&scope=asd&payload=nonce%FF"));
+
   parse_internal_link("t.me/telegrampassport?bot_id=12345&public_key=key&scope=asd&payload=nonce",
+                      public_chat("telegrampassport"));
+  parse_internal_link("t.me/telegrampassport?bot_id=12345&public_key=key%FF&scope=asd&payload=nonce",
+                      public_chat("telegrampassport"));
+  parse_internal_link("t.me/telegrampassport?bot_id=12345&public_key=key&scope=asd%FF&payload=nonce",
+                      public_chat("telegrampassport"));
+  parse_internal_link("t.me/telegrampassport?bot_id=12345&public_key=key&scope=asd&payload=nonce%FF",
                       public_chat("telegrampassport"));
 
   parse_internal_link("tg:premium_offer?ref=abcdef", premium_features("abcdef"));

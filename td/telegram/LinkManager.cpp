@@ -2208,10 +2208,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
   auto get_arg = [&args](Slice key) {
     for (auto &arg : args) {
       if (arg.first == key) {
-        return Slice(arg.second);
+        return CSlice(arg.second);
       }
     }
-    return Slice();
+    return CSlice();
   };
 
   UserId bot_user_id(to_integer<int64>(get_arg("bot_id")));
@@ -2223,7 +2223,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::get_internal_link_passport(
   }
   auto callback_url = get_arg("callback_url");
 
-  if (!bot_user_id.is_valid() || scope.empty() || public_key.empty() || nonce.empty()) {
+  if (!bot_user_id.is_valid() || scope.empty() || !check_utf8(scope) || public_key.empty() || !check_utf8(public_key) ||
+      nonce.empty() || !check_utf8(nonce)) {
     if (!allow_unknown) {
       return nullptr;
     }
@@ -2695,6 +2696,10 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
       if (!UserId(link->bot_user_id_).is_valid()) {
         return Status::Error("Invalid bot user identifier specified");
+      }
+      if (link->scope_.empty() || !check_utf8(link->scope_) || link->public_key_.empty() ||
+          !check_utf8(link->public_key_) || link->nonce_.empty() || !check_utf8(link->nonce_)) {
+        return Status::Error("Invalid parameters specified");
       }
       return PSTRING() << "tg://resolve?domain=telegrampassport&bot_id=" << link->bot_user_id_
                        << "&scope=" << url_encode(link->scope_) << "&public_key=" << url_encode(link->public_key_)
