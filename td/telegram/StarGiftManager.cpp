@@ -68,6 +68,9 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
       return promise_.set_error(500, "Receive unexpected response");
     }
     auto results = telegram_api::move_object_as<telegram_api::payments_starGifts>(ptr);
+    td_->user_manager_->on_get_users(std::move(results->users_), "GetStarGiftsQuery");
+    td_->chat_manager_->on_get_chats(std::move(results->chats_), "GetStarGiftsQuery");
+
     vector<td_api::object_ptr<td_api::availableGift>> options;
     for (auto &gift : results->gifts_) {
       int64 availability_resale = 0;

@@ -22,6 +22,7 @@ class Td;
 
 class StarGift {
   int64 id_ = 0;
+  DialogId released_by_dialog_id_;
 
   FileId sticker_file_id_;
   int64 star_count_ = 0;
