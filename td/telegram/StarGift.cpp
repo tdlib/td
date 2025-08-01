@@ -9,7 +9,6 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"
-#include "td/telegram/MessagesManager.h"
 #include "td/telegram/StarGiftId.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StickerFormat.h"
@@ -45,7 +44,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     resale_star_count_ = StarManager::get_star_count(star_gift->resell_stars_);
     if (star_gift->released_by_ != nullptr) {
       released_by_dialog_id_ = DialogId(star_gift->released_by_);
-      td->messages_manager_->force_create_dialog(released_by_dialog_id_, "StarGift", true);
+      td->dialog_manager_->force_create_dialog(released_by_dialog_id_, "StarGift", true);
     }
     for (auto &attribute : star_gift->attributes_) {
       switch (attribute->get_id()) {
@@ -138,7 +137,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
   is_for_birthday_ = star_gift->birthday_;
   if (star_gift->released_by_ != nullptr) {
     released_by_dialog_id_ = DialogId(star_gift->released_by_);
-    td->messages_manager_->force_create_dialog(released_by_dialog_id_, "StarGift", true);
+    td->dialog_manager_->force_create_dialog(released_by_dialog_id_, "StarGift", true);
   }
 }
 

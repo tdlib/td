@@ -2313,14 +2313,14 @@ messageReplyToStory story_poster_chat_id:int53 story_id:int32 = MessageReplyTo;
 //@description Describes a message to be replied in the same chat and forum topic
 //@message_id The identifier of the message to be replied in the same chat and forum topic. A message can be replied in the same chat and forum topic only if messageProperties.can_be_replied
 //@quote Quote from the message to be replied; pass null if none. Must always be null for replies in secret chats
-//@checklist_task_id Identifier of the checklist task in the message to be replied; pass 0 to reply the whole message
+//@checklist_task_id Identifier of the checklist task in the message to be replied; pass 0 to reply to the whole message
 inputMessageReplyToMessage message_id:int53 quote:inputTextQuote checklist_task_id:int32 = InputMessageReplyTo;
 
 //@description Describes a message to be replied that is from a different chat or a forum topic; not supported in secret chats
 //@chat_id The identifier of the chat to which the message to be replied belongs
 //@message_id The identifier of the message to be replied in the specified chat. A message can be replied in another chat or forum topic only if messageProperties.can_be_replied_in_another_chat
 //@quote Quote from the message to be replied; pass null if none
-//@checklist_task_id Identifier of the checklist task in the message to be replied; pass 0 to reply the whole message
+//@checklist_task_id Identifier of the checklist task in the message to be replied; pass 0 to reply to the whole message
 inputMessageReplyToExternalMessage chat_id:int53 message_id:int53 quote:inputTextQuote checklist_task_id:int32 = InputMessageReplyTo;
 
 //@description Describes a story to be replied

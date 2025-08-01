@@ -20386,7 +20386,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
             d->last_new_message_id.is_valid() && message_id > d->last_new_message_id &&
             (d->notification_info != nullptr &&
              message_id <= d->notification_info->max_push_notification_message_id_)) {
-          // allow to reply yet unreceived server message in the same chat
+          // allow to reply to yet unreceived server message in the same chat
           return MessageInputReplyTo{message_id, DialogId(), MessageQuote{td_, std::move(reply_to_message->quote_)},
                                      reply_to_message->checklist_task_id_};
         }
