@@ -117,6 +117,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, tl_object_ptr<telegram_api::messa
   if (!origin_.is_empty() || message_id_ != MessageId()) {
     quote_ = MessageQuote(td, reply_header);
   }
+  todo_item_id_ = max(0, reply_header->todo_item_id_);
 }
 
 RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_reply_to) {
@@ -125,6 +126,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
   }
   message_id_ = input_reply_to.message_id_;
   quote_ = input_reply_to.quote_.clone();
+  todo_item_id_ = 0;  // TODO input_reply_to.todo_item_id_;
   if (input_reply_to.dialog_id_ != DialogId() && input_reply_to.message_id_.is_valid()) {
     auto info =
         td->messages_manager_->get_forwarded_message_info({input_reply_to.dialog_id_, input_reply_to.message_id_});
@@ -165,6 +167,7 @@ RepliedMessageInfo RepliedMessageInfo::clone(Td *td) const {
                                           MessageContentDupType::Forward, MessageCopyOptions());
   }
   result.quote_ = quote_.clone();
+  result.todo_item_id_ = todo_item_id_;
   return result;
 }
 
@@ -225,6 +228,14 @@ bool RepliedMessageInfo::need_reply_changed_warning(
   }
   if (is_yet_unsent && old_top_thread_message_id == new_info.message_id_ && new_info.dialog_id_ == DialogId()) {
     // move of reply to the top thread message after deletion of the replied message
+    return false;
+  }
+  if (new_info.todo_item_id_ != 0 && old_info.todo_item_id_ == 0) {
+    // a message received by an old version
+    return false;
+  }
+  if (is_yet_unsent && old_info.todo_item_id_ != 0 && new_info.todo_item_id_ == 0) {
+    // server ignored todo_item_id
     return false;
   }
   return true;
@@ -310,9 +321,9 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
     }
   }
 
-  return td_api::make_object<td_api::messageReplyToMessage>(chat_id, message_id_.get(),
-                                                            quote_.get_text_quote_object(td->user_manager_.get()),
-                                                            std::move(origin), origin_date_, std::move(content));
+  return td_api::make_object<td_api::messageReplyToMessage>(
+      chat_id, message_id_.get(), quote_.get_text_quote_object(td->user_manager_.get()), todo_item_id_,
+      std::move(origin), origin_date_, std::move(content));
 }
 
 MessageInputReplyTo RepliedMessageInfo::get_message_input_reply_to() const {
@@ -357,7 +368,8 @@ void RepliedMessageInfo::unregister_content(Td *td) const {
 
 bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs) {
   if (!(lhs.message_id_ == rhs.message_id_ && lhs.dialog_id_ == rhs.dialog_id_ &&
-        lhs.origin_date_ == rhs.origin_date_ && lhs.origin_ == rhs.origin_ && lhs.quote_ == rhs.quote_)) {
+        lhs.origin_date_ == rhs.origin_date_ && lhs.origin_ == rhs.origin_ && lhs.quote_ == rhs.quote_ &&
+        lhs.todo_item_id_ == rhs.todo_item_id_)) {
     return false;
   }
   bool need_update = false;
@@ -381,7 +393,12 @@ StringBuilder &operator<<(StringBuilder &string_builder, const RepliedMessageInf
   if (info.origin_date_ != 0) {
     string_builder << " sent at " << info.origin_date_ << " by " << info.origin_;
   }
-  string_builder << info.quote_;
+  if (info.todo_item_id_ != 0) {
+    string_builder << " to task " << info.todo_item_id_;
+  }
+  if (!info.quote_.is_empty()) {
+    string_builder << info.quote_;
+  }
   if (info.content_ != nullptr) {
     string_builder << " and content of the type " << info.content_->get_type();
   }
