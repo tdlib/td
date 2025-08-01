@@ -126,7 +126,7 @@ RepliedMessageInfo::RepliedMessageInfo(Td *td, const MessageInputReplyTo &input_
   }
   message_id_ = input_reply_to.message_id_;
   quote_ = input_reply_to.quote_.clone();
-  todo_item_id_ = 0;  // TODO input_reply_to.todo_item_id_;
+  todo_item_id_ = input_reply_to.todo_item_id_;
   if (input_reply_to.dialog_id_ != DialogId() && input_reply_to.message_id_.is_valid()) {
     auto info =
         td->messages_manager_->get_forwarded_message_info({input_reply_to.dialog_id_, input_reply_to.message_id_});
@@ -329,7 +329,7 @@ td_api::object_ptr<td_api::messageReplyToMessage> RepliedMessageInfo::get_messag
 MessageInputReplyTo RepliedMessageInfo::get_message_input_reply_to() const {
   CHECK(!is_external());
   if (message_id_.is_valid() || message_id_.is_valid_scheduled()) {
-    return MessageInputReplyTo(message_id_, dialog_id_, quote_.clone(true));
+    return MessageInputReplyTo(message_id_, dialog_id_, quote_.clone(true), todo_item_id_);
   }
   return {};
 }

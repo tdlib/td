@@ -57,6 +57,7 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
       dialog_id_ = dialog_id;
 
       quote_ = MessageQuote(td, reply_to);
+      todo_item_id_ = reply_to->todo_item_id_;
       break;
     }
     case telegram_api::inputReplyToMonoForum::ID: {
@@ -121,9 +122,12 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
     }
     flags |= telegram_api::inputReplyToMessage::REPLY_TO_PEER_ID_MASK;
   }
+  if (todo_item_id_ != 0) {
+    flags |= telegram_api::inputReplyToMessage::TODO_ITEM_ID_MASK;
+  }
   auto result = telegram_api::make_object<telegram_api::inputReplyToMessage>(
       flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
-      std::move(input_peer), string(), Auto(), 0, std::move(monoforum_input_peer), 0);
+      std::move(input_peer), string(), Auto(), 0, std::move(monoforum_input_peer), todo_item_id_);
   quote_.update_input_reply_to_message(td, result.get());
   return std::move(result);
 }
@@ -141,10 +145,10 @@ td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_m
   if (dialog_id_ != DialogId()) {
     return td_api::make_object<td_api::inputMessageReplyToExternalMessage>(
         td->dialog_manager_->get_chat_id_object(dialog_id_, "inputMessageReplyToExternalMessage"), message_id_.get(),
-        quote_.get_input_text_quote_object(td->user_manager_.get()));
+        quote_.get_input_text_quote_object(td->user_manager_.get()), todo_item_id_);
   }
   return td_api::make_object<td_api::inputMessageReplyToMessage>(
-      message_id_.get(), quote_.get_input_text_quote_object(td->user_manager_.get()));
+      message_id_.get(), quote_.get_input_text_quote_object(td->user_manager_.get()), todo_item_id_);
 }
 
 MessageId MessageInputReplyTo::get_same_chat_reply_to_message_id() const {
@@ -161,7 +165,7 @@ MessageFullId MessageInputReplyTo::get_reply_message_full_id(DialogId owner_dial
 
 bool operator==(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
   return lhs.message_id_ == rhs.message_id_ && lhs.dialog_id_ == rhs.dialog_id_ &&
-         lhs.story_full_id_ == rhs.story_full_id_ && lhs.quote_ == rhs.quote_;
+         lhs.story_full_id_ == rhs.story_full_id_ && lhs.quote_ == rhs.quote_ && lhs.todo_item_id_ == rhs.todo_item_id_;
 }
 
 bool operator!=(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
@@ -174,7 +178,13 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReply
     if (input_reply_to.dialog_id_ != DialogId()) {
       string_builder << " in " << input_reply_to.dialog_id_;
     }
-    return string_builder << input_reply_to.quote_;
+    if (input_reply_to.todo_item_id_ != 0) {
+      string_builder << " to task " << input_reply_to.todo_item_id_;
+    }
+    if (!input_reply_to.quote_.is_empty()) {
+      string_builder << input_reply_to.quote_;
+    }
+    return string_builder;
   }
   if (input_reply_to.story_full_id_.is_valid()) {
     return string_builder << input_reply_to.story_full_id_;

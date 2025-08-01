@@ -1162,7 +1162,8 @@ MessageInputReplyTo BusinessConnectionManager::create_business_message_input_rep
       if (!message_id.is_server()) {
         return {};
       }
-      return MessageInputReplyTo{message_id, DialogId(), MessageQuote(td_, std::move(reply_to_message->quote_))};
+      return MessageInputReplyTo{message_id, DialogId(), MessageQuote(td_, std::move(reply_to_message->quote_)),
+                                 reply_to_message->checklist_task_id_};
     }
     case td_api::inputMessageReplyToExternalMessage::ID:
       return {};

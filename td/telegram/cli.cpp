@@ -1038,10 +1038,11 @@ class CliClient final : public Actor {
         quote = td_api::make_object<td_api::inputTextQuote>(as_formatted_text(reply_quote_), reply_quote_position_);
       }
       if (reply_chat_id_ == 0) {
-        return td_api::make_object<td_api::inputMessageReplyToMessage>(reply_message_id_, std::move(quote));
+        return td_api::make_object<td_api::inputMessageReplyToMessage>(reply_message_id_, std::move(quote),
+                                                                       reply_checklist_task_id_);
       }
-      return td_api::make_object<td_api::inputMessageReplyToExternalMessage>(reply_chat_id_, reply_message_id_,
-                                                                             std::move(quote));
+      return td_api::make_object<td_api::inputMessageReplyToExternalMessage>(
+          reply_chat_id_, reply_message_id_, std::move(quote), reply_checklist_task_id_);
     }
     if (reply_story_chat_id_ != 0 || reply_story_id_ != 0) {
       return td_api::make_object<td_api::inputMessageReplyToStory>(reply_story_chat_id_, reply_story_id_);
@@ -5650,6 +5651,8 @@ class CliClient final : public Actor {
       reply_quote_ = args;
     } else if (op == "smrqp") {
       reply_quote_position_ = to_integer<int32>(args);
+    } else if (op == "smrcti") {
+      reply_checklist_task_id_ = to_integer<int32>(args);
     } else if (op == "smrs") {
       get_args(args, reply_story_chat_id_, reply_story_id_);
     } else if (op == "slpo") {
@@ -8059,6 +8062,7 @@ class CliClient final : public Actor {
   MessageId reply_message_id_;
   string reply_quote_;
   int32 reply_quote_position_ = 0;
+  int32 reply_checklist_task_id_ = 0;
   ChatId reply_story_chat_id_;
   StoryId reply_story_id_;
   ChatId reposted_story_chat_id_;

@@ -35,8 +35,9 @@ struct MessageCopyOptions {
     if ((replace_caption && !new_caption.text.empty()) || reply_markup != nullptr) {
       return false;
     }
-    if (input_reply_to.is_valid() && (top_thread_message_id == MessageId() || input_reply_to.has_quote() ||
-                                      input_reply_to.get_same_chat_reply_to_message_id() != top_thread_message_id)) {
+    if (input_reply_to.is_valid() &&
+        (top_thread_message_id == MessageId() || input_reply_to.has_quote() || input_reply_to.has_todo_item_id() ||
+         input_reply_to.get_same_chat_reply_to_message_id() != top_thread_message_id)) {
       return false;
     }
     return true;

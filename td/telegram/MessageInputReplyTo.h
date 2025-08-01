@@ -28,6 +28,7 @@ class MessageInputReplyTo {
   MessageId message_id_;
   DialogId dialog_id_;
   MessageQuote quote_;
+  int32 todo_item_id_ = 0;
   // or
   StoryFullId story_full_id_;
 
@@ -45,8 +46,8 @@ class MessageInputReplyTo {
   MessageInputReplyTo &operator=(MessageInputReplyTo &&) = default;
   ~MessageInputReplyTo();
 
-  MessageInputReplyTo(MessageId message_id, DialogId dialog_id, MessageQuote quote)
-      : message_id_(message_id), dialog_id_(dialog_id), quote_(std::move(quote)) {
+  MessageInputReplyTo(MessageId message_id, DialogId dialog_id, MessageQuote quote, int32 todo_item_id)
+      : message_id_(message_id), dialog_id_(dialog_id), quote_(std::move(quote)), todo_item_id_(todo_item_id) {
   }
 
   explicit MessageInputReplyTo(StoryFullId story_full_id) : story_full_id_(story_full_id) {
@@ -67,6 +68,10 @@ class MessageInputReplyTo {
     return !quote_.is_empty();
   }
 
+  bool has_todo_item_id() const {
+    return todo_item_id_ != 0;
+  }
+
   void set_quote(MessageQuote quote) {
     quote_ = std::move(quote);
   }
@@ -79,7 +84,7 @@ class MessageInputReplyTo {
     if (story_full_id_.is_valid()) {
       return MessageInputReplyTo(story_full_id_);
     }
-    return MessageInputReplyTo(message_id_, dialog_id_, quote_.clone());
+    return MessageInputReplyTo(message_id_, dialog_id_, quote_.clone(), todo_item_id_);
   }
 
   void add_dependencies(Dependencies &dependencies) const;
