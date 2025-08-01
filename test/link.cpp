@@ -317,6 +317,10 @@ static auto my_stars() {
   return td::td_api::make_object<td::td_api::internalLinkTypeMyStars>();
 }
 
+static auto my_toncoins() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeMyToncoins>();
+}
+
 static auto passport_data_request(td::int32 bot_user_id, const td::string &scope, const td::string &public_key,
                                   const td::string &nonce, const td::string &callback_url) {
   return td::td_api::make_object<td::td_api::internalLinkTypePassportDataRequest>(bot_user_id, scope, public_key, nonce,
@@ -1562,6 +1566,14 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://stars/aadsa#test", my_stars());
   parse_internal_link("tg://stars/theme#test", my_stars());
   parse_internal_link("tg:stars/theme#test", my_stars());
+
+  parse_internal_link("tg://ton", my_toncoins());
+  parse_internal_link("tg://ton?asdsa?D?SADasD?asD", my_toncoins());
+  parse_internal_link("tg://ton#test", my_toncoins());
+  parse_internal_link("tg://ton/#test", my_toncoins());
+  parse_internal_link("tg://ton/aadsa#test", my_toncoins());
+  parse_internal_link("tg://ton/theme#test", my_toncoins());
+  parse_internal_link("tg:ton/theme#test", my_toncoins());
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
   parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));

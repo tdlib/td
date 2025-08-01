@@ -7808,6 +7808,9 @@ internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLin
 //@description The link is a link to the screen with information about Telegram Star balance and transactions of the current user
 internalLinkTypeMyStars = InternalLinkType;
 
+//@description The link is a link to the screen with information about Toncoin balance and transactions of the current user
+internalLinkTypeMyToncoins = InternalLinkType;
+
 //@description The link contains a request of Telegram passport data. Call getPassportAuthorizationForm with the given parameters to process the link if the link was received from outside of the application; otherwise, ignore it
 //@bot_user_id User identifier of the service's bot; the corresponding user may be unknown yet
 //@scope Telegram Passport element types requested by the service
