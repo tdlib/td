@@ -1603,8 +1603,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
         if (arg.first == "appname" && is_valid_web_app_name(arg.second)) {
           // resolve?domain=<bot_username>&appname=<app_name>
           // resolve?domain=<bot_username>&appname=<app_name>&startapp=<start_parameter>&mode=compact
-          return td::make_unique<InternalLinkWebApp>(
-              std::move(username), arg.second, url_query.get_arg("startapp").str(), url_query.get_arg("mode").str());
+          return td::make_unique<InternalLinkWebApp>(std::move(username), arg.second, get_arg("startapp"),
+                                                     get_arg("mode"));
         }
         if (arg.first == "story" && is_valid_story_id(arg.second)) {
           // resolve?domain=<username>&story=<story_id>
@@ -1613,8 +1613,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
         if (arg.first == "startapp" && is_valid_start_parameter(arg.second) && !url_query.has_arg("appname")) {
           // resolve?domain=<bot_username>&startapp=
           // resolve?domain=<bot_username>&startapp=<start_parameter>&mode=compact
-          return td::make_unique<InternalLinkMainWebApp>(std::move(username), arg.second,
-                                                         url_query.get_arg("mode").str());
+          return td::make_unique<InternalLinkMainWebApp>(std::move(username), arg.second, get_arg("mode"));
         }
         if (arg.first == "attach" && is_valid_username(arg.second)) {
           // resolve?domain=<username>&attach=<bot_username>
@@ -1623,7 +1622,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
               nullptr, td::make_unique<InternalLinkPublicDialog>(std::move(username), string(), false), arg.second,
               url_query.get_arg("startattach"));
         }
-        if (arg.first == "startattach" && url_query.get_arg("attach").empty()) {
+        if (arg.first == "startattach" && !has_arg("attach")) {
           // resolve?domain=<bot_username>&startattach&choose=users+bots+groups+channels
           // resolve?domain=<bot_username>&startattach=<start_parameter>&choose=users+bots+groups+channels
           return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_types(url_query.get_arg("choose")), nullptr,
@@ -2106,8 +2105,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (path.size() == 2 && is_valid_web_app_name(path[1])) {
       // /<username>/<web_app_name>
       // /<username>/<web_app_name>?startapp=<start_parameter>&mode=compact
-      return td::make_unique<InternalLinkWebApp>(std::move(username), path[1], url_query.get_arg("startapp").str(),
-                                                 url_query.get_arg("mode").str());
+      return td::make_unique<InternalLinkWebApp>(std::move(username), path[1], get_arg("startapp"), get_arg("mode"));
     }
     for (auto &arg : url_query.args_) {
       if ((arg.first == "voicechat" || arg.first == "videochat" || arg.first == "livestream") &&
@@ -2157,8 +2155,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       if (arg.first == "startapp" && is_valid_start_parameter(arg.second)) {
         // /<bot_username>?startapp
         // /<bot_username>?startapp=<parameter>&mode=compact
-        return td::make_unique<InternalLinkMainWebApp>(std::move(username), arg.second,
-                                                       url_query.get_arg("mode").str());
+        return td::make_unique<InternalLinkMainWebApp>(std::move(username), arg.second, get_arg("mode"));
       }
       if (arg.first == "game" && is_valid_game_name(arg.second)) {
         // /<bot_username>?game=<short_name>
@@ -2171,7 +2168,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
             nullptr, td::make_unique<InternalLinkPublicDialog>(std::move(username), string(), false), arg.second,
             url_query.get_arg("startattach"));
       }
-      if (arg.first == "startattach" && url_query.get_arg("attach").empty()) {
+      if (arg.first == "startattach" && !has_arg("attach")) {
         // /<bot_username>?startattach&choose=users+bots+groups+channels
         // /<bot_username>?startattach=<start_parameter>&choose=users+bots+groups+channels
         return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_types(url_query.get_arg("choose")), nullptr,
