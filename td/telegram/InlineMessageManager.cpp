@@ -84,8 +84,7 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
   }
 
   void send(telegram_api::object_ptr<telegram_api::InputBotInlineMessageID> input_bot_inline_message_id,
-            bool force_edit_text, const string &text,
-            vector<telegram_api::object_ptr<telegram_api::MessageEntity>> &&entities, bool disable_web_page_preview,
+            bool force_edit_text, const FormattedText *text, bool disable_web_page_preview,
             telegram_api::object_ptr<telegram_api::InputMedia> &&input_media, bool invert_media,
             const unique_ptr<ReplyMarkup> &reply_markup) {
     CHECK(input_bot_inline_message_id != nullptr);
@@ -99,11 +98,14 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
     if (input_reply_markup != nullptr) {
       flags |= telegram_api::messages_editInlineBotMessage::REPLY_MARKUP_MASK;
     }
-    if (!entities.empty()) {
-      flags |= telegram_api::messages_editInlineBotMessage::ENTITIES_MASK;
-    }
-    if (force_edit_text || !text.empty()) {
+    vector<telegram_api::object_ptr<telegram_api::MessageEntity>> entities;
+    if (force_edit_text || (text != nullptr && !text->text.empty())) {
       flags |= telegram_api::messages_editInlineBotMessage::MESSAGE_MASK;
+
+      entities = get_input_message_entities(td_->user_manager_.get(), text, "EditInlineMessageQuery");
+      if (!entities.empty()) {
+        flags |= telegram_api::messages_editInlineBotMessage::ENTITIES_MASK;
+      }
     }
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editInlineBotMessage::MEDIA_MASK;
@@ -111,9 +113,10 @@ class EditInlineMessageQuery final : public Td::ResultHandler {
 
     auto dc_id = DcId::internal(get_inline_message_dc_id(input_bot_inline_message_id));
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_editInlineBotMessage(
-            flags, disable_web_page_preview, invert_media, std::move(input_bot_inline_message_id), text,
-            std::move(input_media), std::move(input_reply_markup), std::move(entities)),
+        telegram_api::messages_editInlineBotMessage(flags, disable_web_page_preview, invert_media,
+                                                    std::move(input_bot_inline_message_id),
+                                                    text == nullptr ? string() : text->text, std::move(input_media),
+                                                    std::move(input_reply_markup), std::move(entities)),
         {}, dc_id));
   }
 
@@ -231,9 +234,7 @@ void InlineMessageManager::edit_inline_message_text(
   TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-      ->send(std::move(input_bot_inline_message_id), true, input_message_text.text.text,
-             get_input_message_entities(td_->user_manager_.get(), input_message_text.text.entities,
-                                        "edit_inline_message_text"),
+      ->send(std::move(input_bot_inline_message_id), true, &input_message_text.text,
              input_message_text.disable_web_page_preview, input_message_text.get_input_media_web_page(),
              input_message_text.show_above_text, new_reply_markup);
 }
@@ -265,9 +266,8 @@ void InlineMessageManager::edit_inline_message_live_location(const string &inlin
   auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(
       flags, location.empty(), location.get_input_geo_point(), heading, live_period, proximity_alert_radius);
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-      ->send(std::move(input_bot_inline_message_id), false, string(),
-             vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), false, std::move(input_media),
-             false /*ignored*/, new_reply_markup);
+      ->send(std::move(input_bot_inline_message_id), false, nullptr, false, std::move(input_media), false /*ignored*/,
+             new_reply_markup);
 }
 
 void InlineMessageManager::edit_inline_message_media(
@@ -306,9 +306,8 @@ void InlineMessageManager::edit_inline_message_media(
 
   const FormattedText *caption = get_message_content_caption(content.content.get());
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-      ->send(std::move(input_bot_inline_message_id), true, caption == nullptr ? "" : caption->text,
-             get_input_message_entities(td_->user_manager_.get(), caption, "edit_inline_message_media"), false,
-             std::move(input_media), content.invert_media, new_reply_markup);
+      ->send(std::move(input_bot_inline_message_id), true, caption, false, std::move(input_media), content.invert_media,
+             new_reply_markup);
 }
 
 void InlineMessageManager::edit_inline_message_caption(const string &inline_message_id,
@@ -325,9 +324,7 @@ void InlineMessageManager::edit_inline_message_caption(const string &inline_mess
   TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-      ->send(std::move(input_bot_inline_message_id), true, caption.text,
-             get_input_message_entities(td_->user_manager_.get(), caption.entities, "edit_inline_message_caption"),
-             false, nullptr, invert_media, new_reply_markup);
+      ->send(std::move(input_bot_inline_message_id), true, &caption, false, nullptr, invert_media, new_reply_markup);
 }
 
 void InlineMessageManager::edit_inline_message_reply_markup(const string &inline_message_id,
@@ -340,8 +337,7 @@ void InlineMessageManager::edit_inline_message_reply_markup(const string &inline
   TRY_RESULT_PROMISE(promise, input_bot_inline_message_id, get_input_bot_inline_message_id(inline_message_id));
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-      ->send(std::move(input_bot_inline_message_id), false, string(),
-             vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), false, nullptr, false /*ignored*/,
+      ->send(std::move(input_bot_inline_message_id), false, nullptr, false, nullptr, false /*ignored*/,
              new_reply_markup);
 }
 
