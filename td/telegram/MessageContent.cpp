@@ -9143,8 +9143,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (!reply_to_message_id.is_valid() && reply_to_message_id != MessageId()) {
         LOG(ERROR) << "Receive unique gift message with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
-      } else if (reply_to_message_id != MessageId() && !action->upgrade_) {
-        if (message_date >= 1754000000 || action->resale_stars_ == 0) {
+      } else if (reply_to_message_id != MessageId() && action->resale_stars_ != 0) {
+        if (message_date >= 1754000000) {
           LOG(ERROR) << "Receive " << replied_message_info << " in " << owner_dialog_id << " for " << to_string(action);
         }
         reply_to_message_id = MessageId();

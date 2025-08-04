@@ -4474,7 +4474,7 @@ messageGift gift:gift sender_id:MessageSender receiver_id:MessageSender received
 //@received_gift_id Unique identifier of the received gift for the current user; only for the receiver of the gift
 //@is_saved True, if the gift is displayed on the user's or the channel's profile page; only for the receiver of the gift
 //@can_be_transferred True, if the gift can be transferred to another owner; only for the receiver of the gift
-//@was_transferred True, if the gift was transferred to another owner; only for the receiver of the gift
+//@was_transferred True, if the gift has already been transferred to another owner; only for the receiver of the gift
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift; only for the receiver of the gift
 //@next_transfer_date Point in time (Unix timestamp) when the gift can be transferred to another owner; 0 if the gift can be transferred immediately or transfer isn't possible; only for the receiver of the gift
 //@next_resale_date Point in time (Unix timestamp) when the gift can be resold to another user; 0 if the gift can't be resold; only for the receiver of the gift
