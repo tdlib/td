@@ -238,6 +238,9 @@ Status RequestedDialogType::check_shared_dialog(Td *td, DialogId dialog_id) cons
       if (type_ != (is_broadcast ? Type::Channel : Type::Group)) {
         return Status::Error(400, "Wrong chat type");
       }
+      if (td->chat_manager_->is_monoforum_channel(channel_id)) {
+        return Status::Error(400, "Channel direct messages chats can't be shared with bots");
+      }
       if (!is_broadcast && restrict_is_forum_ && td->chat_manager_->is_forum_channel(channel_id) != is_forum_) {
         return Status::Error(400, "Wrong is_forum value");
       }
