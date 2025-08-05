@@ -657,7 +657,7 @@ class GetPremiumGiftPaymentFormQuery final : public Td::ResultHandler {
         auto payment_form = static_cast<const telegram_api::payments_paymentFormStars *>(payment_form_ptr.get());
         if (payment_form->invoice_->prices_.size() != 1u ||
             payment_form->invoice_->prices_[0]->amount_ != star_count_) {
-          return promise_.set_error(400, "Wrong purchase price specified");
+          return promise_.set_error(400, "Wrong Premium subscription price specified");
         }
         td_->create_handler<SendPremiumGiftQuery>(std::move(promise_))
             ->send(std::move(send_input_invoice_), payment_form->form_id_);
