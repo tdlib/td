@@ -12800,7 +12800,7 @@ getUpgradedGiftWithdrawalUrl received_gift_id:string password:string = HttpUrl;
 //-The current user will receive getOption("gift_resale_earnings_per_mille") Telegram Stars for each 1000 Telegram Stars paid for the gift
 setGiftResalePrice received_gift_id:string resale_star_count:int53 = Ok;
 
-//@description Returns upgraded gifts that can be bought from other owners
+//@description Returns upgraded gifts that can be bought from other owners using sendResoldGift
 //@gift_id Identifier of the regular gift that was upgraded to a unique gift
 //@order Order in which the results will be sorted
 //@attributes Attributes used to filter received gifts. If multiple attributes of the same type are specified, then all of them are allowed.
