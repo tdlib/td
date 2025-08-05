@@ -342,7 +342,7 @@ class GetChatRequest final : public RequestActor<> {
  public:
   GetChatRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
       : RequestActor(std::move(td), request_id), dialog_id_(dialog_id) {
-    set_tries(3);
+    set_tries(4);
   }
 };
 

@@ -8545,20 +8545,32 @@ bool ChatManager::get_channel(ChannelId channel_id, int left_tries, Promise<Unit
     return false;
   }
 
-  if (!have_channel(channel_id)) {
-    if (left_tries > 2 && G()->use_chat_info_database()) {
+  const Channel *c = get_channel(channel_id);
+  if (c == nullptr) {
+    if (left_tries > 3 && G()->use_chat_info_database()) {
       send_closure_later(actor_id(this), &ChatManager::load_channel_from_database, nullptr, channel_id,
                          std::move(promise));
       return false;
     }
 
-    if (left_tries > 1 && td_->auth_manager_->is_bot()) {
+    if (left_tries > 2 && td_->auth_manager_->is_bot()) {
       get_channel_queries_.add_query(channel_id.get(), std::move(promise), "get_channel");
       return false;
     }
 
     promise.set_error(400, "Supergroup not found");
     return false;
+  }
+  if (c->monoforum_channel_id.is_valid() && !have_channel(c->monoforum_channel_id)) {
+    if (left_tries > 2 && G()->use_chat_info_database()) {
+      send_closure_later(actor_id(this), &ChatManager::load_channel_from_database, nullptr, c->monoforum_channel_id,
+                         std::move(promise));
+      return false;
+    }
+    if (left_tries > 1 && td_->auth_manager_->is_bot()) {
+      get_channel_queries_.add_query(c->monoforum_channel_id.get(), std::move(promise), "get channel monoforum");
+      return false;
+    }
   }
 
   promise.set_value(Unit());

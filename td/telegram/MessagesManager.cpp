@@ -20269,7 +20269,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   if (options.update_stickersets_order && !td_->auth_manager_->is_bot()) {
     move_message_content_sticker_set_to_top(td_, result->content.get());
   }
-  if (options.monoforum_topic_id.is_valid()) {
+  if (options.monoforum_topic_id.is_valid() && result->sender_dialog_id.is_valid()) {
     force_create_dialog(result->sender_dialog_id, "get_message_to_send");
   }
   if (result->paid_message_star_count > 0) {
