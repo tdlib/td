@@ -77,17 +77,16 @@ class GetWebPagePreviewQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(const string &text, vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities,
-            unique_ptr<WebPagesManager::GetWebPagePreviewOptions> &&options) {
+  void send(const FormattedText &text, unique_ptr<WebPagesManager::GetWebPagePreviewOptions> &&options) {
     options_ = std::move(options);
 
     int32 flags = 0;
+    auto entities = get_input_message_entities(td_->user_manager_.get(), text.entities, "GetWebPagePreviewQuery");
     if (!entities.empty()) {
       flags |= telegram_api::messages_getWebPagePreview::ENTITIES_MASK;
     }
-
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_getWebPagePreview(flags, text, std::move(entities))));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getWebPagePreview(flags, text.text, std::move(entities))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1055,10 +1054,7 @@ void WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formattedT
   options->first_url_ = std::move(url);
   options->skip_confirmation_ = skip_confirmation;
   options->link_preview_options_ = std::move(link_preview_options);
-  td_->create_handler<GetWebPagePreviewQuery>(std::move(promise))
-      ->send(formatted_text.text,
-             get_input_message_entities(td_->user_manager_.get(), formatted_text.entities, "get_web_page_preview"),
-             std::move(options));
+  td_->create_handler<GetWebPagePreviewQuery>(std::move(promise))->send(formatted_text, std::move(options));
 }
 
 void WebPagesManager::get_web_page_instant_view(const string &url, bool only_local, Promise<WebPageId> &&promise) {
