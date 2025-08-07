@@ -298,7 +298,7 @@ class GetTonRevenueStatsQuery final : public Td::ResultHandler {
   void send(DialogId dialog_id, bool is_dark) {
     dialog_id_ = dialog_id;
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
