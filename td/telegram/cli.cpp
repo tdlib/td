@@ -2658,10 +2658,10 @@ class CliClient final : public Actor {
 
   td_api::object_ptr<td_api::inputSuggestedPostInfo> get_input_suggested_post_info() const {
     td_api::object_ptr<td_api::SuggestedPostPrice> price = suggested_post_price_;
-    if (price == nullptr) {
+    if (price == nullptr && suggested_post_send_date_ == -1) {
       return nullptr;
     }
-    return td_api::make_object<td_api::inputSuggestedPostInfo>(std::move(price), suggested_post_send_date_);
+    return td_api::make_object<td_api::inputSuggestedPostInfo>(std::move(price), max(suggested_post_send_date_, 0));
   }
 
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
@@ -8082,7 +8082,7 @@ class CliClient final : public Actor {
   int32 start_timestamp_ = 0;
   vector<string> upgraded_gift_attribute_ids_;
   SuggestedPostPrice suggested_post_price_;
-  int32 suggested_post_send_date_ = 0;
+  int32 suggested_post_send_date_ = -1;
 
   ConcurrentScheduler *scheduler_{nullptr};
 
