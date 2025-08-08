@@ -3140,7 +3140,7 @@ class MessagesManager final : public Actor {
 
   static MessageId get_message_forum_topic_id(const Message *m);
 
-  static SavedMessagesTopicId get_message_monoforum_topic_id(const Message *m);
+  static SavedMessagesTopicId get_input_message_monoforum_topic_id(const Message *m);
 
   MessageTopic get_message_topic(DialogId dialog_id, const Message *m) const;
 

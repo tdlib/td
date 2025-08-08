@@ -21536,7 +21536,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
                              m->file_upload_ids, m->thumbnail_file_upload_ids,
                              get_message_content_cover_any_file_ids(m->content.get()), get_message_flags(m), dialog_id,
                              get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-                             m->initial_top_thread_message_id, get_message_monoforum_topic_id(m),
+                             m->initial_top_thread_message_id, get_input_message_monoforum_topic_id(m),
                              get_message_schedule_date(m), m->effect_id, m->paid_message_star_count,
                              m->suggested_post.get(), m->reply_markup,
                              get_input_message_entities(td_->user_manager_.get(), caption, "on_message_media_uploaded"),
@@ -21890,7 +21890,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
 
     input_reply_to = get_message_input_reply_to(m);
     top_thread_message_id = m->initial_top_thread_message_id;
-    monoforum_topic_id = get_message_monoforum_topic_id(m);
+    monoforum_topic_id = get_input_message_monoforum_topic_id(m);
     flags = get_message_flags(m);
     schedule_date = get_message_schedule_date(m);
     effect_id = m->effect_id;
@@ -22020,8 +22020,8 @@ void MessagesManager::do_send_paid_media_group(DialogId dialog_id, MessageId mes
   td_->create_handler<SendMediaQuery>()->send(
       m->file_upload_ids, m->thumbnail_file_upload_ids, get_message_content_cover_any_file_ids(m->content.get()),
       get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-      m->initial_top_thread_message_id, get_message_monoforum_topic_id(m), get_message_schedule_date(m), m->effect_id,
-      m->paid_message_star_count, m->suggested_post.get(), m->reply_markup,
+      m->initial_top_thread_message_id, get_input_message_monoforum_topic_id(m), get_message_schedule_date(m),
+      m->effect_id, m->paid_message_star_count, m->suggested_post.get(), m->reply_markup,
       get_input_message_entities(td_->user_manager_.get(), caption, "do_send_paid_media_group"),
       caption == nullptr ? "" : caption->text, std::move(input_media), m->content->get_type(), m->is_copy, random_id,
       &m->send_query_ref);
@@ -22057,14 +22057,14 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
     if (input_media == nullptr) {
       td_->create_handler<SendMessageQuery>()->send(
           get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-          m->initial_top_thread_message_id, get_message_monoforum_topic_id(m), get_message_schedule_date(m),
+          m->initial_top_thread_message_id, get_input_message_monoforum_topic_id(m), get_message_schedule_date(m),
           m->effect_id, m->paid_message_star_count, m->suggested_post.get(), m->reply_markup,
           get_input_message_entities(td_->user_manager_.get(), message_text, "on_text_message_ready_to_send"),
           message_text->text, m->is_copy, random_id, &m->send_query_ref);
     } else {
       td_->create_handler<SendMediaQuery>()->send(
           {}, {}, {}, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
-          *get_message_input_reply_to(m), m->initial_top_thread_message_id, get_message_monoforum_topic_id(m),
+          *get_message_input_reply_to(m), m->initial_top_thread_message_id, get_input_message_monoforum_topic_id(m),
           get_message_schedule_date(m), m->effect_id, m->paid_message_star_count, m->suggested_post.get(),
           m->reply_markup,
           get_input_message_entities(td_->user_manager_.get(), message_text, "on_text_message_ready_to_send"),
@@ -22453,7 +22453,7 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, Me
   }
   m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(
       flags, dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
-      m->initial_top_thread_message_id, get_message_monoforum_topic_id(m), get_message_schedule_date(m),
+      m->initial_top_thread_message_id, get_input_message_monoforum_topic_id(m), get_message_schedule_date(m),
       m->paid_message_star_count, random_id, query_id, result_id);
 }
 
@@ -22727,7 +22727,7 @@ MessageId MessagesManager::get_message_forum_topic_id(const Message *m) {
   return m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1));
 }
 
-SavedMessagesTopicId MessagesManager::get_message_monoforum_topic_id(const Message *m) {
+SavedMessagesTopicId MessagesManager::get_input_message_monoforum_topic_id(const Message *m) {
   if (m->saved_messages_topic_id != SavedMessagesTopicId() && m->sender_dialog_id != DialogId()) {
     return m->saved_messages_topic_id;
   }
@@ -23669,7 +23669,7 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   vector<int64> random_ids =
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
   send_closure_later(actor_id(this), &MessagesManager::send_forward_message_query, flags, to_dialog_id,
-                     messages[0]->initial_top_thread_message_id, get_message_monoforum_topic_id(messages[0]),
+                     messages[0]->initial_top_thread_message_id, get_input_message_monoforum_topic_id(messages[0]),
                      messages[0]->input_reply_to.clone(), from_dialog_id, std::move(as_input_peer), message_ids,
                      std::move(random_ids), schedule_date, messages[0]->new_video_start_timestamp,
                      messages[0]->paid_message_star_count * static_cast<int32>(messages.size()),
