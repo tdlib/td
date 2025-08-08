@@ -26253,7 +26253,7 @@ void MessagesManager::send_update_message_fact_check(DialogId dialog_id, const M
 
 void MessagesManager::send_update_message_suggested_post_info(DialogId dialog_id, const Message *m) const {
   CHECK(m != nullptr);
-  if (td_->auth_manager_->is_bot() || !m->is_update_sent) {
+  if (!m->is_update_sent) {
     return;
   }
 
