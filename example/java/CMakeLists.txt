@@ -75,7 +75,6 @@ add_custom_target(build_java
 add_custom_target(generate_javadoc
   COMMAND ${CMAKE_COMMAND} -E ${CMAKE_RM_COMMAND} "${JAVA_OUTPUT_DIRECTORY}/../docs"
   COMMAND ${Java_JAVADOC_EXECUTABLE} -encoding UTF-8 -charset UTF-8 -d "${JAVA_OUTPUT_DIRECTORY}/../docs" ${JAVA_SOURCE_FILES}
-  WORKING_DIRECTORY ${TD_API_JAVA_PATH}
   COMMENT "Generating Javadoc documentation"
   DEPENDS td_generate_java_api
 )
