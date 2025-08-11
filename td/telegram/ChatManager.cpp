@@ -7389,7 +7389,7 @@ void ChatManager::on_update_channel_title(Channel *c, ChannelId channel_id, stri
 void ChatManager::on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status) {
   if (c->is_monoforum) {
     if (status.is_member()) {
-      status = c->is_admined_monoforum
+      status = c->is_admined_monoforum && !td_->auth_manager_->is_bot()
                    ? DialogParticipantStatus::Administrator(
                          AdministratorRights(true, true, false, false, false, false, false, false, false, false, false,
                                              false, false, false, false, false, ChannelType::Megagroup),
