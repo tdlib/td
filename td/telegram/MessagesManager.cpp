@@ -4543,7 +4543,8 @@ bool MessagesManager::is_thread_message(DialogId dialog_id, const Message *m) co
 
 bool MessagesManager::is_thread_message(DialogId dialog_id, MessageId message_id, const MessageReplyInfo &reply_info,
                                         MessageContentType content_type) const {
-  if (dialog_id.get_type() != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+  if (dialog_id.get_type() != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(dialog_id) ||
+      td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
     return false;
   }
   if (!message_id.is_server()) {
@@ -29836,7 +29837,8 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
   if (m->message_id.is_scheduled() && !m->message_id.is_yet_unsent()) {
     m->top_thread_message_id = MessageId();
   } else if (m->top_thread_message_id.is_valid()) {
-    if (td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+    if (td_->dialog_manager_->is_broadcast_channel(dialog_id) ||
+        td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
       m->top_thread_message_id = MessageId();
     }
   } else {
