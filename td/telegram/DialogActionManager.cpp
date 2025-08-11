@@ -313,6 +313,13 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
   if (!as_business && td_->dialog_manager_->is_forum_channel(dialog_id) && !top_thread_message_id.is_valid()) {
     top_thread_message_id = MessageId(ServerMessageId(1));
   }
+  if (!as_business && td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
+    if (td_->auth_manager_->is_bot()) {
+      return promise.set_error(400, "Chat actions can't be sent to channel direct messages chats");
+    } else {
+      return promise.set_value(Unit());
+    }
+  }
 
   tl_object_ptr<telegram_api::InputPeer> input_peer;
   if (action == DialogAction::get_speaking_action()) {
