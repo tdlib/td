@@ -2654,6 +2654,9 @@ void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id
     if (new_status.is_member()) {
       return promise.set_error(400, "Can't unrestrict self");
     }
+    if (td_->auth_manager_->is_bot() && td_->chat_manager_->is_monoforum_channel(channel_id)) {
+      return promise.set_error(400, "Can't leave channel direct messages chats; leave the parent chat instead");
+    }
 
     // leave the channel
     speculative_add_channel_user(channel_id, participant_dialog_id.get_user_id(), new_status, my_status);
