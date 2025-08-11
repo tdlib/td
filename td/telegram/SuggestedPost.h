@@ -39,12 +39,8 @@ class SuggestedPost {
   static Result<unique_ptr<SuggestedPost>> get_suggested_post(
       const Td *td, td_api::object_ptr<td_api::inputSuggestedPostInfo> &&post);
 
-  bool is_empty() const {
-    return price_.is_empty() && schedule_date_ == 0;
-  }
-
   bool is_pending() const {
-    return !is_empty() && !is_accepted_ && !is_rejected_;
+    return !is_accepted_ && !is_rejected_;
   }
 
   int32 get_schedule_date() const {

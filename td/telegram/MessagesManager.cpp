@@ -1928,7 +1928,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
             SavedMessagesTopicId saved_messages_topic_id, const MessageInputReplyTo &message_input_reply_to,
             DialogId from_dialog_id, telegram_api::object_ptr<telegram_api::InputPeer> as_input_peer,
             const vector<MessageId> &message_ids, vector<int64> &&random_ids, int32 schedule_date,
-            int32 new_video_start_timestamp, int64 paid_message_star_count, const SuggestedPost &suggested_post) {
+            int32 new_video_start_timestamp, int64 paid_message_star_count, const SuggestedPost *suggested_post) {
     random_ids_ = random_ids;
     from_dialog_id_ = from_dialog_id;
     to_dialog_id_ = to_dialog_id;
@@ -1962,9 +1962,9 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_forwardMessages::VIDEO_TIMESTAMP_MASK;
     }
     telegram_api::object_ptr<telegram_api::suggestedPost> post;
-    if (!suggested_post.is_empty()) {
+    if (suggested_post != nullptr) {
       flags |= telegram_api::messages_forwardMessages::SUGGESTED_POST_MASK;
-      post = suggested_post.get_input_suggested_post();
+      post = suggested_post->get_input_suggested_post();
     }
 
     auto query = G()->net_query_creator().create(
@@ -20221,7 +20221,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->real_forward_from_dialog_id = real_forward_from_dialog_id;
   m->is_copy = is_copy || m->forward_info != nullptr;
   m->sending_id = options.sending_id;
-  m->suggested_post = options.suggested_post.is_empty() ? nullptr : make_unique<SuggestedPost>(options.suggested_post);
+  m->suggested_post = options.has_suggested_post ? make_unique<SuggestedPost>(options.suggested_post) : nullptr;
 
   if (td_->auth_manager_->is_bot() || options.disable_notification ||
       td_->option_manager_->get_option_boolean("ignore_default_disable_notification")) {
@@ -21121,6 +21121,7 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
     if (!td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
       return Status::Error(400, "Suggested posts can be sent only to channel direct messages");
     }
+    result.has_suggested_post = true;
     result.suggested_post = *suggested_post;
   }
 
@@ -23681,8 +23682,7 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
                      messages[0]->input_reply_to.clone(), from_dialog_id, std::move(as_input_peer), message_ids,
                      std::move(random_ids), schedule_date, messages[0]->new_video_start_timestamp,
                      messages[0]->paid_message_star_count * static_cast<int32>(messages.size()),
-                     messages[0]->suggested_post == nullptr ? SuggestedPost() : *messages[0]->suggested_post,
-                     get_erase_log_event_promise(log_event_id));
+                     SuggestedPost::clone(messages[0]->suggested_post), get_erase_log_event_promise(log_event_id));
 }
 
 void MessagesManager::send_forward_message_query(
@@ -23690,11 +23690,11 @@ void MessagesManager::send_forward_message_query(
     const SavedMessagesTopicId saved_messages_topic_id, const MessageInputReplyTo input_reply_to,
     DialogId from_dialog_id, telegram_api::object_ptr<telegram_api::InputPeer> as_input_peer,
     vector<MessageId> message_ids, vector<int64> random_ids, int32 schedule_date, int32 new_video_start_timestamp,
-    int64 paid_message_star_count, const SuggestedPost &suggested_post, Promise<Unit> promise) {
+    int64 paid_message_star_count, unique_ptr<SuggestedPost> &&suggested_post, Promise<Unit> promise) {
   td_->create_handler<ForwardMessagesQuery>(std::move(promise))
       ->send(flags, to_dialog_id, top_thread_message_id, saved_messages_topic_id, input_reply_to, from_dialog_id,
              std::move(as_input_peer), message_ids, std::move(random_ids), schedule_date, new_video_start_timestamp,
-             paid_message_star_count, suggested_post);
+             paid_message_star_count, suggested_post.get());
 }
 
 Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
@@ -24278,8 +24278,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
-  MessageSendOptions message_send_options(false, false, false, false, false, false, 0, sending_id, MessageEffectId(), 0,
-                                          SavedMessagesTopicId(), SuggestedPost());
+  MessageSendOptions message_send_options(false, false, false, false, false, false, false, 0, sending_id,
+                                          MessageEffectId(), 0, SavedMessagesTopicId(), SuggestedPost());
   FlatHashMap<MessageId, MessageId, MessageIdHash> original_message_id_to_new_message_id;
   vector<td_api::object_ptr<td_api::message>> result;
   vector<Message *> sent_messages;
@@ -24502,7 +24502,8 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     }
     MessageSendOptions options(
         message->disable_notification, message->from_background, message->update_stickersets_order, message->noforwards,
-        message->allow_paid, false, get_message_schedule_date(message.get()), message->sending_id, message->effect_id,
+        message->allow_paid, false, message->suggested_post != nullptr, get_message_schedule_date(message.get()),
+        message->sending_id, message->effect_id,
         required_paid_message_star_count == 0 ? message->paid_message_star_count : paid_message_star_count,
         dialog_id.get_type() == DialogType::Channel ? message->saved_messages_topic_id : SavedMessagesTopicId(),
         message->suggested_post == nullptr ? SuggestedPost() : *message->suggested_post);
