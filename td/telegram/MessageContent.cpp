@@ -5126,8 +5126,14 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       break;
     case MessageContentType::Game:
-      if (dialog_type == DialogType::Channel && td->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id())) {
-        // return Status::Error(400, "Games can't be sent to channel chats");
+      if (dialog_type == DialogType::Channel) {
+        auto channel_id = dialog_id.get_channel_id();
+        if (td->chat_manager_->is_broadcast_channel(channel_id)) {
+          // return Status::Error(400, "Games can't be sent to channel chats");
+        }
+        if (td->chat_manager_->is_monoforum_channel(channel_id)) {
+          return Status::Error(400, "Games can't be sent to channel direct messages chats");
+        }
       }
       if (!permissions.can_send_games()) {
         return Status::Error(400, "Not enough rights to send games to the chat");
