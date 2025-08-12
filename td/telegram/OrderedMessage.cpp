@@ -12,7 +12,7 @@ namespace td {
 
 void OrderedMessages::insert(MessageId message_id, bool auto_attach, MessageId old_last_message_id,
                              const char *source) {
-  auto random_y = static_cast<int32>(static_cast<uint32>(message_id.get() * 2101234567u));
+  auto random_y = static_cast<int32>(MessageIdHash()(message_id));
   unique_ptr<OrderedMessage> *v = &messages_;
   while (*v != nullptr && (*v)->random_y_ >= random_y) {
     if ((*v)->message_id_.get() < message_id.get()) {
