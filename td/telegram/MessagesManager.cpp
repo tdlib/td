@@ -7895,7 +7895,7 @@ bool MessagesManager::can_delete_channel_message(bool is_admined_monoforum, cons
     return true;
   }
 
-  if (is_bot && G()->unix_time() >= m->date + 2 * 86400) {
+  if (is_bot && G()->unix_time() >= m->date + (G()->is_test_dc() ? 900 : 2 * 86400)) {
     // bots can't delete messages older than 2 days
     return false;
   }
