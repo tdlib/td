@@ -16,11 +16,13 @@ ReferralProgramInfo::ReferralProgramInfo(telegram_api::object_ptr<telegram_api::
   if (program != nullptr) {
     parameters_ = ReferralProgramParameters(program->commission_permille_, program->duration_months_);
     end_date_ = program->end_date_;
-    if (program->daily_revenue_per_user_->get_id() != telegram_api::starsAmount::ID) {
-      LOG(ERROR) << "Receive " << to_string(program);
-    } else {
-      daily_star_amount_ =
-          StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(program->daily_revenue_per_user_), true);
+    if (program->daily_revenue_per_user_ != nullptr) {
+      if (program->daily_revenue_per_user_->get_id() != telegram_api::starsAmount::ID) {
+        LOG(ERROR) << "Receive " << to_string(program);
+      } else {
+        daily_star_amount_ =
+            StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(program->daily_revenue_per_user_), true);
+      }
     }
   }
 }
