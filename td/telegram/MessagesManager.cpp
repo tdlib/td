@@ -27181,6 +27181,8 @@ bool MessagesManager::process_send_message_fail_error(int32 &error_code, string 
         if (is_bot && (dialog_id.get_type() == DialogType::User || dialog_id.get_type() == DialogType::SecretChat)) {
           error_message = "Bot can't initiate conversation with a user";
         }
+      } else if (error_message == "REPLY_TO_MONOFORUM_PEER_INVALID") {
+        error_message = "Wrong direct messages topic identifier specified";
       } else if (error_message == "CHAT_FORWARDS_RESTRICTED") {
         error_message = "Message has protected content and can't be forwarded";
       } else if (error_message == "MEDIA_EMPTY") {
