@@ -2754,6 +2754,19 @@ bool ChatManager::have_input_peer_channel(const Channel *c, ChannelId channel_id
   if (access_rights == AccessRights::Know) {
     return true;
   }
+  if (!from_linked && c->is_monoforum) {
+    if (td_->auth_manager_->is_bot()) {
+      return c->is_admined_monoforum;
+    }
+    auto monoforum_channel_id = c->monoforum_channel_id;
+    auto *monoforum_channel = get_channel(monoforum_channel_id);
+    if (monoforum_channel != nullptr) {
+      return have_input_peer_channel(monoforum_channel, monoforum_channel_id, AccessRights::Read, true);
+    }
+    LOG(ERROR) << "Have no parent " << monoforum_channel_id;
+    return true;
+  }
+
   if (c->status.is_administrator()) {
     return true;
   }
@@ -2762,15 +2775,6 @@ bool ChatManager::have_input_peer_channel(const Channel *c, ChannelId channel_id
     return false;
   }
   if (c->status.is_member()) {
-    return true;
-  }
-
-  if (!from_linked && c->is_monoforum) {
-    auto monoforum_channel_id = c->monoforum_channel_id;
-    auto *monoforum_channel = get_channel(monoforum_channel_id);
-    if (monoforum_channel != nullptr) {
-      return have_input_peer_channel(monoforum_channel, monoforum_channel_id, access_rights, true);
-    }
     return true;
   }
 
