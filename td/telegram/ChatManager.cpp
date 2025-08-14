@@ -2763,7 +2763,7 @@ bool ChatManager::have_input_peer_channel(const Channel *c, ChannelId channel_id
     if (monoforum_channel != nullptr) {
       return have_input_peer_channel(monoforum_channel, monoforum_channel_id, AccessRights::Read, true);
     }
-    LOG(ERROR) << "Have no parent " << monoforum_channel_id;
+    LOG(INFO) << "Have no parent " << monoforum_channel_id;
     return true;
   }
 
@@ -9111,18 +9111,21 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
 
   bool is_admined_monoforum = false;
   if (monoforum_channel_id.is_valid()) {
-    Channel *monoforum_c = get_channel_force(monoforum_channel_id, source);
-    if (monoforum_c != nullptr) {
-      if (is_monoforum) {
+    if (is_monoforum) {
+      Channel *monoforum_c = get_channel_force(monoforum_channel_id, source);
+      if (monoforum_c != nullptr) {
         is_admined_monoforum = monoforum_c->status.can_manage_direct_messages();
-      } else if (status.can_manage_direct_messages() && !monoforum_c->is_admined_monoforum) {
-        monoforum_c->is_admined_monoforum = true;
+      } else if (status.is_member() && td_->auth_manager_->is_bot()) {
+        is_admined_monoforum = true;
+      }
+    } else {
+      Channel *monoforum_c = get_channel(monoforum_channel_id);
+      if (monoforum_c != nullptr && status.can_manage_direct_messages() != monoforum_c->is_admined_monoforum) {
+        monoforum_c->is_admined_monoforum = status.can_manage_direct_messages();
         monoforum_c->is_admined_monoforum_changed = true;
         monoforum_c->is_changed = true;
         update_channel(monoforum_c, monoforum_channel_id);
       }
-    } else if (is_monoforum && status.is_member() && td_->auth_manager_->is_bot()) {
-      is_admined_monoforum = true;
     }
   }
 
