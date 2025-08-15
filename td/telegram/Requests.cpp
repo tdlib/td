@@ -3059,6 +3059,7 @@ void Requests::on_request(uint64 id, const td_api::loadDirectMessagesChatTopics 
 }
 
 void Requests::on_request(uint64 id, const td_api::getDirectMessagesChatTopic &request) {
+  CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
   td_->saved_messages_manager_->get_monoforum_topic(dialog_id, SavedMessagesTopicId(DialogId(request.topic_id_)),
