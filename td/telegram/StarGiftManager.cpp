@@ -201,6 +201,18 @@ class GetGiftPaymentFormQuery final : public Td::ResultHandler {
         break;
       case telegram_api::payments_paymentFormStarGift::ID: {
         auto payment_form = static_cast<const telegram_api::payments_paymentFormStarGift *>(payment_form_ptr.get());
+        if (!td_->auth_manager_->is_bot()) {
+          if (payment_form->invoice_->prices_.size() != 1u ||
+              payment_form->invoice_->prices_[0]->amount_ > star_count_) {
+            td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+            return promise_.set_error(400, "Wrong gift price specified");
+          }
+          if (payment_form->invoice_->prices_[0]->amount_ != star_count_) {
+            td_->star_manager_->add_pending_owned_star_count(star_count_ - payment_form->invoice_->prices_[0]->amount_,
+                                                             false);
+            star_count_ = payment_form->invoice_->prices_[0]->amount_;
+          }
+        }
         td_->create_handler<SendGiftQuery>(std::move(promise_))
             ->send(std::move(send_input_invoice_), payment_form->form_id_, star_count_);
         break;
