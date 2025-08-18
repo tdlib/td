@@ -262,8 +262,7 @@ void gen_json_converter_file(const tl::simple::Schema &schema, const std::string
   if (is_header) {
     sb << "\nvoid to_json(JsonValueScope &jv, const td_api::object_ptr<Object> &value);\n";
     sb << "\nStatus from_json(td_api::object_ptr<Function> &to, td::JsonValue from);\n";
-    sb << "\nvoid to_json(JsonValueScope &jv, const Object &object);\n";
-    sb << "\nvoid to_json(JsonValueScope &jv, const Function &object);\n\n";
+    sb << "\nvoid to_json(JsonValueScope &jv, const Object &object);\n\n";
   } else if (file_number == 0) {
     sb << R"ABCD(
 void to_json(JsonValueScope &jv, const td_api::object_ptr<Object> &value) {
@@ -286,10 +285,6 @@ void lazy_to_json(std::reference_wrapper<JsonValueScope>, const T &t) {
 
 void to_json(JsonValueScope &jv, const Object &object) {
   downcast_call(const_cast<Object &>(object), [&jv](const auto &object) { lazy_to_json(jv, object); });
-}
-
-void to_json(JsonValueScope &jv, const Function &object) {
-  downcast_call(const_cast<Function &>(object), [&jv](const auto &object) { lazy_to_json(jv, object); });
 }
 
 )ABCD";
