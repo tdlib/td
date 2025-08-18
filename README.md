@@ -68,15 +68,12 @@ cmake --build .
 ```
 
 To build `TDLib` on low memory devices you can run [SplitSource.php](https://github.com/tdlib/td/blob/master/SplitSource.php) script
-before compiling main `TDLib` source code and compile only needed targets:
+before compiling `TDLib` source code and compile only needed targets:
 ```
+php SplitSource.php
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-cmake --build . --target prepare_cross_compiling
-cd ..
-php SplitSource.php
-cd build
 cmake --build . --target tdjson
 cmake --build . --target tdjson_static
 cd ..

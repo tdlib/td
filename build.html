@@ -994,6 +994,10 @@ function onOptionsChanged() {
     }
     commands.push('cd ../..');
   } else {
+    if (low_memory) {
+      commands.push(php + ' SplitSource.php');
+    }
+
     commands.push(use_powershell ? 'Remove-Item build -Force -Recurse -ErrorAction SilentlyContinue' : 'rm -rf build');
     commands.push('mkdir build');
     commands.push('cd build');
@@ -1040,13 +1044,6 @@ function onOptionsChanged() {
       return prefix + cmake + ' ' + options.join(' ') + ' ..';
     }
     commands.push(getCmakeInitCommand(cmake_init_options));
-
-    if (low_memory) {
-      commands.push(cmake + ' --build . --target prepare_cross_compiling');
-      commands.push('cd ..');
-      commands.push(php + ' SplitSource.php');
-      commands.push('cd build');
-    }
 
     let build_command = cmake + ' --build .';
     if (install_dir) {
