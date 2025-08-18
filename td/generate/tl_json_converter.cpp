@@ -11,12 +11,16 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"
+#include "td/utils/FlatHashSet.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
 
+#include <algorithm>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace td {
 
@@ -36,10 +40,12 @@ static bool is_suitable(int file_number, int file_count, int &counter) {
 }
 
 template <class T>
-void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_header) {
+void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_header,
+                             td::FlatHashSet<std::string> &to_json_types) {
   sb << "void to_json(JsonValueScope &jv, "
      << "const td_api::" << tl::simple::gen_cpp_name(constructor->name) << " &object)";
   if (is_header) {
+    to_json_types.insert(constructor->name);
     sb << ";\n\n";
     return;
   }
@@ -81,7 +87,7 @@ void gen_to_json_constructor(StringBuilder &sb, const T *constructor, bool is_he
 }
 
 void gen_to_json(StringBuilder &sb, const tl::simple::Schema &schema, bool is_header, Mode mode, int file_number,
-                 int file_count, int &counter) {
+                 int file_count, int &counter, td::FlatHashSet<std::string> &to_json_types) {
   for (auto *custom_type : schema.custom_types) {
     if (!((custom_type->is_query_ && mode != Mode::Server) || (custom_type->is_result_ && mode != Mode::Client))) {
       continue;
@@ -103,7 +109,7 @@ void gen_to_json(StringBuilder &sb, const tl::simple::Schema &schema, bool is_he
       }
     }
     for (auto *constructor : custom_type->constructors) {
-      gen_to_json_constructor(sb, constructor, is_header);
+      gen_to_json_constructor(sb, constructor, is_header, to_json_types);
     }
   }
   if (mode == Mode::Server) {
@@ -111,7 +117,7 @@ void gen_to_json(StringBuilder &sb, const tl::simple::Schema &schema, bool is_he
   }
   for (auto *function : schema.functions) {
     if (is_suitable(file_number, file_count, counter)) {
-      gen_to_json_constructor(sb, function, is_header);
+      gen_to_json_constructor(sb, function, is_header, to_json_types);
     }
   }
 }
@@ -218,7 +224,7 @@ void gen_tl_constructor_from_string(StringBuilder &sb, const tl::simple::Schema 
 }
 
 void gen_json_converter_file(const tl::simple::Schema &schema, const std::string &file_name_base, bool is_header,
-                             Mode mode, int file_number, int file_count) {
+                             Mode mode, int file_number, int file_count, td::FlatHashSet<std::string> &to_json_types) {
   string file_name_suffix;
   if (file_count > 1) {
     file_name_suffix = "_" + td::to_string(file_number);
@@ -273,26 +279,27 @@ Status from_json(td_api::object_ptr<Function> &to, td::JsonValue from) {
   return td::from_json(to, std::move(from));
 }
 
-template <class T>
-auto lazy_to_json(JsonValueScope &jv, const T &t) {
-  return td_api::to_json(jv, t);
-}
-
-template <class T>
-void lazy_to_json(std::reference_wrapper<JsonValueScope>, const T &t) {
-  UNREACHABLE();
-}
-
 void to_json(JsonValueScope &jv, const Object &object) {
-  downcast_call(const_cast<Object &>(object), [&jv](const auto &object) { lazy_to_json(jv, object); });
-}
-
+  switch (object.get_id()) {
 )ABCD";
+    std::vector<std::string> type_names;
+    for (const auto &type : to_json_types) {
+      type_names.push_back(tl::simple::gen_cpp_name(type));
+    }
+    std::sort(type_names.begin(), type_names.end());
+    for (const auto &type_name : type_names) {
+      sb << "    case td_api::" << type_name << "::ID:\n";
+      sb << "      return td_api::to_json(jv, static_cast<const td_api::" << type_name << " &>(object));\n";
+    }
+    sb << "    default:\n";
+    sb << "      UNREACHABLE();\n";
+    sb << "  }\n";
+    sb << "}\n\n";
   }
   int counter = 0;
   gen_tl_constructor_from_string(sb, schema, is_header, mode, file_number, file_count, counter);
   gen_from_json(sb, schema, is_header, mode, file_number, file_count, counter);
-  gen_to_json(sb, schema, is_header, mode, file_number, file_count, counter);
+  gen_to_json(sb, schema, is_header, mode, file_number, file_count, counter, to_json_types);
   sb << "}  // namespace td_api\n";
   sb << "}  // namespace td\n";
 
@@ -316,9 +323,10 @@ void to_json(JsonValueScope &jv, const Object &object) {
 
 void gen_json_converter(const tl::tl_config &config, const std::string &file_name, Mode mode, int source_file_count) {
   tl::simple::Schema schema(config);
-  gen_json_converter_file(schema, file_name, true, mode, 0, 1);
+  td::FlatHashSet<std::string> to_json_types;
+  gen_json_converter_file(schema, file_name, true, mode, 0, 1, to_json_types);
   for (int i = 0; i < source_file_count; i++) {
-    gen_json_converter_file(schema, file_name, false, mode, i, source_file_count);
+    gen_json_converter_file(schema, file_name, false, mode, i, source_file_count, to_json_types);
   }
 }
 
