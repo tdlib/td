@@ -18,10 +18,10 @@ fi
 echo "Downloading SDK Manager..."
 mkdir -p "$ANDROID_SDK_ROOT" || exit 1
 cd "$ANDROID_SDK_ROOT" || exit 1
-$WGET "https://dl.google.com/android/repository/commandlinetools-$OS_NAME-11076708_latest.zip" || exit 1
+$WGET "https://dl.google.com/android/repository/commandlinetools-$OS_NAME-13114758_latest.zip" || exit 1
 mkdir -p cmdline-tools || exit 1
-unzip -qq "commandlinetools-$OS_NAME-11076708_latest.zip" -d cmdline-tools || exit 1
-rm "commandlinetools-$OS_NAME-11076708_latest.zip" || exit 1
+unzip -qq "commandlinetools-$OS_NAME-13114758_latest.zip" -d cmdline-tools || exit 1
+rm "commandlinetools-$OS_NAME-13114758_latest.zip" || exit 1
 mv cmdline-tools/* cmdline-tools/latest/ || exit 1
 
 echo "Installing required SDK tools..."
