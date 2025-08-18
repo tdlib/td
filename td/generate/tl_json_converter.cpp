@@ -289,7 +289,8 @@ void to_json(JsonValueScope &jv, const Object &object) {
     std::sort(type_names.begin(), type_names.end());
     for (const auto &type_name : type_names) {
       sb << "    case td_api::" << type_name << "::ID:\n";
-      sb << "      return td_api::to_json(jv, static_cast<const td_api::" << type_name << " &>(object));\n";
+      sb << "      return static_cast<void(*)(JsonValueScope &, const td_api::" << type_name
+         << " &)>(td_api::to_json)(jv, static_cast<const td_api::" << type_name << " &>(object));\n";
     }
     sb << "    default:\n";
     sb << "      UNREACHABLE();\n";
