@@ -274,7 +274,7 @@ Status from_json(td_api::object_ptr<Function> &to, td::JsonValue from) {
 }
 
 template <class T>
-auto lazy_to_json(JsonValueScope &jv, const T &t) -> decltype(td_api::to_json(jv, t)) {
+auto lazy_to_json(JsonValueScope &jv, const T &t) {
   return td_api::to_json(jv, t);
 }
 
