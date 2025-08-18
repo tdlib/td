@@ -899,6 +899,85 @@ bool write_tl_to_file(const tl_config &config, const std::string &file_name, con
   return put_file_contents(file_name, out.get_result(), w.is_documentation_generated());
 }
 
+bool write_tl_to_fixed_file_count(const tl_config &config, const std::string &file_name_prefix,
+                                  const std::string &file_name_suffix, int file_count, const TL_writer &w) {
+  assert(file_count > 0);
+  find_complex_types(config, w);
+
+  std::map<std::string, tl_string_outputer> outs;
+
+  int file_num = 0;
+  tl_string_outputer *out = nullptr;
+  for (int i = 0; i < file_count; i++) {
+    outs[TL_writer::int_to_string(i)].append(w.gen_output_begin(std::string()));
+  }
+  outs["0"].append(w.gen_output_begin_once());
+
+  std::set<std::string> request_types;
+  std::set<std::string> result_types;
+  for (std::size_t function = 0; function < config.get_function_count(); function++) {
+    const tl_combinator *t = config.get_function_by_num(function);
+    dfs_combinator(t, request_types, w);
+    dfs_tree(t->result, result_types, w);
+  }
+
+  std::map<std::string, bool> object_types;
+  for (std::size_t type = 0; type < config.get_type_count(); type++) {
+    tl_type *t = config.get_type_by_num(type);
+    if (t->constructors_num == 0 || w.is_built_in_simple_type(t->name) ||
+        w.is_built_in_complex_type(t->name)) {  // built-in dummy or complex types
+      continue;
+    }
+
+    if (t->flags & FLAG_COMPLEX) {
+      std::fprintf(stderr, "Can't generate class %s\n", t->name.c_str());
+      continue;
+    }
+
+    object_types[w.gen_main_class_name(t)] = (t->simple_constructors != 1);
+    file_num = (file_num + 1) % file_count;
+    out = &outs[TL_writer::int_to_string(file_num)];
+    write_class(*out, t, request_types, result_types, w);
+  }
+
+  std::map<std::string, bool> function_types;
+  for (std::size_t function = 0; function < config.get_function_count(); function++) {
+    tl_combinator *t = config.get_function_by_num(function);
+    if (!w.is_combinator_supported(t)) {
+      // std::fprintf(stderr, "Function %s is too hard to store\n", t->name.c_str());
+      continue;
+    }
+
+    function_types[w.gen_class_name(t->name)] = false;
+    file_num = (file_num + 1) % file_count;
+    out = &outs[TL_writer::int_to_string(file_num)];
+    write_function(*out, t, request_types, result_types, w);
+  }
+
+  for (std::size_t type = 0; type < config.get_type_count(); type++) {
+    tl_type *t = config.get_type_by_num(type);
+    if (t->flags & FLAG_COMPLEX) {
+      t->flags &= ~FLAG_COMPLEX;  // remove temporary flag
+    }
+  }
+
+  write_base_object_classes(config, outs["0"], request_types, result_types, w);
+  write_base_function_class(config, outs["0"], request_types, result_types, w);
+
+  for (int i = 0; i < file_count; i++) {
+    outs[TL_writer::int_to_string(i)].append(w.gen_output_end());
+  }
+
+  for (std::map<std::string, tl_string_outputer>::const_iterator it = outs.begin(); it != outs.end(); ++it) {
+    std::string file_name = file_name_prefix + "_" + it->first + file_name_suffix;
+    if (!put_file_contents(file_name, it->second.get_result(), w.is_documentation_generated())) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 static std::string get_additional_imports(const std::map<std::string, bool> &types, const std::string base_class_name,
                                           const std::string &file_name_prefix, const std::string &file_name_suffix,
                                           const TL_writer &w) {

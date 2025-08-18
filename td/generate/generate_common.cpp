@@ -16,14 +16,19 @@
 #include <string>
 #include <vector>
 
-template <bool generate_multiple_headers = false, class WriterCpp = td::TD_TL_writer_cpp,
+template <int multiple_source_count = 0, bool generate_multiple_headers = false, class WriterCpp = td::TD_TL_writer_cpp,
           class WriterH = td::TD_TL_writer_h, class WriterHpp = td::TD_TL_writer_hpp>
 static void generate_cpp(const std::string &directory, const std::string &tl_name, const std::string &string_type,
                          const std::string &bytes_type, const std::vector<std::string> &ext_cpp_includes,
                          const std::vector<std::string> &ext_h_includes) {
   std::string path = directory + "/" + tl_name;
   td::tl::tl_config config = td::tl::read_tl_config_from_file("tlo/" + tl_name + ".tlo");
-  td::tl::write_tl_to_file(config, path + ".cpp", WriterCpp(tl_name, string_type, bytes_type, ext_cpp_includes));
+  if (multiple_source_count > 0) {
+    td::tl::write_tl_to_fixed_file_count(config, path, ".cpp", multiple_source_count,
+                                         WriterCpp(tl_name, string_type, bytes_type, ext_cpp_includes));
+  } else {
+    td::tl::write_tl_to_file(config, path + ".cpp", WriterCpp(tl_name, string_type, bytes_type, ext_cpp_includes));
+  }
   if (generate_multiple_headers) {
     td::tl::write_tl_to_multiple_files(config, path, ".h", WriterH(tl_name, string_type, bytes_type, ext_h_includes));
   } else {
@@ -33,9 +38,9 @@ static void generate_cpp(const std::string &directory, const std::string &tl_nam
 }
 
 int main() {
-  generate_cpp<>("td/telegram", "telegram_api", "std::string", "BufferSlice",
-                 {"\"td/tl/tl_object_parse.h\"", "\"td/tl/tl_object_store.h\""},
-                 {"\"td/utils/buffer.h\"", "\"td/utils/UInt.h\""});
+  generate_cpp<10>("td/telegram", "telegram_api", "std::string", "BufferSlice",
+                   {"\"td/tl/tl_object_parse.h\"", "\"td/tl/tl_object_store.h\""},
+                   {"\"td/utils/buffer.h\"", "\"td/utils/UInt.h\""});
 
   generate_cpp<>("td/telegram", "secret_api", "std::string", "BufferSlice",
                  {"\"td/tl/tl_object_parse.h\"", "\"td/tl/tl_object_store.h\""}, {"\"td/utils/buffer.h\""});
@@ -44,9 +49,9 @@ int main() {
                  {"\"td/tl/tl_object_parse.h\"", "\"td/tl/tl_object_store.h\""}, {"\"td/utils/UInt.h\""});
 
 #ifdef TD_ENABLE_JNI
-  generate_cpp<false, td::TD_TL_writer_jni_cpp, td::TD_TL_writer_jni_h>(
+  generate_cpp<10, false, td::TD_TL_writer_jni_cpp, td::TD_TL_writer_jni_h>(
       "td/telegram", "td_api", "std::string", "std::string", {"\"td/tl/tl_jni_object.h\""}, {"<string>"});
 #else
-  generate_cpp<>("td/telegram", "td_api", "std::string", "std::string", {}, {"<string>"});
+  generate_cpp<10>("td/telegram", "td_api", "std::string", "std::string", {}, {"<string>"});
 #endif
 }
