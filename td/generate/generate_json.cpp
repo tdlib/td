@@ -11,5 +11,5 @@
 
 int main() {
   td::gen_json_converter(td::tl::read_tl_config_from_file("tlo/td_api.tlo"), "td/telegram/td_api_json",
-                         td::tl::TL_writer::Server);
+                         td::tl::TL_writer::Server, 10);
 }

@@ -13,6 +13,7 @@
 
 namespace td {
 
-void gen_json_converter(const tl::tl_config &config, const std::string &file_name, tl::TL_writer::Mode mode);
+void gen_json_converter(const tl::tl_config &config, const std::string &file_name, tl::TL_writer::Mode mode,
+                        int source_file_count);
 
 }  // namespace td

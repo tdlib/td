@@ -512,8 +512,7 @@ $files = array('td/telegram/ChatManager' => 10,
                'td/telegram/StickersManager' => 10,
                'td/telegram/StoryManager' => 10,
                'td/telegram/UpdatesManager' => 10,
-               'td/telegram/UserManager' => 10,
-               'td/generate/auto/td/telegram/td_api_json' => 10);
+               'td/telegram/UserManager' => 10);
 
 foreach ($files as $file => $chunks) {
     split_file($file, $chunks, $undo);

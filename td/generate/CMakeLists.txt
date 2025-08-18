@@ -64,7 +64,16 @@ set(TL_TD_API_AUTO_SOURCE
 )
 
 set(TL_TD_JSON_AUTO_SOURCE
-  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json.cpp
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json_0.cpp
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json_1.cpp
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json_2.cpp
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json_3.cpp
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json_4.cpp
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json_5.cpp
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json_6.cpp
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json_7.cpp
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json_8.cpp
+  ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json_9.cpp
   ${TD_AUTO_INCLUDE_DIR}/telegram/td_api_json.h
   PARENT_SCOPE
 )
