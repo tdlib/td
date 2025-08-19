@@ -5206,22 +5206,28 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   unique_ptr<StoryForwardInfo> forward_info;
   StoryFullId forward_from_story_full_id;
   if (from_story_full_id != nullptr) {
-    if (is_bot) {
-      return promise.set_error(400, "Bots can't repost stories");
-    }
     forward_from_story_full_id =
         StoryFullId(DialogId(from_story_full_id->poster_chat_id_), StoryId(from_story_full_id->story_id_));
-    const Story *story = get_story(forward_from_story_full_id);
-    if (story == nullptr || story->content_ == nullptr) {
-      return promise.set_error(400, "Story to repost not found");
-    }
-    if (story->noforwards_) {
-      return promise.set_error(400, "Story can't be reposted");
-    }
-    if (story->forward_info_ != nullptr) {
-      forward_info = make_unique<StoryForwardInfo>(*story->forward_info_);
-    } else {
+    if (is_bot) {
+      auto from_dialog_id = forward_from_story_full_id.get_dialog_id();
+      if (!forward_from_story_full_id.is_valid() || from_dialog_id.get_type() != DialogType::User ||
+          !td_->dialog_manager_->have_input_peer(from_dialog_id, false, AccessRights::Read)) {
+        return promise.set_error(400, "Invalid story to repost specified");
+      }
       forward_info = make_unique<StoryForwardInfo>(forward_from_story_full_id, true);
+    } else {
+      const Story *story = get_story(forward_from_story_full_id);
+      if (story == nullptr || story->content_ == nullptr) {
+        return promise.set_error(400, "Story to repost not found");
+      }
+      if (story->noforwards_) {
+        return promise.set_error(400, "Story can't be reposted");
+      }
+      if (story->forward_info_ != nullptr) {
+        forward_info = make_unique<StoryForwardInfo>(*story->forward_info_);
+      } else {
+        forward_info = make_unique<StoryForwardInfo>(forward_from_story_full_id, true);
+      }
     }
     forward_info->hide_sender_if_needed(td_);
   }
