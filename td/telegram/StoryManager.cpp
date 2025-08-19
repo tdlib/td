@@ -1139,7 +1139,7 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
                                         story->forward_info_ != nullptr, std::move(input_peer), std::move(input_media),
                                         std::move(input_media_areas), caption.text, std::move(entities),
                                         std::move(privacy_rules), pending_story_->random_id_, period,
-                                        std::move(fwd_input_peer), fwd_story_id),
+                                        std::move(fwd_input_peer), fwd_story_id, vector<int32>()),
         {{pending_story_->dialog_id_}}));
   }
 

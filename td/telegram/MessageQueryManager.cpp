@@ -522,8 +522,10 @@ class SearchPostsQuery final : public Td::ResultHandler {
     auto input_peer = DialogManager::get_input_peer_force(offset.dialog_id_);
     CHECK(input_peer != nullptr);
 
-    send_query(G()->net_query_creator().create(telegram_api::channels_searchPosts(
-        hashtag, offset.date_, std::move(input_peer), offset.message_id_.get_server_message_id().get(), limit)));
+    int32 flags = telegram_api::channels_searchPosts::HASHTAG_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_searchPosts(flags, hashtag, string(), offset.date_, std::move(input_peer),
+                                           offset.message_id_.get_server_message_id().get(), limit, 0)));
   }
 
   void on_result(BufferSlice packet) final {

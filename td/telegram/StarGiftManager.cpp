@@ -902,7 +902,8 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create_with_prefix(
         business_connection_id.get_invoke_prefix(),
         telegram_api::payments_getSavedStarGifts(0, exclude_unsaved, exclude_saved, exclude_unlimited, exclude_limited,
-                                                 exclude_unique, sort_by_value, std::move(input_peer), offset, limit),
+                                                 exclude_unique, sort_by_value, std::move(input_peer), 0, offset,
+                                                 limit),
         td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id), {{dialog_id_}}));
   }
 
@@ -1077,8 +1078,8 @@ class UpdateStarGiftPriceQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Gift not found"));
     }
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::payments_updateStarGiftPrice(std::move(input_gift), resale_star_count)));
+    send_query(G()->net_query_creator().create(telegram_api::payments_updateStarGiftPrice(
+        std::move(input_gift), telegram_api::make_object<telegram_api::starsAmount>(resale_star_count, 0))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1495,9 +1496,9 @@ void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receive
     return promise.set_error(400, "Have not enough Telegram Stars");
   }
   auto input_invoice =
-      telegram_api::make_object<telegram_api::inputInvoiceStarGiftResale>(gift_name, std::move(input_peer));
-  auto resale_input_invoice =
-      telegram_api::make_object<telegram_api::inputInvoiceStarGiftResale>(gift_name, std::move(resale_input_peer));
+      telegram_api::make_object<telegram_api::inputInvoiceStarGiftResale>(0, false, gift_name, std::move(input_peer));
+  auto resale_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftResale>(
+      0, false, gift_name, std::move(resale_input_peer));
   td_->create_handler<GetGiftResalePaymentFormQuery>(std::move(promise))
       ->send(std::move(input_invoice), std::move(resale_input_invoice), star_count);
 }

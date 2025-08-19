@@ -6,6 +6,7 @@
 //
 #include "td/telegram/StarGift.h"
 
+#include "td/telegram/CurrencyAmount.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"
@@ -41,7 +42,10 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     gift_address_ = std::move(star_gift->gift_address_);
     unique_availability_issued_ = star_gift->availability_issued_;
     unique_availability_total_ = star_gift->availability_total_;
-    resale_star_count_ = StarManager::get_star_count(star_gift->resell_stars_);
+    if (!star_gift->resell_amount_.empty()) {
+      resale_star_count_ =
+          CurrencyAmount(std::move(star_gift->resell_amount_[0]), false).get_star_amount().get_star_count();
+    }
     if (star_gift->released_by_ != nullptr) {
       released_by_dialog_id_ = DialogId(star_gift->released_by_);
       td->dialog_manager_->force_create_dialog(released_by_dialog_id_, "StarGift", true);

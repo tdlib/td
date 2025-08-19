@@ -9156,7 +9156,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (!reply_to_message_id.is_valid() && reply_to_message_id != MessageId()) {
         LOG(ERROR) << "Receive unique gift message with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
-      } else if (reply_to_message_id != MessageId() && action->resale_stars_ != 0) {
+      } else if (reply_to_message_id != MessageId() && action->resale_amount_ != nullptr) {
         if (message_date >= 1754000000) {
           LOG(ERROR) << "Receive " << replied_message_info << " in " << owner_dialog_id << " for " << to_string(action);
         }
@@ -9174,9 +9174,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return td::make_unique<MessageStarGiftUnique>(
           reply_to_message_id, std::move(star_gift), gift_sender_dialog_id, gift_owner_dialog_id, saved_id,
-          StarManager::get_star_count(action->resale_stars_), StarManager::get_star_count(action->transfer_stars_),
-          max(0, action->can_transfer_at_), max(0, action->can_resell_at_), max(0, action->can_export_at_),
-          action->saved_, action->upgrade_,
+          CurrencyAmount(std::move(action->resale_amount_), false).get_star_amount().get_star_count(),
+          StarManager::get_star_count(action->transfer_stars_), max(0, action->can_transfer_at_),
+          max(0, action->can_resell_at_), max(0, action->can_export_at_), action->saved_, action->upgrade_,
           (action->flags_ & telegram_api::messageActionStarGiftUnique::TRANSFER_STARS_MASK) != 0, action->transferred_,
           action->refunded_);
     }
