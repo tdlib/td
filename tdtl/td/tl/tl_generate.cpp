@@ -899,6 +899,10 @@ bool write_tl_to_file(const tl_config &config, const std::string &file_name, con
   return put_file_contents(file_name, out.get_result(), w.is_documentation_generated());
 }
 
+static int get_file_num(const std::string &class_name, int file_count) {
+  return static_cast<int>(std::hash<std::string>()(class_name) % file_count);
+}
+
 bool write_tl_to_fixed_file_count(const tl_config &config, const std::string &file_name_prefix,
                                   const std::string &file_name_suffix, int file_count, const TL_writer &w) {
   assert(file_count > 0);
@@ -906,7 +910,6 @@ bool write_tl_to_fixed_file_count(const tl_config &config, const std::string &fi
 
   std::map<int, tl_string_outputer> outs;
 
-  int file_num = 0;
   tl_string_outputer *out = nullptr;
   for (int i = 0; i < file_count; i++) {
     outs[i].append(w.gen_output_begin(std::string()));
@@ -935,8 +938,7 @@ bool write_tl_to_fixed_file_count(const tl_config &config, const std::string &fi
     }
 
     object_types[w.gen_main_class_name(t)] = (t->simple_constructors != 1);
-    file_num = (file_num + 1) % file_count;
-    out = &outs[file_num];
+    out = &outs[get_file_num(w.gen_main_class_name(t), file_count)];
     write_class(*out, t, request_types, result_types, w);
   }
 
@@ -949,8 +951,7 @@ bool write_tl_to_fixed_file_count(const tl_config &config, const std::string &fi
     }
 
     function_types[w.gen_class_name(t->name)] = false;
-    file_num = (file_num + 1) % file_count;
-    out = &outs[file_num];
+    out = &outs[get_file_num(w.gen_class_name(t->name), file_count)];
     write_function(*out, t, request_types, result_types, w);
   }
 
