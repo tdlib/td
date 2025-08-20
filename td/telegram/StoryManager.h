@@ -158,6 +158,7 @@ class StoryManager final : public Actor {
     StoryListId story_list_id_;
     int64 private_order_ = 0;
     int64 public_order_ = 0;
+    bool can_be_archived_ = false;
   };
 
   struct SavedActiveStories {

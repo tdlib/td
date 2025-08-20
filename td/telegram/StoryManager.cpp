@@ -3599,6 +3599,7 @@ td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stor
   StoryId max_read_story_id;
   vector<td_api::object_ptr<td_api::storyInfo>> stories;
   int64 order = 0;
+  bool can_be_archived = false;
   if (active_stories != nullptr) {
     story_list_id = active_stories->story_list_id_;
     max_read_story_id = active_stories->max_read_story_id_;
@@ -3614,6 +3615,7 @@ td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stor
     if (story_list_id.is_valid()) {
       order = active_stories->public_order_;
     }
+    can_be_archived = active_stories->can_be_archived_;
   } else {
     story_list_id = get_dialog_story_list_id(owner_dialog_id);
   }
@@ -3628,7 +3630,7 @@ td_api::object_ptr<td_api::chatActiveStories> StoryManager::get_chat_active_stor
   }
   return td_api::make_object<td_api::chatActiveStories>(
       td_->dialog_manager_->get_chat_id_object(owner_dialog_id, "updateChatActiveStories"),
-      story_list_id.get_story_list_object(), order, max_read_story_id.get(), std::move(stories));
+      story_list_id.get_story_list_object(), order, can_be_archived, max_read_story_id.get(), std::move(stories));
 }
 
 td_api::object_ptr<td_api::CanPostStoryResult> StoryManager::get_can_post_story_result_object(const Status &error,
@@ -4470,6 +4472,9 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
   LOG(INFO) << "Update order of active stories of " << owner_dialog_id << " in " << story_list_id << " from "
             << active_stories->private_order_ << '/' << active_stories->public_order_ << " to " << new_private_order;
 
+  bool can_be_archived =
+      story_list_id == StoryListId::main() && (owner_dialog_id.get_type() != DialogType::User ||
+                                               td_->user_manager_->is_user_contact(owner_dialog_id.get_user_id()));
   int64 new_public_order = 0;
   if (story_list_id.is_valid()) {
     auto &story_list = get_story_list(story_list_id);
@@ -4493,14 +4498,15 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
   }
 
   if (active_stories->private_order_ != new_private_order || active_stories->public_order_ != new_public_order ||
-      active_stories->story_list_id_ != story_list_id) {
+      active_stories->story_list_id_ != story_list_id || active_stories->can_be_archived_ != can_be_archived) {
     LOG(INFO) << "Update order of active stories of " << owner_dialog_id << " to " << new_private_order << '/'
               << new_public_order << " in list " << story_list_id;
     if (active_stories->private_order_ != new_private_order || active_stories->story_list_id_ != story_list_id) {
       *need_save_to_database = true;
     }
     active_stories->private_order_ = new_private_order;
-    if (active_stories->public_order_ != new_public_order || active_stories->story_list_id_ != story_list_id) {
+    if (active_stories->public_order_ != new_public_order || active_stories->story_list_id_ != story_list_id ||
+        active_stories->can_be_archived_ != can_be_archived) {
       if (active_stories->story_list_id_ != story_list_id) {
         if (active_stories->story_list_id_.is_valid() && active_stories->public_order_ != 0) {
           active_stories->public_order_ = 0;
@@ -4509,6 +4515,7 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
         active_stories->story_list_id_ = story_list_id;
       }
       active_stories->public_order_ = new_public_order;
+      active_stories->can_be_archived_ = can_be_archived;
       return true;
     }
   }
