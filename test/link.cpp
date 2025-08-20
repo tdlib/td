@@ -269,6 +269,10 @@ static auto default_message_auto_delete_timer_settings() {
   return td::td_api::make_object<td::td_api::internalLinkTypeDefaultMessageAutoDeleteTimerSettings>();
 }
 
+static auto direct_messages_chat(const td::string &channel_username) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeDirectMessagesChat>(channel_username);
+}
+
 static auto edit_profile_settings() {
   return td::td_api::make_object<td::td_api::internalLinkTypeEditProfileSettings>();
 }
@@ -1246,6 +1250,32 @@ TEST(Link, parse_internal_link_part3) {
   parse_internal_link("t.me/username/0/a//s/as?start=_tgr_", bot_start("username", "_tgr_"));
   parse_internal_link("t.me/username/0/a//s/as?start=_tgr_aSd", chat_affiliate_program("username", "aSd"));
   parse_internal_link("t.me/username/0/a//s/as?start=_tgr_a%30Sd", chat_affiliate_program("username", "a0Sd"));
+
+  parse_internal_link("tg:resolve?domain=username&direct=aasdasd", direct_messages_chat("username"));
+  parse_internal_link("TG://resolve?domain=username&direct=", direct_messages_chat("username"));
+  parse_internal_link("TG://test@resolve?domain=username&direct=", nullptr);
+  parse_internal_link("tg:resolve:80?domain=username&direct=", nullptr);
+  parse_internal_link("tg:http://resolve?domain=username&direct=", nullptr);
+  parse_internal_link("tg:https://resolve?domain=username&direct=", nullptr);
+  parse_internal_link("tg:resolve?domain=&direct=", unknown_deep_link("tg://resolve?domain=&direct="));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&direct=%30", direct_messages_chat("telegram"));
+
+  parse_internal_link("t.me/username/0/a//s/as?direct=", direct_messages_chat("username"));
+  parse_internal_link("t.me/username/aasdas/2?test=1&direct=#12312", direct_messages_chat("username"));
+  parse_internal_link("t.me/username/0?direct=", direct_messages_chat("username"));
+  parse_internal_link("t.me/username/-1?direct=asdasd", direct_messages_chat("username"));
+  parse_internal_link("t.me/username?direct=", direct_messages_chat("username"));
+  parse_internal_link("t.me/username#direct=asdas", public_chat("username"));
+  parse_internal_link("t.me//username?direct=", nullptr);
+  parse_internal_link("https://telegram.dog/tele%63ram?direct=t%63st", direct_messages_chat("telecram"));
+
+  parse_internal_link("tg:resolve?domain=username&direct=_tgr_", direct_messages_chat("username"));
+  parse_internal_link("tg:resolve?domain=username&direct=_tgr_aSd", direct_messages_chat("username"));
+  parse_internal_link("tg:resolve?domain=username&direct=_tgr_a%30Sd", direct_messages_chat("username"));
+
+  parse_internal_link("t.me/username/0/a//s/as?direct=_tgr_", direct_messages_chat("username"));
+  parse_internal_link("t.me/username/0/a//s/as?direct=_tgr_aSd", direct_messages_chat("username"));
+  parse_internal_link("t.me/username/0/a//s/as?direct=_tgr_a%30Sd", direct_messages_chat("username"));
 
   parse_internal_link("tg:resolve?domain=username&ref=", public_chat("username"));
   parse_internal_link("tg:resolve?domain=username&ref=aSd", chat_affiliate_program("username", "aSd"));

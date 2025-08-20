@@ -717,6 +717,18 @@ class LinkManager::InternalLinkMessageDraft final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkMonoforum final : public InternalLink {
+  string channel_username_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeDirectMessagesChat>(channel_username_);
+  }
+
+ public:
+  explicit InternalLinkMonoforum(string channel_username) : channel_username_(std::move(channel_username)) {
+  }
+};
+
 class LinkManager::InternalLinkMyStars final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeMyStars>();
@@ -1628,6 +1640,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_types(url_query.get_arg("choose")), nullptr,
                                                             std::move(username), arg.second);
         }
+        if (arg.first == "direct") {
+          // resolve?domain=<username>&direct
+          return td::make_unique<InternalLinkMonoforum>(std::move(username));
+        }
       }
       if (username == "telegrampassport") {
         // resolve?domain=telegrampassport&bot_id=...&scope=...&public_key=...&nonce=...&callback_url=...
@@ -2174,6 +2190,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
         return td::make_unique<InternalLinkAttachMenuBot>(get_target_chat_types(url_query.get_arg("choose")), nullptr,
                                                           std::move(username), arg.second);
       }
+      if (arg.first == "direct") {
+        // /<username>?direct
+        return td::make_unique<InternalLinkMonoforum>(std::move(username));
+      }
     }
 
     // /<username>
@@ -2547,6 +2567,17 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings/auto_delete";
+    case td_api::internalLinkTypeDirectMessagesChat::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeDirectMessagesChat *>(type_ptr);
+      if (!is_valid_username(link->channel_username_)) {
+        return Status::Error(400, "Invalid channel username specified");
+      }
+      if (is_internal) {
+        return PSTRING() << "tg://resolve?domain=" << url_encode(link->channel_username_) << "&direct";
+      } else {
+        return PSTRING() << get_t_me_url() << url_encode(link->channel_username_) << "?direct";
+      }
+    }
     case td_api::internalLinkTypeEditProfileSettings::ID:
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");

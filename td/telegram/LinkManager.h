@@ -154,6 +154,7 @@ class LinkManager final : public Actor {
   class InternalLinkMainWebApp;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
+  class InternalLinkMonoforum;
   class InternalLinkMyStars;
   class InternalLinkMyToncoins;
   class InternalLinkPassportDataRequest;
