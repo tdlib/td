@@ -109,6 +109,8 @@ class TopDialogManager final : public Actor {
 
   static bool need_dialog_stories(TopDialogCategory category, DialogId dialog_id, double rating);
 
+  void on_need_dialog_stories_changed(DialogId dialog_id);
+
   bool set_is_enabled(bool is_enabled);
 
   void send_toggle_top_peers(bool is_enabled);

@@ -17,6 +17,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -209,6 +210,7 @@ void TopDialogManager::on_dialog_used(TopDialogCategory category, DialogId dialo
   }
 
   auto delta = rating_add(date, top_dialogs.rating_timestamp);
+  bool old_need_dialog_stories = need_dialog_stories(category, dialog_id, it->rating);
   it->rating += delta;
   while (it != top_dialogs.dialogs.begin()) {
     auto next = std::prev(it);
@@ -220,6 +222,10 @@ void TopDialogManager::on_dialog_used(TopDialogCategory category, DialogId dialo
   }
 
   LOG(INFO) << "Update " << get_top_dialog_category_name(category) << " rating of " << dialog_id << " by " << delta;
+
+  if (old_need_dialog_stories != need_dialog_stories(category, dialog_id, it->rating)) {
+    on_need_dialog_stories_changed(dialog_id);
+  }
 
   if (!first_unsync_change_) {
     first_unsync_change_ = Timestamp::now_cached();
@@ -366,11 +372,18 @@ double TopDialogManager::current_rating_add(double server_time, double rating_ti
 
 void TopDialogManager::normalize_rating() {
   auto server_time = G()->server_time();
-  for (auto &top_dialogs : by_category_) {
+  for (size_t i = 0; i < by_category_.size(); i++) {
+    auto &top_dialogs = by_category_[i];
     auto div_by = current_rating_add(server_time, top_dialogs.rating_timestamp);
     top_dialogs.rating_timestamp = server_time;
     for (auto &dialog : top_dialogs.dialogs) {
+      auto old_need_dialog_stories =
+          need_dialog_stories(static_cast<TopDialogCategory>(i), dialog.dialog_id, dialog.rating);
       dialog.rating /= div_by;
+      if (old_need_dialog_stories !=
+          need_dialog_stories(static_cast<TopDialogCategory>(i), dialog.dialog_id, dialog.rating)) {
+        on_need_dialog_stories_changed(dialog.dialog_id);
+      }
     }
     top_dialogs.is_dirty = true;
   }
@@ -380,6 +393,11 @@ void TopDialogManager::normalize_rating() {
 bool TopDialogManager::need_dialog_stories(TopDialogCategory category, DialogId dialog_id, double rating) {
   return category == TopDialogCategory::Correspondent && dialog_id.get_type() == DialogType::User &&
          rating >= MIN_STORY_RATING;
+}
+
+void TopDialogManager::on_need_dialog_stories_changed(DialogId dialog_id) {
+  send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated, dialog_id,
+                     "on_need_dialog_stories_changed");
 }
 
 void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {
@@ -510,6 +528,8 @@ void TopDialogManager::on_get_top_peers(Result<telegram_api::object_ptr<telegram
 
       td_->user_manager_->on_get_users(std::move(top_peers->users_), "on get top chats");
       td_->chat_manager_->on_get_chats(std::move(top_peers->chats_), "on get top chats");
+
+      auto old_dialog_ids = get_story_dialog_ids();
       for (auto &category : top_peers->categories_) {
         auto dialog_category = get_top_dialog_category(category->category_);
         auto pos = static_cast<size_t>(dialog_category);
@@ -523,6 +543,17 @@ void TopDialogManager::on_get_top_peers(Result<telegram_api::object_ptr<telegram
           top_dialog.dialog_id = DialogId(top_peer->peer_);
           top_dialog.rating = top_peer->rating_;
           top_dialogs.dialogs.push_back(std::move(top_dialog));
+        }
+      }
+      auto new_dialog_ids = get_story_dialog_ids();
+      for (auto dialog_id : old_dialog_ids) {
+        if (!td::contains(new_dialog_ids, dialog_id)) {
+          on_need_dialog_stories_changed(dialog_id);
+        }
+      }
+      for (auto dialog_id : new_dialog_ids) {
+        if (!td::contains(old_dialog_ids, dialog_id)) {
+          on_need_dialog_stories_changed(dialog_id);
         }
       }
       db_sync_state_ = SyncState::None;
@@ -622,6 +653,10 @@ void TopDialogManager::try_start() {
     }
   }
   db_sync_state_ = SyncState::Ok;
+
+  for (auto dialog_id : get_story_dialog_ids()) {
+    on_need_dialog_stories_changed(dialog_id);
+  }
 
   send_closure(G()->state_manager(), &StateManager::wait_first_sync,
                create_event_promise(self_closure(this, &TopDialogManager::on_first_sync)));

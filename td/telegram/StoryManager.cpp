@@ -4756,6 +4756,9 @@ DialogId StoryManager::get_changelog_story_dialog_id() const {
 }
 
 bool StoryManager::is_subscribed_to_dialog_stories(DialogId owner_dialog_id) const {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
   if (owner_dialog_id == get_changelog_story_dialog_id()) {
     return true;
   }
