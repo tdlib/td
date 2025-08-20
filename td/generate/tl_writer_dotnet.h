@@ -34,9 +34,11 @@ class TlWriterDotNet final : public TL_writer {
     return name == "Bool" || name == "Int32" || name == "Int53" || name == "Int64" || name == "Double" ||
            name == "String" || name == "Bytes";
   }
+
   bool is_built_in_complex_type(const std::string &name) const final {
     return name == "Vector";
   }
+
   bool is_type_bare(const tl_type *t) const final {
     return t->simple_constructors <= 1 || (is_built_in_simple_type(t->name) && t->name != "Bool") ||
            is_built_in_complex_type(t->name);
@@ -45,21 +47,27 @@ class TlWriterDotNet final : public TL_writer {
   std::vector<std::string> get_parsers() const final {
     return {"FromUnmanaged"};
   }
+
   int get_parser_type(const tl_combinator *t, const std::string &name) const final {
     return 0;
   }
+
   Mode get_parser_mode(int type) const final {
     return All;  // Server;
   }
+
   std::vector<std::string> get_storers() const final {
     return {"ToUnmanaged", "ToString"};
   }
+
   std::vector<std::string> get_additional_functions() const final {
     return {"ToUnmanaged", "FromUnmanaged"};
   }
+
   int get_storer_type(const tl_combinator *t, const std::string &name) const final {
     return name == "ToString";
   }
+
   Mode get_storer_mode(int type) const final {
     return type <= 1 ? All : Server;
   }
@@ -67,10 +75,12 @@ class TlWriterDotNet final : public TL_writer {
   std::string gen_base_tl_class_name() const final {
     return "BaseObject";
   }
+
   std::string gen_base_type_class_name(int arity) const final {
     assert(arity == 0);
     return "Object";
   }
+
   std::string gen_base_function_class_name() const final {
     return "Function";
   }
@@ -78,9 +88,11 @@ class TlWriterDotNet final : public TL_writer {
   static std::string to_camelCase(const std::string &name) {
     return to_cCamelCase(name, false);
   }
+
   static std::string to_CamelCase(const std::string &name) {
     return to_cCamelCase(name, true);
   }
+
   static std::string to_cCamelCase(const std::string &name, bool flag) {
     bool next_to_upper = flag;
     std::string result;
@@ -131,6 +143,7 @@ class TlWriterDotNet final : public TL_writer {
     }
     return to_CamelCase(name);
   }
+
   std::string gen_field_name(std::string name) const final {
     assert(name.size() > 0);
     assert(is_alnum(name.back()));
@@ -231,6 +244,7 @@ class TlWriterDotNet final : public TL_writer {
        << " public:\n";
     return ss.str();
   }
+
   std::string gen_class_end() const final {
     return "";
   }
@@ -284,11 +298,13 @@ class TlWriterDotNet final : public TL_writer {
       if (is_header_) {
         ss << ";\n";
       } else {
-        ss << " {\n  return REF_NEW NativeObject(::Telegram::Td::Api::ToUnmanaged(this).release());\n}\n";
+        ss << " {\n  return REF_NEW NativeObject(::Telegram::Td::Api::ToUnmanaged_" << gen_class_name(class_name)
+           << "(this).release());\n}\n";
       }
     }
     return ss.str();
   }
+
   std::string gen_store_function_end(const std::vector<var_description> &vars, int storer_type) const final {
     return "";
   }
@@ -299,6 +315,7 @@ class TlWriterDotNet final : public TL_writer {
     ss << (is_header_ ? "  " : gen_class_name(class_name) + "::") << gen_class_name(class_name) << "(";
     return ss.str();
   }
+
   std::string gen_constructor_parameter(int field_num, const std::string &class_name, const arg &a,
                                         bool is_default) const final {
     if (is_default) {
@@ -318,6 +335,7 @@ class TlWriterDotNet final : public TL_writer {
     ss << field_type << " " << to_camelCase(a.name);
     return ss.str();
   }
+
   std::string gen_constructor_field_init(int field_num, const std::string &class_name, const arg &a,
                                          bool is_default) const final {
     if (is_default || is_header_) {
@@ -336,6 +354,7 @@ class TlWriterDotNet final : public TL_writer {
 
     return ss.str();
   }
+
   std::string gen_constructor_end(const tl_combinator *t, int field_count, bool is_default) const final {
     if (is_header_) {
       return ");\n";
@@ -347,6 +366,7 @@ class TlWriterDotNet final : public TL_writer {
     ss << "}\n";
     return ss.str();
   }
+
   std::string gen_additional_function(const std::string &function_name, const tl_combinator *t,
                                       bool is_function) const final {
     std::stringstream ss;
@@ -361,10 +381,12 @@ class TlWriterDotNet final : public TL_writer {
     }
     return ss.str();
   }
+
   void gen_to_unmanaged(std::stringstream &ss, const tl_combinator *t) const {
     auto native_class_name = gen_native_class_name(t->name);
     auto class_name = gen_class_name(t->name);
-    ss << "td::td_api::object_ptr<td::td_api::" << native_class_name << "> ToUnmanaged(" << class_name << "^ from)";
+    ss << "td::td_api::object_ptr<td::td_api::" << native_class_name << "> ToUnmanaged_" << class_name << "("
+       << class_name << "^ from)";
     if (is_header_) {
       ss << ";\n";
       return;
@@ -385,7 +407,36 @@ class TlWriterDotNet final : public TL_writer {
       if (field_name == class_name) {
         field_name += "Value";
       }
-      ss << "ToUnmanaged(from->" << field_name << ")";
+      std::string prefix;
+      std::string suffix;
+      if (it.type->get_type() == NODE_TYPE_TYPE) {
+        const tl::tl_tree_type *tree_type = static_cast<const tl::tl_tree_type *>(it.type);
+        const tl::tl_type *type = tree_type->type;
+        const std::string &name = type->name;
+        if (name == "Vector") {
+          assert(type->arity == 1);
+          assert(tree_type->children.size() == 1);
+          assert(tree_type->children[0]->get_type() == tl::NODE_TYPE_TYPE);
+          tree_type = static_cast<const tl::tl_tree_type *>(tree_type->children[0]);
+          type = tree_type->type;
+          std::string child_name = type->name;
+          if (child_name == "Vector") {
+            assert(type->arity == 1);
+            assert(tree_type->children.size() == 1);
+            assert(tree_type->children[0]->get_type() == tl::NODE_TYPE_TYPE);
+            tree_type = static_cast<const tl::tl_tree_type *>(tree_type->children[0]);
+            type = tree_type->type;
+            child_name = type->name;
+          }
+          assert(child_name != "Vector");  // unsupported
+          if (!is_built_in_simple_type(child_name) && !is_built_in_complex_type(child_name)) {
+            suffix = ", &ToUnmanaged_" + gen_class_name(child_name);
+          }
+        } else if (!is_built_in_simple_type(name) && !is_built_in_complex_type(name)) {
+          prefix = "_" + gen_class_name(name);
+        }
+      }
+      ss << "ToUnmanaged" << prefix << "(from->" << field_name << suffix << ")";
     }
     ss << ");\n}\n";
   }
@@ -417,6 +468,7 @@ class TlWriterDotNet final : public TL_writer {
     assert(0);
     return std::string();
   }
+
   std::string gen_var_type_name() const final {
     assert(0);
     return std::string();
@@ -431,6 +483,7 @@ class TlWriterDotNet final : public TL_writer {
     assert(0);
     return "";
   }
+
   std::string gen_parameter_name(int index) const final {
     assert(0);
     return "";
@@ -445,18 +498,22 @@ class TlWriterDotNet final : public TL_writer {
     assert(vars.empty());
     return "";
   }
+
   std::string gen_function_vars(const tl_combinator *t, std::vector<var_description> &vars) const final {
     assert(vars.empty());
     return "";
   }
+
   std::string gen_uni(const tl_tree_type *result_type, std::vector<var_description> &vars,
                       bool check_negative) const final {
     assert(result_type->children.empty());
     return "";
   }
+
   std::string gen_constructor_id_store(std::int32_t id, int storer_type) const final {
     return "";
   }
+
   std::string gen_field_fetch(int field_num, const arg &a, std::vector<var_description> &vars, bool flat,
                               int parser_type) const final {
     return "";
@@ -464,6 +521,7 @@ class TlWriterDotNet final : public TL_writer {
     // ss << gen_field_name(a.name) << " = from_unmanaged(from->" <<
     // gen_native_field_name(a.name) << ");\n"; return ss.str();
   }
+
   std::string gen_field_store(const arg &a, const std::vector<tl::arg> &args, std::vector<var_description> &vars,
                               bool flat, int storer_type) const final {
     return "";
@@ -471,6 +529,7 @@ class TlWriterDotNet final : public TL_writer {
     // ss << "to_unmanaged(" << gen_field_name(a.name) << ")";
     // return ss.str();
   }
+
   std::string gen_type_fetch(const std::string &field_name, const tl_tree_type *tree_type,
                              const std::vector<var_description> &vars, int parser_type) const final {
     assert(vars.empty());
@@ -481,6 +540,7 @@ class TlWriterDotNet final : public TL_writer {
                              const std::vector<var_description> &vars, int storer_type) const final {
     return "";
   }
+
   std::string gen_var_type_fetch(const arg &a) const final {
     assert(0);
     return "";
@@ -499,6 +559,7 @@ class TlWriterDotNet final : public TL_writer {
                                        std::vector<var_description> &vars, int parser_type) const final {
     return "";
   }
+
   std::string gen_fetch_function_end(bool has_parent, int field_count, const std::vector<var_description> &vars,
                                      int parser_type) const final {
     return "";
@@ -508,13 +569,16 @@ class TlWriterDotNet final : public TL_writer {
                                               const tl_tree *result) const final {
     return "";
   }
+
   std::string gen_fetch_function_result_end() const final {
     return "";
   }
+
   std::string gen_fetch_function_result_any_begin(const std::string &parser_name, const std::string &class_name,
                                                   bool is_proxy) const final {
     return "";
   }
+
   std::string gen_fetch_function_result_any_end(bool is_proxy) const final {
     return "";
   }
@@ -522,9 +586,11 @@ class TlWriterDotNet final : public TL_writer {
   std::string gen_fetch_switch_begin() const final {
     return "";
   }
+
   std::string gen_fetch_switch_case(const tl_combinator *t, int arity) const final {
     return "";
   }
+
   std::string gen_fetch_switch_end() const final {
     return "";
   }
@@ -541,7 +607,8 @@ class TlWriterDotNet final : public TL_writer {
     auto native_class_name = gen_native_class_name(type->name);
     auto class_name = gen_class_name(type->name);
     if (function_name == "ToUnmanaged") {
-      ss << "td::td_api::object_ptr<td::td_api::" << native_class_name << "> ToUnmanaged(" << class_name << "^ from)";
+      ss << "td::td_api::object_ptr<td::td_api::" << native_class_name << "> ToUnmanaged_" << class_name << "("
+         << class_name << "^ from)";
       if (is_header_) {
         ss << ";\n";
         return ss.str();
@@ -564,14 +631,17 @@ class TlWriterDotNet final : public TL_writer {
     }
     return ss.str();
   }
+
   std::string gen_additional_proxy_function_case(const std::string &function_name, const tl_type *type,
                                                  const std::string &class_name, int arity) const final {
     return "";
   }
+
   std::string gen_additional_proxy_function_case(const std::string &function_name, const tl_type *type,
                                                  const tl_combinator *t, int arity, bool is_function) const final {
     return "";
   }
+
   std::string gen_additional_proxy_function_end(const std::string &function_name, const tl_type *type,
                                                 bool is_function) const final {
     return "";

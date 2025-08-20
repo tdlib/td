@@ -175,14 +175,99 @@ inline std::string ToUnmanaged(Array<BYTE>^ from) {
   return res;
 }
 
-template <class FromT>
-auto ToUnmanaged(Array<FromT>^ from) {
+inline auto ToUnmanaged(Array<bool>^ from) {
   std::vector<decltype(ToUnmanaged(ArrayGet(from, 0)))> res;
   if (from && ArraySize(from)) {
     ArrayIndexType size = ArraySize(from);
     res.reserve(size);
     for (ArrayIndexType i = 0; i < size; i++) {
       res.push_back(ToUnmanaged(ArrayGet(from, i)));
+    }
+  }
+  return res;
+}
+
+inline auto ToUnmanaged(Array<int32>^ from) {
+  std::vector<decltype(ToUnmanaged(ArrayGet(from, 0)))> res;
+  if (from && ArraySize(from)) {
+    ArrayIndexType size = ArraySize(from);
+    res.reserve(size);
+    for (ArrayIndexType i = 0; i < size; i++) {
+      res.push_back(ToUnmanaged(ArrayGet(from, i)));
+    }
+  }
+  return res;
+}
+
+inline auto ToUnmanaged(Array<int64>^ from) {
+  std::vector<decltype(ToUnmanaged(ArrayGet(from, 0)))> res;
+  if (from && ArraySize(from)) {
+    ArrayIndexType size = ArraySize(from);
+    res.reserve(size);
+    for (ArrayIndexType i = 0; i < size; i++) {
+      res.push_back(ToUnmanaged(ArrayGet(from, i)));
+    }
+  }
+  return res;
+}
+
+inline auto ToUnmanaged(Array<float64>^ from) {
+  std::vector<decltype(ToUnmanaged(ArrayGet(from, 0)))> res;
+  if (from && ArraySize(from)) {
+    ArrayIndexType size = ArraySize(from);
+    res.reserve(size);
+    for (ArrayIndexType i = 0; i < size; i++) {
+      res.push_back(ToUnmanaged(ArrayGet(from, i)));
+    }
+  }
+  return res;
+}
+
+inline auto ToUnmanaged(Array<Array<BYTE>^>^ from) {
+  std::vector<decltype(ToUnmanaged(ArrayGet(from, 0)))> res;
+  if (from && ArraySize(from)) {
+    ArrayIndexType size = ArraySize(from);
+    res.reserve(size);
+    for (ArrayIndexType i = 0; i < size; i++) {
+      res.push_back(ToUnmanaged(ArrayGet(from, i)));
+    }
+  }
+  return res;
+}
+
+inline auto ToUnmanaged(Array<String^>^ from) {
+  std::vector<decltype(ToUnmanaged(ArrayGet(from, 0)))> res;
+  if (from && ArraySize(from)) {
+    ArrayIndexType size = ArraySize(from);
+    res.reserve(size);
+    for (ArrayIndexType i = 0; i < size; i++) {
+      res.push_back(ToUnmanaged(ArrayGet(from, i)));
+    }
+  }
+  return res;
+}
+
+template <class FromT, class Func>
+auto ToUnmanaged(Array<FromT>^ from, Func func) {
+  std::vector<decltype(func(ArrayGet(from, 0)))> res;
+  if (from && ArraySize(from)) {
+    ArrayIndexType size = ArraySize(from);
+    res.reserve(size);
+    for (ArrayIndexType i = 0; i < size; i++) {
+      res.push_back(func(ArrayGet(from, i)));
+    }
+  }
+  return res;
+}
+
+template <class FromT, class Func>
+auto ToUnmanaged(Array<Array<FromT>^>^ from, Func func) {
+  std::vector<decltype(ToUnmanaged(ArrayGet(from, 0), func))> res;
+  if (from && ArraySize(from)) {
+    ArrayIndexType size = ArraySize(from);
+    res.reserve(size);
+    for (ArrayIndexType i = 0; i < size; i++) {
+      res.push_back(ToUnmanaged(ArrayGet(from, i), func));
     }
   }
   return res;
