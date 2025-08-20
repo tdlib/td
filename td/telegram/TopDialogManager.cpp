@@ -304,6 +304,23 @@ int TopDialogManager::is_top_dialog(TopDialogCategory category, size_t limit, Di
   return is_synchronized_ ? 0 : -1;
 }
 
+vector<DialogId> TopDialogManager::get_story_dialog_ids() const {
+  CHECK(!td_->auth_manager_->is_bot());
+  if (!is_enabled_) {
+    return {};
+  }
+
+  vector<DialogId> dialog_ids;
+  auto pos = static_cast<size_t>(TopDialogCategory::Correspondent);
+  const auto &dialogs = by_category_[pos].dialogs;
+  for (size_t i = 0; dialog_ids.size() < 30u && i < dialogs.size(); i++) {
+    if (need_dialog_stories(TopDialogCategory::Correspondent, dialogs[i].dialog_id, dialogs[i].rating)) {
+      dialog_ids.push_back(dialogs[i].dialog_id);
+    }
+  }
+  return dialog_ids;
+}
+
 void TopDialogManager::update_rating_e_decay() {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -358,6 +375,11 @@ void TopDialogManager::normalize_rating() {
     top_dialogs.is_dirty = true;
   }
   db_sync_state_ = SyncState::None;
+}
+
+bool TopDialogManager::need_dialog_stories(TopDialogCategory category, DialogId dialog_id, double rating) {
+  return category == TopDialogCategory::Correspondent && dialog_id.get_type() == DialogType::User &&
+         rating >= MIN_STORY_RATING;
 }
 
 void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {

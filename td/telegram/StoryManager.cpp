@@ -38,6 +38,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
 #include "td/telegram/WebPagesManager.h"
@@ -4763,7 +4764,13 @@ bool StoryManager::is_subscribed_to_dialog_stories(DialogId owner_dialog_id) con
       if (is_my_story(owner_dialog_id)) {
         return true;
       }
-      return td_->user_manager_->is_user_contact(owner_dialog_id.get_user_id());
+      if (td_->user_manager_->is_user_contact(owner_dialog_id.get_user_id())) {
+        return true;
+      }
+      if (td::contains(td_->top_dialog_manager_->get_story_dialog_ids(), owner_dialog_id)) {
+        return true;
+      }
+      return false;
     case DialogType::Channel:
       return td_->chat_manager_->get_channel_status(owner_dialog_id.get_channel_id()).is_member();
     case DialogType::Chat:
