@@ -423,6 +423,7 @@ function split_file($file, $chunks, $undo) {
             'star_gift_manager[_(-](?![.]get[(][)])|StarGiftManager' => 'StarGiftManager',
             'StarGiftSettings' => 'StarGiftSettings',
             'star_manager[_(-](?![.]get[(][)])|StarManager' => 'StarManager',
+            'StarRating' => 'StarRating',
             'StarSubscription[^P]' => 'StarSubscription',
             'StarSubscriptionPricing' => 'StarSubscriptionPricing',
             'state_manager[_(-](?![.]get[(][)])|StateManager' => 'StateManager',

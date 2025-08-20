@@ -1638,6 +1638,15 @@ profileAccentColors palette_colors:vector<int32> background_colors:vector<int32>
 profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_colors:profileAccentColors min_supergroup_chat_boost_level:int32 min_channel_chat_boost_level:int32 = ProfileAccentColor;
 
 
+//@description Contains information about rating of a user
+//@level The current level of the user; may be negative
+//@is_maximum_level_reached True, if the user reached the maximum level
+//@rating Rating of the user
+//@current_level_rating The rating required for the current level
+//@next_level_rating The rating required for the next level; 0 if the user reached the maximum level
+userRating level:int32 is_maximum_level_reached:Bool rating:int53 current_level_rating:int53 next_level_rating:int53 = UserRating;
+
+
 //@class EmojiStatusType @description Describes type of emoji status
 
 //@description A custom emoji set as emoji status @custom_emoji_id Identifier of the custom emoji in stickerFormatTgs format
