@@ -1162,6 +1162,13 @@ giftSettings show_gift_button:Bool accepted_gift_types:acceptedGiftTypes = GiftS
 //@remaining_count Number of remaining times the gift can be purchased
 giftPurchaseLimits total_count:int32 remaining_count:int32 = GiftPurchaseLimits;
 
+//@description Describes collection of gifts
+//@id Unique identifier of the collection
+//@title Title of the collection
+//@icon Icon of the collection; may be null if none
+//@gift_count Total number of gifts in the collection
+giftCollection id:int32 title:string icon:sticker gift_count:int32 = GiftCollection;
+
 
 //@class UpgradedGiftOrigin @description Describes origin from which the upgraded gift was obtained
 
