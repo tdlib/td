@@ -50,6 +50,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
       released_by_dialog_id_ = DialogId(star_gift->released_by_);
       td->dialog_manager_->force_create_dialog(released_by_dialog_id_, "StarGift", true);
     }
+    is_premium_ = star_gift->require_premium_;
     for (auto &attribute : star_gift->attributes_) {
       switch (attribute->get_id()) {
         case telegram_api::starGiftAttributeModel::ID:
@@ -143,6 +144,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     released_by_dialog_id_ = DialogId(star_gift->released_by_);
     td->dialog_manager_->force_create_dialog(released_by_dialog_id_, "StarGift", true);
   }
+  is_premium_ = star_gift->require_premium_;
 }
 
 td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
@@ -150,7 +152,7 @@ td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
   CHECK(!is_unique_);
   return td_api::make_object<td_api::gift>(id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "gift"),
                                            td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_,
-                                           default_sell_star_count_, upgrade_star_count_, is_for_birthday_,
+                                           default_sell_star_count_, upgrade_star_count_, is_for_birthday_, is_premium_,
                                            availability_remains_, availability_total_, first_sale_date_,
                                            last_sale_date_);
 }
@@ -160,7 +162,7 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
   CHECK(is_unique_);
   return td_api::make_object<td_api::upgradedGift>(
       id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "upgradedGift"), title_, slug_, num_,
-      unique_availability_issued_, unique_availability_total_,
+      unique_availability_issued_, unique_availability_total_, is_premium_,
       !owner_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, owner_dialog_id_, "upgradedGift"),
       owner_address_, owner_name_, gift_address_, model_.get_upgraded_gift_model_object(td),
       pattern_.get_upgraded_gift_symbol_object(td), backdrop_.get_upgraded_gift_backdrop_object(),
@@ -203,7 +205,8 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.gift_address_ == rhs.gift_address_ && lhs.num_ == rhs.num_ &&
          lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_ &&
-         lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.released_by_dialog_id_ == rhs.released_by_dialog_id_;
+         lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.released_by_dialog_id_ == rhs.released_by_dialog_id_ &&
+         lhs.is_premium_ == rhs.is_premium_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarGift &star_gift) {

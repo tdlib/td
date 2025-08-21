@@ -53,6 +53,7 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(has_gift_address);
   STORE_FLAG(has_resale_star_count);
   STORE_FLAG(has_released_by_dialog_id);
+  STORE_FLAG(is_premium_);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -144,6 +145,7 @@ void StarGift::parse(ParserT &parser) {
   PARSE_FLAG(has_gift_address);
   PARSE_FLAG(has_resale_star_count);
   PARSE_FLAG(has_released_by_dialog_id);
+  PARSE_FLAG(is_premium_);
   END_PARSE_FLAGS();
   td::parse(id_, parser);
   if (!is_unique_) {
