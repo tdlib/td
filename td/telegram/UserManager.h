@@ -68,6 +68,7 @@ class BusinessInfo;
 class BusinessIntro;
 class BusinessWorkHours;
 class EmojiStatus;
+class StarRating;
 class Td;
 
 class UserManager final : public Actor {
@@ -657,6 +658,7 @@ class UserManager final : public Actor {
     unique_ptr<BotInfo> bot_info;
     unique_ptr<BusinessInfo> business_info;
     unique_ptr<BotVerification> bot_verification;
+    unique_ptr<StarRating> star_rating;
 
     int64 charge_paid_message_stars = 0;
     int64 send_paid_message_stars = 0;

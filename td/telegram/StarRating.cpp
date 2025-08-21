@@ -11,13 +11,19 @@
 namespace td {
 
 StarRating::StarRating(telegram_api::object_ptr<telegram_api::starsRating> &&rating) {
-  if (rating != nullptr) {
-    level_ = rating->level_;
-    star_count_ = StarManager::get_star_count(rating->stars_);
-    current_level_star_count_ = StarManager::get_star_count(rating->current_level_stars_);
-    next_level_star_count_ = StarManager::get_star_count(rating->next_level_stars_);
-    is_maximum_level_reached_ = next_level_star_count_ == 0 && level_ > 0;
+  CHECK(rating != nullptr);
+  level_ = rating->level_;
+  star_count_ = StarManager::get_star_count(rating->stars_);
+  current_level_star_count_ = StarManager::get_star_count(rating->current_level_stars_);
+  next_level_star_count_ = StarManager::get_star_count(rating->next_level_stars_);
+  is_maximum_level_reached_ = next_level_star_count_ == 0 && level_ > 0;
+}
+
+unique_ptr<StarRating> StarRating::get_star_rating(telegram_api::object_ptr<telegram_api::starsRating> &&rating) {
+  if (rating == nullptr) {
+    return nullptr;
   }
+  return make_unique<StarRating>(std::move(rating));
 }
 
 td_api::object_ptr<td_api::userRating> StarRating::get_user_rating_object() const {

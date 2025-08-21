@@ -30,6 +30,8 @@ class StarRating {
 
   explicit StarRating(telegram_api::object_ptr<telegram_api::starsRating> &&rating);
 
+  static unique_ptr<StarRating> get_star_rating(telegram_api::object_ptr<telegram_api::starsRating> &&rating);
+
   td_api::object_ptr<td_api::userRating> get_user_rating_object() const;
 
   template <class StorerT>
