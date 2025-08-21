@@ -1157,6 +1157,12 @@ acceptedGiftTypes unlimited_gifts:Bool limited_gifts:Bool upgraded_gifts:Bool pr
 giftSettings show_gift_button:Bool accepted_gift_types:acceptedGiftTypes = GiftSettings;
 
 
+//@description Describes the maximum number of times that a specific gift can be purchased
+//@total_count The maximum number of times the gifts can be purchased
+//@remaining_count Number of remaining times the gift can be purchased
+giftPurchaseLimits total_count:int32 remaining_count:int32 = GiftPurchaseLimits;
+
+
 //@class UpgradedGiftOrigin @description Describes origin from which the upgraded gift was obtained
 
 //@description The gift was obtained by upgrading of a previously received gift
@@ -1212,11 +1218,10 @@ upgradedGiftOriginalDetails sender_id:MessageSender receiver_id:MessageSender te
 //@upgrade_star_count Number of Telegram Stars that must be paid to upgrade the gift; 0 if upgrade isn't possible
 //@is_for_birthday True, if the gift is a birthday gift
 //@is_premium True, if the gift can be bought only by Telegram Premium subscribers
-//@remaining_count Number of remaining times the gift can be purchased; 0 if not limited or the gift was sold out
-//@total_count Number of total times the gift can be purchased; 0 if not limited
+//@overall_limits Number of times the gift can be purchased all users; may be null if not limited
 //@first_send_date Point in time (Unix timestamp) when the gift was send for the first time; for sold out gifts only
 //@last_send_date Point in time (Unix timestamp) when the gift was send for the last time; for sold out gifts only
-gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 is_for_birthday:Bool is_premium:Bool remaining_count:int32 total_count:int32 first_send_date:int32 last_send_date:int32 = Gift;
+gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 is_for_birthday:Bool is_premium:Bool overall_limits:giftPurchaseLimits first_send_date:int32 last_send_date:int32 = Gift;
 
 //@description Describes an upgraded gift that can be transferred to another owner or transferred to the TON blockchain as an NFT
 //@id Unique identifier of the gift

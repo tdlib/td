@@ -147,14 +147,21 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
   is_premium_ = star_gift->require_premium_;
 }
 
+td_api::object_ptr<td_api::giftPurchaseLimits> StarGift::get_gift_purchase_limits_object(int32 total, int32 remains) {
+  if (total <= 0) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::giftPurchaseLimits>(total, remains);
+}
+
 td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
   CHECK(is_valid());
   CHECK(!is_unique_);
   return td_api::make_object<td_api::gift>(id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "gift"),
                                            td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_,
                                            default_sell_star_count_, upgrade_star_count_, is_for_birthday_, is_premium_,
-                                           availability_remains_, availability_total_, first_sale_date_,
-                                           last_sale_date_);
+                                           get_gift_purchase_limits_object(availability_total_, availability_remains_),
+                                           first_sale_date_, last_sale_date_);
 }
 
 td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *td) const {
