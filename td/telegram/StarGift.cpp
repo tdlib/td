@@ -20,6 +20,21 @@
 
 namespace td {
 
+void StarGift::fix_availability(int32 &total, int32 &remains) {
+  if (total < 0) {
+    LOG(ERROR) << "Receive " << total << " total available gifts";
+    total = 0;
+  }
+  if ((total != 0 || remains != 0) && (remains < 0 || remains > total)) {
+    LOG(ERROR) << "Receive " << remains << " remained available gifts out of " << total;
+    if (remains < 0) {
+      remains = 0;
+    } else {
+      remains = total;
+    }
+  }
+}
+
 StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&star_gift_ptr, bool allow_unique_gift) {
   CHECK(star_gift_ptr != nullptr);
   auto constructor_id = star_gift_ptr->get_id();
@@ -114,19 +129,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
   if (!sticker_id.is_valid()) {
     return;
   }
-  if (star_gift->availability_total_ < 0) {
-    LOG(ERROR) << "Receive " << star_gift->availability_total_ << " total available gifts";
-    star_gift->availability_total_ = 0;
-  }
-  if ((star_gift->availability_total_ != 0 || star_gift->availability_remains_ != 0) &&
-      (star_gift->availability_remains_ < 0 || star_gift->availability_remains_ > star_gift->availability_total_)) {
-    LOG(ERROR) << "Receive " << star_gift->availability_total_ << " remained available gifts out of "
-               << star_gift->availability_total_;
-    if (star_gift->availability_remains_ < 0) {
-      return;
-    }
-    star_gift->availability_remains_ = star_gift->availability_total_;
-  }
+  fix_availability(star_gift->availability_total_, star_gift->availability_remains_);
   if (star_gift->availability_remains_ == 0 && star_gift->availability_total_ > 0) {
     first_sale_date_ = max(0, star_gift->first_sale_date_);
     last_sale_date_ = max(first_sale_date_, star_gift->last_sale_date_);

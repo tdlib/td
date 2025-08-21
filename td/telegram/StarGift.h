@@ -83,6 +83,8 @@ class StarGift {
     return upgrade_star_count_;
   }
 
+  static void fix_availability(int32 &total, int32 &remains);
+
   static td_api::object_ptr<td_api::giftPurchaseLimits> get_gift_purchase_limits_object(int32 total, int32 remains);
 
   td_api::object_ptr<td_api::gift> get_gift_object(const Td *td) const;
