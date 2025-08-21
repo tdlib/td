@@ -134,6 +134,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     first_sale_date_ = max(0, star_gift->first_sale_date_);
     last_sale_date_ = max(first_sale_date_, star_gift->last_sale_date_);
   }
+  fix_availability(star_gift->per_user_total_, star_gift->per_user_remains_);
 
   id_ = star_gift->id_;
   star_count_ = StarManager::get_star_count(star_gift->stars_);
@@ -142,6 +143,8 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
   sticker_file_id_ = sticker_id;
   availability_remains_ = star_gift->availability_remains_;
   availability_total_ = star_gift->availability_total_;
+  per_user_remains_ = star_gift->per_user_remains_;
+  per_user_total_ = star_gift->per_user_total_;
   is_for_birthday_ = star_gift->birthday_;
   if (star_gift->released_by_ != nullptr) {
     released_by_dialog_id_ = DialogId(star_gift->released_by_);
@@ -163,6 +166,7 @@ td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
   return td_api::make_object<td_api::gift>(id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "gift"),
                                            td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_,
                                            default_sell_star_count_, upgrade_star_count_, is_for_birthday_, is_premium_,
+                                           get_gift_purchase_limits_object(per_user_total_, per_user_remains_),
                                            get_gift_purchase_limits_object(availability_total_, availability_remains_),
                                            first_sale_date_, last_sale_date_);
 }
@@ -216,7 +220,8 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_ &&
          lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.released_by_dialog_id_ == rhs.released_by_dialog_id_ &&
-         lhs.is_premium_ == rhs.is_premium_;
+         lhs.is_premium_ == rhs.is_premium_ && lhs.per_user_remains_ == rhs.per_user_remains_ &&
+         lhs.per_user_total_ == rhs.per_user_total_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarGift &star_gift) {

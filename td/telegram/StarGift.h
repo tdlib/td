@@ -33,6 +33,9 @@ class StarGift {
   int32 availability_total_ = 0;
   int32 first_sale_date_ = 0;
   int32 last_sale_date_ = 0;
+  int32 per_user_remains_ = 0;
+  int32 per_user_total_ = 0;
+
   bool is_for_birthday_ = false;
 
   bool is_unique_ = false;
