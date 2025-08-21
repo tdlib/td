@@ -5249,7 +5249,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       if (dialog_type == DialogType::User &&
           td->user_manager_->get_user_voice_messages_forbidden(dialog_id.get_user_id())) {
-        return Status::Error(400, "User restricted receiving of voice messages");
+        return Status::Error(400, "User restricted receiving of video note messages");
       }
       break;
     case MessageContentType::VoiceNote:
@@ -5258,7 +5258,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
       }
       if (dialog_type == DialogType::User &&
           td->user_manager_->get_user_voice_messages_forbidden(dialog_id.get_user_id())) {
-        return Status::Error(400, "User restricted receiving of video messages");
+        return Status::Error(400, "User restricted receiving of voice note messages");
       }
       break;
     case MessageContentType::None:
