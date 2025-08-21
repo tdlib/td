@@ -82,6 +82,9 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
           if (star_gift->availability_total_ > 0 && star_gift->availability_remains_ == 0) {
             continue;
           }
+          if (star_gift->per_user_total_ > 0 && star_gift->per_user_remains_ == 0) {
+            continue;
+          }
           if (star_gift->require_premium_) {
             continue;
           }
