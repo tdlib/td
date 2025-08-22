@@ -1625,6 +1625,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::searchGiftsForResale &request);
 
+  void on_request(uint64 id, const td_api::getGiftCollections &request);
+
   void on_request(uint64 id, td_api::createGiftCollection &request);
 
   void on_request(uint64 id, td_api::createInvoiceLink &request);

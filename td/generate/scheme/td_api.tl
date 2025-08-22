@@ -1169,6 +1169,9 @@ giftPurchaseLimits total_count:int32 remaining_count:int32 = GiftPurchaseLimits;
 //@gift_count Total number of gifts in the collection
 giftCollection id:int32 title:string icon:sticker gift_count:int32 = GiftCollection;
 
+//@description Contains a list of gift collections @collections List of gift collections
+giftCollections collections:vector<giftCollection> = GiftCollections;
+
 
 //@class UpgradedGiftOrigin @description Describes origin from which the upgraded gift was obtained
 
@@ -12848,6 +12851,10 @@ setGiftResalePrice received_gift_id:string resale_star_count:int53 = Ok;
 //@limit The maximum number of gifts to return
 searchGiftsForResale gift_id:int64 order:GiftForResaleOrder attributes:vector<UpgradedGiftAttributeId> offset:string limit:int32 = GiftsForResale;
 
+
+//@description Returns collections of gifts owned by the given chat
+//@owner_id Identifier of the user or the channel chat that received the gifts
+getGiftCollections owner_id:MessageSender = GiftCollections;
 
 //@description Creates a collection from gifts on the current user's or a channel's profile page; requires can_post_messages administrator right in the channel chat.
 //-An owner can have up to getOption("gift_collection_count_max") gift collections. Returns the created collection

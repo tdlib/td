@@ -1257,6 +1257,55 @@ class GetResaleStarGiftsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarGiftCollectionsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftCollections>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetStarGiftCollectionsQuery(Promise<td_api::object_ptr<td_api::giftCollections>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarGiftCollections(std::move(input_peer), 0),
+                                               {{dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarGiftCollections>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetStarGiftCollectionsQuery: " << to_string(ptr);
+    switch (ptr->get_id()) {
+      case telegram_api::payments_starGiftCollectionsNotModified::ID:
+        LOG(ERROR) << "Receive " << to_string(ptr);
+        return promise_.set_value(td_api::make_object<td_api::giftCollections>());
+      case telegram_api::payments_starGiftCollections::ID: {
+        auto collections = telegram_api::move_object_as<telegram_api::payments_starGiftCollections>(ptr);
+        auto result = td_api::make_object<td_api::giftCollections>();
+        for (auto &collection : collections->collections_) {
+          StarGiftCollection gift_collection(td_, std::move(collection));
+          result->collections_.push_back(gift_collection.get_gift_collection_object(td_));
+        }
+        return promise_.set_value(std::move(result));
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetStarGiftCollectionsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CreateStarGiftCollectionQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::giftCollection>> promise_;
   DialogId dialog_id_;
@@ -1643,6 +1692,11 @@ void StarGiftManager::get_resale_star_gifts(
   TRY_RESULT_PROMISE(promise, attribute_ids, StarGiftAttributeId::get_star_gift_attribute_ids(attributes));
 
   td_->create_handler<GetResaleStarGiftsQuery>(std::move(promise))->send(gift_id, order, attribute_ids, offset, limit);
+}
+
+void StarGiftManager::get_gift_collections(DialogId dialog_id,
+                                           Promise<td_api::object_ptr<td_api::giftCollections>> &&promise) {
+  td_->create_handler<GetStarGiftCollectionsQuery>(std::move(promise))->send(dialog_id);
 }
 
 void StarGiftManager::create_gift_collection(DialogId dialog_id, const string &title,

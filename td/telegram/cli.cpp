@@ -3151,6 +3151,10 @@ class CliClient final : public Actor {
       }
       send_request(td_api::make_object<td_api::searchGiftsForResale>(
           gift_id, std::move(order), get_upgraded_gift_attribute_ids(), offset, as_limit(limit)));
+    } else if (op == "ggic") {
+      string owner_id;
+      get_args(args, owner_id);
+      send_request(td_api::make_object<td_api::getGiftCollections>(as_message_sender(owner_id)));
     } else if (op == "cgic") {
       string owner_id;
       string title;
