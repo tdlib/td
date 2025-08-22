@@ -11,6 +11,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
@@ -89,6 +90,12 @@ telegram_api::object_ptr<telegram_api::InputSavedStarGift> StarGiftId::get_input
       UNREACHABLE();
       return nullptr;
   }
+}
+
+vector<telegram_api::object_ptr<telegram_api::InputSavedStarGift>> StarGiftId::get_input_saved_star_gifts(
+    Td *td, const vector<StarGiftId> &star_gift_ids) {
+  return transform(star_gift_ids,
+                   [td](const StarGiftId &star_gift_id) { return star_gift_id.get_input_saved_star_gift(td); });
 }
 
 string StarGiftId::get_star_gift_id() const {

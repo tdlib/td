@@ -53,6 +53,9 @@ class StarGiftId {
 
   telegram_api::object_ptr<telegram_api::InputSavedStarGift> get_input_saved_star_gift(Td *td) const;
 
+  static vector<telegram_api::object_ptr<telegram_api::InputSavedStarGift>> get_input_saved_star_gifts(
+      Td *td, const vector<StarGiftId> &star_gift_ids);
+
   string get_star_gift_id() const;
 
   DialogId get_dialog_id(const Td *td) const;

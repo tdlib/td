@@ -318,11 +318,9 @@ class ToggleStarGiftsPinnedToTopQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    auto input_star_gifts = transform(star_gift_ids, [td = td_](const StarGiftId &star_gift_id) {
-      return star_gift_id.get_input_saved_star_gift(td);
-    });
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_toggleStarGiftsPinnedToTop(std::move(input_peer), std::move(input_star_gifts)),
+        telegram_api::payments_toggleStarGiftsPinnedToTop(std::move(input_peer),
+                                                          StarGiftId::get_input_saved_star_gifts(td_, star_gift_ids)),
         {{dialog_id_}}));
   }
 
@@ -1319,11 +1317,9 @@ class CreateStarGiftCollectionQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     CHECK(input_peer != nullptr);
-    auto input_star_gifts = transform(star_gift_ids, [td = td_](const StarGiftId &star_gift_id) {
-      return star_gift_id.get_input_saved_star_gift(td);
-    });
     send_query(G()->net_query_creator().create(
-        telegram_api::payments_createStarGiftCollection(std::move(input_peer), title, std::move(input_star_gifts)),
+        telegram_api::payments_createStarGiftCollection(std::move(input_peer), title,
+                                                        StarGiftId::get_input_saved_star_gifts(td_, star_gift_ids)),
         {{dialog_id_}}));
   }
 
