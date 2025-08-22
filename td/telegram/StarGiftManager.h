@@ -84,6 +84,9 @@ class StarGiftManager final : public Actor {
                              const string &offset, int32 limit,
                              Promise<td_api::object_ptr<td_api::giftsForResale>> &&promise);
 
+  void create_gift_collection(DialogId dialog_id, const string &title, const vector<StarGiftId> &star_gift_ids,
+                              Promise<td_api::object_ptr<td_api::giftCollection>> &&promise);
+
   void register_gift(MessageFullId message_full_id, const char *source);
 
   void unregister_gift(MessageFullId message_full_id, const char *source);

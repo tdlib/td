@@ -3074,7 +3074,7 @@ class CliClient final : public Actor {
       string received_gift_ids;
       get_args(args, owner_id, received_gift_ids);
       send_request(
-          td_api::make_object<td_api::setPinnedGifts>(as_message_sender(owner_id), full_split(received_gift_ids)));
+          td_api::make_object<td_api::setPinnedGifts>(as_message_sender(owner_id), autosplit_str(received_gift_ids)));
     } else if (op == "tcgn") {
       ChatId chat_id;
       bool are_enabled;
@@ -3151,6 +3151,13 @@ class CliClient final : public Actor {
       }
       send_request(td_api::make_object<td_api::searchGiftsForResale>(
           gift_id, std::move(order), get_upgraded_gift_attribute_ids(), offset, as_limit(limit)));
+    } else if (op == "cgic") {
+      string owner_id;
+      string title;
+      string received_gift_ids;
+      get_args(args, owner_id, title, received_gift_ids);
+      send_request(td_api::make_object<td_api::createGiftCollection>(as_message_sender(owner_id), title,
+                                                                     autosplit_str(received_gift_ids)));
     } else if (op == "rsp") {
       UserId user_id;
       string telegram_payment_charge_id;

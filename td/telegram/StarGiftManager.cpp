@@ -24,6 +24,7 @@
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarGiftAttribute.h"
 #include "td/telegram/StarGiftAttributeId.h"
+#include "td/telegram/StarGiftCollection.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
@@ -268,6 +269,7 @@ class ConvertStarGiftQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ConvertStarGiftQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -299,6 +301,7 @@ class SaveStarGiftQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SaveStarGiftQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -958,6 +961,9 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    if (!business_connection_id_.is_valid()) {
+      td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetSavedStarGiftsQuery");
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -1003,6 +1009,7 @@ class GetSavedStarGiftQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetSavedStarGiftQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -1246,6 +1253,45 @@ class GetResaleStarGiftsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class CreateStarGiftCollectionQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftCollection>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit CreateStarGiftCollectionQuery(Promise<td_api::object_ptr<td_api::giftCollection>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const string &title, const vector<StarGiftId> &star_gift_ids) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    auto input_star_gifts = transform(star_gift_ids, [td = td_](const StarGiftId &star_gift_id) {
+      return star_gift_id.get_input_saved_star_gift(td);
+    });
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_createStarGiftCollection(std::move(input_peer), title, std::move(input_star_gifts)),
+        {{dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_createStarGiftCollection>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for CreateStarGiftCollectionQuery: " << to_string(ptr);
+    StarGiftCollection gift_collection(td_, std::move(ptr));
+    promise_.set_value(gift_collection.get_gift_collection_object(td_));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "CreateStarGiftCollectionQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -1597,6 +1643,20 @@ void StarGiftManager::get_resale_star_gifts(
   TRY_RESULT_PROMISE(promise, attribute_ids, StarGiftAttributeId::get_star_gift_attribute_ids(attributes));
 
   td_->create_handler<GetResaleStarGiftsQuery>(std::move(promise))->send(gift_id, order, attribute_ids, offset, limit);
+}
+
+void StarGiftManager::create_gift_collection(DialogId dialog_id, const string &title,
+                                             const vector<StarGiftId> &star_gift_ids,
+                                             Promise<td_api::object_ptr<td_api::giftCollection>> &&promise) {
+  for (const auto &star_gift_id : star_gift_ids) {
+    if (star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
+      return promise.set_error(400, "Invalid gift identifier specified");
+    }
+    if (star_gift_id.get_dialog_id(td_) != dialog_id) {
+      return promise.set_error(400, "The gift is not from the chat");
+    }
+  }
+  td_->create_handler<CreateStarGiftCollectionQuery>(std::move(promise))->send(dialog_id, title, star_gift_ids);
 }
 
 void StarGiftManager::register_gift(MessageFullId message_full_id, const char *source) {
