@@ -1461,16 +1461,26 @@ void StarGiftManager::save_gift(StarGiftId star_gift_id, bool is_saved, Promise<
   td_->create_handler<SaveStarGiftQuery>(std::move(promise))->send(star_gift_id, is_saved);
 }
 
+Status StarGiftManager::check_star_gift_id(const StarGiftId &star_gift_id, DialogId dialog_id) const {
+  if (star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
+    return Status::Error(400, "Invalid gift identifier specified");
+  }
+  if (star_gift_id.get_dialog_id(td_) != dialog_id) {
+    return Status::Error(400, "The gift is not from the chat");
+  }
+  return Status::OK();
+}
+
+Status StarGiftManager::check_star_gift_ids(const vector<StarGiftId> &star_gift_ids, DialogId dialog_id) const {
+  for (const auto &star_gift_id : star_gift_ids) {
+    TRY_STATUS(check_star_gift_id(star_gift_id, dialog_id));
+  }
+  return Status::OK();
+}
+
 void StarGiftManager::set_dialog_pinned_gifts(DialogId dialog_id, const vector<StarGiftId> &star_gift_ids,
                                               Promise<Unit> &&promise) {
-  for (const auto &star_gift_id : star_gift_ids) {
-    if (star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
-      return promise.set_error(400, "Invalid gift identifier specified");
-    }
-    if (star_gift_id.get_dialog_id(td_) != dialog_id) {
-      return promise.set_error(400, "The gift is not from the chat");
-    }
-  }
+  TRY_STATUS_PROMISE(promise, check_star_gift_ids(star_gift_ids, dialog_id));
   td_->create_handler<ToggleStarGiftsPinnedToTopQuery>(std::move(promise))->send(dialog_id, star_gift_ids);
 }
 
@@ -1698,14 +1708,7 @@ void StarGiftManager::get_gift_collections(DialogId dialog_id,
 void StarGiftManager::create_gift_collection(DialogId dialog_id, const string &title,
                                              const vector<StarGiftId> &star_gift_ids,
                                              Promise<td_api::object_ptr<td_api::giftCollection>> &&promise) {
-  for (const auto &star_gift_id : star_gift_ids) {
-    if (star_gift_id.get_input_saved_star_gift(td_) == nullptr) {
-      return promise.set_error(400, "Invalid gift identifier specified");
-    }
-    if (star_gift_id.get_dialog_id(td_) != dialog_id) {
-      return promise.set_error(400, "The gift is not from the chat");
-    }
-  }
+  TRY_STATUS_PROMISE(promise, check_star_gift_ids(star_gift_ids, dialog_id));
   td_->create_handler<CreateStarGiftCollectionQuery>(std::move(promise))->send(dialog_id, title, star_gift_ids);
 }
 
