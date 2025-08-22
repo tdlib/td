@@ -3071,10 +3071,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::toggleGiftIsSaved>(star_gift_id, is_saved));
     } else if (op == "spg") {
       string owner_id;
-      string received_story_ids;
-      get_args(args, owner_id, received_story_ids);
+      string received_gift_ids;
+      get_args(args, owner_id, received_gift_ids);
       send_request(
-          td_api::make_object<td_api::setPinnedGifts>(as_message_sender(owner_id), full_split(received_story_ids)));
+          td_api::make_object<td_api::setPinnedGifts>(as_message_sender(owner_id), full_split(received_gift_ids)));
     } else if (op == "tcgn") {
       ChatId chat_id;
       bool are_enabled;
