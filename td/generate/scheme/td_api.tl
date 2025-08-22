@@ -8805,7 +8805,7 @@ updateDirectMessagesChatTopic topic:directMessagesChatTopic = Update;
 //@description Number of messages in a topic has changed; for Saved Messages and channel direct messages chat topics only
 //@chat_id Identifier of the chat in topic of which the number of messages has changed
 //@topic_id Identifier of the topic
-//@message_count Approximate number of messages in the topics
+//@message_count Approximate number of messages in the topic
 updateTopicMessageCount chat_id:int53 topic_id:MessageTopic message_count:int32 = Update;
 
 //@description Basic information about a quick reply shortcut has changed. This update is guaranteed to come before the quick shortcut name is returned to the application
