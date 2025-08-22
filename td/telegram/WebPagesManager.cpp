@@ -1525,6 +1525,12 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       return td_api::make_object<td_api::linkPreviewTypeChannelBoost>(
           get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
     }
+    if (type == "channel_direct") {
+      LOG_IF(ERROR, web_page->document_.type != Document::Type::Unknown)
+          << "Receive wrong document for " << web_page->url_;
+      return td_api::make_object<td_api::linkPreviewTypeDirectMessagesChat>(
+          get_chat_photo_object(td_->file_manager_.get(), web_page->photo_));
+    }
     if (type == "chat" || type == "chat_request") {
       LOG_IF(ERROR, web_page->document_.type != Document::Type::Unknown)
           << "Receive wrong document for " << web_page->url_;

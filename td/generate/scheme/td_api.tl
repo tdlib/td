@@ -3484,6 +3484,10 @@ linkPreviewTypeChannelBoost photo:chatPhoto = LinkPreviewType;
 //@creates_join_request True, if the link only creates join request
 linkPreviewTypeChat type:InviteLinkChatType photo:chatPhoto creates_join_request:Bool = LinkPreviewType;
 
+//@description The link is a link to a direct messages chat of a channel
+//@photo Photo of the channel chat; may be null
+linkPreviewTypeDirectMessagesChat photo:chatPhoto = LinkPreviewType;
+
 //@description The link is a link to a general file @document The document description
 linkPreviewTypeDocument document:document = LinkPreviewType;
 
