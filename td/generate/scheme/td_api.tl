@@ -1164,10 +1164,10 @@ giftPurchaseLimits total_count:int32 remaining_count:int32 = GiftPurchaseLimits;
 
 //@description Describes collection of gifts
 //@id Unique identifier of the collection
-//@title Title of the collection
+//@name Name of the collection
 //@icon Icon of the collection; may be null if none
 //@gift_count Total number of gifts in the collection
-giftCollection id:int32 title:string icon:sticker gift_count:int32 = GiftCollection;
+giftCollection id:int32 name:string icon:sticker gift_count:int32 = GiftCollection;
 
 //@description Contains a list of gift collections @collections List of gift collections
 giftCollections collections:vector<giftCollection> = GiftCollections;
@@ -12859,9 +12859,9 @@ getGiftCollections owner_id:MessageSender = GiftCollections;
 //@description Creates a collection from gifts on the current user's or a channel's profile page; requires can_post_messages administrator right in the channel chat.
 //-An owner can have up to getOption("gift_collection_count_max") gift collections. Returns the created collection
 //@owner_id Identifier of the user or the channel chat that received the gifts
-//@title Title of the collection; 1-12 characters
+//@name Name of the collection; 1-12 characters
 //@received_gift_ids Identifier of the gifts to add to the collection; 0-getOption("gift_collection_gift_count_max") identifiers
-createGiftCollection owner_id:MessageSender title:string received_gift_ids:vector<string> = GiftCollection;
+createGiftCollection owner_id:MessageSender name:string received_gift_ids:vector<string> = GiftCollection;
 
 
 //@description Creates a link for the given invoice; for bots only

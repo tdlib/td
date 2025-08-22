@@ -7710,11 +7710,11 @@ void Requests::on_request(uint64 id, const td_api::getGiftCollections &request) 
 
 void Requests::on_request(uint64 id, td_api::createGiftCollection &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.title_);
+  CLEAN_INPUT_STRING(request.name_);
   CREATE_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
   td_->star_gift_manager_->create_gift_collection(
-      owner_dialog_id, request.title_,
+      owner_dialog_id, request.name_,
       transform(request.received_gift_ids_,
                 [](const string &received_gift_id) { return StarGiftId(received_gift_id); }),
       std::move(promise));

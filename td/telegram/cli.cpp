@@ -3157,10 +3157,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getGiftCollections>(as_message_sender(owner_id)));
     } else if (op == "cgic") {
       string owner_id;
-      string title;
+      string name;
       string received_gift_ids;
-      get_args(args, owner_id, title, received_gift_ids);
-      send_request(td_api::make_object<td_api::createGiftCollection>(as_message_sender(owner_id), title,
+      get_args(args, owner_id, name, received_gift_ids);
+      send_request(td_api::make_object<td_api::createGiftCollection>(as_message_sender(owner_id), name,
                                                                      autosplit_str(received_gift_ids)));
     } else if (op == "rsp") {
       UserId user_id;
