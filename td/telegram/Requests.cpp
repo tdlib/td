@@ -7720,6 +7720,15 @@ void Requests::on_request(uint64 id, td_api::createGiftCollection &request) {
       std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::setGiftCollectionName &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.name_);
+  CREATE_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
+  td_->star_gift_manager_->set_gift_collection_title(owner_dialog_id, StarGiftCollectionId(request.collection_id_),
+                                                     request.name_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::createInvoiceLink &request) {
   CHECK_IS_BOT();
   CREATE_HTTP_URL_REQUEST_PROMISE();

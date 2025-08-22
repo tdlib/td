@@ -12863,6 +12863,12 @@ getGiftCollections owner_id:MessageSender = GiftCollections;
 //@received_gift_ids Identifier of the gifts to add to the collection; 0-getOption("gift_collection_gift_count_max") identifiers
 createGiftCollection owner_id:MessageSender name:string received_gift_ids:vector<string> = GiftCollection;
 
+//@description Changes name of a gift collection; requires can_post_messages administrator right in the channel chat. Returns the changed collection
+//@owner_id Identifier of the user or the channel chat that owns the collection
+//@collection_id Identifier of the gift collection
+//@name New name of the collection; 1-12 characters
+setGiftCollectionName owner_id:MessageSender collection_id:int32 name:string = GiftCollection;
+
 
 //@description Creates a link for the given invoice; for bots only
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request

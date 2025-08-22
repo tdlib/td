@@ -1341,6 +1341,60 @@ class CreateStarGiftCollectionQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateStarGiftCollectionQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftCollection>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit UpdateStarGiftCollectionQuery(Promise<td_api::object_ptr<td_api::giftCollection>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, StarGiftCollectionId collection_id, const string &title,
+            const vector<StarGiftId> &deleted_star_gift_ids, const vector<StarGiftId> &added_star_gift_ids,
+            const vector<StarGiftId> &ordered_star_gift_ids) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    int32 flags = 0;
+    if (!title.empty()) {
+      flags |= telegram_api::payments_updateStarGiftCollection::TITLE_MASK;
+    }
+    if (!deleted_star_gift_ids.empty()) {
+      flags |= telegram_api::payments_updateStarGiftCollection::DELETE_STARGIFT_MASK;
+    }
+    if (!added_star_gift_ids.empty()) {
+      flags |= telegram_api::payments_updateStarGiftCollection::ADD_STARGIFT_MASK;
+    }
+    if (!ordered_star_gift_ids.empty()) {
+      flags |= telegram_api::payments_updateStarGiftCollection::ORDER_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::payments_updateStarGiftCollection(
+                                                   flags, std::move(input_peer), collection_id.get(), title,
+                                                   StarGiftId::get_input_saved_star_gifts(td_, deleted_star_gift_ids),
+                                                   StarGiftId::get_input_saved_star_gifts(td_, added_star_gift_ids),
+                                                   StarGiftId::get_input_saved_star_gifts(td_, ordered_star_gift_ids)),
+                                               {{dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_updateStarGiftCollection>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for UpdateStarGiftCollectionQuery: " << to_string(ptr);
+    StarGiftCollection gift_collection(td_, std::move(ptr));
+    promise_.set_value(gift_collection.get_gift_collection_object(td_));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "UpdateStarGiftCollectionQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 StarGiftManager::StarGiftManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   update_gift_message_timeout_.set_callback(on_update_gift_message_timeout_callback);
   update_gift_message_timeout_.set_callback_data(static_cast<void *>(this));
@@ -1710,6 +1764,19 @@ void StarGiftManager::create_gift_collection(DialogId dialog_id, const string &t
                                              Promise<td_api::object_ptr<td_api::giftCollection>> &&promise) {
   TRY_STATUS_PROMISE(promise, check_star_gift_ids(star_gift_ids, dialog_id));
   td_->create_handler<CreateStarGiftCollectionQuery>(std::move(promise))->send(dialog_id, title, star_gift_ids);
+}
+
+void StarGiftManager::set_gift_collection_title(DialogId dialog_id, StarGiftCollectionId collection_id,
+                                                const string &title,
+                                                Promise<td_api::object_ptr<td_api::giftCollection>> &&promise) {
+  if (!collection_id.is_valid()) {
+    return promise.set_error(400, "Invalid collection identifier specified");
+  }
+  if (title.empty()) {
+    return promise.set_error(400, "Gift collection name must be non-empty");
+  }
+  td_->create_handler<UpdateStarGiftCollectionQuery>(std::move(promise))
+      ->send(dialog_id, collection_id, title, {}, {}, {});
 }
 
 void StarGiftManager::register_gift(MessageFullId message_full_id, const char *source) {
