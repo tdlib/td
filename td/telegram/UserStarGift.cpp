@@ -15,6 +15,7 @@
 #include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -42,6 +43,14 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedS
       sender_dialog_id_ = DialogId();
     }
   }
+  for (auto star_gift_collection_id : gift->collection_id_) {
+    StarGiftCollectionId collection_id(star_gift_collection_id);
+    if (collection_id.is_valid()) {
+      collection_ids_.push_back(collection_id);
+    } else {
+      LOG(ERROR) << "Receive " << collection_id;
+    }
+  }
   auto is_user = dialog_id.get_type() == DialogType::User;
   auto is_me = is_user && dialog_id == td->dialog_manager_->get_my_dialog_id();
   if (is_user) {
@@ -65,12 +74,13 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedS
 }
 
 td_api::object_ptr<td_api::receivedGift> UserStarGift::get_received_gift_object(Td *td) const {
+  auto collection_ids = transform(collection_ids_, [](auto collection_id) { return collection_id.get(); });
   return td_api::make_object<td_api::receivedGift>(
       star_gift_id_.get_star_gift_id(),
       sender_dialog_id_ == DialogId() ? nullptr : get_message_sender_object(td, sender_dialog_id_, "receivedGift"),
       get_formatted_text_object(td->user_manager_.get(), message_, true, -1), is_name_hidden_, is_saved_, is_pinned_,
-      can_upgrade_, can_transfer_, was_refunded_, date_, gift_.get_sent_gift_object(td), convert_star_count_,
-      upgrade_star_count_, transfer_star_count_, can_transfer_at_, can_resell_at_, can_export_at_);
+      can_upgrade_, can_transfer_, was_refunded_, date_, gift_.get_sent_gift_object(td), std::move(collection_ids),
+      convert_star_count_, upgrade_star_count_, transfer_star_count_, can_transfer_at_, can_resell_at_, can_export_at_);
 }
 
 }  // namespace td
