@@ -137,6 +137,7 @@
 #include "td/telegram/SecureValue.h"
 #include "td/telegram/SentEmailCode.h"
 #include "td/telegram/SponsoredMessageManager.h"
+#include "td/telegram/StarGiftCollectionId.h"
 #include "td/telegram/StarGiftId.h"
 #include "td/telegram/StarGiftManager.h"
 #include "td/telegram/StarGiftSettings.h"
@@ -7659,9 +7660,10 @@ void Requests::on_request(uint64 id, td_api::getReceivedGifts &request) {
   CREATE_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
   td_->star_gift_manager_->get_saved_star_gifts(
-      BusinessConnectionId(std::move(request.business_connection_id_)), owner_dialog_id, request.exclude_unsaved_,
-      request.exclude_saved_, request.exclude_unlimited_, request.exclude_limited_, request.exclude_upgraded_,
-      request.sort_by_price_, request.offset_, request.limit_, std::move(promise));
+      BusinessConnectionId(std::move(request.business_connection_id_)), owner_dialog_id,
+      StarGiftCollectionId(request.collection_id_), request.exclude_unsaved_, request.exclude_saved_,
+      request.exclude_unlimited_, request.exclude_limited_, request.exclude_upgraded_, request.sort_by_price_,
+      request.offset_, request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getReceivedGift &request) {

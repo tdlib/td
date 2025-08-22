@@ -893,9 +893,9 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(BusinessConnectionId business_connection_id, DialogId dialog_id, bool exclude_unsaved, bool exclude_saved,
-            bool exclude_unlimited, bool exclude_limited, bool exclude_unique, bool sort_by_value, const string &offset,
-            int32 limit) {
+  void send(BusinessConnectionId business_connection_id, DialogId dialog_id, StarGiftCollectionId collection_id,
+            bool exclude_unsaved, bool exclude_saved, bool exclude_unlimited, bool exclude_limited, bool exclude_unique,
+            bool sort_by_value, const string &offset, int32 limit) {
     business_connection_id_ = business_connection_id;
     dialog_id_ =
         business_connection_id.is_valid()
@@ -905,11 +905,15 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
+    int32 flags = 0;
+    if (collection_id.is_valid()) {
+      flags |= telegram_api::payments_getSavedStarGifts::COLLECTION_ID_MASK;
+    }
     send_query(G()->net_query_creator().create_with_prefix(
         business_connection_id.get_invoke_prefix(),
-        telegram_api::payments_getSavedStarGifts(0, exclude_unsaved, exclude_saved, exclude_unlimited, exclude_limited,
-                                                 exclude_unique, sort_by_value, std::move(input_peer), 0, offset,
-                                                 limit),
+        telegram_api::payments_getSavedStarGifts(flags, exclude_unsaved, exclude_saved, exclude_unlimited,
+                                                 exclude_limited, exclude_unique, sort_by_value, std::move(input_peer),
+                                                 collection_id.get(), offset, limit),
         td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id), {{dialog_id_}}));
   }
 
@@ -1510,9 +1514,9 @@ void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receive
 }
 
 void StarGiftManager::get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,
-                                           bool exclude_unsaved, bool exclude_saved, bool exclude_unlimited,
-                                           bool exclude_limited, bool exclude_unique, bool sort_by_value,
-                                           const string &offset, int32 limit,
+                                           StarGiftCollectionId collection_id, bool exclude_unsaved, bool exclude_saved,
+                                           bool exclude_unlimited, bool exclude_limited, bool exclude_unique,
+                                           bool sort_by_value, const string &offset, int32 limit,
                                            Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise) {
   if (limit < 0) {
     return promise.set_error(400, "Limit must be non-negative");
@@ -1521,8 +1525,8 @@ void StarGiftManager::get_saved_star_gifts(BusinessConnectionId business_connect
     TRY_STATUS_PROMISE(promise, td_->business_connection_manager_->check_business_connection(business_connection_id));
   }
   td_->create_handler<GetSavedStarGiftsQuery>(std::move(promise))
-      ->send(business_connection_id, dialog_id, exclude_unsaved, exclude_saved, exclude_unlimited, exclude_limited,
-             exclude_unique, sort_by_value, offset, limit);
+      ->send(business_connection_id, dialog_id, collection_id, exclude_unsaved, exclude_saved, exclude_unlimited,
+             exclude_limited, exclude_unique, sort_by_value, offset, limit);
 }
 
 void StarGiftManager::get_saved_star_gift(StarGiftId star_gift_id,
