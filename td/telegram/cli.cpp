@@ -598,6 +598,10 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
+  static int32 as_gift_collection_id(Slice str) {
+    return to_integer<int32>(trim(str));
+  }
+
   td_api::object_ptr<td_api::businessRecipients> as_business_recipients(string chat_ids) const {
     return td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), vector<int64>(), false, false, false,
                                                            false, true);
@@ -997,6 +1001,18 @@ class CliClient final : public Actor {
 
   void get_args(string &args, StoryId &arg) const {
     arg.story_id = as_story_id(args);
+  }
+
+  struct GiftCollectionId {
+    int32 gift_collection_id = 0;
+
+    operator int32() const {
+      return gift_collection_id;
+    }
+  };
+
+  void get_args(string &args, GiftCollectionId &arg) const {
+    arg.gift_collection_id = as_gift_collection_id(args);
   }
 
   struct FileId {
@@ -5660,6 +5676,8 @@ class CliClient final : public Actor {
                link_preview_force_large_media_, link_preview_show_above_text_);
     } else if (op == "sscam") {
       get_args(args, show_caption_above_media_);
+    } else if (op == "sgci") {
+      get_args(args, gift_collection_id_);
     } else if (op == "ssmt") {
       saved_messages_topic_id_ = as_chat_id(args);
     } else if (op == "sqrs") {
@@ -8073,6 +8091,7 @@ class CliClient final : public Actor {
   bool link_preview_force_large_media_ = false;
   bool link_preview_show_above_text_ = false;
   bool show_caption_above_media_ = false;
+  GiftCollectionId gift_collection_id_;
   int64 saved_messages_topic_id_ = 0;
   string quick_reply_shortcut_name_;
   vector<int32> added_sticker_file_ids_;
