@@ -14,6 +14,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"

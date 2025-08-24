@@ -251,10 +251,13 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         auto photo = get_web_document_photo(td_->file_manager_.get(), std::move(transaction->photo_), DialogId());
         append(file_ids, photo_get_file_ids(photo));
         product_info = get_product_info_object(td_, transaction->title_, transaction->description_, photo);
+        transaction->title_.clear();
+        transaction->description_.clear();
       }
       if (!transaction->bot_payload_.empty()) {
         if (td_->auth_manager_->is_bot()) {
           bot_payload = transaction->bot_payload_.as_slice().str();
+          transaction->bot_payload_.clear();
         } else if (!for_bot) {
           LOG(ERROR) << "Receive Star transaction with bot payload";
         }
@@ -273,7 +276,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 transaction->starref_commission_permille_,
                 td_->dialog_manager_->get_chat_id_object(referrer_dialog_id, "affiliateInfo"),
                 referrer_star_amount.get_star_amount_object());
+            transaction->starref_commission_permille_ = 0;
           }
+          transaction->starref_peer_ = nullptr;
         } else {
           LOG(ERROR) << "Receive invalid affiliate info: " << to_string(transaction);
         }
@@ -283,6 +288,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         } else {
           LOG(ERROR) << "Receive invalid commission: " << to_string(transaction);
         }
+        transaction->starref_commission_permille_ = 0;
       }
       auto get_paid_media_object = [&](DialogId dialog_id) -> vector<td_api::object_ptr<td_api::PaidMedia>> {
         auto extended_media = transform(std::move(transaction->extended_media_), [td = td_, dialog_id](auto &&media) {
@@ -702,6 +708,24 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         if (!bot_payload.empty()) {
           LOG(ERROR) << "Receive bot payload with " << to_string(star_transaction);
         }
+        if (affiliate != nullptr) {
+          LOG(ERROR) << "Receive affiliate with " << to_string(star_transaction);
+        }
+        if (commission_per_mille != 0) {
+          LOG(ERROR) << "Receive commission with " << to_string(star_transaction);
+        }
+        if (!transaction->title_.empty()) {
+          LOG(ERROR) << "Receive title with " << to_string(star_transaction);
+        }
+        if (!transaction->description_.empty()) {
+          LOG(ERROR) << "Receive description with " << to_string(star_transaction);
+        }
+        if (transaction->photo_ != nullptr) {
+          LOG(ERROR) << "Receive photo with " << to_string(star_transaction);
+        }
+        if (!transaction->bot_payload_.empty()) {
+          LOG(ERROR) << "Receive bot payload with " << to_string(star_transaction);
+        }
         if (transaction->transaction_date_ || !transaction->transaction_url_.empty() || transaction->pending_ ||
             transaction->failed_) {
           LOG(ERROR) << "Receive withdrawal state with " << to_string(star_transaction);
@@ -730,11 +754,14 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         if (transaction->floodskip_number_ != 0) {
           LOG(ERROR) << "Receive API payment with " << to_string(star_transaction);
         }
-        if (affiliate != nullptr) {
-          LOG(ERROR) << "Receive affiliate with " << to_string(star_transaction);
+        if (transaction->starref_peer_ != nullptr) {
+          LOG(ERROR) << "Receive affiliate info with " << to_string(star_transaction);
         }
-        if (commission_per_mille != 0) {
-          LOG(ERROR) << "Receive commission with " << to_string(star_transaction);
+        if (transaction->starref_amount_ != nullptr) {
+          LOG(ERROR) << "Receive affiliate payment info with " << to_string(star_transaction);
+        }
+        if (transaction->starref_commission_permille_ != 0) {
+          LOG(ERROR) << "Receive affiliate commission info with " << to_string(star_transaction);
         }
         if (transaction->stargift_upgrade_) {
           LOG(ERROR) << "Receive gift upgrade with " << to_string(star_transaction);
