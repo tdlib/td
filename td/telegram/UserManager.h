@@ -648,6 +648,7 @@ class UserManager final : public Actor {
     vector<FileId> registered_file_ids;
     FileSourceId file_source_id;
 
+    int32 pending_star_rating_date = 0;
     int32 gift_count = 0;
     int32 common_chat_count = 0;
     Birthdate birthdate;
@@ -659,6 +660,7 @@ class UserManager final : public Actor {
     unique_ptr<BusinessInfo> business_info;
     unique_ptr<BotVerification> bot_verification;
     unique_ptr<StarRating> star_rating;
+    unique_ptr<StarRating> pending_star_rating;
 
     int64 charge_paid_message_stars = 0;
     int64 send_paid_message_stars = 0;
