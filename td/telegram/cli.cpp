@@ -3168,6 +3168,12 @@ class CliClient final : public Actor {
       get_args(args, owner_id, name);
       send_request(
           td_api::make_object<td_api::setGiftCollectionName>(as_message_sender(owner_id), gift_collection_id_, name));
+    } else if (op == "agicg") {
+      string owner_id;
+      string received_gift_ids;
+      get_args(args, owner_id, received_gift_ids);
+      send_request(td_api::make_object<td_api::addGiftCollectionGifts>(as_message_sender(owner_id), gift_collection_id_,
+                                                                       autosplit_str(received_gift_ids)));
     } else if (op == "rsp") {
       UserId user_id;
       string telegram_payment_charge_id;

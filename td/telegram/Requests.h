@@ -1631,6 +1631,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::setGiftCollectionName &request);
 
+  void on_request(uint64 id, const td_api::addGiftCollectionGifts &request);
+
   void on_request(uint64 id, td_api::createInvoiceLink &request);
 
   void on_request(uint64 id, td_api::refundStarPayment &request);
