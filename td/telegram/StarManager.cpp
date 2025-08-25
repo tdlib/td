@@ -702,84 +702,10 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
           td_api::make_object<td_api::starTransaction>(transaction->id_, transaction_amount.get_star_amount_object(),
                                                        is_refund, transaction->date_, std::move(type));
       if (star_transaction->type_->get_id() != td_api::starTransactionTypeUnsupported::ID) {
-        if (product_info != nullptr) {
-          LOG(ERROR) << "Receive product info with " << to_string(star_transaction);
-        }
-        if (!bot_payload.empty()) {
-          LOG(ERROR) << "Receive bot payload with " << to_string(star_transaction);
-        }
-        if (affiliate != nullptr) {
-          LOG(ERROR) << "Receive affiliate with " << to_string(star_transaction);
-        }
-        if (commission_per_mille != 0) {
-          LOG(ERROR) << "Receive commission with " << to_string(star_transaction);
-        }
-        if (!transaction->title_.empty()) {
-          LOG(ERROR) << "Receive title with " << to_string(star_transaction);
-        }
-        if (!transaction->description_.empty()) {
-          LOG(ERROR) << "Receive description with " << to_string(star_transaction);
-        }
-        if (transaction->photo_ != nullptr) {
-          LOG(ERROR) << "Receive photo with " << to_string(star_transaction);
-        }
-        if (!transaction->bot_payload_.empty()) {
-          LOG(ERROR) << "Receive bot payload with " << to_string(star_transaction);
-        }
-        if (transaction->transaction_date_ || !transaction->transaction_url_.empty() || transaction->pending_ ||
-            transaction->failed_) {
-          LOG(ERROR) << "Receive withdrawal state with " << to_string(star_transaction);
-        }
-        if (transaction->msg_id_ != 0) {
-          LOG(ERROR) << "Receive message identifier with " << to_string(star_transaction);
-        }
-        if (transaction->gift_) {
-          LOG(ERROR) << "Receive gift with " << to_string(star_transaction);
-        }
-        if (transaction->subscription_period_ != 0) {
-          LOG(ERROR) << "Receive subscription period with " << to_string(star_transaction);
-        }
-        if (transaction->reaction_) {
-          LOG(ERROR) << "Receive reaction with " << to_string(star_transaction);
-        }
-        if (!transaction->extended_media_.empty()) {
-          LOG(ERROR) << "Receive paid media with " << to_string(star_transaction);
-        }
-        if (transaction->giveaway_post_id_ != 0) {
-          LOG(ERROR) << "Receive giveaway message with " << to_string(star_transaction);
-        }
-        if (transaction->stargift_ != nullptr) {
-          LOG(ERROR) << "Receive gift with " << to_string(star_transaction);
-        }
-        if (transaction->floodskip_number_ != 0) {
-          LOG(ERROR) << "Receive API payment with " << to_string(star_transaction);
-        }
-        if (transaction->starref_peer_ != nullptr) {
-          LOG(ERROR) << "Receive affiliate info with " << to_string(star_transaction);
-        }
-        if (transaction->starref_amount_ != nullptr) {
-          LOG(ERROR) << "Receive affiliate payment info with " << to_string(star_transaction);
-        }
-        if (transaction->starref_commission_permille_ != 0) {
-          LOG(ERROR) << "Receive affiliate commission info with " << to_string(star_transaction);
-        }
-        if (transaction->stargift_upgrade_) {
-          LOG(ERROR) << "Receive gift upgrade with " << to_string(star_transaction);
-        }
-        if (transaction->paid_messages_) {
-          LOG(ERROR) << "Receive paid messages with " << to_string(star_transaction);
-        }
-        if (transaction->premium_gift_months_) {
-          LOG(ERROR) << "Receive Telegram Premium purchase with " << to_string(star_transaction);
-        }
-        if (transaction->business_transfer_) {
-          LOG(ERROR) << "Receive business bot transfer with " << to_string(star_transaction);
-        }
-        if (transaction->stargift_resale_) {
-          LOG(ERROR) << "Receive gift resale with " << to_string(star_transaction);
-        }
-        if (transaction->ads_proceeds_from_date_ != 0 || transaction->ads_proceeds_to_date_ != 0) {
-          LOG(ERROR) << "Receive ads proceeds with " << to_string(star_transaction);
+        auto name = StarManager::get_unused_star_transaction_field(transaction, product_info, bot_payload, affiliate,
+                                                                   commission_per_mille);
+        if (!name.empty()) {
+          LOG(ERROR) << "Receive " << name << " with " << to_string(star_transaction);
         }
       }
       if (!file_ids.empty()) {
@@ -1653,6 +1579,92 @@ int32 StarManager::get_nanostar_count(int64 &star_count, int32 nanostar_count) {
 
 int32 StarManager::get_months_by_star_count(int64 star_count) {
   return star_count <= 1000 ? 3 : (star_count < 2500 ? 6 : 12);
+}
+
+string StarManager::get_unused_star_transaction_field(
+    const telegram_api::object_ptr<telegram_api::starsTransaction> &transaction,
+    const td_api::object_ptr<td_api::productInfo> &product_info, const string &bot_payload,
+    const td_api::object_ptr<td_api::affiliateInfo> &affiliate, int32 commission_per_mille) {
+  if (product_info != nullptr) {
+    return "product info";
+  }
+  if (!bot_payload.empty()) {
+    return "bot payload";
+  }
+  if (affiliate != nullptr) {
+    return "affiliate";
+  }
+  if (commission_per_mille != 0) {
+    return "commission";
+  }
+  if (!transaction->title_.empty()) {
+    return "title";
+  }
+  if (!transaction->description_.empty()) {
+    return "description";
+  }
+  if (transaction->photo_ != nullptr) {
+    return "photo";
+  }
+  if (!transaction->bot_payload_.empty()) {
+    return "bot payload";
+  }
+  if (transaction->transaction_date_ || !transaction->transaction_url_.empty() || transaction->pending_ ||
+      transaction->failed_) {
+    return "withdrawal state";
+  }
+  if (transaction->msg_id_ != 0) {
+    return "message identifier";
+  }
+  if (transaction->gift_) {
+    return "gift";
+  }
+  if (transaction->subscription_period_ != 0) {
+    return "subscription period";
+  }
+  if (transaction->reaction_) {
+    return "reaction";
+  }
+  if (!transaction->extended_media_.empty()) {
+    return "paid media";
+  }
+  if (transaction->giveaway_post_id_ != 0) {
+    return "giveaway message";
+  }
+  if (transaction->stargift_ != nullptr) {
+    return "gift";
+  }
+  if (transaction->floodskip_number_ != 0) {
+    return "API payment";
+  }
+  if (transaction->starref_peer_ != nullptr) {
+    return "affiliate info";
+  }
+  if (transaction->starref_amount_ != nullptr) {
+    return "affiliate payment info";
+  }
+  if (transaction->starref_commission_permille_ != 0) {
+    return "affiliate commission info";
+  }
+  if (transaction->stargift_upgrade_) {
+    return "gift upgrade";
+  }
+  if (transaction->paid_messages_) {
+    return "paid messages";
+  }
+  if (transaction->premium_gift_months_) {
+    return "Telegram Premium purchase";
+  }
+  if (transaction->business_transfer_) {
+    return "business bot transfer";
+  }
+  if (transaction->stargift_resale_) {
+    return "gift resale";
+  }
+  if (transaction->ads_proceeds_from_date_ != 0 || transaction->ads_proceeds_to_date_ != 0) {
+    return "ads proceeds";
+  }
+  return string();
 }
 
 void StarManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

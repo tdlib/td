@@ -95,6 +95,11 @@ class StarManager final : public Actor {
 
   static int32 get_months_by_star_count(int64 star_count);
 
+  static string get_unused_star_transaction_field(
+      const telegram_api::object_ptr<telegram_api::starsTransaction> &transaction,
+      const td_api::object_ptr<td_api::productInfo> &product_info, const string &bot_payload,
+      const td_api::object_ptr<td_api::affiliateInfo> &affiliate, int32 commission_per_mille);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
