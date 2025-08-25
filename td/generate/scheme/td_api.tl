@@ -12868,6 +12868,11 @@ createGiftCollection owner_id:MessageSender name:string received_gift_ids:vector
 //@collection_ids New order of gift collections
 reorderGiftCollections owner_id:MessageSender collection_ids:vector<int32> = Ok;
 
+//@description Deletes a gift collection. If the collection is owned by a channel chat, then requires can_post_messages administrator right in the channel chat
+//@owner_id Identifier of the user or the channel chat that owns the collection
+//@collection_id Identifier of the gift collection
+deleteGiftCollection owner_id:MessageSender collection_id:int32 = Ok;
+
 //@description Changes name of a gift collection. If the collection is owned by a channel chat, then requires can_post_messages administrator right in the channel chat. Returns the changed collection
 //@owner_id Identifier of the user or the channel chat that owns the collection
 //@collection_id Identifier of the gift collection

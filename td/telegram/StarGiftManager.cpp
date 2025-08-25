@@ -1375,6 +1375,37 @@ class ReorderStarGiftCollectionsQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteStarGiftCollectionQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit DeleteStarGiftCollectionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, StarGiftCollectionId collection_id) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_deleteStarGiftCollection(std::move(input_peer), collection_id.get()), {{dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_deleteStarGiftCollection>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeleteStarGiftCollectionQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateStarGiftCollectionQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::giftCollection>> promise_;
   DialogId dialog_id_;
@@ -1808,6 +1839,14 @@ void StarGiftManager::reorder_gift_collections(DialogId dialog_id, const vector<
     }
   }
   td_->create_handler<ReorderStarGiftCollectionsQuery>(std::move(promise))->send(dialog_id, collection_ids);
+}
+
+void StarGiftManager::delete_gift_collection(DialogId dialog_id, StarGiftCollectionId collection_id,
+                                             Promise<Unit> &&promise) {
+  if (!collection_id.is_valid()) {
+    return promise.set_error(400, "Invalid collection identifier specified");
+  }
+  td_->create_handler<DeleteStarGiftCollectionQuery>(std::move(promise))->send(dialog_id, collection_id);
 }
 
 void StarGiftManager::set_gift_collection_title(DialogId dialog_id, StarGiftCollectionId collection_id,

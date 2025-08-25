@@ -7730,6 +7730,14 @@ void Requests::on_request(uint64 id, const td_api::reorderGiftCollections &reque
       std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::deleteGiftCollection &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
+  td_->star_gift_manager_->delete_gift_collection(owner_dialog_id, StarGiftCollectionId(request.collection_id_),
+                                                  std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setGiftCollectionName &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.name_);

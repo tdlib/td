@@ -3193,6 +3193,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::reorderGiftCollections>(
           as_message_sender(owner_id),
           transform(autosplit(collection_ids), [this](Slice str) { return as_gift_collection_id(str); })));
+    } else if (op == "dgic") {
+      string owner_id;
+      GiftCollectionId gift_collection_id;
+      get_args(args, owner_id, gift_collection_id);
+      send_request(td_api::make_object<td_api::deleteGiftCollection>(as_message_sender(owner_id), gift_collection_id));
     } else if (op == "rsp") {
       UserId user_id;
       string telegram_payment_charge_id;
