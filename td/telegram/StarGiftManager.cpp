@@ -1792,6 +1792,19 @@ void StarGiftManager::add_gift_collection_gifts(DialogId dialog_id, StarGiftColl
       ->send(dialog_id, collection_id, {}, {}, star_gift_ids, {});
 }
 
+void StarGiftManager::remove_gift_collection_gifts(DialogId dialog_id, StarGiftCollectionId collection_id,
+                                                   const vector<StarGiftId> &star_gift_ids,
+                                                   Promise<td_api::object_ptr<td_api::giftCollection>> &&promise) {
+  if (!collection_id.is_valid()) {
+    return promise.set_error(400, "Invalid collection identifier specified");
+  }
+  if (star_gift_ids.empty()) {
+    return promise.set_error(400, "Gift list must be non-empty");
+  }
+  td_->create_handler<UpdateStarGiftCollectionQuery>(std::move(promise))
+      ->send(dialog_id, collection_id, {}, star_gift_ids, {}, {});
+}
+
 void StarGiftManager::register_gift(MessageFullId message_full_id, const char *source) {
   auto message_id = message_full_id.get_message_id();
   if (message_id.is_scheduled()) {
