@@ -1629,6 +1629,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::createGiftCollection &request);
 
+  void on_request(uint64 id, const td_api::reorderGiftCollections &request);
+
   void on_request(uint64 id, td_api::setGiftCollectionName &request);
 
   void on_request(uint64 id, const td_api::addGiftCollectionGifts &request);

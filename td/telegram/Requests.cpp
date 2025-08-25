@@ -7720,6 +7720,16 @@ void Requests::on_request(uint64 id, td_api::createGiftCollection &request) {
       std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::reorderGiftCollections &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
+  td_->star_gift_manager_->reorder_gift_collections(
+      owner_dialog_id,
+      transform(request.collection_ids_, [](int32 collection_id) { return StarGiftCollectionId(collection_id); }),
+      std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setGiftCollectionName &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.name_);

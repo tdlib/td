@@ -3186,6 +3186,13 @@ class CliClient final : public Actor {
       get_args(args, owner_id, received_gift_ids);
       send_request(td_api::make_object<td_api::reorderGiftCollectionGifts>(
           as_message_sender(owner_id), gift_collection_id_, autosplit_str(received_gift_ids)));
+    } else if (op == "rgics") {
+      string owner_id;
+      string collection_ids;
+      get_args(args, owner_id, collection_ids);
+      send_request(td_api::make_object<td_api::reorderGiftCollections>(
+          as_message_sender(owner_id),
+          transform(autosplit(collection_ids), [this](Slice str) { return as_gift_collection_id(str); })));
     } else if (op == "rsp") {
       UserId user_id;
       string telegram_payment_charge_id;
