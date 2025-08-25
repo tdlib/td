@@ -2307,6 +2307,9 @@ UserManager::UserManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::m
   user_emoji_status_timeout_.set_callback(on_user_emoji_status_timeout_callback);
   user_emoji_status_timeout_.set_callback_data(static_cast<void *>(this));
 
+  user_rating_timeout_.set_callback(on_user_rating_timeout_callback);
+  user_rating_timeout_.set_callback_data(static_cast<void *>(this));
+
   get_user_queries_.set_merge_function([this](vector<int64> query_ids, Promise<Unit> &&promise) {
     TRY_STATUS_PROMISE(promise, G()->close_status());
     auto input_users = transform(query_ids, [this](int64 query_id) { return get_input_user_force(UserId(query_id)); });
@@ -2385,6 +2388,35 @@ void UserManager::on_user_emoji_status_timeout(UserId user_id) {
   CHECK(u->is_update_user_sent);
 
   update_user(u, user_id);
+}
+
+void UserManager::on_user_rating_timeout_callback(void *user_manager_ptr, int64 user_id_long) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto user_manager = static_cast<UserManager *>(user_manager_ptr);
+  send_closure_later(user_manager->actor_id(user_manager), &UserManager::on_user_rating_timeout, UserId(user_id_long));
+}
+
+void UserManager::on_user_rating_timeout(UserId user_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto user_full = get_user_full(user_id);
+  CHECK(user_full != nullptr);
+
+  if (user_full->pending_star_rating_date > 0) {
+    if (user_full->pending_star_rating_date <= G()->unix_time()) {
+      user_full->star_rating = std::move(user_full->pending_star_rating);
+      user_full->pending_star_rating_date = 0;
+    }
+    user_full->is_pending_star_rating_changed = true;
+    user_full->is_changed = true;
+  }
+
+  update_user_full(user_full, user_id, "on_user_rating_timeout");
 }
 
 UserId UserManager::get_user_id(const telegram_api::object_ptr<telegram_api::User> &user) {
@@ -7474,8 +7506,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
       user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories ||
       user_full->sponsored_enabled != sponsored_enabled || user_full->can_view_revenue != can_view_revenue ||
       user_full->bot_verification != bot_verification || user_full->gift_settings != gift_settings ||
-      user_full->star_rating != star_rating || user_full->pending_star_rating != pending_star_rating ||
-      user_full->pending_star_rating_date != pending_star_rating_date) {
+      user_full->star_rating != star_rating) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
@@ -7487,8 +7518,6 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     user_full->bot_verification = std::move(bot_verification);
     user_full->gift_settings = std::move(gift_settings);
     user_full->star_rating = std::move(star_rating);
-    user_full->pending_star_rating = std::move(pending_star_rating);
-    user_full->pending_star_rating_date = pending_star_rating_date;
 
     user_full->is_changed = true;
   }
@@ -7499,6 +7528,13 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     if (u->is_mutual_contact) {
       reload_contact_birthdates(true);
     }
+  }
+  if (user_full->pending_star_rating != pending_star_rating ||
+      user_full->pending_star_rating_date != pending_star_rating_date) {
+    user_full->pending_star_rating = std::move(pending_star_rating);
+    user_full->pending_star_rating_date = pending_star_rating_date;
+    user_full->is_pending_star_rating_changed = true;
+    user_full->is_changed = true;
   }
 
   if (user_full->private_forward_name != user->private_forward_name_) {
@@ -8438,6 +8474,14 @@ void UserManager::update_user_full(UserFull *user_full, UserId user_id, const ch
   if (user_full->is_common_chat_count_changed) {
     td_->common_dialog_manager_->drop_common_dialogs_cache(user_id);
     user_full->is_common_chat_count_changed = false;
+  }
+  if (user_full->is_pending_star_rating_changed) {
+    if (user_full->pending_star_rating_date > 0) {
+      user_rating_timeout_.set_timeout_in(user_id.get(), user_full->pending_star_rating_date - G()->unix_time() + 1);
+    } else if (!td_->auth_manager_->is_bot()) {
+      user_rating_timeout_.cancel_timeout(user_id.get());
+    }
+    user_full->is_pending_star_rating_changed = false;
   }
   if (true) {
     vector<FileId> file_ids;

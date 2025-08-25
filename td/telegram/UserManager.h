@@ -683,6 +683,7 @@ class UserManager final : public Actor {
     bool can_manage_emoji_status = false;
 
     bool is_common_chat_count_changed = true;
+    bool is_pending_star_rating_changed = true;
     bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_send_update = true;       // have new changes that need only to be sent to the client
@@ -777,6 +778,10 @@ class UserManager final : public Actor {
   static void on_user_emoji_status_timeout_callback(void *user_manager_ptr, int64 user_id_long);
 
   void on_user_emoji_status_timeout(UserId user_id);
+
+  static void on_user_rating_timeout_callback(void *user_manager_ptr, int64 user_id_long);
+
+  void on_user_rating_timeout(UserId user_id);
 
   void set_my_id(UserId my_id);
 
@@ -1193,6 +1198,7 @@ class UserManager final : public Actor {
 
   MultiTimeout user_online_timeout_{"UserOnlineTimeout"};
   MultiTimeout user_emoji_status_timeout_{"UserEmojiStatusTimeout"};
+  MultiTimeout user_rating_timeout_{"UserRatingTimeout"};
 };
 
 }  // namespace td
