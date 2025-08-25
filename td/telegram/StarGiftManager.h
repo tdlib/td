@@ -100,6 +100,10 @@ class StarGiftManager final : public Actor {
                                     const vector<StarGiftId> &star_gift_ids,
                                     Promise<td_api::object_ptr<td_api::giftCollection>> &&promise);
 
+  void reorder_gift_collection_gifts(DialogId dialog_id, StarGiftCollectionId collection_id,
+                                     const vector<StarGiftId> &star_gift_ids,
+                                     Promise<td_api::object_ptr<td_api::giftCollection>> &&promise);
+
   void register_gift(MessageFullId message_full_id, const char *source);
 
   void unregister_gift(MessageFullId message_full_id, const char *source);
