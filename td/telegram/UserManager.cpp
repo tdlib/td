@@ -7463,7 +7463,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   auto star_rating = StarRating::get_star_rating(std::move(user->stars_rating_));
   auto pending_star_rating = StarRating::get_star_rating(std::move(user->stars_my_pending_rating_));
   auto pending_star_rating_date = max(0, std::move(user->stars_my_pending_rating_date_));
-  if (pending_star_rating_date <= G()->unix_time()) {
+  if (pending_star_rating_date > 0 && pending_star_rating_date <= G()->unix_time()) {
     star_rating = std::move(pending_star_rating);
     pending_star_rating = nullptr;
     pending_star_rating_date = 0;
@@ -7766,6 +7766,10 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
     return;
   }
 
+  if (user_full->pending_star_rating_date > 0 && user_full->pending_star_rating_date <= G()->unix_time()) {
+    user_full->star_rating = std::move(user_full->pending_star_rating);
+    user_full->pending_star_rating_date = 0;
+  }
   if (user_full->need_phone_number_privacy_exception && is_user_contact(user_id)) {
     user_full->need_phone_number_privacy_exception = false;
   }
