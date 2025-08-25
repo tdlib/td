@@ -838,7 +838,10 @@ class GetTonTransactionsQuery final : public Td::ResultHandler {
       auto ton_transaction = td_api::make_object<td_api::tonTransaction>(
           transaction->id_, transaction_amount.get_ton_amount(), is_refund, transaction->date_, std::move(type));
       if (ton_transaction->type_->get_id() != td_api::tonTransactionTypeUnsupported::ID) {
-        // TODO warnings
+        auto name = StarManager::get_unused_star_transaction_field(transaction, nullptr, string(), nullptr, 0);
+        if (!name.empty()) {
+          LOG(ERROR) << "Receive " << name << " with " << to_string(ton_transaction);
+        }
       }
       transactions.push_back(std::move(ton_transaction));
     }

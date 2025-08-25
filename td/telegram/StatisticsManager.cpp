@@ -485,67 +485,9 @@ class GetTonRevenueTransactionsQuery final : public Td::ResultHandler {
       auto ton_transaction = td_api::make_object<td_api::chatRevenueTransaction>(
           "TON", transaction_amount.get_ton_amount(), std::move(type));
       if (ton_transaction->type_->get_id() != td_api::chatRevenueTransactionTypeUnsupported::ID) {
-        /*
-        if (product_info != nullptr) {
-          LOG(ERROR) << "Receive product info with " << to_string(ton_transaction);
-        }
-        if (!bot_payload.empty()) {
-          LOG(ERROR) << "Receive bot payload with " << to_string(ton_transaction);
-        }
-        */
-        if (transaction->transaction_date_ || !transaction->transaction_url_.empty() || transaction->pending_ ||
-            transaction->failed_) {
-          LOG(ERROR) << "Receive withdrawal state with " << to_string(ton_transaction);
-        }
-        if (transaction->msg_id_ != 0) {
-          LOG(ERROR) << "Receive message identifier with " << to_string(ton_transaction);
-        }
-        if (transaction->gift_) {
-          LOG(ERROR) << "Receive gift with " << to_string(ton_transaction);
-        }
-        if (transaction->subscription_period_ != 0) {
-          LOG(ERROR) << "Receive subscription period with " << to_string(ton_transaction);
-        }
-        if (transaction->reaction_) {
-          LOG(ERROR) << "Receive reaction with " << to_string(ton_transaction);
-        }
-        if (!transaction->extended_media_.empty()) {
-          LOG(ERROR) << "Receive paid media with " << to_string(ton_transaction);
-        }
-        if (transaction->giveaway_post_id_ != 0) {
-          LOG(ERROR) << "Receive giveaway message with " << to_string(ton_transaction);
-        }
-        if (transaction->stargift_ != nullptr) {
-          LOG(ERROR) << "Receive gift with " << to_string(ton_transaction);
-        }
-        if (transaction->floodskip_number_ != 0) {
-          LOG(ERROR) << "Receive API payment with " << to_string(ton_transaction);
-        }
-        /*
-        if (affiliate != nullptr) {
-          LOG(ERROR) << "Receive affiliate with " << to_string(ton_transaction);
-        }
-        if (commission_per_mille != 0) {
-          LOG(ERROR) << "Receive commission with " << to_string(ton_transaction);
-        }
-        */
-        if (transaction->stargift_upgrade_) {
-          LOG(ERROR) << "Receive gift upgrade with " << to_string(ton_transaction);
-        }
-        if (transaction->paid_messages_) {
-          LOG(ERROR) << "Receive paid messages with " << to_string(ton_transaction);
-        }
-        if (transaction->premium_gift_months_) {
-          LOG(ERROR) << "Receive Telegram Premium purchase with " << to_string(ton_transaction);
-        }
-        if (transaction->business_transfer_) {
-          LOG(ERROR) << "Receive business bot transfer with " << to_string(ton_transaction);
-        }
-        if (transaction->stargift_resale_) {
-          LOG(ERROR) << "Receive gift resale with " << to_string(ton_transaction);
-        }
-        if (transaction->ads_proceeds_from_date_ != 0 || transaction->ads_proceeds_to_date_ != 0) {
-          LOG(ERROR) << "Receive ads proceeds with " << to_string(ton_transaction);
+        auto name = StarManager::get_unused_star_transaction_field(transaction, nullptr, string(), nullptr, 0);
+        if (!name.empty()) {
+          LOG(ERROR) << "Receive " << name << " with " << to_string(ton_transaction);
         }
       }
       transactions.push_back(std::move(ton_transaction));
