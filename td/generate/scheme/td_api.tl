@@ -12852,7 +12852,7 @@ getUpgradedGiftWithdrawalUrl received_gift_id:string password:string = HttpUrl;
 //@description Changes resale price of a unique gift owned by the current user
 //@received_gift_id Identifier of the unique gift
 //@resale_star_count The new price for the unique gift; 0 or getOption("gift_resale_star_count_min")-getOption("gift_resale_star_count_max"). Pass 0 to disallow gift resale.
-//-The current user will receive getOption("gift_resale_earnings_per_mille") Telegram Stars for each 1000 Telegram Stars paid for the gift
+//-The current user will receive getOption("gift_resale_star_earnings_per_mille") Telegram Stars for each 1000 Telegram Stars paid for the gift
 setGiftResalePrice received_gift_id:string resale_star_count:int53 = Ok;
 
 //@description Returns upgraded gifts that can be bought from other owners using sendResoldGift
