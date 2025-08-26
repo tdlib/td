@@ -3146,9 +3146,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getUpgradedGift>(name));
     } else if (op == "sgrp") {
       string received_gift_id;
-      int64 resale_star_count;
-      get_args(args, received_gift_id, resale_star_count);
-      send_request(td_api::make_object<td_api::setGiftResalePrice>(received_gift_id, resale_star_count));
+      GiftResalePrice price;
+      get_args(args, received_gift_id, price);
+      send_request(td_api::make_object<td_api::setGiftResalePrice>(received_gift_id, price));
     } else if (op == "gugwu") {
       string received_gift_id;
       string password;

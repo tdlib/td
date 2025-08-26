@@ -7687,10 +7687,12 @@ void Requests::on_request(uint64 id, const td_api::getUpgradedGiftWithdrawalUrl 
                                                         std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::setGiftResalePrice &request) {
+void Requests::on_request(uint64 id, td_api::setGiftResalePrice &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->star_gift_manager_->set_star_gift_price(StarGiftId(request.received_gift_id_), request.resale_star_count_,
+  TRY_RESULT_PROMISE(promise, price,
+                     StarGiftResalePrice::get_star_gift_resale_price(td_, std::move(request.price_), false));
+  td_->star_gift_manager_->set_star_gift_price(StarGiftId(request.received_gift_id_), std::move(price),
                                                std::move(promise));
 }
 

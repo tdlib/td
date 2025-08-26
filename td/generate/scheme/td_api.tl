@@ -1287,7 +1287,7 @@ upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be
 //@description Describes a gift that is available for purchase
 //@gift The gift
 //@resale_count Number of gifts that are available for resale
-//@min_resale_star_count The minimum price for the gifts available for resale; 0 if there are no such gifts
+//@min_resale_star_count The minimum price for the gifts available for resale in Telegram Star equivalent; 0 if there are no such gifts
 //@title The title of the upgraded gift; empty if the gift isn't available for resale
 availableGift gift:gift resale_count:int32 min_resale_star_count:int53 title:string = AvailableGift;
 
@@ -12877,9 +12877,10 @@ getUpgradedGiftWithdrawalUrl received_gift_id:string password:string = HttpUrl;
 
 //@description Changes resale price of a unique gift owned by the current user
 //@received_gift_id Identifier of the unique gift
-//@resale_star_count The new price for the unique gift; 0 or getOption("gift_resale_star_count_min")-getOption("gift_resale_star_count_max"). Pass 0 to disallow gift resale.
-//-The current user will receive getOption("gift_resale_star_earnings_per_mille") Telegram Stars for each 1000 Telegram Stars paid for the gift
-setGiftResalePrice received_gift_id:string resale_star_count:int53 = Ok;
+//@price The new price for the unique gift; pass null to disallow gift resale. The current user will receive
+//-getOption("gift_resale_star_earnings_per_mille") Telegram Stars for each 1000 Telegram Stars paid for the gift if the gift price is in Telegram Stars or
+//-getOption("gift_resale_ton_earnings_per_mille") Toncoins for each 1000 Toncoins paid for the gift if the gift price is in Toncoins
+setGiftResalePrice received_gift_id:string price:GiftResalePrice = Ok;
 
 //@description Returns upgraded gifts that can be bought from other owners using sendResoldGift
 //@gift_id Identifier of the regular gift that was upgraded to a unique gift

@@ -108,7 +108,7 @@ StarGiftResalePrice StarGiftResalePrice::legacy(int64 star_count) {
 telegram_api::object_ptr<telegram_api::StarsAmount> StarGiftResalePrice::get_input_stars_amount() const {
   switch (type_) {
     case Type::None:
-      return nullptr;
+      return telegram_api::make_object<telegram_api::starsAmount>(0, 0);
     case Type::Star:
       return telegram_api::make_object<telegram_api::starsAmount>(amount_, 0);
     case Type::Ton:
