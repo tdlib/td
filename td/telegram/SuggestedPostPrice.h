@@ -36,6 +36,9 @@ class SuggestedPostPrice {
   static Result<SuggestedPostPrice> get_suggested_post_price(const Td *td,
                                                              td_api::object_ptr<td_api::SuggestedPostPrice> &&price);
 
+  static Result<SuggestedPostPrice> get_suggested_post_price(const Td *td,
+                                                             td_api::object_ptr<td_api::GiftResalePrice> &&price);
+
   bool is_empty() const {
     return type_ == Type::None;
   }
@@ -43,6 +46,8 @@ class SuggestedPostPrice {
   telegram_api::object_ptr<telegram_api::StarsAmount> get_input_stars_amount() const;
 
   td_api::object_ptr<td_api::SuggestedPostPrice> get_suggested_post_price_object() const;
+
+  td_api::object_ptr<td_api::GiftResalePrice> get_gift_resale_price_object() const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

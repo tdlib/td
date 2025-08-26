@@ -890,14 +890,25 @@ chatPermissions can_send_basic_messages:Bool can_send_audios:Bool can_send_docum
 chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_manage_topics:Bool can_promote_members:Bool can_manage_video_chats:Bool can_post_stories:Bool can_edit_stories:Bool can_delete_stories:Bool can_manage_direct_messages:Bool is_anonymous:Bool = ChatAdministratorRights;
 
 
+//@class GiftResalePrice @description Describes price of a resold gift
+
+//@description Describes price of a resold gift in Telegram Stars
+//@star_count The amount of Telegram Stars expected to be paid for the gift; getOption("gift_resale_star_count_min")-getOption("gift_resale_star_count_max")
+giftResalePriceStar star_count:int53 = GiftResalePrice;
+
+//@description Describes price of a resold gift in Toncoins
+//@toncoin_cent_count The amount of 1/100 of Toncoin expected to be paid for the gift; getOption("gift_resale_toncoin_cent_count_min")-getOption("gift_resale_toncoin_cent_count_max")
+giftResalePriceTon toncoin_cent_count:int53 = GiftResalePrice;
+
+
 //@class SuggestedPostPrice @description Describes price of a suggested post
 
 //@description Describes price of a suggested post in Telegram Stars
-//@star_count The amount of Telegram Stars agreed to pay for the post; getOption("suggested_post_star_count_min")-getOption("suggested_post_star_count_max")
+//@star_count The amount of Telegram Stars expected to be paid for the post; getOption("suggested_post_star_count_min")-getOption("suggested_post_star_count_max")
 suggestedPostPriceStar star_count:int53 = SuggestedPostPrice;
 
 //@description Describes price of a suggested post in Toncoins
-//@toncoin_cent_count The amount of 1/100 of Toncoin agreed to pay for the post; getOption("suggested_post_toncoin_cent_count_min")-getOption("suggested_post_toncoin_cent_count_max")
+//@toncoin_cent_count The amount of 1/100 of Toncoin expected to be paid for the post; getOption("suggested_post_toncoin_cent_count_min")-getOption("suggested_post_toncoin_cent_count_max")
 suggestedPostPriceTon toncoin_cent_count:int53 = SuggestedPostPrice;
 
 

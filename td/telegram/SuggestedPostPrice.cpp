@@ -90,6 +90,45 @@ Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
   }
 }
 
+Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
+    const Td *td, td_api::object_ptr<td_api::GiftResalePrice> &&price) {
+  if (price == nullptr) {
+    return SuggestedPostPrice();
+  }
+  switch (price->get_id()) {
+    case td_api::giftResalePriceStar::ID: {
+      auto amount = static_cast<const td_api::giftResalePriceStar *>(price.get())->star_count_;
+      if (amount == 0) {
+        return SuggestedPostPrice();
+      }
+      if (amount < td->option_manager_->get_option_integer("gift_resale_star_count_min") ||
+          amount > td->option_manager_->get_option_integer("gift_resale_star_count_max")) {
+        return Status::Error(400, "Invalid amount of Telegram Stars specified");
+      }
+      SuggestedPostPrice result;
+      result.type_ = Type::Star;
+      result.amount_ = amount;
+      return result;
+    }
+    case td_api::giftResalePriceTon::ID: {
+      auto amount = static_cast<const td_api::giftResalePriceTon *>(price.get())->toncoin_cent_count_;
+      if (amount == 0) {
+        return SuggestedPostPrice();
+      }
+      if (amount < td->option_manager_->get_option_integer("gift_resale_toncoin_cent_count_min") ||
+          amount > td->option_manager_->get_option_integer("gift_resale_toncoin_cent_count_max")) {
+        return Status::Error(400, "Invalid amount of Toncoin cents specified");
+      }
+      SuggestedPostPrice result;
+      result.type_ = Type::Ton;
+      result.amount_ = amount;
+      return result;
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
 telegram_api::object_ptr<telegram_api::StarsAmount> SuggestedPostPrice::get_input_stars_amount() const {
   switch (type_) {
     case Type::None:
@@ -112,6 +151,20 @@ td_api::object_ptr<td_api::SuggestedPostPrice> SuggestedPostPrice::get_suggested
       return td_api::make_object<td_api::suggestedPostPriceStar>(amount_);
     case Type::Ton:
       return td_api::make_object<td_api::suggestedPostPriceTon>(amount_);
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+td_api::object_ptr<td_api::GiftResalePrice> SuggestedPostPrice::get_gift_resale_price_object() const {
+  switch (type_) {
+    case Type::None:
+      return nullptr;
+    case Type::Star:
+      return td_api::make_object<td_api::giftResalePriceStar>(amount_);
+    case Type::Ton:
+      return td_api::make_object<td_api::giftResalePriceTon>(amount_);
     default:
       UNREACHABLE();
       return nullptr;
