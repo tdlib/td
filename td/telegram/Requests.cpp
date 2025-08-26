@@ -7650,7 +7650,8 @@ void Requests::on_request(uint64 id, td_api::sendResoldGift &request) {
   CLEAN_INPUT_STRING(request.gift_name_);
   CREATE_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
-  TRY_RESULT_PROMISE(promise, price, StarGiftResalePrice::get_star_gift_resale_price(td_, std::move(request.price_)));
+  TRY_RESULT_PROMISE(promise, price,
+                     StarGiftResalePrice::get_star_gift_resale_price(td_, std::move(request.price_), true));
   td_->star_gift_manager_->send_resold_gift(request.gift_name_, owner_dialog_id, std::move(price), std::move(promise));
 }
 

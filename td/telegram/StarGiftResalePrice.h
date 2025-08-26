@@ -22,6 +22,8 @@ class StarGiftResalePrice {
   Type type_ = Type::None;
   int64 amount_ = 0;
 
+  static constexpr int64 TON_MULTIPLIER = 10000000;
+
   friend bool operator==(const StarGiftResalePrice &lhs, const StarGiftResalePrice &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const StarGiftResalePrice &amount);
@@ -32,7 +34,8 @@ class StarGiftResalePrice {
   explicit StarGiftResalePrice(telegram_api::object_ptr<telegram_api::StarsAmount> &&amount_ptr);
 
   static Result<StarGiftResalePrice> get_star_gift_resale_price(const Td *td,
-                                                                td_api::object_ptr<td_api::GiftResalePrice> &&price);
+                                                                td_api::object_ptr<td_api::GiftResalePrice> &&price,
+                                                                bool is_purchase);
 
   static StarGiftResalePrice legacy(int64 star_count);
 
@@ -53,7 +56,7 @@ class StarGiftResalePrice {
   }
 
   int64 get_ton_count() const {
-    return amount_;
+    return amount_ * TON_MULTIPLIER;
   }
 
   telegram_api::object_ptr<telegram_api::StarsAmount> get_input_stars_amount() const;

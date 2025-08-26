@@ -36,7 +36,7 @@ SuggestedPostPrice::SuggestedPostPrice(telegram_api::object_ptr<telegram_api::St
       auto ton_amount =
           TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(amount_ptr), false).get_ton_amount();
       if (ton_amount % TON_MULTIPLIER != 0) {
-        LOG(ERROR) << "Receive price of " << ton_amount << " TONs";
+        LOG(ERROR) << "Receive price of " << ton_amount << " Toncoins";
       }
       ton_amount /= TON_MULTIPLIER;
       if (ton_amount == 0) {

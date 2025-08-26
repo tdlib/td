@@ -892,11 +892,15 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 
 //@class GiftResalePrice @description Describes price of a resold gift
 
-//@description Describes price of a resold gift in Telegram Stars @star_count The amount of Telegram Stars expected to be paid for the gift
+//@description Describes price of a resold gift in Telegram Stars
+//@star_count The amount of Telegram Stars expected to be paid for the gift. Must be in range
+//-getOption("gift_resale_star_count_min")-getOption("gift_resale_star_count_max") for gifts put for resale
 giftResalePriceStar star_count:int53 = GiftResalePrice;
 
-//@description Describes price of a resold gift in Toncoins @toncoin_count The amount of Toncoin expected to be paid for the gift, in the smallest units of the cryptocurrency
-giftResalePriceTon toncoin_count:int53 = GiftResalePrice;
+//@description Describes price of a resold gift in Toncoins
+//@toncoin_cent_count The amount of 1/100 of Toncoin expected to be paid for the gift. Must be in range
+//-getOption("gift_resale_toncoin_cent_count_min")-getOption("gift_resale_toncoin_cent_count_max")
+giftResalePriceTon toncoin_cent_count:int53 = GiftResalePrice;
 
 
 //@class SuggestedPostPrice @description Describes price of a suggested post
