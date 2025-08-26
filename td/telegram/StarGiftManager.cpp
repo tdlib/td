@@ -778,15 +778,15 @@ class GetGiftTransferPaymentFormQuery final : public Td::ResultHandler {
 
 class ResaleGiftQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
-  int64 star_count_;
+  SuggestedPostPrice price_;
 
  public:
   explicit ResaleGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftResale> input_invoice, int64 payment_form_id,
-            int64 star_count) {
-    star_count_ = star_count;
+            SuggestedPostPrice price) {
+    price_ = price;
     send_query(G()->net_query_creator().create(
         telegram_api::payments_sendStarsForm(payment_form_id, std::move(input_invoice))));
   }
@@ -802,12 +802,12 @@ class ResaleGiftQuery final : public Td::ResultHandler {
     switch (payment_result->get_id()) {
       case telegram_api::payments_paymentResult::ID: {
         auto result = telegram_api::move_object_as<telegram_api::payments_paymentResult>(payment_result);
-        td_->star_manager_->add_pending_owned_star_count(star_count_, true);
+        td_->star_manager_->add_pending_owned_amount(price_, 1, true);
         td_->updates_manager_->on_get_updates(std::move(result->updates_), std::move(promise_));
         break;
       }
       case telegram_api::payments_paymentVerificationNeeded::ID:
-        td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+        td_->star_manager_->add_pending_owned_amount(price_, 1, false);
         LOG(ERROR) << "Receive " << to_string(payment_result);
         break;
       default:
@@ -820,14 +820,14 @@ class ResaleGiftQuery final : public Td::ResultHandler {
     if (status.message() == "FORM_SUBMIT_DUPLICATE") {
       LOG(ERROR) << "Receive FORM_SUBMIT_DUPLICATE";
     }
-    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+    td_->star_manager_->add_pending_owned_amount(price_, 1, false);
     promise_.set_error(std::move(status));
   }
 };
 
 class GetGiftResalePaymentFormQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
-  int64 star_count_;
+  SuggestedPostPrice price_;
   telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftResale> resale_input_invoice_;
 
  public:
@@ -835,10 +835,11 @@ class GetGiftResalePaymentFormQuery final : public Td::ResultHandler {
   }
 
   void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftResale> input_invoice,
-            telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftResale> resale_input_invoice, int64 star_count) {
+            telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftResale> resale_input_invoice,
+            SuggestedPostPrice price) {
     resale_input_invoice_ = std::move(resale_input_invoice);
-    star_count_ = star_count;
-    td_->star_manager_->add_pending_owned_star_count(-star_count, false);
+    price_ = price;
+    td_->star_manager_->add_pending_owned_amount(price_, -1, false);
     send_query(
         G()->net_query_creator().create(telegram_api::payments_getPaymentForm(0, std::move(input_invoice), nullptr)));
   }
@@ -855,11 +856,12 @@ class GetGiftResalePaymentFormQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentForm::ID:
       case telegram_api::payments_paymentFormStars::ID:
         LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
-        td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+        td_->star_manager_->add_pending_owned_amount(price_, 1, false);
         promise_.set_error(500, "Unsupported");
         break;
       case telegram_api::payments_paymentFormStarGift::ID: {
         auto payment_form = static_cast<const telegram_api::payments_paymentFormStarGift *>(payment_form_ptr.get());
+        /*
         if (payment_form->invoice_->prices_.size() != 1u || payment_form->invoice_->prices_[0]->amount_ > star_count_) {
           td_->star_manager_->add_pending_owned_star_count(star_count_, false);
           return promise_.set_error(400, "Wrong resale price specified");
@@ -869,8 +871,9 @@ class GetGiftResalePaymentFormQuery final : public Td::ResultHandler {
                                                            false);
           star_count_ = payment_form->invoice_->prices_[0]->amount_;
         }
+        */
         td_->create_handler<ResaleGiftQuery>(std::move(promise_))
-            ->send(std::move(resale_input_invoice_), payment_form->form_id_, star_count_);
+            ->send(std::move(resale_input_invoice_), payment_form->form_id_, price_);
         break;
       }
       default:
@@ -879,7 +882,7 @@ class GetGiftResalePaymentFormQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+    td_->star_manager_->add_pending_owned_amount(price_, 1, false);
     promise_.set_error(std::move(status));
   }
 };
@@ -1712,25 +1715,22 @@ void StarGiftManager::on_dialog_gift_transferred(DialogId from_dialog_id, Dialog
   promise.set_value(Unit());
 }
 
-void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receiver_dialog_id, int64 star_count,
+void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receiver_dialog_id, SuggestedPostPrice price,
                                        Promise<Unit> &&promise) {
   auto input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read);
   auto resale_input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read);
   if (input_peer == nullptr || resale_input_peer == nullptr) {
     return promise.set_error(400, "Have no access to the new gift owner");
   }
-  if (star_count < 0) {
-    return promise.set_error(400, "Invalid amount of Telegram Stars specified");
+  if (!td_->star_manager_->has_owned_amount(price)) {
+    return promise.set_error(400, "Have not enough funds");
   }
-  if (!td_->star_manager_->has_owned_star_count(star_count)) {
-    return promise.set_error(400, "Have not enough Telegram Stars");
-  }
-  auto input_invoice =
-      telegram_api::make_object<telegram_api::inputInvoiceStarGiftResale>(0, false, gift_name, std::move(input_peer));
+  auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftResale>(0, price.is_ton(), gift_name,
+                                                                                           std::move(input_peer));
   auto resale_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftResale>(
-      0, false, gift_name, std::move(resale_input_peer));
+      0, price.is_ton(), gift_name, std::move(resale_input_peer));
   td_->create_handler<GetGiftResalePaymentFormQuery>(std::move(promise))
-      ->send(std::move(input_invoice), std::move(resale_input_invoice), star_count);
+      ->send(std::move(input_invoice), std::move(resale_input_invoice), price);
 }
 
 void StarGiftManager::get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,

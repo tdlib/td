@@ -1370,6 +1370,24 @@ class CliClient final : public Actor {
     arg.price = std::move(args);
   }
 
+  struct GiftResalePrice {
+    string price;
+
+    operator td_api::object_ptr<td_api::GiftResalePrice>() const {
+      if (price[0] == 't') {
+        return td_api::make_object<td_api::giftResalePriceTon>(to_integer<int64>(price.substr(1)));
+      }
+      if (price[0] == 's') {
+        return td_api::make_object<td_api::giftResalePriceStar>(to_integer<int64>(price.substr(1)));
+      }
+      return nullptr;
+    }
+  };
+
+  void get_args(string &args, GiftResalePrice &arg) const {
+    arg.price = std::move(args);
+  }
+
   struct InputBackground {
     string background_file;
     // or
@@ -3101,9 +3119,9 @@ class CliClient final : public Actor {
     } else if (op == "srg") {
       string gift_name;
       string owner_id;
-      int64 star_count;
-      get_args(args, gift_name, owner_id, star_count);
-      send_request(td_api::make_object<td_api::sendResoldGift>(gift_name, as_message_sender(owner_id), star_count));
+      GiftResalePrice price;
+      get_args(args, gift_name, owner_id, price);
+      send_request(td_api::make_object<td_api::sendResoldGift>(gift_name, as_message_sender(owner_id), price));
     } else if (op == "grgs" || op == "grgsp") {
       string owner_id;
       int32 limit;

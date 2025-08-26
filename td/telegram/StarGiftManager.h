@@ -11,6 +11,7 @@
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/StarGiftCollectionId.h"
 #include "td/telegram/StarGiftId.h"
+#include "td/telegram/SuggestedPostPrice.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -62,7 +63,7 @@ class StarGiftManager final : public Actor {
   void transfer_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, DialogId receiver_dialog_id,
                      int64 star_count, Promise<Unit> &&promise);
 
-  void send_resold_gift(const string &gift_name, DialogId receiver_dialog_id, int64 star_count,
+  void send_resold_gift(const string &gift_name, DialogId receiver_dialog_id, SuggestedPostPrice price,
                         Promise<Unit> &&promise);
 
   void get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,
