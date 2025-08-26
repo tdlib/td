@@ -64,7 +64,7 @@ class StarGiftManager final : public Actor {
                      int64 star_count, Promise<Unit> &&promise);
 
   void send_resold_gift(const string &gift_name, DialogId receiver_dialog_id, SuggestedPostPrice price,
-                        Promise<Unit> &&promise);
+                        Promise<td_api::object_ptr<td_api::GiftResaleResult>> &&promise);
 
   void get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,
                             StarGiftCollectionId collection_id, bool exclude_unsaved, bool exclude_saved,

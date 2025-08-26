@@ -826,12 +826,13 @@ class ResaleGiftQuery final : public Td::ResultHandler {
 };
 
 class GetGiftResalePaymentFormQuery final : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<td_api::object_ptr<td_api::GiftResaleResult>> promise_;
   SuggestedPostPrice price_;
   telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftResale> resale_input_invoice_;
 
  public:
-  explicit GetGiftResalePaymentFormQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetGiftResalePaymentFormQuery(Promise<td_api::object_ptr<td_api::GiftResaleResult>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftResale> input_invoice,
@@ -861,18 +862,38 @@ class GetGiftResalePaymentFormQuery final : public Td::ResultHandler {
         break;
       case telegram_api::payments_paymentFormStarGift::ID: {
         auto payment_form = static_cast<const telegram_api::payments_paymentFormStarGift *>(payment_form_ptr.get());
-        /*
-        if (payment_form->invoice_->prices_.size() != 1u || payment_form->invoice_->prices_[0]->amount_ > star_count_) {
-          td_->star_manager_->add_pending_owned_star_count(star_count_, false);
-          return promise_.set_error(400, "Wrong resale price specified");
+        if (payment_form->invoice_->prices_.size() != 1u) {
+          td_->star_manager_->add_pending_owned_amount(price_, 1, false);
+          return promise_.set_error(500, "Receive invalid price");
         }
-        if (payment_form->invoice_->prices_[0]->amount_ != star_count_) {
-          td_->star_manager_->add_pending_owned_star_count(star_count_ - payment_form->invoice_->prices_[0]->amount_,
-                                                           false);
-          star_count_ = payment_form->invoice_->prices_[0]->amount_;
+        if (payment_form->invoice_->currency_ != (price_.is_ton() ? "TON" : "XTR")) {
+          td_->star_manager_->add_pending_owned_amount(price_, 1, false);
+          return promise_.set_error(500, "Receive invalid price currency");
         }
-        */
-        td_->create_handler<ResaleGiftQuery>(std::move(promise_))
+
+        auto amount = payment_form->invoice_->prices_[0]->amount_;
+        auto expected_amount = price_.is_ton() ? price_.get_ton_count() : price_.get_star_count();
+        auto real_price = price_.is_ton()
+                              ? SuggestedPostPrice(telegram_api::make_object<telegram_api::starsTonAmount>(amount))
+                              : SuggestedPostPrice(telegram_api::make_object<telegram_api::starsAmount>(amount, 0));
+        if (amount > expected_amount) {
+          td_->star_manager_->add_pending_owned_amount(price_, 1, false);
+          return promise_.set_value(
+              td_api::make_object<td_api::giftResaleResultPriceIncreased>(real_price.get_gift_resale_price_object()));
+        }
+        if (amount != expected_amount) {
+          td_->star_manager_->add_pending_owned_amount(price_, 1, false);
+          td_->star_manager_->add_pending_owned_amount(real_price, -1, false);
+          price_ = real_price;
+        }
+        td_->create_handler<ResaleGiftQuery>(
+               PromiseCreator::lambda([promise = std::move(promise_)](Result<Unit> result) mutable {
+                 if (result.is_error()) {
+                   promise.set_error(result.move_as_error());
+                 } else {
+                   promise.set_value(td_api::make_object<td_api::giftResaleResultOk>());
+                 }
+               }))
             ->send(std::move(resale_input_invoice_), payment_form->form_id_, price_);
         break;
       }
@@ -1716,7 +1737,7 @@ void StarGiftManager::on_dialog_gift_transferred(DialogId from_dialog_id, Dialog
 }
 
 void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receiver_dialog_id, SuggestedPostPrice price,
-                                       Promise<Unit> &&promise) {
+                                       Promise<td_api::object_ptr<td_api::GiftResaleResult>> &&promise) {
   auto input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read);
   auto resale_input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read);
   if (input_peer == nullptr || resale_input_peer == nullptr) {

@@ -1336,6 +1336,15 @@ giftForResale gift:upgradedGift received_gift_id:string = GiftForResale;
 giftsForResale total_count:int32 gifts:vector<giftForResale> models:vector<upgradedGiftModelCount> symbols:vector<upgradedGiftSymbolCount> backdrops:vector<upgradedGiftBackdropCount> next_offset:string = GiftsForResale;
 
 
+//@class GiftResaleResult @description Describes result of sending a resold gift
+
+//@description Operation was successfully completed
+giftResaleResultOk = GiftResaleResult;
+
+//@description Operation has failed, because price has increased. If the price has decreased, then the buying will succeed anyway @price New price for the gift
+giftResaleResultPriceIncreased price:GiftResalePrice = GiftResaleResult;
+
+
 //@class SentGift @description Represents content of a gift received by a user or a channel chat
 
 //@description Regular gift @gift The gift
@@ -12831,7 +12840,7 @@ transferGift business_connection_id:string received_gift_id:string new_owner_id:
 //@gift_name Name of the upgraded gift to send
 //@owner_id Identifier of the user or the channel chat that will receive the gift
 //@price The price that the user agreed to pay for the gift
-sendResoldGift gift_name:string owner_id:MessageSender price:GiftResalePrice = Ok;
+sendResoldGift gift_name:string owner_id:MessageSender price:GiftResalePrice = GiftResaleResult;
 
 //@description Returns gifts received by the given user or chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
