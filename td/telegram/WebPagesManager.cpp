@@ -694,6 +694,22 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             break;
           }
           case telegram_api::webPageAttributeStarGiftCollection::ID: {
+            auto attribute =
+                telegram_api::move_object_as<telegram_api::webPageAttributeStarGiftCollection>(attribute_ptr);
+            for (auto &icon : attribute->icons_) {
+              auto icon_file_id = td_->stickers_manager_
+                                      ->on_get_sticker_document(std::move(icon), StickerFormat::Unknown,
+                                                                "webPageAttributeStarGiftCollection")
+                                      .second;
+              if (!icon_file_id.is_valid()) {
+                LOG(ERROR) << "Receive invalid gift collection icon";
+              } else if (page->sticker_ids_.size() < 4) {
+                page->sticker_ids_.push_back(icon_file_id);
+              }
+            }
+            if (page->type_ != "telegram_collection") {
+              LOG(ERROR) << "Receive webPageAttributeStarGiftCollection for " << page->type_;
+            }
             break;
           }
           default:
@@ -1543,6 +1559,12 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
       LOG_IF(ERROR, web_page->document_.type != Document::Type::Unknown)
           << "Receive wrong document for " << web_page->url_;
       return td_api::make_object<td_api::linkPreviewTypeShareableChatFolder>();
+    }
+    if (type == "collection") {
+      LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
+      auto icons = transform(web_page->sticker_ids_,
+                             [&](FileId sticker_id) { return td_->stickers_manager_->get_sticker_object(sticker_id); });
+      return td_api::make_object<td_api::linkPreviewTypeGiftCollection>(std::move(icons));
     }
     if (type == "giftcode") {
       LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
