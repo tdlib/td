@@ -37,7 +37,8 @@ class SuggestedPostPrice {
                                                              td_api::object_ptr<td_api::SuggestedPostPrice> &&price);
 
   static Result<SuggestedPostPrice> get_suggested_post_price(const Td *td,
-                                                             td_api::object_ptr<td_api::GiftResalePrice> &&price);
+                                                             td_api::object_ptr<td_api::GiftResalePrice> &&price,
+                                                             bool check_limits);
 
   static SuggestedPostPrice legacy(int64 star_count);
 

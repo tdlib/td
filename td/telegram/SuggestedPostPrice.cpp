@@ -91,19 +91,21 @@ Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
 }
 
 Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
-    const Td *td, td_api::object_ptr<td_api::GiftResalePrice> &&price) {
+    const Td *td, td_api::object_ptr<td_api::GiftResalePrice> &&price, bool check_limits) {
   if (price == nullptr) {
-    return SuggestedPostPrice();
+    return Status::Error(400, "Gift resale price must be non-empty");
   }
   switch (price->get_id()) {
     case td_api::giftResalePriceStar::ID: {
       auto amount = static_cast<const td_api::giftResalePriceStar *>(price.get())->star_count_;
-      if (amount == 0) {
-        return SuggestedPostPrice();
-      }
-      if (amount < td->option_manager_->get_option_integer("gift_resale_star_count_min") ||
-          amount > td->option_manager_->get_option_integer("gift_resale_star_count_max")) {
+      if (amount <= 0) {
         return Status::Error(400, "Invalid amount of Telegram Stars specified");
+      }
+      if (check_limits) {
+        if (amount < td->option_manager_->get_option_integer("gift_resale_star_count_min") ||
+            amount > td->option_manager_->get_option_integer("gift_resale_star_count_max")) {
+          return Status::Error(400, "Invalid amount of Telegram Stars specified");
+        }
       }
       SuggestedPostPrice result;
       result.type_ = Type::Star;
@@ -112,12 +114,14 @@ Result<SuggestedPostPrice> SuggestedPostPrice::get_suggested_post_price(
     }
     case td_api::giftResalePriceTon::ID: {
       auto amount = static_cast<const td_api::giftResalePriceTon *>(price.get())->toncoin_cent_count_;
-      if (amount == 0) {
-        return SuggestedPostPrice();
+      if (amount <= 0) {
+        return Status::Error(400, "Invalid amount of Toncoins specified");
       }
-      if (amount < td->option_manager_->get_option_integer("gift_resale_toncoin_cent_count_min") ||
-          amount > td->option_manager_->get_option_integer("gift_resale_toncoin_cent_count_max")) {
-        return Status::Error(400, "Invalid amount of Toncoin cents specified");
+      if (check_limits) {
+        if (amount < td->option_manager_->get_option_integer("gift_resale_toncoin_cent_count_min") ||
+            amount > td->option_manager_->get_option_integer("gift_resale_toncoin_cent_count_max")) {
+          return Status::Error(400, "Invalid amount of Toncoin cents specified");
+        }
       }
       SuggestedPostPrice result;
       result.type_ = Type::Ton;
