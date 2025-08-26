@@ -1299,6 +1299,16 @@ void StarManager::add_pending_owned_ton_count(int64 ton_count, bool move_to_owne
   }
 }
 
+void StarManager::add_pending_owned_amount(const SuggestedPostPrice &amount, int32 multiplier, bool move_to_owned) {
+  if (amount.is_star()) {
+    return add_pending_owned_star_count(multiplier * amount.get_star_count(), move_to_owned);
+  }
+  if (amount.is_ton()) {
+    return add_pending_owned_ton_count(multiplier * amount.get_ton_count(), move_to_owned);
+  }
+  UNREACHABLE();
+}
+
 bool StarManager::has_owned_star_count(int64 star_count) const {
   if (star_count <= 0 || !is_owned_star_count_inited_) {
     return true;
@@ -1311,6 +1321,16 @@ bool StarManager::has_owned_ton_count(int64 ton_count) const {
     return true;
   }
   return sent_ton_count_ >= ton_count;
+}
+
+bool StarManager::has_owned_amount(const SuggestedPostPrice &amount) const {
+  if (amount.is_star()) {
+    return has_owned_star_count(amount.get_star_count());
+  }
+  if (amount.is_ton()) {
+    return has_owned_ton_count(amount.get_ton_count());
+  }
+  return false;
 }
 
 Status StarManager::can_manage_stars(DialogId dialog_id, bool allow_self) const {

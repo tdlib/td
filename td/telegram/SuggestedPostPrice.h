@@ -46,6 +46,22 @@ class SuggestedPostPrice {
     return type_ == Type::None;
   }
 
+  bool is_star() const {
+    return type_ == Type::Star;
+  }
+
+  bool is_ton() const {
+    return type_ == Type::Ton;
+  }
+
+  int64 get_star_count() const {
+    return amount_;
+  }
+
+  int64 get_ton_count() const {
+    return amount_ * TON_MULTIPLIER;
+  }
+
   telegram_api::object_ptr<telegram_api::StarsAmount> get_input_stars_amount() const;
 
   td_api::object_ptr<td_api::SuggestedPostPrice> get_suggested_post_price_object() const;
