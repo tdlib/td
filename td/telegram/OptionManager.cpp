@@ -197,6 +197,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("gift_collection_gift_count_max", 500);
   set_default_integer_option("gift_resale_toncoin_cent_count_min", 100);
   set_default_integer_option("gift_resale_toncoin_cent_count_max", 10000000);
+  set_default_integer_option("gift_resale_toncoin_earnings_per_mille", 900);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();

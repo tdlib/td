@@ -1439,6 +1439,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"todo_items_max", "checklist_task_count_max"},
       {"todo_item_length_max", "checklist_task_text_length_max"},
       {"todo_title_length_max", "checklist_title_length_max"},
+      {"ton_stargift_resale_commission_permille", "gift_resale_toncoin_earnings_per_mille"},
       {"ton_suggested_post_commission_permille", "suggested_post_toncoin_earnings_per_mille"},
       {"topics_pinned_limit", "pinned_forum_topic_count_max"},
       {"upload_premium_speedup_download", "premium_download_speedup"},
