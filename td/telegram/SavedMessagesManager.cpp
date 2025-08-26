@@ -1432,6 +1432,7 @@ SavedMessagesManager::TopicList *SavedMessagesManager::add_topic_list(DialogId d
   if (check_monoforum_dialog_id(dialog_id).is_error()) {
     return nullptr;
   }
+  CHECK(dialog_id.is_valid());
   auto &topic_list = monoforum_topic_lists_[dialog_id];
   if (topic_list == nullptr) {
     topic_list = make_unique<TopicList>();
