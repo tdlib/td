@@ -36,37 +36,13 @@ class SuggestedPostPrice {
   static Result<SuggestedPostPrice> get_suggested_post_price(const Td *td,
                                                              td_api::object_ptr<td_api::SuggestedPostPrice> &&price);
 
-  static Result<SuggestedPostPrice> get_suggested_post_price(const Td *td,
-                                                             td_api::object_ptr<td_api::GiftResalePrice> &&price,
-                                                             bool check_limits);
-
-  static SuggestedPostPrice legacy(int64 star_count);
-
   bool is_empty() const {
     return type_ == Type::None;
-  }
-
-  bool is_star() const {
-    return type_ == Type::Star;
-  }
-
-  bool is_ton() const {
-    return type_ == Type::Ton;
-  }
-
-  int64 get_star_count() const {
-    return amount_;
-  }
-
-  int64 get_ton_count() const {
-    return amount_ * TON_MULTIPLIER;
   }
 
   telegram_api::object_ptr<telegram_api::StarsAmount> get_input_stars_amount() const;
 
   td_api::object_ptr<td_api::SuggestedPostPrice> get_suggested_post_price_object() const;
-
-  td_api::object_ptr<td_api::GiftResalePrice> get_gift_resale_price_object() const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

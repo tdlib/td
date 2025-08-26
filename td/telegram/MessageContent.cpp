@@ -80,6 +80,8 @@
 #include "td/telegram/StarGift.hpp"
 #include "td/telegram/StarGiftId.h"
 #include "td/telegram/StarGiftManager.h"
+#include "td/telegram/StarGiftResalePrice.h"
+#include "td/telegram/StarGiftResalePrice.hpp"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
@@ -1313,7 +1315,7 @@ class MessageStarGiftUnique final : public MessageContent {
   DialogId sender_dialog_id;
   DialogId owner_dialog_id;
   int64 saved_id = 0;
-  SuggestedPostPrice resale_price;
+  StarGiftResalePrice resale_price;
   int64 transfer_star_count = 0;
   int32 can_transfer_at = 0;
   int32 can_resell_at = 0;
@@ -1326,7 +1328,7 @@ class MessageStarGiftUnique final : public MessageContent {
 
   MessageStarGiftUnique() = default;
   MessageStarGiftUnique(MessageId gift_message_id, StarGift &&star_gift, DialogId sender_dialog_id,
-                        DialogId owner_dialog_id, int64 saved_id, SuggestedPostPrice resale_price,
+                        DialogId owner_dialog_id, int64 saved_id, StarGiftResalePrice resale_price,
                         int64 transfer_star_count, int32 can_transfer_at, int32 can_resell_at, int32 can_export_at,
                         bool is_saved, bool is_upgrade, bool can_transfer, bool was_transferred, bool was_refunded)
       : gift_message_id(gift_message_id)
@@ -3526,7 +3528,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       if (has_resale_star_count) {
         int64 resale_star_count;
         parse(resale_star_count, parser);
-        m->resale_price = SuggestedPostPrice::legacy(resale_star_count);
+        m->resale_price = StarGiftResalePrice::legacy(resale_star_count);
       }
       if (has_gift_message_id) {
         parse(m->gift_message_id, parser);
@@ -9182,7 +9184,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return td::make_unique<MessageStarGiftUnique>(
           reply_to_message_id, std::move(star_gift), gift_sender_dialog_id, gift_owner_dialog_id, saved_id,
-          SuggestedPostPrice(std::move(action->resale_amount_)), StarManager::get_star_count(action->transfer_stars_),
+          StarGiftResalePrice(std::move(action->resale_amount_)), StarManager::get_star_count(action->transfer_stars_),
           max(0, action->can_transfer_at_), max(0, action->can_resell_at_), max(0, action->can_export_at_),
           action->saved_, action->upgrade_,
           (action->flags_ & telegram_api::messageActionStarGiftUnique::TRANSFER_STARS_MASK) != 0, action->transferred_,

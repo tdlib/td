@@ -604,6 +604,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StarGiftCollection.cpp
   td/telegram/StarGiftId.cpp
   td/telegram/StarGiftManager.cpp
+  td/telegram/StarGiftResalePrice.cpp
   td/telegram/StarGiftSettings.cpp
   td/telegram/StarManager.cpp
   td/telegram/StarRating.cpp
@@ -995,6 +996,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StarGiftCollectionId.h
   td/telegram/StarGiftId.h
   td/telegram/StarGiftManager.h
+  td/telegram/StarGiftResalePrice.h
   td/telegram/StarGiftSettings.h
   td/telegram/StarManager.h
   td/telegram/StarRating.h
@@ -1150,6 +1152,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StarGift.hpp
   td/telegram/StarGiftAttribute.hpp
   td/telegram/StarGiftId.hpp
+  td/telegram/StarGiftResalePrice.hpp
   td/telegram/StarGiftSettings.hpp
   td/telegram/StarRating.hpp
   td/telegram/StarSubscriptionPricing.hpp

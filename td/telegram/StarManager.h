@@ -9,7 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/StarAmount.h"
-#include "td/telegram/SuggestedPostPrice.h"
+#include "td/telegram/StarGiftResalePrice.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TonAmount.h"
@@ -42,9 +42,9 @@ class StarManager final : public Actor {
 
   bool has_owned_ton_count(int64 ton_count) const;
 
-  void add_pending_owned_amount(const SuggestedPostPrice &amount, int32 multiplier, bool move_to_owned);
+  void add_pending_owned_amount(const StarGiftResalePrice &amount, int32 multiplier, bool move_to_owned);
 
-  bool has_owned_amount(const SuggestedPostPrice &amount) const;
+  bool has_owned_amount(const StarGiftResalePrice &amount) const;
 
   void get_star_payment_options(Promise<td_api::object_ptr<td_api::starPaymentOptions>> &&promise);
 

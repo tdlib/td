@@ -778,14 +778,14 @@ class GetGiftTransferPaymentFormQuery final : public Td::ResultHandler {
 
 class ResaleGiftQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
-  SuggestedPostPrice price_;
+  StarGiftResalePrice price_;
 
  public:
   explicit ResaleGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftResale> input_invoice, int64 payment_form_id,
-            SuggestedPostPrice price) {
+            StarGiftResalePrice price) {
     price_ = price;
     send_query(G()->net_query_creator().create(
         telegram_api::payments_sendStarsForm(payment_form_id, std::move(input_invoice))));
@@ -827,7 +827,7 @@ class ResaleGiftQuery final : public Td::ResultHandler {
 
 class GetGiftResalePaymentFormQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::GiftResaleResult>> promise_;
-  SuggestedPostPrice price_;
+  StarGiftResalePrice price_;
   telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftResale> resale_input_invoice_;
 
  public:
@@ -837,7 +837,7 @@ class GetGiftResalePaymentFormQuery final : public Td::ResultHandler {
 
   void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftResale> input_invoice,
             telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftResale> resale_input_invoice,
-            SuggestedPostPrice price) {
+            StarGiftResalePrice price) {
     resale_input_invoice_ = std::move(resale_input_invoice);
     price_ = price;
     td_->star_manager_->add_pending_owned_amount(price_, -1, false);
@@ -874,8 +874,8 @@ class GetGiftResalePaymentFormQuery final : public Td::ResultHandler {
         auto amount = payment_form->invoice_->prices_[0]->amount_;
         auto expected_amount = price_.is_ton() ? price_.get_ton_count() : price_.get_star_count();
         auto real_price = price_.is_ton()
-                              ? SuggestedPostPrice(telegram_api::make_object<telegram_api::starsTonAmount>(amount))
-                              : SuggestedPostPrice(telegram_api::make_object<telegram_api::starsAmount>(amount, 0));
+                              ? StarGiftResalePrice(telegram_api::make_object<telegram_api::starsTonAmount>(amount))
+                              : StarGiftResalePrice(telegram_api::make_object<telegram_api::starsAmount>(amount, 0));
         if (amount > expected_amount) {
           td_->star_manager_->add_pending_owned_amount(price_, 1, false);
           return promise_.set_value(
@@ -1736,7 +1736,7 @@ void StarGiftManager::on_dialog_gift_transferred(DialogId from_dialog_id, Dialog
   promise.set_value(Unit());
 }
 
-void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receiver_dialog_id, SuggestedPostPrice price,
+void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receiver_dialog_id, StarGiftResalePrice price,
                                        Promise<td_api::object_ptr<td_api::GiftResaleResult>> &&promise) {
   auto input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read);
   auto resale_input_peer = td_->dialog_manager_->get_input_peer(receiver_dialog_id, AccessRights::Read);

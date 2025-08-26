@@ -1299,7 +1299,7 @@ void StarManager::add_pending_owned_ton_count(int64 ton_count, bool move_to_owne
   }
 }
 
-void StarManager::add_pending_owned_amount(const SuggestedPostPrice &amount, int32 multiplier, bool move_to_owned) {
+void StarManager::add_pending_owned_amount(const StarGiftResalePrice &amount, int32 multiplier, bool move_to_owned) {
   if (amount.is_star()) {
     return add_pending_owned_star_count(multiplier * amount.get_star_count(), move_to_owned);
   }
@@ -1323,7 +1323,7 @@ bool StarManager::has_owned_ton_count(int64 ton_count) const {
   return sent_ton_count_ >= ton_count;
 }
 
-bool StarManager::has_owned_amount(const SuggestedPostPrice &amount) const {
+bool StarManager::has_owned_amount(const StarGiftResalePrice &amount) const {
   if (amount.is_star()) {
     return has_owned_star_count(amount.get_star_count());
   }
