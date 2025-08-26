@@ -38,6 +38,7 @@ void StarGift::store(StorerT &storer) const {
   bool has_released_by_dialog_id = released_by_dialog_id_.is_valid();
   bool has_per_user_remains = per_user_remains_ != 0;
   bool has_per_user_total = per_user_total_ != 0;
+  bool has_resale_ton_count = resale_ton_count_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_limited);
   STORE_FLAG(has_default_sell_star_count);
@@ -58,6 +59,8 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(is_premium_);
   STORE_FLAG(has_per_user_remains);
   STORE_FLAG(has_per_user_total);
+  STORE_FLAG(resale_ton_only_);
+  STORE_FLAG(has_resale_ton_count);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -109,6 +112,9 @@ void StarGift::store(StorerT &storer) const {
     if (has_resale_star_count) {
       td::store(resale_star_count_, storer);
     }
+    if (has_resale_ton_count) {
+      td::store(resale_ton_count_, storer);
+    }
   }
   if (has_released_by_dialog_id) {
     td::store(released_by_dialog_id_, storer);
@@ -140,6 +146,7 @@ void StarGift::parse(ParserT &parser) {
   bool has_released_by_dialog_id;
   bool has_per_user_remains;
   bool has_per_user_total;
+  bool has_resale_ton_count;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_limited);
   PARSE_FLAG(has_default_sell_star_count);
@@ -160,6 +167,8 @@ void StarGift::parse(ParserT &parser) {
   PARSE_FLAG(is_premium_);
   PARSE_FLAG(has_per_user_remains);
   PARSE_FLAG(has_per_user_total);
+  PARSE_FLAG(resale_ton_only_);
+  PARSE_FLAG(has_resale_ton_count);
   END_PARSE_FLAGS();
   td::parse(id_, parser);
   if (!is_unique_) {
@@ -217,6 +226,9 @@ void StarGift::parse(ParserT &parser) {
     }
     if (has_resale_star_count) {
       td::parse(resale_star_count_, parser);
+    }
+    if (has_resale_ton_count) {
+      td::parse(resale_ton_count_, parser);
     }
   }
   if (has_released_by_dialog_id) {

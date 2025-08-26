@@ -39,6 +39,7 @@ class StarGift {
   bool is_for_birthday_ = false;
 
   bool is_unique_ = false;
+  bool resale_ton_only_ = false;
   StarGiftAttributeSticker model_;
   StarGiftAttributeSticker pattern_;
   StarGiftAttributeBackdrop backdrop_;
@@ -53,6 +54,7 @@ class StarGift {
   int32 unique_availability_issued_ = 0;
   int32 unique_availability_total_ = 0;
   int64 resale_star_count_ = 0;
+  int64 resale_ton_count_ = 0;
 
   friend bool operator==(const StarGift &lhs, const StarGift &rhs);
 

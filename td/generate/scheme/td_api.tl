@@ -1171,6 +1171,12 @@ giftSettings show_gift_button:Bool accepted_gift_types:acceptedGiftTypes = GiftS
 //@remaining_count Number of remaining times the gift can be purchased
 giftPurchaseLimits total_count:int32 remaining_count:int32 = GiftPurchaseLimits;
 
+//@description Describes parameters of a unique gift available for resale
+//@star_count Resale price of the gift in Telegram Stars
+//@toncoin_count Resale price of the gift in Toncoins; in the smallest units of the cryptocurrency
+//@toncoin_only True, if the gift can be bought only using Toncoins
+giftResaleParameters star_count:int53 toncoin_count:int53 toncoin_only:Bool = GiftResaleParameters;
+
 //@description Describes collection of gifts
 //@id Unique identifier of the collection
 //@name Name of the collection
@@ -1260,8 +1266,8 @@ gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_s
 //@symbol Symbol of the upgraded gift
 //@backdrop Backdrop of the upgraded gift
 //@original_details Information about the originally sent gift; may be null if unknown
-//@resale_star_count Number of Telegram Stars that must be paid to buy the gift and send it to someone else; 0 if resale isn't possible
-upgradedGift id:int64 publisher_chat_id:int53 title:string name:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 is_premium:Bool owner_id:MessageSender owner_address:string owner_name:string gift_address:string model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails resale_star_count:int53 = UpgradedGift;
+//@resale_parameters Resale parameters of the gift; may be null if resale isn't possible
+upgradedGift id:int64 publisher_chat_id:int53 title:string name:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 is_premium:Bool owner_id:MessageSender owner_address:string owner_name:string gift_address:string model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails resale_parameters:giftResaleParameters = UpgradedGift;
 
 //@description Contains result of gift upgrading
 //@gift The upgraded gift

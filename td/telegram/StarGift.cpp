@@ -58,8 +58,19 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     unique_availability_issued_ = star_gift->availability_issued_;
     unique_availability_total_ = star_gift->availability_total_;
     if (!star_gift->resell_amount_.empty()) {
-      resale_star_count_ =
-          CurrencyAmount(std::move(star_gift->resell_amount_[0]), false).get_star_amount().get_star_count();
+      if (star_gift->resell_amount_.size() < 2u ||
+          star_gift->resell_amount_[0]->get_id() != telegram_api::starsAmount::ID ||
+          star_gift->resell_amount_[1]->get_id() != telegram_api::starsTonAmount::ID) {
+        LOG(ERROR) << "Receive unsupported resale amount";
+      } else {
+        resale_star_count_ =
+            StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(star_gift->resell_amount_[0]), false)
+                .get_star_count();
+        resale_ton_count_ =
+            TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(star_gift->resell_amount_[1]), false)
+                .get_ton_amount();
+        resale_ton_only_ = star_gift->resale_ton_only_;
+      }
     }
     if (star_gift->released_by_ != nullptr) {
       released_by_dialog_id_ = DialogId(star_gift->released_by_);
@@ -174,13 +185,18 @@ td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
 td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *td) const {
   CHECK(is_valid());
   CHECK(is_unique_);
+  td_api::object_ptr<td_api::giftResaleParameters> resale_parameters;
+  if (resale_star_count_ > 0 && resale_ton_count_ > 0) {
+    resale_parameters =
+        td_api::make_object<td_api::giftResaleParameters>(resale_star_count_, resale_ton_count_, resale_ton_only_);
+  }
   return td_api::make_object<td_api::upgradedGift>(
       id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "upgradedGift"), title_, slug_, num_,
       unique_availability_issued_, unique_availability_total_, is_premium_,
       !owner_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, owner_dialog_id_, "upgradedGift"),
       owner_address_, owner_name_, gift_address_, model_.get_upgraded_gift_model_object(td),
       pattern_.get_upgraded_gift_symbol_object(td), backdrop_.get_upgraded_gift_backdrop_object(),
-      original_details_.get_upgraded_gift_original_details_object(td), resale_star_count_);
+      original_details_.get_upgraded_gift_original_details_object(td), std::move(resale_parameters));
 }
 
 td_api::object_ptr<td_api::giftForResale> StarGift::get_gift_for_resale_object(Td *td) const {
