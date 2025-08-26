@@ -1918,6 +1918,16 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
                                 get_json_value_long(std::move(key_value->value_), key) / 10000000);
         continue;
       }
+      if (key == "ton_stargift_resale_amount_min") {
+        G()->set_option_integer("gift_resale_toncoin_cent_count_min",
+                                get_json_value_long(std::move(key_value->value_), key) / 10000000);
+        continue;
+      }
+      if (key == "ton_stargift_resale_amount_max") {
+        G()->set_option_integer("gift_resale_toncoin_cent_count_max",
+                                get_json_value_long(std::move(key_value->value_), key) / 10000000);
+        continue;
+      }
       if (key == "ton_usd_rate") {
         G()->set_option_integer("million_toncoin_to_usd_rate",
                                 static_cast<int64>(get_json_value_double(std::move(key_value->value_), key) * 1000000));
