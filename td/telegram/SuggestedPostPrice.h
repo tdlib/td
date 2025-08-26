@@ -39,6 +39,8 @@ class SuggestedPostPrice {
   static Result<SuggestedPostPrice> get_suggested_post_price(const Td *td,
                                                              td_api::object_ptr<td_api::GiftResalePrice> &&price);
 
+  static SuggestedPostPrice legacy(int64 star_count);
+
   bool is_empty() const {
     return type_ == Type::None;
   }

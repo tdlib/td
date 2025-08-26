@@ -1193,8 +1193,8 @@ upgradedGiftOriginUpgrade gift_message_id:int53 = UpgradedGiftOrigin;
 //@description The gift was transferred from another owner
 upgradedGiftOriginTransfer = UpgradedGiftOrigin;
 
-//@description The gift was bought from another user @star_count Number of Telegram Stars that were paid by the sender for the gift
-upgradedGiftOriginResale star_count:int53 = UpgradedGiftOrigin;
+//@description The gift was bought from another user @price Price paid by the sender for the gift
+upgradedGiftOriginResale price:GiftResalePrice = UpgradedGiftOrigin;
 
 
 //@description Describes a model of an upgraded gift
