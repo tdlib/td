@@ -168,6 +168,7 @@ class LinkManager final : public Actor {
   class InternalLinkRestorePurchases;
   class InternalLinkSettings;
   class InternalLinkStickerSet;
+  class InternalLinkStarGiftCollection;
   class InternalLinkStory;
   class InternalLinkTheme;
   class InternalLinkThemeSettings;

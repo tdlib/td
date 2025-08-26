@@ -25,6 +25,7 @@
 #include "td/telegram/net/Proxy.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarGiftCollectionId.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StoryId.h"
 #include "td/telegram/Td.h"
@@ -156,6 +157,11 @@ static bool is_valid_star_top_up_purpose(CSlice purpose) {
 static bool is_valid_story_id(Slice story_id) {
   auto r_story_id = to_integer_safe<int32>(story_id);
   return r_story_id.is_ok() && StoryId(r_story_id.ok()).is_server();
+}
+
+static bool is_valid_star_gift_collection_id(Slice collection_id) {
+  auto r_collection_id = to_integer_safe<int32>(collection_id);
+  return r_collection_id.is_ok() && StarGiftCollectionId(r_collection_id.ok()).is_valid();
 }
 
 static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
@@ -882,6 +888,20 @@ class LinkManager::InternalLinkStickerSet final : public InternalLink {
  public:
   InternalLinkStickerSet(string &&sticker_set_name, bool expect_custom_emoji)
       : sticker_set_name_(std::move(sticker_set_name)), expect_custom_emoji_(expect_custom_emoji) {
+  }
+};
+
+class LinkManager::InternalLinkStarGiftCollection final : public InternalLink {
+  string gift_owner_username_;
+  StarGiftCollectionId collection_id_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeGiftCollection>(gift_owner_username_, collection_id_.get());
+  }
+
+ public:
+  InternalLinkStarGiftCollection(string gift_owner_username, StarGiftCollectionId collection_id)
+      : gift_owner_username_(std::move(gift_owner_username)), collection_id_(collection_id) {
   }
 };
 
@@ -1644,6 +1664,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           // resolve?domain=<username>&direct
           return td::make_unique<InternalLinkMonoforum>(std::move(username));
         }
+        if (arg.first == "collection" && is_valid_star_gift_collection_id(arg.second)) {
+          // resolve?domain=<username>&collection=<story_id>
+          return td::make_unique<InternalLinkStarGiftCollection>(std::move(username),
+                                                                 StarGiftCollectionId(to_integer<int32>(arg.second)));
+        }
       }
       if (username == "telegrampassport") {
         // resolve?domain=telegrampassport&bot_id=...&scope=...&public_key=...&nonce=...&callback_url=...
@@ -2117,6 +2142,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (path.size() == 3 && path[1] == "s" && is_valid_story_id(path[2])) {
       // /<username>/s/<story_id>
       return td::make_unique<InternalLinkStory>(std::move(username), StoryId(to_integer<int32>(path[2])));
+    }
+    if (path.size() == 3 && path[1] == "c" && is_valid_star_gift_collection_id(path[2])) {
+      // /<username>/c/<collection_id>
+      return td::make_unique<InternalLinkStarGiftCollection>(std::move(username),
+                                                             StarGiftCollectionId(to_integer<int32>(path[2])));
     }
     if (path.size() == 2 && is_valid_web_app_name(path[1])) {
       // /<username>/<web_app_name>
@@ -2595,6 +2625,21 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return PSTRING() << "tg://resolve?domain=" << link->bot_username_ << "&game=" << link->game_short_name_;
       } else {
         return PSTRING() << get_t_me_url() << link->bot_username_ << "?game=" << link->game_short_name_;
+      }
+    }
+    case td_api::internalLinkTypeGiftCollection::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeGiftCollection *>(type_ptr);
+      if (!is_valid_username(link->gift_owner_username_)) {
+        return Status::Error(400, "Invalid gift collection owner username specified");
+      }
+      if (!StarGiftCollectionId(link->collection_id_).is_valid()) {
+        return Status::Error(400, "Invalid gift collection identifier specified");
+      }
+      if (is_internal) {
+        return PSTRING() << "tg://resolve?domain=" << link->gift_owner_username_
+                         << "&collection=" << link->collection_id_;
+      } else {
+        return PSTRING() << get_t_me_url() << link->gift_owner_username_ << "/c/" << link->collection_id_;
       }
     }
     case td_api::internalLinkTypeGroupCall::ID: {
