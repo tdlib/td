@@ -12,6 +12,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogInviteLink.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/DialogPhoto.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/misc.h"

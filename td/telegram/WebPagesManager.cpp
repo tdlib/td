@@ -12,6 +12,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/DialogPhoto.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/Document.hpp"

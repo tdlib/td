@@ -6,8 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/DialogPhoto.hpp"
 #include "td/telegram/MinChannel.h"
-#include "td/telegram/Photo.hpp"
 
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"

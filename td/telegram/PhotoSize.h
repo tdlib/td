@@ -75,6 +75,11 @@ PhotoSize get_input_thumbnail_photo_size(FileManager *file_manager, const td_api
 td_api::object_ptr<td_api::thumbnail> get_thumbnail_object(FileManager *file_manager, const PhotoSize &photo_size,
                                                            PhotoFormat format);
 
+td_api::object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager, const PhotoSize *photo_size);
+
+vector<td_api::object_ptr<td_api::photoSize>> get_photo_sizes_object(FileManager *file_manager,
+                                                                     const vector<PhotoSize> &photo_sizes);
+
 bool operator==(const PhotoSize &lhs, const PhotoSize &rhs);
 bool operator!=(const PhotoSize &lhs, const PhotoSize &rhs);
 

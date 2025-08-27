@@ -14,6 +14,8 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/DialogPhoto.h"
+#include "td/telegram/DialogPhoto.hpp"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"

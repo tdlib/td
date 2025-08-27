@@ -416,6 +416,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/DialogParticipant.cpp
   td/telegram/DialogParticipantFilter.cpp
   td/telegram/DialogParticipantManager.cpp
+  td/telegram/DialogPhoto.cpp
   td/telegram/DialogSource.cpp
   td/telegram/Dimensions.cpp
   td/telegram/DisallowedGiftsSettings.cpp
@@ -757,6 +758,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/DialogParticipant.h
   td/telegram/DialogParticipantFilter.h
   td/telegram/DialogParticipantManager.h
+  td/telegram/DialogPhoto.h
   td/telegram/DialogSource.h
   td/telegram/Dimensions.h
   td/telegram/DisallowedGiftsSettings.h
@@ -1082,6 +1084,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/DialogFilter.hpp
   td/telegram/DialogInviteLink.hpp
   td/telegram/DialogNotificationSettings.hpp
+  td/telegram/DialogPhoto.hpp
   td/telegram/Dimensions.hpp
   td/telegram/DisallowedGiftsSettings.hpp
   td/telegram/Document.hpp

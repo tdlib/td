@@ -7,7 +7,7 @@
 #pragma once
 
 #include "td/telegram/AccentColorId.h"
-#include "td/telegram/Photo.h"
+#include "td/telegram/DialogPhoto.h"
 
 #include "td/utils/common.h"
 
