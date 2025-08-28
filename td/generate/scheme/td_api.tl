@@ -1566,6 +1566,9 @@ starTransactionTypeBusinessBotTransferSend user_id:int53 = StarTransactionType;
 //@description The transaction is a transfer of Telegram Stars from a business account; for bots only @user_id Identifier of the user that sent Telegram Stars
 starTransactionTypeBusinessBotTransferReceive user_id:int53 = StarTransactionType;
 
+//@description The transaction is a payment for search of posts in public Telegram channels; for regular users only
+starTransactionTypePublicPostSearch = StarTransactionType;
+
 //@description The transaction is a transaction of an unsupported type
 starTransactionTypeUnsupported = StarTransactionType;
 

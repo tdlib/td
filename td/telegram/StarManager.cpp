@@ -430,6 +430,15 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               }
               return nullptr;
             }
+            if (transaction->posts_search_) {
+              if (for_user && is_purchase) {
+                SCOPE_EXIT {
+                  transaction->posts_search_ = false;
+                };
+                return td_api::make_object<td_api::starTransactionTypePublicPostSearch>();
+              }
+              return nullptr;
+            }
             if (dialog_id.get_type() == DialogType::User) {
               auto user_id = dialog_id.get_user_id();
               auto user_id_object = td_->user_manager_->get_user_id_object(user_id, "starsTransactionPeer");
