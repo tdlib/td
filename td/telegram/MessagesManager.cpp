@@ -1194,8 +1194,8 @@ class SendMessageQuery final : public Td::ResultHandler {
             const MessageInputReplyTo &input_reply_to, MessageId top_thread_message_id,
             SavedMessagesTopicId saved_messages_topic_id, int32 schedule_date, MessageEffectId effect_id,
             int64 paid_message_star_count, const SuggestedPost *suggested_post,
-            const unique_ptr<ReplyMarkup> &reply_markup, vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities,
-            const string &text, bool is_copy, int64 random_id, NetQueryRef *send_query_ref) {
+            const unique_ptr<ReplyMarkup> &reply_markup, const FormattedText &text, bool is_copy, int64 random_id,
+            NetQueryRef *send_query_ref) {
     random_id_ = random_id;
     dialog_id_ = dialog_id;
 
@@ -1209,6 +1209,7 @@ class SendMessageQuery final : public Td::ResultHandler {
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMessage::REPLY_TO_MASK;
     }
+    auto entities = get_input_message_entities(td_->user_manager_.get(), text.entities, "SendMessageQuery");
     if (!entities.empty()) {
       flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_ENTITIES;
     }
@@ -1227,7 +1228,7 @@ class SendMessageQuery final : public Td::ResultHandler {
 
     auto query = G()->net_query_creator().create(
         telegram_api::messages_sendMessage(flags, false, false, false, false, false, false, false, false,
-                                           std::move(input_peer), std::move(reply_to), text, random_id,
+                                           std::move(input_peer), std::move(reply_to), text.text, random_id,
                                            get_input_reply_markup(td_->user_manager_.get(), reply_markup),
                                            std::move(entities), schedule_date, std::move(as_input_peer), nullptr,
                                            effect_id.get(), paid_message_star_count, std::move(post)),
@@ -22065,9 +22066,8 @@ void MessagesManager::on_text_message_ready_to_send(DialogId dialog_id, MessageI
       td_->create_handler<SendMessageQuery>()->send(
           get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
           m->initial_top_thread_message_id, get_input_message_monoforum_topic_id(m), get_message_schedule_date(m),
-          m->effect_id, m->paid_message_star_count, m->suggested_post.get(), m->reply_markup,
-          get_input_message_entities(td_->user_manager_.get(), message_text, "on_text_message_ready_to_send"),
-          message_text->text, m->is_copy, random_id, &m->send_query_ref);
+          m->effect_id, m->paid_message_star_count, m->suggested_post.get(), m->reply_markup, *message_text, m->is_copy,
+          random_id, &m->send_query_ref);
     } else {
       td_->create_handler<SendMediaQuery>()->send(
           {}, {}, {}, get_message_flags(m), dialog_id, get_send_message_as_input_peer(m),
