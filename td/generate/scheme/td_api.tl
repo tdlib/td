@@ -12892,12 +12892,12 @@ setGiftResalePrice received_gift_id:string price:GiftResalePrice = Ok;
 searchGiftsForResale gift_id:int64 order:GiftForResaleOrder attributes:vector<UpgradedGiftAttributeId> offset:string limit:int32 = GiftsForResale;
 
 
-//@description Returns collections of gifts owned by the given chat
+//@description Returns collections of gifts owned by the given user or chat
 //@owner_id Identifier of the user or the channel chat that received the gifts
 getGiftCollections owner_id:MessageSender = GiftCollections;
 
 //@description Creates a collection from gifts on the current user's or a channel's profile page; requires can_post_messages administrator right in the channel chat.
-//-An owner can have up to getOption("gift_collection_count_max") gift collections. Returns the created collection
+//-An owner can have up to getOption("gift_collection_count_max") gift collections. The new collection will be added to the end of the gift collection list of the owner. Returns the created collection
 //@owner_id Identifier of the user or the channel chat that received the gifts
 //@name Name of the collection; 1-12 characters
 //@received_gift_ids Identifier of the gifts to add to the collection; 0-getOption("gift_collection_gift_count_max") identifiers
