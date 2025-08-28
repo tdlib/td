@@ -1687,6 +1687,9 @@ string StarManager::get_unused_star_transaction_field(
   if (transaction->ads_proceeds_from_date_ != 0 || transaction->ads_proceeds_to_date_ != 0) {
     return "ads proceeds";
   }
+  if (transaction->posts_search_) {
+    return "post search";
+  }
   return string();
 }
 
