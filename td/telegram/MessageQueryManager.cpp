@@ -615,6 +615,10 @@ class SearchPublicPostsQuery final : public Td::ResultHandler {
             td_api::make_object<td_api::publicPostSearchLimits>(0, 0, wait_time, star_count, true), true));
       }
     }
+    if (message == "QUERY_EMPTY") {
+      return promise_.set_value(td_api::make_object<td_api::foundPublicPosts>(
+          vector<td_api::object_ptr<td_api::message>>(), string(), nullptr, false));
+    }
     promise_.set_error(std::move(status));
   }
 };
