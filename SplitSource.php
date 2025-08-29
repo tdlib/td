@@ -409,6 +409,7 @@ function split_file($file, $chunks, $undo) {
             'RequestActor|RequestOnceActor' => 'RequestActor',
             'saved_messages_manager[_(-](?![.]get[(][)])|SavedMessagesManager' => 'SavedMessagesManager',
             'ScopeNotificationSettings|[a-z_]*_scope_notification_settings' => 'ScopeNotificationSettings',
+            'SearchPostsFlood' => 'SearchPostsFlood',
             'SecretChatActor' => 'SecretChatActor',
             'secret_chats_manager[_(-]|SecretChatsManager' => 'SecretChatsManager',
             'secure_manager[_(-](?![.]get[(][)])|SecureManager' => 'SecureManager',

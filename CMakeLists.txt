@@ -584,6 +584,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/SavedMessagesManager.cpp
   td/telegram/SavedMessagesTopicId.cpp
   td/telegram/ScopeNotificationSettings.cpp
+  td/telegram/SearchPostsFlood.cpp
   td/telegram/SecretChatActor.cpp
   td/telegram/SecretChatDb.cpp
   td/telegram/SecretChatsManager.cpp
@@ -971,6 +972,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/SavedMessagesTopicId.h
   td/telegram/ScheduledServerMessageId.h
   td/telegram/ScopeNotificationSettings.h
+  td/telegram/SearchPostsFlood.h
   td/telegram/SecretChatActor.h
   td/telegram/SecretChatDb.h
   td/telegram/SecretChatId.h

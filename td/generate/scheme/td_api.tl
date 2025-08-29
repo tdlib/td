@@ -2505,6 +2505,15 @@ messageSourceScreenshot = MessageSource;
 messageSourceOther = MessageSource;
 
 
+//@description Contains information about public post search limits
+//@daily_free_query_count Number of queries that can be sent daily for free
+//@remaining_free_query_count Number of remaining free queries today
+//@next_free_query_in Amount of time till the next free query can be sent; 0 if it can be sent now
+//@star_count Number of Telegram Stars that must be paid for each non-free query
+//@is_current_query_free True, if the search for the specified query isn't charged
+publicPostSearchLimits daily_free_query_count:int32 remaining_free_query_count:int32 next_free_query_in:int32 star_count:int64 is_current_query_free:Bool = PublicPostSearchLimits;
+
+
 //@description Information about the sponsor of an advertisement
 //@url URL of the sponsor to be opened when the advertisement is clicked
 //@photo Photo of the sponsor; may be null if must not be shown
