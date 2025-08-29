@@ -40,6 +40,10 @@ MessagesInfo get_messages_info(Td *td, DialogId dialog_id,
     case telegram_api::messages_messagesSlice::ID: {
       auto messages = move_tl_object_as<telegram_api::messages_messagesSlice>(messages_ptr);
 
+      if (messages->search_flood_ != nullptr) {
+        LOG(ERROR) << "Receive " << to_string(messages);
+      }
+
       users = std::move(messages->users_);
       chats = std::move(messages->chats_);
       result.total_count = messages->count_;
