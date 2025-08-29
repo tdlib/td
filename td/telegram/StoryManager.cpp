@@ -3916,6 +3916,13 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
   }
   if ((story_item->flags_ & telegram_api::storyItem::ALBUMS_MASK) != 0) {
     auto album_ids = StoryAlbumId::get_story_album_ids(story_item->albums_);
+    td::remove_if(album_ids, [](auto album_id) {
+      if (!album_id.is_valid()) {
+        LOG(ERROR) << "Receive " << album_id;
+        return true;
+      }
+      return false;
+    });
     if (story->album_ids_ != album_ids) {
       story->album_ids_ = std::move(album_ids);
       is_changed = true;
