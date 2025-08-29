@@ -228,9 +228,9 @@ class StoryManager final : public Actor {
   void send_story(DialogId dialog_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                   td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                   td_api::object_ptr<td_api::formattedText> &&input_caption,
-                  td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period,
-                  td_api::object_ptr<td_api::storyFullId> &&from_story_full_id, bool is_pinned, bool protect_content,
-                  Promise<td_api::object_ptr<td_api::story>> &&promise);
+                  td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, vector<StoryAlbumId> story_album_ids,
+                  int32 active_period, td_api::object_ptr<td_api::storyFullId> &&from_story_full_id, bool is_pinned,
+                  bool protect_content, Promise<td_api::object_ptr<td_api::story>> &&promise);
 
   void on_send_story_file_parts_missing(unique_ptr<PendingStory> &&pending_story, vector<int> &&bad_parts);
 

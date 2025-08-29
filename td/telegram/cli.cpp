@@ -5404,12 +5404,13 @@ class CliClient final : public Actor {
       InputStoryAreas areas;
       int32 active_period;
       bool protect_content;
-      get_args(args, chat_id, photo, rules, areas, active_period, protect_content);
+      string album_ids;
+      get_args(args, chat_id, photo, rules, areas, active_period, protect_content, album_ids);
       send_request(td_api::make_object<td_api::postStory>(
           chat_id,
           td_api::make_object<td_api::inputStoryContentPhoto>(as_input_file(photo), get_added_sticker_file_ids()),
-          areas, get_caption(), rules, active_period ? active_period : 86400, get_reposted_story_full_id(),
-          op == "pspp", protect_content));
+          areas, get_caption(), rules, to_integers<int32>(album_ids), active_period ? active_period : 86400,
+          get_reposted_story_full_id(), op == "pspp", protect_content));
     } else if (op == "psv" || op == "psvp") {
       ChatId chat_id;
       string video;
@@ -5418,13 +5419,14 @@ class CliClient final : public Actor {
       int32 active_period;
       double duration;
       bool protect_content;
-      get_args(args, chat_id, video, rules, areas, active_period, duration, protect_content);
+      string album_ids;
+      get_args(args, chat_id, video, rules, areas, active_period, duration, protect_content, album_ids);
       send_request(td_api::make_object<td_api::postStory>(
           chat_id,
           td_api::make_object<td_api::inputStoryContentVideo>(as_input_file(video), get_added_sticker_file_ids(),
                                                               duration, 0.5, true),
-          areas, get_caption(), rules, active_period ? active_period : 86400, get_reposted_story_full_id(),
-          op == "psvp", protect_content));
+          areas, get_caption(), rules, to_integers<int32>(album_ids), active_period ? active_period : 86400,
+          get_reposted_story_full_id(), op == "psvp", protect_content));
     } else if (op == "esc") {
       ChatId story_poster_chat_id;
       StoryId story_id;

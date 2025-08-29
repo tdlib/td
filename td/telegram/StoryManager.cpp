@@ -1134,13 +1134,16 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     if (!input_media_areas.empty()) {
       flags |= telegram_api::stories_sendStory::MEDIA_AREAS_MASK;
     }
+    if (!story->album_ids_.empty()) {
+      flags |= telegram_api::stories_sendStory::ALBUMS_MASK;
+    }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::stories_sendStory(flags, pending_story_->story_->is_pinned_, story->noforwards_,
-                                        story->forward_info_ != nullptr, std::move(input_peer), std::move(input_media),
-                                        std::move(input_media_areas), caption.text, std::move(entities),
-                                        std::move(privacy_rules), pending_story_->random_id_, period,
-                                        std::move(fwd_input_peer), fwd_story_id, vector<int32>()),
+        telegram_api::stories_sendStory(
+            flags, pending_story_->story_->is_pinned_, story->noforwards_, story->forward_info_ != nullptr,
+            std::move(input_peer), std::move(input_media), std::move(input_media_areas), caption.text,
+            std::move(entities), std::move(privacy_rules), pending_story_->random_id_, period,
+            std::move(fwd_input_peer), fwd_story_id, StoryAlbumId::get_input_story_album_ids(story->album_ids_)),
         {{pending_story_->dialog_id_}}));
   }
 
@@ -3890,6 +3893,19 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
       story->is_outgoing_ = story_item->out_;
       need_save_to_database = true;
     }
+
+    auto album_ids = StoryAlbumId::get_story_album_ids(story_item->albums_);
+    td::remove_if(album_ids, [](auto album_id) {
+      if (!album_id.is_valid()) {
+        LOG(ERROR) << "Receive " << album_id;
+        return true;
+      }
+      return false;
+    });
+    if (story->album_ids_ != album_ids) {
+      story->album_ids_ = std::move(album_ids);
+      is_changed = true;
+    }
   }
   if (story->caption_ != caption) {
     story->caption_ = std::move(caption);
@@ -3911,20 +3927,6 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     if (edited_story != nullptr && edited_story->edit_media_areas_) {
       need_save_to_database = true;
     } else {
-      is_changed = true;
-    }
-  }
-  if ((story_item->flags_ & telegram_api::storyItem::ALBUMS_MASK) != 0) {
-    auto album_ids = StoryAlbumId::get_story_album_ids(story_item->albums_);
-    td::remove_if(album_ids, [](auto album_id) {
-      if (!album_id.is_valid()) {
-        LOG(ERROR) << "Receive " << album_id;
-        return true;
-      }
-      return false;
-    });
-    if (story->album_ids_ != album_ids) {
-      story->album_ids_ = std::move(album_ids);
       is_changed = true;
     }
   }
@@ -5226,7 +5228,8 @@ void StoryManager::can_send_story(DialogId dialog_id,
 void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
                               td_api::object_ptr<td_api::inputStoryAreas> &&input_areas,
                               td_api::object_ptr<td_api::formattedText> &&input_caption,
-                              td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, int32 active_period,
+                              td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
+                              vector<StoryAlbumId> story_album_ids, int32 active_period,
                               td_api::object_ptr<td_api::storyFullId> &&from_story_full_id, bool is_pinned,
                               bool protect_content, Promise<td_api::object_ptr<td_api::story>> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "send_story")) {
@@ -5234,6 +5237,11 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   }
   if (!can_post_stories(dialog_id)) {
     return promise.set_error(400, "Not enough rights to post stories in the chat");
+  }
+  for (auto album_id : story_album_ids) {
+    if (!album_id.is_valid()) {
+      return promise.set_error(400, "Invalid story album identifier specified");
+    }
   }
 
   bool is_bot = td_->auth_manager_->is_bot();
@@ -5309,6 +5317,7 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   story->is_outgoing_ = true;
   story->noforwards_ = protect_content;
   story->privacy_rules_ = std::move(privacy_rules);
+  story->album_ids_ = std::move(story_album_ids);
   story->content_ = std::move(content);
   story->forward_info_ = std::move(forward_info);
   story->areas_ = std::move(areas);
@@ -5379,6 +5388,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
     story->is_outgoing_ = true;
     story->noforwards_ = pending_story->story_->noforwards_;
     story->privacy_rules_ = pending_story->story_->privacy_rules_;
+    story->album_ids_ = pending_story->story_->album_ids_;
     story->content_ = copy_story_content(pending_story->story_->content_.get());
     story->areas_ = pending_story->story_->areas_;
     story->caption_ = pending_story->story_->caption_;
