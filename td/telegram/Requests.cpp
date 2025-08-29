@@ -3735,6 +3735,12 @@ void Requests::on_request(uint64 id, td_api::getStoryPublicForwards &request) {
       std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getChatStoryAlbums &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->story_manager_->get_story_albums(DialogId(request.chat_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::removeNotification &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

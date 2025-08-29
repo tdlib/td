@@ -5449,6 +5449,9 @@ foundStories total_count:int32 stories:vector<story> next_offset:string = FoundS
 //@video_icon Video icon of the album; may be null if none
 storyAlbum id:int32 name:string photo_icon:photo video_icon:video = StoryAlbum;
 
+//@description Represents a list of story albums @albums List of story albums
+storyAlbums albums:vector<storyAlbum> = StoryAlbums;
+
 //@description Contains identifier of a story along with identifier of the chat that posted it
 //@poster_chat_id Identifier of the chat that posted the story
 //@story_id Unique story identifier among stories of the chat
@@ -11599,6 +11602,9 @@ activateStoryStealthMode = Ok;
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages and stories to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
 getStoryPublicForwards story_poster_chat_id:int53 story_id:int32 offset:string limit:int32 = PublicForwards;
+
+//@description Returns the list of story albums owned by the given chat @chat_id Chat identifier
+getChatStoryAlbums chat_id:int53 = StoryAlbums;
 
 
 //@description Returns the list of features available on the specific chat boost level. This is an offline method

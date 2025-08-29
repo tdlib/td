@@ -3556,6 +3556,10 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, story_id, offset, limit);
       send_request(td_api::make_object<td_api::getStoryPublicForwards>(chat_id, story_id, offset, as_limit(limit)));
+    } else if (op == "gcsa") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::getChatStoryAlbums>(chat_id));
     } else if (op == "ghf") {
       get_history_chat_id_ = as_chat_id(args);
       send_request(td_api::make_object<td_api::getChatHistory>(get_history_chat_id_, std::numeric_limits<int64>::max(),

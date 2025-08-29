@@ -35,6 +35,10 @@ class StoryAlbum {
 
   StoryAlbum(Td *td, DialogId owner_dialog_id, telegram_api::object_ptr<telegram_api::storyAlbum> &&story_album);
 
+  bool is_valid() const {
+    return album_id_.is_valid();
+  }
+
   td_api::object_ptr<td_api::storyAlbum> get_story_album_object(Td *td) const;
 };
 

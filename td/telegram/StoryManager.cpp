@@ -28,6 +28,7 @@
 #include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/ReactionManager.h"
 #include "td/telegram/ReactionType.hpp"
+#include "td/telegram/StoryAlbum.h"
 #include "td/telegram/StoryContent.h"
 #include "td/telegram/StoryContentType.h"
 #include "td/telegram/StoryForwardInfo.h"
@@ -941,6 +942,56 @@ class ReportStoryQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "ReportStoryQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetStoryAlbumsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::storyAlbums>> promise_;
+  DialogId owner_dialog_id_;
+
+ public:
+  explicit GetStoryAlbumsQuery(Promise<td_api::object_ptr<td_api::storyAlbums>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId owner_dialog_id) {
+    owner_dialog_id_ = owner_dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(owner_dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(telegram_api::stories_getAlbums(std::move(input_peer), 0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getAlbums>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetStoryAlbumsQuery: " << to_string(ptr);
+    switch (ptr->get_id()) {
+      case telegram_api::stories_albumsNotModified::ID:
+        return promise_.set_value(td_api::make_object<td_api::storyAlbums>());
+      case telegram_api::stories_albums::ID: {
+        auto albums = telegram_api::move_object_as<telegram_api::stories_albums>(ptr);
+        auto result = td_api::make_object<td_api::storyAlbums>();
+        for (auto &album : albums->albums_) {
+          auto story_album = StoryAlbum(td_, owner_dialog_id_, std::move(album));
+          if (story_album.is_valid()) {
+            result->albums_.push_back(story_album.get_story_album_object(td_));
+          }
+        }
+        return promise_.set_value(std::move(result));
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(owner_dialog_id_, status, "GetStoryAlbumsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -3395,6 +3446,13 @@ void StoryManager::report_story(StoryFullId story_full_id, const string &option_
   }
 
   td_->create_handler<ReportStoryQuery>(std::move(promise))->send(story_full_id, option_id, text);
+}
+
+void StoryManager::get_story_albums(DialogId owner_dialog_id,
+                                    Promise<td_api::object_ptr<td_api::storyAlbums>> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
+                                                                        "get_story_albums"));
+  td_->create_handler<GetStoryAlbumsQuery>(std::move(promise))->send(owner_dialog_id);
 }
 
 void StoryManager::activate_stealth_mode(Promise<Unit> &&promise) {

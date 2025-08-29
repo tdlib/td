@@ -316,6 +316,8 @@ class StoryManager final : public Actor {
   void report_story(StoryFullId story_full_id, const string &option_id, const string &text,
                     Promise<td_api::object_ptr<td_api::ReportStoryResult>> &&promise);
 
+  void get_story_albums(DialogId owner_dialog_id, Promise<td_api::object_ptr<td_api::storyAlbums>> &&promise);
+
   void activate_stealth_mode(Promise<Unit> &&promise);
 
   void remove_story_notifications_by_story_ids(DialogId dialog_id, const vector<StoryId> &story_ids);
