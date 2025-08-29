@@ -1366,6 +1366,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   bool has_chosen_reaction_type = !chosen_reaction_type_.is_empty();
   bool has_forward_info = forward_info_ != nullptr;
   bool has_sender_dialog_id = sender_dialog_id_ != DialogId();
+  bool has_album_ids = !album_ids_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_edited_);
   STORE_FLAG(is_pinned_);
@@ -1384,6 +1385,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   STORE_FLAG(is_outgoing_);
   STORE_FLAG(has_forward_info);
   STORE_FLAG(has_sender_dialog_id);
+  STORE_FLAG(has_album_ids);
   END_STORE_FLAGS();
   store(date_, storer);
   store(expire_date_, storer);
@@ -1414,6 +1416,9 @@ void StoryManager::Story::store(StorerT &storer) const {
   if (has_sender_dialog_id) {
     store(sender_dialog_id_, storer);
   }
+  if (has_album_ids) {
+    store(album_ids_, storer);
+  }
 }
 
 template <class ParserT>
@@ -1428,6 +1433,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   bool has_chosen_reaction_type;
   bool has_forward_info;
   bool has_sender_dialog_id;
+  bool has_album_ids;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_edited_);
   PARSE_FLAG(is_pinned_);
@@ -1446,6 +1452,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   PARSE_FLAG(is_outgoing_);
   PARSE_FLAG(has_forward_info);
   PARSE_FLAG(has_sender_dialog_id);
+  PARSE_FLAG(has_album_ids);
   END_PARSE_FLAGS();
   parse(date_, parser);
   parse(expire_date_, parser);
@@ -1475,6 +1482,9 @@ void StoryManager::Story::parse(ParserT &parser) {
   }
   if (has_sender_dialog_id) {
     parse(sender_dialog_id_, parser);
+  }
+  if (has_album_ids) {
+    parse(album_ids_, parser);
   }
 }
 
@@ -3578,7 +3588,8 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       can_get_interactions, has_expired_viewers, std::move(repost_info), std::move(interaction_info),
       story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
       get_story_content_object(td_, content), std::move(story_areas),
-      get_formatted_text_object(td_->user_manager_.get(), *caption, true, get_story_content_duration(td_, content)));
+      get_formatted_text_object(td_->user_manager_.get(), *caption, true, get_story_content_duration(td_, content)),
+      StoryAlbumId::get_story_album_ids_object(story->album_ids_));
 }
 
 td_api::object_ptr<td_api::stories> StoryManager::get_stories_object(int32 total_count,
@@ -3902,6 +3913,11 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     } else {
       is_changed = true;
     }
+  }
+  auto album_ids = transform(story_item->albums_, [](int32 album_id) { return StoryAlbumId(album_id); });
+  if (story->album_ids_ != album_ids) {
+    story->album_ids_ = std::move(album_ids);
+    is_changed = true;
   }
 
   Dependencies dependencies;

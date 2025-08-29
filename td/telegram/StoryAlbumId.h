@@ -42,6 +42,19 @@ class StoryAlbumId {
     return id > 0;
   }
 
+  static vector<int32> get_story_album_ids_object(const vector<StoryAlbumId> &album_ids) {
+    vector<int32> result;
+    result.reserve(album_ids.size());
+    for (const auto &album_id : album_ids) {
+      result.emplace_back(album_id.get());
+    }
+    return result;
+  }
+
+  static vector<int32> get_input_story_album_ids(const vector<StoryAlbumId> &album_ids) {
+    return get_story_album_ids_object(album_ids);
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     td::store(id, storer);

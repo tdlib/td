@@ -17,6 +17,7 @@
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/QuickReplyMessageFullId.h"
 #include "td/telegram/ReactionType.h"
+#include "td/telegram/StoryAlbumId.h"
 #include "td/telegram/StoryDb.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/StoryId.h"
@@ -75,6 +76,7 @@ class StoryManager final : public Actor {
     UserPrivacySettingRules privacy_rules_;
     unique_ptr<StoryContent> content_;
     vector<MediaArea> areas_;
+    vector<StoryAlbumId> album_ids_;
     FormattedText caption_;
     int64 global_id_ = 0;
 
