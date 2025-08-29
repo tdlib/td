@@ -598,6 +598,10 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
+  static int32 as_story_album_id(Slice str) {
+    return to_integer<int32>(trim(str));
+  }
+
   static int32 as_gift_collection_id(Slice str) {
     return to_integer<int32>(trim(str));
   }
@@ -1001,6 +1005,18 @@ class CliClient final : public Actor {
 
   void get_args(string &args, StoryId &arg) const {
     arg.story_id = as_story_id(args);
+  }
+
+  struct StoryAlbumId {
+    int32 story_album_id = 0;
+
+    operator int32() const {
+      return story_album_id;
+    }
+  };
+
+  void get_args(string &args, StoryAlbumId &arg) const {
+    arg.story_album_id = as_story_album_id(args);
   }
 
   struct GiftCollectionId {
