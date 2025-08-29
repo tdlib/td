@@ -1429,6 +1429,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"stars_usd_withdraw_rate_x1000", "thousand_star_to_usd_rate"},
       {"stickers_premium_by_emoji_num", ""},
       {"stickers_normal_by_emoji_per_premium_num", ""},
+      {"stories_album_stories_limit", "story_album_story_count_max"},
       {"stories_albums_limit", "story_album_count_max"},
       {"stories_area_url_max", "story_link_area_count_max"},
       {"stories_pinned_to_top_count_max", "pinned_story_count_max"},
