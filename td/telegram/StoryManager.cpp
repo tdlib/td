@@ -3915,7 +3915,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     }
   }
   if ((story_item->flags_ & telegram_api::storyItem::ALBUMS_MASK) != 0) {
-    auto album_ids = transform(story_item->albums_, [](int32 album_id) { return StoryAlbumId(album_id); });
+    auto album_ids = StoryAlbumId::get_story_album_ids(story_item->albums_);
     if (story->album_ids_ != album_ids) {
       story->album_ids_ = std::move(album_ids);
       is_changed = true;
