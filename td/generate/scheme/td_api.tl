@@ -2137,6 +2137,15 @@ secretChatStateClosed = SecretChatState;
 secretChat id:int32 user_id:int53 state:SecretChatState is_outbound:Bool key_hash:bytes layer:int32 = SecretChat;
 
 
+//@description Contains information about public post search limits
+//@daily_free_query_count Number of queries that can be sent daily for free
+//@remaining_free_query_count Number of remaining free queries today
+//@next_free_query_in Amount of time till the next free query can be sent; 0 if it can be sent now
+//@star_count Number of Telegram Stars that must be paid for each non-free query
+//@is_current_query_free True, if the search for the specified query isn't charged
+publicPostSearchLimits daily_free_query_count:int32 remaining_free_query_count:int32 next_free_query_in:int32 star_count:int64 is_current_query_free:Bool = PublicPostSearchLimits;
+
+
 //@class MessageSender @description Contains information about the sender of a message
 
 //@description The message was sent by a known user @user_id Identifier of the user that sent the message
@@ -2449,6 +2458,12 @@ foundMessages total_count:int32 messages:vector<message> next_offset:string = Fo
 //@description Contains a list of messages found by a search in a given chat @total_count Approximate total number of messages found; -1 if unknown @messages List of messages @next_from_message_id The offset for the next request. If 0, there are no more results
 foundChatMessages total_count:int32 messages:vector<message> next_from_message_id:int53 = FoundChatMessages;
 
+//@description Contains a list of messages found by a public post search
+//@messages List of found public posts
+//@next_offset The offset for the next request. If empty, then there are no more results
+//@search_limits Updated public post search limits after the query; repeated requests with the same query will be free
+foundPublicPosts messages:vector<message> next_offset:string search_limits:publicPostSearchLimits = FoundPublicPosts;
+
 //@description Contains information about a message in a specific position @position 0-based message position in the full list of suitable messages @message_id Message identifier @date Point in time (Unix timestamp) when the message was sent
 messagePosition position:int32 message_id:int53 date:int32 = MessagePosition;
 
@@ -2503,15 +2518,6 @@ messageSourceScreenshot = MessageSource;
 
 //@description The message is from some other source
 messageSourceOther = MessageSource;
-
-
-//@description Contains information about public post search limits
-//@daily_free_query_count Number of queries that can be sent daily for free
-//@remaining_free_query_count Number of remaining free queries today
-//@next_free_query_in Amount of time till the next free query can be sent; 0 if it can be sent now
-//@star_count Number of Telegram Stars that must be paid for each non-free query
-//@is_current_query_free True, if the search for the specified query isn't charged
-publicPostSearchLimits daily_free_query_count:int32 remaining_free_query_count:int32 next_free_query_in:int32 star_count:int64 is_current_query_free:Bool = PublicPostSearchLimits;
 
 
 //@description Information about the sponsor of an advertisement
@@ -10011,6 +10017,13 @@ searchOutgoingDocumentMessages query:string limit:int32 = FoundMessages;
 
 //@description Checks public post search limits without actually performing the search @query Query that will be searched for
 getPublicPostSearchLimits query:string = PublicPostSearchLimits;
+
+//@description Searches for public channel posts using the given query. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
+//@query Query to search for
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of messages to be returned; up to 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
+//@star_count The amount of Telegram Stars the user agreed to pay for the search; pass 0 for free searches
+searchPublicPosts query:string offset:string limit:int32 star_count:int53 = FoundPublicPosts;
 
 //@description Searches for public channel posts containing the given hashtag or cashtag. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
 //@tag Hashtag or cashtag to search for

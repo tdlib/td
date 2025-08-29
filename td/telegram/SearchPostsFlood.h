@@ -29,6 +29,10 @@ class SearchPostsFlood {
   explicit SearchPostsFlood(telegram_api::object_ptr<telegram_api::searchPostsFlood> &&flood);
 
   td_api::object_ptr<td_api::publicPostSearchLimits> get_public_post_search_limits_object() const;
+
+  bool is_free() const {
+    return is_free_;
+  }
 };
 
 bool operator==(const SearchPostsFlood &lhs, const SearchPostsFlood &rhs);

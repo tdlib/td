@@ -34,6 +34,7 @@
 #include "td/telegram/SearchPostsFlood.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
+#include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -530,6 +531,77 @@ class CheckSearchPostsFloodQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SearchPublicPostsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::foundPublicPosts>> promise_;
+  string query_;
+  MessageSearchOffset offset_;
+  int32 limit_;
+  int64 star_count_;
+
+ public:
+  explicit SearchPublicPostsQuery(Promise<td_api::object_ptr<td_api::foundPublicPosts>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &query, MessageSearchOffset offset, int32 limit, int64 star_count) {
+    query_ = query;
+    offset_ = offset;
+    limit_ = limit;
+    star_count_ = star_count;
+
+    auto input_peer = DialogManager::get_input_peer_force(offset.dialog_id_);
+    CHECK(input_peer != nullptr);
+
+    int32 flags = telegram_api::channels_searchPosts::QUERY_MASK;
+    if (star_count > 0) {
+      td_->star_manager_->add_pending_owned_star_count(-star_count, false);
+      flags |= telegram_api::channels_searchPosts::ALLOW_PAID_STARS_MASK;
+    }
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_searchPosts(flags, string(), query, offset.date_, std::move(input_peer),
+                                           offset.message_id_.get_server_message_id().get(), limit, star_count)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_searchPosts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    telegram_api::object_ptr<telegram_api::searchPostsFlood> flood;
+    if (ptr->get_id() == telegram_api::messages_messagesSlice::ID) {
+      flood = std::move(static_cast<telegram_api::messages_messagesSlice *>(ptr.get())->search_flood_);
+    }
+    if (flood == nullptr) {
+      LOG(ERROR) << "Receive " << to_string(ptr);
+      return on_error(Status::Error(500, "Failed to receive search limits"));
+    }
+    auto info = get_messages_info(td_, DialogId(), std::move(ptr), "SearchPublicPostsQuery");
+    td_->messages_manager_->get_channel_differences_if_needed(
+        std::move(info),
+        PromiseCreator::lambda([actor_id = td_->message_query_manager_actor_.get(), query = std::move(query_),
+                                offset = offset_, limit = limit_, star_count = star_count_, flood = std::move(flood),
+                                promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
+          if (result.is_error()) {
+            send_closure(G()->star_manager(), &StarManager::add_pending_owned_star_count, star_count, false);
+            promise.set_error(result.move_as_error());
+          } else {
+            auto info = result.move_as_ok();
+            send_closure(actor_id, &MessageQueryManager::on_get_public_post_search_result, query, offset, limit,
+                         star_count, std::move(flood), std::move(info.messages), info.next_rate, std::move(promise));
+          }
+        }),
+        "SearchPostsQuery");
+  }
+
+  void on_error(Status status) final {
+    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
     promise_.set_error(std::move(status));
   }
 };
@@ -2019,6 +2091,60 @@ void MessageQueryManager::on_get_outgoing_document_messages(
 void MessageQueryManager::check_search_posts_flood(
     const string &query, Promise<td_api::object_ptr<td_api::publicPostSearchLimits>> promise) {
   td_->create_handler<CheckSearchPostsFloodQuery>(std::move(promise))->send(query);
+}
+
+void MessageQueryManager::search_public_posts(const string &query, const string &offset_str, int32 limit,
+                                              int64 star_count,
+                                              Promise<td_api::object_ptr<td_api::foundPublicPosts>> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(400, "Parameter limit must be positive");
+  }
+  if (limit > MAX_SEARCH_MESSAGES) {
+    limit = MAX_SEARCH_MESSAGES;
+  }
+  if (star_count < 0) {
+    return promise.set_error(400, "Invalid number of Telegram Stars specified");
+  }
+  if (!td_->star_manager_->has_owned_star_count(star_count)) {
+    return promise.set_error(400, "BALANCE_TOO_LOW");
+  }
+  TRY_RESULT_PROMISE(promise, offset, MessageSearchOffset::from_string(offset_str));
+
+  td_->create_handler<SearchPublicPostsQuery>(std::move(promise))->send(query, offset, limit, star_count);
+}
+
+void MessageQueryManager::on_get_public_post_search_result(
+    const string &hashtag, const MessageSearchOffset &old_offset, int32 limit, int64 star_count,
+    telegram_api::object_ptr<telegram_api::searchPostsFlood> flood,
+    vector<telegram_api::object_ptr<telegram_api::Message>> &&messages, int32 next_rate,
+    Promise<td_api::object_ptr<td_api::foundPublicPosts>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  SearchPostsFlood posts_flood(std::move(flood));
+  vector<td_api::object_ptr<td_api::message>> result;
+  MessageSearchOffset next_offset;
+  for (auto &message : messages) {
+    next_offset.update_from_message(message);
+
+    auto message_full_id = td_->messages_manager_->on_get_message(DialogId(), std::move(message), false, true, false,
+                                                                  "on_get_public_post_search_result");
+    auto message_object =
+        td_->messages_manager_->get_message_object(message_full_id, "on_get_public_post_search_result");
+    if (message_object != nullptr) {
+      result.push_back(std::move(message_object));
+    }
+  }
+  string next_offset_str;
+  if (!result.empty()) {
+    if (next_rate > 0) {
+      next_offset.date_ = next_rate;
+    }
+    next_offset_str = next_offset.to_string();
+  }
+  td_->star_manager_->add_pending_owned_star_count(star_count, !posts_flood.is_free());
+
+  promise.set_value(td_api::make_object<td_api::foundPublicPosts>(std::move(result), next_offset_str,
+                                                                  posts_flood.get_public_post_search_limits_object()));
 }
 
 void MessageQueryManager::search_hashtag_posts(string hashtag, string offset_str, int32 limit,

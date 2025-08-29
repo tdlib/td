@@ -3643,6 +3643,13 @@ class CliClient final : public Actor {
       string query;
       get_args(args, query);
       send_request(td_api::make_object<td_api::getPublicPostSearchLimits>(query));
+    } else if (op == "spps") {
+      string query;
+      string limit;
+      int64 star_count;
+      string offset;
+      get_args(args, query, limit, star_count, offset);
+      send_request(td_api::make_object<td_api::searchPublicPosts>(query, offset, as_limit(limit), star_count));
     } else if (op == "spmbt") {
       string tag;
       string limit;
