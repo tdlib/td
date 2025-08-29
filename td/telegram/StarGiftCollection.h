@@ -39,12 +39,6 @@ class StarGiftCollection {
   }
 
   td_api::object_ptr<td_api::giftCollection> get_gift_collection_object(Td *td) const;
-
-  template <class StorerT>
-  void store(StorerT &storer) const;
-
-  template <class ParserT>
-  void parse(ParserT &parser);
 };
 
 bool operator==(const StarGiftCollection &lhs, const StarGiftCollection &rhs);

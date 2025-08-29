@@ -5442,6 +5442,13 @@ stories total_count:int32 stories:vector<story> pinned_story_ids:vector<int32> =
 //@description Contains a list of stories found by a search @total_count Approximate total number of stories found @stories List of stories @next_offset The offset for the next request. If empty, then there are no more results
 foundStories total_count:int32 stories:vector<story> next_offset:string = FoundStories;
 
+//@description Describes album of stories
+//@id Unique identifier of the album
+//@name Name of the album
+//@photo_icon Icon of the album; may be null if none
+//@video_icon Video icon of the album; may be null if none
+storyAlbum id:int32 name:string photo_icon:photo video_icon:video = StoryAlbum;
+
 //@description Contains identifier of a story along with identifier of the chat that posted it
 //@poster_chat_id Identifier of the chat that posted the story
 //@story_id Unique story identifier among stories of the chat
