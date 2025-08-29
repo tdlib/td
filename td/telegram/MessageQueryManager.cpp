@@ -577,6 +577,7 @@ class SearchPublicPostsQuery final : public Td::ResultHandler {
     telegram_api::object_ptr<telegram_api::searchPostsFlood> flood;
     if (ptr->get_id() == telegram_api::messages_messagesSlice::ID) {
       flood = std::move(static_cast<telegram_api::messages_messagesSlice *>(ptr.get())->search_flood_);
+      LOG(INFO) << "Receive " << to_string(flood);
     }
     if (flood == nullptr) {
       LOG(ERROR) << "Receive " << to_string(ptr);
