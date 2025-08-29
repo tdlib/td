@@ -5430,7 +5430,7 @@ storyInteractionInfo view_count:int32 forward_count:int32 reaction_count:int32 r
 //@content Content of the story
 //@areas Clickable areas to be shown on the story content
 //@caption Caption of the story
-//@album_ids Identifiers of story albums to which the story is added
+//@album_ids Identifiers of story albums to which the story is added; only for owned stories
 story id:int32 poster_chat_id:int53 poster_id:MessageSender date:int32 is_being_posted:Bool is_being_edited:Bool is_edited:Bool is_posted_to_chat_page:Bool is_visible_only_for_self:Bool can_be_deleted:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied:Bool can_toggle_is_posted_to_chat_page:Bool can_get_statistics:Bool can_get_interactions:Bool has_expired_viewers:Bool repost_info:storyRepostInfo interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText album_ids:vector<int32> = Story;
 
 //@description Represents a list of stories

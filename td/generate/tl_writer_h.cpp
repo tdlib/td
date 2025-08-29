@@ -195,6 +195,9 @@ bool TD_TL_writer_h::need_arg_mask(const tl::arg &a, bool can_be_stored) const {
   if (can_be_stored) {
     return true;
   }
+  if (a.name == "albums") {
+    return true;
+  }
   if (!is_built_in_simple_type(name)) {
     return false;
   }
