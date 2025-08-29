@@ -549,6 +549,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getChatStoryAlbums &request);
 
+  void on_request(uint64 id, const td_api::getStoryAlbumStories &request);
+
   void on_request(uint64 id, const td_api::removeNotification &request);
 
   void on_request(uint64 id, const td_api::removeNotificationGroup &request);

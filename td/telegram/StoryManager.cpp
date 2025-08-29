@@ -996,6 +996,40 @@ class GetStoryAlbumsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetAlbumStoriesQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::stories_stories>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetAlbumStoriesQuery(Promise<telegram_api::object_ptr<telegram_api::stories_stories>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, StoryAlbumId story_album_id, int32 offset, int32 limit) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_getAlbumStories(std::move(input_peer), story_album_id.get(), offset, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_getAlbumStories>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetAlbumStoriesQuery: " << to_string(result);
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetAlbumStoriesQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStoriesMaxIdsQuery final : public Td::ResultHandler {
   vector<DialogId> dialog_ids_;
 
@@ -3453,6 +3487,48 @@ void StoryManager::get_story_albums(DialogId owner_dialog_id,
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
                                                                         "get_story_albums"));
   td_->create_handler<GetStoryAlbumsQuery>(std::move(promise))->send(owner_dialog_id);
+}
+
+void StoryManager::get_story_album_stories(DialogId owner_dialog_id, StoryAlbumId story_album_id, int32 offset,
+                                           int32 limit, Promise<td_api::object_ptr<td_api::stories>> &&promise) {
+  if (limit <= 0) {
+    return promise.set_error(400, "Parameter limit must be positive");
+  }
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
+                                                                        "get_story_album_stories"));
+
+  if (offset < 0) {
+    return promise.set_error(400, "Invalid offset specified");
+  }
+  if (!story_album_id.is_valid()) {
+    return promise.set_error(400, "Invalid story album identifier specified");
+  }
+  if (!can_have_stories(owner_dialog_id)) {
+    return promise.set_value(td_api::make_object<td_api::stories>());
+  }
+
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), owner_dialog_id, story_album_id, promise = std::move(promise)](
+                                 Result<telegram_api::object_ptr<telegram_api::stories_stories>> &&result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &StoryManager::on_get_story_album_stories, owner_dialog_id, story_album_id,
+                     result.move_as_ok(), std::move(promise));
+      });
+  td_->create_handler<GetAlbumStoriesQuery>(std::move(query_promise))
+      ->send(owner_dialog_id, story_album_id, offset, limit);
+}
+
+void StoryManager::on_get_story_album_stories(DialogId owner_dialog_id, StoryAlbumId story_album_id,
+                                              telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
+                                              Promise<td_api::object_ptr<td_api::stories>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  auto result = on_get_stories(owner_dialog_id, {}, std::move(stories));
+  promise.set_value(get_stories_object(
+      result.first,
+      transform(result.second, [owner_dialog_id](StoryId story_id) { return StoryFullId(owner_dialog_id, story_id); }),
+      vector<StoryId>()));
 }
 
 void StoryManager::activate_stealth_mode(Promise<Unit> &&promise) {

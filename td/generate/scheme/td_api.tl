@@ -11606,6 +11606,13 @@ getStoryPublicForwards story_poster_chat_id:int53 story_id:int32 offset:string l
 //@description Returns the list of story albums owned by the given chat @chat_id Chat identifier
 getChatStoryAlbums chat_id:int53 = StoryAlbums;
 
+//@description Returns the list of stories added to the given story album. For optimal performance, the number of returned stories is chosen by TDLib
+//@chat_id Chat identifier
+//@story_album_id Story album identifier
+//@offset Offset of the first entry to return; use 0 to get results from the first album story
+//@limit The maximum number of stories to be returned. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
+getStoryAlbumStories chat_id:int53 story_album_id:int32 offset:int32 limit:int32 = Stories;
+
 
 //@description Returns the list of features available on the specific chat boost level. This is an offline method
 //@is_channel Pass true to get the list of features for channels; pass false to get the list of features for supergroups

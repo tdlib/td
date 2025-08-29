@@ -318,6 +318,9 @@ class StoryManager final : public Actor {
 
   void get_story_albums(DialogId owner_dialog_id, Promise<td_api::object_ptr<td_api::storyAlbums>> &&promise);
 
+  void get_story_album_stories(DialogId owner_dialog_id, StoryAlbumId story_album_id, int32 offset, int32 limit,
+                               Promise<td_api::object_ptr<td_api::stories>> &&promise);
+
   void activate_stealth_mode(Promise<Unit> &&promise);
 
   void remove_story_notifications_by_story_ids(DialogId dialog_id, const vector<StoryId> &story_ids);
@@ -537,6 +540,10 @@ class StoryManager final : public Actor {
   void on_get_dialog_expiring_stories(DialogId owner_dialog_id,
                                       telegram_api::object_ptr<telegram_api::stories_peerStories> &&stories,
                                       Promise<td_api::object_ptr<td_api::chatActiveStories>> &&promise);
+
+  void on_get_story_album_stories(DialogId owner_dialog_id, StoryAlbumId story_album_id,
+                                  telegram_api::object_ptr<telegram_api::stories_stories> &&stories,
+                                  Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
   static uint64 save_load_dialog_expiring_stories_log_event(DialogId owner_dialog_id);
 
