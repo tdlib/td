@@ -95,6 +95,9 @@ class MessageQueryManager final : public Actor {
   void on_get_outgoing_document_messages(vector<telegram_api::object_ptr<telegram_api::Message>> &&messages,
                                          Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 
+  void check_search_posts_flood(const string &query,
+                                Promise<td_api::object_ptr<td_api::publicPostSearchLimits>> promise);
+
   void search_hashtag_posts(string hashtag, string offset_str, int32 limit,
                             Promise<td_api::object_ptr<td_api::foundMessages>> &&promise);
 

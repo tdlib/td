@@ -31,6 +31,7 @@
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/PublicDialogType.h"
+#include "td/telegram/SearchPostsFlood.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
@@ -496,6 +497,36 @@ class SearchSentMediaQuery final : public Td::ResultHandler {
           }
         }),
         "SearchSentMediaQuery");
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class CheckSearchPostsFloodQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::publicPostSearchLimits>> promise_;
+
+ public:
+  explicit CheckSearchPostsFloodQuery(Promise<td_api::object_ptr<td_api::publicPostSearchLimits>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &query) {
+    int32 flags = 0;
+    if (!query.empty()) {
+      flags |= telegram_api::channels_checkSearchPostsFlood::QUERY_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::channels_checkSearchPostsFlood(flags, query)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_checkSearchPostsFlood>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(SearchPostsFlood(result_ptr.move_as_ok()).get_public_post_search_limits_object());
   }
 
   void on_error(Status status) final {
@@ -1983,6 +2014,11 @@ void MessageQueryManager::on_get_outgoing_document_messages(
                 [](const auto &message) { return message->content_->get_id() != td_api::messageDocument::ID; });
   result->total_count_ = narrow_cast<int32>(result->messages_.size());
   promise.set_value(std::move(result));
+}
+
+void MessageQueryManager::check_search_posts_flood(
+    const string &query, Promise<td_api::object_ptr<td_api::publicPostSearchLimits>> promise) {
+  td_->create_handler<CheckSearchPostsFloodQuery>(std::move(promise))->send(query);
 }
 
 void MessageQueryManager::search_hashtag_posts(string hashtag, string offset_str, int32 limit,

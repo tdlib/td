@@ -477,6 +477,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::searchOutgoingDocumentMessages &request);
 
+  void on_request(uint64 id, td_api::getPublicPostSearchLimits &request);
+
   void on_request(uint64 id, td_api::searchPublicMessagesByTag &request);
 
   void on_request(uint64 id, td_api::searchPublicStoriesByTag &request);

@@ -3455,6 +3455,13 @@ void Requests::on_request(uint64 id, td_api::searchOutgoingDocumentMessages &req
   td_->message_query_manager_->search_outgoing_document_messages(request.query_, request.limit_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getPublicPostSearchLimits &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.query_);
+  CREATE_REQUEST_PROMISE();
+  td_->message_query_manager_->check_search_posts_flood(request.query_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::searchPublicMessagesByTag &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.tag_);

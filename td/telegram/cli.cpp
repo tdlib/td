@@ -3639,6 +3639,10 @@ class CliClient final : public Actor {
       SearchQuery query;
       get_args(args, query);
       send_request(td_api::make_object<td_api::searchOutgoingDocumentMessages>(query.query, query.limit));
+    } else if (op == "gppsl") {
+      string query;
+      get_args(args, query);
+      send_request(td_api::make_object<td_api::getPublicPostSearchLimits>(query));
     } else if (op == "spmbt") {
       string tag;
       string limit;
