@@ -2462,7 +2462,8 @@ foundChatMessages total_count:int32 messages:vector<message> next_from_message_i
 //@messages List of found public posts
 //@next_offset The offset for the next request. If empty, then there are no more results
 //@search_limits Updated public post search limits after the query; repeated requests with the same query will be free
-foundPublicPosts messages:vector<message> next_offset:string search_limits:publicPostSearchLimits = FoundPublicPosts;
+//@are_limits_exceeded True, if the query has failed because search limits are exceeded. In this case search_limits.daily_free_query_count will be equal to 0
+foundPublicPosts messages:vector<message> next_offset:string search_limits:publicPostSearchLimits are_limits_exceeded:Bool = FoundPublicPosts;
 
 //@description Contains information about a message in a specific position @position 0-based message position in the full list of suitable messages @message_id Message identifier @date Point in time (Unix timestamp) when the message was sent
 messagePosition position:int32 message_id:int53 date:int32 = MessagePosition;

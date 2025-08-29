@@ -602,6 +602,18 @@ class SearchPublicPostsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+
+    auto message = status.message();
+    if (begins_with(message, "FLOOD_WAIT_")) {
+      auto second_part_pos = message.str().find("_OR_STARS_");
+      if (second_part_pos != string::npos) {
+        auto wait_time = max(1, to_integer<int32>(message.substr(11)));
+        auto star_count = max(static_cast<int64>(1), to_integer<int64>(message.substr(second_part_pos + 10)));
+        return promise_.set_value(td_api::make_object<td_api::foundPublicPosts>(
+            vector<td_api::object_ptr<td_api::message>>(), string(),
+            td_api::make_object<td_api::publicPostSearchLimits>(0, 0, wait_time, star_count, true), true));
+      }
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -2143,8 +2155,8 @@ void MessageQueryManager::on_get_public_post_search_result(
   }
   td_->star_manager_->add_pending_owned_star_count(star_count, !posts_flood.is_free());
 
-  promise.set_value(td_api::make_object<td_api::foundPublicPosts>(std::move(result), next_offset_str,
-                                                                  posts_flood.get_public_post_search_limits_object()));
+  promise.set_value(td_api::make_object<td_api::foundPublicPosts>(
+      std::move(result), next_offset_str, posts_flood.get_public_post_search_limits_object(), false));
 }
 
 void MessageQueryManager::search_hashtag_posts(string hashtag, string offset_str, int32 limit,
