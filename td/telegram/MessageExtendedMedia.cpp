@@ -70,11 +70,13 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
     case telegram_api::messageMediaPhoto::ID: {
       auto photo = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media);
       if (photo->photo_ == nullptr) {
+        LOG(ERROR) << "Receive invalid paid media " << to_string(photo);
         break;
       }
 
       photo_ = get_photo(td, std::move(photo->photo_), owner_dialog_id);
       if (photo_.is_empty()) {
+        LOG(ERROR) << "Receive invalid paid media photo";
         break;
       }
       type_ = Type::Photo;
@@ -83,12 +85,14 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
     case telegram_api::messageMediaDocument::ID: {
       auto document = telegram_api::move_object_as<telegram_api::messageMediaDocument>(media);
       if (document->document_ == nullptr) {
+        LOG(ERROR) << "Receive invalid paid media " << to_string(document);
         break;
       }
 
       auto document_ptr = std::move(document->document_);
       int32 document_id = document_ptr->get_id();
       if (document_id == telegram_api::documentEmpty::ID) {
+        LOG(ERROR) << "Receive invalid paid media document";
         break;
       }
       CHECK(document_id == telegram_api::document::ID);
@@ -96,6 +100,7 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
       auto parsed_document = td->documents_manager_->on_get_document(
           telegram_api::move_object_as<telegram_api::document>(document_ptr), owner_dialog_id, false);
       if (parsed_document.empty() || parsed_document.type != Document::Type::Video) {
+        LOG(ERROR) << "Receive invalid paid media " << parsed_document;
         break;
       }
       CHECK(parsed_document.file_id.is_valid());
@@ -109,6 +114,7 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
       break;
     }
     default:
+      LOG(ERROR) << "Receive invalid paid media " << to_string(media);
       break;
   }
   if (type_ == Type::Unsupported) {
