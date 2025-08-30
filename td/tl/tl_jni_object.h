@@ -61,7 +61,7 @@ class JvmThreadDetacher {
 
   JvmThreadDetacher(const JvmThreadDetacher &) = delete;
   JvmThreadDetacher &operator=(const JvmThreadDetacher &) = delete;
-  JvmThreadDetacher(JvmThreadDetacher &&other) : java_vm_(other.java_vm_) {
+  JvmThreadDetacher(JvmThreadDetacher &&other) noexcept : java_vm_(other.java_vm_) {
     other.java_vm_ = nullptr;
   }
   JvmThreadDetacher &operator=(JvmThreadDetacher &&) = delete;

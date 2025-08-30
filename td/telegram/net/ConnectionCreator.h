@@ -54,7 +54,7 @@ extern int VERBOSITY_NAME(connections);
 class ConnectionCreator final : public NetQueryCallback {
  public:
   explicit ConnectionCreator(ActorShared<> parent);
-  ConnectionCreator(ConnectionCreator &&other);
+  ConnectionCreator(ConnectionCreator &&other) noexcept;
   ConnectionCreator &operator=(ConnectionCreator &&other);
   ~ConnectionCreator() final;
 

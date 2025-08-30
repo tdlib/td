@@ -37,7 +37,7 @@ class LambdaGuard final : public Guard {
   }
   LambdaGuard(const LambdaGuard &) = delete;
   LambdaGuard &operator=(const LambdaGuard &) = delete;
-  LambdaGuard(LambdaGuard &&other) : func_(std::move(other.func_)), dismissed_(other.dismissed_) {
+  LambdaGuard(LambdaGuard &&other) noexcept : func_(std::move(other.func_)), dismissed_(other.dismissed_) {
     other.dismissed_ = true;
   }
   LambdaGuard &operator=(LambdaGuard &&) = delete;
