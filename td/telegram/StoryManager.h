@@ -436,6 +436,8 @@ class StoryManager final : public Actor {
 
   void on_story_can_get_viewers_timeout(int64 story_global_id);
 
+  Status check_story_id(const StoryId &story_id, bool only_server) const;
+
   bool is_my_story(DialogId owner_dialog_id) const;
 
   bool can_access_expired_story(DialogId owner_dialog_id, const Story *story) const;

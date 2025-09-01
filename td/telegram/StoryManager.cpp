@@ -2893,6 +2893,16 @@ void StoryManager::search_venue_posts(string venue_provider, string venue_id, st
   td_->create_handler<SearchStoriesQuery>(std::move(promise))->send(venue_provider, venue_id, offset, limit);
 }
 
+Status StoryManager::check_story_id(const StoryId &story_id, bool only_server) const {
+  if (!story_id.is_valid()) {
+    return Status::Error(400, "Invalid story identifier specified");
+  }
+  if (only_server && !story_id.is_server()) {
+    return Status::Error(400, "Can't use the story");
+  }
+  return Status::OK();
+}
+
 void StoryManager::set_pinned_stories(DialogId owner_dialog_id, vector<StoryId> story_ids, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Write,
                                                                         "set_pinned_stories"));
@@ -2918,9 +2928,7 @@ void StoryManager::set_pinned_stories(DialogId owner_dialog_id, vector<StoryId> 
 void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read, "open_story"));
-  if (!story_id.is_valid()) {
-    return promise.set_error(400, "Invalid story identifier specified");
-  }
+  TRY_STATUS_PROMISE(promise, check_story_id(story_id, false));
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story(story_full_id);
@@ -2977,9 +2985,7 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
 void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read, "close_story"));
-  if (!story_id.is_valid()) {
-    return promise.set_error(400, "Invalid story identifier specified");
-  }
+  TRY_STATUS_PROMISE(promise, check_story_id(story_id, false));
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
   if (can_get_story_view_count(owner_dialog_id) && story_id.is_server()) {
@@ -3088,12 +3094,7 @@ void StoryManager::set_story_reaction(StoryFullId story_full_id, ReactionType re
   auto owner_dialog_id = story_full_id.get_dialog_id();
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
                                                                         "set_story_reaction"));
-  if (!story_full_id.get_story_id().is_valid()) {
-    return promise.set_error(400, "Invalid story identifier specified");
-  }
-  if (!story_full_id.get_story_id().is_server()) {
-    return promise.set_error(400, "Can't react to the story");
-  }
+  TRY_STATUS_PROMISE(promise, check_story_id(story_full_id.get_story_id(), true));
 
   Story *story = get_story_force(story_full_id, "set_story_reaction");
   if (story == nullptr) {
@@ -5127,9 +5128,7 @@ void StoryManager::reload_story(StoryFullId story_full_id, Promise<Unit> &&promi
   LOG(INFO) << "Reload " << story_full_id << " from " << source;
   auto dialog_id = story_full_id.get_dialog_id();
   auto story_id = story_full_id.get_story_id();
-  if (!story_id.is_server()) {
-    return promise.set_error(400, "Invalid story identifier");
-  }
+  TRY_STATUS_PROMISE(promise, check_story_id(story_id, true));
 
   auto &queries = reload_story_queries_[story_full_id];
   if (!queries.empty() && !promise) {
@@ -5168,9 +5167,7 @@ void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id, bool on
                              Promise<td_api::object_ptr<td_api::story>> &&promise) {
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read, "get_story"));
-  if (!story_id.is_valid()) {
-    return promise.set_error(400, "Invalid story identifier specified");
-  }
+  TRY_STATUS_PROMISE(promise, check_story_id(story_id, false));
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
   const Story *story = get_story_force(story_full_id, "get_story");
