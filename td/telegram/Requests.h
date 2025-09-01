@@ -555,6 +555,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::setStoryAlbumName &request);
 
+  void on_request(uint64 id, const td_api::addStoryAlbumStories &request);
+
   void on_request(uint64 id, const td_api::removeNotification &request);
 
   void on_request(uint64 id, const td_api::removeNotificationGroup &request);

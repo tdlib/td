@@ -3764,6 +3764,13 @@ void Requests::on_request(uint64 id, td_api::setStoryAlbumName &request) {
                                              request.name_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::addStoryAlbumStories &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->story_manager_->add_story_album_stories(DialogId(request.chat_id_), StoryAlbumId(request.story_album_id_),
+                                               StoryId::get_story_ids(request.story_ids_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::removeNotification &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

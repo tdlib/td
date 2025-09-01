@@ -3661,6 +3661,17 @@ void StoryManager::set_story_album_title(DialogId owner_dialog_id, StoryAlbumId 
       ->send(owner_dialog_id, story_album_id, title, {}, {}, {});
 }
 
+void StoryManager::add_story_album_stories(DialogId owner_dialog_id, StoryAlbumId story_album_id,
+                                           const vector<StoryId> &story_ids,
+                                           Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
+                                                                        "add_story_album_stories"));
+  TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
+  TRY_STATUS_PROMISE(promise, check_story_ids(story_ids, true));
+  td_->create_handler<UpdateStoryAlbumQuery>(std::move(promise))
+      ->send(owner_dialog_id, story_album_id, {}, {}, story_ids, {});
+}
+
 void StoryManager::activate_stealth_mode(Promise<Unit> &&promise) {
   td_->create_handler<ActivateStealthModeQuery>(std::move(promise))->send();
 }
