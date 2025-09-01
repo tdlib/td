@@ -1097,6 +1097,37 @@ class ReorderStoryAlbumsQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteStoryAlbumQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId owner_dialog_id_;
+
+ public:
+  explicit DeleteStoryAlbumQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId owner_dialog_id, StoryAlbumId story_album_id) {
+    owner_dialog_id_ = owner_dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(owner_dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_deleteAlbum(std::move(input_peer), story_album_id.get()), {{owner_dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_deleteAlbum>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(owner_dialog_id_, status, "DeleteStoryAlbumQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateStoryAlbumQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::storyAlbum>> promise_;
   DialogId owner_dialog_id_;
@@ -3690,6 +3721,13 @@ void StoryManager::reorder_story_albums(DialogId owner_dialog_id, const vector<S
     TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
   }
   td_->create_handler<ReorderStoryAlbumsQuery>(std::move(promise))->send(owner_dialog_id, story_album_ids);
+}
+
+void StoryManager::delete_story_album(DialogId owner_dialog_id, StoryAlbumId story_album_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
+                                                                        "delete_story_album"));
+  TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
+  td_->create_handler<DeleteStoryAlbumQuery>(std::move(promise))->send(owner_dialog_id, story_album_id);
 }
 
 void StoryManager::set_story_album_title(DialogId owner_dialog_id, StoryAlbumId story_album_id, const string &title,

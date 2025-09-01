@@ -3602,6 +3602,11 @@ class CliClient final : public Actor {
       string story_album_ids;
       get_args(args, chat_id, story_album_ids);
       send_request(td_api::make_object<td_api::reorderStoryAlbums>(chat_id, as_story_album_ids(story_album_ids)));
+    } else if (op == "dsa") {
+      ChatId chat_id;
+      StoryAlbumId story_album_id;
+      get_args(args, chat_id, story_album_id);
+      send_request(td_api::make_object<td_api::deleteStoryAlbum>(chat_id, story_album_id));
     } else if (op == "ssan") {
       ChatId chat_id;
       StoryAlbumId story_album_id;

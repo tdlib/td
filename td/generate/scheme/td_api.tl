@@ -11625,6 +11625,11 @@ createStoryAlbum story_poster_chat_id:int53 name:string story_ids:vector<int32> 
 //@story_album_ids New order of story albums
 reorderStoryAlbums chat_id:int53 story_album_ids:vector<int32> = Ok;
 
+//@description Deletes a story album. If the album is owned by a supergroup or a channel chat, then requires can_edit_stories administrator right in the chat
+//@chat_id Identifier of the chat that owns the stories
+//@story_album_id Identifier of the story album
+deleteStoryAlbum chat_id:int53 story_album_id:int32 = Ok;
+
 //@description Changes name of an album of stories. If the album is owned by a supergroup or a channel chat, then requires can_edit_stories administrator right in the chat. Returns the changed album
 //@chat_id Identifier of the chat that owns the stories
 //@story_album_id Identifier of the story album
