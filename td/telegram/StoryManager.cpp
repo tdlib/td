@@ -2952,6 +2952,13 @@ Status StoryManager::check_story_ids(const vector<StoryId> &story_ids, bool only
   return Status::OK();
 }
 
+Status StoryManager::check_story_album_id(StoryAlbumId story_album_id) const {
+  if (!story_album_id.is_valid()) {
+    return Status::Error(400, "Invalid story album identifier specified");
+  }
+  return Status::OK();
+}
+
 void StoryManager::set_pinned_stories(DialogId owner_dialog_id, vector<StoryId> story_ids, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Write,
                                                                         "set_pinned_stories"));
@@ -3546,12 +3553,9 @@ void StoryManager::get_story_album_stories(DialogId owner_dialog_id, StoryAlbumI
   }
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
                                                                         "get_story_album_stories"));
-
+  TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
   if (offset < 0) {
     return promise.set_error(400, "Invalid offset specified");
-  }
-  if (!story_album_id.is_valid()) {
-    return promise.set_error(400, "Invalid story album identifier specified");
   }
   if (!can_have_stories(owner_dialog_id)) {
     return promise.set_value(td_api::make_object<td_api::stories>());
@@ -5427,10 +5431,8 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   if (!can_post_stories(dialog_id)) {
     return promise.set_error(400, "Not enough rights to post stories in the chat");
   }
-  for (auto album_id : story_album_ids) {
-    if (!album_id.is_valid()) {
-      return promise.set_error(400, "Invalid story album identifier specified");
-    }
+  for (auto story_album_id : story_album_ids) {
+    TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
   }
 
   bool is_bot = td_->auth_manager_->is_bot();

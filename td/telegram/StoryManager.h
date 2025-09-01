@@ -443,6 +443,8 @@ class StoryManager final : public Actor {
 
   Status check_story_ids(const vector<StoryId> &story_ids, bool only_server) const;
 
+  Status check_story_album_id(StoryAlbumId story_album_id) const;
+
   bool is_my_story(DialogId owner_dialog_id) const;
 
   bool can_access_expired_story(DialogId owner_dialog_id, const Story *story) const;
