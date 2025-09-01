@@ -2024,6 +2024,14 @@ bool StoryManager::can_toggle_story_is_pinned(StoryFullId story_full_id, const S
   return can_edit_stories(story_full_id.get_dialog_id());
 }
 
+bool StoryManager::can_add_story_to_album(StoryFullId story_full_id, const Story *story) const {
+  if (!story_full_id.get_story_id().is_server()) {
+    return false;
+  }
+  auto owner_dialog_id = story_full_id.get_dialog_id();
+  return can_edit_stories(owner_dialog_id);
+}
+
 bool StoryManager::can_delete_story(StoryFullId story_full_id, const Story *story) const {
   if (!story_full_id.get_story_id().is_server()) {
     return true;
@@ -3693,6 +3701,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   auto changelog_dialog_id = get_changelog_story_dialog_id();
   auto is_visible_only_for_self = !story_id.is_server() || owner_dialog_id == changelog_dialog_id ||
                                   (!story->is_pinned_ && !is_active_story(story));
+  auto can_be_added_to_album = can_add_story_to_album(story_full_id, story);
   auto can_be_deleted = can_delete_story(story_full_id, story);
   auto can_be_edited = can_edit_story(story_full_id, story);
   auto can_be_forwarded = !story->noforwards_ && story_id.is_server() &&
@@ -3722,9 +3731,9 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
           ? nullptr
           : get_message_sender_object(td_, story->sender_dialog_id_, "get_story_object 2"),
       story->date_, is_being_sent, is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self,
-      can_be_deleted, can_be_edited, can_be_forwarded, can_be_replied, can_toggle_is_pinned, can_get_statistics,
-      can_get_interactions, has_expired_viewers, std::move(repost_info), std::move(interaction_info),
-      story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
+      can_be_added_to_album, can_be_deleted, can_be_edited, can_be_forwarded, can_be_replied, can_toggle_is_pinned,
+      can_get_statistics, can_get_interactions, has_expired_viewers, std::move(repost_info),
+      std::move(interaction_info), story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
       get_story_content_object(td_, content), std::move(story_areas),
       get_formatted_text_object(td_->user_manager_.get(), *caption, true, get_story_content_duration(td_, content)),
       StoryAlbumId::get_story_album_ids_object(story->album_ids_));
