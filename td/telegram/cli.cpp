@@ -606,6 +606,10 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
+  vector<int32> as_story_album_ids(Slice story_album_ids) const {
+    return transform(autosplit(story_album_ids), [this](Slice str) { return as_story_album_id(str); });
+  }
+
   static int32 as_gift_collection_id(Slice str) {
     return to_integer<int32>(trim(str));
   }
@@ -3593,6 +3597,11 @@ class CliClient final : public Actor {
       string story_ids;
       get_args(args, story_poster_chat_id, name, story_ids);
       send_request(td_api::make_object<td_api::createStoryAlbum>(story_poster_chat_id, name, as_story_ids(story_ids)));
+    } else if (op == "rsa") {
+      ChatId chat_id;
+      string story_album_ids;
+      get_args(args, chat_id, story_album_ids);
+      send_request(td_api::make_object<td_api::reorderStoryAlbums>(chat_id, as_story_album_ids(story_album_ids)));
     } else if (op == "ssan") {
       ChatId chat_id;
       StoryAlbumId story_album_id;

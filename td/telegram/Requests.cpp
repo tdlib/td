@@ -3756,6 +3756,13 @@ void Requests::on_request(uint64 id, td_api::createStoryAlbum &request) {
                                           StoryId::get_story_ids(request.story_ids_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::reorderStoryAlbums &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->story_manager_->reorder_story_albums(
+      DialogId(request.chat_id_), StoryAlbumId::get_story_album_ids(request.story_album_ids_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setStoryAlbumName &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.name_);

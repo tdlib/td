@@ -324,6 +324,9 @@ class StoryManager final : public Actor {
   void create_story_album(DialogId owner_dialog_id, const string &title, const vector<StoryId> &story_ids,
                           Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise);
 
+  void reorder_story_albums(DialogId owner_dialog_id, const vector<StoryAlbumId> &story_album_ids,
+                            Promise<Unit> &&promise);
+
   void set_story_album_title(DialogId owner_dialog_id, StoryAlbumId story_album_id, const string &title,
                              Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise);
 
