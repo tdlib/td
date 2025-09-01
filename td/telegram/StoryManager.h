@@ -330,6 +330,10 @@ class StoryManager final : public Actor {
   void add_story_album_stories(DialogId owner_dialog_id, StoryAlbumId story_album_id, const vector<StoryId> &story_ids,
                                Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise);
 
+  void remove_story_album_stories(DialogId owner_dialog_id, StoryAlbumId story_album_id,
+                                  const vector<StoryId> &story_ids,
+                                  Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise);
+
   void activate_stealth_mode(Promise<Unit> &&promise);
 
   void remove_story_notifications_by_story_ids(DialogId dialog_id, const vector<StoryId> &story_ids);
