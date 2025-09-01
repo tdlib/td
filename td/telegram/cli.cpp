@@ -3593,6 +3593,12 @@ class CliClient final : public Actor {
       string story_ids;
       get_args(args, story_poster_chat_id, name, story_ids);
       send_request(td_api::make_object<td_api::createStoryAlbum>(story_poster_chat_id, name, as_story_ids(story_ids)));
+    } else if (op == "ssan") {
+      ChatId chat_id;
+      StoryAlbumId story_album_id;
+      string name;
+      get_args(args, chat_id, story_album_id, name);
+      send_request(td_api::make_object<td_api::setStoryAlbumName>(chat_id, story_album_id, name));
     } else if (op == "ghf") {
       get_history_chat_id_ = as_chat_id(args);
       send_request(td_api::make_object<td_api::getChatHistory>(get_history_chat_id_, std::numeric_limits<int64>::max(),

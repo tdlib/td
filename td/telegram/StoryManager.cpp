@@ -1064,6 +1064,59 @@ class CreateStoryAlbumQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateStoryAlbumQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::storyAlbum>> promise_;
+  DialogId owner_dialog_id_;
+
+ public:
+  explicit UpdateStoryAlbumQuery(Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId owner_dialog_id, StoryAlbumId story_album_id, const string &title,
+            const vector<StoryId> &deleted_story_ids, const vector<StoryId> &added_story_ids,
+            const vector<StoryId> &ordered_story_ids) {
+    owner_dialog_id_ = owner_dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(owner_dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    int32 flags = 0;
+    if (!title.empty()) {
+      flags |= telegram_api::stories_updateAlbum::TITLE_MASK;
+    }
+    if (!deleted_story_ids.empty()) {
+      flags |= telegram_api::stories_updateAlbum::DELETE_STORIES_MASK;
+    }
+    if (!added_story_ids.empty()) {
+      flags |= telegram_api::stories_updateAlbum::ADD_STORIES_MASK;
+    }
+    if (!ordered_story_ids.empty()) {
+      flags |= telegram_api::stories_updateAlbum::ORDER_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_updateAlbum(
+            flags, std::move(input_peer), story_album_id.get(), title, StoryId::get_input_story_ids(deleted_story_ids),
+            StoryId::get_input_story_ids(added_story_ids), StoryId::get_input_story_ids(ordered_story_ids)),
+        {{owner_dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_updateAlbum>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for UpdateStoryAlbumQuery: " << to_string(ptr);
+    StoryAlbum story_album(td_, owner_dialog_id_, std::move(ptr));
+    promise_.set_value(story_album.get_story_album_object(td_));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(owner_dialog_id_, status, "UpdateStoryAlbumQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStoriesMaxIdsQuery final : public Td::ResultHandler {
   vector<DialogId> dialog_ids_;
 
@@ -3590,7 +3643,22 @@ void StoryManager::create_story_album(DialogId owner_dialog_id, const string &ti
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
                                                                         "create_story_album"));
   TRY_STATUS_PROMISE(promise, check_story_ids(story_ids, true));
+  if (title.empty()) {
+    return promise.set_error(400, "Story album name must be non-empty");
+  }
   td_->create_handler<CreateStoryAlbumQuery>(std::move(promise))->send(owner_dialog_id, title, story_ids);
+}
+
+void StoryManager::set_story_album_title(DialogId owner_dialog_id, StoryAlbumId story_album_id, const string &title,
+                                         Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
+                                                                        "set_story_album_title"));
+  TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
+  if (title.empty()) {
+    return promise.set_error(400, "Story album name must be non-empty");
+  }
+  td_->create_handler<UpdateStoryAlbumQuery>(std::move(promise))
+      ->send(owner_dialog_id, story_album_id, title, {}, {}, {});
 }
 
 void StoryManager::activate_stealth_mode(Promise<Unit> &&promise) {
