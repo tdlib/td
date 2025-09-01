@@ -1947,7 +1947,7 @@ void SecretChatActor::send_update_secret_chat() {
 }
 
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionSetMessageTTL &set_ttl) {
-  config_state_.ttl = set_ttl.ttl_seconds_;
+  config_state_.ttl = max(0, set_ttl.ttl_seconds_);
   context_->secret_chat_db()->set_value(config_state_);
   send_update_secret_chat();
 }
@@ -1986,7 +1986,7 @@ void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionTypin
 }
 
 Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionSetMessageTTL &set_ttl) {
-  config_state_.ttl = set_ttl.ttl_seconds_;
+  config_state_.ttl = max(0, set_ttl.ttl_seconds_);
   context_->secret_chat_db()->set_value(config_state_);
   send_update_secret_chat();
   return Status::OK();

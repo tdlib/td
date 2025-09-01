@@ -27,8 +27,7 @@ class MessageTtl {
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   MessageTtl(T period) = delete;
 
-  explicit MessageTtl(int32 period) : period_(period) {
-  }
+  MessageTtl(int32 period, const char *source);
 
   bool is_empty() const;
 

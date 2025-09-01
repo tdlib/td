@@ -3853,7 +3853,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerSettings> u
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePeerHistoryTTL> update, Promise<Unit> &&promise) {
-  td_->messages_manager_->on_update_dialog_message_ttl(DialogId(update->peer_), MessageTtl(update->ttl_period_));
+  td_->messages_manager_->on_update_dialog_message_ttl(DialogId(update->peer_),
+                                                       MessageTtl(update->ttl_period_, "updatePeerHistoryTTL"));
   promise.set_value(Unit());
 }
 

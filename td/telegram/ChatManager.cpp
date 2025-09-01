@@ -5618,7 +5618,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
                          default_join_group_call_as_dialog_id, false);
     }
 
-    td_->messages_manager_->on_update_dialog_message_ttl(DialogId(chat_id), MessageTtl(chat->ttl_period_));
+    td_->messages_manager_->on_update_dialog_message_ttl(DialogId(chat_id),
+                                                         MessageTtl(chat->ttl_period_, "on_get_chat_full"));
 
     td_->messages_manager_->on_update_dialog_is_translatable(DialogId(chat_id), !chat->translations_disabled_);
 
@@ -5709,7 +5710,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
     td_->messages_manager_->on_update_dialog_pending_join_requests(DialogId(channel_id), channel->requests_pending_,
                                                                    std::move(channel->recent_requesters_));
 
-    td_->messages_manager_->on_update_dialog_message_ttl(DialogId(channel_id), MessageTtl(channel->ttl_period_));
+    td_->messages_manager_->on_update_dialog_message_ttl(DialogId(channel_id),
+                                                         MessageTtl(channel->ttl_period_, "on_get_channel_full"));
 
     td_->messages_manager_->on_update_dialog_view_as_messages(DialogId(channel_id), channel->view_forum_as_messages_);
 

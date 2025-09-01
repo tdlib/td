@@ -12483,7 +12483,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       }
     }
 
-    set_dialog_message_ttl(d, MessageTtl(dialog->ttl_period_));
+    set_dialog_message_ttl(d, MessageTtl(dialog->ttl_period_, "on_get_dialogs"));
 
     being_added_dialog_id_ = DialogId();
 
@@ -30506,8 +30506,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         break;
       case MessageContentType::ChatCreate:
       case MessageContentType::ChannelCreate:
-        if (m->ttl_period > 0) {
-          set_dialog_message_ttl(d, MessageTtl(m->ttl_period));
+        if (m->ttl_period != 0) {
+          set_dialog_message_ttl(d, MessageTtl(m->ttl_period, "DialogCreate"));
         }
         break;
       default:
@@ -32086,7 +32086,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
         do_set_dialog_folder_id(d,
                                 td_->user_manager_->get_secret_chat_initial_folder_id(dialog_id.get_secret_chat_id()));
       }
-      d->message_ttl = MessageTtl(td_->user_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id()));
+      d->message_ttl =
+          MessageTtl(td_->user_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id()), "SecretChat");
       d->is_message_ttl_inited = true;
       d->has_bots =
           td_->user_manager_->is_user_bot(td_->user_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()));

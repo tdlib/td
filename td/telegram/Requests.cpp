@@ -4502,7 +4502,7 @@ void Requests::on_request(uint64 id, td_api::createNewBasicGroupChat &request) {
   CLEAN_INPUT_STRING(request.title_);
   CREATE_REQUEST_PROMISE();
   td_->chat_manager_->create_new_chat(UserId::get_user_ids(request.user_ids_), std::move(request.title_),
-                                      MessageTtl(request.message_auto_delete_time_), std::move(promise));
+                                      MessageTtl(request.message_auto_delete_time_, nullptr), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
@@ -4512,7 +4512,7 @@ void Requests::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
   CREATE_REQUEST_PROMISE();
   td_->chat_manager_->create_new_channel(std::move(request.title_), request.is_forum_, !request.is_channel_,
                                          std::move(request.description_), DialogLocation(std::move(request.location_)),
-                                         request.for_import_, MessageTtl(request.message_auto_delete_time_),
+                                         request.for_import_, MessageTtl(request.message_auto_delete_time_, nullptr),
                                          std::move(promise));
 }
 

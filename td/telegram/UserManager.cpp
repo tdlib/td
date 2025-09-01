@@ -7390,7 +7390,8 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
 
   td_->messages_manager_->on_update_dialog_has_scheduled_server_messages(DialogId(user_id), user->has_scheduled_);
 
-  td_->messages_manager_->on_update_dialog_message_ttl(DialogId(user_id), MessageTtl(user->ttl_period_));
+  td_->messages_manager_->on_update_dialog_message_ttl(DialogId(user_id),
+                                                       MessageTtl(user->ttl_period_, "on_get_user_full"));
 
   td_->messages_manager_->on_update_dialog_is_blocked(DialogId(user_id), user->blocked_,
                                                       user->blocked_my_stories_from_);
@@ -8364,7 +8365,7 @@ void UserManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat_id,
     }
     if (c->is_ttl_changed) {
       send_closure_later(G()->messages_manager(), &MessagesManager::on_update_dialog_message_ttl,
-                         DialogId(secret_chat_id), MessageTtl(c->ttl));
+                         DialogId(secret_chat_id), MessageTtl(c->ttl, "update_secret_chat"));
       c->is_ttl_changed = false;
     }
   }
