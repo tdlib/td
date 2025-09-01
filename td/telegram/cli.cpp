@@ -598,6 +598,10 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
+  vector<int32> as_story_ids(Slice story_ids) const {
+    return transform(autosplit(story_ids), [this](Slice str) { return as_story_id(str); });
+  }
+
   static int32 as_story_album_id(Slice str) {
     return to_integer<int32>(trim(str));
   }
@@ -3583,6 +3587,12 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, chat_id, story_album_id, offset, limit);
       send_request(td_api::make_object<td_api::getStoryAlbumStories>(chat_id, story_album_id, offset, as_limit(limit)));
+    } else if (op == "csa") {
+      ChatId story_poster_chat_id;
+      string name;
+      string story_ids;
+      get_args(args, story_poster_chat_id, name, story_ids);
+      send_request(td_api::make_object<td_api::createStoryAlbum>(story_poster_chat_id, name, as_story_ids(story_ids)));
     } else if (op == "ghf") {
       get_history_chat_id_ = as_chat_id(args);
       send_request(td_api::make_object<td_api::getChatHistory>(get_history_chat_id_, std::numeric_limits<int64>::max(),

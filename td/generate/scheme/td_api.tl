@@ -11614,6 +11614,12 @@ getChatStoryAlbums chat_id:int53 = StoryAlbums;
 //@limit The maximum number of stories to be returned. For optimal performance, the number of returned stories is chosen by TDLib and can be smaller than the specified limit
 getStoryAlbumStories chat_id:int53 story_album_id:int32 offset:int32 limit:int32 = Stories;
 
+//@description Creates an album of stories; requires can_edit_stories administrator right for supergroup and channel chats
+//@story_poster_chat_id Identifier of the chat that posted the stories
+//@name Name of the album; 1-12 characters
+//@story_ids Identifiers of stories to add to the album; 0-getOption("story_album_story_count_max") identifiers
+createStoryAlbum story_poster_chat_id:int53 name:string story_ids:vector<int32> = StoryAlbum;
+
 
 //@description Returns the list of features available on the specific chat boost level. This is an offline method
 //@is_channel Pass true to get the list of features for channels; pass false to get the list of features for supergroups
