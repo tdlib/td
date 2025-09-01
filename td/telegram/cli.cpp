@@ -3612,6 +3612,13 @@ class CliClient final : public Actor {
       get_args(args, chat_id, story_album_id, story_ids);
       send_request(
           td_api::make_object<td_api::removeStoryAlbumStories>(chat_id, story_album_id, as_story_ids(story_ids)));
+    } else if (op == "rosas") {
+      ChatId chat_id;
+      StoryAlbumId story_album_id;
+      string story_ids;
+      get_args(args, chat_id, story_album_id, story_ids);
+      send_request(
+          td_api::make_object<td_api::reorderStoryAlbumStories>(chat_id, story_album_id, as_story_ids(story_ids)));
     } else if (op == "ghf") {
       get_history_chat_id_ = as_chat_id(args);
       send_request(td_api::make_object<td_api::getChatHistory>(get_history_chat_id_, std::numeric_limits<int64>::max(),

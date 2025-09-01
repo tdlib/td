@@ -11641,6 +11641,13 @@ addStoryAlbumStories chat_id:int53 story_album_id:int32 story_ids:vector<int32> 
 //@story_ids Identifier of the stories to remove from the album
 removeStoryAlbumStories chat_id:int53 story_album_id:int32 story_ids:vector<int32> = StoryAlbum;
 
+//@description Changes order of stories in a album. If the album is owned by a supergroup or a channel chat, then
+//-requires can_edit_stories administrator right in the chat. Returns the changed album
+//@chat_id Identifier of the chat that owns the stories
+//@story_album_id Identifier of the story album
+//@story_ids Identifier of the stories to move to the beginning of the album. All other stories are placed in the current order after the specified stories
+reorderStoryAlbumStories chat_id:int53 story_album_id:int32 story_ids:vector<int32> = StoryAlbum;
+
 
 //@description Returns the list of features available on the specific chat boost level. This is an offline method
 //@is_channel Pass true to get the list of features for channels; pass false to get the list of features for supergroups
@@ -13014,7 +13021,7 @@ removeGiftCollectionGifts owner_id:MessageSender collection_id:int32 received_gi
 //@description Changes order of gifts in a collection. If the collection is owned by a channel chat, then requires can_post_messages administrator right in the channel chat. Returns the changed collection
 //@owner_id Identifier of the user or the channel chat that owns the collection
 //@collection_id Identifier of the gift collection
-//@received_gift_ids Identifier of the gifts to move to the beginning of the collection. All other gifts are placed in the current order after the gifts
+//@received_gift_ids Identifier of the gifts to move to the beginning of the collection. All other gifts are placed in the current order after the specified gifts
 reorderGiftCollectionGifts owner_id:MessageSender collection_id:int32 received_gift_ids:vector<string> = GiftCollection;
 
 

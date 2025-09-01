@@ -3778,6 +3778,13 @@ void Requests::on_request(uint64 id, const td_api::removeStoryAlbumStories &requ
                                                   StoryId::get_story_ids(request.story_ids_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::reorderStoryAlbumStories &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->story_manager_->reorder_story_album_stories(DialogId(request.chat_id_), StoryAlbumId(request.story_album_id_),
+                                                   StoryId::get_story_ids(request.story_ids_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::removeNotification &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
