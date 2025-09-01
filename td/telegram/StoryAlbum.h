@@ -39,6 +39,8 @@ class StoryAlbum {
     return album_id_.is_valid();
   }
 
+  vector<FileId> get_file_ids(const Td *td) const;
+
   td_api::object_ptr<td_api::storyAlbum> get_story_album_object(Td *td) const;
 };
 

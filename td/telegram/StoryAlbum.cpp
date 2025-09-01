@@ -46,6 +46,12 @@ StoryAlbum::StoryAlbum(Td *td, DialogId owner_dialog_id,
   }
 }
 
+vector<FileId> StoryAlbum::get_file_ids(const Td *td) const {
+  auto file_ids = photo_get_file_ids(icon_photo_);
+  Document{Document::Type::Video, icon_video_file_id_}.append_file_ids(td, file_ids);
+  return file_ids;
+}
+
 td_api::object_ptr<td_api::storyAlbum> StoryAlbum::get_story_album_object(Td *td) const {
   return td_api::make_object<td_api::storyAlbum>(album_id_.get(), title_,
                                                  get_photo_object(td->file_manager_.get(), icon_photo_),
