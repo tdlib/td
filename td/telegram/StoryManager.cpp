@@ -2447,6 +2447,7 @@ void StoryManager::load_active_stories(StoryListId story_list_id, Promise<Unit> 
     CHECK(G()->use_message_database());
     story_list.load_list_from_database_queries_.push_back(std::move(promise));
     if (story_list.load_list_from_database_queries_.size() == 1u) {
+      LOG(INFO) << "Load active stories in " << story_list_id << " from database";
       G()->td_db()->get_story_db_async()->get_active_story_list(
           story_list_id, story_list.last_loaded_database_dialog_date_.get_order(),
           story_list.last_loaded_database_dialog_date_.get_dialog_id(), 10,
@@ -2546,6 +2547,7 @@ void StoryManager::load_active_stories_from_server(StoryListId story_list_id, St
                                                    Promise<Unit> &&promise) {
   story_list.load_list_from_server_queries_.push_back(std::move(promise));
   if (story_list.load_list_from_server_queries_.size() == 1u) {
+    LOG(INFO) << "Load active stories in " << story_list_id << " from server";
     auto query_promise =
         PromiseCreator::lambda([actor_id = actor_id(this), story_list_id, is_next, state = story_list.state_](
                                    Result<telegram_api::object_ptr<telegram_api::stories_AllStories>> r_all_stories) {
@@ -5256,9 +5258,10 @@ StoryListId StoryManager::get_dialog_story_list_id(DialogId owner_dialog_id) con
   }
 }
 
-void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source) {
+void StoryManager::on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source, bool force) {
   // called from update_user/on_channel_status_changed, must not create the dialog and hence must not load active stories
-  auto active_stories = get_active_stories_editable(owner_dialog_id);
+  auto active_stories =
+      force ? get_active_stories_force(owner_dialog_id, source) : get_active_stories_editable(owner_dialog_id);
   bool need_save_to_database = false;
   if (active_stories != nullptr &&
       update_active_stories_order(owner_dialog_id, active_stories, &need_save_to_database)) {

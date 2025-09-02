@@ -398,7 +398,7 @@ bool TopDialogManager::need_dialog_stories(TopDialogCategory category, DialogId 
 
 void TopDialogManager::on_need_dialog_stories_changed(DialogId dialog_id) {
   send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated, dialog_id,
-                     "on_need_dialog_stories_changed");
+                     "on_need_dialog_stories_changed", true);
 }
 
 void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {

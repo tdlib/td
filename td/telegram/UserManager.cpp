@@ -8240,7 +8240,7 @@ void UserManager::update_user(User *u, UserId user_id, bool from_binlog, bool fr
   if (u->is_is_contact_changed) {
     td_->messages_manager_->on_dialog_user_is_contact_updated(DialogId(user_id), u->is_contact);
     send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
-                       DialogId(user_id), "update_user is_contact");
+                       DialogId(user_id), "update_user is_contact", false);
     if (is_user_contact(u, user_id, false)) {
       auto user_full = get_user_full(user_id);
       if (user_full != nullptr && user_full->need_phone_number_privacy_exception) {
@@ -8269,7 +8269,7 @@ void UserManager::update_user(User *u, UserId user_id, bool from_binlog, bool fr
   }
   if (u->is_is_premium_changed) {
     send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
-                       DialogId(user_id), "update_user is_premium");
+                       DialogId(user_id), "update_user is_premium", false);
     u->is_is_premium_changed = false;
   }
   if (u->is_name_changed) {
@@ -8316,7 +8316,7 @@ void UserManager::update_user(User *u, UserId user_id, bool from_binlog, bool fr
   }
   if (u->is_stories_hidden_changed) {
     send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
-                       DialogId(user_id), "update_user stories_hidden");
+                       DialogId(user_id), "update_user stories_hidden", false);
     u->is_stories_hidden_changed = false;
   }
   if (!td_->auth_manager_->is_bot()) {

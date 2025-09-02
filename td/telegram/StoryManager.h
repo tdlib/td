@@ -369,7 +369,7 @@ class StoryManager final : public Actor {
 
   void on_update_dialog_stories_hidden(DialogId owner_dialog_id, bool stories_hidden);
 
-  void on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source);
+  void on_dialog_active_stories_order_updated(DialogId owner_dialog_id, const char *source, bool force = false);
 
   Status can_get_story_viewers(StoryFullId story_full_id, const Story *story, int32 unix_time) const;
 
