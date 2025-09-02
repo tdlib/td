@@ -847,6 +847,19 @@ class GetTonTransactionsQuery final : public Td::ResultHandler {
               if (is_purchase) {
                 return td_api::make_object<td_api::tonTransactionTypeUpgradedGiftPurchase>(
                     user_id_object, gift.get_upgraded_gift_object(td_));
+              } else if (transaction->starref_commission_permille_ > 0 &&
+                         transaction->starref_commission_permille_ < 1000 &&
+                         transaction->starref_amount_->get_id() == telegram_api::starsTonAmount::ID) {
+                SCOPE_EXIT {
+                  transaction->starref_peer_ = nullptr;  // ignore
+                  transaction->starref_commission_permille_ = 0;
+                  transaction->starref_amount_ = nullptr;
+                };
+                return td_api::make_object<td_api::tonTransactionTypeUpgradedGiftSale>(
+                    user_id_object, gift.get_upgraded_gift_object(td_), transaction->starref_commission_permille_,
+                    TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(transaction->starref_amount_),
+                              true)
+                        .get_ton_amount());
               }
               return nullptr;
             }

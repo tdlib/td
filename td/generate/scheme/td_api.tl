@@ -1601,6 +1601,13 @@ tonTransactionTypeSuggestedPostPayment chat_id:int53 = TonTransactionType;
 //@description The transaction is a purchase of an upgraded gift for some user or channel; for regular users only @user_id Identifier of the user that sold the gift @gift The gift
 tonTransactionTypeUpgradedGiftPurchase user_id:int53 gift:upgradedGift = TonTransactionType;
 
+//@description The transaction is a sale of an upgraded gift; for regular users only
+//@user_id Identifier of the user that bought the gift
+//@gift The gift
+//@commission_per_mille The number of Toncoins received by the Telegram for each 1000 Toncoins received by the seller of the gift
+//@commission_toncoin_amount The amount of Toncoins that were received by the Telegram; in the smallest units of the currency
+tonTransactionTypeUpgradedGiftSale user_id:int53 gift:upgradedGift commission_per_mille:int32 commission_toncoin_amount:int64 = TonTransactionType;
+
 //@description The transaction is a transaction of an unsupported type
 tonTransactionTypeUnsupported = TonTransactionType;
 
