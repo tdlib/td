@@ -261,6 +261,7 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
     return promise.set_value(Unit());
   }
 
+  bool old_need_dialog_stories = need_dialog_stories(category, dialog_id, it->rating);
   top_dialogs.is_dirty = true;
   top_dialogs.dialogs.erase(it);
   if (!first_unsync_change_) {
@@ -268,6 +269,10 @@ void TopDialogManager::remove_dialog(TopDialogCategory category, DialogId dialog
   }
   loop();
   promise.set_value(Unit());
+
+  if (old_need_dialog_stories) {
+    on_need_dialog_stories_changed(dialog_id);
+  }
 }
 
 void TopDialogManager::get_top_dialogs(TopDialogCategory category, int32 limit,
