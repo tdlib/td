@@ -221,7 +221,8 @@ void TopDialogManager::on_dialog_used(TopDialogCategory category, DialogId dialo
     it = next;
   }
 
-  LOG(INFO) << "Update " << get_top_dialog_category_name(category) << " rating of " << dialog_id << " by " << delta;
+  LOG(INFO) << "Update " << get_top_dialog_category_name(category) << " rating of " << dialog_id << " by " << delta
+            << " to " << it->rating;
 
   if (old_need_dialog_stories != need_dialog_stories(category, dialog_id, it->rating)) {
     on_need_dialog_stories_changed(dialog_id);
