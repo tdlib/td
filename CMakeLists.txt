@@ -1016,6 +1016,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StickerType.h
   td/telegram/StorageManager.h
   td/telegram/StoryAlbum.h
+  td/telegram/StoryAlbumFullId.h
   td/telegram/StoryAlbumId.h
   td/telegram/StoryContent.h
   td/telegram/StoryContentType.h

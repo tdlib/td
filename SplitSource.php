@@ -435,6 +435,7 @@ function split_file($file, $chunks, $undo) {
             'stickers_manager[_(-](?![.]get[(][)])|StickersManager' => 'StickersManager',
             'storage_manager[_(-](?![.]get[(][)])|StorageManager' => 'StorageManager',
             'StoryAlbum' => 'StoryAlbum',
+            'StoryAlbumFullId' => 'StoryAlbumFullId',
             'StoryAlbumId' => 'StoryAlbumId',
             'StoryId' => 'StoryId',
             'StoryListId' => 'StoryListId',

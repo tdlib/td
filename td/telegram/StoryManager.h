@@ -17,6 +17,7 @@
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/QuickReplyMessageFullId.h"
 #include "td/telegram/ReactionType.h"
+#include "td/telegram/StoryAlbumFullId.h"
 #include "td/telegram/StoryAlbumId.h"
 #include "td/telegram/StoryDb.h"
 #include "td/telegram/StoryFullId.h"
