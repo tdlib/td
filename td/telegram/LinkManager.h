@@ -170,6 +170,7 @@ class LinkManager final : public Actor {
   class InternalLinkStickerSet;
   class InternalLinkStarGiftCollection;
   class InternalLinkStory;
+  class InternalLinkStoryAlbum;
   class InternalLinkTheme;
   class InternalLinkThemeSettings;
   class InternalLinkUnknownDeepLink;

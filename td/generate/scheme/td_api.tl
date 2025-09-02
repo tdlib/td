@@ -7987,6 +7987,12 @@ internalLinkTypeStickerSet sticker_set_name:string expect_custom_emoji:Bool = In
 //@story_id Story identifier
 internalLinkTypeStory story_poster_username:string story_id:int32 = InternalLinkType;
 
+//@description The link is a link to an album of stories. Call searchPublicChat with the given username, then call getStoryAlbumStories with the received chat identifier
+//-and the given story album identifier, then show the story album if received
+//@story_album_owner_username Username of the owner of the story album
+//@story_album_id Story album identifier
+internalLinkTypeStoryAlbum story_album_owner_username:string story_album_id:int32 = InternalLinkType;
+
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @theme_name Name of the theme
 internalLinkTypeTheme theme_name:string = InternalLinkType;
 

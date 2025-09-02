@@ -391,6 +391,10 @@ static auto story(const td::string &poster_username, td::int32 story_id) {
   return td::td_api::make_object<td::td_api::internalLinkTypeStory>(poster_username, story_id);
 }
 
+static auto story_album(const td::string &owner_username, td::int32 story_album_id) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeStoryAlbum>(owner_username, story_album_id);
+}
+
 static auto theme(const td::string &theme_name) {
   return td::td_api::make_object<td::td_api::internalLinkTypeTheme>(theme_name);
 }
@@ -463,6 +467,7 @@ TEST(Link, parse_internal_link_part1) {
   parse_internal_link("t.me/c/123456789012?boost", chat_boost("tg://boost?channel=123456789012"));
   parse_internal_link("t.me/c/123456789012?boost=12312&domain=123", chat_boost("tg://boost?channel=123456789012"));
 
+  parse_internal_link("t.me/boost/a/12345", story_album("boost", 12345));
   parse_internal_link("t.me/boost/c/12345", gift_collection("boost", 12345));
   parse_internal_link("t.me/boost/s/12345", story("boost", 12345));
   parse_internal_link("t.me/boost/s", chat_boost("tg://boost?domain=s"));
@@ -1443,6 +1448,31 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("t.me/username#/s/123", public_chat("username"));
   parse_internal_link("t.me/username?story=123", public_chat("username"));
   parse_internal_link("https://telegram.dog/tele%63ram/s/%31%39", story("telecram", 19));
+
+  parse_internal_link("tg:resolve?domain=username&album=123", story_album("username", 123));
+  parse_internal_link("TG://resolve?domain=username&album=", public_chat("username"));
+  parse_internal_link("TG://resolve?domain=username&album=0", public_chat("username"));
+  parse_internal_link("TG://resolve?domain=username&album=-1", public_chat("username"));
+  parse_internal_link("TG://test@resolve?domain=username&album=1", nullptr);
+  parse_internal_link("tg:resolve:80?domain=username&album=1", nullptr);
+  parse_internal_link("tg:http://resolve?domain=username&album=1", nullptr);
+  parse_internal_link("tg:https://resolve?domain=username&album=1", nullptr);
+  parse_internal_link("tg:resolve?domain=&album=1", unknown_deep_link("tg://resolve?domain=&album=1"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&album=%30", public_chat("telegram"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&album=%31", story_album("telegram", 1));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&album=%31ab", public_chat("telegram"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&album=%31%39", story_album("telegram", 19));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&album=2222222222", public_chat("telegram"));
+
+  parse_internal_link("t.me/username/a/1234", story_album("username", 1234));
+  parse_internal_link("t.me/username/a/3?qwe=12312#12312", story_album("username", 3));
+  parse_internal_link("t.me/username/a/1", story_album("username", 1));
+  parse_internal_link("t.me/username/a/2", story_album("username", 2));
+  parse_internal_link("t.me/username/a/5", story_album("username", 5));
+  parse_internal_link("t.me/username/a/", public_chat("username"));
+  parse_internal_link("t.me/username#/a/123", public_chat("username"));
+  parse_internal_link("t.me/username?story_album=123&album=123", public_chat("username"));
+  parse_internal_link("https://telegram.dog/tele%63ram/a/%31%39", story_album("telecram", 19));
 
   parse_internal_link("t.me/h", public_chat("h"));
   parse_internal_link("t.me/h/hh", public_chat("h"));
