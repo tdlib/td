@@ -11,6 +11,7 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/StarGiftId.h"
+#include "td/telegram/StarGiftResalePrice.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
@@ -63,12 +64,8 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
           star_gift->resell_amount_[1]->get_id() != telegram_api::starsTonAmount::ID) {
         LOG(ERROR) << "Receive unsupported resale amount";
       } else {
-        resale_star_count_ =
-            StarAmount(telegram_api::move_object_as<telegram_api::starsAmount>(star_gift->resell_amount_[0]), false)
-                .get_star_count();
-        resale_ton_count_ =
-            TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(star_gift->resell_amount_[1]), false)
-                .get_ton_amount();
+        resale_star_count_ = StarGiftResalePrice(std::move(star_gift->resell_amount_[0])).get_star_count();
+        resale_ton_count_ = StarGiftResalePrice(std::move(star_gift->resell_amount_[1])).get_ton_count();
         resale_ton_only_ = star_gift->resale_ton_only_;
       }
     }
@@ -187,8 +184,8 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
   CHECK(is_unique_);
   td_api::object_ptr<td_api::giftResaleParameters> resale_parameters;
   if (resale_star_count_ > 0 && resale_ton_count_ > 0) {
-    resale_parameters =
-        td_api::make_object<td_api::giftResaleParameters>(resale_star_count_, resale_ton_count_, resale_ton_only_);
+    resale_parameters = td_api::make_object<td_api::giftResaleParameters>(
+        resale_star_count_, resale_ton_count_ / 10000000, resale_ton_only_);
   }
   return td_api::make_object<td_api::upgradedGift>(
       id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "upgradedGift"), title_, slug_, num_,

@@ -1177,9 +1177,9 @@ giftPurchaseLimits total_count:int32 remaining_count:int32 = GiftPurchaseLimits;
 
 //@description Describes parameters of a unique gift available for resale
 //@star_count Resale price of the gift in Telegram Stars
-//@toncoin_count Resale price of the gift in Toncoins; in the smallest units of the cryptocurrency
+//@toncoin_cent_count Resale price of the gift in 1/100 of Toncoin
 //@toncoin_only True, if the gift can be bought only using Toncoins
-giftResaleParameters star_count:int53 toncoin_count:int53 toncoin_only:Bool = GiftResaleParameters;
+giftResaleParameters star_count:int53 toncoin_cent_count:int53 toncoin_only:Bool = GiftResaleParameters;
 
 //@description Describes collection of gifts
 //@id Unique identifier of the collection
