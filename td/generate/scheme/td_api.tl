@@ -1374,7 +1374,7 @@ sentGiftUpgraded gift:upgradedGift = SentGift;
 //@was_refunded True, if the gift was refunded and isn't available anymore
 //@date Point in time (Unix timestamp) when the gift was sent
 //@gift The gift
-//@collection_ids Identifiers of collections to which the gift is added
+//@collection_ids Identifiers of collections to which the gift is added; only for the receiver of the gift
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift; 0 if the gift can't be sold by the current user
 //@prepaid_upgrade_star_count Number of Telegram Stars that were paid by the sender for the ability to upgrade the gift
 //@transfer_star_count Number of Telegram Stars that must be paid to transfer the upgraded gift; only for the receiver of the gift
@@ -5447,7 +5447,7 @@ storyInteractionInfo view_count:int32 forward_count:int32 reaction_count:int32 r
 //@content Content of the story
 //@areas Clickable areas to be shown on the story content
 //@caption Caption of the story
-//@album_ids Identifiers of story albums to which the story is added; only for owned stories
+//@album_ids Identifiers of story albums to which the story is added; only for manageable stories
 story id:int32 poster_chat_id:int53 poster_id:MessageSender date:int32 is_being_posted:Bool is_being_edited:Bool is_edited:Bool is_posted_to_chat_page:Bool is_visible_only_for_self:Bool can_be_added_to_album:Bool can_be_deleted:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_replied:Bool can_toggle_is_posted_to_chat_page:Bool can_get_statistics:Bool can_get_interactions:Bool has_expired_viewers:Bool repost_info:storyRepostInfo interaction_info:storyInteractionInfo chosen_reaction_type:ReactionType privacy_settings:StoryPrivacySettings content:StoryContent areas:vector<storyArea> caption:formattedText album_ids:vector<int32> = Story;
 
 //@description Represents a list of stories
