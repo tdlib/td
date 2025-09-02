@@ -1518,8 +1518,9 @@ starTransactionTypeUpgradedGiftPurchase user_id:int53 gift:upgradedGift = StarTr
 //@description The transaction is a sale of an upgraded gift; for regular users only
 //@user_id Identifier of the user that bought the gift
 //@gift The gift
-//@affiliate Information about commission received by Telegram from the transaction
-starTransactionTypeUpgradedGiftSale user_id:int53 gift:upgradedGift affiliate:affiliateInfo = StarTransactionType;
+//@commission_per_mille The number of Telegram Stars received by the Telegram for each 1000 Telegram Stars received by the seller of the gift
+//@commission_star_amount The amount of Telegram Stars that were received by Telegram; can be negative for refunds
+starTransactionTypeUpgradedGiftSale user_id:int53 gift:upgradedGift commission_per_mille:int32 commission_star_amount:starAmount = StarTransactionType;
 
 //@description The transaction is a sending of a paid reaction to a message in a channel chat by the current user; for regular users only
 //@chat_id Identifier of the channel chat

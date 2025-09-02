@@ -499,9 +499,13 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   if (gift.is_unique()) {
                     if (transaction->stargift_resale_) {
                       if (for_user && affiliate != nullptr) {
-                        transaction->stargift_resale_ = false;
+                        SCOPE_EXIT {
+                          affiliate = nullptr;
+                          transaction->stargift_resale_ = false;
+                        };
                         return td_api::make_object<td_api::starTransactionTypeUpgradedGiftSale>(
-                            user_id_object, gift.get_upgraded_gift_object(td_), std::move(affiliate));
+                            user_id_object, gift.get_upgraded_gift_object(td_), affiliate->commission_per_mille_,
+                            std::move(affiliate->star_amount_));
                       }
                     } else {
                       LOG(ERROR) << "Receive sale of an upgraded gift";
