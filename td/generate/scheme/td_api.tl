@@ -3612,6 +3612,11 @@ linkPreviewTypeStickerSet stickers:vector<sticker> = LinkPreviewType;
 //@description The link is a link to a story. Link preview description is unavailable @story_poster_chat_id The identifier of the chat that posted the story @story_id Story identifier
 linkPreviewTypeStory story_poster_chat_id:int53 story_id:int32 = LinkPreviewType;
 
+//@description The link is a link to an album of stories
+//@photo_icon Icon of the album; may be null if none
+//@video_icon Video icon of the album; may be null if none
+linkPreviewTypeStoryAlbum photo_icon:photo video_icon:video = LinkPreviewType;
+
 //@description The link is a link to boost a supergroup chat @photo Photo of the chat; may be null
 linkPreviewTypeSupergroupBoost photo:chatPhoto = LinkPreviewType;
 
