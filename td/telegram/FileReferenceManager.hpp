@@ -78,7 +78,8 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
                           [&](const FileSourceBotMediaPreviewInfo &source) {
                             td::store(source.bot_user_id, storer);
                             td::store(source.language_code, storer);
-                          }));
+                          },
+                          [&](const FileSourceStoryAlbum &source) { td::store(source.story_album_full_id, storer); }));
 }
 
 template <class ParserT>
@@ -191,6 +192,11 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
       td::parse(bot_user_id, parser);
       td::parse(language_code, parser);
       return td->bot_info_manager_->get_bot_media_preview_info_file_source_id(bot_user_id, language_code);
+    }
+    case 22: {
+      StoryAlbumFullId story_album_full_id;
+      td::parse(story_album_full_id, parser);
+      return td->story_manager_->get_story_album_file_source_id(story_album_full_id);
     }
     default:
       parser.set_error("Invalid type in FileSource");

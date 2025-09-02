@@ -1875,11 +1875,11 @@ StoryManager::StoryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std:
 }
 
 StoryManager::~StoryManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_,
-                                              stories_by_global_id_, inaccessible_story_full_ids_,
-                                              deleted_story_full_ids_, failed_to_load_story_full_ids_, story_messages_,
-                                              story_quick_reply_messages_, active_stories_, updated_active_stories_,
-                                              max_read_story_ids_, failed_to_load_active_stories_);
+  Scheduler::instance()->destroy_on_scheduler(
+      G()->get_gc_scheduler_id(), story_full_id_to_file_source_id_, stories_, stories_by_global_id_,
+      inaccessible_story_full_ids_, deleted_story_full_ids_, failed_to_load_story_full_ids_,
+      story_album_full_id_to_file_source_id_, story_album_file_ids_, story_messages_, story_quick_reply_messages_,
+      active_stories_, updated_active_stories_, max_read_story_ids_, failed_to_load_active_stories_);
 }
 
 void StoryManager::start_up() {
@@ -3853,6 +3853,42 @@ void StoryManager::unregister_story(StoryFullId story_full_id, MessageFullId mes
   }
 }
 
+FileSourceId StoryManager::get_story_album_file_source_id(StoryAlbumFullId story_album_full_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return FileSourceId();
+  }
+
+  if (!story_album_full_id.is_valid()) {
+    return FileSourceId();
+  }
+
+  auto &file_source_id = story_album_full_id_to_file_source_id_[story_album_full_id];
+  if (!file_source_id.is_valid()) {
+    file_source_id = td_->file_reference_manager_->create_story_album_file_source(story_album_full_id);
+  }
+  return file_source_id;
+}
+
+void StoryManager::register_story_album(StoryAlbumFullId story_album_full_id, const StoryAlbum &story_album) {
+  auto new_file_ids = story_album.get_file_ids(td_);
+  auto old_file_ids = story_album_file_ids_.get(story_album_full_id);
+  if (new_file_ids == old_file_ids) {
+    return;
+  }
+
+  for (auto file_id : old_file_ids) {
+    if (!td::contains(new_file_ids, file_id)) {
+      send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<Unit>(), "register_story_album");
+    }
+  }
+
+  auto file_source_id = get_story_album_file_source_id(story_album_full_id);
+  if (file_source_id.is_valid()) {
+    td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids, "register_story_album");
+    story_album_file_ids_.set(story_album_full_id, std::move(new_file_ids));
+  }
+}
+
 StoryManager::StoryInfo StoryManager::get_story_info(StoryFullId story_full_id) const {
   const auto *story = get_story(story_full_id);
   auto story_id = story_full_id.get_story_id();
@@ -5405,6 +5441,23 @@ void StoryManager::on_reload_story(StoryFullId story_full_id, Result<Unit> &&res
   } else {
     fail_promises(promises, result.move_as_error());
   }
+}
+
+void StoryManager::reload_story_album(StoryAlbumFullId story_album_full_id, Promise<Unit> &&promise,
+                                      const char *source) {
+  LOG(INFO) << "Reload " << story_album_full_id << " from " << source;
+  auto owner_dialog_id = story_album_full_id.get_dialog_id();
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
+                                                                        "reload_story_album"));
+  auto query_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<td_api::object_ptr<td_api::storyAlbums>> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          promise.set_value(Unit());
+        }
+      });
+  td_->create_handler<GetStoryAlbumsQuery>(std::move(query_promise))->send(owner_dialog_id);
 }
 
 void StoryManager::get_story(DialogId owner_dialog_id, StoryId story_id, bool only_local,

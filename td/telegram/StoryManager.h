@@ -51,6 +51,7 @@ namespace td {
 
 struct BinlogEvent;
 class Dependencies;
+class StoryAlbum;
 class StoryContent;
 class StoryForwardInfo;
 struct StoryDbStory;
@@ -399,6 +400,8 @@ class StoryManager final : public Actor {
   void unregister_story(StoryFullId story_full_id, MessageFullId message_full_id,
                         QuickReplyMessageFullId quick_reply_message_full_id, const char *source);
 
+  void register_story_album(StoryAlbumFullId story_album_full_id, const StoryAlbum &story_album);
+
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id) const;
 
   td_api::object_ptr<td_api::stories> get_stories_object(int32 total_count, const vector<StoryFullId> &story_full_ids,
@@ -409,9 +412,13 @@ class StoryManager final : public Actor {
 
   FileSourceId get_story_file_source_id(StoryFullId story_full_id);
 
+  FileSourceId get_story_album_file_source_id(StoryAlbumFullId story_album_full_id);
+
   telegram_api::object_ptr<telegram_api::InputMedia> get_input_media(StoryFullId story_full_id) const;
 
   void reload_story(StoryFullId story_full_id, Promise<Unit> &&promise, const char *source);
+
+  void reload_story_album(StoryAlbumFullId story_album_full_id, Promise<Unit> &&promise, const char *source);
 
   void try_synchronize_archive_all_stories();
 
@@ -739,6 +746,10 @@ class StoryManager final : public Actor {
 
   WaitFreeHashMap<StoryFullId, WaitFreeHashSet<QuickReplyMessageFullId, QuickReplyMessageFullIdHash>, StoryFullIdHash>
       story_quick_reply_messages_;
+
+  WaitFreeHashMap<StoryAlbumFullId, FileSourceId, StoryAlbumFullIdHash> story_album_full_id_to_file_source_id_;
+
+  WaitFreeHashMap<StoryAlbumFullId, vector<FileId>, StoryAlbumFullIdHash> story_album_file_ids_;
 
   WaitFreeHashMap<DialogId, unique_ptr<ActiveStories>, DialogIdHash> active_stories_;
 

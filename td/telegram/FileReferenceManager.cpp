@@ -100,6 +100,7 @@ fileSourceQuickReplyMessage shortcut_id:int32 message_id:int53 = FileSource;    
 fileSourceStarTransaction chat_id:int53 transaction_id:string is_refund:Bool = FileSource; // payments.getStarsTransactionsByID
 fileSourceBotMediaPreview bot_user_id:int53 = FileSource;                                  // bots.getPreviewMedias
 fileSourceBotMediaPreviewInfo bot_user_id:int53 language_code:string = FileSource;         // bots.getPreviewMediaInfo
+fileSourceStoryAlbum chat_id:int53 story_album_id:int32 = FileSource;                      // stories.getAlbums, not reliable
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -209,6 +210,11 @@ FileSourceId FileReferenceManager::create_bot_media_preview_info_file_source(Use
                                                                              const string &language_code) {
   FileSourceBotMediaPreviewInfo source{bot_user_id, language_code};
   return add_file_source_id(source, PSLICE() << "bot media preview info " << bot_user_id << " for " << language_code);
+}
+
+FileSourceId FileReferenceManager::create_story_album_file_source(StoryAlbumFullId story_album_full_id) {
+  FileSourceStoryAlbum source{story_album_full_id};
+  return add_file_source_id(source, PSLICE() << story_album_full_id);
 }
 
 FileReferenceManager::Node &FileReferenceManager::add_node(NodeId node_id) {
@@ -444,6 +450,10 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       [&](const FileSourceBotMediaPreviewInfo &source) {
         send_closure_later(G()->bot_info_manager(), &BotInfoManager::reload_bot_media_preview_info, source.bot_user_id,
                            source.language_code, std::move(promise));
+      },
+      [&](const FileSourceStoryAlbum &source) {
+        send_closure_later(G()->story_manager(), &StoryManager::reload_story_album, source.story_album_full_id,
+                           std::move(promise), "FileSourceStoryAlbum");
       }));
 }
 

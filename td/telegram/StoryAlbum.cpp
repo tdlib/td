@@ -7,6 +7,7 @@
 #include "td/telegram/StoryAlbum.h"
 
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/VideosManager.h"
 
@@ -44,6 +45,7 @@ StoryAlbum::StoryAlbum(Td *td, DialogId owner_dialog_id,
         UNREACHABLE();
     }
   }
+  td->story_manager_->register_story_album({owner_dialog_id, album_id_}, *this);
 }
 
 vector<FileId> StoryAlbum::get_file_ids(const Td *td) const {
