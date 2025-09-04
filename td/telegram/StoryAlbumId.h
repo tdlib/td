@@ -38,6 +38,10 @@ class StoryAlbumId {
     return id != other.id;
   }
 
+  friend bool operator<(const StoryAlbumId &lhs, const StoryAlbumId &rhs) {
+    return lhs.id < rhs.id;
+  }
+
   bool is_valid() const {
     return id > 0;
   }

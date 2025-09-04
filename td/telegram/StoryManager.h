@@ -323,6 +323,9 @@ class StoryManager final : public Actor {
   void get_story_album_stories(DialogId owner_dialog_id, StoryAlbumId story_album_id, int32 offset, int32 limit,
                                Promise<td_api::object_ptr<td_api::stories>> &&promise);
 
+  void update_story_albums(DialogId owner_dialog_id, const vector<StoryId> &story_ids, StoryAlbumId story_album_id,
+                           bool is_add);
+
   void create_story_album(DialogId owner_dialog_id, const string &title, const vector<StoryId> &story_ids,
                           Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise);
 
