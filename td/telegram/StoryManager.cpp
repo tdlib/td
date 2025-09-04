@@ -3715,6 +3715,7 @@ void StoryManager::on_get_story_album_stories(DialogId owner_dialog_id, StoryAlb
                                               Promise<td_api::object_ptr<td_api::stories>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   auto result = on_get_stories(owner_dialog_id, {}, std::move(stories));
+  update_story_albums(owner_dialog_id, result.second, story_album_id, true);
   promise.set_value(get_stories_object(
       result.first,
       transform(result.second, [owner_dialog_id](StoryId story_id) { return StoryFullId(owner_dialog_id, story_id); }),
