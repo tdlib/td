@@ -8300,7 +8300,7 @@ connectionStateReady = ConnectionState;
 
 //@description Describes parameters for age verification of the current user
 //@min_age The minimum age required to view restricted content
-//@verification_bot_username Username of the bot that may be used to verify age of the user
+//@verification_bot_username Username of the bot which main Web App may be used to verify age of the user
 //@country Unique name for the country or region, which legislation required age verification. May be used to get the corresponding localization key
 ageVerificationParameters min_age:int32 verification_bot_username:string country:string = AgeVerificationParameters;
 
