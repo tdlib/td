@@ -343,6 +343,7 @@ set(TD_MTPROTO_SOURCE
 set(TDLIB_SOURCE_PART1
   td/telegram/AccountManager.cpp
   td/telegram/AffiliateType.cpp
+  td/telegram/AgeVerificationParameters.cpp
   td/telegram/AlarmManager.cpp
   td/telegram/AnimationsManager.cpp
   td/telegram/Application.cpp
@@ -675,6 +676,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/AccountManager.h
   td/telegram/AffectedHistory.h
   td/telegram/AffiliateType.h
+  td/telegram/AgeVerificationParameters.h
   td/telegram/AlarmManager.h
   td/telegram/AnimationsManager.h
   td/telegram/Application.h
@@ -1075,6 +1077,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/WebPageId.h
   td/telegram/WebPagesManager.h
 
+  td/telegram/AgeVerificationParameters.hpp
   td/telegram/AnimationsManager.hpp
   td/telegram/AudiosManager.hpp
   td/telegram/AuthManager.hpp
