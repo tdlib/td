@@ -31,7 +31,7 @@ bool operator==(const SearchPostsFlood &lhs, const SearchPostsFlood &rhs) {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const SearchPostsFlood &flood) {
   if (flood.remains_ == 0) {
-    string_builder << "Exhausted " << flood.total_daily_ << " free queries. Now have to pay " << flood.star_count_
+    string_builder << "Exhausted " << flood.total_daily_ << " free queries. Now, have to pay " << flood.star_count_
                    << " Stars till " << flood.wait_till_;
   } else {
     string_builder << "Have " << flood.remains_ << " left free queries out of " << flood.total_daily_;

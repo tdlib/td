@@ -61,6 +61,7 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 
+#include <algorithm>
 #include <limits>
 
 namespace td {

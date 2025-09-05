@@ -1607,7 +1607,7 @@ tonTransactionTypeUpgradedGiftPurchase user_id:int53 gift:upgradedGift = TonTran
 //@gift The gift
 //@commission_per_mille The number of Toncoins received by the Telegram for each 1000 Toncoins received by the seller of the gift
 //@commission_toncoin_amount The amount of Toncoins that were received by the Telegram; in the smallest units of the currency
-tonTransactionTypeUpgradedGiftSale user_id:int53 gift:upgradedGift commission_per_mille:int32 commission_toncoin_amount:int64 = TonTransactionType;
+tonTransactionTypeUpgradedGiftSale user_id:int53 gift:upgradedGift commission_per_mille:int32 commission_toncoin_amount:int53 = TonTransactionType;
 
 //@description The transaction is a transaction of an unsupported type
 tonTransactionTypeUnsupported = TonTransactionType;
@@ -1833,8 +1833,8 @@ botInfo short_description:string description:string photo:photo animation:animat
 //@outgoing_paid_message_star_count Number of Telegram Stars that must be paid by the current user for each sent message to the user
 //@gift_settings Settings for gift receiving for the user
 //@bot_verification Information about verification status of the user provided by a bot; may be null if none or unknown
-//@rating Description of the current rating of the user; may be null if none
-//@pending_rating Description of the rating of the user after the next change; may be null if the user isn't the current user or there are no pending rating changes
+//@rating The current rating of the user; may be null if none
+//@pending_rating The rating of the user after the next change; may be null if the user isn't the current user or there are no pending rating changes
 //@pending_rating_date Unix timestamp when rating of the user will change to pending_rating; 0 if the user isn't the current user or there are no pending rating changes
 //@business_info Information about business settings for Telegram Business accounts; may be null if none
 //@bot_info For bots, information about the bot; may be null if the user isn't a bot
@@ -11691,7 +11691,7 @@ addStoryAlbumStories chat_id:int53 story_album_id:int32 story_ids:vector<int32> 
 //@story_ids Identifier of the stories to remove from the album
 removeStoryAlbumStories chat_id:int53 story_album_id:int32 story_ids:vector<int32> = StoryAlbum;
 
-//@description Changes order of stories in a album. If the album is owned by a supergroup or a channel chat, then
+//@description Changes order of stories in an album. If the album is owned by a supergroup or a channel chat, then
 //-requires can_edit_stories administrator right in the chat. Returns the changed album
 //@chat_id Identifier of the chat that owns the stories
 //@story_album_id Identifier of the story album

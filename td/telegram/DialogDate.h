@@ -11,7 +11,6 @@
 #include "td/telegram/ServerMessageId.h"
 
 #include "td/utils/common.h"
-#include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
 
 #include <limits>

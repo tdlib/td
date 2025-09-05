@@ -12,7 +12,6 @@
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/FlatHashSet.h"
-#include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/StringBuilder.h"
@@ -260,8 +259,6 @@ void gen_json_converter_file(const tl::simple::Schema &schema, const std::string
     sb << "#include \"td/utils/common.h\"\n";
     sb << "#include \"td/utils/FlatHashMap.h\"\n";
     sb << "#include \"td/utils/Slice.h\"\n\n";
-
-    sb << "#include <functional>\n\n";
   }
   sb << "namespace td {\n";
   sb << "namespace td_api {\n";

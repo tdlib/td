@@ -6,7 +6,6 @@
 //
 #include "td/telegram/StarGift.h"
 
-#include "td/telegram/CurrencyAmount.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"

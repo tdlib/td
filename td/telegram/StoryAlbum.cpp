@@ -6,10 +6,14 @@
 //
 #include "td/telegram/StoryAlbum.h"
 
+#include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/VideosManager.h"
+
+#include "td/utils/logging.h"
 
 namespace td {
 

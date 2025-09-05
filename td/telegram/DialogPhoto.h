@@ -19,7 +19,6 @@ namespace td {
 
 class FileManager;
 struct Photo;
-class Td;
 
 struct DialogPhoto {
   FileId small_file_id;
