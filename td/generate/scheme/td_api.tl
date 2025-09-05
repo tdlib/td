@@ -1707,6 +1707,10 @@ profileAccentColor id:int32 light_theme_colors:profileAccentColors dark_theme_co
 //@next_level_rating The rating required for the next level; 0 if the maximum level is reached
 userRating level:int32 is_maximum_level_reached:Bool rating:int53 current_level_rating:int53 next_level_rating:int53 = UserRating;
 
+//@description Contains information about restrictions that must be applied to a chat or a message
+//@reason A human-readable description of the reason why access to the chat or the message must be restricted
+restrictionInfo reason:string = RestrictionInfo;
+
 
 //@class EmojiStatusType @description Describes type of emoji status
 
@@ -1761,7 +1765,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@verification_status Information about verification status of the user; may be null if none
 //@is_premium True, if the user is a Telegram Premium user
 //@is_support True, if the user is Telegram support account
-//@restriction_reason If non-empty, it contains a human-readable description of the reason why access to this user must be restricted
+//@restriction_info Information about restrictions that must be applied to the corresponding private chat; may be null if none
 //@has_active_stories True, if the user has non-expired stories available to the current user
 //@has_unread_active_stories True, if the user has unread non-expired stories available to the current user
 //@restricts_new_chats True, if the user may restrict new chats with non-contacts. Use canSendMessageToUser to check whether the current user can message the user or try to create a chat with them
@@ -1770,7 +1774,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
 //@added_to_attachment_menu True, if the user added the current bot to attachment menu; only available to bots
-user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool verification_status:verificationStatus is_premium:Bool is_support:Bool restriction_reason:string has_active_stories:Bool has_unread_active_stories:Bool restricts_new_chats:Bool paid_message_star_count:int53 have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
+user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool verification_status:verificationStatus is_premium:Bool is_support:Bool restriction_info:restrictionInfo has_active_stories:Bool has_unread_active_stories:Bool restricts_new_chats:Bool paid_message_star_count:int53 have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
 
 
 //@description Contains information about a bot
@@ -2074,11 +2078,11 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@has_direct_messages_group True, if the channel has direct messages group
 //@has_forum_tabs True, if the supergroup is a forum, which topics are shown in the same way as in channel direct messages groups
 //@has_sensitive_content True, if content of media messages in the supergroup or channel chat must be hidden with 18+ spoiler
-//@restriction_reason If non-empty, contains a human-readable description of the reason why access to this supergroup or channel must be restricted
+//@restriction_info Information about the restrictions that must be applied to the corresponding supergroup or channel chat; may be null if none
 //@paid_message_star_count Number of Telegram Stars that must be paid by non-administrator users of the supergroup chat for each sent message
 //@has_active_stories True, if the supergroup or channel has non-expired stories available to the current user
 //@has_unread_active_stories True, if the supergroup or channel has unread non-expired stories available to the current user
-supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus member_count:int32 boost_level:int32 has_automatic_translation:Bool has_linked_chat:Bool has_location:Bool sign_messages:Bool show_message_sender:Bool join_to_send_messages:Bool join_by_request:Bool is_slow_mode_enabled:Bool is_channel:Bool is_broadcast_group:Bool is_forum:Bool is_direct_messages_group:Bool is_administered_direct_messages_group:Bool verification_status:verificationStatus has_direct_messages_group:Bool has_forum_tabs:Bool has_sensitive_content:Bool restriction_reason:string paid_message_star_count:int53 has_active_stories:Bool has_unread_active_stories:Bool = Supergroup;
+supergroup id:int53 usernames:usernames date:int32 status:ChatMemberStatus member_count:int32 boost_level:int32 has_automatic_translation:Bool has_linked_chat:Bool has_location:Bool sign_messages:Bool show_message_sender:Bool join_to_send_messages:Bool join_by_request:Bool is_slow_mode_enabled:Bool is_channel:Bool is_broadcast_group:Bool is_forum:Bool is_direct_messages_group:Bool is_administered_direct_messages_group:Bool verification_status:verificationStatus has_direct_messages_group:Bool has_forum_tabs:Bool has_sensitive_content:Bool restriction_info:restrictionInfo paid_message_star_count:int53 has_active_stories:Bool has_unread_active_stories:Bool = Supergroup;
 
 //@description Contains full information about a supergroup or channel
 //@photo Chat photo; may be null if empty or unknown. If non-null, then it is the same photo as in chat.photo
@@ -2454,10 +2458,10 @@ factCheck text:formattedText country_code:string = FactCheck;
 //@media_album_id Unique identifier of an album this message belongs to; 0 if none. Only audios, documents, photos and videos can be grouped together in albums
 //@effect_id Unique identifier of the effect added to the message; 0 if none
 //@has_sensitive_content True, if media content of the message must be hidden with 18+ spoiler
-//@restriction_reason If non-empty, contains a human-readable description of the reason why access to this message must be restricted
+//@restriction_info Information about the restrictions that must be applied to the message content; may be null if none
 //@content Content of the message
 //@reply_markup Reply markup for the message; may be null if none
-message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool is_from_offline:Bool can_be_saved:Bool has_timestamped_media:Bool is_channel_post:Bool is_paid_star_suggested_post:Bool is_paid_ton_suggested_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo import_info:messageImportInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> fact_check:factCheck suggested_post_info:suggestedPostInfo reply_to:MessageReplyTo message_thread_id:int53 topic_id:MessageTopic self_destruct_type:MessageSelfDestructType self_destruct_in:double auto_delete_in:double via_bot_user_id:int53 sender_business_bot_user_id:int53 sender_boost_count:int32 paid_message_star_count:int53 author_signature:string media_album_id:int64 effect_id:int64 has_sensitive_content:Bool restriction_reason:string content:MessageContent reply_markup:ReplyMarkup = Message;
+message id:int53 sender_id:MessageSender chat_id:int53 sending_state:MessageSendingState scheduling_state:MessageSchedulingState is_outgoing:Bool is_pinned:Bool is_from_offline:Bool can_be_saved:Bool has_timestamped_media:Bool is_channel_post:Bool is_paid_star_suggested_post:Bool is_paid_ton_suggested_post:Bool contains_unread_mention:Bool date:int32 edit_date:int32 forward_info:messageForwardInfo import_info:messageImportInfo interaction_info:messageInteractionInfo unread_reactions:vector<unreadReaction> fact_check:factCheck suggested_post_info:suggestedPostInfo reply_to:MessageReplyTo message_thread_id:int53 topic_id:MessageTopic self_destruct_type:MessageSelfDestructType self_destruct_in:double auto_delete_in:double via_bot_user_id:int53 sender_business_bot_user_id:int53 sender_boost_count:int32 paid_message_star_count:int53 author_signature:string media_album_id:int64 effect_id:int64 has_sensitive_content:Bool restriction_info:restrictionInfo content:MessageContent reply_markup:ReplyMarkup = Message;
 
 
 //@description Contains a list of messages @total_count Approximate total number of messages found @messages List of messages; messages may be null

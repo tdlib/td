@@ -8600,8 +8600,8 @@ td_api::object_ptr<td_api::updateUser> UserManager::get_update_unknown_user_obje
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr,
       td_->theme_manager_->get_accent_color_id_object(AccentColorId(user_id)), 0, -1, 0, nullptr, false, false, false,
-      nullptr, false, false, "", false, false, false, 0, have_access, td_api::make_object<td_api::userTypeUnknown>(),
-      "", false));
+      nullptr, false, false, nullptr, false, false, false, 0, have_access,
+      td_api::make_object<td_api::userTypeUnknown>(), "", false));
 }
 
 int64 UserManager::get_user_id_object(UserId user_id, const char *source) const {
@@ -8657,7 +8657,7 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
       td_->theme_manager_->get_profile_accent_color_id_object(u->profile_accent_color_id),
       u->profile_background_custom_emoji_id.get(), std::move(emoji_status), u->is_contact, u->is_mutual_contact,
       u->is_close_friend, std::move(verification_status), u->is_premium, u->is_support,
-      get_restriction_reason_description(u->restriction_reasons), u->max_active_story_id.is_valid(),
+      get_restriction_info_object(u->restriction_reasons), u->max_active_story_id.is_valid(),
       get_user_has_unread_stories(u), restricts_new_chats, u->paid_message_star_count, have_access, std::move(type),
       u->language_code, u->attach_menu_enabled);
 }

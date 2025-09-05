@@ -19833,7 +19833,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       std::move(reply_to), 0, nullptr, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count,
       m->paid_message_star_count, m->author_signature, 0, 0,
       get_restriction_reason_has_sensitive_content(m->restriction_reasons),
-      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
+      get_restriction_info_object(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
 td_api::object_ptr<td_api::businessMessage> MessagesManager::get_business_message_object(
@@ -19902,7 +19902,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
       std::move(reply_to), 0, nullptr, std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id,
       via_business_bot_user_id, m->sender_boost_count, m->paid_message_star_count, string(), m->media_album_id,
       m->effect_id.get(), get_restriction_reason_has_sensitive_content(m->restriction_reasons),
-      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
+      get_restriction_info_object(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
 td_api::object_ptr<td_api::message> MessagesManager::get_message_object(Dialog *d, MessageId message_id,
@@ -20001,7 +20001,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
       std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, via_business_bot_user_id,
       m->sender_boost_count, m->paid_message_star_count, m->author_signature, m->media_album_id, m->effect_id.get(),
       get_restriction_reason_has_sensitive_content(m->restriction_reasons),
-      get_restriction_reason_description(m->restriction_reasons), std::move(content), std::move(reply_markup));
+      get_restriction_info_object(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
 td_api::object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,

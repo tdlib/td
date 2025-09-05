@@ -9468,7 +9468,7 @@ td_api::object_ptr<td_api::updateSupergroup> ChatManager::get_update_unknown_sup
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, 0, false,
       false, false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, false, nullptr,
-      false, false, false, string(), 0, false, false));
+      false, false, false, nullptr, 0, false, false));
 }
 
 int64 ChatManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -9511,7 +9511,7 @@ td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(Channe
       c->is_monoforum, c->is_admined_monoforum, get_channel_verification_status_object(c),
       c->broadcast_messages_allowed, c->is_forum_tabs,
       get_restriction_reason_has_sensitive_content(c->restriction_reasons),
-      get_restriction_reason_description(c->restriction_reasons), c->paid_message_star_count,
+      get_restriction_info_object(c->restriction_reasons), c->paid_message_star_count,
       c->max_active_story_id.is_valid(), get_channel_has_unread_stories(c));
 }
 

@@ -78,12 +78,13 @@ bool get_restriction_reason_has_sensitive_content(const vector<RestrictionReason
   return get_restriction_reason(restriction_reasons, true) != nullptr;
 }
 
-string get_restriction_reason_description(const vector<RestrictionReason> &restriction_reasons) {
+td_api::object_ptr<td_api::restrictionInfo> get_restriction_info_object(
+    const vector<RestrictionReason> &restriction_reasons) {
   const auto *restriction_reason = get_restriction_reason(restriction_reasons, false);
   if (restriction_reason == nullptr) {
-    return string();
+    return nullptr;
   }
-  return restriction_reason->description_;
+  return td_api::make_object<td_api::restrictionInfo>(restriction_reason->description_);
 }
 
 vector<RestrictionReason> get_restriction_reasons(Slice legacy_restriction_reason) {

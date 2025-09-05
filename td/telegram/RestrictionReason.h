@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
@@ -32,7 +33,8 @@ class RestrictionReason {
   friend const RestrictionReason *get_restriction_reason(const vector<RestrictionReason> &restriction_reasons,
                                                          bool sensitive);
 
-  friend string get_restriction_reason_description(const vector<RestrictionReason> &restriction_reasons);
+  friend td_api::object_ptr<td_api::restrictionInfo> get_restriction_info_object(
+      const vector<RestrictionReason> &restriction_reasons);
 
   bool is_sensitive() const {
     return reason_ == "sensitive";
@@ -69,7 +71,8 @@ inline bool operator!=(const RestrictionReason &lhs, const RestrictionReason &rh
 
 bool get_restriction_reason_has_sensitive_content(const vector<RestrictionReason> &restriction_reasons);
 
-string get_restriction_reason_description(const vector<RestrictionReason> &restriction_reasons);
+td_api::object_ptr<td_api::restrictionInfo> get_restriction_info_object(
+    const vector<RestrictionReason> &restriction_reasons);
 
 vector<RestrictionReason> get_restriction_reasons(Slice legacy_restriction_reason);
 
