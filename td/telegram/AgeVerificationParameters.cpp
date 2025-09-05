@@ -16,8 +16,15 @@ AgeVerificationParameters::AgeVerificationParameters(bool need_verification, str
     , bot_username_(std::move(bot_username))
     , country_(std::move(country))
     , min_age_(min_age) {
-  if (need_verification_ && (bot_username_.empty() || country_.empty() || min_age_ <= 0)) {
-    LOG(ERROR) << "Receive invalid age verification parameters: " << *this;
+  if (need_verification_) {
+    if (bot_username_.empty() || country_.empty() || min_age_ <= 0) {
+      LOG(ERROR) << "Receive invalid age verification parameters: " << *this;
+    }
+  } else {
+    if (!bot_username_.empty() || !country_.empty() || min_age_ != 0) {
+      LOG(ERROR) << "Receive unneeded age verification parameters: " << min_age_ << ' ' << country_ << ' '
+                 << bot_username_;
+    }
   }
 }
 

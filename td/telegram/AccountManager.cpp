@@ -6,6 +6,7 @@
 //
 #include "td/telegram/AccountManager.h"
 
+#include "td/telegram/AgeVerificationParameters.hpp"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/Global.h"
@@ -770,6 +771,13 @@ void AccountManager::start_up() {
       get_active_sessions(Auto());
     }
   }
+  auto age_verification_parameters_log_event_string =
+      G()->td_db()->get_binlog_pmc()->get(get_age_verification_parameters_key());
+  if (!age_verification_parameters_log_event_string.empty()) {
+    log_event_parse(age_verification_parameters_, age_verification_parameters_log_event_string).ensure();
+    CHECK(age_verification_parameters_.need_verification());
+    send_update_age_verification_parameters();
+  }
 }
 
 void AccountManager::timeout_expired() {
@@ -781,6 +789,34 @@ void AccountManager::timeout_expired() {
 
 void AccountManager::tear_down() {
   parent_.reset();
+}
+
+string AccountManager::get_age_verification_parameters_key() {
+  return "age_verification";
+}
+
+void AccountManager::on_update_age_verification_parameters(AgeVerificationParameters &&age_verification_parameters) {
+  if (age_verification_parameters == age_verification_parameters_) {
+    return;
+  }
+  age_verification_parameters_ = std::move(age_verification_parameters);
+  if (age_verification_parameters_.need_verification()) {
+    G()->td_db()->get_binlog_pmc()->set(get_age_verification_parameters_key(),
+                                        log_event_store(age_verification_parameters_).as_slice().str());
+  } else {
+    G()->td_db()->get_binlog_pmc()->erase(get_age_verification_parameters_key());
+  }
+  send_update_age_verification_parameters();
+}
+
+td_api::object_ptr<td_api::updateAgeVerificationParameters> AccountManager::get_update_age_verification_parameters()
+    const {
+  return td_api::make_object<td_api::updateAgeVerificationParameters>(
+      age_verification_parameters_.get_age_verification_parameters_object());
+}
+
+void AccountManager::send_update_age_verification_parameters() const {
+  send_closure(G()->td(), &Td::send_update, get_update_age_verification_parameters());
 }
 
 class AccountManager::SetDefaultHistoryTtlOnServerLogEvent {
@@ -1342,6 +1378,9 @@ void AccountManager::on_binlog_events(vector<BinlogEvent> &&events) {
 void AccountManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (unconfirmed_authorizations_ != nullptr) {
     updates.push_back(get_update_unconfirmed_session());
+  }
+  if (age_verification_parameters_.need_verification()) {
+    updates.push_back(get_update_age_verification_parameters());
   }
 }
 

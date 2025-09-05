@@ -9221,6 +9221,10 @@ updateConnectionState state:ConnectionState = Update;
 //@appeal_link The link to open to send an appeal to unfreeze the account
 updateFreezeState is_frozen:Bool freezing_date:int32 deletion_date:int32 appeal_link:string = Update;
 
+//@description The parameters for age verification of the current user's account has changed
+//@parameters Parameters for the age verification; may be null if age verification isn't needed
+updateAgeVerificationParameters parameters:ageVerificationParameters = Update;
+
 //@description New terms of service must be accepted by the user. If the terms of service are declined, then the deleteAccount method must be called with the reason "Decline ToS update" @terms_of_service_id Identifier of the terms of service @terms_of_service The new terms of service
 updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService = Update;
 

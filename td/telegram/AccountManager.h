@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/AgeVerificationParameters.h"
 #include "td/telegram/td_api.h"
 
 #include "td/actor/actor.h"
@@ -27,6 +28,8 @@ class AccountManager final : public Actor {
   AccountManager(AccountManager &&) = delete;
   AccountManager &operator=(AccountManager &&) = delete;
   ~AccountManager() final;
+
+  void on_update_age_verification_parameters(AgeVerificationParameters &&age_verification_parameters);
 
   void set_default_message_ttl(int32 message_ttl, Promise<Unit> &&promise);
 
@@ -96,6 +99,12 @@ class AccountManager final : public Actor {
 
   void get_user_link_impl(Promise<td_api::object_ptr<td_api::userLink>> &&promise);
 
+  static string get_age_verification_parameters_key();
+
+  td_api::object_ptr<td_api::updateAgeVerificationParameters> get_update_age_verification_parameters() const;
+
+  void send_update_age_verification_parameters() const;
+
   static string get_unconfirmed_authorizations_key();
 
   void save_unconfirmed_authorizations() const;
@@ -131,6 +140,8 @@ class AccountManager final : public Actor {
   ActorShared<> parent_;
 
   unique_ptr<UnconfirmedAuthorizations> unconfirmed_authorizations_;
+
+  AgeVerificationParameters age_verification_parameters_;
 };
 
 }  // namespace td

@@ -6,6 +6,8 @@
 //
 #include "td/telegram/ConfigManager.h"
 
+#include "td/telegram/AccountManager.h"
+#include "td/telegram/AgeVerificationParameters.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConnectionState.h"
 #include "td/telegram/Global.h"
@@ -1356,6 +1358,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 freeze_until_date = 0;
   string freeze_appeal_url;
   bool can_accept_calls = true;
+  bool need_age_video_verification = false;
+  string verify_age_bot_username;
+  string verify_age_country;
+  int32 verify_age_min = 0;
 
   static const FlatHashMap<Slice, Slice, SliceHash> integer_keys = {
       {"authorization_autoconfirm_period", ""},
@@ -1944,6 +1950,22 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_string("user_rating_learn_more_url", get_json_value_string(std::move(key_value->value_), key));
         continue;
       }
+      if (key == "need_age_video_verification") {
+        need_age_video_verification = get_json_value_bool(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "verify_age_bot_username") {
+        verify_age_bot_username = get_json_value_string(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "verify_age_country") {
+        verify_age_country = get_json_value_string(std::move(key_value->value_), key);
+        continue;
+      }
+      if (key == "verify_age_min") {
+        verify_age_min = get_json_value_int(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1961,6 +1983,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
 
   send_closure(G()->user_manager(), &UserManager::on_update_freeze_state, freeze_since_date, freeze_until_date,
                std::move(freeze_appeal_url));
+
+  send_closure(G()->account_manager(), &AccountManager::on_update_age_verification_parameters,
+               AgeVerificationParameters(need_age_video_verification, std::move(verify_age_bot_username),
+                                         std::move(verify_age_country), verify_age_min));
 
   Global &options = *G();
 
