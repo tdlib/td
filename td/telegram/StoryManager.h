@@ -499,9 +499,11 @@ class StoryManager final : public Actor {
 
   bool can_delete_story(StoryFullId story_full_id, const Story *story) const;
 
-  int32 get_story_viewers_expire_date(const Story *story) const;
-
   static bool is_active_story(const Story *story);
+
+  Status can_manage_story_albums(DialogId owner_dialog_id, const char *source) const;
+
+  int32 get_story_viewers_expire_date(const Story *story) const;
 
   DialogId get_changelog_story_dialog_id() const;
 

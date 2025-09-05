@@ -2212,6 +2212,14 @@ bool StoryManager::is_active_story(const Story *story) {
   return story != nullptr && G()->unix_time() < story->expire_date_;
 }
 
+Status StoryManager::can_manage_story_albums(DialogId owner_dialog_id, const char *source) const {
+  TRY_STATUS(td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read, source));
+  if (!can_edit_stories(owner_dialog_id)) {
+    return Status::Error(400, "Can't manage story albums of the chat");
+  }
+  return Status::OK();
+}
+
 int32 StoryManager::get_story_viewers_expire_date(const Story *story) const {
   return story->expire_date_ +
          narrow_cast<int32>(td_->option_manager_->get_option_integer("story_viewers_expiration_delay", 86400));
@@ -3742,8 +3750,7 @@ void StoryManager::update_story_albums(DialogId owner_dialog_id, const vector<St
 
 void StoryManager::create_story_album(DialogId owner_dialog_id, const string &title, const vector<StoryId> &story_ids,
                                       Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
-                                                                        "create_story_album"));
+  TRY_STATUS_PROMISE(promise, can_manage_story_albums(owner_dialog_id, "create_story_album"));
   TRY_STATUS_PROMISE(promise, check_story_ids(story_ids, true));
   if (title.empty()) {
     return promise.set_error(400, "Story album name must be non-empty");
@@ -3753,8 +3760,7 @@ void StoryManager::create_story_album(DialogId owner_dialog_id, const string &ti
 
 void StoryManager::reorder_story_albums(DialogId owner_dialog_id, const vector<StoryAlbumId> &story_album_ids,
                                         Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
-                                                                        "reorder_story_albums"));
+  TRY_STATUS_PROMISE(promise, can_manage_story_albums(owner_dialog_id, "reorder_story_albums"));
   for (auto story_album_id : story_album_ids) {
     TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
   }
@@ -3762,16 +3768,14 @@ void StoryManager::reorder_story_albums(DialogId owner_dialog_id, const vector<S
 }
 
 void StoryManager::delete_story_album(DialogId owner_dialog_id, StoryAlbumId story_album_id, Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
-                                                                        "delete_story_album"));
+  TRY_STATUS_PROMISE(promise, can_manage_story_albums(owner_dialog_id, "delete_story_album"));
   TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
   td_->create_handler<DeleteStoryAlbumQuery>(std::move(promise))->send(owner_dialog_id, story_album_id);
 }
 
 void StoryManager::set_story_album_title(DialogId owner_dialog_id, StoryAlbumId story_album_id, const string &title,
                                          Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
-                                                                        "set_story_album_title"));
+  TRY_STATUS_PROMISE(promise, can_manage_story_albums(owner_dialog_id, "set_story_album_title"));
   TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
   if (title.empty()) {
     return promise.set_error(400, "Story album name must be non-empty");
@@ -3783,8 +3787,7 @@ void StoryManager::set_story_album_title(DialogId owner_dialog_id, StoryAlbumId 
 void StoryManager::add_story_album_stories(DialogId owner_dialog_id, StoryAlbumId story_album_id,
                                            const vector<StoryId> &story_ids,
                                            Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
-                                                                        "add_story_album_stories"));
+  TRY_STATUS_PROMISE(promise, can_manage_story_albums(owner_dialog_id, "add_story_album_stories"));
   TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
   TRY_STATUS_PROMISE(promise, check_story_ids(story_ids, true));
   update_story_albums(owner_dialog_id, story_ids, story_album_id, true);
@@ -3795,8 +3798,7 @@ void StoryManager::add_story_album_stories(DialogId owner_dialog_id, StoryAlbumI
 void StoryManager::remove_story_album_stories(DialogId owner_dialog_id, StoryAlbumId story_album_id,
                                               const vector<StoryId> &story_ids,
                                               Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
-                                                                        "remove_story_album_stories"));
+  TRY_STATUS_PROMISE(promise, can_manage_story_albums(owner_dialog_id, "remove_story_album_stories"));
   TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
   TRY_STATUS_PROMISE(promise, check_story_ids(story_ids, true));
   update_story_albums(owner_dialog_id, story_ids, story_album_id, false);
@@ -3807,8 +3809,7 @@ void StoryManager::remove_story_album_stories(DialogId owner_dialog_id, StoryAlb
 void StoryManager::reorder_story_album_stories(DialogId owner_dialog_id, StoryAlbumId story_album_id,
                                                const vector<StoryId> &story_ids,
                                                Promise<td_api::object_ptr<td_api::storyAlbum>> &&promise) {
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(owner_dialog_id, false, AccessRights::Read,
-                                                                        "remove_story_album_stories"));
+  TRY_STATUS_PROMISE(promise, can_manage_story_albums(owner_dialog_id, "remove_story_album_stories"));
   TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
   TRY_STATUS_PROMISE(promise, check_story_ids(story_ids, true));
   td_->create_handler<UpdateStoryAlbumQuery>(std::move(promise))
