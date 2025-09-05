@@ -21,6 +21,14 @@ AgeVerificationParameters::AgeVerificationParameters(bool need_verification, str
   }
 }
 
+td_api::object_ptr<td_api::ageVerificationParameters>
+AgeVerificationParameters::get_age_verification_parameters_object() const {
+  if (!need_verification_) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::ageVerificationParameters>(min_age_, bot_username_, country_);
+}
+
 bool operator==(const AgeVerificationParameters &lhs, const AgeVerificationParameters &rhs) {
   return lhs.need_verification_ == rhs.need_verification_ && lhs.bot_username_ == rhs.bot_username_ &&
          lhs.country_ == rhs.country_ && lhs.min_age_ == rhs.min_age_;

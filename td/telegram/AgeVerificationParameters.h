@@ -29,6 +29,8 @@ class AgeVerificationParameters {
 
   AgeVerificationParameters(bool need_verification, string bot_username, string country, int32 min_age);
 
+  td_api::object_ptr<td_api::ageVerificationParameters> get_age_verification_parameters_object() const;
+
   bool need_verification() const {
     return need_verification_;
   }
