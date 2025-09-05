@@ -69,8 +69,6 @@ inline bool operator!=(const RestrictionReason &lhs, const RestrictionReason &rh
   return !(lhs == rhs);
 }
 
-bool get_restriction_reason_has_sensitive_content(const vector<RestrictionReason> &restriction_reasons);
-
 td_api::object_ptr<td_api::restrictionInfo> get_restriction_info_object(
     const vector<RestrictionReason> &restriction_reasons);
 

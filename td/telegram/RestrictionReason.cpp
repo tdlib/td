@@ -74,17 +74,17 @@ const RestrictionReason *get_restriction_reason(const vector<RestrictionReason> 
   return nullptr;
 }
 
-bool get_restriction_reason_has_sensitive_content(const vector<RestrictionReason> &restriction_reasons) {
-  return get_restriction_reason(restriction_reasons, true) != nullptr;
-}
-
 td_api::object_ptr<td_api::restrictionInfo> get_restriction_info_object(
     const vector<RestrictionReason> &restriction_reasons) {
+  auto has_sensitive_content = get_restriction_reason(restriction_reasons, true) != nullptr;
   const auto *restriction_reason = get_restriction_reason(restriction_reasons, false);
   if (restriction_reason == nullptr) {
+    if (has_sensitive_content) {
+      return td_api::make_object<td_api::restrictionInfo>(string(), true);
+    }
     return nullptr;
   }
-  return td_api::make_object<td_api::restrictionInfo>(restriction_reason->description_);
+  return td_api::make_object<td_api::restrictionInfo>(restriction_reason->description_, has_sensitive_content);
 }
 
 vector<RestrictionReason> get_restriction_reasons(Slice legacy_restriction_reason) {
