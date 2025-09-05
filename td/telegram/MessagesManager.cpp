@@ -2425,6 +2425,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(is_paid_suggested_post_ton);
     END_STORE_FLAGS();
   }
+  // update MessageDb::get_message_info when flags5 is added
 
   store(message_id, storer);
   if (has_sender) {

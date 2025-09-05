@@ -941,11 +941,15 @@ class MessageDbImpl final : public MessageDbSyncInterface {
     int32 flags;
     int32 flags2 = 0;
     int32 flags3 = 0;
+    int32 flags4 = 0;
     td::parse(flags, message_date_parser);
     if ((flags & (1 << 29)) != 0) {
       td::parse(flags2, message_date_parser);
       if ((flags2 & (1 << 29)) != 0) {
         td::parse(flags3, message_date_parser);
+        if ((flags3 & (1 << 29)) != 0) {
+          td::parse(flags4, message_date_parser);
+        }
       }
     }
     bool has_sender = (flags & (1 << 10)) != 0;
