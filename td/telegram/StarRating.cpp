@@ -13,9 +13,9 @@ namespace td {
 StarRating::StarRating(telegram_api::object_ptr<telegram_api::starsRating> &&rating) {
   CHECK(rating != nullptr);
   level_ = rating->level_;
-  star_count_ = StarManager::get_star_count(rating->stars_);
-  current_level_star_count_ = StarManager::get_star_count(rating->current_level_stars_);
-  next_level_star_count_ = StarManager::get_star_count(rating->next_level_stars_);
+  star_count_ = StarManager::get_star_count(rating->stars_, true);
+  current_level_star_count_ = StarManager::get_star_count(rating->current_level_stars_, true);
+  next_level_star_count_ = StarManager::get_star_count(rating->next_level_stars_, true);
   is_maximum_level_reached_ = next_level_star_count_ == 0 && level_ > 0;
 }
 
