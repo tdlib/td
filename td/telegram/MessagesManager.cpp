@@ -14864,7 +14864,7 @@ MessagesManager::ReportDialogFromActionBar MessagesManager::report_dialog_from_a
   return result;
 }
 
-Status MessagesManager::can_get_media_timestamp_link(DialogId dialog_id, const Message *m) {
+Status MessagesManager::can_get_media_timestamp_link(DialogId dialog_id, const Message *m) const {
   if (m == nullptr) {
     return Status::Error(400, "Message not found");
   }
@@ -14879,7 +14879,14 @@ Status MessagesManager::can_get_media_timestamp_link(DialogId dialog_id, const M
     if (!origin_message_id.is_server()) {
       return Status::Error(400, "Message links are available only for messages in supergroups and channel chats");
     }
+    auto origin_dialog_id = origin_message_full_id.get_dialog_id();
+    if (td_->dialog_manager_->is_monoforum_channel(origin_dialog_id)) {
+      return Status::Error(400, "Message links aren't available for messages in channel direct messages chats");
+    }
     return Status::OK();
+  }
+  if (td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
+    return Status::Error(400, "Message links aren't available for messages in channel direct messages chats");
   }
 
   if (m->message_id.is_yet_unsent()) {
