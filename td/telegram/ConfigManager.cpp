@@ -1462,7 +1462,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
        "upload_max_fileparts_default", "upload_max_fileparts_premium", "channel_color_level_min",
        "groupcall_video_participants_max", "story_expire_period", "stories_posting",
        "giveaway_gifts_purchase_available", "stars_purchase_blocked", "stargifts_blocked", "starref_program_allowed",
-       "starref_connect_allowed", "qr_login_camera", "qr_login_code", "dialog_filters_enabled",
+       "starref_connect_allowed", "stars_rating_learnmore_url", "qr_login_camera", "qr_login_code",
+       "dialog_filters_enabled",
        //
        "dialog_filters_tooltip"});
   if (config->get_id() == telegram_api::jsonObject::ID) {
@@ -1944,10 +1945,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       }
       if (key == "ton_topup_url") {
         G()->set_option_string("toncoin_top_up_url", get_json_value_string(std::move(key_value->value_), key));
-        continue;
-      }
-      if (key == "stars_rating_learnmore_url") {
-        G()->set_option_string("user_rating_learn_more_url", get_json_value_string(std::move(key_value->value_), key));
         continue;
       }
       if (key == "need_age_video_verification") {

@@ -218,6 +218,7 @@ OptionManager::OptionManager(Td *td)
   set_option_empty("1000_star_to_usd_rate");
   set_option_empty("is_location_visible");
   set_option_empty("gift_resale_earnings_per_mille");
+  set_option_empty("user_rating_learn_more_url");
 }
 
 OptionManager::~OptionManager() = default;
