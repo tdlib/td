@@ -69,8 +69,8 @@ class StarGiftManager final : public Actor {
 
   void get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,
                             StarGiftCollectionId collection_id, bool exclude_unsaved, bool exclude_saved,
-                            bool exclude_unlimited, bool exclude_limited, bool exclude_unique, bool sort_by_value,
-                            const string &offset, int32 limit,
+                            bool exclude_unlimited, bool exclude_upgradable, bool exclude_non_upgradable,
+                            bool exclude_unique, bool sort_by_value, const string &offset, int32 limit,
                             Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise);
 
   void get_saved_star_gift(StarGiftId star_gift_id, Promise<td_api::object_ptr<td_api::receivedGift>> &&promise);

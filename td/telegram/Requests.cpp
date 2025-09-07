@@ -7746,8 +7746,8 @@ void Requests::on_request(uint64 id, td_api::getReceivedGifts &request) {
   td_->star_gift_manager_->get_saved_star_gifts(
       BusinessConnectionId(std::move(request.business_connection_id_)), owner_dialog_id,
       StarGiftCollectionId(request.collection_id_), request.exclude_unsaved_, request.exclude_saved_,
-      request.exclude_unlimited_, request.exclude_limited_, request.exclude_upgraded_, request.sort_by_price_,
-      request.offset_, request.limit_, std::move(promise));
+      request.exclude_unlimited_, request.exclude_upgradable_, request.exclude_non_upgradable_,
+      request.exclude_upgraded_, request.sort_by_price_, request.offset_, request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getReceivedGift &request) {
