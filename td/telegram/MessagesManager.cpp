@@ -26326,6 +26326,8 @@ void MessagesManager::send_update_new_chat(Dialog *d, const char *source) {
   bool has_background = chat_object->background_ != nullptr;
   bool has_theme = !chat_object->theme_name_.empty();
   d->last_sent_has_scheduled_messages = chat_object->has_scheduled_messages_;
+  d->last_need_hide_dialog_draft_message = need_hide_dialog_draft_message(d);
+  d->last_need_hide_reactions = need_hide_dialog_reactions(d);
   send_closure(G()->td(), &Td::send_update, td_api::make_object<td_api::updateNewChat>(std::move(chat_object)));
   d->is_update_new_chat_sent = true;
   d->is_update_new_chat_being_sent = false;
