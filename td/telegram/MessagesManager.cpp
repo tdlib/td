@@ -5950,6 +5950,9 @@ ChatReactions MessagesManager::get_active_reactions(const ChatReactions &availab
 
 ChatReactions MessagesManager::get_dialog_active_reactions(const Dialog *d) const {
   CHECK(d != nullptr);
+  if (need_hide_dialog_reactions(d)) {
+    return {};
+  }
   switch (d->dialog_id.get_type()) {
     case DialogType::User:
       return ChatReactions(true, true);
@@ -26657,13 +26660,33 @@ void MessagesManager::send_update_chat_business_bot_manage_bar(Dialog *d) {
           get_chat_id_object(d->dialog_id, "updateChatBusinessBotManageBar"), get_business_bot_manage_bar_object(d)));
 }
 
-void MessagesManager::send_update_chat_available_reactions(const Dialog *d) {
+bool MessagesManager::need_hide_dialog_reactions(const Dialog *d) const {
+  switch (d->dialog_id.get_type()) {
+    case DialogType::User:
+      return false;
+    case DialogType::Chat:
+      return td_->chat_manager_->get_chat_permissions(d->dialog_id.get_chat_id()).is_banned();
+    case DialogType::Channel:
+      return td_->chat_manager_->get_channel_permissions(d->dialog_id.get_channel_id()).is_banned();
+    case DialogType::SecretChat:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
+void MessagesManager::send_update_chat_available_reactions(Dialog *d) {
   CHECK(d != nullptr);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_available_reactions";
-  auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object(td_);
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateChatAvailableReactions>(
-                   get_chat_id_object(d->dialog_id, "updateChatAvailableReactions"), std::move(available_reactions)));
+  auto need_hide = need_hide_dialog_reactions(d);
+  if (!need_hide || !d->last_need_hide_reactions) {
+    d->last_need_hide_reactions = need_hide;
+    auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object(td_);
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateChatAvailableReactions>(
+                     get_chat_id_object(d->dialog_id, "updateChatAvailableReactions"), std::move(available_reactions)));
+  }
 }
 
 void MessagesManager::send_update_secret_chats_with_user_background(const Dialog *d) const {
@@ -28638,6 +28661,9 @@ void MessagesManager::on_dialog_access_updated(DialogId dialog_id) {
   if (d != nullptr && d->is_update_new_chat_sent) {
     if (d->draft_message != nullptr && d->last_need_hide_dialog_draft_message != need_hide_dialog_draft_message(d)) {
       send_update_chat_draft_message(d);
+    }
+    if (!d->available_reactions.empty() && d->last_need_hide_reactions != need_hide_dialog_reactions(d)) {
+      send_update_chat_available_reactions(d);
     }
   }
 }

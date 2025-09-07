@@ -1348,6 +1348,7 @@ class MessagesManager final : public Actor {
     bool need_repair_unread_mention_count = false;
     bool is_translatable = false;
     bool last_need_hide_dialog_draft_message = false;
+    bool last_need_hide_reactions = false;
 
     bool is_update_new_chat_sent = false;
     bool is_update_new_chat_being_sent = false;
@@ -2427,7 +2428,9 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_business_bot_manage_bar(Dialog *d);
 
-  void send_update_chat_available_reactions(const Dialog *d);
+  bool need_hide_dialog_reactions(const Dialog *d) const;
+
+  void send_update_chat_available_reactions(Dialog *d);
 
   void send_update_secret_chats_with_user_background(const Dialog *d) const;
 
