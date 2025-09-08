@@ -1204,6 +1204,9 @@ upgradedGiftOriginTransfer = UpgradedGiftOrigin;
 //@description The gift was bought from another user @price Price paid by the sender for the gift
 upgradedGiftOriginResale price:GiftResalePrice = UpgradedGiftOrigin;
 
+//@description The current user has paid for upgraid of the gift, which has been completed
+upgradedGiftOriginPrepaidUpgrade = UpgradedGiftOrigin;
+
 
 //@description Describes a model of an upgraded gift
 //@name Name of the model
@@ -4588,7 +4591,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@prepaid_upgrade_star_count Number of Telegram Stars that were paid by the sender for the ability to upgrade the gift
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone will be able to see them
 //@is_saved True, if the gift is displayed on the user's or the channel's profile page; only for the receiver of the gift
-//@is_prepaid_upgrade True, if the messages is about prepaid upgrade of the gift by another user
+//@is_prepaid_upgrade True, if the message is about prepaid upgrade of the gift by another user
 //@can_be_upgraded True, if the gift can be upgraded to a unique gift; only for the receiver of the gift
 //@was_converted True, if the gift was converted to Telegram Stars; only for the receiver of the gift
 //@was_upgraded True, if the gift was upgraded to a unique gift
