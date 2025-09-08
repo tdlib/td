@@ -39,6 +39,7 @@ void StarGift::store(StorerT &storer) const {
   bool has_per_user_remains = per_user_remains_ != 0;
   bool has_per_user_total = per_user_total_ != 0;
   bool has_resale_ton_count = resale_ton_count_ != 0;
+  bool has_regular_gift_id = regular_gift_id_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_limited);
   STORE_FLAG(has_default_sell_star_count);
@@ -61,6 +62,7 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(has_per_user_total);
   STORE_FLAG(resale_ton_only_);
   STORE_FLAG(has_resale_ton_count);
+  STORE_FLAG(has_regular_gift_id);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -125,6 +127,9 @@ void StarGift::store(StorerT &storer) const {
   if (has_per_user_total) {
     td::store(per_user_total_, storer);
   }
+  if (has_regular_gift_id) {
+    td::store(regular_gift_id_, storer);
+  }
 }
 
 template <class ParserT>
@@ -147,6 +152,7 @@ void StarGift::parse(ParserT &parser) {
   bool has_per_user_remains;
   bool has_per_user_total;
   bool has_resale_ton_count;
+  bool has_regular_gift_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_limited);
   PARSE_FLAG(has_default_sell_star_count);
@@ -169,6 +175,7 @@ void StarGift::parse(ParserT &parser) {
   PARSE_FLAG(has_per_user_total);
   PARSE_FLAG(resale_ton_only_);
   PARSE_FLAG(has_resale_ton_count);
+  PARSE_FLAG(has_regular_gift_id);
   END_PARSE_FLAGS();
   td::parse(id_, parser);
   if (!is_unique_) {
@@ -239,6 +246,9 @@ void StarGift::parse(ParserT &parser) {
   }
   if (has_per_user_total) {
     td::parse(per_user_total_, parser);
+  }
+  if (has_regular_gift_id) {
+    td::parse(regular_gift_id_, parser);
   }
 }
 
