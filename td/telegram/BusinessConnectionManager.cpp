@@ -828,7 +828,7 @@ class TransferBusinessStarsQuery final : public Td::ResultHandler {
       }
       case telegram_api::payments_paymentVerificationNeeded::ID:
         LOG(ERROR) << "Receive " << to_string(payment_result);
-        break;
+        return on_error(Status::Error(500, "Receive invalid response"));
       default:
         UNREACHABLE();
     }

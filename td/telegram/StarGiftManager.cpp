@@ -155,9 +155,8 @@ class SendGiftQuery final : public Td::ResultHandler {
         break;
       }
       case telegram_api::payments_paymentVerificationNeeded::ID:
-        td_->star_manager_->add_pending_owned_star_count(star_count_, false);
         LOG(ERROR) << "Receive " << to_string(payment_result);
-        break;
+        return on_error(Status::Error(500, "Receive invalid response"));
       default:
         UNREACHABLE();
     }
@@ -544,9 +543,8 @@ class UpgradeGiftQuery final : public Td::ResultHandler {
         break;
       }
       case telegram_api::payments_paymentVerificationNeeded::ID:
-        td_->star_manager_->add_pending_owned_star_count(star_count_, false);
         LOG(ERROR) << "Receive " << to_string(payment_result);
-        break;
+        return on_error(Status::Error(500, "Receive invalid response"));
       default:
         UNREACHABLE();
     }
@@ -696,9 +694,8 @@ class TransferGiftQuery final : public Td::ResultHandler {
         break;
       }
       case telegram_api::payments_paymentVerificationNeeded::ID:
-        td_->star_manager_->add_pending_owned_star_count(star_count_, false);
         LOG(ERROR) << "Receive " << to_string(payment_result);
-        break;
+        return on_error(Status::Error(500, "Receive invalid response"));
       default:
         UNREACHABLE();
     }
@@ -806,9 +803,8 @@ class ResaleGiftQuery final : public Td::ResultHandler {
         break;
       }
       case telegram_api::payments_paymentVerificationNeeded::ID:
-        td_->star_manager_->add_pending_owned_amount(price_, 1, false);
         LOG(ERROR) << "Receive " << to_string(payment_result);
-        break;
+        return on_error(Status::Error(500, "Receive invalid response"));
       default:
         UNREACHABLE();
     }
