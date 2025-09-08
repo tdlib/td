@@ -61,6 +61,9 @@ class StarGiftManager final : public Actor {
   void upgrade_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, bool keep_original_details,
                     int64 star_count, Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise);
 
+  void buy_gift_upgrade(DialogId dialog_id, const string &prepaid_upgrade_hash, int64 star_count,
+                        Promise<Unit> &&promise);
+
   void transfer_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, DialogId receiver_dialog_id,
                      int64 star_count, Promise<Unit> &&promise);
 

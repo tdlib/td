@@ -626,6 +626,114 @@ class GetGiftUpgradePaymentFormQuery final : public Td::ResultHandler {
   }
 };
 
+class PrepaidUpgradeGiftQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  int64 star_count_;
+
+ public:
+  explicit PrepaidUpgradeGiftQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftPrepaidUpgrade> input_invoice,
+            int64 payment_form_id, int64 star_count) {
+    star_count_ = star_count;
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_sendStarsForm(payment_form_id, std::move(input_invoice))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_sendStarsForm>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto payment_result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for PrepaidUpgradeGiftQuery: " << to_string(payment_result);
+    switch (payment_result->get_id()) {
+      case telegram_api::payments_paymentResult::ID: {
+        auto result = telegram_api::move_object_as<telegram_api::payments_paymentResult>(payment_result);
+        td_->star_manager_->add_pending_owned_star_count(star_count_, true);
+        td_->updates_manager_->on_get_updates(std::move(result->updates_), std::move(promise_));
+        break;
+      }
+      case telegram_api::payments_paymentVerificationNeeded::ID:
+        LOG(ERROR) << "Receive " << to_string(payment_result);
+        return on_error(Status::Error(500, "Receive invalid response"));
+      default:
+        UNREACHABLE();
+    }
+    get_upgraded_gift_emoji_statuses(td_, Auto());
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "FORM_SUBMIT_DUPLICATE") {
+      LOG(ERROR) << "Receive FORM_SUBMIT_DUPLICATE";
+    }
+    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetGiftPrepaidUpgradePaymentFormQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  int64 star_count_;
+  telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftPrepaidUpgrade> upgrade_input_invoice_;
+
+ public:
+  explicit GetGiftPrepaidUpgradePaymentFormQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftPrepaidUpgrade> input_invoice,
+            telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftPrepaidUpgrade> upgrade_input_invoice,
+            int64 star_count) {
+    upgrade_input_invoice_ = std::move(upgrade_input_invoice);
+    star_count_ = star_count;
+    td_->star_manager_->add_pending_owned_star_count(-star_count, false);
+    send_query(
+        G()->net_query_creator().create(telegram_api::payments_getPaymentForm(0, std::move(input_invoice), nullptr)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getPaymentForm>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto payment_form_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetGiftPrepaidUpgradePaymentFormQuery: " << to_string(payment_form_ptr);
+    switch (payment_form_ptr->get_id()) {
+      case telegram_api::payments_paymentForm::ID:
+      case telegram_api::payments_paymentFormStars::ID:
+        LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
+        td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+        promise_.set_error(500, "Unsupported");
+        break;
+      case telegram_api::payments_paymentFormStarGift::ID: {
+        auto payment_form = static_cast<const telegram_api::payments_paymentFormStarGift *>(payment_form_ptr.get());
+        if (payment_form->invoice_->prices_.size() != 1u || payment_form->invoice_->prices_[0]->amount_ > star_count_) {
+          td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+          return promise_.set_error(400, "Wrong upgrade price specified");
+        }
+        if (payment_form->invoice_->prices_[0]->amount_ != star_count_) {
+          td_->star_manager_->add_pending_owned_star_count(star_count_ - payment_form->invoice_->prices_[0]->amount_,
+                                                           false);
+          star_count_ = payment_form->invoice_->prices_[0]->amount_;
+        }
+        td_->create_handler<PrepaidUpgradeGiftQuery>(std::move(promise_))
+            ->send(std::move(upgrade_input_invoice_), payment_form->form_id_, star_count_);
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+    promise_.set_error(std::move(status));
+  }
+};
+
 class TransferStarGiftQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1701,6 +1809,27 @@ void StarGiftManager::upgrade_gift(BusinessConnectionId business_connection_id, 
     td_->create_handler<UpgradeStarGiftQuery>(std::move(promise))
         ->send(business_connection_id, star_gift_id, keep_original_details);
   }
+}
+
+void StarGiftManager::buy_gift_upgrade(DialogId dialog_id, const string &prepaid_upgrade_hash, int64 star_count,
+                                       Promise<Unit> &&promise) {
+  auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+  auto upgrade_input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+  if (input_peer == nullptr || upgrade_input_peer == nullptr) {
+    return promise.set_error(400, "Have no access to the gift owner");
+  }
+  if (star_count <= 0) {
+    return promise.set_error(400, "Invalid amount of Telegram Stars specified");
+  }
+  if (!td_->star_manager_->has_owned_star_count(star_count)) {
+    return promise.set_error(400, "Have not enough Telegram Stars");
+  }
+  auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftPrepaidUpgrade>(
+      std::move(input_peer), prepaid_upgrade_hash);
+  auto upgrade_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftPrepaidUpgrade>(
+      std::move(upgrade_input_peer), prepaid_upgrade_hash);
+  td_->create_handler<GetGiftPrepaidUpgradePaymentFormQuery>(std::move(promise))
+      ->send(std::move(input_invoice), std::move(upgrade_input_invoice), star_count);
 }
 
 void StarGiftManager::transfer_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id,

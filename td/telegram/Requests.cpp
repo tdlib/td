@@ -7719,6 +7719,15 @@ void Requests::on_request(uint64 id, td_api::upgradeGift &request) {
                                         request.star_count_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::buyGiftUpgrade &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.prepaid_upgrade_hash_);
+  CREATE_OK_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
+  td_->star_gift_manager_->buy_gift_upgrade(owner_dialog_id, request.prepaid_upgrade_hash_, request.star_count_,
+                                            std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::transferGift &request) {
   CHECK_IS_USER_OR_BUSINESS();
   CREATE_OK_REQUEST_PROMISE();
