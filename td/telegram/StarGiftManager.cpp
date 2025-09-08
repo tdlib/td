@@ -1067,6 +1067,39 @@ class GetUniqueStarGiftQuery final : public Td::ResultHandler {
   }
 };
 
+class GetUniqueStarGiftValueInfoQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::upgradedGiftValueInfo>> promise_;
+
+ public:
+  explicit GetUniqueStarGiftValueInfoQuery(Promise<td_api::object_ptr<td_api::upgradedGiftValueInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &name) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_getUniqueStarGiftValueInfo(name)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getUniqueStarGiftValueInfo>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetUniqueStarGiftValueInfoQuery: " << to_string(ptr);
+
+    promise_.set_value(td_api::make_object<td_api::upgradedGiftValueInfo>(
+        ptr->currency_, ptr->value_, ptr->value_is_average_, max(0, ptr->initial_sale_date_),
+        StarManager::get_star_count(ptr->initial_sale_stars_), ptr->initial_sale_price_, max(0, ptr->last_sale_date_),
+        ptr->last_sale_price_, ptr->last_sale_on_fragment_, ptr->floor_price_, ptr->average_price_, ptr->listed_count_,
+        ptr->fragment_listed_count_, ptr->fragment_listed_url_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStarGiftWithdrawalUrlQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
@@ -1778,6 +1811,11 @@ void StarGiftManager::get_saved_star_gift(StarGiftId star_gift_id,
 void StarGiftManager::get_upgraded_gift(const string &name,
                                         Promise<td_api::object_ptr<td_api::upgradedGift>> &&promise) {
   td_->create_handler<GetUniqueStarGiftQuery>(std::move(promise))->send(name);
+}
+
+void StarGiftManager::get_upgraded_gift_value_info(
+    const string &name, Promise<td_api::object_ptr<td_api::upgradedGiftValueInfo>> &&promise) {
+  td_->create_handler<GetUniqueStarGiftValueInfoQuery>(std::move(promise))->send(name);
 }
 
 void StarGiftManager::get_star_gift_withdrawal_url(StarGiftId star_gift_id, const string &password,

@@ -1641,6 +1641,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::getUpgradedGift &request);
 
+  void on_request(uint64 id, td_api::getUpgradedGiftValueInfo &request);
+
   void on_request(uint64 id, const td_api::getUpgradedGiftWithdrawalUrl &request);
 
   void on_request(uint64 id, td_api::setGiftResalePrice &request);

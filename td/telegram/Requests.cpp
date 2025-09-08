@@ -7763,6 +7763,13 @@ void Requests::on_request(uint64 id, td_api::getUpgradedGift &request) {
   td_->star_gift_manager_->get_upgraded_gift(request.name_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getUpgradedGiftValueInfo &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.name_);
+  CREATE_REQUEST_PROMISE();
+  td_->star_gift_manager_->get_upgraded_gift_value_info(request.name_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getUpgradedGiftWithdrawalUrl &request) {
   CHECK_IS_USER();
   CREATE_HTTP_URL_REQUEST_PROMISE();

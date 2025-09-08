@@ -3170,6 +3170,10 @@ class CliClient final : public Actor {
       string name;
       get_args(args, name);
       send_request(td_api::make_object<td_api::getUpgradedGift>(name));
+    } else if (op == "gugvi") {
+      string name;
+      get_args(args, name);
+      send_request(td_api::make_object<td_api::getUpgradedGiftValueInfo>(name));
     } else if (op == "sgrp") {
       string received_gift_id;
       GiftResalePrice price;

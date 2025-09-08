@@ -1273,6 +1273,23 @@ gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_s
 //@resale_parameters Resale parameters of the gift; may be null if resale isn't possible
 upgradedGift id:int64 publisher_chat_id:int53 title:string name:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 is_premium:Bool owner_id:MessageSender owner_address:string owner_name:string gift_address:string model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails resale_parameters:giftResaleParameters = UpgradedGift;
 
+//@description Contains information about value of an upgraded gift
+//@currency ISO 4217 currency code of the currency in which the prices are represented
+//@value Estimated value of the gift; in the smallest units of the currency
+//@is_value_average True, if the value is calculated as average value of similar sold gifts. Otherwise, it is based on the sale price of the gift
+//@initial_sale_date Point in time (Unix timestamp) when the corresponding regular gift was originally purchased
+//@initial_sale_star_count Amount of Telegram Stars that were paid for the gift
+//@initial_sale_price Initial price of the gift; in the smallest units of the currency
+//@last_sale_date Point in time (Unix timestamp) when the upgraded gift was purchased last time; 0 if never
+//@last_sale_price Last purchase price of the gift; in the smallest units of the currency; 0 if the gift has never been resold
+//@is_last_sale_on_fragment True, if the last sale was completed on Fragment
+//@minimum_price The current minimum price of gifts upgraded from the same gift; in the smallest units of the currency; 0 if there are no such gifts
+//@average_sale_price The average sale price in the last month of gifts upgraded from the same gift; in the smallest units of the currency; 0 if there were no such sales
+//@telegram_listed_gift_count Number of gifts upgraded from the same gift being resold on Telegram
+//@fragment_listed_gift_count Number of gifts upgraded from the same gift being resold on Fragment
+//@fragment_url The HTTPS link to the Fragment for the gift; may be empty if there are no such gifts being sold on Fragment
+upgradedGiftValueInfo currency:string value:int53 is_value_average:Bool initial_sale_date:int32 initial_sale_star_count:int53 initial_sale_price:int53 last_sale_date:int32 last_sale_price:int53 is_last_sale_on_fragment:Bool minimum_price:int53 average_sale_price:int53 telegram_listed_gift_count:int32 fragment_listed_gift_count:int32 fragment_url:string = UpgradedGiftValueInfo;
+
 //@description Contains result of gift upgrading
 //@gift The upgraded gift
 //@received_gift_id Unique identifier of the received gift for the current user
@@ -13006,6 +13023,9 @@ getReceivedGift received_gift_id:string = ReceivedGift;
 
 //@description Returns information about an upgraded gift by its name @name Unique name of the upgraded gift
 getUpgradedGift name:string = UpgradedGift;
+
+//@description Returns information about value of an upgraded gift by its name @name Unique name of the upgraded gift
+getUpgradedGiftValueInfo name:string = UpgradedGiftValueInfo;
 
 //@description Returns a URL for upgraded gift withdrawal in the TON blockchain as an NFT; requires owner privileges for gifts owned by a chat
 //@received_gift_id Identifier of the gift
