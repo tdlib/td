@@ -488,7 +488,14 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                       }
                     }
                   } else {
-                    if (for_user || for_bot) {
+                    if (transaction->stargift_prepaid_upgrade_) {
+                      if (for_user) {
+                        transaction->stargift_prepaid_upgrade_ = false;
+                        product_info = nullptr;
+                        return td_api::make_object<td_api::starTransactionTypeGiftUpgradePurchase>(
+                            td_api::make_object<td_api::messageSenderUser>(user_id_object), gift.get_gift_object(td_));
+                      }
+                    } else if (for_user || for_bot) {
                       product_info = nullptr;
                       return td_api::make_object<td_api::starTransactionTypeGiftPurchase>(
                           get_message_sender_object(td_, user_id, DialogId(), "starTransactionTypeGiftPurchase"),
@@ -633,7 +640,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               td_->star_gift_manager_->on_get_star_gift(gift, true);
               if (is_purchase) {
                 if (gift.is_unique()) {
-                  if (!transaction->stargift_upgrade_) {
+                  if (!transaction->stargift_upgrade_ && !transaction->stargift_resale_) {
                     if (for_user) {
                       return td_api::make_object<td_api::starTransactionTypeGiftTransfer>(
                           get_message_sender_object(td_, UserId(), dialog_id, "starTransactionTypeGiftTransfer"),
@@ -641,7 +648,15 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                     }
                   }
                 } else {
-                  if (for_user || for_bot) {
+                  if (transaction->stargift_prepaid_upgrade_) {
+                    if (for_user) {
+                      transaction->stargift_prepaid_upgrade_ = false;
+                      product_info = nullptr;
+                      return td_api::make_object<td_api::starTransactionTypeGiftUpgradePurchase>(
+                          get_message_sender_object(td_, UserId(), dialog_id, "starTransactionTypeGiftUpgradePurchase"),
+                          gift.get_gift_object(td_));
+                    }
+                  } else if (for_user || for_bot) {
                     product_info = nullptr;
                     return td_api::make_object<td_api::starTransactionTypeGiftPurchase>(
                         get_message_sender_object(td_, UserId(), dialog_id, "starTransactionTypeGiftPurchase"),
