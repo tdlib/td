@@ -9828,17 +9828,18 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       StarGiftId star_gift_id;
       DialogId receiver_dialog_id;
       if (m->owner_dialog_id != DialogId()) {
-        star_gift_id = StarGiftId(m->owner_dialog_id, m->saved_id);
         receiver_dialog_id = m->owner_dialog_id;
       } else {
-        auto gift_message_id = m->gift_message_id != MessageId() ? m->gift_message_id : message_id;
-        if (dialog_id.get_type() == DialogType::User && !is_outgoing && is_server && gift_message_id.is_server()) {
-          auto user_id = dialog_id.get_user_id();
-          if (user_id != UserManager::get_service_notifications_user_id()) {
-            star_gift_id = StarGiftId(gift_message_id.get_server_message_id());
-          }
-        }
         receiver_dialog_id = is_outgoing ? dialog_id : td->dialog_manager_->get_my_dialog_id();
+      }
+      if (m->owner_dialog_id != DialogId() && !m->is_prepaid_upgrade) {
+        star_gift_id = StarGiftId(m->owner_dialog_id, m->saved_id);
+      } else {
+        auto gift_message_id = m->gift_message_id != MessageId() ? m->gift_message_id : message_id;
+        if (!is_outgoing && is_server && gift_message_id.is_server() && dialog_id.get_type() == DialogType::User &&
+            dialog_id.get_user_id() != UserManager::get_service_notifications_user_id()) {
+          star_gift_id = StarGiftId(gift_message_id.get_server_message_id());
+        }
       }
       if (m->sender_dialog_id != DialogId()) {
         sender_dialog_id = m->sender_dialog_id;
