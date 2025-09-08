@@ -1748,6 +1748,9 @@ string StarManager::get_unused_star_transaction_field(
   if (transaction->posts_search_) {
     return "post search";
   }
+  if (transaction->stargift_prepaid_upgrade_) {
+    return "prepaid gift upgrade";
+  }
   return string();
 }
 
