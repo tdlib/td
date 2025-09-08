@@ -26,6 +26,7 @@ class UserStarGift {
   FormattedText message_;
   StarGiftId star_gift_id_;
   vector<StarGiftCollectionId> collection_ids_;
+  string prepaid_upgrade_hash_;
   int64 convert_star_count_ = 0;
   int64 upgrade_star_count_ = 0;
   int64 transfer_star_count_ = 0;
