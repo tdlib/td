@@ -56,6 +56,8 @@ class StarGift {
   int64 resale_star_count_ = 0;
   int64 resale_ton_count_ = 0;
   int64 regular_gift_id_ = 0;
+  string value_currency_;
+  int64 value_amount_ = 0;
 
   friend bool operator==(const StarGift &lhs, const StarGift &rhs);
 

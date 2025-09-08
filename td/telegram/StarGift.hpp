@@ -40,29 +40,31 @@ void StarGift::store(StorerT &storer) const {
   bool has_per_user_total = per_user_total_ != 0;
   bool has_resale_ton_count = resale_ton_count_ != 0;
   bool has_regular_gift_id = regular_gift_id_ != 0;
+  bool has_value = !value_currency_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_limited);
   STORE_FLAG(has_default_sell_star_count);
   STORE_FLAG(has_first_sale_date);
   STORE_FLAG(has_last_sale_date);
   STORE_FLAG(is_for_birthday_);
-  STORE_FLAG(is_unique_);
+  STORE_FLAG(is_unique_);  // 5
   STORE_FLAG(has_original_details);
   STORE_FLAG(false);  // has_owner_user_id
   STORE_FLAG(has_upgrade_star_count);
   STORE_FLAG(has_owner_name);
-  STORE_FLAG(has_slug);
+  STORE_FLAG(has_slug);  // 10
   STORE_FLAG(has_owner_dialog_id);
   STORE_FLAG(has_owner_address);
   STORE_FLAG(has_gift_address);
   STORE_FLAG(has_resale_star_count);
-  STORE_FLAG(has_released_by_dialog_id);
+  STORE_FLAG(has_released_by_dialog_id);  // 15
   STORE_FLAG(is_premium_);
   STORE_FLAG(has_per_user_remains);
   STORE_FLAG(has_per_user_total);
   STORE_FLAG(resale_ton_only_);
-  STORE_FLAG(has_resale_ton_count);
+  STORE_FLAG(has_resale_ton_count);  // 20
   STORE_FLAG(has_regular_gift_id);
+  STORE_FLAG(has_value);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -130,6 +132,10 @@ void StarGift::store(StorerT &storer) const {
   if (has_regular_gift_id) {
     td::store(regular_gift_id_, storer);
   }
+  if (has_value) {
+    td::store(value_currency_, storer);
+    td::store(value_amount_, storer);
+  }
 }
 
 template <class ParserT>
@@ -153,6 +159,7 @@ void StarGift::parse(ParserT &parser) {
   bool has_per_user_total;
   bool has_resale_ton_count;
   bool has_regular_gift_id;
+  bool has_value;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_limited);
   PARSE_FLAG(has_default_sell_star_count);
@@ -176,6 +183,7 @@ void StarGift::parse(ParserT &parser) {
   PARSE_FLAG(resale_ton_only_);
   PARSE_FLAG(has_resale_ton_count);
   PARSE_FLAG(has_regular_gift_id);
+  PARSE_FLAG(has_value);
   END_PARSE_FLAGS();
   td::parse(id_, parser);
   if (!is_unique_) {
@@ -249,6 +257,10 @@ void StarGift::parse(ParserT &parser) {
   }
   if (has_regular_gift_id) {
     td::parse(regular_gift_id_, parser);
+  }
+  if (has_value) {
+    td::parse(value_currency_, parser);
+    td::parse(value_amount_, parser);
   }
 }
 
