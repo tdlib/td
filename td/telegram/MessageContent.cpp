@@ -9843,9 +9843,13 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       }
       if (m->sender_dialog_id != DialogId()) {
         sender_dialog_id = m->sender_dialog_id;
+      } else if (m->is_prepaid_upgrade && is_outgoing) {
+        sender_dialog_id = DialogId();
       }
       return td_api::make_object<td_api::messageGift>(
-          m->star_gift.get_gift_object(td), get_message_sender_object(td, sender_dialog_id, "messageGift sender"),
+          m->star_gift.get_gift_object(td),
+          sender_dialog_id == DialogId() ? nullptr
+                                         : get_message_sender_object(td, sender_dialog_id, "messageGift sender"),
           get_message_sender_object(td, receiver_dialog_id, "messageGift receiver"), star_gift_id.get_star_gift_id(),
           get_text_object(m->text), m->convert_star_count, m->upgrade_star_count, m->name_hidden, m->is_saved,
           m->is_prepaid_upgrade, m->can_upgrade, m->was_converted, m->was_upgraded, m->was_refunded,

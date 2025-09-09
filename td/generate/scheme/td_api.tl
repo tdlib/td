@@ -4586,7 +4586,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 
 //@description A regular gift was received or sent by the current user, or the current user was notified about a channel gift
 //@gift The gift
-//@sender_id Sender of the gift
+//@sender_id Sender of the gift; may be null for outgoing messages about prepaid upgrade of gifts from unknown users
 //@receiver_id Receiver of the gift
 //@received_gift_id Unique identifier of the received gift for the current user; only for the receiver of the gift
 //@text Message added to the gift
