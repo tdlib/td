@@ -447,6 +447,17 @@ static Promise<Unit> get_gift_upgrade_promise(Td *td, const telegram_api::object
     });
   }
   vector<std::pair<const telegram_api::Message *, bool>> new_messages = UpdatesManager::get_new_messages(updates.get());
+  td::remove_if(new_messages, [](const auto &p) {
+    if (p.first->get_id() != telegram_api::messageService::ID) {
+      return false;
+    }
+    auto message = static_cast<const telegram_api::messageService *>(p.first);
+    if (message->action_->get_id() != telegram_api::messageActionStarGiftUnique::ID) {
+      return false;
+    }
+    auto action = static_cast<const telegram_api::messageActionStarGiftUnique *>(message->action_.get());
+    return action->prepaid_upgrade_;
+  });
   if (new_messages.size() != 1u || new_messages[0].second ||
       new_messages[0].first->get_id() != telegram_api::messageService::ID) {
     promise.set_error(500, "Receive invalid server response");
