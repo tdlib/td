@@ -7667,6 +7667,11 @@ void Requests::on_request(uint64 id, const td_api::getAvailableGifts &request) {
   td_->star_gift_manager_->get_gift_payment_options(std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::canSendGift &request) {
+  CREATE_REQUEST_PROMISE();
+  td_->star_gift_manager_->can_send_gift(request.gift_id_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::sendGift &request) {
   CREATE_OK_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));

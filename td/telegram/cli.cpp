@@ -3094,6 +3094,10 @@ class CliClient final : public Actor {
                                                                       premium_subscription))));
     } else if (op == "gag") {
       send_request(td_api::make_object<td_api::getAvailableGifts>());
+    } else if (op == "csg") {
+      int64 gift_id;
+      get_args(args, gift_id);
+      send_request(td_api::make_object<td_api::canSendGift>(gift_id));
     } else if (op == "sendg" || op == "sendgp" || op == "sgift") {
       int64 gift_id;
       string owner_id;

@@ -1192,6 +1192,15 @@ giftCollection id:int32 name:string icon:sticker gift_count:int32 = GiftCollecti
 giftCollections collections:vector<giftCollection> = GiftCollections;
 
 
+//@class CanSendGiftResult @description Describes whether a gift can be sent now by the current user
+
+//@description The gift can be sent now by the current user
+canSendGiftResultOk = CanSendGiftResult;
+
+//@description The gift can't be sent now by the current user @reason Reason to be shown to the user
+canSendGiftResultFail reason:formattedText = CanSendGiftResult;
+
+
 //@class UpgradedGiftOrigin @description Describes origin from which the upgraded gift was obtained
 
 //@description The gift was obtained by upgrading of a previously received gift
@@ -12963,6 +12972,10 @@ setGiftSettings settings:giftSettings = Ok;
 
 //@description Returns gifts that can be sent to other users and channel chats
 getAvailableGifts = AvailableGifts;
+
+//@description Checks whether a gift with next_send_date in the future can be sent already
+//@gift_id Identifier of the gift to send
+canSendGift gift_id:int64 = CanSendGiftResult;
 
 //@description Sends a gift to another user or channel chat. May return an error with a message "STARGIFT_USAGE_LIMITED" if the gift was sold out
 //@gift_id Identifier of the gift to send
