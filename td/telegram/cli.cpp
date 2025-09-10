@@ -3135,9 +3135,9 @@ class CliClient final : public Actor {
                                                             keep_original_details, star_count));
     } else if (op == "bgu") {
       string owner_id;
-      int64 star_count;
       string upgrade_gift_hash;
-      get_args(args, owner_id, star_count, upgrade_gift_hash);
+      int64 star_count;
+      get_args(args, owner_id, upgrade_gift_hash, star_count);
       send_request(
           td_api::make_object<td_api::buyGiftUpgrade>(as_message_sender(owner_id), upgrade_gift_hash, star_count));
     } else if (op == "tg") {
