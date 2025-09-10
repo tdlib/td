@@ -4248,9 +4248,10 @@ class CliClient final : public Actor {
       string currency;
       int64 amount;
       int64 star_count;
-      get_args(args, currency, amount, star_count);
+      ChatId chat_id;
+      get_args(args, currency, amount, star_count, chat_id);
       send_request(td_api::make_object<td_api::canPurchaseFromStore>(
-          td_api::make_object<td_api::storePaymentPurposeStars>(currency, amount, star_count)));
+          td_api::make_object<td_api::storePaymentPurposeStars>(currency, amount, star_count, chat_id)));
     } else if (op == "cpfsgs") {
       UserId user_id;
       string currency;

@@ -6982,7 +6982,8 @@ storePaymentPurposeStarGiveaway parameters:giveawayParameters currency:string am
 //@currency ISO 4217 currency code of the payment currency
 //@amount Paid amount, in the smallest units of the currency
 //@star_count Number of bought Telegram Stars
-storePaymentPurposeStars currency:string amount:int53 star_count:int53 = StorePaymentPurpose;
+//@chat_id Identifier of the chat that is supposed to receive the Telegram Stars; pass 0 if none
+storePaymentPurposeStars currency:string amount:int53 star_count:int53 chat_id:int53 = StorePaymentPurpose;
 
 //@description The user buying Telegram Stars for other users
 //@user_id Identifier of the user to which Telegram Stars are gifted
