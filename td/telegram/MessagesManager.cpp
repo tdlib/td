@@ -20009,6 +20009,10 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
 td_api::object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
                                                                           const vector<MessageId> &message_ids,
                                                                           bool skip_not_found, const char *source) {
+  if (message_ids.empty()) {
+    // if list of messages is empty, then chat may not exist
+    return get_messages_object(total_count, {}, skip_not_found);
+  }
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   auto message_objects = transform(
