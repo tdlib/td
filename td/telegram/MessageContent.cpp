@@ -1284,12 +1284,14 @@ class MessageStarGift final : public MessageContent {
   bool was_upgraded = false;
   bool was_refunded = false;
   bool is_prepaid_upgrade = false;
+  bool is_upgrade_separate = false;
 
   MessageStarGift() = default;
   MessageStarGift(StarGift &&star_gift, DialogId sender_dialog_id, DialogId owner_dialog_id, int64 saved_id,
                   FormattedText &&text, int64 convert_star_count, int64 upgrade_star_count, MessageId gift_message_id,
                   MessageId upgrade_message_id, string prepaid_upgrade_hash, bool name_hidden, bool is_saved,
-                  bool can_upgrade, bool was_converted, bool was_upgraded, bool was_refunded, bool is_prepaid_upgrade)
+                  bool can_upgrade, bool was_converted, bool was_upgraded, bool was_refunded, bool is_prepaid_upgrade,
+                  bool is_upgrade_separate)
       : star_gift(std::move(star_gift))
       , sender_dialog_id(sender_dialog_id)
       , owner_dialog_id(owner_dialog_id)
@@ -1306,7 +1308,8 @@ class MessageStarGift final : public MessageContent {
       , was_converted(was_converted)
       , was_upgraded(was_upgraded)
       , was_refunded(was_refunded)
-      , is_prepaid_upgrade(is_prepaid_upgrade) {
+      , is_prepaid_upgrade(is_prepaid_upgrade)
+      , is_upgrade_separate(is_upgrade_separate) {
   }
 
   MessageContentType get_type() const final {
@@ -2276,6 +2279,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(m->is_prepaid_upgrade);
       STORE_FLAG(has_gift_message_id);
       STORE_FLAG(has_prepaid_upgrade_hash);
+      STORE_FLAG(m->is_upgrade_separate);
       END_STORE_FLAGS();
       store(m->star_gift, storer);
       if (has_text) {
@@ -3472,6 +3476,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(m->is_prepaid_upgrade);
       PARSE_FLAG(has_gift_message_id);
       PARSE_FLAG(has_prepaid_upgrade_hash);
+      PARSE_FLAG(m->is_upgrade_separate);
       END_PARSE_FLAGS();
       parse(m->star_gift, parser);
       if (has_text) {
@@ -7165,7 +7170,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
           lhs->prepaid_upgrade_hash != rhs->prepaid_upgrade_hash || lhs->name_hidden != rhs->name_hidden ||
           lhs->is_saved != rhs->is_saved || lhs->can_upgrade != rhs->can_upgrade ||
           lhs->was_converted != rhs->was_converted || lhs->was_upgraded != rhs->was_upgraded ||
-          lhs->was_refunded != rhs->was_refunded || lhs->is_prepaid_upgrade != rhs->is_prepaid_upgrade) {
+          lhs->was_refunded != rhs->was_refunded || lhs->is_prepaid_upgrade != rhs->is_prepaid_upgrade ||
+          lhs->is_upgrade_separate != rhs->is_upgrade_separate) {
         need_update = true;
       }
       break;
@@ -9198,7 +9204,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           StarManager::get_star_count(action->convert_stars_), StarManager::get_star_count(action->upgrade_stars_),
           gift_message_id, upgrade_message_id, std::move(action->prepaid_upgrade_hash_), action->name_hidden_,
           action->saved_, action->can_upgrade_, action->converted_, action->upgraded_, action->refunded_,
-          action->prepaid_upgrade_);
+          action->prepaid_upgrade_, action->upgrade_separate_);
     }
     case telegram_api::messageActionStarGiftUnique::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionStarGiftUnique>(action_ptr);
@@ -9856,9 +9862,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
           sender_dialog_id == DialogId() ? nullptr
                                          : get_message_sender_object(td, sender_dialog_id, "messageGift sender"),
           get_message_sender_object(td, receiver_dialog_id, "messageGift receiver"), star_gift_id.get_star_gift_id(),
-          get_text_object(m->text), m->convert_star_count, m->upgrade_star_count, m->name_hidden, m->is_saved,
-          m->is_prepaid_upgrade, m->can_upgrade, m->was_converted, m->was_upgraded, m->was_refunded,
-          StarGiftId(m->upgrade_message_id.get_server_message_id()).get_star_gift_id(), m->prepaid_upgrade_hash);
+          get_text_object(m->text), m->convert_star_count, m->upgrade_star_count, m->is_upgrade_separate,
+          m->name_hidden, m->is_saved, m->is_prepaid_upgrade, m->can_upgrade, m->was_converted, m->was_upgraded,
+          m->was_refunded, StarGiftId(m->upgrade_message_id.get_server_message_id()).get_star_gift_id(),
+          m->prepaid_upgrade_hash);
     }
     case MessageContentType::StarGiftUnique: {
       const auto *m = static_cast<const MessageStarGiftUnique *>(content);
