@@ -1250,11 +1250,13 @@ upgradedGiftOriginalDetails sender_id:MessageSender receiver_id:MessageSender te
 //@upgrade_star_count Number of Telegram Stars that must be paid to upgrade the gift; 0 if upgrade isn't possible
 //@is_for_birthday True, if the gift is a birthday gift
 //@is_premium True, if the gift can be bought only by Telegram Premium subscribers
+//@next_send_date Point in time (Unix timestamp) when the gift can be sent next time by the current user; can be 0 or a date in the past.
+//-If the date is in the future, then call canSendGift to get the reason, why the gift can't be sent now
 //@user_limits Number of times the gift can be purchased by the current user; may be null if not limited
 //@overall_limits Number of times the gift can be purchased all users; may be null if not limited
 //@first_send_date Point in time (Unix timestamp) when the gift was send for the first time; for sold out gifts only
 //@last_send_date Point in time (Unix timestamp) when the gift was send for the last time; for sold out gifts only
-gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 is_for_birthday:Bool is_premium:Bool user_limits:giftPurchaseLimits overall_limits:giftPurchaseLimits first_send_date:int32 last_send_date:int32 = Gift;
+gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 is_for_birthday:Bool is_premium:Bool next_send_date:int32 user_limits:giftPurchaseLimits overall_limits:giftPurchaseLimits first_send_date:int32 last_send_date:int32 = Gift;
 
 //@description Describes an upgraded gift that can be transferred to another owner or transferred to the TON blockchain as an NFT
 //@id Unique identifier of the gift

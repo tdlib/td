@@ -161,6 +161,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     td->dialog_manager_->force_create_dialog(released_by_dialog_id_, "StarGift", true);
   }
   is_premium_ = star_gift->require_premium_;
+  locked_until_date_ = max(0, star_gift->locked_until_date_);
 }
 
 td_api::object_ptr<td_api::giftPurchaseLimits> StarGift::get_gift_purchase_limits_object(int32 total, int32 remains) {
@@ -173,12 +174,12 @@ td_api::object_ptr<td_api::giftPurchaseLimits> StarGift::get_gift_purchase_limit
 td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
   CHECK(is_valid());
   CHECK(!is_unique_);
-  return td_api::make_object<td_api::gift>(id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "gift"),
-                                           td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_,
-                                           default_sell_star_count_, upgrade_star_count_, is_for_birthday_, is_premium_,
-                                           get_gift_purchase_limits_object(per_user_total_, per_user_remains_),
-                                           get_gift_purchase_limits_object(availability_total_, availability_remains_),
-                                           first_sale_date_, last_sale_date_);
+  return td_api::make_object<td_api::gift>(
+      id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "gift"),
+      td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_, default_sell_star_count_,
+      upgrade_star_count_, is_for_birthday_, is_premium_, locked_until_date_,
+      get_gift_purchase_limits_object(per_user_total_, per_user_remains_),
+      get_gift_purchase_limits_object(availability_total_, availability_remains_), first_sale_date_, last_sale_date_);
 }
 
 td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *td) const {
@@ -238,7 +239,8 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.released_by_dialog_id_ == rhs.released_by_dialog_id_ &&
          lhs.is_premium_ == rhs.is_premium_ && lhs.per_user_remains_ == rhs.per_user_remains_ &&
          lhs.per_user_total_ == rhs.per_user_total_ && lhs.regular_gift_id_ == rhs.regular_gift_id_ &&
-         lhs.value_currency_ == rhs.value_currency_ && lhs.value_amount_ == rhs.value_amount_;
+         lhs.value_currency_ == rhs.value_currency_ && lhs.value_amount_ == rhs.value_amount_ &&
+         lhs.locked_until_date_ == rhs.locked_until_date_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarGift &star_gift) {

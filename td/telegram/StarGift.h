@@ -35,6 +35,7 @@ class StarGift {
   int32 last_sale_date_ = 0;
   int32 per_user_remains_ = 0;
   int32 per_user_total_ = 0;
+  int32 locked_until_date_ = 0;
 
   bool is_for_birthday_ = false;
 
