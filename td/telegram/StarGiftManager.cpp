@@ -1618,6 +1618,8 @@ Status StarGiftManager::check_star_gift_ids(const vector<StarGiftId> &star_gift_
 
 void StarGiftManager::set_dialog_pinned_gifts(DialogId dialog_id, const vector<StarGiftId> &star_gift_ids,
                                               Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "set_dialog_pinned_gifts"));
   TRY_STATUS_PROMISE(promise, check_star_gift_ids(star_gift_ids, dialog_id));
   td_->create_handler<ToggleStarGiftsPinnedToTopQuery>(std::move(promise))->send(dialog_id, star_gift_ids);
 }
@@ -1831,18 +1833,24 @@ void StarGiftManager::get_resale_star_gifts(
 
 void StarGiftManager::get_gift_collections(DialogId dialog_id,
                                            Promise<td_api::object_ptr<td_api::giftCollections>> &&promise) {
+  TRY_STATUS_PROMISE(
+      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "get_gift_collections"));
   td_->create_handler<GetStarGiftCollectionsQuery>(std::move(promise))->send(dialog_id);
 }
 
 void StarGiftManager::create_gift_collection(DialogId dialog_id, const string &title,
                                              const vector<StarGiftId> &star_gift_ids,
                                              Promise<td_api::object_ptr<td_api::giftCollection>> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "create_gift_collection"));
   TRY_STATUS_PROMISE(promise, check_star_gift_ids(star_gift_ids, dialog_id));
   td_->create_handler<CreateStarGiftCollectionQuery>(std::move(promise))->send(dialog_id, title, star_gift_ids);
 }
 
 void StarGiftManager::reorder_gift_collections(DialogId dialog_id, const vector<StarGiftCollectionId> &collection_ids,
                                                Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "reorder_gift_collections"));
   for (auto collection_id : collection_ids) {
     if (!collection_id.is_valid()) {
       return promise.set_error(400, "Invalid collection identifier specified");
@@ -1853,6 +1861,8 @@ void StarGiftManager::reorder_gift_collections(DialogId dialog_id, const vector<
 
 void StarGiftManager::delete_gift_collection(DialogId dialog_id, StarGiftCollectionId collection_id,
                                              Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "delete_gift_collection"));
   if (!collection_id.is_valid()) {
     return promise.set_error(400, "Invalid collection identifier specified");
   }
@@ -1862,6 +1872,8 @@ void StarGiftManager::delete_gift_collection(DialogId dialog_id, StarGiftCollect
 void StarGiftManager::set_gift_collection_title(DialogId dialog_id, StarGiftCollectionId collection_id,
                                                 const string &title,
                                                 Promise<td_api::object_ptr<td_api::giftCollection>> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "set_gift_collection_title"));
   if (!collection_id.is_valid()) {
     return promise.set_error(400, "Invalid collection identifier specified");
   }
@@ -1875,6 +1887,8 @@ void StarGiftManager::set_gift_collection_title(DialogId dialog_id, StarGiftColl
 void StarGiftManager::add_gift_collection_gifts(DialogId dialog_id, StarGiftCollectionId collection_id,
                                                 const vector<StarGiftId> &star_gift_ids,
                                                 Promise<td_api::object_ptr<td_api::giftCollection>> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "add_gift_collection_gifts"));
   if (!collection_id.is_valid()) {
     return promise.set_error(400, "Invalid collection identifier specified");
   }
@@ -1888,6 +1902,8 @@ void StarGiftManager::add_gift_collection_gifts(DialogId dialog_id, StarGiftColl
 void StarGiftManager::remove_gift_collection_gifts(DialogId dialog_id, StarGiftCollectionId collection_id,
                                                    const vector<StarGiftId> &star_gift_ids,
                                                    Promise<td_api::object_ptr<td_api::giftCollection>> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "remove_gift_collection_gifts"));
   if (!collection_id.is_valid()) {
     return promise.set_error(400, "Invalid collection identifier specified");
   }
@@ -1901,6 +1917,8 @@ void StarGiftManager::remove_gift_collection_gifts(DialogId dialog_id, StarGiftC
 void StarGiftManager::reorder_gift_collection_gifts(DialogId dialog_id, StarGiftCollectionId collection_id,
                                                     const vector<StarGiftId> &star_gift_ids,
                                                     Promise<td_api::object_ptr<td_api::giftCollection>> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "reorder_gift_collection_gifts"));
   if (!collection_id.is_valid()) {
     return promise.set_error(400, "Invalid collection identifier specified");
   }
