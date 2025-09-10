@@ -1172,6 +1172,7 @@ class GetUniqueStarGiftQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetUniqueStarGiftQuery: " << to_string(ptr);
 
     td_->user_manager_->on_get_users(std::move(ptr->users_), "GetUniqueStarGiftQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetUniqueStarGiftQuery");
 
     StarGift star_gift(td_, std::move(ptr->gift_), true);
     if (!star_gift.is_valid() || !star_gift.is_unique()) {
