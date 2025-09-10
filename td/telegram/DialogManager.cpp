@@ -991,8 +991,10 @@ class SetChatThemeQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::messages_setChatTheme(std::move(input_peer), theme_name),
-                                               {{dialog_id_}}));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_setChatTheme(std::move(input_peer),
+                                            telegram_api::make_object<telegram_api::inputChatTheme>(theme_name)),
+        {{dialog_id_}}));
   }
 
   void on_result(BufferSlice packet) final {

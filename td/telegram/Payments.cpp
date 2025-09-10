@@ -157,8 +157,8 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
           TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
           dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::StarsSubscriptionLowBalance},
                                    Promise<Unit>());
-          auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(p->star_count_,
-                                                                                              p->currency_, p->amount_);
+          auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(
+              0, p->star_count_, p->currency_, p->amount_, nullptr);
           result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoiceStars>(std::move(purpose));
           break;
         }
