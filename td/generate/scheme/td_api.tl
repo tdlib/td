@@ -613,6 +613,33 @@ profilePhoto id:int64 small:file big:file minithumbnail:minithumbnail has_animat
 chatPhotoInfo small:file big:file minithumbnail:minithumbnail has_animation:Bool is_personal:Bool = ChatPhotoInfo;
 
 
+//@class ProfileTab @description Describes a tab shown in a user or a chat profile
+
+//@description A tab with stories posted by the user or the channel chat and saved to profile
+profileTabPosts = ProfileTab;
+
+//@description A tab with gifts received by the user or the channel chat
+profileTabGifts = ProfileTab;
+
+//@description A tab with photos and videos posted by the channel
+profileTabMedia = ProfileTab;
+
+//@description A tab with documents posted by the channel
+profileTabFiles = ProfileTab;
+
+//@description A tab with messages posted by the channel and containing links
+profileTabLinks = ProfileTab;
+
+//@description A tab with audio messages posted by the channel
+profileTabMusic = ProfileTab;
+
+//@description A tab with voice notes posted by the channel
+profileTabVoice = ProfileTab;
+
+//@description A tab with animations posted by the channel
+profileTabGifs = ProfileTab;
+
+
 //@class UserType @description Represents the type of user. The following types are possible: regular users, deleted users and bots
 
 //@description A regular user
