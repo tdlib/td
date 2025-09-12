@@ -646,6 +646,8 @@ class UserManager final : public Actor {
     Photo fallback_photo;
     Photo personal_photo;
 
+    FileId first_saved_music_file_id;
+
     string about;
     string private_forward_name;
     vector<FileId> registered_file_ids;
@@ -917,6 +919,9 @@ class UserManager final : public Actor {
 
   static void on_update_user_full_can_manage_emoji_status(UserFull *user_full, UserId user_id,
                                                           bool can_manage_emoji_status);
+
+  static void on_update_user_full_first_saved_music_file_id(UserFull *user_full, UserId user_id,
+                                                            FileId first_saved_music_file_id);
 
   bool have_input_peer_user(const User *u, UserId user_id, AccessRights access_rights) const;
 

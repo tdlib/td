@@ -7,6 +7,7 @@
 #include "td/telegram/UserManager.h"
 
 #include "td/telegram/AnimationsManager.h"
+#include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/Birthdate.hpp"
 #include "td/telegram/BlockListId.h"
@@ -1799,6 +1800,8 @@ void UserManager::User::parse(ParserT &parser) {
 template <class StorerT>
 void UserManager::UserFull::store(StorerT &storer) const {
   using td::store;
+  Td *td = storer.context()->td().get_actor_unsafe();
+  CHECK(td != nullptr);
   bool has_about = !about.empty();
   bool has_photo = !photo.is_empty();
   bool has_description = bot_info != nullptr && !bot_info->description.empty();
@@ -1833,6 +1836,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_star_rating = star_rating != nullptr;
   bool has_pending_star_rating = pending_star_rating != nullptr;
   bool has_main_profile_tab = main_profile_tab != ProfileTab::Default;
+  bool has_first_saved_music_file_id = first_saved_music_file_id != FileId();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -1886,6 +1890,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_star_rating);
     STORE_FLAG(has_pending_star_rating);
     STORE_FLAG(has_main_profile_tab);
+    STORE_FLAG(has_first_saved_music_file_id);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -1985,11 +1990,16 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_main_profile_tab) {
     store(main_profile_tab, storer);
   }
+  if (has_first_saved_music_file_id) {
+    td->audios_manager_->store_audio(first_saved_music_file_id, storer);
+  }
 }
 
 template <class ParserT>
 void UserManager::UserFull::parse(ParserT &parser) {
   using td::parse;
+  Td *td = parser.context()->td().get_actor_unsafe();
+  CHECK(td != nullptr);
   bool has_about;
   bool has_photo;
   bool has_description;
@@ -2023,6 +2033,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_star_rating = false;
   bool has_pending_star_rating = false;
   bool has_main_profile_tab = false;
+  bool has_first_saved_music_file_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -2076,6 +2087,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_star_rating);
     PARSE_FLAG(has_pending_star_rating);
     PARSE_FLAG(has_main_profile_tab);
+    PARSE_FLAG(has_first_saved_music_file_id);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -2178,6 +2190,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_main_profile_tab) {
     parse(main_profile_tab, parser);
+  }
+  if (has_first_saved_music_file_id) {
+    first_saved_music_file_id = td->audios_manager_->parse_audio(parser);
   }
 }
 
@@ -4039,6 +4054,15 @@ void UserManager::on_update_user_full_can_manage_emoji_status(UserFull *user_ful
   CHECK(user_full != nullptr);
   if (user_full->can_manage_emoji_status != can_manage_emoji_status) {
     user_full->can_manage_emoji_status = can_manage_emoji_status;
+    user_full->is_changed = true;
+  }
+}
+
+void UserManager::on_update_user_full_first_saved_music_file_id(UserFull *user_full, UserId user_id,
+                                                                FileId first_saved_music_file_id) {
+  CHECK(user_full != nullptr);
+  if (user_full->first_saved_music_file_id != first_saved_music_file_id) {
+    user_full->first_saved_music_file_id = first_saved_music_file_id;
     user_full->is_changed = true;
   }
 }
@@ -7792,6 +7816,18 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     update_user(u, user_id);
   }
 
+  FileId first_saved_music_file_id;
+  if (user->saved_music_ != nullptr && user->saved_music_->get_id() == telegram_api::document::ID) {
+    auto document = td_->documents_manager_->on_get_document(
+        telegram_api::move_object_as<telegram_api::document>(user->saved_music_), DialogId(user_id), false);
+    if (document.type != Document::Type::Audio) {
+      LOG(ERROR) << "Receive " << document;
+    } else {
+      first_saved_music_file_id = document.file_id;
+    }
+  }
+  on_update_user_full_first_saved_music_file_id(user_full, user_id, first_saved_music_file_id);
+
   user_full->is_update_user_full_sent = true;
   update_user_full(user_full, user_id, "on_get_user_full");
 
@@ -7986,6 +8022,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->photo = Photo();
   user_full->personal_photo = Photo();
   user_full->fallback_photo = Photo();
+  user_full->first_saved_music_file_id = FileId();
   // user_full->is_blocked = false;
   // user_full->is_blocked_for_stories = false;
   user_full->can_be_called = false;
@@ -8576,6 +8613,9 @@ void UserManager::update_user_full(UserFull *user_full, UserId user_id, const ch
     if (user_full->business_info != nullptr) {
       append(file_ids, user_full->business_info->get_file_ids(td_));
     }
+    if (user_full->first_saved_music_file_id.is_valid()) {
+      Document{Document::Type::Audio, user_full->first_saved_music_file_id}.append_file_ids(td_, file_ids);
+    }
     if (user_full->registered_file_ids != file_ids) {
       auto &file_source_id = user_full->file_source_id;
       if (!file_source_id.is_valid()) {
@@ -8845,8 +8885,10 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       std::move(bio_object), user_full->birthdate.get_birthdate_object(), personal_chat_id, user_full->gift_count,
       user_full->common_chat_count, user_full->charge_paid_message_stars, user_full->send_paid_message_stars,
       user_full->gift_settings.get_gift_settings_object(), std::move(bot_verification),
-      get_profile_tab_object(user_full->main_profile_tab), std::move(user_rating), std::move(pending_user_rating),
-      user_full->pending_star_rating_date, std::move(business_info), std::move(bot_info));
+      get_profile_tab_object(user_full->main_profile_tab),
+      td_->audios_manager_->get_audio_object(user_full->first_saved_music_file_id), std::move(user_rating),
+      std::move(pending_user_rating), user_full->pending_star_rating_date, std::move(business_info),
+      std::move(bot_info));
 }
 
 td_api::object_ptr<td_api::updateContactCloseBirthdays> UserManager::get_update_contact_close_birthdays() const {
