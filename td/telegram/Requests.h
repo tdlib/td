@@ -1193,6 +1193,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::setBirthdate &request);
 
+  void on_request(uint64 id, const td_api::setMainProfileTab &request);
+
   void on_request(uint64 id, const td_api::setPersonalChat &request);
 
   void on_request(uint64 id, const td_api::setEmojiStatus &request);

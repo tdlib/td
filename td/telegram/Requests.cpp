@@ -6167,6 +6167,12 @@ void Requests::on_request(uint64 id, td_api::setBirthdate &request) {
   td_->user_manager_->set_birthdate(Birthdate(std::move(request.birthdate_)), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::setMainProfileTab &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->set_main_profile_tab(request.main_profile_tab_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::setPersonalChat &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

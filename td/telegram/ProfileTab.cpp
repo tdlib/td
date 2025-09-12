@@ -56,7 +56,8 @@ ProfileTab get_profile_tab(telegram_api::object_ptr<telegram_api::ProfileTab> &&
   return result;
 }
 
-Result<ProfileTab> get_profile_tab(td_api::object_ptr<td_api::ProfileTab> &&profile_tab, ChannelType channel_type) {
+Result<ProfileTab> get_profile_tab(const td_api::object_ptr<td_api::ProfileTab> &profile_tab,
+                                   ChannelType channel_type) {
   if (profile_tab == nullptr) {
     return Status::Error(400, "Profile tab must be non-empty");
   }

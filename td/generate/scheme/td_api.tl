@@ -12591,6 +12591,9 @@ reorderActiveUsernames usernames:vector<string> = Ok;
 //@description Changes the birthdate of the current user @birthdate The new value of the current user's birthdate; pass null to remove the birthdate
 setBirthdate birthdate:birthdate = Ok;
 
+//@description Changes the main profile tab of the current user @main_profile_tab The new value of the main profile tab
+setMainProfileTab main_profile_tab:ProfileTab = Ok;
+
 //@description Changes the personal chat of the current user @chat_id Identifier of the new personal chat; pass 0 to remove the chat. Use getSuitablePersonalChats to get suitable chats
 setPersonalChat chat_id:int53 = Ok;
 

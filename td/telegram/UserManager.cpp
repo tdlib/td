@@ -1156,6 +1156,37 @@ class UpdateBirthdayQuery final : public Td::ResultHandler {
   }
 };
 
+class SetMainProfileTabQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetMainProfileTabQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ProfileTab main_profile_tab) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_setMainProfileTab(get_input_profile_tab(main_profile_tab)), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_setMainProfileTab>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(DEBUG) << "Receive result for SetMainProfileTabQuery: " << result_ptr.ok();
+    if (result_ptr.ok()) {
+      promise_.set_value(Unit());
+    } else {
+      promise_.set_error(400, "Failed to change main profile tab");
+    }
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdatePersonalChannelQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -5806,6 +5837,31 @@ void UserManager::on_set_birthdate(Birthdate birthdate, Promise<Unit> &&promise)
     user_full->birthdate = std::move(birthdate);
     user_full->is_changed = true;
     update_user_full(user_full, my_user_id, "on_set_birthdate");
+  }
+  promise.set_value(Unit());
+}
+
+void UserManager::set_main_profile_tab(const td_api::object_ptr<td_api::ProfileTab> &main_profile_tab,
+                                       Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, profile_tab, get_profile_tab(main_profile_tab, ChannelType::Unknown));
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), profile_tab, promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_ok()) {
+          send_closure(actor_id, &UserManager::on_set_main_profile_tab, profile_tab, std::move(promise));
+        } else {
+          promise.set_error(result.move_as_error());
+        }
+      });
+  td_->create_handler<SetMainProfileTabQuery>(std::move(query_promise))->send(profile_tab);
+}
+
+void UserManager::on_set_main_profile_tab(ProfileTab main_profile_tab, Promise<Unit> &&promise) {
+  auto my_user_id = get_my_id();
+  UserFull *user_full = get_user_full_force(my_user_id, "on_set_main_profile_tab");
+  if (user_full != nullptr && user_full->main_profile_tab != main_profile_tab) {
+    user_full->main_profile_tab = main_profile_tab;
+    user_full->is_changed = true;
+    update_user_full(user_full, my_user_id, "on_set_main_profile_tab");
   }
   promise.set_value(Unit());
 }

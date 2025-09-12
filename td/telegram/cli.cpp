@@ -7014,6 +7014,12 @@ class CliClient final : public Actor {
         send_request(
             td_api::make_object<td_api::setBirthdate>(td_api::make_object<td_api::birthdate>(day, month, year)));
       }
+    } else if (op == "smpt" || op == "smptg") {
+      td_api::object_ptr<td_api::ProfileTab> main_profile_tab = td_api::make_object<td_api::profileTabPosts>();
+      if (op == "smptg") {
+        main_profile_tab = td_api::make_object<td_api::profileTabGifts>();
+      }
+      send_request(td_api::make_object<td_api::setMainProfileTab>(std::move(main_profile_tab)));
     } else if (op == "spec") {
       ChatId chat_id;
       get_args(args, chat_id);

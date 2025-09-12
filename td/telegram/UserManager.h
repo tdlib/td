@@ -396,6 +396,8 @@ class UserManager final : public Actor {
 
   void set_birthdate(Birthdate &&birthdate, Promise<Unit> &&promise);
 
+  void set_main_profile_tab(const td_api::object_ptr<td_api::ProfileTab> &main_profile_tab, Promise<Unit> &&promise);
+
   void set_personal_channel(DialogId dialog_id, Promise<Unit> &&promise);
 
   void set_emoji_status(const unique_ptr<EmojiStatus> &emoji_status, Promise<Unit> &&promise);
@@ -945,6 +947,8 @@ class UserManager final : public Actor {
   void reorder_usernames_impl(vector<string> &&usernames, Promise<Unit> &&promise);
 
   void on_set_birthdate(Birthdate birthdate, Promise<Unit> &&promise);
+
+  void on_set_main_profile_tab(ProfileTab main_profile_tab, Promise<Unit> &&promise);
 
   void on_set_personal_channel(ChannelId channel_id, Promise<Unit> &&promise);
 
