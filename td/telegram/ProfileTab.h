@@ -16,7 +16,7 @@
 
 namespace td {
 
-enum class ProfileTab : int32 { Posts, Gifts, Media, Files, Music, Voice, Links, Gifs };
+enum class ProfileTab : int32 { Default, Posts, Gifts, Media, Files, Music, Voice, Links, Gifs };
 
 ProfileTab get_profile_tab(telegram_api::object_ptr<telegram_api::ProfileTab> &&profile_tab, ChannelType channel_type);
 

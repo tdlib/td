@@ -23,7 +23,9 @@ static bool is_allowed_profile_tab(ProfileTab profile_tab, ChannelType channel_t
 }
 
 ProfileTab get_profile_tab(telegram_api::object_ptr<telegram_api::ProfileTab> &&profile_tab, ChannelType channel_type) {
-  CHECK(profile_tab != nullptr)
+  if (profile_tab == nullptr) {
+    return ProfileTab::Default;
+  }
   ProfileTab result = [&] {
     switch (profile_tab->get_id()) {
       case telegram_api::profileTabPosts::ID:
@@ -44,12 +46,12 @@ ProfileTab get_profile_tab(telegram_api::object_ptr<telegram_api::ProfileTab> &&
         return ProfileTab::Gifs;
       default:
         UNREACHABLE();
-        return ProfileTab::Posts;
+        return ProfileTab::Default;
     }
   }();
   if (!is_allowed_profile_tab(result, channel_type)) {
     LOG(ERROR) << "Receive " << result << " for " << channel_type;
-    result = ProfileTab::Posts;
+    result = ProfileTab::Default;
   }
   return result;
 }
@@ -78,7 +80,7 @@ Result<ProfileTab> get_profile_tab(td_api::object_ptr<td_api::ProfileTab> &&prof
         return ProfileTab::Gifs;
       default:
         UNREACHABLE();
-        return ProfileTab::Posts;
+        return ProfileTab::Default;
     }
   }();
   if (!is_allowed_profile_tab(result, channel_type)) {
@@ -89,6 +91,9 @@ Result<ProfileTab> get_profile_tab(td_api::object_ptr<td_api::ProfileTab> &&prof
 
 telegram_api::object_ptr<telegram_api::ProfileTab> get_input_profile_tab(ProfileTab profile_tab) {
   switch (profile_tab) {
+    case ProfileTab::Default:
+      UNREACHABLE();
+      return nullptr;
     case ProfileTab::Posts:
       return telegram_api::make_object<telegram_api::profileTabPosts>();
     case ProfileTab::Gifts:
@@ -113,6 +118,8 @@ telegram_api::object_ptr<telegram_api::ProfileTab> get_input_profile_tab(Profile
 
 td_api::object_ptr<td_api::ProfileTab> get_profile_tab_object(ProfileTab profile_tab) {
   switch (profile_tab) {
+    case ProfileTab::Default:
+      return nullptr;
     case ProfileTab::Posts:
       return td_api::make_object<td_api::profileTabPosts>();
     case ProfileTab::Gifts:
@@ -138,6 +145,8 @@ td_api::object_ptr<td_api::ProfileTab> get_profile_tab_object(ProfileTab profile
 StringBuilder &operator<<(StringBuilder &string_builder, ProfileTab profile_tab) {
   string_builder << "profile tab ";
   switch (profile_tab) {
+    case ProfileTab::Default:
+      return string_builder << "Default";
     case ProfileTab::Posts:
       return string_builder << "Posts";
     case ProfileTab::Gifts:
