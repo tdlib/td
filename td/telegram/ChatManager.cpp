@@ -2348,6 +2348,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   bool has_gift_count = gift_count != 0;
   bool has_monoforum_channel_id = monoforum_channel_id.is_valid();
   bool has_send_paid_message_stars = send_paid_message_stars != 0;
+  bool has_main_profile_tab = main_profile_tab != ProfileTab::Default;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -2397,6 +2398,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
     STORE_FLAG(has_paid_messages_available);
     STORE_FLAG(has_monoforum_channel_id);
     STORE_FLAG(has_send_paid_message_stars);
+    STORE_FLAG(has_main_profile_tab);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -2470,6 +2472,9 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   if (has_send_paid_message_stars) {
     store(send_paid_message_stars, storer);
   }
+  if (has_main_profile_tab) {
+    store(main_profile_tab, storer);
+  }
 }
 
 template <class ParserT>
@@ -2503,6 +2508,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   bool has_gift_count = false;
   bool has_monoforum_channel_id = false;
   bool has_send_paid_message_stars = false;
+  bool has_main_profile_tab = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -2552,6 +2558,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
     PARSE_FLAG(has_paid_messages_available);
     PARSE_FLAG(has_monoforum_channel_id);
     PARSE_FLAG(has_send_paid_message_stars);
+    PARSE_FLAG(has_main_profile_tab);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -2632,6 +2639,9 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_send_paid_message_stars) {
     parse(send_paid_message_stars, parser);
+  }
+  if (has_main_profile_tab) {
+    parse(main_profile_tab, parser);
   }
 
   if (legacy_can_view_statistics) {
@@ -5774,6 +5784,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
       LOG(ERROR) << "Receive can_view_statistics == true, but invalid statistics DC ID in " << channel_id;
       can_view_statistics = false;
     }
+    auto main_profile_tab = get_profile_tab(std::move(channel->main_tab_), get_channel_type(c));
 
     channel_full->repair_request_version = 0;
     channel_full->expires_at = Time::now() + CHANNEL_FULL_EXPIRE_TIME;
@@ -5797,7 +5808,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         channel_full->bot_verification != bot_verification ||
         channel_full->has_stargifts_available != has_stargifts_available ||
         channel_full->has_paid_messages_available != has_paid_messages_available ||
-        channel_full->send_paid_message_stars != send_paid_message_stars) {
+        channel_full->send_paid_message_stars != send_paid_message_stars || channel_full->main_profile_tab != main_profile_tab) {
       channel_full->participant_count = participant_count;
       channel_full->administrator_count = administrator_count;
       channel_full->restricted_count = restricted_count;
@@ -5824,6 +5835,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
       channel_full->has_stargifts_available = has_stargifts_available;
       channel_full->has_paid_messages_available = has_paid_messages_available;
       channel_full->send_paid_message_stars = StarManager::get_star_count(send_paid_message_stars);
+      channel_full->main_profile_tab = main_profile_tab;
 
       channel_full->is_changed = true;
     }
@@ -9549,7 +9561,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_
       channel_full->sticker_set_id.get(), channel_full->emoji_sticker_set_id.get(),
       channel_full->location.get_chat_location_object(),
       channel_full->invite_link.get_chat_invite_link_object(td_->user_manager_.get()), std::move(bot_commands),
-      std::move(bot_verification),
+      std::move(bot_verification), get_profile_tab_object(channel_full->main_profile_tab),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

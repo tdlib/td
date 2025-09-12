@@ -25,6 +25,7 @@
 #include "td/telegram/MessageTtl.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/ProfileTab.h"
 #include "td/telegram/PublicDialogType.h"
 #include "td/telegram/QueryCombiner.h"
 #include "td/telegram/QueryMerger.h"
@@ -603,6 +604,8 @@ class ChatManager final : public Actor {
     ChannelId monoforum_channel_id;
 
     DialogLocation location;
+
+    ProfileTab main_profile_tab = ProfileTab::Default;
 
     DcId stats_dc_id;
 
