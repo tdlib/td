@@ -7154,6 +7154,15 @@ class CliClient final : public Actor {
       string supergroup_id;
       get_args(args, supergroup_id);
       send_request(td_api::make_object<td_api::toggleSupergroupIsBroadcastGroup>(as_supergroup_id(supergroup_id)));
+    } else if (op == "ssmpt" || op == "ssmptg") {
+      string supergroup_id;
+      get_args(args, supergroup_id);
+      td_api::object_ptr<td_api::ProfileTab> main_profile_tab = td_api::make_object<td_api::profileTabPosts>();
+      if (op == "ssmptg") {
+        main_profile_tab = td_api::make_object<td_api::profileTabGifs>();
+      }
+      send_request(td_api::make_object<td_api::setSupergroupMainProfileTab>(as_supergroup_id(supergroup_id),
+                                                                            std::move(main_profile_tab)));
     } else if (op == "tsgsm") {
       string supergroup_id;
       bool sign_messages;

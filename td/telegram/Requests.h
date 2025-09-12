@@ -1323,6 +1323,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::setSupergroupUnrestrictBoostCount &request);
 
+  void on_request(uint64 id, const td_api::setSupergroupMainProfileTab &request);
+
   void on_request(uint64 id, const td_api::toggleSupergroupSignMessages &request);
 
   void on_request(uint64 id, const td_api::toggleSupergroupJoinToSendMessages &request);

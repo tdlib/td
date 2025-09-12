@@ -251,6 +251,10 @@ class ChatManager final : public Actor {
 
   void set_channel_unrestrict_boost_count(ChannelId channel_id, int32 unrestrict_boost_count, Promise<Unit> &&promise);
 
+  void set_channel_main_profile_tab(ChannelId channel_id,
+                                    const td_api::object_ptr<td_api::ProfileTab> &main_profile_tab,
+                                    Promise<Unit> &&promise);
+
   void toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, bool show_message_sender,
                                     Promise<Unit> &&promise);
 
@@ -771,6 +775,8 @@ class ChatManager final : public Actor {
                                                               int32 slow_mode_next_send_date);
   static void on_update_channel_full_bot_user_ids(ChannelFull *channel_full, ChannelId channel_id,
                                                   vector<UserId> &&bot_user_ids);
+
+  void on_set_channel_main_profile_tab(ChannelId channel_id, ProfileTab main_profile_tab, Promise<Unit> &&promise);
 
   void on_channel_status_changed(Channel *c, ChannelId channel_id, const DialogParticipantStatus &old_status,
                                  const DialogParticipantStatus &new_status);

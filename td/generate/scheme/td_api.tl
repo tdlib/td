@@ -12887,6 +12887,11 @@ setSupergroupCustomEmojiStickerSet supergroup_id:int53 custom_emoji_sticker_set_
 //@unrestrict_boost_count New value of the unrestrict_boost_count supergroup setting; 0-8. Use 0 to remove the setting
 setSupergroupUnrestrictBoostCount supergroup_id:int53 unrestrict_boost_count:int32 = Ok;
 
+//@description Changes the main profile tab of the channel; requires can_change_info administrator right
+//@supergroup_id Identifier of the channel
+//@main_profile_tab The new value of the main profile tab
+setSupergroupMainProfileTab supergroup_id:int53 main_profile_tab:ProfileTab = Ok;
+
 //@description Toggles whether sender signature or link to the account is added to sent messages in a channel; requires can_change_info member right
 //@supergroup_id Identifier of the channel
 //@sign_messages New value of sign_messages

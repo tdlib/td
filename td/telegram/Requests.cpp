@@ -6595,6 +6595,13 @@ void Requests::on_request(uint64 id, const td_api::setSupergroupUnrestrictBoostC
                                                          request.unrestrict_boost_count_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::setSupergroupMainProfileTab &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->chat_manager_->set_channel_main_profile_tab(ChannelId(request.supergroup_id_), request.main_profile_tab_,
+                                                   std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::toggleSupergroupSignMessages &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

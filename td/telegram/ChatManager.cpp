@@ -555,6 +555,45 @@ class SetChannelBoostsToUnblockRestrictionsQuery final : public Td::ResultHandle
   }
 };
 
+class SetChannelMainProfileTabQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit SetChannelMainProfileTabQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, ProfileTab main_profile_tab) {
+    channel_id_ = channel_id;
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_setMainProfileTab(std::move(input_channel), get_input_profile_tab(main_profile_tab)),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_setMainProfileTab>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->chat_manager_->on_get_channel_error(channel_id_, status, "SetChannelMainProfileTabQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleChannelSignaturesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -3314,6 +3353,44 @@ void ChatManager::set_channel_unrestrict_boost_count(ChannelId channel_id, int32
       ->send(channel_id, unrestrict_boost_count);
 }
 
+void ChatManager::set_channel_main_profile_tab(ChannelId channel_id,
+                                               const td_api::object_ptr<td_api::ProfileTab> &main_profile_tab,
+                                               Promise<Unit> &&promise) {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(400, "Supergroup not found");
+  }
+  if (get_channel_type(c) == ChannelType::Megagroup) {
+    return promise.set_error(400, "Main profile tab can't be changed in supergroups");
+  }
+  if (!c->status.can_change_info_and_settings_as_administrator()) {
+    return promise.set_error(400, "Not enough rights to change main profile tab");
+  }
+  TRY_RESULT_PROMISE(promise, profile_tab, get_profile_tab(main_profile_tab, get_channel_type(c)));
+
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), channel_id, profile_tab, promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_ok()) {
+          send_closure(actor_id, &ChatManager::on_set_channel_main_profile_tab, channel_id, profile_tab,
+                       std::move(promise));
+        } else {
+          promise.set_error(result.move_as_error());
+        }
+      });
+  td_->create_handler<SetChannelMainProfileTabQuery>(std::move(query_promise))->send(channel_id, profile_tab);
+}
+
+void ChatManager::on_set_channel_main_profile_tab(ChannelId channel_id, ProfileTab main_profile_tab,
+                                                  Promise<Unit> &&promise) {
+  ChannelFull *channel_full = get_channel_full_force(channel_id, true, "on_set_channel_main_profile_tab");
+  if (channel_full != nullptr && channel_full->main_profile_tab != main_profile_tab) {
+    channel_full->main_profile_tab = main_profile_tab;
+    channel_full->is_changed = true;
+    update_channel_full(channel_full, channel_id, "on_set_channel_main_profile_tab");
+  }
+  promise.set_value(Unit());
+}
+
 void ChatManager::toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, bool show_message_sender,
                                                Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
@@ -5808,7 +5885,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         channel_full->bot_verification != bot_verification ||
         channel_full->has_stargifts_available != has_stargifts_available ||
         channel_full->has_paid_messages_available != has_paid_messages_available ||
-        channel_full->send_paid_message_stars != send_paid_message_stars || channel_full->main_profile_tab != main_profile_tab) {
+        channel_full->send_paid_message_stars != send_paid_message_stars ||
+        channel_full->main_profile_tab != main_profile_tab) {
       channel_full->participant_count = participant_count;
       channel_full->administrator_count = administrator_count;
       channel_full->restricted_count = restricted_count;
