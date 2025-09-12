@@ -26,6 +26,7 @@
 #include "td/telegram/FolderId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/ProfileTab.h"
 #include "td/telegram/QueryCombiner.h"
 #include "td/telegram/QueryMerger.h"
 #include "td/telegram/ReferralProgramInfo.h"
@@ -655,6 +656,7 @@ class UserManager final : public Actor {
     StarGiftSettings gift_settings;
 
     ChannelId personal_channel_id;
+    ProfileTab main_profile_tab = ProfileTab::Default;
 
     unique_ptr<BotInfo> bot_info;
     unique_ptr<BusinessInfo> business_info;
