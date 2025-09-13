@@ -3202,13 +3202,14 @@ void UserManager::register_user_photo(User *u, UserId user_id, const Photo &phot
   CHECK(u != nullptr);
   auto photo_id = photo.id.get();
   if (photo_id != 0 && u->photo_ids.emplace(photo_id).second) {
-    VLOG(file_references) << "Register photo " << photo_id << " of " << user_id;
     if (user_id == get_my_id()) {
       my_photo_file_id_[photo_id] = first_file_id;
     }
     auto file_source_id = user_profile_photo_file_source_ids_.get(std::make_pair(user_id, photo_id));
     if (file_source_id.is_valid()) {
-      VLOG(file_references) << "Move " << file_source_id << " inside of " << user_id;
+      VLOG(file_references)
+          << "Forget " << file_source_id << " for photo " << photo_id << " of " << user_id
+          << ", because the photo is immutable, fully received and all its files has already been registered";
       user_profile_photo_file_source_ids_.erase(std::make_pair(user_id, photo_id));
     } else {
       VLOG(file_references) << "Need to create new file source for photo " << photo_id << " of " << user_id;
