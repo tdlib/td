@@ -4493,6 +4493,7 @@ UserManager::User *UserManager::get_user_force_impl(UserId user_id, const char *
 }
 
 void UserManager::send_get_me_query(Td *td, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   vector<telegram_api::object_ptr<telegram_api::InputUser>> users;
   users.push_back(telegram_api::make_object<telegram_api::inputUserSelf>());
   td->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
