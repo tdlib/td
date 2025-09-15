@@ -6469,7 +6469,7 @@ void UserManager::apply_pending_user_photo(User *u, UserId user_id, const char *
 }
 
 Result<telegram_api::object_ptr<telegram_api::inputDocument>> UserManager::check_saved_music_file_id(
-    FileId file_id, bool allow_empty) const {
+    FileId &file_id, bool allow_empty) const {
   if (allow_empty && file_id == FileId()) {
     return nullptr;
   }
@@ -6484,6 +6484,7 @@ Result<telegram_api::object_ptr<telegram_api::inputDocument>> UserManager::check
   if (file_view.get_type() != FileType::Audio) {
     return Status::Error(400, "Invalid file identifier specified");
   }
+  file_id = file_view.get_main_file_id();
   if (td_->audios_manager_->get_audio_object(file_id) == nullptr) {
     return Status::Error(400, "Invalid file identifier specified");
   }
@@ -6502,7 +6503,7 @@ Result<telegram_api::object_ptr<telegram_api::inputDocument>> UserManager::check
 void UserManager::add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_document, check_saved_music_file_id(file_id, false));
   TRY_RESULT_PROMISE(promise, after_input_document, check_saved_music_file_id(after_file_id, true));
-  if (after_input_document != nullptr && input_document->id_ == after_input_document->id_) {
+  if (file_id == after_file_id) {
     return promise.set_error(Status::Error(400, "Can't place saved music after self"));
   }
 

@@ -1010,7 +1010,7 @@ class UserManager final : public Actor {
 
   UserSavedMusic *add_user_saved_music(UserId user_id);
 
-  Result<telegram_api::object_ptr<telegram_api::inputDocument>> check_saved_music_file_id(FileId file_id,
+  Result<telegram_api::object_ptr<telegram_api::inputDocument>> check_saved_music_file_id(FileId &file_id,
                                                                                           bool allow_empty) const;
 
   void load_contacts(Promise<Unit> &&promise);
