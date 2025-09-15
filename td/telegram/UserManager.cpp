@@ -6468,7 +6468,7 @@ void UserManager::apply_pending_user_photo(User *u, UserId user_id, const char *
   }
 }
 
-Result<telegram_api::object_ptr<telegram_api::InputDocument>> UserManager::check_saved_music_file_id(
+Result<telegram_api::object_ptr<telegram_api::inputDocument>> UserManager::check_saved_music_file_id(
     FileId file_id, bool allow_empty) const {
   if (allow_empty && file_id == FileId()) {
     return nullptr;
@@ -6502,6 +6502,9 @@ Result<telegram_api::object_ptr<telegram_api::InputDocument>> UserManager::check
 void UserManager::add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, input_document, check_saved_music_file_id(file_id, false));
   TRY_RESULT_PROMISE(promise, after_input_document, check_saved_music_file_id(after_file_id, true));
+  if (after_input_document != nullptr && input_document->id_ == after_input_document->id_) {
+    return promise.set_error(Status::Error(400, "Can't place saved music after self"));
+  }
 
   td_->create_handler<SaveMusicQuery>(std::move(promise))
       ->send(file_id, std::move(input_document), after_file_id, std::move(after_input_document));
@@ -6509,6 +6512,30 @@ void UserManager::add_saved_music(FileId file_id, FileId after_file_id, Promise<
 
 void UserManager::on_add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise) {
   auto user_id = get_my_id();
+  auto user_saved_music = user_saved_music_.get_pointer(user_id);
+  if (user_saved_music != nullptr && user_saved_music->count != -1 && user_saved_music->offset != -1) {
+    auto is_deleted = td::remove(user_saved_music->saved_music_file_ids, file_id);
+    if (!is_deleted) {
+      user_saved_music->count++;
+    }
+    if (!after_file_id.is_valid()) {
+      if (user_saved_music->offset > 0) {
+        user_saved_music->offset++;
+      } else {
+        user_saved_music->saved_music_file_ids.insert(user_saved_music->saved_music_file_ids.begin(), file_id);
+      }
+    } else {
+      auto it = std::find(user_saved_music->saved_music_file_ids.begin(), user_saved_music->saved_music_file_ids.end(),
+                          after_file_id);
+      if (it == user_saved_music->saved_music_file_ids.end()) {
+        // can't find place to insert new saved music, drop cache
+        drop_user_saved_music(user_id, false, "on_add_saved_music");
+      } else {
+        ++it;
+        user_saved_music->saved_music_file_ids.insert(it, file_id);
+      }
+    }
+  }
   if (!after_file_id.is_valid()) {
     auto user_full = get_user_full_force(user_id, "on_add_saved_music");
     if (user_full != nullptr) {
