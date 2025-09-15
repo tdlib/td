@@ -1059,6 +1059,8 @@ class UserManager final : public Actor {
 
   void drop_user_photos(UserId user_id, bool is_empty, const char *source);
 
+  void drop_user_saved_music(UserId user_id, bool is_empty, const char *source);
+
   void drop_user_full(UserId user_id);
 
   const SecretChat *get_secret_chat(SecretChatId secret_chat_id) const;

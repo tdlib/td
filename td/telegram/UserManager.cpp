@@ -2472,10 +2472,10 @@ UserManager::UserManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::m
 }
 
 UserManager::~UserManager() {
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), users_, users_full_, user_photos_,
-                                              unknown_users_, pending_user_photos_, user_profile_photo_file_source_ids_,
-                                              my_photo_file_id_, user_full_file_source_ids_, secret_chats_,
-                                              unknown_secret_chats_, secret_chats_with_user_);
+  Scheduler::instance()->destroy_on_scheduler(
+      G()->get_gc_scheduler_id(), users_, users_full_, user_photos_, unknown_users_, pending_user_photos_,
+      user_profile_photo_file_source_ids_, user_saved_music_, user_saved_music_file_source_ids_, my_photo_file_id_,
+      user_full_file_source_ids_, secret_chats_, unknown_secret_chats_, secret_chats_with_user_);
   Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), loaded_from_database_users_,
                                               unavailable_user_fulls_, loaded_from_database_secret_chats_,
                                               resolved_phone_numbers_, all_imported_contacts_, restricted_user_ids_);
@@ -8191,6 +8191,9 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     }
   }
   on_update_user_full_first_saved_music_file_id(user_full, user_id, first_saved_music_file_id);
+  if (!first_saved_music_file_id.is_valid()) {
+    drop_user_saved_music(user_id, true, "on_get_user_full");
+  }
 
   user_full->is_update_user_full_sent = true;
   update_user_full(user_full, user_id, "on_get_user_full");
@@ -8372,10 +8375,29 @@ void UserManager::drop_user_photos(UserId user_id, bool is_empty, const char *so
   }
 }
 
+void UserManager::drop_user_saved_music(UserId user_id, bool is_empty, const char *source) {
+  LOG(INFO) << "Drop user saved music to " << (is_empty ? "empty" : "unknown") << " from " << source;
+  auto user_saved_music = user_saved_music_.get_pointer(user_id);
+  if (user_saved_music != nullptr) {
+    int32 new_count = is_empty ? 0 : -1;
+    if (user_saved_music->count == new_count) {
+      CHECK(user_saved_music->saved_music_file_ids.empty());
+      CHECK(user_saved_music->offset == user_saved_music->count);
+    } else {
+      LOG(INFO) << "Drop saved music of " << user_id << " to " << (is_empty ? "empty" : "unknown") << " from "
+                << source;
+      user_saved_music->saved_music_file_ids.clear();
+      user_saved_music->count = new_count;
+      user_saved_music->offset = user_saved_music->count;
+    }
+  }
+}
+
 void UserManager::drop_user_full(UserId user_id) {
   auto user_full = get_user_full_force(user_id, "drop_user_full");
 
   drop_user_photos(user_id, false, "drop_user_full");
+  drop_user_saved_music(user_id, false, "drop_user_full");
 
   if (user_full == nullptr) {
     return;
