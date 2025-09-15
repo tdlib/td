@@ -3857,6 +3857,11 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, user_id, offset, limit);
       send_request(td_api::make_object<td_api::getUserSavedMusic>(user_id, offset, as_limit(limit)));
+    } else if (op == "asm") {
+      string file_id;
+      string after_file_id;
+      get_args(args, file_id, after_file_id);
+      send_request(td_api::make_object<td_api::addSavedMusic>(as_file_id(file_id), as_file_id(after_file_id)));
     } else if (op == "dcrm") {
       ChatId chat_id;
       MessageId message_id;

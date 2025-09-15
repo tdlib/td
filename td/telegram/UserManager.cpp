@@ -1398,6 +1398,62 @@ class GetUserPhotosQuery final : public Td::ResultHandler {
   }
 };
 
+class SaveMusicQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  FileId file_id_;
+  FileId after_file_id_;
+  string file_reference_;
+
+ public:
+  explicit SaveMusicQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(FileId file_id, telegram_api::object_ptr<telegram_api::InputDocument> &&input_document,
+            FileId after_file_id, telegram_api::object_ptr<telegram_api::InputDocument> &&after_input_document) {
+    CHECK(file_id.is_valid());
+    CHECK(input_document != nullptr);
+    file_id_ = file_id;
+    after_file_id_ = after_file_id;
+    file_reference_ = FileManager::extract_file_reference(input_document);
+    int32 flags = 0;
+    if (after_input_document != nullptr) {
+      flags |= telegram_api::account_saveMusic::AFTER_ID_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_saveMusic(flags, false, std::move(input_document), std::move(after_input_document)),
+        {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_saveMusic>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->user_manager_->on_add_saved_music(file_id_, after_file_id_, std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (!td_->auth_manager_->is_bot() && FileReferenceManager::is_file_reference_error(status)) {
+      VLOG(file_references) << "Receive " << status << " for " << file_id_;
+      td_->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td_->file_reference_manager_->repair_file_reference(
+          file_id_, PromiseCreator::lambda([file_id = file_id_, after_file_id = after_file_id_,
+                                            promise = std::move(promise_)](Result<Unit> result) mutable {
+            if (result.is_error()) {
+              return promise.set_error(400, "Can't find the audio");
+            }
+
+            send_closure(G()->user_manager(), &UserManager::add_saved_music, file_id, after_file_id,
+                         std::move(promise));
+          }));
+      return;
+    }
+
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUserSavedMusicQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
@@ -6410,6 +6466,57 @@ void UserManager::apply_pending_user_photo(User *u, UserId user_id, const char *
     pending_user_photos_.erase(user_id);
     update_user(u, user_id);
   }
+}
+
+Result<telegram_api::object_ptr<telegram_api::InputDocument>> UserManager::check_saved_music_file_id(
+    FileId file_id, bool allow_empty) const {
+  if (allow_empty && file_id == FileId()) {
+    return nullptr;
+  }
+  if (!file_id.is_valid()) {
+    return Status::Error(400, "Invalid file identifier specified");
+  }
+
+  auto file_view = td_->file_manager_->get_file_view(file_id);
+  if (file_view.empty()) {
+    return Status::Error(400, "Unknown file identifier specified");
+  }
+  if (file_view.get_type() != FileType::Audio) {
+    return Status::Error(400, "Invalid file identifier specified");
+  }
+  if (td_->audios_manager_->get_audio_object(file_id) == nullptr) {
+    return Status::Error(400, "Invalid file identifier specified");
+  }
+
+  const auto *full_remote_location = file_view.get_full_remote_location();
+  if (full_remote_location == nullptr) {
+    return Status::Error(400, "Invalid file identifier specified");
+  }
+  if (full_remote_location->is_web()) {
+    return Status::Error(400, "Invalid file identifier specified");
+  }
+
+  return full_remote_location->as_input_document();
+}
+
+void UserManager::add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_document, check_saved_music_file_id(file_id, false));
+  TRY_RESULT_PROMISE(promise, after_input_document, check_saved_music_file_id(after_file_id, true));
+
+  td_->create_handler<SaveMusicQuery>(std::move(promise))
+      ->send(file_id, std::move(input_document), after_file_id, std::move(after_input_document));
+}
+
+void UserManager::on_add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise) {
+  auto user_id = get_my_id();
+  if (!after_file_id.is_valid()) {
+    auto user_full = get_user_full_force(user_id, "on_add_saved_music");
+    if (user_full != nullptr) {
+      on_update_user_full_first_saved_music_file_id(user_full, user_id, file_id);
+      update_user_full(user_full, user_id, "on_add_saved_music");
+    }
+  }
+  promise.set_value(Unit());
 }
 
 void UserManager::get_user_saved_music(UserId user_id, int32 offset, int32 limit,

@@ -416,6 +416,10 @@ class UserManager final : public Actor {
 
   FileSourceId get_user_profile_photo_file_source_id(UserId user_id, int64 photo_id);
 
+  void add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise);
+
+  void on_add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise);
+
   void get_user_saved_music(UserId user_id, int32 offset, int32 limit,
                             Promise<td_api::object_ptr<td_api::audios>> &&promise);
 
@@ -1005,6 +1009,9 @@ class UserManager final : public Actor {
   void finish_get_user_saved_music(UserId user_id, Result<Unit> &&result);
 
   UserSavedMusic *add_user_saved_music(UserId user_id);
+
+  Result<telegram_api::object_ptr<telegram_api::InputDocument>> check_saved_music_file_id(FileId file_id,
+                                                                                          bool allow_empty) const;
 
   void load_contacts(Promise<Unit> &&promise);
 
