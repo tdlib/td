@@ -6634,6 +6634,16 @@ void UserManager::on_get_user_saved_music(UserId user_id, int32 offset, int32 li
   if (user_saved_music->offset + known_saved_music_count > user_saved_music->count) {
     user_saved_music->saved_music_file_ids.resize(user_saved_music->count - user_saved_music->offset);
   }
+
+  if (user_saved_music->offset == 0) {
+    auto user_full = get_user_full_force(user_id, "on_get_user_saved_music");
+    if (user_full != nullptr) {
+      on_update_user_full_first_saved_music_file_id(
+          user_full, user_id,
+          user_saved_music->saved_music_file_ids.empty() ? FileId() : user_saved_music->saved_music_file_ids[0]);
+      update_user_full(user_full, user_id, "on_get_user_saved_music");
+    }
+  }
 }
 
 void UserManager::reload_user_saved_music(UserId user_id, int64 document_id, int64 access_hash,
