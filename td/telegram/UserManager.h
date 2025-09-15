@@ -416,6 +416,10 @@ class UserManager final : public Actor {
   void on_get_user_photos(UserId user_id, int32 offset, int32 limit, int32 total_count,
                           vector<telegram_api::object_ptr<telegram_api::Photo>> photos);
 
+  void reload_user_saved_music(UserId user_id, int64 document_id, int64 access_hash, Promise<Unit> &&promise);
+
+  FileSourceId get_user_saved_music_file_source_id(UserId user_id, int64 document_id, int64 access_hash);
+
   void register_message_users(MessageFullId message_full_id, vector<UserId> user_ids);
 
   void unregister_message_users(MessageFullId message_full_id, vector<UserId> user_ids);
@@ -1110,6 +1114,26 @@ class UserManager final : public Actor {
   WaitFreeHashMap<std::pair<UserId, int64>, FileSourceId, UserIdPhotoIdHash> user_profile_photo_file_source_ids_;
   FlatHashMap<int64, FileId> my_photo_file_id_;
   WaitFreeHashMap<UserId, FileSourceId, UserIdHash> user_full_file_source_ids_;
+
+  struct UserSavedMusicId {
+    UserId user_id_;
+    int64 document_id_ = 0;
+    int64 access_hash_ = 0;
+
+    UserSavedMusicId() = default;
+    UserSavedMusicId(UserId user_id, int64 document_id, int64 access_hash)
+        : user_id_(user_id), document_id_(document_id), access_hash_(access_hash) {
+    }
+    bool operator==(const UserSavedMusicId &other) const {
+      return user_id_ == other.user_id_ && document_id_ == other.document_id_ && access_hash_ == other.access_hash_;
+    }
+  };
+  struct UserSavedMusicIdHash {
+    uint32 operator()(const UserSavedMusicId &saved_music_id) const {
+      return combine_hashes(UserIdHash()(saved_music_id.user_id_), Hash<int64>()(saved_music_id.document_id_));
+    }
+  };
+  WaitFreeHashMap<UserSavedMusicId, FileSourceId, UserSavedMusicIdHash> user_saved_music_file_source_ids_;
 
   WaitFreeHashMap<SecretChatId, unique_ptr<SecretChat>, SecretChatIdHash> secret_chats_;
   mutable FlatHashSet<SecretChatId, SecretChatIdHash> unknown_secret_chats_;

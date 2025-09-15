@@ -1398,6 +1398,54 @@ class GetUserPhotosQuery final : public Td::ResultHandler {
   }
 };
 
+class GetUserSavedMusicByIdQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  UserId user_id_;
+
+ public:
+  explicit GetUserSavedMusicByIdQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user, int64 document_id,
+            int64 access_hash) {
+    user_id_ = user_id;
+    vector<telegram_api::object_ptr<telegram_api::InputDocument>> documents;
+    documents.push_back(
+        telegram_api::make_object<telegram_api::inputDocument>(document_id, access_hash, BufferSlice()));
+    send_query(G()->net_query_creator().create(
+        telegram_api::users_getSavedMusicByID(std::move(input_user), std::move(documents))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::users_getSavedMusicByID>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+
+    LOG(INFO) << "Receive result for GetUserSavedMusicByIdQuery: " << to_string(ptr);
+    if (ptr->get_id() != telegram_api::users_savedMusic::ID) {
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+    auto saved_music = telegram_api::move_object_as<telegram_api::users_savedMusic>(ptr);
+    for (auto &document : saved_music->documents_) {
+      if (document->get_id() == telegram_api::document::ID) {
+        auto parsed_document = td_->documents_manager_->on_get_document(
+            telegram_api::move_object_as<telegram_api::document>(document), DialogId(user_id_), false);
+        if (parsed_document.type != Document::Type::Audio) {
+          LOG(ERROR) << "Receive " << parsed_document;
+        }
+      }
+    }
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetSupportUserQuery final : public Td::ResultHandler {
   Promise<UserId> promise_;
 
@@ -6294,6 +6342,28 @@ void UserManager::apply_pending_user_photo(User *u, UserId user_id, const char *
     pending_user_photos_.erase(user_id);
     update_user(u, user_id);
   }
+}
+
+void UserManager::reload_user_saved_music(UserId user_id, int64 document_id, int64 access_hash,
+                                          Promise<Unit> &&promise) {
+  get_user_force(user_id, "reload_user_saved_music");
+  TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
+
+  td_->create_handler<GetUserSavedMusicByIdQuery>(std::move(promise))
+      ->send(user_id, std::move(input_user), document_id, access_hash);
+}
+
+FileSourceId UserManager::get_user_saved_music_file_source_id(UserId user_id, int64 document_id, int64 access_hash) {
+  if (!user_id.is_valid()) {
+    return FileSourceId();
+  }
+
+  auto &source_id = user_saved_music_file_source_ids_[UserSavedMusicId(user_id, document_id, access_hash)];
+  if (!source_id.is_valid()) {
+    source_id = td_->file_reference_manager_->create_user_saved_music_file_source(user_id, document_id, access_hash);
+  }
+  VLOG(file_references) << "Return " << source_id << " for saved music " << document_id << " of " << user_id;
+  return source_id;
 }
 
 void UserManager::register_message_users(MessageFullId message_full_id, vector<UserId> user_ids) {
