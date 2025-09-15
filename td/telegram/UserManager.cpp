@@ -4112,7 +4112,33 @@ void UserManager::on_update_user_full_first_saved_music_file_id(UserFull *user_f
   CHECK(user_full != nullptr);
   if (user_full->first_saved_music_file_id != first_saved_music_file_id) {
     user_full->first_saved_music_file_id = first_saved_music_file_id;
+    user_full->is_first_saved_music_file_id_changed = true;
     user_full->is_changed = true;
+  }
+}
+
+void UserManager::register_user_saved_music(UserId user_id, FileId saved_music_file_id) {
+  if (!saved_music_file_id.is_valid() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto file_ids = Document{Document::Type::Audio, saved_music_file_id}.get_file_ids(td_);
+  CHECK(!file_ids.empty());
+
+  auto file_view = td_->file_manager_->get_file_view(saved_music_file_id);
+  const auto *full_remote_location = file_view.get_full_remote_location();
+  if (full_remote_location == nullptr) {
+    LOG(ERROR) << "Saved music " << saved_music_file_id << " of " << user_id << " has no remote location";
+    return;
+  }
+  if (full_remote_location->is_web()) {
+    LOG(ERROR) << "Have a web saved music " << saved_music_file_id << " of " << user_id;
+    return;
+  }
+
+  auto file_source_id = get_user_saved_music_file_source_id(user_id, full_remote_location->get_id(),
+                                                            full_remote_location->get_access_hash());
+  for (auto file_id : file_ids) {
+    td_->file_manager_->add_file_source(file_id, file_source_id, "register_user_saved_music");
   }
 }
 
@@ -8665,6 +8691,10 @@ void UserManager::update_user_full(UserFull *user_full, UserId user_id, const ch
       user_rating_timeout_.cancel_timeout(user_id.get());
     }
     user_full->is_pending_star_rating_changed = false;
+  }
+  if (user_full->is_first_saved_music_file_id_changed) {
+    register_user_saved_music(user_id, user_full->first_saved_music_file_id);
+    user_full->is_first_saved_music_file_id_changed = false;
   }
   if (true) {
     vector<FileId> file_ids;

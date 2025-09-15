@@ -694,6 +694,7 @@ class UserManager final : public Actor {
 
     bool is_common_chat_count_changed = true;
     bool is_pending_star_rating_changed = true;
+    bool is_first_saved_music_file_id_changed = true;
     bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_send_update = true;       // have new changes that need only to be sent to the client
@@ -926,6 +927,8 @@ class UserManager final : public Actor {
 
   static void on_update_user_full_first_saved_music_file_id(UserFull *user_full, UserId user_id,
                                                             FileId first_saved_music_file_id);
+
+  void register_user_saved_music(UserId user_id, FileId saved_music_file_id);
 
   bool have_input_peer_user(const User *u, UserId user_id, AccessRights access_rights) const;
 
