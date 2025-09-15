@@ -8203,6 +8203,16 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   on_update_user_full_first_saved_music_file_id(user_full, user_id, first_saved_music_file_id);
   if (!first_saved_music_file_id.is_valid()) {
     drop_user_saved_music(user_id, true, "on_get_user_full");
+  } else {
+    auto user_saved_music = user_saved_music_.get_pointer(user_id);
+    if (user_saved_music != nullptr && user_saved_music->offset == 0 &&
+        (user_saved_music->saved_music_file_ids.empty() ||
+         user_saved_music->saved_music_file_ids[0] != first_saved_music_file_id)) {
+      LOG(INFO) << "Drop cache of saved music of " << user_id;
+      user_saved_music->saved_music_file_ids.clear();
+      user_saved_music->count = -1;
+      user_saved_music->offset = -1;
+    }
   }
 
   user_full->is_update_user_full_sent = true;
