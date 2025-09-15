@@ -3851,6 +3851,12 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, user_id, offset, limit);
       send_request(td_api::make_object<td_api::getUserProfilePhotos>(user_id, offset, as_limit(limit)));
+    } else if (op == "gusm") {
+      UserId user_id;
+      int32 offset;
+      string limit;
+      get_args(args, user_id, offset, limit);
+      send_request(td_api::make_object<td_api::getUserSavedMusic>(user_id, offset, as_limit(limit)));
     } else if (op == "dcrm") {
       ChatId chat_id;
       MessageId message_id;

@@ -1398,6 +1398,48 @@ class GetUserPhotosQuery final : public Td::ResultHandler {
   }
 };
 
+class GetUserSavedMusicQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  UserId user_id_;
+  int32 offset_;
+  int32 limit_;
+
+ public:
+  explicit GetUserSavedMusicQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user, int32 offset, int32 limit) {
+    user_id_ = user_id;
+    offset_ = offset;
+    limit_ = limit;
+    send_query(
+        G()->net_query_creator().create(telegram_api::users_getSavedMusic(std::move(input_user), offset, limit, 0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::users_getSavedMusic>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+
+    LOG(INFO) << "Receive result for GetUserSavedMusicQuery: " << to_string(ptr);
+    if (ptr->get_id() != telegram_api::users_savedMusic::ID) {
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+    auto saved_music = telegram_api::move_object_as<telegram_api::users_savedMusic>(ptr);
+    td_->user_manager_->on_get_user_saved_music(user_id_, offset_, limit_, saved_music->count_,
+                                                std::move(saved_music->documents_));
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUserSavedMusicByIdQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
@@ -6367,6 +6409,230 @@ void UserManager::apply_pending_user_photo(User *u, UserId user_id, const char *
     do_update_user_photo(u, user_id, std::move(pending_user_photos_[user_id]), source);
     pending_user_photos_.erase(user_id);
     update_user(u, user_id);
+  }
+}
+
+void UserManager::get_user_saved_music(UserId user_id, int32 offset, int32 limit,
+                                       Promise<td_api::object_ptr<td_api::audios>> &&promise) {
+  if (offset < 0) {
+    return promise.set_error(400, "Parameter offset must be non-negative");
+  }
+  if (limit <= 0) {
+    return promise.set_error(400, "Parameter limit must be positive");
+  }
+  if (limit > MAX_GET_SAVED_MUSIC) {
+    limit = MAX_GET_SAVED_MUSIC;
+  }
+
+  TRY_STATUS_PROMISE(promise, get_input_user(user_id));
+
+  auto *u = get_user(user_id);
+  if (u == nullptr) {
+    return promise.set_error(400, "User not found");
+  }
+
+  auto user_saved_music = add_user_saved_music(user_id);
+  if (user_saved_music->count != -1) {  // know saved music count
+    CHECK(user_saved_music->offset != -1);
+    LOG(INFO) << "Have " << user_saved_music->count << " cached saved music files at offset "
+              << user_saved_music->offset;
+    vector<td_api::object_ptr<td_api::audio>> audio_objects;
+
+    if (offset >= user_saved_music->count) {
+      // offset if too big
+      return promise.set_value(td_api::make_object<td_api::audios>(user_saved_music->count, std::move(audio_objects)));
+    }
+
+    if (limit > user_saved_music->count - offset) {
+      limit = user_saved_music->count - offset;
+    }
+
+    int32 cache_begin = user_saved_music->offset;
+    int32 cache_end = cache_begin + narrow_cast<int32>(user_saved_music->saved_music_file_ids.size());
+    if (cache_begin <= offset && offset + limit <= cache_end) {
+      // answer query from cache
+      for (int i = 0; i < limit; i++) {
+        audio_objects.push_back(
+            td_->audios_manager_->get_audio_object(user_saved_music->saved_music_file_ids[i + offset - cache_begin]));
+      }
+      return promise.set_value(td_api::make_object<td_api::audios>(user_saved_music->count, std::move(audio_objects)));
+    }
+  }
+
+  PendingGetSavedMusicRequest pending_request;
+  pending_request.offset = offset;
+  pending_request.limit = limit;
+  pending_request.promise = std::move(promise);
+  user_saved_music->pending_requests.push_back(std::move(pending_request));
+  if (user_saved_music->pending_requests.size() != 1u) {
+    return;
+  }
+
+  send_get_user_saved_music_query(user_id, user_saved_music);
+}
+
+void UserManager::send_get_user_saved_music_query(UserId user_id, const UserSavedMusic *user_saved_music) {
+  CHECK(!user_saved_music->pending_requests.empty());
+  auto offset = user_saved_music->pending_requests[0].offset;
+  auto limit = user_saved_music->pending_requests[0].limit;
+
+  if (user_saved_music->count != -1 && offset >= user_saved_music->offset) {
+    int32 cache_end = user_saved_music->offset + narrow_cast<int32>(user_saved_music->saved_music_file_ids.size());
+    if (offset < cache_end) {
+      // adjust offset to the end of cache
+      CHECK(offset + limit > cache_end);  // otherwise the request has already been answered
+      limit = offset + limit - cache_end;
+      offset = cache_end;
+    }
+  }
+
+  auto query_promise = PromiseCreator::lambda([actor_id = actor_id(this), user_id](Result<Unit> &&result) {
+    send_closure(actor_id, &UserManager::finish_get_user_saved_music, user_id, std::move(result));
+  });
+  td_->create_handler<GetUserSavedMusicQuery>(std::move(query_promise))
+      ->send(user_id, get_input_user_force(user_id), offset, max(limit, MAX_GET_SAVED_MUSIC / 5));
+}
+
+void UserManager::finish_get_user_saved_music(UserId user_id, Result<Unit> &&result) {
+  G()->ignore_result_if_closing(result);
+  auto user_saved_music = add_user_saved_music(user_id);
+  auto pending_requests = std::move(user_saved_music->pending_requests);
+  CHECK(!pending_requests.empty());
+  if (result.is_error()) {
+    for (auto &request : pending_requests) {
+      request.promise.set_error(result.error().clone());
+    }
+    return;
+  }
+  if (user_saved_music->count == -1) {
+    CHECK(have_user(user_id));
+    // received result has just been dropped; resend request
+    if (++pending_requests[0].retry_count >= 3) {
+      pending_requests[0].promise.set_error(500, "Failed to return saved music");
+      pending_requests.erase(pending_requests.begin());
+      if (pending_requests.empty()) {
+        return;
+      }
+    }
+    user_saved_music->pending_requests = std::move(pending_requests);
+    return send_get_user_saved_music_query(user_id, user_saved_music);
+  }
+
+  CHECK(user_saved_music->offset != -1);
+  LOG(INFO) << "Have " << user_saved_music->count << " cached saved music files at offset " << user_saved_music->offset;
+  vector<PendingGetSavedMusicRequest> left_requests;
+  for (size_t request_index = 0; request_index < pending_requests.size(); request_index++) {
+    auto &request = pending_requests[request_index];
+    vector<td_api::object_ptr<td_api::audio>> audio_objects;
+
+    if (request.offset >= user_saved_music->count) {
+      // offset if too big
+      request.promise.set_value(td_api::make_object<td_api::audios>(user_saved_music->count, std::move(audio_objects)));
+      continue;
+    }
+
+    if (request.limit > user_saved_music->count - request.offset) {
+      request.limit = user_saved_music->count - request.offset;
+    }
+
+    int32 cache_begin = user_saved_music->offset;
+    int32 cache_end = cache_begin + narrow_cast<int32>(user_saved_music->saved_music_file_ids.size());
+    if (cache_begin <= request.offset && request.offset + request.limit <= cache_end) {
+      // answer query from cache
+      for (int i = 0; i < request.limit; i++) {
+        audio_objects.push_back(td_->audios_manager_->get_audio_object(
+            user_saved_music->saved_music_file_ids[i + request.offset - cache_begin]));
+      }
+      request.promise.set_value(td_api::make_object<td_api::audios>(user_saved_music->count, std::move(audio_objects)));
+      continue;
+    }
+
+    if (request_index == 0 && ++request.retry_count >= 3) {
+      request.promise.set_error(500, "Failed to get saved music");
+      continue;
+    }
+
+    left_requests.push_back(std::move(request));
+  }
+
+  if (!left_requests.empty()) {
+    bool need_send = user_saved_music->pending_requests.empty();
+    append(user_saved_music->pending_requests, std::move(left_requests));
+    if (need_send) {
+      send_get_user_saved_music_query(user_id, user_saved_music);
+    }
+  }
+}
+
+UserManager::UserSavedMusic *UserManager::add_user_saved_music(UserId user_id) {
+  CHECK(user_id.is_valid());
+  auto &user_saved_music_ptr = user_saved_music_[user_id];
+  if (user_saved_music_ptr == nullptr) {
+    user_saved_music_ptr = make_unique<UserSavedMusic>();
+  }
+  return user_saved_music_ptr.get();
+}
+
+void UserManager::on_get_user_saved_music(UserId user_id, int32 offset, int32 limit, int32 total_count,
+                                          vector<telegram_api::object_ptr<telegram_api::Document>> documents) {
+  auto saved_music_count = narrow_cast<int32>(documents.size());
+  int32 min_total_count = (saved_music_count > 0 ? offset : 0) + saved_music_count;
+  if (total_count < min_total_count) {
+    LOG(ERROR) << "Receive wrong saved music total_count " << total_count << " for user " << user_id << ": receive "
+               << saved_music_count << " saved music files with offset " << offset;
+    total_count = min_total_count;
+  }
+  LOG_IF(ERROR, limit < saved_music_count)
+      << "Requested not more than " << limit << " saved music files, but " << saved_music_count << " received";
+
+  User *u = get_user(user_id);
+  CHECK(u != nullptr);
+
+  LOG(INFO) << "Receive " << saved_music_count << " saved music files of " << user_id << " out of " << total_count
+            << " with offset " << offset << " and limit " << limit;
+  UserSavedMusic *user_saved_music = add_user_saved_music(user_id);
+  user_saved_music->count = total_count;
+  CHECK(!user_saved_music->pending_requests.empty());
+
+  if (user_saved_music->offset == -1) {
+    user_saved_music->offset = 0;
+    CHECK(user_saved_music->saved_music_file_ids.empty());
+  }
+
+  if (offset != narrow_cast<int32>(user_saved_music->saved_music_file_ids.size()) + user_saved_music->offset) {
+    LOG(INFO) << "Inappropriate offset to append " << user_id << " saved music to cache: offset = " << offset
+              << ", current_offset = " << user_saved_music->offset
+              << ", saved_music_count = " << user_saved_music->saved_music_file_ids.size();
+    user_saved_music->saved_music_file_ids.clear();
+    user_saved_music->offset = offset;
+  }
+
+  for (auto &document : documents) {
+    if (document->get_id() != telegram_api::document::ID) {
+      LOG(ERROR) << "Receive as saved music of " << user_id << ": " << to_string(document);
+      user_saved_music->count--;
+      CHECK(user_saved_music->count >= 0);
+      continue;
+    }
+    auto parsed_document = td_->documents_manager_->on_get_document(
+        telegram_api::move_object_as<telegram_api::document>(document), DialogId(user_id), false);
+    if (parsed_document.type != Document::Type::Audio) {
+      LOG(ERROR) << "Receive " << parsed_document;
+      user_saved_music->count--;
+      CHECK(user_saved_music->count >= 0);
+      continue;
+    }
+    user_saved_music->saved_music_file_ids.push_back(parsed_document.file_id);
+    register_user_saved_music(user_id, user_saved_music->saved_music_file_ids.back());
+  }
+  if (user_saved_music->offset > user_saved_music->count) {
+    user_saved_music->offset = user_saved_music->count;
+    user_saved_music->saved_music_file_ids.clear();
+  }
+
+  auto known_saved_music_count = narrow_cast<int32>(user_saved_music->saved_music_file_ids.size());
+  if (user_saved_music->offset + known_saved_music_count > user_saved_music->count) {
+    user_saved_music->saved_music_file_ids.resize(user_saved_music->count - user_saved_music->offset);
   }
 }
 

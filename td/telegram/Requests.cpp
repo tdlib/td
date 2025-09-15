@@ -6467,6 +6467,13 @@ void Requests::on_request(uint64 id, const td_api::getUserProfilePhotos &request
                                               std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getUserSavedMusic &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->user_manager_->get_user_saved_music(UserId(request.user_id_), request.offset_, request.limit_,
+                                           std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::setAccentColor &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

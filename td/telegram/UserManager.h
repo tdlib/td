@@ -409,12 +409,18 @@ class UserManager final : public Actor {
   void get_user_profile_photos(UserId user_id, int32 offset, int32 limit,
                                Promise<td_api::object_ptr<td_api::chatPhotos>> &&promise);
 
+  void on_get_user_photos(UserId user_id, int32 offset, int32 limit, int32 total_count,
+                          vector<telegram_api::object_ptr<telegram_api::Photo>> photos);
+
   void reload_user_profile_photo(UserId user_id, int64 photo_id, Promise<Unit> &&promise);
 
   FileSourceId get_user_profile_photo_file_source_id(UserId user_id, int64 photo_id);
 
-  void on_get_user_photos(UserId user_id, int32 offset, int32 limit, int32 total_count,
-                          vector<telegram_api::object_ptr<telegram_api::Photo>> photos);
+  void get_user_saved_music(UserId user_id, int32 offset, int32 limit,
+                            Promise<td_api::object_ptr<td_api::audios>> &&promise);
+
+  void on_get_user_saved_music(UserId user_id, int32 offset, int32 limit, int32 total_count,
+                               vector<telegram_api::object_ptr<telegram_api::Document>> documents);
 
   void reload_user_saved_music(UserId user_id, int64 document_id, int64 access_hash, Promise<Unit> &&promise);
 
@@ -766,10 +772,26 @@ class UserManager final : public Actor {
     vector<PendingGetPhotoRequest> pending_requests;
   };
 
+  struct PendingGetSavedMusicRequest {
+    int32 offset = 0;
+    int32 limit = 0;
+    int32 retry_count = 0;
+    Promise<td_api::object_ptr<td_api::audios>> promise;
+  };
+
+  struct UserSavedMusic {
+    vector<FileId> saved_music_file_ids;
+    int32 count = -1;
+    int32 offset = -1;
+
+    vector<PendingGetSavedMusicRequest> pending_requests;
+  };
+
   class UserLogEvent;
   class SecretChatLogEvent;
 
   static constexpr int32 MAX_GET_PROFILE_PHOTOS = 100;  // server-side limit
+  static constexpr int32 MAX_GET_SAVED_MUSIC = 100;     // server-side limit
   static constexpr size_t MAX_NAME_LENGTH = 64;         // server-side limit for first/last name
 
   static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;  // some reasonable limit
@@ -978,6 +1000,12 @@ class UserManager final : public Actor {
 
   void apply_pending_user_photo(User *u, UserId user_id, const char *source);
 
+  void send_get_user_saved_music_query(UserId user_id, const UserSavedMusic *user_saved_music);
+
+  void finish_get_user_saved_music(UserId user_id, Result<Unit> &&result);
+
+  UserSavedMusic *add_user_saved_music(UserId user_id);
+
   void load_contacts(Promise<Unit> &&promise);
 
   int64 get_contacts_hash();
@@ -1137,6 +1165,7 @@ class UserManager final : public Actor {
     }
   };
   WaitFreeHashMap<UserSavedMusicId, FileSourceId, UserSavedMusicIdHash> user_saved_music_file_source_ids_;
+  WaitFreeHashMap<UserId, unique_ptr<UserSavedMusic>, UserIdHash> user_saved_music_;
 
   WaitFreeHashMap<SecretChatId, unique_ptr<SecretChat>, SecretChatIdHash> secret_chats_;
   mutable FlatHashSet<SecretChatId, SecretChatIdHash> unknown_secret_chats_;

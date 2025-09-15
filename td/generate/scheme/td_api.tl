@@ -442,6 +442,9 @@ animation duration:int32 width:int32 height:int32 file_name:string mime_type:str
 //@audio File containing the audio
 audio duration:int32 title:string performer:string file_name:string mime_type:string album_cover_minithumbnail:minithumbnail album_cover_thumbnail:thumbnail external_album_covers:vector<thumbnail> audio:file = Audio;
 
+//@description Contains a list of audio files @total_count Approximate total number of audio files found @audios List of audio files
+audios total_count:int32 audios:vector<audio> = Audios;
+
 //@description Describes a document of any type
 //@file_name Original name of the file; as defined by the sender
 //@mime_type MIME type of the file; as defined by the sender
@@ -12366,12 +12369,23 @@ setUserEmojiStatus user_id:int53 emoji_status:emojiStatus = Ok;
 //@only_local Pass true to get only locally available information without sending network requests
 searchUserByPhoneNumber phone_number:string only_local:Bool = User;
 
-//@description Shares the phone number of the current user with a mutual contact. Supposed to be called when the user clicks on chatActionBarSharePhoneNumber @user_id Identifier of the user with whom to share the phone number. The user must be a mutual contact
+//@description Shares the phone number of the current user with a mutual contact. Supposed to be called when the user clicks on chatActionBarSharePhoneNumber
+//@user_id Identifier of the user with whom to share the phone number. The user must be a mutual contact
 sharePhoneNumber user_id:int53 = Ok;
 
 
-//@description Returns the profile photos of a user. Personal and public photo aren't returned @user_id User identifier @offset The number of photos to skip; must be non-negative @limit The maximum number of photos to be returned; up to 100
+//@description Returns the profile photos of a user. Personal and public photo aren't returned
+//@user_id User identifier
+//@offset The number of photos to skip; must be non-negative
+//@limit The maximum number of photos to be returned; up to 100
 getUserProfilePhotos user_id:int53 offset:int32 limit:int32 = ChatPhotos;
+
+
+//@description Returns the list of saved music files of a user
+//@user_id User identifier
+//@offset The number of audio files to skip; must be non-negative
+//@limit The maximum number of audio files to be returned; up to 100
+getUserSavedMusic user_id:int53 offset:int32 limit:int32 = Audios;
 
 
 //@description Returns outline of a sticker. This is an offline method. Returns a 404 error if the outline isn't known

@@ -1285,6 +1285,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getUserProfilePhotos &request);
 
+  void on_request(uint64 id, const td_api::getUserSavedMusic &request);
+
   void on_request(uint64 id, const td_api::setAccentColor &request);
 
   void on_request(uint64 id, const td_api::setProfileAccentColor &request);
