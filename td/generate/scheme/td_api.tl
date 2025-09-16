@@ -7193,6 +7193,21 @@ inputBackgroundPrevious message_id:int53 = InputBackground;
 //@dark_settings Theme settings for a dark chat theme
 emojiChatTheme name:string light_settings:themeSettings dark_settings:themeSettings = EmojiChatTheme;
 
+//@description Describes a chat theme based on an upgraded gift
+//@gift The gift
+//@light_settings Theme settings for a light chat theme
+//@dark_settings Theme settings for a dark chat theme
+giftChatTheme gift:upgradedGift light_settings:themeSettings dark_settings:themeSettings = GiftChatTheme;
+
+
+//@class ChatTheme @description Describes a chat theme
+
+//@description A theme based on an emoji @name Name of the theme; full theme description is received through updateEmojiChatThemes
+chatThemeEmoji name:string = ChatTheme;
+
+//@description A theme based on an upgraded gift @gift_theme Description of the theme
+chatThemeGift gift_theme:giftChatTheme = ChatTheme;
+
 
 //@description Describes a time zone
 //@id Unique time zone identifier

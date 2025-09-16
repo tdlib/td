@@ -387,6 +387,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/ChannelRecommendationManager.cpp
   td/telegram/ChatManager.cpp
   td/telegram/ChatReactions.cpp
+  td/telegram/ChatTheme.cpp
   td/telegram/ClientActor.cpp
   td/telegram/CommonDialogManager.cpp
   td/telegram/ConfigManager.cpp
@@ -729,6 +730,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ChatId.h
   td/telegram/ChatManager.h
   td/telegram/ChatReactions.h
+  td/telegram/ChatTheme.h
   td/telegram/ClientActor.h
   td/telegram/CommonDialogManager.h
   td/telegram/ConfigManager.h
@@ -1098,6 +1100,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/BusinessRecipients.hpp
   td/telegram/BusinessWorkHours.hpp
   td/telegram/ChatReactions.hpp
+  td/telegram/ChatTheme.hpp
   td/telegram/CurrencyAmount.hpp
   td/telegram/DialogFilter.hpp
   td/telegram/DialogInviteLink.hpp
