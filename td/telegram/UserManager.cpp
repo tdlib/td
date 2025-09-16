@@ -8587,7 +8587,6 @@ void UserManager::drop_user_full_photos(UserFull *user_full, UserId user_id, int
 }
 
 void UserManager::drop_user_photos(UserId user_id, bool is_empty, const char *source) {
-  LOG(INFO) << "Drop user photos to " << (is_empty ? "empty" : "unknown") << " from " << source;
   auto user_photos = user_photos_.get_pointer(user_id);
   if (user_photos != nullptr) {
     int32 new_count = is_empty ? 0 : -1;
@@ -8604,7 +8603,6 @@ void UserManager::drop_user_photos(UserId user_id, bool is_empty, const char *so
 }
 
 void UserManager::drop_user_saved_music(UserId user_id, bool is_empty, const char *source) {
-  LOG(INFO) << "Drop user saved music to " << (is_empty ? "empty" : "unknown") << " from " << source;
   auto user_saved_music = user_saved_music_.get_pointer(user_id);
   if (user_saved_music != nullptr) {
     int32 new_count = is_empty ? 0 : -1;
