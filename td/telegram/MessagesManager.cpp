@@ -29506,8 +29506,31 @@ void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Prom
   }
 }
 
-void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise) {
+void MessagesManager::set_dialog_theme(DialogId dialog_id, td_api::object_ptr<td_api::InputChatTheme> &&theme,
+                                       Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, check_dialog_access(dialog_id, true, AccessRights::Write, "set_dialog_theme"));
+
+  bool is_gift = false;
+  string theme_name;
+  if (theme != nullptr) {
+    switch (theme->get_id()) {
+      case td_api::inputChatThemeEmoji::ID:
+        theme_name = std::move(static_cast<td_api::inputChatThemeEmoji *>(theme.get())->name_);
+        break;
+      case td_api::inputChatThemeGift::ID:
+        theme_name = std::move(static_cast<td_api::inputChatThemeGift *>(theme.get())->name_);
+        is_gift = true;
+        break;
+      default:
+        UNREACHABLE();
+    }
+    if (theme_name.empty()) {
+      return promise.set_error(400, "Invalid theme name specified");
+    }
+  }
+  if (!clean_input_string(theme_name)) {
+    return promise.set_error(400, "Strings must be encoded in UTF-8");
+  }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -29528,7 +29551,7 @@ void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_n
       UNREACHABLE();
   }
 
-  td_->dialog_manager_->set_dialog_theme_on_server(dialog_id, theme_name, std::move(promise));
+  td_->dialog_manager_->set_dialog_theme_on_server(dialog_id, theme_name, is_gift, std::move(promise));
 }
 
 void MessagesManager::pin_dialog_message(BusinessConnectionId business_connection_id, DialogId dialog_id,

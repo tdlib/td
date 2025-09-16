@@ -6806,11 +6806,17 @@ class CliClient final : public Actor {
       } else {
         LOG(ERROR) << "Wrong permissions size, expected " << EXPECTED_SIZE;
       }
-    } else if (op == "sctn") {
+    } else if (op == "scth") {
       ChatId chat_id;
-      string theme_name;
-      get_args(args, chat_id, theme_name);
-      send_request(td_api::make_object<td_api::setChatTheme>(chat_id, theme_name));
+      string name;
+      get_args(args, chat_id, name);
+      td_api::object_ptr<td_api::InputChatTheme> theme;
+      if (is_alpha(name[0])) {
+        theme = td_api::make_object<td_api::inputChatThemeGift>(name);
+      } else if (!name.empty()) {
+        theme = td_api::make_object<td_api::inputChatThemeEmoji>(name);
+      }
+      send_request(td_api::make_object<td_api::setChatTheme>(chat_id, std::move(theme)));
     } else if (op == "sccd") {
       ChatId chat_id;
       string client_data;

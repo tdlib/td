@@ -530,7 +530,8 @@ class MessagesManager final : public Actor {
                                       td_api::object_ptr<td_api::ChatAvailableReactions> &&available_reactions_ptr,
                                       Promise<Unit> &&promise);
 
-  void set_dialog_theme(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise);
+  void set_dialog_theme(DialogId dialog_id, td_api::object_ptr<td_api::InputChatTheme> &&theme,
+                        Promise<Unit> &&promise);
 
   void pin_dialog_message(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageId message_id,
                           bool disable_notification, bool only_for_self, bool is_unpin, Promise<Unit> &&promise);

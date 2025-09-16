@@ -7209,6 +7209,15 @@ chatThemeEmoji name:string = ChatTheme;
 chatThemeGift gift_theme:giftChatTheme = ChatTheme;
 
 
+//@class InputChatTheme @description Describes a chat theme to set
+
+//@description A theme based on an emoji @name Name of the theme
+inputChatThemeEmoji name:string = InputChatTheme;
+
+//@description A theme based on an upgraded gift @name Name of the upgraded gift
+inputChatThemeGift name:string = InputChatTheme;
+
+
 //@description Describes a time zone
 //@id Unique time zone identifier
 //@name Time zone name
@@ -11401,8 +11410,8 @@ setChatBackground chat_id:int53 background:InputBackground type:BackgroundType d
 //-Supposed to be used from messageChatSetBackground messages with the currently set background that was set for both sides by the other user
 deleteChatBackground chat_id:int53 restore_previous:Bool = Ok;
 
-//@description Changes the chat theme. Supported only in private and secret chats @chat_id Chat identifier @theme_name Name of the new chat theme; pass an empty string to return the default theme
-setChatTheme chat_id:int53 theme_name:string = Ok;
+//@description Changes the chat theme. Supported only in private and secret chats @chat_id Chat identifier @theme New chat theme; pass null to return the default theme
+setChatTheme chat_id:int53 theme:InputChatTheme = Ok;
 
 //@description Changes the draft message in a chat
 //@chat_id Chat identifier
