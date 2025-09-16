@@ -5781,6 +5781,9 @@ bool UserManager::delete_my_profile_photo_from_cache(int64 profile_photo_id) {
       user_photos->count -= narrow_cast<int32>(removed_photos);
       // offset was not changed
       CHECK(user_photos->count >= 0);
+    } else if (user_photos->offset == 0) {
+      // failed to find photo to remove from cache, but offset doesn't need to be adjusted
+      user_photos->count--;
     } else {
       // failed to find photo to remove from cache
       // don't know how to adjust user_photos->offset, so drop photos cache
