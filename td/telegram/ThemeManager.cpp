@@ -126,7 +126,7 @@ bool operator!=(const ThemeManager::ProfileAccentColor &lhs, const ThemeManager:
 }
 
 template <class StorerT>
-void ThemeManager::ChatTheme::store(StorerT &storer) const {
+void ThemeManager::EmojiChatTheme::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
   END_STORE_FLAGS();
   td::store(emoji, storer);
@@ -136,7 +136,7 @@ void ThemeManager::ChatTheme::store(StorerT &storer) const {
 }
 
 template <class ParserT>
-void ThemeManager::ChatTheme::parse(ParserT &parser) {
+void ThemeManager::EmojiChatTheme::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   END_PARSE_FLAGS();
   td::parse(emoji, parser);
@@ -146,13 +146,13 @@ void ThemeManager::ChatTheme::parse(ParserT &parser) {
 }
 
 template <class StorerT>
-void ThemeManager::ChatThemes::store(StorerT &storer) const {
+void ThemeManager::EmojiChatThemes::store(StorerT &storer) const {
   td::store(hash, storer);
   td::store(themes, storer);
 }
 
 template <class ParserT>
-void ThemeManager::ChatThemes::parse(ParserT &parser) {
+void ThemeManager::EmojiChatThemes::parse(ParserT &parser) {
   td::parse(hash, parser);
   td::parse(themes, parser);
 }
@@ -344,7 +344,7 @@ void ThemeManager::load_chat_themes() {  // must not be called in constructor, b
       send_update_chat_themes();
     } else {
       LOG(ERROR) << "Failed to parse chat themes from binlog: " << status;
-      chat_themes_ = ChatThemes();
+      chat_themes_ = EmojiChatThemes();
     }
   }
 }
@@ -606,14 +606,15 @@ int32 ThemeManager::get_profile_accent_color_id_object(AccentColorId accent_colo
   return -1;
 }
 
-td_api::object_ptr<td_api::chatTheme> ThemeManager::get_chat_theme_object(const ChatTheme &theme) const {
-  return td_api::make_object<td_api::chatTheme>(theme.emoji, theme.light_theme.get_theme_settings_object(td_),
-                                                theme.dark_theme.get_theme_settings_object(td_));
+td_api::object_ptr<td_api::emojiChatTheme> ThemeManager::get_emoji_chat_theme_object(
+    const EmojiChatTheme &theme) const {
+  return td_api::make_object<td_api::emojiChatTheme>(theme.emoji, theme.light_theme.get_theme_settings_object(td_),
+                                                     theme.dark_theme.get_theme_settings_object(td_));
 }
 
-td_api::object_ptr<td_api::updateChatThemes> ThemeManager::get_update_chat_themes_object() const {
-  return td_api::make_object<td_api::updateChatThemes>(
-      transform(chat_themes_.themes, [this](const ChatTheme &theme) { return get_chat_theme_object(theme); }));
+td_api::object_ptr<td_api::updateEmojiChatThemes> ThemeManager::get_update_emoji_chat_themes_object() const {
+  return td_api::make_object<td_api::updateEmojiChatThemes>(transform(
+      chat_themes_.themes, [this](const EmojiChatTheme &theme) { return get_emoji_chat_theme_object(theme); }));
 }
 
 td_api::object_ptr<td_api::updateAccentColors> ThemeManager::get_update_accent_colors_object() const {
@@ -731,7 +732,7 @@ void ThemeManager::save_profile_accent_colors() {
 }
 
 void ThemeManager::send_update_chat_themes() const {
-  send_closure(G()->td(), &Td::send_update, get_update_chat_themes_object());
+  send_closure(G()->td(), &Td::send_update, get_update_emoji_chat_themes_object());
 }
 
 void ThemeManager::send_update_accent_colors() const {
@@ -773,7 +774,7 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
 
     bool was_light = false;
     bool was_dark = false;
-    ChatTheme chat_theme;
+    EmojiChatTheme chat_theme;
     chat_theme.emoji = std::move(theme->emoticon_);
     chat_theme.id = theme->id_;
     for (auto &settings : theme->settings_) {
@@ -973,7 +974,7 @@ void ThemeManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> 
   }
 
   if (!chat_themes_.themes.empty()) {
-    updates.push_back(get_update_chat_themes_object());
+    updates.push_back(get_update_emoji_chat_themes_object());
   }
   if (!accent_colors_.accent_color_ids_.empty()) {
     updates.push_back(get_update_accent_colors_object());

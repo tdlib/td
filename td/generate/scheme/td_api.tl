@@ -7187,11 +7187,11 @@ inputBackgroundRemote background_id:int64 = InputBackground;
 inputBackgroundPrevious message_id:int53 = InputBackground;
 
 
-//@description Describes a chat theme
+//@description Describes a chat theme based on an emoji
 //@name Theme name
 //@light_settings Theme settings for a light chat theme
 //@dark_settings Theme settings for a dark chat theme
-chatTheme name:string light_settings:themeSettings dark_settings:themeSettings = ChatTheme;
+emojiChatTheme name:string light_settings:themeSettings dark_settings:themeSettings = EmojiChatTheme;
 
 
 //@description Describes a time zone
@@ -9280,8 +9280,8 @@ updateSavedNotificationSounds notification_sound_ids:vector<int64> = Update;
 //@description The default background has changed @for_dark_theme True, if default background for dark theme has changed @background The new default background; may be null
 updateDefaultBackground for_dark_theme:Bool background:background = Update;
 
-//@description The list of available chat themes has changed @chat_themes The new list of chat themes
-updateChatThemes chat_themes:vector<chatTheme> = Update;
+//@description The list of available emoji chat themes has changed @chat_themes The new list of emoji chat themes
+updateEmojiChatThemes chat_themes:vector<emojiChatTheme> = Update;
 
 //@description The list of supported accent colors has changed
 //@colors Information about supported colors; colors with identifiers 0 (red), 1 (orange), 2 (purple/violet), 3 (green), 4 (cyan), 5 (blue), 6 (pink) must always be supported
