@@ -6,6 +6,10 @@
 //
 #include "td/telegram/ChatTheme.h"
 
+#include "td/telegram/Dependencies.h"
+
+#include "td/utils/logging.h"
+
 namespace td {
 
 ChatTheme::ChatTheme(Td *td, telegram_api::object_ptr<telegram_api::ChatTheme> theme) {
@@ -83,6 +87,12 @@ td_api::object_ptr<td_api::ChatTheme> ChatTheme::get_chat_theme_object(Td *td) c
       return td_api::make_object<td_api::chatThemeGift>(get_gift_chat_theme_object(td));
     default:
       UNREACHABLE();
+  }
+}
+
+void ChatTheme::add_dependencies(Dependencies &dependencies) const {
+  if (type_ == Type::Gift) {
+    star_gift_.add_dependencies(dependencies);
   }
 }
 

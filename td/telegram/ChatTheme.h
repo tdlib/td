@@ -15,6 +15,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 class ChatTheme {
@@ -49,6 +50,8 @@ class ChatTheme {
   td_api::object_ptr<td_api::giftChatTheme> get_gift_chat_theme_object(Td *td) const;
 
   td_api::object_ptr<td_api::ChatTheme> get_chat_theme_object(Td *td) const;
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
