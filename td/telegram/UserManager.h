@@ -420,6 +420,10 @@ class UserManager final : public Actor {
 
   void on_add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise);
 
+  void remove_saved_music(FileId file_id, Promise<Unit> &&promise);
+
+  void on_remove_saved_music(FileId file_id, Promise<Unit> &&promise);
+
   void get_user_saved_music(UserId user_id, int32 offset, int32 limit,
                             Promise<td_api::object_ptr<td_api::audios>> &&promise);
 

@@ -1454,6 +1454,40 @@ class SaveMusicQuery final : public Td::ResultHandler {
   }
 };
 
+class UnsaveMusicQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  FileId file_id_;
+
+ public:
+  explicit UnsaveMusicQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(FileId file_id, telegram_api::object_ptr<telegram_api::InputDocument> &&input_document) {
+    CHECK(file_id.is_valid());
+    CHECK(input_document != nullptr);
+    file_id_ = file_id;
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_saveMusic(0, true, std::move(input_document), nullptr), {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_saveMusic>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    td_->user_manager_->on_remove_saved_music(file_id_, std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    if (FileReferenceManager::is_file_reference_error(status)) {
+      LOG(ERROR) << "Receive " << status << " for " << file_id_;
+    }
+
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUserSavedMusicQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   UserId user_id_;
@@ -6542,6 +6576,45 @@ void UserManager::on_add_saved_music(FileId file_id, FileId after_file_id, Promi
     if (user_full != nullptr) {
       on_update_user_full_first_saved_music_file_id(user_full, user_id, file_id);
       update_user_full(user_full, user_id, "on_add_saved_music");
+    }
+  }
+  promise.set_value(Unit());
+}
+
+void UserManager::remove_saved_music(FileId file_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_document, check_saved_music_file_id(file_id, false));
+
+  td_->create_handler<UnsaveMusicQuery>(std::move(promise))->send(file_id, std::move(input_document));
+}
+
+void UserManager::on_remove_saved_music(FileId file_id, Promise<Unit> &&promise) {
+  auto user_id = get_my_id();
+  auto user_saved_music = user_saved_music_.get_pointer(user_id);
+  if (user_saved_music != nullptr && user_saved_music->count != -1 && user_saved_music->offset != -1) {
+    auto is_deleted = td::remove(user_saved_music->saved_music_file_ids, file_id);
+    if (is_deleted || user_saved_music->offset == 0) {
+      if (user_saved_music->count > 0) {
+        user_saved_music->count--;
+        if (user_saved_music->offset > user_saved_music->count) {
+          user_saved_music->offset = user_saved_music->count;
+        }
+      }
+    } else {
+      // can't find the removed saved music; drop cache, because offset could have been changed
+      drop_user_saved_music(user_id, false, "on_remove_saved_music");
+    }
+  }
+  auto user_full = get_user_full_force(user_id, "on_remove_saved_music");
+  if (user_full != nullptr && user_full->first_saved_music_file_id == file_id) {
+    if (user_saved_music != nullptr && user_saved_music->count != -1 && user_saved_music->offset == 0 &&
+        !user_saved_music->saved_music_file_ids.empty()) {
+      on_update_user_full_first_saved_music_file_id(user_full, user_id, user_saved_music->saved_music_file_ids[0]);
+      update_user_full(user_full, user_id, "on_remove_saved_music 1");
+    } else if (user_saved_music != nullptr && user_saved_music->count == 0) {
+      on_update_user_full_first_saved_music_file_id(user_full, user_id, FileId());
+      update_user_full(user_full, user_id, "on_remove_saved_music 2");
+    } else {
+      return reload_user_full(user_id, std::move(promise), "on_remove_saved_music");
     }
   }
   promise.set_value(Unit());

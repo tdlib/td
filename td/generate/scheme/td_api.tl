@@ -12392,6 +12392,9 @@ getUserSavedMusic user_id:int53 offset:int32 limit:int32 = Audios;
 //@after_file_id Identifier of the file from saved music after which the file will be added; pass 0 to add the audio file in the beginning of the list
 addSavedMusic file_id:int32 after_file_id:int32 = Ok;
 
+//@description Removes an audio file from the saved music of the current user @file_id Identifier of the audio file to be removed
+removeSavedMusic file_id:int32 = Ok;
+
 
 //@description Returns outline of a sticker. This is an offline method. Returns a 404 error if the outline isn't known
 //@sticker_file_id File identifier of the sticker
