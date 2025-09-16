@@ -40,17 +40,22 @@ ChatTheme::ChatTheme(Td *td, telegram_api::object_ptr<telegram_api::ChatTheme> t
       for (auto &settings : chat_theme->theme_settings_) {
         ThemeSettings theme_settings(td, std::move(settings));
         if (theme_settings.is_empty()) {
+          LOG(ERROR) << "Receive empty chat theme settings for " << star_gift;
           continue;
         }
         if (theme_settings.are_dark()) {
           if (!was_dark) {
             was_dark = true;
             dark_theme_ = std::move(theme_settings);
+          } else {
+            LOG(ERROR) << "Receive duplicate dark theme for " << star_gift;
           }
         } else {
           if (!was_light) {
             was_light = true;
             light_theme_ = std::move(theme_settings);
+          } else {
+            LOG(ERROR) << "Receive duplicate light theme for " << star_gift;
           }
         }
       }
