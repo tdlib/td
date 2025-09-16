@@ -67,6 +67,7 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(has_regular_gift_id);
   STORE_FLAG(has_value);
   STORE_FLAG(has_locked_until_date);
+  STORE_FLAG(is_theme_available_);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -191,6 +192,7 @@ void StarGift::parse(ParserT &parser) {
   PARSE_FLAG(has_regular_gift_id);
   PARSE_FLAG(has_value);
   PARSE_FLAG(has_locked_until_date);
+  PARSE_FLAG(is_theme_available_);
   END_PARSE_FLAGS();
   td::parse(id_, parser);
   if (!is_unique_) {

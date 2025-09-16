@@ -69,6 +69,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
         resale_ton_only_ = star_gift->resale_ton_only_;
       }
     }
+    is_theme_available_ = star_gift->theme_available_;
     if (star_gift->released_by_ != nullptr) {
       released_by_dialog_id_ = DialogId(star_gift->released_by_);
       td->dialog_manager_->force_create_dialog(released_by_dialog_id_, "StarGift", true);
@@ -192,7 +193,7 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
   }
   return td_api::make_object<td_api::upgradedGift>(
       id_, regular_gift_id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "upgradedGift"), title_,
-      slug_, num_, unique_availability_issued_, unique_availability_total_, is_premium_,
+      slug_, num_, unique_availability_issued_, unique_availability_total_, is_premium_, is_theme_available_,
       !owner_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, owner_dialog_id_, "upgradedGift"),
       owner_address_, owner_name_, gift_address_, model_.get_upgraded_gift_model_object(td),
       pattern_.get_upgraded_gift_symbol_object(td), backdrop_.get_upgraded_gift_backdrop_object(),
@@ -224,23 +225,24 @@ void StarGift::add_dependencies(Dependencies &dependencies) const {
 }
 
 bool operator==(const StarGift &lhs, const StarGift &rhs) {
-  return lhs.id_ == rhs.id_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ && lhs.star_count_ == rhs.star_count_ &&
-         lhs.default_sell_star_count_ == rhs.default_sell_star_count_ &&
+  return lhs.id_ == rhs.id_ && lhs.released_by_dialog_id_ == rhs.released_by_dialog_id_ &&
+         lhs.is_premium_ == rhs.is_premium_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ &&
+         lhs.star_count_ == rhs.star_count_ && lhs.default_sell_star_count_ == rhs.default_sell_star_count_ &&
          lhs.upgrade_star_count_ == rhs.upgrade_star_count_ && lhs.availability_remains_ == rhs.availability_remains_ &&
          lhs.availability_total_ == rhs.availability_total_ && lhs.first_sale_date_ == rhs.first_sale_date_ &&
-         lhs.last_sale_date_ == rhs.last_sale_date_ && lhs.is_for_birthday_ == rhs.is_for_birthday_ &&
-         lhs.is_unique_ == rhs.is_unique_ && lhs.model_ == rhs.model_ && lhs.pattern_ == rhs.pattern_ &&
-         lhs.backdrop_ == rhs.backdrop_ && lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ &&
-         lhs.slug_ == rhs.slug_ && lhs.owner_dialog_id_ == rhs.owner_dialog_id_ &&
-         lhs.owner_address_ == rhs.owner_address_ && lhs.owner_name_ == rhs.owner_name_ &&
-         lhs.gift_address_ == rhs.gift_address_ && lhs.num_ == rhs.num_ &&
+         lhs.last_sale_date_ == rhs.last_sale_date_ && lhs.per_user_remains_ == rhs.per_user_remains_ &&
+         lhs.per_user_total_ == rhs.per_user_total_ && lhs.locked_until_date_ == rhs.locked_until_date_ &&
+         lhs.is_for_birthday_ == rhs.is_for_birthday_ && lhs.is_unique_ == rhs.is_unique_ &&
+         lhs.resale_ton_only_ == rhs.resale_ton_only_ && lhs.is_theme_available_ == rhs.is_theme_available_ &&
+         lhs.model_ == rhs.model_ && lhs.pattern_ == rhs.pattern_ && lhs.backdrop_ == rhs.backdrop_ &&
+         lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ && lhs.slug_ == rhs.slug_ &&
+         lhs.owner_dialog_id_ == rhs.owner_dialog_id_ && lhs.owner_address_ == rhs.owner_address_ &&
+         lhs.owner_name_ == rhs.owner_name_ && lhs.gift_address_ == rhs.gift_address_ && lhs.num_ == rhs.num_ &&
          lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_ &&
-         lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.released_by_dialog_id_ == rhs.released_by_dialog_id_ &&
-         lhs.is_premium_ == rhs.is_premium_ && lhs.per_user_remains_ == rhs.per_user_remains_ &&
-         lhs.per_user_total_ == rhs.per_user_total_ && lhs.regular_gift_id_ == rhs.regular_gift_id_ &&
-         lhs.value_currency_ == rhs.value_currency_ && lhs.value_amount_ == rhs.value_amount_ &&
-         lhs.locked_until_date_ == rhs.locked_until_date_;
+         lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.resale_ton_count_ == rhs.resale_ton_count_ &&
+         lhs.regular_gift_id_ == rhs.regular_gift_id_ && lhs.value_currency_ == rhs.value_currency_ &&
+         lhs.value_amount_ == rhs.value_amount_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarGift &star_gift) {
