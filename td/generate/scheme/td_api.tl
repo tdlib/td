@@ -7216,7 +7216,8 @@ chatThemeGift gift_theme:giftChatTheme = ChatTheme;
 //@description A theme based on an emoji @name Name of the theme
 inputChatThemeEmoji name:string = InputChatTheme;
 
-//@description A theme based on an upgraded gift @name Name of the upgraded gift
+//@description A theme based on an upgraded gift @name Name of the upgraded gift. A gift can be used only in one chat in a time.
+//-When the same gift is used in another chat, theme in the previous chat is reset to default
 inputChatThemeGift name:string = InputChatTheme;
 
 
