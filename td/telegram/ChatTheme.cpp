@@ -101,4 +101,18 @@ bool operator==(const ChatTheme &lhs, const ChatTheme &rhs) {
          lhs.light_theme_ == rhs.light_theme_ && lhs.dark_theme_ == rhs.dark_theme_;
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const ChatTheme &chat_theme) {
+  switch (chat_theme.type_) {
+    case ChatTheme::Type::Default:
+      return string_builder << "default";
+    case ChatTheme::Type::Emoji:
+      return string_builder << "emoji " << chat_theme.emoji_;
+    case ChatTheme::Type::Gift:
+      return string_builder << chat_theme.star_gift_;
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
+}
+
 }  // namespace td

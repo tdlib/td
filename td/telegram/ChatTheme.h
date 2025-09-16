@@ -12,6 +12,7 @@
 #include "td/telegram/ThemeSettings.h"
 
 #include "td/utils/common.h"
+#include "td/utils/StringBuilder.h"
 
 namespace td {
 
@@ -29,6 +30,8 @@ class ChatTheme {
   ThemeSettings dark_theme_;   // for Gift
 
   friend bool operator==(const ChatTheme &lhs, const ChatTheme &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const ChatTheme &chat_theme);
 
  public:
   ChatTheme() = default;
@@ -65,5 +68,7 @@ bool operator==(const ChatTheme &lhs, const ChatTheme &rhs);
 inline bool operator!=(const ChatTheme &lhs, const ChatTheme &rhs) {
   return !(lhs == rhs);
 }
+
+StringBuilder &operator<<(StringBuilder &string_builder, const ChatTheme &chat_theme);
 
 }  // namespace td
