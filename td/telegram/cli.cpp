@@ -6806,6 +6806,11 @@ class CliClient final : public Actor {
       } else {
         LOG(ERROR) << "Wrong permissions size, expected " << EXPECTED_SIZE;
       }
+    } else if (op == "ggct") {
+      string limit;
+      string offset;
+      get_args(args, limit, offset);
+      send_request(td_api::make_object<td_api::getGiftChatThemes>(offset, as_limit(limit)));
     } else if (op == "scth") {
       ChatId chat_id;
       string name;

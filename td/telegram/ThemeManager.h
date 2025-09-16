@@ -51,6 +51,9 @@ class ThemeManager final : public Actor {
   };
   DialogBoostAvailableCounts get_dialog_boost_available_count(int32 level, bool for_megagroup);
 
+  void get_unique_gift_chat_themes(const string &offset, int32 limit,
+                                   Promise<td_api::object_ptr<td_api::giftChatThemes>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

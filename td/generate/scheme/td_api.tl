@@ -7201,6 +7201,11 @@ emojiChatTheme name:string light_settings:themeSettings dark_settings:themeSetti
 //@dark_settings Theme settings for a dark chat theme
 giftChatTheme gift:upgradedGift light_settings:themeSettings dark_settings:themeSettings = GiftChatTheme;
 
+//@description Contains a list of chat themes based on upgraded gifts
+//@themes A list of chat themes
+//@next_offset The offset for the next request. If empty, then there are no more results
+giftChatThemes themes:vector<giftChatTheme> next_offset:string = GiftChatThemes;
+
 
 //@class ChatTheme @description Describes a chat theme
 
@@ -11412,6 +11417,11 @@ setChatBackground chat_id:int53 background:InputBackground type:BackgroundType d
 //@restore_previous Pass true to restore previously set background. Can be used only in private and secret chats with non-deleted users if userFullInfo.set_chat_background == true.
 //-Supposed to be used from messageChatSetBackground messages with the currently set background that was set for both sides by the other user
 deleteChatBackground chat_id:int53 restore_previous:Bool = Ok;
+
+//@description Returns available to the current user gift chat themes
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of chat themes to return
+getGiftChatThemes offset:string limit:int32 = GiftChatThemes;
 
 //@description Changes the chat theme. Supported only in private and secret chats @chat_id Chat identifier @theme New chat theme; pass null to return the default theme
 setChatTheme chat_id:int53 theme:InputChatTheme = Ok;

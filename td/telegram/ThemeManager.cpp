@@ -7,6 +7,8 @@
 #include "td/telegram/ThemeManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChatManager.h"
+#include "td/telegram/ChatTheme.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryCreator.h"
@@ -15,6 +17,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeSettings.hpp"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
@@ -109,6 +112,59 @@ class GetPeerProfileColorsQuery final : public Td::ResultHandler {
     }
 
     promise_.set_value(result_ptr.move_as_ok());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetUniqueGiftChatThemesQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftChatThemes>> promise_;
+
+ public:
+  explicit GetUniqueGiftChatThemesQuery(Promise<td_api::object_ptr<td_api::giftChatThemes>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &offset, int32 limit) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_getUniqueGiftChatThemes(to_integer<int32>(offset), limit, 0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getUniqueGiftChatThemes>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetUniqueGiftChatThemesQuery: " << to_string(ptr);
+    switch (ptr->get_id()) {
+      case telegram_api::account_chatThemesNotModified::ID:
+        LOG(ERROR) << "Receive " << to_string(ptr);
+        return on_error(Status::Error(500, "Receive wrong server response"));
+      case telegram_api::account_chatThemes::ID: {
+        auto themes = telegram_api::move_object_as<telegram_api::account_chatThemes>(ptr);
+        td_->user_manager_->on_get_users(std::move(themes->users_), "GetUniqueGiftChatThemesQuery");
+        td_->chat_manager_->on_get_chats(std::move(themes->chats_), "GetUniqueGiftChatThemesQuery");
+        auto result = td_api::make_object<td_api::giftChatThemes>();
+        if (themes->next_offset_ != 0) {
+          result->next_offset_ = to_string(themes->next_offset_);
+        }
+        for (auto &theme : themes->themes_) {
+          ChatTheme chat_theme(td_, std::move(theme));
+          if (!chat_theme.is_gift()) {
+            LOG(ERROR) << "Receive " << chat_theme;
+            continue;
+          }
+          result->themes_.push_back(chat_theme.get_gift_chat_theme_object(td_));
+        }
+        return promise_.set_value(std::move(result));
+      }
+      default:
+        UNREACHABLE();
+    }
   }
 
   void on_error(Status status) final {
@@ -966,6 +1022,11 @@ void ThemeManager::on_get_profile_accent_colors(
       is_changed) {
     save_profile_accent_colors();
   }
+}
+
+void ThemeManager::get_unique_gift_chat_themes(const string &offset, int32 limit,
+                                               Promise<td_api::object_ptr<td_api::giftChatThemes>> &&promise) {
+  td_->create_handler<GetUniqueGiftChatThemesQuery>(std::move(promise))->send(offset, limit);
 }
 
 void ThemeManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

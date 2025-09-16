@@ -163,6 +163,7 @@
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TermsOfServiceManager.h"
+#include "td/telegram/ThemeManager.h"
 #include "td/telegram/TimeZoneManager.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
@@ -5252,6 +5253,13 @@ void Requests::on_request(uint64 id, const td_api::deleteChatBackground &request
   CREATE_OK_REQUEST_PROMISE();
   td_->background_manager_->delete_dialog_background(DialogId(request.chat_id_), request.restore_previous_,
                                                      std::move(promise));
+}
+
+void Requests::on_request(uint64 id, td_api::getGiftChatThemes &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  td_->theme_manager_->get_unique_gift_chat_themes(request.offset_, request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setChatTheme &request) {
