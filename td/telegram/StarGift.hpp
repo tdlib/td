@@ -42,6 +42,7 @@ void StarGift::store(StorerT &storer) const {
   bool has_regular_gift_id = regular_gift_id_ != 0;
   bool has_value = !value_currency_.empty();
   bool has_locked_until_date = locked_until_date_ != 0;
+  bool has_theme_dialog_id = theme_dialog_id_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_limited);
   STORE_FLAG(has_default_sell_star_count);
@@ -68,6 +69,7 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(has_value);
   STORE_FLAG(has_locked_until_date);
   STORE_FLAG(is_theme_available_);
+  STORE_FLAG(has_theme_dialog_id);  // 25
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -122,6 +124,9 @@ void StarGift::store(StorerT &storer) const {
     if (has_resale_ton_count) {
       td::store(resale_ton_count_, storer);
     }
+    if (has_theme_dialog_id) {
+      td::store(theme_dialog_id_, storer);
+    }
   }
   if (has_released_by_dialog_id) {
     td::store(released_by_dialog_id_, storer);
@@ -167,6 +172,7 @@ void StarGift::parse(ParserT &parser) {
   bool has_regular_gift_id;
   bool has_value;
   bool has_locked_until_date;
+  bool has_theme_dialog_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_limited);
   PARSE_FLAG(has_default_sell_star_count);
@@ -193,6 +199,7 @@ void StarGift::parse(ParserT &parser) {
   PARSE_FLAG(has_value);
   PARSE_FLAG(has_locked_until_date);
   PARSE_FLAG(is_theme_available_);
+  PARSE_FLAG(has_theme_dialog_id);
   END_PARSE_FLAGS();
   td::parse(id_, parser);
   if (!is_unique_) {
@@ -253,6 +260,9 @@ void StarGift::parse(ParserT &parser) {
     }
     if (has_resale_ton_count) {
       td::parse(resale_ton_count_, parser);
+    }
+    if (has_theme_dialog_id) {
+      td::parse(theme_dialog_id_, parser);
     }
   }
   if (has_released_by_dialog_id) {

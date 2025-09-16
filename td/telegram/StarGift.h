@@ -60,6 +60,7 @@ class StarGift {
   int64 regular_gift_id_ = 0;
   string value_currency_;
   int64 value_amount_ = 0;
+  DialogId theme_dialog_id_;
 
   friend bool operator==(const StarGift &lhs, const StarGift &rhs);
 

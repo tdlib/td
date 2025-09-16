@@ -123,6 +123,9 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     }
     value_currency_ = std::move(star_gift->value_currency_);
     value_amount_ = star_gift->value_amount_;
+    if (star_gift->theme_peer_ != nullptr) {
+      theme_dialog_id_ = DialogId(star_gift->theme_peer_);
+    }
     return;
   }
   if (constructor_id != telegram_api::starGift::ID) {
@@ -192,9 +195,11 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
         resale_star_count_, resale_ton_count_ / 10000000, resale_ton_only_);
   }
   return td_api::make_object<td_api::upgradedGift>(
-      id_, regular_gift_id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "upgradedGift"), title_,
-      slug_, num_, unique_availability_issued_, unique_availability_total_, is_premium_, is_theme_available_,
-      !owner_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, owner_dialog_id_, "upgradedGift"),
+      id_, regular_gift_id_,
+      td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "upgradedGift released by"), title_, slug_, num_,
+      unique_availability_issued_, unique_availability_total_, is_premium_, is_theme_available_,
+      td->dialog_manager_->get_chat_id_object(theme_dialog_id_, "upgradedGift theme"),
+      !owner_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, owner_dialog_id_, "upgradedGift owner"),
       owner_address_, owner_name_, gift_address_, model_.get_upgraded_gift_model_object(td),
       pattern_.get_upgraded_gift_symbol_object(td), backdrop_.get_upgraded_gift_backdrop_object(),
       original_details_.get_upgraded_gift_original_details_object(td), std::move(resale_parameters), value_currency_,
@@ -222,6 +227,7 @@ void StarGift::add_dependencies(Dependencies &dependencies) const {
   dependencies.add_message_sender_dependencies(owner_dialog_id_);
   original_details_.add_dependencies(dependencies);
   dependencies.add_dialog_and_dependencies(released_by_dialog_id_);
+  dependencies.add_dialog_and_dependencies(theme_dialog_id_);
 }
 
 bool operator==(const StarGift &lhs, const StarGift &rhs) {
@@ -242,7 +248,7 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.unique_availability_total_ == rhs.unique_availability_total_ &&
          lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.resale_ton_count_ == rhs.resale_ton_count_ &&
          lhs.regular_gift_id_ == rhs.regular_gift_id_ && lhs.value_currency_ == rhs.value_currency_ &&
-         lhs.value_amount_ == rhs.value_amount_;
+         lhs.value_amount_ == rhs.value_amount_ && lhs.theme_dialog_id_ == rhs.theme_dialog_id_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarGift &star_gift) {
