@@ -7170,7 +7170,7 @@ backgroundTypePattern fill:BackgroundFill intensity:int32 is_inverted:Bool is_mo
 //@description A filled background @fill The background fill
 backgroundTypeFill fill:BackgroundFill = BackgroundType;
 
-//@description A background from a chat theme; can be used only as a chat background in channels @theme_name Name of the chat theme
+//@description A background from a chat theme based on an emoji; can be used only as a chat background in channels @theme_name Name of the emoji chat theme
 backgroundTypeChatTheme theme_name:string = BackgroundType;
 
 
