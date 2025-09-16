@@ -18,6 +18,7 @@
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/ChatTheme.hpp"
 #include "td/telegram/Contact.h"
 #include "td/telegram/CurrencyAmount.h"
 #include "td/telegram/CurrencyAmount.hpp"
@@ -827,10 +828,10 @@ class MessageInviteToGroupCall final : public MessageContent {
 
 class MessageChatSetTheme final : public MessageContent {
  public:
-  string emoji;
+  ChatTheme chat_theme;
 
   MessageChatSetTheme() = default;
-  explicit MessageChatSetTheme(string &&emoji) : emoji(std::move(emoji)) {
+  explicit MessageChatSetTheme(ChatTheme &&chat_theme) : chat_theme(std::move(chat_theme)) {
   }
 
   MessageContentType get_type() const final {
@@ -1930,7 +1931,7 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::ChatSetTheme: {
       const auto *m = static_cast<const MessageChatSetTheme *>(content);
-      store(m->emoji, storer);
+      store(m->chat_theme, storer);
       break;
     }
     case MessageContentType::WebViewDataSent: {
@@ -3057,7 +3058,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::ChatSetTheme: {
       auto m = make_unique<MessageChatSetTheme>();
-      parse(m->emoji, parser);
+      parse(m->chat_theme, parser);
       content = std::move(m);
       break;
     }
@@ -5590,12 +5591,12 @@ BackgroundInfo get_message_content_my_background_info(const MessageContent *cont
   return BackgroundInfo();
 }
 
-string get_message_content_theme_name(const MessageContent *content) {
+ChatTheme get_message_content_chat_theme(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::ChatSetTheme:
-      return static_cast<const MessageChatSetTheme *>(content)->emoji;
+      return static_cast<const MessageChatSetTheme *>(content)->chat_theme;
     default:
-      return string();
+      return ChatTheme();
   }
 }
 
@@ -5832,6 +5833,7 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       return content->user_ids;
     }
     case MessageContentType::ChatSetTheme:
+      // private chats only
       break;
     case MessageContentType::WebViewDataSent:
       break;
@@ -6938,7 +6940,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::ChatSetTheme: {
       const auto *lhs = static_cast<const MessageChatSetTheme *>(old_content);
       const auto *rhs = static_cast<const MessageChatSetTheme *>(new_content);
-      if (lhs->emoji != rhs->emoji) {
+      if (lhs->chat_theme != rhs->chat_theme) {
         need_update = true;
       }
       break;
@@ -8964,8 +8966,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (action->theme_->get_id() != telegram_api::chatTheme::ID) {
         return td::make_unique<MessageUnsupported>();
       }
-      return td::make_unique<MessageChatSetTheme>(
-          std::move(static_cast<telegram_api::chatTheme *>(action->theme_.get())->emoticon_));
+      return td::make_unique<MessageChatSetTheme>(ChatTheme(td, std::move(action->theme_)));
     }
     case telegram_api::messageActionChatJoinedByRequest::ID:
       return make_unique<MessageChatJoinedByLink>(true);
@@ -9642,7 +9643,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::ChatSetTheme: {
       const auto *m = static_cast<const MessageChatSetTheme *>(content);
-      return make_tl_object<td_api::messageChatSetTheme>(m->emoji);
+      return make_tl_object<td_api::messageChatSetTheme>(m->chat_theme.get_chat_theme_object(td));
     }
     case MessageContentType::WebViewDataSent: {
       const auto *m = static_cast<const MessageWebViewDataSent *>(content);
@@ -11044,8 +11045,11 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       }
       break;
     }
-    case MessageContentType::ChatSetTheme:
+    case MessageContentType::ChatSetTheme: {
+      const auto *content = static_cast<const MessageChatSetTheme *>(message_content);
+      content->chat_theme.add_dependencies(dependencies);
       break;
+    }
     case MessageContentType::WebViewDataSent:
       break;
     case MessageContentType::WebViewDataReceived:

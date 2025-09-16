@@ -30540,7 +30540,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                                      m->content.get(), m->is_outgoing || dialog_id.get_type() != DialogType::User));
         break;
       case MessageContentType::ChatSetTheme:
-        set_dialog_theme_name(d, get_message_content_theme_name(m->content.get()));
+        // set_dialog_theme(d, get_message_content_chat_theme(m->content.get()));
         break;
       case MessageContentType::ChatCreate:
       case MessageContentType::ChannelCreate:

@@ -8,6 +8,7 @@
 
 #include "td/telegram/BackgroundInfo.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatTheme.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/EncryptedFile.h"
 #include "td/telegram/files/FileId.h"
@@ -167,7 +168,7 @@ MessageId get_message_content_pinned_message_id(const MessageContent *content);
 
 BackgroundInfo get_message_content_my_background_info(const MessageContent *content, bool is_outgoing);
 
-string get_message_content_theme_name(const MessageContent *content);
+ChatTheme get_message_content_chat_theme(const MessageContent *content);
 
 MessageFullId get_message_content_replied_message_id(DialogId dialog_id, const MessageContent *content);
 
