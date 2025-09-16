@@ -8112,12 +8112,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
 
   td_->messages_manager_->on_update_dialog_background(DialogId(user_id), std::move(user->wallpaper_));
 
-  if (user->theme_ == nullptr) {
-    td_->messages_manager_->on_update_dialog_theme_name(DialogId(user_id), string());
-  } else if (user->theme_->get_id() == telegram_api::chatTheme::ID) {
-    td_->messages_manager_->on_update_dialog_theme_name(
-        DialogId(user_id), std::move(static_cast<telegram_api::chatTheme *>(user->theme_.get())->emoticon_));
-  }
+  td_->messages_manager_->on_update_dialog_chat_theme(DialogId(user_id), ChatTheme(td_, std::move(user->theme_)));
 
   td_->messages_manager_->on_update_dialog_last_pinned_message_id(DialogId(user_id),
                                                                   MessageId(ServerMessageId(user->pinned_msg_id_)));

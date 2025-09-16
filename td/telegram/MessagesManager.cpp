@@ -16,6 +16,8 @@
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/ChatReactions.hpp"
+#include "td/telegram/ChatTheme.h"
+#include "td/telegram/ChatTheme.hpp"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogActionBar.h"
@@ -2998,7 +3000,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_message_ttl = !message_ttl.is_empty();
   bool has_default_join_group_call_as_dialog_id = default_join_group_call_as_dialog_id.is_valid();
   bool store_has_bots = dialog_type == DialogType::Chat || dialog_type == DialogType::Channel;
-  bool has_theme_name = !theme_name.empty();
+  bool has_chat_theme = chat_theme != nullptr;
   bool has_flags3 = true;
   bool has_pending_join_requests = pending_join_request_count != 0;
   bool has_action_bar = action_bar != nullptr;
@@ -3074,8 +3076,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(has_default_join_group_call_as_dialog_id);
     STORE_FLAG(store_has_bots ? has_bots : false);
     STORE_FLAG(store_has_bots ? is_has_bots_inited : false);
-    STORE_FLAG(is_theme_name_inited);
-    STORE_FLAG(has_theme_name);
+    STORE_FLAG(is_chat_theme_inited);
+    STORE_FLAG(has_chat_theme);
     STORE_FLAG(has_flags3);
     END_STORE_FLAGS();
   }
@@ -3195,8 +3197,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_default_join_group_call_as_dialog_id) {
     store(default_join_group_call_as_dialog_id, storer);
   }
-  if (has_theme_name) {
-    store(theme_name, storer);
+  if (has_chat_theme) {
+    store(chat_theme, storer);
   }
   if (has_pending_join_requests) {
     store(pending_join_request_count, storer);
@@ -3258,7 +3260,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_active_group_call_id = false;
   bool has_message_ttl = false;
   bool has_default_join_group_call_as_dialog_id = false;
-  bool has_theme_name = false;
+  bool has_chat_theme = false;
   bool has_flags3 = false;
   bool has_pending_join_requests = false;
   bool action_bar_can_report_spam = false;
@@ -3342,8 +3344,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(has_default_join_group_call_as_dialog_id);
     PARSE_FLAG(has_bots);
     PARSE_FLAG(is_has_bots_inited);
-    PARSE_FLAG(is_theme_name_inited);
-    PARSE_FLAG(has_theme_name);
+    PARSE_FLAG(is_chat_theme_inited);
+    PARSE_FLAG(has_chat_theme);
     PARSE_FLAG(has_flags3);
     END_PARSE_FLAGS();
   } else {
@@ -3360,7 +3362,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     is_message_ttl_inited = false;
     has_bots = false;
     is_has_bots_inited = false;
-    is_theme_name_inited = false;
+    is_chat_theme_inited = false;
   }
   if (has_flags3) {
     BEGIN_PARSE_FLAGS();
@@ -3528,8 +3530,8 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   if (has_default_join_group_call_as_dialog_id) {
     parse(default_join_group_call_as_dialog_id, parser);
   }
-  if (has_theme_name) {
-    parse(theme_name, parser);
+  if (has_chat_theme) {
+    parse(chat_theme, parser);
   }
   if (has_pending_join_requests) {
     parse(pending_join_request_count, parser);
@@ -12330,8 +12332,8 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         reload_source = "on_get_dialogs init has_bots";
       } else if (!d->is_background_inited) {
         reload_source = "on_get_dialogs init background";
-      } else if (!d->is_theme_name_inited) {
-        reload_source = "on_get_dialogs init theme_name";
+      } else if (!d->is_chat_theme_inited) {
+        reload_source = "on_get_dialogs init theme";
       } else if (!d->is_available_reactions_inited) {
         reload_source = "on_get_dialogs init available_reactions";
       } else if (!d->is_last_pinned_message_id_inited) {
@@ -12339,7 +12341,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
       }
       if (reload_source != nullptr) {
         // asynchronously get dialog info from the server
-        // TODO add is_blocked/is_blocked_for_stories/has_bots/background/theme_name/available_reactions
+        // TODO add is_blocked/is_blocked_for_stories/has_bots/background/chat_theme/available_reactions
         // to telegram_api::dialog
         td_->dialog_manager_->reload_dialog_info_full(dialog_id, reload_source);
       }
@@ -16624,19 +16626,19 @@ td_api::object_ptr<td_api::chatBackground> MessagesManager::get_chat_background_
   return d->background_info.get_chat_background_object(td_);
 }
 
-string MessagesManager::get_dialog_theme_name(const Dialog *d) const {
+td_api::object_ptr<td_api::ChatTheme> MessagesManager::get_dialog_chat_theme_object(const Dialog *d) const {
   CHECK(d != nullptr);
   if (d->dialog_id.get_type() == DialogType::SecretChat) {
     auto user_id = td_->user_manager_->get_secret_chat_user_id(d->dialog_id.get_secret_chat_id());
     if (!user_id.is_valid()) {
-      return string();
+      return nullptr;
     }
     d = get_dialog(DialogId(user_id));
     if (d == nullptr) {
-      return string();
+      return nullptr;
     }
   }
-  return d->theme_name;
+  return d->chat_theme == nullptr ? nullptr : d->chat_theme->get_chat_theme_object(td_);
 }
 
 td_api::object_ptr<td_api::chatJoinRequestsInfo> MessagesManager::get_chat_join_requests_info_object(
@@ -16698,7 +16700,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       d->unread_reaction_count, get_chat_notification_settings_object(&d->notification_settings),
       std::move(available_reactions), d->message_ttl.get_message_auto_delete_time_object(),
       td_->dialog_manager_->get_dialog_emoji_status_object(d->dialog_id), get_chat_background_object(d),
-      get_dialog_theme_name(d), get_chat_action_bar_object(d), get_business_bot_manage_bar_object(d),
+      get_dialog_chat_theme_object(d), get_chat_action_bar_object(d), get_business_bot_manage_bar_object(d),
       get_video_chat_object(d), get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(),
       std::move(draft_message), d->client_data);
 }
@@ -26328,7 +26330,7 @@ void MessagesManager::send_update_new_chat(Dialog *d, const char *source) {
   auto chat_object = get_chat_object(d, source);
   bool has_action_bar = chat_object->action_bar_ != nullptr;
   bool has_background = chat_object->background_ != nullptr;
-  bool has_theme = !chat_object->theme_name_.empty();
+  bool has_theme = chat_object->theme_ != nullptr;
   d->last_sent_has_scheduled_messages = chat_object->has_scheduled_messages_;
   d->last_need_hide_dialog_draft_message = need_hide_dialog_draft_message(d);
   d->last_need_hide_reactions = need_hide_dialog_reactions(d);
@@ -26748,7 +26750,7 @@ void MessagesManager::send_update_secret_chats_with_user_theme(const Dialog *d) 
         if (secret_chat_d != nullptr && secret_chat_d->is_update_new_chat_sent) {
           send_closure(G()->td(), &Td::send_update,
                        td_api::make_object<td_api::updateChatTheme>(get_chat_id_object(dialog_id, "updateChatTheme"),
-                                                                    user_d->theme_name));
+                                                                    get_dialog_chat_theme_object(user_d)));
         }
       });
 }
@@ -26762,9 +26764,9 @@ void MessagesManager::send_update_chat_theme(const Dialog *d) {
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
   LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_theme";
   on_dialog_updated(d->dialog_id, "send_update_chat_theme");
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateChatTheme>(get_chat_id_object(d->dialog_id, "updateChatTheme"), d->theme_name));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatTheme>(get_chat_id_object(d->dialog_id, "updateChatTheme"),
+                                                            get_dialog_chat_theme_object(d)));
 
   send_update_secret_chats_with_user_theme(d);
 }
@@ -28050,7 +28052,7 @@ void MessagesManager::set_dialog_background(Dialog *d, BackgroundInfo &&backgrou
   }
 }
 
-void MessagesManager::on_update_dialog_theme_name(DialogId dialog_id, string theme_name) {
+void MessagesManager::on_update_dialog_chat_theme(DialogId dialog_id, ChatTheme &&chat_theme) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive theme in invalid " << dialog_id;
     return;
@@ -28059,33 +28061,41 @@ void MessagesManager::on_update_dialog_theme_name(DialogId dialog_id, string the
     return;
   }
 
-  auto d = get_dialog_force(dialog_id, "on_update_dialog_theme_name");
+  auto d = get_dialog_force(dialog_id, "on_update_dialog_chat_theme");
   if (d == nullptr) {
     // nothing to do
     return;
   }
 
-  set_dialog_theme_name(d, std::move(theme_name));
+  set_dialog_chat_theme(d, std::move(chat_theme));
 }
 
-void MessagesManager::set_dialog_theme_name(Dialog *d, string theme_name) {
+void MessagesManager::set_dialog_chat_theme(Dialog *d, ChatTheme &&theme) {
   CHECK(d != nullptr);
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  unique_ptr<ChatTheme> chat_theme;
+  if (!theme.is_default()) {
+    chat_theme = make_unique<ChatTheme>(std::move(theme));
+  }
 
-  bool is_changed = d->theme_name != theme_name;
-  if (!is_changed && d->is_theme_name_inited) {
+  bool is_changed = d->chat_theme != chat_theme;
+  if (!is_changed && d->is_chat_theme_inited) {
     return;
   }
-  d->theme_name = std::move(theme_name);
-  d->is_theme_name_inited = true;
+  d->chat_theme = std::move(chat_theme);
+  d->is_chat_theme_inited = true;
 
   if (is_changed) {
-    LOG(INFO) << "Set " << d->dialog_id << " theme to \"" << d->theme_name << '"';
+    if (d->chat_theme == nullptr) {
+      LOG(INFO) << "Remove theme in " << d->dialog_id;
+    } else {
+      LOG(INFO) << "Set " << d->dialog_id << " theme to " << *d->chat_theme;
+    }
     send_update_chat_theme(d);
   } else {
-    on_dialog_updated(d->dialog_id, "set_dialog_theme_name");
+    on_dialog_updated(d->dialog_id, "set_dialog_chat_theme");
   }
 }
 
@@ -29497,7 +29507,7 @@ void MessagesManager::set_dialog_message_ttl(DialogId dialog_id, int32 ttl, Prom
 }
 
 void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise) {
-  TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Write, "set_dialog_theme"));
+  TRY_STATUS_PROMISE(promise, check_dialog_access(dialog_id, true, AccessRights::Write, "set_dialog_theme"));
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -29516,11 +29526,6 @@ void MessagesManager::set_dialog_theme(DialogId dialog_id, const string &theme_n
     case DialogType::None:
     default:
       UNREACHABLE();
-  }
-
-  // TODO this can be wrong if there were previous change theme requests
-  if (get_dialog_theme_name(d) == theme_name) {
-    return promise.set_value(Unit());
   }
 
   td_->dialog_manager_->set_dialog_theme_on_server(dialog_id, theme_name, std::move(promise));
@@ -30540,7 +30545,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                                      m->content.get(), m->is_outgoing || dialog_id.get_type() != DialogType::User));
         break;
       case MessageContentType::ChatSetTheme:
-        // set_dialog_theme(d, get_message_content_chat_theme(m->content.get()));
+        set_dialog_chat_theme(d, get_message_content_chat_theme(m->content.get()));
         break;
       case MessageContentType::ChatCreate:
       case MessageContentType::ChannelCreate:
@@ -32116,7 +32121,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
       d->is_last_read_outbox_message_id_inited = true;
       d->is_last_pinned_message_id_inited = true;
       d->is_background_inited = true;
-      d->is_theme_name_inited = true;
+      d->is_chat_theme_inited = true;
       d->is_is_blocked_inited = true;
       d->is_is_blocked_for_stories_inited = true;
       d->is_view_as_messages_inited = true;
@@ -32297,8 +32302,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
       reload_source = "fix_new_dialog init has_bots";
     } else if (!d->is_background_inited) {
       reload_source = "fix_new_dialog init background";
-    } else if (!d->is_theme_name_inited) {
-      reload_source = "fix_new_dialog init theme_name";
+    } else if (!d->is_chat_theme_inited) {
+      reload_source = "fix_new_dialog init theme";
     } else if (!d->is_available_reactions_inited) {
       reload_source = "fix_new_dialog init available_reactions";
     } else if (!d->is_folder_id_inited && order != DEFAULT_ORDER) {

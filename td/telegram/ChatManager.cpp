@@ -5734,7 +5734,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
     td_->messages_manager_->on_update_dialog_available_reactions(
         DialogId(chat_id), std::move(chat->available_reactions_), chat->reactions_limit_, false);
 
-    td_->messages_manager_->on_update_dialog_theme_name(DialogId(chat_id), std::move(chat->theme_emoticon_));
+    td_->messages_manager_->on_update_dialog_chat_theme(DialogId(chat_id),
+                                                        ChatTheme::emoji(std::move(chat->theme_emoticon_)));
 
     td_->messages_manager_->on_update_dialog_pending_join_requests(DialogId(chat_id), chat->requests_pending_,
                                                                    std::move(chat->recent_requesters_));
@@ -5792,7 +5793,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         DialogId(channel_id), std::move(channel->available_reactions_), channel->reactions_limit_,
         channel->paid_reactions_available_);
 
-    td_->messages_manager_->on_update_dialog_theme_name(DialogId(channel_id), std::move(channel->theme_emoticon_));
+    td_->messages_manager_->on_update_dialog_chat_theme(DialogId(channel_id),
+                                                        ChatTheme::emoji(std::move(channel->theme_emoticon_)));
 
     td_->messages_manager_->on_update_dialog_pending_join_requests(DialogId(channel_id), channel->requests_pending_,
                                                                    std::move(channel->recent_requesters_));

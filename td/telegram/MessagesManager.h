@@ -110,6 +110,7 @@ namespace td {
 
 struct BinlogEvent;
 class BusinessBotManageBar;
+class ChatTheme;
 class Dependencies;
 class DialogActionBar;
 class DialogFilter;
@@ -285,7 +286,7 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_background(DialogId dialog_id, telegram_api::object_ptr<telegram_api::WallPaper> &&wallpaper);
 
-  void on_update_dialog_theme_name(DialogId dialog_id, string theme_name);
+  void on_update_dialog_chat_theme(DialogId dialog_id, ChatTheme &&chat_theme);
 
   void on_update_dialog_pending_join_requests(DialogId dialog_id, int32 pending_join_request_count,
                                               vector<int64> pending_requesters);
@@ -1259,7 +1260,7 @@ class MessagesManager final : public Actor {
     DialogId default_join_group_call_as_dialog_id;
     DialogId default_send_message_as_dialog_id;
     BackgroundInfo background_info;
-    string theme_name;
+    unique_ptr<ChatTheme> chat_theme;
     int32 pending_join_request_count = 0;
     vector<UserId> pending_join_request_user_ids;
     int32 have_full_history_source = 0;
@@ -1341,7 +1342,7 @@ class MessagesManager final : public Actor {
     bool is_saved_messages_view_as_messages_inited = false;
     bool is_has_bots_inited = false;
     bool is_background_inited = false;
-    bool is_theme_name_inited = false;
+    bool is_chat_theme_inited = false;
     bool is_available_reactions_inited = false;
     bool had_yet_unsent_message_id_overflow = false;
     bool need_repair_unread_reaction_count = false;
@@ -2558,7 +2559,7 @@ class MessagesManager final : public Actor {
 
   void set_dialog_background(Dialog *d, BackgroundInfo &&background_info);
 
-  void set_dialog_theme_name(Dialog *d, string theme_name);
+  void set_dialog_chat_theme(Dialog *d, ChatTheme &&chat_theme);
 
   void set_dialog_pending_join_requests(Dialog *d, int32 pending_join_request_count,
                                         vector<UserId> pending_join_request_user_ids);
@@ -2669,7 +2670,7 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::chatBackground> get_chat_background_object(const Dialog *d) const;
 
-  string get_dialog_theme_name(const Dialog *d) const;
+  td_api::object_ptr<td_api::ChatTheme> get_dialog_chat_theme_object(const Dialog *d) const;
 
   td_api::object_ptr<td_api::chatJoinRequestsInfo> get_chat_join_requests_info_object(const Dialog *d) const;
 
