@@ -48,6 +48,13 @@ void ChatTheme::store(StorerT &storer) const {
 
 template <class ParserT>
 void ChatTheme::parse(ParserT &parser) {
+  if (parser.version() < static_cast<int32>(Version::SupportGiftChatThemes)) {
+    td::parse(emoji_, parser);
+    if (!emoji_.empty()) {
+      type_ = Type::Emoji;
+    }
+    return;
+  }
   bool has_type;
   bool has_emoji;
   bool has_star_gift;

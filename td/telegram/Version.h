@@ -68,6 +68,7 @@ enum class Version : int32 {
   SupportMultipleSharedUsers,
   SupportMoreEmojiGroups,
   SupportStarGiveaways,
+  SupportGiftChatThemes,  // 55
   Next
 };
 
