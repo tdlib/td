@@ -252,6 +252,9 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarGift &star_gift) {
+  if (star_gift.is_unique_) {
+    return string_builder << "UniqueGift[" << star_gift.id_ << " of " << star_gift.owner_dialog_id_ << ']';
+  }
   return string_builder << "Gift[" << star_gift.id_ << " for " << star_gift.star_count_ << ']';
 }
 
