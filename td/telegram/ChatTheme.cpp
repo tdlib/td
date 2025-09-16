@@ -70,6 +70,15 @@ ChatTheme::ChatTheme(Td *td, telegram_api::object_ptr<telegram_api::ChatTheme> t
   }
 }
 
+ChatTheme ChatTheme::emoji(string &&emoji) {
+  ChatTheme result;
+  if (!emoji.empty()) {
+    result.type_ = Type::Emoji;
+    result.emoji_ = std::move(emoji);
+  }
+  return result;
+}
+
 td_api::object_ptr<td_api::giftChatTheme> ChatTheme::get_gift_chat_theme_object(Td *td) const {
   CHECK(type_ == Type::Gift);
   return td_api::make_object<td_api::giftChatTheme>(star_gift_.get_upgraded_gift_object(td),

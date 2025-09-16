@@ -38,6 +38,8 @@ class ChatTheme {
 
   ChatTheme(Td *td, telegram_api::object_ptr<telegram_api::ChatTheme> theme);
 
+  static ChatTheme emoji(string &&emoji);
+
   bool is_default() const {
     return type_ == Type::Default;
   }
