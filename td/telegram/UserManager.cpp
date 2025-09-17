@@ -3070,7 +3070,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   }
 
   bool is_me_regular_user = !td_->auth_manager_->is_bot();
-  if (is_received || u->need_apply_min_photo || !u->is_received) {
+  if (is_received || u->need_apply_min_photo || !u->is_received || u->is_deleted) {
     on_update_user_photo(u, user_id, std::move(user->photo_), source);
   }
   if (is_me_regular_user) {
