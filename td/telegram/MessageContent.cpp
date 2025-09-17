@@ -8963,9 +8963,6 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionSetChatTheme::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionSetChatTheme>(action_ptr);
-      if (action->theme_->get_id() != telegram_api::chatTheme::ID) {
-        return td::make_unique<MessageUnsupported>();
-      }
       return td::make_unique<MessageChatSetTheme>(ChatTheme(td, std::move(action->theme_)));
     }
     case telegram_api::messageActionChatJoinedByRequest::ID:
