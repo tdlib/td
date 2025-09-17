@@ -24,6 +24,7 @@
 #include "td/telegram/BusinessWorkHours.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/ChatTheme.h"
 #include "td/telegram/CommonDialogManager.h"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Dependencies.h"
@@ -3389,7 +3390,7 @@ void UserManager::register_user_photo(User *u, UserId user_id, const Photo &phot
     if (file_source_id.is_valid()) {
       VLOG(file_references)
           << "Forget " << file_source_id << " for photo " << photo_id << " of " << user_id
-          << ", because the photo is immutable, fully received and all its files has already been registered";
+          << ", because the photo is immutable, fully received and all its files have already been registered";
       user_profile_photo_file_source_ids_.erase(std::make_pair(user_id, photo_id));
     } else {
       VLOG(file_references) << "Need to create new file source for photo " << photo_id << " of " << user_id;
@@ -6541,7 +6542,7 @@ void UserManager::add_saved_music(FileId file_id, FileId after_file_id, Promise<
   TRY_RESULT_PROMISE(promise, input_document, check_saved_music_file_id(file_id, false));
   TRY_RESULT_PROMISE(promise, after_input_document, check_saved_music_file_id(after_file_id, true));
   if (file_id == after_file_id) {
-    return promise.set_error(Status::Error(400, "Can't place saved music after self"));
+    return promise.set_error(400, "Can't place saved music after self");
   }
 
   td_->create_handler<SaveMusicQuery>(std::move(promise))

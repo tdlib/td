@@ -10,6 +10,7 @@
 
 #include "td/telegram/StarGift.hpp"
 #include "td/telegram/ThemeSettings.hpp"
+#include "td/telegram/Version.h"
 
 #include "td/utils/tl_helpers.h"
 

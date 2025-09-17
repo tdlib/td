@@ -9,6 +9,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BotVerification.h"
 #include "td/telegram/BotVerification.hpp"
+#include "td/telegram/ChatTheme.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogInviteLink.hpp"

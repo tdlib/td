@@ -6,6 +6,8 @@
 //
 #include "td/telegram/ProfileTab.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 static bool is_allowed_profile_tab(ProfileTab profile_tab, ChannelType channel_type) {

@@ -2961,7 +2961,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@message_auto_delete_time Current message auto-delete or self-destruct timer setting for the chat, in seconds; 0 if disabled. Self-destruct timer in secret chats starts after the message or its content is viewed. Auto-delete timer in other chats starts from the send date
 //@emoji_status Emoji status to be shown along with chat title; may be null
 //@background Background set for the chat; may be null if none
-//@theme Theme set fot the chat; may be null if none
+//@theme Theme set for the chat; may be null if none
 //@action_bar Information about actions which must be possible to do through the chat action bar; may be null if none
 //@business_bot_manage_bar Information about bar for managing a business bot in the chat; may be null if none
 //@video_chat Information about video chat of the chat
@@ -7228,10 +7228,10 @@ giftChatThemes themes:vector<giftChatTheme> next_offset:string = GiftChatThemes;
 
 //@class ChatTheme @description Describes a chat theme
 
-//@description A theme based on an emoji @name Name of the theme; full theme description is received through updateEmojiChatThemes
+//@description A chat theme based on an emoji @name Name of the theme; full theme description is received through updateEmojiChatThemes
 chatThemeEmoji name:string = ChatTheme;
 
-//@description A theme based on an upgraded gift @gift_theme Description of the theme
+//@description A chat theme based on an upgraded gift @gift_theme The chat theme
 chatThemeGift gift_theme:giftChatTheme = ChatTheme;
 
 
