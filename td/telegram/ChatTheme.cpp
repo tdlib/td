@@ -20,7 +20,6 @@ ChatTheme::ChatTheme(Td *td, telegram_api::object_ptr<telegram_api::ChatTheme> t
     case telegram_api::chatTheme::ID: {
       auto chat_theme = telegram_api::move_object_as<telegram_api::chatTheme>(theme);
       if (chat_theme->emoticon_.empty()) {
-        LOG(ERROR) << "Receive " << to_string(chat_theme);
         return;
       }
       type_ = Type::Emoji;
