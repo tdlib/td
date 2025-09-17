@@ -1663,6 +1663,16 @@ void StarManager::on_update_stars_revenue_status(
     LOG(ERROR) << "Receive " << to_string(update);
     return;
   }
+  if (update->status_->overall_revenue_->get_id() == telegram_api::starsTonAmount::ID) {
+    if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
+      LOG(ERROR) << "Receive " << to_string(update);
+    } else {
+      send_closure(
+          G()->td(), &Td::send_update,
+          td_api::make_object<td_api::updateTonRevenueStatus>(convert_ton_revenue_status(std::move(update->status_))));
+    }
+    return;
+  }
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateStarRevenueStatus>(
                    get_message_sender_object(td_, dialog_id, "updateStarRevenueStatus"),
