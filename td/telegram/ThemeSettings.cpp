@@ -32,9 +32,9 @@ td_api::object_ptr<td_api::themeSettings> ThemeSettings::get_theme_settings_obje
     return td_api::make_object<td_api::backgroundFillGradient>(message_colors_[1], message_colors_[0], 0);
   }();
 
-  // ignore base_theme_ for now
-  return td_api::make_object<td_api::themeSettings>(accent_color_, background_info_.get_background_object(td),
-                                                    std::move(fill), animate_message_colors_, message_accent_color_);
+  return td_api::make_object<td_api::themeSettings>(get_built_in_theme_object(base_theme_), accent_color_,
+                                                    background_info_.get_background_object(td), std::move(fill),
+                                                    animate_message_colors_, message_accent_color_);
 }
 
 bool operator==(const ThemeSettings &lhs, const ThemeSettings &rhs) {

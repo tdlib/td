@@ -3323,13 +3323,32 @@ sharedUser user_id:int53 first_name:string last_name:string username:string phot
 sharedChat chat_id:int53 title:string username:string photo:photo = SharedChat;
 
 
+//@class BuiltInTheme @description Describes a built-in theme of an official app
+
+//@description Classic light theme
+builtInThemeClassic = BuiltInTheme;
+
+//@description Regular light theme
+builtInThemeDay = BuiltInTheme;
+
+//@description Regular dark theme
+builtInThemeNight = BuiltInTheme;
+
+//@description Tinted dark theme
+builtInThemeTinted = BuiltInTheme;
+
+//@description Arctic light theme
+builtInThemeArctic = BuiltInTheme;
+
+
 //@description Describes theme settings
+//@base_theme Base theme for this theme
 //@accent_color Theme accent color in ARGB format
 //@background The background to be used in chats; may be null
 //@outgoing_message_fill The fill to be used as a background for outgoing messages
 //@animate_outgoing_message_fill If true, the freeform gradient fill needs to be animated on every sent message
 //@outgoing_message_accent_color Accent color of outgoing messages in ARGB format
-themeSettings accent_color:int32 background:background outgoing_message_fill:BackgroundFill animate_outgoing_message_fill:Bool outgoing_message_accent_color:int32 = ThemeSettings;
+themeSettings base_theme:BuiltInTheme accent_color:int32 background:background outgoing_message_fill:BackgroundFill animate_outgoing_message_fill:Bool outgoing_message_accent_color:int32 = ThemeSettings;
 
 
 //@class RichText @description Describes a formatted text object
