@@ -44,10 +44,6 @@ class ChatTheme {
     return type_ == Type::Default;
   }
 
-  bool is_emoji() const {
-    return type_ == Type::Emoji;
-  }
-
   bool is_gift() const {
     return type_ == Type::Gift;
   }
