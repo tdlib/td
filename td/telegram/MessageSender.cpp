@@ -96,7 +96,7 @@ vector<DialogId> get_message_sender_dialog_ids(Td *td,
       continue;
     }
     if (dialog_id.get_type() == DialogType::User) {
-      if (!td->user_manager_->have_user(dialog_id.get_user_id())) {
+      if (!td->user_manager_->have_min_user(dialog_id.get_user_id())) {
         LOG(ERROR) << "Receive unknown " << dialog_id.get_user_id();
         continue;
       }

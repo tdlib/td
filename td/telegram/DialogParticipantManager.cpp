@@ -1585,7 +1585,7 @@ void DialogParticipantManager::finish_get_dialog_participant(
 
   auto participant_dialog_id = dialog_participant.dialog_id_;
   bool is_user = participant_dialog_id.get_type() == DialogType::User;
-  if ((is_user && !td_->user_manager_->have_user(participant_dialog_id.get_user_id())) ||
+  if ((is_user && !td_->user_manager_->have_min_user(participant_dialog_id.get_user_id())) ||
       (!is_user && !td_->messages_manager_->have_dialog(participant_dialog_id))) {
     return promise.set_error(400, "Member not found");
   }

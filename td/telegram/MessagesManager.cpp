@@ -13229,7 +13229,7 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
 
   bool need_load = !have_dialog_force(dialog_id, "load_dialog");
   if (!need_load && td_->auth_manager_->is_bot() && dialog_id.get_type() == DialogType::User &&
-      !td_->user_manager_->have_user(dialog_id.get_user_id())) {
+      !td_->user_manager_->have_accessible_user(dialog_id.get_user_id())) {
     need_load = true;
   }
   if (need_load) {
@@ -20682,7 +20682,7 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
   if (is_broadcast && !td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
     return promise.set_value(td_api::make_object<td_api::chatMessageSenders>());
   }
-  if (!td_->user_manager_->have_user(td_->user_manager_->get_my_id())) {
+  if (!td_->user_manager_->have_min_user(td_->user_manager_->get_my_id())) {
     auto new_promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
           if (result.is_error()) {
@@ -24639,7 +24639,7 @@ void MessagesManager::share_dialogs_with_bot(MessageFullId message_full_id, int3
       if (!expect_user) {
         return promise.set_error(400, "Wrong chat type");
       }
-      if (!td_->user_manager_->have_user(shared_dialog_id.get_user_id())) {
+      if (!td_->user_manager_->have_accessible_user(shared_dialog_id.get_user_id())) {
         return promise.set_error(400, "Shared user not found");
       }
     }

@@ -202,7 +202,7 @@ class UserManager final : public Actor {
 
   void invalidate_user_full(UserId user_id);
 
-  bool have_user(UserId user_id) const;
+  bool have_accessible_user(UserId user_id) const;
 
   bool have_min_user(UserId user_id) const;
 

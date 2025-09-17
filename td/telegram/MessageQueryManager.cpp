@@ -2476,7 +2476,7 @@ void MessageQueryManager::get_paid_message_reaction_senders(
   if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
     return promise.set_value(td_api::make_object<td_api::messageSenders>());
   }
-  if (!td_->user_manager_->have_user(td_->user_manager_->get_my_id())) {
+  if (!td_->user_manager_->have_min_user(td_->user_manager_->get_my_id())) {
     auto new_promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
           if (result.is_error()) {

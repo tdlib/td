@@ -2678,7 +2678,7 @@ vector<UserId> UserManager::get_user_ids(vector<telegram_api::object_ptr<telegra
       continue;
     }
     on_get_user(std::move(user), source);
-    if (have_user(user_id)) {
+    if (have_min_user(user_id)) {
       user_ids.push_back(user_id);
     }
   }
@@ -4382,7 +4382,7 @@ void UserManager::invalidate_user_full(UserId user_id) {
   }
 }
 
-bool UserManager::have_user(UserId user_id) const {
+bool UserManager::have_accessible_user(UserId user_id) const {
   auto u = get_user(user_id);
   return u != nullptr && u->is_received;
 }
@@ -4729,7 +4729,7 @@ bool UserManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&promi
     get_user_force(user_id, "get_user");
   }
 
-  if (td_->auth_manager_->is_bot() ? !have_user(user_id) : !have_min_user(user_id)) {
+  if (td_->auth_manager_->is_bot() ? !have_accessible_user(user_id) : !have_min_user(user_id)) {
     if (left_tries > 2 && G()->use_chat_info_database()) {
       send_closure_later(actor_id(this), &UserManager::load_user_from_database, nullptr, user_id, std::move(promise));
       return false;
@@ -6312,7 +6312,7 @@ void UserManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&resu
     return;
   }
   if (user_photos->count == -1) {
-    CHECK(have_user(user_id));
+    CHECK(have_min_user(user_id));
     // received result has just been dropped; resend request
     if (++pending_requests[0].retry_count >= 3) {
       pending_requests[0].promise.set_error(500, "Failed to return profile photos");
@@ -6716,7 +6716,7 @@ void UserManager::finish_get_user_saved_music(UserId user_id, Result<Unit> &&res
     return;
   }
   if (user_saved_music->count == -1) {
-    CHECK(have_user(user_id));
+    CHECK(have_min_user(user_id));
     // received result has just been dropped; resend request
     if (++pending_requests[0].retry_count >= 3) {
       pending_requests[0].promise.set_error(500, "Failed to return saved music");
@@ -7935,7 +7935,7 @@ vector<UserId> UserManager::get_close_friends(Promise<Unit> &&promise) {
 
 void UserManager::set_close_friends(vector<UserId> user_ids, Promise<Unit> &&promise) {
   for (auto &user_id : user_ids) {
-    if (!have_user(user_id)) {
+    if (!have_min_user(user_id)) {
       return promise.set_error(400, "User not found");
     }
   }

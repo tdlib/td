@@ -1517,7 +1517,7 @@ bool DialogManager::have_dialog_info(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       UserId user_id = dialog_id.get_user_id();
-      return td_->user_manager_->have_user(user_id);
+      return td_->user_manager_->have_accessible_user(user_id);
     }
     case DialogType::Chat: {
       ChatId chat_id = dialog_id.get_chat_id();
