@@ -2880,6 +2880,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   bool have_access_hash = (flags & telegram_api::user::ACCESS_HASH_MASK) != 0;
   bool is_received = !user->min_;
   bool is_contact = user->contact_;
+  bool is_deleted = user->deleted_;
 
   User *u = get_user(user_id);
   if (u == nullptr) {
@@ -2906,6 +2907,9 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     if (unknown_users_.erase(user_id) != 0) {
       u->is_photo_inited = true;
     }
+  } else if (is_deleted && !is_received && user_id == get_my_id()) {
+    LOG(INFO) << "Ignore self as frozen min-user";
+    return;
   }
 
   if (have_access_hash) {  // access_hash must be updated before photo
@@ -2923,7 +2927,6 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   bool is_verified = user->verified_;
   bool is_premium = user->premium_;
   bool is_support = user->support_;
-  bool is_deleted = user->deleted_;
   bool can_join_groups = !user->bot_nochats_;
   bool can_read_all_group_messages = user->bot_chat_history_;
   bool can_be_added_to_attach_menu = user->bot_attach_menu_;
