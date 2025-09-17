@@ -1149,7 +1149,7 @@ class GetStarsRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
   explicit GetStarsRevenueWithdrawalUrlQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, int64 star_count,
+  void send(DialogId dialog_id, bool is_ton, int64 amount,
             telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password) {
     dialog_id_ = dialog_id;
 
@@ -1160,7 +1160,7 @@ class GetStarsRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
 
     int32 flags = telegram_api::payments_getStarsRevenueWithdrawalUrl::AMOUNT_MASK;
     send_query(G()->net_query_creator().create(telegram_api::payments_getStarsRevenueWithdrawalUrl(
-        flags, false, std::move(input_peer), star_count, std::move(input_check_password))));
+        flags, is_ton, std::move(input_peer), amount, std::move(input_check_password))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1589,37 +1589,47 @@ void StarManager::get_star_revenue_statistics(const td_api::object_ptr<td_api::M
   td_->create_handler<GetStarsRevenueStatsQuery>(std::move(promise))->send(dialog_id, is_dark);
 }
 
-void StarManager::get_star_withdrawal_url(const td_api::object_ptr<td_api::MessageSender> &owner_id, int64 star_count,
-                                          const string &password, Promise<string> &&promise) {
-  TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
-  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
+void StarManager::get_withdrawal_url(DialogId dialog_id, bool is_ton, int64 amount, const string &password,
+                                     Promise<string> &&promise) {
   if (password.empty()) {
     return promise.set_error(400, "PASSWORD_HASH_INVALID");
   }
   send_closure(
       td_->password_manager_, &PasswordManager::get_input_check_password_srp, password,
-      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, star_count, promise = std::move(promise)](
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, is_ton, amount, promise = std::move(promise)](
                                  Result<telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP>> result) mutable {
         if (result.is_error()) {
           return promise.set_error(result.move_as_error());
         }
-        send_closure(actor_id, &StarManager::send_get_star_withdrawal_url_query, dialog_id, star_count,
+        send_closure(actor_id, &StarManager::send_get_withdrawal_url_query, dialog_id, is_ton, amount,
                      result.move_as_ok(), std::move(promise));
       }));
 }
 
-void StarManager::send_get_star_withdrawal_url_query(
-    DialogId dialog_id, int64 star_count,
+void StarManager::send_get_withdrawal_url_query(
+    DialogId dialog_id, bool is_ton, int64 amount,
     telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password, Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   td_->create_handler<GetStarsRevenueWithdrawalUrlQuery>(std::move(promise))
-      ->send(dialog_id, star_count, std::move(input_check_password));
+      ->send(dialog_id, is_ton, amount, std::move(input_check_password));
+}
+
+void StarManager::get_star_withdrawal_url(const td_api::object_ptr<td_api::MessageSender> &owner_id, int64 star_count,
+                                          const string &password, Promise<string> &&promise) {
+  TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
+  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
+
+  get_withdrawal_url(dialog_id, false, star_count, password, std::move(promise));
 }
 
 void StarManager::get_ton_revenue_statistics(bool is_dark,
                                              Promise<td_api::object_ptr<td_api::tonRevenueStatistics>> &&promise) {
   td_->create_handler<GetTonRevenueStatsQuery>(std::move(promise))->send(is_dark);
+}
+
+void StarManager::get_ton_withdrawal_url(int64 ton_count, const string &password, Promise<string> &&promise) {
+  get_withdrawal_url(td_->dialog_manager_->get_my_dialog_id(), true, ton_count, password, std::move(promise));
 }
 
 void StarManager::get_star_ad_account_url(const td_api::object_ptr<td_api::MessageSender> &owner_id,

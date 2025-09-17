@@ -7930,7 +7930,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getStarRevenueStatistics>(as_message_sender(owner_id), is_dark));
     } else if (op == "gswu") {
       string owner_id;
-      int32 star_count;
+      int64 star_count;
       string password;
       get_args(args, owner_id, star_count, password);
       send_request(
@@ -7943,6 +7943,11 @@ class CliClient final : public Actor {
       bool is_dark;
       get_args(args, is_dark);
       send_request(td_api::make_object<td_api::getTonRevenueStatistics>(is_dark));
+    } else if (op == "gtwu") {
+      int64 ton_count;
+      string password;
+      get_args(args, ton_count, password);
+      send_request(td_api::make_object<td_api::getTonWithdrawalUrl>(ton_count, password));
     } else {
       op_not_found_count++;
     }

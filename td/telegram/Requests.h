@@ -1519,6 +1519,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getTonRevenueStatistics &request);
 
+  void on_request(uint64 id, const td_api::getTonWithdrawalUrl &request);
+
   void on_request(uint64 id, const td_api::getMessageStatistics &request);
 
   void on_request(uint64 id, const td_api::getStoryStatistics &request);
