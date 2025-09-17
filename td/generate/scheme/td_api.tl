@@ -7366,8 +7366,8 @@ pushMessageContentAudio audio:audio is_pinned:Bool = PushMessageContent;
 //@description A message with a user contact @name Contact's name @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentContact name:string is_pinned:Bool = PushMessageContent;
 
-//@description A contact has registered with Telegram
-pushMessageContentContactRegistered = PushMessageContent;
+//@description A contact has registered with Telegram @as_premium_account True, if the user joined Telegram as a Telegram Premium account
+pushMessageContentContactRegistered as_premium_account:Bool = PushMessageContent;
 
 //@description A document message (a general file) @document Message content; may be null @is_pinned True, if the message is a pinned message with the specified content
 pushMessageContentDocument document:document is_pinned:Bool = PushMessageContent;

@@ -241,7 +241,10 @@ class NotificationTypePushMessage final : public NotificationType {
           return td_api::make_object<td_api::pushMessageContentContact>(arg, is_pinned);
         }
         if (key == "MESSAGE_CONTACT_REGISTERED") {
-          return td_api::make_object<td_api::pushMessageContentContactRegistered>();
+          return td_api::make_object<td_api::pushMessageContentContactRegistered>(false);
+        }
+        if (key == "MESSAGE_CONTACT_REGISTERED_PREMIUM") {
+          return td_api::make_object<td_api::pushMessageContentContactRegistered>(true);
         }
         break;
       case 'D':
