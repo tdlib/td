@@ -7939,6 +7939,10 @@ class CliClient final : public Actor {
       string owner_id;
       get_args(args, owner_id);
       send_request(td_api::make_object<td_api::getStarAdAccountUrl>(as_message_sender(owner_id)));
+    } else if (op == "gtrs") {
+      bool is_dark;
+      get_args(args, is_dark);
+      send_request(td_api::make_object<td_api::getTonRevenueStatistics>(is_dark));
     } else {
       op_not_found_count++;
     }

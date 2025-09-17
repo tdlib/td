@@ -8797,7 +8797,7 @@ chatRevenueTransaction cryptocurrency:string cryptocurrency_amount:int64 type:Ch
 chatRevenueTransactions ton_amount:int53 transactions:vector<chatRevenueTransaction> next_offset:string = ChatRevenueTransactions;
 
 
-//@description Contains information about Telegram Stars earned by a bot or a chat
+//@description Contains information about Telegram Stars earned by a user or a chat
 //@total_amount Total amount of Telegram Stars earned
 //@current_amount The amount of Telegram Stars that aren't withdrawn yet
 //@available_amount The amount of Telegram Stars that are available for withdrawal
@@ -8805,11 +8805,25 @@ chatRevenueTransactions ton_amount:int53 transactions:vector<chatRevenueTransact
 //@next_withdrawal_in Time left before the next withdrawal can be started, in seconds; 0 if withdrawal can be started now
 starRevenueStatus total_amount:starAmount current_amount:starAmount available_amount:starAmount withdrawal_enabled:Bool next_withdrawal_in:int32 = StarRevenueStatus;
 
-//@description A detailed statistics about Telegram Stars earned by a bot or a chat
+//@description A detailed statistics about Telegram Stars earned by a user or a chat
 //@revenue_by_day_graph A graph containing amount of revenue in a given day
 //@status Telegram Star revenue status
 //@usd_rate Current conversion rate of a Telegram Star to USD
 starRevenueStatistics revenue_by_day_graph:StatisticalGraph status:starRevenueStatus usd_rate:double = StarRevenueStatistics;
+
+//@description Contains information about Toncoind earned by the current user
+//@total_amount Total amount of Toncoins earned; in the smallest units of the cryptocurrency
+//@balance_amount Amount of Toncoins that aren't withdrawn yet; in the smallest units of the cryptocurrency
+//@available_amount Amount of Toncoins that are available for withdrawal; in the smallest units of the cryptocurrency
+//@withdrawal_enabled True, if Toncoins can be withdrawn now or later
+//@next_withdrawal_in Time left before the next withdrawal can be started, in seconds; 0 if withdrawal can be started now
+tonRevenueStatus total_amount:int64 balance_amount:int64 available_amount:int64 withdrawal_enabled:Bool next_withdrawal_in:int32 = TonRevenueStatus;
+
+//@description A detailed statistics about Toncoins earned by the current user
+//@revenue_by_day_graph A graph containing amount of revenue in a given day
+//@status Amount of earned revenue
+//@usd_rate Current conversion rate of nanotoncoin to USD cents
+tonRevenueStatistics revenue_by_day_graph:StatisticalGraph status:tonRevenueStatus usd_rate:double = TonRevenueStatistics;
 
 
 //@description A point on a Cartesian plane @x The point's first coordinate @y The point's second coordinate
@@ -13475,6 +13489,9 @@ getStarWithdrawalUrl owner_id:MessageSender star_count:int53 password:string = H
 //@description Returns a URL for a Telegram Ad platform account that can be used to set up advertisements for the chat paid in the owned Telegram Stars
 //@owner_id Identifier of the owner of the Telegram Stars; can be identifier of an owned bot, or identifier of an owned channel chat
 getStarAdAccountUrl owner_id:MessageSender = HttpUrl;
+
+//@description Returns detailed Toncoin revenue statistics of the current user @is_dark Pass true if a dark theme is used by the application
+getTonRevenueStatistics is_dark:Bool = TonRevenueStatistics;
 
 
 //@description Returns detailed statistics about a chat. Currently, this method can be used only for supergroups and channels. Can be used only if supergroupFullInfo.can_get_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application
