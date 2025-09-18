@@ -13497,10 +13497,9 @@ getStarAdAccountUrl owner_id:MessageSender = HttpUrl;
 //@description Returns detailed Toncoin revenue statistics of the current user @is_dark Pass true if a dark theme is used by the application
 getTonRevenueStatistics is_dark:Bool = TonRevenueStatistics;
 
-//@description Returns a URL for Toncoin withdrawal from the current user's account
-//@ton_count The number of Toncoins to withdraw
+//@description Returns a URL for Toncoin withdrawal from the current user's account. Up to 100000 Toncoins will be withdrawn with one transaction
 //@password The 2-step verification password of the current user
-getTonWithdrawalUrl ton_count:int53 password:string = HttpUrl;
+getTonWithdrawalUrl password:string = HttpUrl;
 
 
 //@description Returns detailed statistics about a chat. Currently, this method can be used only for supergroups and channels. Can be used only if supergroupFullInfo.can_get_statistics == true @chat_id Chat identifier @is_dark Pass true if a dark theme is used by the application

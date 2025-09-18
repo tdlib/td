@@ -7242,7 +7242,7 @@ void Requests::on_request(uint64 id, const td_api::getTonRevenueStatistics &requ
 void Requests::on_request(uint64 id, const td_api::getTonWithdrawalUrl &request) {
   CHECK_IS_USER();
   CREATE_HTTP_URL_REQUEST_PROMISE();
-  td_->star_manager_->get_ton_withdrawal_url(request.ton_count_, request.password_, std::move(promise));
+  td_->star_manager_->get_ton_withdrawal_url(request.password_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getMessageStatistics &request) {

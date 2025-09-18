@@ -1628,8 +1628,8 @@ void StarManager::get_ton_revenue_statistics(bool is_dark,
   td_->create_handler<GetTonRevenueStatsQuery>(std::move(promise))->send(is_dark);
 }
 
-void StarManager::get_ton_withdrawal_url(int64 ton_count, const string &password, Promise<string> &&promise) {
-  get_withdrawal_url(td_->dialog_manager_->get_my_dialog_id(), true, ton_count, password, std::move(promise));
+void StarManager::get_ton_withdrawal_url(const string &password, Promise<string> &&promise) {
+  get_withdrawal_url(td_->dialog_manager_->get_my_dialog_id(), true, 0, password, std::move(promise));
 }
 
 void StarManager::get_star_ad_account_url(const td_api::object_ptr<td_api::MessageSender> &owner_id,

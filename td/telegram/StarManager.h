@@ -83,7 +83,7 @@ class StarManager final : public Actor {
 
   void get_ton_revenue_statistics(bool is_dark, Promise<td_api::object_ptr<td_api::tonRevenueStatistics>> &&promise);
 
-  void get_ton_withdrawal_url(int64 ton_count, const string &password, Promise<string> &&promise);
+  void get_ton_withdrawal_url(const string &password, Promise<string> &&promise);
 
   void get_paid_message_revenue(UserId user_id, Promise<td_api::object_ptr<td_api::starCount>> &&promise);
 

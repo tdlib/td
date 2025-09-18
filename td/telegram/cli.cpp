@@ -7944,10 +7944,9 @@ class CliClient final : public Actor {
       get_args(args, is_dark);
       send_request(td_api::make_object<td_api::getTonRevenueStatistics>(is_dark));
     } else if (op == "gtwu") {
-      int64 ton_count;
       string password;
-      get_args(args, ton_count, password);
-      send_request(td_api::make_object<td_api::getTonWithdrawalUrl>(ton_count, password));
+      get_args(args, password);
+      send_request(td_api::make_object<td_api::getTonWithdrawalUrl>(password));
     } else {
       op_not_found_count++;
     }
