@@ -1765,7 +1765,7 @@ class MessagesManager final : public Actor {
 
   bool can_set_message_fact_check(DialogId dialog_id, const Message *m) const;
 
-  Status can_get_message_read_date(DialogId dialog_id, const Message *m) const TD_WARN_UNUSED_RESULT;
+  Status can_get_message_read_date(const Dialog *d, const Message *m) const TD_WARN_UNUSED_RESULT;
 
   bool can_get_message_video_advertisements(DialogId dialog_id, const Message *m) const;
 

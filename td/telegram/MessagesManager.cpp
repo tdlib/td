@@ -14360,7 +14360,7 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
       info.unread_message_count, std::move(messages), std::move(draft_message));
 }
 
-Status MessagesManager::can_get_message_read_date(DialogId dialog_id, const Message *m) const {
+Status MessagesManager::can_get_message_read_date(const Dialog *d, const Message *m) const {
   if (td_->auth_manager_->is_bot()) {
     return Status::Error(400, "User is bot");
   }
@@ -14372,6 +14372,7 @@ Status MessagesManager::can_get_message_read_date(DialogId dialog_id, const Mess
     return Status::Error(400, "Message is too old");
   }
 
+  auto dialog_id = d->dialog_id;
   if (dialog_id.get_type() != DialogType::User) {
     return Status::Error(400, "Read date can be received only in private chats");
   }
@@ -14397,6 +14398,13 @@ Status MessagesManager::can_get_message_read_date(DialogId dialog_id, const Mess
   }
   CHECK(m->message_id.is_server());
 
+  if (d->last_read_outbox_message_id < m->message_id) {
+    return Status::Error(400, "Message isn't read yet");
+  }
+  if (td_->user_manager_->get_user_read_dates_private(dialog_id.get_user_id())) {
+    return Status::Error(400, "Message read date is unavailable due to privacy settings");
+  }
+
   return Status::OK();
 }
 
@@ -14410,7 +14418,7 @@ void MessagesManager::get_message_read_date(MessageFullId message_full_id,
     return promise.set_error(400, "Message not found");
   }
 
-  TRY_STATUS_PROMISE(promise, can_get_message_read_date(dialog_id, m));
+  TRY_STATUS_PROMISE(promise, can_get_message_read_date(d, m));
 
   if (d->last_read_outbox_message_id < m->message_id) {
     return promise.set_value(td_api::make_object<td_api::messageReadDateUnread>());
@@ -14794,7 +14802,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_get_author = can_get_message_author(dialog_id, m);
   auto can_get_statistics = can_get_message_statistics(dialog_id, m);
   auto can_get_message_thread = get_top_thread_message_full_id(d, m, false).is_ok();
-  auto can_get_read_date = can_get_message_read_date(dialog_id, m).is_ok();
+  auto can_get_read_date = can_get_message_read_date(d, m).is_ok();
   auto can_get_video_advertisements = can_get_message_video_advertisements(dialog_id, m);
   auto can_get_viewers = can_get_message_viewers(dialog_id, m).is_ok();
   auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
