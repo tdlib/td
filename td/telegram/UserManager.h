@@ -1193,6 +1193,7 @@ class UserManager final : public Actor {
   WaitFreeHashMap<UserSavedMusicId, FileSourceId, UserSavedMusicIdHash> user_saved_music_file_source_ids_;
   WaitFreeHashMap<UserId, unique_ptr<UserSavedMusic>, UserIdHash> user_saved_music_;
 
+  bool are_my_saved_music_ids_inited_ = false;
   vector<Promise<Unit>> reload_my_saved_music_queries_;
   vector<int64> my_saved_music_ids_;
 

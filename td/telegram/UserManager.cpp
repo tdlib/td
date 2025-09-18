@@ -2612,6 +2612,8 @@ void UserManager::start_up() {
     auto my_saved_music_ids_str = G()->td_db()->get_binlog_pmc()->get(get_my_saved_music_ids_database_key());
     if (my_saved_music_ids_str.empty() || log_event_parse(my_saved_music_ids_, my_saved_music_ids_str).is_error()) {
       reload_my_saved_music_list(Auto());
+    } else {
+      are_my_saved_music_ids_inited_ = true;
     }
   }
 }
@@ -6867,6 +6869,7 @@ void UserManager::on_get_user_saved_music(UserId user_id, int32 offset, int32 li
     user_saved_music->offset = offset;
   }
 
+  bool need_update_my_saved_music_ids = user_id == get_my_id() && are_my_saved_music_ids_inited_;
   for (auto &document : documents) {
     if (document->get_id() != telegram_api::document::ID) {
       LOG(ERROR) << "Receive as saved music of " << user_id << ": " << to_string(document);
@@ -6881,6 +6884,15 @@ void UserManager::on_get_user_saved_music(UserId user_id, int32 offset, int32 li
       user_saved_music->count--;
       CHECK(user_saved_music->count >= 0);
       continue;
+    }
+    auto document_id = get_saved_music_document_id(parsed_document.file_id).first;
+    if (document_id == 0) {
+      user_saved_music->count--;
+      CHECK(user_saved_music->count >= 0);
+      continue;
+    }
+    if (need_update_my_saved_music_ids && !td::contains(my_saved_music_ids_, document_id)) {
+      my_saved_music_ids_.push_back(document_id);
     }
     user_saved_music->saved_music_file_ids.push_back(parsed_document.file_id);
     register_user_saved_music(user_id, user_saved_music->saved_music_file_ids.back());
@@ -6976,6 +6988,7 @@ string UserManager::get_my_saved_music_ids_database_key() {
 }
 
 void UserManager::save_my_saved_music_ids() {
+  are_my_saved_music_ids_inited_ = true;
   G()->td_db()->get_binlog_pmc()->set(get_my_saved_music_ids_database_key(),
                                       log_event_store(my_saved_music_ids_).as_slice().str());
 }
