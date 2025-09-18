@@ -1195,7 +1195,7 @@ class UserManager final : public Actor {
 
   bool are_my_saved_music_ids_inited_ = false;
   vector<Promise<Unit>> reload_my_saved_music_queries_;
-  vector<int64> my_saved_music_ids_;
+  FlatHashSet<int64> my_saved_music_ids_;
 
   WaitFreeHashMap<SecretChatId, unique_ptr<SecretChat>, SecretChatIdHash> secret_chats_;
   mutable FlatHashSet<SecretChatId, SecretChatIdHash> unknown_secret_chats_;

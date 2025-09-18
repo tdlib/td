@@ -2610,9 +2610,15 @@ void UserManager::tear_down() {
 void UserManager::start_up() {
   if (!td_->auth_manager_->is_bot()) {
     auto my_saved_music_ids_str = G()->td_db()->get_binlog_pmc()->get(get_my_saved_music_ids_database_key());
-    if (my_saved_music_ids_str.empty() || log_event_parse(my_saved_music_ids_, my_saved_music_ids_str).is_error()) {
+    vector<int64> my_saved_music_ids;
+    if (my_saved_music_ids_str.empty() || log_event_parse(my_saved_music_ids, my_saved_music_ids_str).is_error()) {
       reload_my_saved_music_list(Auto());
     } else {
+      for (auto saved_music_id : my_saved_music_ids) {
+        if (saved_music_id != 0) {
+          my_saved_music_ids_.insert(saved_music_id);
+        }
+      }
       are_my_saved_music_ids_inited_ = true;
     }
   }
@@ -6891,8 +6897,8 @@ void UserManager::on_get_user_saved_music(UserId user_id, int32 offset, int32 li
       CHECK(user_saved_music->count >= 0);
       continue;
     }
-    if (need_update_my_saved_music_ids && !td::contains(my_saved_music_ids_, document_id)) {
-      my_saved_music_ids_.push_back(document_id);
+    if (need_update_my_saved_music_ids && my_saved_music_ids_.count(document_id) == 0) {
+      my_saved_music_ids_.insert(document_id);
     }
     user_saved_music->saved_music_file_ids.push_back(parsed_document.file_id);
     register_user_saved_music(user_id, user_saved_music->saved_music_file_ids.back());
@@ -6945,11 +6951,11 @@ void UserManager::reload_my_saved_music_list(Promise<Unit> &&promise) {
   if (reload_my_saved_music_queries_.size() != 1u) {
     return;
   }
-  std::sort(my_saved_music_ids_.begin(), my_saved_music_ids_.end());
   vector<uint64> numbers;
   for (auto saved_music_id : my_saved_music_ids_) {
     numbers.push_back(static_cast<uint64>(saved_music_id));
   }
+  std::sort(numbers.begin(), numbers.end());
   auto query_promise = PromiseCreator::lambda(
       [actor_id =
            actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_SavedMusicIds>> &&r_saved_music_ids) {
@@ -6974,7 +6980,14 @@ void UserManager::on_get_my_saved_music_list(
     case telegram_api::account_savedMusicIdsNotModified::ID:
       break;
     case telegram_api::account_savedMusicIds::ID:
-      my_saved_music_ids_ = std::move(static_cast<telegram_api::account_savedMusicIds *>(saved_music_ids.get())->ids_);
+      my_saved_music_ids_.clear();
+      for (auto saved_music_id : static_cast<telegram_api::account_savedMusicIds *>(saved_music_ids.get())->ids_) {
+        if (saved_music_id == 0 || my_saved_music_ids_.count(saved_music_id) != 0) {
+          LOG(ERROR) << "Receive " << saved_music_id;
+          continue;
+        }
+        my_saved_music_ids_.insert(saved_music_id);
+      }
       save_my_saved_music_ids();
       break;
     default:
@@ -6989,8 +7002,12 @@ string UserManager::get_my_saved_music_ids_database_key() {
 
 void UserManager::save_my_saved_music_ids() {
   are_my_saved_music_ids_inited_ = true;
+  vector<uint64> my_saved_music_ids;
+  for (auto saved_music_id : my_saved_music_ids_) {
+    my_saved_music_ids.push_back(saved_music_id);
+  }
   G()->td_db()->get_binlog_pmc()->set(get_my_saved_music_ids_database_key(),
-                                      log_event_store(my_saved_music_ids_).as_slice().str());
+                                      log_event_store(my_saved_music_ids).as_slice().str());
 }
 
 void UserManager::register_message_users(MessageFullId message_full_id, vector<UserId> user_ids) {
