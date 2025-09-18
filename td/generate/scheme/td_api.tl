@@ -8811,13 +8811,12 @@ starRevenueStatus total_amount:starAmount current_amount:starAmount available_am
 //@usd_rate Current conversion rate of a Telegram Star to USD
 starRevenueStatistics revenue_by_day_graph:StatisticalGraph status:starRevenueStatus usd_rate:double = StarRevenueStatistics;
 
-//@description Contains information about Toncoind earned by the current user
+//@description Contains information about Toncoins earned by the current user
 //@total_amount Total amount of Toncoins earned; in the smallest units of the cryptocurrency
 //@balance_amount Amount of Toncoins that aren't withdrawn yet; in the smallest units of the cryptocurrency
 //@available_amount Amount of Toncoins that are available for withdrawal; in the smallest units of the cryptocurrency
-//@withdrawal_enabled True, if Toncoins can be withdrawn now or later
-//@next_withdrawal_in Time left before the next withdrawal can be started, in seconds; 0 if withdrawal can be started now
-tonRevenueStatus total_amount:int64 balance_amount:int64 available_amount:int64 withdrawal_enabled:Bool next_withdrawal_in:int32 = TonRevenueStatus;
+//@withdrawal_enabled True, if Toncoins can be withdrawn
+tonRevenueStatus total_amount:int64 balance_amount:int64 available_amount:int64 withdrawal_enabled:Bool = TonRevenueStatus;
 
 //@description A detailed statistics about Toncoins earned by the current user
 //@revenue_by_day_graph A graph containing amount of revenue in a given day

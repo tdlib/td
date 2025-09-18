@@ -1216,9 +1216,8 @@ class GetStarsRevenueAdsAccountUrlQuery final : public Td::ResultHandler {
 static td_api::object_ptr<td_api::tonRevenueStatus> convert_ton_revenue_status(
     telegram_api::object_ptr<telegram_api::starsRevenueStatus> obj) {
   CHECK(obj != nullptr);
-  int32 next_withdrawal_in = 0;
-  if (obj->withdrawal_enabled_ && obj->next_withdrawal_at_ > 0) {
-    next_withdrawal_in = max(obj->next_withdrawal_at_ - G()->unix_time(), 1);
+  if (obj->next_withdrawal_at_ != 0) {
+    LOG(ERROR) << "Receive " << to_string(obj);
   }
   TonAmount overall_revenue;
   TonAmount current_balance;
@@ -1235,9 +1234,9 @@ static td_api::object_ptr<td_api::tonRevenueStatus> convert_ton_revenue_status(
     available_balance =
         TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(obj->available_balance_), true);
   }
-  return td_api::make_object<td_api::tonRevenueStatus>(
-      overall_revenue.get_ton_amount(), current_balance.get_ton_amount(), available_balance.get_ton_amount(),
-      obj->withdrawal_enabled_, next_withdrawal_in);
+  return td_api::make_object<td_api::tonRevenueStatus>(overall_revenue.get_ton_amount(),
+                                                       current_balance.get_ton_amount(),
+                                                       available_balance.get_ton_amount(), obj->withdrawal_enabled_);
 }
 
 class GetTonRevenueStatsQuery final : public Td::ResultHandler {
