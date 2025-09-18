@@ -369,7 +369,11 @@ class NotificationTypePushMessage final : public NotificationType {
         }
         if (key == "MESSAGE_STARGIFT") {
           auto star_count = to_integer<int64>(arg);
-          return td_api::make_object<td_api::pushMessageContentGift>(star_count);
+          return td_api::make_object<td_api::pushMessageContentGift>(star_count, false);
+        }
+        if (key == "MESSAGE_STARGIFT_PREPAID_UPGRADE") {
+          auto star_count = to_integer<int64>(arg);
+          return td_api::make_object<td_api::pushMessageContentGift>(star_count, true);
         }
         if (key == "MESSAGE_STARGIFT_TRANSFER") {
           return td_api::make_object<td_api::pushMessageContentUpgradedGift>(false);
