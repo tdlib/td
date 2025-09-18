@@ -4691,8 +4691,8 @@ messageUpgradedGift gift:upgradedGift sender_id:MessageSender receiver_id:Messag
 //@gift The gift
 //@sender_id Sender of the gift
 //@receiver_id Receiver of the gift
-//@is_upgrade True, if the gift was obtained by upgrading of a previously received gift; otherwise, this is a transferred or resold gift
-messageRefundedUpgradedGift gift:gift sender_id:MessageSender receiver_id:MessageSender is_upgrade:Bool = MessageContent;
+//@origin Origin of the upgraded gift
+messageRefundedUpgradedGift gift:gift sender_id:MessageSender receiver_id:MessageSender origin:UpgradedGiftOrigin = MessageContent;
 
 //@description Paid messages were refunded @message_count The number of refunded messages @star_count The number of refunded Telegram Stars
 messagePaidMessagesRefunded message_count:int32 star_count:int53 = MessageContent;
