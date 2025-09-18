@@ -23798,7 +23798,7 @@ unique_ptr<MessageForwardInfo> MessagesManager::create_message_forward_info(Dial
   LastForwardedMessageInfo last_message_info;
   if (to_dialog_id == my_dialog_id) {
     last_message_info = LastForwardedMessageInfo(from_dialog_id, m->message_id, get_message_sender(m), string(),
-                                                 m->date, m->is_outgoing);
+                                                 m->date, m->is_outgoing || from_dialog_id == my_dialog_id);
   } else if (content_type == MessageContentType::Audio || content_type == MessageContentType::Story) {
     return nullptr;
   }
