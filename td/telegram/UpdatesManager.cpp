@@ -2377,6 +2377,7 @@ void UpdatesManager::try_reload_data() {
   td_->theme_manager_->reload_profile_accent_colors();
   td_->time_zone_manager_->reload_time_zones(Auto());
   td_->user_manager_->reload_contact_birthdates(false);
+  td_->user_manager_->reload_my_saved_music_list(Auto());
 
   schedule_data_reload();
 }

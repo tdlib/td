@@ -1579,6 +1579,34 @@ class GetUserSavedMusicByIdQuery final : public Td::ResultHandler {
   }
 };
 
+class GetSavedMusicIdsQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::account_SavedMusicIds>> promise_;
+
+ public:
+  explicit GetSavedMusicIdsQuery(Promise<telegram_api::object_ptr<telegram_api::account_SavedMusicIds>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 hash) {
+    send_query(G()->net_query_creator().create(telegram_api::account_getSavedMusicIds(hash)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getSavedMusicIds>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetSavedMusicIdsQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetSupportUserQuery final : public Td::ResultHandler {
   Promise<UserId> promise_;
 
@@ -2577,6 +2605,12 @@ void UserManager::tear_down() {
 
   LOG(DEBUG) << "Have " << users_.calc_size() << " users and " << secret_chats_.calc_size() << " secret chats to free";
   LOG(DEBUG) << "Have " << users_full_.calc_size() << " full users to free";
+}
+
+void UserManager::start_up() {
+  if (!td_->auth_manager_->is_bot()) {
+    reload_my_saved_music_list(Auto());
+  }
 }
 
 void UserManager::on_user_online_timeout_callback(void *user_manager_ptr, int64 user_id_long) {
@@ -6881,6 +6915,48 @@ FileSourceId UserManager::get_user_saved_music_file_source_id(UserId user_id, in
   }
   VLOG(file_references) << "Return " << source_id << " for saved music " << document_id << " of " << user_id;
   return source_id;
+}
+
+void UserManager::reload_my_saved_music_list(Promise<Unit> &&promise) {
+  reload_my_saved_music_queries_.push_back(std::move(promise));
+  if (reload_my_saved_music_queries_.size() != 1u) {
+    return;
+  }
+  std::sort(my_saved_music_ids_.begin(), my_saved_music_ids_.end());
+  vector<uint64> numbers;
+  for (auto saved_music_id : my_saved_music_ids_) {
+    numbers.push_back(static_cast<uint64>(saved_music_id));
+  }
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id =
+           actor_id(this)](Result<telegram_api::object_ptr<telegram_api::account_SavedMusicIds>> &&r_saved_music_ids) {
+        send_closure(actor_id, &UserManager::on_get_my_saved_music_list, std::move(r_saved_music_ids));
+      });
+  td_->create_handler<GetSavedMusicIdsQuery>(std::move(query_promise))->send(get_vector_hash(numbers));
+}
+
+void UserManager::on_get_my_saved_music_list(
+    Result<telegram_api::object_ptr<telegram_api::account_SavedMusicIds>> &&r_saved_music_ids) {
+  if (G()->close_flag()) {
+    r_saved_music_ids = G()->close_status();
+  }
+
+  auto promises = std::move(reload_my_saved_music_queries_);
+  reset_to_empty(reload_my_saved_music_queries_);
+  if (r_saved_music_ids.is_error()) {
+    return fail_promises(promises, r_saved_music_ids.move_as_error());
+  }
+  auto saved_music_ids = r_saved_music_ids.move_as_ok();
+  switch (saved_music_ids->get_id()) {
+    case telegram_api::account_savedMusicIdsNotModified::ID:
+      break;
+    case telegram_api::account_savedMusicIds::ID:
+      my_saved_music_ids_ = std::move(static_cast<telegram_api::account_savedMusicIds *>(saved_music_ids.get())->ids_);
+      break;
+    default:
+      UNREACHABLE();
+  }
+  set_promises(promises);
 }
 
 void UserManager::register_message_users(MessageFullId message_full_id, vector<UserId> user_ids) {

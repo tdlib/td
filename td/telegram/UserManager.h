@@ -434,6 +434,8 @@ class UserManager final : public Actor {
 
   FileSourceId get_user_saved_music_file_source_id(UserId user_id, int64 document_id, int64 access_hash);
 
+  void reload_my_saved_music_list(Promise<Unit> &&promise);
+
   void register_message_users(MessageFullId message_full_id, vector<UserId> user_ids);
 
   void unregister_message_users(MessageFullId message_full_id, vector<UserId> user_ids);
@@ -810,6 +812,8 @@ class UserManager final : public Actor {
   static constexpr int32 ACCOUNT_UPDATE_LAST_NAME = 1 << 1;
   static constexpr int32 ACCOUNT_UPDATE_ABOUT = 1 << 2;
 
+  void start_up() final;
+
   void tear_down() final;
 
   static void on_user_online_timeout_callback(void *user_manager_ptr, int64 user_id_long);
@@ -1017,6 +1021,9 @@ class UserManager final : public Actor {
   Result<telegram_api::object_ptr<telegram_api::inputDocument>> check_saved_music_file_id(FileId &file_id,
                                                                                           bool allow_empty) const;
 
+  void on_get_my_saved_music_list(
+      Result<telegram_api::object_ptr<telegram_api::account_SavedMusicIds>> &&r_saved_music_ids);
+
   void load_contacts(Promise<Unit> &&promise);
 
   int64 get_contacts_hash();
@@ -1179,6 +1186,9 @@ class UserManager final : public Actor {
   };
   WaitFreeHashMap<UserSavedMusicId, FileSourceId, UserSavedMusicIdHash> user_saved_music_file_source_ids_;
   WaitFreeHashMap<UserId, unique_ptr<UserSavedMusic>, UserIdHash> user_saved_music_;
+
+  vector<Promise<Unit>> reload_my_saved_music_queries_;
+  vector<int64> my_saved_music_ids_;
 
   WaitFreeHashMap<SecretChatId, unique_ptr<SecretChat>, SecretChatIdHash> secret_chats_;
   mutable FlatHashSet<SecretChatId, SecretChatIdHash> unknown_secret_chats_;
