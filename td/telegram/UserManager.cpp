@@ -2609,7 +2609,10 @@ void UserManager::tear_down() {
 
 void UserManager::start_up() {
   if (!td_->auth_manager_->is_bot()) {
-    reload_my_saved_music_list(Auto());
+    auto my_saved_music_ids_str = G()->td_db()->get_binlog_pmc()->get(get_my_saved_music_ids_database_key());
+    if (my_saved_music_ids_str.empty() || log_event_parse(my_saved_music_ids_, my_saved_music_ids_str).is_error()) {
+      reload_my_saved_music_list(Auto());
+    }
   }
 }
 
@@ -6952,11 +6955,21 @@ void UserManager::on_get_my_saved_music_list(
       break;
     case telegram_api::account_savedMusicIds::ID:
       my_saved_music_ids_ = std::move(static_cast<telegram_api::account_savedMusicIds *>(saved_music_ids.get())->ids_);
+      save_my_saved_music_ids();
       break;
     default:
       UNREACHABLE();
   }
   set_promises(promises);
+}
+
+string UserManager::get_my_saved_music_ids_database_key() {
+  return "my_saved_music_ids";
+}
+
+void UserManager::save_my_saved_music_ids() {
+  G()->td_db()->get_binlog_pmc()->set(get_my_saved_music_ids_database_key(),
+                                      log_event_store(my_saved_music_ids_).as_slice().str());
 }
 
 void UserManager::register_message_users(MessageFullId message_full_id, vector<UserId> user_ids) {

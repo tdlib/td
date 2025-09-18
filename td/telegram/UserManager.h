@@ -1024,6 +1024,10 @@ class UserManager final : public Actor {
   void on_get_my_saved_music_list(
       Result<telegram_api::object_ptr<telegram_api::account_SavedMusicIds>> &&r_saved_music_ids);
 
+  static string get_my_saved_music_ids_database_key();
+
+  void save_my_saved_music_ids();
+
   void load_contacts(Promise<Unit> &&promise);
 
   int64 get_contacts_hash();
