@@ -962,6 +962,8 @@ class UserManager final : public Actor {
   static void on_update_user_full_first_saved_music_file_id(UserFull *user_full, UserId user_id,
                                                             FileId first_saved_music_file_id);
 
+  std::pair<int64, int64> get_saved_music_document_id(FileId saved_music_file_id) const;
+
   void register_user_saved_music(UserId user_id, FileId saved_music_file_id);
 
   bool have_input_peer_user(const User *u, UserId user_id, AccessRights access_rights) const;
