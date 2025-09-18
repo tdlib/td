@@ -13497,7 +13497,8 @@ getStarAdAccountUrl owner_id:MessageSender = HttpUrl;
 //@description Returns detailed Toncoin revenue statistics of the current user @is_dark Pass true if a dark theme is used by the application
 getTonRevenueStatistics is_dark:Bool = TonRevenueStatistics;
 
-//@description Returns a URL for Toncoin withdrawal from the current user's account. Up to 100000 Toncoins will be withdrawn with one transaction
+//@description Returns a URL for Toncoin withdrawal from the current user's account. The user must have at least 10 toncoins to withdraw
+//-and can withdraw up to 100000 Toncoins in one transaction
 //@password The 2-step verification password of the current user
 getTonWithdrawalUrl password:string = HttpUrl;
 
