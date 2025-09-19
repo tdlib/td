@@ -6638,6 +6638,12 @@ void UserManager::add_saved_music(FileId file_id, FileId after_file_id, Promise<
 }
 
 void UserManager::on_add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise) {
+  auto document_id = get_saved_music_document_id(file_id).first;
+  if (document_id != 0 && my_saved_music_ids_.count(document_id) == 0) {
+    my_saved_music_ids_.insert(document_id);
+    save_my_saved_music_ids();
+  }
+
   auto user_id = get_my_id();
   auto user_saved_music = user_saved_music_.get_pointer(user_id);
   if (user_saved_music != nullptr && user_saved_music->count != -1 && user_saved_music->offset != -1) {
@@ -6670,11 +6676,6 @@ void UserManager::on_add_saved_music(FileId file_id, FileId after_file_id, Promi
       update_user_full(user_full, user_id, "on_add_saved_music");
     }
   }
-  auto document_id = get_saved_music_document_id(file_id).first;
-  if (document_id != 0 && my_saved_music_ids_.count(document_id) == 0) {
-    my_saved_music_ids_.insert(document_id);
-    save_my_saved_music_ids();
-  }
   promise.set_value(Unit());
 }
 
@@ -6685,6 +6686,11 @@ void UserManager::remove_saved_music(FileId file_id, Promise<Unit> &&promise) {
 }
 
 void UserManager::on_remove_saved_music(FileId file_id, Promise<Unit> &&promise) {
+  auto document_id = get_saved_music_document_id(file_id).first;
+  if (my_saved_music_ids_.erase(document_id) > 0) {
+    save_my_saved_music_ids();
+  }
+
   auto user_id = get_my_id();
   auto user_saved_music = user_saved_music_.get_pointer(user_id);
   if (user_saved_music != nullptr && user_saved_music->count != -1 && user_saved_music->offset != -1) {
@@ -6713,10 +6719,6 @@ void UserManager::on_remove_saved_music(FileId file_id, Promise<Unit> &&promise)
     } else {
       return reload_user_full(user_id, std::move(promise), "on_remove_saved_music");
     }
-  }
-  auto document_id = get_saved_music_document_id(file_id).first;
-  if (my_saved_music_ids_.erase(document_id) > 0) {
-    save_my_saved_music_ids();
   }
   promise.set_value(Unit());
 }
