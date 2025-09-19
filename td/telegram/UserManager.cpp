@@ -7015,7 +7015,7 @@ void UserManager::reload_my_saved_music_list(Promise<Unit> &&promise) {
 void UserManager::on_get_my_saved_music_list(
     Result<telegram_api::object_ptr<telegram_api::account_SavedMusicIds>> &&r_saved_music_ids) {
   if (G()->close_flag()) {
-    r_saved_music_ids = G()->close_status();
+    r_saved_music_ids = Global::request_aborted_error();
   }
 
   auto promises = std::move(reload_my_saved_music_queries_);
