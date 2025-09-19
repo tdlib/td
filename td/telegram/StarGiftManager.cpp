@@ -88,6 +88,9 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
           if (star_gift->require_premium_) {
             continue;
           }
+          if (star_gift->locked_until_date_ > G()->unix_time()) {
+            continue;
+          }
         } else {
           availability_resale = star_gift->availability_resale_;
           resell_min_stars = StarManager::get_star_count(star_gift->resell_min_stars_);
