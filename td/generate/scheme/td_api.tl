@@ -12466,10 +12466,14 @@ getUserSavedMusic user_id:int53 offset:int32 limit:int32 = Audios;
 //@description Checks whether a file is in the saved music of the current user. Returns a 404 error if it isn't @file_id Identifier of the audio file to check
 isSavedMusic file_id:int32 = Ok;
 
-//@description Adds an audio file to the saved music of the current user
-//@file_id Identifier of the audio file to be added. The file must be uploaded to the server
-//@after_file_id Identifier of the file from saved music after which the file will be added; pass 0 to add the audio file in the beginning of the list
-addSavedMusic file_id:int32 after_file_id:int32 = Ok;
+//@description Adds an audio file to the beginning of the saved music of the current user
+//@file_id Identifier of the audio file to be added. The file must have been uploaded to the server
+addSavedMusic file_id:int32 = Ok;
+
+//@description Changes position of an audio file in the saved music list of the current user
+//@file_id Identifier of the file from saved music, which position will be changed
+//@after_file_id Identifier of the file from saved music after which the file will be positioned; pass 0 to move the file to the beginning of the list
+setSavedMusicPosition file_id:int32 after_file_id:int32 = Ok;
 
 //@description Removes an audio file from the saved music of the current user @file_id Identifier of the audio file to be removed
 removeSavedMusic file_id:int32 = Ok;

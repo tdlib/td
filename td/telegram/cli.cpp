@@ -3861,11 +3861,15 @@ class CliClient final : public Actor {
       string file_id;
       get_args(args, file_id);
       send_request(td_api::make_object<td_api::isSavedMusic>(as_file_id(file_id)));
-    } else if (op == "asm") {
+    } else if (op == "ssm") {
+      string file_id;
+      get_args(args, file_id);
+      send_request(td_api::make_object<td_api::addSavedMusic>(as_file_id(file_id)));
+    } else if (op == "ssm") {
       string file_id;
       string after_file_id;
       get_args(args, file_id, after_file_id);
-      send_request(td_api::make_object<td_api::addSavedMusic>(as_file_id(file_id), as_file_id(after_file_id)));
+      send_request(td_api::make_object<td_api::setSavedMusicPosition>(as_file_id(file_id), as_file_id(after_file_id)));
     } else if (op == "rsm") {
       string file_id;
       get_args(args, file_id);
