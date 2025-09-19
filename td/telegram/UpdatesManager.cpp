@@ -1014,6 +1014,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionSuggestedPostSuccess::ID:
         case telegram_api::messageActionSuggestedPostRefund::ID:
         case telegram_api::messageActionGiftTon::ID:
+        case telegram_api::messageActionSuggestBirthday::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
@@ -3769,24 +3770,29 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMonoForumNoPaid
   promise.set_value(Unit());
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelPinnedTopic> update, Promise<Unit> &&promise) {
-  td_->forum_topic_manager_->on_update_forum_topic_is_pinned(
-      DialogId(ChannelId(update->channel_id_)), MessageId(ServerMessageId(update->topic_id_)), update->pinned_);
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedForumTopic> update, Promise<Unit> &&promise) {
+  DialogId dialog_id(update->peer_);
+  if (dialog_id.get_type() == DialogType::Channel) {
+    td_->forum_topic_manager_->on_update_forum_topic_is_pinned(dialog_id, MessageId(ServerMessageId(update->topic_id_)),
+                                                               update->pinned_);
+  }
   promise.set_value(Unit());
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelPinnedTopics> update, Promise<Unit> &&promise) {
-  vector<MessageId> top_thread_message_ids;
-  for (auto &server_message_id : update->order_) {
-    auto message_id = MessageId(ServerMessageId(server_message_id));
-    if (!message_id.is_valid()) {
-      LOG(ERROR) << "Receive " << to_string(update);
-      break;
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedForumTopics> update, Promise<Unit> &&promise) {
+  DialogId dialog_id(update->peer_);
+  if (dialog_id.get_type() == DialogType::Channel) {
+    vector<MessageId> top_thread_message_ids;
+    for (auto &server_message_id : update->order_) {
+      auto message_id = MessageId(ServerMessageId(server_message_id));
+      if (!message_id.is_valid()) {
+        LOG(ERROR) << "Receive " << to_string(update);
+        break;
+      }
+      top_thread_message_ids.push_back(message_id);
     }
-    top_thread_message_ids.push_back(message_id);
+    td_->forum_topic_manager_->on_update_pinned_forum_topics(dialog_id, std::move(top_thread_message_ids));
   }
-  td_->forum_topic_manager_->on_update_pinned_forum_topics(DialogId(ChannelId(update->channel_id_)),
-                                                           std::move(top_thread_message_ids));
   promise.set_value(Unit());
 }
 
@@ -4102,6 +4108,9 @@ bool UpdatesManager::is_channel_pts_update(const telegram_api::Update *update) {
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserTyping> update, Promise<Unit> &&promise) {
+  if (update->top_msg_id_ != 0) {
+    return promise.set_value(Unit());
+  }
   DialogId dialog_id(UserId(update->user_id_));
   td_->dialog_action_manager_->on_dialog_action(dialog_id, MessageId(), dialog_id,
                                                 DialogAction(std::move(update->action_)), get_short_update_date());
@@ -4802,6 +4811,15 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueSta
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallMessage> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallEncryptedMessage> update,
+                               Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

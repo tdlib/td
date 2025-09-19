@@ -281,8 +281,8 @@ static Result<tl_object_ptr<telegram_api::InputStorePaymentPurpose>> get_input_s
       }
       TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
       dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::StarsSubscriptionLowBalance}, Promise<Unit>());
-      return telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(flags, p->star_count_, p->currency_,
-                                                                                  p->amount_, std::move(spend_purpose_input_peer));
+      return telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(
+          flags, p->star_count_, p->currency_, p->amount_, std::move(spend_purpose_input_peer));
     }
     case td_api::storePaymentPurposeGiftedStars::ID: {
       auto p = static_cast<td_api::storePaymentPurposeGiftedStars *>(purpose.get());

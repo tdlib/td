@@ -58,16 +58,16 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
 
     int32 flags = 0;
     if (icon_color != -1) {
-      flags |= telegram_api::channels_createForumTopic::ICON_COLOR_MASK;
+      flags |= telegram_api::messages_createForumTopic::ICON_COLOR_MASK;
     }
     if (icon_custom_emoji_id.is_valid()) {
-      flags |= telegram_api::channels_createForumTopic::ICON_EMOJI_ID_MASK;
+      flags |= telegram_api::messages_createForumTopic::ICON_EMOJI_ID_MASK;
     }
     tl_object_ptr<telegram_api::InputPeer> as_input_peer;
     if (as_dialog_id.is_valid()) {
       as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Write);
       if (as_input_peer != nullptr) {
-        flags |= telegram_api::channels_createForumTopic::SEND_AS_MASK;
+        flags |= telegram_api::messages_createForumTopic::SEND_AS_MASK;
         creator_dialog_id_ = as_dialog_id;
       }
     }
@@ -76,16 +76,18 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
       random_id_ = Random::secure_int64();
     } while (random_id_ == 0);
 
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_createForumTopic(flags, std::move(input_channel), title, icon_color,
+        telegram_api::messages_createForumTopic(flags, false, std::move(input_peer), title, icon_color,
                                                 icon_custom_emoji_id.get(), random_id_, std::move(as_input_peer)),
         {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_createForumTopic>(packet);
+    auto result_ptr = fetch_result<telegram_api::messages_createForumTopic>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
@@ -137,18 +139,20 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     top_thread_message_id_ = top_thread_message_id;
 
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
 
     int32 flags = 0;
     if (edit_title) {
-      flags |= telegram_api::channels_editForumTopic::TITLE_MASK;
+      flags |= telegram_api::messages_editForumTopic::TITLE_MASK;
     }
     if (edit_custom_emoji_id) {
-      flags |= telegram_api::channels_editForumTopic::ICON_EMOJI_ID_MASK;
+      flags |= telegram_api::messages_editForumTopic::ICON_EMOJI_ID_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_editForumTopic(flags, std::move(input_channel),
+        telegram_api::messages_editForumTopic(flags, std::move(input_peer),
                                               top_thread_message_id_.get_server_message_id().get(), title,
                                               icon_custom_emoji_id.get(), false, false),
         {{channel_id}}));
@@ -158,12 +162,14 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     top_thread_message_id_ = top_thread_message_id;
 
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
 
-    int32 flags = telegram_api::channels_editForumTopic::CLOSED_MASK;
+    int32 flags = telegram_api::messages_editForumTopic::CLOSED_MASK;
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_editForumTopic(flags, std::move(input_channel),
+        telegram_api::messages_editForumTopic(flags, std::move(input_peer),
                                               top_thread_message_id_.get_server_message_id().get(), string(), 0,
                                               is_closed, false),
         {{channel_id}}));
@@ -173,19 +179,21 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     top_thread_message_id_ = MessageId(ServerMessageId(1));
 
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
 
-    int32 flags = telegram_api::channels_editForumTopic::HIDDEN_MASK;
+    int32 flags = telegram_api::messages_editForumTopic::HIDDEN_MASK;
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_editForumTopic(flags, std::move(input_channel),
+        telegram_api::messages_editForumTopic(flags, std::move(input_peer),
                                               top_thread_message_id_.get_server_message_id().get(), string(), 0, false,
                                               is_hidden),
         {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_editForumTopic>(packet);
+    auto result_ptr = fetch_result<telegram_api::messages_editForumTopic>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
@@ -215,17 +223,19 @@ class UpdatePinnedForumTopicQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, MessageId top_thread_message_id, bool is_pinned) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_updatePinnedForumTopic(std::move(input_channel),
+        telegram_api::messages_updatePinnedForumTopic(std::move(input_peer),
                                                       top_thread_message_id.get_server_message_id().get(), is_pinned),
         {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_updatePinnedForumTopic>(packet);
+    auto result_ptr = fetch_result<telegram_api::messages_updatePinnedForumTopic>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
@@ -255,17 +265,19 @@ class ReorderPinnedForumTopicsQuery final : public Td::ResultHandler {
   void send(ChannelId channel_id, const vector<MessageId> &top_thread_message_ids) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_reorderPinnedForumTopics(0, true, std::move(input_channel),
+        telegram_api::messages_reorderPinnedForumTopics(0, true, std::move(input_peer),
                                                         MessageId::get_server_message_ids(top_thread_message_ids)),
         {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_reorderPinnedForumTopics>(packet);
+    auto result_ptr = fetch_result<telegram_api::messages_reorderPinnedForumTopics>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
@@ -298,17 +310,19 @@ class GetForumTopicQuery final : public Td::ResultHandler {
     channel_id_ = channel_id;
     top_thread_message_id_ = top_thread_message_id;
 
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_getForumTopicsByID(std::move(input_channel),
+        telegram_api::messages_getForumTopicsByID(std::move(input_peer),
                                                   {top_thread_message_id_.get_server_message_id().get()}),
         {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_getForumTopicsByID>(packet);
+    auto result_ptr = fetch_result<telegram_api::messages_getForumTopicsByID>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }
@@ -363,22 +377,24 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
             MessageId offset_top_thread_message_id, int32 limit) {
     channel_id_ = channel_id;
 
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
 
     int32 flags = 0;
     if (!query.empty()) {
-      flags |= telegram_api::channels_getForumTopics::Q_MASK;
+      flags |= telegram_api::messages_getForumTopics::Q_MASK;
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::channels_getForumTopics(flags, std::move(input_channel), query, offset_date,
+        telegram_api::messages_getForumTopics(flags, std::move(input_peer), query, offset_date,
                                               offset_message_id.get_server_message_id().get(),
                                               offset_top_thread_message_id.get_server_message_id().get(), limit),
         {{channel_id}}));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_getForumTopics>(packet);
+    auto result_ptr = fetch_result<telegram_api::messages_getForumTopics>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }

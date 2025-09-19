@@ -203,6 +203,9 @@ DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAct
            std::move(emoji_interaction_action->emoticon_), emoji_interaction_action->interaction_->data_);
       break;
     }
+    case telegram_api::sendMessageTextDraftAction::ID:
+      init(Type::Cancel);
+      break;
     default:
       UNREACHABLE();
       break;

@@ -1498,17 +1498,17 @@ class DeleteTopicHistoryQuery final : public Td::ResultHandler {
     channel_id_ = dialog_id.get_channel_id();
     top_thread_message_id_ = top_thread_message_id;
 
-    auto input_channel = td_->chat_manager_->get_input_channel(channel_id_);
-    if (input_channel == nullptr) {
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    send_query(G()->net_query_creator().create(telegram_api::channels_deleteTopicHistory(
-        std::move(input_channel), top_thread_message_id.get_server_message_id().get())));
+    send_query(G()->net_query_creator().create(telegram_api::messages_deleteTopicHistory(
+        std::move(input_peer), top_thread_message_id.get_server_message_id().get())));
   }
 
   void on_result(BufferSlice packet) final {
-    auto result_ptr = fetch_result<telegram_api::channels_deleteTopicHistory>(packet);
+    auto result_ptr = fetch_result<telegram_api::messages_deleteTopicHistory>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
     }

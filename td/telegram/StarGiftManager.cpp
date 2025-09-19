@@ -1095,7 +1095,7 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
         business_connection_id.get_invoke_prefix(),
         telegram_api::payments_getSavedStarGifts(
             flags, exclude_unsaved, exclude_saved, exclude_unlimited, exclude_unique, sort_by_value, exclude_upgradable,
-            exclude_non_upgradable, std::move(input_peer), collection_id.get(), offset, limit),
+            exclude_non_upgradable, false, false, std::move(input_peer), collection_id.get(), offset, limit),
         td_->business_connection_manager_->get_business_connection_dc_id(business_connection_id), {{dialog_id_}}));
   }
 

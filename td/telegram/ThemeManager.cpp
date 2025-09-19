@@ -129,8 +129,7 @@ class GetUniqueGiftChatThemesQuery final : public Td::ResultHandler {
   }
 
   void send(const string &offset, int32 limit) {
-    send_query(G()->net_query_creator().create(
-        telegram_api::account_getUniqueGiftChatThemes(to_integer<int32>(offset), limit, 0)));
+    send_query(G()->net_query_creator().create(telegram_api::account_getUniqueGiftChatThemes(offset, limit, 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -150,9 +149,7 @@ class GetUniqueGiftChatThemesQuery final : public Td::ResultHandler {
         td_->user_manager_->on_get_users(std::move(themes->users_), "GetUniqueGiftChatThemesQuery");
         td_->chat_manager_->on_get_chats(std::move(themes->chats_), "GetUniqueGiftChatThemesQuery");
         auto result = td_api::make_object<td_api::giftChatThemes>();
-        if (themes->next_offset_ != 0) {
-          result->next_offset_ = to_string(themes->next_offset_);
-        }
+        result->next_offset_ = std::move(themes->next_offset_);
         for (auto &theme : themes->themes_) {
           ChatTheme chat_theme(td_, std::move(theme));
           if (!chat_theme.is_gift()) {

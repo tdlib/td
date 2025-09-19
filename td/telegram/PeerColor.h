@@ -16,7 +16,7 @@ struct PeerColor {
   AccentColorId accent_color_id_;
   CustomEmojiId background_custom_emoji_id_;
 
-  explicit PeerColor(const telegram_api::object_ptr<telegram_api::peerColor> &peer_color);
+  explicit PeerColor(const telegram_api::object_ptr<telegram_api::PeerColor> &peer_color_ptr);
 };
 
 }  // namespace td

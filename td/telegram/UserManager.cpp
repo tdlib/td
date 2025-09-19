@@ -214,7 +214,7 @@ class AddContactQuery final : public Td::ResultHandler {
     user_id_ = user_id;
     send_query(G()->net_query_creator().create(
         telegram_api::contacts_addContact(0, share_phone_number, std::move(input_user), contact.get_first_name(),
-                                          contact.get_last_name(), contact.get_phone_number()),
+                                          contact.get_last_name(), contact.get_phone_number(), nullptr),
         {{DialogId(user_id)}}));
   }
 
@@ -796,15 +796,19 @@ class UpdateColorQuery final : public Td::ResultHandler {
     accent_color_id_ = accent_color_id;
     background_custom_emoji_id_ = background_custom_emoji_id;
     int32 flags = 0;
+    telegram_api::object_ptr<telegram_api::PeerColor> color;
     if (accent_color_id.is_valid()) {
       flags |= telegram_api::account_updateColor::COLOR_MASK;
+
+      int32 color_flags = telegram_api::peerColor::COLOR_MASK;
+      if (background_custom_emoji_id.is_valid()) {
+        color_flags |= telegram_api::peerColor::BACKGROUND_EMOJI_ID_MASK;
+      }
+      color = telegram_api::make_object<telegram_api::peerColor>(color_flags, accent_color_id.get(),
+                                                                 background_custom_emoji_id.get());
     }
-    if (background_custom_emoji_id.is_valid()) {
-      flags |= telegram_api::account_updateColor::BACKGROUND_EMOJI_ID_MASK;
-    }
-    send_query(G()->net_query_creator().create(
-        telegram_api::account_updateColor(flags, for_profile, accent_color_id.get(), background_custom_emoji_id.get()),
-        {{"me"}}));
+    send_query(G()->net_query_creator().create(telegram_api::account_updateColor(flags, for_profile, std::move(color)),
+                                               {{"me"}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -4731,7 +4735,7 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false, false, false, false, is_bot, false, is_private_bot, is_verified, false, false, false, is_support,
         false, need_apply_min_photo, false, false, false, false, 0, false, false, false, false, false, false, false,
-        user_id.get(), 1, first_name, string(), username, phone_number, std::move(profile_photo), nullptr,
+        false, user_id.get(), 1, first_name, string(), username, phone_number, std::move(profile_photo), nullptr,
         bot_info_version, Auto(), string(), string(), nullptr,
         vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr, 0, 0, 0);
     on_get_user(std::move(user), "get_user_force");

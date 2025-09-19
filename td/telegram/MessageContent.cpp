@@ -8679,6 +8679,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionTodoCompletions::ID:
       case telegram_api::messageActionTodoAppendTasks::ID:
       case telegram_api::messageActionGiftTon::ID:
+      case telegram_api::messageActionSuggestBirthday::ID:
         // ok
         break;
       default:
@@ -9339,6 +9340,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                              std::move(action->crypto_currency_), action->crypto_amount_,
                                              std::move(action->transaction_id_));
     }
+    case telegram_api::messageActionSuggestBirthday::ID:
+      return td::make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

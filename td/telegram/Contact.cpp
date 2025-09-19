@@ -63,7 +63,7 @@ SecretInputMedia Contact::get_secret_input_media_contact() const {
 }
 
 tl_object_ptr<telegram_api::inputPhoneContact> Contact::get_input_phone_contact(int64 client_id) const {
-  return make_tl_object<telegram_api::inputPhoneContact>(client_id, phone_number_, first_name_, last_name_);
+  return make_tl_object<telegram_api::inputPhoneContact>(0, client_id, phone_number_, first_name_, last_name_, nullptr);
 }
 
 tl_object_ptr<telegram_api::inputBotInlineMessageMediaContact> Contact::get_input_bot_inline_message_media_contact(

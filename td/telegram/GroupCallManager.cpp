@@ -872,7 +872,7 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
       flags |= telegram_api::phone_toggleGroupCallSettings::JOIN_MUTED_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::phone_toggleGroupCallSettings(
-        flags, reset_invite_hash, input_group_call_id.get_input_group_call(), join_muted)));
+        flags, reset_invite_hash, input_group_call_id.get_input_group_call(), join_muted, false)));
   }
 
   void on_result(BufferSlice packet) final {
