@@ -4,7 +4,7 @@ To run this example you need to [build](https://github.com/tdlib/td#building) TD
 
 After this you can run the example:
 ```
-php tdjson_example.py
+php tdjson_example.php
 ```
 
 Description of all available classes and methods can be found at [td_json_client](https://core.telegram.org/tdlib/docs/td__json__client_8h.html)
