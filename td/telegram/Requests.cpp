@@ -6474,33 +6474,33 @@ void Requests::on_request(uint64 id, const td_api::getUserProfilePhotos &request
                                               std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getUserSavedMusic &request) {
+void Requests::on_request(uint64 id, const td_api::getUserProfileAudios &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->user_manager_->get_user_saved_music(UserId(request.user_id_), request.offset_, request.limit_,
                                            std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::isSavedMusic &request) {
+void Requests::on_request(uint64 id, const td_api::isProfileAudio &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->user_manager_->is_saved_music(FileId(request.file_id_, 0), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::addSavedMusic &request) {
+void Requests::on_request(uint64 id, const td_api::addProfileAudio &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->user_manager_->add_saved_music(FileId(request.file_id_, 0), FileId(), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::setSavedMusicPosition &request) {
+void Requests::on_request(uint64 id, const td_api::setProfileAudioPosition &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->user_manager_->add_saved_music(FileId(request.file_id_, 0), FileId(request.after_file_id_, 0),
                                       std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::removeSavedMusic &request) {
+void Requests::on_request(uint64 id, const td_api::removeProfileAudio &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->user_manager_->remove_saved_music(FileId(request.file_id_, 0), std::move(promise));

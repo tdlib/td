@@ -1287,15 +1287,15 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getUserProfilePhotos &request);
 
-  void on_request(uint64 id, const td_api::getUserSavedMusic &request);
+  void on_request(uint64 id, const td_api::getUserProfileAudios &request);
 
-  void on_request(uint64 id, const td_api::isSavedMusic &request);
+  void on_request(uint64 id, const td_api::isProfileAudio &request);
 
-  void on_request(uint64 id, const td_api::addSavedMusic &request);
+  void on_request(uint64 id, const td_api::addProfileAudio &request);
 
-  void on_request(uint64 id, const td_api::setSavedMusicPosition &request);
+  void on_request(uint64 id, const td_api::setProfileAudioPosition &request);
 
-  void on_request(uint64 id, const td_api::removeSavedMusic &request);
+  void on_request(uint64 id, const td_api::removeProfileAudio &request);
 
   void on_request(uint64 id, const td_api::setAccentColor &request);
 

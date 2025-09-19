@@ -1907,13 +1907,13 @@ botInfo short_description:string description:string photo:photo animation:animat
 //@gift_settings Settings for gift receiving for the user
 //@bot_verification Information about verification status of the user provided by a bot; may be null if none or unknown
 //@main_profile_tab The main tab chosen by the user; may be null if not chosen manually
-//@first_saved_music The first music file saved to the user's profile; may be null if none
+//@first_profile_audio The first audio file added to the user's profile; may be null if none
 //@rating The current rating of the user; may be null if none
 //@pending_rating The rating of the user after the next change; may be null if the user isn't the current user or there are no pending rating changes
 //@pending_rating_date Unix timestamp when rating of the user will change to pending_rating; 0 if the user isn't the current user or there are no pending rating changes
 //@business_info Information about business settings for Telegram Business accounts; may be null if none
 //@bot_info For bots, information about the bot; may be null if the user isn't a bot
-userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_posted_to_profile_stories:Bool has_sponsored_messages_enabled:Bool need_phone_number_privacy_exception:Bool set_chat_background:Bool bio:formattedText birthdate:birthdate personal_chat_id:int53 gift_count:int32 group_in_common_count:int32 incoming_paid_message_star_count:int53 outgoing_paid_message_star_count:int53 gift_settings:giftSettings bot_verification:botVerification main_profile_tab:ProfileTab first_saved_music:audio rating:userRating pending_rating:userRating pending_rating_date:int32 business_info:businessInfo bot_info:botInfo = UserFullInfo;
+userFullInfo personal_photo:chatPhoto photo:chatPhoto public_photo:chatPhoto block_list:BlockList can_be_called:Bool supports_video_calls:Bool has_private_calls:Bool has_private_forwards:Bool has_restricted_voice_and_video_note_messages:Bool has_posted_to_profile_stories:Bool has_sponsored_messages_enabled:Bool need_phone_number_privacy_exception:Bool set_chat_background:Bool bio:formattedText birthdate:birthdate personal_chat_id:int53 gift_count:int32 group_in_common_count:int32 incoming_paid_message_star_count:int53 outgoing_paid_message_star_count:int53 gift_settings:giftSettings bot_verification:botVerification main_profile_tab:ProfileTab first_profile_audio:audio rating:userRating pending_rating:userRating pending_rating_date:int32 business_info:businessInfo bot_info:botInfo = UserFullInfo;
 
 //@description Represents a list of users @total_count Approximate total number of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int53> = Users;
@@ -12457,26 +12457,26 @@ sharePhoneNumber user_id:int53 = Ok;
 getUserProfilePhotos user_id:int53 offset:int32 limit:int32 = ChatPhotos;
 
 
-//@description Returns the list of saved music files of a user
+//@description Returns the list of profile audio files of a user
 //@user_id User identifier
 //@offset The number of audio files to skip; must be non-negative
 //@limit The maximum number of audio files to be returned; up to 100
-getUserSavedMusic user_id:int53 offset:int32 limit:int32 = Audios;
+getUserProfileAudios user_id:int53 offset:int32 limit:int32 = Audios;
 
-//@description Checks whether a file is in the saved music of the current user. Returns a 404 error if it isn't @file_id Identifier of the audio file to check
-isSavedMusic file_id:int32 = Ok;
+//@description Checks whether a file is in the profile audio files of the current user. Returns a 404 error if it isn't @file_id Identifier of the audio file to check
+isProfileAudio file_id:int32 = Ok;
 
-//@description Adds an audio file to the beginning of the saved music of the current user
+//@description Adds an audio file to the beginning of the profile audio files of the current user
 //@file_id Identifier of the audio file to be added. The file must have been uploaded to the server
-addSavedMusic file_id:int32 = Ok;
+addProfileAudio file_id:int32 = Ok;
 
-//@description Changes position of an audio file in the saved music list of the current user
-//@file_id Identifier of the file from saved music, which position will be changed
-//@after_file_id Identifier of the file from saved music after which the file will be positioned; pass 0 to move the file to the beginning of the list
-setSavedMusicPosition file_id:int32 after_file_id:int32 = Ok;
+//@description Changes position of an audio file in the profile audio files of the current user
+//@file_id Identifier of the file from profile audio files, which position will be changed
+//@after_file_id Identifier of the file from profile audio files after which the file will be positioned; pass 0 to move the file to the beginning of the list
+setProfileAudioPosition file_id:int32 after_file_id:int32 = Ok;
 
-//@description Removes an audio file from the saved music of the current user @file_id Identifier of the audio file to be removed
-removeSavedMusic file_id:int32 = Ok;
+//@description Removes an audio file from the profile audio files of the current user @file_id Identifier of the audio file to be removed
+removeProfileAudio file_id:int32 = Ok;
 
 
 //@description Returns outline of a sticker. This is an offline method. Returns a 404 error if the outline isn't known
