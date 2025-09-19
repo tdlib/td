@@ -7014,7 +7014,7 @@ void UserManager::reload_my_saved_music_list(Promise<Unit> &&promise) {
 
 void UserManager::on_get_my_saved_music_list(
     Result<telegram_api::object_ptr<telegram_api::account_SavedMusicIds>> &&r_saved_music_ids) {
-  if (G()->close_flag()) {
+  if (G()->close_flag() && r_saved_music_ids.is_ok()) {
     r_saved_music_ids = Global::request_aborted_error();
   }
 
