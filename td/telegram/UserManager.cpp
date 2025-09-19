@@ -4298,15 +4298,23 @@ void UserManager::on_update_user_full_first_saved_music_file_id(UserFull *user_f
   }
 }
 
-std::pair<int64, int64> UserManager::get_saved_music_document_id(FileId saved_music_file_id) const {
+std::pair<int64, int64> UserManager::get_saved_music_document_id(FileId saved_music_file_id, bool from_server) const {
   auto file_view = td_->file_manager_->get_file_view(saved_music_file_id);
+  if (file_view.empty() || file_view.get_type() != FileType::Audio) {
+    CHECK(!from_server);
+    return {};
+  }
   const auto *full_remote_location = file_view.get_full_remote_location();
   if (full_remote_location == nullptr) {
-    LOG(ERROR) << "Saved music " << saved_music_file_id << " has no remote location";
+    if (from_server) {
+      LOG(ERROR) << "Saved music " << saved_music_file_id << " has no remote location";
+    }
     return {};
   }
   if (full_remote_location->is_web()) {
-    LOG(ERROR) << "Have a web saved music " << saved_music_file_id;
+    if (from_server) {
+      LOG(ERROR) << "Have a web saved music " << saved_music_file_id;
+    }
     return {};
   }
 
@@ -6592,6 +6600,30 @@ Result<telegram_api::object_ptr<telegram_api::inputDocument>> UserManager::check
   }
 
   return full_remote_location->as_input_document();
+}
+
+void UserManager::is_saved_music(FileId file_id, Promise<Unit> &&promise) {
+  if (!are_my_saved_music_ids_inited_) {
+    return reload_my_saved_music_list(
+        [actor_id = actor_id(this), file_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+          send_closure(actor_id, &UserManager::check_is_saved_music, file_id, std::move(promise));
+        });
+  }
+
+  check_is_saved_music(file_id, std::move(promise));
+}
+
+void UserManager::check_is_saved_music(FileId file_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  CHECK(are_my_saved_music_ids_inited_);
+  auto document_id = get_saved_music_document_id(file_id, false).first;
+  if (my_saved_music_ids_.count(document_id) == 0) {
+    return promise.set_error(404, "Not Found");
+  }
+  return promise.set_value(Unit());
 }
 
 void UserManager::add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise) {

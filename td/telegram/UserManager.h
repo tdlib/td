@@ -416,6 +416,8 @@ class UserManager final : public Actor {
 
   FileSourceId get_user_profile_photo_file_source_id(UserId user_id, int64 photo_id);
 
+  void is_saved_music(FileId file_id, Promise<Unit> &&promise);
+
   void add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise);
 
   void on_add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise);
@@ -962,7 +964,9 @@ class UserManager final : public Actor {
   static void on_update_user_full_first_saved_music_file_id(UserFull *user_full, UserId user_id,
                                                             FileId first_saved_music_file_id);
 
-  std::pair<int64, int64> get_saved_music_document_id(FileId saved_music_file_id) const;
+  std::pair<int64, int64> get_saved_music_document_id(FileId saved_music_file_id, bool from_server = true) const;
+
+  void check_is_saved_music(FileId file_id, Promise<Unit> &&promise);
 
   void register_user_saved_music(UserId user_id, FileId saved_music_file_id);
 

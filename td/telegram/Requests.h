@@ -1289,6 +1289,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getUserSavedMusic &request);
 
+  void on_request(uint64 id, const td_api::isSavedMusic &request);
+
   void on_request(uint64 id, const td_api::addSavedMusic &request);
 
   void on_request(uint64 id, const td_api::removeSavedMusic &request);

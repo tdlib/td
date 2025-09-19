@@ -6481,6 +6481,12 @@ void Requests::on_request(uint64 id, const td_api::getUserSavedMusic &request) {
                                            std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::isSavedMusic &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->is_saved_music(FileId(request.file_id_, 0), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::addSavedMusic &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
