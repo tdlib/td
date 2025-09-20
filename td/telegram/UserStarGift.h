@@ -30,6 +30,7 @@ class UserStarGift {
   int64 convert_star_count_ = 0;
   int64 upgrade_star_count_ = 0;
   int64 transfer_star_count_ = 0;
+  int64 drop_original_details_star_count_ = 0;
   int32 date_ = 0;
   int32 can_transfer_at_ = 0;
   int32 can_resell_at_ = 0;

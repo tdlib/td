@@ -27,6 +27,7 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedS
     , convert_star_count_(StarManager::get_star_count(gift->convert_stars_))
     , upgrade_star_count_(StarManager::get_star_count(gift->upgrade_stars_))
     , transfer_star_count_(StarManager::get_star_count(gift->transfer_stars_))
+    , drop_original_details_star_count_(StarManager::get_star_count(gift->drop_original_details_stars_))
     , date_(gift->date_)
     , can_transfer_at_(max(0, gift->can_transfer_at_))
     , can_resell_at_(max(0, gift->can_resell_at_))
@@ -83,7 +84,7 @@ td_api::object_ptr<td_api::receivedGift> UserStarGift::get_received_gift_object(
       get_formatted_text_object(td->user_manager_.get(), message_, true, -1), is_name_hidden_, is_saved_, is_pinned_,
       can_upgrade_, can_transfer_, was_refunded_, date_, gift_.get_sent_gift_object(td), std::move(collection_ids),
       convert_star_count_, upgrade_star_count_, upgrade_star_count_ > 0 && is_upgrade_separate_, transfer_star_count_,
-      can_transfer_at_, can_resell_at_, can_export_at_, prepaid_upgrade_hash_);
+      drop_original_details_star_count_, can_transfer_at_, can_resell_at_, can_export_at_, prepaid_upgrade_hash_);
 }
 
 }  // namespace td
