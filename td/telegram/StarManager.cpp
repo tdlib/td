@@ -480,6 +480,14 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                         return td_api::make_object<td_api::starTransactionTypeGiftUpgrade>(
                             user_id_object, gift.get_upgraded_gift_object(td_));
                       }
+                    } else if (transaction->stargift_drop_original_details_) {
+                      if (for_user) {
+                        transaction->stargift_drop_original_details_ = false;
+                        return td_api::make_object<td_api::starTransactionTypeGiftOriginalDetailsDrop>(
+                            get_message_sender_object(td_, user_id, DialogId(),
+                                                      "starTransactionTypeGiftOriginalDetailsDrop"),
+                            gift.get_upgraded_gift_object(td_));
+                      }
                     } else {
                       if (for_user) {
                         return td_api::make_object<td_api::starTransactionTypeGiftTransfer>(
@@ -640,7 +648,15 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
               td_->star_gift_manager_->on_get_star_gift(gift, true);
               if (is_purchase) {
                 if (gift.is_unique()) {
-                  if (!transaction->stargift_upgrade_ && !transaction->stargift_resale_) {
+                  if (transaction->stargift_drop_original_details_) {
+                    if (for_user) {
+                      transaction->stargift_drop_original_details_ = false;
+                      return td_api::make_object<td_api::starTransactionTypeGiftOriginalDetailsDrop>(
+                          get_message_sender_object(td_, UserId(), dialog_id,
+                                                    "starTransactionTypeGiftOriginalDetailsDrop"),
+                          gift.get_upgraded_gift_object(td_));
+                    }
+                  } else if (!transaction->stargift_upgrade_ && !transaction->stargift_resale_) {
                     if (for_user) {
                       return td_api::make_object<td_api::starTransactionTypeGiftTransfer>(
                           get_message_sender_object(td_, UserId(), dialog_id, "starTransactionTypeGiftTransfer"),
