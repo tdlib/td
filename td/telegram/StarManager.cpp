@@ -1853,6 +1853,9 @@ string StarManager::get_unused_star_transaction_field(
   if (transaction->stargift_prepaid_upgrade_) {
     return "prepaid gift upgrade";
   }
+  if (transaction->stargift_drop_original_details_) {
+    return "gift original details drop";
+  }
   return string();
 }
 
