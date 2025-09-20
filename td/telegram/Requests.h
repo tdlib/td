@@ -1657,6 +1657,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::transferGift &request);
 
+  void on_request(uint64 id, const td_api::dropGiftOriginalDetails &request);
+
   void on_request(uint64 id, td_api::sendResoldGift &request);
 
   void on_request(uint64 id, td_api::getReceivedGifts &request);

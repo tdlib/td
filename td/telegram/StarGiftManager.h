@@ -69,6 +69,8 @@ class StarGiftManager final : public Actor {
   void transfer_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, DialogId receiver_dialog_id,
                      int64 star_count, Promise<Unit> &&promise);
 
+  void drop_gift_original_details(StarGiftId star_gift_id, int64 star_count, Promise<Unit> &&promise);
+
   void send_resold_gift(const string &gift_name, DialogId receiver_dialog_id, StarGiftResalePrice price,
                         Promise<td_api::object_ptr<td_api::GiftResaleResult>> &&promise);
 

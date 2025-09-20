@@ -7806,6 +7806,13 @@ void Requests::on_request(uint64 id, td_api::transferGift &request) {
                                          std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::dropGiftOriginalDetails &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->star_gift_manager_->drop_gift_original_details(StarGiftId(request.received_gift_id_), request.star_count_,
+                                                      std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::sendResoldGift &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.gift_name_);

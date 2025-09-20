@@ -934,6 +934,110 @@ class GetGiftTransferPaymentFormQuery final : public Td::ResultHandler {
   }
 };
 
+class DropGiftOriginalDetailsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  int64 star_count_;
+
+ public:
+  explicit DropGiftOriginalDetailsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftDropOriginalDetails> input_invoice,
+            int64 payment_form_id, int64 star_count) {
+    star_count_ = star_count;
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_sendStarsForm(payment_form_id, std::move(input_invoice))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_sendStarsForm>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto payment_result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DropGiftOriginalDetailsQuery: " << to_string(payment_result);
+    switch (payment_result->get_id()) {
+      case telegram_api::payments_paymentResult::ID: {
+        auto result = telegram_api::move_object_as<telegram_api::payments_paymentResult>(payment_result);
+        td_->star_manager_->add_pending_owned_star_count(star_count_, true);
+        td_->updates_manager_->on_get_updates(std::move(result->updates_), std::move(promise_));
+        break;
+      }
+      case telegram_api::payments_paymentVerificationNeeded::ID:
+        LOG(ERROR) << "Receive " << to_string(payment_result);
+        return on_error(Status::Error(500, "Receive invalid response"));
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "FORM_SUBMIT_DUPLICATE") {
+      LOG(ERROR) << "Receive FORM_SUBMIT_DUPLICATE";
+    }
+    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetGiftDropOriginalDetailsPaymentFormQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  int64 star_count_;
+  telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftDropOriginalDetails> drop_original_details_input_invoice_;
+
+ public:
+  explicit GetGiftDropOriginalDetailsPaymentFormQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftDropOriginalDetails> input_invoice,
+            telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftDropOriginalDetails>
+                drop_original_details_input_invoice,
+            int64 star_count) {
+    drop_original_details_input_invoice_ = std::move(drop_original_details_input_invoice);
+    star_count_ = star_count;
+    td_->star_manager_->add_pending_owned_star_count(-star_count, false);
+    send_query(
+        G()->net_query_creator().create(telegram_api::payments_getPaymentForm(0, std::move(input_invoice), nullptr)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getPaymentForm>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto payment_form_ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetGiftDropOriginalDetailsPaymentFormQuery: " << to_string(payment_form_ptr);
+    switch (payment_form_ptr->get_id()) {
+      case telegram_api::payments_paymentForm::ID:
+      case telegram_api::payments_paymentFormStarGift::ID:
+        LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
+        td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+        promise_.set_error(500, "Unsupported");
+        break;
+      case telegram_api::payments_paymentFormStars::ID: {
+        auto payment_form = static_cast<const telegram_api::payments_paymentFormStars *>(payment_form_ptr.get());
+        if (payment_form->invoice_->prices_.size() != 1u ||
+            payment_form->invoice_->prices_[0]->amount_ != star_count_) {
+          td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+          return promise_.set_error(400, "Wrong drop original details price specified");
+        }
+        td_->create_handler<DropGiftOriginalDetailsQuery>(std::move(promise_))
+            ->send(std::move(drop_original_details_input_invoice_), payment_form->form_id_, star_count_);
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ResaleGiftQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   StarGiftResalePrice price_;
@@ -1952,6 +2056,25 @@ void StarGiftManager::on_dialog_gift_transferred(DialogId from_dialog_id, Dialog
     td_->chat_manager_->on_update_channel_gift_count(to_dialog_id.get_channel_id(), 1, true);
   }
   promise.set_value(Unit());
+}
+
+void StarGiftManager::drop_gift_original_details(StarGiftId star_gift_id, int64 star_count, Promise<Unit> &&promise) {
+  auto input_saved_star_gift = star_gift_id.get_input_saved_star_gift(td_);
+  if (input_saved_star_gift == nullptr) {
+    return promise.set_error(400, "Invalid gift identifier specified");
+  }
+  if (star_count <= 0) {
+    return promise.set_error(400, "Invalid amount of Telegram Stars specified");
+  }
+  if (!td_->star_manager_->has_owned_star_count(star_count)) {
+    return promise.set_error(400, "Have not enough Telegram Stars");
+  }
+  auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftDropOriginalDetails>(
+      std::move(input_saved_star_gift));
+  auto drop_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftDropOriginalDetails>(
+      star_gift_id.get_input_saved_star_gift(td_));
+  td_->create_handler<GetGiftDropOriginalDetailsPaymentFormQuery>(std::move(promise))
+      ->send(std::move(input_invoice), std::move(drop_input_invoice), star_count);
 }
 
 void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receiver_dialog_id, StarGiftResalePrice price,

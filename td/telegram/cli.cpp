@@ -3151,6 +3151,11 @@ class CliClient final : public Actor {
       get_args(args, received_gift_id, new_owner_id, star_count);
       send_request(td_api::make_object<td_api::transferGift>(business_connection_id_, received_gift_id,
                                                              as_message_sender(new_owner_id), star_count));
+    } else if (op == "dgod") {
+      string received_gift_id;
+      int64 star_count;
+      get_args(args, received_gift_id, star_count);
+      send_request(td_api::make_object<td_api::dropGiftOriginalDetails>(received_gift_id, star_count));
     } else if (op == "srg") {
       string gift_name;
       string owner_id;
