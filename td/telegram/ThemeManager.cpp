@@ -7,6 +7,8 @@
 #include "td/telegram/ThemeManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChatManager.h"
+#include "td/telegram/ChatTheme.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryCreator.h"
@@ -15,12 +17,14 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/ThemeSettings.hpp"
+#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/emoji.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tl_helpers.h"
 
@@ -116,6 +120,59 @@ class GetPeerProfileColorsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetUniqueGiftChatThemesQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftChatThemes>> promise_;
+
+ public:
+  explicit GetUniqueGiftChatThemesQuery(Promise<td_api::object_ptr<td_api::giftChatThemes>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(const string &offset, int32 limit) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_getUniqueGiftChatThemes(to_integer<int32>(offset), limit, 0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_getUniqueGiftChatThemes>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetUniqueGiftChatThemesQuery: " << to_string(ptr);
+    switch (ptr->get_id()) {
+      case telegram_api::account_chatThemesNotModified::ID:
+        LOG(ERROR) << "Receive " << to_string(ptr);
+        return on_error(Status::Error(500, "Receive wrong server response"));
+      case telegram_api::account_chatThemes::ID: {
+        auto themes = telegram_api::move_object_as<telegram_api::account_chatThemes>(ptr);
+        td_->user_manager_->on_get_users(std::move(themes->users_), "GetUniqueGiftChatThemesQuery");
+        td_->chat_manager_->on_get_chats(std::move(themes->chats_), "GetUniqueGiftChatThemesQuery");
+        auto result = td_api::make_object<td_api::giftChatThemes>();
+        if (themes->next_offset_ != 0) {
+          result->next_offset_ = to_string(themes->next_offset_);
+        }
+        for (auto &theme : themes->themes_) {
+          ChatTheme chat_theme(td_, std::move(theme));
+          if (!chat_theme.is_gift()) {
+            LOG(ERROR) << "Receive " << chat_theme;
+            continue;
+          }
+          result->themes_.push_back(chat_theme.get_gift_chat_theme_object(td_));
+        }
+        return promise_.set_value(std::move(result));
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 bool operator==(const ThemeManager::ProfileAccentColor &lhs, const ThemeManager::ProfileAccentColor &rhs) {
   return lhs.palette_colors_ == rhs.palette_colors_ && lhs.background_colors_ == rhs.background_colors_ &&
          lhs.story_colors_ == rhs.story_colors_;
@@ -126,7 +183,7 @@ bool operator!=(const ThemeManager::ProfileAccentColor &lhs, const ThemeManager:
 }
 
 template <class StorerT>
-void ThemeManager::ChatTheme::store(StorerT &storer) const {
+void ThemeManager::EmojiChatTheme::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
   END_STORE_FLAGS();
   td::store(emoji, storer);
@@ -136,7 +193,7 @@ void ThemeManager::ChatTheme::store(StorerT &storer) const {
 }
 
 template <class ParserT>
-void ThemeManager::ChatTheme::parse(ParserT &parser) {
+void ThemeManager::EmojiChatTheme::parse(ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   END_PARSE_FLAGS();
   td::parse(emoji, parser);
@@ -146,13 +203,13 @@ void ThemeManager::ChatTheme::parse(ParserT &parser) {
 }
 
 template <class StorerT>
-void ThemeManager::ChatThemes::store(StorerT &storer) const {
+void ThemeManager::EmojiChatThemes::store(StorerT &storer) const {
   td::store(hash, storer);
   td::store(themes, storer);
 }
 
 template <class ParserT>
-void ThemeManager::ChatThemes::parse(ParserT &parser) {
+void ThemeManager::EmojiChatThemes::parse(ParserT &parser) {
   td::parse(hash, parser);
   td::parse(themes, parser);
 }
@@ -344,7 +401,7 @@ void ThemeManager::load_chat_themes() {  // must not be called in constructor, b
       send_update_chat_themes();
     } else {
       LOG(ERROR) << "Failed to parse chat themes from binlog: " << status;
-      chat_themes_ = ChatThemes();
+      chat_themes_ = EmojiChatThemes();
     }
   }
 }
@@ -606,14 +663,15 @@ int32 ThemeManager::get_profile_accent_color_id_object(AccentColorId accent_colo
   return -1;
 }
 
-td_api::object_ptr<td_api::chatTheme> ThemeManager::get_chat_theme_object(const ChatTheme &theme) const {
-  return td_api::make_object<td_api::chatTheme>(theme.emoji, theme.light_theme.get_theme_settings_object(td_),
-                                                theme.dark_theme.get_theme_settings_object(td_));
+td_api::object_ptr<td_api::emojiChatTheme> ThemeManager::get_emoji_chat_theme_object(
+    const EmojiChatTheme &theme) const {
+  return td_api::make_object<td_api::emojiChatTheme>(theme.emoji, theme.light_theme.get_theme_settings_object(td_),
+                                                     theme.dark_theme.get_theme_settings_object(td_));
 }
 
-td_api::object_ptr<td_api::updateChatThemes> ThemeManager::get_update_chat_themes_object() const {
-  return td_api::make_object<td_api::updateChatThemes>(
-      transform(chat_themes_.themes, [this](const ChatTheme &theme) { return get_chat_theme_object(theme); }));
+td_api::object_ptr<td_api::updateEmojiChatThemes> ThemeManager::get_update_emoji_chat_themes_object() const {
+  return td_api::make_object<td_api::updateEmojiChatThemes>(transform(
+      chat_themes_.themes, [this](const EmojiChatTheme &theme) { return get_emoji_chat_theme_object(theme); }));
 }
 
 td_api::object_ptr<td_api::updateAccentColors> ThemeManager::get_update_accent_colors_object() const {
@@ -731,7 +789,7 @@ void ThemeManager::save_profile_accent_colors() {
 }
 
 void ThemeManager::send_update_chat_themes() const {
-  send_closure(G()->td(), &Td::send_update, get_update_chat_themes_object());
+  send_closure(G()->td(), &Td::send_update, get_update_emoji_chat_themes_object());
 }
 
 void ThemeManager::send_update_accent_colors() const {
@@ -773,7 +831,7 @@ void ThemeManager::on_get_chat_themes(Result<telegram_api::object_ptr<telegram_a
 
     bool was_light = false;
     bool was_dark = false;
-    ChatTheme chat_theme;
+    EmojiChatTheme chat_theme;
     chat_theme.emoji = std::move(theme->emoticon_);
     chat_theme.id = theme->id_;
     for (auto &settings : theme->settings_) {
@@ -967,13 +1025,18 @@ void ThemeManager::on_get_profile_accent_colors(
   }
 }
 
+void ThemeManager::get_unique_gift_chat_themes(const string &offset, int32 limit,
+                                               Promise<td_api::object_ptr<td_api::giftChatThemes>> &&promise) {
+  td_->create_handler<GetUniqueGiftChatThemesQuery>(std::move(promise))->send(offset, limit);
+}
+
 void ThemeManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
     return;
   }
 
   if (!chat_themes_.themes.empty()) {
-    updates.push_back(get_update_chat_themes_object());
+    updates.push_back(get_update_emoji_chat_themes_object());
   }
   if (!accent_colors_.accent_color_ids_.empty()) {
     updates.push_back(get_update_accent_colors_object());

@@ -88,6 +88,9 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
           if (star_gift->require_premium_) {
             continue;
           }
+          if (star_gift->locked_until_date_ > G()->unix_time()) {
+            continue;
+          }
         } else {
           availability_resale = star_gift->availability_resale_;
           resell_min_stars = StarManager::get_star_count(star_gift->resell_min_stars_);
@@ -117,6 +120,46 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
     }
 
     promise_.set_value(td_api::make_object<td_api::availableGifts>(std::move(options)));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class CheckCanSendGiftQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::CanSendGiftResult>> promise_;
+
+ public:
+  explicit CheckCanSendGiftQuery(Promise<td_api::object_ptr<td_api::CanSendGiftResult>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 gift_id) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_checkCanSendGift(gift_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_checkCanSendGift>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for CheckCanSendGiftQuery: " << to_string(ptr);
+    switch (ptr->get_id()) {
+      case telegram_api::payments_checkCanSendGiftResultOk::ID:
+        return promise_.set_value(td_api::make_object<td_api::canSendGiftResultOk>());
+      case telegram_api::payments_checkCanSendGiftResultFail::ID: {
+        auto result = telegram_api::move_object_as<telegram_api::payments_checkCanSendGiftResultFail>(ptr);
+        auto reason = get_formatted_text(td_->user_manager_.get(), std::move(result->reason_), true, false,
+                                         "CheckCanSendGiftQuery");
+        return promise_.set_value(td_api::make_object<td_api::canSendGiftResultFail>(
+            get_formatted_text_object(td_->user_manager_.get(), reason, true, true)));
+      }
+      default:
+        UNREACHABLE();
+    }
   }
 
   void on_error(Status status) final {
@@ -1172,6 +1215,7 @@ class GetUniqueStarGiftQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for GetUniqueStarGiftQuery: " << to_string(ptr);
 
     td_->user_manager_->on_get_users(std::move(ptr->users_), "GetUniqueStarGiftQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetUniqueStarGiftQuery");
 
     StarGift star_gift(td_, std::move(ptr->gift_), true);
     if (!star_gift.is_valid() || !star_gift.is_unique()) {
@@ -1677,6 +1721,10 @@ void StarGiftManager::on_get_star_gift(const StarGift &star_gift, bool from_serv
     return;
   }
   gift_prices_[star_gift.get_id()] = {star_gift.get_star_count(), star_gift.get_upgrade_star_count()};
+}
+
+void StarGiftManager::can_send_gift(int64 gift_id, Promise<td_api::object_ptr<td_api::CanSendGiftResult>> &&promise) {
+  td_->create_handler<CheckCanSendGiftQuery>(std::move(promise))->send(gift_id);
 }
 
 void StarGiftManager::send_gift(int64 gift_id, DialogId dialog_id, td_api::object_ptr<td_api::formattedText> text,

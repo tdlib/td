@@ -35,11 +35,13 @@ class StarGift {
   int32 last_sale_date_ = 0;
   int32 per_user_remains_ = 0;
   int32 per_user_total_ = 0;
+  int32 locked_until_date_ = 0;
 
   bool is_for_birthday_ = false;
 
   bool is_unique_ = false;
   bool resale_ton_only_ = false;
+  bool is_theme_available_ = false;
   StarGiftAttributeSticker model_;
   StarGiftAttributeSticker pattern_;
   StarGiftAttributeBackdrop backdrop_;
@@ -58,6 +60,7 @@ class StarGift {
   int64 regular_gift_id_ = 0;
   string value_currency_;
   int64 value_amount_ = 0;
+  DialogId theme_dialog_id_;
 
   friend bool operator==(const StarGift &lhs, const StarGift &rhs);
 

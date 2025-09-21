@@ -40,6 +40,7 @@ class UserStarGift {
   bool can_upgrade_ = false;
   bool can_transfer_ = false;
   bool was_refunded_ = false;
+  bool is_upgrade_separate_ = false;
 
  public:
   UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedStarGift> &&gift, DialogId dialog_id);

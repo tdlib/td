@@ -200,7 +200,8 @@ See [erl-tdlib](https://github.com/lattenwald/erl-tdlib) for an example of TDLib
 <a name="php"></a>
 ## Using TDLib in PHP projects
 
-If you use modern PHP >= 7.4, you can use TDLib via a PHP FFI extension. For example, take a look at [ffi-tdlib](https://github.com/aurimasniekis/php-ffi-tdlib), or [tdlib-php-ffi](https://github.com/thisismzm/tdlib-php-ffi) - FFI-based TDLib wrappers.
+If you use modern PHP >= 7.4, you can use TDLib via a PHP FFI extension.
+For example, take a look at [ffi-tdlib](https://github.com/aurimasniekis/php-ffi-tdlib), [tdlib-php-ffi](https://github.com/thisismzm/tdlib-php-ffi), or [tdjson_example](https://github.com/tdlib/td/pull/3444/files) - FFI-based TDLib wrappers.
 
 See also [tdlib-schema](https://github.com/aurimasniekis/php-tdlib-schema) - a generator for TDLib API classes.
 

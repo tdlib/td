@@ -163,6 +163,7 @@
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TermsOfServiceManager.h"
+#include "td/telegram/ThemeManager.h"
 #include "td/telegram/TimeZoneManager.h"
 #include "td/telegram/TopDialogCategory.h"
 #include "td/telegram/TopDialogManager.h"
@@ -5254,11 +5255,17 @@ void Requests::on_request(uint64 id, const td_api::deleteChatBackground &request
                                                      std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getGiftChatThemes &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  td_->theme_manager_->get_unique_gift_chat_themes(request.offset_, request.limit_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setChatTheme &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.theme_name_);
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->set_dialog_theme(DialogId(request.chat_id_), request.theme_name_, std::move(promise));
+  td_->messages_manager_->set_dialog_theme(DialogId(request.chat_id_), std::move(request.theme_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setChatDraftMessage &request) {
@@ -6167,6 +6174,12 @@ void Requests::on_request(uint64 id, td_api::setBirthdate &request) {
   td_->user_manager_->set_birthdate(Birthdate(std::move(request.birthdate_)), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::setMainProfileTab &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->set_main_profile_tab(request.main_profile_tab_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::setPersonalChat &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
@@ -6461,6 +6474,38 @@ void Requests::on_request(uint64 id, const td_api::getUserProfilePhotos &request
                                               std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getUserProfileAudios &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->user_manager_->get_user_saved_music(UserId(request.user_id_), request.offset_, request.limit_,
+                                           std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::isProfileAudio &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->is_saved_music(FileId(request.file_id_, 0), std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::addProfileAudio &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->add_saved_music(FileId(request.file_id_, 0), FileId(), std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::setProfileAudioPosition &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->add_saved_music(FileId(request.file_id_, 0), FileId(request.after_file_id_, 0),
+                                      std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::removeProfileAudio &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->remove_saved_music(FileId(request.file_id_, 0), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::setAccentColor &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
@@ -6587,6 +6632,13 @@ void Requests::on_request(uint64 id, const td_api::setSupergroupUnrestrictBoostC
   CREATE_OK_REQUEST_PROMISE();
   td_->chat_manager_->set_channel_unrestrict_boost_count(ChannelId(request.supergroup_id_),
                                                          request.unrestrict_boost_count_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::setSupergroupMainProfileTab &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->chat_manager_->set_channel_main_profile_tab(ChannelId(request.supergroup_id_), request.main_profile_tab_,
+                                                   std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::toggleSupergroupSignMessages &request) {
@@ -7193,6 +7245,18 @@ void Requests::on_request(uint64 id, const td_api::getStarAdAccountUrl &request)
   td_->star_manager_->get_star_ad_account_url(request.owner_id_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getTonRevenueStatistics &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->star_manager_->get_ton_revenue_statistics(request.is_dark_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::getTonWithdrawalUrl &request) {
+  CHECK_IS_USER();
+  CREATE_HTTP_URL_REQUEST_PROMISE();
+  td_->star_manager_->get_ton_withdrawal_url(request.password_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getMessageStatistics &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
@@ -7665,6 +7729,11 @@ void Requests::on_request(uint64 id, td_api::setGiftSettings &request) {
 void Requests::on_request(uint64 id, const td_api::getAvailableGifts &request) {
   CREATE_REQUEST_PROMISE();
   td_->star_gift_manager_->get_gift_payment_options(std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::canSendGift &request) {
+  CREATE_REQUEST_PROMISE();
+  td_->star_gift_manager_->can_send_gift(request.gift_id_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::sendGift &request) {

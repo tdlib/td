@@ -154,11 +154,21 @@ Result<InputInvoiceInfo> get_input_invoice_info(Td *td, td_api::object_ptr<td_ap
         }
         case td_api::telegramPaymentPurposeStars::ID: {
           auto p = static_cast<td_api::telegramPaymentPurposeStars *>(invoice->purpose_.get());
+          int32 flags = 0;
+          telegram_api::object_ptr<telegram_api::InputPeer> spend_purpose_input_peer;
+          DialogId spend_dialog_id(p->chat_id_);
+          if (spend_dialog_id != DialogId()) {
+            TRY_STATUS(td->dialog_manager_->check_dialog_access(spend_dialog_id, false, AccessRights::Read,
+                                                                "telegramPaymentPurposeStars"));
+            spend_purpose_input_peer = td->dialog_manager_->get_input_peer(spend_dialog_id, AccessRights::Read);
+            CHECK(spend_purpose_input_peer != nullptr);
+            flags |= telegram_api::inputStorePaymentStarsTopup::SPEND_PURPOSE_PEER_MASK;
+          }
           TRY_STATUS(check_payment_amount(p->currency_, p->amount_));
           dismiss_suggested_action(SuggestedAction{SuggestedAction::Type::StarsSubscriptionLowBalance},
                                    Promise<Unit>());
-          auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(p->star_count_,
-                                                                                              p->currency_, p->amount_);
+          auto purpose = telegram_api::make_object<telegram_api::inputStorePaymentStarsTopup>(
+              flags, p->star_count_, p->currency_, p->amount_, std::move(spend_purpose_input_peer));
           result.input_invoice_ = telegram_api::make_object<telegram_api::inputInvoiceStars>(std::move(purpose));
           break;
         }

@@ -26,6 +26,7 @@
 #include "td/telegram/FolderId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/ProfileTab.h"
 #include "td/telegram/QueryCombiner.h"
 #include "td/telegram/QueryMerger.h"
 #include "td/telegram/ReferralProgramInfo.h"
@@ -201,7 +202,7 @@ class UserManager final : public Actor {
 
   void invalidate_user_full(UserId user_id);
 
-  bool have_user(UserId user_id) const;
+  bool have_accessible_user(UserId user_id) const;
 
   bool have_min_user(UserId user_id) const;
 
@@ -395,6 +396,8 @@ class UserManager final : public Actor {
 
   void set_birthdate(Birthdate &&birthdate, Promise<Unit> &&promise);
 
+  void set_main_profile_tab(const td_api::object_ptr<td_api::ProfileTab> &main_profile_tab, Promise<Unit> &&promise);
+
   void set_personal_channel(DialogId dialog_id, Promise<Unit> &&promise);
 
   void set_emoji_status(const unique_ptr<EmojiStatus> &emoji_status, Promise<Unit> &&promise);
@@ -406,12 +409,34 @@ class UserManager final : public Actor {
   void get_user_profile_photos(UserId user_id, int32 offset, int32 limit,
                                Promise<td_api::object_ptr<td_api::chatPhotos>> &&promise);
 
+  void on_get_user_photos(UserId user_id, int32 offset, int32 limit, int32 total_count,
+                          vector<telegram_api::object_ptr<telegram_api::Photo>> photos);
+
   void reload_user_profile_photo(UserId user_id, int64 photo_id, Promise<Unit> &&promise);
 
   FileSourceId get_user_profile_photo_file_source_id(UserId user_id, int64 photo_id);
 
-  void on_get_user_photos(UserId user_id, int32 offset, int32 limit, int32 total_count,
-                          vector<telegram_api::object_ptr<telegram_api::Photo>> photos);
+  void is_saved_music(FileId file_id, Promise<Unit> &&promise);
+
+  void add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise);
+
+  void on_add_saved_music(FileId file_id, FileId after_file_id, Promise<Unit> &&promise);
+
+  void remove_saved_music(FileId file_id, Promise<Unit> &&promise);
+
+  void on_remove_saved_music(FileId file_id, Promise<Unit> &&promise);
+
+  void get_user_saved_music(UserId user_id, int32 offset, int32 limit,
+                            Promise<td_api::object_ptr<td_api::audios>> &&promise);
+
+  void on_get_user_saved_music(UserId user_id, int32 offset, int32 limit, int32 total_count,
+                               vector<telegram_api::object_ptr<telegram_api::Document>> documents);
+
+  void reload_user_saved_music(UserId user_id, int64 document_id, int64 access_hash, Promise<Unit> &&promise);
+
+  FileSourceId get_user_saved_music_file_source_id(UserId user_id, int64 document_id, int64 access_hash);
+
+  void reload_my_saved_music_list(Promise<Unit> &&promise);
 
   void register_message_users(MessageFullId message_full_id, vector<UserId> user_ids);
 
@@ -643,6 +668,8 @@ class UserManager final : public Actor {
     Photo fallback_photo;
     Photo personal_photo;
 
+    FileId first_saved_music_file_id;
+
     string about;
     string private_forward_name;
     vector<FileId> registered_file_ids;
@@ -655,6 +682,7 @@ class UserManager final : public Actor {
     StarGiftSettings gift_settings;
 
     ChannelId personal_channel_id;
+    ProfileTab main_profile_tab = ProfileTab::Default;
 
     unique_ptr<BotInfo> bot_info;
     unique_ptr<BusinessInfo> business_info;
@@ -684,6 +712,7 @@ class UserManager final : public Actor {
 
     bool is_common_chat_count_changed = true;
     bool is_pending_star_rating_changed = true;
+    bool is_first_saved_music_file_id_changed = true;
     bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
     bool need_send_update = true;       // have new changes that need only to be sent to the client
@@ -755,10 +784,26 @@ class UserManager final : public Actor {
     vector<PendingGetPhotoRequest> pending_requests;
   };
 
+  struct PendingGetSavedMusicRequest {
+    int32 offset = 0;
+    int32 limit = 0;
+    int32 retry_count = 0;
+    Promise<td_api::object_ptr<td_api::audios>> promise;
+  };
+
+  struct UserSavedMusic {
+    vector<FileId> saved_music_file_ids;
+    int32 count = -1;
+    int32 offset = -1;
+
+    vector<PendingGetSavedMusicRequest> pending_requests;
+  };
+
   class UserLogEvent;
   class SecretChatLogEvent;
 
   static constexpr int32 MAX_GET_PROFILE_PHOTOS = 100;  // server-side limit
+  static constexpr int32 MAX_GET_SAVED_MUSIC = 100;     // server-side limit
   static constexpr size_t MAX_NAME_LENGTH = 64;         // server-side limit for first/last name
 
   static constexpr int32 MAX_ACTIVE_STORY_ID_RELOAD_TIME = 3600;  // some reasonable limit
@@ -768,6 +813,8 @@ class UserManager final : public Actor {
   static constexpr int32 ACCOUNT_UPDATE_FIRST_NAME = 1 << 0;
   static constexpr int32 ACCOUNT_UPDATE_LAST_NAME = 1 << 1;
   static constexpr int32 ACCOUNT_UPDATE_ABOUT = 1 << 2;
+
+  void start_up() final;
 
   void tear_down() final;
 
@@ -914,6 +961,15 @@ class UserManager final : public Actor {
   static void on_update_user_full_can_manage_emoji_status(UserFull *user_full, UserId user_id,
                                                           bool can_manage_emoji_status);
 
+  static void on_update_user_full_first_saved_music_file_id(UserFull *user_full, UserId user_id,
+                                                            FileId first_saved_music_file_id);
+
+  std::pair<int64, int64> get_saved_music_document_id(FileId saved_music_file_id, bool from_server = true) const;
+
+  void check_is_saved_music(FileId file_id, Promise<Unit> &&promise);
+
+  void register_user_saved_music(UserId user_id, FileId saved_music_file_id);
+
   bool have_input_peer_user(const User *u, UserId user_id, AccessRights access_rights) const;
 
   static bool have_input_encrypted_peer(const SecretChat *secret_chat, AccessRights access_rights);
@@ -944,6 +1000,8 @@ class UserManager final : public Actor {
 
   void on_set_birthdate(Birthdate birthdate, Promise<Unit> &&promise);
 
+  void on_set_main_profile_tab(ProfileTab main_profile_tab, Promise<Unit> &&promise);
+
   void on_set_personal_channel(ChannelId channel_id, Promise<Unit> &&promise);
 
   void on_set_emoji_status(unique_ptr<EmojiStatus> emoji_status, Promise<Unit> &&promise);
@@ -959,6 +1017,22 @@ class UserManager final : public Actor {
   UserPhotos *add_user_photos(UserId user_id);
 
   void apply_pending_user_photo(User *u, UserId user_id, const char *source);
+
+  void send_get_user_saved_music_query(UserId user_id, const UserSavedMusic *user_saved_music);
+
+  void finish_get_user_saved_music(UserId user_id, Result<Unit> &&result);
+
+  UserSavedMusic *add_user_saved_music(UserId user_id);
+
+  Result<telegram_api::object_ptr<telegram_api::inputDocument>> check_saved_music_file_id(FileId &file_id,
+                                                                                          bool allow_empty) const;
+
+  void on_get_my_saved_music_list(
+      Result<telegram_api::object_ptr<telegram_api::account_SavedMusicIds>> &&r_saved_music_ids);
+
+  static string get_my_saved_music_ids_database_key();
+
+  void save_my_saved_music_ids();
 
   void load_contacts(Promise<Unit> &&promise);
 
@@ -1012,6 +1086,8 @@ class UserManager final : public Actor {
   void drop_user_full_photos(UserFull *user_full, UserId user_id, int64 expected_photo_id, const char *source);
 
   void drop_user_photos(UserId user_id, bool is_empty, const char *source);
+
+  void drop_user_saved_music(UserId user_id, bool is_empty, const char *source);
 
   void drop_user_full(UserId user_id);
 
@@ -1099,6 +1175,31 @@ class UserManager final : public Actor {
   WaitFreeHashMap<std::pair<UserId, int64>, FileSourceId, UserIdPhotoIdHash> user_profile_photo_file_source_ids_;
   FlatHashMap<int64, FileId> my_photo_file_id_;
   WaitFreeHashMap<UserId, FileSourceId, UserIdHash> user_full_file_source_ids_;
+
+  struct UserSavedMusicId {
+    UserId user_id_;
+    int64 document_id_ = 0;
+    int64 access_hash_ = 0;
+
+    UserSavedMusicId() = default;
+    UserSavedMusicId(UserId user_id, int64 document_id, int64 access_hash)
+        : user_id_(user_id), document_id_(document_id), access_hash_(access_hash) {
+    }
+    bool operator==(const UserSavedMusicId &other) const {
+      return user_id_ == other.user_id_ && document_id_ == other.document_id_ && access_hash_ == other.access_hash_;
+    }
+  };
+  struct UserSavedMusicIdHash {
+    uint32 operator()(const UserSavedMusicId &saved_music_id) const {
+      return combine_hashes(UserIdHash()(saved_music_id.user_id_), Hash<int64>()(saved_music_id.document_id_));
+    }
+  };
+  WaitFreeHashMap<UserSavedMusicId, FileSourceId, UserSavedMusicIdHash> user_saved_music_file_source_ids_;
+  WaitFreeHashMap<UserId, unique_ptr<UserSavedMusic>, UserIdHash> user_saved_music_;
+
+  bool are_my_saved_music_ids_inited_ = false;
+  vector<Promise<Unit>> reload_my_saved_music_queries_;
+  FlatHashSet<int64> my_saved_music_ids_;
 
   WaitFreeHashMap<SecretChatId, unique_ptr<SecretChat>, SecretChatIdHash> secret_chats_;
   mutable FlatHashSet<SecretChatId, SecretChatIdHash> unknown_secret_chats_;

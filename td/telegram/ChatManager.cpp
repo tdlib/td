@@ -9,6 +9,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BotVerification.h"
 #include "td/telegram/BotVerification.hpp"
+#include "td/telegram/ChatTheme.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogAdministrator.h"
 #include "td/telegram/DialogInviteLink.hpp"
@@ -550,6 +551,45 @@ class SetChannelBoostsToUnblockRestrictionsQuery final : public Td::ResultHandle
       }
     } else {
       td_->chat_manager_->on_get_channel_error(channel_id_, status, "SetChannelBoostsToUnblockRestrictionsQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SetChannelMainProfileTabQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit SetChannelMainProfileTabQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id, ProfileTab main_profile_tab) {
+    channel_id_ = channel_id;
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_setMainProfileTab(std::move(input_channel), get_input_profile_tab(main_profile_tab)),
+        {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_setMainProfileTab>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td_->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td_->chat_manager_->on_get_channel_error(channel_id_, status, "SetChannelMainProfileTabQuery");
     }
     promise_.set_error(std::move(status));
   }
@@ -2348,6 +2388,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   bool has_gift_count = gift_count != 0;
   bool has_monoforum_channel_id = monoforum_channel_id.is_valid();
   bool has_send_paid_message_stars = send_paid_message_stars != 0;
+  bool has_main_profile_tab = main_profile_tab != ProfileTab::Default;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_description);
   STORE_FLAG(has_administrator_count);
@@ -2397,6 +2438,7 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
     STORE_FLAG(has_paid_messages_available);
     STORE_FLAG(has_monoforum_channel_id);
     STORE_FLAG(has_send_paid_message_stars);
+    STORE_FLAG(has_main_profile_tab);
     END_STORE_FLAGS();
   }
   if (has_description) {
@@ -2470,6 +2512,9 @@ void ChatManager::ChannelFull::store(StorerT &storer) const {
   if (has_send_paid_message_stars) {
     store(send_paid_message_stars, storer);
   }
+  if (has_main_profile_tab) {
+    store(main_profile_tab, storer);
+  }
 }
 
 template <class ParserT>
@@ -2503,6 +2548,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   bool has_gift_count = false;
   bool has_monoforum_channel_id = false;
   bool has_send_paid_message_stars = false;
+  bool has_main_profile_tab = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_description);
   PARSE_FLAG(has_administrator_count);
@@ -2552,6 +2598,7 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
     PARSE_FLAG(has_paid_messages_available);
     PARSE_FLAG(has_monoforum_channel_id);
     PARSE_FLAG(has_send_paid_message_stars);
+    PARSE_FLAG(has_main_profile_tab);
     END_PARSE_FLAGS();
   }
   if (has_description) {
@@ -2632,6 +2679,9 @@ void ChatManager::ChannelFull::parse(ParserT &parser) {
   }
   if (has_send_paid_message_stars) {
     parse(send_paid_message_stars, parser);
+  }
+  if (has_main_profile_tab) {
+    parse(main_profile_tab, parser);
   }
 
   if (legacy_can_view_statistics) {
@@ -3302,6 +3352,44 @@ void ChatManager::set_channel_unrestrict_boost_count(ChannelId channel_id, int32
 
   td_->create_handler<SetChannelBoostsToUnblockRestrictionsQuery>(std::move(promise))
       ->send(channel_id, unrestrict_boost_count);
+}
+
+void ChatManager::set_channel_main_profile_tab(ChannelId channel_id,
+                                               const td_api::object_ptr<td_api::ProfileTab> &main_profile_tab,
+                                               Promise<Unit> &&promise) {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return promise.set_error(400, "Supergroup not found");
+  }
+  if (get_channel_type(c) == ChannelType::Megagroup) {
+    return promise.set_error(400, "Main profile tab can't be changed in supergroups");
+  }
+  if (!c->status.can_change_info_and_settings_as_administrator()) {
+    return promise.set_error(400, "Not enough rights to change main profile tab");
+  }
+  TRY_RESULT_PROMISE(promise, profile_tab, get_profile_tab(main_profile_tab, get_channel_type(c)));
+
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), channel_id, profile_tab, promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_ok()) {
+          send_closure(actor_id, &ChatManager::on_set_channel_main_profile_tab, channel_id, profile_tab,
+                       std::move(promise));
+        } else {
+          promise.set_error(result.move_as_error());
+        }
+      });
+  td_->create_handler<SetChannelMainProfileTabQuery>(std::move(query_promise))->send(channel_id, profile_tab);
+}
+
+void ChatManager::on_set_channel_main_profile_tab(ChannelId channel_id, ProfileTab main_profile_tab,
+                                                  Promise<Unit> &&promise) {
+  ChannelFull *channel_full = get_channel_full_force(channel_id, true, "on_set_channel_main_profile_tab");
+  if (channel_full != nullptr && channel_full->main_profile_tab != main_profile_tab) {
+    channel_full->main_profile_tab = main_profile_tab;
+    channel_full->is_changed = true;
+    update_channel_full(channel_full, channel_id, "on_set_channel_main_profile_tab");
+  }
+  promise.set_value(Unit());
 }
 
 void ChatManager::toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, bool show_message_sender,
@@ -5647,7 +5735,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
     td_->messages_manager_->on_update_dialog_available_reactions(
         DialogId(chat_id), std::move(chat->available_reactions_), chat->reactions_limit_, false);
 
-    td_->messages_manager_->on_update_dialog_theme_name(DialogId(chat_id), std::move(chat->theme_emoticon_));
+    td_->messages_manager_->on_update_dialog_chat_theme(DialogId(chat_id),
+                                                        ChatTheme::emoji(std::move(chat->theme_emoticon_)));
 
     td_->messages_manager_->on_update_dialog_pending_join_requests(DialogId(chat_id), chat->requests_pending_,
                                                                    std::move(chat->recent_requesters_));
@@ -5705,7 +5794,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         DialogId(channel_id), std::move(channel->available_reactions_), channel->reactions_limit_,
         channel->paid_reactions_available_);
 
-    td_->messages_manager_->on_update_dialog_theme_name(DialogId(channel_id), std::move(channel->theme_emoticon_));
+    td_->messages_manager_->on_update_dialog_chat_theme(DialogId(channel_id),
+                                                        ChatTheme::emoji(std::move(channel->theme_emoticon_)));
 
     td_->messages_manager_->on_update_dialog_pending_join_requests(DialogId(channel_id), channel->requests_pending_,
                                                                    std::move(channel->recent_requesters_));
@@ -5774,6 +5864,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
       LOG(ERROR) << "Receive can_view_statistics == true, but invalid statistics DC ID in " << channel_id;
       can_view_statistics = false;
     }
+    auto main_profile_tab = get_profile_tab(std::move(channel->main_tab_), get_channel_type(c));
 
     channel_full->repair_request_version = 0;
     channel_full->expires_at = Time::now() + CHANNEL_FULL_EXPIRE_TIME;
@@ -5797,7 +5888,8 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
         channel_full->bot_verification != bot_verification ||
         channel_full->has_stargifts_available != has_stargifts_available ||
         channel_full->has_paid_messages_available != has_paid_messages_available ||
-        channel_full->send_paid_message_stars != send_paid_message_stars) {
+        channel_full->send_paid_message_stars != send_paid_message_stars ||
+        channel_full->main_profile_tab != main_profile_tab) {
       channel_full->participant_count = participant_count;
       channel_full->administrator_count = administrator_count;
       channel_full->restricted_count = restricted_count;
@@ -5824,6 +5916,7 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
       channel_full->has_stargifts_available = has_stargifts_available;
       channel_full->has_paid_messages_available = has_paid_messages_available;
       channel_full->send_paid_message_stars = StarManager::get_star_count(send_paid_message_stars);
+      channel_full->main_profile_tab = main_profile_tab;
 
       channel_full->is_changed = true;
     }
@@ -6100,7 +6193,7 @@ void ChatManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatParti
 
         LOG_IF(ERROR, !td_->dialog_manager_->have_dialog_info(dialog_participant.dialog_id_))
             << "Have no information about " << dialog_participant.dialog_id_ << " as a member of " << chat_id;
-        LOG_IF(ERROR, !td_->user_manager_->have_user(dialog_participant.inviter_user_id_))
+        LOG_IF(ERROR, !td_->user_manager_->have_min_user(dialog_participant.inviter_user_id_))
             << "Have no information about " << dialog_participant.inviter_user_id_ << " as a member of " << chat_id;
         if (dialog_participant.joined_date_ < c->date) {
           LOG_IF(ERROR, dialog_participant.joined_date_ < c->date - 30 && c->date >= 1486000000)
@@ -6754,11 +6847,11 @@ void ChatManager::on_update_chat_add_user(ChatId chat_id, UserId inviter_user_id
     LOG(ERROR) << "Receive invalid " << chat_id;
     return;
   }
-  if (!td_->user_manager_->have_user(user_id)) {
+  if (!td_->user_manager_->have_min_user(user_id)) {
     LOG(ERROR) << "Can't find " << user_id;
     return;
   }
-  if (!td_->user_manager_->have_user(inviter_user_id)) {
+  if (!td_->user_manager_->have_min_user(inviter_user_id)) {
     LOG(ERROR) << "Can't find " << inviter_user_id;
     return;
   }
@@ -6824,7 +6917,7 @@ void ChatManager::on_update_chat_edit_administrator(ChatId chat_id, UserId user_
     LOG(ERROR) << "Receive invalid " << chat_id;
     return;
   }
-  if (!td_->user_manager_->have_user(user_id)) {
+  if (!td_->user_manager_->have_min_user(user_id)) {
     LOG(ERROR) << "Can't find " << user_id;
     return;
   }
@@ -6893,7 +6986,7 @@ void ChatManager::on_update_chat_delete_user(ChatId chat_id, UserId user_id, int
     LOG(ERROR) << "Receive invalid " << chat_id;
     return;
   }
-  if (!td_->user_manager_->have_user(user_id)) {
+  if (!td_->user_manager_->have_min_user(user_id)) {
     LOG(ERROR) << "Can't find " << user_id;
     return;
   }
@@ -9549,7 +9642,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_
       channel_full->sticker_set_id.get(), channel_full->emoji_sticker_set_id.get(),
       channel_full->location.get_chat_location_object(),
       channel_full->invite_link.get_chat_invite_link_object(td_->user_manager_.get()), std::move(bot_commands),
-      std::move(bot_verification),
+      std::move(bot_verification), get_profile_tab_object(channel_full->main_profile_tab),
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

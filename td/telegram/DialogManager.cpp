@@ -987,12 +987,20 @@ class SetChatThemeQuery final : public Td::ResultHandler {
   explicit SetChatThemeQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &theme_name) {
+  void send(DialogId dialog_id, const string &theme_name, bool is_gift) {
     dialog_id_ = dialog_id;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
-    send_query(G()->net_query_creator().create(telegram_api::messages_setChatTheme(std::move(input_peer), theme_name),
-                                               {{dialog_id_}}));
+    telegram_api::object_ptr<telegram_api::InputChatTheme> theme;
+    if (theme_name.empty()) {
+      theme = telegram_api::make_object<telegram_api::inputChatThemeEmpty>();
+    } else if (is_gift) {
+      theme = telegram_api::make_object<telegram_api::inputChatThemeUniqueGift>(theme_name);
+    } else {
+      theme = telegram_api::make_object<telegram_api::inputChatTheme>(theme_name);
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_setChatTheme(std::move(input_peer), std::move(theme)), {{dialog_id_}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1509,7 +1517,7 @@ bool DialogManager::have_dialog_info(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       UserId user_id = dialog_id.get_user_id();
-      return td_->user_manager_->have_user(user_id);
+      return td_->user_manager_->have_accessible_user(user_id);
     }
     case DialogType::Chat: {
       ChatId chat_id = dialog_id.get_chat_id();
@@ -3364,8 +3372,9 @@ void DialogManager::set_dialog_message_ttl_on_server(DialogId dialog_id, int32 t
   td_->create_handler<SetHistoryTtlQuery>(std::move(promise))->send(dialog_id, ttl);
 }
 
-void DialogManager::set_dialog_theme_on_server(DialogId dialog_id, const string &theme_name, Promise<Unit> &&promise) {
-  td_->create_handler<SetChatThemeQuery>(std::move(promise))->send(dialog_id, theme_name);
+void DialogManager::set_dialog_theme_on_server(DialogId dialog_id, const string &theme_name, bool is_gift,
+                                               Promise<Unit> &&promise) {
+  td_->create_handler<SetChatThemeQuery>(std::move(promise))->send(dialog_id, theme_name, is_gift);
 }
 
 class DialogManager::ToggleDialogIsBlockedOnServerLogEvent {

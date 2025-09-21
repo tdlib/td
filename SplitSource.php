@@ -396,6 +396,7 @@ function split_file($file, $chunks, $undo) {
             'PhotoSizeSource' => 'PhotoSizeSource',
             'poll_manager[_(-](?![.]get[(][)])|PollManager' => 'PollManager',
             'privacy_manager[_(-](?![.]get[(][)])|PrivacyManager' => 'PrivacyManager',
+            'ProfileTab' => 'ProfileTab',
             'promo_data_manager[_(-](?![.]get[(][)])|PromoDataManager' => 'PromoDataManager',
             'PublicDialogType|get_public_dialog_type' => 'PublicDialogType',
             'quick_reply_manager[_(-](?![.]get[(][)])|QuickReplyManager' => 'QuickReplyManager',

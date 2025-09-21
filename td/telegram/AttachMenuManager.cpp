@@ -444,7 +444,7 @@ bool AttachMenuManager::is_active() const {
 Result<AttachMenuManager::AttachMenuBot> AttachMenuManager::get_attach_menu_bot(
     tl_object_ptr<telegram_api::attachMenuBot> &&bot) {
   UserId user_id(bot->bot_id_);
-  if (!td_->user_manager_->have_user(user_id)) {
+  if (!td_->user_manager_->have_accessible_user(user_id)) {
     return Status::Error(PSLICE() << "Have no information about " << user_id);
   }
 

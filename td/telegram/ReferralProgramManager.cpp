@@ -85,7 +85,7 @@ class ResolveReferralProgramQuery final : public Td::ResultHandler {
     td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "ResolveReferralProgramQuery");
 
     DialogId dialog_id(ptr->peer_);
-    if (dialog_id.get_type() != DialogType::User || !td_->user_manager_->have_user(dialog_id.get_user_id())) {
+    if (dialog_id.get_type() != DialogType::User || !td_->user_manager_->have_min_user(dialog_id.get_user_id())) {
       return on_error(Status::Error(400, "Chat not found"));
     }
 

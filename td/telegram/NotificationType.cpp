@@ -241,7 +241,10 @@ class NotificationTypePushMessage final : public NotificationType {
           return td_api::make_object<td_api::pushMessageContentContact>(arg, is_pinned);
         }
         if (key == "MESSAGE_CONTACT_REGISTERED") {
-          return td_api::make_object<td_api::pushMessageContentContactRegistered>();
+          return td_api::make_object<td_api::pushMessageContentContactRegistered>(false);
+        }
+        if (key == "MESSAGE_CONTACT_REGISTERED_PREMIUM") {
+          return td_api::make_object<td_api::pushMessageContentContactRegistered>(true);
         }
         break;
       case 'D':
@@ -366,13 +369,20 @@ class NotificationTypePushMessage final : public NotificationType {
         }
         if (key == "MESSAGE_STARGIFT") {
           auto star_count = to_integer<int64>(arg);
-          return td_api::make_object<td_api::pushMessageContentGift>(star_count);
+          return td_api::make_object<td_api::pushMessageContentGift>(star_count, false);
+        }
+        if (key == "MESSAGE_STARGIFT_PREPAID_UPGRADE") {
+          auto star_count = to_integer<int64>(arg);
+          return td_api::make_object<td_api::pushMessageContentGift>(star_count, true);
         }
         if (key == "MESSAGE_STARGIFT_TRANSFER") {
-          return td_api::make_object<td_api::pushMessageContentUpgradedGift>(false);
+          return td_api::make_object<td_api::pushMessageContentUpgradedGift>(false, false);
         }
         if (key == "MESSAGE_STARGIFT_UPGRADE") {
-          return td_api::make_object<td_api::pushMessageContentUpgradedGift>(true);
+          return td_api::make_object<td_api::pushMessageContentUpgradedGift>(true, false);
+        }
+        if (key == "MESSAGE_STARGIFT_UNPACK_UPGRADE") {
+          return td_api::make_object<td_api::pushMessageContentUpgradedGift>(false, true);
         }
         if (key == "MESSAGE_STICKER") {
           return td_api::make_object<td_api::pushMessageContentSticker>(

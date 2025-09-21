@@ -81,6 +81,10 @@ class StarManager final : public Actor {
 
   void get_star_ad_account_url(const td_api::object_ptr<td_api::MessageSender> &owner_id, Promise<string> &&promise);
 
+  void get_ton_revenue_statistics(bool is_dark, Promise<td_api::object_ptr<td_api::tonRevenueStatistics>> &&promise);
+
+  void get_ton_withdrawal_url(const string &password, Promise<string> &&promise);
+
   void get_paid_message_revenue(UserId user_id, Promise<td_api::object_ptr<td_api::starCount>> &&promise);
 
   void reload_star_transaction(DialogId dialog_id, const string &transaction_id, bool is_refund,
@@ -122,9 +126,11 @@ class StarManager final : public Actor {
                                td_api::object_ptr<td_api::TransactionDirection> &&direction,
                                Promise<td_api::object_ptr<td_api::tonTransactions>> &&promise);
 
-  void send_get_star_withdrawal_url_query(
-      DialogId dialog_id, int64 star_count,
-      telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password, Promise<string> &&promise);
+  void get_withdrawal_url(DialogId dialog_id, bool is_ton, int64 amount, const string &password,
+                          Promise<string> &&promise);
+  void send_get_withdrawal_url_query(DialogId dialog_id, bool is_ton, int64 amount,
+                                     telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password,
+                                     Promise<string> &&promise);
 
   td_api::object_ptr<td_api::updateOwnedStarCount> get_update_owned_star_count_object() const;
 

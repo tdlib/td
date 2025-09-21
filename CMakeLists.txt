@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
-project(TDLib VERSION 1.8.54 LANGUAGES CXX C)
+project(TDLib VERSION 1.8.55 LANGUAGES CXX C)
 
 if (NOT DEFINED CMAKE_MODULE_PATH)
   set(CMAKE_MODULE_PATH "")
@@ -387,6 +387,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/ChannelRecommendationManager.cpp
   td/telegram/ChatManager.cpp
   td/telegram/ChatReactions.cpp
+  td/telegram/ChatTheme.cpp
   td/telegram/ClientActor.cpp
   td/telegram/CommonDialogManager.cpp
   td/telegram/ConfigManager.cpp
@@ -562,6 +563,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/Premium.cpp
   td/telegram/PremiumGiftOption.cpp
   td/telegram/PrivacyManager.cpp
+  td/telegram/ProfileTab.cpp
   td/telegram/PromoDataManager.cpp
   td/telegram/QueryCombiner.cpp
   td/telegram/QueryMerger.cpp
@@ -728,6 +730,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ChatId.h
   td/telegram/ChatManager.h
   td/telegram/ChatReactions.h
+  td/telegram/ChatTheme.h
   td/telegram/ClientActor.h
   td/telegram/CommonDialogManager.h
   td/telegram/ConfigManager.h
@@ -945,6 +948,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/Premium.h
   td/telegram/PremiumGiftOption.h
   td/telegram/PrivacyManager.h
+  td/telegram/ProfileTab.h
   td/telegram/PromoDataManager.h
   td/telegram/PtsManager.h
   td/telegram/PublicDialogType.h
@@ -1096,6 +1100,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/BusinessRecipients.hpp
   td/telegram/BusinessWorkHours.hpp
   td/telegram/ChatReactions.hpp
+  td/telegram/ChatTheme.hpp
   td/telegram/CurrencyAmount.hpp
   td/telegram/DialogFilter.hpp
   td/telegram/DialogInviteLink.hpp

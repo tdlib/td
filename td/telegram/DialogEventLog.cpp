@@ -582,7 +582,7 @@ class GetChannelAdminLogQuery final : public Td::ResultHandler {
         LOG(ERROR) << "Receive invalid " << user_id;
         continue;
       }
-      LOG_IF(ERROR, !td_->user_manager_->have_user(user_id)) << "Receive unknown " << user_id;
+      LOG_IF(ERROR, !td_->user_manager_->have_min_user(user_id)) << "Receive unknown " << user_id;
 
       DialogId actor_dialog_id;
       auto action = get_chat_event_action_object(td_, channel_id_, std::move(event->action_), actor_dialog_id);

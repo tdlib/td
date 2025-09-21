@@ -1149,7 +1149,7 @@ class GetStarsRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
   explicit GetStarsRevenueWithdrawalUrlQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, int64 star_count,
+  void send(DialogId dialog_id, bool is_ton, int64 amount,
             telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password) {
     dialog_id_ = dialog_id;
 
@@ -1160,7 +1160,7 @@ class GetStarsRevenueWithdrawalUrlQuery final : public Td::ResultHandler {
 
     int32 flags = telegram_api::payments_getStarsRevenueWithdrawalUrl::AMOUNT_MASK;
     send_query(G()->net_query_creator().create(telegram_api::payments_getStarsRevenueWithdrawalUrl(
-        flags, false, std::move(input_peer), star_count, std::move(input_check_password))));
+        flags, is_ton, std::move(input_peer), amount, std::move(input_check_password))));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1209,6 +1209,67 @@ class GetStarsRevenueAdsAccountUrlQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetStarsRevenueAdsAccountUrlQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+static td_api::object_ptr<td_api::tonRevenueStatus> convert_ton_revenue_status(
+    telegram_api::object_ptr<telegram_api::starsRevenueStatus> obj) {
+  CHECK(obj != nullptr);
+  if (obj->next_withdrawal_at_ != 0) {
+    LOG(ERROR) << "Receive " << to_string(obj);
+  }
+  TonAmount overall_revenue;
+  TonAmount current_balance;
+  TonAmount available_balance;
+  if (obj->overall_revenue_->get_id() != telegram_api::starsTonAmount::ID ||
+      obj->current_balance_->get_id() != telegram_api::starsTonAmount::ID ||
+      obj->available_balance_->get_id() != telegram_api::starsTonAmount::ID) {
+    LOG(ERROR) << "Receive " << to_string(obj);
+  } else {
+    overall_revenue =
+        TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(obj->overall_revenue_), true);
+    current_balance =
+        TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(obj->current_balance_), true);
+    available_balance =
+        TonAmount(telegram_api::move_object_as<telegram_api::starsTonAmount>(obj->available_balance_), true);
+  }
+  return td_api::make_object<td_api::tonRevenueStatus>(overall_revenue.get_ton_amount(),
+                                                       current_balance.get_ton_amount(),
+                                                       available_balance.get_ton_amount(), obj->withdrawal_enabled_);
+}
+
+class GetTonRevenueStatsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::tonRevenueStatistics>> promise_;
+
+ public:
+  explicit GetTonRevenueStatsQuery(Promise<td_api::object_ptr<td_api::tonRevenueStatistics>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(bool is_dark) {
+    auto input_peer =
+        td_->dialog_manager_->get_input_peer(td_->dialog_manager_->get_my_dialog_id(), AccessRights::Write);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getStarsRevenueStats(0, is_dark, true, std::move(input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarsRevenueStats>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetTonRevenueStatsQuery: " << to_string(ptr);
+    promise_.set_value(td_api::make_object<td_api::tonRevenueStatistics>(
+        StatisticsManager::convert_stats_graph(std::move(ptr->revenue_graph_)),
+        convert_ton_revenue_status(std::move(ptr->status_)),
+        ptr->usd_rate_ > 0 ? clamp(ptr->usd_rate_ * 1e-7, 1e-18, 1e18) : 3e-7));
+  }
+
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -1527,32 +1588,47 @@ void StarManager::get_star_revenue_statistics(const td_api::object_ptr<td_api::M
   td_->create_handler<GetStarsRevenueStatsQuery>(std::move(promise))->send(dialog_id, is_dark);
 }
 
-void StarManager::get_star_withdrawal_url(const td_api::object_ptr<td_api::MessageSender> &owner_id, int64 star_count,
-                                          const string &password, Promise<string> &&promise) {
-  TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
-  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
+void StarManager::get_withdrawal_url(DialogId dialog_id, bool is_ton, int64 amount, const string &password,
+                                     Promise<string> &&promise) {
   if (password.empty()) {
     return promise.set_error(400, "PASSWORD_HASH_INVALID");
   }
   send_closure(
       td_->password_manager_, &PasswordManager::get_input_check_password_srp, password,
-      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, star_count, promise = std::move(promise)](
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, is_ton, amount, promise = std::move(promise)](
                                  Result<telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP>> result) mutable {
         if (result.is_error()) {
           return promise.set_error(result.move_as_error());
         }
-        send_closure(actor_id, &StarManager::send_get_star_withdrawal_url_query, dialog_id, star_count,
+        send_closure(actor_id, &StarManager::send_get_withdrawal_url_query, dialog_id, is_ton, amount,
                      result.move_as_ok(), std::move(promise));
       }));
 }
 
-void StarManager::send_get_star_withdrawal_url_query(
-    DialogId dialog_id, int64 star_count,
+void StarManager::send_get_withdrawal_url_query(
+    DialogId dialog_id, bool is_ton, int64 amount,
     telegram_api::object_ptr<telegram_api::InputCheckPasswordSRP> input_check_password, Promise<string> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   td_->create_handler<GetStarsRevenueWithdrawalUrlQuery>(std::move(promise))
-      ->send(dialog_id, star_count, std::move(input_check_password));
+      ->send(dialog_id, is_ton, amount, std::move(input_check_password));
+}
+
+void StarManager::get_star_withdrawal_url(const td_api::object_ptr<td_api::MessageSender> &owner_id, int64 star_count,
+                                          const string &password, Promise<string> &&promise) {
+  TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, owner_id, true, false));
+  TRY_STATUS_PROMISE(promise, can_manage_stars(dialog_id, true));
+
+  get_withdrawal_url(dialog_id, false, star_count, password, std::move(promise));
+}
+
+void StarManager::get_ton_revenue_statistics(bool is_dark,
+                                             Promise<td_api::object_ptr<td_api::tonRevenueStatistics>> &&promise) {
+  td_->create_handler<GetTonRevenueStatsQuery>(std::move(promise))->send(is_dark);
+}
+
+void StarManager::get_ton_withdrawal_url(const string &password, Promise<string> &&promise) {
+  get_withdrawal_url(td_->dialog_manager_->get_my_dialog_id(), true, 0, password, std::move(promise));
 }
 
 void StarManager::get_star_ad_account_url(const td_api::object_ptr<td_api::MessageSender> &owner_id,
@@ -1594,6 +1670,16 @@ void StarManager::on_update_stars_revenue_status(
   DialogId dialog_id(update->peer_);
   if (can_manage_stars(dialog_id, true).is_error()) {
     LOG(ERROR) << "Receive " << to_string(update);
+    return;
+  }
+  if (update->status_->overall_revenue_->get_id() == telegram_api::starsTonAmount::ID) {
+    if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
+      LOG(ERROR) << "Receive " << to_string(update);
+    } else {
+      send_closure(
+          G()->td(), &Td::send_update,
+          td_api::make_object<td_api::updateTonRevenueStatus>(convert_ton_revenue_status(std::move(update->status_))));
+    }
     return;
   }
   send_closure(G()->td(), &Td::send_update,

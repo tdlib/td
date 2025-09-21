@@ -144,7 +144,7 @@ UserPrivacySettingRule::UserPrivacySettingRule(Td *td,
       UNREACHABLE();
   }
   td::remove_if(user_ids_, [td](UserId user_id) {
-    if (!td->user_manager_->have_user(user_id)) {
+    if (!td->user_manager_->have_accessible_user(user_id)) {
       LOG(ERROR) << "Receive unknown " << user_id;
       return true;
     }

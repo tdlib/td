@@ -101,6 +101,7 @@ fileSourceStarTransaction chat_id:int53 transaction_id:string is_refund:Bool = F
 fileSourceBotMediaPreview bot_user_id:int53 = FileSource;                                  // bots.getPreviewMedias
 fileSourceBotMediaPreviewInfo bot_user_id:int53 language_code:string = FileSource;         // bots.getPreviewMediaInfo
 fileSourceStoryAlbum chat_id:int53 story_album_id:int32 = FileSource;                      // stories.getAlbums, not reliable
+fileSourceSavedMusic user_id:int53 file_id:int32 = FileSource;                             // users.getSavedMusicByID
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -215,6 +216,12 @@ FileSourceId FileReferenceManager::create_bot_media_preview_info_file_source(Use
 FileSourceId FileReferenceManager::create_story_album_file_source(StoryAlbumFullId story_album_full_id) {
   FileSourceStoryAlbum source{story_album_full_id};
   return add_file_source_id(source, PSLICE() << story_album_full_id);
+}
+
+FileSourceId FileReferenceManager::create_user_saved_music_file_source(UserId user_id, int64 document_id,
+                                                                       int64 access_hash) {
+  FileSourceUserSavedMusic source{document_id, access_hash, user_id};
+  return add_file_source_id(source, PSLICE() << "saved music " << document_id << " of " << user_id);
 }
 
 FileReferenceManager::Node &FileReferenceManager::add_node(NodeId node_id) {
@@ -454,6 +461,10 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
       [&](const FileSourceStoryAlbum &source) {
         send_closure_later(G()->story_manager(), &StoryManager::reload_story_album, source.story_album_full_id,
                            std::move(promise), "FileSourceStoryAlbum");
+      },
+      [&](const FileSourceUserSavedMusic &source) {
+        send_closure_later(G()->user_manager(), &UserManager::reload_user_saved_music, source.user_id,
+                           source.document_id, source.access_hash, std::move(promise));
       }));
 }
 

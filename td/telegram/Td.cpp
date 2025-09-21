@@ -1325,7 +1325,7 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
 
   switch (object_id) {
     case td_api::updateAccentColors::ID:
-    case td_api::updateChatThemes::ID:
+    case td_api::updateEmojiChatThemes::ID:
     case td_api::updateFavoriteStickers::ID:
     case td_api::updateInstalledStickerSets::ID:
     case td_api::updateProfileAccentColors::ID:

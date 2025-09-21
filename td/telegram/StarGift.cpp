@@ -69,6 +69,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
         resale_ton_only_ = star_gift->resale_ton_only_;
       }
     }
+    is_theme_available_ = star_gift->theme_available_;
     if (star_gift->released_by_ != nullptr) {
       released_by_dialog_id_ = DialogId(star_gift->released_by_);
       td->dialog_manager_->force_create_dialog(released_by_dialog_id_, "StarGift", true);
@@ -122,6 +123,9 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     }
     value_currency_ = std::move(star_gift->value_currency_);
     value_amount_ = star_gift->value_amount_;
+    if (star_gift->theme_peer_ != nullptr) {
+      theme_dialog_id_ = DialogId(star_gift->theme_peer_);
+    }
     return;
   }
   if (constructor_id != telegram_api::starGift::ID) {
@@ -161,6 +165,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     td->dialog_manager_->force_create_dialog(released_by_dialog_id_, "StarGift", true);
   }
   is_premium_ = star_gift->require_premium_;
+  locked_until_date_ = max(0, star_gift->locked_until_date_);
 }
 
 td_api::object_ptr<td_api::giftPurchaseLimits> StarGift::get_gift_purchase_limits_object(int32 total, int32 remains) {
@@ -173,12 +178,12 @@ td_api::object_ptr<td_api::giftPurchaseLimits> StarGift::get_gift_purchase_limit
 td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
   CHECK(is_valid());
   CHECK(!is_unique_);
-  return td_api::make_object<td_api::gift>(id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "gift"),
-                                           td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_,
-                                           default_sell_star_count_, upgrade_star_count_, is_for_birthday_, is_premium_,
-                                           get_gift_purchase_limits_object(per_user_total_, per_user_remains_),
-                                           get_gift_purchase_limits_object(availability_total_, availability_remains_),
-                                           first_sale_date_, last_sale_date_);
+  return td_api::make_object<td_api::gift>(
+      id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "gift"),
+      td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_, default_sell_star_count_,
+      upgrade_star_count_, is_for_birthday_, is_premium_, locked_until_date_,
+      get_gift_purchase_limits_object(per_user_total_, per_user_remains_),
+      get_gift_purchase_limits_object(availability_total_, availability_remains_), first_sale_date_, last_sale_date_);
 }
 
 td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *td) const {
@@ -190,9 +195,11 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
         resale_star_count_, resale_ton_count_ / 10000000, resale_ton_only_);
   }
   return td_api::make_object<td_api::upgradedGift>(
-      id_, regular_gift_id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "upgradedGift"), title_,
-      slug_, num_, unique_availability_issued_, unique_availability_total_, is_premium_,
-      !owner_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, owner_dialog_id_, "upgradedGift"),
+      id_, regular_gift_id_,
+      td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "upgradedGift released by"), title_, slug_, num_,
+      unique_availability_issued_, unique_availability_total_, is_premium_, is_theme_available_,
+      td->dialog_manager_->get_chat_id_object(theme_dialog_id_, "upgradedGift theme"),
+      !owner_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, owner_dialog_id_, "upgradedGift owner"),
       owner_address_, owner_name_, gift_address_, model_.get_upgraded_gift_model_object(td),
       pattern_.get_upgraded_gift_symbol_object(td), backdrop_.get_upgraded_gift_backdrop_object(),
       original_details_.get_upgraded_gift_original_details_object(td), std::move(resale_parameters), value_currency_,
@@ -220,28 +227,34 @@ void StarGift::add_dependencies(Dependencies &dependencies) const {
   dependencies.add_message_sender_dependencies(owner_dialog_id_);
   original_details_.add_dependencies(dependencies);
   dependencies.add_dialog_and_dependencies(released_by_dialog_id_);
+  dependencies.add_dialog_and_dependencies(theme_dialog_id_);
 }
 
 bool operator==(const StarGift &lhs, const StarGift &rhs) {
-  return lhs.id_ == rhs.id_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ && lhs.star_count_ == rhs.star_count_ &&
-         lhs.default_sell_star_count_ == rhs.default_sell_star_count_ &&
+  return lhs.id_ == rhs.id_ && lhs.released_by_dialog_id_ == rhs.released_by_dialog_id_ &&
+         lhs.is_premium_ == rhs.is_premium_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ &&
+         lhs.star_count_ == rhs.star_count_ && lhs.default_sell_star_count_ == rhs.default_sell_star_count_ &&
          lhs.upgrade_star_count_ == rhs.upgrade_star_count_ && lhs.availability_remains_ == rhs.availability_remains_ &&
          lhs.availability_total_ == rhs.availability_total_ && lhs.first_sale_date_ == rhs.first_sale_date_ &&
-         lhs.last_sale_date_ == rhs.last_sale_date_ && lhs.is_for_birthday_ == rhs.is_for_birthday_ &&
-         lhs.is_unique_ == rhs.is_unique_ && lhs.model_ == rhs.model_ && lhs.pattern_ == rhs.pattern_ &&
-         lhs.backdrop_ == rhs.backdrop_ && lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ &&
-         lhs.slug_ == rhs.slug_ && lhs.owner_dialog_id_ == rhs.owner_dialog_id_ &&
-         lhs.owner_address_ == rhs.owner_address_ && lhs.owner_name_ == rhs.owner_name_ &&
-         lhs.gift_address_ == rhs.gift_address_ && lhs.num_ == rhs.num_ &&
+         lhs.last_sale_date_ == rhs.last_sale_date_ && lhs.per_user_remains_ == rhs.per_user_remains_ &&
+         lhs.per_user_total_ == rhs.per_user_total_ && lhs.locked_until_date_ == rhs.locked_until_date_ &&
+         lhs.is_for_birthday_ == rhs.is_for_birthday_ && lhs.is_unique_ == rhs.is_unique_ &&
+         lhs.resale_ton_only_ == rhs.resale_ton_only_ && lhs.is_theme_available_ == rhs.is_theme_available_ &&
+         lhs.model_ == rhs.model_ && lhs.pattern_ == rhs.pattern_ && lhs.backdrop_ == rhs.backdrop_ &&
+         lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ && lhs.slug_ == rhs.slug_ &&
+         lhs.owner_dialog_id_ == rhs.owner_dialog_id_ && lhs.owner_address_ == rhs.owner_address_ &&
+         lhs.owner_name_ == rhs.owner_name_ && lhs.gift_address_ == rhs.gift_address_ && lhs.num_ == rhs.num_ &&
          lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_ &&
-         lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.released_by_dialog_id_ == rhs.released_by_dialog_id_ &&
-         lhs.is_premium_ == rhs.is_premium_ && lhs.per_user_remains_ == rhs.per_user_remains_ &&
-         lhs.per_user_total_ == rhs.per_user_total_ && lhs.regular_gift_id_ == rhs.regular_gift_id_ &&
-         lhs.value_currency_ == rhs.value_currency_ && lhs.value_amount_ == rhs.value_amount_;
+         lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.resale_ton_count_ == rhs.resale_ton_count_ &&
+         lhs.regular_gift_id_ == rhs.regular_gift_id_ && lhs.value_currency_ == rhs.value_currency_ &&
+         lhs.value_amount_ == rhs.value_amount_ && lhs.theme_dialog_id_ == rhs.theme_dialog_id_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarGift &star_gift) {
+  if (star_gift.is_unique_) {
+    return string_builder << "UniqueGift[" << star_gift.id_ << " of " << star_gift.owner_dialog_id_ << ']';
+  }
   return string_builder << "Gift[" << star_gift.id_ << " for " << star_gift.star_count_ << ']';
 }
 

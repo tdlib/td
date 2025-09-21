@@ -79,6 +79,7 @@ class FileReferenceManager final : public Actor {
   FileSourceId create_bot_media_preview_file_source(UserId bot_user_id);
   FileSourceId create_bot_media_preview_info_file_source(UserId bot_user_id, const string &language_code);
   FileSourceId create_story_album_file_source(StoryAlbumFullId story_album_full_id);
+  FileSourceId create_user_saved_music_file_source(UserId user_id, int64 document_id, int64 access_hash);
 
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
@@ -205,6 +206,11 @@ class FileReferenceManager final : public Actor {
   struct FileSourceStoryAlbum {
     StoryAlbumFullId story_album_full_id;
   };
+  struct FileSourceUserSavedMusic {
+    int64 document_id;
+    int64 access_hash;
+    UserId user_id;
+  };
 
   // append only
   using FileSource =
@@ -213,7 +219,7 @@ class FileReferenceManager final : public Actor {
               FileSourceBackground, FileSourceChatFull, FileSourceChannelFull, FileSourceAppConfig,
               FileSourceSavedRingtones, FileSourceUserFull, FileSourceAttachMenuBot, FileSourceWebApp, FileSourceStory,
               FileSourceQuickReplyMessage, FileSourceStarTransaction, FileSourceBotMediaPreview,
-              FileSourceBotMediaPreviewInfo, FileSourceStoryAlbum>;
+              FileSourceBotMediaPreviewInfo, FileSourceStoryAlbum, FileSourceUserSavedMusic>;
   WaitFreeVector<FileSource> file_sources_;
 
   int64 query_generation_{0};

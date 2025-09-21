@@ -2239,7 +2239,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
 
     for (auto it = bot_ids.rbegin(); it != bot_ids.rend(); ++it) {
       UserId user_id(to_integer<int64>(*it));
-      if (td_->user_manager_->have_user(user_id)) {
+      if (td_->user_manager_->have_min_user(user_id)) {
         update_bot_usage(user_id);
       } else {
         LOG(ERROR) << "Can't find " << user_id;
@@ -2323,7 +2323,7 @@ void InlineQueriesManager::on_chosen_result(
     LOG(ERROR) << "Receive chosen inline query result from invalid " << user_id;
     return;
   }
-  LOG_IF(ERROR, !td_->user_manager_->have_user(user_id)) << "Receive unknown " << user_id;
+  LOG_IF(ERROR, !td_->user_manager_->have_min_user(user_id)) << "Receive unknown " << user_id;
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive chosen inline query result";
     return;

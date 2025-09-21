@@ -700,7 +700,8 @@ void UpdatesManager::set_date(int32 date, bool from_update, string date_source) 
 }
 
 bool UpdatesManager::is_acceptable_user(UserId user_id) const {
-  return td_->user_manager_->have_user_force(user_id, "is_acceptable_user") && td_->user_manager_->have_user(user_id);
+  return td_->user_manager_->have_user_force(user_id, "is_acceptable_user") &&
+         td_->user_manager_->have_accessible_user(user_id);
 }
 
 bool UpdatesManager::is_acceptable_chat(ChatId chat_id) const {
@@ -2376,6 +2377,7 @@ void UpdatesManager::try_reload_data() {
   td_->theme_manager_->reload_profile_accent_colors();
   td_->time_zone_manager_->reload_time_zones(Auto());
   td_->user_manager_->reload_contact_birthdates(false);
+  td_->user_manager_->reload_my_saved_music_list(Auto());
 
   schedule_data_reload();
 }
@@ -4778,13 +4780,18 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsBalance> u
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueStatus> update, Promise<Unit> &&promise) {
+  auto dialog_id = DialogId(update->peer_);
   switch (update->status_->current_balance_->get_id()) {
     case telegram_api::starsAmount::ID:
       td_->star_manager_->on_update_stars_revenue_status(std::move(update));
       break;
     case telegram_api::starsTonAmount::ID:
-      td_->statistics_manager_->on_update_dialog_revenue_transactions(DialogId(update->peer_),
-                                                                      std::move(update->status_));
+      if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+        td_->star_manager_->on_update_stars_revenue_status(std::move(update));
+      } else {
+        td_->statistics_manager_->on_update_dialog_revenue_transactions(DialogId(update->peer_),
+                                                                        std::move(update->status_));
+      }
       break;
     default:
       UNREACHABLE();

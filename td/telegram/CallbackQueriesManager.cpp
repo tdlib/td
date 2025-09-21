@@ -174,7 +174,7 @@ void CallbackQueriesManager::on_new_query(int64 callback_query_id, UserId sender
     LOG(ERROR) << "Receive new callback query from invalid " << sender_user_id << " in " << dialog_id;
     return;
   }
-  LOG_IF(ERROR, !td_->user_manager_->have_user(sender_user_id)) << "Receive unknown " << sender_user_id;
+  LOG_IF(ERROR, !td_->user_manager_->have_min_user(sender_user_id)) << "Receive unknown " << sender_user_id;
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive new callback query";
     return;
@@ -206,7 +206,7 @@ void CallbackQueriesManager::on_new_inline_query(
     LOG(ERROR) << "Receive new callback query from invalid " << sender_user_id;
     return;
   }
-  LOG_IF(ERROR, !td_->user_manager_->have_user(sender_user_id)) << "Receive unknown " << sender_user_id;
+  LOG_IF(ERROR, !td_->user_manager_->have_min_user(sender_user_id)) << "Receive unknown " << sender_user_id;
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive new inline callback query";
     return;
@@ -234,7 +234,7 @@ void CallbackQueriesManager::on_new_business_query(int64 callback_query_id, User
     LOG(ERROR) << "Receive new callback query from invalid " << sender_user_id;
     return;
   }
-  LOG_IF(ERROR, !td_->user_manager_->have_user(sender_user_id)) << "Receive unknown " << sender_user_id;
+  LOG_IF(ERROR, !td_->user_manager_->have_min_user(sender_user_id)) << "Receive unknown " << sender_user_id;
   if (!td_->auth_manager_->is_bot()) {
     LOG(ERROR) << "Receive new business callback query";
     return;

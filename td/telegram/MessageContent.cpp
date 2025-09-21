@@ -18,6 +18,7 @@
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChatManager.h"
+#include "td/telegram/ChatTheme.hpp"
 #include "td/telegram/Contact.h"
 #include "td/telegram/CurrencyAmount.h"
 #include "td/telegram/CurrencyAmount.hpp"
@@ -536,7 +537,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 48;
+  static constexpr int32 CURRENT_VERSION = 49;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -827,10 +828,10 @@ class MessageInviteToGroupCall final : public MessageContent {
 
 class MessageChatSetTheme final : public MessageContent {
  public:
-  string emoji;
+  ChatTheme chat_theme;
 
   MessageChatSetTheme() = default;
-  explicit MessageChatSetTheme(string &&emoji) : emoji(std::move(emoji)) {
+  explicit MessageChatSetTheme(ChatTheme &&chat_theme) : chat_theme(std::move(chat_theme)) {
   }
 
   MessageContentType get_type() const final {
@@ -1284,12 +1285,14 @@ class MessageStarGift final : public MessageContent {
   bool was_upgraded = false;
   bool was_refunded = false;
   bool is_prepaid_upgrade = false;
+  bool is_upgrade_separate = false;
 
   MessageStarGift() = default;
   MessageStarGift(StarGift &&star_gift, DialogId sender_dialog_id, DialogId owner_dialog_id, int64 saved_id,
                   FormattedText &&text, int64 convert_star_count, int64 upgrade_star_count, MessageId gift_message_id,
                   MessageId upgrade_message_id, string prepaid_upgrade_hash, bool name_hidden, bool is_saved,
-                  bool can_upgrade, bool was_converted, bool was_upgraded, bool was_refunded, bool is_prepaid_upgrade)
+                  bool can_upgrade, bool was_converted, bool was_upgraded, bool was_refunded, bool is_prepaid_upgrade,
+                  bool is_upgrade_separate)
       : star_gift(std::move(star_gift))
       , sender_dialog_id(sender_dialog_id)
       , owner_dialog_id(owner_dialog_id)
@@ -1306,7 +1309,8 @@ class MessageStarGift final : public MessageContent {
       , was_converted(was_converted)
       , was_upgraded(was_upgraded)
       , was_refunded(was_refunded)
-      , is_prepaid_upgrade(is_prepaid_upgrade) {
+      , is_prepaid_upgrade(is_prepaid_upgrade)
+      , is_upgrade_separate(is_upgrade_separate) {
   }
 
   MessageContentType get_type() const final {
@@ -1927,7 +1931,7 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::ChatSetTheme: {
       const auto *m = static_cast<const MessageChatSetTheme *>(content);
-      store(m->emoji, storer);
+      store(m->chat_theme, storer);
       break;
     }
     case MessageContentType::WebViewDataSent: {
@@ -2276,6 +2280,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(m->is_prepaid_upgrade);
       STORE_FLAG(has_gift_message_id);
       STORE_FLAG(has_prepaid_upgrade_hash);
+      STORE_FLAG(m->is_upgrade_separate);
       END_STORE_FLAGS();
       store(m->star_gift, storer);
       if (has_text) {
@@ -3053,7 +3058,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::ChatSetTheme: {
       auto m = make_unique<MessageChatSetTheme>();
-      parse(m->emoji, parser);
+      parse(m->chat_theme, parser);
       content = std::move(m);
       break;
     }
@@ -3472,6 +3477,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(m->is_prepaid_upgrade);
       PARSE_FLAG(has_gift_message_id);
       PARSE_FLAG(has_prepaid_upgrade_hash);
+      PARSE_FLAG(m->is_upgrade_separate);
       END_PARSE_FLAGS();
       parse(m->star_gift, parser);
       if (has_text) {
@@ -5585,12 +5591,12 @@ BackgroundInfo get_message_content_my_background_info(const MessageContent *cont
   return BackgroundInfo();
 }
 
-string get_message_content_theme_name(const MessageContent *content) {
+ChatTheme get_message_content_chat_theme(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::ChatSetTheme:
-      return static_cast<const MessageChatSetTheme *>(content)->emoji;
+      return static_cast<const MessageChatSetTheme *>(content)->chat_theme;
     default:
-      return string();
+      return ChatTheme();
   }
 }
 
@@ -5827,6 +5833,7 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       return content->user_ids;
     }
     case MessageContentType::ChatSetTheme:
+      // private chats only
       break;
     case MessageContentType::WebViewDataSent:
       break;
@@ -6933,7 +6940,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::ChatSetTheme: {
       const auto *lhs = static_cast<const MessageChatSetTheme *>(old_content);
       const auto *rhs = static_cast<const MessageChatSetTheme *>(new_content);
-      if (lhs->emoji != rhs->emoji) {
+      if (lhs->chat_theme != rhs->chat_theme) {
         need_update = true;
       }
       break;
@@ -7165,7 +7172,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
           lhs->prepaid_upgrade_hash != rhs->prepaid_upgrade_hash || lhs->name_hidden != rhs->name_hidden ||
           lhs->is_saved != rhs->is_saved || lhs->can_upgrade != rhs->can_upgrade ||
           lhs->was_converted != rhs->was_converted || lhs->was_upgraded != rhs->was_upgraded ||
-          lhs->was_refunded != rhs->was_refunded || lhs->is_prepaid_upgrade != rhs->is_prepaid_upgrade) {
+          lhs->was_refunded != rhs->was_refunded || lhs->is_prepaid_upgrade != rhs->is_prepaid_upgrade ||
+          lhs->is_upgrade_separate != rhs->is_upgrade_separate) {
         need_update = true;
       }
       break;
@@ -8955,7 +8963,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionSetChatTheme::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionSetChatTheme>(action_ptr);
-      return td::make_unique<MessageChatSetTheme>(std::move(action->emoticon_));
+      return td::make_unique<MessageChatSetTheme>(ChatTheme(td, std::move(action->theme_)));
     }
     case telegram_api::messageActionChatJoinedByRequest::ID:
       return make_unique<MessageChatJoinedByLink>(true);
@@ -9194,7 +9202,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           StarManager::get_star_count(action->convert_stars_), StarManager::get_star_count(action->upgrade_stars_),
           gift_message_id, upgrade_message_id, std::move(action->prepaid_upgrade_hash_), action->name_hidden_,
           action->saved_, action->can_upgrade_, action->converted_, action->upgraded_, action->refunded_,
-          action->prepaid_upgrade_);
+          action->prepaid_upgrade_, action->upgrade_separate_);
     }
     case telegram_api::messageActionStarGiftUnique::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionStarGiftUnique>(action_ptr);
@@ -9632,7 +9640,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::ChatSetTheme: {
       const auto *m = static_cast<const MessageChatSetTheme *>(content);
-      return make_tl_object<td_api::messageChatSetTheme>(m->emoji);
+      return make_tl_object<td_api::messageChatSetTheme>(m->chat_theme.get_chat_theme_object(td));
     }
     case MessageContentType::WebViewDataSent: {
       const auto *m = static_cast<const MessageWebViewDataSent *>(content);
@@ -9852,9 +9860,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
           sender_dialog_id == DialogId() ? nullptr
                                          : get_message_sender_object(td, sender_dialog_id, "messageGift sender"),
           get_message_sender_object(td, receiver_dialog_id, "messageGift receiver"), star_gift_id.get_star_gift_id(),
-          get_text_object(m->text), m->convert_star_count, m->upgrade_star_count, m->name_hidden, m->is_saved,
-          m->is_prepaid_upgrade, m->can_upgrade, m->was_converted, m->was_upgraded, m->was_refunded,
-          StarGiftId(m->upgrade_message_id.get_server_message_id()).get_star_gift_id(), m->prepaid_upgrade_hash);
+          get_text_object(m->text), m->convert_star_count, m->upgrade_star_count, m->is_upgrade_separate,
+          m->name_hidden, m->is_saved, m->is_prepaid_upgrade, m->can_upgrade, m->was_converted, m->was_upgraded,
+          m->was_refunded, StarGiftId(m->upgrade_message_id.get_server_message_id()).get_star_gift_id(),
+          m->prepaid_upgrade_hash);
     }
     case MessageContentType::StarGiftUnique: {
       const auto *m = static_cast<const MessageStarGiftUnique *>(content);
@@ -9866,24 +9875,6 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
         receiver_dialog_id = m->owner_dialog_id;
       } else {
         receiver_dialog_id = m->is_upgrade != is_outgoing ? dialog_id : td->dialog_manager_->get_my_dialog_id();
-      }
-      if (m->was_refunded) {
-        return td_api::make_object<td_api::messageRefundedUpgradedGift>(
-            m->star_gift.get_gift_object(td),
-            get_message_sender_object(td, sender_dialog_id, "messageRefundedUpgradedGift sender"),
-            get_message_sender_object(td, receiver_dialog_id, "messageRefundedUpgradedGift receiver"), m->is_upgrade);
-      }
-      StarGiftId star_gift_id;
-      if (m->owner_dialog_id != DialogId() &&
-          (!m->is_prepaid_upgrade || (is_outgoing && m->owner_dialog_id != td->dialog_manager_->get_my_dialog_id()))) {
-        star_gift_id = StarGiftId(m->owner_dialog_id, m->saved_id);
-      } else if (dialog_id.get_type() == DialogType::User &&
-                 m->is_upgrade == (is_outgoing || dialog_id == td->dialog_manager_->get_my_dialog_id()) && is_server &&
-                 message_id.is_server()) {
-        auto user_id = dialog_id.get_user_id();
-        if (user_id != UserManager::get_service_notifications_user_id() || m->is_upgrade) {
-          star_gift_id = StarGiftId(message_id.get_server_message_id());
-        }
       }
       auto origin = [&]() -> td_api::object_ptr<td_api::UpgradedGiftOrigin> {
         if (m->is_prepaid_upgrade) {
@@ -9897,6 +9888,25 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
         }
         return td_api::make_object<td_api::upgradedGiftOriginTransfer>();
       }();
+      if (m->was_refunded) {
+        return td_api::make_object<td_api::messageRefundedUpgradedGift>(
+            m->star_gift.get_gift_object(td),
+            get_message_sender_object(td, sender_dialog_id, "messageRefundedUpgradedGift sender"),
+            get_message_sender_object(td, receiver_dialog_id, "messageRefundedUpgradedGift receiver"),
+            std::move(origin));
+      }
+      StarGiftId star_gift_id;
+      if (m->owner_dialog_id != DialogId() &&
+          (!m->is_prepaid_upgrade || (is_outgoing && m->owner_dialog_id != td->dialog_manager_->get_my_dialog_id()))) {
+        star_gift_id = StarGiftId(m->owner_dialog_id, m->saved_id);
+      } else if (dialog_id.get_type() == DialogType::User &&
+                 m->is_upgrade == (is_outgoing || dialog_id == td->dialog_manager_->get_my_dialog_id()) && is_server &&
+                 message_id.is_server()) {
+        auto user_id = dialog_id.get_user_id();
+        if (user_id != UserManager::get_service_notifications_user_id() || m->is_upgrade) {
+          star_gift_id = StarGiftId(message_id.get_server_message_id());
+        }
+      }
       return td_api::make_object<td_api::messageUpgradedGift>(
           m->star_gift.get_upgraded_gift_object(td),
           sender_dialog_id == DialogId(UserManager::get_service_notifications_user_id())
@@ -11033,8 +11043,11 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       }
       break;
     }
-    case MessageContentType::ChatSetTheme:
+    case MessageContentType::ChatSetTheme: {
+      const auto *content = static_cast<const MessageChatSetTheme *>(message_content);
+      content->chat_theme.add_dependencies(dependencies);
       break;
+    }
     case MessageContentType::WebViewDataSent:
       break;
     case MessageContentType::WebViewDataReceived:

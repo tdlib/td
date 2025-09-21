@@ -45,6 +45,8 @@ class StarGiftManager final : public Actor {
 
   void on_get_star_gift(const StarGift &star_gift, bool from_server);
 
+  void can_send_gift(int64 gift_id, Promise<td_api::object_ptr<td_api::CanSendGiftResult>> &&promise);
+
   void send_gift(int64 gift_id, DialogId dialog_id, td_api::object_ptr<td_api::formattedText> text, bool is_private,
                  bool pay_for_upgrade, Promise<Unit> &&promise);
 

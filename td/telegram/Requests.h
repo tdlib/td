@@ -939,6 +939,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::deleteChatBackground &request);
 
+  void on_request(uint64 id, td_api::getGiftChatThemes &request);
+
   void on_request(uint64 id, td_api::setChatTheme &request);
 
   void on_request(uint64 id, td_api::setChatDraftMessage &request);
@@ -1193,6 +1195,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::setBirthdate &request);
 
+  void on_request(uint64 id, const td_api::setMainProfileTab &request);
+
   void on_request(uint64 id, const td_api::setPersonalChat &request);
 
   void on_request(uint64 id, const td_api::setEmojiStatus &request);
@@ -1283,6 +1287,16 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getUserProfilePhotos &request);
 
+  void on_request(uint64 id, const td_api::getUserProfileAudios &request);
+
+  void on_request(uint64 id, const td_api::isProfileAudio &request);
+
+  void on_request(uint64 id, const td_api::addProfileAudio &request);
+
+  void on_request(uint64 id, const td_api::setProfileAudioPosition &request);
+
+  void on_request(uint64 id, const td_api::removeProfileAudio &request);
+
   void on_request(uint64 id, const td_api::setAccentColor &request);
 
   void on_request(uint64 id, const td_api::setProfileAccentColor &request);
@@ -1320,6 +1334,8 @@ class Requests {
   void on_request(uint64 id, const td_api::setSupergroupCustomEmojiStickerSet &request);
 
   void on_request(uint64 id, const td_api::setSupergroupUnrestrictBoostCount &request);
+
+  void on_request(uint64 id, const td_api::setSupergroupMainProfileTab &request);
 
   void on_request(uint64 id, const td_api::toggleSupergroupSignMessages &request);
 
@@ -1505,6 +1521,10 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getStarAdAccountUrl &request);
 
+  void on_request(uint64 id, const td_api::getTonRevenueStatistics &request);
+
+  void on_request(uint64 id, const td_api::getTonWithdrawalUrl &request);
+
   void on_request(uint64 id, const td_api::getMessageStatistics &request);
 
   void on_request(uint64 id, const td_api::getStoryStatistics &request);
@@ -1616,6 +1636,8 @@ class Requests {
   void on_request(uint64 id, td_api::setGiftSettings &request);
 
   void on_request(uint64 id, const td_api::getAvailableGifts &request);
+
+  void on_request(uint64 id, const td_api::canSendGift &request);
 
   void on_request(uint64 id, td_api::sendGift &request);
 

@@ -62,6 +62,8 @@ struct AuthManager::DbState {
 
   // WaitPremiumPurchase
   string store_product_id_;
+  string support_email_address_;
+  string support_email_subject_;
 
   // WaitEmailAddress and WaitEmailCode
   bool allow_apple_id_ = false;
@@ -90,10 +92,13 @@ struct AuthManager::DbState {
   DbState() = default;
 
   static DbState wait_premium_purchase(int32 api_id, string api_hash, string store_product_id,
+                                       string support_email_address, string support_email_subject,
                                        SendCodeHelper send_code_helper) {
     DbState state(State::WaitPremiumPurchase, api_id, std::move(api_hash));
     state.send_code_helper_ = std::move(send_code_helper);
     state.store_product_id_ = std::move(store_product_id);
+    state.support_email_address_ = std::move(support_email_address);
+    state.support_email_subject_ = std::move(support_email_subject);
     return state;
   }
 
@@ -189,6 +194,7 @@ void AuthManager::DbState::store(StorerT &storer) const {
   bool is_time_store_supported = true;
   bool is_reset_email_address_supported = true;
   bool is_wait_premium_purchase_supported = true;
+  bool is_wait_premium_purchase_support_supported = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_terms_of_service);
   STORE_FLAG(is_pbkdf2_supported);
@@ -201,6 +207,7 @@ void AuthManager::DbState::store(StorerT &storer) const {
   STORE_FLAG(is_time_store_supported);
   STORE_FLAG(is_reset_email_address_supported);
   STORE_FLAG(is_wait_premium_purchase_supported);
+  STORE_FLAG(is_wait_premium_purchase_support_supported);
   END_STORE_FLAGS();
   store(state_, storer);
   store(api_id_, storer);
@@ -214,6 +221,8 @@ void AuthManager::DbState::store(StorerT &storer) const {
   if (state_ == State::WaitPremiumPurchase) {
     store(send_code_helper_, storer);
     store(store_product_id_, storer);
+    store(support_email_address_, storer);
+    store(support_email_subject_, storer);
   } else if (state_ == State::WaitEmailAddress) {
     store(send_code_helper_, storer);
   } else if (state_ == State::WaitEmailCode) {
@@ -249,6 +258,7 @@ void AuthManager::DbState::parse(ParserT &parser) {
   bool is_time_store_supported = false;
   bool is_reset_email_address_supported = false;
   bool is_wait_premium_purchase_supported = false;
+  bool is_wait_premium_purchase_support_supported = false;
   if (parser.version() >= static_cast<int32>(Version::AddTermsOfService)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_terms_of_service);
@@ -262,9 +272,10 @@ void AuthManager::DbState::parse(ParserT &parser) {
     PARSE_FLAG(is_time_store_supported);
     PARSE_FLAG(is_reset_email_address_supported);
     PARSE_FLAG(is_wait_premium_purchase_supported);
+    PARSE_FLAG(is_wait_premium_purchase_support_supported);
     END_PARSE_FLAGS();
   }
-  if (!is_wait_premium_purchase_supported) {
+  if (!is_wait_premium_purchase_support_supported) {
     return parser.set_error("Have no premium subscription purchase support");
   }
   CHECK(is_pbkdf2_supported);
@@ -274,6 +285,7 @@ void AuthManager::DbState::parse(ParserT &parser) {
   CHECK(is_wait_qr_code_confirmation_supported);
   CHECK(is_time_store_supported);
   CHECK(is_reset_email_address_supported);
+  CHECK(is_wait_premium_purchase_supported);
 
   parse(state_, parser);
   parse(api_id_, parser);
@@ -287,6 +299,8 @@ void AuthManager::DbState::parse(ParserT &parser) {
   if (state_ == State::WaitPremiumPurchase) {
     parse(send_code_helper_, parser);
     parse(store_product_id_, parser);
+    parse(support_email_address_, parser);
+    parse(support_email_subject_, parser);
   } else if (state_ == State::WaitEmailAddress) {
     parse(send_code_helper_, parser);
   } else if (state_ == State::WaitEmailCode) {
@@ -374,7 +388,8 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
     case State::WaitPhoneNumber:
       return make_tl_object<td_api::authorizationStateWaitPhoneNumber>();
     case State::WaitPremiumPurchase:
-      return make_tl_object<td_api::authorizationStateWaitPremiumPurchase>(store_product_id_);
+      return make_tl_object<td_api::authorizationStateWaitPremiumPurchase>(store_product_id_, support_email_address_,
+                                                                           support_email_subject_);
     case State::WaitEmailAddress:
       return make_tl_object<td_api::authorizationStateWaitEmailAddress>(allow_apple_id_, allow_google_id_);
     case State::WaitEmailCode: {
@@ -554,6 +569,8 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
   was_qr_code_request_ = false;
 
   store_product_id_.clear();
+  support_email_address_.clear();
+  support_email_subject_.clear();
   allow_apple_id_ = false;
   allow_google_id_ = false;
   email_address_ = {};
@@ -946,6 +963,8 @@ void AuthManager::on_sent_code(telegram_api::object_ptr<telegram_api::auth_SentC
       auto sent_code = telegram_api::move_object_as<telegram_api::auth_sentCodePaymentRequired>(sent_code_ptr);
       send_code_helper_.on_phone_code_hash(std::move(sent_code->phone_code_hash_));
       store_product_id_ = std::move(sent_code->store_product_);
+      support_email_address_ = std::move(sent_code->support_email_address_);
+      support_email_subject_ = std::move(sent_code->support_email_subject_);
       update_state(State::WaitPremiumPurchase);
       on_current_query_ok();
       return;
@@ -1566,6 +1585,8 @@ bool AuthManager::load_state() {
   LOG(INFO) << "Load auth_state from database: " << tag("state", static_cast<int32>(db_state.state_));
   if (db_state.state_ == State::WaitPremiumPurchase) {
     store_product_id_ = std::move(db_state.store_product_id_);
+    support_email_address_ = std::move(db_state.support_email_address_);
+    support_email_subject_ = std::move(db_state.support_email_subject_);
     send_code_helper_ = std::move(db_state.send_code_helper_);
   } else if (db_state.state_ == State::WaitEmailAddress) {
     allow_apple_id_ = db_state.allow_apple_id_;
@@ -1609,7 +1630,8 @@ void AuthManager::save_state() {
 
   DbState db_state = [&] {
     if (state_ == State::WaitPremiumPurchase) {
-      return DbState::wait_premium_purchase(api_id_, api_hash_, store_product_id_, send_code_helper_);
+      return DbState::wait_premium_purchase(api_id_, api_hash_, store_product_id_, support_email_address_,
+                                            support_email_subject_, send_code_helper_);
     } else if (state_ == State::WaitEmailAddress) {
       return DbState::wait_email_address(api_id_, api_hash_, allow_apple_id_, allow_google_id_, send_code_helper_);
     } else if (state_ == State::WaitEmailCode) {
