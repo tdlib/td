@@ -9,6 +9,7 @@ Also, take a look at our [Getting Started](https://core.telegram.org/tdlib/getti
 TDLib can be easily used from almost any programming language on any platform. See a [TDLib build instructions generator](https://tdlib.github.io/td/build.html) for detailed instructions on how to build TDLib.
 Choose your preferred programming language to see examples of usage and a detailed description:
 
+- [Assembly languages](#assembly)
 - [Python](#python)
 - [JavaScript](#javascript)
 - [Go](#go)
@@ -37,6 +38,13 @@ Choose your preferred programming language to see examples of usage and a detail
 - [C](#c)
 - [G](#g)
 - [Other](#other)
+
+<a name="assembly"></a>
+## Using TDLib in Assembly projects
+
+TDLib can be used from [Assembly](#assembly) through the [JSON](https://github.com/tdlib/td#using-json) interface.
+
+You can also see [nasm_tdjson_example](https://gist.github.com/isopen/41481eda87db2e6426af75be9d1f3748).
 
 <a name="python"></a>
 ## Using TDLib in Python projects
