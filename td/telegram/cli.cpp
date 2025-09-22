@@ -7561,6 +7561,18 @@ class CliClient final : public Actor {
       InputChatPhoto input_chat_photo;
       get_args(args, user_id, input_chat_photo);
       send_request(td_api::make_object<td_api::suggestUserProfilePhoto>(user_id, input_chat_photo));
+    } else if (op == "sub") {
+      UserId user_id;
+      int32 day;
+      int32 month;
+      int32 year;
+      get_args(args, user_id, day, month, year);
+      if (day == 0) {
+        send_request(td_api::make_object<td_api::suggestUserBirthdate>(user_id, nullptr));
+      } else {
+        send_request(td_api::make_object<td_api::suggestUserBirthdate>(
+            user_id, td_api::make_object<td_api::birthdate>(day, month, year)));
+      }
     } else if (op == "tbcmes") {
       UserId user_id;
       bool can_manage_emoji_status;

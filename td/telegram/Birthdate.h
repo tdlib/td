@@ -20,7 +20,7 @@ class Birthdate {
 
   explicit Birthdate(telegram_api::object_ptr<telegram_api::birthday> birthday);
 
-  explicit Birthdate(td_api::object_ptr<td_api::birthdate> birthdate);
+  explicit Birthdate(const td_api::object_ptr<td_api::birthdate> &birthdate);
 
   td_api::object_ptr<td_api::birthdate> get_birthdate_object() const;
 

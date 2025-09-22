@@ -1171,6 +1171,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::suggestUserProfilePhoto &request);
 
+  void on_request(uint64 id, const td_api::suggestUserBirthdate &request);
+
   void on_request(uint64 id, const td_api::toggleBotCanManageEmojiStatus &request);
 
   void on_request(uint64 id, const td_api::setUserEmojiStatus &request);
@@ -1193,7 +1195,7 @@ class Requests {
 
   void on_request(uint64 id, td_api::reorderActiveUsernames &request);
 
-  void on_request(uint64 id, td_api::setBirthdate &request);
+  void on_request(uint64 id, const td_api::setBirthdate &request);
 
   void on_request(uint64 id, const td_api::setMainProfileTab &request);
 

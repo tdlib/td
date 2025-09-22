@@ -27,7 +27,7 @@ Birthdate::Birthdate(telegram_api::object_ptr<telegram_api::birthday> birthday) 
   init(birthday->day_, birthday->month_, birthday->year_);
 }
 
-Birthdate::Birthdate(td_api::object_ptr<td_api::birthdate> birthdate) {
+Birthdate::Birthdate(const td_api::object_ptr<td_api::birthdate> &birthdate) {
   if (birthdate == nullptr) {
     return;
   }

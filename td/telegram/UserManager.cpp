@@ -781,6 +781,34 @@ class DeleteProfilePhotoQuery final : public Td::ResultHandler {
   }
 };
 
+class SuggestUserBirthdayQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SuggestUserBirthdayQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user, const Birthdate &birthdate) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::users_suggestBirthday(std::move(input_user), birthdate.get_input_birthday())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::users_suggestBirthday>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SuggestUserBirthdayQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateColorQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   bool for_profile_;
@@ -5951,6 +5979,18 @@ void UserManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> 
   }
 
   promise.set_value(Unit());
+}
+
+void UserManager::suggest_user_birthdate(UserId user_id, Birthdate birthdate, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
+  if (user_id == get_my_id()) {
+    return promise.set_error(400, "Can't suggest birthdate to self");
+  }
+  if (is_user_bot(user_id)) {
+    return promise.set_error(400, "Can't suggest birthdate to bots");
+  }
+
+  td_->create_handler<SuggestUserBirthdayQuery>(std::move(promise))->send(std::move(input_user), birthdate);
 }
 
 void UserManager::toggle_user_can_manage_emoji_status(UserId user_id, bool can_manage_emoji_status,

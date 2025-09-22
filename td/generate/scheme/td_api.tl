@@ -12450,6 +12450,11 @@ setUserPersonalProfilePhoto user_id:int53 photo:InputChatPhoto = Ok;
 //@photo Profile photo to suggest; inputChatPhotoPrevious isn't supported in this function
 suggestUserProfilePhoto user_id:int53 photo:InputChatPhoto = Ok;
 
+//@description Suggests a birthdate to another regular user with common messages and allowing non-paid messages
+//@user_id User identifier
+//@birthdate Birthdate to suggest
+suggestUserBirthdate user_id:int53 birthdate:birthdate = Ok;
+
 //@description Toggles whether the bot can manage emoji status of the current user @bot_user_id User identifier of the bot @can_manage_emoji_status Pass true if the bot is allowed to change emoji status of the user; pass false otherwise
 toggleBotCanManageEmojiStatus bot_user_id:int53 can_manage_emoji_status:Bool = Ok;
 

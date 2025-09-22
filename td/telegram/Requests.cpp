@@ -6093,6 +6093,13 @@ void Requests::on_request(uint64 id, const td_api::suggestUserProfilePhoto &requ
   td_->user_manager_->set_user_profile_photo(UserId(request.user_id_), request.photo_, true, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::suggestUserBirthdate &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->suggest_user_birthdate(UserId(request.user_id_), Birthdate(request.birthdate_),
+                                             std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::toggleBotCanManageEmojiStatus &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
@@ -6168,10 +6175,10 @@ void Requests::on_request(uint64 id, td_api::reorderActiveUsernames &request) {
   td_->user_manager_->reorder_usernames(std::move(request.usernames_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::setBirthdate &request) {
+void Requests::on_request(uint64 id, const td_api::setBirthdate &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->user_manager_->set_birthdate(Birthdate(std::move(request.birthdate_)), std::move(promise));
+  td_->user_manager_->set_birthdate(Birthdate(request.birthdate_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::setMainProfileTab &request) {
