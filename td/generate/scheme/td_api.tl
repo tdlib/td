@@ -4539,6 +4539,9 @@ messageForumTopicIsHiddenToggled is_hidden:Bool = MessageContent;
 //@description A profile photo was suggested to a user in a private chat @photo The suggested chat photo. Use the method setProfilePhoto with inputChatPhotoPrevious to apply the photo
 messageSuggestProfilePhoto photo:chatPhoto = MessageContent;
 
+//@description A birthdate was suggested to be set by the user @birthdate The suggested birthdate. Use the method setBirthdate to apply the birthdate
+messageSuggestBirthdate birthdate:birthdate = MessageContent;
+
 //@description A non-standard action has happened in the chat @text Message text to be shown in the chat
 messageCustomServiceAction text:string = MessageContent;
 

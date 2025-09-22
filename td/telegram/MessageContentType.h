@@ -96,7 +96,8 @@ enum class MessageContentType : int32 {
   GiftTon,
   SuggestedPostSuccess,
   SuggestedPostRefund,
-  SuggestedPostApproval
+  SuggestedPostApproval,
+  SuggestBirthday
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 

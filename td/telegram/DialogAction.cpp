@@ -441,6 +441,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::SuggestedPostSuccess:
     case MessageContentType::SuggestedPostRefund:
     case MessageContentType::SuggestedPostApproval:
+    case MessageContentType::SuggestBirthday:
       return false;
     default:
       UNREACHABLE();
