@@ -2608,7 +2608,7 @@ void UserManager::tear_down() {
 }
 
 void UserManager::start_up() {
-  if (!td_->auth_manager_->is_bot()) {
+  if (td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot()) {
     auto my_saved_music_ids_str = G()->td_db()->get_binlog_pmc()->get(get_my_saved_music_ids_database_key());
     vector<int64> my_saved_music_ids;
     if (my_saved_music_ids_str.empty() || log_event_parse(my_saved_music_ids, my_saved_music_ids_str).is_error()) {
