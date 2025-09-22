@@ -471,6 +471,14 @@ class GetUpgradeGiftPreviewQuery final : public Td::ResultHandler {
           UNREACHABLE();
       }
     }
+    for (auto &price : ptr->prices_) {
+      result->prices_.push_back(td_api::make_object<td_api::giftUpgradePrice>(
+          price->date_, StarManager::get_star_count(price->upgrade_stars_)));
+    }
+    for (auto &price : ptr->next_prices_) {
+      result->next_prices_.push_back(td_api::make_object<td_api::giftUpgradePrice>(
+          price->date_, StarManager::get_star_count(price->upgrade_stars_)));
+    }
     promise_.set_value(std::move(result));
   }
 

@@ -1364,6 +1364,12 @@ availableGift gift:gift resale_count:int32 min_resale_star_count:int53 title:str
 availableGifts gifts:vector<availableGift> = AvailableGifts;
 
 
+//@description Describes a price required to pay to upgrade a gift
+//@date Point in time (Unix timestamp) when the price will be in effect
+//@star_count The amount of Telegram Stars required to pay to upgrade the gift
+giftUpgradePrice date:int32 star_count:int53 = GiftUpgradePrice;
+
+
 //@class UpgradedGiftAttributeId @description Contains identifier of an upgraded gift attribute to search for
 
 //@description Identifier of a gift model @sticker_id Identifier of the sticker representing the model
@@ -1466,7 +1472,9 @@ receivedGifts total_count:int32 gifts:vector<receivedGift> are_notifications_ena
 //@models Examples of possible models that can be chosen for the gift after upgrade
 //@symbols Examples of possible symbols that can be chosen for the gift after upgrade
 //@backdrops Examples of possible backdrops that can be chosen for the gift after upgrade
-giftUpgradePreview models:vector<upgradedGiftModel> symbols:vector<upgradedGiftSymbol> backdrops:vector<upgradedGiftBackdrop> = GiftUpgradePreview;
+//@prices Examples of price for gift upgrade from the maximum price to the minimum price
+//@next_prices Next changes for the price for gift upgrade with more granularity than in prices
+giftUpgradePreview models:vector<upgradedGiftModel> symbols:vector<upgradedGiftSymbol> backdrops:vector<upgradedGiftBackdrop> prices:vector<giftUpgradePrice> next_prices:vector<giftUpgradePrice> = GiftUpgradePreview;
 
 
 //@class TransactionDirection @description Describes direction of transactions in a transaction list
