@@ -19,8 +19,6 @@ If you want to compile TDLib for 32-bit/64-bit Java on Windows using MSVC, you w
 
 In Windows, use vcpkg toolchain file by adding parameter -DCMAKE_TOOLCHAIN_FILE=<VCPKG_DIR>/scripts/buildsystems/vcpkg.cmake
 
-If you want to build JsonClient.java wrapper for JSON interface instead of the native JNI interface, add `-DTD_JSON_JAVA=ON` option to CMake.
-
 After this you can compile the example source code:
 ```
 cd <path to TDLib sources>/example/java
@@ -29,6 +27,8 @@ cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DTd_DIR=<full path to TDLib sources>/example/java/td/lib/cmake/Td -DCMAKE_INSTALL_PREFIX:PATH=.. ..
 cmake --build . --target install
 ```
+
+If you want to build JsonClient.java wrapper for JSON interface instead of the native JNI interface, add `-DTD_JSON_JAVA=ON` option to CMake when building the example.
 
 Compiled TDLib shared library and Java example after that will be placed in `bin/` and Javadoc documentation in `docs/`.
 
