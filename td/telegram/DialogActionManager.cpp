@@ -291,6 +291,7 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
   }
 
   if (top_thread_message_id.is_valid()) {
+    // duplicate per-thread message action to the chat itself
     send_update_chat_action(dialog_id, MessageId(), typing_dialog_id, action);
   }
   send_update_chat_action(dialog_id, top_thread_message_id, typing_dialog_id, action);
