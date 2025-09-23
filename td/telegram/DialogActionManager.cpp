@@ -178,6 +178,21 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
     }
   }
 
+  {
+    auto text_draft_info = action.get_text_draft_info();
+    if (text_draft_info.is_text_draft_) {
+      if (date > G()->unix_time() - 30 && dialog_type == DialogType::User && dialog_id == typing_dialog_id &&
+          top_thread_message_id.is_valid() && td_->user_manager_->is_user_bot(dialog_id.get_user_id())) {
+        send_closure(G()->td(), &Td::send_update,
+                     td_api::make_object<td_api::updatePendingTextMessage>(
+                         td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatAction"),
+                         top_thread_message_id.get(), text_draft_info.random_id_,
+                         get_formatted_text_object(td_->user_manager_.get(), text_draft_info.text_, false, -1)));
+      }
+      return;
+    }
+  }
+
   if (!td_->messages_manager_->have_dialog(dialog_id)) {
     LOG(DEBUG) << "Ignore " << action << " in unknown " << dialog_id;
     return;
@@ -293,7 +308,7 @@ void DialogActionManager::send_update_chat_action(DialogId dialog_id, MessageId 
                td_api::make_object<td_api::updateChatAction>(
                    td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatAction"), top_thread_message_id.get(),
                    get_message_sender_object(td_, typing_dialog_id, "send_update_chat_action"),
-                   action.get_chat_action_object()));
+                   action.get_chat_action_object(td_->user_manager_.get())));
 }
 
 void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_thread_message_id,
@@ -360,7 +375,7 @@ void DialogActionManager::send_dialog_action(DialogId dialog_id, MessageId top_t
 
   auto new_query_ref = td_->create_handler<SetTypingQuery>(std::move(promise))
                            ->send(dialog_id, std::move(input_peer), top_thread_message_id, business_connection_id,
-                                  action.get_input_send_message_action());
+                                  action.get_input_send_message_action(td_->user_manager_.get()));
   if (td_->auth_manager_->is_bot()) {
     return;
   }

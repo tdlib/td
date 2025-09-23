@@ -57,6 +57,13 @@ void DialogAction::init(Type type, int32 message_id, string emoji, const string 
   }
 }
 
+void DialogAction::init(Type type, int64 random_id, FormattedText &&text) {
+  CHECK(type == Type::TextDraft);
+  type_ = type;
+  random_id_ = random_id;
+  text_ = std::move(text);
+}
+
 DialogAction::DialogAction(Type type, int32 progress) {
   init(type, progress);
 }
@@ -77,7 +84,7 @@ DialogAction::DialogAction(td_api::object_ptr<td_api::ChatAction> &&action_ptr) 
       init(Type::RecordingVideo);
       break;
     case td_api::chatActionUploadingVideo::ID: {
-      auto action = move_tl_object_as<td_api::chatActionUploadingVideo>(action_ptr);
+      auto action = td_api::move_object_as<td_api::chatActionUploadingVideo>(action_ptr);
       init(Type::UploadingVideo, action->progress_);
       break;
     }
@@ -85,17 +92,17 @@ DialogAction::DialogAction(td_api::object_ptr<td_api::ChatAction> &&action_ptr) 
       init(Type::RecordingVoiceNote);
       break;
     case td_api::chatActionUploadingVoiceNote::ID: {
-      auto action = move_tl_object_as<td_api::chatActionUploadingVoiceNote>(action_ptr);
+      auto action = td_api::move_object_as<td_api::chatActionUploadingVoiceNote>(action_ptr);
       init(Type::UploadingVoiceNote, action->progress_);
       break;
     }
     case td_api::chatActionUploadingPhoto::ID: {
-      auto action = move_tl_object_as<td_api::chatActionUploadingPhoto>(action_ptr);
+      auto action = td_api::move_object_as<td_api::chatActionUploadingPhoto>(action_ptr);
       init(Type::UploadingPhoto, action->progress_);
       break;
     }
     case td_api::chatActionUploadingDocument::ID: {
-      auto action = move_tl_object_as<td_api::chatActionUploadingDocument>(action_ptr);
+      auto action = td_api::move_object_as<td_api::chatActionUploadingDocument>(action_ptr);
       init(Type::UploadingDocument, action->progress_);
       break;
     }
@@ -112,7 +119,7 @@ DialogAction::DialogAction(td_api::object_ptr<td_api::ChatAction> &&action_ptr) 
       init(Type::RecordingVideoNote);
       break;
     case td_api::chatActionUploadingVideoNote::ID: {
-      auto action = move_tl_object_as<td_api::chatActionUploadingVideoNote>(action_ptr);
+      auto action = td_api::move_object_as<td_api::chatActionUploadingVideoNote>(action_ptr);
       init(Type::UploadingVideoNote, action->progress_);
       break;
     }
@@ -120,7 +127,7 @@ DialogAction::DialogAction(td_api::object_ptr<td_api::ChatAction> &&action_ptr) 
       init(Type::ChoosingSticker);
       break;
     case td_api::chatActionWatchingAnimations::ID: {
-      auto action = move_tl_object_as<td_api::chatActionWatchingAnimations>(action_ptr);
+      auto action = td_api::move_object_as<td_api::chatActionWatchingAnimations>(action_ptr);
       init(Type::WatchingAnimations, std::move(action->emoji_));
       break;
     }
@@ -130,7 +137,8 @@ DialogAction::DialogAction(td_api::object_ptr<td_api::ChatAction> &&action_ptr) 
   }
 }
 
-DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAction> &&action_ptr) {
+DialogAction::DialogAction(const UserManager *user_manager,
+                           telegram_api::object_ptr<telegram_api::SendMessageAction> &&action_ptr) {
   switch (action_ptr->get_id()) {
     case telegram_api::sendMessageCancelAction::ID:
       init(Type::Cancel);
@@ -202,16 +210,20 @@ DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAct
       init(Type::ClickingAnimatedEmoji, action->msg_id_, std::move(action->emoticon_), action->interaction_->data_);
       break;
     }
-    case telegram_api::sendMessageTextDraftAction::ID:
-      init(Type::Cancel);
+    case telegram_api::sendMessageTextDraftAction::ID: {
+      auto action = telegram_api::move_object_as<telegram_api::sendMessageTextDraftAction>(action_ptr);
+      init(Type::TextDraft, action->random_id_,
+           get_formatted_text(user_manager, std::move(action->text_), true, false, "sendMessageTextDraftAction"));
       break;
+    }
     default:
       UNREACHABLE();
       break;
   }
 }
 
-tl_object_ptr<telegram_api::SendMessageAction> DialogAction::get_input_send_message_action() const {
+tl_object_ptr<telegram_api::SendMessageAction> DialogAction::get_input_send_message_action(
+    const UserManager *user_manager) const {
   switch (type_) {
     case Type::Cancel:
       return telegram_api::make_object<telegram_api::sendMessageCancelAction>();
@@ -247,6 +259,9 @@ tl_object_ptr<telegram_api::SendMessageAction> DialogAction::get_input_send_mess
       return telegram_api::make_object<telegram_api::sendMessageChooseStickerAction>();
     case Type::WatchingAnimations:
       return telegram_api::make_object<telegram_api::sendMessageEmojiInteractionSeen>(emoji_);
+    case Type::TextDraft:
+      return telegram_api::make_object<telegram_api::sendMessageTextDraftAction>(
+          random_id_, get_input_text_with_entities(user_manager, text_, "sendMessageTextDraftAction"));
     case Type::ClickingAnimatedEmoji:
     default:
       UNREACHABLE();
@@ -290,6 +305,8 @@ tl_object_ptr<secret_api::SendMessageAction> DialogAction::get_secret_input_send
       return secret_api::make_object<secret_api::sendMessageTypingAction>();
     case Type::WatchingAnimations:
       return secret_api::make_object<secret_api::sendMessageTypingAction>();
+    case Type::TextDraft:
+      return secret_api::make_object<secret_api::sendMessageTypingAction>();
     case Type::ClickingAnimatedEmoji:
     default:
       UNREACHABLE();
@@ -297,7 +314,7 @@ tl_object_ptr<secret_api::SendMessageAction> DialogAction::get_secret_input_send
   }
 }
 
-tl_object_ptr<td_api::ChatAction> DialogAction::get_chat_action_object() const {
+tl_object_ptr<td_api::ChatAction> DialogAction::get_chat_action_object(const UserManager *user_manager) const {
   switch (type_) {
     case Type::Cancel:
       return td_api::make_object<td_api::chatActionCancel>();
@@ -329,6 +346,7 @@ tl_object_ptr<td_api::ChatAction> DialogAction::get_chat_action_object() const {
       return td_api::make_object<td_api::chatActionChoosingSticker>();
     case Type::WatchingAnimations:
       return td_api::make_object<td_api::chatActionWatchingAnimations>(emoji_);
+    case Type::TextDraft:
     case Type::ImportingMessages:
     case Type::SpeakingInVoiceChat:
     case Type::ClickingAnimatedEmoji:
@@ -502,6 +520,16 @@ DialogAction::ClickingAnimateEmojiInfo DialogAction::get_clicking_animated_emoji
   return result;
 }
 
+DialogAction::TextDraftInfo DialogAction::get_text_draft_info() const {
+  TextDraftInfo result;
+  if (type_ == Type::TextDraft) {
+    result.is_text_draft_ = true;
+    result.random_id_ = random_id_;
+    result.text_ = text_;
+  }
+  return result;
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &action) {
   string_builder << "ChatAction";
   const char *type = [action_type = action.type_] {
@@ -542,6 +570,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &act
         return "WatchingAnimations";
       case DialogAction::Type::ClickingAnimatedEmoji:
         return "ClickingAnimatedEmoji";
+      case DialogAction::Type::TextDraft:
+        return "SendingTextDraft";
       default:
         UNREACHABLE();
         return "Cancel";
@@ -559,6 +589,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogAction &act
     }
     if (!action.emoji_.empty()) {
       string_builder << '(' << action.emoji_ << ')';
+    }
+    if (action.type_ == DialogAction::Type::TextDraft) {
+      string_builder << '(' << action.random_id_ << ": " << action.text_ << ')';
     }
   }
   return string_builder;

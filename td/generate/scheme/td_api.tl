@@ -9191,6 +9191,13 @@ updateDeleteMessages chat_id:int53 message_ids:vector<int53> is_permanent:Bool f
 //@action The action
 updateChatAction chat_id:int53 message_thread_id:int53 sender_id:MessageSender action:ChatAction = Update;
 
+//@description A new pending text message was received in a chat with a bot
+//@chat_id Chat identifier
+//@message_thread_id The message thread identifier in which the message will be sent
+//@draft_id Unique identifier of the message draft within the message thread
+//@text Text of the pending message
+updatePendingTextMessage chat_id:int53 message_thread_id:int53 draft_id:int64 text:formattedText = Update;
+
 //@description The user went online or offline @user_id User identifier @status New status of the user
 updateUserStatus user_id:int53 status:UserStatus = Update;
 
