@@ -142,7 +142,7 @@ DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAct
       init(Type::RecordingVideo);
       break;
     case telegram_api::sendMessageUploadVideoAction::ID: {
-      auto action = move_tl_object_as<telegram_api::sendMessageUploadVideoAction>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::sendMessageUploadVideoAction>(action_ptr);
       init(Type::UploadingVideo, action->progress_);
       break;
     }
@@ -150,17 +150,17 @@ DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAct
       init(Type::RecordingVoiceNote);
       break;
     case telegram_api::sendMessageUploadAudioAction::ID: {
-      auto action = move_tl_object_as<telegram_api::sendMessageUploadAudioAction>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::sendMessageUploadAudioAction>(action_ptr);
       init(Type::UploadingVoiceNote, action->progress_);
       break;
     }
     case telegram_api::sendMessageUploadPhotoAction::ID: {
-      auto action = move_tl_object_as<telegram_api::sendMessageUploadPhotoAction>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::sendMessageUploadPhotoAction>(action_ptr);
       init(Type::UploadingPhoto, action->progress_);
       break;
     }
     case telegram_api::sendMessageUploadDocumentAction::ID: {
-      auto action = move_tl_object_as<telegram_api::sendMessageUploadDocumentAction>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::sendMessageUploadDocumentAction>(action_ptr);
       init(Type::UploadingDocument, action->progress_);
       break;
     }
@@ -177,7 +177,7 @@ DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAct
       init(Type::RecordingVideoNote);
       break;
     case telegram_api::sendMessageUploadRoundAction::ID: {
-      auto action = move_tl_object_as<telegram_api::sendMessageUploadRoundAction>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::sendMessageUploadRoundAction>(action_ptr);
       init(Type::UploadingVideoNote, action->progress_);
       break;
     }
@@ -185,7 +185,7 @@ DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAct
       init(Type::SpeakingInVoiceChat);
       break;
     case telegram_api::sendMessageHistoryImportAction::ID: {
-      auto action = move_tl_object_as<telegram_api::sendMessageHistoryImportAction>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::sendMessageHistoryImportAction>(action_ptr);
       init(Type::ImportingMessages, action->progress_);
       break;
     }
@@ -193,12 +193,12 @@ DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAct
       init(Type::ChoosingSticker);
       break;
     case telegram_api::sendMessageEmojiInteractionSeen::ID: {
-      auto action = move_tl_object_as<telegram_api::sendMessageEmojiInteractionSeen>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::sendMessageEmojiInteractionSeen>(action_ptr);
       init(Type::WatchingAnimations, std::move(action->emoticon_));
       break;
     }
     case telegram_api::sendMessageEmojiInteraction::ID: {
-      auto action = move_tl_object_as<telegram_api::sendMessageEmojiInteraction>(action_ptr);
+      auto action = telegram_api::move_object_as<telegram_api::sendMessageEmojiInteraction>(action_ptr);
       init(Type::ClickingAnimatedEmoji, action->msg_id_, std::move(action->emoticon_), action->interaction_->data_);
       break;
     }
@@ -214,39 +214,39 @@ DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAct
 tl_object_ptr<telegram_api::SendMessageAction> DialogAction::get_input_send_message_action() const {
   switch (type_) {
     case Type::Cancel:
-      return make_tl_object<telegram_api::sendMessageCancelAction>();
+      return telegram_api::make_object<telegram_api::sendMessageCancelAction>();
     case Type::Typing:
-      return make_tl_object<telegram_api::sendMessageTypingAction>();
+      return telegram_api::make_object<telegram_api::sendMessageTypingAction>();
     case Type::RecordingVideo:
-      return make_tl_object<telegram_api::sendMessageRecordVideoAction>();
+      return telegram_api::make_object<telegram_api::sendMessageRecordVideoAction>();
     case Type::UploadingVideo:
-      return make_tl_object<telegram_api::sendMessageUploadVideoAction>(progress_);
+      return telegram_api::make_object<telegram_api::sendMessageUploadVideoAction>(progress_);
     case Type::RecordingVoiceNote:
-      return make_tl_object<telegram_api::sendMessageRecordAudioAction>();
+      return telegram_api::make_object<telegram_api::sendMessageRecordAudioAction>();
     case Type::UploadingVoiceNote:
-      return make_tl_object<telegram_api::sendMessageUploadAudioAction>(progress_);
+      return telegram_api::make_object<telegram_api::sendMessageUploadAudioAction>(progress_);
     case Type::UploadingPhoto:
-      return make_tl_object<telegram_api::sendMessageUploadPhotoAction>(progress_);
+      return telegram_api::make_object<telegram_api::sendMessageUploadPhotoAction>(progress_);
     case Type::UploadingDocument:
-      return make_tl_object<telegram_api::sendMessageUploadDocumentAction>(progress_);
+      return telegram_api::make_object<telegram_api::sendMessageUploadDocumentAction>(progress_);
     case Type::ChoosingLocation:
-      return make_tl_object<telegram_api::sendMessageGeoLocationAction>();
+      return telegram_api::make_object<telegram_api::sendMessageGeoLocationAction>();
     case Type::ChoosingContact:
-      return make_tl_object<telegram_api::sendMessageChooseContactAction>();
+      return telegram_api::make_object<telegram_api::sendMessageChooseContactAction>();
     case Type::StartPlayingGame:
-      return make_tl_object<telegram_api::sendMessageGamePlayAction>();
+      return telegram_api::make_object<telegram_api::sendMessageGamePlayAction>();
     case Type::RecordingVideoNote:
-      return make_tl_object<telegram_api::sendMessageRecordRoundAction>();
+      return telegram_api::make_object<telegram_api::sendMessageRecordRoundAction>();
     case Type::UploadingVideoNote:
-      return make_tl_object<telegram_api::sendMessageUploadRoundAction>(progress_);
+      return telegram_api::make_object<telegram_api::sendMessageUploadRoundAction>(progress_);
     case Type::SpeakingInVoiceChat:
-      return make_tl_object<telegram_api::speakingInGroupCallAction>();
+      return telegram_api::make_object<telegram_api::speakingInGroupCallAction>();
     case Type::ImportingMessages:
-      return make_tl_object<telegram_api::sendMessageHistoryImportAction>(progress_);
+      return telegram_api::make_object<telegram_api::sendMessageHistoryImportAction>(progress_);
     case Type::ChoosingSticker:
-      return make_tl_object<telegram_api::sendMessageChooseStickerAction>();
+      return telegram_api::make_object<telegram_api::sendMessageChooseStickerAction>();
     case Type::WatchingAnimations:
-      return make_tl_object<telegram_api::sendMessageEmojiInteractionSeen>(emoji_);
+      return telegram_api::make_object<telegram_api::sendMessageEmojiInteractionSeen>(emoji_);
     case Type::ClickingAnimatedEmoji:
     default:
       UNREACHABLE();
@@ -257,39 +257,39 @@ tl_object_ptr<telegram_api::SendMessageAction> DialogAction::get_input_send_mess
 tl_object_ptr<secret_api::SendMessageAction> DialogAction::get_secret_input_send_message_action() const {
   switch (type_) {
     case Type::Cancel:
-      return make_tl_object<secret_api::sendMessageCancelAction>();
+      return secret_api::make_object<secret_api::sendMessageCancelAction>();
     case Type::Typing:
-      return make_tl_object<secret_api::sendMessageTypingAction>();
+      return secret_api::make_object<secret_api::sendMessageTypingAction>();
     case Type::RecordingVideo:
-      return make_tl_object<secret_api::sendMessageRecordVideoAction>();
+      return secret_api::make_object<secret_api::sendMessageRecordVideoAction>();
     case Type::UploadingVideo:
-      return make_tl_object<secret_api::sendMessageUploadVideoAction>();
+      return secret_api::make_object<secret_api::sendMessageUploadVideoAction>();
     case Type::RecordingVoiceNote:
-      return make_tl_object<secret_api::sendMessageRecordAudioAction>();
+      return secret_api::make_object<secret_api::sendMessageRecordAudioAction>();
     case Type::UploadingVoiceNote:
-      return make_tl_object<secret_api::sendMessageUploadAudioAction>();
+      return secret_api::make_object<secret_api::sendMessageUploadAudioAction>();
     case Type::UploadingPhoto:
-      return make_tl_object<secret_api::sendMessageUploadPhotoAction>();
+      return secret_api::make_object<secret_api::sendMessageUploadPhotoAction>();
     case Type::UploadingDocument:
-      return make_tl_object<secret_api::sendMessageUploadDocumentAction>();
+      return secret_api::make_object<secret_api::sendMessageUploadDocumentAction>();
     case Type::ChoosingLocation:
-      return make_tl_object<secret_api::sendMessageGeoLocationAction>();
+      return secret_api::make_object<secret_api::sendMessageGeoLocationAction>();
     case Type::ChoosingContact:
-      return make_tl_object<secret_api::sendMessageChooseContactAction>();
+      return secret_api::make_object<secret_api::sendMessageChooseContactAction>();
     case Type::StartPlayingGame:
-      return make_tl_object<secret_api::sendMessageTypingAction>();
+      return secret_api::make_object<secret_api::sendMessageTypingAction>();
     case Type::RecordingVideoNote:
-      return make_tl_object<secret_api::sendMessageRecordRoundAction>();
+      return secret_api::make_object<secret_api::sendMessageRecordRoundAction>();
     case Type::UploadingVideoNote:
-      return make_tl_object<secret_api::sendMessageUploadRoundAction>();
+      return secret_api::make_object<secret_api::sendMessageUploadRoundAction>();
     case Type::SpeakingInVoiceChat:
-      return make_tl_object<secret_api::sendMessageTypingAction>();
+      return secret_api::make_object<secret_api::sendMessageTypingAction>();
     case Type::ImportingMessages:
-      return make_tl_object<secret_api::sendMessageTypingAction>();
+      return secret_api::make_object<secret_api::sendMessageTypingAction>();
     case Type::ChoosingSticker:
-      return make_tl_object<secret_api::sendMessageTypingAction>();
+      return secret_api::make_object<secret_api::sendMessageTypingAction>();
     case Type::WatchingAnimations:
-      return make_tl_object<secret_api::sendMessageTypingAction>();
+      return secret_api::make_object<secret_api::sendMessageTypingAction>();
     case Type::ClickingAnimatedEmoji:
     default:
       UNREACHABLE();
