@@ -61,12 +61,12 @@ DialogAction::DialogAction(Type type, int32 progress) {
   init(type, progress);
 }
 
-DialogAction::DialogAction(td_api::object_ptr<td_api::ChatAction> &&action) {
-  if (action == nullptr) {
+DialogAction::DialogAction(td_api::object_ptr<td_api::ChatAction> &&action_ptr) {
+  if (action_ptr == nullptr) {
     return;
   }
 
-  switch (action->get_id()) {
+  switch (action_ptr->get_id()) {
     case td_api::chatActionCancel::ID:
       init(Type::Cancel);
       break;
@@ -77,26 +77,26 @@ DialogAction::DialogAction(td_api::object_ptr<td_api::ChatAction> &&action) {
       init(Type::RecordingVideo);
       break;
     case td_api::chatActionUploadingVideo::ID: {
-      auto uploading_action = move_tl_object_as<td_api::chatActionUploadingVideo>(action);
-      init(Type::UploadingVideo, uploading_action->progress_);
+      auto action = move_tl_object_as<td_api::chatActionUploadingVideo>(action_ptr);
+      init(Type::UploadingVideo, action->progress_);
       break;
     }
     case td_api::chatActionRecordingVoiceNote::ID:
       init(Type::RecordingVoiceNote);
       break;
     case td_api::chatActionUploadingVoiceNote::ID: {
-      auto uploading_action = move_tl_object_as<td_api::chatActionUploadingVoiceNote>(action);
-      init(Type::UploadingVoiceNote, uploading_action->progress_);
+      auto action = move_tl_object_as<td_api::chatActionUploadingVoiceNote>(action_ptr);
+      init(Type::UploadingVoiceNote, action->progress_);
       break;
     }
     case td_api::chatActionUploadingPhoto::ID: {
-      auto uploading_action = move_tl_object_as<td_api::chatActionUploadingPhoto>(action);
-      init(Type::UploadingPhoto, uploading_action->progress_);
+      auto action = move_tl_object_as<td_api::chatActionUploadingPhoto>(action_ptr);
+      init(Type::UploadingPhoto, action->progress_);
       break;
     }
     case td_api::chatActionUploadingDocument::ID: {
-      auto uploading_action = move_tl_object_as<td_api::chatActionUploadingDocument>(action);
-      init(Type::UploadingDocument, uploading_action->progress_);
+      auto action = move_tl_object_as<td_api::chatActionUploadingDocument>(action_ptr);
+      init(Type::UploadingDocument, action->progress_);
       break;
     }
     case td_api::chatActionChoosingLocation::ID:
@@ -112,16 +112,16 @@ DialogAction::DialogAction(td_api::object_ptr<td_api::ChatAction> &&action) {
       init(Type::RecordingVideoNote);
       break;
     case td_api::chatActionUploadingVideoNote::ID: {
-      auto uploading_action = move_tl_object_as<td_api::chatActionUploadingVideoNote>(action);
-      init(Type::UploadingVideoNote, uploading_action->progress_);
+      auto action = move_tl_object_as<td_api::chatActionUploadingVideoNote>(action_ptr);
+      init(Type::UploadingVideoNote, action->progress_);
       break;
     }
     case td_api::chatActionChoosingSticker::ID:
       init(Type::ChoosingSticker);
       break;
     case td_api::chatActionWatchingAnimations::ID: {
-      auto watching_animations_action = move_tl_object_as<td_api::chatActionWatchingAnimations>(action);
-      init(Type::WatchingAnimations, std::move(watching_animations_action->emoji_));
+      auto action = move_tl_object_as<td_api::chatActionWatchingAnimations>(action_ptr);
+      init(Type::WatchingAnimations, std::move(action->emoji_));
       break;
     }
     default:
@@ -130,8 +130,8 @@ DialogAction::DialogAction(td_api::object_ptr<td_api::ChatAction> &&action) {
   }
 }
 
-DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAction> &&action) {
-  switch (action->get_id()) {
+DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAction> &&action_ptr) {
+  switch (action_ptr->get_id()) {
     case telegram_api::sendMessageCancelAction::ID:
       init(Type::Cancel);
       break;
@@ -142,26 +142,26 @@ DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAct
       init(Type::RecordingVideo);
       break;
     case telegram_api::sendMessageUploadVideoAction::ID: {
-      auto upload_video_action = move_tl_object_as<telegram_api::sendMessageUploadVideoAction>(action);
-      init(Type::UploadingVideo, upload_video_action->progress_);
+      auto action = move_tl_object_as<telegram_api::sendMessageUploadVideoAction>(action_ptr);
+      init(Type::UploadingVideo, action->progress_);
       break;
     }
     case telegram_api::sendMessageRecordAudioAction::ID:
       init(Type::RecordingVoiceNote);
       break;
     case telegram_api::sendMessageUploadAudioAction::ID: {
-      auto upload_audio_action = move_tl_object_as<telegram_api::sendMessageUploadAudioAction>(action);
-      init(Type::UploadingVoiceNote, upload_audio_action->progress_);
+      auto action = move_tl_object_as<telegram_api::sendMessageUploadAudioAction>(action_ptr);
+      init(Type::UploadingVoiceNote, action->progress_);
       break;
     }
     case telegram_api::sendMessageUploadPhotoAction::ID: {
-      auto upload_photo_action = move_tl_object_as<telegram_api::sendMessageUploadPhotoAction>(action);
-      init(Type::UploadingPhoto, upload_photo_action->progress_);
+      auto action = move_tl_object_as<telegram_api::sendMessageUploadPhotoAction>(action_ptr);
+      init(Type::UploadingPhoto, action->progress_);
       break;
     }
     case telegram_api::sendMessageUploadDocumentAction::ID: {
-      auto upload_document_action = move_tl_object_as<telegram_api::sendMessageUploadDocumentAction>(action);
-      init(Type::UploadingDocument, upload_document_action->progress_);
+      auto action = move_tl_object_as<telegram_api::sendMessageUploadDocumentAction>(action_ptr);
+      init(Type::UploadingDocument, action->progress_);
       break;
     }
     case telegram_api::sendMessageGeoLocationAction::ID:
@@ -177,30 +177,29 @@ DialogAction::DialogAction(telegram_api::object_ptr<telegram_api::SendMessageAct
       init(Type::RecordingVideoNote);
       break;
     case telegram_api::sendMessageUploadRoundAction::ID: {
-      auto upload_round_action = move_tl_object_as<telegram_api::sendMessageUploadRoundAction>(action);
-      init(Type::UploadingVideoNote, upload_round_action->progress_);
+      auto action = move_tl_object_as<telegram_api::sendMessageUploadRoundAction>(action_ptr);
+      init(Type::UploadingVideoNote, action->progress_);
       break;
     }
     case telegram_api::speakingInGroupCallAction::ID:
       init(Type::SpeakingInVoiceChat);
       break;
     case telegram_api::sendMessageHistoryImportAction::ID: {
-      auto history_import_action = move_tl_object_as<telegram_api::sendMessageHistoryImportAction>(action);
-      init(Type::ImportingMessages, history_import_action->progress_);
+      auto action = move_tl_object_as<telegram_api::sendMessageHistoryImportAction>(action_ptr);
+      init(Type::ImportingMessages, action->progress_);
       break;
     }
     case telegram_api::sendMessageChooseStickerAction::ID:
       init(Type::ChoosingSticker);
       break;
     case telegram_api::sendMessageEmojiInteractionSeen::ID: {
-      auto emoji_interaction_seen_action = move_tl_object_as<telegram_api::sendMessageEmojiInteractionSeen>(action);
-      init(Type::WatchingAnimations, std::move(emoji_interaction_seen_action->emoticon_));
+      auto action = move_tl_object_as<telegram_api::sendMessageEmojiInteractionSeen>(action_ptr);
+      init(Type::WatchingAnimations, std::move(action->emoticon_));
       break;
     }
     case telegram_api::sendMessageEmojiInteraction::ID: {
-      auto emoji_interaction_action = move_tl_object_as<telegram_api::sendMessageEmojiInteraction>(action);
-      init(Type::ClickingAnimatedEmoji, emoji_interaction_action->msg_id_,
-           std::move(emoji_interaction_action->emoticon_), emoji_interaction_action->interaction_->data_);
+      auto action = move_tl_object_as<telegram_api::sendMessageEmojiInteraction>(action_ptr);
+      init(Type::ClickingAnimatedEmoji, action->msg_id_, std::move(action->emoticon_), action->interaction_->data_);
       break;
     }
     case telegram_api::sendMessageTextDraftAction::ID:
