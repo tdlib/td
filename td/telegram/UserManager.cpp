@@ -2078,6 +2078,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_pending_star_rating = pending_star_rating != nullptr;
   bool has_main_profile_tab = main_profile_tab != ProfileTab::Default;
   bool has_first_saved_music_file_id = first_saved_music_file_id != FileId();
+  bool has_note = !note.text.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -2132,6 +2133,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_pending_star_rating);
     STORE_FLAG(has_main_profile_tab);
     STORE_FLAG(has_first_saved_music_file_id);
+    STORE_FLAG(has_note);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -2234,6 +2236,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_first_saved_music_file_id) {
     td->audios_manager_->store_audio(first_saved_music_file_id, storer);
   }
+  if (has_note) {
+    store(note, storer);
+  }
 }
 
 template <class ParserT>
@@ -2275,6 +2280,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_pending_star_rating = false;
   bool has_main_profile_tab = false;
   bool has_first_saved_music_file_id = false;
+  bool has_note = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -2329,6 +2335,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_pending_star_rating);
     PARSE_FLAG(has_main_profile_tab);
     PARSE_FLAG(has_first_saved_music_file_id);
+    PARSE_FLAG(has_note);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -2434,6 +2441,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_first_saved_music_file_id) {
     first_saved_music_file_id = td->audios_manager_->parse_audio(parser);
+  }
+  if (has_note) {
+    parse(note, parser);
   }
 }
 
@@ -4326,6 +4336,22 @@ void UserManager::on_update_user_full_first_saved_music_file_id(UserFull *user_f
   if (user_full->first_saved_music_file_id != first_saved_music_file_id) {
     user_full->first_saved_music_file_id = first_saved_music_file_id;
     user_full->is_first_saved_music_file_id_changed = true;
+    user_full->is_changed = true;
+  }
+}
+
+void UserManager::on_update_user_note(UserId user_id, FormattedText &&note) {
+  UserFull *user_full = get_user_full_force(user_id, "on_update_user_note");
+  if (user_full != nullptr) {
+    on_update_user_full_note(user_full, std::move(note));
+    update_user_full(user_full, user_id, "on_update_user_note");
+  }
+}
+
+void UserManager::on_update_user_full_note(UserFull *user_full, FormattedText &&note) {
+  CHECK(user_full != nullptr);
+  if (user_full->note != note) {
+    user_full->note = std::move(note);
     user_full->is_changed = true;
   }
 }
@@ -8374,6 +8400,8 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   on_update_user_full_send_paid_message_stars(user_full, user_id,
                                               StarManager::get_star_count(user->send_paid_messages_stars_));
   on_update_user_full_wallpaper_overridden(user_full, user_id, user->wallpaper_overridden_);
+  on_update_user_full_note(user_full, get_formatted_text(td_->user_manager_.get(), std::move(user->note_), true, false,
+                                                         "on_get_user_full note"));
 
   bool can_pin_messages = user->can_pin_message_;
   bool can_be_called = user->phone_calls_available_ && !user->phone_calls_private_;
@@ -8721,6 +8749,7 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
     user_full->bot_verification->add_dependencies(dependencies);
   }
   dependencies.add(user_full->personal_channel_id);
+  add_formatted_text_dependencies(dependencies, &user_full->note);
   if (!dependencies.resolve_force(td_, "on_load_user_full_from_database")) {
     users_full_.erase(user_id);
     G()->td_db()->get_sqlite_pmc()->erase(get_user_full_database_key(user_id), Auto());
@@ -8887,6 +8916,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->can_manage_emoji_status = false;
   user_full->charge_paid_message_stars = false;
   user_full->send_paid_message_stars = false;
+  user_full->note = {};
   user_full->is_changed = true;
 
   update_user_full(user_full, user_id, "drop_user_full");
@@ -9712,6 +9742,9 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
   auto user_rating = user_full->star_rating == nullptr ? nullptr : user_full->star_rating->get_user_rating_object();
   auto pending_user_rating =
       user_full->pending_star_rating == nullptr ? nullptr : user_full->pending_star_rating->get_user_rating_object();
+  auto note = !user_full->note.text.empty()
+                  ? get_formatted_text_object(td_->user_manager_.get(), user_full->note, true, -1)
+                  : nullptr;
   return td_api::make_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->personal_photo),
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo),
@@ -9724,7 +9757,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       user_full->gift_settings.get_gift_settings_object(), std::move(bot_verification),
       get_profile_tab_object(user_full->main_profile_tab),
       td_->audios_manager_->get_audio_object(user_full->first_saved_music_file_id), std::move(user_rating),
-      std::move(pending_user_rating), user_full->pending_star_rating_date, std::move(business_info),
+      std::move(pending_user_rating), user_full->pending_star_rating_date, std::move(note), std::move(business_info),
       std::move(bot_info));
 }
 

@@ -24,6 +24,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/FolderId.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/ProfileTab.h"
@@ -180,6 +181,8 @@ class UserManager final : public Actor {
   void on_update_user_charge_paid_message_stars(UserId user_id, int64 charge_paid_message_stars);
 
   void on_update_user_wallpaper_overridden(UserId user_id, bool wallpaper_overridden);
+
+  void on_update_user_note(UserId user_id, FormattedText &&note);
 
   void on_update_bot_menu_button(UserId bot_user_id,
                                  telegram_api::object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
@@ -695,6 +698,8 @@ class UserManager final : public Actor {
     int64 charge_paid_message_stars = 0;
     int64 send_paid_message_stars = 0;
 
+    FormattedText note;
+
     bool is_blocked = false;
     bool is_blocked_for_stories = false;
     bool can_be_called = false;
@@ -965,6 +970,8 @@ class UserManager final : public Actor {
 
   static void on_update_user_full_first_saved_music_file_id(UserFull *user_full, UserId user_id,
                                                             FileId first_saved_music_file_id);
+
+  static void on_update_user_full_note(UserFull *user_full, FormattedText &&note);
 
   std::pair<int64, int64> get_saved_music_document_id(FileId saved_music_file_id, bool from_server = true) const;
 
