@@ -14,6 +14,7 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StickersManager.h"
@@ -181,7 +182,8 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
   {
     auto text_draft_info = action.get_text_draft_info();
     if (text_draft_info.is_text_draft_) {
-      if (date > G()->unix_time() - 30 && dialog_type == DialogType::User && dialog_id == typing_dialog_id &&
+      auto period = td_->option_manager_->get_option_integer("pending_text_message_period", 0);
+      if (date > G()->unix_time() - period && dialog_type == DialogType::User && dialog_id == typing_dialog_id &&
           top_thread_message_id.is_valid() && td_->user_manager_->is_user_bot(dialog_id.get_user_id())) {
         send_closure(G()->td(), &Td::send_update,
                      td_api::make_object<td_api::updatePendingTextMessage>(

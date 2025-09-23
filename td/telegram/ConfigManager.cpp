@@ -1395,6 +1395,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"hidden_members_group_size_min", ""},
       {"intro_description_length_limit", "business_start_page_message_length_max"},
       {"intro_title_length_limit", "business_start_page_title_length_max"},
+      {"message_typing_draft_ttl", "pending_text_message_period"},
       {"pm_read_date_expire_period", ""},
       {"poll_answers_max", "poll_answer_count_max"},
       {"quick_replies_limit", "quick_reply_shortcut_count_max"},
