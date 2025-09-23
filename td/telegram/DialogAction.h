@@ -69,6 +69,10 @@ class DialogAction {
 
   DialogAction(const UserManager *user_manager, telegram_api::object_ptr<telegram_api::SendMessageAction> &&action_ptr);
 
+  DialogAction(int64 random_id, FormattedText &&text) {
+    init(Type::TextDraft, random_id, std::move(text));
+  }
+
   tl_object_ptr<telegram_api::SendMessageAction> get_input_send_message_action(const UserManager *user_manager) const;
 
   tl_object_ptr<secret_api::SendMessageAction> get_secret_input_send_message_action() const;

@@ -9191,7 +9191,8 @@ updateDeleteMessages chat_id:int53 message_ids:vector<int53> is_permanent:Bool f
 //@action The action
 updateChatAction chat_id:int53 message_thread_id:int53 sender_id:MessageSender action:ChatAction = Update;
 
-//@description A new pending text message was received in a chat with a bot
+//@description A new pending text message was received in a chat with a bot. The message must be shown in the chat for at most 30 seconds,
+//-replace any other pending message with the same draft_id, and be deleted whenever any incoming message from the bot in the message thread is received
 //@chat_id Chat identifier
 //@message_thread_id The message thread identifier in which the message will be sent
 //@draft_id Unique identifier of the message draft within the message thread
@@ -11261,6 +11262,13 @@ deleteChatReplyMarkup chat_id:int53 message_id:int53 = Ok;
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@action The action description; pass null to cancel the currently active action
 sendChatAction chat_id:int53 message_thread_id:int53 business_connection_id:string action:ChatAction = Ok;
+
+//@description Sends a draft for a being generated text message; for bots only
+//@chat_id Chat identifier
+//@message_thread_id The message thread identifier in which the message will be sent
+//@draft_id Unique identifier of the draft
+//@text Draft text of the message
+sendTextMessageDraft chat_id:int53 message_thread_id:int53 draft_id:int64 text:formattedText = Ok;
 
 
 //@description Informs TDLib that the chat is opened by the user. Many useful activities depend on the chat being opened or closed (e.g., in supergroups and channels all updates are received only for opened chats) @chat_id Chat identifier

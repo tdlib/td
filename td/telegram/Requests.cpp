@@ -4515,6 +4515,18 @@ void Requests::on_request(uint64 id, td_api::sendChatAction &request) {
                                                   DialogAction(std::move(request.action_)), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::sendTextMessageDraft &request) {
+  CHECK_IS_BOT();
+  CREATE_OK_REQUEST_PROMISE();
+  DialogId dialog_id(request.chat_id_);
+  TRY_RESULT_PROMISE(
+      promise, text,
+      get_formatted_text(td_, dialog_id, std::move(request.text_), td_->auth_manager_->is_bot(), false, true, false));
+  td_->dialog_action_manager_->send_dialog_action(dialog_id, MessageId(request.message_thread_id_),
+                                                  BusinessConnectionId(),
+                                                  DialogAction(request.draft_id_, std::move(text)), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::forwardMessages &request) {
   auto input_message_ids = MessageId::get_message_ids(request.message_ids_);
   auto message_copy_options =
