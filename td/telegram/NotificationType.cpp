@@ -394,6 +394,9 @@ class NotificationTypePushMessage final : public NotificationType {
         if (key == "MESSAGE_STORY_MENTION") {
           return td_api::make_object<td_api::pushMessageContentStory>(true, is_pinned);
         }
+        if (key == "MESSAGE_SUGGEST_BIRTHDAY") {
+          return td_api::make_object<td_api::pushMessageContentSuggestBirthdate>();
+        }
         if (key == "MESSAGE_SUGGEST_PHOTO") {
           return td_api::make_object<td_api::pushMessageContentSuggestProfilePhoto>();
         }
