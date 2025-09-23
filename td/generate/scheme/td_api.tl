@@ -12426,9 +12426,11 @@ getBlockedMessageSenders block_list:BlockList offset:int32 limit:int32 = Message
 
 //@description Adds a user to the contact list or edits an existing contact by their user identifier
 //@contact The contact to add or edit; phone number may be empty and needs to be specified only if known, vCard is ignored
+//@note Note to add about the user; 0-getOption("user_note_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed;
+//-pass null to keep the current user's note
 //@share_phone_number Pass true to share the current user's phone number with the new contact. A corresponding rule to userPrivacySettingShowPhoneNumber will be added if needed.
 //-Use the field userFullInfo.need_phone_number_privacy_exception to check whether the current user needs to be asked to share their phone number
-addContact contact:contact share_phone_number:Bool = Ok;
+addContact contact:contact note:formattedText share_phone_number:Bool = Ok;
 
 //@description Adds new contacts or edits existing contacts by their phone numbers; contacts' user identifiers are ignored @contacts The list of contacts to import or edit; contacts' vCard are ignored and are not imported
 importContacts contacts:vector<contact> = ImportedContacts;

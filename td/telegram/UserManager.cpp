@@ -46,6 +46,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTtl.h"
 #include "td/telegram/misc.h"
@@ -210,11 +211,17 @@ class AddContactQuery final : public Td::ResultHandler {
   }
 
   void send(UserId user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user, const Contact &contact,
-            bool share_phone_number) {
+            bool edit_note, FormattedText &&note, bool share_phone_number) {
     user_id_ = user_id;
+    int32 flags = 0;
+    telegram_api::object_ptr<telegram_api::textWithEntities> input_note;
+    if (edit_note) {
+      flags |= telegram_api::contacts_addContact::NOTE_MASK;
+      input_note = get_input_text_with_entities(td_->user_manager_.get(), note, "AddContactQuery");
+    }
     send_query(G()->net_query_creator().create(
-        telegram_api::contacts_addContact(0, share_phone_number, std::move(input_user), contact.get_first_name(),
-                                          contact.get_last_name(), contact.get_phone_number(), nullptr),
+        telegram_api::contacts_addContact(flags, share_phone_number, std::move(input_user), contact.get_first_name(),
+                                          contact.get_last_name(), contact.get_phone_number(), std::move(input_note)),
         {{DialogId(user_id)}}));
   }
 
@@ -7500,24 +7507,32 @@ void UserManager::on_get_contacts_statuses(vector<telegram_api::object_ptr<teleg
   save_next_contacts_sync_date();
 }
 
-void UserManager::add_contact(Contact contact, bool share_phone_number, Promise<Unit> &&promise) {
+void UserManager::add_contact(Contact contact, td_api::object_ptr<td_api::formattedText> &&note,
+                              bool share_phone_number, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (!are_contacts_loaded_) {
-    load_contacts(PromiseCreator::lambda([actor_id = actor_id(this), contact = std::move(contact), share_phone_number,
-                                          promise = std::move(promise)](Result<Unit> &&) mutable {
-      send_closure(actor_id, &UserManager::add_contact, std::move(contact), share_phone_number, std::move(promise));
-    }));
+    load_contacts(
+        PromiseCreator::lambda([actor_id = actor_id(this), contact = std::move(contact), note = std::move(note),
+                                share_phone_number, promise = std::move(promise)](Result<Unit> &&) mutable {
+          send_closure(actor_id, &UserManager::add_contact, std::move(contact), std::move(note), share_phone_number,
+                       std::move(promise));
+        }));
     return;
   }
 
   LOG(INFO) << "Add " << contact << " with share_phone_number = " << share_phone_number;
 
+  bool edit_note = note != nullptr;
+  TRY_RESULT_PROMISE(promise, note_text,
+                     get_formatted_text(td_, DialogId(), std::move(note), false, true, true, false));
+  MessageQuote::remove_unallowed_quote_entities(note_text);
+
   auto user_id = contact.get_user_id();
   TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
 
   td_->create_handler<AddContactQuery>(std::move(promise))
-      ->send(user_id, std::move(input_user), contact, share_phone_number);
+      ->send(user_id, std::move(input_user), contact, edit_note, std::move(note_text), share_phone_number);
 }
 
 std::pair<vector<UserId>, vector<int32>> UserManager::import_contacts(const vector<Contact> &contacts, int64 &random_id,

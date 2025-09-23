@@ -3308,13 +3308,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getUserLink>());
     } else if (op == "subt") {
       send_request(td_api::make_object<td_api::searchUserByToken>(args));
-    } else if (op == "aco") {
+    } else if (op == "aco" || op == "acon") {
       UserId user_id;
       string first_name;
       string last_name;
       get_args(args, user_id, first_name, last_name);
       send_request(td_api::make_object<td_api::addContact>(
-          td_api::make_object<td_api::contact>(string(), first_name, last_name, string(), user_id), false));
+          td_api::make_object<td_api::contact>(string(), first_name, last_name, string(), user_id),
+          op == "acon" ? get_caption() : nullptr, false));
     } else if (op == "subpn" || op == "subpnl") {
       string phone_number;
       get_args(args, phone_number);
