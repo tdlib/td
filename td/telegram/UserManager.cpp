@@ -7589,6 +7589,17 @@ void UserManager::add_contact(Contact contact, td_api::object_ptr<td_api::format
   auto user_id = contact.get_user_id();
   TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
 
+  if (edit_note) {
+    auto query_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), user_id, note_text, promise = std::move(promise)](Result<Unit> result) mutable {
+          if (result.is_error()) {
+            return promise.set_error(result.move_as_error());
+          }
+          send_closure(actor_id, &UserManager::on_set_user_note, user_id, std::move(note_text), std::move(promise));
+        });
+    promise = std::move(query_promise);
+  }
+
   td_->create_handler<AddContactQuery>(std::move(promise))
       ->send(user_id, std::move(input_user), contact, edit_note, std::move(note_text), share_phone_number);
 }
