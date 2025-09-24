@@ -11251,7 +11251,7 @@ getGameHighScores chat_id:int53 message_id:int53 user_id:int53 = GameHighScores;
 getInlineGameHighScores inline_message_id:string user_id:int53 = GameHighScores;
 
 
-//@description Deletes the default reply markup from a chat. Must be called after a one-time keyboard or a replyMarkupForceReply reply markup has been used. An updateChatReplyMarkup update will be sent if the reply markup is changed
+//@description Deletes the default reply markup from a chat. Must be called after a one-time keyboard or a replyMarkupForceReply reply markup has been used or dismissed
 //@chat_id Chat identifier
 //@message_id The message identifier of the used keyboard
 deleteChatReplyMarkup chat_id:int53 message_id:int53 = Ok;
