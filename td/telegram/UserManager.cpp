@@ -9288,13 +9288,18 @@ void UserManager::update_user(User *u, UserId user_id, bool from_binlog, bool fr
     td_->messages_manager_->on_dialog_user_is_contact_updated(DialogId(user_id), u->is_contact);
     send_closure_later(td_->story_manager_actor_, &StoryManager::on_dialog_active_stories_order_updated,
                        DialogId(user_id), "update_user is_contact", false);
-    if (is_user_contact(u, user_id, false)) {
-      auto user_full = get_user_full(user_id);
-      if (user_full != nullptr && user_full->need_phone_number_privacy_exception) {
-        on_update_user_full_need_phone_number_privacy_exception(user_full, user_id, false);
-        update_user_full(user_full, user_id, "update_user");
+
+    auto user_full = get_user_full(user_id);
+    if (user_full != nullptr) {
+      if (!user_full->note.text.empty()) {
+        user_full->is_changed = true;
       }
+      if (user_full->need_phone_number_privacy_exception && is_user_contact(u, user_id, false)) {
+        on_update_user_full_need_phone_number_privacy_exception(user_full, user_id, false);
+      }
+      update_user_full(user_full, user_id, "update_user");
     }
+
     u->is_is_contact_changed = false;
   }
   if (u->is_is_mutual_contact_changed) {
@@ -9739,6 +9744,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
   const User *u = get_user(user_id);
   bool is_bot = is_user_bot(u);
   bool is_premium = is_user_premium(u);
+  bool is_contact = is_user_contact(u, user_id, false);
   td_api::object_ptr<td_api::formattedText> bio_object;
   if (is_bot) {
     if (user_full->bot_info == nullptr) {
@@ -9815,7 +9821,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
   auto user_rating = user_full->star_rating == nullptr ? nullptr : user_full->star_rating->get_user_rating_object();
   auto pending_user_rating =
       user_full->pending_star_rating == nullptr ? nullptr : user_full->pending_star_rating->get_user_rating_object();
-  auto note = !user_full->note.text.empty()
+  auto note = is_contact && !user_full->note.text.empty()
                   ? get_formatted_text_object(td_->user_manager_.get(), user_full->note, true, -1)
                   : nullptr;
   return td_api::make_object<td_api::userFullInfo>(
