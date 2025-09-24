@@ -64,6 +64,9 @@ class BackgroundFill {
   static Result<BackgroundFill> get_background_fill(Slice name);
 
   bool is_dark() const;
+
+ public:
+  static td_api::object_ptr<td_api::BackgroundFill> get_background_fill_object(const vector<int32> &colors);
 };
 
 bool operator==(const BackgroundFill &lhs, const BackgroundFill &rhs);

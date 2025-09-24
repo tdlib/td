@@ -452,6 +452,19 @@ td_api::object_ptr<td_api::BackgroundFill> BackgroundFill::get_background_fill_o
   }
 }
 
+td_api::object_ptr<td_api::BackgroundFill> BackgroundFill::get_background_fill_object(const vector<int32> &colors) {
+  if (colors.size() >= 3) {
+    return td_api::make_object<td_api::backgroundFillFreeformGradient>(vector<int32>(colors));
+  }
+  if (colors.empty()) {
+    return nullptr;
+  }
+  if (colors.size() == 1 || colors[0] == colors[1]) {
+    return td_api::make_object<td_api::backgroundFillSolid>(colors[0]);
+  }
+  return td_api::make_object<td_api::backgroundFillGradient>(colors[1], colors[0], 0);
+}
+
 td_api::object_ptr<td_api::BackgroundType> BackgroundType::get_background_type_object() const {
   switch (type_) {
     case Type::Wallpaper:

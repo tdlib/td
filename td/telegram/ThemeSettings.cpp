@@ -6,6 +6,8 @@
 //
 #include "td/telegram/ThemeSettings.h"
 
+#include "td/telegram/BackgroundType.h"
+
 namespace td {
 
 ThemeSettings::ThemeSettings(Td *td, telegram_api::object_ptr<telegram_api::themeSettings> settings) {
@@ -21,22 +23,9 @@ ThemeSettings::ThemeSettings(Td *td, telegram_api::object_ptr<telegram_api::them
 }
 
 td_api::object_ptr<td_api::themeSettings> ThemeSettings::get_theme_settings_object(Td *td) const {
-  auto fill = [&]() -> td_api::object_ptr<td_api::BackgroundFill> {
-    if (message_colors_.size() >= 3) {
-      return td_api::make_object<td_api::backgroundFillFreeformGradient>(vector<int32>(message_colors_));
-    }
-    if (message_colors_.empty()) {
-      return nullptr;
-    }
-    if (message_colors_.size() == 1 || message_colors_[0] == message_colors_[1]) {
-      return td_api::make_object<td_api::backgroundFillSolid>(message_colors_[0]);
-    }
-    return td_api::make_object<td_api::backgroundFillGradient>(message_colors_[1], message_colors_[0], 0);
-  }();
-
-  return td_api::make_object<td_api::themeSettings>(get_built_in_theme_object(base_theme_), accent_color_,
-                                                    background_info_.get_background_object(td), std::move(fill),
-                                                    animate_message_colors_, message_accent_color_);
+  return td_api::make_object<td_api::themeSettings>(
+      get_built_in_theme_object(base_theme_), accent_color_, background_info_.get_background_object(td),
+      BackgroundFill::get_background_fill_object(message_colors_), animate_message_colors_, message_accent_color_);
 }
 
 bool operator==(const ThemeSettings &lhs, const ThemeSettings &rhs) {
