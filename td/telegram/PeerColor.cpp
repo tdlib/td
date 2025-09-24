@@ -11,7 +11,11 @@
 namespace td {
 
 PeerColor::PeerColor(const telegram_api::object_ptr<telegram_api::PeerColor> &peer_color_ptr) {
-  if (peer_color_ptr == nullptr || peer_color_ptr->get_id() != telegram_api::peerColor::ID) {
+  if (peer_color_ptr == nullptr) {
+    return;
+  }
+  if (peer_color_ptr->get_id() != telegram_api::peerColor::ID) {
+    LOG(ERROR) << "Receive " << to_string(peer_color_ptr);
     return;
   }
   auto peer_color = static_cast<const telegram_api::peerColor *>(peer_color_ptr.get());

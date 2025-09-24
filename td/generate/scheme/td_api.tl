@@ -1285,6 +1285,16 @@ upgradedGiftBackdrop id:int32 name:string colors:upgradedGiftBackdropColors rari
 //@date Point in time (Unix timestamp) when the gift was sent
 upgradedGiftOriginalDetails sender_id:MessageSender receiver_id:MessageSender text:formattedText date:int32 = UpgradedGiftOriginalDetails;
 
+//@description Contains information about accent colors for user's name, background of empty chat photo, replies to messages and link previews
+//@id Unique identifier of the upgraded gift colors
+//@model_custom_emoji_id Custom emoji identifier of the model of the upgraded gift
+//@symbol_custom_emoji_id Custom emoji identifier of the symbol of the upgraded gift
+//@light_theme_accent_color Accent color to use in light themes in RGB format
+//@light_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in light themes
+//@dark_theme_accent_color Accent color to use in dark themes in RGB format
+//@dark_theme_colors The list of 1-3 colors in RGB format, describing the accent color, as expected to be shown in dark themes
+upgradedGiftColors id:int64 model_custom_emoji_id:int64 symbol_custom_emoji_id:int64 light_theme_accent_color:int32 light_theme_colors:vector<int32> dark_theme_accent_color:int32 dark_theme_colors:vector<int32> = UpgradedGiftColors;
+
 //@description Describes a gift that can be sent to another user or channel chat
 //@id Unique identifier of the gift
 //@publisher_chat_id Identifier of the chat that published the gift; 0 if none

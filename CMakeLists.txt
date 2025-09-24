@@ -554,6 +554,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/PasswordManager.cpp
   td/telegram/Payments.cpp
   td/telegram/PeerColor.cpp
+  td/telegram/PeerColorCollectible.cpp
   td/telegram/PeopleNearbyManager.cpp
   td/telegram/PhoneNumberManager.cpp
   td/telegram/Photo.cpp
@@ -936,6 +937,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/PasswordManager.h
   td/telegram/Payments.h
   td/telegram/PeerColor.h
+  td/telegram/PeerColorCollectible.h
   td/telegram/PeopleNearbyManager.h
   td/telegram/PhoneNumberManager.h
   td/telegram/Photo.h
@@ -1142,6 +1144,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/NotificationGroupInfo.hpp
   td/telegram/OrderInfo.hpp
   td/telegram/PaidReactionType.hpp
+  td/telegram/PeerColorCollectible.hpp
   td/telegram/Photo.hpp
   td/telegram/PhotoSize.hpp
   td/telegram/PhotoSizeSource.hpp
