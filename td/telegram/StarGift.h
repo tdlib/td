@@ -48,6 +48,7 @@ class StarGift {
   StarGiftAttributeOriginalDetails original_details_;
   string title_;
   string slug_;
+  DialogId host_dialog_id_;
   DialogId owner_dialog_id_;
   string owner_address_;
   string owner_name_;

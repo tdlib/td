@@ -43,6 +43,7 @@ void StarGift::store(StorerT &storer) const {
   bool has_value = !value_currency_.empty();
   bool has_locked_until_date = locked_until_date_ != 0;
   bool has_theme_dialog_id = theme_dialog_id_.is_valid();
+  bool has_host_dialog_id = host_dialog_id_.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_limited);
   STORE_FLAG(has_default_sell_star_count);
@@ -70,6 +71,7 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(has_locked_until_date);
   STORE_FLAG(is_theme_available_);
   STORE_FLAG(has_theme_dialog_id);  // 25
+  STORE_FLAG(has_host_dialog_id);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -147,6 +149,9 @@ void StarGift::store(StorerT &storer) const {
   if (has_locked_until_date) {
     td::store(locked_until_date_, storer);
   }
+  if (has_host_dialog_id) {
+    td::store(host_dialog_id_, storer);
+  }
 }
 
 template <class ParserT>
@@ -173,6 +178,7 @@ void StarGift::parse(ParserT &parser) {
   bool has_value;
   bool has_locked_until_date;
   bool has_theme_dialog_id;
+  bool has_host_dialog_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_limited);
   PARSE_FLAG(has_default_sell_star_count);
@@ -200,6 +206,7 @@ void StarGift::parse(ParserT &parser) {
   PARSE_FLAG(has_locked_until_date);
   PARSE_FLAG(is_theme_available_);
   PARSE_FLAG(has_theme_dialog_id);
+  PARSE_FLAG(has_host_dialog_id);
   END_PARSE_FLAGS();
   td::parse(id_, parser);
   if (!is_unique_) {
@@ -283,6 +290,9 @@ void StarGift::parse(ParserT &parser) {
   }
   if (has_locked_until_date) {
     td::parse(locked_until_date_, parser);
+  }
+  if (has_host_dialog_id) {
+    td::parse(host_dialog_id_, parser);
   }
 }
 

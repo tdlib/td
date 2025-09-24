@@ -50,6 +50,9 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     title_ = std::move(star_gift->title_);
     slug_ = std::move(star_gift->slug_);
     num_ = star_gift->num_;
+    if (star_gift->host_id_ != nullptr) {
+      host_dialog_id_ = DialogId(star_gift->host_id_);
+    }
     if (star_gift->owner_id_ != nullptr) {
       owner_dialog_id_ = DialogId(star_gift->owner_id_);
     }
@@ -199,6 +202,7 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
       td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "upgradedGift released by"), title_, slug_, num_,
       unique_availability_issued_, unique_availability_total_, is_premium_, is_theme_available_,
       td->dialog_manager_->get_chat_id_object(theme_dialog_id_, "upgradedGift theme"),
+      !host_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, host_dialog_id_, "upgradedGift host"),
       !owner_dialog_id_.is_valid() ? nullptr : get_message_sender_object(td, owner_dialog_id_, "upgradedGift owner"),
       owner_address_, owner_name_, gift_address_, model_.get_upgraded_gift_model_object(td),
       pattern_.get_upgraded_gift_symbol_object(td), backdrop_.get_upgraded_gift_backdrop_object(),
@@ -224,6 +228,7 @@ td_api::object_ptr<td_api::SentGift> StarGift::get_sent_gift_object(Td *td) cons
 }
 
 void StarGift::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add_message_sender_dependencies(host_dialog_id_);
   dependencies.add_message_sender_dependencies(owner_dialog_id_);
   original_details_.add_dependencies(dependencies);
   dependencies.add_dialog_and_dependencies(released_by_dialog_id_);
@@ -242,8 +247,9 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.resale_ton_only_ == rhs.resale_ton_only_ && lhs.is_theme_available_ == rhs.is_theme_available_ &&
          lhs.model_ == rhs.model_ && lhs.pattern_ == rhs.pattern_ && lhs.backdrop_ == rhs.backdrop_ &&
          lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ && lhs.slug_ == rhs.slug_ &&
-         lhs.owner_dialog_id_ == rhs.owner_dialog_id_ && lhs.owner_address_ == rhs.owner_address_ &&
-         lhs.owner_name_ == rhs.owner_name_ && lhs.gift_address_ == rhs.gift_address_ && lhs.num_ == rhs.num_ &&
+         lhs.host_dialog_id_ == rhs.host_dialog_id_ && lhs.owner_dialog_id_ == rhs.owner_dialog_id_ &&
+         lhs.owner_address_ == rhs.owner_address_ && lhs.owner_name_ == rhs.owner_name_ &&
+         lhs.gift_address_ == rhs.gift_address_ && lhs.num_ == rhs.num_ &&
          lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_ &&
          lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.resale_ton_count_ == rhs.resale_ton_count_ &&
@@ -253,7 +259,8 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarGift &star_gift) {
   if (star_gift.is_unique_) {
-    return string_builder << "UniqueGift[" << star_gift.id_ << " of " << star_gift.owner_dialog_id_ << ']';
+    return string_builder << "UniqueGift[" << star_gift.id_ << " of " << star_gift.owner_dialog_id_ << '/'
+                          << star_gift.owner_dialog_id_ << ']';
   }
   return string_builder << "Gift[" << star_gift.id_ << " for " << star_gift.star_count_ << ']';
 }
