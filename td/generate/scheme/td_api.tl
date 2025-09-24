@@ -12466,6 +12466,11 @@ getCloseFriends = Users;
 //@description Changes a personal profile photo of a contact user @user_id User identifier @photo Profile photo to set; pass null to delete the photo; inputChatPhotoPrevious isn't supported in this function
 setUserPersonalProfilePhoto user_id:int53 photo:InputChatPhoto = Ok;
 
+//@description Changes a note of a contact user
+//@user_id User identifier
+//@note Note to set for the user; 0-getOption("user_note_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed
+setUserNote user_id:int53 note:formattedText = Ok;
+
 //@description Suggests a profile photo to another regular user with common messages and allowing non-paid messages
 //@user_id User identifier
 //@photo Profile photo to suggest; inputChatPhotoPrevious isn't supported in this function

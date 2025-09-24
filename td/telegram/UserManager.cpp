@@ -788,6 +788,33 @@ class DeleteProfilePhotoQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateContactNoteQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit UpdateContactNoteQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user, const FormattedText &note) {
+    auto input_note = get_input_text_with_entities(td_->user_manager_.get(), note, "UpdateContactNoteQuery");
+    send_query(G()->net_query_creator().create(
+        telegram_api::contacts_updateContactNote(std::move(input_user), std::move(input_note))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::contacts_updateContactNote>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SuggestUserBirthdayQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -6011,6 +6038,37 @@ void UserManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> 
     return reload_user(get_my_id(), std::move(promise), "on_delete_profile_photo");
   }
 
+  promise.set_value(Unit());
+}
+
+void UserManager::set_user_note(UserId user_id, td_api::object_ptr<td_api::formattedText> &&note,
+                                Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, get_input_user(user_id));
+  if (!is_user_contact(user_id)) {
+    return promise.set_error(400, "User isn't a contact");
+  }
+  if (user_id == get_my_id()) {
+    return promise.set_error(400, "Can't set note to self");
+  }
+
+  TRY_RESULT_PROMISE(promise, note_text,
+                     get_formatted_text(td_, DialogId(), std::move(note), false, true, true, false));
+  MessageQuote::remove_unallowed_quote_entities(note_text);
+
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), user_id, note_text, promise = std::move(promise)](Result<Unit> result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &UserManager::on_set_user_note, user_id, std::move(note_text), std::move(promise));
+      });
+  td_->create_handler<UpdateContactNoteQuery>(std::move(query_promise))
+      ->send(std::move(input_user), std::move(note_text));
+}
+
+void UserManager::on_set_user_note(UserId user_id, FormattedText &&note, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  on_update_user_note(user_id, std::move(note));
   promise.set_value(Unit());
 }
 

@@ -6100,6 +6100,12 @@ void Requests::on_request(uint64 id, const td_api::setUserPersonalProfilePhoto &
   td_->user_manager_->set_user_profile_photo(UserId(request.user_id_), request.photo_, false, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::setUserNote &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->set_user_note(UserId(request.user_id_), std::move(request.note_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::suggestUserProfilePhoto &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

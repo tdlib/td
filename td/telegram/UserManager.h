@@ -368,6 +368,8 @@ class UserManager final : public Actor {
 
   void on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise);
 
+  void set_user_note(UserId user_id, td_api::object_ptr<td_api::formattedText> &&note, Promise<Unit> &&promise);
+
   void suggest_user_birthdate(UserId user_id, Birthdate birthdate, Promise<Unit> &&promise);
 
   void toggle_user_can_manage_emoji_status(UserId user_id, bool can_manage_emoji_status, Promise<Unit> &&promise);
@@ -1007,6 +1009,8 @@ class UserManager final : public Actor {
   void toggle_username_is_active_impl(string &&username, bool is_active, Promise<Unit> &&promise);
 
   void reorder_usernames_impl(vector<string> &&usernames, Promise<Unit> &&promise);
+
+  void on_set_user_note(UserId user_id, FormattedText &&note, Promise<Unit> &&promise);
 
   void on_set_birthdate(Birthdate birthdate, Promise<Unit> &&promise);
 

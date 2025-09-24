@@ -1171,6 +1171,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::setUserPersonalProfilePhoto &request);
 
+  void on_request(uint64 id, td_api::setUserNote &request);
+
   void on_request(uint64 id, const td_api::suggestUserProfilePhoto &request);
 
   void on_request(uint64 id, const td_api::suggestUserBirthdate &request);

@@ -7557,6 +7557,14 @@ class CliClient final : public Actor {
       InputChatPhoto input_chat_photo;
       get_args(args, user_id, input_chat_photo);
       send_request(td_api::make_object<td_api::setUserPersonalProfilePhoto>(user_id, input_chat_photo));
+    } else if (op == "sunote") {
+      UserId user_id;
+      string note;
+      get_args(args, user_id, note);
+      if (note.empty()) {
+        note = caption_;
+      }
+      send_request(td_api::make_object<td_api::setUserNote>(user_id, as_formatted_text(note)));
     } else if (op == "supp") {
       UserId user_id;
       InputChatPhoto input_chat_photo;
