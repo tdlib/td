@@ -162,6 +162,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
   availability_total_ = star_gift->availability_total_;
   per_user_remains_ = star_gift->per_user_remains_;
   per_user_total_ = star_gift->per_user_total_;
+  has_colors_ = star_gift->peer_color_available_;
   is_for_birthday_ = star_gift->birthday_;
   if (star_gift->released_by_ != nullptr) {
     released_by_dialog_id_ = DialogId(star_gift->released_by_);
@@ -184,7 +185,7 @@ td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
   return td_api::make_object<td_api::gift>(
       id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "gift"),
       td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_, default_sell_star_count_,
-      upgrade_star_count_, is_for_birthday_, is_premium_, locked_until_date_,
+      upgrade_star_count_, has_colors_, is_for_birthday_, is_premium_, locked_until_date_,
       get_gift_purchase_limits_object(per_user_total_, per_user_remains_),
       get_gift_purchase_limits_object(availability_total_, availability_remains_), first_sale_date_, last_sale_date_);
 }
@@ -243,9 +244,10 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.availability_total_ == rhs.availability_total_ && lhs.first_sale_date_ == rhs.first_sale_date_ &&
          lhs.last_sale_date_ == rhs.last_sale_date_ && lhs.per_user_remains_ == rhs.per_user_remains_ &&
          lhs.per_user_total_ == rhs.per_user_total_ && lhs.locked_until_date_ == rhs.locked_until_date_ &&
-         lhs.is_for_birthday_ == rhs.is_for_birthday_ && lhs.is_unique_ == rhs.is_unique_ &&
-         lhs.resale_ton_only_ == rhs.resale_ton_only_ && lhs.is_theme_available_ == rhs.is_theme_available_ &&
-         lhs.model_ == rhs.model_ && lhs.pattern_ == rhs.pattern_ && lhs.backdrop_ == rhs.backdrop_ &&
+         lhs.has_colors_ == rhs.has_colors_ && lhs.is_for_birthday_ == rhs.is_for_birthday_ &&
+         lhs.is_unique_ == rhs.is_unique_ && lhs.resale_ton_only_ == rhs.resale_ton_only_ &&
+         lhs.is_theme_available_ == rhs.is_theme_available_ && lhs.model_ == rhs.model_ &&
+         lhs.pattern_ == rhs.pattern_ && lhs.backdrop_ == rhs.backdrop_ &&
          lhs.original_details_ == rhs.original_details_ && lhs.title_ == rhs.title_ && lhs.slug_ == rhs.slug_ &&
          lhs.host_dialog_id_ == rhs.host_dialog_id_ && lhs.owner_dialog_id_ == rhs.owner_dialog_id_ &&
          lhs.owner_address_ == rhs.owner_address_ && lhs.owner_name_ == rhs.owner_name_ &&

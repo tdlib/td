@@ -37,6 +37,7 @@ class StarGift {
   int32 per_user_total_ = 0;
   int32 locked_until_date_ = 0;
 
+  bool has_colors_ = false;
   bool is_for_birthday_ = false;
 
   bool is_unique_ = false;

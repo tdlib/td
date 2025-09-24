@@ -72,6 +72,7 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(is_theme_available_);
   STORE_FLAG(has_theme_dialog_id);  // 25
   STORE_FLAG(has_host_dialog_id);
+  STORE_FLAG(has_colors_);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -207,6 +208,7 @@ void StarGift::parse(ParserT &parser) {
   PARSE_FLAG(is_theme_available_);
   PARSE_FLAG(has_theme_dialog_id);
   PARSE_FLAG(has_host_dialog_id);
+  PARSE_FLAG(has_colors_);
   END_PARSE_FLAGS();
   td::parse(id_, parser);
   if (!is_unique_) {
