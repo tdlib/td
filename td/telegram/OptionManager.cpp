@@ -201,6 +201,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("story_album_count_max", is_test_dc ? 20 : 100);
   set_default_integer_option("story_album_size_max", is_test_dc ? 200 : 1000);
   set_default_integer_option("pending_text_message_period", 30);
+  set_default_integer_option("user_note_text_length_max", 128);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
