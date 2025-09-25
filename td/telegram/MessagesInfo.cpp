@@ -33,6 +33,7 @@ MessagesInfo get_messages_info(Td *td, DialogId dialog_id,
 
       users = std::move(messages->users_);
       chats = std::move(messages->chats_);
+      topics = std::move(messages->topics_);
       result.total_count = narrow_cast<int32>(messages->messages_.size());
       result.messages = std::move(messages->messages_);
       break;
@@ -46,6 +47,7 @@ MessagesInfo get_messages_info(Td *td, DialogId dialog_id,
 
       users = std::move(messages->users_);
       chats = std::move(messages->chats_);
+      topics = std::move(messages->topics_);
       result.total_count = messages->count_;
       result.messages = std::move(messages->messages_);
       result.next_rate = messages->next_rate_;

@@ -1013,6 +1013,28 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
   if (forum_topics.empty()) {
     return;
   }
+  if (dialog_id == DialogId()) {
+    for (auto &forum_topic : forum_topics) {
+      auto forum_topic_info = td::make_unique<ForumTopicInfo>(td_, forum_topic, DialogId());
+      MessageId top_thread_message_id = forum_topic_info->get_top_thread_message_id();
+      if (can_be_message_thread_id(top_thread_message_id).is_error()) {
+        continue;
+      }
+      dialog_id = forum_topic_info->get_dialog_id();
+      if (!can_be_forum(dialog_id)) {
+        LOG(ERROR) << "Receive forum topics in " << dialog_id << " from " << source;
+        return;
+      }
+      auto dialog_topics = add_dialog_topics(dialog_id);
+      CHECK(dialog_topics != nullptr);
+      auto topic = add_topic(dialog_topics, top_thread_message_id);
+      if (topic != nullptr) {
+        set_topic_info(dialog_id, topic, std::move(forum_topic_info));
+        save_topic_to_database(dialog_id, topic);
+      }
+    }
+    return;
+  }
   if (!can_be_forum(dialog_id)) {
     LOG(ERROR) << "Receive forum topics in " << dialog_id << " from " << source;
     return;
