@@ -910,10 +910,8 @@ class UserManager final : public Actor {
                              CustomEmojiId background_custom_emoji_id,
                              unique_ptr<PeerColorCollectible> &&peer_color_collectible);
 
-  void on_update_user_profile_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id);
-
-  void on_update_user_profile_background_custom_emoji_id(User *u, UserId user_id,
-                                                         CustomEmojiId background_custom_emoji_id);
+  void on_update_user_profile_colors(User *u, UserId user_id, AccentColorId accent_color_id,
+                                     CustomEmojiId background_custom_emoji_id);
 
   void on_update_user_emoji_status(User *u, UserId user_id, unique_ptr<EmojiStatus> emoji_status);
 

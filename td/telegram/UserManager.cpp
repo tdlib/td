@@ -3230,8 +3230,8 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     on_update_user_colors(u, user_id, peer_color.accent_color_id_, peer_color.background_custom_emoji_id_, nullptr);
   }
   PeerColor profile_peer_color(user->profile_color_);
-  on_update_user_profile_accent_color_id(u, user_id, profile_peer_color.accent_color_id_);
-  on_update_user_profile_background_custom_emoji_id(u, user_id, profile_peer_color.background_custom_emoji_id_);
+  on_update_user_profile_colors(u, user_id, profile_peer_color.accent_color_id_,
+                                profile_peer_color.background_custom_emoji_id_);
   if (is_me_regular_user) {
     if (is_received) {
       on_update_user_stories_hidden(u, user_id, stories_hidden);
@@ -3557,20 +3557,14 @@ void UserManager::on_update_user_colors(User *u, UserId user_id, AccentColorId a
   }
 }
 
-void UserManager::on_update_user_profile_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id) {
+void UserManager::on_update_user_profile_colors(User *u, UserId user_id, AccentColorId accent_color_id,
+                                                CustomEmojiId background_custom_emoji_id) {
   if (!accent_color_id.is_valid()) {
     accent_color_id = AccentColorId();
   }
-  if (u->profile_accent_color_id != accent_color_id) {
+  if (u->profile_accent_color_id != accent_color_id ||
+      u->profile_background_custom_emoji_id != background_custom_emoji_id) {
     u->profile_accent_color_id = accent_color_id;
-    u->is_accent_color_changed = true;
-    u->is_changed = true;
-  }
-}
-
-void UserManager::on_update_user_profile_background_custom_emoji_id(User *u, UserId user_id,
-                                                                    CustomEmojiId background_custom_emoji_id) {
-  if (u->profile_background_custom_emoji_id != background_custom_emoji_id) {
     u->profile_background_custom_emoji_id = background_custom_emoji_id;
     u->is_accent_color_changed = true;
     u->is_changed = true;
@@ -6272,8 +6266,7 @@ void UserManager::on_update_accent_color_success(bool for_profile, AccentColorId
     return;
   }
   if (for_profile) {
-    on_update_user_profile_accent_color_id(u, user_id, accent_color_id);
-    on_update_user_profile_background_custom_emoji_id(u, user_id, background_custom_emoji_id);
+    on_update_user_profile_colors(u, user_id, accent_color_id, background_custom_emoji_id);
   } else {
     on_update_user_colors(u, user_id, accent_color_id, background_custom_emoji_id, nullptr);
   }
