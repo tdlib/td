@@ -3224,14 +3224,10 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   if (user->color_ != nullptr && user->color_->get_id() == telegram_api::peerColorCollectible::ID) {
     auto peer_color = PeerColorCollectible::get_peer_color_collectible(
         telegram_api::move_object_as<telegram_api::peerColorCollectible>(user->color_));
-    on_update_user_accent_color_id(u, user_id, AccentColorId());
-    on_update_user_background_custom_emoji_id(u, user_id, CustomEmojiId());
-    on_update_user_peer_color_collectible(u, user_id, std::move(peer_color));
+    on_update_user_colors(u, user_id, AccentColorId(), CustomEmojiId(), std::move(peer_color));
   } else {
     PeerColor peer_color(user->color_);
-    on_update_user_accent_color_id(u, user_id, peer_color.accent_color_id_);
-    on_update_user_background_custom_emoji_id(u, user_id, peer_color.background_custom_emoji_id_);
-    on_update_user_peer_color_collectible(u, user_id, nullptr);
+    on_update_user_colors(u, user_id, peer_color.accent_color_id_, peer_color.background_custom_emoji_id_, nullptr);
   }
   PeerColor profile_peer_color(user->profile_color_);
   on_update_user_profile_accent_color_id(u, user_id, profile_peer_color.accent_color_id_);
@@ -3545,29 +3541,16 @@ void UserManager::register_user_photo(User *u, UserId user_id, const Photo &phot
   }
 }
 
-void UserManager::on_update_user_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id) {
+void UserManager::on_update_user_colors(User *u, UserId user_id, AccentColorId accent_color_id,
+                                        CustomEmojiId background_custom_emoji_id,
+                                        unique_ptr<PeerColorCollectible> &&peer_color_collectible) {
   if (accent_color_id == AccentColorId(user_id) || !accent_color_id.is_valid()) {
     accent_color_id = AccentColorId();
   }
-  if (u->accent_color_id != accent_color_id) {
+  if (u->accent_color_id != accent_color_id || u->background_custom_emoji_id != background_custom_emoji_id ||
+      u->peer_color_collectible != peer_color_collectible) {
     u->accent_color_id = accent_color_id;
-    u->is_accent_color_changed = true;
-    u->is_changed = true;
-  }
-}
-
-void UserManager::on_update_user_background_custom_emoji_id(User *u, UserId user_id,
-                                                            CustomEmojiId background_custom_emoji_id) {
-  if (u->background_custom_emoji_id != background_custom_emoji_id) {
     u->background_custom_emoji_id = background_custom_emoji_id;
-    u->is_accent_color_changed = true;
-    u->is_changed = true;
-  }
-}
-
-void UserManager::on_update_user_peer_color_collectible(User *u, UserId user_id,
-                                                        unique_ptr<PeerColorCollectible> &&peer_color_collectible) {
-  if (u->peer_color_collectible != peer_color_collectible) {
     u->peer_color_collectible = std::move(peer_color_collectible);
     u->is_accent_color_changed = true;
     u->is_changed = true;
@@ -6292,9 +6275,7 @@ void UserManager::on_update_accent_color_success(bool for_profile, AccentColorId
     on_update_user_profile_accent_color_id(u, user_id, accent_color_id);
     on_update_user_profile_background_custom_emoji_id(u, user_id, background_custom_emoji_id);
   } else {
-    on_update_user_accent_color_id(u, user_id, accent_color_id);
-    on_update_user_background_custom_emoji_id(u, user_id, background_custom_emoji_id);
-    on_update_user_peer_color_collectible(u, user_id, nullptr);
+    on_update_user_colors(u, user_id, accent_color_id, background_custom_emoji_id, nullptr);
   }
   update_user(u, user_id);
 }

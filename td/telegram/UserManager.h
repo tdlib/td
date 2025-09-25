@@ -906,12 +906,9 @@ class UserManager final : public Actor {
 
   void register_user_photo(User *u, UserId user_id, const Photo &photo);
 
-  void on_update_user_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id);
-
-  void on_update_user_background_custom_emoji_id(User *u, UserId user_id, CustomEmojiId background_custom_emoji_id);
-
-  void on_update_user_peer_color_collectible(User *u, UserId user_id,
-                                             unique_ptr<PeerColorCollectible> &&peer_color_collectible);
+  void on_update_user_colors(User *u, UserId user_id, AccentColorId accent_color_id,
+                             CustomEmojiId background_custom_emoji_id,
+                             unique_ptr<PeerColorCollectible> &&peer_color_collectible);
 
   void on_update_user_profile_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id);
 
