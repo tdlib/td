@@ -3757,7 +3757,7 @@ void ChatManager::set_channel_location(ChannelId channel_id, const DialogLocatio
 }
 
 void ChatManager::set_channel_slow_mode_delay(DialogId dialog_id, int32 slow_mode_delay, Promise<Unit> &&promise) {
-  vector<int32> allowed_slow_mode_delays{0, 10, 30, 60, 300, 900, 3600};
+  vector<int32> allowed_slow_mode_delays{0, 5, 10, 30, 60, 300, 900, 3600};
   if (!td::contains(allowed_slow_mode_delays, slow_mode_delay)) {
     return promise.set_error(400, "Invalid new value for slow mode delay");
   }
