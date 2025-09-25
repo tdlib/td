@@ -16697,6 +16697,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       get_chat_photo_info_object(td_->file_manager_.get(), td_->dialog_manager_->get_dialog_photo(d->dialog_id)),
       td_->dialog_manager_->get_dialog_accent_color_id_object(d->dialog_id),
       td_->dialog_manager_->get_dialog_background_custom_emoji_id(d->dialog_id).get(),
+      td_->dialog_manager_->get_dialog_upgraded_gift_colors_object(d->dialog_id),
       td_->dialog_manager_->get_dialog_profile_accent_color_id_object(d->dialog_id),
       td_->dialog_manager_->get_dialog_profile_background_custom_emoji_id(d->dialog_id).get(),
       td_->dialog_manager_->get_dialog_default_permissions(d->dialog_id).get_chat_permissions_object(),
@@ -28636,6 +28637,7 @@ void MessagesManager::on_dialog_accent_colors_updated(DialogId dialog_id) {
                      get_chat_id_object(dialog_id, "updateChatAccentColors"),
                      td_->dialog_manager_->get_dialog_accent_color_id_object(dialog_id),
                      td_->dialog_manager_->get_dialog_background_custom_emoji_id(dialog_id).get(),
+                     td_->dialog_manager_->get_dialog_upgraded_gift_colors_object(d->dialog_id),
                      td_->dialog_manager_->get_dialog_profile_accent_color_id_object(dialog_id),
                      td_->dialog_manager_->get_dialog_profile_background_custom_emoji_id(dialog_id).get()));
   }

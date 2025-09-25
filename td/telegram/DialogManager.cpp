@@ -1996,6 +1996,24 @@ CustomEmojiId DialogManager::get_dialog_background_custom_emoji_id(DialogId dial
   }
 }
 
+td_api::object_ptr<td_api::upgradedGiftColors> DialogManager::get_dialog_upgraded_gift_colors_object(
+    DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->user_manager_->get_user_upgraded_gift_colors_object(dialog_id.get_user_id());
+    case DialogType::Chat:
+      return nullptr;
+    case DialogType::Channel:
+      return nullptr;
+    case DialogType::SecretChat:
+      return td_->user_manager_->get_secret_chat_upgraded_gift_colors_object(dialog_id.get_secret_chat_id());
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return 0;
+  }
+}
+
 int32 DialogManager::get_dialog_profile_accent_color_id_object(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:

@@ -163,6 +163,8 @@ class DialogManager final : public Actor {
 
   CustomEmojiId get_dialog_background_custom_emoji_id(DialogId dialog_id) const;
 
+  td_api::object_ptr<td_api::upgradedGiftColors> get_dialog_upgraded_gift_colors_object(DialogId dialog_id) const;
+
   int32 get_dialog_profile_accent_color_id_object(DialogId dialog_id) const;
 
   CustomEmojiId get_dialog_profile_background_custom_emoji_id(DialogId dialog_id) const;

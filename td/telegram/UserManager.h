@@ -70,6 +70,7 @@ class BusinessInfo;
 class BusinessIntro;
 class BusinessWorkHours;
 class EmojiStatus;
+class PeerColorCollectible;
 class StarRating;
 class Td;
 
@@ -277,6 +278,11 @@ class UserManager final : public Actor {
   CustomEmojiId get_user_background_custom_emoji_id(UserId user_id) const;
 
   CustomEmojiId get_secret_chat_background_custom_emoji_id(SecretChatId secret_chat_id) const;
+
+  td_api::object_ptr<td_api::upgradedGiftColors> get_user_upgraded_gift_colors_object(UserId user_id) const;
+
+  td_api::object_ptr<td_api::upgradedGiftColors> get_secret_chat_upgraded_gift_colors_object(
+      SecretChatId secret_chat_id) const;
 
   int32 get_user_profile_accent_color_id_object(UserId user_id) const;
 
@@ -568,6 +574,7 @@ class UserManager final : public Actor {
 
     AccentColorId accent_color_id;
     CustomEmojiId background_custom_emoji_id;
+    unique_ptr<PeerColorCollectible> peer_color_collectible;
     AccentColorId profile_accent_color_id;
     CustomEmojiId profile_background_custom_emoji_id;
 
@@ -902,6 +909,9 @@ class UserManager final : public Actor {
   void on_update_user_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id);
 
   void on_update_user_background_custom_emoji_id(User *u, UserId user_id, CustomEmojiId background_custom_emoji_id);
+
+  void on_update_user_peer_color_collectible(User *u, UserId user_id,
+                                             unique_ptr<PeerColorCollectible> &&peer_color_collectible);
 
   void on_update_user_profile_accent_color_id(User *u, UserId user_id, AccentColorId accent_color_id);
 

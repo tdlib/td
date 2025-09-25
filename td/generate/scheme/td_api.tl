@@ -1863,6 +1863,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@profile_photo Profile photo of the user; may be null
 //@accent_color_id Identifier of the accent color for name, and backgrounds of profile photo, reply header, and link preview
 //@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header and link preview background; 0 if none
+//@upgraded_gift_colors Color scheme based on an upgraded gift to be used for the user instead of accent_color_id and background_custom_emoji_id; may be null if none
 //@profile_accent_color_id Identifier of the accent color for the user's profile; -1 if none
 //@profile_background_custom_emoji_id Identifier of a custom emoji to be shown on the background of the user's profile; 0 if none
 //@emoji_status Emoji status to be shown instead of the default Telegram Premium badge; may be null
@@ -1881,7 +1882,7 @@ usernames active_usernames:vector<string> disabled_usernames:vector<string> edit
 //@type Type of the user
 //@language_code IETF language tag of the user's language; only available to bots
 //@added_to_attachment_menu True, if the user added the current bot to attachment menu; only available to bots
-user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool verification_status:verificationStatus is_premium:Bool is_support:Bool restriction_info:restrictionInfo has_active_stories:Bool has_unread_active_stories:Bool restricts_new_chats:Bool paid_message_star_count:int53 have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
+user id:int53 first_name:string last_name:string usernames:usernames phone_number:string status:UserStatus profile_photo:profilePhoto accent_color_id:int32 background_custom_emoji_id:int64 upgraded_gift_colors:upgradedGiftColors profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 emoji_status:emojiStatus is_contact:Bool is_mutual_contact:Bool is_close_friend:Bool verification_status:verificationStatus is_premium:Bool is_support:Bool restriction_info:restrictionInfo has_active_stories:Bool has_unread_active_stories:Bool restricts_new_chats:Bool paid_message_star_count:int53 have_access:Bool type:UserType language_code:string added_to_attachment_menu:Bool = User;
 
 
 //@description Contains information about a bot
@@ -2964,6 +2965,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@photo Chat photo; may be null
 //@accent_color_id Identifier of the accent color for message sender name, and backgrounds of chat photo, reply header, and link preview
 //@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header and link preview background for messages sent by the chat; 0 if none
+//@upgraded_gift_colors Color scheme based on an upgraded gift to be used for the chat instead of accent_color_id and background_custom_emoji_id; may be null if none
 //@profile_accent_color_id Identifier of the profile accent color for the chat's profile; -1 if none
 //@profile_background_custom_emoji_id Identifier of a custom emoji to be shown on the background of the chat's profile; 0 if none
 //@permissions Actions that non-administrator chat members are allowed to take in the chat
@@ -2999,7 +3001,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null if none
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> chat_lists:vector<ChatList> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool view_as_topics:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 emoji_status:emojiStatus background:chatBackground theme:ChatTheme action_bar:ChatActionBar business_bot_manage_bar:businessBotManageBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int32 background_custom_emoji_id:int64 upgraded_gift_colors:upgradedGiftColors profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> chat_lists:vector<ChatList> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool view_as_topics:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 emoji_status:emojiStatus background:chatBackground theme:ChatTheme action_bar:ChatActionBar business_bot_manage_bar:businessBotManageBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total number of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -9005,9 +9007,10 @@ updateChatPhoto chat_id:int53 photo:chatPhotoInfo = Update;
 //@chat_id Chat identifier
 //@accent_color_id The new chat accent color identifier
 //@background_custom_emoji_id The new identifier of a custom emoji to be shown on the reply header and link preview background; 0 if none
+//@upgraded_gift_colors Color scheme based on an upgraded gift to be used for the chat instead of accent_color_id and background_custom_emoji_id; may be null if none
 //@profile_accent_color_id The new chat profile accent color identifier; -1 if none
 //@profile_background_custom_emoji_id The new identifier of a custom emoji to be shown on the profile background; 0 if none
-updateChatAccentColors chat_id:int53 accent_color_id:int32 background_custom_emoji_id:int64 profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 = Update;
+updateChatAccentColors chat_id:int53 accent_color_id:int32 background_custom_emoji_id:int64 upgraded_gift_colors:upgradedGiftColors profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 = Update;
 
 //@description Chat permissions were changed @chat_id Chat identifier @permissions The new chat permissions
 updateChatPermissions chat_id:int53 permissions:chatPermissions = Update;
