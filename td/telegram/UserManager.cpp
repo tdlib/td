@@ -889,6 +889,37 @@ class UpdateColorQuery final : public Td::ResultHandler {
   }
 };
 
+class UpdateColorCollectibleQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit UpdateColorCollectibleQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(int64 collectible_id) {
+    int32 flags = telegram_api::account_updateColor::COLOR_MASK;
+    send_query(G()->net_query_creator().create(
+        telegram_api::account_updateColor(
+            flags, false, telegram_api::make_object<telegram_api::inputPeerColorCollectible>(collectible_id)),
+        {{"me"}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::account_updateColor>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    LOG(DEBUG) << "Receive result for UpdateColorCollectibleQuery: " << result_ptr.ok();
+    td_->user_manager_->reload_user(td_->user_manager_->get_my_id(), std::move(promise_),
+                                    "UpdateColorCollectibleQuery");
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class UpdateProfileQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int32 flags_;
@@ -6251,6 +6282,10 @@ void UserManager::set_accent_color(AccentColorId accent_color_id, CustomEmojiId 
   }
 
   td_->create_handler<UpdateColorQuery>(std::move(promise))->send(false, accent_color_id, background_custom_emoji_id);
+}
+
+void UserManager::set_peer_color_collectible(int64 collectible_id, Promise<Unit> &&promise) {
+  td_->create_handler<UpdateColorCollectibleQuery>(std::move(promise))->send(collectible_id);
 }
 
 void UserManager::set_profile_accent_color(AccentColorId accent_color_id, CustomEmojiId background_custom_emoji_id,

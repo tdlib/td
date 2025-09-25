@@ -6539,6 +6539,12 @@ void Requests::on_request(uint64 id, const td_api::setAccentColor &request) {
                                        CustomEmojiId(request.background_custom_emoji_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::setUpgradedGiftColors &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->user_manager_->set_peer_color_collectible(request.upgraded_gift_colors_id_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::setProfileAccentColor &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

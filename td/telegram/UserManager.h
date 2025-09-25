@@ -401,6 +401,8 @@ class UserManager final : public Actor {
   void set_accent_color(AccentColorId accent_color_id, CustomEmojiId background_custom_emoji_id,
                         Promise<Unit> &&promise);
 
+  void set_peer_color_collectible(int64 collectible_id, Promise<Unit> &&promise);
+
   void set_profile_accent_color(AccentColorId accent_color_id, CustomEmojiId background_custom_emoji_id,
                                 Promise<Unit> &&promise);
 

@@ -1305,6 +1305,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::setAccentColor &request);
 
+  void on_request(uint64 id, const td_api::setUpgradedGiftColors &request);
+
   void on_request(uint64 id, const td_api::setProfileAccentColor &request);
 
   void on_request(uint64 id, const td_api::getBusinessConnectedBot &request);

@@ -7816,6 +7816,10 @@ class CliClient final : public Actor {
       CustomEmojiId background_custom_emoji_id;
       get_args(args, accent_color_id, background_custom_emoji_id);
       send_request(td_api::make_object<td_api::setAccentColor>(accent_color_id, background_custom_emoji_id));
+    } else if (op == "sugc") {
+      int64 upgraded_gift_colors_id;
+      get_args(args, upgraded_gift_colors_id);
+      send_request(td_api::make_object<td_api::setUpgradedGiftColors>(upgraded_gift_colors_id));
     } else if (op == "spac") {
       int32 profile_accent_color_id;
       CustomEmojiId profile_background_custom_emoji_id;

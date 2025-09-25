@@ -1285,7 +1285,7 @@ upgradedGiftBackdrop id:int32 name:string colors:upgradedGiftBackdropColors rari
 //@date Point in time (Unix timestamp) when the gift was sent
 upgradedGiftOriginalDetails sender_id:MessageSender receiver_id:MessageSender text:formattedText date:int32 = UpgradedGiftOriginalDetails;
 
-//@description Contains information about accent colors for user's name, background of empty chat photo, replies to messages and link previews
+//@description Contains information about color scheme for user's name, background of empty chat photo, replies to messages and link previews
 //@id Unique identifier of the upgraded gift colors
 //@model_custom_emoji_id Custom emoji identifier of the model of the upgraded gift
 //@symbol_custom_emoji_id Custom emoji identifier of the symbol of the upgraded gift
@@ -12737,6 +12737,10 @@ deleteProfilePhoto profile_photo_id:int64 = Ok;
 //@accent_color_id Identifier of the accent color to use
 //@background_custom_emoji_id Identifier of a custom emoji to be shown on the reply header and link preview background; 0 if none
 setAccentColor accent_color_id:int32 background_custom_emoji_id:int64 = Ok;
+
+//@description Changes color scheme for the current user based on an owned or a hosted upgraded gift; for Telegram Premium users only
+//@upgraded_gift_colors_id Identifier of the upgradedGiftColors scheme to use
+setUpgradedGiftColors upgraded_gift_colors_id:int64 = Ok;
 
 //@description Changes accent color and background custom emoji for profile of the current user; for Telegram Premium users only
 //@profile_accent_color_id Identifier of the accent color to use for profile; pass -1 if none
