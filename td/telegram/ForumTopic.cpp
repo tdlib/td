@@ -113,16 +113,16 @@ td_api::object_ptr<td_api::forumTopic> ForumTopic::get_forum_topic_object(Td *td
   if (info.is_empty()) {
     return nullptr;
   }
+  CHECK(info.get_dialog_id() == dialog_id);
 
   // TODO draft_message = can_send_message(dialog_id, info_.get_top_thread_message_id()).is_ok() ? ... : nullptr;
   auto last_message =
       td->messages_manager_->get_message_object({dialog_id, last_message_id_}, "get_forum_topic_object");
   auto draft_message = get_draft_message_object(td, draft_message_);
   return td_api::make_object<td_api::forumTopic>(
-      info.get_forum_topic_info_object(td, dialog_id), std::move(last_message), get_forum_topic_order(td, dialog_id),
-      is_pinned_, unread_count_, last_read_inbox_message_id_.get(), last_read_outbox_message_id_.get(),
-      unread_mention_count_, unread_reaction_count_, get_chat_notification_settings_object(&notification_settings_),
-      std::move(draft_message));
+      info.get_forum_topic_info_object(td), std::move(last_message), get_forum_topic_order(td, dialog_id), is_pinned_,
+      unread_count_, last_read_inbox_message_id_.get(), last_read_outbox_message_id_.get(), unread_mention_count_,
+      unread_reaction_count_, get_chat_notification_settings_object(&notification_settings_), std::move(draft_message));
 }
 
 td_api::object_ptr<td_api::updateForumTopic> ForumTopic::get_update_forum_topic_object(

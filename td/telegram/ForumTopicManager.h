@@ -186,9 +186,9 @@ class ForumTopicManager final : public Actor {
   void on_delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
 
   td_api::object_ptr<td_api::updateForumTopicInfo> get_update_forum_topic_info_object(
-      DialogId dialog_id, const ForumTopicInfo *topic_info) const;
+      const ForumTopicInfo *topic_info) const;
 
-  void send_update_forum_topic_info(DialogId dialog_id, const ForumTopicInfo *topic_info) const;
+  void send_update_forum_topic_info(const ForumTopicInfo *topic_info) const;
 
   td_api::object_ptr<td_api::updateForumTopic> get_update_forum_topic_object(DialogId dialog_id,
                                                                              const Topic *topic) const;

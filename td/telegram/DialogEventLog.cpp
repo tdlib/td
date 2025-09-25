@@ -399,18 +399,17 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionCreateTopic::ID: {
       auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionCreateTopic>(action_ptr);
-      auto topic_info = ForumTopicInfo(td, action->topic_);
+      auto topic_info = ForumTopicInfo(td, action->topic_, DialogId(channel_id));
       if (topic_info.is_empty()) {
         return nullptr;
       }
       actor_dialog_id = topic_info.get_creator_dialog_id();
-      return td_api::make_object<td_api::chatEventForumTopicCreated>(
-          topic_info.get_forum_topic_info_object(td, DialogId(channel_id)));
+      return td_api::make_object<td_api::chatEventForumTopicCreated>(topic_info.get_forum_topic_info_object(td));
     }
     case telegram_api::channelAdminLogEventActionEditTopic::ID: {
       auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionEditTopic>(action_ptr);
-      auto old_topic_info = ForumTopicInfo(td, action->prev_topic_);
-      auto new_topic_info = ForumTopicInfo(td, action->new_topic_);
+      auto old_topic_info = ForumTopicInfo(td, action->prev_topic_, DialogId(channel_id));
+      auto new_topic_info = ForumTopicInfo(td, action->new_topic_, DialogId(channel_id));
       if (old_topic_info.is_empty() || new_topic_info.is_empty() ||
           old_topic_info.get_top_thread_message_id() != new_topic_info.get_top_thread_message_id()) {
         LOG(ERROR) << "Receive " << to_string(action);
@@ -420,41 +419,38 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       bool edit_is_hidden = old_topic_info.is_hidden() != new_topic_info.is_hidden();
       if (edit_is_hidden && !(!new_topic_info.is_hidden() && edit_is_closed && !new_topic_info.is_closed())) {
         return td_api::make_object<td_api::chatEventForumTopicToggleIsHidden>(
-            new_topic_info.get_forum_topic_info_object(td, DialogId(channel_id)));
+            new_topic_info.get_forum_topic_info_object(td));
       }
       if (old_topic_info.is_closed() != new_topic_info.is_closed()) {
         return td_api::make_object<td_api::chatEventForumTopicToggleIsClosed>(
-            new_topic_info.get_forum_topic_info_object(td, DialogId(channel_id)));
+            new_topic_info.get_forum_topic_info_object(td));
       }
-      return td_api::make_object<td_api::chatEventForumTopicEdited>(
-          old_topic_info.get_forum_topic_info_object(td, DialogId(channel_id)),
-          new_topic_info.get_forum_topic_info_object(td, DialogId(channel_id)));
+      return td_api::make_object<td_api::chatEventForumTopicEdited>(old_topic_info.get_forum_topic_info_object(td),
+                                                                    new_topic_info.get_forum_topic_info_object(td));
     }
     case telegram_api::channelAdminLogEventActionDeleteTopic::ID: {
       auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionDeleteTopic>(action_ptr);
-      auto topic_info = ForumTopicInfo(td, action->topic_);
+      auto topic_info = ForumTopicInfo(td, action->topic_, DialogId(channel_id));
       if (topic_info.is_empty()) {
         return nullptr;
       }
-      return td_api::make_object<td_api::chatEventForumTopicDeleted>(
-          topic_info.get_forum_topic_info_object(td, DialogId(channel_id)));
+      return td_api::make_object<td_api::chatEventForumTopicDeleted>(topic_info.get_forum_topic_info_object(td));
     }
     case telegram_api::channelAdminLogEventActionPinTopic::ID: {
       auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionPinTopic>(action_ptr);
       ForumTopicInfo old_topic_info;
       ForumTopicInfo new_topic_info;
       if (action->prev_topic_ != nullptr) {
-        old_topic_info = ForumTopicInfo(td, action->prev_topic_);
+        old_topic_info = ForumTopicInfo(td, action->prev_topic_, DialogId(channel_id));
       }
       if (action->new_topic_ != nullptr) {
-        new_topic_info = ForumTopicInfo(td, action->new_topic_);
+        new_topic_info = ForumTopicInfo(td, action->new_topic_, DialogId(channel_id));
       }
       if (old_topic_info.is_empty() && new_topic_info.is_empty()) {
         return nullptr;
       }
-      return td_api::make_object<td_api::chatEventForumTopicPinned>(
-          old_topic_info.get_forum_topic_info_object(td, DialogId(channel_id)),
-          new_topic_info.get_forum_topic_info_object(td, DialogId(channel_id)));
+      return td_api::make_object<td_api::chatEventForumTopicPinned>(old_topic_info.get_forum_topic_info_object(td),
+                                                                    new_topic_info.get_forum_topic_info_object(td));
     }
     case telegram_api::channelAdminLogEventActionToggleAntiSpam::ID: {
       auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionToggleAntiSpam>(action_ptr);

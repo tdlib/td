@@ -21,6 +21,7 @@ void ForumTopicInfo::store(StorerT &storer) const {
   STORE_FLAG(is_closed_);
   STORE_FLAG(is_hidden_);
   END_STORE_FLAGS();
+  td::store(dialog_id_, storer);
   td::store(top_thread_message_id_, storer);
   td::store(title_, storer);
   td::store(icon_, storer);
@@ -35,6 +36,7 @@ void ForumTopicInfo::parse(ParserT &parser) {
   PARSE_FLAG(is_closed_);
   PARSE_FLAG(is_hidden_);
   END_PARSE_FLAGS();
+  td::parse(dialog_id_, parser);
   td::parse(top_thread_message_id_, parser);
   td::parse(title_, parser);
   td::parse(icon_, parser);
