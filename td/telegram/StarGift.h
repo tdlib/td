@@ -8,12 +8,14 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/PeerColorCollectible.h"
 #include "td/telegram/StarGiftAttribute.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/unique_value_ptr.h"
 
 namespace td {
 
@@ -63,6 +65,7 @@ class StarGift {
   string value_currency_;
   int64 value_amount_ = 0;
   DialogId theme_dialog_id_;
+  unique_value_ptr<PeerColorCollectible> peer_color_;
 
   friend bool operator==(const StarGift &lhs, const StarGift &rhs);
 

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/Global.h"
+#include "td/telegram/PeerColorCollectible.hpp"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarGiftAttribute.hpp"
 #include "td/telegram/StickersManager.h"
@@ -44,6 +45,7 @@ void StarGift::store(StorerT &storer) const {
   bool has_locked_until_date = locked_until_date_ != 0;
   bool has_theme_dialog_id = theme_dialog_id_.is_valid();
   bool has_host_dialog_id = host_dialog_id_.is_valid();
+  bool has_peer_color = peer_color_ != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_limited);
   STORE_FLAG(has_default_sell_star_count);
@@ -73,6 +75,7 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(has_theme_dialog_id);  // 25
   STORE_FLAG(has_host_dialog_id);
   STORE_FLAG(has_colors_);
+  STORE_FLAG(has_peer_color);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -153,6 +156,9 @@ void StarGift::store(StorerT &storer) const {
   if (has_host_dialog_id) {
     td::store(host_dialog_id_, storer);
   }
+  if (has_peer_color) {
+    td::store(peer_color_, storer);
+  }
 }
 
 template <class ParserT>
@@ -180,6 +186,7 @@ void StarGift::parse(ParserT &parser) {
   bool has_locked_until_date;
   bool has_theme_dialog_id;
   bool has_host_dialog_id;
+  bool has_peer_color;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_limited);
   PARSE_FLAG(has_default_sell_star_count);
@@ -209,6 +216,7 @@ void StarGift::parse(ParserT &parser) {
   PARSE_FLAG(has_theme_dialog_id);
   PARSE_FLAG(has_host_dialog_id);
   PARSE_FLAG(has_colors_);
+  PARSE_FLAG(has_peer_color);
   END_PARSE_FLAGS();
   td::parse(id_, parser);
   if (!is_unique_) {
@@ -295,6 +303,9 @@ void StarGift::parse(ParserT &parser) {
   }
   if (has_host_dialog_id) {
     td::parse(host_dialog_id_, parser);
+  }
+  if (has_peer_color) {
+    td::parse(peer_color_, parser);
   }
 }
 
