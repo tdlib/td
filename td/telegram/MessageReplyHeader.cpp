@@ -6,15 +6,17 @@
 //
 #include "td/telegram/MessageReplyHeader.h"
 
+#include "td/telegram/DialogManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StoryId.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"
 
 namespace td {
 
 MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::MessageReplyHeader> &&reply_header_ptr,
-                                       DialogId dialog_id, MessageId message_id, int32 date, bool can_have_thread) {
+                                       DialogId dialog_id, MessageId message_id, int32 date) {
   if (reply_header_ptr == nullptr) {
     return;
   }
@@ -32,6 +34,7 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
   CHECK(reply_header_ptr->get_id() == telegram_api::messageReplyHeader::ID);
   auto reply_header = telegram_api::move_object_as<telegram_api::messageReplyHeader>(reply_header_ptr);
 
+  bool can_have_thread = td->dialog_manager_->can_dialog_have_threads(dialog_id);
   if (!message_id.is_scheduled() && can_have_thread) {
     if (reply_header->reply_to_top_id_ != 0) {
       top_thread_message_id_ = MessageId(ServerMessageId(reply_header->reply_to_top_id_));

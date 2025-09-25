@@ -10822,10 +10822,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       }
       message_info.date = message->date_;
       message_info.forward_header = std::move(message->fwd_from_);
-      bool can_have_thread = message_info.dialog_id.get_type() == DialogType::Channel &&
-                             !td->dialog_manager_->is_broadcast_channel(message_info.dialog_id);
       message_info.reply_header = MessageReplyHeader(td, std::move(message->reply_to_), message_info.dialog_id,
-                                                     message_info.message_id, message_info.date, can_have_thread);
+                                                     message_info.message_id, message_info.date);
       message_info.via_bot_user_id = UserId(message->via_bot_id_);
       if (message_info.via_bot_user_id != UserId() && !message_info.via_bot_user_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << message_info.via_bot_user_id << " from " << source;
@@ -10911,10 +10909,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.has_mention = message->mentioned_;
       message_info.has_unread_content = message->media_unread_;
       message_info.reactions_are_possible = message->reactions_are_possible_;
-      bool can_have_thread = message_info.dialog_id.get_type() == DialogType::Channel &&
-                             !td->dialog_manager_->is_broadcast_channel(message_info.dialog_id);
       message_info.reply_header = MessageReplyHeader(td, std::move(message->reply_to_), message_info.dialog_id,
-                                                     message_info.message_id, message_info.date, can_have_thread);
+                                                     message_info.message_id, message_info.date);
       message_info.content =
           get_action_message_content(td, std::move(message->action_), message_info.dialog_id, message_info.date,
                                      message_info.reply_header.replied_message_info_, is_business_message);

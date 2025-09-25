@@ -1097,7 +1097,7 @@ unique_ptr<QuickReplyManager::QuickReplyMessage> QuickReplyManager::create_messa
           std::move(message->media_), my_dialog_id, message->date_, true, via_bot_user_id, &ttl,
           &disable_web_page_preview, source);
 
-      auto reply_header = MessageReplyHeader(td_, std::move(message->reply_to_), my_dialog_id, message_id, -1, false);
+      auto reply_header = MessageReplyHeader(td_, std::move(message->reply_to_), my_dialog_id, message_id, -1);
       if (reply_header.story_full_id_ != StoryFullId()) {
         LOG(ERROR) << "Receive reply to " << reply_header.story_full_id_;
         reply_header.story_full_id_ = {};

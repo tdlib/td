@@ -1873,6 +1873,11 @@ bool DialogManager::is_broadcast_channel(DialogId dialog_id) const {
   return td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id());
 }
 
+bool DialogManager::can_dialog_have_threads(DialogId dialog_id) const {
+  return dialog_id.get_type() == DialogType::Channel &&
+         !td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id());
+}
+
 bool DialogManager::on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source) {
   auto message = status.message();
   if (message == CSlice("BOT_METHOD_INVALID")) {

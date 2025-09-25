@@ -151,6 +151,8 @@ class DialogManager final : public Actor {
 
   bool is_broadcast_channel(DialogId dialog_id) const;
 
+  bool can_dialog_have_threads(DialogId dialog_id) const;
+
   bool on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source);
 
   void delete_dialog(DialogId dialog_id, Promise<Unit> &&promise);
