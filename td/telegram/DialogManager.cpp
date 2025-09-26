@@ -1874,8 +1874,18 @@ bool DialogManager::is_broadcast_channel(DialogId dialog_id) const {
 }
 
 bool DialogManager::can_dialog_have_threads(DialogId dialog_id) const {
-  return dialog_id.get_type() == DialogType::Channel &&
-         !td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id());
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->auth_manager_->is_bot() || td_->user_manager_->is_user_bot(dialog_id.get_user_id());
+    case DialogType::Channel:
+      return !td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id());
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      break;
+  }
+  return false;
 }
 
 bool DialogManager::on_get_dialog_error(DialogId dialog_id, const Status &status, const char *source) {
