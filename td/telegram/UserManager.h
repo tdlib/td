@@ -250,6 +250,7 @@ class UserManager final : public Actor {
     bool can_join_groups = false;
     bool can_read_all_group_messages = false;
     bool has_main_app = false;
+    bool has_bot_forum_view = false;
     bool is_inline = false;
     bool is_business = false;
     bool need_location = false;
@@ -607,6 +608,7 @@ class UserManager final : public Actor {
     bool can_read_all_group_messages = true;
     bool can_be_edited_bot = false;
     bool has_main_app = false;
+    bool has_bot_forum_view = false;
     bool is_inline_bot = false;
     bool is_business_bot = false;
     bool need_location_bot = false;
