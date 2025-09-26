@@ -13280,10 +13280,11 @@ sendResoldGift gift_name:string owner_id:MessageSender price:GiftResalePrice = G
 //@exclude_non_upgradable Pass true to exclude gifts that can be purchased limited number of times and can't be upgraded
 //@exclude_upgraded Pass true to exclude upgraded gifts
 //@exclude_without_colors Pass true to exclude gifts that can't be used in setUpgradedGiftColors
+//@exclude_hosted Pass true to exclude gifts that are just hosted and are not owned by the owner
 //@sort_by_price Pass true to sort results by gift price instead of send date
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of gifts to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
-getReceivedGifts business_connection_id:string owner_id:MessageSender collection_id:int32 exclude_unsaved:Bool exclude_saved:Bool exclude_unlimited:Bool exclude_upgradable:Bool exclude_non_upgradable:Bool exclude_upgraded:Bool exclude_without_colors:Bool sort_by_price:Bool offset:string limit:int32 = ReceivedGifts;
+getReceivedGifts business_connection_id:string owner_id:MessageSender collection_id:int32 exclude_unsaved:Bool exclude_saved:Bool exclude_unlimited:Bool exclude_upgradable:Bool exclude_non_upgradable:Bool exclude_upgraded:Bool exclude_without_colors:Bool exclude_hosted:Bool sort_by_price:Bool offset:string limit:int32 = ReceivedGifts;
 
 //@description Returns information about a received gift @received_gift_id Identifier of the gift
 getReceivedGift received_gift_id:string = ReceivedGift;
