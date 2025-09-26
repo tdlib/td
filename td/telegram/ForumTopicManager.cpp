@@ -297,7 +297,7 @@ class ReorderPinnedForumTopicsQuery final : public Td::ResultHandler {
 
 class GetForumTopicQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::forumTopic>> promise_;
-  ChannelId channel_id_;
+  DialogId dialog_id_;
   MessageId top_thread_message_id_;
 
  public:
@@ -305,11 +305,11 @@ class GetForumTopicQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, MessageId top_thread_message_id) {
-    channel_id_ = channel_id;
+  void send(DialogId dialog_id, MessageId top_thread_message_id) {
+    dialog_id_ = dialog_id;
     top_thread_message_id_ = top_thread_message_id;
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -317,7 +317,7 @@ class GetForumTopicQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::messages_getForumTopicsByID(std::move(input_peer),
                                                   {top_thread_message_id_.get_server_message_id().get()}),
-        {{channel_id}}));
+        {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -339,18 +339,18 @@ class GetForumTopicQuery final : public Td::ResultHandler {
     MessagesInfo messages_info;
     messages_info.messages = std::move(ptr->messages_);
     messages_info.total_count = ptr->count_;
-    messages_info.is_channel_messages = true;
+    messages_info.is_channel_messages = dialog_id_.get_type() == DialogType::Channel;
 
     td_->messages_manager_->get_channel_difference_if_needed(
-        DialogId(channel_id_), std::move(messages_info),
-        PromiseCreator::lambda([actor_id = td_->forum_topic_manager_actor_.get(), channel_id = channel_id_,
+        dialog_id_, std::move(messages_info),
+        PromiseCreator::lambda([actor_id = td_->forum_topic_manager_actor_.get(), dialog_id = dialog_id_,
                                 top_thread_message_id = top_thread_message_id_, topic = std::move(ptr->topics_[0]),
                                 promise = std::move(promise_)](Result<MessagesInfo> &&result) mutable {
           if (result.is_error()) {
             promise.set_error(result.move_as_error());
           } else {
             auto info = result.move_as_ok();
-            send_closure(actor_id, &ForumTopicManager::on_get_forum_topic, channel_id, top_thread_message_id,
+            send_closure(actor_id, &ForumTopicManager::on_get_forum_topic, dialog_id, top_thread_message_id,
                          std::move(info), std::move(topic), std::move(promise));
           }
         }),
@@ -358,7 +358,7 @@ class GetForumTopicQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetForumTopicQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetForumTopicQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -770,20 +770,19 @@ bool ForumTopicManager::update_forum_topic_notification_settings(DialogId dialog
 
 void ForumTopicManager::get_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
                                         Promise<td_api::object_ptr<td_api::forumTopic>> &&promise) {
-  TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
   TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
-  auto channel_id = dialog_id.get_channel_id();
 
-  td_->create_handler<GetForumTopicQuery>(std::move(promise))->send(channel_id, top_thread_message_id);
+  td_->create_handler<GetForumTopicQuery>(std::move(promise))->send(dialog_id, top_thread_message_id);
 }
 
-void ForumTopicManager::on_get_forum_topic(ChannelId channel_id, MessageId expected_top_thread_message_id,
+void ForumTopicManager::on_get_forum_topic(DialogId dialog_id, MessageId expected_top_thread_message_id,
                                            MessagesInfo &&info,
                                            telegram_api::object_ptr<telegram_api::ForumTopic> &&topic,
                                            Promise<td_api::object_ptr<td_api::forumTopic>> &&promise) {
-  DialogId dialog_id(channel_id);
-  TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
-  td_->messages_manager_->on_get_messages(dialog_id, std::move(info.messages), true, false, Promise<Unit>(),
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
+  td_->messages_manager_->on_get_messages(dialog_id, std::move(info.messages),
+                                          dialog_id.get_type() == DialogType::Channel, false, Promise<Unit>(),
                                           "on_get_forum_topic");
 
   auto top_thread_message_id = on_get_forum_topic_impl(dialog_id, std::move(topic));
@@ -1357,13 +1356,13 @@ void ForumTopicManager::on_topic_reaction_count_changed(DialogId dialog_id, Mess
 }
 
 void ForumTopicManager::repair_topic_unread_mention_count(DialogId dialog_id, MessageId top_thread_message_id) {
-  if (!td_->dialog_manager_->is_forum_channel(dialog_id) ||
-      can_be_message_thread_id(top_thread_message_id).is_error()) {
+  // no need to repair mention count in private chats with bots
+  if (is_forum(dialog_id, false).is_error() || can_be_message_thread_id(top_thread_message_id).is_error()) {
     return;
   }
 
   td_->create_handler<GetForumTopicQuery>(Promise<td_api::object_ptr<td_api::forumTopic>>())
-      ->send(dialog_id.get_channel_id(), top_thread_message_id);
+      ->send(dialog_id, top_thread_message_id);
 }
 
 }  // namespace td

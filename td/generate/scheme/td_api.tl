@@ -10882,7 +10882,7 @@ editForumTopic chat_id:int53 message_thread_id:int53 name:string edit_icon_custo
 //@description Returns information about a forum topic @chat_id Identifier of the chat @message_thread_id Message thread identifier of the forum topic
 getForumTopic chat_id:int53 message_thread_id:int53 = ForumTopic;
 
-//@description Returns an HTTPS link to a topic in a forum chat. This is an offline method @chat_id Identifier of the chat @message_thread_id Message thread identifier of the forum topic
+//@description Returns an HTTPS link to a topic in a forum supergroup chat. This is an offline method @chat_id Identifier of the chat @message_thread_id Message thread identifier of the forum topic
 getForumTopicLink chat_id:int53 message_thread_id:int53 = MessageLink;
 
 //@description Returns found forum topics in a forum chat. This is a temporary method for getting information about topic list from the server

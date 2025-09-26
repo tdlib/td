@@ -52,7 +52,7 @@ class ForumTopicManager final : public Actor {
   void get_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
                        Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);
 
-  void on_get_forum_topic(ChannelId channel_id, MessageId expected_top_thread_message_id, MessagesInfo &&info,
+  void on_get_forum_topic(DialogId dialog_id, MessageId expected_top_thread_message_id, MessagesInfo &&info,
                           telegram_api::object_ptr<telegram_api::ForumTopic> &&topic,
                           Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);
 
