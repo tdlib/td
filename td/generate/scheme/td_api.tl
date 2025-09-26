@@ -4543,8 +4543,11 @@ messageChatSetMessageAutoDeleteTime message_auto_delete_time:int32 from_user_id:
 //@description The chat was boosted by the sender of the message @boost_count Number of times the chat was boosted
 messageChatBoost boost_count:int32 = MessageContent;
 
-//@description A forum topic has been created @name Name of the topic @icon Icon of the topic
-messageForumTopicCreated name:string icon:forumTopicIcon = MessageContent;
+//@description A forum topic has been created
+//@name Name of the topic
+//@is_name_implicit True, if the name of the topic wasn't added explicitly
+//@icon Icon of the topic
+messageForumTopicCreated name:string is_name_implicit:Bool icon:forumTopicIcon = MessageContent;
 
 //@description A forum topic has been edited
 //@name If non-empty, the new name of the topic

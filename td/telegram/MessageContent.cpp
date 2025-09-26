@@ -898,9 +898,11 @@ class MessageTopicCreate final : public MessageContent {
  public:
   string title;
   ForumTopicIcon icon;
+  bool title_missing = false;
 
   MessageTopicCreate() = default;
-  MessageTopicCreate(string &&title, ForumTopicIcon &&icon) : title(std::move(title)), icon(std::move(icon)) {
+  MessageTopicCreate(string &&title, ForumTopicIcon &&icon, bool title_missing)
+      : title(std::move(title)), icon(std::move(icon)), title_missing(title_missing) {
   }
 
   MessageContentType get_type() const final {
@@ -1987,6 +1989,9 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::TopicCreate: {
       const auto *m = static_cast<const MessageTopicCreate *>(content);
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(m->title_missing);
+      END_STORE_FLAGS();
       store(m->title, storer);
       store(m->icon, storer);
       break;
@@ -3131,6 +3136,11 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::TopicCreate: {
       auto m = make_unique<MessageTopicCreate>();
+      if (parser.version() >= static_cast<int32>(Version::SupportBotTopics)) {
+        BEGIN_PARSE_FLAGS();
+        PARSE_FLAG(m->title_missing);
+        END_PARSE_FLAGS();
+      }
       parse(m->title, parser);
       parse(m->icon, parser);
       content = std::move(m);
@@ -7031,7 +7041,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::TopicCreate: {
       const auto *lhs = static_cast<const MessageTopicCreate *>(old_content);
       const auto *rhs = static_cast<const MessageTopicCreate *>(new_content);
-      if (lhs->title != rhs->title || lhs->icon != rhs->icon) {
+      if (lhs->title != rhs->title || lhs->icon != rhs->icon || lhs->title_missing != rhs->title_missing) {
         need_update = true;
       }
       break;
@@ -9076,7 +9086,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionTopicCreate::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionTopicCreate>(action_ptr);
       return td::make_unique<MessageTopicCreate>(std::move(action->title_),
-                                                 ForumTopicIcon(action->icon_color_, action->icon_emoji_id_));
+                                                 ForumTopicIcon(action->icon_color_, action->icon_emoji_id_),
+                                                 action->title_missing_);
     }
     case telegram_api::messageActionTopicEdit::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionTopicEdit>(action_ptr);
@@ -9747,7 +9758,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::TopicCreate: {
       const auto *m = static_cast<const MessageTopicCreate *>(content);
-      return td_api::make_object<td_api::messageForumTopicCreated>(m->title, m->icon.get_forum_topic_icon_object());
+      return td_api::make_object<td_api::messageForumTopicCreated>(m->title, m->title_missing,
+                                                                   m->icon.get_forum_topic_icon_object());
     }
     case MessageContentType::TopicEdit: {
       const auto *m = static_cast<const MessageTopicEdit *>(content);
