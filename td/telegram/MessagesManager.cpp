@@ -5416,11 +5416,16 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
       auto update = move_tl_object_as<telegram_api::updateReadHistoryInbox>(update_ptr);
       LOG(INFO) << "Process updateReadHistoryInbox";
       DialogId dialog_id(update->peer_);
+      auto last_read_inbox_message_id = MessageId(ServerMessageId(update->max_id_));
       on_update_dialog_folder_id(dialog_id, FolderId(update->folder_id_));
-      if (update->top_msg_id_ == 0) {
-        read_history_inbox(dialog_id, MessageId(ServerMessageId(update->max_id_)), -1 /*update->still_unread_count*/,
-                           "updateReadHistoryInbox");
+      if (update->top_msg_id_ != 0) {
+        td_->forum_topic_manager_->on_update_forum_topic_unread(
+            dialog_id, MessageId(ServerMessageId(update->top_msg_id_)), MessageId(), last_read_inbox_message_id,
+            MessageId(), -1);
+        break;
       }
+      read_history_inbox(dialog_id, last_read_inbox_message_id, -1 /*update->still_unread_count*/,
+                         "updateReadHistoryInbox");
       break;
     }
     case telegram_api::updateReadHistoryOutbox::ID: {
