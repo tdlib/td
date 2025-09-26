@@ -1109,15 +1109,31 @@ td_api::object_ptr<td_api::forumTopic> ForumTopicManager::get_forum_topic_object
   return topic->topic_->get_forum_topic_object(td_, dialog_id, *topic->info_);
 }
 
-Status ForumTopicManager::is_forum(DialogId dialog_id) {
+Status ForumTopicManager::is_forum(DialogId dialog_id, bool allow_bots) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "ForumTopicManager::is_forum")) {
     return Status::Error(400, "Chat not found");
   }
-  if (dialog_id.get_type() != DialogType::Channel ||
-      !td_->chat_manager_->is_forum_channel(dialog_id.get_channel_id())) {
-    return Status::Error(400, "The chat is not a forum");
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      if (allow_bots) {
+        auto bot_user_id = td_->auth_manager_->is_bot() ? td_->user_manager_->get_my_id() : dialog_id.get_user_id();
+        if (td_->user_manager_->is_user_forum_bot(bot_user_id)) {
+          return Status::OK();
+        }
+      }
+      break;
+    case DialogType::Channel:
+      if (td_->chat_manager_->is_forum_channel(dialog_id.get_channel_id())) {
+        return Status::OK();
+      }
+      break;
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      break;
   }
-  return Status::OK();
+  return Status::Error(400, "The chat is not a forum");
 }
 
 bool ForumTopicManager::can_be_forum(DialogId dialog_id, bool allow_bots) const {

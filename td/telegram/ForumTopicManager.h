@@ -148,7 +148,7 @@ class ForumTopicManager final : public Actor {
 
   void tear_down() final;
 
-  Status is_forum(DialogId dialog_id);
+  Status is_forum(DialogId dialog_id, bool allow_bots = false);
 
   bool can_be_forum(DialogId dialog_id, bool allow_bots = false) const;
 
