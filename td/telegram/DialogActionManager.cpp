@@ -184,7 +184,7 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
     if (text_draft_info.is_text_draft_) {
       auto period = td_->option_manager_->get_option_integer("pending_text_message_period", 0);
       if (date > G()->unix_time() - period && dialog_type == DialogType::User && dialog_id == typing_dialog_id &&
-          top_thread_message_id.is_valid() && td_->user_manager_->is_user_bot(dialog_id.get_user_id())) {
+          td_->user_manager_->is_user_bot(dialog_id.get_user_id())) {
         send_closure(G()->td(), &Td::send_update,
                      td_api::make_object<td_api::updatePendingTextMessage>(
                          td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatAction"),
