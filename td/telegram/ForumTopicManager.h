@@ -56,7 +56,7 @@ class ForumTopicManager final : public Actor {
                           telegram_api::object_ptr<telegram_api::ForumTopic> &&topic,
                           Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);
 
-  void on_get_forum_topics(ChannelId channel_id, bool order_by_creation_date, MessagesInfo &&info,
+  void on_get_forum_topics(DialogId dialog_id, bool order_by_creation_date, MessagesInfo &&info,
                            vector<telegram_api::object_ptr<telegram_api::ForumTopic>> &&topics,
                            Promise<td_api::object_ptr<td_api::forumTopics>> &&promise);
 

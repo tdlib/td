@@ -10879,14 +10879,16 @@ createForumTopic chat_id:int53 name:string is_name_implicit:Bool icon:forumTopic
 //@icon_custom_emoji_id Identifier of the new custom emoji for topic icon; pass 0 to remove the custom emoji. Ignored if edit_icon_custom_emoji is false. Telegram Premium users can use any custom emoji, other users can use only a custom emoji returned by getForumTopicDefaultIcons
 editForumTopic chat_id:int53 message_thread_id:int53 name:string edit_icon_custom_emoji:Bool icon_custom_emoji_id:int64 = Ok;
 
-//@description Returns information about a forum topic @chat_id Identifier of the chat @message_thread_id Message thread identifier of the forum topic
+//@description Returns information about a topic in a forum supergroup chat or a chat with a bot with topics
+//@chat_id Identifier of the chat
+//@message_thread_id Message thread identifier of the forum topic
 getForumTopic chat_id:int53 message_thread_id:int53 = ForumTopic;
 
 //@description Returns an HTTPS link to a topic in a forum supergroup chat. This is an offline method @chat_id Identifier of the chat @message_thread_id Message thread identifier of the forum topic
 getForumTopicLink chat_id:int53 message_thread_id:int53 = MessageLink;
 
-//@description Returns found forum topics in a forum chat. This is a temporary method for getting information about topic list from the server
-//@chat_id Identifier of the forum chat
+//@description Returns found forum topics in a forum supergroup chat or a chat with a bot with topics. This is a temporary method for getting information about topic list from the server
+//@chat_id Identifier of the chat
 //@query Query to search for in the forum topic's name
 //@offset_date The date starting from which the results need to be fetched. Use 0 or any date in the future to get results from the last topic
 //@offset_message_id The message identifier of the last message in the last found topic, or 0 for the first request
