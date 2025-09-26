@@ -5129,6 +5129,14 @@ bool UserManager::is_user_bot(const User *u) {
   return u != nullptr && !u->is_deleted && u->is_bot;
 }
 
+bool UserManager::is_user_forum_bot(UserId user_id) const {
+  return is_user_forum_bot(get_user(user_id));
+}
+
+bool UserManager::is_user_forum_bot(const User *u) {
+  return u != nullptr && !u->is_deleted && u->is_bot && u->has_bot_forum_view;
+}
+
 Result<UserManager::BotData> UserManager::get_bot_data(UserId user_id) const {
   auto u = get_user(user_id);
   if (u == nullptr) {

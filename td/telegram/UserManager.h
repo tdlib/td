@@ -244,6 +244,8 @@ class UserManager final : public Actor {
 
   bool is_user_bot(UserId user_id) const;
 
+  bool is_user_forum_bot(UserId user_id) const;
+
   struct BotData {
     string username;
     bool can_be_edited = false;
@@ -890,6 +892,8 @@ class UserManager final : public Actor {
   static bool is_user_support(const User *u);
 
   static bool is_user_bot(const User *u);
+
+  static bool is_user_forum_bot(const User *u);
 
   int32 get_user_was_online(const User *u, UserId user_id, int32 unix_time) const;
 
