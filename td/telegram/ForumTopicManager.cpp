@@ -42,7 +42,7 @@ namespace td {
 
 class CreateForumTopicQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::forumTopicInfo>> promise_;
-  ChannelId channel_id_;
+  DialogId dialog_id_;
   DialogId creator_dialog_id_;
   int64 random_id_;
 
@@ -51,9 +51,9 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, const string &title, int32 icon_color, CustomEmojiId icon_custom_emoji_id,
+  void send(DialogId dialog_id, const string &title, int32 icon_color, CustomEmojiId icon_custom_emoji_id,
             DialogId as_dialog_id) {
-    channel_id_ = channel_id;
+    dialog_id_ = dialog_id;
     creator_dialog_id_ = td_->dialog_manager_->get_my_dialog_id();
 
     int32 flags = 0;
@@ -76,14 +76,15 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
       random_id_ = Random::secure_int64();
     } while (random_id_ == 0);
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_createForumTopic(flags, false, std::move(input_peer), title, icon_color,
-                                                icon_custom_emoji_id.get(), random_id_, std::move(as_input_peer)),
-        {{channel_id}}));
+        telegram_api::messages_createForumTopic(flags, dialog_id.get_type() == DialogType::User, std::move(input_peer),
+                                                title, icon_color, icon_custom_emoji_id.get(), random_id_,
+                                                std::move(as_input_peer)),
+        {{dialog_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -94,7 +95,7 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for CreateForumTopicQuery: " << to_string(ptr);
-    auto message = UpdatesManager::get_message_by_random_id(ptr.get(), DialogId(channel_id_), random_id_);
+    auto message = UpdatesManager::get_message_by_random_id(ptr.get(), dialog_id_, random_id_);
     if (message == nullptr || message->get_id() != telegram_api::messageService::ID) {
       LOG(ERROR) << "Receive invalid result for CreateForumTopicQuery: " << to_string(ptr);
       return promise_.set_error(400, "Invalid result received");
@@ -106,21 +107,20 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
     }
 
     auto action = static_cast<const telegram_api::messageActionTopicCreate *>(service_message->action_.get());
-    auto forum_topic_info =
-        td::make_unique<ForumTopicInfo>(DialogId(channel_id_), MessageId(ServerMessageId(service_message->id_)),
-                                        action->title_, ForumTopicIcon(action->icon_color_, action->icon_emoji_id_),
-                                        service_message->date_, creator_dialog_id_, true, false, false, false);
+    auto forum_topic_info = td::make_unique<ForumTopicInfo>(
+        dialog_id_, MessageId(ServerMessageId(service_message->id_)), action->title_,
+        ForumTopicIcon(action->icon_color_, action->icon_emoji_id_), service_message->date_, creator_dialog_id_, true,
+        false, false, action->title_missing_);
     td_->updates_manager_->on_get_updates(
-        std::move(ptr),
-        PromiseCreator::lambda([dialog_id = DialogId(channel_id_), forum_topic_info = std::move(forum_topic_info),
-                                promise = std::move(promise_)](Unit result) mutable {
+        std::move(ptr), PromiseCreator::lambda([dialog_id = dialog_id_, forum_topic_info = std::move(forum_topic_info),
+                                                promise = std::move(promise_)](Unit result) mutable {
           send_closure(G()->forum_topic_manager(), &ForumTopicManager::on_forum_topic_created, dialog_id,
                        std::move(forum_topic_info), std::move(promise));
         }));
   }
 
   void on_error(Status status) final {
-    td_->chat_manager_->on_get_channel_error(channel_id_, status, "CreateForumTopicQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "CreateForumTopicQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -514,11 +514,13 @@ void ForumTopicManager::tear_down() {
 void ForumTopicManager::create_forum_topic(DialogId dialog_id, string &&title,
                                            td_api::object_ptr<td_api::forumTopicIcon> &&icon,
                                            Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise) {
-  TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
-  auto channel_id = dialog_id.get_channel_id();
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id, !td_->auth_manager_->is_bot()));
+  if (dialog_id.get_type() == DialogType::Channel) {
+    auto channel_id = dialog_id.get_channel_id();
 
-  if (!td_->chat_manager_->get_channel_permissions(channel_id).can_create_topics()) {
-    return promise.set_error(400, "Not enough rights to create a topic");
+    if (!td_->chat_manager_->get_channel_permissions(channel_id).can_create_topics()) {
+      return promise.set_error(400, "Not enough rights to create a topic");
+    }
   }
 
   auto new_title = clean_name(std::move(title), MAX_FORUM_TOPIC_TITLE_LENGTH);
@@ -539,7 +541,7 @@ void ForumTopicManager::create_forum_topic(DialogId dialog_id, string &&title,
   DialogId as_dialog_id = td_->messages_manager_->get_dialog_default_send_message_as_dialog_id(dialog_id);
 
   td_->create_handler<CreateForumTopicQuery>(std::move(promise))
-      ->send(channel_id, new_title, icon_color, icon_custom_emoji_id, as_dialog_id);
+      ->send(dialog_id, new_title, icon_color, icon_custom_emoji_id, as_dialog_id);
 }
 
 void ForumTopicManager::on_forum_topic_created(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info,
