@@ -150,7 +150,7 @@ class ForumTopicManager final : public Actor {
 
   Status is_forum(DialogId dialog_id);
 
-  bool can_be_forum(DialogId dialog_id) const;
+  bool can_be_forum(DialogId dialog_id, bool allow_bots = false) const;
 
   static Status can_be_message_thread_id(MessageId top_thread_message_id);
 

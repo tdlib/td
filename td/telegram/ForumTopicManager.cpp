@@ -1021,7 +1021,7 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
         continue;
       }
       dialog_id = forum_topic_info->get_dialog_id();
-      if (!can_be_forum(dialog_id)) {
+      if (!can_be_forum(dialog_id, true)) {
         LOG(ERROR) << "Receive forum topics in " << dialog_id << " from " << source;
         return;
       }
@@ -1035,7 +1035,7 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
     }
     return;
   }
-  if (!can_be_forum(dialog_id)) {
+  if (!can_be_forum(dialog_id, true)) {
     LOG(ERROR) << "Receive forum topics in " << dialog_id << " from " << source;
     return;
   }
@@ -1120,9 +1120,22 @@ Status ForumTopicManager::is_forum(DialogId dialog_id) {
   return Status::OK();
 }
 
-bool ForumTopicManager::can_be_forum(DialogId dialog_id) const {
-  return dialog_id.get_type() == DialogType::Channel &&
-         td_->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id());
+bool ForumTopicManager::can_be_forum(DialogId dialog_id, bool allow_bots) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      if (allow_bots) {
+        return td_->auth_manager_->is_bot() || td_->user_manager_->is_user_bot(dialog_id.get_user_id());
+      }
+      break;
+    case DialogType::Channel:
+      return !td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id());
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      break;
+  }
+  return false;
 }
 
 Status ForumTopicManager::can_be_message_thread_id(MessageId top_thread_message_id) {
