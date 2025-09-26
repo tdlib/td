@@ -126,19 +126,19 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
 
 class EditForumTopicQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
-  ChannelId channel_id_;
+  DialogId dialog_id_;
   MessageId top_thread_message_id_;
 
  public:
   explicit EditForumTopicQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, MessageId top_thread_message_id, bool edit_title, const string &title,
+  void send(DialogId dialog_id, MessageId top_thread_message_id, bool edit_title, const string &title,
             bool edit_custom_emoji_id, CustomEmojiId icon_custom_emoji_id) {
-    channel_id_ = channel_id;
+    dialog_id_ = dialog_id;
     top_thread_message_id_ = top_thread_message_id;
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -154,11 +154,11 @@ class EditForumTopicQuery final : public Td::ResultHandler {
         telegram_api::messages_editForumTopic(flags, std::move(input_peer),
                                               top_thread_message_id_.get_server_message_id().get(), title,
                                               icon_custom_emoji_id.get(), false, false),
-        {{channel_id}}));
+        {{dialog_id}}));
   }
 
   void send(ChannelId channel_id, MessageId top_thread_message_id, bool is_closed) {
-    channel_id_ = channel_id;
+    dialog_id_ = DialogId(channel_id);
     top_thread_message_id_ = top_thread_message_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
@@ -175,7 +175,7 @@ class EditForumTopicQuery final : public Td::ResultHandler {
   }
 
   void send(ChannelId channel_id, bool is_hidden) {
-    channel_id_ = channel_id;
+    dialog_id_ = DialogId(channel_id);
     top_thread_message_id_ = MessageId(ServerMessageId(1));
 
     auto input_peer = td_->dialog_manager_->get_input_peer(DialogId(channel_id), AccessRights::Write);
@@ -206,7 +206,7 @@ class EditForumTopicQuery final : public Td::ResultHandler {
     if (status.message() == "TOPIC_NOT_MODIFIED" && !td_->auth_manager_->is_bot()) {
       return promise_.set_value(Unit());
     }
-    td_->chat_manager_->on_get_channel_error(channel_id_, status, "EditForumTopicQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "EditForumTopicQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -563,14 +563,16 @@ void ForumTopicManager::on_forum_topic_created(DialogId dialog_id, unique_ptr<Fo
 void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, string &&title,
                                          bool edit_icon_custom_emoji, CustomEmojiId icon_custom_emoji_id,
                                          Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
   TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
-  auto channel_id = dialog_id.get_channel_id();
+  if (dialog_id.get_type() == DialogType::Channel) {
+    auto channel_id = dialog_id.get_channel_id();
 
-  if (!td_->chat_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
-    auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
-    if (topic_info != nullptr && !topic_info->is_outgoing()) {
-      return promise.set_error(400, "Not enough rights to edit the topic");
+    if (!td_->chat_manager_->get_channel_permissions(channel_id).can_edit_topics()) {
+      auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
+      if (topic_info != nullptr && !topic_info->is_outgoing()) {
+        return promise.set_error(400, "Not enough rights to edit the topic");
+      }
     }
   }
 
@@ -584,7 +586,7 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, MessageId top_threa
   }
 
   td_->create_handler<EditForumTopicQuery>(std::move(promise))
-      ->send(channel_id, top_thread_message_id, edit_title, new_title, edit_icon_custom_emoji, icon_custom_emoji_id);
+      ->send(dialog_id, top_thread_message_id, edit_title, new_title, edit_icon_custom_emoji, icon_custom_emoji_id);
 }
 
 void ForumTopicManager::read_forum_topic_messages(DialogId dialog_id, MessageId top_thread_message_id,
