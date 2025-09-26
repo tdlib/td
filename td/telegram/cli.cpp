@@ -6200,13 +6200,13 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::deleteQuickReplyShortcutMessages>(shortcut_id, as_message_ids(message_ids)));
     } else if (op == "gftdi") {
       send_request(td_api::make_object<td_api::getForumTopicDefaultIcons>());
-    } else if (op == "cft") {
+    } else if (op == "cft" || op == "cfti") {
       ChatId chat_id;
       string name;
       int32 icon_color;
       get_args(args, chat_id, name, icon_color);
       send_request(td_api::make_object<td_api::createForumTopic>(
-          chat_id, name, td_api::make_object<td_api::forumTopicIcon>(icon_color, 0)));
+          chat_id, name, op == "cfti", td_api::make_object<td_api::forumTopicIcon>(icon_color, 0)));
     } else if (op == "eft") {
       ChatId chat_id;
       MessageThreadId message_thread_id;

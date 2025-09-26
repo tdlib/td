@@ -4405,7 +4405,8 @@ void Requests::on_request(uint64 id, td_api::createForumTopic &request) {
   CLEAN_INPUT_STRING(request.name_);
   CREATE_REQUEST_PROMISE();
   td_->forum_topic_manager_->create_forum_topic(DialogId(request.chat_id_), std::move(request.name_),
-                                                std::move(request.icon_), std::move(promise));
+                                                request.is_name_implicit_, std::move(request.icon_),
+                                                std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::editForumTopic &request) {

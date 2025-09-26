@@ -51,8 +51,8 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const string &title, int32 icon_color, CustomEmojiId icon_custom_emoji_id,
-            DialogId as_dialog_id) {
+  void send(DialogId dialog_id, const string &title, bool title_missing, int32 icon_color,
+            CustomEmojiId icon_custom_emoji_id, DialogId as_dialog_id) {
     dialog_id_ = dialog_id;
     creator_dialog_id_ = td_->dialog_manager_->get_my_dialog_id();
 
@@ -81,9 +81,8 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_createForumTopic(flags, dialog_id.get_type() == DialogType::User, std::move(input_peer),
-                                                title, icon_color, icon_custom_emoji_id.get(), random_id_,
-                                                std::move(as_input_peer)),
+        telegram_api::messages_createForumTopic(flags, title_missing, std::move(input_peer), title, icon_color,
+                                                icon_custom_emoji_id.get(), random_id_, std::move(as_input_peer)),
         {{dialog_id}}));
   }
 
@@ -511,7 +510,7 @@ void ForumTopicManager::tear_down() {
   parent_.reset();
 }
 
-void ForumTopicManager::create_forum_topic(DialogId dialog_id, string &&title,
+void ForumTopicManager::create_forum_topic(DialogId dialog_id, string &&title, bool title_missing,
                                            td_api::object_ptr<td_api::forumTopicIcon> &&icon,
                                            Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise) {
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id, !td_->auth_manager_->is_bot()));
@@ -541,7 +540,7 @@ void ForumTopicManager::create_forum_topic(DialogId dialog_id, string &&title,
   DialogId as_dialog_id = td_->messages_manager_->get_dialog_default_send_message_as_dialog_id(dialog_id);
 
   td_->create_handler<CreateForumTopicQuery>(std::move(promise))
-      ->send(dialog_id, new_title, icon_color, icon_custom_emoji_id, as_dialog_id);
+      ->send(dialog_id, new_title, title_missing, icon_color, icon_custom_emoji_id, as_dialog_id);
 }
 
 void ForumTopicManager::on_forum_topic_created(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info,

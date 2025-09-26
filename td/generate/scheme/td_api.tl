@@ -10866,8 +10866,9 @@ getForumTopicDefaultIcons = Stickers;
 //@description Creates a topic in a forum supergroup chat or a chat with a bot with topics; requires can_manage_topics administrator or can_create_topics member right in the supergroup
 //@chat_id Identifier of the chat
 //@name Name of the topic; 1-128 characters
+//@is_name_implicit Pass true if the name of the topic wasn't entered explicitly; for chats with bots only
 //@icon Icon of the topic. Icon color must be one of 0x6FB9F0, 0xFFD67E, 0xCB86DB, 0x8EEE98, 0xFF93B2, or 0xFB6F5F. Telegram Premium users can use any custom emoji as topic icon, other users can use only a custom emoji returned by getForumTopicDefaultIcons
-createForumTopic chat_id:int53 name:string icon:forumTopicIcon = ForumTopicInfo;
+createForumTopic chat_id:int53 name:string is_name_implicit:Bool icon:forumTopicIcon = ForumTopicInfo;
 
 //@description Edits title and icon of a topic in a forum supergroup chat; requires can_manage_topics administrator right in the supergroup unless the user is creator of the topic
 //@chat_id Identifier of the chat

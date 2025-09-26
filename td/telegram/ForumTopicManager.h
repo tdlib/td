@@ -39,7 +39,8 @@ class ForumTopicManager final : public Actor {
   ForumTopicManager &operator=(ForumTopicManager &&) = delete;
   ~ForumTopicManager() final;
 
-  void create_forum_topic(DialogId dialog_id, string &&title, td_api::object_ptr<td_api::forumTopicIcon> &&icon,
+  void create_forum_topic(DialogId dialog_id, string &&title, bool title_missing,
+                          td_api::object_ptr<td_api::forumTopicIcon> &&icon,
                           Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise);
 
   void on_forum_topic_created(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info,
