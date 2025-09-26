@@ -10913,13 +10913,16 @@ toggleForumTopicIsClosed chat_id:int53 message_thread_id:int53 is_closed:Bool = 
 //@is_hidden Pass true to hide and close the General topic; pass false to unhide it
 toggleGeneralForumTopicIsHidden chat_id:int53 is_hidden:Bool = Ok;
 
-//@description Changes the pinned state of a forum topic; requires can_manage_topics administrator right in the supergroup. There can be up to getOption("pinned_forum_topic_count_max") pinned forum topics
+//@description Changes the pinned state of a topic in a forum supergroup chat or a chat with a bot with topics; requires can_manage_topics administrator right in the supergroup.
+//-There can be up to getOption("pinned_forum_topic_count_max") pinned forum topics
 //@chat_id Chat identifier
 //@message_thread_id Message thread identifier of the forum topic
 //@is_pinned Pass true to pin the topic; pass false to unpin it
 toggleForumTopicIsPinned chat_id:int53 message_thread_id:int53 is_pinned:Bool = Ok;
 
-//@description Changes the order of pinned forum topics; requires can_manage_topics administrator right in the supergroup @chat_id Chat identifier @message_thread_ids The new list of pinned forum topics
+//@description Changes the order of pinned topics in a forum supergroup chat or a chat with a bot with topics; requires can_manage_topics administrator right in the supergroup
+//@chat_id Chat identifier
+//@message_thread_ids The new list of pinned forum topics
 setPinnedForumTopics chat_id:int53 message_thread_ids:vector<int53> = Ok;
 
 //@description Deletes all messages in a forum topic; requires can_delete_messages administrator right in the supergroup unless the user is creator of the topic, the topic has no messages from other users and has at most 11 messages
