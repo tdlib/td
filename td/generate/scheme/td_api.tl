@@ -2431,7 +2431,8 @@ unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadRea
 
 //@class MessageTopic @description Describes a topic of messages in a chat
 
-//@description A topic in a forum supergroup chat @forum_topic_id Unique identifier of the forum topic; all messages in a non-forum supergroup chats belongs to the General topic
+//@description A topic in a forum supergroup chat or a chat with a bot
+//@forum_topic_id Unique identifier of the forum topic; all messages in a non-forum supergroup chats belongs to the General topic
 messageTopicForum forum_topic_id:int53 = MessageTopic;
 
 //@description A topic in a channel direct messages chat administered by the current user @direct_messages_chat_topic_id Unique identifier of the topic
@@ -3281,7 +3282,7 @@ savedMessagesTopic id:int53 type:SavedMessagesTopicType is_pinned:Bool order:int
 //@sender_id Identifier of the user or chat that sends the messages to the topic
 //@order A parameter used to determine order of the topic in the topic list. Topics must be sorted by the order in descending order
 //@can_send_unpaid_messages True, if the other party can send unpaid messages even if the chat has paid messages enabled
-//@is_marked_as_unread True, if the forum topic is marked as unread
+//@is_marked_as_unread True, if the topic is marked as unread
 //@unread_count Number of unread messages in the chat
 //@last_read_inbox_message_id Identifier of the last read incoming message
 //@last_read_outbox_message_id Identifier of the last read outgoing message
@@ -3295,14 +3296,14 @@ directMessagesChatTopic chat_id:int53 id:int53 sender_id:MessageSender order:int
 forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
 
 //@description Contains basic information about a forum topic
-//@chat_id Identifier of the forum chat to which the topic belongs
+//@chat_id Identifier of a forum supergroup chat or a chat with a bot to which the topic belongs
 //@forum_topic_id Forum topic identifier of the topic
 //@message_thread_id Message thread identifier of the topic
 //@name Name of the topic
 //@icon Icon of the topic
 //@creation_date Point in time (Unix timestamp) when the topic was created
 //@creator_id Identifier of the creator of the topic
-//@is_general True, if the topic is the General topic list
+//@is_general True, if the topic is the General topic
 //@is_outgoing True, if the topic was created by the current user
 //@is_closed True, if the topic is closed. If the topic is closed, then the user must have can_manage_topics administrator right in the supergroup or must be the creator of the topic to send messages there
 //@is_hidden True, if the topic is hidden above the topic list and closed; for General topic only
@@ -11336,7 +11337,7 @@ readAllChatMentions chat_id:int53 = Ok;
 //@description Marks all mentions in a forum topic as read @chat_id Chat identifier @message_thread_id Message thread identifier in which mentions are marked as read
 readAllMessageThreadMentions chat_id:int53 message_thread_id:int53 = Ok;
 
-//@description Marks all reactions in a chat or a forum topic as read @chat_id Chat identifier
+//@description Marks all reactions in a chat as read @chat_id Chat identifier
 readAllChatReactions chat_id:int53 = Ok;
 
 //@description Marks all reactions in a forum topic as read @chat_id Chat identifier @message_thread_id Message thread identifier in which reactions are marked as read
