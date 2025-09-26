@@ -109,7 +109,7 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
     auto forum_topic_info =
         td::make_unique<ForumTopicInfo>(DialogId(channel_id_), MessageId(ServerMessageId(service_message->id_)),
                                         action->title_, ForumTopicIcon(action->icon_color_, action->icon_emoji_id_),
-                                        service_message->date_, creator_dialog_id_, true, false, false);
+                                        service_message->date_, creator_dialog_id_, true, false, false, false);
     td_->updates_manager_->on_get_updates(
         std::move(ptr),
         PromiseCreator::lambda([dialog_id = DialogId(channel_id_), forum_topic_info = std::move(forum_topic_info),

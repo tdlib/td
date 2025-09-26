@@ -39,6 +39,7 @@ ForumTopicInfo::ForumTopicInfo(Td *td, const telegram_api::object_ptr<telegram_a
   is_outgoing_ = forum_topic->my_;
   is_closed_ = forum_topic->closed_;
   is_hidden_ = forum_topic->hidden_;
+  is_title_missing_ = forum_topic->title_missing_;
 
   if (creation_date_ <= 0 || !top_thread_message_id_.is_valid() || !dialog_id_.is_valid() ||
       !creator_dialog_id_.is_valid()) {
@@ -54,8 +55,9 @@ ForumTopicInfo::ForumTopicInfo(Td *td, const telegram_api::object_ptr<telegram_a
 
 bool ForumTopicInfo::apply_edited_data(const ForumTopicEditedData &edited_data) {
   bool is_changed = false;
-  if (!edited_data.title_.empty() && edited_data.title_ != title_) {
+  if (!edited_data.title_.empty() && (edited_data.title_ != title_ || is_title_missing_)) {
     title_ = edited_data.title_;
+    is_title_missing_ = false;
     is_changed = true;
   }
   if (edited_data.edit_icon_custom_emoji_id_ && icon_.edit_custom_emoji_id(edited_data.icon_custom_emoji_id_)) {
@@ -81,14 +83,15 @@ td_api::object_ptr<td_api::forumTopicInfo> ForumTopicInfo::get_forum_topic_info_
   return td_api::make_object<td_api::forumTopicInfo>(
       td->dialog_manager_->get_chat_id_object(dialog_id_, "forumTopicInfo"), top_thread_message_id_.get(),
       top_thread_message_id_.get(), title_, icon_.get_forum_topic_icon_object(), creation_date_, std::move(creator_id),
-      top_thread_message_id_ == MessageId(ServerMessageId(1)), is_outgoing_, is_closed_, is_hidden_);
+      top_thread_message_id_ == MessageId(ServerMessageId(1)), is_outgoing_, is_closed_, is_hidden_, is_title_missing_);
 }
 
 bool operator==(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs) {
   return lhs.dialog_id_ == rhs.dialog_id_ && lhs.top_thread_message_id_ == rhs.top_thread_message_id_ &&
          lhs.title_ == rhs.title_ && lhs.icon_ == rhs.icon_ && lhs.creation_date_ == rhs.creation_date_ &&
          lhs.creator_dialog_id_ == rhs.creator_dialog_id_ && lhs.is_outgoing_ == rhs.is_outgoing_ &&
-         lhs.is_closed_ == rhs.is_closed_ && lhs.is_hidden_ == rhs.is_hidden_;
+         lhs.is_closed_ == rhs.is_closed_ && lhs.is_hidden_ == rhs.is_hidden_ &&
+         lhs.is_title_missing_ == rhs.is_title_missing_;
 }
 
 bool operator!=(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs) {

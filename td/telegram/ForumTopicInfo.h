@@ -30,6 +30,7 @@ class ForumTopicInfo {
   bool is_outgoing_ = false;
   bool is_closed_ = false;
   bool is_hidden_ = false;
+  bool is_title_missing_ = false;
 
   friend bool operator==(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs);
 
@@ -42,7 +43,8 @@ class ForumTopicInfo {
                  DialogId expected_dialog_id);
 
   ForumTopicInfo(DialogId dialog_id, MessageId top_thread_message_id, string title, ForumTopicIcon icon,
-                 int32 creation_date, DialogId creator_dialog_id, bool is_outgoing, bool is_closed, bool is_hidden)
+                 int32 creation_date, DialogId creator_dialog_id, bool is_outgoing, bool is_closed, bool is_hidden,
+                 bool is_title_missing)
       : dialog_id_(dialog_id)
       , top_thread_message_id_(top_thread_message_id)
       , title_(std::move(title))
@@ -51,7 +53,8 @@ class ForumTopicInfo {
       , creator_dialog_id_(creator_dialog_id)
       , is_outgoing_(is_outgoing)
       , is_closed_(is_closed)
-      , is_hidden_(is_hidden) {
+      , is_hidden_(is_hidden)
+      , is_title_missing_(is_title_missing) {
   }
 
   bool is_empty() const {
