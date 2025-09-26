@@ -568,7 +568,7 @@ public final class Example {
                     TdApi.UpdateChatTheme updateChat = (TdApi.UpdateChatTheme) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);
                     synchronized (chat) {
-                        chat.themeName = updateChat.themeName;
+                        chat.theme = updateChat.theme;
                     }
                     break;
                 }
