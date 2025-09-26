@@ -23,7 +23,7 @@ class MessageTopic {
   enum class Type : int32 { None, Forum, Monoforum, SavedMessages };
   Type type_ = Type::None;
   DialogId dialog_id_;
-  MessageId top_thread_message_id_;  // TODO class ForumId
+  MessageId top_thread_message_id_;  // TODO class TopicId
   SavedMessagesTopicId saved_messages_topic_id_;
 
   friend bool operator==(const MessageTopic &lhs, const MessageTopic &rhs);

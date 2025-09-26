@@ -46,36 +46,40 @@ void StarGift::store(StorerT &storer) const {
   bool has_theme_dialog_id = theme_dialog_id_.is_valid();
   bool has_host_dialog_id = host_dialog_id_.is_valid();
   bool has_peer_color = peer_color_ != nullptr;
+  bool has_flags2 = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_limited);
   STORE_FLAG(has_default_sell_star_count);
   STORE_FLAG(has_first_sale_date);
   STORE_FLAG(has_last_sale_date);
   STORE_FLAG(is_for_birthday_);
-  STORE_FLAG(is_unique_);  // 5
+  STORE_FLAG(is_unique_);
   STORE_FLAG(has_original_details);
   STORE_FLAG(false);  // has_owner_user_id
   STORE_FLAG(has_upgrade_star_count);
   STORE_FLAG(has_owner_name);
-  STORE_FLAG(has_slug);  // 10
+  STORE_FLAG(has_slug);
   STORE_FLAG(has_owner_dialog_id);
   STORE_FLAG(has_owner_address);
   STORE_FLAG(has_gift_address);
   STORE_FLAG(has_resale_star_count);
-  STORE_FLAG(has_released_by_dialog_id);  // 15
+  STORE_FLAG(has_released_by_dialog_id);
   STORE_FLAG(is_premium_);
   STORE_FLAG(has_per_user_remains);
   STORE_FLAG(has_per_user_total);
   STORE_FLAG(resale_ton_only_);
-  STORE_FLAG(has_resale_ton_count);  // 20
+  STORE_FLAG(has_resale_ton_count);
   STORE_FLAG(has_regular_gift_id);
   STORE_FLAG(has_value);
   STORE_FLAG(has_locked_until_date);
   STORE_FLAG(is_theme_available_);
-  STORE_FLAG(has_theme_dialog_id);  // 25
+  STORE_FLAG(has_theme_dialog_id);
   STORE_FLAG(has_host_dialog_id);
   STORE_FLAG(has_colors_);
   STORE_FLAG(has_peer_color);
+  STORE_FLAG(has_flags2);
+  END_STORE_FLAGS();
+  BEGIN_STORE_FLAGS();
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -187,6 +191,7 @@ void StarGift::parse(ParserT &parser) {
   bool has_theme_dialog_id;
   bool has_host_dialog_id;
   bool has_peer_color;
+  bool has_flags2;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_limited);
   PARSE_FLAG(has_default_sell_star_count);
@@ -217,7 +222,12 @@ void StarGift::parse(ParserT &parser) {
   PARSE_FLAG(has_host_dialog_id);
   PARSE_FLAG(has_colors_);
   PARSE_FLAG(has_peer_color);
+  PARSE_FLAG(has_flags2);
   END_PARSE_FLAGS();
+  if (has_flags2) {
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
+  }
   td::parse(id_, parser);
   if (!is_unique_) {
     sticker_file_id_ = td->stickers_manager_->parse_sticker(false, parser);
