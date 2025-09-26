@@ -10896,7 +10896,7 @@ getForumTopicLink chat_id:int53 message_thread_id:int53 = MessageLink;
 //@limit The maximum number of forum topics to be returned; up to 100. For optimal performance, the number of returned forum topics is chosen by TDLib and can be smaller than the specified limit
 getForumTopics chat_id:int53 query:string offset_date:int32 offset_message_id:int53 offset_message_thread_id:int53 limit:int32 = ForumTopics;
 
-//@description Changes the notification settings of a forum topic
+//@description Changes the notification settings of a forum topic in a forum supergroup chat or a chat with a bot with topics
 //@chat_id Chat identifier
 //@message_thread_id Message thread identifier of the forum topic
 //@notification_settings New notification settings for the forum topic. If the topic is muted for more than 366 days, it is considered to be muted forever

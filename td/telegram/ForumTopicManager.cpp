@@ -732,7 +732,7 @@ Status ForumTopicManager::set_forum_topic_notification_settings(
     DialogId dialog_id, MessageId top_thread_message_id,
     tl_object_ptr<td_api::chatNotificationSettings> &&notification_settings) {
   CHECK(!td_->auth_manager_->is_bot());
-  TRY_STATUS(is_forum(dialog_id));
+  TRY_STATUS(is_forum(dialog_id, true));
   TRY_STATUS(can_be_message_thread_id(top_thread_message_id));
   auto current_settings = get_forum_topic_notification_settings(dialog_id, top_thread_message_id);
   if (current_settings == nullptr) {
