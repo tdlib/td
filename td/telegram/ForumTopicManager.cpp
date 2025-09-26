@@ -679,7 +679,7 @@ void ForumTopicManager::on_update_forum_topic_is_pinned(DialogId dialog_id, Mess
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "on_update_forum_topic_is_pinned")) {
     return;
   }
-  if (!can_be_forum(dialog_id)) {
+  if (!can_be_forum(dialog_id, true)) {
     LOG(ERROR) << "Receive pinned topics in " << dialog_id;
     return;
   }
@@ -701,7 +701,7 @@ void ForumTopicManager::on_update_pinned_forum_topics(DialogId dialog_id, vector
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "on_update_pinned_forum_topics")) {
     return;
   }
-  if (!can_be_forum(dialog_id)) {
+  if (!can_be_forum(dialog_id, true)) {
     LOG(ERROR) << "Receive pinned topics in " << dialog_id;
     return;
   }

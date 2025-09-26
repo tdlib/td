@@ -3771,28 +3771,22 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMonoForumNoPaid
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedForumTopic> update, Promise<Unit> &&promise) {
-  DialogId dialog_id(update->peer_);
-  if (dialog_id.get_type() == DialogType::Channel) {
-    td_->forum_topic_manager_->on_update_forum_topic_is_pinned(dialog_id, MessageId(ServerMessageId(update->topic_id_)),
-                                                               update->pinned_);
-  }
+  td_->forum_topic_manager_->on_update_forum_topic_is_pinned(
+      DialogId(update->peer_), MessageId(ServerMessageId(update->topic_id_)), update->pinned_);
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedForumTopics> update, Promise<Unit> &&promise) {
-  DialogId dialog_id(update->peer_);
-  if (dialog_id.get_type() == DialogType::Channel) {
-    vector<MessageId> top_thread_message_ids;
-    for (auto &server_message_id : update->order_) {
-      auto message_id = MessageId(ServerMessageId(server_message_id));
-      if (!message_id.is_valid()) {
-        LOG(ERROR) << "Receive " << to_string(update);
-        break;
-      }
-      top_thread_message_ids.push_back(message_id);
+  vector<MessageId> top_thread_message_ids;
+  for (auto &server_message_id : update->order_) {
+    auto message_id = MessageId(ServerMessageId(server_message_id));
+    if (!message_id.is_valid()) {
+      LOG(ERROR) << "Receive " << to_string(update);
+      break;
     }
-    td_->forum_topic_manager_->on_update_pinned_forum_topics(dialog_id, std::move(top_thread_message_ids));
+    top_thread_message_ids.push_back(message_id);
   }
+  td_->forum_topic_manager_->on_update_pinned_forum_topics(DialogId(update->peer_), std::move(top_thread_message_ids));
   promise.set_value(Unit());
 }
 
