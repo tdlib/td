@@ -318,7 +318,7 @@ class MessagesManager final : public Actor {
   void on_update_read_channel_messages_contents(
       tl_object_ptr<telegram_api::updateChannelReadMessagesContents> &&update);
 
-  void on_update_read_message_comments(DialogId dialog_id, MessageId message_id, MessageId max_message_id,
+  void on_update_read_message_comments(DialogId dialog_id, MessageId top_thread_message_id, MessageId max_message_id,
                                        MessageId last_read_inbox_message_id, MessageId last_read_outbox_message_id,
                                        int32 unread_count);
 

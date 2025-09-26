@@ -4322,7 +4322,7 @@ void MessagesManager::on_update_read_channel_messages_contents(
   }
 }
 
-void MessagesManager::on_update_read_message_comments(DialogId dialog_id, MessageId message_id,
+void MessagesManager::on_update_read_message_comments(DialogId dialog_id, MessageId top_thread_message_id,
                                                       MessageId max_message_id, MessageId last_read_inbox_message_id,
                                                       MessageId last_read_outbox_message_id, int32 unread_count) {
   Dialog *d = get_dialog_force(dialog_id, "on_update_read_message_comments");
@@ -4331,19 +4331,21 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
     return;
   }
 
-  if (message_id == MessageId(ServerMessageId(1))) {
-    td_->forum_topic_manager_->on_update_forum_topic_unread(
-        dialog_id, message_id, max_message_id, last_read_inbox_message_id, last_read_outbox_message_id, unread_count);
+  if (top_thread_message_id == MessageId(ServerMessageId(1))) {
+    td_->forum_topic_manager_->on_update_forum_topic_unread(dialog_id, top_thread_message_id, max_message_id,
+                                                            last_read_inbox_message_id, last_read_outbox_message_id,
+                                                            unread_count);
     return;
   }
 
-  auto m = get_message_force(d, message_id, "on_update_read_message_comments");
+  auto m = get_message_force(d, top_thread_message_id, "on_update_read_message_comments");
   if (m == nullptr || !m->message_id.is_server() || m->top_thread_message_id != m->message_id) {
     return;
   }
   if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_update_forum_topic_unread(
-        dialog_id, message_id, max_message_id, last_read_inbox_message_id, last_read_outbox_message_id, unread_count);
+    td_->forum_topic_manager_->on_update_forum_topic_unread(dialog_id, top_thread_message_id, max_message_id,
+                                                            last_read_inbox_message_id, last_read_outbox_message_id,
+                                                            unread_count);
   }
   if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
     return;
