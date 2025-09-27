@@ -1486,7 +1486,7 @@ class DeleteScheduledMessagesQuery final : public Td::ResultHandler {
 
 class DeleteTopicHistoryQuery final : public Td::ResultHandler {
   Promise<AffectedHistory> promise_;
-  ChannelId channel_id_;
+  DialogId dialog_id_;
   MessageId top_thread_message_id_;
 
  public:
@@ -1494,8 +1494,7 @@ class DeleteTopicHistoryQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, MessageId top_thread_message_id) {
-    CHECK(dialog_id.get_type() == DialogType::Channel);
-    channel_id_ = dialog_id.get_channel_id();
+    dialog_id_ = dialog_id;
     top_thread_message_id_ = top_thread_message_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -1517,8 +1516,7 @@ class DeleteTopicHistoryQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->messages_manager_->on_get_message_error(DialogId(channel_id_), top_thread_message_id_, status,
-                                                 "DeleteTopicHistoryQuery");
+    td_->messages_manager_->on_get_message_error(dialog_id_, top_thread_message_id_, status, "DeleteTopicHistoryQuery");
     promise_.set_error(std::move(status));
   }
 };

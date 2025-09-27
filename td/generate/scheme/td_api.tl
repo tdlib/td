@@ -10925,7 +10925,8 @@ toggleForumTopicIsPinned chat_id:int53 message_thread_id:int53 is_pinned:Bool = 
 //@message_thread_ids The new list of pinned forum topics
 setPinnedForumTopics chat_id:int53 message_thread_ids:vector<int53> = Ok;
 
-//@description Deletes all messages in a forum topic; requires can_delete_messages administrator right in the supergroup unless the user is creator of the topic, the topic has no messages from other users and has at most 11 messages
+//@description Deletes all messages from a topic in a forum supergroup chat or a chat with a bot with topics; requires can_delete_messages administrator right in the supergroup
+//-unless the user is creator of the topic, the topic has no messages from other users and has at most 11 messages
 //@chat_id Identifier of the chat
 //@message_thread_id Message thread identifier of the forum topic
 deleteForumTopic chat_id:int53 message_thread_id:int53 = Ok;

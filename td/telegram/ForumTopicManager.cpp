@@ -934,14 +934,16 @@ void ForumTopicManager::set_pinned_forum_topics(DialogId dialog_id, vector<Messa
 
 void ForumTopicManager::delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
                                            Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, is_forum(dialog_id));
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
   TRY_STATUS_PROMISE(promise, can_be_message_thread_id(top_thread_message_id));
-  auto channel_id = dialog_id.get_channel_id();
 
-  if (!td_->chat_manager_->get_channel_permissions(channel_id).can_delete_messages()) {
-    auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
-    if (topic_info != nullptr && !topic_info->is_outgoing()) {
-      return promise.set_error(400, "Not enough rights to delete the topic");
+  if (dialog_id.get_type() == DialogType::Channel) {
+    auto channel_id = dialog_id.get_channel_id();
+    if (!td_->chat_manager_->get_channel_permissions(channel_id).can_delete_messages()) {
+      auto topic_info = get_topic_info(dialog_id, top_thread_message_id);
+      if (topic_info != nullptr && !topic_info->is_outgoing()) {
+        return promise.set_error(400, "Not enough rights to delete the topic");
+      }
     }
   }
 
