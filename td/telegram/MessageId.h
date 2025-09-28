@@ -206,4 +206,6 @@ struct MessageIdHash {
   }
 };
 
+StringBuilder &operator<<(StringBuilder &string_builder, MessageId message_id);
+
 }  // namespace td

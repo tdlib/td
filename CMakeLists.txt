@@ -817,6 +817,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ForumTopic.h
   td/telegram/ForumTopicEditedData.h
   td/telegram/ForumTopicIcon.h
+  td/telegram/ForumTopicId.h
   td/telegram/ForumTopicInfo.h
   td/telegram/ForumTopicManager.h
   td/telegram/Game.h
