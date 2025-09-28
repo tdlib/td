@@ -287,12 +287,12 @@ static td_api::object_ptr<td_api::chatRevenueStatistics> convert_ton_revenue_sta
       obj->usd_rate_ > 0 ? clamp(obj->usd_rate_ * 1e-7, 1e-18, 1e18) : 1.0);
 }
 
-class GetTonRevenueStatsQuery final : public Td::ResultHandler {
+class GetDialogRevenueStatsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetTonRevenueStatsQuery(Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise)
+  explicit GetDialogRevenueStatsQuery(Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -313,7 +313,7 @@ class GetTonRevenueStatsQuery final : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for GetTonRevenueStatsQuery: " << to_string(ptr);
+    LOG(DEBUG) << "Receive result for GetDialogRevenueStatsQuery: " << to_string(ptr);
     if (ptr->top_hours_graph_ == nullptr) {
       LOG(ERROR) << "Receive " << to_string(ptr);
       return on_error(Status::Error(500, "Receive invalid response"));
@@ -322,7 +322,7 @@ class GetTonRevenueStatsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetTonRevenueStatsQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetDialogRevenueStatsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -733,7 +733,7 @@ void StatisticsManager::get_dialog_revenue_statistics(
     DialogId dialog_id, bool is_dark, Promise<td_api::object_ptr<td_api::chatRevenueStatistics>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
                                                                         "get_dialog_revenue_statistics"));
-  td_->create_handler<GetTonRevenueStatsQuery>(std::move(promise))->send(dialog_id, is_dark);
+  td_->create_handler<GetDialogRevenueStatsQuery>(std::move(promise))->send(dialog_id, is_dark);
 }
 
 void StatisticsManager::on_update_dialog_revenue_transactions(
