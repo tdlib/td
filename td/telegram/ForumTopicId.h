@@ -29,6 +29,15 @@ class ForumTopicId {
     return ForumTopicId(1);
   }
 
+  static vector<ForumTopicId> get_forum_topic_ids(const vector<int32> &input_forum_topic_ids) {
+    vector<ForumTopicId> result;
+    result.reserve(input_forum_topic_ids.size());
+    for (auto input_forum_topic_id : input_forum_topic_ids) {
+      result.push_back(ForumTopicId(input_forum_topic_id));
+    }
+    return result;
+  }
+
   bool is_valid() const {
     return id_ > 0;
   }
