@@ -979,6 +979,18 @@ class CliClient final : public Actor {
     arg.message_thread_id = as_message_thread_id(args);
   }
 
+  struct ForumTopicId {
+    int32 forum_topic_id = 0;
+
+    operator int32() const {
+      return forum_topic_id;
+    }
+  };
+
+  void get_args(string &args, ForumTopicId &arg) const {
+    arg.forum_topic_id = to_integer<int32>(args);
+  }
+
   struct UserId {
     int64 user_id = 0;
 
@@ -1115,8 +1127,8 @@ class CliClient final : public Actor {
     if (direct_messages_chat_topic_id_ != 0) {
       return td_api::make_object<td_api::messageTopicDirectMessages>(direct_messages_chat_topic_id_);
     }
-    if (message_thread_id_ != 0) {
-      return td_api::make_object<td_api::messageTopicForum>(message_thread_id_);
+    if (forum_topic_id_ != 0) {
+      return td_api::make_object<td_api::messageTopicForum>(forum_topic_id_);
     }
     return nullptr;
   }
@@ -5847,6 +5859,8 @@ class CliClient final : public Actor {
       paid_message_star_count_ = to_integer<int64>(args);
     } else if (op == "sop") {
       only_preview_ = as_bool(args);
+    } else if (op == "sfti") {
+      get_args(args, forum_topic_id_);
     } else if (op == "smti") {
       get_args(args, message_thread_id_);
     } else if (op == "sdmcti") {
@@ -8332,6 +8346,7 @@ class CliClient final : public Actor {
   int64 paid_message_star_count_ = 0;
   int64 message_effect_id_ = 0;
   bool only_preview_ = false;
+  ForumTopicId forum_topic_id_;
   MessageThreadId message_thread_id_;
   ChatId direct_messages_chat_topic_id_;
   string business_connection_id_;

@@ -89,7 +89,7 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
   switch (topic->get_id()) {
     case td_api::messageTopicForum::ID: {
       auto top_thread_message_id =
-          MessageId(static_cast<const td_api::messageTopicForum *>(topic.get())->forum_topic_id_);
+          MessageId(ServerMessageId(static_cast<const td_api::messageTopicForum *>(topic.get())->forum_topic_id_));
       if (dialog_id.get_type() != DialogType::Channel ||
           !td->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
         return Status::Error(400, "Chat is not a forum");
@@ -142,7 +142,7 @@ td_api::object_ptr<td_api::MessageTopic> MessageTopic::get_message_topic_object(
       return nullptr;
     case Type::Forum:
       // TODO send updateForumTopic before sending its identifier
-      return td_api::make_object<td_api::messageTopicForum>(top_thread_message_id_.get());
+      return td_api::make_object<td_api::messageTopicForum>(top_thread_message_id_.get_server_message_id().get());
     case Type::Monoforum:
       return td_api::make_object<td_api::messageTopicDirectMessages>(
           td->saved_messages_manager_->get_saved_messages_topic_id_object(dialog_id_, saved_messages_topic_id_));

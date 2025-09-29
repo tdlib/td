@@ -2433,7 +2433,7 @@ unreadReaction type:ReactionType sender_id:MessageSender is_big:Bool = UnreadRea
 
 //@description A topic in a forum supergroup chat or a chat with a bot
 //@forum_topic_id Unique identifier of the forum topic; all messages in a non-forum supergroup chats belongs to the General topic
-messageTopicForum forum_topic_id:int53 = MessageTopic;
+messageTopicForum forum_topic_id:int32 = MessageTopic;
 
 //@description A topic in a channel direct messages chat administered by the current user @direct_messages_chat_topic_id Unique identifier of the topic
 messageTopicDirectMessages direct_messages_chat_topic_id:int53 = MessageTopic;
@@ -3308,7 +3308,7 @@ forumTopicIcon color:int32 custom_emoji_id:int64 = ForumTopicIcon;
 //@is_closed True, if the topic is closed. If the topic is closed, then the user must have can_manage_topics administrator right in the supergroup or must be the creator of the topic to send messages there
 //@is_hidden True, if the topic is hidden above the topic list and closed; for General topic only
 //@is_name_implicit True, if the name of the topic wasn't added explicitly
-forumTopicInfo chat_id:int53 forum_topic_id:int53 message_thread_id:int53 name:string icon:forumTopicIcon creation_date:int32 creator_id:MessageSender is_general:Bool is_outgoing:Bool is_closed:Bool is_hidden:Bool is_name_implicit:Bool = ForumTopicInfo;
+forumTopicInfo chat_id:int53 forum_topic_id:int32 message_thread_id:int53 name:string icon:forumTopicIcon creation_date:int32 creator_id:MessageSender is_general:Bool is_outgoing:Bool is_closed:Bool is_hidden:Bool is_name_implicit:Bool = ForumTopicInfo;
 
 //@description Describes a forum topic
 //@info Basic information about the topic
@@ -9174,7 +9174,7 @@ updateForumTopicInfo info:forumTopicInfo = Update;
 //@unread_mention_count Number of unread messages with a mention/reply in the topic
 //@unread_reaction_count Number of messages with unread reactions in the topic
 //@notification_settings Notification settings for the topic
-updateForumTopic chat_id:int53 forum_topic_id:int53 message_thread_id:int53 is_pinned:Bool last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings = Update;
+updateForumTopic chat_id:int53 forum_topic_id:int32 message_thread_id:int53 is_pinned:Bool last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings = Update;
 
 //@description Notification settings for some type of chats were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
 updateScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Update;
