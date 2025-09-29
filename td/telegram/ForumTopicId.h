@@ -30,12 +30,21 @@ class ForumTopicId {
   }
 
   static vector<ForumTopicId> get_forum_topic_ids(const vector<int32> &input_forum_topic_ids) {
-    vector<ForumTopicId> result;
-    result.reserve(input_forum_topic_ids.size());
+    vector<ForumTopicId> forum_topic_ids;
+    forum_topic_ids.reserve(input_forum_topic_ids.size());
     for (auto input_forum_topic_id : input_forum_topic_ids) {
-      result.push_back(ForumTopicId(input_forum_topic_id));
+      forum_topic_ids.push_back(ForumTopicId(input_forum_topic_id));
     }
-    return result;
+    return forum_topic_ids;
+  }
+
+  static vector<int32> get_top_msg_ids(const vector<ForumTopicId> &forum_topic_ids) {
+    vector<int32> top_msg_ids;
+    top_msg_ids.reserve(forum_topic_ids.size());
+    for (auto forum_topic_id : forum_topic_ids) {
+      top_msg_ids.push_back(forum_topic_id.get());
+    }
+    return top_msg_ids;
   }
 
   bool is_valid() const {
