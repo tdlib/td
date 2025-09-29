@@ -17421,7 +17421,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
   found_dialog_messages_[random_id];  // reserve place for result
 
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
-      ->send(dialog_id, MessageTopic::forum(dialog_id, message_id), string(), DialogId(),
+      ->send(dialog_id, MessageTopic::thread(dialog_id, message_id), string(), DialogId(),
              from_message_id.get_next_server_message_id(), offset, limit, MessageSearchFilter::Empty, ReactionType(),
              random_id);
   return {};
@@ -17455,8 +17455,8 @@ void MessagesManager::get_dialog_message_calendar(DialogId dialog_id,
     }
     return promise.set_error(400, "The filter is not supported");
   }
-  if (message_topic.is_forum()) {
-    return promise.set_error(400, "Not supported in forum topics");
+  if (message_topic.is_forum() || message_topic.is_thread()) {
+    return promise.set_error(400, "Unsupported for the specified topic type");
   }
 
   // Trying to use database
@@ -18622,6 +18622,9 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id,
     if (return_local) {
       return promise.set_value(-1);
     }
+    if (message_topic.is_thread()) {
+      return promise.set_error(400, "The specified topic type is unsupported");
+    }
   } else {
     auto dialog_type = dialog_id.get_type();
     int32 message_count = d->message_count_by_index[message_search_filter_index(filter)];
@@ -18677,6 +18680,9 @@ void MessagesManager::get_dialog_message_position(MessageFullId message_full_id,
   }
   TRY_RESULT_PROMISE(promise, message_topic, MessageTopic::get_message_topic(td_, dialog_id, topic_id));
 
+  if (message_topic.is_thread()) {
+    return promise.set_error(400, "The specified topic type is unsupported");
+  }
   if (!message_topic.is_empty() && get_message_topic(dialog_id, m) != message_topic) {
     return promise.set_error(400, "Message doesn't belong to the topic");
   }
@@ -19850,7 +19856,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_dialog_event_log_messag
       nullptr, nullptr, m->is_outgoing, m->is_pinned, m->is_from_offline, can_be_saved, true, m->is_channel_post,
       m->is_paid_suggested_post_stars, m->is_paid_suggested_post_ton, false, m->date, edit_date,
       std::move(forward_info), std::move(import_info), std::move(interaction_info), Auto(), nullptr, nullptr,
-      std::move(reply_to), 0, nullptr, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count,
+      std::move(reply_to), nullptr, nullptr, 0.0, 0.0, via_bot_user_id, 0, m->sender_boost_count,
       m->paid_message_star_count, m->author_signature, 0, 0, get_restriction_info_object(m->restriction_reasons),
       std::move(content), std::move(reply_markup));
 }
@@ -19918,10 +19924,9 @@ td_api::object_ptr<td_api::message> MessagesManager::get_business_message_messag
       m->message_id.get(), std::move(sender), get_chat_id_object(dialog_id, "get_business_message_message_object"),
       nullptr, nullptr, m->is_outgoing, false, m->is_from_offline, can_be_saved, false, false, false, false, false,
       m->date, m->edit_date, std::move(forward_info), std::move(import_info), nullptr, Auto(), nullptr, nullptr,
-      std::move(reply_to), 0, nullptr, std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id,
-      via_business_bot_user_id, m->sender_boost_count, m->paid_message_star_count, string(), m->media_album_id,
-      m->effect_id.get(), get_restriction_info_object(m->restriction_reasons), std::move(content),
-      std::move(reply_markup));
+      std::move(reply_to), nullptr, std::move(self_destruct_type), 0.0, 0.0, via_bot_user_id, via_business_bot_user_id,
+      m->sender_boost_count, m->paid_message_star_count, string(), m->media_album_id, m->effect_id.get(),
+      get_restriction_info_object(m->restriction_reasons), std::move(content), std::move(reply_markup));
 }
 
 td_api::object_ptr<td_api::message> MessagesManager::get_message_object(Dialog *d, MessageId message_id,
@@ -20002,7 +20007,6 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
     return nullptr;
   }();
   auto topic = get_message_topic(dialog_id, m);
-  auto top_thread_message_id = m->top_thread_message_id.get();
   auto date = is_scheduled ? 0 : m->date;
   auto edit_date = m->hide_edit_date || is_scheduled ? 0 : m->edit_date;
   auto has_timestamped_media = reply_to == nullptr || m->max_own_media_timestamp >= 0;
@@ -20016,7 +20020,7 @@ td_api::object_ptr<td_api::message> MessagesManager::get_message_object(DialogId
       can_be_saved, has_timestamped_media, m->is_channel_post, m->is_paid_suggested_post_stars,
       m->is_paid_suggested_post_ton, m->contains_unread_mention, date, edit_date, std::move(forward_info),
       std::move(import_info), std::move(interaction_info), std::move(unread_reactions), std::move(fact_check),
-      std::move(suggested_post), std::move(reply_to), top_thread_message_id, topic.get_message_topic_object(td_),
+      std::move(suggested_post), std::move(reply_to), topic.get_message_topic_object(td_),
       std::move(self_destruct_type), ttl_expires_in, auto_delete_in, via_bot_user_id, via_business_bot_user_id,
       m->sender_boost_count, m->paid_message_star_count, m->author_signature, m->media_album_id, m->effect_id.get(),
       get_restriction_info_object(m->restriction_reasons), std::move(content), std::move(reply_markup));

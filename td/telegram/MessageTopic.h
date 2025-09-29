@@ -21,9 +21,10 @@ namespace td {
 class Td;
 
 class MessageTopic {
-  enum class Type : int32 { None, Forum, Monoforum, SavedMessages };
+  enum class Type : int32 { None, Thread, Forum, Monoforum, SavedMessages };
   Type type_ = Type::None;
   DialogId dialog_id_;
+  MessageId top_thread_message_id_;
   ForumTopicId forum_topic_id_;
   SavedMessagesTopicId saved_messages_topic_id_;
 
@@ -37,7 +38,7 @@ class MessageTopic {
   MessageTopic(Td *td, DialogId dialog_id, bool is_topic_message, MessageId top_thread_message_id,
                SavedMessagesTopicId saved_messages_topic_id);
 
-  static MessageTopic forum(DialogId dialog_id, MessageId top_thread_message_id);
+  static MessageTopic thread(DialogId dialog_id, MessageId top_thread_message_id);
 
   static MessageTopic monoforum(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id);
 
@@ -53,7 +54,7 @@ class MessageTopic {
   }
 
   bool is_thread() const {
-    return type_ == Type::Forum;  // TODO
+    return type_ == Type::Thread;
   }
 
   bool is_forum() const {
@@ -69,10 +70,14 @@ class MessageTopic {
   }
 
   int32 get_input_top_msg_id() const {
-    if (type_ != Type::Forum) {
-      return 0;
+    switch (type_) {
+      case Type::Thread:
+        return top_thread_message_id_.get_server_message_id().get();
+      case Type::Forum:
+        return forum_topic_id_.get();
+      default:
+        return 0;
     }
-    return forum_topic_id_.get();
   }
 
   SavedMessagesTopicId get_monoforum_topic_id() const {
