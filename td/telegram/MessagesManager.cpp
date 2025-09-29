@@ -777,7 +777,7 @@ class GetSearchResultCalendarQuery final : public Td::ResultHandler {
     filter_ = filter;
 
     auto saved_messages_topic_id = message_topic.get_any_saved_messages_topic_id();
-    auto top_msg_id = message_topic.get_forum_topic_id().get_server_message_id().get();
+    auto top_msg_id = message_topic.get_input_top_msg_id();
     CHECK(top_msg_id == 0);
     int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputPeer> saved_input_peer;
@@ -869,7 +869,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
     random_id_ = random_id;
 
     auto saved_messages_topic_id = message_topic.get_any_saved_messages_topic_id();
-    auto top_msg_id = message_topic.get_forum_topic_id().get_server_message_id().get();
+    auto top_msg_id = message_topic.get_input_top_msg_id();
     auto offset_id = from_message_id.get_server_message_id().get();
     if (filter == MessageSearchFilter::UnreadMention) {
       CHECK(!saved_messages_topic_id.is_valid());
@@ -1106,7 +1106,7 @@ class GetSearchCountersQuery final : public Td::ResultHandler {
     filters.push_back(get_input_messages_filter(filter));
 
     auto saved_messages_topic_id = message_topic.get_any_saved_messages_topic_id();
-    auto top_msg_id = message_topic.get_forum_topic_id().get_server_message_id().get();
+    auto top_msg_id = message_topic.get_input_top_msg_id();
     int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputPeer> saved_input_peer;
     if (saved_messages_topic_id.is_valid()) {
@@ -7338,8 +7338,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
     // anyway, pretend that there are no more messages
     first_added_message_id = MessageId::min();
   }
-  bool can_be_in_different_dialog =
-      message_topic.get_forum_topic_id().is_valid() && td_->dialog_manager_->is_broadcast_channel(dialog_id);
+  bool can_be_in_different_dialog = message_topic.is_thread() && td_->dialog_manager_->is_broadcast_channel(dialog_id);
   DialogId real_dialog_id;
   MessageId next_from_message_id;
   Dialog *d = get_dialog(dialog_id);
@@ -17340,6 +17339,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
       return {};
     }
   }
+  CHECK(message_id.is_server());
 
   if (random_id != 0) {
     // request has already been sent before
@@ -17455,7 +17455,7 @@ void MessagesManager::get_dialog_message_calendar(DialogId dialog_id,
     }
     return promise.set_error(400, "The filter is not supported");
   }
-  if (message_topic.get_forum_topic_id().is_valid()) {
+  if (message_topic.is_forum()) {
     return promise.set_error(400, "Not supported in forum topics");
   }
 

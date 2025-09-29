@@ -24,7 +24,7 @@ class MessageTopic {
   enum class Type : int32 { None, Forum, Monoforum, SavedMessages };
   Type type_ = Type::None;
   DialogId dialog_id_;
-  MessageId top_thread_message_id_;  // TODO class TopicId
+  ForumTopicId forum_topic_id_;
   SavedMessagesTopicId saved_messages_topic_id_;
 
   friend bool operator==(const MessageTopic &lhs, const MessageTopic &rhs);
@@ -52,6 +52,10 @@ class MessageTopic {
     return type_ == Type::None;
   }
 
+  bool is_thread() const {
+    return type_ == Type::Forum;  // TODO
+  }
+
   bool is_forum() const {
     return type_ == Type::Forum;
   }
@@ -64,11 +68,11 @@ class MessageTopic {
     return type_ == Type::SavedMessages;
   }
 
-  MessageId get_forum_topic_id() const {
+  int32 get_input_top_msg_id() const {
     if (type_ != Type::Forum) {
-      return MessageId();
+      return 0;
     }
-    return top_thread_message_id_;
+    return forum_topic_id_.get();
   }
 
   SavedMessagesTopicId get_monoforum_topic_id() const {

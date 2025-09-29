@@ -25,6 +25,10 @@ class ForumTopicId {
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   ForumTopicId(T forum_topic_id) = delete;
 
+  static ForumTopicId general() {
+    return ForumTopicId(1);
+  }
+
   bool is_valid() const {
     return id_ > 0;
   }
@@ -49,7 +53,7 @@ struct ForumTopicIdHash {
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, ForumTopicId forum_topic_id) {
-  return string_builder << "forum topic " << forum_topic_id.get();
+  return string_builder << "topic " << forum_topic_id.get();
 }
 
 }  // namespace td

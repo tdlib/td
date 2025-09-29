@@ -36,18 +36,18 @@ MessageTopic::MessageTopic(Td *td, DialogId dialog_id, bool is_topic_message, Me
     }
     return;
   }
-  if (td->chat_manager_->is_megagroup_channel(channel_id)) {
+  if (td->chat_manager_->is_megagroup_channel(channel_id) && top_thread_message_id.is_server()) {
     if (is_topic_message) {
       if (top_thread_message_id.is_valid()) {
         type_ = Type::Forum;
         dialog_id_ = dialog_id;
-        top_thread_message_id_ = top_thread_message_id;
+        forum_topic_id_ = ForumTopicId(top_thread_message_id.get_server_message_id().get());
       }
       return;
     }
     type_ = Type::Forum;
     dialog_id_ = dialog_id;
-    top_thread_message_id_ = MessageId(ServerMessageId(1));
+    forum_topic_id_ = ForumTopicId::general();
   }
 }
 
@@ -56,7 +56,7 @@ MessageTopic MessageTopic::forum(DialogId dialog_id, MessageId top_thread_messag
   MessageTopic result;
   result.type_ = Type::Forum;
   result.dialog_id_ = dialog_id;
-  result.top_thread_message_id_ = top_thread_message_id;
+  result.forum_topic_id_ = ForumTopicId(top_thread_message_id.get_server_message_id().get());
   return result;
 }
 
@@ -88,18 +88,17 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
   result.dialog_id_ = dialog_id;
   switch (topic->get_id()) {
     case td_api::messageTopicForum::ID: {
-      auto top_thread_message_id =
-          MessageId(ServerMessageId(static_cast<const td_api::messageTopicForum *>(topic.get())->forum_topic_id_));
+      auto forum_topic_id = ForumTopicId(static_cast<const td_api::messageTopicForum *>(topic.get())->forum_topic_id_);
       if (dialog_id.get_type() != DialogType::Channel ||
           !td->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
         return Status::Error(400, "Chat is not a forum");
       }
-      if (!top_thread_message_id.is_server()) {
+      if (!forum_topic_id.is_valid()) {
         return Status::Error(400, "Invalid topic identifier specified");
       }
       // TODO TRY_STATUS(forum_id.is_valid_in(td, dialog_id));
       result.type_ = Type::Forum;
-      result.top_thread_message_id_ = top_thread_message_id;
+      result.forum_topic_id_ = forum_topic_id;
       break;
     }
     case td_api::messageTopicDirectMessages::ID: {
@@ -142,7 +141,7 @@ td_api::object_ptr<td_api::MessageTopic> MessageTopic::get_message_topic_object(
       return nullptr;
     case Type::Forum:
       // TODO send updateForumTopic before sending its identifier
-      return td_api::make_object<td_api::messageTopicForum>(top_thread_message_id_.get_server_message_id().get());
+      return td_api::make_object<td_api::messageTopicForum>(forum_topic_id_.get());
     case Type::Monoforum:
       return td_api::make_object<td_api::messageTopicDirectMessages>(
           td->saved_messages_manager_->get_saved_messages_topic_id_object(dialog_id_, saved_messages_topic_id_));
@@ -156,8 +155,7 @@ td_api::object_ptr<td_api::MessageTopic> MessageTopic::get_message_topic_object(
 }
 
 bool operator==(const MessageTopic &lhs, const MessageTopic &rhs) {
-  return lhs.type_ == rhs.type_ && lhs.dialog_id_ == rhs.dialog_id_ &&
-         lhs.top_thread_message_id_ == rhs.top_thread_message_id_ &&
+  return lhs.type_ == rhs.type_ && lhs.dialog_id_ == rhs.dialog_id_ && lhs.forum_topic_id_ == rhs.forum_topic_id_ &&
          lhs.saved_messages_topic_id_ == rhs.saved_messages_topic_id_;
 }
 
@@ -166,8 +164,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageTopic &mes
     case MessageTopic::Type::None:
       return string_builder << "not a topic";
     case MessageTopic::Type::Forum:
-      return string_builder << "Forum[topic " << message_topic.top_thread_message_id_.get_server_message_id().get()
-                            << ']';
+      return string_builder << "Forum[" << message_topic.forum_topic_id_.get() << ']';
     case MessageTopic::Type::Monoforum:
       return string_builder << "DirectMessages[" << message_topic.saved_messages_topic_id_ << ']';
     case MessageTopic::Type::SavedMessages:

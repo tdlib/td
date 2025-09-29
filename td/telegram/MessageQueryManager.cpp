@@ -754,7 +754,7 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
       saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
       CHECK(saved_input_peer != nullptr);
     }
-    auto top_msg_id = message_topic.get_forum_topic_id().get_server_message_id().get();
+    auto top_msg_id = message_topic.get_input_top_msg_id();
     if (filter == MessageSearchFilter::Empty && top_msg_id == 0) {
       if (saved_messages_topic_id.is_valid()) {
         int32 flags = 0;
