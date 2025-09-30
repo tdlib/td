@@ -11137,6 +11137,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     top_thread_message_id = message_id;
     is_topic_message = (content_type == MessageContentType::TopicCreate);
   }
+  if (content_type == MessageContentType::TopicCreate) {
+    // just in case
+    is_topic_message = true;
+  }
   if (top_thread_message_id.is_valid() && dialog_type != DialogType::Channel) {
     if (dialog_type != DialogType::User ||
         !(td->auth_manager_->is_bot() && !td->user_manager_->is_user_bot(dialog_id.get_user_id()))) {
