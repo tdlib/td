@@ -10336,7 +10336,7 @@ void MessagesManager::ttl_db_on_result(Result<std::vector<MessageDbMessage>> r_r
   ttl_db_loop();
 }
 
-void MessagesManager::on_send_secret_message_error(int64 random_id, Status error, Promise<Unit> promise) {
+void MessagesManager::on_send_secret_message_error(int64 random_id, Status error, Promise<Unit> &&promise) {
   promise.set_value(Unit());  // TODO: set after error is saved
 
   auto it = being_sent_messages_.find(random_id);
@@ -10364,7 +10364,7 @@ void MessagesManager::on_send_secret_message_error(int64 random_id, Status error
 }
 
 void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId message_id, int32 date,
-                                                     unique_ptr<EncryptedFile> file, Promise<Unit> promise) {
+                                                     unique_ptr<EncryptedFile> file, Promise<Unit> &&promise) {
   promise.set_value(Unit());  // TODO: set after message is saved
 
   FileId new_file_id;
@@ -10388,7 +10388,7 @@ void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId 
 }
 
 void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::vector<int64> random_ids,
-                                             Promise<Unit> promise) {
+                                             Promise<Unit> &&promise) {
   LOG(DEBUG) << "On delete messages in " << secret_chat_id << " with random_ids " << random_ids;
   CHECK(secret_chat_id.is_valid());
 
@@ -10409,7 +10409,7 @@ void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::v
 }
 
 void MessagesManager::finish_delete_secret_messages(DialogId dialog_id, std::vector<int64> random_ids,
-                                                    Promise<Unit> promise) {
+                                                    Promise<Unit> &&promise) {
   LOG(INFO) << "Delete messages with random_ids " << random_ids << " in " << dialog_id;
   promise.set_value(Unit());  // TODO: set after event is saved
 
@@ -10434,7 +10434,7 @@ void MessagesManager::finish_delete_secret_messages(DialogId dialog_id, std::vec
 }
 
 void MessagesManager::delete_secret_chat_history(SecretChatId secret_chat_id, bool remove_from_dialog_list,
-                                                 MessageId last_message_id, Promise<Unit> promise) {
+                                                 MessageId last_message_id, Promise<Unit> &&promise) {
   LOG(DEBUG) << "Delete history in " << secret_chat_id << " up to " << last_message_id;
   CHECK(secret_chat_id.is_valid());
   CHECK(!last_message_id.is_scheduled());
@@ -10457,7 +10457,7 @@ void MessagesManager::delete_secret_chat_history(SecretChatId secret_chat_id, bo
 }
 
 void MessagesManager::finish_delete_secret_chat_history(DialogId dialog_id, bool remove_from_dialog_list,
-                                                        MessageId last_message_id, Promise<Unit> promise) {
+                                                        MessageId last_message_id, Promise<Unit> &&promise) {
   LOG(DEBUG) << "Delete history in " << dialog_id << " up to " << last_message_id;
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
@@ -10514,7 +10514,7 @@ void MessagesManager::read_secret_chat_outbox_inner(DialogId dialog_id, int32 up
   read_history_outbox(d, max_message_id, read_date);
 }
 
-void MessagesManager::open_secret_message(SecretChatId secret_chat_id, int64 random_id, Promise<Unit> promise) {
+void MessagesManager::open_secret_message(SecretChatId secret_chat_id, int64 random_id, Promise<Unit> &&promise) {
   promise.set_value(Unit());  // TODO: set after event is saved
   DialogId dialog_id(secret_chat_id);
   Dialog *d = get_dialog_force(dialog_id, "open_secret_message");
@@ -10561,7 +10561,7 @@ void MessagesManager::on_update_secret_chat_state(SecretChatId secret_chat_id, S
 void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId user_id, MessageId message_id,
                                             int32 date, unique_ptr<EncryptedFile> file,
                                             tl_object_ptr<secret_api::decryptedMessage> message,
-                                            Promise<Unit> promise) {
+                                            Promise<Unit> &&promise) {
   LOG(DEBUG) << "On get " << to_string(message);
   CHECK(message != nullptr);
   CHECK(secret_chat_id.is_valid());
@@ -10657,7 +10657,7 @@ void MessagesManager::on_resolve_secret_chat_message_via_bot_username(const stri
 }
 
 void MessagesManager::on_secret_chat_screenshot_taken(SecretChatId secret_chat_id, UserId user_id, MessageId message_id,
-                                                      int32 date, int64 random_id, Promise<Unit> promise) {
+                                                      int32 date, int64 random_id, Promise<Unit> &&promise) {
   LOG(DEBUG) << "On screenshot taken in " << secret_chat_id;
   CHECK(secret_chat_id.is_valid());
   CHECK(user_id.is_valid());
@@ -10690,7 +10690,7 @@ void MessagesManager::on_secret_chat_screenshot_taken(SecretChatId secret_chat_i
 }
 
 void MessagesManager::on_secret_chat_ttl_changed(SecretChatId secret_chat_id, UserId user_id, MessageId message_id,
-                                                 int32 date, int32 ttl, int64 random_id, Promise<Unit> promise) {
+                                                 int32 date, int32 ttl, int64 random_id, Promise<Unit> &&promise) {
   LOG(DEBUG) << "On self-destruct timer set in " << secret_chat_id << " to " << ttl;
   CHECK(secret_chat_id.is_valid());
   CHECK(user_id.is_valid());
@@ -17529,7 +17529,7 @@ void MessagesManager::get_message_calendar_from_server(DialogId dialog_id, const
 
 void MessagesManager::on_get_message_calendar_from_database(
     DialogId dialog_id, MessageId from_message_id, MessageId first_db_message_id, MessageSearchFilter filter,
-    Result<MessageDbCalendar> r_calendar, Promise<td_api::object_ptr<td_api::messageCalendar>> promise) {
+    Result<MessageDbCalendar> r_calendar, Promise<td_api::object_ptr<td_api::messageCalendar>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (r_calendar.is_error()) {
@@ -18186,7 +18186,7 @@ void MessagesManager::on_search_dialog_message_db_result(int64 random_id, Dialog
                                                          MessageId first_db_message_id, MessageSearchFilter filter,
                                                          int32 offset, int32 limit,
                                                          Result<vector<MessageDbDialogMessage>> r_messages,
-                                                         Promise<Unit> promise) {
+                                                         Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   if (r_messages.is_error()) {
@@ -18448,7 +18448,7 @@ std::function<bool(MessageId)> MessagesManager::get_is_counted_as_unread(const D
 
 void MessagesManager::on_get_dialog_message_by_date_from_database(
     DialogId dialog_id, int32 date, Result<MessageDbDialogMessage> result,
-    Promise<td_api::object_ptr<td_api::message>> promise) {
+    Promise<td_api::object_ptr<td_api::message>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   Dialog *d = get_dialog(dialog_id);
@@ -19719,7 +19719,7 @@ void MessagesManager::set_message_reactions(Dialog *d, Message *m, bool is_big, 
 }
 
 void MessagesManager::on_set_message_reactions(MessageFullId message_full_id, Result<Unit> result,
-                                               Promise<Unit> promise) {
+                                               Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
   bool need_reload = result.is_error();
@@ -23748,7 +23748,7 @@ void MessagesManager::send_forward_message_query(
     const SavedMessagesTopicId saved_messages_topic_id, const MessageInputReplyTo input_reply_to,
     DialogId from_dialog_id, telegram_api::object_ptr<telegram_api::InputPeer> as_input_peer,
     vector<MessageId> message_ids, vector<int64> random_ids, int32 schedule_date, int32 new_video_start_timestamp,
-    int64 paid_message_star_count, unique_ptr<SuggestedPost> &&suggested_post, Promise<Unit> promise) {
+    int64 paid_message_star_count, unique_ptr<SuggestedPost> &&suggested_post, Promise<Unit> &&promise) {
   td_->create_handler<ForwardMessagesQuery>(std::move(promise))
       ->send(flags, to_dialog_id, top_thread_message_id, saved_messages_topic_id, input_reply_to, from_dialog_id,
              std::move(as_input_peer), message_ids, std::move(random_ids), schedule_date, new_video_start_timestamp,
@@ -23775,7 +23775,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::forward_message(
 
 void MessagesManager::add_offer(DialogId dialog_id, MessageId message_id,
                                 td_api::object_ptr<td_api::messageSendOptions> &&options,
-                                Promise<td_api::object_ptr<td_api::message>> promise) {
+                                Promise<td_api::object_ptr<td_api::message>> &&promise) {
   if (options == nullptr || options->suggested_post_info_ == nullptr) {
     return promise.set_error(400, "Suggested post info must be non-empty");
   }
@@ -24442,7 +24442,7 @@ void MessagesManager::do_send_quick_reply_shortcut_messages(DialogId dialog_id, 
 
 void MessagesManager::send_send_quick_reply_messages_query(DialogId dialog_id, QuickReplyShortcutId shortcut_id,
                                                            vector<MessageId> message_ids, vector<int64> random_ids,
-                                                           Promise<Unit> promise) {
+                                                           Promise<Unit> &&promise) {
   td_->create_handler<SendQuickReplyMessagesQuery>(std::move(promise))
       ->send(dialog_id, shortcut_id, std::move(message_ids), std::move(random_ids));
 }
@@ -25466,7 +25466,7 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
 void MessagesManager::get_message_notifications_from_database(DialogId dialog_id, NotificationGroupId group_id,
                                                               NotificationId from_notification_id,
                                                               MessageId from_message_id, int32 limit,
-                                                              Promise<vector<Notification>> promise) {
+                                                              Promise<vector<Notification>> &&promise) {
   if (!G()->use_message_database()) {
     return promise.set_error(500, "There is no message database");
   }
@@ -35573,7 +35573,7 @@ void MessagesManager::suffix_load_add_query(Dialog *d,
   }
 }
 
-void MessagesManager::suffix_load_till_date(Dialog *d, int32 date, Promise<Unit> promise) {
+void MessagesManager::suffix_load_till_date(Dialog *d, int32 date, Promise<Unit> &&promise) {
   LOG(INFO) << "Load suffix of " << d->dialog_id << " till date " << date;
   auto condition = [date](const Message *m) {
     return m != nullptr && m->date < date;
@@ -35581,7 +35581,7 @@ void MessagesManager::suffix_load_till_date(Dialog *d, int32 date, Promise<Unit>
   suffix_load_add_query(d, std::make_pair(std::move(promise), std::move(condition)));
 }
 
-void MessagesManager::suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<Unit> promise) {
+void MessagesManager::suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Load suffix of " << d->dialog_id << " till " << message_id;
   auto condition = [message_id](const Message *m) {
     return m != nullptr && m->message_id < message_id;
@@ -35935,7 +35935,7 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
 }
 
 void MessagesManager::add_message_file_to_downloads(MessageFullId message_full_id, FileId file_id, int32 priority,
-                                                    Promise<td_api::object_ptr<td_api::file>> promise) {
+                                                    Promise<td_api::object_ptr<td_api::file>> &&promise) {
   TRY_STATUS_PROMISE(promise, FileManager::check_priority(priority));
   auto m = get_message_force(message_full_id, "add_message_file_to_downloads");
   if (m == nullptr) {
@@ -35968,7 +35968,7 @@ void MessagesManager::add_message_file_to_downloads(MessageFullId message_full_i
 }
 
 void MessagesManager::get_message_file_search_text(MessageFullId message_full_id, string unique_file_id,
-                                                   Promise<string> promise) {
+                                                   Promise<string> &&promise) {
   auto m = get_message_force(message_full_id, "get_message_file_search_text");
   if (m == nullptr) {
     return promise.set_error(200, "Message not found");
