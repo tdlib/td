@@ -403,7 +403,7 @@ class MessagesManager final : public Actor {
 
   void on_update_dialog_group_call_rights(DialogId dialog_id);
 
-  void read_all_dialog_mentions(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
+  void read_all_dialog_mentions(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
 
   bool read_all_local_dialog_reactions(DialogId dialog_id, MessageId top_thread_message_id,
                                        SavedMessagesTopicId saved_messages_topic_id);
@@ -1725,6 +1725,8 @@ class MessagesManager final : public Actor {
 
   Status can_use_top_thread_message_id(Dialog *d, MessageId top_thread_message_id,
                                        const MessageInputReplyTo &input_reply_to);
+
+  Status can_use_forum_topic_id(Dialog *d, ForumTopicId forum_topic_id);
 
   int64 generate_new_random_id(const Dialog *d);
 

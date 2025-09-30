@@ -7815,9 +7815,9 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::readAllChatMentions>(chat_id));
     } else if (op == "ramtm") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
-      get_args(args, chat_id, message_thread_id);
-      send_request(td_api::make_object<td_api::readAllMessageThreadMentions>(chat_id, message_thread_id));
+      ForumTopicId forum_topic_id;
+      get_args(args, chat_id, forum_topic_id);
+      send_request(td_api::make_object<td_api::readAllForumTopicMentions>(chat_id, forum_topic_id));
     } else if (op == "racr") {
       ChatId chat_id;
       get_args(args, chat_id);

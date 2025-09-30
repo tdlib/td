@@ -10932,6 +10932,10 @@ setPinnedForumTopics chat_id:int53 forum_topic_ids:vector<int32> = Ok;
 //@forum_topic_id Forum topic identifier
 deleteForumTopic chat_id:int53 forum_topic_id:int32 = Ok;
 
+//@description Marks all mentions in a topic in a forum supergroup chat as read @chat_id Chat identifier @forum_topic_id Forum topic identifier in which mentions are marked as read
+readAllForumTopicMentions chat_id:int53 forum_topic_id:int32 = Ok;
+
+
 
 //@description Returns information about an emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction
 getEmojiReaction emoji:string = EmojiReaction;
@@ -11347,9 +11351,6 @@ getExternalLink link:string allow_write_access:Bool = HttpUrl;
 
 //@description Marks all mentions in a chat as read @chat_id Chat identifier
 readAllChatMentions chat_id:int53 = Ok;
-
-//@description Marks all mentions in a forum topic as read @chat_id Chat identifier @message_thread_id Message thread identifier in which mentions are marked as read
-readAllMessageThreadMentions chat_id:int53 message_thread_id:int53 = Ok;
 
 //@description Marks all reactions in a chat as read @chat_id Chat identifier
 readAllChatReactions chat_id:int53 = Ok;

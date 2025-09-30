@@ -8699,23 +8699,21 @@ void MessagesManager::on_update_dialog_group_call_rights(DialogId dialog_id) {
   }
 }
 
-void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, MessageId top_thread_message_id,
+void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "read_all_dialog_mentions"));
-  TRY_STATUS_PROMISE(promise, can_use_top_thread_message_id(d, top_thread_message_id, MessageInputReplyTo()));
+  TRY_STATUS_PROMISE(promise, can_use_forum_topic_id(d, forum_topic_id));
 
-  if (top_thread_message_id.is_server()) {
-    auto forum_topic_id = ForumTopicId(top_thread_message_id.get_server_message_id().get());
-    LOG(INFO) << "Receive readAllChatMentions request in thread of " << top_thread_message_id << " in " << dialog_id;
-    if (d->is_forum) {
-      td_->forum_topic_manager_->on_topic_mention_count_changed(dialog_id, forum_topic_id, 0, false);
-    }
+  if (forum_topic_id.is_valid()) {
+    LOG(INFO) << "Receive readAllChatMentions request in " << forum_topic_id << " in " << dialog_id;
+    td_->forum_topic_manager_->on_topic_mention_count_changed(dialog_id, forum_topic_id, 0, false);
     return td_->message_query_manager_->read_all_topic_mentions_on_server(dialog_id, forum_topic_id, 0,
                                                                           std::move(promise));
-  } else {
-    LOG(INFO) << "Receive readAllChatMentions request in " << dialog_id << " with " << d->unread_mention_count
-              << " unread mentions";
   }
+
+  LOG(INFO) << "Receive readAllChatMentions request in " << dialog_id << " with " << d->unread_mention_count
+            << " unread mentions";
+
   if (dialog_id.get_type() == DialogType::SecretChat) {
     CHECK(d->unread_mention_count == 0);
     return promise.set_value(Unit());
@@ -21217,6 +21215,19 @@ Status MessagesManager::can_use_top_thread_message_id(Dialog *d, MessageId top_t
     }
   }
 
+  return Status::OK();
+}
+
+Status MessagesManager::can_use_forum_topic_id(Dialog *d, ForumTopicId forum_topic_id) {
+  if (forum_topic_id == ForumTopicId()) {
+    return Status::OK();
+  }
+  if (!forum_topic_id.is_valid()) {
+    return Status::Error(400, "Invalid forum topic identifier specified");
+  }
+  if (!d->is_forum) {
+    return Status::Error(400, "Chat doesn't have topics");
+  }
   return Status::OK();
 }
 

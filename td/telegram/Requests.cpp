@@ -3842,16 +3842,16 @@ void Requests::on_request(uint64 id, const td_api::deleteChatMessagesByDate &req
 void Requests::on_request(uint64 id, const td_api::readAllChatMentions &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->read_all_dialog_mentions(DialogId(request.chat_id_), MessageId(), std::move(promise));
+  td_->messages_manager_->read_all_dialog_mentions(DialogId(request.chat_id_), ForumTopicId(), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::readAllMessageThreadMentions &request) {
+void Requests::on_request(uint64 id, const td_api::readAllForumTopicMentions &request) {
   CHECK_IS_USER();
-  if (request.message_thread_id_ == 0) {
-    return send_error_raw(id, 400, "Invalid message thread identifier specified");
+  if (request.forum_topic_id_ == 0) {
+    return send_error_raw(id, 400, "Invalid forum topic identifier specified");
   }
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->read_all_dialog_mentions(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+  td_->messages_manager_->read_all_dialog_mentions(DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_),
                                                    std::move(promise));
 }
 

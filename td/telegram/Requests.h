@@ -577,7 +577,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::readAllChatMentions &request);
 
-  void on_request(uint64 id, const td_api::readAllMessageThreadMentions &request);
+  void on_request(uint64 id, const td_api::readAllForumTopicMentions &request);
 
   void on_request(uint64 id, const td_api::readAllChatReactions &request);
 
