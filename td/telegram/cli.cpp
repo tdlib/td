@@ -1138,6 +1138,9 @@ class CliClient final : public Actor {
     if (forum_topic_id_ != 0) {
       return td_api::make_object<td_api::messageTopicForum>(forum_topic_id_);
     }
+    if (message_thread_id_ != 0) {
+      return td_api::make_object<td_api::messageTopicThread>(message_thread_id_);
+    }
     return nullptr;
   }
 
