@@ -584,6 +584,14 @@ class CliClient final : public Actor {
     return as_message_ids(str);
   }
 
+  static int32 as_forum_topic_id(Slice str) {
+    return to_integer<int32>(str);
+  }
+
+  static vector<int32> as_forum_topic_ids(Slice str) {
+    return to_integers<int32>(str);
+  }
+
   td_api::object_ptr<td_api::MessageSender> as_message_sender(Slice sender_id) const {
     sender_id = trim(sender_id);
     auto user_id = as_user_id(sender_id, true);
@@ -988,7 +996,7 @@ class CliClient final : public Actor {
   };
 
   void get_args(string &args, ForumTopicId &arg) const {
-    arg.forum_topic_id = to_integer<int32>(args);
+    arg.forum_topic_id = as_forum_topic_id(args);
   }
 
   struct UserId {
@@ -6224,39 +6232,39 @@ class CliClient final : public Actor {
           chat_id, name, op == "cfti", td_api::make_object<td_api::forumTopicIcon>(icon_color, 0)));
     } else if (op == "eft") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
+      ForumTopicId forum_topic_id;
       string name;
       bool edit_icon_custom_emoji;
       CustomEmojiId icon_custom_emoji_id;
-      get_args(args, chat_id, message_thread_id, name, edit_icon_custom_emoji, icon_custom_emoji_id);
-      send_request(td_api::make_object<td_api::editForumTopic>(chat_id, message_thread_id, name, edit_icon_custom_emoji,
+      get_args(args, chat_id, forum_topic_id, name, edit_icon_custom_emoji, icon_custom_emoji_id);
+      send_request(td_api::make_object<td_api::editForumTopic>(chat_id, forum_topic_id, name, edit_icon_custom_emoji,
                                                                icon_custom_emoji_id));
     } else if (op == "gft") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
-      get_args(args, chat_id, message_thread_id);
-      send_request(td_api::make_object<td_api::getForumTopic>(chat_id, message_thread_id));
+      ForumTopicId forum_topic_id;
+      get_args(args, chat_id, forum_topic_id);
+      send_request(td_api::make_object<td_api::getForumTopic>(chat_id, forum_topic_id));
     } else if (op == "gftl") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
-      get_args(args, chat_id, message_thread_id);
-      send_request(td_api::make_object<td_api::getForumTopicLink>(chat_id, message_thread_id));
+      ForumTopicId forum_topic_id;
+      get_args(args, chat_id, forum_topic_id);
+      send_request(td_api::make_object<td_api::getForumTopicLink>(chat_id, forum_topic_id));
     } else if (op == "gfts") {
       ChatId chat_id;
       string query;
       int32 offset_date;
       MessageId offset_message_id;
-      MessageThreadId offset_message_thread_id;
+      ForumTopicId offset_forum_topic_id;
       string limit;
-      get_args(args, chat_id, query, offset_date, offset_message_id, offset_message_thread_id, limit);
+      get_args(args, chat_id, query, offset_date, offset_message_id, offset_forum_topic_id, limit);
       send_request(td_api::make_object<td_api::getForumTopics>(chat_id, query, offset_date, offset_message_id,
-                                                               offset_message_thread_id, as_limit(limit)));
+                                                               offset_forum_topic_id, as_limit(limit)));
     } else if (op == "tftic") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
+      ForumTopicId forum_topic_id;
       bool is_closed;
-      get_args(args, chat_id, message_thread_id, is_closed);
-      send_request(td_api::make_object<td_api::toggleForumTopicIsClosed>(chat_id, message_thread_id, is_closed));
+      get_args(args, chat_id, forum_topic_id, is_closed);
+      send_request(td_api::make_object<td_api::toggleForumTopicIsClosed>(chat_id, forum_topic_id, is_closed));
     } else if (op == "tgftih") {
       ChatId chat_id;
       bool is_hidden;
@@ -6264,21 +6272,20 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::toggleGeneralForumTopicIsHidden>(chat_id, is_hidden));
     } else if (op == "tftip") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
+      ForumTopicId forum_topic_id;
       bool is_pinned;
-      get_args(args, chat_id, message_thread_id, is_pinned);
-      send_request(td_api::make_object<td_api::toggleForumTopicIsPinned>(chat_id, message_thread_id, is_pinned));
+      get_args(args, chat_id, forum_topic_id, is_pinned);
+      send_request(td_api::make_object<td_api::toggleForumTopicIsPinned>(chat_id, forum_topic_id, is_pinned));
     } else if (op == "spft") {
       ChatId chat_id;
-      string message_thread_ids;
-      get_args(args, chat_id, message_thread_ids);
-      send_request(
-          td_api::make_object<td_api::setPinnedForumTopics>(chat_id, as_message_thread_ids(message_thread_ids)));
+      string forum_topic_ids;
+      get_args(args, chat_id, forum_topic_ids);
+      send_request(td_api::make_object<td_api::setPinnedForumTopics>(chat_id, as_forum_topic_ids(forum_topic_ids)));
     } else if (op == "dft") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
-      get_args(args, chat_id, message_thread_id);
-      send_request(td_api::make_object<td_api::deleteForumTopic>(chat_id, message_thread_id));
+      ForumTopicId forum_topic_id;
+      get_args(args, chat_id, forum_topic_id);
+      send_request(td_api::make_object<td_api::deleteForumTopic>(chat_id, forum_topic_id));
     } else if (op == "sbsm") {
       UserId bot_user_id;
       ChatId chat_id;
@@ -7892,10 +7899,10 @@ class CliClient final : public Actor {
               td_api::make_object<td_api::setChatNotificationSettings>(as_chat_id(scope), std::move(settings)));
         } else {
           string chat_id;
-          string message_id;
-          std::tie(chat_id, message_id) = split(scope, ',');
+          string forum_topic_id;
+          std::tie(chat_id, forum_topic_id) = split(scope, ',');
           send_request(td_api::make_object<td_api::setForumTopicNotificationSettings>(
-              as_chat_id(chat_id), as_message_id(message_id), std::move(settings)));
+              as_chat_id(chat_id), as_forum_topic_id(forum_topic_id), std::move(settings)));
         }
       }
     } else if (op == "srns") {

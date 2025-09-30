@@ -32,6 +32,7 @@
 #include "td/telegram/DownloadManager.h"
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/FolderId.h"
+#include "td/telegram/ForumTopicId.h"
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallManager.h"
@@ -3771,22 +3772,22 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMonoForumNoPaid
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedForumTopic> update, Promise<Unit> &&promise) {
-  td_->forum_topic_manager_->on_update_forum_topic_is_pinned(
-      DialogId(update->peer_), MessageId(ServerMessageId(update->topic_id_)), update->pinned_);
+  td_->forum_topic_manager_->on_update_forum_topic_is_pinned(DialogId(update->peer_), ForumTopicId(update->topic_id_),
+                                                             update->pinned_);
   promise.set_value(Unit());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedForumTopics> update, Promise<Unit> &&promise) {
-  vector<MessageId> top_thread_message_ids;
-  for (auto &server_message_id : update->order_) {
-    auto message_id = MessageId(ServerMessageId(server_message_id));
-    if (!message_id.is_valid()) {
+  vector<ForumTopicId> forum_topic_ids;
+  for (auto topic_id : update->order_) {
+    auto forum_topic_id = ForumTopicId(topic_id);
+    if (!forum_topic_id.is_valid()) {
       LOG(ERROR) << "Receive " << to_string(update);
       break;
     }
-    top_thread_message_ids.push_back(message_id);
+    forum_topic_ids.push_back(forum_topic_id);
   }
-  td_->forum_topic_manager_->on_update_pinned_forum_topics(DialogId(update->peer_), std::move(top_thread_message_ids));
+  td_->forum_topic_manager_->on_update_pinned_forum_topics(DialogId(update->peer_), std::move(forum_topic_ids));
   promise.set_value(Unit());
 }
 
@@ -3834,10 +3835,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings>
     case telegram_api::notifyForumTopic::ID: {
       auto notify_peer = static_cast<const telegram_api::notifyForumTopic *>(update->peer_.get());
       DialogId dialog_id(notify_peer->peer_);
-      auto top_thread_message_id = MessageId(ServerMessageId(notify_peer->top_msg_id_));
-      if (dialog_id.is_valid() && top_thread_message_id.is_valid()) {
+      auto forum_topic_id = ForumTopicId(notify_peer->top_msg_id_);
+      if (dialog_id.is_valid() && forum_topic_id.is_valid()) {
         td_->forum_topic_manager_->on_update_forum_topic_notify_settings(
-            dialog_id, top_thread_message_id, std::move(update->notify_settings_), "updateNotifySettings");
+            dialog_id, forum_topic_id, std::move(update->notify_settings_), "updateNotifySettings");
       } else {
         LOG(ERROR) << "Receive wrong " << to_string(update);
       }

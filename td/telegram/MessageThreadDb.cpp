@@ -85,23 +85,23 @@ class MessageThreadDbImpl final : public MessageThreadDbSyncInterface {
     return Status::OK();
   }
 
-  void add_message_thread(DialogId dialog_id, MessageId top_thread_message_id, int64 order, BufferSlice data) final {
+  void add_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id, int64 order, BufferSlice data) final {
     SCOPE_EXIT {
       add_thread_stmt_.reset();
     };
     add_thread_stmt_.bind_int64(1, dialog_id.get()).ensure();
-    add_thread_stmt_.bind_int64(2, top_thread_message_id.get()).ensure();
+    add_thread_stmt_.bind_int32(2, forum_topic_id.get()).ensure();
     add_thread_stmt_.bind_int64(3, order).ensure();
     add_thread_stmt_.bind_blob(4, data.as_slice()).ensure();
     add_thread_stmt_.step().ensure();
   }
 
-  void delete_message_thread(DialogId dialog_id, MessageId top_thread_message_id) final {
+  void delete_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id) final {
     SCOPE_EXIT {
       delete_thread_stmt_.reset();
     };
     delete_thread_stmt_.bind_int64(1, dialog_id.get()).ensure();
-    delete_thread_stmt_.bind_int64(2, top_thread_message_id.get()).ensure();
+    delete_thread_stmt_.bind_int32(2, forum_topic_id.get()).ensure();
     delete_thread_stmt_.step().ensure();
   }
 
@@ -113,13 +113,13 @@ class MessageThreadDbImpl final : public MessageThreadDbSyncInterface {
     delete_all_dialog_threads_stmt_.step().ensure();
   }
 
-  BufferSlice get_message_thread(DialogId dialog_id, MessageId top_thread_message_id) final {
+  BufferSlice get_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id) final {
     SCOPE_EXIT {
       get_thread_stmt_.reset();
     };
 
     get_thread_stmt_.bind_int64(1, dialog_id.get()).ensure();
-    get_thread_stmt_.bind_int64(2, top_thread_message_id.get()).ensure();
+    get_thread_stmt_.bind_int32(2, forum_topic_id.get()).ensure();
     get_thread_stmt_.step().ensure();
     if (!get_thread_stmt_.has_row()) {
       return BufferSlice();
@@ -142,7 +142,7 @@ class MessageThreadDbImpl final : public MessageThreadDbSyncInterface {
     while (get_threads_stmt_.has_row()) {
       BufferSlice data(get_threads_stmt_.view_blob(0));
       result.next_order = get_threads_stmt_.view_int64(3);
-      LOG(INFO) << "Load thread of " << MessageId(get_threads_stmt_.view_int64(2)) << " in "
+      LOG(INFO) << "Load thread of " << ForumTopicId(get_threads_stmt_.view_int32(2)) << " in "
                 << DialogId(get_threads_stmt_.view_int64(1)) << " with order " << result.next_order;
       result.message_threads.emplace_back(std::move(data));
       get_threads_stmt_.step().ensure();
@@ -193,22 +193,22 @@ class MessageThreadDbAsync final : public MessageThreadDbAsyncInterface {
     impl_ = create_actor_on_scheduler<Impl>("MessageThreadDbActor", scheduler_id, std::move(sync_db));
   }
 
-  void add_message_thread(DialogId dialog_id, MessageId top_thread_message_id, int64 order, BufferSlice data,
+  void add_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id, int64 order, BufferSlice data,
                           Promise<Unit> promise) final {
-    send_closure(impl_, &Impl::add_message_thread, dialog_id, top_thread_message_id, order, std::move(data),
+    send_closure(impl_, &Impl::add_message_thread, dialog_id, forum_topic_id, order, std::move(data),
                  std::move(promise));
   }
 
-  void delete_message_thread(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> promise) final {
-    send_closure(impl_, &Impl::delete_message_thread, dialog_id, top_thread_message_id, std::move(promise));
+  void delete_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> promise) final {
+    send_closure(impl_, &Impl::delete_message_thread, dialog_id, forum_topic_id, std::move(promise));
   }
 
   void delete_all_dialog_message_threads(DialogId dialog_id, Promise<Unit> promise) final {
     send_closure(impl_, &Impl::delete_all_dialog_message_threads, dialog_id, std::move(promise));
   }
 
-  void get_message_thread(DialogId dialog_id, MessageId top_thread_message_id, Promise<BufferSlice> promise) final {
-    send_closure_later(impl_, &Impl::get_message_thread, dialog_id, top_thread_message_id, std::move(promise));
+  void get_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<BufferSlice> promise) final {
+    send_closure_later(impl_, &Impl::get_message_thread, dialog_id, forum_topic_id, std::move(promise));
   }
 
   void get_message_threads(DialogId dialog_id, int64 offset_order, int32 limit,
@@ -231,18 +231,18 @@ class MessageThreadDbAsync final : public MessageThreadDbAsyncInterface {
         : sync_db_safe_(std::move(sync_db_safe)) {
     }
 
-    void add_message_thread(DialogId dialog_id, MessageId top_thread_message_id, int64 order, BufferSlice data,
+    void add_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id, int64 order, BufferSlice data,
                             Promise<Unit> promise) {
-      add_write_query([this, dialog_id, top_thread_message_id, order, data = std::move(data),
-                       promise = std::move(promise)](Unit) mutable {
-        sync_db_->add_message_thread(dialog_id, top_thread_message_id, order, std::move(data));
-        on_write_result(std::move(promise));
-      });
+      add_write_query(
+          [this, dialog_id, forum_topic_id, order, data = std::move(data), promise = std::move(promise)](Unit) mutable {
+            sync_db_->add_message_thread(dialog_id, forum_topic_id, order, std::move(data));
+            on_write_result(std::move(promise));
+          });
     }
 
-    void delete_message_thread(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> promise) {
-      add_write_query([this, dialog_id, top_thread_message_id, promise = std::move(promise)](Unit) mutable {
-        sync_db_->delete_message_thread(dialog_id, top_thread_message_id);
+    void delete_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> promise) {
+      add_write_query([this, dialog_id, forum_topic_id, promise = std::move(promise)](Unit) mutable {
+        sync_db_->delete_message_thread(dialog_id, forum_topic_id);
         on_write_result(std::move(promise));
       });
     }
@@ -259,9 +259,9 @@ class MessageThreadDbAsync final : public MessageThreadDbAsyncInterface {
       finished_writes_.push_back(std::move(promise));
     }
 
-    void get_message_thread(DialogId dialog_id, MessageId top_thread_message_id, Promise<BufferSlice> promise) {
+    void get_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<BufferSlice> promise) {
       add_read_query();
-      promise.set_result(sync_db_->get_message_thread(dialog_id, top_thread_message_id));
+      promise.set_result(sync_db_->get_message_thread(dialog_id, forum_topic_id));
     }
 
     void get_message_threads(DialogId dialog_id, int64 offset_order, int32 limit,

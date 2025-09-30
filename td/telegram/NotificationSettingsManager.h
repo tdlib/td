@@ -12,8 +12,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/ForumTopicFullId.h"
-#include "td/telegram/MessageFullId.h"
-#include "td/telegram/MessageId.h"
+#include "td/telegram/ForumTopicId.h"
 #include "td/telegram/NotificationSettingsScope.h"
 #include "td/telegram/ReactionNotificationSettings.h"
 #include "td/telegram/ScopeNotificationSettings.h"
@@ -65,7 +64,7 @@ class NotificationSettingsManager final : public Actor {
   bool get_scope_disable_mention_notifications(NotificationSettingsScope scope) const;
 
   tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(DialogId dialog_id,
-                                                                     MessageId top_thread_message_id) const;
+                                                                     ForumTopicId forum_topic_id) const;
 
   void on_update_scope_notify_settings(NotificationSettingsScope scope,
                                        tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);
@@ -90,7 +89,7 @@ class NotificationSettingsManager final : public Actor {
   void send_save_ringtone_query(FileId ringtone_file_id, bool unsave,
                                 Promise<telegram_api::object_ptr<telegram_api::account_SavedRingtone>> &&promise);
 
-  void send_get_dialog_notification_settings_query(DialogId dialog_id, MessageId top_thread_message_id,
+  void send_get_dialog_notification_settings_query(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                    Promise<Unit> &&promise);
 
   const ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope,
@@ -99,10 +98,10 @@ class NotificationSettingsManager final : public Actor {
 
   void send_get_reaction_notification_settings_query(Promise<Unit> &&promise);
 
-  void on_get_dialog_notification_settings_query_finished(DialogId dialog_id, MessageId top_thread_message_id,
+  void on_get_dialog_notification_settings_query_finished(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                           Status &&status);
 
-  void update_dialog_notify_settings(DialogId dialog_id, MessageId top_thread_message_id,
+  void update_dialog_notify_settings(DialogId dialog_id, ForumTopicId forum_topic_id,
                                      const DialogNotificationSettings &new_settings, Promise<Unit> &&promise);
 
   Status set_scope_notification_settings(NotificationSettingsScope scope,
@@ -254,7 +253,7 @@ class NotificationSettingsManager final : public Actor {
   vector<Promise<Unit>> reload_saved_ringtones_queries_;
   vector<Promise<Unit>> repair_saved_ringtones_queries_;
 
-  FlatHashMap<MessageFullId, vector<Promise<Unit>>, MessageFullIdHash> get_dialog_notification_settings_queries_;
+  FlatHashMap<ForumTopicFullId, vector<Promise<Unit>>, ForumTopicFullIdHash> get_dialog_notification_settings_queries_;
 };
 
 }  // namespace td

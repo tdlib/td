@@ -7,7 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
-#include "td/telegram/MessageId.h"
+#include "td/telegram/ForumTopicId.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
@@ -34,14 +34,13 @@ class MessageThreadDbSyncInterface {
   MessageThreadDbSyncInterface &operator=(const MessageThreadDbSyncInterface &) = delete;
   virtual ~MessageThreadDbSyncInterface() = default;
 
-  virtual void add_message_thread(DialogId dialog_id, MessageId top_thread_message_id, int64 order,
-                                  BufferSlice data) = 0;
+  virtual void add_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id, int64 order, BufferSlice data) = 0;
 
-  virtual void delete_message_thread(DialogId dialog_id, MessageId top_thread_message_id) = 0;
+  virtual void delete_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id) = 0;
 
   virtual void delete_all_dialog_message_threads(DialogId dialog_id) = 0;
 
-  virtual BufferSlice get_message_thread(DialogId dialog_id, MessageId top_thread_message_id) = 0;
+  virtual BufferSlice get_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id) = 0;
 
   virtual MessageThreadDbMessageThreads get_message_threads(DialogId dialog_id, int64 offset_order, int32 limit) = 0;
 
@@ -67,15 +66,14 @@ class MessageThreadDbAsyncInterface {
   MessageThreadDbAsyncInterface &operator=(const MessageThreadDbAsyncInterface &) = delete;
   virtual ~MessageThreadDbAsyncInterface() = default;
 
-  virtual void add_message_thread(DialogId dialog_id, MessageId top_thread_message_id, int64 order, BufferSlice data,
+  virtual void add_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id, int64 order, BufferSlice data,
                                   Promise<Unit> promise) = 0;
 
-  virtual void delete_message_thread(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> promise) = 0;
+  virtual void delete_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> promise) = 0;
 
   virtual void delete_all_dialog_message_threads(DialogId dialog_id, Promise<Unit> promise) = 0;
 
-  virtual void get_message_thread(DialogId dialog_id, MessageId top_thread_message_id,
-                                  Promise<BufferSlice> promise) = 0;
+  virtual void get_message_thread(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<BufferSlice> promise) = 0;
 
   virtual void get_message_threads(DialogId dialog_id, int64 offset_order, int32 limit,
                                    Promise<MessageThreadDbMessageThreads> promise) = 0;

@@ -62,6 +62,16 @@ class ForumTopicId {
   bool operator!=(const ForumTopicId &other) const {
     return id_ != other.id_;
   }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    storer.store_int(id_);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    id_ = parser.fetch_int();
+  }
 };
 
 struct ForumTopicIdHash {

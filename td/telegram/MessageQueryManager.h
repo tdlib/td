@@ -12,6 +12,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
 #include "td/telegram/files/FileUploadId.h"
+#include "td/telegram/ForumTopicId.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
@@ -183,17 +184,17 @@ class MessageQueryManager final : public Actor {
   void delete_scheduled_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
                                            Promise<Unit> &&promise);
 
-  void delete_topic_history_on_server(DialogId dialog_id, MessageId top_thread_message_id, uint64 log_event_id,
+  void delete_topic_history_on_server(DialogId dialog_id, ForumTopicId forum_topic_id, uint64 log_event_id,
                                       Promise<Unit> &&promise);
 
   void read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   void read_all_dialog_reactions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
-  void read_all_topic_mentions_on_server(DialogId dialog_id, MessageId top_thread_message_id, uint64 log_event_id,
+  void read_all_topic_mentions_on_server(DialogId dialog_id, ForumTopicId forum_topic_id, uint64 log_event_id,
                                          Promise<Unit> &&promise);
 
-  void read_all_topic_reactions_on_server(DialogId dialog_id, MessageId top_thread_message_id,
+  void read_all_topic_reactions_on_server(DialogId dialog_id, ForumTopicId forum_topic_id,
                                           SavedMessagesTopicId saved_messages_topic_id, uint64 log_event_id,
                                           Promise<Unit> &&promise);
 
@@ -204,7 +205,7 @@ class MessageQueryManager final : public Actor {
 
   void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
-  void unpin_all_topic_messages_on_server(DialogId dialog_id, MessageId top_thread_message_id,
+  void unpin_all_topic_messages_on_server(DialogId dialog_id, ForumTopicId forum_topic_id,
                                           SavedMessagesTopicId saved_messages_topic_id, uint64 log_event_id,
                                           Promise<Unit> &&promise);
 
@@ -283,7 +284,7 @@ class MessageQueryManager final : public Actor {
   static uint64 save_delete_scheduled_messages_on_server_log_event(DialogId dialog_id,
                                                                    const vector<MessageId> &message_ids);
 
-  static uint64 save_delete_topic_history_on_server_log_event(DialogId dialog_id, MessageId top_thread_message_id);
+  static uint64 save_delete_topic_history_on_server_log_event(DialogId dialog_id, ForumTopicId forum_topic_id);
 
   static uint64 save_read_all_dialog_mentions_on_server_log_event(DialogId dialog_id);
 

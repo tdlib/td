@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/ForumTopicEditedData.h"
 #include "td/telegram/ForumTopicIcon.h"
+#include "td/telegram/ForumTopicId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -63,6 +64,10 @@ class ForumTopicInfo {
 
   DialogId get_dialog_id() const {
     return dialog_id_;
+  }
+
+  ForumTopicId get_forum_topic_id() const {
+    return ForumTopicId(top_thread_message_id_.get_server_message_id().get());
   }
 
   MessageId get_top_thread_message_id() const {

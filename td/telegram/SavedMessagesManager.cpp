@@ -15,6 +15,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DraftMessage.h"
+#include "td/telegram/ForumTopicId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageQueryManager.h"
@@ -2473,7 +2474,7 @@ void SavedMessagesManager::unpin_all_monoforum_topic_messages(DialogId dialog_id
 
   td_->messages_manager_->unpin_all_local_dialog_messages(dialog_id, MessageId(), saved_messages_topic_id);
 
-  td_->message_query_manager_->unpin_all_topic_messages_on_server(dialog_id, MessageId(), saved_messages_topic_id, 0,
+  td_->message_query_manager_->unpin_all_topic_messages_on_server(dialog_id, ForumTopicId(), saved_messages_topic_id, 0,
                                                                   std::move(promise));
 }
 
@@ -2499,7 +2500,7 @@ void SavedMessagesManager::read_all_monoforum_topic_reactions(DialogId dialog_id
     return promise.set_value(Unit());
   }
 
-  td_->message_query_manager_->read_all_topic_reactions_on_server(dialog_id, MessageId(), saved_messages_topic_id, 0,
+  td_->message_query_manager_->read_all_topic_reactions_on_server(dialog_id, ForumTopicId(), saved_messages_topic_id, 0,
                                                                   std::move(promise));
 
   on_topic_changed(topic_list, topic, "read_all_monoforum_topic_reactions");

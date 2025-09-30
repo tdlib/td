@@ -12,6 +12,7 @@
 #include "td/telegram/DialogNotificationSettings.h"
 #include "td/telegram/ForumTopic.h"
 #include "td/telegram/ForumTopicEditedData.h"
+#include "td/telegram/ForumTopicId.h"
 #include "td/telegram/ForumTopicInfo.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesInfo.h"
@@ -46,13 +47,13 @@ class ForumTopicManager final : public Actor {
   void on_forum_topic_created(DialogId dialog_id, unique_ptr<ForumTopicInfo> &&forum_topic_info,
                               Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise);
 
-  void edit_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, string &&title,
-                        bool edit_icon_custom_emoji, CustomEmojiId icon_custom_emoji_id, Promise<Unit> &&promise);
+  void edit_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id, string &&title, bool edit_icon_custom_emoji,
+                        CustomEmojiId icon_custom_emoji_id, Promise<Unit> &&promise);
 
-  void get_forum_topic(DialogId dialog_id, MessageId top_thread_message_id,
+  void get_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id,
                        Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);
 
-  void on_get_forum_topic(DialogId dialog_id, MessageId expected_top_thread_message_id, MessagesInfo &&info,
+  void on_get_forum_topic(DialogId dialog_id, ForumTopicId expected_forum_topic_id, MessagesInfo &&info,
                           telegram_api::object_ptr<telegram_api::ForumTopic> &&topic,
                           Promise<td_api::object_ptr<td_api::forumTopic>> &&promise);
 
@@ -60,69 +61,62 @@ class ForumTopicManager final : public Actor {
                            vector<telegram_api::object_ptr<telegram_api::ForumTopic>> &&topics,
                            Promise<td_api::object_ptr<td_api::forumTopics>> &&promise);
 
-  void get_forum_topic_link(DialogId dialog_id, MessageId top_thread_message_id,
+  void get_forum_topic_link(DialogId dialog_id, ForumTopicId forum_topic_id,
                             Promise<td_api::object_ptr<td_api::messageLink>> &&promise);
 
   void get_forum_topics(DialogId dialog_id, string query, int32 offset_date, MessageId offset_message_id,
-                        MessageId offset_top_thread_message_id, int32 limit,
+                        ForumTopicId offset_forum_topic_id, int32 limit,
                         Promise<td_api::object_ptr<td_api::forumTopics>> promise);
 
-  void toggle_forum_topic_is_closed(DialogId dialog_id, MessageId top_thread_message_id, bool is_closed,
+  void toggle_forum_topic_is_closed(DialogId dialog_id, ForumTopicId forum_topic_id, bool is_closed,
                                     Promise<Unit> &&promise);
 
-  const DialogNotificationSettings *get_forum_topic_notification_settings(DialogId dialog_id,
-                                                                          MessageId top_thread_message_id) const;
-
-  Status set_forum_topic_notification_settings(DialogId dialog_id, MessageId top_thread_message_id,
+  Status set_forum_topic_notification_settings(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                tl_object_ptr<td_api::chatNotificationSettings> &&notification_settings)
       TD_WARN_UNUSED_RESULT;
 
   void toggle_forum_topic_is_hidden(DialogId dialog_id, bool is_hidden, Promise<Unit> &&promise);
 
-  void toggle_forum_topic_is_pinned(DialogId dialog_id, MessageId top_thread_message_id, bool is_pinned,
+  void toggle_forum_topic_is_pinned(DialogId dialog_id, ForumTopicId forum_topic_id, bool is_pinned,
                                     Promise<Unit> &&promise);
 
-  void set_pinned_forum_topics(DialogId dialog_id, vector<MessageId> top_thread_message_ids, Promise<Unit> &&promise);
+  void set_pinned_forum_topics(DialogId dialog_id, vector<ForumTopicId> forum_topic_ids, Promise<Unit> &&promise);
 
-  void delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
+  void delete_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
 
   void delete_all_dialog_topics(DialogId dialog_id);
 
-  void read_forum_topic_messages(DialogId dialog_id, MessageId top_thread_message_id,
-                                 MessageId last_read_inbox_message_id);
+  void read_forum_topic_messages(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId last_read_inbox_message_id);
 
-  void on_update_forum_topic_unread(DialogId dialog_id, MessageId top_thread_message_id, MessageId last_message_id,
+  void on_update_forum_topic_unread(DialogId dialog_id, ForumTopicId forum_topic_id, MessageId last_message_id,
                                     MessageId last_read_inbox_message_id, MessageId last_read_outbox_message_id,
                                     int32 unread_count);
 
-  void on_update_forum_topic_notify_settings(DialogId dialog_id, MessageId top_thread_message_id,
+  void on_update_forum_topic_notify_settings(DialogId dialog_id, ForumTopicId forum_topic_id,
                                              tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings,
                                              const char *source);
 
-  void on_update_forum_topic_is_pinned(DialogId dialog_id, MessageId top_thread_message_id, bool is_pinned);
+  void on_update_forum_topic_is_pinned(DialogId dialog_id, ForumTopicId forum_topic_id, bool is_pinned);
 
-  void on_update_pinned_forum_topics(DialogId dialog_id, vector<MessageId> top_thread_message_ids);
+  void on_update_pinned_forum_topics(DialogId dialog_id, vector<ForumTopicId> forum_topic_ids);
 
-  void on_forum_topic_edited(DialogId dialog_id, MessageId top_thread_message_id,
-                             const ForumTopicEditedData &edited_data);
+  void on_forum_topic_edited(DialogId dialog_id, ForumTopicId forum_topic_id, const ForumTopicEditedData &edited_data);
+
+  bool on_get_forum_topic_error(DialogId dialog_id, ForumTopicId forum_topic_id, const Status &status,
+                                const char *source);
 
   void on_get_forum_topic_info(DialogId dialog_id, const ForumTopicInfo &topic_info, const char *source);
 
   void on_get_forum_topic_infos(DialogId dialog_id, vector<tl_object_ptr<telegram_api::ForumTopic>> &&forum_topics,
                                 const char *source);
 
-  td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(DialogId dialog_id,
-                                                                MessageId top_thread_message_id) const;
+  void on_topic_message_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int diff);
 
-  void on_topic_message_count_changed(DialogId dialog_id, MessageId top_thread_message_id, int diff);
+  void on_topic_mention_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count, bool is_relative);
 
-  void on_topic_mention_count_changed(DialogId dialog_id, MessageId top_thread_message_id, int32 count,
-                                      bool is_relative);
+  void on_topic_reaction_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count, bool is_relative);
 
-  void on_topic_reaction_count_changed(DialogId dialog_id, MessageId top_thread_message_id, int32 count,
-                                       bool is_relative);
-
-  void repair_topic_unread_mention_count(DialogId dialog_id, MessageId top_thread_message_id);
+  void repair_topic_unread_mention_count(DialogId dialog_id, ForumTopicId forum_topic_id);
 
  private:
   static constexpr size_t MAX_FORUM_TOPIC_TITLE_LENGTH = 128;  // server-side limit for forum topic title
@@ -143,8 +137,8 @@ class ForumTopicManager final : public Actor {
   };
 
   struct DialogTopics {
-    WaitFreeHashMap<MessageId, unique_ptr<Topic>, MessageIdHash> topics_;
-    WaitFreeHashSet<MessageId, MessageIdHash> deleted_topic_ids_;
+    WaitFreeHashMap<ForumTopicId, unique_ptr<Topic>, ForumTopicIdHash> topics_;
+    WaitFreeHashSet<ForumTopicId, ForumTopicIdHash> deleted_topic_ids_;
   };
 
   void tear_down() final;
@@ -153,38 +147,42 @@ class ForumTopicManager final : public Actor {
 
   bool can_be_forum(DialogId dialog_id, bool allow_bots = false) const;
 
-  static Status can_be_message_thread_id(MessageId top_thread_message_id);
+  static Status can_be_forum_topic_id(ForumTopicId forum_topic_id);
 
   DialogTopics *add_dialog_topics(DialogId dialog_id);
 
   DialogTopics *get_dialog_topics(DialogId dialog_id);
 
-  static Topic *add_topic(DialogTopics *dialog_topics, MessageId top_thread_message_id);
+  static Topic *add_topic(DialogTopics *dialog_topics, ForumTopicId forum_topic_id);
 
-  static Topic *get_topic(DialogTopics *dialog_topics, MessageId top_thread_message_id);
+  static Topic *get_topic(DialogTopics *dialog_topics, ForumTopicId forum_topic_id);
 
-  Topic *add_topic(DialogId dialog_id, MessageId top_thread_message_id);
+  Topic *add_topic(DialogId dialog_id, ForumTopicId forum_topic_id);
 
-  Topic *get_topic(DialogId dialog_id, MessageId top_thread_message_id);
+  Topic *get_topic(DialogId dialog_id, ForumTopicId forum_topic_id);
 
-  const Topic *get_topic(DialogId dialog_id, MessageId top_thread_message_id) const;
+  const Topic *get_topic(DialogId dialog_id, ForumTopicId forum_topic_id) const;
 
-  ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id);
+  ForumTopicInfo *get_topic_info(DialogId dialog_id, ForumTopicId forum_topic_id);
 
-  const ForumTopicInfo *get_topic_info(DialogId dialog_id, MessageId top_thread_message_id) const;
+  const ForumTopicInfo *get_topic_info(DialogId dialog_id, ForumTopicId forum_topic_id) const;
 
   void set_topic_info(DialogId dialog_id, Topic *topic, unique_ptr<ForumTopicInfo> forum_topic_info);
 
-  MessageId on_get_forum_topic_impl(DialogId dialog_id, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic);
+  ForumTopicId on_get_forum_topic_impl(DialogId dialog_id, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic);
 
-  DialogNotificationSettings *get_forum_topic_notification_settings(DialogId dialog_id,
-                                                                    MessageId top_thread_message_id);
+  const DialogNotificationSettings *get_forum_topic_notification_settings(DialogId dialog_id,
+                                                                          ForumTopicId forum_topic_id) const;
 
-  bool update_forum_topic_notification_settings(DialogId dialog_id, MessageId top_thread_message_id,
+  DialogNotificationSettings *get_forum_topic_notification_settings(DialogId dialog_id, ForumTopicId forum_topic_id);
+
+  bool update_forum_topic_notification_settings(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                 DialogNotificationSettings *current_settings,
                                                 DialogNotificationSettings &&new_settings);
 
-  void on_delete_forum_topic(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
+  void on_delete_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
+
+  td_api::object_ptr<td_api::forumTopic> get_forum_topic_object(DialogId dialog_id, ForumTopicId forum_topic_id) const;
 
   td_api::object_ptr<td_api::updateForumTopicInfo> get_update_forum_topic_info_object(
       const ForumTopicInfo *topic_info) const;
@@ -200,7 +198,7 @@ class ForumTopicManager final : public Actor {
 
   void save_topic_to_database(DialogId dialog_id, const Topic *topic);
 
-  void delete_topic_from_database(DialogId dialog_id, MessageId top_thread_message_id, Promise<Unit> &&promise);
+  void delete_topic_from_database(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
 
   Td *td_;
   ActorShared<> parent_;

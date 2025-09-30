@@ -11280,14 +11280,14 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
 }
 
 void update_forum_topic_info_by_service_message_content(Td *td, const MessageContent *content, DialogId dialog_id,
-                                                        MessageId top_thread_message_id) {
-  if (!top_thread_message_id.is_valid()) {
+                                                        ForumTopicId forum_topic_id) {
+  if (!forum_topic_id.is_valid()) {
     return;
   }
   switch (content->get_type()) {
     case MessageContentType::TopicEdit:
       return td->forum_topic_manager_->on_forum_topic_edited(
-          dialog_id, top_thread_message_id, static_cast<const MessageTopicEdit *>(content)->edited_data);
+          dialog_id, forum_topic_id, static_cast<const MessageTopicEdit *>(content)->edited_data);
     default:
       // nothing to do
       return;

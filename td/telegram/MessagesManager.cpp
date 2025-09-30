@@ -4318,7 +4318,7 @@ void MessagesManager::on_update_read_channel_messages_contents(
   }
   for (auto &server_message_id : update->messages_) {
     read_channel_message_content_from_updates(d, MessageId(ServerMessageId(server_message_id)),
-                                              MessageId(ServerMessageId(update->top_msg_id_)), saved_messages_topic_id);
+                                              ForumTopicId(update->top_msg_id_), saved_messages_topic_id);
   }
 }
 
@@ -4332,7 +4332,7 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
   }
 
   if (top_thread_message_id == MessageId(ServerMessageId(1))) {
-    td_->forum_topic_manager_->on_update_forum_topic_unread(dialog_id, top_thread_message_id, max_message_id,
+    td_->forum_topic_manager_->on_update_forum_topic_unread(dialog_id, ForumTopicId::general(), max_message_id,
                                                             last_read_inbox_message_id, last_read_outbox_message_id,
                                                             unread_count);
     return;
@@ -4343,7 +4343,7 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
     return;
   }
   if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_update_forum_topic_unread(dialog_id, top_thread_message_id, max_message_id,
+    td_->forum_topic_manager_->on_update_forum_topic_unread(dialog_id, get_message_forum_topic_id(m), max_message_id,
                                                             last_read_inbox_message_id, last_read_outbox_message_id,
                                                             unread_count);
   }
@@ -5420,8 +5420,7 @@ void MessagesManager::process_pts_update(tl_object_ptr<telegram_api::Update> &&u
       on_update_dialog_folder_id(dialog_id, FolderId(update->folder_id_));
       if (update->top_msg_id_ != 0) {
         td_->forum_topic_manager_->on_update_forum_topic_unread(
-            dialog_id, MessageId(ServerMessageId(update->top_msg_id_)), MessageId(), last_read_inbox_message_id,
-            MessageId(), -1);
+            dialog_id, ForumTopicId(update->top_msg_id_), MessageId(), last_read_inbox_message_id, MessageId(), -1);
         break;
       }
       read_history_inbox(dialog_id, last_read_inbox_message_id, -1 /*update->still_unread_count*/,
@@ -8290,15 +8289,14 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
                                                                revoke, allow_error, 0, std::move(promise));
 }
 
-void MessagesManager::delete_topic_history(DialogId dialog_id, MessageId top_thread_message_id,
-                                           Promise<Unit> &&promise) {
+void MessagesManager::delete_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "delete_topic_history"));
 
   // auto old_order = d->order;
-  // delete_all_dialog_topic_messages(d, top_thread_message_id);
+  // delete_all_dialog_topic_messages(d, forum_topic_id);
 
-  td_->message_query_manager_->delete_topic_history_on_server(dialog_id, top_thread_message_id, 0, std::move(promise));
+  td_->message_query_manager_->delete_topic_history_on_server(dialog_id, forum_topic_id, 0, std::move(promise));
 }
 
 void MessagesManager::delete_all_call_messages(bool revoke, Promise<Unit> &&promise) {
@@ -8706,12 +8704,13 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, MessageId top
   TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "read_all_dialog_mentions"));
   TRY_STATUS_PROMISE(promise, can_use_top_thread_message_id(d, top_thread_message_id, MessageInputReplyTo()));
 
-  if (top_thread_message_id.is_valid()) {
+  if (top_thread_message_id.is_server()) {
+    auto forum_topic_id = ForumTopicId(top_thread_message_id.get_server_message_id().get());
     LOG(INFO) << "Receive readAllChatMentions request in thread of " << top_thread_message_id << " in " << dialog_id;
     if (d->is_forum) {
-      td_->forum_topic_manager_->on_topic_mention_count_changed(dialog_id, top_thread_message_id, 0, false);
+      td_->forum_topic_manager_->on_topic_mention_count_changed(dialog_id, forum_topic_id, 0, false);
     }
-    return td_->message_query_manager_->read_all_topic_mentions_on_server(dialog_id, top_thread_message_id, 0,
+    return td_->message_query_manager_->read_all_topic_mentions_on_server(dialog_id, forum_topic_id, 0,
                                                                           std::move(promise));
   } else {
     LOG(INFO) << "Receive readAllChatMentions request in " << dialog_id << " with " << d->unread_mention_count
@@ -8797,13 +8796,14 @@ void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, MessageId to
   TRY_STATUS_PROMISE(promise, can_use_top_thread_message_id(d, top_thread_message_id, MessageInputReplyTo()));
 
   auto is_update_sent = read_all_local_dialog_reactions(dialog_id, top_thread_message_id, SavedMessagesTopicId());
-  if (top_thread_message_id.is_valid()) {
+  if (top_thread_message_id.is_server()) {
+    auto forum_topic_id = ForumTopicId(top_thread_message_id.get_server_message_id().get());
     LOG(INFO) << "Receive readAllChatReactions request in thread of " << top_thread_message_id << " in " << dialog_id;
     if (d->is_forum) {
-      td_->forum_topic_manager_->on_topic_reaction_count_changed(dialog_id, top_thread_message_id, 0, false);
+      td_->forum_topic_manager_->on_topic_reaction_count_changed(dialog_id, forum_topic_id, 0, false);
     }
     return td_->message_query_manager_->read_all_topic_reactions_on_server(
-        dialog_id, top_thread_message_id, SavedMessagesTopicId(), 0, std::move(promise));
+        dialog_id, forum_topic_id, SavedMessagesTopicId(), 0, std::move(promise));
   } else {
     LOG(INFO) << "Receive readAllChatReactions request in " << dialog_id << " with " << d->unread_reaction_count
               << " unread reactions";
@@ -8843,7 +8843,7 @@ void MessagesManager::read_message_content_from_updates(MessageId message_id, in
 }
 
 void MessagesManager::read_channel_message_content_from_updates(Dialog *d, MessageId message_id,
-                                                                MessageId top_thread_message_id,
+                                                                ForumTopicId forum_topic_id,
                                                                 SavedMessagesTopicId saved_messages_topic_id) {
   CHECK(d != nullptr);
   if (!message_id.is_server()) {
@@ -8874,8 +8874,8 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
         // but if the chat has unread mentions, then number of unread mentions could have been changed
         repair_dialog_unread_mention_count(d, "read_channel_message_content_from_updates");
       }
-      if (top_thread_message_id.is_valid()) {
-        td_->forum_topic_manager_->repair_topic_unread_mention_count(d->dialog_id, top_thread_message_id);
+      if (forum_topic_id.is_valid()) {
+        td_->forum_topic_manager_->repair_topic_unread_mention_count(d->dialog_id, forum_topic_id);
       }
     }
   }
@@ -13119,7 +13119,7 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
     delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
   }
   if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, m->top_thread_message_id, -1);
+    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, get_message_forum_topic_id(m), -1);
   }
 
   added_message_count_--;
@@ -13194,7 +13194,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
     delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
   }
   if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, m->top_thread_message_id, -1);
+    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, get_message_forum_topic_id(m), -1);
   }
 
   return result;
@@ -14569,7 +14569,7 @@ void MessagesManager::reload_dialog_notification_settings(DialogId dialog_id, Pr
   LOG(INFO) << "Reload notification settings for " << dialog_id << " from " << source;
   const Dialog *d = get_dialog(dialog_id);
   if (d != nullptr) {
-    td_->notification_settings_manager_->send_get_dialog_notification_settings_query(dialog_id, MessageId(),
+    td_->notification_settings_manager_->send_get_dialog_notification_settings_query(dialog_id, ForumTopicId(),
                                                                                      std::move(promise));
   } else {
     send_get_dialog_query(dialog_id, std::move(promise), 0, source);
@@ -15093,9 +15093,9 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
     sb << "c/" << dialog_id.get_channel_id().get();
   }
   if (in_message_thread && is_forum) {
-    auto top_thread_message_id = get_message_forum_topic_id(m);
-    if (top_thread_message_id != message_id) {
-      sb << '/' << top_thread_message_id.get_server_message_id().get();
+    auto forum_topic_id = get_message_forum_topic_id(m);
+    if (forum_topic_id.get() != message_id.get_server_message_id().get()) {
+      sb << '/' << forum_topic_id.get();
     }
     in_message_thread = false;
   }
@@ -15295,7 +15295,7 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
       if (info.comment_dialog_id.is_valid() || info.for_comment) {
         top_thread_message_id = m->top_thread_message_id;
       } else if (d->is_forum) {
-        top_thread_message_id = get_message_forum_topic_id(m);
+        top_thread_message_id = MessageId(ServerMessageId(get_message_forum_topic_id(m).get()));
       } else {
         top_thread_message_id = MessageId();
       }
@@ -15781,7 +15781,8 @@ void MessagesManager::update_dialog_notification_settings_on_server(DialogId dia
     return;
   }
 
-  if (!from_binlog && td_->notification_settings_manager_->get_input_notify_peer(dialog_id, MessageId()) == nullptr) {
+  if (!from_binlog &&
+      td_->notification_settings_manager_->get_input_notify_peer(dialog_id, ForumTopicId()) == nullptr) {
     // don't even create new binlog events
     return;
   }
@@ -15815,7 +15816,7 @@ void MessagesManager::send_update_dialog_notification_settings_query(const Dialo
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(d != nullptr);
   // TODO do not send two queries simultaneously or use InvokeAfter
-  td_->notification_settings_manager_->update_dialog_notify_settings(d->dialog_id, MessageId(),
+  td_->notification_settings_manager_->update_dialog_notify_settings(d->dialog_id, ForumTopicId(),
                                                                      d->notification_settings, std::move(promise));
 }
 
@@ -16057,7 +16058,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   }
 
   // get forum topic identifier for the messages
-  MessageId forum_topic_id;
+  ForumTopicId forum_topic_id;
   if (source == MessageSource::ForumTopicHistory) {
     if (!d->is_forum) {
       return Status::Error(400, "Chat is not a forum");
@@ -22761,8 +22762,9 @@ DialogId MessagesManager::get_message_sender(const Message *m) {
   return m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id);
 }
 
-MessageId MessagesManager::get_message_forum_topic_id(const Message *m) {
-  return m->is_topic_message ? m->top_thread_message_id : MessageId(ServerMessageId(1));
+ForumTopicId MessagesManager::get_message_forum_topic_id(const Message *m) {
+  return m->is_topic_message ? ForumTopicId(m->top_thread_message_id.get_server_message_id().get())
+                             : ForumTopicId::general();
 }
 
 SavedMessagesTopicId MessagesManager::get_input_message_monoforum_topic_id(const Message *m) {
@@ -29652,9 +29654,10 @@ void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId to
     }
   }
 
-  if (top_thread_message_id.is_valid()) {
+  if (top_thread_message_id.is_server()) {
+    auto forum_topic_id = ForumTopicId(top_thread_message_id.get_server_message_id().get());
     return td_->message_query_manager_->unpin_all_topic_messages_on_server(
-        dialog_id, top_thread_message_id, SavedMessagesTopicId(), 0, std::move(promise));
+        dialog_id, forum_topic_id, SavedMessagesTopicId(), 0, std::move(promise));
   }
 
   set_dialog_last_pinned_message_id(d, MessageId());
@@ -30604,7 +30607,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (from_update && !m->is_failed_to_send) {
     speculatively_update_active_group_call_id(d, m);
     speculatively_update_channel_participants(dialog_id, m);
-    update_forum_topic_info_by_service_message_content(td_, m->content.get(), dialog_id, m->top_thread_message_id);
+    update_forum_topic_info_by_service_message_content(td_, m->content.get(), dialog_id, get_message_forum_topic_id(m));
     update_sent_message_contents(dialog_id, m);
     update_used_hashtags(dialog_id, m);
     update_top_dialogs(dialog_id, m);
@@ -30641,7 +30644,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, m->top_thread_message_id, +1);
+    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(m), +1);
   }
 
   Message *result_message = message.get();
@@ -30824,7 +30827,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   }
 
   if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, m->top_thread_message_id, +1);
+    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(m), +1);
   }
 
   auto *scheduled_messages = add_dialog_scheduled_messages(d);
@@ -31524,7 +31527,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
     if ((is_top_thread_message_id_changed || is_is_topic_message_changed) && is_message_in_dialog &&
         old_message->is_topic_message && old_message->top_thread_message_id != MessageId()) {
-      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, old_message->top_thread_message_id, -1);
+      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(old_message), -1);
     }
 
     if (is_message_in_dialog) {
@@ -31542,7 +31545,7 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
     if ((is_top_thread_message_id_changed || is_is_topic_message_changed) && is_message_in_dialog &&
         old_message->is_topic_message && old_message->top_thread_message_id != MessageId()) {
-      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, old_message->top_thread_message_id, +1);
+      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(old_message), +1);
     }
     need_send_update = true;
   }
@@ -32382,7 +32385,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
       d->notification_settings.is_use_default_fixed = true;
       on_dialog_updated(dialog_id, "reget notification settings");
     } else {
-      td_->notification_settings_manager_->send_get_dialog_notification_settings_query(dialog_id, MessageId(),
+      td_->notification_settings_manager_->send_get_dialog_notification_settings_query(dialog_id, ForumTopicId(),
                                                                                        Promise<Unit>());
     }
   }

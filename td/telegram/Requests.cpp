@@ -72,6 +72,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/files/FileStats.h"
 #include "td/telegram/files/FileType.h"
+#include "td/telegram/ForumTopicId.h"
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/GameManager.h"
 #include "td/telegram/Global.h"
@@ -4412,20 +4413,20 @@ void Requests::on_request(uint64 id, td_api::createForumTopic &request) {
 void Requests::on_request(uint64 id, td_api::editForumTopic &request) {
   CLEAN_INPUT_STRING(request.name_);
   CREATE_OK_REQUEST_PROMISE();
-  td_->forum_topic_manager_->edit_forum_topic(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+  td_->forum_topic_manager_->edit_forum_topic(DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_),
                                               std::move(request.name_), request.edit_icon_custom_emoji_,
                                               CustomEmojiId(request.icon_custom_emoji_id_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getForumTopic &request) {
   CREATE_REQUEST_PROMISE();
-  td_->forum_topic_manager_->get_forum_topic(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+  td_->forum_topic_manager_->get_forum_topic(DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_),
                                              std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getForumTopicLink &request) {
   CREATE_REQUEST_PROMISE();
-  td_->forum_topic_manager_->get_forum_topic_link(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+  td_->forum_topic_manager_->get_forum_topic_link(DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_),
                                                   std::move(promise));
 }
 
@@ -4435,14 +4436,14 @@ void Requests::on_request(uint64 id, td_api::getForumTopics &request) {
   CREATE_REQUEST_PROMISE();
   td_->forum_topic_manager_->get_forum_topics(DialogId(request.chat_id_), std::move(request.query_),
                                               request.offset_date_, MessageId(request.offset_message_id_),
-                                              MessageId(request.offset_message_thread_id_), request.limit_,
+                                              ForumTopicId(request.offset_forum_topic_id_), request.limit_,
                                               std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::toggleForumTopicIsClosed &request) {
   CREATE_OK_REQUEST_PROMISE();
   td_->forum_topic_manager_->toggle_forum_topic_is_closed(
-      DialogId(request.chat_id_), MessageId(request.message_thread_id_), request.is_closed_, std::move(promise));
+      DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_), request.is_closed_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::toggleGeneralForumTopicIsHidden &request) {
@@ -4455,19 +4456,19 @@ void Requests::on_request(uint64 id, const td_api::toggleForumTopicIsPinned &req
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->forum_topic_manager_->toggle_forum_topic_is_pinned(
-      DialogId(request.chat_id_), MessageId(request.message_thread_id_), request.is_pinned_, std::move(promise));
+      DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_), request.is_pinned_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::setPinnedForumTopics &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->forum_topic_manager_->set_pinned_forum_topics(
-      DialogId(request.chat_id_), MessageId::get_message_ids(request.message_thread_ids_), std::move(promise));
+      DialogId(request.chat_id_), ForumTopicId::get_forum_topic_ids(request.forum_topic_ids_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::deleteForumTopic &request) {
   CREATE_OK_REQUEST_PROMISE();
-  td_->forum_topic_manager_->delete_forum_topic(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+  td_->forum_topic_manager_->delete_forum_topic(DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_),
                                                 std::move(promise));
 }
 
@@ -7321,7 +7322,7 @@ void Requests::on_request(uint64 id, td_api::setChatNotificationSettings &reques
 void Requests::on_request(uint64 id, td_api::setForumTopicNotificationSettings &request) {
   CHECK_IS_USER();
   answer_ok_query(id, td_->forum_topic_manager_->set_forum_topic_notification_settings(
-                          DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+                          DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_),
                           std::move(request.notification_settings_)));
 }
 
