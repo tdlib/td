@@ -32122,6 +32122,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
       d->is_is_blocked_for_stories_inited = true;
       d->is_background_inited = true;
       d->is_view_as_messages_inited = true;
+      d->is_forum = false;
+      d->is_forum_tabs = false;
       break;
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
@@ -32174,6 +32176,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
       d->is_has_bots_inited = true;
       d->is_available_reactions_inited = true;
       d->has_loaded_scheduled_messages_from_database = true;
+      d->is_forum = false;
+      d->is_forum_tabs = false;
 
       break;
     case DialogType::None:
@@ -32367,8 +32371,6 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
   if (d->has_active_group_call && !d->active_group_call_id.is_valid() && !td_->auth_manager_->is_bot()) {
     repair_dialog_active_group_call_id(dialog_id);
   }
-  set_dialog_is_forum(d, td_->dialog_manager_->is_forum_channel(dialog_id),
-                      td_->dialog_manager_->is_forum_tabs_channel(dialog_id));
 
   if (d->notification_settings.is_synchronized && !d->notification_settings.is_use_default_fixed &&
       td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read) && !td_->auth_manager_->is_bot()) {
