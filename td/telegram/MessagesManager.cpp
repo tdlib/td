@@ -29607,7 +29607,7 @@ void MessagesManager::pin_dialog_message(BusinessConnectionId business_connectio
       ->send(business_connection_id, dialog_id, message_id, is_unpin, disable_notification, only_for_self);
 }
 
-void MessagesManager::unpin_all_local_dialog_messages(DialogId dialog_id, MessageId top_thread_message_id,
+void MessagesManager::unpin_all_local_dialog_messages(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                       SavedMessagesTopicId saved_messages_topic_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -29616,10 +29616,8 @@ void MessagesManager::unpin_all_local_dialog_messages(DialogId dialog_id, Messag
   if (d == nullptr) {
     return;
   }
-  auto message_ids = find_dialog_messages(d, [top_thread_message_id, saved_messages_topic_id](const Message *m) {
-    return m->is_pinned &&
-           (!top_thread_message_id.is_valid() ||
-            (m->is_topic_message && m->top_thread_message_id == top_thread_message_id)) &&
+  auto message_ids = find_dialog_messages(d, [forum_topic_id, saved_messages_topic_id](const Message *m) {
+    return m->is_pinned && (!forum_topic_id.is_valid() || get_message_forum_topic_id(m) == forum_topic_id) &&
            (!saved_messages_topic_id.is_valid() || m->saved_messages_topic_id == saved_messages_topic_id);
   });
 
@@ -29636,16 +29634,15 @@ void MessagesManager::unpin_all_local_dialog_messages(DialogId dialog_id, Messag
   }
 }
 
-void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, MessageId top_thread_message_id,
+void MessagesManager::unpin_all_dialog_messages(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                 Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "unpin_all_dialog_messages"));
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->can_pin_messages(dialog_id));
-  TRY_STATUS_PROMISE(promise, can_use_top_thread_message_id(d, top_thread_message_id, MessageInputReplyTo()));
+  TRY_STATUS_PROMISE(promise, can_use_forum_topic_id(d, forum_topic_id));
 
-  unpin_all_local_dialog_messages(dialog_id, top_thread_message_id, SavedMessagesTopicId());
+  unpin_all_local_dialog_messages(dialog_id, forum_topic_id, SavedMessagesTopicId());
 
-  if (top_thread_message_id.is_server()) {
-    auto forum_topic_id = ForumTopicId(top_thread_message_id.get_server_message_id().get());
+  if (forum_topic_id.is_valid()) {
     return td_->message_query_manager_->unpin_all_topic_messages_on_server(
         dialog_id, forum_topic_id, SavedMessagesTopicId(), 0, std::move(promise));
   }

@@ -1033,7 +1033,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::unpinAllChatMessages &request);
 
-  void on_request(uint64 id, const td_api::unpinAllMessageThreadMessages &request);
+  void on_request(uint64 id, const td_api::unpinAllForumTopicMessages &request);
 
   void on_request(uint64 id, const td_api::joinChat &request);
 

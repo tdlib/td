@@ -7318,11 +7318,11 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::unpinAllChatMessages>(chat_id));
-    } else if (op == "uamtm") {
+    } else if (op == "uaftm") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
-      get_args(args, chat_id, message_thread_id);
-      send_request(td_api::make_object<td_api::unpinAllMessageThreadMessages>(chat_id, message_thread_id));
+      ForumTopicId forum_topic_id;
+      get_args(args, chat_id, forum_topic_id);
+      send_request(td_api::make_object<td_api::unpinAllForumTopicMessages>(chat_id, forum_topic_id));
     } else if (op == "rbm") {
       ChatId chat_id;
       MessageId message_id;

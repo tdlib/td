@@ -10942,6 +10942,10 @@ readAllForumTopicMentions chat_id:int53 forum_topic_id:int32 = Ok;
 //@forum_topic_id Forum topic identifier in which reactions are marked as read
 readAllForumTopicReactions chat_id:int53 forum_topic_id:int32 = Ok;
 
+//@description Removes all pinned messages from a topic in a forum supergroup chat or a chat with a bot with topics; requires can_pin_messages member right in the supergroup
+//@chat_id Identifier of the chat
+//@forum_topic_id Forum topic identifier in which messages will be unpinned
+unpinAllForumTopicMessages chat_id:int53 forum_topic_id:int32 = Ok;
 
 
 //@description Returns information about an emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction
@@ -11611,11 +11615,6 @@ unpinChatMessage chat_id:int53 message_id:int53 = Ok;
 
 //@description Removes all pinned messages from a chat; requires can_pin_messages member right if the chat is a basic group or supergroup, or can_edit_messages administrator right if the chat is a channel @chat_id Identifier of the chat
 unpinAllChatMessages chat_id:int53 = Ok;
-
-//@description Removes all pinned messages from a forum topic; requires can_pin_messages member right in the supergroup
-//@chat_id Identifier of the chat
-//@message_thread_id Message thread identifier in which messages will be unpinned
-unpinAllMessageThreadMessages chat_id:int53 message_thread_id:int53 = Ok;
 
 
 //@description Adds the current user as a new member to a chat. Private and secret chats can't be joined using this method. May return an error with a message "INVITE_REQUEST_SENT" if only a join request was created @chat_id Chat identifier

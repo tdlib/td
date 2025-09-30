@@ -5567,15 +5567,15 @@ void Requests::on_request(uint64 id, const td_api::unpinChatMessage &request) {
 
 void Requests::on_request(uint64 id, const td_api::unpinAllChatMessages &request) {
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->unpin_all_dialog_messages(DialogId(request.chat_id_), MessageId(), std::move(promise));
+  td_->messages_manager_->unpin_all_dialog_messages(DialogId(request.chat_id_), ForumTopicId(), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::unpinAllMessageThreadMessages &request) {
-  if (request.message_thread_id_ == 0) {
-    return send_error_raw(id, 400, "Invalid message thread identifier specified");
+void Requests::on_request(uint64 id, const td_api::unpinAllForumTopicMessages &request) {
+  if (request.forum_topic_id_ == 0) {
+    return send_error_raw(id, 400, "Invalid forum topic identifier specified");
   }
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->unpin_all_dialog_messages(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+  td_->messages_manager_->unpin_all_dialog_messages(DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_),
                                                     std::move(promise));
 }
 
