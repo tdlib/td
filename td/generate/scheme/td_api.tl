@@ -3330,8 +3330,8 @@ forumTopic info:forumTopicInfo last_message:message order:int64 is_pinned:Bool u
 //@topics List of forum topics
 //@next_offset_date Offset date for the next getForumTopics request
 //@next_offset_message_id Offset message identifier for the next getForumTopics request
-//@next_offset_message_thread_id Offset message thread identifier for the next getForumTopics request
-forumTopics total_count:int32 topics:vector<forumTopic> next_offset_date:int32 next_offset_message_id:int53 next_offset_message_thread_id:int53 = ForumTopics;
+//@next_offset_forum_topic_id Offset forum topic identifier for the next getForumTopics request
+forumTopics total_count:int32 topics:vector<forumTopic> next_offset_date:int32 next_offset_message_id:int53 next_offset_forum_topic_id:int32 = ForumTopics;
 
 
 //@description Options to be used for generation of a link preview
