@@ -3693,6 +3693,7 @@ MessagesManager::~MessagesManager() {
       expected_channel_pts_, expected_channel_max_message_id_, dialog_bot_command_message_ids_,
       message_full_id_to_file_source_id_, last_outgoing_forwarded_message_date_, dialog_viewed_messages_,
       previous_repaired_read_inbox_max_message_id_, failed_to_load_dialogs_);
+  LOG(DEBUG) << "Complete MessagesManager destructor";
 }
 
 MessagesManager::AddDialogData::AddDialogData(int32 dependent_dialog_count, unique_ptr<Message> &&last_message,
@@ -9729,6 +9730,9 @@ void MessagesManager::ttl_read_history(Dialog *d, bool is_outgoing, MessageId fr
 
 void MessagesManager::ttl_read_history_impl(DialogId dialog_id, bool is_outgoing, MessageId from_message_id,
                                             MessageId till_message_id, double view_date) {
+  if (G()->close_flag()) {
+    return;
+  }
   CHECK(dialog_id.get_type() == DialogType::SecretChat);
   CHECK(!from_message_id.is_scheduled());
   CHECK(!till_message_id.is_scheduled());
@@ -10012,6 +10016,7 @@ void MessagesManager::hangup() {
   fail_promise_map(load_scheduled_messages_from_database_queries_, Global::request_aborted_error());
   fail_promise_map(run_after_get_channel_difference_, Global::request_aborted_error());
   fail_promise_map(get_history_queries_, Global::request_aborted_error());
+  fail_promise_map(awaited_message_full_ids_, Global::request_aborted_error());
   while (!pending_channel_on_get_dialogs_.empty()) {
     auto it = pending_channel_on_get_dialogs_.begin();
     auto queries = std::move(it->second);
@@ -10020,12 +10025,48 @@ void MessagesManager::hangup() {
       query.promise.set_error(Global::request_aborted_error());
     }
   }
+  while (!pending_on_get_dialogs_.empty()) {
+    auto query = std::move(pending_on_get_dialogs_.back());
+    pending_on_get_dialogs_.pop_back();
+    query.promise.set_error(Global::request_aborted_error());
+  }
+  while (!pending_created_dialogs_.empty()) {
+    auto it = pending_created_dialogs_.begin();
+    auto query = std::move(it->second);
+    pending_created_dialogs_.erase(it);
+    query.chat_promise_.set_error(Global::request_aborted_error());
+    query.channel_promise_.set_error(Global::request_aborted_error());
+  }
   while (!get_dialogs_tasks_.empty()) {
     auto it = get_dialogs_tasks_.begin();
     auto promise = std::move(it->second.promise);
     get_dialogs_tasks_.erase(it);
     promise.set_error(Global::request_aborted_error());
   }
+  while (!get_dialogs_tasks_.empty()) {
+    auto it = get_dialogs_tasks_.begin();
+    auto promise = std::move(it->second.promise);
+    get_dialogs_tasks_.erase(it);
+    promise.set_error(Global::request_aborted_error());
+  }
+  for (auto &list_it : dialog_lists_) {
+    auto &list = list_it.second;
+    if (!list.load_list_queries_.empty()) {
+      auto promises = std::move(list.load_list_queries_);
+      fail_promises(promises, Global::request_aborted_error());
+    }
+  }
+  while (!dialog_suffix_load_queries_.empty()) {
+    auto it = dialog_suffix_load_queries_.begin();
+    auto queries = std::move(it->second);
+    dialog_suffix_load_queries_.erase(it);
+    for (auto &query : queries->suffix_load_queries_) {
+      query.first.set_error(Global::request_aborted_error());
+    }
+  }
+  // no need to clean edited_messages_ and edited_scheduled_messages_
+  // no need to clean pending_secret_messages_
+  // no need to clean yet_unsent_media_queues_
 
   stop();
 }
@@ -10497,6 +10538,10 @@ void MessagesManager::read_secret_chat_outbox(SecretChatId secret_chat_id, int32
 }
 
 void MessagesManager::read_secret_chat_outbox_inner(DialogId dialog_id, int32 up_to_date, int32 read_date) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
