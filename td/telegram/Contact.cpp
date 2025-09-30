@@ -117,6 +117,25 @@ Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::contact> &&contac
                  std::move(contact->vcard_), user_id);
 }
 
+Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::importedContact> &&contact) {
+  if (contact == nullptr) {
+    return Status::Error(400, "Contact must be non-empty");
+  }
+
+  if (!clean_input_string(contact->phone_number_)) {
+    return Status::Error(400, "Phone number must be encoded in UTF-8");
+  }
+  if (!clean_input_string(contact->first_name_)) {
+    return Status::Error(400, "First name must be encoded in UTF-8");
+  }
+  if (!clean_input_string(contact->last_name_)) {
+    return Status::Error(400, "Last name must be encoded in UTF-8");
+  }
+
+  return Contact(std::move(contact->phone_number_), std::move(contact->first_name_), std::move(contact->last_name_),
+                 string(), UserId());
+}
+
 Result<Contact> process_input_message_contact(Td *td,
                                               td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) {
   CHECK(input_message_content != nullptr);

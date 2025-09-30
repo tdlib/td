@@ -3351,14 +3351,14 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::sharePhoneNumber>(user_id));
     } else if (op == "ic" || op == "cic") {
       vector<string> contacts_str = full_split(args, ';');
-      vector<td_api::object_ptr<td_api::contact>> contacts;
+      vector<td_api::object_ptr<td_api::importedContact>> contacts;
       for (auto c : contacts_str) {
         string phone_number;
         string first_name;
         string last_name;
         std::tie(phone_number, c) = split(c, ',');
         std::tie(first_name, last_name) = split(c, ',');
-        contacts.push_back(td_api::make_object<td_api::contact>(phone_number, first_name, last_name, string(), 0));
+        contacts.push_back(td_api::make_object<td_api::importedContact>(phone_number, first_name, last_name));
       }
       if (op == "cic") {
         send_request(td_api::make_object<td_api::changeImportedContacts>(std::move(contacts)));

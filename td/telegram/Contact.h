@@ -144,6 +144,8 @@ struct ContactHash {
 
 Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::contact> &&contact) TD_WARN_UNUSED_RESULT;
 
+Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::importedContact> &&contact) TD_WARN_UNUSED_RESULT;
+
 Result<Contact> process_input_message_contact(
     Td *td, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 

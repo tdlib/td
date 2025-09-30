@@ -510,10 +510,10 @@ voiceNote duration:int32 waveform:bytes mime_type:string speech_recognition_resu
 //@sound File containing the sound to be played when the sticker is clicked; may be null. The sound is encoded with the Opus codec, and stored inside an OGG container
 animatedEmoji sticker:sticker sticker_width:int32 sticker_height:int32 fitzpatrick_type:int32 sound:file = AnimatedEmoji;
 
-//@description Describes a user contact
+//@description Describes a contact of a user
 //@phone_number Phone number of the user
-//@first_name First name of the user; 1-255 characters in length
-//@last_name Last name of the user
+//@first_name First name of the user; 1-64 characters
+//@last_name Last name of the user; 0-64 characters
 //@vcard Additional data about the user in a form of vCard; 0-2048 bytes in length
 //@user_id Identifier of the user, if known; 0 otherwise
 contact phone_number:string first_name:string last_name:string vcard:string user_id:int53 = Contact;
@@ -6178,6 +6178,12 @@ diceStickersRegular sticker:sticker = DiceStickers;
 //@right_reel The animated sticker with the right reel
 diceStickersSlotMachine background:sticker lever:sticker left_reel:sticker center_reel:sticker right_reel:sticker = DiceStickers;
 
+
+//@description Describes a contact to import
+//@phone_number Phone number of the user
+//@first_name First name of the user; 1-64 characters
+//@last_name Last name of the user; 0-64 characters
+importedContact phone_number:string first_name:string last_name:string = ImportedContact;
 
 //@description Represents the result of an importContacts request
 //@user_ids User identifiers of the imported contacts in the same order as they were specified in the request; 0 if the contact is not yet a registered user
@@ -12471,8 +12477,9 @@ getBlockedMessageSenders block_list:BlockList offset:int32 limit:int32 = Message
 //-Use the field userFullInfo.need_phone_number_privacy_exception to check whether the current user needs to be asked to share their phone number
 addContact contact:contact note:formattedText share_phone_number:Bool = Ok;
 
-//@description Adds new contacts or edits existing contacts by their phone numbers; contacts' user identifiers are ignored @contacts The list of contacts to import or edit; contacts' vCard are ignored and are not imported
-importContacts contacts:vector<contact> = ImportedContacts;
+//@description Adds new contacts or edits existing contacts by their phone numbers; contacts' user identifiers are ignored
+//@contacts The list of contacts to import or edit
+importContacts contacts:vector<importedContact> = ImportedContacts;
 
 //@description Returns all contacts of the user
 getContacts = Users;
@@ -12490,8 +12497,8 @@ getImportedContactCount = Count;
 
 //@description Changes imported contacts using the list of contacts saved on the device. Imports newly added contacts and, if at least the file database is enabled, deletes recently deleted contacts.
 //-Query result depends on the result of the previous query, so only one query is possible at the same time
-//@contacts The new list of contacts, contact's vCard are ignored and are not imported
-changeImportedContacts contacts:vector<contact> = ImportedContacts;
+//@contacts The new list of contacts to import
+changeImportedContacts contacts:vector<importedContact> = ImportedContacts;
 
 //@description Clears all imported contacts, contact list remains unchanged
 clearImportedContacts = Ok;
