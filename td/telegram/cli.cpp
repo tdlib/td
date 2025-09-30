@@ -7813,7 +7813,7 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::readAllChatMentions>(chat_id));
-    } else if (op == "ramtm") {
+    } else if (op == "raftm") {
       ChatId chat_id;
       ForumTopicId forum_topic_id;
       get_args(args, chat_id, forum_topic_id);
@@ -7822,11 +7822,11 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::readAllChatReactions>(chat_id));
-    } else if (op == "ramtr") {
+    } else if (op == "raftr") {
       ChatId chat_id;
-      MessageThreadId message_thread_id;
-      get_args(args, chat_id, message_thread_id);
-      send_request(td_api::make_object<td_api::readAllMessageThreadReactions>(chat_id, message_thread_id));
+      ForumTopicId forum_topic_id;
+      get_args(args, chat_id, forum_topic_id);
+      send_request(td_api::make_object<td_api::readAllForumTopicReactions>(chat_id, forum_topic_id));
     } else if (op == "tre") {
       send_request(td_api::make_object<td_api::testReturnError>(
           args.empty() ? nullptr : td_api::make_object<td_api::error>(-1, args)));

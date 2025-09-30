@@ -8755,7 +8755,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, ForumTopicId 
   td_->message_query_manager_->read_all_dialog_mentions_on_server(dialog_id, 0, std::move(promise));
 }
 
-bool MessagesManager::read_all_local_dialog_reactions(DialogId dialog_id, MessageId top_thread_message_id,
+bool MessagesManager::read_all_local_dialog_reactions(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                       SavedMessagesTopicId saved_messages_topic_id) {
   if (td_->auth_manager_->is_bot()) {
     return false;
@@ -8765,10 +8765,9 @@ bool MessagesManager::read_all_local_dialog_reactions(DialogId dialog_id, Messag
     return false;
   }
   auto message_ids =
-      find_dialog_messages(d, [this, dialog_id, top_thread_message_id, saved_messages_topic_id](const Message *m) {
+      find_dialog_messages(d, [this, dialog_id, forum_topic_id, saved_messages_topic_id](const Message *m) {
         return has_unread_message_reactions(dialog_id, m) &&
-               (!top_thread_message_id.is_valid() ||
-                (m->is_topic_message && m->top_thread_message_id == top_thread_message_id)) &&
+               (!forum_topic_id.is_valid() || get_message_forum_topic_id(m) == forum_topic_id) &&
                (!saved_messages_topic_id.is_valid() || m->saved_messages_topic_id == saved_messages_topic_id);
       });
 
@@ -8783,29 +8782,26 @@ bool MessagesManager::read_all_local_dialog_reactions(DialogId dialog_id, Messag
     m->reactions->unread_reactions_.clear();
 
     send_update_message_unread_reactions(dialog_id, m, 0);
-    on_message_changed(d, m, true, "read_all_dialog_reactions");
+    on_message_changed(d, m, true, "read_all_local_dialog_reactions");
   }
   return !message_ids.empty();
 }
 
-void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, MessageId top_thread_message_id,
+void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                 Promise<Unit> &&promise) {
   TRY_RESULT_PROMISE(promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "read_all_dialog_reactions"));
-  TRY_STATUS_PROMISE(promise, can_use_top_thread_message_id(d, top_thread_message_id, MessageInputReplyTo()));
+  TRY_STATUS_PROMISE(promise, can_use_forum_topic_id(d, forum_topic_id));
 
-  auto is_update_sent = read_all_local_dialog_reactions(dialog_id, top_thread_message_id, SavedMessagesTopicId());
-  if (top_thread_message_id.is_server()) {
-    auto forum_topic_id = ForumTopicId(top_thread_message_id.get_server_message_id().get());
-    LOG(INFO) << "Receive readAllChatReactions request in thread of " << top_thread_message_id << " in " << dialog_id;
-    if (d->is_forum) {
-      td_->forum_topic_manager_->on_topic_reaction_count_changed(dialog_id, forum_topic_id, 0, false);
-    }
+  auto is_update_sent = read_all_local_dialog_reactions(dialog_id, forum_topic_id, SavedMessagesTopicId());
+  if (forum_topic_id.is_valid()) {
+    LOG(INFO) << "Receive readAllChatReactions request in " << forum_topic_id << " in " << dialog_id;
+    td_->forum_topic_manager_->on_topic_reaction_count_changed(dialog_id, forum_topic_id, 0, false);
     return td_->message_query_manager_->read_all_topic_reactions_on_server(
         dialog_id, forum_topic_id, SavedMessagesTopicId(), 0, std::move(promise));
-  } else {
-    LOG(INFO) << "Receive readAllChatReactions request in " << dialog_id << " with " << d->unread_reaction_count
-              << " unread reactions";
   }
+
+  LOG(INFO) << "Receive readAllChatReactions request in " << dialog_id << " with " << d->unread_reaction_count
+            << " unread reactions";
 
   if (dialog_id.get_type() == DialogType::SecretChat) {
     CHECK(d->unread_reaction_count == 0);

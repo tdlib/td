@@ -10932,8 +10932,15 @@ setPinnedForumTopics chat_id:int53 forum_topic_ids:vector<int32> = Ok;
 //@forum_topic_id Forum topic identifier
 deleteForumTopic chat_id:int53 forum_topic_id:int32 = Ok;
 
-//@description Marks all mentions in a topic in a forum supergroup chat as read @chat_id Chat identifier @forum_topic_id Forum topic identifier in which mentions are marked as read
+//@description Marks all mentions in a topic in a forum supergroup chat as read
+//@chat_id Chat identifier
+//@forum_topic_id Forum topic identifier in which mentions are marked as read
 readAllForumTopicMentions chat_id:int53 forum_topic_id:int32 = Ok;
+
+//@description Marks all reactions in a topic in a forum supergroup chat or a chat with a bot with topics as read
+//@chat_id Chat identifier
+//@forum_topic_id Forum topic identifier in which reactions are marked as read
+readAllForumTopicReactions chat_id:int53 forum_topic_id:int32 = Ok;
 
 
 
@@ -11354,9 +11361,6 @@ readAllChatMentions chat_id:int53 = Ok;
 
 //@description Marks all reactions in a chat as read @chat_id Chat identifier
 readAllChatReactions chat_id:int53 = Ok;
-
-//@description Marks all reactions in a forum topic as read @chat_id Chat identifier @message_thread_id Message thread identifier in which reactions are marked as read
-readAllMessageThreadReactions chat_id:int53 message_thread_id:int53 = Ok;
 
 
 //@description Returns an existing chat corresponding to a given user @user_id User identifier @force Pass true to create the chat without a network request. In this case all information about the chat except its type, title and photo can be incorrect
