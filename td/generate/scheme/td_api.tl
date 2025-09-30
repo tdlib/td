@@ -6183,7 +6183,9 @@ diceStickersSlotMachine background:sticker lever:sticker left_reel:sticker cente
 //@phone_number Phone number of the user
 //@first_name First name of the user; 1-64 characters
 //@last_name Last name of the user; 0-64 characters
-importedContact phone_number:string first_name:string last_name:string = ImportedContact;
+//@note Note to add about the user; 0-getOption("user_note_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed;
+//-pass null to keep the current user's note
+importedContact phone_number:string first_name:string last_name:string note:formattedText = ImportedContact;
 
 //@description Represents the result of an importContacts request
 //@user_ids User identifiers of the imported contacts in the same order as they were specified in the request; 0 if the contact is not yet a registered user

@@ -7717,7 +7717,8 @@ void UserManager::do_import_contacts(vector<Contact> contacts, int64 random_id, 
   vector<telegram_api::object_ptr<telegram_api::inputPhoneContact>> input_phone_contacts;
   input_phone_contacts.reserve(size);
   for (size_t i = 0; i < size; i++) {
-    input_phone_contacts.push_back(contacts[i].get_input_phone_contact(static_cast<int64>(i)));
+    input_phone_contacts.push_back(
+        contacts[i].get_input_phone_contact(td_->user_manager_.get(), static_cast<int64>(i)));
   }
 
   auto task = make_unique<ImportContactsTask>();
@@ -7781,7 +7782,8 @@ void UserManager::on_imported_contacts(
         continue;
       }
       auto i = static_cast<size_t>(client_id);
-      input_phone_contacts.push_back(task->input_contacts_[i].get_input_phone_contact(client_id));
+      input_phone_contacts.push_back(
+          task->input_contacts_[i].get_input_phone_contact(td_->user_manager_.get(), client_id));
     }
     td_->create_handler<ImportContactsQuery>()->send(std::move(input_phone_contacts), random_id);
     return;

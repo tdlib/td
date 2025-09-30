@@ -3356,9 +3356,12 @@ class CliClient final : public Actor {
         string phone_number;
         string first_name;
         string last_name;
+        string note;
         std::tie(phone_number, c) = split(c, ',');
-        std::tie(first_name, last_name) = split(c, ',');
-        contacts.push_back(td_api::make_object<td_api::importedContact>(phone_number, first_name, last_name));
+        std::tie(first_name, c) = split(c, ',');
+        std::tie(last_name, note) = split(c, ',');
+        contacts.push_back(td_api::make_object<td_api::importedContact>(
+            phone_number, first_name, last_name, note == "-" ? nullptr : as_formatted_text(note)));
       }
       if (op == "cic") {
         send_request(td_api::make_object<td_api::changeImportedContacts>(std::move(contacts)));
