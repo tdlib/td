@@ -17654,7 +17654,7 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
       return result;
     }
     if (message_topic.get_saved_messages_topic_id().is_valid() ||
-        (message_topic.get_monoforum_topic_id().is_valid() && filter != MessageSearchFilter::UnreadReaction)) {
+        (message_topic.is_monoforum() && filter != MessageSearchFilter::UnreadReaction)) {
       promise.set_value(Unit());
       return result;
     }
@@ -18609,7 +18609,7 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id,
       return promise.set_value(-1);
     }
   } else if (!message_topic.is_empty()) {
-    if (filter == MessageSearchFilter::UnreadMention && message_topic.get_monoforum_topic_id().is_valid()) {
+    if (filter == MessageSearchFilter::UnreadMention && message_topic.is_monoforum()) {
       return promise.set_value(0);
     }
     if (filter == MessageSearchFilter::FailedToSend) {
