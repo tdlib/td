@@ -80,13 +80,6 @@ class MessageTopic {
     }
   }
 
-  SavedMessagesTopicId get_saved_messages_topic_id() const {
-    if (type_ != Type::SavedMessages) {
-      return SavedMessagesTopicId();
-    }
-    return saved_messages_topic_id_;
-  }
-
   SavedMessagesTopicId get_any_saved_messages_topic_id() const {
     if (type_ != Type::SavedMessages && type_ != Type::Monoforum) {
       return SavedMessagesTopicId();

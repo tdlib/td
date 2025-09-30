@@ -881,7 +881,7 @@ class SearchMessagesQuery final : public Td::ResultHandler {
       send_query(G()->net_query_creator().create(telegram_api::messages_getUnreadMentions(
           flags, std::move(input_peer), top_msg_id, offset_id, offset, limit, std::numeric_limits<int32>::max(), 0)));
     } else if (filter == MessageSearchFilter::UnreadReaction) {
-      CHECK(!message_topic.get_saved_messages_topic_id().is_valid());
+      CHECK(!message_topic.is_saved_messages());
       CHECK(tag_.is_empty());
       int32 flags = 0;
       if (top_msg_id != 0) {
@@ -17447,7 +17447,7 @@ void MessagesManager::get_dialog_message_calendar(DialogId dialog_id,
   CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
   if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Mention ||
       filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction) {
-    if (filter != MessageSearchFilter::Empty && message_topic.get_saved_messages_topic_id().is_valid()) {
+    if (filter != MessageSearchFilter::Empty && message_topic.is_saved_messages()) {
       return promise.set_value(td_api::make_object<td_api::messageCalendar>());
     }
     return promise.set_error(400, "The filter is not supported");
@@ -17653,7 +17653,7 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
       promise.set_error(400, "Filtering by sender is unsupported with the specified filter");
       return result;
     }
-    if (message_topic.get_saved_messages_topic_id().is_valid() ||
+    if (message_topic.is_saved_messages() ||
         (message_topic.is_monoforum() && filter != MessageSearchFilter::UnreadReaction)) {
       promise.set_value(Unit());
       return result;
@@ -18599,8 +18599,7 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id,
   }
   TRY_RESULT_PROMISE(promise, message_topic, MessageTopic::get_message_topic(td_, dialog_id, topic_id));
 
-  auto saved_messages_topic_id = message_topic.get_saved_messages_topic_id();
-  if (saved_messages_topic_id.is_valid()) {
+  if (message_topic.is_saved_messages()) {
     if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
         filter == MessageSearchFilter::FailedToSend) {
       return promise.set_value(0);
