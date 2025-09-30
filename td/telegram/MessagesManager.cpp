@@ -4550,9 +4550,21 @@ bool MessagesManager::is_thread_message(DialogId dialog_id, const Message *m) co
 
 bool MessagesManager::is_thread_message(DialogId dialog_id, MessageId message_id, const MessageReplyInfo &reply_info,
                                         MessageContentType content_type) const {
-  if (dialog_id.get_type() != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(dialog_id) ||
-      td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
-    return false;
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      // user messages can be forum topic messages, but aren't thread messages
+      return false;
+    case DialogType::Channel:
+      if (td_->dialog_manager_->is_broadcast_channel(dialog_id) ||
+          td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
+        return false;
+      }
+      break;
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      return false;
   }
   if (!message_id.is_server()) {
     return false;
@@ -11126,8 +11138,11 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     is_topic_message = (content_type == MessageContentType::TopicCreate);
   }
   if (top_thread_message_id.is_valid() && dialog_type != DialogType::Channel) {
-    // just in case
-    top_thread_message_id = MessageId();
+    if (dialog_type != DialogType::User ||
+        !(td->auth_manager_->is_bot() && !td->user_manager_->is_user_bot(dialog_id.get_user_id()))) {
+      // just in case
+      top_thread_message_id = MessageId();
+    }
   }
   if (!top_thread_message_id.is_valid()) {
     // just in case
