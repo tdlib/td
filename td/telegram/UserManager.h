@@ -640,6 +640,7 @@ class UserManager final : public Actor {
     bool is_is_deleted_changed = true;
     bool is_is_premium_changed = true;
     bool is_stories_hidden_changed = true;
+    bool is_has_bot_forum_view_changed = true;
     bool is_full_info_changed = false;
     bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database

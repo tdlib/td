@@ -14267,7 +14267,8 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
       return promise.set_error(400, "Message has no comments");
     }
     expected_dialog_id = DialogId(m->reply_info.channel_id_);
-  } else if (message_id == MessageId(ServerMessageId(1)) && d->is_forum) {
+  } else if (message_id == MessageId(ServerMessageId(1)) && d->is_forum &&
+             dialog_id.get_type() == DialogType::Channel) {
     // General forum topic
     expected_dialog_id = dialog_id;
   } else {
@@ -14327,7 +14328,8 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
         if (static_cast<const td_api::messageTopicForum *>(message->topic_id_.get())->forum_topic_id_ !=
             MessageId(ServerMessageId(1)).get()) {
           is_forum_topic = true;
-        } else if (info.message_ids[0] == MessageId(ServerMessageId(1)) && d->is_forum) {
+        } else if (info.message_ids[0] == MessageId(ServerMessageId(1)) && d->is_forum &&
+                   d->dialog_id.get_type() == DialogType::Channel) {
           // General forum topic
           is_forum_topic = true;
         }
@@ -15653,7 +15655,7 @@ Status MessagesManager::set_pinned_dialogs(DialogListId dialog_list_id, vector<D
 Status MessagesManager::toggle_dialog_view_as_messages(DialogId dialog_id, bool view_as_messages) {
   TRY_RESULT(d, check_dialog_access(dialog_id, false, AccessRights::Read, "toggle_dialog_view_as_messages"));
   bool is_saved_messages = dialog_id == td_->dialog_manager_->get_my_dialog_id();
-  if (!is_saved_messages && !d->is_forum) {
+  if (!is_saved_messages && !(d->is_forum && dialog_id.get_type() == DialogType::Channel)) {
     return Status::Error(400, "The method is available only in forum channels");
   }
 
@@ -32094,16 +32096,16 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
   LOG_CHECK(is_inited_) << dialog_id << ' ' << is_loaded_from_database << ' ' << source;
   LOG_CHECK(!have_dialog(dialog_id)) << dialog_id << ' ' << is_loaded_from_database << ' ' << source;
   switch (dialog_id.get_type()) {
-    case DialogType::User:
+    case DialogType::User: {
+      auto user_id = dialog_id.get_user_id();
       if (dialog_id == td_->dialog_manager_->get_my_dialog_id() && d->last_read_inbox_message_id == MessageId::max() &&
           d->last_read_outbox_message_id == MessageId::max()) {
         d->last_read_inbox_message_id = d->last_new_message_id;
         d->last_read_outbox_message_id = d->last_new_message_id;
       }
-      d->has_bots = !td_->auth_manager_->is_bot() &&
-                    dialog_id.get_user_id() != UserManager::get_replies_bot_user_id() &&
-                    dialog_id.get_user_id() != UserManager::get_verification_codes_bot_user_id() &&
-                    td_->user_manager_->is_user_bot(dialog_id.get_user_id());
+      d->has_bots = !td_->auth_manager_->is_bot() && user_id != UserManager::get_replies_bot_user_id() &&
+                    user_id != UserManager::get_verification_codes_bot_user_id() &&
+                    td_->user_manager_->is_user_bot(user_id);
       d->is_has_bots_inited = true;
       d->is_available_reactions_inited = true;
       d->is_view_as_messages_inited = true;
@@ -32111,7 +32113,10 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
         d->is_saved_messages_view_as_messages_inited = true;
         d->view_as_messages = true;
       }
+      d->is_forum = td_->user_manager_->is_user_forum_bot(user_id);
+      d->is_forum_tabs = d->is_forum;
       break;
+    }
     case DialogType::Chat:
       d->is_is_blocked_inited = true;
       d->is_is_blocked_for_stories_inited = true;

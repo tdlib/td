@@ -3156,8 +3156,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
       is_business_bot != u->is_business_bot || inline_query_placeholder != u->inline_query_placeholder ||
       need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
-      bot_active_users != u->bot_active_users || has_main_app != u->has_main_app ||
-      has_bot_forum_view != u->has_bot_forum_view) {
+      bot_active_users != u->bot_active_users || has_main_app != u->has_main_app) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -3178,7 +3177,6 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
     u->bot_active_users = bot_active_users;
     u->has_main_app = has_main_app;
-    u->has_bot_forum_view = has_bot_forum_view;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
@@ -3198,6 +3196,11 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     u->is_is_premium_changed = true;
     u->is_changed = true;
     u->is_full_info_changed = true;
+  }
+  if (has_bot_forum_view != u->has_bot_forum_view) {
+    u->has_bot_forum_view = has_bot_forum_view;
+    u->is_has_bot_forum_view_changed = true;
+    u->is_changed = true;
   }
   if (is_received && can_be_edited_bot != u->can_be_edited_bot) {
     u->can_be_edited_bot = can_be_edited_bot;
@@ -9436,6 +9439,10 @@ void UserManager::update_user(User *u, UserId user_id, bool from_binlog, bool fr
       resolved_phone_numbers_[u->phone_number] = user_id;
     }
     u->is_phone_number_changed = false;
+  }
+  if (u->is_has_bot_forum_view_changed) {
+    td_->messages_manager_->on_update_dialog_is_forum(DialogId(user_id), u->has_bot_forum_view, u->has_bot_forum_view);
+    u->is_has_bot_forum_view_changed = false;
   }
   auto unix_time = G()->unix_time();
   if (u->is_status_changed && user_id != get_my_id()) {
