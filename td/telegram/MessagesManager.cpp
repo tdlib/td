@@ -4024,7 +4024,8 @@ void MessagesManager::update_reply_count_by_message(Dialog *d, int diff, const M
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot() || !m->top_thread_message_id.is_valid() ||
-      m->top_thread_message_id == m->message_id || !m->message_id.is_server()) {
+      m->top_thread_message_id == m->message_id || !m->message_id.is_server() ||
+      d->dialog_id.get_type() != DialogType::Channel) {
     return;
   }
 
@@ -4329,6 +4330,10 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
   Dialog *d = get_dialog_force(dialog_id, "on_update_read_message_comments");
   if (d == nullptr) {
     LOG(INFO) << "Ignore update of read message comments in unknown " << dialog_id << " in updateReadDiscussion";
+    return;
+  }
+  if (dialog_id.get_type() != DialogType::Channel) {
+    LOG(ERROR) << "Receive read message comments in " << dialog_id;
     return;
   }
 
@@ -14137,7 +14142,8 @@ MessageFullId MessagesManager::get_replied_message_id(DialogId dialog_id, const 
   if (reply_message_full_id.get_message_id() != MessageId()) {
     return reply_message_full_id;
   }
-  if (m->top_thread_message_id.is_valid() && m->top_thread_message_id != m->message_id) {
+  if (dialog_id.get_type() == DialogType::Channel && m->top_thread_message_id.is_valid() &&
+      m->top_thread_message_id != m->message_id) {
     return {dialog_id, m->top_thread_message_id};
   }
   return {};
@@ -14317,6 +14323,7 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
                                                 Promise<MessageThreadInfo> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
+  CHECK(dialog_id.get_type() == DialogType::Channel);
   Dialog *d = get_dialog_force(dialog_id, "on_get_discussion_message");
   CHECK(d != nullptr);
 
@@ -16072,7 +16079,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   // get information about thread of the messages
   MessageId top_thread_message_id;
   if (source == MessageSource::MessageThreadHistory) {
-    if (dialog_type != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
+    if (dialog_type != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(dialog_id) ||
+        td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
       return Status::Error(400, "There are no message threads in the chat");
     }
 
@@ -21270,7 +21278,8 @@ Status MessagesManager::can_use_top_thread_message_id(Dialog *d, MessageId top_t
   if (!top_thread_message_id.is_server()) {
     return Status::Error(400, "Invalid message thread identifier specified");
   }
-  if (d->dialog_id.get_type() != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(d->dialog_id)) {
+  if (d->dialog_id.get_type() != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(d->dialog_id) ||
+      td_->dialog_manager_->is_monoforum_channel(d->dialog_id)) {
     return Status::Error(400, "Chat doesn't have threads");
   }
   if (input_reply_to.get_story_full_id().is_valid()) {
@@ -30462,6 +30471,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
   if (from_update && !message->is_failed_to_send && message->top_thread_message_id.is_valid() &&
       message->top_thread_message_id != message_id && message_id.is_server() &&
+      d->dialog_id.get_type() == DialogType::Channel &&
       have_message_force(d, message->top_thread_message_id, "preload top reply message")) {
     LOG(INFO) << "Preloaded top thread " << message->top_thread_message_id << " from database";
 
@@ -30916,6 +30926,9 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
 }
 
 void MessagesManager::register_new_local_message_id(Dialog *d, const Message *m) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (m == nullptr) {
     return;
   }
@@ -31191,7 +31204,8 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
   }
 
   if (m != nullptr && !m->message_id.is_scheduled() && m->message_id.is_local() &&
-      m->top_thread_message_id.is_valid() && m->top_thread_message_id != m->message_id) {
+      m->top_thread_message_id.is_valid() && m->top_thread_message_id != m->message_id &&
+      !td_->auth_manager_->is_bot()) {
     // must not load the message from the database
     Message *top_m = get_message(d, m->top_thread_message_id);
     if (top_m != nullptr && top_m->top_thread_message_id == top_m->message_id) {
