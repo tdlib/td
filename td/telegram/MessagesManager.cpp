@@ -10092,23 +10092,23 @@ void MessagesManager::init() {
   }
   is_inited_ = true;
 
-  td_->notification_settings_manager_->init();  // load scope notification settings
-  init_state_ = 1;
-  td_->reaction_manager_->init();  // load active reactions
-  init_state_ = 2;
-
-  start_time_ = Time::now();
-  last_channel_pts_jump_warning_time_ = start_time_ - 3600;
-
   bool was_authorized_user = td_->auth_manager_->was_authorized() && !td_->auth_manager_->is_bot();
   if (was_authorized_user) {
     create_folders(10);  // ensure that Main and Archive dialog lists are created
   }
   authorization_date_ = td_->option_manager_->get_option_integer("authorization_date");
-  init_state_ = 3;
+  init_state_ = 1;
 
   td_->dialog_filter_manager_->init();  // load dialog filters
+  init_state_ = 2;
+
+  td_->notification_settings_manager_->init();  // load scope notification settings
+  init_state_ = 3;
+  td_->reaction_manager_->init();  // load active reactions
   init_state_ = 4;
+
+  start_time_ = Time::now();
+  last_channel_pts_jump_warning_time_ = start_time_ - 3600;
 
   if (G()->use_message_database() && was_authorized_user) {
     // erase old keys
