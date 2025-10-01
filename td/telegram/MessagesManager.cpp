@@ -19325,6 +19325,15 @@ vector<MessageId> MessagesManager::get_dialog_scheduled_messages(DialogId dialog
   if (d->scheduled_messages != nullptr) {
     for (const auto &it : d->scheduled_messages->scheduled_messages_) {
       message_ids.push_back(it.first);
+      if (it.first.is_scheduled_server()) {
+        auto server_message_id = it.first.get_scheduled_server_message_id();
+        auto date = it.first.get_scheduled_message_date();
+        auto date_it = d->scheduled_messages->scheduled_message_date_.find(server_message_id);
+        CHECK(date_it != d->scheduled_messages->scheduled_message_date_.end());
+        LOG_CHECK(date == date_it->second)
+            << date << ' ' << date_it->second << ' ' << it.first << ' ' << it.second->date << ' '
+            << it.second->edit_date << ' ' << it.second->send_date;
+      }
     };
     std::sort(message_ids.begin(), message_ids.end(), std::greater<>());
   }
