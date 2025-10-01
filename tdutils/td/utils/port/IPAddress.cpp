@@ -580,13 +580,15 @@ string IPAddress::get_ip_host() const {
     return "0.0.0.0";
   }
 
-  switch (get_address_family()) {
+  auto address_family = get_address_family();
+  switch (address_family) {
     case AF_INET6:
       return PSTRING() << '[' << ::td::get_ip_str(AF_INET6, &ipv6_addr_.sin6_addr) << ']';
     case AF_INET:
       return ::td::get_ip_str(AF_INET, &ipv4_addr_.sin_addr).str();
     default:
-      UNREACHABLE();
+      LOG(FATAL) << "Have address with family " << address_family << ", AF_INET = " << AF_INET
+                 << ", AF_INET6 = " << AF_INET6;
       return string();
   }
 }
