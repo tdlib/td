@@ -3505,6 +3505,7 @@ class MessagesManager final : public Actor {
 
   double start_time_ = 0;
   bool is_inited_ = false;
+  int init_state_ = 0;
   int create_folders_source_ = 0;
 
   Td *td_;

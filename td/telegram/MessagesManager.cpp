@@ -10093,7 +10093,9 @@ void MessagesManager::init() {
   is_inited_ = true;
 
   td_->notification_settings_manager_->init();  // load scope notification settings
-  td_->reaction_manager_->init();               // load active reactions
+  init_state_ = 1;
+  td_->reaction_manager_->init();  // load active reactions
+  init_state_ = 2;
 
   start_time_ = Time::now();
   last_channel_pts_jump_warning_time_ = start_time_ - 3600;
@@ -10103,8 +10105,10 @@ void MessagesManager::init() {
     create_folders(10);  // ensure that Main and Archive dialog lists are created
   }
   authorization_date_ = td_->option_manager_->get_option_integer("authorization_date");
+  init_state_ = 3;
 
   td_->dialog_filter_manager_->init();  // load dialog filters
+  init_state_ = 4;
 
   if (G()->use_message_database() && was_authorized_user) {
     // erase old keys
@@ -10283,12 +10287,15 @@ void MessagesManager::init() {
     G()->td_db()->get_binlog_pmc()->erase("fetched_marks_as_unread");
   }
   G()->td_db()->get_binlog_pmc()->erase("dialog_pinned_current_order");
+  init_state_ = 5;
 
   if (G()->use_message_database()) {
     ttl_db_loop();
   }
+  init_state_ = 6;
 
   load_calls_db_state();
+  init_state_ = 7;
 
   auto auth_notification_ids_string = G()->td_db()->get_binlog_pmc()->get("auth_notification_ids");
   if (!auth_notification_ids_string.empty()) {
@@ -10313,6 +10320,7 @@ void MessagesManager::init() {
       save_auth_notification_ids();
     }
   }
+  init_state_ = 8;
 }
 
 void MessagesManager::on_authorization_success() {
@@ -33060,10 +33068,10 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   }
 
   auto folder_ptr = get_dialog_folder(d->folder_id);
-  LOG_CHECK(folder_ptr != nullptr) << is_inited_ << ' ' << create_folders_source_ << ' ' << G()->close_flag() << ' '
-                                   << dialog_id << ' ' << d->folder_id << ' ' << is_loaded_from_database << ' '
-                                   << td_->auth_manager_->is_authorized() << ' ' << td_->auth_manager_->was_authorized()
-                                   << ' ' << source;
+  LOG_CHECK(folder_ptr != nullptr) << is_inited_ << ' ' << init_state_ << ' ' << create_folders_source_ << ' '
+                                   << G()->close_flag() << ' ' << dialog_id << ' ' << d->folder_id << ' '
+                                   << is_loaded_from_database << ' ' << td_->auth_manager_->is_authorized() << ' '
+                                   << td_->auth_manager_->was_authorized() << ' ' << source;
   auto &folder = *folder_ptr;
   if (old_date == new_date) {
     if (new_order == DEFAULT_ORDER) {
