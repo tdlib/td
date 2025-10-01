@@ -48,7 +48,7 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
 
   replied_message_info_ = RepliedMessageInfo(td, std::move(reply_header), dialog_id, message_id, date);
 
-  if (!message_id.is_scheduled() && can_have_thread) {
+  if (!message_id.is_scheduled() && can_have_thread && dialog_id.get_type() == DialogType::Channel) {
     if (!top_thread_message_id_.is_valid()) {
       auto same_chat_reply_to_message_id = replied_message_info_.get_same_chat_reply_to_message_id(false);
       if (same_chat_reply_to_message_id.is_valid()) {

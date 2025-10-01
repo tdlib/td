@@ -11201,7 +11201,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
   if (top_thread_message_id.is_valid() && dialog_type != DialogType::Channel) {
     if (dialog_type != DialogType::User ||
-        !(td->auth_manager_->is_bot() && !td->user_manager_->is_user_bot(dialog_id.get_user_id()))) {
+        !(td->auth_manager_->is_bot() || td->user_manager_->is_user_bot(dialog_id.get_user_id()))) {
       // just in case
       top_thread_message_id = MessageId();
     }
