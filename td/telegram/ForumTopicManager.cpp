@@ -107,7 +107,7 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
 
     auto action = static_cast<const telegram_api::messageActionTopicCreate *>(service_message->action_.get());
     auto forum_topic_info = td::make_unique<ForumTopicInfo>(
-        dialog_id_, MessageId(ServerMessageId(service_message->id_)), action->title_,
+        dialog_id_, ForumTopicId(service_message->id_), action->title_,
         ForumTopicIcon(action->icon_color_, action->icon_emoji_id_), service_message->date_, creator_dialog_id_, true,
         false, false, action->title_missing_);
     td_->updates_manager_->on_get_updates(

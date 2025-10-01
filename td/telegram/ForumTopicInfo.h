@@ -23,7 +23,7 @@ class Td;
 
 class ForumTopicInfo {
   DialogId dialog_id_;
-  MessageId top_thread_message_id_;  // TODO store ForumTopicId
+  ForumTopicId forum_topic_id_;
   string title_;
   ForumTopicIcon icon_;
   int32 creation_date_ = 0;
@@ -43,11 +43,11 @@ class ForumTopicInfo {
   ForumTopicInfo(Td *td, const telegram_api::object_ptr<telegram_api::ForumTopic> &forum_topic_ptr,
                  DialogId expected_dialog_id);
 
-  ForumTopicInfo(DialogId dialog_id, MessageId top_thread_message_id, string title, ForumTopicIcon icon,
+  ForumTopicInfo(DialogId dialog_id, ForumTopicId forum_topic_id, string title, ForumTopicIcon icon,
                  int32 creation_date, DialogId creator_dialog_id, bool is_outgoing, bool is_closed, bool is_hidden,
                  bool is_title_missing)
       : dialog_id_(dialog_id)
-      , top_thread_message_id_(top_thread_message_id)
+      , forum_topic_id_(forum_topic_id)
       , title_(std::move(title))
       , icon_(std::move(icon))
       , creation_date_(creation_date)
@@ -59,7 +59,7 @@ class ForumTopicInfo {
   }
 
   bool is_empty() const {
-    return !top_thread_message_id_.is_valid();
+    return !forum_topic_id_.is_valid();
   }
 
   DialogId get_dialog_id() const {
@@ -67,11 +67,12 @@ class ForumTopicInfo {
   }
 
   ForumTopicId get_forum_topic_id() const {
-    return ForumTopicId::from_top_thread_message_id(top_thread_message_id_);
+    return forum_topic_id_;
   }
 
+  // TODO remove
   MessageId get_top_thread_message_id() const {
-    return top_thread_message_id_;
+    return MessageId(ServerMessageId(forum_topic_id_.get()));
   }
 
   DialogId get_creator_dialog_id() const {

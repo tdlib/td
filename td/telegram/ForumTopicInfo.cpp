@@ -8,7 +8,6 @@
 
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageSender.h"
-#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"
@@ -28,7 +27,7 @@ ForumTopicInfo::ForumTopicInfo(Td *td, const telegram_api::object_ptr<telegram_a
   if (dialog_id_.is_valid()) {
     td->dialog_manager_->force_create_dialog(dialog_id_, "ForumTopicInfo chat", true);
   }
-  top_thread_message_id_ = MessageId(ServerMessageId(forum_topic->id_));
+  forum_topic_id_ = ForumTopicId(forum_topic->id_);
   title_ = forum_topic->title_;
   icon_ = ForumTopicIcon(forum_topic->icon_color_, forum_topic->icon_emoji_id_);
   creation_date_ = forum_topic->date_;
@@ -41,8 +40,7 @@ ForumTopicInfo::ForumTopicInfo(Td *td, const telegram_api::object_ptr<telegram_a
   is_hidden_ = forum_topic->hidden_;
   is_title_missing_ = forum_topic->title_missing_;
 
-  if (creation_date_ <= 0 || !top_thread_message_id_.is_valid() || !dialog_id_.is_valid() ||
-      !creator_dialog_id_.is_valid()) {
+  if (creation_date_ <= 0 || !forum_topic_id_.is_valid() || !dialog_id_.is_valid() || !creator_dialog_id_.is_valid()) {
     LOG(ERROR) << "Receive " << to_string(forum_topic_ptr);
     *this = ForumTopicInfo();
   }
@@ -81,15 +79,15 @@ td_api::object_ptr<td_api::forumTopicInfo> ForumTopicInfo::get_forum_topic_info_
 
   auto creator_id = get_message_sender_object_const(td, creator_dialog_id_, "get_forum_topic_info_object");
   return td_api::make_object<td_api::forumTopicInfo>(
-      td->dialog_manager_->get_chat_id_object(dialog_id_, "forumTopicInfo"),
-      top_thread_message_id_.get_server_message_id().get(), top_thread_message_id_.get(), title_,
-      icon_.get_forum_topic_icon_object(), creation_date_, std::move(creator_id),
-      top_thread_message_id_ == MessageId(ServerMessageId(1)), is_outgoing_, is_closed_, is_hidden_, is_title_missing_);
+      td->dialog_manager_->get_chat_id_object(dialog_id_, "forumTopicInfo"), forum_topic_id_.get(),
+      get_top_thread_message_id().get(), title_, icon_.get_forum_topic_icon_object(), creation_date_,
+      std::move(creator_id), forum_topic_id_ == ForumTopicId::general(), is_outgoing_, is_closed_, is_hidden_,
+      is_title_missing_);
 }
 
 bool operator==(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs) {
-  return lhs.dialog_id_ == rhs.dialog_id_ && lhs.top_thread_message_id_ == rhs.top_thread_message_id_ &&
-         lhs.title_ == rhs.title_ && lhs.icon_ == rhs.icon_ && lhs.creation_date_ == rhs.creation_date_ &&
+  return lhs.dialog_id_ == rhs.dialog_id_ && lhs.forum_topic_id_ == rhs.forum_topic_id_ && lhs.title_ == rhs.title_ &&
+         lhs.icon_ == rhs.icon_ && lhs.creation_date_ == rhs.creation_date_ &&
          lhs.creator_dialog_id_ == rhs.creator_dialog_id_ && lhs.is_outgoing_ == rhs.is_outgoing_ &&
          lhs.is_closed_ == rhs.is_closed_ && lhs.is_hidden_ == rhs.is_hidden_ &&
          lhs.is_title_missing_ == rhs.is_title_missing_;
@@ -100,9 +98,8 @@ bool operator!=(const ForumTopicInfo &lhs, const ForumTopicInfo &rhs) {
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ForumTopicInfo &topic_info) {
-  return string_builder << "Forum topic " << topic_info.top_thread_message_id_.get() << " in " << topic_info.dialog_id_
-                        << ": " << topic_info.title_ << " by " << topic_info.creator_dialog_id_ << " with "
-                        << topic_info.icon_;
+  return string_builder << "Forum " << topic_info.forum_topic_id_ << " in " << topic_info.dialog_id_ << ": "
+                        << topic_info.title_ << " by " << topic_info.creator_dialog_id_ << " with " << topic_info.icon_;
 }
 
 }  // namespace td
