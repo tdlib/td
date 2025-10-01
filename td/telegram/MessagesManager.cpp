@@ -32541,7 +32541,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
     if (td_->dialog_manager_->is_dialog_removed_from_dialog_list(dialog_id)) {
       order = DEFAULT_ORDER;
     }
-    set_dialog_order(d, order, false, is_loaded_from_database, "fix_new_dialog 9");
+    auto full_source = PSTRING() << "fix new dialog 9 " << source;
+    set_dialog_order(d, order, false, is_loaded_from_database, full_source.c_str());
   }
 
   if (dialog_type != DialogType::SecretChat && d->last_new_message_id.is_valid() &&
