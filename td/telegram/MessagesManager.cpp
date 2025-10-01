@@ -31361,9 +31361,11 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
       if (is_scheduled && message_id.is_scheduled_server()) {
         CHECK(d->scheduled_messages != nullptr);
         CHECK(is_message_in_dialog);
-        int32 &date = d->scheduled_messages->scheduled_message_date_[message_id.get_scheduled_server_message_id()];
-        CHECK(date != 0);
-        date = new_message->date;
+        // scheduled_message_date_ must be in sync with scheduled_messages_, therefore it must not be changed there.
+        // The message will be deleted and readded soon because its message_id has changed
+        // int32 &date = d->scheduled_messages->scheduled_message_date_[message_id.get_scheduled_server_message_id()];
+        // CHECK(date != 0);
+        // date = new_message->date;
       }
 
       need_send_update = true;
