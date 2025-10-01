@@ -20228,9 +20228,15 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
     }
   }
   if (top_thread_message_id.is_valid()) {
-    const Message *top_m = get_message(d, top_thread_message_id);
-    if (top_m != nullptr) {
-      is_topic_message = top_m->is_topic_message;
+    if (dialog_type == DialogType::User) {
+      is_topic_message = true;
+    } else {
+      const Message *top_m = get_message(d, top_thread_message_id);
+      if (top_m != nullptr) {
+        is_topic_message = top_m->is_topic_message;
+      } else {
+        is_topic_message = true;
+      }
     }
   }
 
