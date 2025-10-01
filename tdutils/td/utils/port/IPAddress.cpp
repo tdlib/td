@@ -510,6 +510,11 @@ Status IPAddress::init_socket_address(const SocketFd &socket_fd) {
     return OS_SOCKET_ERROR("Failed to get socket address");
   }
   is_valid_ = true;
+  auto address_family = get_address_family();
+  if (address_family != AF_INET && address_family != AF_INET6) {
+    is_valid_ = false;
+    return Status::Error("Receive unsupported IP address");
+  }
   return Status::OK();
 }
 
@@ -525,6 +530,11 @@ Status IPAddress::init_peer_address(const SocketFd &socket_fd) {
     return OS_SOCKET_ERROR("Failed to get peer socket address");
   }
   is_valid_ = true;
+  auto address_family = get_address_family();
+  if (address_family != AF_INET && address_family != AF_INET6) {
+    is_valid_ = false;
+    return Status::Error("Receive unsupported IP address");
+  }
   return Status::OK();
 }
 
