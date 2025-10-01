@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/MessageId.h"
+
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/StringBuilder.h"
@@ -24,6 +26,10 @@ class ForumTopicId {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   ForumTopicId(T forum_topic_id) = delete;
+
+  static ForumTopicId from_top_thread_message_id(MessageId top_thread_message_id) {
+    return ForumTopicId(top_thread_message_id.get_server_message_id().get());
+  }
 
   static ForumTopicId general() {
     return ForumTopicId(1);

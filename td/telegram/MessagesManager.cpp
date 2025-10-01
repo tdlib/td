@@ -22867,7 +22867,7 @@ DialogId MessagesManager::get_message_sender(const Message *m) {
 }
 
 ForumTopicId MessagesManager::get_message_forum_topic_id(const Message *m) {
-  return m->is_topic_message ? ForumTopicId(m->top_thread_message_id.get_server_message_id().get())
+  return m->is_topic_message ? ForumTopicId::from_top_thread_message_id(m->top_thread_message_id)
                              : ForumTopicId::general();
 }
 

@@ -23,7 +23,7 @@ class Td;
 
 class ForumTopicInfo {
   DialogId dialog_id_;
-  MessageId top_thread_message_id_;
+  MessageId top_thread_message_id_;  // TODO store ForumTopicId
   string title_;
   ForumTopicIcon icon_;
   int32 creation_date_ = 0;
@@ -67,7 +67,7 @@ class ForumTopicInfo {
   }
 
   ForumTopicId get_forum_topic_id() const {
-    return ForumTopicId(top_thread_message_id_.get_server_message_id().get());
+    return ForumTopicId::from_top_thread_message_id(top_thread_message_id_);
   }
 
   MessageId get_top_thread_message_id() const {
