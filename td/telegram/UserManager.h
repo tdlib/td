@@ -479,8 +479,7 @@ class UserManager final : public Actor {
 
   void on_get_contacts_statuses(vector<telegram_api::object_ptr<telegram_api::contactStatus>> &&statuses);
 
-  void add_contact(Contact contact, td_api::object_ptr<td_api::formattedText> &&note, bool share_phone_number,
-                   Promise<Unit> &&promise);
+  void add_contact(UserId user_id, Contact contact, bool share_phone_number, Promise<Unit> &&promise);
 
   std::pair<vector<UserId>, vector<int32>> import_contacts(const vector<Contact> &contacts, int64 &random_id,
                                                            Promise<Unit> &&promise);

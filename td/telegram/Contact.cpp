@@ -105,7 +105,7 @@ bool operator!=(const Contact &lhs, const Contact &rhs) {
 StringBuilder &operator<<(StringBuilder &string_builder, const Contact &contact) {
   return string_builder << "Contact[phone_number = " << contact.phone_number_
                         << ", first_name = " << contact.first_name_ << ", last_name = " << contact.last_name_
-                        << ", vCard size = " << contact.vcard_.size() << contact.user_id_ << "]";
+                        << ", vCard size = " << contact.vcard_.size() << ' ' << contact.user_id_ << ']';
 }
 
 Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::contact> &&contact) {

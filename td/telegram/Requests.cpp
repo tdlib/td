@@ -6025,7 +6025,7 @@ void Requests::on_request(uint64 id, td_api::addContact &request) {
     return send_closure(td_actor_, &Td::send_error, id, r_contact.move_as_error());
   }
   CREATE_OK_REQUEST_PROMISE();
-  td_->user_manager_->add_contact(r_contact.move_as_ok(), std::move(request.note_), request.share_phone_number_,
+  td_->user_manager_->add_contact(UserId(request.user_id_), r_contact.move_as_ok(), request.share_phone_number_,
                                   std::move(promise));
 }
 

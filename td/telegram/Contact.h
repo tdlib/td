@@ -59,6 +59,14 @@ class Contact {
 
   const string &get_last_name() const;
 
+  bool get_edit_note() const {
+    return edit_note_;
+  }
+
+  const FormattedText &get_note() const {
+    return note_;
+  }
+
   tl_object_ptr<td_api::contact> get_contact_object(Td *td) const;
 
   tl_object_ptr<telegram_api::inputMediaContact> get_input_media_contact() const;
