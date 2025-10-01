@@ -674,7 +674,7 @@ void ForumTopicManager::on_update_forum_topic_is_pinned(DialogId dialog_id, Foru
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "on_update_forum_topic_is_pinned")) {
     return;
   }
-  if (!can_be_forum(dialog_id, true)) {
+  if (!can_be_forum(dialog_id)) {
     LOG(ERROR) << "Receive pinned topics in " << dialog_id;
     return;
   }
@@ -696,7 +696,7 @@ void ForumTopicManager::on_update_pinned_forum_topics(DialogId dialog_id, vector
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "on_update_pinned_forum_topics")) {
     return;
   }
-  if (!can_be_forum(dialog_id, true)) {
+  if (!can_be_forum(dialog_id)) {
     LOG(ERROR) << "Receive pinned topics in " << dialog_id;
     return;
   }
@@ -1021,7 +1021,7 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
         continue;
       }
       dialog_id = forum_topic_info->get_dialog_id();
-      if (!can_be_forum(dialog_id, true)) {
+      if (!can_be_forum(dialog_id)) {
         LOG(ERROR) << "Receive forum topics in " << dialog_id << " from " << source;
         return;
       }
@@ -1035,7 +1035,7 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
     }
     return;
   }
-  if (!can_be_forum(dialog_id, true)) {
+  if (!can_be_forum(dialog_id)) {
     LOG(ERROR) << "Receive forum topics in " << dialog_id << " from " << source;
     return;
   }
@@ -1135,13 +1135,10 @@ Status ForumTopicManager::is_forum(DialogId dialog_id, bool allow_bots) {
   return Status::Error(400, "The chat is not a forum");
 }
 
-bool ForumTopicManager::can_be_forum(DialogId dialog_id, bool allow_bots) const {
+bool ForumTopicManager::can_be_forum(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      if (allow_bots) {
-        return td_->auth_manager_->is_bot() || td_->user_manager_->is_user_bot(dialog_id.get_user_id());
-      }
-      break;
+      return td_->auth_manager_->is_bot() || td_->user_manager_->is_user_bot(dialog_id.get_user_id());
     case DialogType::Channel:
       return !td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id());
     case DialogType::Chat:
