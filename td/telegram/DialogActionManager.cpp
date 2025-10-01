@@ -10,6 +10,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BusinessConnectionManager.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/ForumTopicId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
@@ -188,7 +189,7 @@ void DialogActionManager::on_dialog_action(DialogId dialog_id, MessageId top_thr
         send_closure(G()->td(), &Td::send_update,
                      td_api::make_object<td_api::updatePendingTextMessage>(
                          td_->dialog_manager_->get_chat_id_object(dialog_id, "updateChatAction"),
-                         top_thread_message_id.get(), text_draft_info.random_id_,
+                         ForumTopicId::from_top_thread_message_id(top_thread_message_id).get(), text_draft_info.random_id_,
                          get_formatted_text_object(td_->user_manager_.get(), text_draft_info.text_, false, -1)));
       }
       return;

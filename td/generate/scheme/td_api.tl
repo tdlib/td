@@ -9230,10 +9230,10 @@ updateChatAction chat_id:int53 message_thread_id:int53 sender_id:MessageSender a
 //@description A new pending text message was received in a chat with a bot. The message must be shown in the chat for at most getOption("pending_text_message_period") seconds,
 //-replace any other pending message with the same draft_id, and be deleted whenever any incoming message from the bot in the message thread is received
 //@chat_id Chat identifier
-//@message_thread_id The message thread identifier in which the message will be sent
+//@forum_topic_id The forum topic identifier in which the message will be sent
 //@draft_id Unique identifier of the message draft within the message thread
 //@text Text of the pending message
-updatePendingTextMessage chat_id:int53 message_thread_id:int53 draft_id:int64 text:formattedText = Update;
+updatePendingTextMessage chat_id:int53 forum_topic_id:int32 draft_id:int64 text:formattedText = Update;
 
 //@description The user went online or offline @user_id User identifier @status New status of the user
 updateUserStatus user_id:int53 status:UserStatus = Update;
