@@ -85,6 +85,14 @@ MessageTopic MessageTopic::thread(DialogId dialog_id, MessageId top_thread_messa
   return result;
 }
 
+MessageTopic MessageTopic::forum(DialogId dialog_id, ForumTopicId forum_topic_id) {
+  MessageTopic result;
+  result.type_ = Type::Forum;
+  result.dialog_id_ = dialog_id;
+  result.forum_topic_id_ = forum_topic_id;
+  return result;
+}
+
 MessageTopic MessageTopic::monoforum(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id) {
   MessageTopic result;
   result.type_ = Type::Monoforum;

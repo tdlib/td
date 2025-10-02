@@ -1140,7 +1140,8 @@ bool ForumTopicManager::can_be_forum(DialogId dialog_id) const {
     case DialogType::User:
       return td_->auth_manager_->is_bot() || td_->user_manager_->is_user_bot(dialog_id.get_user_id());
     case DialogType::Channel:
-      return !td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id());
+      return !td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id()) &&
+             !td_->chat_manager_->is_monoforum_channel(dialog_id.get_channel_id());
     case DialogType::Chat:
     case DialogType::SecretChat:
     case DialogType::None:

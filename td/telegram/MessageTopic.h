@@ -40,6 +40,8 @@ class MessageTopic {
 
   static MessageTopic thread(DialogId dialog_id, MessageId top_thread_message_id);
 
+  static MessageTopic forum(DialogId dialog_id, ForumTopicId forum_topic_id);
+
   static MessageTopic monoforum(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id);
 
   static MessageTopic saved_messages(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id);

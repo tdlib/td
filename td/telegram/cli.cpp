@@ -3491,9 +3491,10 @@ class CliClient final : public Actor {
       string limit;
       get_args(args, user_id, offset_chat_id, limit);
       send_request(td_api::make_object<td_api::getGroupsInCommon>(user_id, offset_chat_id, as_limit(limit, 100)));
-    } else if (op == "gh" || op == "ghl" || op == "gmth") {
+    } else if (op == "gh" || op == "ghl" || op == "gmth" || op == "gfth") {
       ChatId chat_id;
       MessageId thread_message_id;
+      ForumTopicId forum_topic_id;
       string limit;
       MessageId from_message_id;
       int32 offset;
@@ -3501,10 +3502,16 @@ class CliClient final : public Actor {
       if (op == "gmth") {
         get_args(args, thread_message_id, args);
       }
+      if (op == "gfth") {
+        get_args(args, forum_topic_id, args);
+      }
       get_args(args, limit, from_message_id, offset);
       if (op == "gmth") {
         send_request(td_api::make_object<td_api::getMessageThreadHistory>(chat_id, thread_message_id, from_message_id,
                                                                           offset, as_limit(limit)));
+      } else if (op == "gfth") {
+        send_request(td_api::make_object<td_api::getForumTopicHistory>(chat_id, forum_topic_id, from_message_id, offset,
+                                                                       as_limit(limit)));
       } else {
         send_request(td_api::make_object<td_api::getChatHistory>(chat_id, from_message_id, offset, as_limit(limit),
                                                                  op == "ghl"));

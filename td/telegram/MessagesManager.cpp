@@ -17333,33 +17333,6 @@ vector<MessageId> MessagesManager::get_message_history_slice(const T &begin, It 
 std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_history(
     DialogId dialog_id, MessageId message_id, MessageId from_message_id, int32 offset, int32 limit, int64 &random_id,
     Promise<Unit> &&promise) {
-  if (limit <= 0) {
-    promise.set_error(400, "Parameter limit must be positive");
-    return {};
-  }
-  if (limit > MAX_GET_HISTORY) {
-    limit = MAX_GET_HISTORY;
-  }
-  if (offset > 0) {
-    promise.set_error(400, "Parameter offset must be non-positive");
-    return {};
-  }
-  if (offset <= -MAX_GET_HISTORY) {
-    promise.set_error(400, "Parameter offset must be greater than -100");
-    return {};
-  }
-  if (offset < -limit) {
-    promise.set_error(400, "Parameter offset must be greater than or equal to -limit");
-    return {};
-  }
-  bool is_limit_increased = false;
-  if (limit == -offset) {
-    limit++;
-    is_limit_increased = true;
-  }
-  CHECK(0 < limit && limit <= MAX_GET_HISTORY);
-  CHECK(-limit < offset && offset <= 0);
-
   Dialog *d = get_dialog_force(dialog_id, "get_message_thread_history");
   if (d == nullptr) {
     promise.set_error(400, "Chat not found");
@@ -17371,14 +17344,6 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
   }
   if (dialog_id.get_type() != DialogType::Channel) {
     promise.set_error(400, "Can't get message thread history in the chat");
-    return {};
-  }
-
-  if (from_message_id == MessageId() || from_message_id.get() > MessageId::max().get()) {
-    from_message_id = MessageId::max();
-  }
-  if (!from_message_id.is_valid()) {
-    promise.set_error(400, "Parameter from_message_id must be identifier of a chat message or 0");
     return {};
   }
 
@@ -17416,7 +17381,49 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
       return {};
     }
   }
+
   CHECK(message_id.is_server());
+  return get_message_thread_history(dialog_id, MessageTopic::thread(dialog_id, message_id), top_thread_message_full_id,
+                                    from_message_id, offset, limit, random_id, std::move(promise));
+}
+
+std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_history(
+    DialogId dialog_id, MessageTopic topic, MessageFullId top_thread_message_full_id, MessageId from_message_id,
+    int32 offset, int32 limit, int64 &random_id, Promise<Unit> &&promise) {
+  if (limit <= 0) {
+    promise.set_error(400, "Parameter limit must be positive");
+    return {};
+  }
+  if (limit > MAX_GET_HISTORY) {
+    limit = MAX_GET_HISTORY;
+  }
+  if (offset > 0) {
+    promise.set_error(400, "Parameter offset must be non-positive");
+    return {};
+  }
+  if (offset <= -MAX_GET_HISTORY) {
+    promise.set_error(400, "Parameter offset must be greater than -100");
+    return {};
+  }
+  if (offset < -limit) {
+    promise.set_error(400, "Parameter offset must be greater than or equal to -limit");
+    return {};
+  }
+  bool is_limit_increased = false;
+  if (limit == -offset) {
+    limit++;
+    is_limit_increased = true;
+  }
+  CHECK(0 < limit && limit <= MAX_GET_HISTORY);
+  CHECK(-limit < offset && offset <= 0);
+
+  if (from_message_id == MessageId() || from_message_id.get() > MessageId::max().get()) {
+    from_message_id = MessageId::max();
+  }
+  if (!from_message_id.is_valid()) {
+    promise.set_error(400, "Parameter from_message_id must be identifier of a chat message or 0");
+    return {};
+  }
 
   if (random_id != 0) {
     // request has already been sent before
@@ -17429,10 +17436,9 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
     if (dialog_id_it != found_dialog_messages_dialog_id_.end()) {
       dialog_id = dialog_id_it->second;
       found_dialog_messages_dialog_id_.erase(dialog_id_it);
-
-      d = get_dialog(dialog_id);
-      CHECK(d != nullptr);
     }
+    auto *d = get_dialog(dialog_id);
+    CHECK(d != nullptr);
     if (dialog_id != top_thread_message_full_id.get_dialog_id()) {
       promise.set_error(500, "Receive messages in an unexpected chat");
       return {};
@@ -17498,10 +17504,38 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
   found_dialog_messages_[random_id];  // reserve place for result
 
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
-      ->send(dialog_id, MessageTopic::thread(dialog_id, message_id), string(), DialogId(),
-             from_message_id.get_next_server_message_id(), offset, limit, MessageSearchFilter::Empty, ReactionType(),
-             random_id);
+      ->send(dialog_id, topic, string(), DialogId(), from_message_id.get_next_server_message_id(), offset, limit,
+             MessageSearchFilter::Empty, ReactionType(), random_id);
   return {};
+}
+
+std::pair<DialogId, vector<MessageId>> MessagesManager::get_forum_topic_history(DialogId dialog_id,
+                                                                                ForumTopicId forum_topic_id,
+                                                                                MessageId from_message_id, int32 offset,
+                                                                                int32 limit, int64 &random_id,
+                                                                                Promise<Unit> &&promise) {
+  Dialog *d = get_dialog_force(dialog_id, "get_forum_topic_history");
+  if (d == nullptr) {
+    promise.set_error(400, "Chat not found");
+    return {};
+  }
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
+    promise.set_error(400, "Can't access the chat");
+    return {};
+  }
+  if (!forum_topic_id.is_valid()) {
+    promise.set_error(400, "Invalid forum topic identifier specified");
+    return {};
+  }
+  auto is_forum = td_->forum_topic_manager_->is_forum(dialog_id, true);
+  if (is_forum.is_error()) {
+    promise.set_error(std::move(is_forum));
+    return {};
+  }
+
+  return get_message_thread_history(dialog_id, MessageTopic::forum(dialog_id, forum_topic_id),
+                                    {dialog_id, MessageId(ServerMessageId(forum_topic_id.get()))}, from_message_id,
+                                    offset, limit, random_id, std::move(promise));
 }
 
 void MessagesManager::get_dialog_message_calendar(DialogId dialog_id,

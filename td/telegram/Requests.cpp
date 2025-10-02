@@ -996,6 +996,39 @@ class GetMessageThreadHistoryRequest final : public RequestActor<> {
   }
 };
 
+class GetForumTopicHistoryRequest final : public RequestActor<> {
+  DialogId dialog_id_;
+  ForumTopicId forum_topic_id_;
+  MessageId from_message_id_;
+  int32 offset_;
+  int32 limit_;
+  int64 random_id_;
+
+  std::pair<DialogId, vector<MessageId>> messages_;
+
+  void do_run(Promise<Unit> &&promise) final {
+    messages_ = td_->messages_manager_->get_forum_topic_history(dialog_id_, forum_topic_id_, from_message_id_, offset_,
+                                                                limit_, random_id_, std::move(promise));
+  }
+
+  void do_send_result() final {
+    send_result(td_->messages_manager_->get_messages_object(-1, messages_.first, messages_.second, true,
+                                                            "GetForumTopicHistoryRequest"));
+  }
+
+ public:
+  GetForumTopicHistoryRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int32 forum_topic_id,
+                              int64 from_message_id, int32 offset, int32 limit)
+      : RequestActor(std::move(td), request_id)
+      , dialog_id_(dialog_id)
+      , forum_topic_id_(forum_topic_id)
+      , from_message_id_(from_message_id)
+      , offset_(offset)
+      , limit_(limit)
+      , random_id_(0) {
+  }
+};
+
 class SearchChatMessagesRequest final : public RequestActor<> {
   DialogId dialog_id_;
   td_api::object_ptr<td_api::MessageTopic> topic_id_;
@@ -4422,6 +4455,12 @@ void Requests::on_request(uint64 id, const td_api::getForumTopic &request) {
   CREATE_REQUEST_PROMISE();
   td_->forum_topic_manager_->get_forum_topic(DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_),
                                              std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::getForumTopicHistory &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(GetForumTopicHistoryRequest, request.chat_id_, request.forum_topic_id_, request.from_message_id_,
+                 request.offset_, request.limit_);
 }
 
 void Requests::on_request(uint64 id, const td_api::getForumTopicLink &request) {

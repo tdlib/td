@@ -40,6 +40,8 @@ class ForumTopicManager final : public Actor {
   ForumTopicManager &operator=(ForumTopicManager &&) = delete;
   ~ForumTopicManager() final;
 
+  Status is_forum(DialogId dialog_id, bool allow_bots = false);
+
   void create_forum_topic(DialogId dialog_id, string &&title, bool title_missing,
                           td_api::object_ptr<td_api::forumTopicIcon> &&icon,
                           Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise);
@@ -142,8 +144,6 @@ class ForumTopicManager final : public Actor {
   };
 
   void tear_down() final;
-
-  Status is_forum(DialogId dialog_id, bool allow_bots = false);
 
   bool can_be_forum(DialogId dialog_id) const;
 
