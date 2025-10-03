@@ -1085,10 +1085,9 @@ class ToggleUsernameQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (status.message() == "USERNAME_NOT_MODIFIED") {
-      td_->user_manager_->on_update_username_is_active(td_->user_manager_->get_my_id(), std::move(username_),
-                                                       is_active_, std::move(promise_));
       return;
     }
+    td_->user_manager_->reload_user(td_->user_manager_->get_my_id(), Promise<Unit>(), "ToggleUsernameQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -1124,10 +1123,9 @@ class ReorderUsernamesQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (status.message() == "USERNAME_NOT_MODIFIED") {
-      td_->user_manager_->on_update_active_usernames_order(td_->user_manager_->get_my_id(), std::move(usernames_),
-                                                           std::move(promise_));
       return;
     }
+    td_->user_manager_->reload_user(td_->user_manager_->get_my_id(), Promise<Unit>(), "ReorderUsernamesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -1168,10 +1166,9 @@ class ToggleBotUsernameQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (status.message() == "USERNAME_NOT_MODIFIED") {
-      td_->user_manager_->on_update_username_is_active(bot_user_id_, std::move(username_), is_active_,
-                                                       std::move(promise_));
       return;
     }
+    td_->user_manager_->reload_user(bot_user_id_, Promise<Unit>(), "ToggleBotUsernameQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -1213,9 +1210,9 @@ class ReorderBotUsernamesQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (status.message() == "USERNAME_NOT_MODIFIED") {
-      td_->user_manager_->on_update_active_usernames_order(bot_user_id_, std::move(usernames_), std::move(promise_));
       return;
     }
+    td_->user_manager_->reload_user(bot_user_id_, Promise<Unit>(), "ReorderUsernamesQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -6205,11 +6202,14 @@ void UserManager::toggle_username_is_active(string &&username, bool is_active, P
 
 void UserManager::toggle_username_is_active_impl(string &&username, bool is_active, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  const User *u = get_user(get_my_id());
+  auto user_id = get_my_id();
+  User *u = get_user(user_id);
   CHECK(u != nullptr);
   if (!u->usernames.can_toggle(false, username)) {
     return promise.set_error(400, "Wrong username specified");
   }
+  on_update_user_usernames(u, user_id, u->usernames.toggle(false, username, is_active));
+  update_user(u, user_id);
   td_->create_handler<ToggleUsernameQuery>(std::move(promise))->send(std::move(username), is_active);
 }
 
@@ -6226,7 +6226,8 @@ void UserManager::reorder_usernames(vector<string> &&usernames, Promise<Unit> &&
 
 void UserManager::reorder_usernames_impl(vector<string> &&usernames, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  const User *u = get_user(get_my_id());
+  auto user_id = get_my_id();
+  User *u = get_user(user_id);
   CHECK(u != nullptr);
   if (!u->usernames.can_reorder_to(usernames)) {
     return promise.set_error(400, "Invalid username order specified");
@@ -6234,6 +6235,8 @@ void UserManager::reorder_usernames_impl(vector<string> &&usernames, Promise<Uni
   if (usernames.size() <= 1) {
     return promise.set_value(Unit());
   }
+  on_update_user_usernames(u, user_id, u->usernames.reorder_to(vector<string>(usernames)));
+  update_user(u, user_id);
   td_->create_handler<ReorderUsernamesQuery>(std::move(promise))->send(std::move(usernames));
 }
 
@@ -6268,11 +6271,13 @@ void UserManager::toggle_bot_username_is_active(UserId bot_user_id, string &&use
   if (!bot_data.can_be_edited) {
     return promise.set_error(400, "The bot can't be edited");
   }
-  const User *u = get_user(bot_user_id);
+  User *u = get_user(bot_user_id);
   CHECK(u != nullptr);
   if (!u->usernames.can_toggle(true, username)) {
     return promise.set_error(400, "Wrong username specified");
   }
+  on_update_user_usernames(u, bot_user_id, u->usernames.toggle(true, username, is_active));
+  update_user(u, bot_user_id);
   td_->create_handler<ToggleBotUsernameQuery>(std::move(promise))->send(bot_user_id, std::move(username), is_active);
 }
 
@@ -6281,7 +6286,7 @@ void UserManager::reorder_bot_usernames(UserId bot_user_id, vector<string> &&use
   if (!bot_data.can_be_edited) {
     return promise.set_error(400, "The bot can't be edited");
   }
-  const User *u = get_user(bot_user_id);
+  User *u = get_user(bot_user_id);
   CHECK(u != nullptr);
   if (!u->usernames.can_reorder_to(usernames)) {
     return promise.set_error(400, "Invalid username order specified");
@@ -6289,6 +6294,8 @@ void UserManager::reorder_bot_usernames(UserId bot_user_id, vector<string> &&use
   if (usernames.size() <= 1) {
     return promise.set_value(Unit());
   }
+  on_update_user_usernames(u, bot_user_id, u->usernames.reorder_to(vector<string>(usernames)));
+  update_user(u, bot_user_id);
   td_->create_handler<ReorderBotUsernamesQuery>(std::move(promise))->send(bot_user_id, std::move(usernames));
 }
 
