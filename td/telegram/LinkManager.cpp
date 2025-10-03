@@ -2125,9 +2125,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkInvoice>(std::move(invoice_name));
     }
   } else if (path[0] == "share" || path[0] == "msg") {
-    if (!(path.size() > 1 && (path[1] == "bookmarklet" || path[1] == "embed"))) {
-      // /share?url=<url>
-      // /share?url=<url>&text=<text>
+    if (path.size() > 1 && path[1] == "url") {
+      // /share/url?url=<url>
+      // /share/url?url=<url>&text=<text>
       return get_internal_link_message_draft(get_arg("url"), get_arg("text"));
     }
   } else if (path[0] == "iv") {
@@ -2798,7 +2798,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       if (is_internal) {
         return PSTRING() << "tg://msg_url?url=" << url_encode(url) << text;
       } else {
-        return PSTRING() << get_t_me_url() << "share?url=" << url_encode(url) << text;
+        return PSTRING() << get_t_me_url() << "share/url?url=" << url_encode(url) << text;
       }
     }
     case td_api::internalLinkTypeMyStars::ID:

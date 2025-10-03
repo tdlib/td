@@ -831,22 +831,27 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg:msg?url=@&text=@", message_draft(" @\n@", true));
   parse_internal_link("tg:msg?url=%FF&text=1", nullptr);
 
-  parse_internal_link("https://t.me/share?url=google.com&text=text#asdasd", message_draft("google.com\ntext", true));
-  parse_internal_link("https://t.me/share?url=google.com&text=", message_draft("google.com", false));
-  parse_internal_link("https://t.me/share?url=&text=google.com", message_draft("google.com", false));
-  parse_internal_link("https://t.me/msg?url=google.com&text=text", message_draft("google.com\ntext", true));
-  parse_internal_link("https://t.me/msg?url=google.com&text=", message_draft("google.com", false));
-  parse_internal_link("https://t.me/msg?url=&text=google.com", message_draft("google.com", false));
-  parse_internal_link("https://t.me/msg?url=google.com&text=text", message_draft("google.com\ntext", true));
-  parse_internal_link("https://t.me/msg?url=google.com&text=", message_draft("google.com", false));
-  parse_internal_link("https://t.me/msg?url=&text=google.com", message_draft("google.com", false));
-  parse_internal_link("https://t.me/msg?url=&text=\n\n\n\n\n\n\n\n", nullptr);
-  parse_internal_link("https://t.me/msg?url=%20%0A&text=", nullptr);
-  parse_internal_link("https://t.me/msg?url=%20%0A&text=google.com", message_draft("google.com", false));
-  parse_internal_link("https://t.me/msg?url=@&text=", message_draft(" @", false));
-  parse_internal_link("https://t.me/msg?url=&text=@", message_draft(" @", false));
-  parse_internal_link("https://t.me/msg?url=@&text=@", message_draft(" @\n@", true));
-  parse_internal_link("https://t.me/msg?url=%FF&text=1", nullptr);
+  parse_internal_link("https://t.me/share?url=google.com&text=text#asdasd", nullptr);
+  parse_internal_link("https://t.me/share/?url=google.com&text=text#asdasd", nullptr);
+  parse_internal_link("https://t.me/share/abc?url=google.com&text=text#asdasd", nullptr);
+  parse_internal_link("https://t.me/share/embed?url=google.com&text=text#asdasd", nullptr);
+  parse_internal_link("https://t.me/share/url?url=google.com&text=text#asdasd",
+                      message_draft("google.com\ntext", true));
+  parse_internal_link("https://t.me/share/url?url=google.com&text=", message_draft("google.com", false));
+  parse_internal_link("https://t.me/share/url?url=&text=google.com", message_draft("google.com", false));
+  parse_internal_link("https://t.me/msg/url?url=google.com&text=text", message_draft("google.com\ntext", true));
+  parse_internal_link("https://t.me/msg/url?url=google.com&text=", message_draft("google.com", false));
+  parse_internal_link("https://t.me/msg/url?url=&text=google.com", message_draft("google.com", false));
+  parse_internal_link("https://t.me/msg/url?url=google.com&text=text", message_draft("google.com\ntext", true));
+  parse_internal_link("https://t.me/msg/url?url=google.com&text=", message_draft("google.com", false));
+  parse_internal_link("https://t.me/msg/url?url=&text=google.com", message_draft("google.com", false));
+  parse_internal_link("https://t.me/msg/url?url=&text=\n\n\n\n\n\n\n\n", nullptr);
+  parse_internal_link("https://t.me/msg/url?url=%20%0A&text=", nullptr);
+  parse_internal_link("https://t.me/msg/url?url=%20%0A&text=google.com", message_draft("google.com", false));
+  parse_internal_link("https://t.me/msg/url?url=@&text=", message_draft(" @", false));
+  parse_internal_link("https://t.me/msg/url?url=&text=@", message_draft(" @", false));
+  parse_internal_link("https://t.me/msg/url?url=@&text=@", message_draft(" @\n@", true));
+  parse_internal_link("https://t.me/msg/url?url=%FF&text=1", nullptr);
 
   parse_internal_link("tg:login?codec=12345", unknown_deep_link("tg://login?codec=12345"));
   parse_internal_link("tg:login", unknown_deep_link("tg://login"));
