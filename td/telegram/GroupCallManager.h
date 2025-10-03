@@ -118,6 +118,9 @@ class GroupCallManager final : public Actor {
   void toggle_group_call_mute_new_participants(GroupCallId group_call_id, bool mute_new_participants,
                                                Promise<Unit> &&promise);
 
+  void toggle_group_call_are_messages_enabled(GroupCallId group_call_id, bool are_messages_enabled,
+                                              Promise<Unit> &&promise);
+
   void revoke_group_call_invite_link(GroupCallId group_call_id, Promise<Unit> &&promise);
 
   void invite_group_call_participant(GroupCallId group_call_id, UserId user_id, bool is_video,
@@ -424,6 +427,12 @@ class GroupCallManager final : public Actor {
 
   void on_toggle_group_call_mute_new_participants(InputGroupCallId input_group_call_id, bool mute_new_participants,
                                                   Result<Unit> &&result);
+
+  void send_toggle_group_call_are_messages_enabled_query(InputGroupCallId input_group_call_id,
+                                                         bool are_messages_enabled);
+
+  void on_toggle_group_call_are_messages_enabled(InputGroupCallId input_group_call_id, bool are_messages_enabled,
+                                                 Result<Unit> &&result);
 
   void send_toggle_group_call_recording_query(InputGroupCallId input_group_call_id, bool is_enabled,
                                               const string &title, bool record_video, bool use_portrait_orientation,

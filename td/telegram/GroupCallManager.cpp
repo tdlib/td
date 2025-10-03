@@ -866,13 +866,17 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
   explicit ToggleGroupCallSettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(InputGroupCallId input_group_call_id, bool reset_invite_hash, bool set_join_muted, bool join_muted) {
+  void send(InputGroupCallId input_group_call_id, bool reset_invite_hash, bool set_join_muted, bool join_muted,
+            bool set_messages_enabled, bool messages_enabled) {
     int32 flags = 0;
     if (set_join_muted) {
       flags |= telegram_api::phone_toggleGroupCallSettings::JOIN_MUTED_MASK;
     }
+    if (set_messages_enabled) {
+      flags |= telegram_api::phone_toggleGroupCallSettings::MESSAGES_ENABLED_MASK;
+    }
     send_query(G()->net_query_creator().create(telegram_api::phone_toggleGroupCallSettings(
-        flags, reset_invite_hash, input_group_call_id.get_input_group_call(), join_muted, false)));
+        flags, reset_invite_hash, input_group_call_id.get_input_group_call(), join_muted, messages_enabled)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -4406,7 +4410,7 @@ void GroupCallManager::send_toggle_group_call_mute_new_participants_query(InputG
                      mute_new_participants, std::move(result));
       });
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))
-      ->send(input_group_call_id, false, true, mute_new_participants);
+      ->send(input_group_call_id, false, true, mute_new_participants, false, false);
 }
 
 void GroupCallManager::on_toggle_group_call_mute_new_participants(InputGroupCallId input_group_call_id,
@@ -4445,6 +4449,91 @@ void GroupCallManager::on_toggle_group_call_mute_new_participants(InputGroupCall
   }
 }
 
+void GroupCallManager::toggle_group_call_are_messages_enabled(GroupCallId group_call_id, bool are_messages_enabled,
+                                                              Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, are_messages_enabled,
+                                              promise = std::move(promise)](
+                                                 Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                        if (result.is_error()) {
+                          promise.set_error(result.move_as_error());
+                        } else {
+                          send_closure(actor_id, &GroupCallManager::toggle_group_call_are_messages_enabled,
+                                       group_call_id, are_messages_enabled, std::move(promise));
+                        }
+                      }));
+    return;
+  }
+  if (!group_call->is_active || !group_call->can_be_managed || !group_call->allowed_toggle_are_messages_enabled) {
+    return promise.set_error(400, "Can't change are_messages_enabled setting");
+  }
+
+  if (are_messages_enabled == get_group_call_are_messages_enabled(group_call)) {
+    return promise.set_value(Unit());
+  }
+
+  // there is no reason to save promise; we will send an update with actual value anyway
+
+  group_call->pending_are_messages_enabled = are_messages_enabled;
+  if (!group_call->have_pending_are_messages_enabled) {
+    group_call->have_pending_are_messages_enabled = true;
+    send_toggle_group_call_are_messages_enabled_query(input_group_call_id, are_messages_enabled);
+  }
+  send_update_group_call(group_call, "toggle_group_call_are_messages_enabled");
+  promise.set_value(Unit());
+}
+
+void GroupCallManager::send_toggle_group_call_are_messages_enabled_query(InputGroupCallId input_group_call_id,
+                                                                         bool are_messages_enabled) {
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), input_group_call_id, are_messages_enabled](Result<Unit> result) {
+        send_closure(actor_id, &GroupCallManager::on_toggle_group_call_are_messages_enabled, input_group_call_id,
+                     are_messages_enabled, std::move(result));
+      });
+  td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))
+      ->send(input_group_call_id, false, false, false, true, are_messages_enabled);
+}
+
+void GroupCallManager::on_toggle_group_call_are_messages_enabled(InputGroupCallId input_group_call_id,
+                                                                 bool are_messages_enabled, Result<Unit> &&result) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (!is_group_call_active(group_call) || !group_call->have_pending_are_messages_enabled) {
+    return;
+  }
+
+  if (result.is_error()) {
+    group_call->have_pending_are_messages_enabled = false;
+    if (group_call->can_be_managed && group_call->allowed_toggle_are_messages_enabled) {
+      LOG(ERROR) << "Failed to set are_messages_enabled to " << are_messages_enabled << " in " << input_group_call_id
+                 << ": " << result.error();
+    }
+    if (group_call->pending_are_messages_enabled != group_call->are_messages_enabled) {
+      send_update_group_call(group_call, "on_toggle_group_call_are_messages_enabled failed");
+    }
+  } else {
+    if (group_call->pending_are_messages_enabled != are_messages_enabled) {
+      // need to send another request
+      send_toggle_group_call_are_messages_enabled_query(input_group_call_id, group_call->pending_are_messages_enabled);
+      return;
+    }
+
+    group_call->have_pending_are_messages_enabled = false;
+    if (group_call->are_messages_enabled != are_messages_enabled) {
+      LOG(ERROR) << "Failed to set are_messages_enabled to " << are_messages_enabled << " in " << input_group_call_id;
+      send_update_group_call(group_call, "on_toggle_group_call_are_messages_enabled failed 2");
+    }
+  }
+}
+
 void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
@@ -4467,7 +4556,8 @@ void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, 
     return promise.set_error(400, "Can't revoke invite link in the group call");
   }
 
-  td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))->send(input_group_call_id, true, false, false);
+  td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))
+      ->send(input_group_call_id, true, false, false, false, false);
 }
 
 void GroupCallManager::invite_group_call_participant(

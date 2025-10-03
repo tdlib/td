@@ -817,6 +817,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::toggleVideoChatMuteNewParticipants &request);
 
+  void on_request(uint64 id, const td_api::toggleGroupCallCanSendMessages &request);
+
   void on_request(uint64 id, const td_api::revokeGroupCallInviteLink &request);
 
   void on_request(uint64 id, const td_api::inviteGroupCallParticipant &request);
