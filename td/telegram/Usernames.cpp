@@ -64,6 +64,7 @@ Usernames::Usernames(string &&first_username, vector<telegram_api::object_ptr<te
   }
   is_editable_username_disabled_ = is_editable_username_disabled;
   CHECK(has_editable_username() == was_editable);
+  check_validness();
 }
 
 tl_object_ptr<td_api::usernames> Usernames::get_usernames_object() const {
@@ -94,6 +95,7 @@ Usernames Usernames::change_editable_username(string &&new_username) const {
     result.active_usernames_.insert(result.active_usernames_.begin(), std::move(new_username));
     result.editable_username_pos_ = 0;
   }
+  result.check_validness();
   return result;
 }
 
@@ -131,6 +133,7 @@ Usernames Usernames::toggle(const string &username, bool is_active) const {
           }
         }
       }
+      result.check_validness();
       return result;
     }
   }
@@ -155,6 +158,7 @@ Usernames Usernames::toggle(const string &username, bool is_active) const {
           // editable username position wasn't changed
         }
       }
+      result.check_validness();
       return result;
     }
   }
@@ -178,6 +182,7 @@ Usernames Usernames::deactivate_all() const {
   }
   append(result.disabled_usernames_, disabled_usernames_);
   CHECK(result.has_editable_username() == has_editable_username());
+  result.check_validness();
   return result;
 }
 
@@ -218,6 +223,7 @@ Usernames Usernames::reorder_to(vector<string> &&new_username_order) const {
     }
     CHECK(result.has_editable_username());
   }
+  result.check_validness();
   return result;
 }
 
