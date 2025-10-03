@@ -4860,6 +4860,13 @@ void Requests::on_request(uint64 id, const td_api::toggleGroupCallCanSendMessage
                                                                    request.can_send_messages_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::sendGroupCallMessage &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->group_call_manager_->send_group_call_message(GroupCallId(request.group_call_id_), std::move(request.text_),
+                                                    std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::revokeGroupCallInviteLink &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

@@ -5140,6 +5140,11 @@ class CliClient final : public Actor {
       bool can_send_messages;
       get_args(args, group_call_id, can_send_messages);
       send_request(td_api::make_object<td_api::toggleGroupCallCanSendMessages>(group_call_id, can_send_messages));
+    } else if (op == "sgcm") {
+      GroupCallId group_call_id;
+      string text;
+      get_args(args, group_call_id, text);
+      send_request(td_api::make_object<td_api::sendGroupCallMessage>(group_call_id, as_formatted_text(text)));
     } else if (op == "rgcil") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);

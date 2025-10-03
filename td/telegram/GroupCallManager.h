@@ -122,6 +122,9 @@ class GroupCallManager final : public Actor {
   void toggle_group_call_are_messages_enabled(GroupCallId group_call_id, bool are_messages_enabled,
                                               Promise<Unit> &&promise);
 
+  void send_group_call_message(GroupCallId group_call_id, td_api::object_ptr<td_api::formattedText> &&text,
+                               Promise<Unit> &&promise);
+
   void revoke_group_call_invite_link(GroupCallId group_call_id, Promise<Unit> &&promise);
 
   void invite_group_call_participant(GroupCallId group_call_id, UserId user_id, bool is_video,

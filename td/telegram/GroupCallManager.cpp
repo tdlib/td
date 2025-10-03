@@ -40,6 +40,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/UInt.h"
+#include "td/utils/utf8.h"
 
 #include <algorithm>
 #include <map>
@@ -896,6 +897,33 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
       promise_.set_value(Unit());
       return;
     }
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SendGroupCallMessageQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SendGroupCallMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, const FormattedText &text) {
+    send_query(G()->net_query_creator().create(telegram_api::phone_sendGroupCallMessage(
+        input_group_call_id.get_input_group_call(), Random::secure_int64(),
+        get_input_text_with_entities(td_->user_manager_.get(), text, "SendGroupCallMessageQuery"))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_sendGroupCallMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
     promise_.set_error(std::move(status));
   }
 };
@@ -4559,6 +4587,67 @@ void GroupCallManager::on_toggle_group_call_are_messages_enabled(InputGroupCallI
       LOG(ERROR) << "Failed to set are_messages_enabled to " << are_messages_enabled << " in " << input_group_call_id;
       send_update_group_call(group_call, "on_toggle_group_call_are_messages_enabled failed 2");
     }
+  }
+}
+
+void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
+                                               td_api::object_ptr<td_api::formattedText> &&text,
+                                               Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, text = std::move(text),
+                                              promise = std::move(promise)](
+                                                 Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                        if (result.is_error()) {
+                          promise.set_error(result.move_as_error());
+                        } else {
+                          send_closure(actor_id, &GroupCallManager::send_group_call_message, group_call_id,
+                                       std::move(text), std::move(promise));
+                        }
+                      }));
+    return;
+  }
+  if (!group_call->is_joined) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, text = std::move(text),
+                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+            } else {
+              send_closure(actor_id, &GroupCallManager::send_group_call_message, group_call_id, std::move(text),
+                           std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+
+  TRY_RESULT_PROMISE(promise, message,
+                     get_formatted_text(td_, group_call->dialog_id, std::move(text), td_->auth_manager_->is_bot(),
+                                        false, true, false));
+  if (static_cast<int64>(utf8_length(message.text)) > G()->get_option_integer("group_call_message_text_length_max")) {
+    // return promise.set_error(400, "Message is too long");
+  }
+
+  auto as_dialog_id =
+      group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id();
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateGroupCallNewMessage>(
+          group_call->group_call_id.get(), get_message_sender_object(td_, as_dialog_id, "send_group_call_message"),
+          get_formatted_text_object(td_->user_manager_.get(), message, true, -1)));
+
+  if (group_call->is_conference || group_call->private_key_id != tde2e_api::PrivateKeyId()) {
+    // TODO
+    return promise.set_value(Unit());
+  } else {
+    td_->create_handler<SendGroupCallMessageQuery>(std::move(promise))->send(input_group_call_id, message);
   }
 }
 

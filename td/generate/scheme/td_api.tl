@@ -9338,7 +9338,7 @@ updateGroupCallParticipants group_call_id:int32 participant_user_ids:vector<int6
 //@emojis Group call state fingerprint represented as 4 emoji; may be empty if the state isn't verified yet
 updateGroupCallVerificationState group_call_id:int32 generation:int32 emojis:vector<string> = Update;
 
-//@description A new message was received in a group call. It must be shown for a short time after receiving
+//@description A new message was received in a group call. It must be shown for at most getOption("group_call_message_show_time_max") seconds after receiving
 //@group_call_id Identifier of the group call
 //@sender_id Identifier of the sender of the message
 //@text Text of the message
@@ -12361,6 +12361,11 @@ toggleVideoChatMuteNewParticipants group_call_id:int32 mute_new_participants:Boo
 //@group_call_id Group call identifier
 //@can_send_messages New value of the can_send_messages setting
 toggleGroupCallCanSendMessages group_call_id:int32 can_send_messages:Bool = Ok;
+
+//@description Sends a message to other participants of a group call. Requires groupCall.can_send_messages right
+//@group_call_id Group call identifier
+//@text Text of the message to send; 1-getOption("group_call_message_text_length_max") characters
+sendGroupCallMessage group_call_id:int32 text:formattedText = Ok;
 
 //@description Invites a user to an active group call; for group calls not bound to a chat only. Sends a service message of the type messageGroupCall.
 //-The group call can have at most getOption("group_call_participant_count_max") participants
