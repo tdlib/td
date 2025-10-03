@@ -3157,7 +3157,7 @@ void ChatManager::toggle_channel_username_is_active(ChannelId channel_id, string
   if (!get_channel_status(c).is_creator()) {
     return promise.set_error(400, "Not enough rights to change username");
   }
-  if (!c->usernames.can_toggle(username)) {
+  if (!c->usernames.can_toggle(false, username)) {
     return promise.set_error(400, "Wrong username specified");
   }
   td_->create_handler<ToggleChannelUsernameQuery>(std::move(promise))->send(channel_id, std::move(username), is_active);
@@ -3195,10 +3195,10 @@ void ChatManager::on_update_channel_username_is_active(ChannelId channel_id, str
                                                        Promise<Unit> &&promise) {
   auto *c = get_channel(channel_id);
   CHECK(c != nullptr);
-  if (!c->usernames.can_toggle(username)) {
+  if (!c->usernames.can_toggle(false, username)) {
     return reload_channel(channel_id, std::move(promise), "on_update_channel_username_is_active");
   }
-  on_update_channel_usernames(c, channel_id, c->usernames.toggle(username, is_active));
+  on_update_channel_usernames(c, channel_id, c->usernames.toggle(false, username, is_active));
   update_channel(c, channel_id);
   promise.set_value(Unit());
 }

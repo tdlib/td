@@ -53,11 +53,13 @@ Usernames::Usernames(string &&first_username, vector<telegram_api::object_ptr<te
     if (username->active_) {
       active_usernames_.push_back(std::move(username->username_));
       if (username->editable_) {
+        CHECK(!is_editable_username_disabled);
         editable_username_pos_ = narrow_cast<int32>(active_usernames_.size() - 1);
       }
     } else {
       disabled_usernames_.push_back(std::move(username->username_));
       if (username->editable_) {
+        CHECK(is_editable_username_disabled);
         editable_username_pos_ = narrow_cast<int32>(disabled_usernames_.size() - 1);
       }
     }
@@ -99,10 +101,19 @@ Usernames Usernames::change_editable_username(string &&new_username) const {
   return result;
 }
 
-bool Usernames::can_toggle(const string &username) const {
+bool Usernames::can_toggle(bool for_bot, const string &username) const {
   if (td::contains(active_usernames_, username)) {
-    return !has_editable_username() || is_editable_username_disabled_ ||
-           active_usernames_[editable_username_pos_] != username;
+    if (!has_editable_username() || is_editable_username_disabled_ ||
+        active_usernames_[editable_username_pos_] != username) {
+      // disabling of non-editable username is always allowed
+      return true;
+    }
+    if (for_bot) {
+      // bots can disable editable username if there is another active username
+      return active_usernames_.size() >= 2u;
+    }
+    // otherwise, editable user can't be disabled
+    return false;
   }
   if (td::contains(disabled_usernames_, username)) {
     return true;
@@ -110,9 +121,9 @@ bool Usernames::can_toggle(const string &username) const {
   return false;
 }
 
-Usernames Usernames::toggle(const string &username, bool is_active) const {
+Usernames Usernames::toggle(bool for_bot, const string &username, bool is_active) const {
   Usernames result = *this;
-  if (!can_toggle(username)) {
+  if (!can_toggle(for_bot, username)) {
     return result;
   }
   for (size_t i = 0; i < active_usernames_.size(); i++) {
@@ -124,11 +135,25 @@ Usernames Usernames::toggle(const string &username, bool is_active) const {
         if (has_editable_username()) {
           if (is_editable_username_disabled_) {
             result.editable_username_pos_++;
+            if (for_bot && result.active_usernames_.empty()) {
+              // activate the previously disabled editable username
+              auto editable_username = result.disabled_usernames_[result.editable_username_pos_];
+              result.disabled_usernames_.erase(result.disabled_usernames_.begin() + result.editable_username_pos_);
+              result.active_usernames_.push_back(editable_username);
+              result.is_editable_username_disabled_ = false;
+              result.editable_username_pos_ = 0;
+            }
           } else {
             if (i <= static_cast<size_t>(result.editable_username_pos_)) {
-              CHECK(i != static_cast<size_t>(result.editable_username_pos_));
-              CHECK(result.editable_username_pos_ > 0);
-              result.editable_username_pos_--;
+              if (i == static_cast<size_t>(result.editable_username_pos_)) {
+                CHECK(for_bot);
+                // the editable username is being disabled
+                result.editable_username_pos_ = 0;
+                result.is_editable_username_disabled_ = true;
+              } else {
+                CHECK(result.editable_username_pos_ > 0);
+                result.editable_username_pos_--;
+              }
             }
           }
         }

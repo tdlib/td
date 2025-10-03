@@ -25,6 +25,8 @@ class Usernames {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const Usernames &usernames);
 
+  void check_validness();
+
  public:
   Usernames() = default;
 
@@ -65,17 +67,15 @@ class Usernames {
 
   Usernames change_editable_username(string &&new_username) const;
 
-  bool can_toggle(const string &username) const;
+  bool can_toggle(bool for_bot, const string &username) const;
 
-  Usernames toggle(const string &username, bool is_active) const;
+  Usernames toggle(bool for_bot, const string &username, bool is_active) const;
 
   Usernames deactivate_all() const;
 
   bool can_reorder_to(const vector<string> &new_username_order) const;
 
   Usernames reorder_to(vector<string> &&new_username_order) const;
-
-  void check_validness();
 
   template <class StorerT>
   void store(StorerT &storer) const {

@@ -6207,7 +6207,7 @@ void UserManager::toggle_username_is_active_impl(string &&username, bool is_acti
   TRY_STATUS_PROMISE(promise, G()->close_status());
   const User *u = get_user(get_my_id());
   CHECK(u != nullptr);
-  if (!u->usernames.can_toggle(username)) {
+  if (!u->usernames.can_toggle(false, username)) {
     return promise.set_error(400, "Wrong username specified");
   }
   td_->create_handler<ToggleUsernameQuery>(std::move(promise))->send(std::move(username), is_active);
@@ -6241,10 +6241,11 @@ void UserManager::on_update_username_is_active(UserId user_id, string &&username
                                                Promise<Unit> &&promise) {
   User *u = get_user(user_id);
   CHECK(u != nullptr);
-  if (!u->usernames.can_toggle(username)) {
+  bool is_bot = is_user_bot(u);
+  if (!u->usernames.can_toggle(is_bot, username)) {
     return reload_user(user_id, std::move(promise), "on_update_username_is_active");
   }
-  on_update_user_usernames(u, user_id, u->usernames.toggle(username, is_active));
+  on_update_user_usernames(u, user_id, u->usernames.toggle(is_bot, username, is_active));
   update_user(u, user_id);
   promise.set_value(Unit());
 }
@@ -6269,7 +6270,7 @@ void UserManager::toggle_bot_username_is_active(UserId bot_user_id, string &&use
   }
   const User *u = get_user(bot_user_id);
   CHECK(u != nullptr);
-  if (!u->usernames.can_toggle(username)) {
+  if (!u->usernames.can_toggle(true, username)) {
     return promise.set_error(400, "Wrong username specified");
   }
   td_->create_handler<ToggleBotUsernameQuery>(std::move(promise))->send(bot_user_id, std::move(username), is_active);
