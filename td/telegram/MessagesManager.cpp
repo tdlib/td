@@ -31621,8 +31621,11 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         }
       }
       if (is_top_thread_message_id_changed) {
+        bool is_legacy_topic = new_message->top_thread_message_id != MessageId() &&
+                               old_message->top_thread_message_id == MessageId() &&
+                               td_->dialog_manager_->can_dialog_have_threads(dialog_id);
         if ((new_message->top_thread_message_id != MessageId() && old_message->top_thread_message_id != MessageId()) ||
-            is_message_in_dialog) {
+            (is_message_in_dialog && !is_legacy_topic)) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed message thread from "
                      << old_message->top_thread_message_id << " to " << new_message->top_thread_message_id
                      << ", message content type is " << old_content_type << '/' << new_content_type;
@@ -31632,7 +31635,9 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
         }
       }
       if (is_is_topic_message_changed) {
-        if (!message_id.is_yet_unsent()) {
+        bool is_legacy_topic = new_message->is_topic_message && !old_message->is_topic_message &&
+                               td_->dialog_manager_->can_dialog_have_threads(dialog_id);
+        if (!message_id.is_yet_unsent() && !is_legacy_topic) {
           LOG(ERROR) << message_id << " in " << dialog_id << " has changed is_topic_message to "
                      << new_message->is_topic_message;
         } else {
