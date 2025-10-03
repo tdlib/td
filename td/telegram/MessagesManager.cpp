@@ -4327,6 +4327,9 @@ void MessagesManager::on_update_read_channel_messages_contents(
 void MessagesManager::on_update_read_message_comments(DialogId dialog_id, MessageId top_thread_message_id,
                                                       MessageId max_message_id, MessageId last_read_inbox_message_id,
                                                       MessageId last_read_outbox_message_id, int32 unread_count) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   Dialog *d = get_dialog_force(dialog_id, "on_update_read_message_comments");
   if (d == nullptr) {
     LOG(INFO) << "Ignore update of read message comments in unknown " << dialog_id << " in updateReadDiscussion";
@@ -14385,6 +14388,7 @@ void MessagesManager::on_get_discussion_message(DialogId dialog_id, MessageId me
 
 td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_thread_info_object(
     const MessageThreadInfo &info) {
+  CHECK(!td_->auth_manager_->is_bot());
   if (info.message_ids.empty()) {
     return nullptr;
   }
@@ -17259,6 +17263,7 @@ void MessagesManager::read_message_thread_history_on_server_impl(Dialog *d, Mess
                                                                  MessageId max_message_id) {
   CHECK(d != nullptr);
   CHECK(max_message_id == MessageId() || max_message_id.is_valid());
+  CHECK(!td_->auth_manager_->is_bot());
   auto dialog_id = d->dialog_id;
   CHECK(dialog_id.get_type() == DialogType::Channel);
 
