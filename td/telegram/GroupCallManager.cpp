@@ -1283,6 +1283,8 @@ struct GroupCallManager::GroupCall {
   bool allowed_toggle_mute_new_participants = false;
   bool joined_date_asc = false;
   bool is_video_recorded = false;
+  bool are_messages_enabled = false;
+  bool allowed_toggle_are_messages_enabled = false;
   bool is_blockchain_being_polled[2] = {false, false};
   int32 scheduled_start_date = 0;
   int32 participant_count = 0;
@@ -1307,6 +1309,7 @@ struct GroupCallManager::GroupCall {
   int32 start_subscribed_version = -1;
   int32 can_enable_video_version = -1;
   int32 mute_version = -1;
+  int32 are_messages_enabled_version = -1;
   int32 stream_dc_id_version = -1;
   int32 record_start_date_version = -1;
   int32 scheduled_start_date_version = -1;
@@ -1322,6 +1325,8 @@ struct GroupCallManager::GroupCall {
   bool pending_is_my_presentation_paused = false;
   bool have_pending_mute_new_participants = false;
   bool pending_mute_new_participants = false;
+  bool have_pending_are_messages_enabled = false;
+  bool pending_are_messages_enabled = false;
   string pending_title;
   bool have_pending_record_start_date = false;
   int32 pending_record_start_date = 0;
@@ -2160,6 +2165,12 @@ bool GroupCallManager::get_group_call_mute_new_participants(const GroupCall *gro
   CHECK(group_call != nullptr);
   return group_call->have_pending_mute_new_participants ? group_call->pending_mute_new_participants
                                                         : group_call->mute_new_participants;
+}
+
+bool GroupCallManager::get_group_call_are_messages_enabled(const GroupCall *group_call) {
+  CHECK(group_call != nullptr);
+  return group_call->have_pending_are_messages_enabled ? group_call->pending_are_messages_enabled
+                                                       : group_call->are_messages_enabled;
 }
 
 int32 GroupCallManager::get_group_call_record_start_date(const GroupCall *group_call) {
@@ -5465,6 +5476,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       call.mute_new_participants = group_call->join_muted_;
       call.joined_date_asc = group_call->join_date_asc_;
       call.allowed_toggle_mute_new_participants = group_call->can_change_join_muted_;
+      call.are_messages_enabled = group_call->messages_enabled_;
+      call.allowed_toggle_are_messages_enabled = group_call->can_change_messages_enabled_;
       call.participant_count = group_call->participants_count_;
       call.unmuted_video_count = group_call->unmuted_video_count_;
       call.unmuted_video_limit = group_call->unmuted_video_limit_;
@@ -5498,6 +5511,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       call.can_enable_video_version = group_call->version_;
       call.start_subscribed_version = group_call->version_;
       call.mute_version = group_call->version_;
+      call.are_messages_enabled_version = group_call->version_;
       call.stream_dc_id_version = group_call->version_;
       call.record_start_date_version = group_call->version_;
       call.scheduled_start_date_version = group_call->version_;
@@ -5619,6 +5633,20 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         if (old_mute_new_participants != get_group_call_mute_new_participants(group_call)) {
           need_update = true;
         }
+      }
+      if (call.are_messages_enabled != group_call->are_messages_enabled &&
+          call.are_messages_enabled_version >= group_call->are_messages_enabled_version) {
+        auto old_are_messages_enabled = get_group_call_are_messages_enabled(group_call);
+        group_call->are_messages_enabled = call.are_messages_enabled;
+        group_call->are_messages_enabled_version = call.are_messages_enabled_version;
+        if (old_are_messages_enabled != get_group_call_are_messages_enabled(group_call)) {
+          need_update = true;
+        }
+      }
+      if (call.allowed_toggle_are_messages_enabled != group_call->allowed_toggle_are_messages_enabled && !is_min) {
+        need_update |= (call.allowed_toggle_are_messages_enabled && call.can_be_managed) !=
+                       (group_call->allowed_toggle_are_messages_enabled && group_call->can_be_managed);
+        group_call->allowed_toggle_are_messages_enabled = call.allowed_toggle_are_messages_enabled;
       }
       if (call.title != group_call->title && call.title_version >= group_call->title_version) {
         string old_group_call_title = get_group_call_title(group_call);
@@ -6143,6 +6171,9 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   bool can_toggle_mute_new_participants =
       group_call->is_active && group_call->can_be_managed && group_call->allowed_toggle_mute_new_participants;
   bool can_enable_video = get_group_call_can_enable_video(group_call);
+  bool are_messages_enabled = get_group_call_are_messages_enabled(group_call);
+  bool can_toggle_are_messages_enabled =
+      group_call->is_active && group_call->can_be_managed && group_call->allowed_toggle_are_messages_enabled;
   int32 record_start_date = get_group_call_record_start_date(group_call);
   int32 record_duration = record_start_date == 0 ? 0 : max(G()->unix_time() - record_start_date + 1, 1);
   bool is_video_recorded = get_group_call_is_video_recorded(group_call);
@@ -6152,7 +6183,8 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
       is_joined, group_call->need_rejoin, group_call->is_creator, group_call->can_be_managed,
       group_call->participant_count, group_call->has_hidden_listeners, group_call->loaded_all_participants,
       std::move(recent_speakers), is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
-      can_toggle_mute_new_participants, record_duration, is_video_recorded, group_call->duration);
+      can_toggle_mute_new_participants, are_messages_enabled, can_toggle_are_messages_enabled, record_duration,
+      is_video_recorded, group_call->duration);
 }
 
 tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
