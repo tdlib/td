@@ -38,6 +38,8 @@ class MessageTopic {
   MessageTopic(Td *td, DialogId dialog_id, bool is_topic_message, MessageId top_thread_message_id,
                SavedMessagesTopicId saved_messages_topic_id);
 
+  static MessageTopic autodetect(Td *td, DialogId dialog_id, MessageId top_thread_message_id);
+
   static MessageTopic thread(DialogId dialog_id, MessageId top_thread_message_id);
 
   static MessageTopic forum(DialogId dialog_id, ForumTopicId forum_topic_id);

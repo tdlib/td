@@ -76,6 +76,30 @@ MessageTopic::MessageTopic(Td *td, DialogId dialog_id, bool is_topic_message, Me
   }
 }
 
+MessageTopic MessageTopic::autodetect(Td *td, DialogId dialog_id, MessageId top_thread_message_id) {
+  if (!top_thread_message_id.is_server()) {
+    return {};
+  }
+  auto dialog_type = dialog_id.get_type();
+  if (dialog_type == DialogType::User) {
+    auto user_id = dialog_id.get_user_id();
+    if (user_id != td->user_manager_->get_my_id() &&
+        (td->user_manager_->is_user_bot(user_id) || td->auth_manager_->is_bot())) {
+      return forum(dialog_id, ForumTopicId::from_top_thread_message_id(top_thread_message_id));
+    }
+  }
+  if (dialog_type == DialogType::Channel) {
+    auto channel_id = dialog_id.get_channel_id();
+    if (td->chat_manager_->is_forum_channel(channel_id)) {
+      return forum(dialog_id, ForumTopicId::from_top_thread_message_id(top_thread_message_id));
+    }
+    if (td->chat_manager_->is_megagroup_channel(channel_id)) {
+      return thread(dialog_id, top_thread_message_id);
+    }
+  }
+  return {};
+}
+
 MessageTopic MessageTopic::thread(DialogId dialog_id, MessageId top_thread_message_id) {
   // dialog_id can be a broadcast channel
   MessageTopic result;
