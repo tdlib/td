@@ -30,10 +30,6 @@ Usernames::Usernames(string &&first_username, vector<telegram_api::object_ptr<te
   bool was_editable = false;
   bool is_editable_username_disabled = false;
   for (auto &username : usernames) {
-    if (username->username_.empty()) {
-      LOG(ERROR) << "Receive empty username in " << to_string(usernames);
-      return;
-    }
     if (username->editable_) {
       if (was_editable) {
         LOG(ERROR) << "Receive two editable usernames in " << to_string(usernames);
@@ -44,15 +40,24 @@ Usernames::Usernames(string &&first_username, vector<telegram_api::object_ptr<te
     }
   }
 
-  for (size_t i = 0; i < usernames.size(); i++) {
-    if (usernames[i]->active_) {
-      active_usernames_.push_back(std::move(usernames[i]->username_));
-      if (usernames[i]->editable_) {
+  FlatHashSet<string> received_usernames;
+  for (auto &username : usernames) {
+    if (username->username_.empty()) {
+      LOG(ERROR) << "Receive empty username";
+      continue;
+    }
+    if (!received_usernames.insert(username->username_).second) {
+      LOG(ERROR) << "Receive duplicate username";
+      continue;
+    }
+    if (username->active_) {
+      active_usernames_.push_back(std::move(username->username_));
+      if (username->editable_) {
         editable_username_pos_ = narrow_cast<int32>(active_usernames_.size() - 1);
       }
     } else {
-      disabled_usernames_.push_back(std::move(usernames[i]->username_));
-      if (usernames[i]->editable_) {
+      disabled_usernames_.push_back(std::move(username->username_));
+      if (username->editable_) {
         editable_username_pos_ = narrow_cast<int32>(disabled_usernames_.size() - 1);
       }
     }
