@@ -1387,6 +1387,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"giveaway_boosts_per_premium", "giveaway_boost_count_per_premium"},
       {"giveaway_countries_max", "giveaway_country_count_max"},
       {"giveaway_period_max", "giveaway_duration_max"},
+      {"group_call_message_ttl", "group_call_message_show_time_max"},
       {"group_custom_wallpaper_level_min", ""},
       {"group_emoji_status_level_min", ""},
       {"group_emoji_stickers_level_min", ""},
