@@ -221,17 +221,31 @@ Usernames Usernames::reorder_to(vector<string> &&new_username_order) const {
   return result;
 }
 
-void Usernames::check_utf8_validness() {
+void Usernames::check_validness() {
+  FlatHashSet<string> usernames;
   for (auto &username : active_usernames_) {
-    if (!check_utf8(username)) {
+    if (username.empty() || !check_utf8(username) || !usernames.insert(username).second) {
       LOG(ERROR) << "Have invalid active username \"" << username << '"';
       *this = Usernames();
       return;
     }
   }
   for (auto &username : disabled_usernames_) {
-    if (!check_utf8(username)) {
+    if (username.empty() || !check_utf8(username) || !usernames.insert(username).second) {
       LOG(ERROR) << "Have invalid disabled username \"" << username << '"';
+      *this = Usernames();
+      return;
+    }
+  }
+  if (is_editable_username_disabled_) {
+    if (static_cast<size_t>(editable_username_pos_) >= disabled_usernames_.size()) {
+      LOG(ERROR) << "Have invalid editable username position " << editable_username_pos_;
+      *this = Usernames();
+      return;
+    }
+  } else {
+    if (editable_username_pos_ != -1 && static_cast<size_t>(editable_username_pos_) >= active_usernames_.size()) {
+      LOG(ERROR) << "Have invalid editable username position " << editable_username_pos_;
       *this = Usernames();
       return;
     }

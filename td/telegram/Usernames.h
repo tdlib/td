@@ -25,8 +25,6 @@ class Usernames {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const Usernames &usernames);
 
-  void check_utf8_validness();
-
  public:
   Usernames() = default;
 
@@ -76,6 +74,8 @@ class Usernames {
   bool can_reorder_to(const vector<string> &new_username_order) const;
 
   Usernames reorder_to(vector<string> &&new_username_order) const;
+
+  void check_validness();
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -127,18 +127,15 @@ class Usernames {
     PARSE_FLAG(is_editable_username_disabled_);
     END_PARSE_FLAGS();
     if (is_editable_username_disabled_) {
-      CHECK(has_editable_username);
       if (has_active_usernames) {
         td::parse(active_usernames_, parser);
       }
       td::parse(editable_username_pos_, parser);
-      CHECK(static_cast<size_t>(editable_username_pos_) < disabled_usernames_.size());
     } else {
       if (has_many_active_usernames) {
         td::parse(active_usernames_, parser);
         if (has_editable_username) {
           td::parse(editable_username_pos_, parser);
-          CHECK(static_cast<size_t>(editable_username_pos_) < active_usernames_.size());
         }
       } else if (has_active_usernames) {
         active_usernames_.resize(1);
@@ -151,7 +148,7 @@ class Usernames {
     if (has_disabled_usernames) {
       td::parse(disabled_usernames_, parser);
     }
-    check_utf8_validness();
+    check_validness();
   }
 };
 
