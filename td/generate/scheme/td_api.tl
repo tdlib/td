@@ -9338,6 +9338,12 @@ updateGroupCallParticipants group_call_id:int32 participant_user_ids:vector<int6
 //@emojis Group call state fingerprint represented as 4 emoji; may be empty if the state isn't verified yet
 updateGroupCallVerificationState group_call_id:int32 generation:int32 emojis:vector<string> = Update;
 
+//@description A new message was received in a group call. It must be shown for a short time after receiving
+//@group_call_id Identifier of the group call
+//@sender_id Identifier of the sender of the message
+//@text Text of the message
+updateGroupCallNewMessage group_call_id:int32 sender_id:MessageSender text:formattedText = Update;
+
 //@description New call signaling data arrived @call_id The call identifier @data The data
 updateNewCallSignalingData call_id:int32 data:bytes = Update;
 

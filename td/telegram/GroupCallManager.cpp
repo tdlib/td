@@ -16,6 +16,7 @@
 #include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallJoinParameters.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
@@ -1306,6 +1307,7 @@ struct GroupCallManager::GroupCall {
   tde2e_api::CallVerificationState call_verification_state;
   int32 block_next_offset[2] = {};
   vector<int64> blockchain_participant_ids;
+  FlatHashSet<int64> message_random_ids;
 
   int32 version = -1;
   int32 leave_version = -1;
@@ -1627,6 +1629,7 @@ bool GroupCallManager::is_group_call_being_joined(InputGroupCallId input_group_c
   return pending_join_requests_.count(input_group_call_id) != 0;
 }
 
+// use get_group_call_is_joined internally instead
 bool GroupCallManager::is_group_call_joined(InputGroupCallId input_group_call_id) const {
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr) {
@@ -2617,6 +2620,31 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   }
 
   return need_update;
+}
+
+void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_call_id, DialogId sender_dialog_id,
+                                                 int64 random_id,
+                                                 telegram_api::object_ptr<telegram_api::textWithEntities> &&message) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !get_group_call_is_joined(group_call) ||
+      group_call->is_conference || group_call->private_key_id != tde2e_api::PrivateKeyId() ||
+      !sender_dialog_id.is_valid() || random_id == 0 || !group_call->message_random_ids.insert(random_id).second) {
+    return;
+  }
+
+  auto text =
+      get_formatted_text(td_->user_manager_.get(), std::move(message), true, false, "on_new_group_call_message");
+  if (text.text.empty()) {
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateGroupCallNewMessage>(
+                   group_call->group_call_id.get(),
+                   get_message_sender_object(td_, sender_dialog_id, "on_new_group_call_message"),
+                   get_formatted_text_object(td_->user_manager_.get(), text, true, -1)));
 }
 
 bool GroupCallManager::is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call,

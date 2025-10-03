@@ -48,6 +48,7 @@ class GroupCallManager final : public Actor {
 
   bool is_group_call_being_joined(InputGroupCallId input_group_call_id) const;
 
+  // use get_group_call_is_joined internally instead
   bool is_group_call_joined(InputGroupCallId input_group_call_id) const;
 
   GroupCallId get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id);
@@ -182,6 +183,9 @@ class GroupCallManager final : public Actor {
   void on_update_group_call_participants(InputGroupCallId input_group_call_id,
                                          vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
                                          int32 version, bool is_recursive = false);
+
+  void on_new_group_call_message(InputGroupCallId input_group_call_id, DialogId sender_dialog_id, int64 random_id,
+                                 telegram_api::object_ptr<telegram_api::textWithEntities> &&message);
 
   void process_join_video_chat_response(InputGroupCallId input_group_call_id, uint64 generation,
                                         tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);
