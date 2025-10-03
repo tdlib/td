@@ -5442,10 +5442,18 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   GroupCall call;
   call.is_inited = true;
 
+  bool is_min = false;
   switch (group_call_ptr->get_id()) {
     case telegram_api::groupCall::ID: {
       auto group_call = static_cast<const telegram_api::groupCall *>(group_call_ptr.get());
       input_group_call_id = InputGroupCallId(group_call->id_, group_call->access_hash_);
+      if (group_call->min_) {
+        auto old_group_call = get_group_call(input_group_call_id);
+        if (old_group_call == nullptr || !old_group_call->is_inited) {
+          return {};
+        }
+        is_min = true;
+      }
       call.is_active = true;
       call.is_conference = group_call->conference_;
       call.is_rtmp_stream = group_call->rtmp_stream_;
@@ -5555,10 +5563,12 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     if (!group_call->is_active) {
       // never update ended calls
     } else if (!call.is_active) {
-      // always update to an ended call, dropping also is_joined, is_speaking and other local flags
-      clear_group_call(group_call);
-      *group_call = std::move(call);
-      need_update = true;
+      if (!is_min) {
+        // always update to an ended non-min call, dropping also is_joined, is_speaking and other local flags
+        clear_group_call(group_call);
+        *group_call = std::move(call);
+        need_update = true;
+      }
     } else {
       if (call.is_conference != group_call->is_conference) {
         group_call->is_conference = call.is_conference;
@@ -5568,7 +5578,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         group_call->is_rtmp_stream = call.is_rtmp_stream;
         need_update = true;
       }
-      if (call.is_creator != group_call->is_creator) {
+      if (call.is_creator != group_call->is_creator && !is_min) {
         group_call->is_creator = call.is_creator;
         need_update = true;
       }
@@ -5578,7 +5588,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       }
       if ((call.unmuted_video_count != group_call->unmuted_video_count ||
            call.unmuted_video_limit != group_call->unmuted_video_limit) &&
-          call.can_enable_video_version >= group_call->can_enable_video_version) {
+          call.can_enable_video_version >= group_call->can_enable_video_version && !is_min) {
         auto old_can_enable_video = get_group_call_can_enable_video(group_call);
         group_call->unmuted_video_count = call.unmuted_video_count;
         group_call->unmuted_video_limit = call.unmuted_video_limit;
@@ -5588,7 +5598,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         }
       }
       if (call.start_subscribed != group_call->start_subscribed &&
-          call.start_subscribed_version >= group_call->start_subscribed_version) {
+          call.start_subscribed_version >= group_call->start_subscribed_version && !is_min) {
         auto old_start_subscribed = get_group_call_start_subscribed(group_call);
         group_call->start_subscribed = call.start_subscribed;
         group_call->start_subscribed_version = call.start_subscribed_version;
@@ -5599,7 +5609,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       auto mute_flags_changed =
           call.mute_new_participants != group_call->mute_new_participants ||
           call.allowed_toggle_mute_new_participants != group_call->allowed_toggle_mute_new_participants;
-      if (mute_flags_changed && call.mute_version >= group_call->mute_version) {
+      if (mute_flags_changed && call.mute_version >= group_call->mute_version && !is_min) {
         auto old_mute_new_participants = get_group_call_mute_new_participants(group_call);
         need_update |= (call.allowed_toggle_mute_new_participants && call.can_be_managed) !=
                        (group_call->allowed_toggle_mute_new_participants && group_call->can_be_managed);
@@ -5618,16 +5628,16 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
           need_update = true;
         }
       }
-      if (call.invite_link != group_call->invite_link) {
+      if (call.invite_link != group_call->invite_link && !is_min) {
         group_call->invite_link = std::move(call.invite_link);
         need_update = true;
       }
-      if (call.can_be_managed != group_call->can_be_managed) {
+      if (call.can_be_managed != group_call->can_be_managed && !is_min) {
         group_call->can_be_managed = call.can_be_managed;
         need_update = true;
       }
       if (call.stream_dc_id != group_call->stream_dc_id &&
-          call.stream_dc_id_version >= group_call->stream_dc_id_version) {
+          call.stream_dc_id_version >= group_call->stream_dc_id_version && !is_min) {
         group_call->stream_dc_id = call.stream_dc_id;
         group_call->stream_dc_id_version = call.stream_dc_id_version;
       }
