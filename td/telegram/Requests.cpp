@@ -4551,7 +4551,9 @@ void Requests::on_request(uint64 id, const td_api::deleteChatReplyMarkup &reques
 
 void Requests::on_request(uint64 id, td_api::sendChatAction &request) {
   CREATE_OK_REQUEST_PROMISE();
-  td_->dialog_action_manager_->send_dialog_action(DialogId(request.chat_id_), MessageId(request.message_thread_id_),
+  DialogId dialog_id(request.chat_id_);
+  TRY_RESULT_PROMISE(promise, message_topic, MessageTopic::get_message_topic(td_, dialog_id, request.topic_id_));
+  td_->dialog_action_manager_->send_dialog_action(dialog_id, message_topic,
                                                   BusinessConnectionId(std::move(request.business_connection_id_)),
                                                   DialogAction(std::move(request.action_)), std::move(promise));
 }
@@ -4563,8 +4565,11 @@ void Requests::on_request(uint64 id, td_api::sendTextMessageDraft &request) {
   TRY_RESULT_PROMISE(
       promise, text,
       get_formatted_text(td_, dialog_id, std::move(request.text_), td_->auth_manager_->is_bot(), false, true, false));
-  td_->dialog_action_manager_->send_dialog_action(dialog_id, MessageId(ServerMessageId(request.forum_topic_id_)),
-                                                  BusinessConnectionId(),
+  MessageTopic message_topic;
+  if (request.forum_topic_id_ != 0) {
+    message_topic = MessageTopic::forum(dialog_id, ForumTopicId(request.forum_topic_id_));
+  }
+  td_->dialog_action_manager_->send_dialog_action(dialog_id, message_topic, BusinessConnectionId(),
                                                   DialogAction(request.draft_id_, std::move(text)), std::move(promise));
 }
 

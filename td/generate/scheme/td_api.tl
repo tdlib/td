@@ -11327,10 +11327,10 @@ deleteChatReplyMarkup chat_id:int53 message_id:int53 = Ok;
 
 //@description Sends a notification about user activity in a chat
 //@chat_id Chat identifier
-//@message_thread_id If not 0, the message thread identifier in which the action was performed
+//@topic_id Identifier of the topic in which the action is performed
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@action The action description; pass null to cancel the currently active action
-sendChatAction chat_id:int53 message_thread_id:int53 business_connection_id:string action:ChatAction = Ok;
+sendChatAction chat_id:int53 topic_id:MessageTopic business_connection_id:string action:ChatAction = Ok;
 
 //@description Sends a draft for a being generated text message; for bots only
 //@chat_id Chat identifier

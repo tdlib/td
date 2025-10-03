@@ -29137,7 +29137,7 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
     return;
   }
   LOG(INFO) << "Send " << action << " in " << dialog_id;
-  td_->dialog_action_manager_->send_dialog_action(dialog_id, m->top_thread_message_id, {}, std::move(action),
+  td_->dialog_action_manager_->send_dialog_action(dialog_id, get_message_topic(dialog_id, m), {}, std::move(action),
                                                   Promise<Unit>());
 }
 
