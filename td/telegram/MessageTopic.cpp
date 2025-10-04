@@ -51,6 +51,12 @@ MessageTopic::MessageTopic(Td *td, DialogId dialog_id, bool is_topic_message, Me
     }
     return;
   }
+  if (td->chat_manager_->is_forum_channel(channel_id) && !is_topic_message) {
+    type_ = Type::Forum;
+    dialog_id_ = dialog_id;
+    forum_topic_id_ = ForumTopicId::general();
+    return;
+  }
   if (!top_thread_message_id.is_server()) {
     if (top_thread_message_id != MessageId()) {
       LOG(ERROR) << "Have top thread " << top_thread_message_id.is_server();
@@ -61,12 +67,6 @@ MessageTopic::MessageTopic(Td *td, DialogId dialog_id, bool is_topic_message, Me
     type_ = Type::Forum;
     dialog_id_ = dialog_id;
     forum_topic_id_ = ForumTopicId::from_top_thread_message_id(top_thread_message_id);
-    return;
-  }
-  if (td->chat_manager_->is_forum_channel(channel_id)) {
-    type_ = Type::Forum;
-    dialog_id_ = dialog_id;
-    forum_topic_id_ = ForumTopicId::general();
     return;
   }
   if (td->chat_manager_->is_megagroup_channel(channel_id)) {
