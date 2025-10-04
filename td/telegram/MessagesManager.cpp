@@ -21322,6 +21322,9 @@ Status MessagesManager::can_use_top_thread_message_id(Dialog *d, MessageId top_t
   }
   if (d->dialog_id.get_type() != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(d->dialog_id) ||
       td_->dialog_manager_->is_monoforum_channel(d->dialog_id)) {
+    if (td_->forum_topic_manager_->is_forum(d->dialog_id, true).is_ok()) {
+      return Status::OK();
+    }
     return Status::Error(400, "Chat doesn't have threads");
   }
   if (input_reply_to.get_story_full_id().is_valid()) {
