@@ -1731,6 +1731,9 @@ class MessagesManager final : public Actor {
   Status can_use_top_thread_message_id(Dialog *d, MessageId top_thread_message_id,
                                        const MessageInputReplyTo &input_reply_to);
 
+  Result<MessageTopic> get_send_message_topic(Dialog *d, const td_api::object_ptr<td_api::MessageTopic> &topic_id,
+                                              const MessageInputReplyTo &input_reply_to);
+
   Status can_use_forum_topic_id(Dialog *d, ForumTopicId forum_topic_id);
 
   int64 generate_new_random_id(const Dialog *d);

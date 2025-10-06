@@ -65,12 +65,21 @@ class MessageTopic {
     return type_ == Type::Forum;
   }
 
+  bool is_general_forum() const {
+    return type_ == Type::Forum && forum_topic_id_ == ForumTopicId::general();
+  }
+
   bool is_monoforum() const {
     return type_ == Type::Monoforum;
   }
 
   bool is_saved_messages() const {
     return type_ == Type::SavedMessages;
+  }
+
+  MessageId get_top_thread_message_id() const {
+    CHECK(type_ == Type::Thread);
+    return top_thread_message_id_;
   }
 
   int32 get_input_top_msg_id() const {
