@@ -149,7 +149,8 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
       auto top_thread_message_id =
           MessageId(static_cast<const td_api::messageTopicThread *>(topic.get())->message_thread_id_);
       if (dialog_id.get_type() != DialogType::Channel ||
-          !td->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
+          !td->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id()) ||
+          td->chat_manager_->is_monoforum_channel(dialog_id.get_channel_id())) {
         return Status::Error(400, "Chat doesn't have threads");
       }
       if (!top_thread_message_id.is_server()) {
