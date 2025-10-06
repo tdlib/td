@@ -11199,7 +11199,9 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     is_topic_message = (content_type == MessageContentType::TopicCreate);
   }
   if (content_type == MessageContentType::TopicCreate) {
-    // just in case
+    if (!top_thread_message_id.is_valid() && !td->auth_manager_->is_bot()) {
+      top_thread_message_id = message_id;
+    }
     is_topic_message = true;
   }
   if (top_thread_message_id.is_valid() && dialog_type != DialogType::Channel) {
@@ -30043,16 +30045,19 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
     m->history_generation = d->history_generation;
   }
 
-  if (m->message_id.is_scheduled() && !m->message_id.is_yet_unsent()) {
-    m->top_thread_message_id = MessageId();
-  } else if (m->top_thread_message_id.is_valid()) {
+  auto message_content_type = m->content->get_type();
+  if (m->top_thread_message_id.is_valid()) {
     if (td_->dialog_manager_->is_broadcast_channel(dialog_id) ||
-        td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
+        td_->dialog_manager_->is_monoforum_channel(dialog_id) ||
+        (m->message_id.is_scheduled() && !m->message_id.is_yet_unsent())) {
       m->top_thread_message_id = MessageId();
     }
   } else {
     if (is_thread_message(dialog_id, m)) {
       m->top_thread_message_id = m->message_id;
+      if (message_content_type == MessageContentType::TopicCreate) {
+        m->is_topic_message = true;
+      }
     }
   }
 
@@ -30060,7 +30065,6 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
 
   if (!from_database && m->contains_mention) {
     CHECK(!td_->auth_manager_->is_bot());
-    auto message_content_type = m->content->get_type();
     if (message_content_type == MessageContentType::PinMessage) {
       if (is_dialog_pinned_message_notifications_disabled(d) ||
           !get_message_content_pinned_message_id(m->content.get()).is_valid()) {
