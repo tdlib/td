@@ -179,11 +179,11 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
       break;
     }
     case td_api::messageTopicDirectMessages::ID: {
-      if (!td->dialog_manager_->is_monoforum_channel(dialog_id)) {
-        return Status::Error(400, "Chat is not a channel direct messages chat");
+      if (!td->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
+        return Status::Error(400, "Chat is not an administered channel direct messages chat");
       }
       auto saved_messages_topic_id = td->saved_messages_manager_->get_topic_id(
-          dialog_id,
+          DialogId(),  // the topic itself may be not loaded
           static_cast<const td_api::messageTopicDirectMessages *>(topic.get())->direct_messages_chat_topic_id_);
       if (!saved_messages_topic_id.is_valid()) {
         return Status::Error(400, "Topic not found");
@@ -197,7 +197,8 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
         return Status::Error(400, "Chat is not the Saved Messages chat");
       }
       auto saved_messages_topic_id = td->saved_messages_manager_->get_topic_id(
-          dialog_id, static_cast<const td_api::messageTopicSavedMessages *>(topic.get())->saved_messages_topic_id_);
+          DialogId(),  // the topic itself may be not loaded
+          static_cast<const td_api::messageTopicSavedMessages *>(topic.get())->saved_messages_topic_id_);
       if (!saved_messages_topic_id.is_valid()) {
         return Status::Error(400, "Topic not found");
       }
