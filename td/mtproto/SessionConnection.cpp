@@ -415,7 +415,11 @@ string SessionConnection::get_elapsed_time(double time_at) {
   if (time_at <= 0) {
     return "never";
   }
-  return PSTRING() << format::as_time(Time::now() - time_at) << " ago";
+  auto elapsed_time = Time::now() - time_at;
+  if (elapsed_time > 0) {
+    return PSTRING() << format::as_time(elapsed_time) << " ago";
+  }
+  return PSTRING() << "in " << format::as_time(-elapsed_time);
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::pong &pong) {
@@ -1143,12 +1147,11 @@ double SessionConnection::flush(SessionConnection::Callback *callback) {
   relax_timeout_at(&wakeup_at, last_read_at_ + read_disconnect_delay() + 0.002);
   relax_timeout_at(&wakeup_at, flush_packet_at_);
 
-  auto now = Time::now();
-  LOG(DEBUG) << "Last pong was " << get_elapsed_time(last_pong_at_) << "/" << get_elapsed_time(real_last_pong_at_)
+  LOG(DEBUG) << "Last pong was " << get_elapsed_time(last_pong_at_) << '/' << get_elapsed_time(real_last_pong_at_)
              << ", last read was " << get_elapsed_time(last_read_at_) << '/' << get_elapsed_time(real_last_read_at_)
              << ", RTT = " << rtt() << ", ping timeout = " << ping_disconnect_delay()
-             << ", read timeout = " << read_disconnect_delay() << ", flush packet in " << (flush_packet_at_ - now)
-             << ", wakeup in " << (wakeup_at - now);
+             << ", read timeout = " << read_disconnect_delay() << ", flush packet "
+             << get_elapsed_time(flush_packet_at_) << ", wakeup " << get_elapsed_time(wakeup_at);
 
   return wakeup_at;
 }
