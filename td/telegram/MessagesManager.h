@@ -2234,6 +2234,8 @@ class MessagesManager final : public Actor {
   void update_message_reply_count(Dialog *d, MessageId message_id, DialogId replier_dialog_id,
                                   MessageId reply_message_id, int32 update_date, int diff, bool is_recursive = false);
 
+  void fix_message_topic(DialogId dialog_id, Message *m) const;
+
   void fix_new_message(const Dialog *d, Message *m, bool from_database) const;
 
   void remove_message_remove_keyboard_reply_markup(Message *m) const;

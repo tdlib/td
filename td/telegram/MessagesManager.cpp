@@ -4581,6 +4581,32 @@ bool MessagesManager::is_thread_message(DialogId dialog_id, MessageId message_id
   return !reply_info.is_empty() || reply_info.was_dropped() || content_type == MessageContentType::TopicCreate;
 }
 
+void MessagesManager::fix_message_topic(DialogId dialog_id, Message *m) const {
+  auto content_type = m->content->get_type();
+  if (!m->top_thread_message_id.is_valid() && is_thread_message(dialog_id, m)) {
+    m->top_thread_message_id = m->message_id;
+    m->is_topic_message = (content_type == MessageContentType::TopicCreate);
+  }
+  if (content_type == MessageContentType::TopicCreate) {
+    if (!m->top_thread_message_id.is_valid() && !td_->auth_manager_->is_bot()) {
+      m->top_thread_message_id = m->message_id;
+    }
+    m->is_topic_message = true;
+  }
+  auto dialog_type = dialog_id.get_type();
+  if (m->top_thread_message_id.is_valid() && dialog_type != DialogType::Channel) {
+    if (dialog_type != DialogType::User ||
+        !(td_->auth_manager_->is_bot() || td_->user_manager_->is_user_bot(dialog_id.get_user_id()))) {
+      // just in case
+      m->top_thread_message_id = MessageId();
+    }
+  }
+  if (!m->top_thread_message_id.is_valid()) {
+    // just in case
+    m->is_topic_message = false;
+  }
+}
+
 bool MessagesManager::is_active_message_reply_info(DialogId dialog_id, const MessageReplyInfo &reply_info) const {
   if (reply_info.is_empty()) {
     return false;
@@ -11193,28 +11219,6 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     forward_count = 0;
   }
   MessageReplyInfo reply_info(td, std::move(message_info.reply_info), is_bot);
-  if (!top_thread_message_id.is_valid() &&
-      td->messages_manager_->is_thread_message(dialog_id, message_id, reply_info, content_type)) {
-    top_thread_message_id = message_id;
-    is_topic_message = (content_type == MessageContentType::TopicCreate);
-  }
-  if (content_type == MessageContentType::TopicCreate) {
-    if (!top_thread_message_id.is_valid() && !td->auth_manager_->is_bot()) {
-      top_thread_message_id = message_id;
-    }
-    is_topic_message = true;
-  }
-  if (top_thread_message_id.is_valid() && dialog_type != DialogType::Channel) {
-    if (dialog_type != DialogType::User ||
-        !(td->auth_manager_->is_bot() || td->user_manager_->is_user_bot(dialog_id.get_user_id()))) {
-      // just in case
-      top_thread_message_id = MessageId();
-    }
-  }
-  if (!top_thread_message_id.is_valid()) {
-    // just in case
-    is_topic_message = false;
-  }
   auto reactions = MessageReactions::get_message_reactions(td, std::move(message_info.reactions), is_bot);
   if (reactions != nullptr) {
     reactions->sort_reactions(td->messages_manager_->active_reaction_pos_);
@@ -11326,6 +11330,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   if (message->forward_info == nullptr && has_forward_info) {
     message->had_forward_info = true;
   }
+
+  td->messages_manager_->fix_message_topic(dialog_id, message.get());
 
   if (dialog_id == my_dialog_id) {
     if (!message->saved_messages_topic_id.is_valid()) {
