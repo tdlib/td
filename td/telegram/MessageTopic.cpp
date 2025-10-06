@@ -181,10 +181,10 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
       if (!td->dialog_manager_->is_monoforum_channel(dialog_id)) {
         return Status::Error(400, "Chat is not a channel direct messages chat");
       }
-      SavedMessagesTopicId saved_messages_topic_id(DialogId(
-          static_cast<const td_api::messageTopicDirectMessages *>(topic.get())->direct_messages_chat_topic_id_));
-      TRY_STATUS(saved_messages_topic_id.is_valid_in(td, dialog_id));
-      if (!td->saved_messages_manager_->have_topic(dialog_id, saved_messages_topic_id)) {
+      auto saved_messages_topic_id = td->saved_messages_manager_->get_topic_id(
+          dialog_id,
+          static_cast<const td_api::messageTopicDirectMessages *>(topic.get())->direct_messages_chat_topic_id_);
+      if (!saved_messages_topic_id.is_valid()) {
         return Status::Error(400, "Topic not found");
       }
       result.type_ = Type::Monoforum;
