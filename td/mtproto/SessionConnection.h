@@ -226,6 +226,8 @@ class SessionConnection final
     };
   }
 
+  static string get_elapsed_time(double time_at);
+
   void reset_server_time_difference(MessageId message_id);
 
   static Status parse_message(TlParser &parser, MsgInfo *info, Slice *packet,
