@@ -40,6 +40,8 @@ class ForumTopicManager final : public Actor {
   ForumTopicManager &operator=(ForumTopicManager &&) = delete;
   ~ForumTopicManager() final;
 
+  int32 get_forum_topic_id_object(DialogId dialog_id, ForumTopicId forum_topic_id);
+
   Status is_forum(DialogId dialog_id, bool allow_bots = false);
 
   void create_forum_topic(DialogId dialog_id, string &&title, bool title_missing,

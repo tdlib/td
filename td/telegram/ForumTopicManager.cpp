@@ -994,7 +994,7 @@ void ForumTopicManager::on_get_forum_topic_info(DialogId dialog_id, const ForumT
     return;
   }
 
-  auto dialog_topics = add_dialog_topics(dialog_id);
+  auto *dialog_topics = add_dialog_topics(dialog_id);
   CHECK(dialog_topics != nullptr);
   auto forum_topic_info = td::make_unique<ForumTopicInfo>(topic_info);
   ForumTopicId forum_topic_id = forum_topic_info->get_forum_topic_id();
@@ -1025,7 +1025,7 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
         LOG(ERROR) << "Receive forum topics in " << dialog_id << " from " << source;
         return;
       }
-      auto dialog_topics = add_dialog_topics(dialog_id);
+      auto *dialog_topics = add_dialog_topics(dialog_id);
       CHECK(dialog_topics != nullptr);
       auto topic = add_topic(dialog_topics, forum_topic_id);
       if (topic != nullptr) {
@@ -1040,7 +1040,7 @@ void ForumTopicManager::on_get_forum_topic_infos(DialogId dialog_id,
     return;
   }
 
-  auto dialog_topics = add_dialog_topics(dialog_id);
+  auto *dialog_topics = add_dialog_topics(dialog_id);
   CHECK(dialog_topics != nullptr);
   for (auto &forum_topic : forum_topics) {
     auto forum_topic_info = td::make_unique<ForumTopicInfo>(td_, forum_topic, dialog_id);
@@ -1096,6 +1096,16 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       UNREACHABLE();
       return ForumTopicId();
   }
+}
+
+int32 ForumTopicManager::get_forum_topic_id_object(DialogId dialog_id, ForumTopicId forum_topic_id) {
+  if (forum_topic_id == ForumTopicId()) {
+    return 0;
+  }
+
+  // TODO load topic from database or get from the server
+
+  return forum_topic_id.get();
 }
 
 td_api::object_ptr<td_api::forumTopic> ForumTopicManager::get_forum_topic_object(DialogId dialog_id,
@@ -1302,7 +1312,7 @@ void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, Forum
 
   LOG(INFO) << "Change by " << diff << " number of loaded messages in thread of " << forum_topic_id << " in "
             << dialog_id;
-  auto dialog_topics = add_dialog_topics(dialog_id);
+  auto *dialog_topics = add_dialog_topics(dialog_id);
   auto topic = add_topic(dialog_topics, forum_topic_id);
   if (topic == nullptr) {
     return;

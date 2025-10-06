@@ -9,6 +9,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/SavedMessagesManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
@@ -217,8 +218,8 @@ td_api::object_ptr<td_api::MessageTopic> MessageTopic::get_message_topic_object(
     case Type::Thread:
       return td_api::make_object<td_api::messageTopicThread>(top_thread_message_id_.get());
     case Type::Forum:
-      // TODO send updateForumTopic before sending its identifier
-      return td_api::make_object<td_api::messageTopicForum>(forum_topic_id_.get());
+      return td_api::make_object<td_api::messageTopicForum>(
+          td->forum_topic_manager_->get_forum_topic_id_object(dialog_id_, forum_topic_id_));
     case Type::Monoforum:
       return td_api::make_object<td_api::messageTopicDirectMessages>(
           td->saved_messages_manager_->get_saved_messages_topic_id_object(dialog_id_, saved_messages_topic_id_));
