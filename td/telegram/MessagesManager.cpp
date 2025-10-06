@@ -4552,28 +4552,56 @@ void MessagesManager::update_message_interaction_info(MessageFullId message_full
   }
 }
 
-void MessagesManager::fix_message_topic(DialogId dialog_id, Message *m) const {
+void MessagesManager::fix_message_topic(DialogId dialog_id, Message *m, bool from_database) const {
+  CHECK(m != nullptr);
+  auto message_id = m->message_id;
   auto dialog_type = dialog_id.get_type();
   auto can_be_forum = td_->forum_topic_manager_->can_be_forum(dialog_id);
   if (m->content->get_type() == MessageContentType::TopicCreate) {
-    if (!m->top_thread_message_id.is_valid() && m->message_id.is_server() &&
+    if (!m->top_thread_message_id.is_valid() && message_id.is_server() &&
         (dialog_type == DialogType::Channel || !td_->auth_manager_->is_bot())) {
-      m->top_thread_message_id = m->message_id;
+      m->top_thread_message_id = message_id;
     }
     m->is_topic_message = true;
   } else {
     if (!m->top_thread_message_id.is_valid() && can_be_forum && dialog_type == DialogType::Channel &&
-        m->message_id.is_server() && (!m->reply_info.is_empty() || m->reply_info.was_dropped())) {
-      m->top_thread_message_id = m->message_id;
+        message_id.is_server() && (!m->reply_info.is_empty() || m->reply_info.was_dropped())) {
+      m->top_thread_message_id = message_id;
     }
   }
-  if (m->top_thread_message_id != MessageId() && !can_be_forum) {
-    // just in case
-    m->top_thread_message_id = MessageId();
+  if (m->top_thread_message_id != MessageId()) {
+    if (!can_be_forum || (message_id.is_valid_scheduled() && message_id.is_scheduled_server())) {
+      // just in case
+      m->top_thread_message_id = MessageId();
+    }
   }
   if (m->top_thread_message_id == MessageId()) {
     // just in case
     m->is_topic_message = false;
+  }
+
+  if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+    if (!m->saved_messages_topic_id.is_valid()) {
+      if (!from_database) {
+        LOG(ERROR) << "Receive no topic for " << message_id << " in " << dialog_id;
+      }
+      m->saved_messages_topic_id =
+          SavedMessagesTopicId(dialog_id, m->forward_info.get(), m->real_forward_from_dialog_id);
+    }
+  } else if (td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
+    if (!m->saved_messages_topic_id.is_valid() && message_id != MessageId(ServerMessageId(1))) {
+      if (!from_database) {
+        LOG(ERROR) << "Receive no topic for " << message_id << " in " << dialog_id;
+      }
+      if (m->sender_user_id.is_valid()) {  // there is no way to guess the topic for channel messages
+        m->saved_messages_topic_id = SavedMessagesTopicId(get_message_sender(m));
+      }
+    }
+  } else if (m->saved_messages_topic_id.is_valid()) {
+    if (!td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
+      LOG(ERROR) << "Receive " << m->saved_messages_topic_id << " for " << message_id << " in " << dialog_id;
+    }
+    m->saved_messages_topic_id = SavedMessagesTopicId();
   }
 }
 
@@ -4863,7 +4891,7 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
         }
       }
       m->reply_info = std::move(reply_info);
-      fix_message_topic(dialog_id, m);
+      fix_message_topic(dialog_id, m, false);
       need_update |= is_visible_message_reply_info(dialog_id, m);
     }
     int32 new_dialog_unread_reaction_count = -1;
@@ -10926,6 +10954,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.is_paid_suggested_post_stars = message->paid_suggested_post_stars_;
       message_info.is_paid_suggested_post_ton = message->paid_suggested_post_ton_;
       message_info.effect_id = MessageEffectId(message->effect_);
+      // update QuickReplyManager::create_message
 
       bool is_content_read = true;
       if (!is_bot) {
@@ -11299,27 +11328,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     message->had_forward_info = true;
   }
 
-  td->messages_manager_->fix_message_topic(dialog_id, message.get());
-
-  if (dialog_id == my_dialog_id) {
-    if (!message->saved_messages_topic_id.is_valid()) {
-      LOG(ERROR) << "Receive no Saved Messages topic for " << message_id << " in " << dialog_id;
-      message->saved_messages_topic_id = SavedMessagesTopicId(my_dialog_id, message->forward_info.get(), DialogId());
-    }
-  } else if (td->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
-    if (!message->saved_messages_topic_id.is_valid() && message_id != MessageId(ServerMessageId(1))) {
-      LOG(ERROR) << "Receive no topic for " << message_id << " in " << dialog_id;
-      if (message->sender_user_id.is_valid()) {  // there is no way to guess the topic for channel messages
-        message->saved_messages_topic_id = SavedMessagesTopicId(get_message_sender(message.get()));
-      }
-    }
-  } else if (message->saved_messages_topic_id.is_valid()) {
-    if (!td->dialog_manager_->is_monoforum_channel(dialog_id)) {
-      LOG(ERROR) << "Receive Saved Messages " << message->saved_messages_topic_id << " for " << message_id << " in "
-                 << dialog_id;
-    }
-    message->saved_messages_topic_id = SavedMessagesTopicId();
-  }
+  td->messages_manager_->fix_message_topic(dialog_id, message.get(), false);
 
   Dependencies dependencies;
   td->messages_manager_->add_message_dependencies(dependencies, message.get());
@@ -18914,21 +18923,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(Dialog *d, M
   }
   if (m->is_pinned && is_scheduled) {
     m->is_pinned = false;
-  }
-  if (!m->saved_messages_topic_id.is_valid()) {
-    if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
-      m->saved_messages_topic_id =
-          SavedMessagesTopicId(dialog_id, m->forward_info.get(), m->real_forward_from_dialog_id);
-    } else if (td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
-      if (m->sender_user_id.is_valid()) {  // there is no way to guess the topic for channel messages
-        m->saved_messages_topic_id = SavedMessagesTopicId(get_message_sender(m));
-      }
-    }
-  } else {
-    if (dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
-        !td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
-      message->saved_messages_topic_id = SavedMessagesTopicId();
-    }
   }
 
   LOG(INFO) << "Loaded " << m->message_id << " in " << dialog_id << " of size " << value.size() << " from database";
@@ -30019,7 +30013,7 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
     m->history_generation = d->history_generation;
   }
 
-  fix_message_topic(dialog_id, m);
+  fix_message_topic(dialog_id, m, from_database);
 
   m->last_access_date = G()->unix_time();
 
