@@ -164,14 +164,7 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
       if (!forum_topic_id.is_valid()) {
         return Status::Error(400, "Invalid topic identifier specified");
       }
-      auto dialog_type = dialog_id.get_type();
-      if (dialog_type == DialogType::User &&
-          (td->user_manager_->is_user_bot(dialog_id.get_user_id()) || td->auth_manager_->is_bot())) {
-        result.type_ = Type::Forum;
-        result.forum_topic_id_ = forum_topic_id;
-        break;
-      }
-      if (dialog_type != DialogType::Channel || !td->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
+      if (!td->forum_topic_manager_->can_be_forum(dialog_id)) {
         return Status::Error(400, "Chat is not a forum");
       }
       result.type_ = Type::Forum;
