@@ -42,6 +42,8 @@ class ForumTopicManager final : public Actor {
 
   int32 get_forum_topic_id_object(DialogId dialog_id, ForumTopicId forum_topic_id);
 
+  bool can_be_forum(DialogId dialog_id) const;
+
   Status is_forum(DialogId dialog_id, bool allow_bots = false);
 
   void create_forum_topic(DialogId dialog_id, string &&title, bool title_missing,
@@ -146,8 +148,6 @@ class ForumTopicManager final : public Actor {
   };
 
   void tear_down() final;
-
-  bool can_be_forum(DialogId dialog_id) const;
 
   static Status can_be_forum_topic_id(ForumTopicId forum_topic_id);
 

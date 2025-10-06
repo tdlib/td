@@ -4552,52 +4552,26 @@ void MessagesManager::update_message_interaction_info(MessageFullId message_full
   }
 }
 
-bool MessagesManager::is_thread_message(DialogId dialog_id, const Message *m) const {
-  CHECK(m != nullptr);
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-      // user messages can be forum topic messages, but aren't thread messages
-      return false;
-    case DialogType::Channel:
-      if (td_->dialog_manager_->is_broadcast_channel(dialog_id) ||
-          td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
-        return false;
-      }
-      break;
-    case DialogType::Chat:
-    case DialogType::SecretChat:
-    case DialogType::None:
-    default:
-      return false;
-  }
-  if (!m->message_id.is_server()) {
-    return false;
-  }
-  return !m->reply_info.is_empty() || m->reply_info.was_dropped() ||
-         m->content->get_type() == MessageContentType::TopicCreate;
-}
-
 void MessagesManager::fix_message_topic(DialogId dialog_id, Message *m) const {
-  auto content_type = m->content->get_type();
-  if (!m->top_thread_message_id.is_valid() && is_thread_message(dialog_id, m)) {
-    m->top_thread_message_id = m->message_id;
-    m->is_topic_message = (content_type == MessageContentType::TopicCreate);
-  }
-  if (content_type == MessageContentType::TopicCreate) {
-    if (!m->top_thread_message_id.is_valid() && !td_->auth_manager_->is_bot()) {
+  auto dialog_type = dialog_id.get_type();
+  auto can_be_forum = td_->forum_topic_manager_->can_be_forum(dialog_id);
+  if (m->content->get_type() == MessageContentType::TopicCreate) {
+    if (!m->top_thread_message_id.is_valid() && m->message_id.is_server() &&
+        (dialog_type == DialogType::Channel || !td_->auth_manager_->is_bot())) {
       m->top_thread_message_id = m->message_id;
     }
     m->is_topic_message = true;
-  }
-  auto dialog_type = dialog_id.get_type();
-  if (m->top_thread_message_id.is_valid() && dialog_type != DialogType::Channel) {
-    if (dialog_type != DialogType::User ||
-        !(td_->auth_manager_->is_bot() || td_->user_manager_->is_user_bot(dialog_id.get_user_id()))) {
-      // just in case
-      m->top_thread_message_id = MessageId();
+  } else {
+    if (!m->top_thread_message_id.is_valid() && can_be_forum && dialog_type == DialogType::Channel &&
+        m->message_id.is_server() && (!m->reply_info.is_empty() || m->reply_info.was_dropped())) {
+      m->top_thread_message_id = m->message_id;
     }
   }
-  if (!m->top_thread_message_id.is_valid()) {
+  if (m->top_thread_message_id != MessageId() && !can_be_forum) {
+    // just in case
+    m->top_thread_message_id = MessageId();
+  }
+  if (m->top_thread_message_id == MessageId()) {
     // just in case
     m->is_topic_message = false;
   }
@@ -4889,9 +4863,7 @@ bool MessagesManager::update_message_interaction_info(Dialog *d, Message *m, int
         }
       }
       m->reply_info = std::move(reply_info);
-      if (!m->top_thread_message_id.is_valid() && is_thread_message(dialog_id, m)) {
-        m->top_thread_message_id = m->message_id;
-      }
+      fix_message_topic(dialog_id, m);
       need_update |= is_visible_message_reply_info(dialog_id, m);
     }
     int32 new_dialog_unread_reaction_count = -1;
@@ -30047,26 +30019,13 @@ void MessagesManager::fix_new_message(const Dialog *d, Message *m, bool from_dat
     m->history_generation = d->history_generation;
   }
 
-  auto message_content_type = m->content->get_type();
-  if (m->top_thread_message_id.is_valid()) {
-    if (td_->dialog_manager_->is_broadcast_channel(dialog_id) ||
-        td_->dialog_manager_->is_monoforum_channel(dialog_id) ||
-        (m->message_id.is_scheduled() && !m->message_id.is_yet_unsent())) {
-      m->top_thread_message_id = MessageId();
-    }
-  } else {
-    if (is_thread_message(dialog_id, m)) {
-      m->top_thread_message_id = m->message_id;
-      if (message_content_type == MessageContentType::TopicCreate) {
-        m->is_topic_message = true;
-      }
-    }
-  }
+  fix_message_topic(dialog_id, m);
 
   m->last_access_date = G()->unix_time();
 
   if (!from_database && m->contains_mention) {
     CHECK(!td_->auth_manager_->is_bot());
+    auto message_content_type = m->content->get_type();
     if (message_content_type == MessageContentType::PinMessage) {
       if (is_dialog_pinned_message_notifications_disabled(d) ||
           !get_message_content_pinned_message_id(m->content.get()).is_valid()) {
