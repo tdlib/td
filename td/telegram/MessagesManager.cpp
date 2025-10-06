@@ -4554,11 +4554,6 @@ void MessagesManager::update_message_interaction_info(MessageFullId message_full
 
 bool MessagesManager::is_thread_message(DialogId dialog_id, const Message *m) const {
   CHECK(m != nullptr);
-  return is_thread_message(dialog_id, m->message_id, m->reply_info, m->content->get_type());
-}
-
-bool MessagesManager::is_thread_message(DialogId dialog_id, MessageId message_id, const MessageReplyInfo &reply_info,
-                                        MessageContentType content_type) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
       // user messages can be forum topic messages, but aren't thread messages
@@ -4575,10 +4570,11 @@ bool MessagesManager::is_thread_message(DialogId dialog_id, MessageId message_id
     default:
       return false;
   }
-  if (!message_id.is_server()) {
+  if (!m->message_id.is_server()) {
     return false;
   }
-  return !reply_info.is_empty() || reply_info.was_dropped() || content_type == MessageContentType::TopicCreate;
+  return !m->reply_info.is_empty() || m->reply_info.was_dropped() ||
+         m->content->get_type() == MessageContentType::TopicCreate;
 }
 
 void MessagesManager::fix_message_topic(DialogId dialog_id, Message *m) const {
