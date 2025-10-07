@@ -2710,12 +2710,13 @@ Result<MessageEntity> GroupCallManager::parse_message_entity(JsonValue &value) {
 
   auto &object = value.get_object();
   TRY_RESULT(type, object.get_required_string_field("_"));
+  TRY_RESULT(min_layer, object.get_optional_int_field("_min_layer"));
   TRY_RESULT(offset, object.get_required_int_field("offset"));
   TRY_RESULT(length, object.get_required_int_field("length"));
   if (type == "messageEntityUnknown" || type == "messageEntityMention" || type == "messageEntityHashtag" ||
       type == "messageEntityCashtag" || type == "messageEntityPhone" || type == "messageEntityBotCommand" ||
       type == "messageEntityBankCard" || type == "messageEntityUrl" || type == "messageEntityEmail" ||
-      type == "messageEntityMentionName") {
+      type == "messageEntityMentionName" || min_layer > MTPROTO_LAYER) {
     return Status::Error("Skip");
   }
   if (type == "messageEntityPre") {
@@ -2767,6 +2768,10 @@ Result<FormattedText> GroupCallManager::parse_text_with_entities(JsonObject &obj
   if (type != "textWithEntities") {
     return Status::Error("Expected textWithEntities");
   }
+  TRY_RESULT(min_layer, object.get_optional_int_field("_min_layer"));
+  if (min_layer > MTPROTO_LAYER) {
+    return Status::Error("Unsupported object");
+  }
   TRY_RESULT(text, object.get_required_string_field("text"));
   if (!clean_input_string(text)) {
     return Status::Error("Receive invalid UTF-8");
@@ -2800,6 +2805,10 @@ Result<FormattedText> GroupCallManager::parse_group_call_message(JsonObject &obj
   TRY_RESULT(type, object.get_required_string_field("_"));
   if (type != "groupCallMessage") {
     return Status::Error("Expected groupCallMessage");
+  }
+  TRY_RESULT(min_layer, object.get_optional_int_field("_min_layer"));
+  if (min_layer > MTPROTO_LAYER) {
+    return Status::Error("Unsupported object");
   }
   auto message = object.extract_field("message");
   if (message.type() != JsonValue::Type::Object) {
