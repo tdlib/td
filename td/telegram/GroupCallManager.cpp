@@ -929,6 +929,32 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
   }
 };
 
+class SendGroupCallEncryptedMessageQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SendGroupCallEncryptedMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, const string &data) {
+    send_query(G()->net_query_creator().create(telegram_api::phone_sendGroupCallEncryptedMessage(
+        input_group_call_id.get_input_group_call(), BufferSlice(data))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_sendGroupCallEncryptedMessage>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class InviteConferenceCallParticipantQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::InviteGroupCallParticipantResult>> promise_;
 
@@ -4803,9 +4829,102 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
           group_call->group_call_id.get(), get_message_sender_object(td_, as_dialog_id, "send_group_call_message"),
           get_formatted_text_object(td_->user_manager_.get(), message, true, -1)));
 
-  if (group_call->is_conference || group_call->private_key_id != tde2e_api::PrivateKeyId()) {
-    // TODO
-    return promise.set_value(Unit());
+  if (group_call->is_conference || group_call->call_id != tde2e_api::CallId()) {
+    auto json_message = json_encode<string>(json_object([&message](auto &o) {
+      o("_", "groupCallMessage");
+      o("random_id", to_string(Random::secure_int64()));
+      o("message", json_object([&message](auto &o) {
+          o("_", "textWithEntities");
+          o("text", message.text);
+          o("entities", json_array(message.entities, [](auto &entity) {
+              return json_object([&entity](auto &o) {
+                switch (entity.type) {
+                  case MessageEntity::Type::Mention:
+                    o("_", "messageEntityUnknown");
+                    break;
+                  case MessageEntity::Type::Hashtag:
+                    o("_", "messageEntityUnknown");
+                    break;
+                  case MessageEntity::Type::Cashtag:
+                    o("_", "messageEntityUnknown");
+                    break;
+                  case MessageEntity::Type::BotCommand:
+                    o("_", "messageEntityUnknown");
+                    break;
+                  case MessageEntity::Type::PhoneNumber:
+                    o("_", "messageEntityUnknown");
+                    break;
+                  case MessageEntity::Type::BankCardNumber:
+                    o("_", "messageEntityUnknown");
+                    break;
+                  case MessageEntity::Type::Url:
+                    o("_", "messageEntityUrl");
+                    break;
+                  case MessageEntity::Type::EmailAddress:
+                    o("_", "messageEntityEmail");
+                    break;
+                  case MessageEntity::Type::Bold:
+                    o("_", "messageEntityBold");
+                    break;
+                  case MessageEntity::Type::Italic:
+                    o("_", "messageEntityItalic");
+                    break;
+                  case MessageEntity::Type::Underline:
+                    o("_", "messageEntityUnderline");
+                    break;
+                  case MessageEntity::Type::Strikethrough:
+                    o("_", "messageEntityStrike");
+                    break;
+                  case MessageEntity::Type::BlockQuote:
+                    o("_", "messageEntityBlockquote");
+                    break;
+                  case MessageEntity::Type::Code:
+                    o("_", "messageEntityCode");
+                    break;
+                  case MessageEntity::Type::Pre:
+                    o("_", "messageEntityPre");
+                    o("language", string());
+                    break;
+                  case MessageEntity::Type::PreCode:
+                    o("_", "messageEntityPre");
+                    o("language", entity.argument);
+                    break;
+                  case MessageEntity::Type::TextUrl:
+                    o("_", "messageEntityTextUrl");
+                    o("url", entity.argument);
+                    break;
+                  case MessageEntity::Type::MentionName:
+                    o("_", "messageEntityMentionName");
+                    o("user_id", 0);
+                    break;
+                  case MessageEntity::Type::MediaTimestamp:
+                    o("_", "messageEntityUnknown");
+                    break;
+                  case MessageEntity::Type::Spoiler:
+                    o("_", "messageEntitySpoiler");
+                    break;
+                  case MessageEntity::Type::CustomEmoji:
+                    o("_", "messageEntityCustomEmoji");
+                    o("document_id", to_string(entity.custom_emoji_id.get()));
+                    break;
+                  case MessageEntity::Type::ExpandableBlockQuote:
+                    o("_", "messageEntityBlockquote");
+                    break;
+                  default:
+                    UNREACHABLE();
+                }
+                o("offset", entity.offset);
+                o("length", entity.length);
+              });
+            }));
+        }));
+    }));
+    auto r_data = tde2e_api::call_encrypt(group_call->call_id, tde2e_api::CallChannelId(), json_message, 0);
+    if (r_data.is_error()) {
+      return promise.set_error(400, r_data.error().message);
+    }
+    td_->create_handler<SendGroupCallEncryptedMessageQuery>(std::move(promise))
+        ->send(input_group_call_id, r_data.value());
   } else {
     td_->create_handler<SendGroupCallMessageQuery>(std::move(promise))->send(input_group_call_id, message);
   }
