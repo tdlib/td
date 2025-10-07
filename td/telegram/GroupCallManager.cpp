@@ -2684,10 +2684,22 @@ void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_ca
     return;
   }
   auto group_call = get_group_call(input_group_call_id);
-  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active ||
-      !get_group_call_is_joined(group_call) || group_call->is_conference ||
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || group_call->is_conference ||
       group_call->call_id != tde2e_api::CallId() || !sender_dialog_id.is_valid() || random_id == 0 ||
       !group_call->message_random_ids.insert(random_id).second) {
+    return;
+  }
+  if (!group_call->is_joined || group_call->is_being_left) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, sender_dialog_id, random_id,
+                                  message = std::move(message)](Result<Unit> &&result) mutable {
+            if (result.is_ok()) {
+              send_closure(actor_id, &GroupCallManager::on_new_group_call_message, input_group_call_id,
+                           sender_dialog_id, random_id, std::move(message));
+            }
+          }));
+    }
     return;
   }
 
@@ -2823,9 +2835,21 @@ void GroupCallManager::on_new_encrypted_group_call_message(InputGroupCallId inpu
     return;
   }
   auto group_call = get_group_call(input_group_call_id);
-  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active ||
-      !get_group_call_is_joined(group_call) || !group_call->is_conference ||
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || !group_call->is_conference ||
       group_call->call_id == tde2e_api::CallId() || !sender_dialog_id.is_valid()) {
+    return;
+  }
+  if (!group_call->is_joined || group_call->is_being_left) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, sender_dialog_id,
+                                  encrypted_message = std::move(encrypted_message)](Result<Unit> &&result) mutable {
+            if (result.is_ok()) {
+              send_closure(actor_id, &GroupCallManager::on_new_encrypted_group_call_message, input_group_call_id,
+                           sender_dialog_id, std::move(encrypted_message));
+            }
+          }));
+    }
     return;
   }
 
