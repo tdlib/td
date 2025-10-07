@@ -2883,10 +2883,20 @@ void GroupCallManager::on_new_encrypted_group_call_message(InputGroupCallId inpu
     return;
   }
   auto text = r_text.move_as_ok();
+  auto status = fix_formatted_text(text.text, text.entities, false, false, true, true, false);
+  if (status.is_error()) {
+    LOG(INFO) << "Ignore invalid formatted text: " << status;
+    return;
+  }
   if (text.text.empty()) {
     LOG(INFO) << "Ignore empty message";
     return;
   }
+  if (sender_dialog_id.get_type() != DialogType::User ||
+      !td_->user_manager_->is_user_premium(sender_dialog_id.get_user_id())) {
+    remove_premium_custom_emoji_entities(td_, text.entities, true);
+  }
+
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateGroupCallNewMessage>(
                    group_call->group_call_id.get(),
