@@ -13,6 +13,7 @@
 #include "td/telegram/GroupCallParticipantOrder.h"
 #include "td/telegram/InputGroupCall.h"
 #include "td/telegram/InputGroupCallId.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -33,6 +34,8 @@
 namespace td {
 
 struct GroupCallJoinParameters;
+class JsonObject;
+class JsonValue;
 class Td;
 
 class GroupCallManager final : public Actor {
@@ -189,6 +192,9 @@ class GroupCallManager final : public Actor {
 
   void on_new_group_call_message(InputGroupCallId input_group_call_id, DialogId sender_dialog_id, int64 random_id,
                                  telegram_api::object_ptr<telegram_api::textWithEntities> &&message);
+
+  void on_new_encrypted_group_call_message(InputGroupCallId input_group_call_id, DialogId sender_dialog_id,
+                                           string &&encrypted_message);
 
   void process_join_video_chat_response(InputGroupCallId input_group_call_id, uint64 generation,
                                         tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);
@@ -498,6 +504,12 @@ class GroupCallManager final : public Actor {
   void poll_group_call_blocks(GroupCall *group_call, int32 sub_chain_id);
 
   void on_poll_group_call_blocks(InputGroupCallId input_group_call_id, int32 sub_chain_id);
+
+  Result<MessageEntity> parse_message_entity(JsonValue &value);
+
+  Result<FormattedText> parse_text_with_entities(JsonObject &object);
+
+  Result<FormattedText> parse_group_call_message(JsonObject &object);
 
   vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> get_recent_speakers(const GroupCall *group_call,
                                                                                  bool for_update);

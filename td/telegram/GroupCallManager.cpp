@@ -34,6 +34,7 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/FlatHashSet.h"
+#include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
@@ -2657,9 +2658,10 @@ void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_ca
     return;
   }
   auto group_call = get_group_call(input_group_call_id);
-  if (group_call == nullptr || !group_call->is_inited || !get_group_call_is_joined(group_call) ||
-      group_call->is_conference || group_call->private_key_id != tde2e_api::PrivateKeyId() ||
-      !sender_dialog_id.is_valid() || random_id == 0 || !group_call->message_random_ids.insert(random_id).second) {
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active ||
+      !get_group_call_is_joined(group_call) || group_call->is_conference ||
+      group_call->call_id != tde2e_api::CallId() || !sender_dialog_id.is_valid() || random_id == 0 ||
+      !group_call->message_random_ids.insert(random_id).second) {
     return;
   }
 
@@ -2672,6 +2674,164 @@ void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_ca
                td_api::make_object<td_api::updateGroupCallNewMessage>(
                    group_call->group_call_id.get(),
                    get_message_sender_object(td_, sender_dialog_id, "on_new_group_call_message"),
+                   get_formatted_text_object(td_->user_manager_.get(), text, true, -1)));
+}
+
+Result<MessageEntity> GroupCallManager::parse_message_entity(JsonValue &value) {
+  if (value.type() != JsonValue::Type::Object) {
+    return Status::Error("Expected object for MessageEntity");
+  }
+
+  auto &object = value.get_object();
+  TRY_RESULT(type, object.get_required_string_field("_"));
+  TRY_RESULT(offset, object.get_required_int_field("offset"));
+  TRY_RESULT(length, object.get_required_int_field("length"));
+  if (type == "messageEntityUnknown" || type == "messageEntityMention" || type == "messageEntityHashtag" ||
+      type == "messageEntityCashtag" || type == "messageEntityPhone" || type == "messageEntityBotCommand" ||
+      type == "messageEntityBankCard" || type == "messageEntityUrl" || type == "messageEntityEmail" ||
+      type == "messageEntityMentionName") {
+    return Status::Error("Skip");
+  }
+  if (type == "messageEntityPre") {
+    TRY_RESULT(language, object.get_optional_string_field("language"));
+    if (!clean_input_string(language)) {
+      return Status::Error("Receive invalid UTF-8");
+    }
+    if (language.empty()) {
+      return MessageEntity(MessageEntity::Type::Pre, offset, length);
+    } else {
+      return MessageEntity(MessageEntity::Type::PreCode, offset, length, std::move(language));
+    }
+  }
+  if (type == "messageEntityTextUrl") {
+    TRY_RESULT(url, object.get_required_string_field("url"));
+    if (!clean_input_string(url)) {
+      return Status::Error("Receive invalid UTF-8");
+    }
+    return MessageEntity(MessageEntity::Type::TextUrl, offset, length, std::move(url));
+  }
+  if (type == "messageEntityCustomEmoji") {
+    TRY_RESULT(document_id, object.get_required_long_field("document_id"));
+    return MessageEntity(MessageEntity::Type::CustomEmoji, offset, length, CustomEmojiId(document_id));
+  }
+
+  MessageEntity::Type entity_type = MessageEntity::Type::Size;
+  if (type == "messageEntityBold") {
+    entity_type = MessageEntity::Type::Bold;
+  } else if (type == "messageEntityItalic") {
+    entity_type = MessageEntity::Type::Italic;
+  } else if (type == "messageEntityUnderline") {
+    entity_type = MessageEntity::Type::Underline;
+  } else if (type == "messageEntityStrike") {
+    entity_type = MessageEntity::Type::Strikethrough;
+  } else if (type == "messageEntityBlockquote") {
+    entity_type = MessageEntity::Type::BlockQuote;
+  } else if (type == "messageEntityCode") {
+    entity_type = MessageEntity::Type::Code;
+  } else if (type == "messageEntitySpoiler") {
+    entity_type = MessageEntity::Type::Spoiler;
+  } else {
+    return Status::Error("Receive invalid message entity type");
+  }
+  return MessageEntity(entity_type, offset, length);
+}
+
+Result<FormattedText> GroupCallManager::parse_text_with_entities(JsonObject &object) {
+  TRY_RESULT(type, object.get_required_string_field("_"));
+  if (type != "textWithEntities") {
+    return Status::Error("Expected textWithEntities");
+  }
+  TRY_RESULT(text, object.get_required_string_field("text"));
+  if (!clean_input_string(text)) {
+    return Status::Error("Receive invalid UTF-8");
+  }
+  if (static_cast<int64>(utf8_length(text)) > G()->get_option_integer("group_call_message_text_length_max")) {
+    return Status::Error("Text is too long");
+  }
+  auto input_entities = object.extract_field("entities");
+  vector<MessageEntity> entities;
+  if (input_entities.type() == JsonValue::Type::Array) {
+    for (auto &input_entity : input_entities.get_array()) {
+      auto r_entity = parse_message_entity(input_entity);
+      if (r_entity.is_error()) {
+        if (r_entity.error().message() == "Skip") {
+          continue;
+        }
+        return r_entity.move_as_error();
+      }
+      if (entities.size() > 1000u) {
+        return Status::Error("Too many entities");
+      }
+      entities.push_back(r_entity.move_as_ok());
+    }
+  } else if (input_entities.type() != JsonValue::Type::Null) {
+    return Status::Error("Invalid entities type");
+  }
+  return FormattedText{std::move(text), std::move(entities)};
+}
+
+Result<FormattedText> GroupCallManager::parse_group_call_message(JsonObject &object) {
+  TRY_RESULT(type, object.get_required_string_field("_"));
+  if (type != "groupCallMessage") {
+    return Status::Error("Expected groupCallMessage");
+  }
+  auto message = object.extract_field("message");
+  if (message.type() != JsonValue::Type::Object) {
+    return Status::Error("Message expected to be an object");
+  }
+  return parse_text_with_entities(message.get_object());
+}
+
+void GroupCallManager::on_new_encrypted_group_call_message(InputGroupCallId input_group_call_id,
+                                                           DialogId sender_dialog_id, string &&encrypted_message) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active ||
+      !get_group_call_is_joined(group_call) || !group_call->is_conference ||
+      group_call->call_id == tde2e_api::CallId() || !sender_dialog_id.is_valid()) {
+    return;
+  }
+
+  auto r_message = tde2e_api::call_decrypt(group_call->call_id, sender_dialog_id.get(), tde2e_api::CallChannelId(),
+                                           encrypted_message);
+  if (r_message.is_error()) {
+    LOG(INFO) << "Failed to decrypt a message from " << sender_dialog_id;
+    return;
+  }
+  auto r_value = json_decode(r_message.value());
+  LOG(INFO) << "Receive group call message from " << sender_dialog_id << ": " << r_message.value();
+  if (r_value.is_error()) {
+    LOG(INFO) << "Failed to decode JSON object: " << r_value.error();
+    return;
+  }
+  auto value = r_value.move_as_ok();
+  if (value.type() != JsonValue::Type::Object) {
+    return;
+  }
+
+  auto &object = value.get_object();
+  auto r_random_id = object.get_required_long_field("random_id");
+  if (!r_random_id.is_ok() || !group_call->message_random_ids.insert(r_random_id.ok()).second) {
+    LOG(INFO) << "Ignore duplicate message from " << sender_dialog_id;
+    return;
+  }
+
+  auto r_text = parse_group_call_message(object);
+  if (r_text.is_error()) {
+    LOG(INFO) << "Failed to parse group call message object: " << r_text.error();
+    return;
+  }
+  auto text = r_text.move_as_ok();
+  if (text.text.empty()) {
+    LOG(INFO) << "Ignore empty message";
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateGroupCallNewMessage>(
+                   group_call->group_call_id.get(),
+                   get_message_sender_object(td_, sender_dialog_id, "on_new_encrypted_group_call_message"),
                    get_formatted_text_object(td_->user_manager_.get(), text, true, -1)));
 }
 
