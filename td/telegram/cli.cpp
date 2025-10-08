@@ -5834,9 +5834,8 @@ class CliClient final : public Actor {
       UserId bot_user_id;
       string url;
       get_args(args, chat_id, bot_user_id, url);
-      send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, message_thread_id_,
-                                                           direct_messages_chat_topic_id_, get_input_message_reply_to(),
-                                                           as_web_app_open_parameters()));
+      send_request(td_api::make_object<td_api::openWebApp>(chat_id, bot_user_id, url, get_message_topic_id(),
+                                                           get_input_message_reply_to(), as_web_app_open_parameters()));
     } else if (op == "cwa") {
       int64 launch_id;
       get_args(args, launch_id);

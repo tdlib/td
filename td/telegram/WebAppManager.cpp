@@ -198,8 +198,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::webAppInfo>> promise_;
   DialogId dialog_id_;
   UserId bot_user_id_;
-  MessageId top_thread_message_id_;
-  SavedMessagesTopicId saved_messages_topic_id_;
+  MessageTopic message_topic_;
   MessageInputReplyTo input_reply_to_;
   DialogId as_dialog_id_;
   bool from_attach_menu_ = false;
@@ -210,13 +209,11 @@ class RequestWebViewQuery final : public Td::ResultHandler {
   }
 
   void send(DialogId dialog_id, UserId bot_user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, string &&url,
-            const WebAppOpenParameters &parameters, MessageId top_thread_message_id,
-            SavedMessagesTopicId saved_messages_topic_id, MessageInputReplyTo input_reply_to, bool silent,
-            DialogId as_dialog_id) {
+            const WebAppOpenParameters &parameters, MessageTopic message_topic, MessageInputReplyTo input_reply_to,
+            bool silent, DialogId as_dialog_id) {
     dialog_id_ = dialog_id;
     bot_user_id_ = bot_user_id;
-    top_thread_message_id_ = top_thread_message_id;
-    saved_messages_topic_id_ = saved_messages_topic_id;
+    message_topic_ = std::move(message_topic);
     input_reply_to_ = std::move(input_reply_to);
     as_dialog_id_ = as_dialog_id;
 
@@ -248,7 +245,7 @@ class RequestWebViewQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_requestWebView::THEME_PARAMS_MASK;
     }
 
-    auto reply_to = input_reply_to_.get_input_reply_to(td_, top_thread_message_id, saved_messages_topic_id);
+    auto reply_to = input_reply_to_.get_input_reply_to(td_, message_topic_);
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_requestWebView::REPLY_TO_MASK;
     }
@@ -275,8 +272,8 @@ class RequestWebViewQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG_IF(ERROR, ptr->query_id_ == 0) << "Receive " << to_string(ptr);
-    td_->web_app_manager_->open_web_view(ptr->query_id_, dialog_id_, bot_user_id_, top_thread_message_id_,
-                                         saved_messages_topic_id_, std::move(input_reply_to_), as_dialog_id_);
+    td_->web_app_manager_->open_web_view(ptr->query_id_, dialog_id_, bot_user_id_, std::move(message_topic_),
+                                         std::move(input_reply_to_), as_dialog_id_);
     promise_.set_value(td_api::make_object<td_api::webAppInfo>(ptr->query_id_, ptr->url_));
   }
 
@@ -294,9 +291,8 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
 
  public:
-  void send(DialogId dialog_id, UserId bot_user_id, int64 query_id, MessageId top_thread_message_id,
-            SavedMessagesTopicId saved_messages_topic_id, const MessageInputReplyTo &input_reply_to, bool silent,
-            DialogId as_dialog_id) {
+  void send(DialogId dialog_id, UserId bot_user_id, int64 query_id, const MessageTopic &message_topic,
+            const MessageInputReplyTo &input_reply_to, bool silent, DialogId as_dialog_id) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
@@ -306,7 +302,7 @@ class ProlongWebViewQuery final : public Td::ResultHandler {
     }
 
     int32 flags = 0;
-    auto reply_to = input_reply_to.get_input_reply_to(td_, top_thread_message_id, saved_messages_topic_id);
+    auto reply_to = input_reply_to.get_input_reply_to(td_, message_topic);
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_prolongWebView::REPLY_TO_MASK;
     }
@@ -455,10 +451,9 @@ void WebAppManager::ping_web_view() {
   for (const auto &it : opened_web_views_) {
     const auto &opened_web_view = it.second;
     bool silent = td_->messages_manager_->get_dialog_silent_send_message(opened_web_view.dialog_id_);
-    td_->create_handler<ProlongWebViewQuery>()->send(
-        opened_web_view.dialog_id_, opened_web_view.bot_user_id_, it.first, opened_web_view.top_thread_message_id_,
-        opened_web_view.saved_messages_topic_id_, opened_web_view.input_reply_to_, silent,
-        opened_web_view.as_dialog_id_);
+    td_->create_handler<ProlongWebViewQuery>()->send(opened_web_view.dialog_id_, opened_web_view.bot_user_id_, it.first,
+                                                     opened_web_view.message_topic_, opened_web_view.input_reply_to_,
+                                                     silent, opened_web_view.as_dialog_id_);
   }
 
   schedule_ping_web_view();
@@ -562,8 +557,8 @@ void WebAppManager::request_main_web_view(DialogId dialog_id, UserId bot_user_id
       ->send(dialog_id, std::move(input_user), start_parameter, parameters);
 }
 
-void WebAppManager::request_web_view(DialogId dialog_id, UserId bot_user_id, MessageId top_thread_message_id,
-                                     SavedMessagesTopicId saved_messages_topic_id,
+void WebAppManager::request_web_view(DialogId dialog_id, UserId bot_user_id,
+                                     const td_api::object_ptr<td_api::MessageTopic> &topic_id,
                                      td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, string &&url,
                                      const WebAppOpenParameters &parameters,
                                      Promise<td_api::object_ptr<td_api::webAppInfo>> &&promise) {
@@ -572,28 +567,21 @@ void WebAppManager::request_web_view(DialogId dialog_id, UserId bot_user_id, Mes
   TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write, "request_web_view"));
+  TRY_RESULT_PROMISE(promise, message_topic, MessageTopic::get_send_message_topic(td_, dialog_id, topic_id));
   on_dialog_used(TopDialogCategory::BotApp, DialogId(bot_user_id), G()->unix_time());
 
-  if (!top_thread_message_id.is_server() || dialog_id.get_type() != DialogType::Channel ||
-      !td_->chat_manager_->is_megagroup_channel(dialog_id.get_channel_id())) {
-    top_thread_message_id = MessageId();
-  }
-  if (saved_messages_topic_id.is_valid() && !td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
-    saved_messages_topic_id = {};
-  }
-  auto input_reply_to = td_->messages_manager_->create_message_input_reply_to(dialog_id, top_thread_message_id,
-                                                                              std::move(reply_to), false);
+  auto input_reply_to =
+      td_->messages_manager_->create_message_input_reply_to(dialog_id, message_topic, std::move(reply_to), false);
 
   bool silent = td_->messages_manager_->get_dialog_silent_send_message(dialog_id);
   DialogId as_dialog_id = td_->messages_manager_->get_dialog_default_send_message_as_dialog_id(dialog_id);
 
   td_->create_handler<RequestWebViewQuery>(std::move(promise))
-      ->send(dialog_id, bot_user_id, std::move(input_user), std::move(url), parameters, top_thread_message_id,
-             saved_messages_topic_id, std::move(input_reply_to), silent, as_dialog_id);
+      ->send(dialog_id, bot_user_id, std::move(input_user), std::move(url), parameters, std::move(message_topic),
+             std::move(input_reply_to), silent, as_dialog_id);
 }
 
-void WebAppManager::open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id,
-                                  MessageId top_thread_message_id, SavedMessagesTopicId saved_messages_topic_id,
+void WebAppManager::open_web_view(int64 query_id, DialogId dialog_id, UserId bot_user_id, MessageTopic &&message_topic,
                                   MessageInputReplyTo &&input_reply_to, DialogId as_dialog_id) {
   if (query_id == 0) {
     LOG(ERROR) << "Receive Web App query identifier == 0";
@@ -606,8 +594,7 @@ void WebAppManager::open_web_view(int64 query_id, DialogId dialog_id, UserId bot
   OpenedWebView opened_web_view;
   opened_web_view.dialog_id_ = dialog_id;
   opened_web_view.bot_user_id_ = bot_user_id;
-  opened_web_view.top_thread_message_id_ = top_thread_message_id;
-  opened_web_view.saved_messages_topic_id_ = saved_messages_topic_id;
+  opened_web_view.message_topic_ = std::move(message_topic);
   opened_web_view.input_reply_to_ = std::move(input_reply_to);
   opened_web_view.as_dialog_id_ = as_dialog_id;
   opened_web_views_.emplace(query_id, std::move(opened_web_view));
