@@ -749,15 +749,10 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
     message_topic_ = message_topic;
     filter_ = filter;
 
-    auto saved_messages_topic_id = message_topic.get_any_saved_messages_topic_id();
-    telegram_api::object_ptr<telegram_api::InputPeer> saved_input_peer;
-    if (saved_messages_topic_id.is_valid()) {
-      saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
-      CHECK(saved_input_peer != nullptr);
-    }
+    auto saved_input_peer = message_topic.get_saved_input_peer(td_);
     auto top_msg_id = message_topic.get_input_top_msg_id();
     if (filter == MessageSearchFilter::Empty && top_msg_id == 0) {
-      if (saved_messages_topic_id.is_valid()) {
+      if (saved_input_peer != nullptr) {
         int32 flags = 0;
         if (message_topic_.is_monoforum()) {
           flags |= telegram_api::messages_getSavedHistory::PARENT_PEER_MASK;

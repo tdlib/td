@@ -103,11 +103,13 @@ class MessageTopic {
     }
   }
 
-  SavedMessagesTopicId get_any_saved_messages_topic_id() const {
+  telegram_api::object_ptr<telegram_api::InputPeer> get_saved_input_peer(const Td *td) const {
     if (type_ != Type::SavedMessages && type_ != Type::Monoforum) {
-      return SavedMessagesTopicId();
+      return nullptr;
     }
-    return saved_messages_topic_id_;
+    auto saved_input_peer = saved_messages_topic_id_.get_input_peer(td);
+    CHECK(saved_input_peer != nullptr);
+    return saved_input_peer;
   }
 };
 

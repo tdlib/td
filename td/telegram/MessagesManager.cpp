@@ -776,15 +776,11 @@ class GetSearchResultCalendarQuery final : public Td::ResultHandler {
     from_message_id_ = from_message_id;
     filter_ = filter;
 
-    auto saved_messages_topic_id = message_topic.get_any_saved_messages_topic_id();
-    auto top_msg_id = message_topic.get_input_top_msg_id();
-    CHECK(top_msg_id == 0);
+    auto saved_input_peer = message_topic.get_saved_input_peer(td_);
+    CHECK(message_topic.get_input_top_msg_id() == 0);
     int32 flags = 0;
-    telegram_api::object_ptr<telegram_api::InputPeer> saved_input_peer;
-    if (saved_messages_topic_id.is_valid()) {
+    if (saved_input_peer != nullptr) {
       flags |= telegram_api::messages_getSearchResultsCalendar::SAVED_PEER_ID_MASK;
-      saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
-      CHECK(saved_input_peer != nullptr);
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_getSearchResultsCalendar(
         flags, std::move(input_peer), std::move(saved_input_peer), get_input_messages_filter(filter),
@@ -868,11 +864,11 @@ class SearchMessagesQuery final : public Td::ResultHandler {
     tag_ = tag;
     random_id_ = random_id;
 
-    auto saved_messages_topic_id = message_topic.get_any_saved_messages_topic_id();
+    auto saved_input_peer = message_topic.get_saved_input_peer(td_);
     auto top_msg_id = message_topic.get_input_top_msg_id();
     auto offset_id = from_message_id.get_server_message_id().get();
     if (filter == MessageSearchFilter::UnreadMention) {
-      CHECK(!saved_messages_topic_id.is_valid());
+      CHECK(saved_input_peer == nullptr);
       CHECK(tag_.is_empty());
       int32 flags = 0;
       if (top_msg_id != 0) {
@@ -887,18 +883,15 @@ class SearchMessagesQuery final : public Td::ResultHandler {
       if (top_msg_id != 0) {
         flags |= telegram_api::messages_getUnreadReactions::TOP_MSG_ID_MASK;
       }
-      tl_object_ptr<telegram_api::InputPeer> saved_input_peer;
-      if (saved_messages_topic_id.is_valid()) {
+      if (saved_input_peer != nullptr) {
         flags |= telegram_api::messages_getUnreadReactions::SAVED_PEER_ID_MASK;
-        saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
-        CHECK(saved_input_peer != nullptr);
       }
       send_query(G()->net_query_creator().create(telegram_api::messages_getUnreadReactions(
           flags, std::move(input_peer), top_msg_id, std::move(saved_input_peer), offset_id, offset, limit,
           std::numeric_limits<int32>::max(), 0)));
     } else if (top_msg_id != 0 && query.empty() && !sender_dialog_id.is_valid() &&
                filter == MessageSearchFilter::Empty) {
-      CHECK(!saved_messages_topic_id.is_valid());
+      CHECK(saved_input_peer == nullptr);
       CHECK(tag_.is_empty());
       handle_errors_ = dialog_id.get_type() != DialogType::Channel ||
                        !td_->chat_manager_->is_broadcast_channel(dialog_id.get_channel_id());
@@ -912,11 +905,8 @@ class SearchMessagesQuery final : public Td::ResultHandler {
         sender_input_peer = td_->dialog_manager_->get_input_peer(sender_dialog_id, AccessRights::Know);
         CHECK(sender_input_peer != nullptr);
       }
-      tl_object_ptr<telegram_api::InputPeer> saved_input_peer;
-      if (saved_messages_topic_id.is_valid()) {
+      if (saved_input_peer != nullptr) {
         flags |= telegram_api::messages_search::SAVED_PEER_ID_MASK;
-        saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
-        CHECK(saved_input_peer != nullptr);
       }
       vector<telegram_api::object_ptr<telegram_api::Reaction>> saved_reactions;
       if (!tag.is_empty()) {
@@ -1105,14 +1095,11 @@ class GetSearchCountersQuery final : public Td::ResultHandler {
     vector<telegram_api::object_ptr<telegram_api::MessagesFilter>> filters;
     filters.push_back(get_input_messages_filter(filter));
 
-    auto saved_messages_topic_id = message_topic.get_any_saved_messages_topic_id();
+    auto saved_input_peer = message_topic.get_saved_input_peer(td_);
     auto top_msg_id = message_topic.get_input_top_msg_id();
     int32 flags = 0;
-    telegram_api::object_ptr<telegram_api::InputPeer> saved_input_peer;
-    if (saved_messages_topic_id.is_valid()) {
+    if (saved_input_peer != nullptr) {
       flags |= telegram_api::messages_getSearchCounters::SAVED_PEER_ID_MASK;
-      saved_input_peer = saved_messages_topic_id.get_input_peer(td_);
-      CHECK(saved_input_peer != nullptr);
     }
     if (top_msg_id != 0) {
       flags |= telegram_api::messages_getSearchCounters::TOP_MSG_ID_MASK;

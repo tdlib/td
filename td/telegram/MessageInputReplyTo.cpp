@@ -150,10 +150,9 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   auto reply_to_message_id = message_id_;
   if (reply_to_message_id == MessageId()) {
     if (message_topic.is_monoforum()) {
-      auto saved_messages_topic_id = message_topic.get_any_saved_messages_topic_id();
-      auto monoforum_input_peer = saved_messages_topic_id.get_input_peer(td);
-      if (monoforum_input_peer != nullptr) {
-        return telegram_api::make_object<telegram_api::inputReplyToMonoForum>(std::move(monoforum_input_peer));
+      auto saved_input_peer = message_topic.get_saved_input_peer(td);
+      if (saved_input_peer != nullptr) {
+        return telegram_api::make_object<telegram_api::inputReplyToMonoForum>(std::move(saved_input_peer));
       }
       return nullptr;
     }
@@ -167,9 +166,8 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   if (top_msg_id != 0) {
     flags |= telegram_api::inputReplyToMessage::TOP_MSG_ID_MASK;
   }
-  auto saved_messages_topic_id = message_topic.get_any_saved_messages_topic_id();
-  auto monoforum_input_peer = saved_messages_topic_id.get_input_peer(td);
-  if (monoforum_input_peer != nullptr) {
+  auto saved_input_peer = message_topic.get_saved_input_peer(td);
+  if (saved_input_peer != nullptr) {
     flags |= telegram_api::inputReplyToMessage::MONOFORUM_PEER_ID_MASK;
   }
   telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
@@ -186,7 +184,7 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   }
   auto result = telegram_api::make_object<telegram_api::inputReplyToMessage>(
       flags, reply_to_message_id.get_server_message_id().get(), top_msg_id, std::move(input_peer), string(), Auto(), 0,
-      std::move(monoforum_input_peer), todo_item_id_);
+      std::move(saved_input_peer), todo_item_id_);
   quote_.update_input_reply_to_message(td, result.get());
   return std::move(result);
 }
