@@ -23018,6 +23018,11 @@ MessageTopic MessagesManager::get_message_topic(DialogId dialog_id, const Messag
 }
 
 MessageTopic MessagesManager::get_send_message_topic(DialogId dialog_id, const Message *m) const {
+  if (m->saved_messages_topic_id.is_valid() &&
+      (m->sender_dialog_id == DialogId() || dialog_id.get_type() != DialogType::Channel)) {
+    // saved_peer_id must be passed only in administered monororums
+    return MessageTopic();
+  }
   return MessageTopic(td_, dialog_id, m->initial_is_topic_message, m->initial_top_thread_message_id,
                       m->saved_messages_topic_id);
 }
