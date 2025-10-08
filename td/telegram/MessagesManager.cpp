@@ -20612,6 +20612,10 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
         LOG(INFO) << "Ignore reply to invalid " << story_id;
         return {};
       }
+      if (!message_topic.is_empty()) {
+        LOG(INFO) << "Story replies can't be sent to a specific topic";
+        return {};
+      }
       return MessageInputReplyTo{StoryFullId(sender_dialog_id, story_id)};
     }
     case td_api::inputMessageReplyToMessage::ID: {
@@ -20647,6 +20651,27 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
         // TODO replies to yet unsent messages can be allowed with special handling of them on application restart
         return {};
       }
+
+      // the replied message must be in the same topic; check this if possible
+      if (!message_topic.is_empty()) {
+        auto reply_message_topic = get_message_topic(d->dialog_id, m);
+        if (message_topic != reply_message_topic) {
+          if (!message_topic.is_thread() || !reply_message_topic.is_empty() || m->media_album_id == 0) {
+            LOG(INFO) << "Ignore reply to message from a different topic";
+            return {};
+          }
+          CHECK(d->dialog_id.get_type() == DialogType::Channel);
+
+          // if the message is in an album and not in the thread, it can be in the album of the top thread message
+          const Message *top_m = get_message_force(d, implicit_reply_to_message_id, "get_message_topic 2");
+          if (top_m != nullptr &&
+              (top_m->media_album_id != m->media_album_id || top_m->top_thread_message_id != top_m->message_id)) {
+            LOG(INFO) << "Ignore reply to an album message from a different topic";
+            return {};
+          }
+        }
+      }
+
       if (checklist_task_id != 0 && m->content->get_type() != MessageContentType::ToDoList) {
         checklist_task_id = 0;
       }
@@ -21431,8 +21456,7 @@ Status MessagesManager::can_use_top_thread_message_id(Dialog *d, MessageId top_t
 }
 
 Result<MessageTopic> MessagesManager::get_send_message_topic(Dialog *d,
-                                                             const td_api::object_ptr<td_api::MessageTopic> &topic_id,
-                                                             const MessageInputReplyTo &input_reply_to) {
+                                                             const td_api::object_ptr<td_api::MessageTopic> &topic_id) {
   TRY_RESULT(message_topic, MessageTopic::get_message_topic(td_, d->dialog_id, topic_id));
 
   // topic is required in administered direct messages chats
@@ -21445,28 +21469,6 @@ Result<MessageTopic> MessagesManager::get_send_message_topic(Dialog *d,
     return MessageTopic();
   }
 
-  // if the message is a reply, then the replied message must be in the same topic; check this if possible
-  auto same_chat_reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
-  if (same_chat_reply_to_message_id.is_valid()) {
-    const Message *reply_m = get_message_force(d, same_chat_reply_to_message_id, "get_message_topic 1");
-    if (reply_m != nullptr) {
-      auto reply_message_topic = get_message_topic(d->dialog_id, reply_m);
-      if (message_topic != reply_message_topic) {
-        if (!message_topic.is_thread() || !reply_message_topic.is_empty() || reply_m->media_album_id == 0) {
-          return Status::Error(400, "The message to be replied is not in the specified message topic");
-        }
-        CHECK(d->dialog_id.get_type() == DialogType::Channel);
-
-        // if the message is in an album and not in the thread, it can be in the album of the top thread message
-        const Message *top_m = get_message_force(d, message_topic.get_top_thread_message_id(), "get_message_topic 2");
-        if (top_m != nullptr &&
-            (top_m->media_album_id != reply_m->media_album_id || top_m->top_thread_message_id != top_m->message_id)) {
-          return Status::Error(400, "The message to be replied is not in the specified message topic root album");
-        }
-      }
-    }
-  }
-
   // sending to the general topic must be done implicitly
   if (message_topic.is_general_forum()) {
     return MessageTopic();
@@ -21474,11 +21476,6 @@ Result<MessageTopic> MessagesManager::get_send_message_topic(Dialog *d,
 
   if (message_topic.is_saved_messages()) {
     return Status::Error(400, "Can't explicitly send messages to a Saved Messages topic");
-  }
-
-  // story replies can't be sent to a specific topic
-  if (input_reply_to.get_story_full_id().is_valid()) {
-    return Status::Error(400, "Can't send story replies to the topic");
   }
 
   return std::move(message_topic);

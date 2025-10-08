@@ -77,11 +77,6 @@ class MessageTopic {
     return type_ == Type::SavedMessages;
   }
 
-  MessageId get_top_thread_message_id() const {
-    CHECK(type_ == Type::Thread);
-    return top_thread_message_id_;
-  }
-
   MessageId get_implicit_reply_to_message_id(const Td *td) const;
 
   int32 get_input_top_msg_id() const {
