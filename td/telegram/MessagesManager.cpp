@@ -2425,6 +2425,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_flags4) {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_paid_suggested_post_ton);
+    STORE_FLAG(initial_is_topic_message);
     END_STORE_FLAGS();
   }
   // update MessageDb::get_message_info when flags5 is added
@@ -2738,6 +2739,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   if (has_flags4) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_paid_suggested_post_ton);
+    PARSE_FLAG(initial_is_topic_message);
     END_PARSE_FLAGS();
   }
 
@@ -20328,6 +20330,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->top_thread_message_id = top_thread_message_id;
   m->initial_top_thread_message_id = initial_top_thread_message_id;
   m->is_topic_message = is_topic_message;
+  m->initial_is_topic_message = is_topic_message;
   m->is_channel_post = is_channel_post;
   m->is_outgoing = is_scheduled || dialog_id != DialogId(my_id);
   m->from_background = options.from_background;
@@ -23040,6 +23043,11 @@ SavedMessagesTopicId MessagesManager::get_input_message_monoforum_topic_id(const
 
 MessageTopic MessagesManager::get_message_topic(DialogId dialog_id, const Message *m) const {
   return MessageTopic(td_, dialog_id, m->is_topic_message, m->top_thread_message_id, m->saved_messages_topic_id);
+}
+
+MessageTopic MessagesManager::get_send_message_topic(DialogId dialog_id, const Message *m) const {
+  return MessageTopic(td_, dialog_id, m->initial_is_topic_message, m->initial_top_thread_message_id,
+                      m->saved_messages_topic_id);
 }
 
 void MessagesManager::edit_message_text(MessageFullId message_full_id,
@@ -27872,9 +27880,12 @@ void MessagesManager::clear_dialog_draft_by_sent_message(Dialog *d, const Messag
     return;
   }
   LOG(INFO) << "Clear draft in " << d->dialog_id << " by sent " << m->message_id;
-  if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id) && m->saved_messages_topic_id.is_valid()) {
-    td_->saved_messages_manager_->clear_monoforum_topic_draft_by_sent_message(d->dialog_id, m->saved_messages_topic_id,
-                                                                              m->clear_draft, m->content->get_type());
+  if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id)) {
+    if (m->saved_messages_topic_id.is_valid()) {
+      td_->saved_messages_manager_->clear_monoforum_topic_draft_by_sent_message(
+          d->dialog_id, m->saved_messages_topic_id, m->clear_draft, m->content->get_type());
+    }
+    return;
   }
   if (!m->clear_draft) {
     const DraftMessage *draft_message = nullptr;
@@ -27891,8 +27902,7 @@ void MessagesManager::clear_dialog_draft_by_sent_message(Dialog *d, const Messag
     }
   }
   if (m->initial_top_thread_message_id.is_valid()) {
-    set_dialog_draft_message(d, MessageTopic::autodetect(td_, d->dialog_id, m->initial_top_thread_message_id), nullptr)
-        .ignore();
+    set_dialog_draft_message(d, get_send_message_topic(d->dialog_id, m), nullptr).ignore();
   } else {
     update_dialog_draft_message(d, nullptr, false, need_update_dialog_pos);
   }
