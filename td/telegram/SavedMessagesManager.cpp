@@ -2440,12 +2440,16 @@ Status SavedMessagesManager::set_monoforum_topic_draft_message(DialogId dialog_i
   if (topic == nullptr) {
     return Status::Error(400, "Topic not found");
   }
+  if (topic->dialog_id_ != dialog_id) {
+    return Status::Error(400, "Topic can't have draft");
+  }
 
   do_set_topic_draft_message(topic, std::move(draft_message), false);
 
   if (topic->is_changed_) {
     if (!is_local_draft_message(topic->draft_message_)) {
-      save_draft_message(td_, dialog_id, saved_messages_topic_id, topic->draft_message_, Auto());
+      save_draft_message(td_, dialog_id, MessageTopic::monoforum(dialog_id, saved_messages_topic_id),
+                         topic->draft_message_, Auto());
     }
     on_topic_changed(topic_list, topic, "set_monoforum_topic_draft_message");
   }

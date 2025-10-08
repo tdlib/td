@@ -111,7 +111,7 @@ td_api::object_ptr<td_api::draftMessage> get_draft_message_object(Td *td,
 unique_ptr<DraftMessage> get_draft_message(Td *td,
                                            telegram_api::object_ptr<telegram_api::DraftMessage> &&draft_message_ptr);
 
-void save_draft_message(Td *td, DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
+void save_draft_message(Td *td, DialogId dialog_id, const MessageTopic &message_topic,
                         const unique_ptr<DraftMessage> &draft_message, Promise<Unit> &&promise);
 
 void load_all_draft_messages(Td *td);
