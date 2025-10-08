@@ -32,6 +32,10 @@ class MessageTopic {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageTopic &message_topic);
 
+  bool is_general_forum() const {
+    return type_ == Type::Forum && forum_topic_id_ == ForumTopicId::general();
+  }
+
  public:
   MessageTopic() = default;
 
@@ -66,10 +70,6 @@ class MessageTopic {
 
   bool is_forum() const {
     return type_ == Type::Forum;
-  }
-
-  bool is_general_forum() const {
-    return type_ == Type::Forum && forum_topic_id_ == ForumTopicId::general();
   }
 
   bool is_monoforum() const {
