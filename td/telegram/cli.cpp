@@ -2753,18 +2753,13 @@ class CliClient final : public Actor {
   }
 
   void set_draft_message(ChatId chat_id, td_api::object_ptr<td_api::draftMessage> &&draft_message) {
-    if (direct_messages_chat_topic_id_ != 0) {
-      send_request(td_api::make_object<td_api::setDirectMessagesChatTopicDraftMessage>(
-          chat_id, direct_messages_chat_topic_id_, std::move(draft_message)));
-    } else {
-      send_request(
-          td_api::make_object<td_api::setChatDraftMessage>(chat_id, message_thread_id_, std::move(draft_message)));
-    }
+    send_request(
+        td_api::make_object<td_api::setChatDraftMessage>(chat_id, get_message_topic_id(), std::move(draft_message)));
   }
 
   void set_draft_message(ChatId chat_id, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) {
     send_request(td_api::make_object<td_api::setChatDraftMessage>(
-        chat_id, message_thread_id_,
+        chat_id, get_message_topic_id(),
         td_api::make_object<td_api::draftMessage>(get_input_message_reply_to(), 0, std::move(input_message_content),
                                                   message_effect_id_, get_input_suggested_post_info())));
   }

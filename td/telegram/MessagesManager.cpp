@@ -15449,41 +15449,56 @@ class MessagesManager::SaveDialogDraftMessageOnServerLogEvent {
   }
 };
 
-Status MessagesManager::set_dialog_draft_message(DialogId dialog_id, MessageId top_thread_message_id,
-                                                 tl_object_ptr<td_api::draftMessage> &&draft_message) {
+Status MessagesManager::set_dialog_draft_message(DialogId dialog_id,
+                                                 const td_api::object_ptr<td_api::MessageTopic> &topic_id,
+                                                 td_api::object_ptr<td_api::draftMessage> &&draft_message) {
   TRY_RESULT(d, check_dialog_access(dialog_id, true, AccessRights::Write, "set_dialog_draft_message"));
   TRY_STATUS(can_send_message(dialog_id));
-
-  TRY_STATUS(can_use_top_thread_message_id(d, top_thread_message_id, MessageInputReplyTo()));
+  TRY_RESULT(message_topic, get_send_message_topic(d, topic_id));
 
   TRY_RESULT(new_draft_message,
-             DraftMessage::get_draft_message(td_, dialog_id, top_thread_message_id, std::move(draft_message)));
+             DraftMessage::get_draft_message(td_, dialog_id, message_topic, std::move(draft_message)));
 
-  if (top_thread_message_id != MessageId()) {
-    CHECK(top_thread_message_id.is_server());
+  return set_dialog_draft_message(d, message_topic, std::move(new_draft_message));
+}
+
+Status MessagesManager::set_dialog_draft_message(Dialog *d, const MessageTopic &message_topic,
+                                                 unique_ptr<DraftMessage> &&draft_message) {
+  if (message_topic.is_thread()) {
+    auto top_thread_message_id = message_topic.get_top_thread_message_id();
     auto m = get_message_force(d, top_thread_message_id, "set_dialog_draft_message");
-    if (m == nullptr || m->reply_info.is_comment_ || !is_active_message_reply_info(dialog_id, m->reply_info)) {
+    if (m == nullptr || m->reply_info.is_comment_ || !is_active_message_reply_info(d->dialog_id, m->reply_info)) {
       return Status::OK();
     }
 
-    if (need_update_draft_message(m->thread_draft_message, new_draft_message, false)) {
-      m->thread_draft_message = std::move(new_draft_message);
+    if (need_update_draft_message(m->thread_draft_message, draft_message, false)) {
+      m->thread_draft_message = std::move(draft_message);
       on_message_changed(d, m, false, "set_dialog_draft_message");
     }
 
     return Status::OK();
   }
+  if (message_topic.is_forum()) {
+    // TODO
+    return Status::OK();
+  }
+  if (message_topic.is_monoforum()) {
+    return td_->saved_messages_manager_->set_monoforum_topic_draft_message(
+        d->dialog_id, message_topic.get_monoforum_saved_messages_topic_id(), std::move(draft_message));
+  }
+  CHECK(!message_topic.is_saved_messages());
+  CHECK(message_topic.is_empty());
 
-  if (update_dialog_draft_message(d, std::move(new_draft_message), false, true)) {
-    if (dialog_id.get_type() != DialogType::SecretChat && !is_local_draft_message(d->draft_message)) {
+  if (update_dialog_draft_message(d, std::move(draft_message), false, true)) {
+    if (d->dialog_id.get_type() != DialogType::SecretChat && !is_local_draft_message(d->draft_message)) {
       if (G()->use_message_database()) {
         SaveDialogDraftMessageOnServerLogEvent log_event;
-        log_event.dialog_id_ = dialog_id;
+        log_event.dialog_id_ = d->dialog_id;
         add_log_event(d->save_draft_message_log_event_id, get_log_event_storer(log_event),
                       LogEvent::HandlerType::SaveDialogDraftMessageOnServer, "draft");
       }
 
-      pending_draft_message_timeout_.set_timeout_in(dialog_id.get(), d->open_count > 0 ? MIN_SAVE_DRAFT_DELAY : 0);
+      pending_draft_message_timeout_.set_timeout_in(d->dialog_id.get(), d->open_count > 0 ? MIN_SAVE_DRAFT_DELAY : 0);
     }
   }
   return Status::OK();
@@ -20187,7 +20202,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
 }
 
 MessageInputReplyTo MessagesManager::create_message_input_reply_to(
-    DialogId dialog_id, MessageTopic message_topic, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
+    DialogId dialog_id, const MessageTopic &message_topic, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
     bool for_draft) {
   return create_message_input_reply_to(get_dialog(dialog_id), message_topic, std::move(reply_to), for_draft);
 }
@@ -20583,7 +20598,8 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
 }
 
 MessageInputReplyTo MessagesManager::create_message_input_reply_to(
-    Dialog *d, MessageTopic message_topic, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, bool for_draft) {
+    Dialog *d, const MessageTopic &message_topic, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
+    bool for_draft) {
   CHECK(d != nullptr);
   auto implicit_reply_to_message_id = message_topic.get_implicit_reply_to_message_id(td_);
   if (implicit_reply_to_message_id.is_valid() &&
@@ -27901,7 +27917,8 @@ void MessagesManager::clear_dialog_draft_by_sent_message(Dialog *d, const Messag
     }
   }
   if (m->initial_top_thread_message_id.is_valid()) {
-    set_dialog_draft_message(d->dialog_id, m->initial_top_thread_message_id, nullptr).ignore();
+    set_dialog_draft_message(d, MessageTopic::autodetect(td_, d->dialog_id, m->initial_top_thread_message_id), nullptr)
+        .ignore();
   } else {
     update_dialog_draft_message(d, nullptr, false, need_update_dialog_pos);
   }

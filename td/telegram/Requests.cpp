@@ -3148,14 +3148,6 @@ void Requests::on_request(uint64 id, const td_api::setDirectMessagesChatTopicIsM
       std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::setDirectMessagesChatTopicDraftMessage &request) {
-  CHECK_IS_USER();
-  DialogId dialog_id(request.chat_id_);
-  answer_ok_query(id, td_->saved_messages_manager_->set_monoforum_topic_draft_message(
-                          dialog_id, td_->saved_messages_manager_->get_topic_id(dialog_id, request.topic_id_),
-                          std::move(request.draft_message_)));
-}
-
 void Requests::on_request(uint64 id, const td_api::unpinAllDirectMessagesChatTopicMessages &request) {
   CREATE_OK_REQUEST_PROMISE();
   DialogId dialog_id(request.chat_id_);
@@ -5342,9 +5334,8 @@ void Requests::on_request(uint64 id, td_api::setChatTheme &request) {
 
 void Requests::on_request(uint64 id, td_api::setChatDraftMessage &request) {
   CHECK_IS_USER();
-  answer_ok_query(
-      id, td_->messages_manager_->set_dialog_draft_message(
-              DialogId(request.chat_id_), MessageId(request.message_thread_id_), std::move(request.draft_message_)));
+  answer_ok_query(id, td_->messages_manager_->set_dialog_draft_message(DialogId(request.chat_id_), request.topic_id_,
+                                                                       std::move(request.draft_message_)));
 }
 
 void Requests::on_request(uint64 id, const td_api::toggleChatHasProtectedContent &request) {

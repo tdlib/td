@@ -381,8 +381,6 @@ class Requests {
 
   void on_request(uint64 id, const td_api::setDirectMessagesChatTopicIsMarkedAsUnread &request);
 
-  void on_request(uint64 id, td_api::setDirectMessagesChatTopicDraftMessage &request);
-
   void on_request(uint64 id, const td_api::unpinAllDirectMessagesChatTopicMessages &request);
 
   void on_request(uint64 id, const td_api::readAllDirectMessagesChatTopicReactions &request);

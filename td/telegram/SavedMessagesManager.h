@@ -135,7 +135,7 @@ class SavedMessagesManager final : public Actor {
                                                bool is_marked_as_unread, Promise<Unit> &&promise);
 
   Status set_monoforum_topic_draft_message(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-                                           td_api::object_ptr<td_api::draftMessage> &&draft_message);
+                                           unique_ptr<DraftMessage> &&draft_message);
 
   void unpin_all_monoforum_topic_messages(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
                                           Promise<Unit> &&promise);

@@ -2429,9 +2429,9 @@ void SavedMessagesManager::set_monoforum_topic_is_marked_as_unread(DialogId dial
   promise.set_value(Unit());
 }
 
-Status SavedMessagesManager::set_monoforum_topic_draft_message(
-    DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id,
-    td_api::object_ptr<td_api::draftMessage> &&draft_message) {
+Status SavedMessagesManager::set_monoforum_topic_draft_message(DialogId dialog_id,
+                                                               SavedMessagesTopicId saved_messages_topic_id,
+                                                               unique_ptr<DraftMessage> &&draft_message) {
   auto *topic_list = get_topic_list(dialog_id);
   if (topic_list == nullptr) {
     return Status::Error(400, "Topic not found");
@@ -2440,13 +2440,8 @@ Status SavedMessagesManager::set_monoforum_topic_draft_message(
   if (topic == nullptr) {
     return Status::Error(400, "Topic not found");
   }
-  if (topic->dialog_id_ != dialog_id) {
-    return Status::Error(400, "Topic draft can't be changed");
-  }
 
-  TRY_RESULT(new_draft_message, DraftMessage::get_draft_message(td_, dialog_id, MessageId(), std::move(draft_message)));
-
-  do_set_topic_draft_message(topic, std::move(new_draft_message), false);
+  do_set_topic_draft_message(topic, std::move(draft_message), false);
 
   if (topic->is_changed_) {
     if (!is_local_draft_message(topic->draft_message_)) {

@@ -452,7 +452,7 @@ DraftMessage::DraftMessage(Td *td, telegram_api::object_ptr<telegram_api::draftM
 }
 
 Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
-    Td *td, DialogId dialog_id, MessageId top_thread_message_id,
+    Td *td, DialogId dialog_id, const MessageTopic &message_topic,
     td_api::object_ptr<td_api::draftMessage> &&draft_message) {
   if (draft_message == nullptr) {
     return nullptr;
@@ -460,7 +460,7 @@ Result<unique_ptr<DraftMessage>> DraftMessage::get_draft_message(
 
   auto result = make_unique<DraftMessage>();
   result->message_input_reply_to_ = td->messages_manager_->create_message_input_reply_to(
-      dialog_id, top_thread_message_id, std::move(draft_message->reply_to_), true);
+      dialog_id, message_topic, std::move(draft_message->reply_to_), true);
   result->message_effect_id_ = MessageEffectId(draft_message->effect_id_);
   TRY_RESULT(suggested_post, SuggestedPost::get_suggested_post(td, std::move(draft_message->suggested_post_info_)));
   result->suggested_post_ = std::move(suggested_post);

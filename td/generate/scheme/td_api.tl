@@ -10131,12 +10131,6 @@ deleteDirectMessagesChatTopicMessagesByDate chat_id:int53 topic_id:int53 min_dat
 //@is_marked_as_unread New value of is_marked_as_unread
 setDirectMessagesChatTopicIsMarkedAsUnread chat_id:int53 topic_id:int53 is_marked_as_unread:Bool = Ok;
 
-//@description Changes the draft message in the topic in a channel direct messages chat administered by the current user
-//@chat_id Chat identifier
-//@topic_id Topic identifier
-//@draft_message New draft message; pass null to remove the draft. All files in draft message content must be of the type inputFileLocal. Media thumbnails and captions are ignored
-setDirectMessagesChatTopicDraftMessage chat_id:int53 topic_id:int53 draft_message:draftMessage = Ok;
-
 //@description Removes all pinned messages from the topic in a channel direct messages chat administered by the current user
 //@chat_id Identifier of the chat
 //@topic_id Topic identifier
@@ -11571,11 +11565,11 @@ getGiftChatThemes offset:string limit:int32 = GiftChatThemes;
 //@description Changes the chat theme. Supported only in private and secret chats @chat_id Chat identifier @theme New chat theme; pass null to return the default theme
 setChatTheme chat_id:int53 theme:InputChatTheme = Ok;
 
-//@description Changes the draft message in a chat
+//@description Changes the draft message in a chat or a topic
 //@chat_id Chat identifier
-//@message_thread_id If not 0, the message thread identifier in which the draft was changed
+//@topic_id Topic in which the draft will be changed; pass null to change the draft for the chat itself
 //@draft_message New draft message; pass null to remove the draft. All files in draft message content must be of the type inputFileLocal. Media thumbnails and captions are ignored
-setChatDraftMessage chat_id:int53 message_thread_id:int53 draft_message:draftMessage = Ok;
+setChatDraftMessage chat_id:int53 topic_id:MessageTopic draft_message:draftMessage = Ok;
 
 //@description Changes the notification settings of a chat. Notification settings of a chat with the current user (Saved Messages) can't be changed
 //@chat_id Chat identifier
