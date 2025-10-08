@@ -437,6 +437,10 @@ class MessagesManager final : public Actor {
                                                     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
                                                     bool for_draft);
 
+  MessageInputReplyTo create_message_input_reply_to(DialogId dialog_id, MessageTopic message_topic,
+                                                    td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
+                                                    bool for_draft);
+
   Result<td_api::object_ptr<td_api::message>> send_message(
       DialogId dialog_id, const MessageId top_thread_message_id,
       td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to, tl_object_ptr<td_api::messageSendOptions> &&options,
@@ -1794,6 +1798,10 @@ class MessagesManager final : public Actor {
   static MessageFullId get_replied_message_id(DialogId dialog_id, const Message *m);
 
   MessageInputReplyTo create_message_input_reply_to(Dialog *d, MessageId top_thread_message_id,
+                                                    td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
+                                                    bool for_draft);
+
+  MessageInputReplyTo create_message_input_reply_to(Dialog *d, MessageTopic message_topic,
                                                     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
                                                     bool for_draft);
 
