@@ -206,6 +206,32 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
   return result;
 }
 
+Result<MessageTopic> MessageTopic::get_send_message_topic(Td *td, DialogId dialog_id,
+                                                          const td_api::object_ptr<td_api::MessageTopic> &topic_id) {
+  TRY_RESULT(message_topic, MessageTopic::get_message_topic(td, dialog_id, topic_id));
+
+  // topic is required in administered direct messages chats
+  if (td->dialog_manager_->is_admined_monoforum_channel(dialog_id) && !message_topic.is_monoforum()) {
+    return Status::Error(400, "Channel direct messages topic must be specified");
+  }
+
+  // in other chats the topic can be specified implicitly
+  if (message_topic.is_empty()) {
+    return MessageTopic();
+  }
+
+  // sending to the general topic must be done implicitly
+  if (message_topic.is_general_forum()) {
+    return MessageTopic();
+  }
+
+  if (message_topic.is_saved_messages()) {
+    return Status::Error(400, "Messages can't be explicitly sent to a Saved Messages topic");
+  }
+
+  return std::move(message_topic);
+}
+
 td_api::object_ptr<td_api::MessageTopic> MessageTopic::get_message_topic_object(Td *td) const {
   switch (type_) {
     case Type::None:

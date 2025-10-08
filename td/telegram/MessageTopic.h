@@ -51,6 +51,9 @@ class MessageTopic {
   static Result<MessageTopic> get_message_topic(Td *td, DialogId dialog_id,
                                                 const td_api::object_ptr<td_api::MessageTopic> &topic);
 
+  static Result<MessageTopic> get_send_message_topic(Td *td, DialogId dialog_id,
+                                                     const td_api::object_ptr<td_api::MessageTopic> &topic);
+
   td_api::object_ptr<td_api::MessageTopic> get_message_topic_object(Td *td) const;
 
   bool is_empty() const {

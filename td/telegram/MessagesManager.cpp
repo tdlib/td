@@ -15454,7 +15454,7 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id,
                                                  td_api::object_ptr<td_api::draftMessage> &&draft_message) {
   TRY_RESULT(d, check_dialog_access(dialog_id, true, AccessRights::Write, "set_dialog_draft_message"));
   TRY_STATUS(can_send_message(dialog_id));
-  TRY_RESULT(message_topic, get_send_message_topic(d, topic_id));
+  TRY_RESULT(message_topic, MessageTopic::get_send_message_topic(td_, dialog_id, topic_id));
 
   TRY_RESULT(new_draft_message,
              DraftMessage::get_draft_message(td_, dialog_id, message_topic, std::move(draft_message)));
@@ -21469,32 +21469,6 @@ Status MessagesManager::can_use_top_thread_message_id(Dialog *d, MessageId top_t
   }
 
   return Status::OK();
-}
-
-Result<MessageTopic> MessagesManager::get_send_message_topic(Dialog *d,
-                                                             const td_api::object_ptr<td_api::MessageTopic> &topic_id) {
-  TRY_RESULT(message_topic, MessageTopic::get_message_topic(td_, d->dialog_id, topic_id));
-
-  // topic is required in administered direct messages chats
-  if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id) && !message_topic.is_monoforum()) {
-    return Status::Error(400, "Channel direct messages topic must be specified");
-  }
-
-  // in other chats the topic can be specified implicitly
-  if (message_topic.is_empty()) {
-    return MessageTopic();
-  }
-
-  // sending to the general topic must be done implicitly
-  if (message_topic.is_general_forum()) {
-    return MessageTopic();
-  }
-
-  if (message_topic.is_saved_messages()) {
-    return Status::Error(400, "Can't explicitly send messages to a Saved Messages topic");
-  }
-
-  return std::move(message_topic);
 }
 
 Status MessagesManager::can_use_forum_topic_id(Dialog *d, ForumTopicId forum_topic_id) {
