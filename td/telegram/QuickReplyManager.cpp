@@ -246,7 +246,7 @@ class QuickReplyManager::SendQuickReplyMessageQuery final : public Td::ResultHan
 
     int32 flags = telegram_api::messages_sendMessage::QUICK_REPLY_SHORTCUT_MASK;
     auto reply_to = MessageInputReplyTo(m->reply_to_message_id, DialogId(), MessageQuote(), 0)
-                        .get_input_reply_to(td_, MessageId(), SavedMessagesTopicId());
+                        .get_input_reply_to(td_, MessageTopic());
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMessage::REPLY_TO_MASK;
     }
@@ -300,7 +300,7 @@ class QuickReplyManager::SendQuickReplyInlineMessageQuery final : public Td::Res
 
     int32 flags = telegram_api::messages_sendInlineBotResult::QUICK_REPLY_SHORTCUT_MASK;
     auto reply_to = MessageInputReplyTo(m->reply_to_message_id, DialogId(), MessageQuote(), 0)
-                        .get_input_reply_to(td_, MessageId(), SavedMessagesTopicId());
+                        .get_input_reply_to(td_, MessageTopic());
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendInlineBotResult::REPLY_TO_MASK;
     }
@@ -360,7 +360,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
 
     int32 flags = telegram_api::messages_sendMedia::QUICK_REPLY_SHORTCUT_MASK;
     auto reply_to = MessageInputReplyTo(m->reply_to_message_id, DialogId(), MessageQuote(), 0)
-                        .get_input_reply_to(td_, MessageId(), SavedMessagesTopicId());
+                        .get_input_reply_to(td_, MessageTopic());
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMedia::REPLY_TO_MASK;
     }
@@ -561,8 +561,8 @@ class QuickReplyManager::SendQuickReplyMultiMediaQuery final : public Td::Result
     CHECK(file_ids_.size() == random_ids_.size());
 
     int32 flags = telegram_api::messages_sendMultiMedia::QUICK_REPLY_SHORTCUT_MASK;
-    auto reply_to = MessageInputReplyTo(reply_to_message_id, DialogId(), MessageQuote(), 0)
-                        .get_input_reply_to(td_, MessageId(), SavedMessagesTopicId());
+    auto reply_to =
+        MessageInputReplyTo(reply_to_message_id, DialogId(), MessageQuote(), 0).get_input_reply_to(td_, MessageTopic());
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMultiMedia::REPLY_TO_MASK;
     }

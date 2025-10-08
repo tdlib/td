@@ -171,7 +171,7 @@ class BusinessConnectionManager::SendBusinessMessageQuery final : public Td::Res
     auto input_peer = td_->dialog_manager_->get_input_peer(message_->dialog_id_, AccessRights::Know);
     CHECK(input_peer != nullptr);
 
-    auto reply_to = message_->input_reply_to_.get_input_reply_to(td_, MessageId(), SavedMessagesTopicId());
+    auto reply_to = message_->input_reply_to_.get_input_reply_to(td_, MessageTopic());
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMessage::REPLY_TO_MASK;
     }
@@ -238,7 +238,7 @@ class BusinessConnectionManager::SendBusinessMediaQuery final : public Td::Resul
     auto input_peer = td_->dialog_manager_->get_input_peer(message_->dialog_id_, AccessRights::Know);
     CHECK(input_peer != nullptr);
 
-    auto reply_to = message_->input_reply_to_.get_input_reply_to(td_, MessageId(), SavedMessagesTopicId());
+    auto reply_to = message_->input_reply_to_.get_input_reply_to(td_, MessageTopic());
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMedia::REPLY_TO_MASK;
     }
@@ -304,7 +304,7 @@ class BusinessConnectionManager::SendBusinessMultiMediaQuery final : public Td::
     auto input_peer = td_->dialog_manager_->get_input_peer(messages_[0]->dialog_id_, AccessRights::Know);
     CHECK(input_peer != nullptr);
 
-    auto reply_to = messages_[0]->input_reply_to_.get_input_reply_to(td_, MessageId(), SavedMessagesTopicId());
+    auto reply_to = messages_[0]->input_reply_to_.get_input_reply_to(td_, MessageTopic());
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMultiMedia::REPLY_TO_MASK;
     }
