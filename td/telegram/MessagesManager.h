@@ -1848,8 +1848,7 @@ class MessagesManager final : public Actor {
                                             vector<MessageId> message_ids, vector<int64> random_ids,
                                             Promise<Unit> &&promise);
 
-  void send_forward_message_query(int32 flags, DialogId to_dialog_id, const MessageId top_thread_message_id,
-                                  const SavedMessagesTopicId saved_messages_topic_id,
+  void send_forward_message_query(int32 flags, DialogId to_dialog_id, MessageTopic messages_topic,
                                   const MessageInputReplyTo input_reply_to, DialogId from_dialog_id,
                                   telegram_api::object_ptr<telegram_api::InputPeer> as_input_peer,
                                   vector<MessageId> message_ids, vector<int64> random_ids, int32 schedule_date,
@@ -3169,8 +3168,6 @@ class MessagesManager final : public Actor {
   static DialogId get_message_sender(const Message *m);
 
   static ForumTopicId get_message_forum_topic_id(const Message *m);
-
-  static SavedMessagesTopicId get_input_message_monoforum_topic_id(const Message *m);
 
   MessageTopic get_message_topic(DialogId dialog_id, const Message *m) const;
 
