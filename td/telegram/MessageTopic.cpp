@@ -227,6 +227,25 @@ td_api::object_ptr<td_api::MessageTopic> MessageTopic::get_message_topic_object(
   }
 }
 
+MessageId MessageTopic::get_implicit_reply_to_message_id(const Td *td) const {
+  switch (type_) {
+    case Type::Thread:
+      return top_thread_message_id_;
+    case Type::Forum:
+      if (td->auth_manager_->is_bot() && dialog_id_.get_type() == DialogType::User) {
+        return MessageId();
+      }
+      return MessageId(ServerMessageId(forum_topic_id_.get()));
+    case Type::Monoforum:
+    case Type::SavedMessages:
+    case Type::None:
+      return MessageId();
+    default:
+      UNREACHABLE();
+      return MessageId();
+  }
+}
+
 bool operator==(const MessageTopic &lhs, const MessageTopic &rhs) {
   return lhs.type_ == rhs.type_ && lhs.dialog_id_ == rhs.dialog_id_ &&
          lhs.top_thread_message_id_ == rhs.top_thread_message_id_ && lhs.forum_topic_id_ == rhs.forum_topic_id_ &&
