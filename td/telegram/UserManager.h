@@ -945,47 +945,41 @@ class UserManager final : public Actor {
 
   static void on_update_user_full_common_chat_count(UserFull *user_full, UserId user_id, int32 common_chat_count);
 
-  static void on_update_user_full_location(UserFull *user_full, UserId user_id, DialogLocation &&location);
+  static void on_update_user_full_location(UserFull *user_full, DialogLocation &&location);
 
-  static void on_update_user_full_work_hours(UserFull *user_full, UserId user_id, BusinessWorkHours &&work_hours);
+  static void on_update_user_full_work_hours(UserFull *user_full, BusinessWorkHours &&work_hours);
 
   void on_update_user_full_away_message(UserFull *user_full, UserId user_id, BusinessAwayMessage &&away_message) const;
 
   void on_update_user_full_greeting_message(UserFull *user_full, UserId user_id,
                                             BusinessGreetingMessage &&greeting_message) const;
 
-  static void on_update_user_full_intro(UserFull *user_full, UserId user_id, BusinessIntro &&intro);
+  static void on_update_user_full_intro(UserFull *user_full, BusinessIntro &&intro);
 
-  static void on_update_user_full_commands(UserFull *user_full, UserId user_id,
+  static void on_update_user_full_commands(UserFull *user_full,
                                            vector<telegram_api::object_ptr<telegram_api::botCommand>> &&bot_commands);
 
-  void on_update_user_full_referral_program_info(UserFull *user_full, UserId user_id,
-                                                 ReferralProgramInfo &&referral_program_info);
+  void on_update_user_full_referral_program_info(UserFull *user_full, ReferralProgramInfo &&referral_program_info);
 
-  void on_update_user_full_verifier_settings(UserFull *user_full, UserId user_id,
-                                             unique_ptr<BotVerifierSettings> &&verifier_settings);
+  void on_update_user_full_verifier_settings(UserFull *user_full, unique_ptr<BotVerifierSettings> &&verifier_settings);
 
   void on_update_user_full_need_phone_number_privacy_exception(UserFull *user_full, UserId user_id,
                                                                bool need_phone_number_privacy_exception) const;
 
-  void on_update_user_full_charge_paid_message_stars(UserFull *user_full, UserId user_id,
-                                                     int64 charge_paid_message_stars) const;
+  void on_update_user_full_charge_paid_message_stars(UserFull *user_full, int64 charge_paid_message_stars) const;
 
-  void on_update_user_full_send_paid_message_stars(UserFull *user_full, UserId user_id,
-                                                   int64 send_paid_message_stars) const;
+  void on_update_user_full_send_paid_message_stars(UserFull *user_full, int64 send_paid_message_stars) const;
 
-  void on_update_user_full_wallpaper_overridden(UserFull *user_full, UserId user_id, bool wallpaper_overridden) const;
+  void on_update_user_full_wallpaper_overridden(UserFull *user_full, bool wallpaper_overridden) const;
 
-  static void on_update_user_full_menu_button(UserFull *user_full, UserId user_id,
+  static void on_update_user_full_menu_button(UserFull *user_full,
                                               telegram_api::object_ptr<telegram_api::BotMenuButton> &&bot_menu_button);
 
-  static void on_update_user_full_has_preview_medias(UserFull *user_full, UserId user_id, bool has_preview_medias);
+  static void on_update_user_full_has_preview_medias(UserFull *user_full, bool has_preview_medias);
 
-  static void on_update_user_full_can_manage_emoji_status(UserFull *user_full, UserId user_id,
-                                                          bool can_manage_emoji_status);
+  static void on_update_user_full_can_manage_emoji_status(UserFull *user_full, bool can_manage_emoji_status);
 
-  static void on_update_user_full_first_saved_music_file_id(UserFull *user_full, UserId user_id,
-                                                            FileId first_saved_music_file_id);
+  static void on_update_user_full_first_saved_music_file_id(UserFull *user_full, FileId first_saved_music_file_id);
 
   static void on_update_user_full_note(UserFull *user_full, FormattedText &&note);
 
