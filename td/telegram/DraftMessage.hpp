@@ -9,6 +9,7 @@
 #include "td/telegram/DraftMessage.h"
 
 #include "td/telegram/InputMessageText.hpp"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.hpp"
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/SuggestedPost.hpp"
