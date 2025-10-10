@@ -14386,7 +14386,7 @@ td_api::object_ptr<td_api::messageThreadInfo> MessagesManager::get_message_threa
       }
       if (message->topic_id_ != nullptr && message->topic_id_->get_id() == td_api::messageTopicForum::ID) {
         if (static_cast<const td_api::messageTopicForum *>(message->topic_id_.get())->forum_topic_id_ !=
-            MessageId(ServerMessageId(1)).get()) {
+            ForumTopicId::general().get()) {
           is_forum_topic = true;
         } else if (info.message_ids[0] == MessageId(ServerMessageId(1)) && d->is_forum &&
                    d->dialog_id.get_type() == DialogType::Channel) {
