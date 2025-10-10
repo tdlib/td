@@ -7879,7 +7879,8 @@ bool MessagesManager::can_reply_to_message(DialogId dialog_id, MessageId message
 
 bool MessagesManager::can_reply_to_message_in_another_dialog(DialogId dialog_id, MessageId message_id,
                                                              bool can_be_forwarded) const {
-  return can_be_forwarded && message_id.is_server() && !td_->dialog_manager_->is_monoforum_channel(dialog_id);
+  return can_be_forwarded && message_id.is_server() && !td_->dialog_manager_->is_monoforum_channel(dialog_id) &&
+         !(message_id == MessageId(ServerMessageId(1)) && dialog_id.get_type() == DialogType::Channel);
 }
 
 bool MessagesManager::can_save_message(DialogId dialog_id, const Message *m) const {
@@ -20562,9 +20563,6 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
         return {};
       }
       auto message_id = get_persistent_message_id(reply_d, MessageId(reply_to_message->message_id_));
-      if (message_id == MessageId(ServerMessageId(1)) && reply_d->dialog_id.get_type() == DialogType::Channel) {
-        return {};
-      }
       const Message *m = get_message_force(reply_d, message_id, "create_message_input_reply_to 2");
       if (!can_reply_to_message_in_another_dialog(reply_dialog_id, message_id,
                                                   can_forward_message(reply_dialog_id, m, false))) {
