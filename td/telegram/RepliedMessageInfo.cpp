@@ -6,6 +6,7 @@
 //
 #include "td/telegram/RepliedMessageInfo.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/MessageContent.h"
@@ -228,6 +229,11 @@ bool RepliedMessageInfo::need_reply_changed_warning(
   }
   if (is_yet_unsent && old_top_thread_message_id == new_info.message_id_ && new_info.dialog_id_ == DialogId()) {
     // move of reply to the top thread message after deletion of the replied message
+    return false;
+  }
+  if (is_yet_unsent && td->auth_manager_->is_bot() && old_top_thread_message_id.is_valid() &&
+      new_info.dialog_id_ == DialogId() && new_info.message_id_ != MessageId()) {
+    // move or initialization of reply to the forum topic creation message after deletion of the replied message
     return false;
   }
   if (new_info.todo_item_id_ != 0 && old_info.todo_item_id_ == 0) {
