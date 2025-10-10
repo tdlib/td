@@ -98,14 +98,51 @@ td_api::object_ptr<td_api::SupergroupMembersFilter> DialogParticipantFilter::get
   }
 }
 
+ChannelParticipantFilter DialogParticipantFilter::as_channel_participant_filter(const string &query) const {
+  ChannelParticipantFilter filter{nullptr};
+  switch (type_) {
+    case Type::Contacts:
+      filter.type_ = ChannelParticipantFilter::Type::Contacts;
+      filter.query_ = query;
+      break;
+    case Type::Administrators:
+      filter.type_ = ChannelParticipantFilter::Type::Administrators;
+      break;
+    case Type::Members:
+      filter.type_ = ChannelParticipantFilter::Type::Search;
+      filter.query_ = query;
+      break;
+    case Type::Restricted:
+      filter.type_ = ChannelParticipantFilter::Type::Restricted;
+      filter.query_ = query;
+      break;
+    case Type::Banned:
+      filter.type_ = ChannelParticipantFilter::Type::Banned;
+      filter.query_ = query;
+      break;
+    case Type::Mention:
+      filter.type_ = ChannelParticipantFilter::Type::Mention;
+      filter.query_ = query;
+      filter.top_thread_message_id_ = top_thread_message_id_;
+      break;
+    case Type::Bots:
+      filter.type_ = ChannelParticipantFilter::Type::Bots;
+      break;
+    default:
+      UNREACHABLE();
+      break;
+  }
+  return filter;
+}
+
 bool DialogParticipantFilter::has_query() const {
   switch (type_) {
+    case Type::Contacts:
     case Type::Members:
     case Type::Restricted:
     case Type::Banned:
     case Type::Mention:
       return true;
-    case Type::Contacts:
     case Type::Administrators:
     case Type::Bots:
       return false;

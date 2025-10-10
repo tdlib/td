@@ -23,6 +23,8 @@ class ChannelParticipantFilter {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantFilter &filter);
 
+  friend class DialogParticipantFilter;
+
  public:
   explicit ChannelParticipantFilter(const td_api::object_ptr<td_api::SupergroupMembersFilter> &filter);
 
