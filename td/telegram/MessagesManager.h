@@ -433,10 +433,6 @@ class MessagesManager final : public Actor {
   };
   ForwardedMessageInfo get_forwarded_message_info(MessageFullId message_full_id);
 
-  MessageInputReplyTo create_message_input_reply_to(DialogId dialog_id, MessageId top_thread_message_id,
-                                                    td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
-                                                    bool for_draft);
-
   MessageInputReplyTo create_message_input_reply_to(DialogId dialog_id, const MessageTopic &message_topic,
                                                     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
                                                     bool for_draft);
@@ -1789,10 +1785,6 @@ class MessagesManager final : public Actor {
   MessageId get_persistent_message_id(const Dialog *d, MessageId message_id) const;
 
   static MessageFullId get_replied_message_id(DialogId dialog_id, const Message *m);
-
-  MessageInputReplyTo create_message_input_reply_to(Dialog *d, MessageId top_thread_message_id,
-                                                    td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
-                                                    bool for_draft);
 
   MessageInputReplyTo create_message_input_reply_to(Dialog *d, const MessageTopic &message_topic,
                                                     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,

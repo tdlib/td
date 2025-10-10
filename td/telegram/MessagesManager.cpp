@@ -20182,12 +20182,6 @@ DialogId MessagesManager::get_dialog_default_send_message_as_dialog_id(DialogId 
 }
 
 MessageInputReplyTo MessagesManager::create_message_input_reply_to(
-    DialogId dialog_id, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
-    bool for_draft) {
-  return create_message_input_reply_to(get_dialog(dialog_id), top_thread_message_id, std::move(reply_to), for_draft);
-}
-
-MessageInputReplyTo MessagesManager::create_message_input_reply_to(
     DialogId dialog_id, const MessageTopic &message_topic, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
     bool for_draft) {
   return create_message_input_reply_to(get_dialog(dialog_id), message_topic, std::move(reply_to), for_draft);
@@ -20453,115 +20447,6 @@ MessageId MessagesManager::get_persistent_message_id(const Dialog *d, MessageId 
   }
 
   return message_id;
-}
-
-MessageInputReplyTo MessagesManager::create_message_input_reply_to(
-    Dialog *d, MessageId top_thread_message_id, td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
-    bool for_draft) {
-  CHECK(d != nullptr);
-  if (top_thread_message_id != MessageId() &&
-      (!top_thread_message_id.is_server() || top_thread_message_id == MessageId(ServerMessageId(1)))) {
-    LOG(INFO) << "Ignore thread of " << top_thread_message_id;
-    top_thread_message_id = {};
-  }
-  if (top_thread_message_id.is_valid() &&
-      !have_message_force(d, top_thread_message_id, "create_message_input_reply_to 1")) {
-    LOG(INFO) << "Have reply in the thread of unknown " << top_thread_message_id;
-  }
-  if (reply_to == nullptr) {
-    if (!for_draft && top_thread_message_id.is_valid()) {
-      return MessageInputReplyTo{top_thread_message_id, DialogId(), MessageQuote(), 0};
-    }
-    return {};
-  }
-  switch (reply_to->get_id()) {
-    case td_api::inputMessageReplyToStory::ID: {
-      if (for_draft) {
-        return {};
-      }
-      auto reply_to_story = td_api::move_object_as<td_api::inputMessageReplyToStory>(reply_to);
-      auto story_id = StoryId(reply_to_story->story_id_);
-      auto sender_dialog_id = DialogId(reply_to_story->story_poster_chat_id_);
-      if (d->dialog_id != sender_dialog_id || td_->dialog_manager_->is_broadcast_channel(sender_dialog_id)) {
-        LOG(INFO) << "Ignore reply to story from " << sender_dialog_id << " in a wrong " << d->dialog_id;
-        return {};
-      }
-      if (!story_id.is_server()) {
-        LOG(INFO) << "Ignore reply to invalid " << story_id;
-        return {};
-      }
-      return MessageInputReplyTo{StoryFullId(sender_dialog_id, story_id)};
-    }
-    case td_api::inputMessageReplyToMessage::ID: {
-      auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToMessage>(reply_to);
-      auto message_id = MessageId(reply_to_message->message_id_);
-      if (!message_id.is_valid()) {
-        if (message_id == MessageId() && !for_draft && top_thread_message_id.is_valid()) {
-          return MessageInputReplyTo{top_thread_message_id, DialogId(), MessageQuote(), 0};
-        }
-        return {};
-      }
-      message_id = get_persistent_message_id(d, message_id);
-      if (!can_reply_to_message(d->dialog_id, message_id)) {
-        message_id = {};
-      }
-      auto checklist_task_id = max(0, reply_to_message->checklist_task_id_);
-      const Message *m = get_message_force(d, message_id, "create_message_input_reply_to 2");
-      if (m == nullptr) {
-        if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
-            d->last_new_message_id.is_valid() && message_id > d->last_new_message_id &&
-            (d->notification_info != nullptr &&
-             message_id <= d->notification_info->max_push_notification_message_id_)) {
-          // allow to reply to yet unreceived server message in the same chat
-          return MessageInputReplyTo{message_id, DialogId(), MessageQuote{td_, std::move(reply_to_message->quote_)},
-                                     checklist_task_id};
-        }
-        if (!for_draft && top_thread_message_id.is_valid()) {
-          return MessageInputReplyTo{top_thread_message_id, DialogId(), MessageQuote(), 0};
-        }
-        LOG(INFO) << "Can't find " << message_id << " in " << d->dialog_id;
-
-        // TODO local replies to local messages can be allowed
-        // TODO replies to yet unsent messages can be allowed with special handling of them on application restart
-        return {};
-      }
-      if (checklist_task_id != 0 && m->content->get_type() != MessageContentType::ToDoList) {
-        checklist_task_id = 0;
-      }
-      return MessageInputReplyTo{m->message_id, DialogId(), MessageQuote{td_, std::move(reply_to_message->quote_)},
-                                 checklist_task_id};
-    }
-    case td_api::inputMessageReplyToExternalMessage::ID: {
-      auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToExternalMessage>(reply_to);
-      if (d->dialog_id.get_type() == DialogType::SecretChat) {
-        return {};
-      }
-      auto reply_dialog_id = DialogId(reply_to_message->chat_id_);
-      auto *reply_d = get_dialog_force(reply_dialog_id, "create_message_input_reply_to");
-      if (reply_d == nullptr) {
-        return {};
-      }
-      auto message_id = get_persistent_message_id(reply_d, MessageId(reply_to_message->message_id_));
-      if (message_id == MessageId(ServerMessageId(1)) && reply_d->dialog_id.get_type() == DialogType::Channel) {
-        return {};
-      }
-      const Message *m = get_message_force(reply_d, message_id, "create_message_input_reply_to 2");
-      if (!can_reply_to_message_in_another_dialog(reply_dialog_id, message_id,
-                                                  can_forward_message(reply_dialog_id, m, false))) {
-        LOG(INFO) << "Can't reply in another chat " << message_id << " in " << reply_d->dialog_id;
-        return {};
-      }
-      auto checklist_task_id = max(0, reply_to_message->checklist_task_id_);
-      if (checklist_task_id != 0 && m != nullptr && m->content->get_type() != MessageContentType::ToDoList) {
-        checklist_task_id = 0;
-      }
-      return MessageInputReplyTo{m->message_id, reply_dialog_id, MessageQuote{td_, std::move(reply_to_message->quote_)},
-                                 checklist_task_id};
-    }
-    default:
-      UNREACHABLE();
-      return {};
-  }
 }
 
 MessageInputReplyTo MessagesManager::create_message_input_reply_to(
@@ -24916,7 +24801,7 @@ Result<MessageId> MessagesManager::add_local_message(
     }
   }
 
-  auto input_reply_to = create_message_input_reply_to(d, MessageId(), std::move(reply_to), false);
+  auto input_reply_to = create_message_input_reply_to(d, MessageTopic(), std::move(reply_to), false);
 
   MessageId message_id = get_next_local_message_id(d);
 
