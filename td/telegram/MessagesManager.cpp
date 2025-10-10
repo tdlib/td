@@ -20687,8 +20687,11 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
         const auto *input_reply_to = get_message_input_reply_to(replied_m);
         CHECK(input_reply_to != nullptr);
         CHECK(input_reply_to->get_reply_message_full_id(reply_d->dialog_id) == MessageFullId(dialog_id, m->message_id));
+
+        auto implicit_reply_to_message_id =
+            get_message_topic(reply_d->dialog_id, replied_m).get_implicit_reply_to_message_id(td_);
         set_message_reply(reply_d, replied_m,
-                          MessageInputReplyTo{replied_m->top_thread_message_id, DialogId(), MessageQuote(), 0}, true);
+                          MessageInputReplyTo{implicit_reply_to_message_id, DialogId(), MessageQuote(), 0}, true);
       }
       replied_yet_unsent_messages_.erase(it);
     }
@@ -34960,7 +34963,8 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
   if (message_id.is_valid() || message_id.is_valid_scheduled()) {
     update_message_reply_to_message_id(d, m, message_id, false);
   } else {
-    set_message_reply(d, m, MessageInputReplyTo{m->top_thread_message_id, DialogId(), MessageQuote(), 0}, false);
+    auto implicit_reply_to_message_id = get_message_topic(d->dialog_id, m).get_implicit_reply_to_message_id(td_);
+    set_message_reply(d, m, MessageInputReplyTo{implicit_reply_to_message_id, DialogId(), MessageQuote(), 0}, false);
   }
 }
 
