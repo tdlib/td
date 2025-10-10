@@ -77,63 +77,6 @@ void MessageInputReplyTo::add_dependencies(Dependencies &dependencies) const {
 }
 
 telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_input_reply_to(
-    Td *td, MessageId top_thread_message_id, SavedMessagesTopicId saved_messages_topic_id) const {
-  if (story_full_id_.is_valid()) {
-    auto dialog_id = story_full_id_.get_dialog_id();
-    auto input_peer = td->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    if (input_peer == nullptr) {
-      LOG(INFO) << "Failed to get input peer for " << story_full_id_;
-      return nullptr;
-    }
-    return telegram_api::make_object<telegram_api::inputReplyToStory>(std::move(input_peer),
-                                                                      story_full_id_.get_story_id().get());
-  }
-  auto reply_to_message_id = message_id_;
-  if (reply_to_message_id == MessageId()) {
-    if (top_thread_message_id == MessageId()) {
-      if (saved_messages_topic_id.is_valid()) {
-        auto input_peer = saved_messages_topic_id.get_input_peer(td);
-        if (input_peer != nullptr) {
-          return telegram_api::make_object<telegram_api::inputReplyToMonoForum>(std::move(input_peer));
-        }
-      }
-      return nullptr;
-    }
-    reply_to_message_id = top_thread_message_id;
-  }
-  CHECK(reply_to_message_id.is_server());
-  int32 flags = 0;
-  if (top_thread_message_id != MessageId()) {
-    CHECK(top_thread_message_id.is_server());
-    flags |= telegram_api::inputReplyToMessage::TOP_MSG_ID_MASK;
-  }
-  telegram_api::object_ptr<telegram_api::InputPeer> monoforum_input_peer;
-  if (saved_messages_topic_id.is_valid()) {
-    monoforum_input_peer = saved_messages_topic_id.get_input_peer(td);
-    if (monoforum_input_peer != nullptr) {
-      flags |= telegram_api::inputReplyToMessage::MONOFORUM_PEER_ID_MASK;
-    }
-  }
-  telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
-  if (dialog_id_ != DialogId()) {
-    input_peer = td->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
-    if (input_peer == nullptr) {
-      LOG(INFO) << "Failed to get input peer for " << dialog_id_;
-      return nullptr;
-    }
-    flags |= telegram_api::inputReplyToMessage::REPLY_TO_PEER_ID_MASK;
-  }
-  if (todo_item_id_ != 0) {
-    flags |= telegram_api::inputReplyToMessage::TODO_ITEM_ID_MASK;
-  }
-  auto result = telegram_api::make_object<telegram_api::inputReplyToMessage>(
-      flags, reply_to_message_id.get_server_message_id().get(), top_thread_message_id.get_server_message_id().get(),
-      std::move(input_peer), string(), Auto(), 0, std::move(monoforum_input_peer), todo_item_id_);
-  quote_.update_input_reply_to_message(td, result.get());
-  return std::move(result);
-}
-
-telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_input_reply_to(
     Td *td, const MessageTopic &message_topic) const {
   if (story_full_id_.is_valid()) {
     CHECK(message_topic.is_empty());
