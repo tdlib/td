@@ -310,7 +310,7 @@ class SetUsername final : public TestClinetTask {
       CHECK(res->get_id() == td::td_api::chat::ID);
       auto chat = td::move_tl_object_as<td::td_api::chat>(res);
       this->send_query(td::make_tl_object<td::td_api::sendMessage>(
-                           chat->id_, 0, nullptr, nullptr, nullptr,
+                           chat->id_, nullptr, nullptr, nullptr, nullptr,
                            td::make_tl_object<td::td_api::inputMessageText>(
                                td::make_tl_object<td::td_api::formattedText>(PSTRING() << tag_ << " INIT", td::Auto()),
                                nullptr, false)),
@@ -381,7 +381,7 @@ class TestA final : public TestClinetTask {
       for (int i = 0; i < 20; i++) {
         this->send_query(
             td::make_tl_object<td::td_api::sendMessage>(
-                chat->id_, 0, nullptr, nullptr, nullptr,
+                chat->id_, nullptr, nullptr, nullptr, nullptr,
                 td::make_tl_object<td::td_api::inputMessageText>(
                     td::make_tl_object<td::td_api::formattedText>(PSTRING() << tag_ << " " << (1000 + i), td::Auto()),
                     nullptr, false)),
@@ -430,7 +430,7 @@ class TestSecretChat final : public TestClinetTask {
       for (int i = 0; i < 20; i++) {
         send_query(
             td::make_tl_object<td::td_api::sendMessage>(
-                chat_id_, 0, nullptr, nullptr, nullptr,
+                chat_id_, nullptr, nullptr, nullptr, nullptr,
                 td::make_tl_object<td::td_api::inputMessageText>(
                     td::make_tl_object<td::td_api::formattedText>(PSTRING() << tag_ << " " << (1000 + i), td::Auto()),
                     nullptr, false)),
@@ -494,7 +494,7 @@ class TestFileGenerated final : public TestClinetTask {
     file.flush_write().ensure();  // important
     file.close();
     send_query(td::make_tl_object<td::td_api::sendMessage>(
-                   chat_id_, 0, nullptr, nullptr, nullptr,
+                   chat_id_, nullptr, nullptr, nullptr, nullptr,
                    td::make_tl_object<td::td_api::inputMessageDocument>(
                        td::make_tl_object<td::td_api::inputFileGenerated>(file_path, "square", 0),
                        td::make_tl_object<td::td_api::inputThumbnail>(
@@ -503,7 +503,7 @@ class TestFileGenerated final : public TestClinetTask {
                [](auto res) { check_td_error(res); });
 
     send_query(td::make_tl_object<td::td_api::sendMessage>(
-                   chat_id_, 0, nullptr, nullptr, nullptr,
+                   chat_id_, nullptr, nullptr, nullptr, nullptr,
                    td::make_tl_object<td::td_api::inputMessageDocument>(
                        td::make_tl_object<td::td_api::inputFileGenerated>(file_path, "square", 0), nullptr, true,
                        td::make_tl_object<td::td_api::formattedText>(tag_, td::Auto()))),
@@ -611,7 +611,7 @@ class CheckTestC final : public TestClinetTask {
 
   void one_file() {
     send_query(td::make_tl_object<td::td_api::sendMessage>(
-                   chat_id_, 0, nullptr, nullptr, nullptr,
+                   chat_id_, nullptr, nullptr, nullptr, nullptr,
                    td::make_tl_object<td::td_api::inputMessageText>(
                        td::make_tl_object<td::td_api::formattedText>(PSTRING() << tag_ << " ONE_FILE", td::Auto()),
                        nullptr, false)),

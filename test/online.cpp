@@ -336,7 +336,7 @@ class UploadFile : public Task {
     write_file(content_path_, content_).ensure();
 
     send_query(td::make_tl_object<td::td_api::sendMessage>(
-                   chat_id_, 0, nullptr, nullptr, nullptr,
+                   chat_id_, nullptr, nullptr, nullptr, nullptr,
                    td::make_tl_object<td::td_api::inputMessageDocument>(
                        td::make_tl_object<td::td_api::inputFileLocal>(content_path_), nullptr, true,
                        td::make_tl_object<td::td_api::formattedText>("tag", td::Auto()))),

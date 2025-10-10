@@ -2726,11 +2726,11 @@ class CliClient final : public Actor {
       return;
     }
     auto id = send_request(td_api::make_object<td_api::sendMessage>(
-        chat_id, message_thread_id_, get_input_message_reply_to(),
-        td_api::make_object<td_api::messageSendOptions>(
-            direct_messages_chat_topic_id_, get_input_suggested_post_info(), disable_notification, from_background,
-            false, use_test_dc_, paid_message_star_count_, false, as_message_scheduling_state(schedule_date_),
-            message_effect_id_, Random::fast(1, 1000), only_preview_),
+        chat_id, get_message_topic_id(), get_input_message_reply_to(),
+        td_api::make_object<td_api::messageSendOptions>(get_input_suggested_post_info(), disable_notification,
+                                                        from_background, false, use_test_dc_, paid_message_star_count_,
+                                                        false, as_message_scheduling_state(schedule_date_),
+                                                        message_effect_id_, Random::fast(1, 1000), only_preview_),
         nullptr, std::move(input_message_content)));
     if (id != 0) {
       query_id_to_send_message_info_[id].start_time = Time::now();
@@ -2747,9 +2747,8 @@ class CliClient final : public Actor {
 
   td_api::object_ptr<td_api::messageSendOptions> default_message_send_options() const {
     return td_api::make_object<td_api::messageSendOptions>(
-        direct_messages_chat_topic_id_, get_input_suggested_post_info(), false, false, false, use_test_dc_,
-        paid_message_star_count_, true, as_message_scheduling_state(schedule_date_), message_effect_id_,
-        Random::fast(1, 1000), only_preview_);
+        get_input_suggested_post_info(), false, false, false, use_test_dc_, paid_message_star_count_, true,
+        as_message_scheduling_state(schedule_date_), message_effect_id_, Random::fast(1, 1000), only_preview_);
   }
 
   void set_draft_message(ChatId chat_id, td_api::object_ptr<td_api::draftMessage> &&draft_message) {
@@ -4938,7 +4937,7 @@ class CliClient final : public Actor {
       string message_ids;
       get_args(args, chat_id, from_chat_id, message_ids);
       send_request(td_api::make_object<td_api::forwardMessages>(
-          chat_id, message_thread_id_, from_chat_id, as_message_ids(message_ids), default_message_send_options(),
+          chat_id, get_message_topic_id(), from_chat_id, as_message_ids(message_ids), default_message_send_options(),
           op[0] == 'c', rand_bool()));
     } else if (op == "sqrsm") {
       ChatId chat_id;
@@ -6026,7 +6025,7 @@ class CliClient final : public Actor {
             quick_reply_shortcut_name_, reply_message_id_, std::move(input_message_contents)));
       } else {
         send_request(td_api::make_object<td_api::sendMessageAlbum>(
-            chat_id, message_thread_id_, get_input_message_reply_to(), default_message_send_options(),
+            chat_id, get_message_topic_id(), get_input_message_reply_to(), default_message_send_options(),
             std::move(input_message_contents)));
       }
     } else if (op == "savt") {
@@ -6341,7 +6340,8 @@ class CliClient final : public Actor {
       get_args(args, chat_id, query_id, result_id);
       if (quick_reply_shortcut_name_.empty()) {
         send_request(td_api::make_object<td_api::sendInlineQueryResultMessage>(
-            chat_id, message_thread_id_, nullptr, default_message_send_options(), query_id, result_id, op == "siqrh"));
+            chat_id, get_message_topic_id(), get_input_message_reply_to(), default_message_send_options(), query_id,
+            result_id, op == "siqrh"));
       } else {
         send_request(td_api::make_object<td_api::addQuickReplyShortcutInlineQueryResultMessage>(
             quick_reply_shortcut_name_, reply_message_id_, query_id, result_id, op == "siqrh"));

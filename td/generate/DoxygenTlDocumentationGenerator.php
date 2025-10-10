@@ -235,7 +235,7 @@ EOT
  * auto get_me_request = td::td_api::make_object<td::td_api::getMe>();
  * auto message_text = td::td_api::make_object<td::td_api::formattedText>("Hello, world!!!",
  *                     td::td_api::array<td::td_api::object_ptr<td::td_api::textEntity>>());
- * auto send_message_request = td::td_api::make_object<td::td_api::sendMessage>(chat_id, 0, nullptr, nullptr, nullptr,
+ * auto send_message_request = td::td_api::make_object<td::td_api::sendMessage>(chat_id, nullptr, nullptr, nullptr, nullptr,
  *      td::td_api::make_object<td::td_api::inputMessageText>(std::move(message_text), nullptr, true));
  * \\endcode
  *

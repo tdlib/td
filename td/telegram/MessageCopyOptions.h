@@ -9,12 +9,15 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
+#include "td/telegram/MessageTopic.h"
 #include "td/telegram/ReplyMarkup.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {
+
+class Td;
 
 struct MessageCopyOptions {
   bool send_copy = false;
@@ -28,7 +31,7 @@ struct MessageCopyOptions {
   MessageCopyOptions(bool send_copy, bool remove_caption) : send_copy(send_copy), replace_caption(remove_caption) {
   }
 
-  bool is_supported_server_side(MessageId top_thread_message_id) const {
+  bool is_supported_server_side(const Td *td, const MessageTopic &message_topic) const {
     if (!send_copy) {
       return true;
     }
@@ -36,8 +39,8 @@ struct MessageCopyOptions {
       return false;
     }
     if (input_reply_to.is_valid() &&
-        (top_thread_message_id == MessageId() || input_reply_to.has_quote() || input_reply_to.has_todo_item_id() ||
-         input_reply_to.get_same_chat_reply_to_message_id() != top_thread_message_id)) {
+        (!message_topic.is_forum() || input_reply_to.has_quote() || input_reply_to.has_todo_item_id() ||
+         input_reply_to.get_same_chat_reply_to_message_id() != message_topic.get_implicit_reply_to_message_id(td))) {
       return false;
     }
     return true;
