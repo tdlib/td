@@ -1182,6 +1182,7 @@ class UserManager final : public Actor {
   UserId my_id_;
   UserId support_user_id_;
   int32 my_was_online_local_ = 0;
+  double next_set_my_active_users_ = 0.0;
 
   WaitFreeHashMap<UserId, unique_ptr<User>, UserIdHash> users_;
   WaitFreeHashMap<UserId, unique_ptr<UserFull>, UserIdHash> users_full_;

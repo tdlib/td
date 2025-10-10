@@ -3153,7 +3153,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
       is_business_bot != u->is_business_bot || inline_query_placeholder != u->inline_query_placeholder ||
       need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
-      bot_active_users != u->bot_active_users || has_main_app != u->has_main_app) {
+      has_main_app != u->has_main_app) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -3172,11 +3172,21 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     u->inline_query_placeholder = std::move(inline_query_placeholder);
     u->need_location_bot = need_location_bot;
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
-    u->bot_active_users = bot_active_users;
     u->has_main_app = has_main_app;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
+  }
+  if (bot_active_users != u->bot_active_users) {
+    bool is_me = user_id == get_my_id();
+    if (!is_me || Time::now() > next_set_my_active_users_) {
+      bot_active_users = u->bot_active_users;
+      u->is_changed = true;
+
+      if (is_me) {
+        next_set_my_active_users_ = Time::now() + 600;
+      }
+    }
   }
   if (contact_require_premium != u->contact_require_premium || paid_message_star_count != u->paid_message_star_count) {
     u->contact_require_premium = contact_require_premium;
