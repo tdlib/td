@@ -20550,7 +20550,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
           CHECK(d->dialog_id.get_type() == DialogType::Channel);
 
           // if the message is in an album and not in the thread, it can be in the album of the top thread message
-          const Message *top_m = get_message_force(d, implicit_reply_to_message_id, "get_message_topic 2");
+          const Message *top_m = get_message_force(d, implicit_reply_to_message_id, "create_message_input_reply_to 3");
           if (top_m != nullptr &&
               (top_m->media_album_id != m->media_album_id || top_m->top_thread_message_id != top_m->message_id)) {
             LOG(INFO) << "Ignore reply to an album message from a different topic";
