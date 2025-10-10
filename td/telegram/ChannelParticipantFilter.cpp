@@ -89,6 +89,10 @@ ChannelParticipantFilter::ChannelParticipantFilter(const tl_object_ptr<td_api::S
   }
 }
 
+ChannelParticipantFilter ChannelParticipantFilter::recent() {
+  return ChannelParticipantFilter(nullptr);
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantFilter &filter) {
   switch (filter.type_) {
     case ChannelParticipantFilter::Type::Recent:

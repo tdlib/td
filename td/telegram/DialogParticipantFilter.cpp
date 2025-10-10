@@ -75,29 +75,6 @@ DialogParticipantFilter::DialogParticipantFilter(const td_api::object_ptr<td_api
   }
 }
 
-td_api::object_ptr<td_api::SupergroupMembersFilter> DialogParticipantFilter::get_supergroup_members_filter_object(
-    const string &query) const {
-  switch (type_) {
-    case Type::Contacts:
-      return td_api::make_object<td_api::supergroupMembersFilterContacts>();
-    case Type::Administrators:
-      return td_api::make_object<td_api::supergroupMembersFilterAdministrators>();
-    case Type::Members:
-      return td_api::make_object<td_api::supergroupMembersFilterSearch>(query);
-    case Type::Restricted:
-      return td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
-    case Type::Banned:
-      return td_api::make_object<td_api::supergroupMembersFilterBanned>(query);
-    case Type::Mention:
-      return td_api::make_object<td_api::supergroupMembersFilterMention>(query, top_thread_message_id_.get());
-    case Type::Bots:
-      return td_api::make_object<td_api::supergroupMembersFilterBots>();
-    default:
-      UNREACHABLE();
-      return nullptr;
-  }
-}
-
 ChannelParticipantFilter DialogParticipantFilter::as_channel_participant_filter(const string &query) const {
   ChannelParticipantFilter filter{nullptr};
   switch (type_) {

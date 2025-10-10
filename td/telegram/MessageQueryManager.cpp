@@ -2337,8 +2337,8 @@ void MessageQueryManager::on_get_message_viewers(DialogId dialog_id, MessageView
                                                       "on_get_message_viewers");
         case DialogType::Channel:
           return td_->dialog_participant_manager_->get_channel_participants(
-              dialog_id.get_channel_id(), td_api::make_object<td_api::supergroupMembersFilterRecent>(), string(), 0,
-              200, 200, PromiseCreator::lambda([query_promise = std::move(query_promise)](DialogParticipants) mutable {
+              dialog_id.get_channel_id(), ChannelParticipantFilter::recent(), string(), 0, 200, 200,
+              PromiseCreator::lambda([query_promise = std::move(query_promise)](DialogParticipants) mutable {
                 query_promise.set_value(Unit());
               }));
         default:

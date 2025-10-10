@@ -832,8 +832,8 @@ void DialogParticipantManager::on_update_dialog_online_member_count_timeout(Dial
     if (participant_count == 0 || participant_count >= 195 || has_hidden_participants) {
       td_->create_handler<GetOnlinesQuery>()->send(dialog_id);
     } else {
-      get_channel_participants(dialog_id.get_channel_id(), td_api::make_object<td_api::supergroupMembersFilterRecent>(),
-                               string(), 0, 200, 200, Auto());
+      get_channel_participants(dialog_id.get_channel_id(), ChannelParticipantFilter::recent(), string(), 0, 200, 200,
+                               Auto());
     }
     return;
   }
@@ -1797,8 +1797,7 @@ void DialogParticipantManager::do_search_chat_participants(ChatId chat_id, const
   promise.set_value(DialogParticipants{total_count, std::move(dialog_participants)});
 }
 
-void DialogParticipantManager::get_channel_participants(ChannelId channel_id,
-                                                        td_api::object_ptr<td_api::SupergroupMembersFilter> &&filter,
+void DialogParticipantManager::get_channel_participants(ChannelId channel_id, ChannelParticipantFilter &&filter,
                                                         string additional_query, int32 offset, int32 limit,
                                                         int32 additional_limit, Promise<DialogParticipants> &&promise) {
   if (limit <= 0) {
@@ -1818,10 +1817,9 @@ void DialogParticipantManager::get_channel_participants(ChannelId channel_id,
     return promise.set_error(400, "Member list is inaccessible");
   }
 
-  ChannelParticipantFilter participant_filter(filter);
   auto get_channel_participants_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), channel_id, filter = participant_filter,
-       additional_query = std::move(additional_query), offset, limit, additional_limit, promise = std::move(promise)](
+      [actor_id = actor_id(this), channel_id, filter, additional_query = std::move(additional_query), offset, limit,
+       additional_limit, promise = std::move(promise)](
           Result<telegram_api::object_ptr<telegram_api::channels_channelParticipants>> &&result) mutable {
         if (result.is_error()) {
           promise.set_error(result.move_as_error());
@@ -1832,7 +1830,7 @@ void DialogParticipantManager::get_channel_participants(ChannelId channel_id,
         }
       });
   td_->create_handler<GetChannelParticipantsQuery>(std::move(get_channel_participants_promise))
-      ->send(channel_id, participant_filter, offset, limit);
+      ->send(channel_id, filter, offset, limit);
 }
 
 void DialogParticipantManager::on_get_channel_participants(
@@ -2006,11 +2004,11 @@ void DialogParticipantManager::search_dialog_participants(DialogId dialog_id, co
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
       if (filter.has_query()) {
-        return get_channel_participants(channel_id, filter.get_supergroup_members_filter_object(query), string(), 0,
-                                        limit, 0, std::move(promise));
+        return get_channel_participants(channel_id, filter.as_channel_participant_filter(query), string(), 0, limit, 0,
+                                        std::move(promise));
       } else {
-        return get_channel_participants(channel_id, filter.get_supergroup_members_filter_object(string()), query, 0,
-                                        100, limit, std::move(promise));
+        return get_channel_participants(channel_id, filter.as_channel_participant_filter(string()), query, 0, 100,
+                                        limit, std::move(promise));
       }
     }
     case DialogType::SecretChat: {

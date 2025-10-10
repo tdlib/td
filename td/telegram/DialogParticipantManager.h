@@ -106,8 +106,8 @@ class DialogParticipantManager final : public Actor {
   void get_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
                                Promise<DialogParticipant> &&promise);
 
-  void get_channel_participants(ChannelId channel_id, td_api::object_ptr<td_api::SupergroupMembersFilter> &&filter,
-                                string additional_query, int32 offset, int32 limit, int32 additional_limit,
+  void get_channel_participants(ChannelId channel_id, ChannelParticipantFilter &&filter, string additional_query,
+                                int32 offset, int32 limit, int32 additional_limit,
                                 Promise<DialogParticipants> &&promise);
 
   void search_dialog_participants(DialogId dialog_id, const string &query, int32 limit, DialogParticipantFilter filter,

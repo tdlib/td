@@ -28,8 +28,6 @@ class DialogParticipantFilter {
  public:
   explicit DialogParticipantFilter(const td_api::object_ptr<td_api::ChatMembersFilter> &filter);
 
-  td_api::object_ptr<td_api::SupergroupMembersFilter> get_supergroup_members_filter_object(const string &query) const;
-
   ChannelParticipantFilter as_channel_participant_filter(const string &query) const;
 
   bool has_query() const;

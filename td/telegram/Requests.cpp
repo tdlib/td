@@ -6807,7 +6807,7 @@ void Requests::on_request(uint64 id, const td_api::reportSupergroupAntiSpamFalse
                                                               MessageId(request.message_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, td_api::getSupergroupMembers &request) {
+void Requests::on_request(uint64 id, const td_api::getSupergroupMembers &request) {
   CREATE_REQUEST_PROMISE();
   auto query_promise =
       PromiseCreator::lambda([promise = std::move(promise), td = td_](Result<DialogParticipants> result) mutable {
@@ -6817,9 +6817,9 @@ void Requests::on_request(uint64 id, td_api::getSupergroupMembers &request) {
           promise.set_value(result.ok().get_chat_members_object(td, "getSupergroupMembers"));
         }
       });
-  td_->dialog_participant_manager_->get_channel_participants(ChannelId(request.supergroup_id_),
-                                                             std::move(request.filter_), string(), request.offset_,
-                                                             request.limit_, -1, std::move(query_promise));
+  td_->dialog_participant_manager_->get_channel_participants(
+      ChannelId(request.supergroup_id_), ChannelParticipantFilter(request.filter_), string(), request.offset_,
+      request.limit_, -1, std::move(query_promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::closeSecretChat &request) {

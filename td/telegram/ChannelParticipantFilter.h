@@ -30,6 +30,8 @@ class ChannelParticipantFilter {
 
   tl_object_ptr<telegram_api::ChannelParticipantsFilter> get_input_channel_participants_filter() const;
 
+  static ChannelParticipantFilter recent();
+
   bool is_administrators() const {
     return type_ == Type::Administrators;
   }
