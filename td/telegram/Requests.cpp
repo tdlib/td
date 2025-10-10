@@ -5727,8 +5727,9 @@ void Requests::on_request(uint64 id, td_api::searchChatMembers &request) {
           promise.set_value(result.ok().get_chat_members_object(td, "searchChatMembers"));
         }
       });
-  td_->dialog_participant_manager_->search_dialog_participants(DialogId(request.chat_id_), request.query_,
-                                                               request.limit_, DialogParticipantFilter(request.filter_),
+  DialogId dialog_id(request.chat_id_);
+  td_->dialog_participant_manager_->search_dialog_participants(dialog_id, request.query_, request.limit_,
+                                                               DialogParticipantFilter(td_, dialog_id, request.filter_),
                                                                std::move(query_promise));
 }
 
@@ -6817,8 +6818,9 @@ void Requests::on_request(uint64 id, const td_api::getSupergroupMembers &request
           promise.set_value(result.ok().get_chat_members_object(td, "getSupergroupMembers"));
         }
       });
+  ChannelId channel_id(request.supergroup_id_);
   td_->dialog_participant_manager_->get_channel_participants(
-      ChannelId(request.supergroup_id_), ChannelParticipantFilter(request.filter_), string(), request.offset_,
+      channel_id, ChannelParticipantFilter(td_, DialogId(channel_id), request.filter_), string(), request.offset_,
       request.limit_, -1, std::move(query_promise));
 }
 

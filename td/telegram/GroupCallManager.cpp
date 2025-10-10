@@ -4007,7 +4007,8 @@ void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input
                      std::move(result));
       });
   td_->dialog_participant_manager_->search_dialog_participants(
-      dialog_id, string(), 100, DialogParticipantFilter(td_api::make_object<td_api::chatMembersFilterAdministrators>()),
+      dialog_id, string(), 100,
+      DialogParticipantFilter(td_, dialog_id, td_api::make_object<td_api::chatMembersFilterAdministrators>()),
       std::move(promise));
 }
 

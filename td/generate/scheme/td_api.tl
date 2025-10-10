@@ -2016,8 +2016,8 @@ chatMembersFilterAdministrators = ChatMembersFilter;
 //@description Returns all chat members, including restricted chat members
 chatMembersFilterMembers = ChatMembersFilter;
 
-//@description Returns users which can be mentioned in the chat @message_thread_id If non-zero, the identifier of the current message thread
-chatMembersFilterMention message_thread_id:int53 = ChatMembersFilter;
+//@description Returns users which can be mentioned in the chat @topic_id Identifier of the topic in which the users will be mentioned; pass null if none
+chatMembersFilterMention topic_id:MessageTopic = ChatMembersFilter;
 
 //@description Returns users under certain restrictions in the chat; can be used only by administrators in a supergroup
 chatMembersFilterRestricted = ChatMembersFilter;
@@ -2049,8 +2049,8 @@ supergroupMembersFilterRestricted query:string = SupergroupMembersFilter;
 //@description Returns users banned from the supergroup or channel; can be used only by administrators @query Query to search for
 supergroupMembersFilterBanned query:string = SupergroupMembersFilter;
 
-//@description Returns users which can be mentioned in the supergroup @query Query to search for @message_thread_id If non-zero, the identifier of the current message thread
-supergroupMembersFilterMention query:string message_thread_id:int53 = SupergroupMembersFilter;
+//@description Returns users which can be mentioned in the supergroup @query Query to search for @topic_id Identifier of the topic in which the users will be mentioned; pass null if none
+supergroupMembersFilterMention query:string topic_id:MessageTopic = SupergroupMembersFilter;
 
 //@description Returns bot members of the supergroup or channel
 supergroupMembersFilterBots = SupergroupMembersFilter;

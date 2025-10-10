@@ -35,7 +35,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant
   }
 }
 
-DialogParticipantFilter::DialogParticipantFilter(const td_api::object_ptr<td_api::ChatMembersFilter> &filter) {
+DialogParticipantFilter::DialogParticipantFilter(Td *td, DialogId dialog_id,
+                                                 const td_api::object_ptr<td_api::ChatMembersFilter> &filter) {
   if (filter == nullptr) {
     type_ = Type::Members;
     return;
@@ -58,9 +59,9 @@ DialogParticipantFilter::DialogParticipantFilter(const td_api::object_ptr<td_api
       break;
     case td_api::chatMembersFilterMention::ID: {
       auto mention_filter = static_cast<const td_api::chatMembersFilterMention *>(filter.get());
-      top_thread_message_id_ = MessageId(mention_filter->message_thread_id_);
-      if (!top_thread_message_id_.is_server()) {
-        top_thread_message_id_ = MessageId();
+      auto r_message_topic = MessageTopic::get_message_topic(td, dialog_id, mention_filter->topic_id_);
+      if (r_message_topic.is_ok()) {
+        message_topic_ = r_message_topic.move_as_ok();
       }
       type_ = Type::Mention;
       break;
@@ -76,7 +77,7 @@ DialogParticipantFilter::DialogParticipantFilter(const td_api::object_ptr<td_api
 }
 
 ChannelParticipantFilter DialogParticipantFilter::as_channel_participant_filter(const string &query) const {
-  ChannelParticipantFilter filter{nullptr};
+  ChannelParticipantFilter filter{nullptr, DialogId(), nullptr};
   switch (type_) {
     case Type::Contacts:
       filter.type_ = ChannelParticipantFilter::Type::Contacts;
@@ -100,7 +101,7 @@ ChannelParticipantFilter DialogParticipantFilter::as_channel_participant_filter(
     case Type::Mention:
       filter.type_ = ChannelParticipantFilter::Type::Mention;
       filter.query_ = query;
-      filter.top_thread_message_id_ = top_thread_message_id_;
+      filter.message_topic_ = message_topic_;
       break;
     case Type::Bots:
       filter.type_ = ChannelParticipantFilter::Type::Bots;

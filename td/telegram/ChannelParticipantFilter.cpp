@@ -8,41 +8,42 @@
 
 namespace td {
 
-tl_object_ptr<telegram_api::ChannelParticipantsFilter> ChannelParticipantFilter::get_input_channel_participants_filter()
-    const {
+telegram_api::object_ptr<telegram_api::ChannelParticipantsFilter>
+ChannelParticipantFilter::get_input_channel_participants_filter() const {
   switch (type_) {
     case Type::Recent:
-      return make_tl_object<telegram_api::channelParticipantsRecent>();
+      return telegram_api::make_object<telegram_api::channelParticipantsRecent>();
     case Type::Contacts:
-      return make_tl_object<telegram_api::channelParticipantsContacts>(query_);
+      return telegram_api::make_object<telegram_api::channelParticipantsContacts>(query_);
     case Type::Administrators:
-      return make_tl_object<telegram_api::channelParticipantsAdmins>();
+      return telegram_api::make_object<telegram_api::channelParticipantsAdmins>();
     case Type::Search:
-      return make_tl_object<telegram_api::channelParticipantsSearch>(query_);
+      return telegram_api::make_object<telegram_api::channelParticipantsSearch>(query_);
     case Type::Mention: {
       int32 flags = 0;
       if (!query_.empty()) {
         flags |= telegram_api::channelParticipantsMentions::Q_MASK;
       }
-      if (top_thread_message_id_.is_valid()) {
+      auto top_msg_id = message_topic_.get_input_top_msg_id();
+      if (top_msg_id != 0) {
         flags |= telegram_api::channelParticipantsMentions::TOP_MSG_ID_MASK;
       }
-      return make_tl_object<telegram_api::channelParticipantsMentions>(
-          flags, query_, top_thread_message_id_.get_server_message_id().get());
+      return telegram_api::make_object<telegram_api::channelParticipantsMentions>(flags, query_, top_msg_id);
     }
     case Type::Restricted:
-      return make_tl_object<telegram_api::channelParticipantsBanned>(query_);
+      return telegram_api::make_object<telegram_api::channelParticipantsBanned>(query_);
     case Type::Banned:
-      return make_tl_object<telegram_api::channelParticipantsKicked>(query_);
+      return telegram_api::make_object<telegram_api::channelParticipantsKicked>(query_);
     case Type::Bots:
-      return make_tl_object<telegram_api::channelParticipantsBots>();
+      return telegram_api::make_object<telegram_api::channelParticipantsBots>();
     default:
       UNREACHABLE();
       return nullptr;
   }
 }
 
-ChannelParticipantFilter::ChannelParticipantFilter(const tl_object_ptr<td_api::SupergroupMembersFilter> &filter) {
+ChannelParticipantFilter::ChannelParticipantFilter(Td *td, DialogId dialog_id,
+                                                   const td_api::object_ptr<td_api::SupergroupMembersFilter> &filter) {
   if (filter == nullptr) {
     type_ = Type::Recent;
     return;
@@ -66,9 +67,9 @@ ChannelParticipantFilter::ChannelParticipantFilter(const tl_object_ptr<td_api::S
       auto mention_filter = static_cast<const td_api::supergroupMembersFilterMention *>(filter.get());
       type_ = Type::Mention;
       query_ = mention_filter->query_;
-      top_thread_message_id_ = MessageId(mention_filter->message_thread_id_);
-      if (!top_thread_message_id_.is_server()) {
-        top_thread_message_id_ = MessageId();
+      auto r_message_topic = MessageTopic::get_message_topic(td, dialog_id, mention_filter->topic_id_);
+      if (r_message_topic.is_ok()) {
+        message_topic_ = r_message_topic.move_as_ok();
       }
       return;
     }
@@ -90,7 +91,7 @@ ChannelParticipantFilter::ChannelParticipantFilter(const tl_object_ptr<td_api::S
 }
 
 ChannelParticipantFilter ChannelParticipantFilter::recent() {
-  return ChannelParticipantFilter(nullptr);
+  return ChannelParticipantFilter(nullptr, DialogId(), nullptr);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantFilter &filter) {
@@ -104,7 +105,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipan
     case ChannelParticipantFilter::Type::Search:
       return string_builder << "Search \"" << filter.query_ << '"';
     case ChannelParticipantFilter::Type::Mention:
-      return string_builder << "Mention \"" << filter.query_ << "\" in thread of " << filter.top_thread_message_id_;
+      return string_builder << "Mention \"" << filter.query_ << "\" in " << filter.message_topic_;
     case ChannelParticipantFilter::Type::Restricted:
       return string_builder << "Restricted \"" << filter.query_ << '"';
     case ChannelParticipantFilter::Type::Banned:

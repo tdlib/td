@@ -2199,7 +2199,7 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  static td_api::object_ptr<td_api::ChatMembersFilter> as_chat_members_filter(MutableSlice filter) {
+  td_api::object_ptr<td_api::ChatMembersFilter> as_chat_members_filter(MutableSlice filter) const {
     filter = trim(filter);
     to_lower_inplace(filter);
     if (filter == "a" || filter == "admin" || filter == "administrators") {
@@ -2217,8 +2217,8 @@ class CliClient final : public Actor {
     if (filter == "m" || filter == "members") {
       return td_api::make_object<td_api::chatMembersFilterMembers>();
     }
-    if (begins_with(filter, "@")) {
-      return td_api::make_object<td_api::chatMembersFilterMention>(as_message_thread_id(filter.substr(1)));
+    if (filter == "@") {
+      return td_api::make_object<td_api::chatMembersFilterMention>(get_message_topic_id());
     }
     if (filter == "r" || filter == "rest" || filter == "restricted") {
       return td_api::make_object<td_api::chatMembersFilterRestricted>();
@@ -2229,9 +2229,8 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  static td_api::object_ptr<td_api::SupergroupMembersFilter> as_supergroup_members_filter(MutableSlice filter,
-                                                                                          const string &query,
-                                                                                          Slice message_thread_id) {
+  td_api::object_ptr<td_api::SupergroupMembersFilter> as_supergroup_members_filter(MutableSlice filter,
+                                                                                   const string &query) const {
     filter = trim(filter);
     to_lower_inplace(filter);
     if (begins_with(filter, "get")) {
@@ -2266,8 +2265,7 @@ class CliClient final : public Actor {
       return td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
     }
     if (filter == "mentions") {
-      return td_api::make_object<td_api::supergroupMembersFilterMention>(query,
-                                                                         as_message_thread_id(message_thread_id));
+      return td_api::make_object<td_api::supergroupMembersFilterMention>(query, get_message_topic_id());
     }
     return nullptr;
   }
@@ -4650,16 +4648,11 @@ class CliClient final : public Actor {
                op == "GetSupergroupContacts" || op == "GetSupergroupMembers" || op == "GetSupergroupRestricted" ||
                op == "SearchSupergroupMembers" || op == "SearchSupergroupMentions") {
       string supergroup_id;
-      string message_thread_id;
       int32 offset;
       SearchQuery query;
-      if (op == "SearchSupergroupMentions") {
-        get_args(args, message_thread_id, args);
-      }
       get_args(args, supergroup_id, offset, query);
       send_request(td_api::make_object<td_api::getSupergroupMembers>(
-          as_supergroup_id(supergroup_id), as_supergroup_members_filter(op, query.query, message_thread_id), offset,
-          query.limit));
+          as_supergroup_id(supergroup_id), as_supergroup_members_filter(op, query.query), offset, query.limit));
     } else if (op == "gd") {
       ChatId chat_id;
       get_args(args, chat_id);
