@@ -261,7 +261,7 @@ MessageId MessageTopic::get_implicit_reply_to_message_id(const Td *td) const {
       if (td->auth_manager_->is_bot() && dialog_id_.get_type() == DialogType::User) {
         return MessageId();
       }
-      return MessageId(ServerMessageId(forum_topic_id_.get()));
+      return forum_topic_id_.to_top_thread_message_id();
     case Type::Monoforum:
     case Type::SavedMessages:
     case Type::None:

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/MessageId.h"
+#include "td/telegram/ServerMessageId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"
@@ -29,6 +30,10 @@ class ForumTopicId {
 
   static ForumTopicId from_top_thread_message_id(MessageId top_thread_message_id) {
     return ForumTopicId(top_thread_message_id.get_server_message_id().get());
+  }
+
+  MessageId to_top_thread_message_id() const {
+    return MessageId(ServerMessageId(id_));
   }
 
   static ForumTopicId general() {

@@ -17528,8 +17528,8 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_forum_topic_history(
   }
 
   return get_message_thread_history(dialog_id, MessageTopic::forum(dialog_id, forum_topic_id),
-                                    {dialog_id, MessageId(ServerMessageId(forum_topic_id.get()))}, from_message_id,
-                                    offset, limit, random_id, std::move(promise));
+                                    {dialog_id, forum_topic_id.to_top_thread_message_id()}, from_message_id, offset,
+                                    limit, random_id, std::move(promise));
 }
 
 void MessagesManager::get_dialog_message_calendar(DialogId dialog_id,
