@@ -85,6 +85,11 @@ class MessageTopic {
     return top_thread_message_id_;
   }
 
+  ForumTopicId get_forum_topic_id() const {
+    CHECK(type_ == Type::Forum);
+    return forum_topic_id_;
+  }
+
   SavedMessagesTopicId get_monoforum_saved_messages_topic_id() const {
     CHECK(type_ == Type::Monoforum);
     return saved_messages_topic_id_;

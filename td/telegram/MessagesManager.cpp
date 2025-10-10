@@ -4338,9 +4338,9 @@ void MessagesManager::on_update_read_message_comments(DialogId dialog_id, Messag
     return;
   }
   if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_update_forum_topic_unread(dialog_id, get_message_forum_topic_id(m), max_message_id,
-                                                            last_read_inbox_message_id, last_read_outbox_message_id,
-                                                            unread_count);
+    td_->forum_topic_manager_->on_update_forum_topic_unread(dialog_id, get_message_forum_topic_id(dialog_id, m),
+                                                            max_message_id, last_read_inbox_message_id,
+                                                            last_read_outbox_message_id, unread_count);
   }
   if (!is_active_message_reply_info(dialog_id, m->reply_info)) {
     return;
@@ -5038,7 +5038,8 @@ void MessagesManager::on_update_message_content(MessageFullId message_full_id) {
 
 void MessagesManager::on_unread_message_mention_removed(Dialog *d, const Message *m, const char *source) {
   if (d->is_forum) {
-    td_->forum_topic_manager_->on_topic_mention_count_changed(d->dialog_id, get_message_forum_topic_id(m), -1, true);
+    td_->forum_topic_manager_->on_topic_mention_count_changed(d->dialog_id, get_message_forum_topic_id(d->dialog_id, m),
+                                                              -1, true);
   }
   if (d->unread_mention_count == 0) {
     if (is_dialog_inited(d)) {
@@ -5072,7 +5073,8 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
 
 void MessagesManager::on_unread_message_reaction_added(Dialog *d, const Message *m, const char *source) {
   if (d->is_forum) {
-    td_->forum_topic_manager_->on_topic_reaction_count_changed(d->dialog_id, get_message_forum_topic_id(m), +1, true);
+    td_->forum_topic_manager_->on_topic_reaction_count_changed(d->dialog_id,
+                                                               get_message_forum_topic_id(d->dialog_id, m), +1, true);
   } else if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id)) {
     td_->saved_messages_manager_->on_topic_reaction_count_changed(d->dialog_id, m->saved_messages_topic_id, +1, true);
   }
@@ -5082,7 +5084,8 @@ void MessagesManager::on_unread_message_reaction_added(Dialog *d, const Message 
 
 void MessagesManager::on_unread_message_reaction_removed(Dialog *d, const Message *m, const char *source) {
   if (d->is_forum) {
-    td_->forum_topic_manager_->on_topic_reaction_count_changed(d->dialog_id, get_message_forum_topic_id(m), -1, true);
+    td_->forum_topic_manager_->on_topic_reaction_count_changed(d->dialog_id,
+                                                               get_message_forum_topic_id(d->dialog_id, m), -1, true);
   } else if (td_->dialog_manager_->is_admined_monoforum_channel(d->dialog_id)) {
     td_->saved_messages_manager_->on_topic_reaction_count_changed(d->dialog_id, m->saved_messages_topic_id, -1, true);
   }
@@ -8796,7 +8799,7 @@ bool MessagesManager::read_all_local_dialog_reactions(DialogId dialog_id, ForumT
   auto message_ids =
       find_dialog_messages(d, [this, dialog_id, forum_topic_id, saved_messages_topic_id](const Message *m) {
         return has_unread_message_reactions(dialog_id, m) &&
-               (!forum_topic_id.is_valid() || get_message_forum_topic_id(m) == forum_topic_id) &&
+               (!forum_topic_id.is_valid() || get_message_forum_topic_id(dialog_id, m) == forum_topic_id) &&
                (!saved_messages_topic_id.is_valid() || m->saved_messages_topic_id == saved_messages_topic_id);
       });
 
@@ -13164,7 +13167,8 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m, bool is_permanen
     delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
   }
   if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, get_message_forum_topic_id(m), -1);
+    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, get_message_forum_topic_id(d->dialog_id, m),
+                                                              -1);
   }
 
   added_message_count_--;
@@ -13239,7 +13243,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_scheduled_messag
     delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
   }
   if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, get_message_forum_topic_id(m), -1);
+    td_->forum_topic_manager_->on_topic_message_count_changed(d->dialog_id, get_message_forum_topic_id(d->dialog_id, m),
+                                                              -1);
   }
 
   return result;
@@ -15143,7 +15148,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
     sb << "c/" << dialog_id.get_channel_id().get();
   }
   if (in_message_thread && is_forum) {
-    auto forum_topic_id = get_message_forum_topic_id(m);
+    auto forum_topic_id = get_message_forum_topic_id(dialog_id, m);
     if (forum_topic_id.get() != message_id.get_server_message_id().get()) {
       sb << '/' << forum_topic_id.get();
     }
@@ -15344,7 +15349,7 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
       if (info.comment_dialog_id.is_valid() || info.for_comment) {
         message_topic = get_message_topic(dialog_id, m);
       } else if (d->is_forum) {
-        message_topic = MessageTopic::forum(dialog_id, get_message_forum_topic_id(m));
+        message_topic = MessageTopic::forum(dialog_id, get_message_forum_topic_id(dialog_id, m));
       }
       if (can_message_content_have_media_timestamp(m->content.get())) {
         auto duration = get_message_content_media_duration(m->content.get(), td_);
@@ -16130,7 +16135,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
     for (auto message_id : message_ids) {
       auto *m = get_message_force(d, message_id, "view_messages 3");
       if (m != nullptr) {
-        auto message_forum_topic_id = get_message_forum_topic_id(m);
+        auto message_forum_topic_id = get_message_forum_topic_id(dialog_id, m);
         if (forum_topic_id.is_valid()) {
           if (message_forum_topic_id != forum_topic_id) {
             return Status::Error(400, "All messages must be from the same forum topic");
@@ -22823,9 +22828,12 @@ DialogId MessagesManager::get_message_sender(const Message *m) {
   return m->sender_dialog_id.is_valid() ? m->sender_dialog_id : DialogId(m->sender_user_id);
 }
 
-ForumTopicId MessagesManager::get_message_forum_topic_id(const Message *m) {
-  return m->is_topic_message ? ForumTopicId::from_top_thread_message_id(m->top_thread_message_id)
-                             : ForumTopicId::general();
+ForumTopicId MessagesManager::get_message_forum_topic_id(DialogId dialog_id, const Message *m) const {
+  auto message_topic = get_message_topic(dialog_id, m);
+  if (message_topic.is_forum()) {
+    return message_topic.get_forum_topic_id();
+  }
+  return ForumTopicId();
 }
 
 MessageTopic MessagesManager::get_message_topic(DialogId dialog_id, const Message *m) const {
@@ -29672,10 +29680,12 @@ void MessagesManager::unpin_all_local_dialog_messages(DialogId dialog_id, ForumT
   if (d == nullptr) {
     return;
   }
-  auto message_ids = find_dialog_messages(d, [forum_topic_id, saved_messages_topic_id](const Message *m) {
-    return m->is_pinned && (!forum_topic_id.is_valid() || get_message_forum_topic_id(m) == forum_topic_id) &&
-           (!saved_messages_topic_id.is_valid() || m->saved_messages_topic_id == saved_messages_topic_id);
-  });
+  auto message_ids =
+      find_dialog_messages(d, [this, dialog_id, forum_topic_id, saved_messages_topic_id](const Message *m) {
+        return m->is_pinned &&
+               (!forum_topic_id.is_valid() || get_message_forum_topic_id(dialog_id, m) == forum_topic_id) &&
+               (!saved_messages_topic_id.is_valid() || m->saved_messages_topic_id == saved_messages_topic_id);
+      });
 
   vector<int64> deleted_message_ids;
   for (auto message_id : message_ids) {
@@ -30139,7 +30149,8 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
   }
   if (need_update && m->contains_unread_mention) {
     if (d->is_forum) {
-      td_->forum_topic_manager_->on_topic_mention_count_changed(dialog_id, get_message_forum_topic_id(m), +1, true);
+      td_->forum_topic_manager_->on_topic_mention_count_changed(dialog_id, get_message_forum_topic_id(dialog_id, m), +1,
+                                                                true);
     }
     set_dialog_unread_mention_count(d, d->unread_mention_count + 1);
     send_update_chat_unread_mention_count(d);
@@ -30640,7 +30651,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (from_update && !m->is_failed_to_send) {
     speculatively_update_active_group_call_id(d, m);
     speculatively_update_channel_participants(dialog_id, m);
-    update_forum_topic_info_by_service_message_content(td_, m->content.get(), dialog_id, get_message_forum_topic_id(m));
+    update_forum_topic_info_by_service_message_content(td_, m->content.get(), dialog_id,
+                                                       get_message_forum_topic_id(dialog_id, m));
     update_sent_message_contents(dialog_id, m);
     update_used_hashtags(dialog_id, m);
     update_top_dialogs(dialog_id, m);
@@ -30677,7 +30689,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(m), +1);
+    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(dialog_id, m), +1);
   }
 
   Message *result_message = message.get();
@@ -30860,7 +30872,7 @@ MessagesManager::Message *MessagesManager::add_scheduled_message_to_dialog(Dialo
   }
 
   if (m->is_topic_message) {
-    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(m), +1);
+    td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(dialog_id, m), +1);
   }
 
   auto *scheduled_messages = add_dialog_scheduled_messages(d);
@@ -31571,7 +31583,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
 
     if ((is_top_thread_message_id_changed || is_is_topic_message_changed) && is_message_in_dialog &&
         old_message->is_topic_message && old_message->top_thread_message_id != MessageId()) {
-      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(old_message), -1);
+      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id,
+                                                                get_message_forum_topic_id(dialog_id, old_message), -1);
     }
 
     if (is_message_in_dialog) {
@@ -31589,7 +31602,8 @@ bool MessagesManager::update_message(Dialog *d, Message *old_message, unique_ptr
     update_message_max_reply_media_timestamp(d, old_message, is_message_in_dialog);
     if ((is_top_thread_message_id_changed || is_is_topic_message_changed) && is_message_in_dialog &&
         old_message->is_topic_message && old_message->top_thread_message_id != MessageId()) {
-      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id, get_message_forum_topic_id(old_message), +1);
+      td_->forum_topic_manager_->on_topic_message_count_changed(dialog_id,
+                                                                get_message_forum_topic_id(dialog_id, old_message), +1);
     }
     need_send_update = true;
   }
