@@ -13,6 +13,7 @@
 #include "td/telegram/BusinessBotManageBar.h"
 #include "td/telegram/BusinessConnectionManager.h"
 #include "td/telegram/ChainId.h"
+#include "td/telegram/ChannelParticipantFilter.h"
 #include "td/telegram/ChannelType.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/ChatReactions.hpp"

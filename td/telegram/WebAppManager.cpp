@@ -9,7 +9,6 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"

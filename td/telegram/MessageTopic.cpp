@@ -11,9 +11,10 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/SavedMessagesManager.h"
-#include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
+
+#include "td/utils/logging.h"
 
 namespace td {
 

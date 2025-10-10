@@ -25,6 +25,7 @@
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/MessageTopic.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Photo.h"

@@ -12,7 +12,6 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageEffectId.h"
-#include "td/telegram/MessageId.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageTopic.h"
 #include "td/telegram/SavedMessagesTopicId.h"

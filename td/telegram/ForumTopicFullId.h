@@ -8,7 +8,6 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/ForumTopicId.h"
-#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/HashTableUtils.h"

@@ -55,6 +55,7 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Outline.h"
 #include "td/telegram/PeerColor.h"
+#include "td/telegram/PeerColorCollectible.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoSize.h"
@@ -7723,8 +7724,7 @@ void UserManager::do_import_contacts(vector<Contact> contacts, int64 random_id, 
   vector<telegram_api::object_ptr<telegram_api::inputPhoneContact>> input_phone_contacts;
   input_phone_contacts.reserve(size);
   for (size_t i = 0; i < size; i++) {
-    input_phone_contacts.push_back(
-        contacts[i].get_input_phone_contact(td_->user_manager_.get(), static_cast<int64>(i)));
+    input_phone_contacts.push_back(contacts[i].get_input_phone_contact(this, static_cast<int64>(i)));
   }
 
   auto task = make_unique<ImportContactsTask>();
@@ -7788,8 +7788,7 @@ void UserManager::on_imported_contacts(
         continue;
       }
       auto i = static_cast<size_t>(client_id);
-      input_phone_contacts.push_back(
-          task->input_contacts_[i].get_input_phone_contact(td_->user_manager_.get(), client_id));
+      input_phone_contacts.push_back(task->input_contacts_[i].get_input_phone_contact(this, client_id));
     }
     td_->create_handler<ImportContactsQuery>()->send(std::move(input_phone_contacts), random_id);
     return;
@@ -8566,8 +8565,8 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
       user_full, StarManager::get_star_count(user->settings_->charge_paid_message_stars_));
   on_update_user_full_send_paid_message_stars(user_full, StarManager::get_star_count(user->send_paid_messages_stars_));
   on_update_user_full_wallpaper_overridden(user_full, user->wallpaper_overridden_);
-  on_update_user_full_note(user_full, get_formatted_text(td_->user_manager_.get(), std::move(user->note_), true, false,
-                                                         "on_get_user_full note"));
+  on_update_user_full_note(user_full,
+                           get_formatted_text(this, std::move(user->note_), true, false, "on_get_user_full note"));
 
   bool can_pin_messages = user->can_pin_message_;
   bool can_be_called = user->phone_calls_available_ && !user->phone_calls_private_;
@@ -9918,9 +9917,8 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
   auto user_rating = user_full->star_rating == nullptr ? nullptr : user_full->star_rating->get_user_rating_object();
   auto pending_user_rating =
       user_full->pending_star_rating == nullptr ? nullptr : user_full->pending_star_rating->get_user_rating_object();
-  auto note = is_contact && !user_full->note.text.empty()
-                  ? get_formatted_text_object(td_->user_manager_.get(), user_full->note, true, -1)
-                  : nullptr;
+  auto note = is_contact && !user_full->note.text.empty() ? get_formatted_text_object(this, user_full->note, true, -1)
+                                                          : nullptr;
   return td_api::make_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->personal_photo),
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo),

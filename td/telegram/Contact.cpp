@@ -6,6 +6,7 @@
 //
 #include "td/telegram/Contact.h"
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/secret_api.h"

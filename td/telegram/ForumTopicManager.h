@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/ChannelId.h"
 #include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogNotificationSettings.h"

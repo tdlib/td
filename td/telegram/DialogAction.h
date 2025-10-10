@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/secret_api.h"
@@ -18,7 +17,7 @@
 
 namespace td {
 
-class Td;
+class UserManager;
 
 class DialogAction {
   enum class Type : int32 {
