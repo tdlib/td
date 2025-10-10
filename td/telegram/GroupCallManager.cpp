@@ -5991,7 +5991,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       if (group_call->min_) {
         auto old_group_call = get_group_call(input_group_call_id);
         if (old_group_call == nullptr || !old_group_call->is_inited) {
-          return {};
+          return input_group_call_id;
         }
         is_min = true;
       }
