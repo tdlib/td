@@ -33481,6 +33481,9 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   for (auto user_id : d->pending_join_request_user_ids) {
     dependencies.add(user_id);
   }
+  if (d->chat_theme != nullptr) {
+    d->chat_theme->add_dependencies(dependencies);
+  }
   if (!dependencies.resolve_force(td_, source)) {
     send_get_dialog_query(dialog_id, Auto(), 0, source);
   }

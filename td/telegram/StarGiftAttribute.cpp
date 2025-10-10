@@ -109,7 +109,7 @@ StarGiftAttributeOriginalDetails::get_upgraded_gift_original_details_object(Td *
       sender_dialog_id_ == DialogId()
           ? nullptr
           : get_message_sender_object(td, sender_dialog_id_, "upgradedGiftOriginalDetails sender"),
-      get_message_sender_object(td, receiver_dialog_id_, "upgradedGiftOriginalDetails sender"),
+      get_message_sender_object(td, receiver_dialog_id_, "upgradedGiftOriginalDetails receiver"),
       get_formatted_text_object(td->user_manager_.get(), message_, true, -1), date_);
 }
 
