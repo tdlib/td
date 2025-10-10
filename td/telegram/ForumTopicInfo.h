@@ -70,11 +70,6 @@ class ForumTopicInfo {
     return forum_topic_id_;
   }
 
-  // TODO remove
-  MessageId get_top_thread_message_id() const {
-    return MessageId(ServerMessageId(forum_topic_id_.get()));
-  }
-
   DialogId get_creator_dialog_id() const {
     return creator_dialog_id_;
   }

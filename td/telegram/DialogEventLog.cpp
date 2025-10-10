@@ -411,7 +411,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
       auto old_topic_info = ForumTopicInfo(td, action->prev_topic_, DialogId(channel_id));
       auto new_topic_info = ForumTopicInfo(td, action->new_topic_, DialogId(channel_id));
       if (old_topic_info.is_empty() || new_topic_info.is_empty() ||
-          old_topic_info.get_top_thread_message_id() != new_topic_info.get_top_thread_message_id()) {
+          old_topic_info.get_forum_topic_id() != new_topic_info.get_forum_topic_id()) {
         LOG(ERROR) << "Receive " << to_string(action);
         return nullptr;
       }
