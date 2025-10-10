@@ -20219,11 +20219,19 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   int64 reply_to_random_id = 0;
   bool is_topic_message = message_topic.is_forum();  // message_topic can't be General forum topic here
   auto top_thread_message_id = MessageId(ServerMessageId(message_topic.get_input_top_msg_id()));
+  auto initial_is_topic_message = is_topic_message;
+  auto initial_top_thread_message_id = top_thread_message_id;
   auto same_chat_reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
   if (same_chat_reply_to_message_id.is_valid() || same_chat_reply_to_message_id.is_valid_scheduled()) {
     // the message was forcely preloaded in create_message_input_reply_to
     // it can be missing, only if it is unknown message from a push notification, or an unknown top thread message
     const Message *reply_m = get_message(d, same_chat_reply_to_message_id);
+    if (reply_m != nullptr && !same_chat_reply_to_message_id.is_scheduled()) {
+      if (reply_m->top_thread_message_id.is_valid()) {
+        top_thread_message_id = reply_m->top_thread_message_id;
+      }
+      is_topic_message = reply_m->is_topic_message;
+    }
     if (dialog_type == DialogType::SecretChat || same_chat_reply_to_message_id.is_yet_unsent()) {
       if (reply_m != nullptr) {
         reply_to_random_id = reply_m->random_id;
@@ -20232,6 +20240,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
         CHECK(message_topic.is_empty());
         input_reply_to = MessageInputReplyTo();
       }
+    }
+  } else if (top_thread_message_id.is_valid() && dialog_type == DialogType::Channel) {
+    const Message *top_m = get_message(d, top_thread_message_id);
+    if (top_m != nullptr) {
+      is_topic_message = top_m->is_topic_message;
     }
   }
 
@@ -20294,9 +20307,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->input_reply_to = std::move(input_reply_to);
   m->reply_to_random_id = reply_to_random_id;
   m->top_thread_message_id = top_thread_message_id;
-  m->initial_top_thread_message_id = top_thread_message_id;
+  m->initial_top_thread_message_id = initial_top_thread_message_id;
   m->is_topic_message = is_topic_message;
-  m->initial_is_topic_message = is_topic_message;
+  m->initial_is_topic_message = initial_is_topic_message;
   m->is_channel_post = is_channel_post;
   m->is_outgoing = is_scheduled || dialog_id != DialogId(my_id);
   m->from_background = options.from_background;
