@@ -21388,45 +21388,6 @@ Status MessagesManager::can_use_message_send_options(const MessageSendOptions &o
   return can_use_message_send_options(options, content.content, content.ttl);
 }
 
-Status MessagesManager::can_use_top_thread_message_id(Dialog *d, MessageId top_thread_message_id,
-                                                      const MessageInputReplyTo &input_reply_to) {
-  if (top_thread_message_id == MessageId()) {
-    return Status::OK();
-  }
-
-  if (!top_thread_message_id.is_server()) {
-    return Status::Error(400, "Invalid message thread identifier specified");
-  }
-  if (d->dialog_id.get_type() != DialogType::Channel || td_->dialog_manager_->is_broadcast_channel(d->dialog_id) ||
-      td_->dialog_manager_->is_monoforum_channel(d->dialog_id)) {
-    if (td_->forum_topic_manager_->is_forum(d->dialog_id, true).is_ok()) {
-      return Status::OK();
-    }
-    return Status::Error(400, "Chat doesn't have threads");
-  }
-  if (input_reply_to.get_story_full_id().is_valid()) {
-    return Status::Error(400, "Can't send story replies to the thread");
-  }
-  auto same_chat_reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
-  if (same_chat_reply_to_message_id.is_valid()) {
-    const Message *reply_m = get_message_force(d, same_chat_reply_to_message_id, "can_use_top_thread_message_id 1");
-    if (reply_m != nullptr && top_thread_message_id != reply_m->top_thread_message_id) {
-      if (reply_m->top_thread_message_id.is_valid() || reply_m->media_album_id == 0) {
-        return Status::Error(400, "The message to be replied is not in the specified message thread");
-      }
-
-      // if the message is in an album and not in the thread, it can be in the album of top_thread_message_id
-      const Message *top_m = get_message_force(d, top_thread_message_id, "can_use_top_thread_message_id 2");
-      if (top_m != nullptr &&
-          (top_m->media_album_id != reply_m->media_album_id || top_m->top_thread_message_id != top_m->message_id)) {
-        return Status::Error(400, "The message to be replied is not in the specified message thread root album");
-      }
-    }
-  }
-
-  return Status::OK();
-}
-
 Status MessagesManager::can_use_forum_topic_id(Dialog *d, ForumTopicId forum_topic_id) {
   if (forum_topic_id == ForumTopicId()) {
     return Status::OK();

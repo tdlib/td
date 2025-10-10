@@ -1731,9 +1731,6 @@ class MessagesManager final : public Actor {
 
   static Status can_use_message_send_options(const MessageSendOptions &options, const InputMessageContent &content);
 
-  Status can_use_top_thread_message_id(Dialog *d, MessageId top_thread_message_id,
-                                       const MessageInputReplyTo &input_reply_to);
-
   Status can_use_forum_topic_id(Dialog *d, ForumTopicId forum_topic_id);
 
   int64 generate_new_random_id(const Dialog *d);
