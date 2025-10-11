@@ -2807,7 +2807,7 @@ reactionNotificationSettings message_reaction_source:ReactionNotificationSource 
 
 
 //@description Contains information about a message draft
-//@reply_to Information about the message to be replied; must be of the type inputMessageReplyToMessage; may be null if none
+//@reply_to Information about the message to be replied; inputMessageReplyToStory is unsupported; may be null if none
 //@date Point in time (Unix timestamp) when the draft was created
 //@input_message_text Content of the message draft; must be of the type inputMessageText, inputMessageVideoNote, or inputMessageVoiceNote
 //@effect_id Identifier of the effect to apply to the message when it is sent; 0 if none
