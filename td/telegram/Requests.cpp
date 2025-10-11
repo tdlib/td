@@ -1040,8 +1040,6 @@ class SearchChatMessagesRequest final : public RequestActor<> {
   int32 offset_;
   int32 limit_;
   MessageSearchFilter filter_;
-  MessageId top_thread_message_id_;
-  SavedMessagesTopicId saved_messages_topic_id_;
   ReactionType tag_;
   int64 random_id_;
 
