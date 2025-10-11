@@ -30244,8 +30244,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   DialogId dialog_id = d->dialog_id;
   MessageId message_id = message->message_id;
 
-  LOG(INFO) << "Adding " << message_id << " of type " << message->content->get_type() << " to " << dialog_id << " from "
-            << source << ". Last new is " << d->last_new_message_id << ", last is " << d->last_message_id
+  LOG(INFO) << "Adding " << message_id << " of type " << message->content->get_type() << " to "
+            << get_message_topic(dialog_id, message.get()) << " of " << dialog_id << " from " << source
+            << ". Last new is " << d->last_new_message_id << ", last is " << d->last_message_id
             << ", from_update = " << from_update;
 
   if (*need_update) {

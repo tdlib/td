@@ -286,11 +286,11 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageTopic &mes
     case MessageTopic::Type::Thread:
       return string_builder << "Thread[" << message_topic.top_thread_message_id_ << ']';
     case MessageTopic::Type::Forum:
-      return string_builder << "Forum[" << message_topic.forum_topic_id_ << ']';
+      return string_builder << "ForumTopic[" << message_topic.forum_topic_id_ << ']';
     case MessageTopic::Type::Monoforum:
-      return string_builder << "DirectMessages[" << message_topic.saved_messages_topic_id_ << ']';
+      return string_builder << "DirectMessagesTopic[" << message_topic.saved_messages_topic_id_ << ']';
     case MessageTopic::Type::SavedMessages:
-      return string_builder << "SavedMessages[" << message_topic.saved_messages_topic_id_ << ']';
+      return string_builder << "SavedMessagesTopic[" << message_topic.saved_messages_topic_id_ << ']';
     default:
       UNREACHABLE();
       return string_builder;
