@@ -763,6 +763,13 @@ void ForumTopicManager::get_forum_topic(DialogId dialog_id, ForumTopicId forum_t
   TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
   TRY_STATUS_PROMISE(promise, can_be_forum_topic_id(forum_topic_id));
 
+  if (td_->auth_manager_->is_bot()) {
+    auto forum_topic = get_forum_topic_object(dialog_id, forum_topic_id);
+    if (forum_topic != nullptr) {
+      return promise.set_value(std::move(forum_topic));
+    }
+  }
+
   td_->create_handler<GetForumTopicQuery>(std::move(promise))->send(dialog_id, forum_topic_id);
 }
 
