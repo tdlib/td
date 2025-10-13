@@ -258,11 +258,16 @@ MessageId MessageTopic::get_implicit_reply_to_message_id(const Td *td) const {
   switch (type_) {
     case Type::Thread:
       return top_thread_message_id_;
-    case Type::Forum:
-      if (td->auth_manager_->is_bot() && dialog_id_.get_type() == DialogType::User) {
+    case Type::Forum: {
+      auto dialog_type = dialog_id_.get_type();
+      if (td->auth_manager_->is_bot() && dialog_type == DialogType::User) {
+        return MessageId();
+      }
+      if (dialog_type == DialogType::Channel && forum_topic_id_ == ForumTopicId::general()) {
         return MessageId();
       }
       return forum_topic_id_.to_top_thread_message_id();
+    }
     case Type::Monoforum:
     case Type::SavedMessages:
     case Type::None:
