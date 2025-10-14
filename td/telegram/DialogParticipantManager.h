@@ -315,6 +315,8 @@ class DialogParticipantManager final : public Actor {
   MultiTimeout update_dialog_online_member_count_timeout_{"UpdateDialogOnlineMemberCountTimeout"};
   MultiTimeout channel_participant_cache_timeout_{"ChannelParticipantCacheTimeout"};
 
+  double last_channel_participant_update_time_ = 0;
+
   Td *td_;
   ActorShared<> parent_;
 };

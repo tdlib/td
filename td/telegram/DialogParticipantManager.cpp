@@ -790,6 +790,8 @@ DialogParticipantManager::DialogParticipantManager(Td *td, ActorShared<> parent)
 
   channel_participant_cache_timeout_.set_callback(on_channel_participant_cache_timeout_callback);
   channel_participant_cache_timeout_.set_callback_data(static_cast<void *>(this));
+
+  last_channel_participant_update_time_ = Time::now();
 }
 
 DialogParticipantManager::~DialogParticipantManager() {
@@ -1542,6 +1544,7 @@ void DialogParticipantManager::on_update_channel_participant(
                << new_dialog_participant;
   }
 
+  last_channel_participant_update_time_ = Time::now();
   send_update_chat_member(DialogId(channel_id), user_id, date, invite_link, via_join_request,
                           via_dialog_filter_invite_link, old_dialog_participant, new_dialog_participant);
 }
@@ -2846,6 +2849,9 @@ void DialogParticipantManager::drop_channel_participant_cache(ChannelId channel_
 
 const DialogParticipant *DialogParticipantManager::get_channel_participant_from_cache(ChannelId channel_id,
                                                                                       DialogId participant_dialog_id) {
+  if (last_channel_participant_update_time_ >= Time::now() - 60.0) {
+    return nullptr;
+  }
   auto channel_participants_it = channel_participants_.find(channel_id);
   if (channel_participants_it == channel_participants_.end()) {
     return nullptr;
