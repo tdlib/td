@@ -36,14 +36,16 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
 
   bool can_have_thread = td->dialog_manager_->can_dialog_have_threads(dialog_id);
   if (!message_id.is_scheduled() && can_have_thread) {
+    is_topic_message_ = reply_header->forum_topic_;
     if (reply_header->reply_to_top_id_ != 0) {
       top_thread_message_id_ = MessageId(ServerMessageId(reply_header->reply_to_top_id_));
       if (!top_thread_message_id_.is_valid()) {
         LOG(ERROR) << "Receive " << to_string(reply_header);
         top_thread_message_id_ = MessageId();
+      } else if (dialog_id.get_type() == DialogType::User) {
+        is_topic_message_ = true;
       }
     }
-    is_topic_message_ = reply_header->forum_topic_;
   }
 
   replied_message_info_ = RepliedMessageInfo(td, std::move(reply_header), dialog_id, message_id, date);
