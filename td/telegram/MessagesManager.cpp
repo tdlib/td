@@ -5038,6 +5038,9 @@ void MessagesManager::on_update_message_content(MessageFullId message_full_id) {
 }
 
 void MessagesManager::on_unread_message_mention_removed(Dialog *d, const Message *m, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (d->is_forum) {
     td_->forum_topic_manager_->on_topic_mention_count_changed(d->dialog_id, get_message_forum_topic_id(d->dialog_id, m),
                                                               -1, true);
@@ -5073,6 +5076,9 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
 }
 
 void MessagesManager::on_unread_message_reaction_added(Dialog *d, const Message *m, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (d->is_forum) {
     td_->forum_topic_manager_->on_topic_reaction_count_changed(d->dialog_id,
                                                                get_message_forum_topic_id(d->dialog_id, m), +1, true);
@@ -5084,6 +5090,9 @@ void MessagesManager::on_unread_message_reaction_added(Dialog *d, const Message 
 }
 
 void MessagesManager::on_unread_message_reaction_removed(Dialog *d, const Message *m, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (d->is_forum) {
     td_->forum_topic_manager_->on_topic_reaction_count_changed(d->dialog_id,
                                                                get_message_forum_topic_id(d->dialog_id, m), -1, true);
@@ -13846,6 +13855,9 @@ void MessagesManager::on_get_dialogs_from_list(int64 task_id, Result<Unit> &&res
 }
 
 void MessagesManager::mark_dialog_as_read(Dialog *d) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (d->is_forum) {
     // TODO read forum topics
   }
@@ -30162,7 +30174,7 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
       }
     }
   }
-  if (need_update && m->contains_unread_mention) {
+  if (need_update && m->contains_unread_mention && !td_->auth_manager_->is_bot()) {
     if (d->is_forum) {
       td_->forum_topic_manager_->on_topic_mention_count_changed(dialog_id, get_message_forum_topic_id(dialog_id, m), +1,
                                                                 true);
@@ -32198,7 +32210,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&di
         d->is_saved_messages_view_as_messages_inited = true;
         d->view_as_messages = true;
       }
-      d->is_forum = td_->user_manager_->is_user_forum_bot(user_id);
+      d->is_forum = td_->user_manager_->is_user_forum_bot(user_id) || td_->auth_manager_->is_bot();
       d->is_forum_tabs = d->is_forum;
       break;
     }
