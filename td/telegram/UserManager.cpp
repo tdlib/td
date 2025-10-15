@@ -45,6 +45,7 @@
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
+#include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessagesManager.h"
