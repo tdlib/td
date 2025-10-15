@@ -8547,7 +8547,8 @@ bool ChatManager::get_channel_join_request(ChannelId channel_id) const {
 }
 
 bool ChatManager::get_channel_join_request(const Channel *c) {
-  return c->join_request && c->is_megagroup && !c->is_monoforum && (is_channel_public(c) || c->has_linked_channel);
+  return c->join_request && c->is_megagroup && !c->is_monoforum && (is_channel_public(c) || c->has_linked_channel) &&
+         !c->is_gigagroup;
 }
 
 ChannelId ChatManager::get_channel_linked_channel_id(ChannelId channel_id, const char *source) {
