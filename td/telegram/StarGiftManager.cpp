@@ -1181,6 +1181,7 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
   DialogId dialog_id_;
   BusinessConnectionId business_connection_id_;
+  bool is_full_list_ = false;
 
  public:
   explicit GetSavedStarGiftsQuery(Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise)
@@ -1196,6 +1197,9 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
         business_connection_id.is_valid()
             ? DialogId(td_->business_connection_manager_->get_business_connection_user_id(business_connection_id))
             : dialog_id;
+    is_full_list_ = !collection_id.is_valid() && !exclude_unsaved && !exclude_saved && !exclude_unlimited &&
+                    !exclude_upgradable && !exclude_non_upgradable && !exclude_unique && !peer_color_available &&
+                    !exclude_hosted;
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
@@ -1241,12 +1245,16 @@ class GetSavedStarGiftsQuery final : public Td::ResultHandler {
     bool are_notifications_enabled = false;
     if (dialog_id_.get_type() == DialogType::User) {
       if (dialog_id_ != td_->dialog_manager_->get_my_dialog_id()) {
-        td_->user_manager_->on_update_user_gift_count(dialog_id_.get_user_id(), total_count);
+        if (is_full_list_) {
+          td_->user_manager_->on_update_user_gift_count(dialog_id_.get_user_id(), total_count);
+        }
       } else {
         are_notifications_enabled = true;
       }
     } else if (dialog_id_.get_type() == DialogType::Channel) {
-      td_->chat_manager_->on_update_channel_gift_count(dialog_id_.get_channel_id(), total_count, false);
+      if (is_full_list_) {
+        td_->chat_manager_->on_update_channel_gift_count(dialog_id_.get_channel_id(), total_count, false);
+      }
       are_notifications_enabled = ptr->chat_notifications_enabled_;
     }
     promise_.set_value(td_api::make_object<td_api::receivedGifts>(total_count, std::move(gifts),
