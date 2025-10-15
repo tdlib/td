@@ -56,6 +56,7 @@
 #include "td/telegram/Outline.h"
 #include "td/telegram/PeerColor.h"
 #include "td/telegram/PeerColorCollectible.h"
+#include "td/telegram/PeerColorCollectible.hpp"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoSize.h"
