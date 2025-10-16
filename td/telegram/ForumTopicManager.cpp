@@ -1323,7 +1323,7 @@ void ForumTopicManager::on_topic_message_count_changed(DialogId dialog_id, Forum
   }
   topic->message_count_ += diff;
   CHECK(topic->message_count_ >= 0);
-  if (topic->message_count_ == 0) {
+  if (topic->message_count_ == 0 && !td_->auth_manager_->is_bot()) {
     // TODO keep topics in the topic list
     dialog_topics->topics_.erase(forum_topic_id);
   }
