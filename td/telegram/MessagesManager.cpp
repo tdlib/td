@@ -14122,7 +14122,8 @@ MessagesManager::Message *MessagesManager::get_message_force(MessageFullId messa
   return get_message_force(d, message_full_id.get_message_id(), source);
 }
 
-MessageFullId MessagesManager::get_replied_message_id(DialogId dialog_id, const Message *m) {
+MessageFullId MessagesManager::get_replied_message_id(DialogId dialog_id, const Message *m) const {
+  CHECK(m != nullptr);
   if (m->reply_to_story_full_id.is_valid()) {
     return {};
   }
@@ -14135,9 +14136,9 @@ MessageFullId MessagesManager::get_replied_message_id(DialogId dialog_id, const 
   if (reply_message_full_id.get_message_id() != MessageId()) {
     return reply_message_full_id;
   }
-  if (dialog_id.get_type() == DialogType::Channel && m->top_thread_message_id.is_valid() &&
-      m->top_thread_message_id != m->message_id) {
-    return {dialog_id, m->top_thread_message_id};
+  auto reply_to_message_id = get_message_topic(dialog_id, m).get_implicit_reply_to_message_id(td_);
+  if (reply_to_message_id.is_valid() && reply_to_message_id != m->message_id) {
+    return {dialog_id, reply_to_message_id};
   }
   return {};
 }
