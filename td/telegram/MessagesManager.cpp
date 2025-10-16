@@ -4010,9 +4010,8 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
 void MessagesManager::update_reply_count_by_message(Dialog *d, int diff, const Message *m) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  if (td_->auth_manager_->is_bot() || !m->top_thread_message_id.is_valid() ||
-      m->top_thread_message_id == m->message_id || !m->message_id.is_server() ||
-      d->dialog_id.get_type() != DialogType::Channel) {
+  if (td_->auth_manager_->is_bot() || d->dialog_id.get_type() != DialogType::Channel ||
+      !m->top_thread_message_id.is_valid() || m->top_thread_message_id == m->message_id || !m->message_id.is_server()) {
     return;
   }
 
@@ -30463,10 +30462,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                 << " from database";
     }
   }
-  if (from_update && !message->is_failed_to_send && message->top_thread_message_id.is_valid() &&
-      message->top_thread_message_id != message_id && message_id.is_server() &&
-      d->dialog_id.get_type() == DialogType::Channel &&
-      have_message_force(d, message->top_thread_message_id, "preload top reply message")) {
+  if (from_update && !message->is_failed_to_send && d->dialog_id.get_type() == DialogType::Channel &&
+      message->top_thread_message_id.is_valid() && message->top_thread_message_id != message_id &&
+      message_id.is_server() && have_message_force(d, message->top_thread_message_id, "preload top reply message")) {
     LOG(INFO) << "Preloaded top thread " << message->top_thread_message_id << " from database";
 
     Message *top_m = get_message(d, message->top_thread_message_id);
