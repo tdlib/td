@@ -4569,7 +4569,8 @@ void MessagesManager::fix_message_topic(DialogId dialog_id, Message *m, bool fro
   if (dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     if (!m->saved_messages_topic_id.is_valid()) {
       if (!from_database) {
-        LOG(ERROR) << "Receive no topic for " << message_id << " in " << dialog_id;
+        LOG(ERROR) << "Receive no topic for " << message_id << " in " << dialog_id << " of type "
+                   << m->content->get_type() << " sent by " << get_message_sender(m);
       }
       m->saved_messages_topic_id =
           SavedMessagesTopicId(dialog_id, m->forward_info.get(), m->real_forward_from_dialog_id);
@@ -4577,7 +4578,8 @@ void MessagesManager::fix_message_topic(DialogId dialog_id, Message *m, bool fro
   } else if (td_->dialog_manager_->is_admined_monoforum_channel(dialog_id)) {
     if (!m->saved_messages_topic_id.is_valid() && message_id != MessageId(ServerMessageId(1))) {
       if (!from_database) {
-        LOG(ERROR) << "Receive no topic for " << message_id << " in " << dialog_id;
+        LOG(ERROR) << "Receive no topic for " << message_id << " in " << dialog_id << " of type "
+                   << m->content->get_type() << " sent by " << get_message_sender(m);
       }
       if (m->sender_user_id.is_valid()) {  // there is no way to guess the topic for channel messages
         m->saved_messages_topic_id = SavedMessagesTopicId(get_message_sender(m));
@@ -4585,7 +4587,8 @@ void MessagesManager::fix_message_topic(DialogId dialog_id, Message *m, bool fro
     }
   } else if (m->saved_messages_topic_id.is_valid()) {
     if (!td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
-      LOG(ERROR) << "Receive " << m->saved_messages_topic_id << " for " << message_id << " in " << dialog_id;
+      LOG(ERROR) << "Receive " << m->saved_messages_topic_id << " for " << message_id << " in " << dialog_id
+                 << " of type " << m->content->get_type() << " sent by " << get_message_sender(m);
     }
     m->saved_messages_topic_id = SavedMessagesTopicId();
   }
