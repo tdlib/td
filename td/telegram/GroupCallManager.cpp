@@ -2926,7 +2926,7 @@ void GroupCallManager::sync_group_call_participants(InputGroupCallId input_group
 
   sync_participants_timeout_.cancel_timeout(group_call->group_call_id.get());
 
-  if (group_call->syncing_participants) {
+  if (group_call->syncing_participants || (group_call->is_conference && !group_call->is_joined)) {
     group_call->need_syncing_participants = true;
     return;
   }
@@ -4168,6 +4168,9 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
   if (group_call->audio_source != 0) {
     check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
                                                        CHECK_GROUP_CALL_IS_JOINED_TIMEOUT);
+  }
+  if (group_call->need_syncing_participants) {
+    sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 0.0);
   }
   pending_join_requests_.erase(it);
   try_clear_group_call_participants(input_group_call_id);
@@ -5950,6 +5953,7 @@ bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
     need_update = true;
   }
   group_call->leave_version = group_call->version;
+  group_call->need_syncing_participants = false;
   group_call->version = -1;
 
   for (auto &participant : participants->participants) {
