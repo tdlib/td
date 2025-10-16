@@ -9,7 +9,6 @@ Also, take a look at our [Getting Started](https://core.telegram.org/tdlib/getti
 TDLib can be easily used from almost any programming language on any platform. See a [TDLib build instructions generator](https://tdlib.github.io/td/build.html) for detailed instructions on how to build TDLib.
 Choose your preferred programming language to see examples of usage and a detailed description:
 
-- [Assembly languages](#assembly)
 - [Python](#python)
 - [JavaScript](#javascript)
 - [Go](#go)
@@ -36,15 +35,9 @@ Choose your preferred programming language to see examples of usage and a detail
 - [Vala](#vala)
 - [1С](#1s)
 - [C](#c)
+- [Assembly languages](#assembly)
 - [G](#g)
 - [Other](#other)
-
-<a name="assembly"></a>
-## Using TDLib in Assembly projects
-
-TDLib can be used from Assembly through the [JSON](https://github.com/tdlib/td#using-json) interface.
-
-You can also see [nasm_tdjson_example](https://gist.github.com/isopen/41481eda87db2e6426af75be9d1f3748).
 
 <a name="python"></a>
 ## Using TDLib in Python projects
@@ -310,6 +303,13 @@ TDLib can be used from the C programming language through the [JSON](https://git
 See [easy-tg](https://github.com/Trumeet/easy-tg) for an example of such usage.
 
 You can also try to use our [C](https://github.com/tdlib/td/blob/master/td/telegram/td_c_client.h) client, which was used by the private TDLib-based version of [telegram-cli](https://github.com/vysheng/tg).
+
+<a name="assembly"></a>
+## Using TDLib in Assembly projects
+
+TDLib can be used from Assembly through the [JSON](https://github.com/tdlib/td#using-json) interface.
+
+You can also see [nasm_tdjson_example](https://gist.github.com/isopen/41481eda87db2e6426af75be9d1f3748).
 
 <a name="g"></a>
 ## Using TDLib from G projects
