@@ -315,8 +315,10 @@ class GetDialogRevenueStatsQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for GetDialogRevenueStatsQuery: " << to_string(ptr);
     if (ptr->top_hours_graph_ == nullptr) {
-      LOG(ERROR) << "Receive " << to_string(ptr);
-      return on_error(Status::Error(500, "Receive invalid response"));
+      auto error = ptr->revenue_graph_->get_id() == telegram_api::statsGraphError::ID
+                       ? static_cast<const telegram_api::statsGraphError *>(ptr->revenue_graph_.get())->error_
+                       : string("Not enough data to display.");
+      ptr->top_hours_graph_ = telegram_api::make_object<telegram_api::statsGraphError>(error);
     }
     promise_.set_value(convert_ton_revenue_stats(std::move(ptr)));
   }
