@@ -1127,14 +1127,16 @@ Status ForumTopicManager::is_forum(DialogId dialog_id, bool allow_bots) {
     return Status::Error(400, "Chat not found");
   }
   switch (dialog_id.get_type()) {
-    case DialogType::User:
-      if (allow_bots) {
-        auto bot_user_id = td_->auth_manager_->is_bot() ? td_->user_manager_->get_my_id() : dialog_id.get_user_id();
-        if (td_->user_manager_->is_user_forum_bot(bot_user_id)) {
-          return Status::OK();
+    case DialogType::User: {
+      auto bot_user_id = td_->auth_manager_->is_bot() ? td_->user_manager_->get_my_id() : dialog_id.get_user_id();
+      if (td_->user_manager_->is_user_forum_bot(bot_user_id)) {
+        if (!allow_bots) {
+          return Status::Error(400, "The chat is not a supergroup forum");
         }
+        return Status::OK();
       }
       break;
+    }
     case DialogType::Channel:
       if (td_->chat_manager_->is_forum_channel(dialog_id.get_channel_id())) {
         return Status::OK();
