@@ -1214,7 +1214,9 @@ class GetStoriesMaxIdsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    td_->story_manager_->on_get_dialog_max_active_story_ids(dialog_ids_, result_ptr.move_as_ok());
+    auto ptr = result_ptr.move_as_ok();
+    auto ids = transform(ptr, [](const auto &recent_story) { return recent_story->max_id_; });
+    td_->story_manager_->on_get_dialog_max_active_story_ids(dialog_ids_, std::move(ids));
   }
 
   void on_error(Status status) final {

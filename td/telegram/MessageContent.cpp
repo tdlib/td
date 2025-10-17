@@ -8436,6 +8436,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     }
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<MessageUnsupported>();
+    case telegram_api::messageMediaVideoStream::ID:
+      LOG(ERROR) << "Receive " << to_string(media_ptr);
+      return make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }
@@ -9091,7 +9094,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                      "messageActionGiftPremium");
       return td::make_unique<MessageGiftPremium>(std::move(text), std::move(action->currency_), action->amount_,
                                                  std::move(action->crypto_currency_), action->crypto_amount_,
-                                                 action->months_);
+                                                 max(1, action->days_ / 30));
     }
     case telegram_api::messageActionTopicCreate::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionTopicCreate>(action_ptr);
@@ -9172,10 +9175,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       auto text = get_formatted_text(td->user_manager_.get(), std::move(action->message_), true, false,
                                      "messageActionGiftCode");
-      return td::make_unique<MessageGiftCode>(dialog_id, std::move(text), action->months_, std::move(action->currency_),
-                                              action->amount_, std::move(action->crypto_currency_),
-                                              action->crypto_amount_, action->via_giveaway_, action->unclaimed_,
-                                              std::move(action->slug_));
+      return td::make_unique<MessageGiftCode>(dialog_id, std::move(text), max(1, action->days_ / 30),
+                                              std::move(action->currency_), action->amount_,
+                                              std::move(action->crypto_currency_), action->crypto_amount_,
+                                              action->via_giveaway_, action->unclaimed_, std::move(action->slug_));
     }
     case telegram_api::messageActionGiveawayResults::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionGiveawayResults>(action_ptr);

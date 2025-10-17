@@ -328,8 +328,8 @@ class GetGroupCallRtmpStreamUrlGroupCallQuery final : public Td::ResultHandler {
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
-    send_query(
-        G()->net_query_creator().create(telegram_api::phone_getGroupCallStreamRtmpUrl(std::move(input_peer), revoke)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_getGroupCallStreamRtmpUrl(0, false, std::move(input_peer), revoke)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -881,7 +881,7 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
       flags |= telegram_api::phone_toggleGroupCallSettings::MESSAGES_ENABLED_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::phone_toggleGroupCallSettings(
-        flags, reset_invite_hash, input_group_call_id.get_input_group_call(), join_muted, messages_enabled)));
+        flags, reset_invite_hash, input_group_call_id.get_input_group_call(), join_muted, messages_enabled, false)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -913,8 +913,8 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
 
   void send(InputGroupCallId input_group_call_id, const FormattedText &text) {
     send_query(G()->net_query_creator().create(telegram_api::phone_sendGroupCallMessage(
-        input_group_call_id.get_input_group_call(), Random::secure_int64(),
-        get_input_text_with_entities(td_->user_manager_.get(), text, "SendGroupCallMessageQuery"))));
+        0, input_group_call_id.get_input_group_call(), Random::secure_int64(),
+        get_input_text_with_entities(td_->user_manager_.get(), text, "SendGroupCallMessageQuery"), 0, nullptr)));
   }
 
   void on_result(BufferSlice packet) final {

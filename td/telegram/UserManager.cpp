@@ -3107,7 +3107,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   bool need_location_bot = user->bot_inline_geo_;
   bool need_apply_min_photo = user->apply_min_photo_;
   bool is_fake = user->fake_;
-  bool stories_available = user->stories_max_id_ > 0;
+  bool stories_available = user->stories_max_id_ != nullptr && user->stories_max_id_->max_id_ > 0;
   bool stories_unavailable = user->stories_unavailable_;
   bool stories_hidden = user->stories_hidden_;
   bool contact_require_premium = user->contact_require_premium_;
@@ -3290,7 +3290,8 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     }
     if (stories_available || stories_unavailable) {
       // update at the end, because it calls need_poll_user_active_stories
-      on_update_user_story_ids_impl(u, user_id, StoryId(user->stories_max_id_), StoryId());
+      on_update_user_story_ids_impl(u, user_id, stories_available ? StoryId(user->stories_max_id_->max_id_) : StoryId(),
+                                    StoryId());
     }
     auto restriction_reasons = get_restriction_reasons(std::move(user->restriction_reason_));
     if (restriction_reasons != u->restriction_reasons) {
@@ -4879,7 +4880,7 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
         false, need_apply_min_photo, false, false, false, false, 0, false, false, false, false, false, false, false,
         false, user_id.get(), 1, first_name, string(), username, phone_number, std::move(profile_photo), nullptr,
         bot_info_version, Auto(), string(), string(), nullptr,
-        vector<telegram_api::object_ptr<telegram_api::username>>(), 0, nullptr, nullptr, 0, 0, 0);
+        vector<telegram_api::object_ptr<telegram_api::username>>(), nullptr, nullptr, nullptr, 0, 0, 0);
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);

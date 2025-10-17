@@ -48,7 +48,7 @@ DisallowedGiftsSettings::get_input_disallowed_gifts_settings() const {
   }
   return telegram_api::make_object<telegram_api::disallowedGiftsSettings>(
       0, disallow_unlimited_stargifts_, disallow_limited_stargifts_, disallow_unique_stargifts_,
-      disallow_premium_gifts_);
+      disallow_premium_gifts_, false);
 }
 
 bool operator==(const DisallowedGiftsSettings &lhs, const DisallowedGiftsSettings &rhs) {

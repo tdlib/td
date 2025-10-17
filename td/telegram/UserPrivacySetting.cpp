@@ -57,6 +57,9 @@ UserPrivacySetting::UserPrivacySetting(const telegram_api::PrivacyKey &key) {
     case telegram_api::privacyKeyNoPaidMessages::ID:
       type_ = Type::NoPaidMessages;
       break;
+    case telegram_api::privacyKeySavedMusic::ID:
+      type_ = Type::NoPaidMessages;
+      break;
     default:
       UNREACHABLE();
       type_ = Type::UserStatus;

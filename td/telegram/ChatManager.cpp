@@ -9042,7 +9042,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
   bool is_monoforum = channel.monoforum_;
   bool have_participant_count = (channel.flags_ & telegram_api::channel::PARTICIPANTS_COUNT_MASK) != 0;
   int32 participant_count = channel.participants_count_;
-  bool stories_available = channel.stories_max_id_ > 0;
+  bool stories_available = channel.stories_max_id_ != nullptr && channel.stories_max_id_->max_id_ > 0;
   bool stories_unavailable = channel.stories_unavailable_;
   bool show_message_sender = channel.signature_profiles_;
   auto boost_level = channel.level_;
@@ -9324,7 +9324,8 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
                                         RestrictedRights(channel.default_banned_rights_, ChannelType::Megagroup));
   if (!td_->auth_manager_->is_bot() && (stories_available || stories_unavailable)) {
     // update at the end, because it calls need_poll_channel_active_stories
-    on_update_channel_story_ids_impl(c, channel_id, StoryId(channel.stories_max_id_), StoryId());
+    on_update_channel_story_ids_impl(
+        c, channel_id, stories_available ? StoryId(channel.stories_max_id_->max_id_) : StoryId(), StoryId());
   }
 
   if (c->cache_version != Channel::CACHE_VERSION) {

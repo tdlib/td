@@ -263,7 +263,7 @@ class QuickReplyManager::SendQuickReplyMessageQuery final : public Td::ResultHan
         telegram_api::messages_sendMessage(
             flags, m->disable_web_page_preview, false, false, false, false, false, m->invert_media, false,
             telegram_api::make_object<telegram_api::inputPeerSelf>(), std::move(reply_to), message_text->text,
-            m->random_id, nullptr, std::move(entities), 0, nullptr,
+            m->random_id, nullptr, std::move(entities), 0, 0, nullptr,
             td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0, 0, nullptr),
         {{"me"}}));
   }
@@ -379,7 +379,7 @@ class QuickReplyManager::SendQuickReplyMediaQuery final : public Td::ResultHandl
         telegram_api::messages_sendMedia(
             flags, false, false, false, false, false, m->invert_media, false,
             telegram_api::make_object<telegram_api::inputPeerSelf>(), std::move(reply_to), std::move(input_media),
-            message_text == nullptr ? string() : message_text->text, m->random_id, nullptr, std::move(entities), 0,
+            message_text == nullptr ? string() : message_text->text, m->random_id, nullptr, std::move(entities), 0, 0,
             nullptr, td_->quick_reply_manager_->get_input_quick_reply_shortcut(m->shortcut_id), 0, 0, nullptr),
         {{"me"}}));
   }
@@ -674,7 +674,7 @@ class QuickReplyManager::EditQuickReplyMessageQuery final : public Td::ResultHan
                                            telegram_api::make_object<telegram_api::inputPeerSelf>(),
                                            m->message_id.get_server_message_id().get(),
                                            text != nullptr ? text->text : string(), std::move(input_media), nullptr,
-                                           std::move(entities), 0, m->shortcut_id.get()),
+                                           std::move(entities), 0, 0, m->shortcut_id.get()),
         {{"me"}}));
   }
 

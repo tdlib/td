@@ -248,6 +248,8 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
 
       return make_unique<StoryContentVideo>(parsed_document.file_id, alt_file_id);
     }
+    case telegram_api::messageMediaVideoStream::ID:
+      return make_unique<StoryContentUnsupported>();
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<StoryContentUnsupported>();
     default:

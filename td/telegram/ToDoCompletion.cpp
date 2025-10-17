@@ -13,7 +13,8 @@ namespace td {
 ToDoCompletion::ToDoCompletion(telegram_api::object_ptr<telegram_api::todoCompletion> &&completion) {
   CHECK(completion != nullptr);
   id_ = completion->id_;
-  completed_by_user_id_ = UserId(completion->completed_by_);
+  auto dialog_id = DialogId(completion->completed_by_);
+  completed_by_user_id_ = dialog_id.get_type() == DialogType::User ? dialog_id.get_user_id() : UserId(777000ll);
   date_ = completion->date_;
 }
 
