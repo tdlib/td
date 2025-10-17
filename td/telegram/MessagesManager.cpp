@@ -9698,11 +9698,11 @@ int32 MessagesManager::get_message_date(const tl_object_ptr<telegram_api::Messag
       return 0;
     case telegram_api::message::ID: {
       auto message = static_cast<const telegram_api::message *>(message_ptr.get());
-      return message->date_;
+      return max(1, message->date_);
     }
     case telegram_api::messageService::ID: {
       auto message = static_cast<const telegram_api::messageService *>(message_ptr.get());
-      return message->date_;
+      return max(1, message->date_);
     }
     default:
       UNREACHABLE();
@@ -12305,7 +12305,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         DialogDate dialog_date = it->second;
         if (dialog_date.get_date() > 0 && dialog_date.get_dialog_id() == dialog_id && max_dialog_date < dialog_date) {
           max_dialog_date = dialog_date;
-        } else if (dialog_date.get_date() == 0 && dialog_date.get_dialog_id() == DialogId()) {
+        } else if (dialog_date.get_date() == 0) {
           empty_message_count++;
         }
       } else {
