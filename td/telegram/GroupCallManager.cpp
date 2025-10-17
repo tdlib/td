@@ -4867,7 +4867,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
                      get_formatted_text(td_, group_call->dialog_id, std::move(text), td_->auth_manager_->is_bot(),
                                         false, true, false));
   if (static_cast<int64>(utf8_length(message.text)) > G()->get_option_integer("group_call_message_text_length_max")) {
-    // return promise.set_error(400, "Message is too long");
+    return promise.set_error(400, "Message is too long");
   }
 
   auto as_dialog_id =
