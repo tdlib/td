@@ -6023,6 +6023,11 @@ groupCallParticipants total_count:int32 participant_ids:vector<MessageSender> = 
 //@description Contains information about a just created or just joined group call @group_call_id Identifier of the group call @join_payload Join response payload for tgcalls; empty if the call isn't joined
 groupCallInfo group_call_id:int32 join_payload:string = GroupCallInfo;
 
+//@description Represents a message sent in a group call
+//@sender_id Identifier of the sender of the message
+//@text Text of the message
+groupCallMessage sender_id:MessageSender text:formattedText = GroupCallMessage;
+
 
 //@class InviteGroupCallParticipantResult @description Describes result of group call participant invitation
 
@@ -9341,9 +9346,8 @@ updateGroupCallVerificationState group_call_id:int32 generation:int32 emojis:vec
 
 //@description A new message was received in a group call. It must be shown for at most getOption("group_call_message_show_time_max") seconds after receiving
 //@group_call_id Identifier of the group call
-//@sender_id Identifier of the sender of the message
-//@text Text of the message
-updateGroupCallNewMessage group_call_id:int32 sender_id:MessageSender text:formattedText = Update;
+//@message The message
+updateNewGroupCallMessage group_call_id:int32 message:groupCallMessage = Update;
 
 //@description New call signaling data arrived @call_id The call identifier @data The data
 updateNewCallSignalingData call_id:int32 data:bytes = Update;

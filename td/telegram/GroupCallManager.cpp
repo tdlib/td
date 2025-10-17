@@ -2711,10 +2711,11 @@ void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_ca
     return;
   }
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateGroupCallNewMessage>(
+               td_api::make_object<td_api::updateNewGroupCallMessage>(
                    group_call->group_call_id.get(),
-                   get_message_sender_object(td_, sender_dialog_id, "on_new_group_call_message"),
-                   get_formatted_text_object(td_->user_manager_.get(), text, true, -1)));
+                   td_api::make_object<td_api::groupCallMessage>(
+                       get_message_sender_object(td_, sender_dialog_id, "on_new_group_call_message"),
+                       get_formatted_text_object(td_->user_manager_.get(), text, true, -1))));
 }
 
 Result<MessageEntity> GroupCallManager::parse_message_entity(JsonValue &value) {
@@ -2900,10 +2901,11 @@ void GroupCallManager::on_new_encrypted_group_call_message(InputGroupCallId inpu
   }
 
   send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateGroupCallNewMessage>(
+               td_api::make_object<td_api::updateNewGroupCallMessage>(
                    group_call->group_call_id.get(),
-                   get_message_sender_object(td_, sender_dialog_id, "on_new_encrypted_group_call_message"),
-                   get_formatted_text_object(td_->user_manager_.get(), text, true, -1)));
+                   td_api::make_object<td_api::groupCallMessage>(
+                       get_message_sender_object(td_, sender_dialog_id, "on_new_encrypted_group_call_message"),
+                       get_formatted_text_object(td_->user_manager_.get(), text, true, -1))));
 }
 
 bool GroupCallManager::is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call,
@@ -4872,11 +4874,12 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
 
   auto as_dialog_id =
       group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id();
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateGroupCallNewMessage>(
-          group_call->group_call_id.get(), get_message_sender_object(td_, as_dialog_id, "send_group_call_message"),
-          get_formatted_text_object(td_->user_manager_.get(), message, true, -1)));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateNewGroupCallMessage>(
+                   group_call->group_call_id.get(),
+                   td_api::make_object<td_api::groupCallMessage>(
+                       get_message_sender_object(td_, as_dialog_id, "send_group_call_message"),
+                       get_formatted_text_object(td_->user_manager_.get(), message, true, -1))));
 
   if (group_call->is_conference || group_call->call_id != tde2e_api::CallId()) {
     auto json_message = json_encode<string>(json_object([&message](auto &o) {
