@@ -12254,7 +12254,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
 
   DialogDate max_dialog_date = MIN_DIALOG_DATE;
   size_t empty_message_count = 0;
-  for (auto &dialog : dialogs) {
+  for (const auto &dialog : dialogs) {
     //    LOG(INFO) << to_string(dialog);
     DialogId dialog_id(dialog->peer_);
     bool has_pts = dialog->pts_ > 0;
@@ -12309,7 +12309,7 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
           empty_message_count++;
         }
       } else {
-        LOG(ERROR) << "Receive " << last_message_id << " as last chat message";
+        LOG(ERROR) << "Receive " << last_message_id << " as last chat message in " << oneline(to_string(dialog));
         continue;
       }
     }
