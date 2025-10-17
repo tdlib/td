@@ -361,6 +361,7 @@ function split_file($file, $chunks, $undo) {
             'GroupCallJoinParameters' => 'GroupCallJoinParameters',
             'GroupCallId' => 'GroupCallId',
             'group_call_manager[_(-](?![.]get[(][)])|GroupCallManager' => 'GroupCallManager',
+            'GroupCallMessage[^I]' => 'GroupCallMessage',
             'hashtag_hints[_(-](?![.]get[(][)])|HashtagHints' => 'HashtagHints',
             'inline_message_manager[_(-](?![.]get[(][)])|InlineMessageManager' => 'InlineMessageManager',
             'inline_queries_manager[_(-](?![.]get[(][)])|InlineQueriesManager' => 'InlineQueriesManager',

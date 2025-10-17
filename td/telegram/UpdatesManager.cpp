@@ -4515,7 +4515,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallPartic
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallMessage> update, Promise<Unit> &&promise) {
   send_closure(G()->group_call_manager(), &GroupCallManager::on_new_group_call_message, InputGroupCallId(update->call_),
-               DialogId(update->message_->from_id_), update->message_->id_, std::move(update->message_->message_));
+               std::move(update->message_));
   promise.set_value(Unit());
 }
 

@@ -17,6 +17,7 @@
 #include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallJoinParameters.h"
+#include "td/telegram/GroupCallMessage.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
@@ -2679,43 +2680,41 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   return need_update;
 }
 
-void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_call_id, DialogId sender_dialog_id,
-                                                 int64 random_id,
-                                                 telegram_api::object_ptr<telegram_api::textWithEntities> &&message) {
+void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_call_id,
+                                                 telegram_api::object_ptr<telegram_api::groupCallMessage> &&message) {
   if (G()->close_flag()) {
     return;
   }
   auto group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active || group_call->is_conference ||
-      group_call->call_id != tde2e_api::CallId() || !sender_dialog_id.is_valid() || random_id == 0 ||
-      !group_call->message_random_ids.insert(random_id).second) {
+      group_call->call_id != tde2e_api::CallId()) {
     return;
   }
   if (!group_call->is_joined || group_call->is_being_left) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
-      group_call->after_join.push_back(
-          PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id, sender_dialog_id, random_id,
-                                  message = std::move(message)](Result<Unit> &&result) mutable {
-            if (result.is_ok()) {
-              send_closure(actor_id, &GroupCallManager::on_new_group_call_message, input_group_call_id,
-                           sender_dialog_id, random_id, std::move(message));
-            }
-          }));
+      group_call->after_join.push_back(PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id,
+                                                               message =
+                                                                   std::move(message)](Result<Unit> &&result) mutable {
+        if (result.is_ok()) {
+          send_closure(actor_id, &GroupCallManager::on_new_group_call_message, input_group_call_id, std::move(message));
+        }
+      }));
     }
     return;
   }
 
-  auto text =
-      get_formatted_text(td_->user_manager_.get(), std::move(message), true, false, "on_new_group_call_message");
-  if (text.text.empty()) {
+  auto group_call_message = GroupCallMessage(td_, std::move(message));
+  if (!group_call_message.is_valid()) {
+    return;
+  }
+  auto message_id = group_call_message.get_message_id();
+  if (!group_call->message_random_ids.insert(message_id).second) {
+    LOG(INFO) << "Skip duplicate " << message_id;
     return;
   }
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewGroupCallMessage>(
-                   group_call->group_call_id.get(),
-                   td_api::make_object<td_api::groupCallMessage>(
-                       get_message_sender_object(td_, sender_dialog_id, "on_new_group_call_message"),
-                       get_formatted_text_object(td_->user_manager_.get(), text, true, -1))));
+                   group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_)));
 }
 
 Result<MessageEntity> GroupCallManager::parse_message_entity(JsonValue &value) {
@@ -2903,9 +2902,7 @@ void GroupCallManager::on_new_encrypted_group_call_message(InputGroupCallId inpu
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewGroupCallMessage>(
                    group_call->group_call_id.get(),
-                   td_api::make_object<td_api::groupCallMessage>(
-                       get_message_sender_object(td_, sender_dialog_id, "on_new_encrypted_group_call_message"),
-                       get_formatted_text_object(td_->user_manager_.get(), text, true, -1))));
+                   GroupCallMessage(sender_dialog_id, std::move(text)).get_group_call_message_object(td_)));
 }
 
 bool GroupCallManager::is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call,
@@ -4874,12 +4871,10 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
 
   auto as_dialog_id =
       group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id();
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateNewGroupCallMessage>(
-                   group_call->group_call_id.get(),
-                   td_api::make_object<td_api::groupCallMessage>(
-                       get_message_sender_object(td_, as_dialog_id, "send_group_call_message"),
-                       get_formatted_text_object(td_->user_manager_.get(), message, true, -1))));
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateNewGroupCallMessage>(
+          group_call->group_call_id.get(), GroupCallMessage(as_dialog_id, message).get_group_call_message_object(td_)));
 
   if (group_call->is_conference || group_call->call_id != tde2e_api::CallId()) {
     auto json_message = json_encode<string>(json_object([&message](auto &o) {

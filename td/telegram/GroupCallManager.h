@@ -190,8 +190,8 @@ class GroupCallManager final : public Actor {
                                          vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
                                          int32 version, bool is_recursive = false);
 
-  void on_new_group_call_message(InputGroupCallId input_group_call_id, DialogId sender_dialog_id, int64 random_id,
-                                 telegram_api::object_ptr<telegram_api::textWithEntities> &&message);
+  void on_new_group_call_message(InputGroupCallId input_group_call_id,
+                                 telegram_api::object_ptr<telegram_api::groupCallMessage> &&message);
 
   void on_new_encrypted_group_call_message(InputGroupCallId input_group_call_id, DialogId sender_dialog_id,
                                            string &&encrypted_message);
