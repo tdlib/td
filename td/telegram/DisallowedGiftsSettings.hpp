@@ -20,6 +20,7 @@ void DisallowedGiftsSettings::store(StorerT &storer) const {
   STORE_FLAG(disallow_limited_stargifts_);
   STORE_FLAG(disallow_unique_stargifts_);
   STORE_FLAG(disallow_premium_gifts_);
+  STORE_FLAG(disallow_gifts_from_channels_);
   END_STORE_FLAGS();
 }
 
@@ -30,6 +31,7 @@ void DisallowedGiftsSettings::parse(ParserT &parser) {
   PARSE_FLAG(disallow_limited_stargifts_);
   PARSE_FLAG(disallow_unique_stargifts_);
   PARSE_FLAG(disallow_premium_gifts_);
+  PARSE_FLAG(disallow_gifts_from_channels_);
   END_PARSE_FLAGS();
 }
 

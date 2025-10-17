@@ -1194,8 +1194,9 @@ starGiveawayPaymentOptions options:vector<starGiveawayPaymentOption> = StarGivea
 //@unlimited_gifts True, if unlimited regular gifts are accepted
 //@limited_gifts True, if limited regular gifts are accepted
 //@upgraded_gifts True, if upgraded gifts and regular gifts that can be upgraded for free are accepted
+//@gifts_from_channels True, if gifts from channels are accepted subject to other restrictions
 //@premium_subscription True, if Telegram Premium subscription is accepted
-acceptedGiftTypes unlimited_gifts:Bool limited_gifts:Bool upgraded_gifts:Bool premium_subscription:Bool = AcceptedGiftTypes;
+acceptedGiftTypes unlimited_gifts:Bool limited_gifts:Bool upgraded_gifts:Bool gifts_from_channels:Bool premium_subscription:Bool = AcceptedGiftTypes;
 
 //@description Contains settings for gift receiving for a user
 //@show_gift_button True, if a button for sending a gift to the user or by the user must always be shown in the input field

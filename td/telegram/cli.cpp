@@ -3103,11 +3103,13 @@ class CliClient final : public Actor {
       bool unlimited_gifts;
       bool limited_gifts;
       bool upgraded_gifts;
+      bool gifts_from_channels;
       bool premium_subscription;
-      get_args(args, show_button, unlimited_gifts, limited_gifts, upgraded_gifts, premium_subscription);
+      get_args(args, show_button, unlimited_gifts, limited_gifts, upgraded_gifts, gifts_from_channels,
+               premium_subscription);
       send_request(td_api::make_object<td_api::setGiftSettings>(td_api::make_object<td_api::giftSettings>(
           show_button, td_api::make_object<td_api::acceptedGiftTypes>(unlimited_gifts, limited_gifts, upgraded_gifts,
-                                                                      premium_subscription))));
+                                                                      gifts_from_channels, premium_subscription))));
     } else if (op == "gag") {
       send_request(td_api::make_object<td_api::getAvailableGifts>());
     } else if (op == "csg") {
@@ -7390,13 +7392,15 @@ class CliClient final : public Actor {
       bool unlimited_gifts;
       bool limited_gifts;
       bool upgraded_gifts;
+      bool gifts_from_channels;
       bool premium_subscription;
-      get_args(args, show_button, unlimited_gifts, limited_gifts, upgraded_gifts, premium_subscription);
+      get_args(args, show_button, unlimited_gifts, limited_gifts, upgraded_gifts, gifts_from_channels,
+               premium_subscription);
       send_request(td_api::make_object<td_api::setBusinessAccountGiftSettings>(
           business_connection_id_,
-          td_api::make_object<td_api::giftSettings>(
-              show_button, td_api::make_object<td_api::acceptedGiftTypes>(unlimited_gifts, limited_gifts,
-                                                                          upgraded_gifts, premium_subscription))));
+          td_api::make_object<td_api::giftSettings>(show_button, td_api::make_object<td_api::acceptedGiftTypes>(
+                                                                     unlimited_gifts, limited_gifts, upgraded_gifts,
+                                                                     gifts_from_channels, premium_subscription))));
     } else if (op == "gbasa") {
       send_request(td_api::make_object<td_api::getBusinessAccountStarAmount>(business_connection_id_));
     } else if (op == "tbas") {

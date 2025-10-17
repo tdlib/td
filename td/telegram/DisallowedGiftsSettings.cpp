@@ -15,6 +15,7 @@ DisallowedGiftsSettings::DisallowedGiftsSettings(
     disallow_limited_stargifts_ = settings->disallow_limited_stargifts_;
     disallow_unique_stargifts_ = settings->disallow_unique_stargifts_;
     disallow_premium_gifts_ = settings->disallow_premium_gifts_;
+    disallow_gifts_from_channels_ = settings->disallow_stargifts_from_channels_;
   }
 }
 
@@ -24,6 +25,7 @@ DisallowedGiftsSettings::DisallowedGiftsSettings(const td_api::object_ptr<td_api
     disallow_limited_stargifts_ = !types->limited_gifts_;
     disallow_unique_stargifts_ = !types->upgraded_gifts_;
     disallow_premium_gifts_ = !types->premium_subscription_;
+    disallow_gifts_from_channels_ = !types->gifts_from_channels_;
   }
 }
 
@@ -33,12 +35,14 @@ DisallowedGiftsSettings DisallowedGiftsSettings::allow_nothing() {
   result.disallow_limited_stargifts_ = true;
   result.disallow_unique_stargifts_ = true;
   result.disallow_premium_gifts_ = true;
+  result.disallow_gifts_from_channels_ = true;
   return result;
 }
 
 td_api::object_ptr<td_api::acceptedGiftTypes> DisallowedGiftsSettings::get_accepted_gift_types_object() const {
   return td_api::make_object<td_api::acceptedGiftTypes>(!disallow_unlimited_stargifts_, !disallow_limited_stargifts_,
-                                                        !disallow_unique_stargifts_, !disallow_premium_gifts_);
+                                                        !disallow_unique_stargifts_, !disallow_gifts_from_channels_,
+                                                        !disallow_premium_gifts_);
 }
 
 telegram_api::object_ptr<telegram_api::disallowedGiftsSettings>
@@ -48,14 +52,15 @@ DisallowedGiftsSettings::get_input_disallowed_gifts_settings() const {
   }
   return telegram_api::make_object<telegram_api::disallowedGiftsSettings>(
       0, disallow_unlimited_stargifts_, disallow_limited_stargifts_, disallow_unique_stargifts_,
-      disallow_premium_gifts_, false);
+      disallow_premium_gifts_, disallow_gifts_from_channels_);
 }
 
 bool operator==(const DisallowedGiftsSettings &lhs, const DisallowedGiftsSettings &rhs) {
   return lhs.disallow_unlimited_stargifts_ == rhs.disallow_unlimited_stargifts_ &&
          lhs.disallow_limited_stargifts_ == rhs.disallow_limited_stargifts_ &&
          lhs.disallow_unique_stargifts_ == rhs.disallow_unique_stargifts_ &&
-         lhs.disallow_premium_gifts_ == rhs.disallow_premium_gifts_;
+         lhs.disallow_premium_gifts_ == rhs.disallow_premium_gifts_ &&
+         lhs.disallow_gifts_from_channels_ == rhs.disallow_gifts_from_channels_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DisallowedGiftsSettings &settings) {
@@ -70,6 +75,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DisallowedGiftsSe
   }
   if (!settings.disallow_premium_gifts_) {
     string_builder << "(premium)";
+  }
+  if (!settings.disallow_gifts_from_channels_) {
+    string_builder << "(from channels)";
   }
   return string_builder;
 }

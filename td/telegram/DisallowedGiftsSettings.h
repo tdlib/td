@@ -19,6 +19,7 @@ class DisallowedGiftsSettings {
   bool disallow_limited_stargifts_ = false;
   bool disallow_unique_stargifts_ = false;
   bool disallow_premium_gifts_ = false;
+  bool disallow_gifts_from_channels_ = false;
 
   friend bool operator==(const DisallowedGiftsSettings &lhs, const DisallowedGiftsSettings &rhs);
 
@@ -39,7 +40,7 @@ class DisallowedGiftsSettings {
 
   bool is_default() const {
     return !disallow_unlimited_stargifts_ && !disallow_limited_stargifts_ && !disallow_unique_stargifts_ &&
-           !disallow_premium_gifts_;
+           !disallow_premium_gifts_ && !disallow_gifts_from_channels_;
   }
 
   template <class StorerT>
