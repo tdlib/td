@@ -1,0 +1,48 @@
+name: Version tagging
+
+on:
+  push:
+    branches:
+      - master
+
+  workflow_dispatch:
+
+jobs:
+  auto-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Process commits and create tags
+        run: |
+          git config user.name "GitHub"
+          git config user.email "noreply@github.com"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            COMMITS=$(git log a69030239c53951db8a1b0af6408f24d63f5dcb7..HEAD --format=%H)
+          else
+            if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+              COMMITS="${{ github.sha }}"
+            else
+              COMMITS=$(git rev-list ${{ github.event.before }}..${{ github.sha }})
+            fi
+          fi
+
+          for commit in $COMMITS; do
+            COMMIT_MSG=$(git log --format=%s -n 1 $commit)
+
+            if echo "$COMMIT_MSG" | grep -qE 'Update version to [0-9]+\.[0-9]+\.[0-9]+\.'; then
+              VERSION=$(echo "$COMMIT_MSG" | sed -E 's/Update version to ([0-9]+\.[0-9]+\.[0-9]+)\./\1/')
+
+              TAG="v$VERSION"
+              git tag "$TAG" "$commit" 2>/dev/null && echo "Created tag: $TAG" || echo "Tag already exists: $TAG"
+            fi
+          done
+
+          git push --tags
