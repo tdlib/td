@@ -20,6 +20,8 @@ jobs:
           fetch-depth: 0
 
       - name: Process commits and create tags
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "GitHub"
           git config user.email "noreply@github.com"
