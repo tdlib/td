@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  auto-tag:
+  tag-versions:
     runs-on: ubuntu-latest
     permissions:
       contents: write
