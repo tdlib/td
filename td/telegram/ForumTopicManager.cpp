@@ -1083,13 +1083,13 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       auto current_notification_settings =
           topic->topic_ == nullptr ? nullptr : topic->topic_->get_notification_settings();
       auto forum_topic_full = td::make_unique<ForumTopic>(td_, std::move(forum_topic), current_notification_settings);
-      if (forum_topic_full->is_short()) {
+      if (forum_topic_full->is_short() && !td_->auth_manager_->is_bot()) {
         LOG(ERROR) << "Receive short forum topic";
         return ForumTopicId();
       }
       if (topic->topic_ == nullptr || true) {
         topic->topic_ = std::move(forum_topic_full);
-        topic->need_save_to_database_ = true;  // temporary
+        topic->need_save_to_database_ = true;  // TODO temporary
       }
       set_topic_info(dialog_id, topic, std::move(forum_topic_info));
       send_update_forum_topic(dialog_id, topic);
