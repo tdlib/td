@@ -27,12 +27,12 @@ jobs:
           git config user.email "noreply@github.com"
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            COMMITS=$(git log a69030239c53951db8a1b0af6408f24d63f5dcb7..HEAD --format=%H)
+            COMMITS=$(git log a69030239c53951db8a1b0af6408f24d63f5dcb7..HEAD --format=%H --reverse)
           else
             if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
               COMMITS="${{ github.sha }}"
             else
-              COMMITS=$(git rev-list ${{ github.event.before }}..${{ github.sha }})
+              COMMITS=$(git rev-list ${{ github.event.before }}..${{ github.sha }} --reverse)
             fi
           fi
 
@@ -44,9 +44,9 @@ jobs:
               VERSION=$(echo "$COMMIT_MSG" | sed -E 's/Update version to ([0-9]+\.[0-9]+\.[0-9]+)\./\1/')
 
               TAG="v$VERSION"
+                VERSIONS+=("$VERSION")
               if git tag "$TAG" "$commit" 2>/dev/null; then
                 echo "Created tag: $TAG"
-                VERSIONS+=("$VERSION")
               else
                 echo "Tag already exists: $TAG"
               fi
@@ -57,6 +57,9 @@ jobs:
           git push --tags
 
           for version in "${VERSIONS[@]}"; do
-            echo "Creating release for $version"
-            gh release create "v$version" --title "$version" --generate-notes || echo "Release v$version already exists or failed"
+            if gh release create "v$version" --title "$version" --generate-notes 2>/dev/null; then
+              echo "Created release: $version"
+            else
+              echo "Release already exists: $version"
+            fi
           done
