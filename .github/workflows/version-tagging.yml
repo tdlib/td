@@ -34,6 +34,7 @@ jobs:
             fi
           fi
 
+          VERSIONS=()
           for commit in $COMMITS; do
             COMMIT_MSG=$(git log --format=%s -n 1 $commit)
 
@@ -41,8 +42,19 @@ jobs:
               VERSION=$(echo "$COMMIT_MSG" | sed -E 's/Update version to ([0-9]+\.[0-9]+\.[0-9]+)\./\1/')
 
               TAG="v$VERSION"
-              git tag "$TAG" "$commit" 2>/dev/null && echo "Created tag: $TAG" || echo "Tag already exists: $TAG"
+              if git tag "$TAG" "$commit" 2>/dev/null; then
+                echo "Created tag: $TAG"
+                VERSIONS+=("$VERSION")
+              else
+                echo "Tag already exists: $TAG"
+              fi
             fi
           done
 
+          echo "Pushing all tags"
           git push --tags
+
+          for version in "${VERSIONS[@]}"; do
+            echo "Creating release for $version"
+            gh release create "v$version" --title "$version" --generate-notes || echo "Release v$version already exists or failed"
+          done
