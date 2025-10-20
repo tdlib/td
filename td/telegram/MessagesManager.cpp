@@ -27731,6 +27731,14 @@ void MessagesManager::clear_dialog_draft_by_sent_message(Dialog *d, const Messag
     }
     return;
   }
+  if (m->initial_top_thread_message_id.is_valid()) {
+    auto message_topic = get_send_message_topic(d->dialog_id, m);
+    if (message_topic.is_forum()) {
+      td_->forum_topic_manager_->clear_forum_topic_draft_by_sent_message(
+          d->dialog_id, message_topic.get_forum_topic_id(), m->clear_draft, m->content->get_type());
+      return;
+    }
+  }
   if (!m->clear_draft) {
     const DraftMessage *draft_message = nullptr;
     if (m->initial_top_thread_message_id.is_valid()) {

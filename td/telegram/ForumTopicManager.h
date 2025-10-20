@@ -107,6 +107,9 @@ class ForumTopicManager final : public Actor {
   void on_update_forum_topic_draft_message(DialogId dialog_id, ForumTopicId forum_topic_id,
                                            unique_ptr<DraftMessage> &&draft_message);
 
+  void clear_forum_topic_draft_by_sent_message(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                               bool message_clear_draft, MessageContentType message_content_type);
+
   void on_update_forum_topic_is_pinned(DialogId dialog_id, ForumTopicId forum_topic_id, bool is_pinned);
 
   void on_update_pinned_forum_topics(DialogId dialog_id, vector<ForumTopicId> forum_topic_ids);

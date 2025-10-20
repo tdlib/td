@@ -682,6 +682,29 @@ void ForumTopicManager::on_update_forum_topic_draft_message(DialogId dialog_id, 
   }
 }
 
+void ForumTopicManager::clear_forum_topic_draft_by_sent_message(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                                bool message_clear_draft,
+                                                                MessageContentType message_content_type) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto topic = get_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr || topic->topic_ == nullptr) {
+    return;
+  }
+
+  LOG(INFO) << "Clear draft in " << forum_topic_id << " of " << dialog_id << " by sent message";
+  if (!message_clear_draft) {
+    const auto *draft_message = topic->topic_->get_draft_message().get();
+    if (draft_message == nullptr || !draft_message->need_clear_local(message_content_type)) {
+      return;
+    }
+  }
+  if (topic->topic_->set_draft_message(nullptr, false)) {
+    on_forum_topic_changed(dialog_id, topic);
+  }
+}
+
 void ForumTopicManager::on_update_forum_topic_is_pinned(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                         bool is_pinned) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "on_update_forum_topic_is_pinned")) {
