@@ -61,7 +61,7 @@ class ForumTopic {
     return true;
   }
 
-  bool set_draft_message(unique_ptr<DraftMessage> &&draft_message);
+  bool set_draft_message(unique_ptr<DraftMessage> &&draft_message, bool from_update);
 
   DialogNotificationSettings *get_notification_settings() {
     return &notification_settings_;

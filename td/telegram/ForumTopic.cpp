@@ -89,8 +89,7 @@ bool ForumTopic::update_unread_reaction_count(int32 count, bool is_relative) {
   return true;
 }
 
-bool ForumTopic::set_draft_message(unique_ptr<DraftMessage> &&draft_message) {
-  bool from_update = false;
+bool ForumTopic::set_draft_message(unique_ptr<DraftMessage> &&draft_message, bool from_update) {
   if (!need_update_draft_message(draft_message_, draft_message, from_update)) {
     return false;
   }

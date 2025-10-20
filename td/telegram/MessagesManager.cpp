@@ -27687,7 +27687,17 @@ void MessagesManager::on_update_dialog_draft_message(
       return td_->forum_topic_manager_->on_update_forum_topic_draft_message(
           dialog_id, message_topic.get_forum_topic_id(), std::move(new_draft_message));
     }
-    // TODO update thread message draft
+    if (message_topic.is_thread()) {
+      auto m = get_message_force(d, top_thread_message_id, "on_update_dialog_draft_message");
+      if (m == nullptr || m->reply_info.is_comment_ || !is_active_message_reply_info(d->dialog_id, m->reply_info)) {
+        return;
+      }
+      if (need_update_draft_message(m->thread_draft_message, new_draft_message, true)) {
+        m->thread_draft_message = std::move(new_draft_message);
+        on_message_changed(d, m, false, "on_update_dialog_draft_message");
+      }
+      return;
+    }
     return;
   }
 
