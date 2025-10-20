@@ -989,14 +989,16 @@ class CliClient final : public Actor {
 
   struct ForumTopicId {
     int32 forum_topic_id = 0;
+    int32 default_forum_topic_id = 0;
 
     operator int32() const {
-      return forum_topic_id;
+      return forum_topic_id ? forum_topic_id : default_forum_topic_id;
     }
   };
 
   void get_args(string &args, ForumTopicId &arg) const {
     arg.forum_topic_id = as_forum_topic_id(args);
+    arg.default_forum_topic_id = forum_topic_id_;
   }
 
   struct UserId {
@@ -5873,7 +5875,7 @@ class CliClient final : public Actor {
     } else if (op == "sop") {
       only_preview_ = as_bool(args);
     } else if (op == "sfti") {
-      get_args(args, forum_topic_id_);
+      forum_topic_id_ = as_forum_topic_id(args);
     } else if (op == "smti") {
       get_args(args, message_thread_id_);
     } else if (op == "sdmcti") {
@@ -8359,7 +8361,7 @@ class CliClient final : public Actor {
   int64 paid_message_star_count_ = 0;
   int64 message_effect_id_ = 0;
   bool only_preview_ = false;
-  ForumTopicId forum_topic_id_;
+  int32 forum_topic_id_ = 0;
   MessageThreadId message_thread_id_;
   ChatId direct_messages_chat_topic_id_;
   string business_connection_id_;
