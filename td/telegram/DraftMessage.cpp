@@ -562,6 +562,9 @@ unique_ptr<DraftMessage> get_draft_message(Td *td,
 
 void save_draft_message(Td *td, DialogId dialog_id, const MessageTopic &message_topic,
                         const unique_ptr<DraftMessage> &draft_message, Promise<Unit> &&promise) {
+  if (dialog_id.get_type() == DialogType::SecretChat || is_local_draft_message(draft_message)) {
+    return promise.set_value(Unit());
+  }
   td->create_handler<SaveDraftMessageQuery>(std::move(promise))->send(dialog_id, message_topic, draft_message);
 }
 
