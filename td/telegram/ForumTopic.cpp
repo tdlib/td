@@ -30,7 +30,7 @@ ForumTopic::ForumTopic(Td *td, tl_object_ptr<telegram_api::ForumTopic> &&forum_t
   is_pinned_ = forum_topic->pinned_;
   notification_settings_ =
       get_dialog_notification_settings(std::move(forum_topic->notify_settings_), current_notification_settings);
-  draft_message_ = get_draft_message(td, std::move(forum_topic->draft_));
+  draft_message_ = ::td::get_draft_message(td, std::move(forum_topic->draft_));
 
   if (is_short_) {
     return;
@@ -86,6 +86,16 @@ bool ForumTopic::update_unread_reaction_count(int32 count, bool is_relative) {
     return false;
   }
   unread_reaction_count_ = new_unread_reaction_count;
+  return true;
+}
+
+bool ForumTopic::set_draft_message(unique_ptr<DraftMessage> &&draft_message) {
+  bool from_update = false;
+  if (!need_update_draft_message(draft_message_, draft_message, from_update)) {
+    return false;
+  }
+
+  draft_message_ = std::move(draft_message);
   return true;
 }
 

@@ -15487,8 +15487,8 @@ Status MessagesManager::set_dialog_draft_message(Dialog *d, const MessageTopic &
     return Status::OK();
   }
   if (message_topic.is_forum()) {
-    // TODO
-    return Status::OK();
+    return td_->forum_topic_manager_->set_forum_topic_draft_message(d->dialog_id, message_topic.get_forum_topic_id(),
+                                                                    std::move(draft_message));
   }
   if (message_topic.is_monoforum()) {
     return td_->saved_messages_manager_->set_monoforum_topic_draft_message(

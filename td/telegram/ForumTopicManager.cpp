@@ -721,7 +721,7 @@ void ForumTopicManager::on_update_pinned_forum_topics(DialogId dialog_id, vector
 
 Status ForumTopicManager::set_forum_topic_notification_settings(
     DialogId dialog_id, ForumTopicId forum_topic_id,
-    tl_object_ptr<td_api::chatNotificationSettings> &&notification_settings) {
+    td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings) {
   CHECK(!td_->auth_manager_->is_bot());
   TRY_STATUS(is_forum(dialog_id, true));
   TRY_STATUS(can_be_forum_topic_id(forum_topic_id));
@@ -756,6 +756,22 @@ bool ForumTopicManager::update_forum_topic_notification_settings(DialogId dialog
     on_forum_topic_changed(dialog_id, topic);
   }
   return need_update.need_update_server;
+}
+
+Status ForumTopicManager::set_forum_topic_draft_message(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                        unique_ptr<DraftMessage> &&draft_message) {
+  TRY_STATUS(is_forum(dialog_id, true));
+  TRY_STATUS(can_be_forum_topic_id(forum_topic_id));
+  auto topic = get_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr || topic->topic_ == nullptr) {
+    return Status::Error(400, "Topic not found");
+  }
+  if (topic->topic_->set_draft_message(std::move(draft_message))) {
+    save_draft_message(td_, dialog_id, MessageTopic::forum(dialog_id, forum_topic_id),
+                       topic->topic_->get_draft_message(), Promise<Unit>());
+    on_forum_topic_changed(dialog_id, topic);
+  }
+  return Status::OK();
 }
 
 void ForumTopicManager::get_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id,

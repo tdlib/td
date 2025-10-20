@@ -76,9 +76,12 @@ class ForumTopicManager final : public Actor {
   void toggle_forum_topic_is_closed(DialogId dialog_id, ForumTopicId forum_topic_id, bool is_closed,
                                     Promise<Unit> &&promise);
 
-  Status set_forum_topic_notification_settings(DialogId dialog_id, ForumTopicId forum_topic_id,
-                                               tl_object_ptr<td_api::chatNotificationSettings> &&notification_settings)
-      TD_WARN_UNUSED_RESULT;
+  Status set_forum_topic_notification_settings(
+      DialogId dialog_id, ForumTopicId forum_topic_id,
+      td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings) TD_WARN_UNUSED_RESULT;
+
+  Status set_forum_topic_draft_message(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                       unique_ptr<DraftMessage> &&draft_message);
 
   void toggle_forum_topic_is_hidden(DialogId dialog_id, bool is_hidden, Promise<Unit> &&promise);
 
