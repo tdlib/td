@@ -7782,13 +7782,15 @@ class CliClient final : public Actor {
     } else if (op == "rrh") {
       const string &hashtag = args;
       send_request(td_api::make_object<td_api::removeRecentHashtag>(hashtag));
-    } else if (op == "view" || op == "viewh" || op == "viewt" || op == "views" || op == "viewf") {
+    } else if (op == "view" || op == "viewh" || op == "viewft" || op == "viewt" || op == "views" || op == "viewf") {
       ChatId chat_id;
       string message_ids;
       get_args(args, chat_id, message_ids);
       td_api::object_ptr<td_api::MessageSource> source;
       if (op == "viewh") {
         source = td_api::make_object<td_api::messageSourceChatHistory>();
+      } else if (op == "viewft") {
+        source = td_api::make_object<td_api::messageSourceForumTopicHistory>();
       } else if (op == "viewt") {
         source = td_api::make_object<td_api::messageSourceMessageThreadHistory>();
       } else if (op == "viewf") {
