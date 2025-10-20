@@ -675,6 +675,7 @@ void ForumTopicManager::on_update_forum_topic_draft_message(DialogId dialog_id, 
   }
   auto topic = get_topic(dialog_id, forum_topic_id);
   if (topic == nullptr || topic->topic_ == nullptr) {
+    LOG(INFO) << "Ignore update about unknown " << forum_topic_id << " in " << dialog_id;
     return;
   }
   if (topic->topic_->set_draft_message(std::move(draft_message), true)) {
