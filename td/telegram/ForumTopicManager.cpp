@@ -668,6 +668,20 @@ void ForumTopicManager::on_update_forum_topic_notify_settings(
                                            std::move(notification_settings));
 }
 
+void ForumTopicManager::on_update_forum_topic_draft_message(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                            unique_ptr<DraftMessage> &&draft_message) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto topic = get_topic(dialog_id, forum_topic_id);
+  if (topic == nullptr || topic->topic_ == nullptr) {
+    return;
+  }
+  if (topic->topic_->set_draft_message(std::move(draft_message))) {
+    on_forum_topic_changed(dialog_id, topic);
+  }
+}
+
 void ForumTopicManager::on_update_forum_topic_is_pinned(DialogId dialog_id, ForumTopicId forum_topic_id,
                                                         bool is_pinned) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "on_update_forum_topic_is_pinned")) {

@@ -27663,10 +27663,6 @@ void MessagesManager::on_update_dialog_draft_message(
     }
     return;
   }
-  if (top_thread_message_id.is_valid()) {
-    // TODO update thread message draft
-    return;
-  }
 
   auto input_dialog_ids = get_draft_message_reply_input_dialog_ids(draft_message);
   if (try_count < static_cast<int32>(input_dialog_ids.size())) {
@@ -27683,7 +27679,19 @@ void MessagesManager::on_update_dialog_draft_message(
       }
     }
   }
-  update_dialog_draft_message(d, get_draft_message(td_, std::move(draft_message)), true, true);
+
+  auto new_draft_message = get_draft_message(td_, std::move(draft_message));
+  if (top_thread_message_id.is_valid()) {
+    auto message_topic = MessageTopic::autodetect(td_, dialog_id, top_thread_message_id);
+    if (message_topic.is_forum()) {
+      return td_->forum_topic_manager_->on_update_forum_topic_draft_message(
+          dialog_id, message_topic.get_forum_topic_id(), std::move(new_draft_message));
+    }
+    // TODO update thread message draft
+    return;
+  }
+
+  update_dialog_draft_message(d, std::move(new_draft_message), true, true);
 }
 
 bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,

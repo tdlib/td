@@ -104,6 +104,9 @@ class ForumTopicManager final : public Actor {
                                              tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings,
                                              const char *source);
 
+  void on_update_forum_topic_draft_message(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                           unique_ptr<DraftMessage> &&draft_message);
+
   void on_update_forum_topic_is_pinned(DialogId dialog_id, ForumTopicId forum_topic_id, bool is_pinned);
 
   void on_update_pinned_forum_topics(DialogId dialog_id, vector<ForumTopicId> forum_topic_ids);
