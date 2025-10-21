@@ -13,6 +13,7 @@
 #include "td/telegram/ForumTopicEditedData.h"
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/ForumTopicInfo.h"
+#include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/td_api.h"
@@ -28,6 +29,7 @@
 
 namespace td {
 
+class DraftMessage;
 class Td;
 
 class ForumTopicManager final : public Actor {
