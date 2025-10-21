@@ -2137,6 +2137,9 @@ class CliClient final : public Actor {
     if (setting == "gift") {
       return td_api::make_object<td_api::userPrivacySettingAutosaveGifts>();
     }
+    if (setting == "music") {
+      return td_api::make_object<td_api::userPrivacySettingShowProfileAudio>();
+    }
     return nullptr;
   }
 

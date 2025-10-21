@@ -58,7 +58,7 @@ UserPrivacySetting::UserPrivacySetting(const telegram_api::PrivacyKey &key) {
       type_ = Type::NoPaidMessages;
       break;
     case telegram_api::privacyKeySavedMusic::ID:
-      type_ = Type::NoPaidMessages;
+      type_ = Type::SavedMusic;
       break;
     default:
       UNREACHABLE();
@@ -94,6 +94,8 @@ td_api::object_ptr<td_api::UserPrivacySetting> UserPrivacySetting::get_user_priv
       return td_api::make_object<td_api::userPrivacySettingAutosaveGifts>();
     case Type::NoPaidMessages:
       return td_api::make_object<td_api::userPrivacySettingAllowUnpaidMessages>();
+    case Type::SavedMusic:
+      return td_api::make_object<td_api::userPrivacySettingShowProfileAudio>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -127,6 +129,8 @@ telegram_api::object_ptr<telegram_api::InputPrivacyKey> UserPrivacySetting::get_
       return telegram_api::make_object<telegram_api::inputPrivacyKeyStarGiftsAutoSave>();
     case Type::NoPaidMessages:
       return telegram_api::make_object<telegram_api::inputPrivacyKeyNoPaidMessages>();
+    case Type::SavedMusic:
+      return telegram_api::make_object<telegram_api::inputPrivacyKeySavedMusic>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -173,6 +177,9 @@ UserPrivacySetting::UserPrivacySetting(const td_api::UserPrivacySetting &key) {
       break;
     case td_api::userPrivacySettingAllowUnpaidMessages::ID:
       type_ = Type::NoPaidMessages;
+      break;
+    case td_api::userPrivacySettingShowProfileAudio::ID:
+      type_ = Type::SavedMusic;
       break;
     default:
       UNREACHABLE();

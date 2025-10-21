@@ -30,6 +30,7 @@ class UserPrivacySetting {
     UserBirthdate,
     StarGiftAutosave,
     NoPaidMessages,
+    SavedMusic,
     Size
   };
 

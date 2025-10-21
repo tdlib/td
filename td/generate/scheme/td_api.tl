@@ -7764,6 +7764,9 @@ userPrivacySettingShowBio = UserPrivacySetting;
 //@description A privacy setting for managing whether the user's birthdate is visible
 userPrivacySettingShowBirthdate = UserPrivacySetting;
 
+//@description A privacy setting for managing whether the user's profile audio files are visible
+userPrivacySettingShowProfileAudio = UserPrivacySetting;
+
 //@description A privacy setting for managing whether the user can be invited to chats
 userPrivacySettingAllowChatInvites = UserPrivacySetting;
 
