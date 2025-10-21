@@ -6004,6 +6004,7 @@ groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> en
 //@video_info Information about user's video channel; may be null if there is no active video
 //@screen_sharing_video_info Information about user's screen sharing video channel; may be null if there is no active screen sharing video
 //@bio The participant user's bio or the participant chat's description
+//@total_paid_star_count The total amount of Telegram Stars spent by the participant for messages in the call
 //@is_current_user True, if the participant is the current user
 //@is_speaking True, if the participant is speaking as set by setGroupCallParticipantIsSpeaking
 //@is_hand_raised True, if the participant hand is raised
@@ -6016,7 +6017,7 @@ groupCallParticipantVideoInfo source_groups:vector<groupCallVideoSourceGroup> en
 //@can_unmute_self True, if the participant is muted for all users, but can unmute themselves
 //@volume_level Participant's volume level; 1-20000 in hundreds of percents
 //@order User's order in the group call participant list. Orders must be compared lexicographically. The bigger is order, the higher is user in the list. If order is empty, the user must be removed from the participant list
-groupCallParticipant participant_id:MessageSender audio_source_id:int32 screen_sharing_audio_source_id:int32 video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
+groupCallParticipant participant_id:MessageSender audio_source_id:int32 screen_sharing_audio_source_id:int32 video_info:groupCallParticipantVideoInfo screen_sharing_video_info:groupCallParticipantVideoInfo bio:string total_paid_star_count:int53 is_current_user:Bool is_speaking:Bool is_hand_raised:Bool can_be_muted_for_all_users:Bool can_be_unmuted_for_all_users:Bool can_be_muted_for_current_user:Bool can_be_unmuted_for_current_user:Bool is_muted_for_all_users:Bool is_muted_for_current_user:Bool can_unmute_self:Bool volume_level:int32 order:string = GroupCallParticipant;
 
 //@description Contains identifiers of group call participants @total_count Total number of group call participants @participant_ids Identifiers of the participants
 groupCallParticipants total_count:int32 participant_ids:vector<MessageSender> = GroupCallParticipants;

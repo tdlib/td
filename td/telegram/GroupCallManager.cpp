@@ -3645,6 +3645,7 @@ void GroupCallManager::join_video_chat(GroupCallId group_call_id, DialogId as_di
     participant.is_self = true;
     participant.dialog_id = as_dialog_id;
     participant.about = td_->dialog_manager_->get_dialog_about(participant.dialog_id);
+    participant.total_paid_star_count = 0;
     participant.audio_source = parameters.audio_source_;
     participant.joined_date = G()->unix_time();
     // if can_self_unmute has never been inited from self-participant,
