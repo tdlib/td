@@ -15,6 +15,8 @@ namespace td {
 // increase StoryContentUnsupported::CURRENT_VERSION each time a new Story content type is added
 enum class StoryContentType : int32 { Photo, Video, Unsupported };
 
+bool can_edit_story_content(StoryContentType content_type);
+
 StringBuilder &operator<<(StringBuilder &string_builder, StoryContentType content_type);
 
 struct StoryContentTypeHash {

@@ -2181,6 +2181,9 @@ bool StoryManager::can_edit_story(StoryFullId story_full_id, const Story *story)
   if (!story_full_id.get_story_id().is_server()) {
     return false;
   }
+  if (story != nullptr && story->content_ != nullptr && !can_edit_story_content(story->content_->get_type())) {
+    return false;
+  }
   auto owner_dialog_id = story_full_id.get_dialog_id();
   return can_edit_stories(owner_dialog_id) ||
          (story != nullptr && story->is_outgoing_ && can_post_stories(owner_dialog_id));

@@ -8,6 +8,19 @@
 
 namespace td {
 
+bool can_edit_story_content(StoryContentType content_type) {
+  switch (content_type) {
+    case StoryContentType::Photo:
+    case StoryContentType::Video:
+      return true;
+    case StoryContentType::Unsupported:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, StoryContentType content_type) {
   switch (content_type) {
     case StoryContentType::Photo:
