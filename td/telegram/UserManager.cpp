@@ -3183,7 +3183,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   if (bot_active_users != u->bot_active_users) {
     bool is_me = user_id == get_my_id();
     if (!is_me || Time::now() > next_set_my_active_users_) {
-      bot_active_users = u->bot_active_users;
+      u->bot_active_users = bot_active_users;
       u->is_changed = true;
 
       if (is_me) {
