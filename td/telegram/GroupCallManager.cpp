@@ -2682,6 +2682,20 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   return need_update;
 }
 
+void GroupCallManager::add_group_call_message(GroupCall *group_call, GroupCallMessage &&group_call_message) {
+  if (!group_call_message.is_valid()) {
+    return;
+  }
+  auto message_id = group_call_message.get_message_id();
+  if (!group_call->message_random_ids.insert(message_id).second) {
+    LOG(INFO) << "Skip duplicate " << message_id;
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateNewGroupCallMessage>(
+                   group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_)));
+}
+
 void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_call_id,
                                                  telegram_api::object_ptr<telegram_api::groupCallMessage> &&message) {
   if (G()->close_flag()) {
@@ -2705,18 +2719,7 @@ void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_ca
     return;
   }
 
-  auto group_call_message = GroupCallMessage(td_, std::move(message));
-  if (!group_call_message.is_valid()) {
-    return;
-  }
-  auto message_id = group_call_message.get_message_id();
-  if (!group_call->message_random_ids.insert(message_id).second) {
-    LOG(INFO) << "Skip duplicate " << message_id;
-    return;
-  }
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateNewGroupCallMessage>(
-                   group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_)));
+  add_group_call_message(group_call, GroupCallMessage(td_, std::move(message)));
 }
 
 void GroupCallManager::on_new_encrypted_group_call_message(InputGroupCallId input_group_call_id,
@@ -2750,18 +2753,7 @@ void GroupCallManager::on_new_encrypted_group_call_message(InputGroupCallId inpu
     return;
   }
 
-  GroupCallMessage group_call_message(td_, sender_dialog_id, std::move(r_message.value()));
-  if (!group_call_message.is_valid()) {
-    return;
-  }
-  auto message_id = group_call_message.get_message_id();
-  if (!group_call->message_random_ids.insert(message_id).second) {
-    LOG(INFO) << "Skip duplicate " << message_id;
-    return;
-  }
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateNewGroupCallMessage>(
-                   group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_)));
+  add_group_call_message(group_call, GroupCallMessage(td_, sender_dialog_id, std::move(r_message.value())));
 }
 
 bool GroupCallManager::is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call,
