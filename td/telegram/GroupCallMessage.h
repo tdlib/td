@@ -20,8 +20,10 @@ class Td;
 
 class GroupCallMessage {
   int64 id_ = 0;
+  int32 date_ = 0;
   DialogId dialog_id_;
   FormattedText text_;
+  int64 paid_message_star_count_ = 0;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const GroupCallMessage &group_call_message);
 
