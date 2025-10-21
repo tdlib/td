@@ -26,6 +26,8 @@ class GroupCallMessage {
   friend StringBuilder &operator<<(StringBuilder &string_builder, const GroupCallMessage &group_call_message);
 
  public:
+  GroupCallMessage(Td *td, DialogId sender_dialog_id, string json_message);
+
   GroupCallMessage(Td *td, telegram_api::object_ptr<telegram_api::groupCallMessage> &&message);
 
   GroupCallMessage(DialogId dialog_id, FormattedText text);

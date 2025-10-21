@@ -34,8 +34,6 @@
 namespace td {
 
 struct GroupCallJoinParameters;
-class JsonObject;
-class JsonValue;
 class Td;
 
 class GroupCallManager final : public Actor {
@@ -504,12 +502,6 @@ class GroupCallManager final : public Actor {
   void poll_group_call_blocks(GroupCall *group_call, int32 sub_chain_id);
 
   void on_poll_group_call_blocks(InputGroupCallId input_group_call_id, int32 sub_chain_id);
-
-  Result<MessageEntity> parse_message_entity(JsonValue &value);
-
-  Result<FormattedText> parse_text_with_entities(JsonObject &object);
-
-  Result<FormattedText> parse_group_call_message(JsonObject &object);
 
   vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> get_recent_speakers(const GroupCall *group_call,
                                                                                  bool for_update);
