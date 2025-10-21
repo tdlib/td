@@ -392,9 +392,9 @@ pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
 //@description Describes a task in a checklist
 //@id Unique identifier of the task
 //@text Text of the task; may contain only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, Url, EmailAddress, Mention, Hashtag, Cashtag and PhoneNumber entities
-//@completed_by_user_id Identifier of the user that completed the task; 0 if the task isn't completed
+//@completed_by Identifier of the user or chat that completed the task; may be null if the task isn't completed yet
 //@completion_date Point in time (Unix timestamp) when the task was completed; 0 if the task isn't completed
-checklistTask id:int32 text:formattedText completed_by_user_id:int53 completion_date:int32 = ChecklistTask;
+checklistTask id:int32 text:formattedText completed_by:MessageSender completion_date:int32 = ChecklistTask;
 
 //@description Describes a task in a checklist to be sent
 //@id Unique identifier of the task; must be positive

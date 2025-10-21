@@ -8,9 +8,9 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
-#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
@@ -89,11 +89,10 @@ void ToDoItem::validate(const char *source) {
 td_api::object_ptr<td_api::checklistTask> ToDoItem::get_checklist_task_object(
     Td *td, const vector<ToDoCompletion> &completions) const {
   auto result = td_api::make_object<td_api::checklistTask>(
-      id_, get_formatted_text_object(td->user_manager_.get(), title_, true, -1), 0, 0);
+      id_, get_formatted_text_object(td->user_manager_.get(), title_, true, -1), nullptr, 0);
   for (auto &completion : completions) {
     if (completion.id_ == id_) {
-      result->completed_by_user_id_ =
-          td->user_manager_->get_user_id_object(completion.completed_by_user_id_, "checklistTask");
+      result->completed_by_ = get_message_sender_object(td, completion.completed_by_dialog_id_, "checklistTask");
       result->completion_date_ = completion.date_;
     }
   }
