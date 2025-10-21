@@ -309,7 +309,9 @@ You can also try to use our [C](https://github.com/tdlib/td/blob/master/td/teleg
 
 TDLib can be used from Assembly through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
-You can also see [nasm_tdjson_example](https://gist.github.com/isopen/41481eda87db2e6426af75be9d1f3748).
+See [nasm_tdjson_example](https://gist.github.com/isopen/41481eda87db2e6426af75be9d1f3748).
+
+You can also see [gas_tdjson_example](https://gist.github.com/isopen/25c4829daffb3880a32fac1f85f5f888).
 
 <a name="g"></a>
 ## Using TDLib from G projects
