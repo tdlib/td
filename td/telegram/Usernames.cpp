@@ -32,11 +32,11 @@ Usernames::Usernames(string &&first_username, vector<telegram_api::object_ptr<te
   for (auto &username : usernames) {
     if (username->editable_) {
       if (was_editable) {
-        LOG(ERROR) << "Receive two editable usernames in " << to_string(usernames);
-        return;
+        username->editable_ = false;
+      } else {
+        is_editable_username_disabled = !username->active_;
+        was_editable = true;
       }
-      is_editable_username_disabled = !username->active_;
-      was_editable = true;
     }
   }
 
