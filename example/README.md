@@ -311,7 +311,7 @@ TDLib can be used from Assembly through the [JSON](https://github.com/tdlib/td#u
 
 See [nasm_tdjson_example](https://gist.github.com/isopen/41481eda87db2e6426af75be9d1f3748).
 
-You can also see [gas_tdjson_example](https://gist.github.com/isopen/25c4829daffb3880a32fac1f85f5f888).
+You can also see [gas_tdjson_example](https://gist.github.com/isopen/25c4829daffb3880a32fac1f85f5f888), [arm_tdjson_example](https://gist.github.com/isopen/c00f09d643ce65e465637f812a79695b).
 
 <a name="g"></a>
 ## Using TDLib from G projects
