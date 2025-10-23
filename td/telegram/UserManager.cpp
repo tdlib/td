@@ -9936,8 +9936,14 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
   auto user_rating = user_full->star_rating == nullptr ? nullptr : user_full->star_rating->get_user_rating_object();
   auto pending_user_rating =
       user_full->pending_star_rating == nullptr ? nullptr : user_full->pending_star_rating->get_user_rating_object();
-  auto note = is_contact && !user_full->note.text.empty() ? get_formatted_text_object(this, user_full->note, true, -1)
-                                                          : nullptr;
+  td_api::object_ptr<td_api::formattedText> note;
+  if (is_contact && !user_full->note.text.empty()) {
+    auto user_note = user_full->note;
+    if (fix_formatted_text(user_note.text, user_note.entities, false, false, true, true, false).is_ok()) {
+      note = get_formatted_text_object(this, user_note, true, -1);
+    }
+  }
+
   return td_api::make_object<td_api::userFullInfo>(
       get_chat_photo_object(td_->file_manager_.get(), user_full->personal_photo),
       get_chat_photo_object(td_->file_manager_.get(), user_full->photo),
