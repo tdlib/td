@@ -2192,6 +2192,15 @@ bool StoryManager::can_edit_story(StoryFullId story_full_id, const Story *story)
          (story != nullptr && story->is_outgoing_ && can_post_stories(owner_dialog_id));
 }
 
+bool StoryManager::can_set_story_privacy_settings(StoryFullId story_full_id, const Story *story) const {
+  if (!story_full_id.get_story_id().is_server()) {
+    return false;
+  }
+  CHECK(story != nullptr);
+  auto owner_dialog_id = story_full_id.get_dialog_id();
+  return can_edit_stories(owner_dialog_id) || (story->is_outgoing_ && can_post_stories(owner_dialog_id));
+}
+
 bool StoryManager::can_toggle_story_is_pinned(StoryFullId story_full_id, const Story *story) const {
   if (!story_full_id.get_story_id().is_server()) {
     return false;
@@ -4036,6 +4045,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
                           privacy_settings->get_id() == td_api::storyPrivacySettingsEveryone::ID;
   auto can_be_replied =
       story_id.is_server() && owner_dialog_id != changelog_dialog_id && owner_dialog_id.get_type() == DialogType::User;
+  auto can_set_privacy_settings = can_set_story_privacy_settings(story_full_id, story);
   auto can_toggle_is_pinned = can_toggle_story_is_pinned(story_full_id, story);
   auto unix_time = G()->unix_time();
   auto can_get_statistics = can_get_story_statistics(story_full_id, story);
@@ -4059,8 +4069,8 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
           ? nullptr
           : get_message_sender_object(td_, story->sender_dialog_id_, "get_story_object 2"),
       story->date_, is_being_sent, is_being_edited, is_edited, story->is_pinned_, is_visible_only_for_self,
-      can_be_added_to_album, can_be_deleted, can_be_edited, can_be_forwarded, can_be_replied, can_toggle_is_pinned,
-      can_get_statistics, can_get_interactions, has_expired_viewers, std::move(repost_info),
+      can_be_added_to_album, can_be_deleted, can_be_edited, can_be_forwarded, can_be_replied, can_set_privacy_settings,
+      can_toggle_is_pinned, can_get_statistics, can_get_interactions, has_expired_viewers, std::move(repost_info),
       std::move(interaction_info), story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
       get_story_content_object(td_, content), std::move(story_areas),
       get_formatted_text_object(td_->user_manager_.get(), *caption, true, get_story_content_duration(td_, content)),
@@ -6399,8 +6409,8 @@ void StoryManager::set_story_privacy_settings(StoryId story_id,
   if (story == nullptr || story->content_ == nullptr) {
     return promise.set_error(400, "Story not found");
   }
-  if (!can_edit_story(story_full_id, story)) {
-    return promise.set_error(400, "Story privacy settings can't be edited");
+  if (!can_set_story_privacy_settings(story_full_id, story)) {
+    return promise.set_error(400, "Story privacy settings can't be changed");
   }
   TRY_RESULT_PROMISE(promise, privacy_rules,
                      UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(settings)));

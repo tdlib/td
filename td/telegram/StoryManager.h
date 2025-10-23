@@ -493,6 +493,8 @@ class StoryManager final : public Actor {
 
   bool can_edit_story(StoryFullId story_full_id, const Story *story) const;
 
+  bool can_set_story_privacy_settings(StoryFullId story_full_id, const Story *story) const;
+
   bool can_toggle_story_is_pinned(StoryFullId story_full_id, const Story *story) const;
 
   bool can_add_story_to_album(StoryFullId story_full_id, const Story *story) const;
