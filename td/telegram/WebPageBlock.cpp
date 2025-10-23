@@ -2199,7 +2199,7 @@ unique_ptr<WebPageBlock> get_web_page_block(Td *td, tl_object_ptr<telegram_api::
           LOG(INFO) << "Receive known min " << channel_id;
           return td::make_unique<WebPageBlockChatLink>(td->chat_manager_->get_channel_title(channel_id),
                                                        *td->chat_manager_->get_channel_dialog_photo(channel_id),
-                                                       td->chat_manager_->get_channel_first_username(channel_id),
+                                                       td->chat_manager_->get_channel_first_username(channel_id).str(),
                                                        td->chat_manager_->get_channel_accent_color_id(channel_id),
                                                        channel_id);
         } else {

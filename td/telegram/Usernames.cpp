@@ -74,7 +74,7 @@ tl_object_ptr<td_api::usernames> Usernames::get_usernames_object() const {
     return nullptr;
   }
   return make_tl_object<td_api::usernames>(vector<string>(active_usernames_), vector<string>(disabled_usernames_),
-                                           get_editable_username());
+                                           get_editable_username().str());
 }
 
 Usernames Usernames::change_editable_username(string &&new_username) const {

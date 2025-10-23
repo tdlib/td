@@ -5165,7 +5165,7 @@ Result<UserManager::BotData> UserManager::get_bot_data(UserId user_id) const {
   }
 
   BotData bot_data;
-  bot_data.username = u->usernames.get_first_username();
+  bot_data.username = u->usernames.get_first_username().str();
   bot_data.can_be_edited = u->can_be_edited_bot;
   bot_data.can_join_groups = u->can_join_groups;
   bot_data.can_read_all_group_messages = u->can_read_all_group_messages;
@@ -5485,14 +5485,14 @@ void UserManager::for_each_secret_chat_with_user(UserId user_id, const std::func
   }
 }
 
-string UserManager::get_user_first_username(UserId user_id) const {
+Slice UserManager::get_user_first_username(UserId user_id) const {
   if (!user_id.is_valid()) {
-    return string();
+    return Slice();
   }
 
   auto u = get_user(user_id);
   if (u == nullptr) {
-    return string();
+    return Slice();
   }
   return u->usernames.get_first_username();
 }
@@ -9892,7 +9892,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
           nullptr, nullptr, nullptr);
     }
     if (u != nullptr && u->can_be_edited_bot && u->usernames.has_editable_username()) {
-      auto bot_username = u->usernames.get_editable_username();
+      auto bot_username = u->usernames.get_editable_username().str();
       bot_info->edit_commands_link_ = td_api::make_object<td_api::internalLinkTypeBotStart>(
           "botfather", PSTRING() << bot_username << "-commands", true);
       bot_info->edit_description_link_ = td_api::make_object<td_api::internalLinkTypeBotStart>(

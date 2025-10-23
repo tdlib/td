@@ -3094,15 +3094,15 @@ string ChatManager::get_channel_search_text(ChannelId channel_id) const {
   return PSTRING() << c->title << ' ' << implode(c->usernames.get_active_usernames());
 }
 
-string ChatManager::get_channel_first_username(ChannelId channel_id) const {
+Slice ChatManager::get_channel_first_username(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return string();
+    return Slice();
   }
   return c->usernames.get_first_username();
 }
 
-string ChatManager::get_channel_editable_username(ChannelId channel_id) const {
+Slice ChatManager::get_channel_editable_username(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return string();

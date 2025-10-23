@@ -50,6 +50,7 @@
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/Hints.h"
 #include "td/utils/Promise.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
@@ -327,7 +328,7 @@ class UserManager final : public Actor {
 
   void for_each_secret_chat_with_user(UserId user_id, const std::function<void(SecretChatId)> &f);
 
-  string get_user_first_username(UserId user_id) const;
+  Slice get_user_first_username(UserId user_id) const;
 
   int32 get_secret_chat_date(SecretChatId secret_chat_id) const;
 

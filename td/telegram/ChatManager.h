@@ -44,6 +44,7 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/Promise.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
@@ -132,8 +133,9 @@ class ChatManager final : public Actor {
 
   string get_channel_search_text(ChannelId channel_id) const;
 
-  string get_channel_first_username(ChannelId channel_id) const;
-  string get_channel_editable_username(ChannelId channel_id) const;
+  Slice get_channel_first_username(ChannelId channel_id) const;
+
+  Slice get_channel_editable_username(ChannelId channel_id) const;
 
   void on_binlog_chat_event(BinlogEvent &&event);
   void on_binlog_channel_event(BinlogEvent &&event);

@@ -10,6 +10,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
@@ -38,9 +39,9 @@ class Usernames {
     return editable_username_pos_ == -1 && active_usernames_.empty() && disabled_usernames_.empty();
   }
 
-  string get_first_username() const {
+  Slice get_first_username() const {
     if (!has_first_username()) {
-      return string();
+      return Slice();
     }
     return active_usernames_[0];
   }
@@ -49,9 +50,9 @@ class Usernames {
     return !active_usernames_.empty();
   }
 
-  string get_editable_username() const {
+  Slice get_editable_username() const {
     if (!has_editable_username()) {
-      return string();
+      return Slice();
     }
     return is_editable_username_disabled_ ? disabled_usernames_[editable_username_pos_]
                                           : active_usernames_[editable_username_pos_];

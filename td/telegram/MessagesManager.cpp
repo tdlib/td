@@ -15155,7 +15155,7 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
       CHECK(linked_d != nullptr);
       CHECK(linked_dialog_id.get_type() == DialogType::Channel);
       auto *linked_m = get_message_force(linked_d, linked_message_id, "get_public_message_link");
-      auto channel_username = td_->chat_manager_->get_channel_first_username(linked_dialog_id.get_channel_id());
+      auto channel_username = td_->chat_manager_->get_channel_first_username(linked_dialog_id.get_channel_id()).str();
       if (linked_m != nullptr && is_active_message_reply_info(linked_dialog_id, linked_m->reply_info) &&
           linked_message_id.is_server() &&
           td_->dialog_manager_->have_input_peer(linked_dialog_id, false, AccessRights::Read) &&
@@ -21802,8 +21802,8 @@ void MessagesManager::send_secret_message(DialogId dialog_id, const Message *m, 
       secret_api::make_object<secret_api::decryptedMessage>(
           flags, m->disable_notification, random_id, m->ttl.get_input_ttl(),
           m->content->get_type() == MessageContentType::Text ? text->text : string(), std::move(media.decrypted_media_),
-          std::move(entities), td_->user_manager_->get_user_first_username(m->via_bot_user_id), m->reply_to_random_id,
-          -m->media_album_id),
+          std::move(entities), td_->user_manager_->get_user_first_username(m->via_bot_user_id).str(),
+          m->reply_to_random_id, -m->media_album_id),
       std::move(media.input_file_), Promise<Unit>());
 }
 

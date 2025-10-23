@@ -47,7 +47,7 @@ void RecentDialogList::save_dialogs() const {
     sb << ',';
     if (!G()->use_chat_info_database()) {
       // if there is no dialog info database, prefer to save dialogs by username
-      string username;
+      Slice username;
       switch (dialog_id.get_type()) {
         case DialogType::User:
           if (!td_->user_manager_->is_user_contact(dialog_id.get_user_id())) {
