@@ -5040,10 +5040,11 @@ class CliClient final : public Actor {
             group_call_source_, get_group_call_join_payload(op == "cgcv", false), true, true);
       }
       send_request(td_api::make_object<td_api::createGroupCall>(std::move(parameters)));
-    } else if (op == "gvcru") {
+    } else if (op == "ggcru") {
       ChatId chat_id;
-      get_args(args, chat_id);
-      send_request(td_api::make_object<td_api::getVideoChatRtmpUrl>(chat_id));
+      bool for_live_story;
+      get_args(args, chat_id, for_live_story);
+      send_request(td_api::make_object<td_api::getGroupCallRtmpUrl>(chat_id, for_live_story));
     } else if (op == "rvcru") {
       ChatId chat_id;
       get_args(args, chat_id);

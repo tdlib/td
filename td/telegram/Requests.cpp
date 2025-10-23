@@ -4760,16 +4760,17 @@ void Requests::on_request(uint64 id, td_api::createGroupCall &request) {
   td_->group_call_manager_->create_group_call(std::move(request.join_parameters_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getVideoChatRtmpUrl &request) {
+void Requests::on_request(uint64 id, const td_api::getGroupCallRtmpUrl &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->group_call_manager_->get_video_chat_rtmp_stream_url(DialogId(request.chat_id_), false, std::move(promise));
+  td_->group_call_manager_->get_video_chat_rtmp_stream_url(DialogId(request.chat_id_), request.for_live_story_, false,
+                                                           std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::replaceVideoChatRtmpUrl &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->group_call_manager_->get_video_chat_rtmp_stream_url(DialogId(request.chat_id_), true, std::move(promise));
+  td_->group_call_manager_->get_video_chat_rtmp_stream_url(DialogId(request.chat_id_), false, true, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getGroupCall &request) {

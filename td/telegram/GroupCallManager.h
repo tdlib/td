@@ -65,7 +65,7 @@ class GroupCallManager final : public Actor {
   void create_group_call(td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters,
                          Promise<td_api::object_ptr<td_api::groupCallInfo>> &&promise);
 
-  void get_video_chat_rtmp_stream_url(DialogId dialog_id, bool revoke,
+  void get_video_chat_rtmp_stream_url(DialogId dialog_id, bool is_story, bool revoke,
                                       Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise);
 
   void get_group_call(GroupCallId group_call_id, Promise<td_api::object_ptr<td_api::groupCall>> &&promise);

@@ -324,14 +324,14 @@ class GetGroupCallRtmpStreamUrlGroupCallQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, bool revoke) {
+  void send(DialogId dialog_id, bool is_story, bool revoke) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
     send_query(G()->net_query_creator().create(
-        telegram_api::phone_getGroupCallStreamRtmpUrl(0, false, std::move(input_peer), revoke)));
+        telegram_api::phone_getGroupCallStreamRtmpUrl(0, is_story, std::move(input_peer), revoke)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1987,13 +1987,17 @@ void GroupCallManager::on_create_group_call_finished(InputGroupCallId input_grou
   promise.set_value(td_api::make_object<td_api::groupCallInfo>(group_call->group_call_id.get(), payload));
 }
 
-void GroupCallManager::get_video_chat_rtmp_stream_url(DialogId dialog_id, bool revoke,
+void GroupCallManager::get_video_chat_rtmp_stream_url(DialogId dialog_id, bool is_story, bool revoke,
                                                       Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
                                                                         "get_video_chat_rtmp_stream_url"));
-  TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id));
+  if (dialog_id.get_type() != DialogType::User) {
+    TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id));
+  } else if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
+    return promise.set_error(400, "Have not enough rights");
+  }
 
-  td_->create_handler<GetGroupCallRtmpStreamUrlGroupCallQuery>(std::move(promise))->send(dialog_id, revoke);
+  td_->create_handler<GetGroupCallRtmpStreamUrlGroupCallQuery>(std::move(promise))->send(dialog_id, is_story, revoke);
 }
 
 void GroupCallManager::on_video_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id,
