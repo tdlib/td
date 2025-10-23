@@ -1,0 +1,65 @@
+name: Version tagging
+
+on:
+  push:
+    branches:
+      - master
+
+  workflow_dispatch:
+
+jobs:
+  tag-versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Process commits and create tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "GitHub"
+          git config user.email "noreply@github.com"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            COMMITS=$(git log a69030239c53951db8a1b0af6408f24d63f5dcb7..HEAD --format=%H --reverse)
+          else
+            if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+              COMMITS="${{ github.sha }}"
+            else
+              COMMITS=$(git rev-list ${{ github.event.before }}..${{ github.sha }} --reverse)
+            fi
+          fi
+
+          VERSIONS=()
+          for commit in $COMMITS; do
+            COMMIT_MSG=$(git log --format=%s -n 1 $commit)
+
+            if echo "$COMMIT_MSG" | grep -qE 'Update version to [0-9]+\.[0-9]+\.[0-9]+\.'; then
+              VERSION=$(echo "$COMMIT_MSG" | sed -E 's/Update version to ([0-9]+\.[0-9]+\.[0-9]+)\./\1/')
+
+              TAG="v$VERSION"
+                VERSIONS+=("$VERSION")
+              if git tag "$TAG" "$commit" 2>/dev/null; then
+                echo "Created tag: $TAG"
+              else
+                echo "Tag already exists: $TAG"
+              fi
+            fi
+          done
+
+          echo "Pushing all tags"
+          git push --tags
+
+          for version in "${VERSIONS[@]}"; do
+            if gh release create "v$version" --title "$version" --generate-notes 2>/dev/null; then
+              echo "Created release: $version"
+            else
+              echo "Release already exists: $version"
+            fi
+          done
