@@ -422,7 +422,7 @@ td_api::object_ptr<td_api::productInfo> get_product_info_object(Td *td, const st
   formatted_description.text = description;
   formatted_description.entities = find_entities(formatted_description.text, true, true);
   return td_api::make_object<td_api::productInfo>(
-      title, get_formatted_text_object(td->user_manager_.get(), formatted_description, true, 0),
+      title, get_formatted_text_object(td->user_manager_.get(), formatted_description, true, -1),
       get_photo_object(td->file_manager_.get(), photo));
 }
 
