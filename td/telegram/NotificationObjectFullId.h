@@ -46,15 +46,15 @@ struct NotificationObjectFullId {
 };
 
 struct NotificationObjectFullIdHash {
-  uint32 operator()(NotificationObjectFullId full_notification_object_id) const {
-    return combine_hashes(DialogIdHash()(full_notification_object_id.get_dialog_id()),
-                          NotificationObjectIdHash()(full_notification_object_id.get_notification_object_id()));
+  uint32 operator()(NotificationObjectFullId notification_object_full_id) const {
+    return combine_hashes(DialogIdHash()(notification_object_full_id.get_dialog_id()),
+                          NotificationObjectIdHash()(notification_object_full_id.get_notification_object_id()));
   }
 };
 
-inline StringBuilder &operator<<(StringBuilder &string_builder, NotificationObjectFullId full_notification_object_id) {
-  return string_builder << full_notification_object_id.get_notification_object_id() << " in "
-                        << full_notification_object_id.get_dialog_id();
+inline StringBuilder &operator<<(StringBuilder &string_builder, NotificationObjectFullId notification_object_full_id) {
+  return string_builder << notification_object_full_id.get_notification_object_id() << " in "
+                        << notification_object_full_id.get_dialog_id();
 }
 
 }  // namespace td
