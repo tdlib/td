@@ -1851,8 +1851,9 @@ emojiStatusCustomEmojis custom_emoji_ids:vector<int64> = EmojiStatusCustomEmojis
 //@description Describes usernames assigned to a user, a supergroup, or a channel
 //@active_usernames List of active usernames; the first one must be shown as the primary username. The order of active usernames can be changed with reorderActiveUsernames, reorderBotActiveUsernames or reorderSupergroupActiveUsernames
 //@disabled_usernames List of currently disabled usernames; the username can be activated with toggleUsernameIsActive, toggleBotUsernameIsActive, or toggleSupergroupUsernameIsActive
-//@editable_username Active or disabled username, which may be changed with setUsername or setSupergroupUsername. Information about other active usernames can be received using getCollectibleItemInfo
-usernames active_usernames:vector<string> disabled_usernames:vector<string> editable_username:string = Usernames;
+//@editable_username Active or disabled username, which may be changed with setUsername or setSupergroupUsername
+//@collectible_usernames Collectible usernames that were purchased at https://fragment.com and can be passed to getCollectibleItemInfo for more details
+usernames active_usernames:vector<string> disabled_usernames:vector<string> editable_username:string collectible_usernames:vector<string> = Usernames;
 
 
 //@description Represents a user

@@ -21,6 +21,7 @@ class Usernames {
   vector<string> disabled_usernames_;
   int32 editable_username_pos_ = -1;
   bool is_editable_username_disabled_ = false;
+  vector<string> other_editable_usernames_;
 
   friend bool operator==(const Usernames &lhs, const Usernames &rhs);
 
@@ -85,12 +86,14 @@ class Usernames {
     bool has_disabled_usernames = !disabled_usernames_.empty();
     bool has_editable_username = editable_username_pos_ != -1;
     bool has_active_usernames = !active_usernames_.empty();
+    bool has_other_editable_usernames = !other_editable_usernames_.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_many_active_usernames);
     STORE_FLAG(has_disabled_usernames);
     STORE_FLAG(has_editable_username);
     STORE_FLAG(has_active_usernames);
     STORE_FLAG(is_editable_username_disabled_);
+    STORE_FLAG(has_other_editable_usernames);
     END_STORE_FLAGS();
     if (is_editable_username_disabled_) {
       CHECK(has_editable_username);
@@ -111,6 +114,9 @@ class Usernames {
     if (has_disabled_usernames) {
       td::store(disabled_usernames_, storer);
     }
+    if (has_other_editable_usernames) {
+      td::store(other_editable_usernames_, storer);
+    }
   }
 
   template <class ParserT>
@@ -120,12 +126,14 @@ class Usernames {
     bool has_disabled_usernames;
     bool has_editable_username;
     bool has_active_usernames;
+    bool has_other_editable_usernames;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_many_active_usernames);
     PARSE_FLAG(has_disabled_usernames);
     PARSE_FLAG(has_editable_username);
     PARSE_FLAG(has_active_usernames);
     PARSE_FLAG(is_editable_username_disabled_);
+    PARSE_FLAG(has_other_editable_usernames);
     END_PARSE_FLAGS();
     if (is_editable_username_disabled_) {
       if (has_active_usernames) {
@@ -148,6 +156,9 @@ class Usernames {
     }
     if (has_disabled_usernames) {
       td::parse(disabled_usernames_, parser);
+    }
+    if (has_other_editable_usernames) {
+      td::parse(other_editable_usernames_, parser);
     }
     check_validness();
   }

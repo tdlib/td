@@ -29,17 +29,6 @@ Usernames::Usernames(string &&first_username, vector<telegram_api::object_ptr<te
   }
   bool was_editable = false;
   bool is_editable_username_disabled = false;
-  for (auto &username : usernames) {
-    if (username->editable_) {
-      if (was_editable) {
-        username->editable_ = false;
-      } else {
-        is_editable_username_disabled = !username->active_;
-        was_editable = true;
-      }
-    }
-  }
-
   FlatHashSet<string> received_usernames;
   for (auto &username : usernames) {
     if (username->username_.empty()) {
@@ -50,16 +39,24 @@ Usernames::Usernames(string &&first_username, vector<telegram_api::object_ptr<te
       LOG(ERROR) << "Receive duplicate username";
       continue;
     }
+    if (username->editable_) {
+      if (was_editable) {
+        username->editable_ = false;
+        other_editable_usernames_.push_back(username->username_);
+      } else {
+        was_editable = true;
+      }
+    }
     if (username->active_) {
       active_usernames_.push_back(std::move(username->username_));
       if (username->editable_) {
-        CHECK(!is_editable_username_disabled);
+        is_editable_username_disabled = false;
         editable_username_pos_ = narrow_cast<int32>(active_usernames_.size() - 1);
       }
     } else {
       disabled_usernames_.push_back(std::move(username->username_));
       if (username->editable_) {
-        CHECK(is_editable_username_disabled);
+        is_editable_username_disabled = true;
         editable_username_pos_ = narrow_cast<int32>(disabled_usernames_.size() - 1);
       }
     }
@@ -69,12 +66,25 @@ Usernames::Usernames(string &&first_username, vector<telegram_api::object_ptr<te
   check_validness();
 }
 
-tl_object_ptr<td_api::usernames> Usernames::get_usernames_object() const {
+td_api::object_ptr<td_api::usernames> Usernames::get_usernames_object() const {
   if (is_empty()) {
     return nullptr;
   }
-  return make_tl_object<td_api::usernames>(vector<string>(active_usernames_), vector<string>(disabled_usernames_),
-                                           get_editable_username().str());
+
+  auto editable_username = get_editable_username();
+  vector<string> collectible_usernames;
+  for (const auto &username : active_usernames_) {
+    if (username != editable_username && !td::contains(other_editable_usernames_, username)) {
+      collectible_usernames.push_back(username);
+    }
+  }
+  for (const auto &username : disabled_usernames_) {
+    if (username != editable_username && !td::contains(other_editable_usernames_, username)) {
+      collectible_usernames.push_back(username);
+    }
+  }
+  return td_api::make_object<td_api::usernames>(vector<string>(active_usernames_), vector<string>(disabled_usernames_),
+                                                get_editable_username().str(), std::move(collectible_usernames));
 }
 
 Usernames Usernames::change_editable_username(string &&new_username) const {
