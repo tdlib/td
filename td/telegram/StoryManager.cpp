@@ -6623,7 +6623,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         pending_story->log_event_id_ = event.id_;
 
         CHECK(pending_story->story_->content_ != nullptr);
-        if (pending_story->story_->content_->get_type() == StoryContentType::Unsupported) {
+        if (!can_send_story_content(pending_story->story_->content_->get_type())) {
           LOG(ERROR) << "Sent story content is invalid: " << format::as_hex_dump<4>(event.get_data());
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
@@ -6663,7 +6663,7 @@ void StoryManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         if (pending_story->story_->content_ != nullptr &&
-            pending_story->story_->content_->get_type() == StoryContentType::Unsupported) {
+            !can_send_story_content(pending_story->story_->content_->get_type())) {
           LOG(ERROR) << "Sent story content is invalid: " << format::as_hex_dump<4>(event.get_data());
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;

@@ -8,6 +8,19 @@
 
 namespace td {
 
+bool can_send_story_content(StoryContentType content_type) {
+  switch (content_type) {
+    case StoryContentType::Photo:
+    case StoryContentType::Video:
+      return true;
+    case StoryContentType::Unsupported:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 bool can_edit_story_content(StoryContentType content_type) {
   switch (content_type) {
     case StoryContentType::Photo:
