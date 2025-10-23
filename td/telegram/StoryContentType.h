@@ -13,7 +13,7 @@
 namespace td {
 
 // increase StoryContentUnsupported::CURRENT_VERSION each time a new Story content type is added
-enum class StoryContentType : int32 { Photo, Video, Unsupported };
+enum class StoryContentType : int32 { Photo, Video, Unsupported, LiveStream };
 
 bool can_send_story_content(StoryContentType content_type);
 

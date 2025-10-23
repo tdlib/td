@@ -5522,6 +5522,11 @@ storyContentPhoto photo:photo = StoryContent;
 //@description A video story @video The video in MPEG4 format @alternative_video Alternative version of the video in MPEG4 format, encoded with H.264 codec; may be null
 storyContentVideo video:storyVideo alternative_video:storyVideo = StoryContent;
 
+//@description A live stream story
+//@group_call_id Identifier of the corresponding group call. The group call can be received through the method getGroupCall
+//@is_rtmp_stream True, if the call is an RTMP stream instead of an ordinary group call
+storyContentLiveStream group_call_id:int32 is_rtmp_stream:Bool = StoryContent;
+
 //@description A story content that is not supported in the current TDLib version
 storyContentUnsupported = StoryContent;
 
@@ -5963,25 +5968,25 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@id Group call identifier
 //@title Group call title; for video chats only
 //@invite_link Invite link for the group call; for group calls that aren't bound to a chat. For video chats call getVideoChatInviteLink to get the link
-//@paid_message_star_count The minimum number of Telegram Stars that must be paid by general participant for each sent message to the call
+//@paid_message_star_count The minimum number of Telegram Stars that must be paid by general participant for each sent message to the call; for live stream stories only
 //@scheduled_start_date Point in time (Unix timestamp) when the group call is expected to be started by an administrator; 0 if it is already active or was ended; for video chats only
 //@enabled_start_notification True, if the group call is scheduled and the current user will receive a notification when the group call starts; for video chats only
 //@is_active True, if the call is active
 //@is_video_chat True, if the call is bound to a chat
-//@is_rtmp_stream True, if the call is an RTMP stream instead of an ordinary video chat; for video chats only
+//@is_rtmp_stream True, if the call is an RTMP stream instead of an ordinary video chat; for video chats and live stream stories only
 //@is_joined True, if the call is joined
 //@need_rejoin True, if user was kicked from the call because of network loss and the call needs to be rejoined
 //@is_owned True, if the user is the owner of the call and can end the call, change volume level of other users, or ban users there; for group calls that aren't bound to a chat
 //@can_be_managed True, if the current user can manage the group call; for video chats only
 //@participant_count Number of participants in the group call
-//@has_hidden_listeners True, if group call participants, which are muted, aren't returned in participant list; for video chats only
+//@has_hidden_listeners True, if group call participants, which are muted, aren't returned in participant list; for video chats and live stream stories only
 //@loaded_all_participants True, if all group call participants are loaded
 //@recent_speakers At most 3 recently speaking users in the group call
 //@is_my_video_enabled True, if the current user's video is enabled
 //@is_my_video_paused True, if the current user's video is paused
 //@can_enable_video True, if the current user can broadcast video or share screen
-//@mute_new_participants True, if only group call administrators can unmute new participants; for video chats only
-//@can_toggle_mute_new_participants True, if the current user can enable or disable mute_new_participants setting; for video chats only
+//@mute_new_participants True, if only group call administrators can unmute new participants; for video chats and live stream stories only
+//@can_toggle_mute_new_participants True, if the current user can enable or disable mute_new_participants setting; for video chats and live stream stories only
 //@can_send_messages True, if users can send messages to the group call
 //@can_toggle_can_send_messages True, if the current user can enable or disable sending messages in the group call
 //@record_duration Duration of the ongoing group call recording, in seconds; 0 if none. An updateGroupCall update is not triggered when value of this field changes, but the same recording goes on

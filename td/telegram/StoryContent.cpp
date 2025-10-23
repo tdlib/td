@@ -13,6 +13,8 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
+#include "td/telegram/GroupCallManager.h"
+#include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/PhotoSize.h"
@@ -58,7 +60,7 @@ class StoryContentVideo final : public StoryContent {
 
 class StoryContentUnsupported final : public StoryContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 1;
+  static constexpr int32 CURRENT_VERSION = 2;
   int32 version_ = CURRENT_VERSION;
 
   StoryContentUnsupported() = default;
@@ -67,6 +69,21 @@ class StoryContentUnsupported final : public StoryContent {
 
   StoryContentType get_type() const final {
     return StoryContentType::Unsupported;
+  }
+};
+
+class StoryContentLiveStream final : public StoryContent {
+ public:
+  InputGroupCallId input_group_call_id_;
+  bool is_rtmp_stream_ = false;
+
+  StoryContentLiveStream() = default;
+  StoryContentLiveStream(InputGroupCallId input_group_call_id, bool is_rtmp_stream)
+      : input_group_call_id_(input_group_call_id), is_rtmp_stream_(is_rtmp_stream) {
+  }
+
+  StoryContentType get_type() const final {
+    return StoryContentType::LiveStream;
   }
 };
 
@@ -103,6 +120,14 @@ static void store(const StoryContent *content, StorerT &storer) {
     case StoryContentType::Unsupported: {
       const auto *story_content = static_cast<const StoryContentUnsupported *>(content);
       store(story_content->version_, storer);
+      break;
+    }
+    case StoryContentType::LiveStream: {
+      const auto *story_content = static_cast<const StoryContentLiveStream *>(content);
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(story_content->is_rtmp_stream_);
+      END_STORE_FLAGS();
+      store(story_content->input_group_call_id_, storer);
       break;
     }
     default:
@@ -151,6 +176,15 @@ static void parse(unique_ptr<StoryContent> &content, ParserT &parser) {
       content = std::move(story_content);
       break;
     }
+    case StoryContentType::LiveStream: {
+      auto story_content = make_unique<StoryContentLiveStream>();
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(story_content->is_rtmp_stream_);
+      END_PARSE_FLAGS();
+      parse(story_content->input_group_call_id_, parser);
+      content = std::move(story_content);
+      break;
+    }
     default:
       is_bad = true;
   }
@@ -179,6 +213,8 @@ void add_story_content_dependencies(Dependencies &dependencies, const StoryConte
     case StoryContentType::Video:
       break;
     case StoryContentType::Unsupported:
+      break;
+    case StoryContentType::LiveStream:
       break;
     default:
       UNREACHABLE();
@@ -248,8 +284,10 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
 
       return make_unique<StoryContentVideo>(parsed_document.file_id, alt_file_id);
     }
-    case telegram_api::messageMediaVideoStream::ID:
-      return make_unique<StoryContentUnsupported>();
+    case telegram_api::messageMediaVideoStream::ID: {
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaVideoStream>(media_ptr);
+      return make_unique<StoryContentLiveStream>(InputGroupCallId(media->call_), media->rtmp_stream_);
+    }
     case telegram_api::messageMediaUnsupported::ID:
       return make_unique<StoryContentUnsupported>();
     default:
@@ -320,6 +358,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_story_content_input_media
                                                   0, false);
     }
     case StoryContentType::Unsupported:
+    case StoryContentType::LiveStream:
     default:
       UNREACHABLE();
       return nullptr;
@@ -336,6 +375,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_story_content_document_in
     }
     case StoryContentType::Photo:
     case StoryContentType::Unsupported:
+    case StoryContentType::LiveStream:
     default:
       UNREACHABLE();
       return nullptr;
@@ -375,6 +415,14 @@ void compare_story_contents(const StoryContent *old_content, const StoryContent 
       }
       break;
     }
+    case StoryContentType::LiveStream: {
+      const auto *old_ = static_cast<const StoryContentLiveStream *>(old_content);
+      const auto *new_ = static_cast<const StoryContentLiveStream *>(new_content);
+      if (old_->input_group_call_id_ != new_->input_group_call_id_ || old_->is_rtmp_stream_ != new_->is_rtmp_stream_) {
+        need_update = true;
+      }
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -409,6 +457,14 @@ void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent 
       }
       break;
     }
+    case StoryContentType::LiveStream: {
+      const auto *old_ = static_cast<const StoryContentLiveStream *>(old_content);
+      const auto *new_ = static_cast<const StoryContentLiveStream *>(new_content);
+      if (old_->input_group_call_id_ != new_->input_group_call_id_ || old_->is_rtmp_stream_ != new_->is_rtmp_stream_) {
+        need_update = true;
+      }
+      break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -431,6 +487,10 @@ unique_ptr<StoryContent> copy_story_content(const StoryContent *content) {
     case StoryContentType::Unsupported: {
       const auto *story_content = static_cast<const StoryContentUnsupported *>(content);
       return make_unique<StoryContentUnsupported>(story_content->version_);
+    }
+    case StoryContentType::LiveStream: {
+      const auto *story_content = static_cast<const StoryContentLiveStream *>(content);
+      return make_unique<StoryContentLiveStream>(story_content->input_group_call_id_, story_content->is_rtmp_stream_);
     }
     default:
       UNREACHABLE();
@@ -457,6 +517,11 @@ td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const 
     }
     case StoryContentType::Unsupported:
       return td_api::make_object<td_api::storyContentUnsupported>();
+    case StoryContentType::LiveStream: {
+      const auto *s = static_cast<const StoryContentLiveStream *>(content);
+      return td_api::make_object<td_api::storyContentLiveStream>(
+          td->group_call_manager_->get_group_call_id(s->input_group_call_id_, DialogId()).get(), s->is_rtmp_stream_);
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -470,6 +535,7 @@ FileId get_story_content_any_file_id(const StoryContent *content) {
     case StoryContentType::Video:
       return static_cast<const StoryContentVideo *>(content)->file_id_;
     case StoryContentType::Unsupported:
+    case StoryContentType::LiveStream:
     default:
       return {};
   }
@@ -487,6 +553,7 @@ vector<FileId> get_story_content_file_ids(const Td *td, const StoryContent *cont
       return result;
     }
     case StoryContentType::Unsupported:
+    case StoryContentType::LiveStream:
     default:
       return {};
   }

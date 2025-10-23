@@ -14,6 +14,7 @@ bool can_send_story_content(StoryContentType content_type) {
     case StoryContentType::Video:
       return true;
     case StoryContentType::Unsupported:
+    case StoryContentType::LiveStream:
       return false;
     default:
       UNREACHABLE();
@@ -27,6 +28,7 @@ bool can_edit_story_content(StoryContentType content_type) {
     case StoryContentType::Video:
       return true;
     case StoryContentType::Unsupported:
+    case StoryContentType::LiveStream:
       return false;
     default:
       UNREACHABLE();
@@ -42,6 +44,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, StoryContentType conten
       return string_builder << "Video";
     case StoryContentType::Unsupported:
       return string_builder << "Unsupported";
+    case StoryContentType::LiveStream:
+      return string_builder << "LiveStream";
     default:
       return string_builder << "Invalid type " << static_cast<int32>(content_type);
   }
