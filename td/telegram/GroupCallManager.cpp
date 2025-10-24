@@ -3370,7 +3370,7 @@ void GroupCallManager::start_scheduled_group_call(GroupCallId group_call_id, Pro
                       }));
     return;
   }
-  if (group_call->is_conference) {
+  if (group_call->is_conference || group_call->is_live_story) {
     return promise.set_error(400, "The group call isn't scheduled");
   }
   if (!group_call->can_be_managed) {
@@ -3426,7 +3426,7 @@ void GroupCallManager::do_join_group_call(InputGroupCall &&input_group_call, Gro
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call != nullptr) {
     if (group_call->is_inited && !group_call->is_active) {
-      return promise.set_error(400, "Video chat is finished");
+      return promise.set_error(400, "Stream is finished");
     }
     if (group_call->is_inited && !group_call->is_conference) {
       // shouldn't happen
@@ -3902,7 +3902,7 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
   group_call_participants->administrator_dialog_ids = std::move(administrator_dialog_ids);
 
   update_group_call_participants_can_be_muted(input_group_call_id, true, group_call_participants,
-                                              false /*group_call->is_conference && group_call->is_creator*/);
+                                              group_call->is_conference && group_call->is_creator);
 }
 
 void GroupCallManager::process_join_video_chat_response(InputGroupCallId input_group_call_id, uint64 generation,
@@ -4105,7 +4105,7 @@ void GroupCallManager::set_group_call_title(GroupCallId group_call_id, string ti
         }));
     return;
   }
-  if (group_call->is_conference || !group_call->is_active || !group_call->can_be_managed) {
+  if (group_call->is_conference || !group_call->is_active || !group_call->can_be_managed || group_call->is_live_story) {
     return promise.set_error(400, "Can't change group call title");
   }
 
@@ -4142,14 +4142,14 @@ void GroupCallManager::on_edit_group_call_title(InputGroupCallId input_group_cal
     return;
   }
 
-  if (group_call->pending_title != title && group_call->can_be_managed) {
+  if (group_call->pending_title != title && group_call->can_be_managed && !group_call->is_live_story) {
     // need to send another request
     send_edit_group_call_title_query(input_group_call_id, group_call->pending_title);
     return;
   }
 
   bool is_different = group_call->pending_title != group_call->title;
-  if (is_different && group_call->can_be_managed) {
+  if (is_different && group_call->can_be_managed && !group_call->is_live_story) {
     LOG(ERROR) << "Failed to set title to " << group_call->pending_title << " in " << input_group_call_id << ": "
                << result.error();
   }
@@ -4437,7 +4437,8 @@ void GroupCallManager::toggle_group_call_start_subscribed(GroupCallId group_call
                           }));
     return;
   }
-  if (group_call->is_conference || !group_call->is_active || group_call->scheduled_start_date <= 0) {
+  if (group_call->is_conference || !group_call->is_active || group_call->scheduled_start_date <= 0 ||
+      group_call->is_live_story) {
     return promise.set_error(400, "The group call isn't scheduled");
   }
 
@@ -4521,7 +4522,7 @@ void GroupCallManager::toggle_group_call_mute_new_participants(GroupCallId group
     return;
   }
   if (group_call->is_conference || !group_call->is_active || !group_call->can_be_managed ||
-      !group_call->allowed_toggle_mute_new_participants) {
+      !group_call->allowed_toggle_mute_new_participants || group_call->is_live_story) {
     return promise.set_error(400, "Can't change mute_new_participants setting");
   }
 
@@ -4564,7 +4565,7 @@ void GroupCallManager::on_toggle_group_call_mute_new_participants(InputGroupCall
 
   if (result.is_error()) {
     group_call->have_pending_mute_new_participants = false;
-    if (group_call->can_be_managed && group_call->allowed_toggle_mute_new_participants) {
+    if (group_call->can_be_managed && group_call->allowed_toggle_mute_new_participants && !group_call->is_live_story) {
       LOG(ERROR) << "Failed to set mute_new_participants to " << mute_new_participants << " in " << input_group_call_id
                  << ": " << result.error();
     }
@@ -4843,7 +4844,8 @@ void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, 
                       }));
     return;
   }
-  if (!group_call->is_active || !(group_call->is_conference ? group_call->is_creator : group_call->can_be_managed)) {
+  if (!group_call->is_active || !(group_call->is_conference ? group_call->is_creator : group_call->can_be_managed) ||
+      group_call->is_live_story) {
     return promise.set_error(400, "Can't revoke invite link in the group call");
   }
 
@@ -4860,7 +4862,7 @@ void GroupCallManager::invite_group_call_participant(
 
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr);
-  if (!group_call->is_conference) {
+  if (!group_call->is_conference || group_call->is_live_story) {
     return promise.set_error(400, "Use inviteVideoChatParticipants for video chats");
   }
   if (!is_group_call_active(group_call) || group_call->is_being_left) {
@@ -4954,7 +4956,7 @@ void GroupCallManager::invite_group_call_participants(GroupCallId group_call_id,
   if (!is_group_call_active(group_call)) {
     return promise.set_error(400, "Group call is not active");
   }
-  if (group_call->is_conference) {
+  if (group_call->is_conference || group_call->is_live_story) {
     return promise.set_error(400, "The call is not a video chat");
   }
 
@@ -4997,7 +4999,7 @@ void GroupCallManager::get_group_call_invite_link(GroupCallId group_call_id, boo
                           }));
     return;
   }
-  if (group_call->is_conference || !group_call->is_active) {
+  if (group_call->is_conference || !group_call->is_active || group_call->is_live_story) {
     return promise.set_error(400, "Can't get group call invite link");
   }
 
@@ -5030,7 +5032,7 @@ void GroupCallManager::toggle_group_call_recording(GroupCallId group_call_id, bo
             }));
     return;
   }
-  if (group_call->is_conference || !group_call->is_active || !group_call->can_be_managed) {
+  if (group_call->is_conference || !group_call->is_active || !group_call->can_be_managed || group_call->is_live_story) {
     return promise.set_error(400, "Can't manage group call recording");
   }
 
@@ -5081,7 +5083,8 @@ void GroupCallManager::on_toggle_group_call_recording(InputGroupCallId input_gro
 
   CHECK(group_call->have_pending_record_start_date);
 
-  if (group_call->toggle_recording_generation != generation && group_call->can_be_managed) {
+  if (group_call->toggle_recording_generation != generation && group_call->can_be_managed &&
+      !group_call->is_live_story) {
     // need to send another request
     send_toggle_group_call_recording_query(input_group_call_id, group_call->pending_record_start_date != 0,
                                            group_call->pending_record_title, group_call->pending_record_record_video,
@@ -5405,7 +5408,7 @@ void GroupCallManager::toggle_group_call_participant_is_hand_raised(GroupCallId 
     }
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
-  if (group_call->is_conference) {
+  if (group_call->is_conference || group_call->is_live_story) {
     return promise.set_error(400, "The method can be used only in video chats");
   }
 
@@ -6572,10 +6575,10 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   return td_api::make_object<td_api::groupCall>(
       group_call->group_call_id.get(), get_group_call_title(group_call), group_call->invite_link,
       group_call->send_paid_message_star_count, scheduled_start_date, start_subscribed, is_active,
-      !group_call->is_conference, !group_call->is_conference && group_call->is_rtmp_stream, is_joined,
-      group_call->need_rejoin, group_call->is_creator, group_call->can_be_managed, group_call->participant_count,
-      group_call->has_hidden_listeners, group_call->loaded_all_participants, std::move(recent_speakers),
-      is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
+      !group_call->is_conference, group_call->is_live_story, !group_call->is_conference && group_call->is_rtmp_stream,
+      is_joined, group_call->need_rejoin, group_call->is_creator, group_call->can_be_managed,
+      group_call->participant_count, group_call->has_hidden_listeners, group_call->loaded_all_participants,
+      std::move(recent_speakers), is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
       can_toggle_mute_new_participants, are_messages_enabled, can_toggle_are_messages_enabled, record_duration,
       is_video_recorded, group_call->duration);
 }
