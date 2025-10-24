@@ -2172,7 +2172,7 @@ basicGroupFullInfo photo:chatPhoto description:string creator_user_id:int53 memb
 //@status Status of the current user in the supergroup or channel; custom title will always be empty
 //@member_count Number of members in the supergroup or channel; 0 if unknown. Currently, it is guaranteed to be known only if the supergroup or channel was received through
 //-getChatSimilarChats, getChatsToPostStories, getCreatedPublicChats, getGroupsInCommon, getInactiveSupergroupChats, getRecommendedChats, getSuitableDiscussionChats,
-//-getUserPrivacySettingRules, getVideoChatAvailableParticipants, searchPublicChats, or in chatFolderInviteLinkInfo.missing_chat_ids, or in userFullInfo.personal_chat_id,
+//-getUserPrivacySettingRules, getGroupCallAvailableParticipants, searchPublicChats, or in chatFolderInviteLinkInfo.missing_chat_ids, or in userFullInfo.personal_chat_id,
 //-or for chats with messages or stories from publicForwards and foundStories
 //@boost_level Approximate boost level for the chat
 //@has_automatic_translation True, if automatic translation of messages is enabled in the channel
@@ -12305,8 +12305,8 @@ sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 sendCallLog call_id:int32 log_file:InputFile = Ok;
 
 
-//@description Returns the list of participant identifiers, on whose behalf a video chat in the chat can be joined @chat_id Chat identifier
-getVideoChatAvailableParticipants chat_id:int53 = MessageSenders;
+//@description Returns the list of participant identifiers, on whose behalf a video chat or a live stream in the chat can be joined @chat_id Chat identifier
+getGroupCallAvailableParticipants chat_id:int53 = MessageSenders;
 
 //@description Changes default participant identifier, on whose behalf a video chat in the chat will be joined @chat_id Chat identifier @default_participant_id Default group call participant identifier to join the video chats
 setVideoChatDefaultParticipant chat_id:int53 default_participant_id:MessageSender = Ok;

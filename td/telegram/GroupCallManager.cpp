@@ -211,7 +211,7 @@ class SaveDefaultGroupCallJoinAsQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    // td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallJoinAsQuery");
+    // td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SaveDefaultGroupCallJoinAsQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -1763,20 +1763,7 @@ GroupCallManager::GroupCall *GroupCallManager::get_group_call(InputGroupCallId i
 }
 
 Status GroupCallManager::can_join_group_calls(DialogId dialog_id) const {
-  TRY_STATUS(td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "can_join_group_calls"));
-  switch (dialog_id.get_type()) {
-    case DialogType::Chat:
-    case DialogType::Channel:
-      break;
-    case DialogType::User:
-      return Status::Error(400, "Chat can't have a video chat");
-    case DialogType::SecretChat:
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      break;
-  }
-  return Status::OK();
+  return td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "can_join_group_calls");
 }
 
 Status GroupCallManager::can_manage_group_calls(DialogId dialog_id) const {
