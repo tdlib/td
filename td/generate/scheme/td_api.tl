@@ -11760,7 +11760,7 @@ canPostStory chat_id:int53 = CanPostStoryResult;
 //@areas Clickable rectangle areas to be shown on the story media; pass null if none
 //@caption Story caption; pass null to use an empty caption; 0-getOption("story_caption_length_max") characters; can have entities only if getOption("can_use_text_entities_in_story_caption")
 //@privacy_settings The privacy settings for the story; ignored for stories posted on behalf of supergroup and channel chats
-//@album_ids Identifiers of story albums to which the story will be added upon posting. An album can have up to getOption("story_album_story_count_max")
+//@album_ids Identifiers of story albums to which the story will be added upon posting. An album can have up to getOption("story_album_size_max") stories
 //@active_period Period after which the story is moved to archive, in seconds; must be one of 6 * 3600, 12 * 3600, 86400, or 2 * 86400 for Telegram Premium users, and 86400 otherwise
 //@from_story_full_id Full identifier of the original story, which content was used to create the story; pass null if the story isn't repost of another story
 //@is_posted_to_chat_page Pass true to keep the story accessible after expiration
@@ -11903,7 +11903,7 @@ getStoryAlbumStories chat_id:int53 story_album_id:int32 offset:int32 limit:int32
 //@description Creates an album of stories; requires can_edit_stories administrator right for supergroup and channel chats
 //@story_poster_chat_id Identifier of the chat that posted the stories
 //@name Name of the album; 1-12 characters
-//@story_ids Identifiers of stories to add to the album; 0-getOption("story_album_story_count_max") identifiers
+//@story_ids Identifiers of stories to add to the album; 0-getOption("story_album_size_max") identifiers
 createStoryAlbum story_poster_chat_id:int53 name:string story_ids:vector<int32> = StoryAlbum;
 
 //@description Changes order of story albums. If the albums are owned by a supergroup or a channel chat, then requires can_edit_stories administrator right in the chat
@@ -11926,8 +11926,8 @@ setStoryAlbumName chat_id:int53 story_album_id:int32 name:string = StoryAlbum;
 //-requires can_edit_stories administrator right in the chat. Returns the changed album
 //@chat_id Identifier of the chat that owns the stories
 //@story_album_id Identifier of the story album
-//@story_ids Identifier of the stories to add to the album; 1-getOption("story_album_story_count_max") identifiers.
-//-If after addition the album has more than getOption("story_album_story_count_max") stories, then the last one are removed from the album
+//@story_ids Identifier of the stories to add to the album; 1-getOption("story_album_size_max") identifiers.
+//-If after addition the album has more than getOption("story_album_size_max") stories, then the last one are removed from the album
 addStoryAlbumStories chat_id:int53 story_album_id:int32 story_ids:vector<int32> = StoryAlbum;
 
 //@description Removes stories from an album. If the album is owned by a supergroup or a channel chat, then
@@ -13364,7 +13364,7 @@ getGiftCollections owner_id:MessageSender = GiftCollections;
 //-An owner can have up to getOption("gift_collection_count_max") gift collections. The new collection will be added to the end of the gift collection list of the owner. Returns the created collection
 //@owner_id Identifier of the user or the channel chat that received the gifts
 //@name Name of the collection; 1-12 characters
-//@received_gift_ids Identifier of the gifts to add to the collection; 0-getOption("gift_collection_gift_count_max") identifiers
+//@received_gift_ids Identifier of the gifts to add to the collection; 0-getOption("gift_collection_size_max") identifiers
 createGiftCollection owner_id:MessageSender name:string received_gift_ids:vector<string> = GiftCollection;
 
 //@description Changes order of gift collections. If the collections are owned by a channel chat, then requires can_post_messages administrator right in the channel chat
@@ -13386,8 +13386,8 @@ setGiftCollectionName owner_id:MessageSender collection_id:int32 name:string = G
 //@description Adds gifts to the beginning of a previously created collection. If the collection is owned by a channel chat, then requires can_post_messages administrator right in the channel chat. Returns the changed collection
 //@owner_id Identifier of the user or the channel chat that owns the collection
 //@collection_id Identifier of the gift collection
-//@received_gift_ids Identifier of the gifts to add to the collection; 1-getOption("gift_collection_gift_count_max") identifiers.
-//-If after addition the collection has more than getOption("gift_collection_gift_count_max") gifts, then the last one are removed from the collection
+//@received_gift_ids Identifier of the gifts to add to the collection; 1-getOption("gift_collection_size_max") identifiers.
+//-If after addition the collection has more than getOption("gift_collection_size_max") gifts, then the last one are removed from the collection
 addGiftCollectionGifts owner_id:MessageSender collection_id:int32 received_gift_ids:vector<string> = GiftCollection;
 
 //@description Removes gifts from a collection. If the collection is owned by a channel chat, then requires can_post_messages administrator right in the channel chat. Returns the changed collection
