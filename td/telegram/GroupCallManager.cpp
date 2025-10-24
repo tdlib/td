@@ -3856,6 +3856,13 @@ void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input
     LOG(INFO) << "Don't need to load administrators in " << input_group_call_id << " from " << dialog_id;
     return;
   }
+  if (dialog_id.get_type() == DialogType::User) {
+    DialogParticipants participants;
+    participants.total_count_ = 1;
+    participants.participants_.push_back(
+        DialogParticipant{dialog_id, UserId(), 0, DialogParticipantStatus::Creator(true, false, string())});
+    return finish_load_group_call_administrators(input_group_call_id, std::move(participants));
+  }
 
   auto promise =
       PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id](Result<DialogParticipants> &&result) {
