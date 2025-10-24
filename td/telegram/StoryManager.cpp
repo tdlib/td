@@ -4258,7 +4258,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
   auto caption =
       get_message_text(td_->user_manager_.get(), std::move(story_item->caption_), std::move(story_item->entities_),
                        true, is_bot, story_item->date_, false, "on_get_new_story");
-  auto content = get_story_content(td_, std::move(story_item->media_), owner_dialog_id);
+  auto content = get_story_content(td_, std::move(story_item->media_), owner_dialog_id, false);
   if (content == nullptr) {
     LOG(INFO) << "Failed to get content of " << story_full_id;
     return StoryId();

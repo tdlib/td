@@ -5716,7 +5716,7 @@ publicForwards total_count:int32 forwards:vector<PublicForward> next_offset:stri
 
 //@description Describes media previews of a bot
 //@date Point in time (Unix timestamp) when the preview was added or changed last time
-//@content Content of the preview
+//@content Content of the preview; may only be of the types storyContentPhoto, storyContentVideo, or storyContentUnsupported
 botMediaPreview date:int32 content:StoryContent = BotMediaPreview;
 
 //@description Contains a list of media previews of a bot @previews List of media previews

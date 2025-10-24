@@ -223,7 +223,7 @@ void add_story_content_dependencies(Dependencies &dependencies, const StoryConte
 }
 
 unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::MessageMedia> &&media_ptr,
-                                           DialogId owner_dialog_id) {
+                                           DialogId owner_dialog_id, bool is_bot_preview) {
   CHECK(media_ptr != nullptr);
   switch (media_ptr->get_id()) {
     case telegram_api::messageMediaPhoto::ID: {
@@ -285,6 +285,9 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
       return make_unique<StoryContentVideo>(parsed_document.file_id, alt_file_id);
     }
     case telegram_api::messageMediaVideoStream::ID: {
+      if (is_bot_preview) {
+        return nullptr;
+      }
       auto media = telegram_api::move_object_as<telegram_api::messageMediaVideoStream>(media_ptr);
       return make_unique<StoryContentLiveStream>(InputGroupCallId(media->call_), media->rtmp_stream_);
     }
