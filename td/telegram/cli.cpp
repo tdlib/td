@@ -5020,12 +5020,12 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getGroupCallAvailableParticipants>(chat_id));
-    } else if (op == "svcdp") {
+    } else if (op == "sgcdp") {
       ChatId chat_id;
       string participant_id;
       get_args(args, chat_id, participant_id);
       send_request(
-          td_api::make_object<td_api::setVideoChatDefaultParticipant>(chat_id, as_message_sender(participant_id)));
+          td_api::make_object<td_api::setGroupCallDefaultParticipant>(chat_id, as_message_sender(participant_id)));
     } else if (op == "cvc") {
       ChatId chat_id;
       string title;

@@ -2959,7 +2959,7 @@ businessBotManageBar bot_user_id:int53 manage_url:string is_bot_paused:Bool can_
 //@description Describes a video chat, i.e. a group call bound to a chat
 //@group_call_id Group call identifier of an active video chat; 0 if none. Full information about the video chat can be received through the method getGroupCall
 //@has_participants True, if the video chat has participants
-//@default_participant_id Default group call participant identifier to join the video chat; may be null
+//@default_participant_id Default group call participant identifier to join the video chat or story live streams created by the chat; may be null
 videoChat group_call_id:int32 has_participants:Bool default_participant_id:MessageSender = VideoChat;
 
 
@@ -12305,11 +12305,13 @@ sendCallDebugInformation call_id:int32 debug_information:string = Ok;
 sendCallLog call_id:int32 log_file:InputFile = Ok;
 
 
-//@description Returns the list of participant identifiers, on whose behalf a video chat or a live stream in the chat can be joined @chat_id Chat identifier
+//@description Returns the list of participant identifiers, on whose behalf a video chat or a story live stream in the chat can be joined @chat_id Chat identifier
 getGroupCallAvailableParticipants chat_id:int53 = MessageSenders;
 
-//@description Changes default participant identifier, on whose behalf a video chat in the chat will be joined @chat_id Chat identifier @default_participant_id Default group call participant identifier to join the video chats
-setVideoChatDefaultParticipant chat_id:int53 default_participant_id:MessageSender = Ok;
+//@description Changes default participant identifier, on whose behalf a video chat or a story live stream in the chat will be joined
+//@chat_id Chat identifier
+//@default_participant_id Default group call participant identifier to join the group calls in the chat
+setGroupCallDefaultParticipant chat_id:int53 default_participant_id:MessageSender = Ok;
 
 //@description Creates a video chat (a group call bound to a chat). Available only for basic groups, supergroups and channels; requires can_manage_video_chats administrator right
 //@chat_id Identifier of a chat in which the video chat will be created

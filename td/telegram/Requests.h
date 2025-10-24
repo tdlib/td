@@ -787,7 +787,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getGroupCallAvailableParticipants &request);
 
-  void on_request(uint64 id, const td_api::setVideoChatDefaultParticipant &request);
+  void on_request(uint64 id, const td_api::setGroupCallDefaultParticipant &request);
 
   void on_request(uint64 id, td_api::createVideoChat &request);
 
