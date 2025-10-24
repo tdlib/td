@@ -2694,6 +2694,10 @@ void GroupCallManager::add_group_call_message(GroupCall *group_call, GroupCallMe
     LOG(INFO) << "Skip duplicate " << message_id;
     return;
   }
+  // TODO update group call spendings
+  if (group_call_message.has_empty_text()) {
+    return;
+  }
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewGroupCallMessage>(
                    group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_)));
@@ -4725,9 +4729,9 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
-  TRY_RESULT_PROMISE(promise, message,
-                     get_formatted_text(td_, group_call->dialog_id, std::move(text), td_->auth_manager_->is_bot(),
-                                        false, true, false));
+  TRY_RESULT_PROMISE(
+      promise, message,
+      get_formatted_text(td_, group_call->dialog_id, std::move(text), td_->auth_manager_->is_bot(), true, true, false));
   if (static_cast<int64>(utf8_length(message.text)) > G()->get_option_integer("group_call_message_text_length_max")) {
     return promise.set_error(400, "Message is too long");
   }

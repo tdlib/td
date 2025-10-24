@@ -166,10 +166,6 @@ GroupCallMessage::GroupCallMessage(Td *td, DialogId sender_dialog_id, string jso
     LOG(INFO) << "Ignore invalid formatted text: " << status;
     return;
   }
-  if (text.text.empty()) {
-    LOG(INFO) << "Ignore empty message";
-    return;
-  }
   if (sender_dialog_id.get_type() != DialogType::User ||
       !td->user_manager_->is_user_premium(sender_dialog_id.get_user_id())) {
     remove_premium_custom_emoji_entities(td, text.entities, true);

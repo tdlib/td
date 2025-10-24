@@ -38,6 +38,10 @@ class GroupCallMessage {
     return dialog_id_.is_valid() && !text_.text.empty() && id_ != 0;
   }
 
+  bool has_empty_text() const {
+    return text_.text.empty();
+  }
+
   int64 get_message_id() const {
     return id_;
   }

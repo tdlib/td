@@ -12382,7 +12382,7 @@ toggleGroupCallCanSendMessages group_call_id:int32 can_send_messages:Bool = Ok;
 
 //@description Sends a message to other participants of a group call. Requires groupCall.can_send_messages right
 //@group_call_id Group call identifier
-//@text Text of the message to send; 1-getOption("group_call_message_text_length_max") characters
+//@text Text of the message to send; 0-getOption("group_call_message_text_length_max") characters
 sendGroupCallMessage group_call_id:int32 text:formattedText = Ok;
 
 //@description Invites a user to an active group call; for group calls not bound to a chat only. Sends a service message of the type messageGroupCall.
