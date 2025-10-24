@@ -329,7 +329,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventVideoChatCreated>(
-          td->group_call_manager_->get_group_call_id(input_group_call_id, DialogId(channel_id)).get());
+          td->group_call_manager_->get_group_call_id(input_group_call_id, DialogId(channel_id), false).get());
     }
     case telegram_api::channelAdminLogEventActionDiscardGroupCall::ID: {
       auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionDiscardGroupCall>(action_ptr);
@@ -338,7 +338,7 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
         return nullptr;
       }
       return td_api::make_object<td_api::chatEventVideoChatEnded>(
-          td->group_call_manager_->get_group_call_id(input_group_call_id, DialogId(channel_id)).get());
+          td->group_call_manager_->get_group_call_id(input_group_call_id, DialogId(channel_id), false).get());
     }
     case telegram_api::channelAdminLogEventActionParticipantMute::ID: {
       auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionParticipantMute>(action_ptr);

@@ -9722,7 +9722,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       if (m->duration >= 0) {
         return make_tl_object<td_api::messageVideoChatEnded>(m->duration);
       } else {
-        auto group_call_id = td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId()).get();
+        auto group_call_id =
+            td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId(), false).get();
         if (m->schedule_date > 0) {
           return make_tl_object<td_api::messageVideoChatScheduled>(group_call_id, m->schedule_date);
         } else {
@@ -9733,7 +9734,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     case MessageContentType::InviteToGroupCall: {
       const auto *m = static_cast<const MessageInviteToGroupCall *>(content);
       return make_tl_object<td_api::messageInviteVideoChatParticipants>(
-          td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId()).get(),
+          td->group_call_manager_->get_group_call_id(m->input_group_call_id, DialogId(), false).get(),
           td->user_manager_->get_user_ids_object(m->user_ids, "MessageInviteToGroupCall"));
     }
     case MessageContentType::ChatSetTheme: {

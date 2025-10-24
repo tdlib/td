@@ -4498,11 +4498,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallChainB
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCall> update, Promise<Unit> &&promise) {
-  if (update->live_story_) {
-    return;
-  }
   send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call, std::move(update->call_),
-               update->peer_ == nullptr ? DialogId() : DialogId(update->peer_));
+               update->peer_ == nullptr ? DialogId() : DialogId(update->peer_), update->live_story_);
   promise.set_value(Unit());
 }
 

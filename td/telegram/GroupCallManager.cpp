@@ -1327,6 +1327,7 @@ struct GroupCallManager::GroupCall {
   bool is_inited = false;
   bool is_active = false;
   bool is_conference = false;
+  bool is_live_story = false;
   bool is_rtmp_stream = false;
   bool is_joined = false;
   bool need_rejoin = false;
@@ -1563,7 +1564,7 @@ void GroupCallManager::on_send_speaking_action_timeout(GroupCallId group_call_id
 
   auto *group_call = get_group_call(input_group_call_id);
   CHECK(group_call != nullptr && group_call->is_inited && group_call->dialog_id.is_valid());
-  if (!group_call->is_joined || !group_call->is_speaking) {
+  if (!group_call->is_joined || !group_call->is_speaking || group_call->is_live_story) {
     return;
   }
 
@@ -1698,11 +1699,12 @@ bool GroupCallManager::is_group_call_joined(InputGroupCallId input_group_call_id
   return group_call->is_joined && !group_call->is_being_left;
 }
 
-GroupCallId GroupCallManager::get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id) {
+GroupCallId GroupCallManager::get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id,
+                                                bool is_live_story) {
   if (td_->auth_manager_->is_bot() || !input_group_call_id.is_valid()) {
     return GroupCallId();
   }
-  return add_group_call(input_group_call_id, dialog_id)->group_call_id;
+  return add_group_call(input_group_call_id, dialog_id, is_live_story)->group_call_id;
 }
 
 Result<InputGroupCallId> GroupCallManager::get_input_group_call_id(GroupCallId group_call_id) {
@@ -1724,8 +1726,8 @@ GroupCallId GroupCallManager::get_next_group_call_id(InputGroupCallId input_grou
   return max_group_call_id_;
 }
 
-GroupCallManager::GroupCall *GroupCallManager::add_group_call(InputGroupCallId input_group_call_id,
-                                                              DialogId dialog_id) {
+GroupCallManager::GroupCall *GroupCallManager::add_group_call(InputGroupCallId input_group_call_id, DialogId dialog_id,
+                                                              bool is_live_story) {
   CHECK(!td_->auth_manager_->is_bot());
   auto &group_call = group_calls_[input_group_call_id];
   if (group_call == nullptr) {
@@ -1735,6 +1737,9 @@ GroupCallManager::GroupCall *GroupCallManager::add_group_call(InputGroupCallId i
   }
   if (!group_call->dialog_id.is_valid()) {
     group_call->dialog_id = dialog_id;
+  }
+  if (is_live_story) {
+    group_call->is_live_story = is_live_story;
   }
   return group_call.get();
 }
@@ -2008,7 +2013,7 @@ void GroupCallManager::on_video_chat_created(DialogId dialog_id, InputGroupCallI
   td_->messages_manager_->on_update_dialog_group_call(dialog_id, true, true, "on_video_chat_created");
   td_->messages_manager_->on_update_dialog_group_call_id(dialog_id, input_group_call_id);
 
-  promise.set_value(get_group_call_id(input_group_call_id, dialog_id));
+  promise.set_value(get_group_call_id(input_group_call_id, dialog_id, false));
 }
 
 void GroupCallManager::get_group_call(GroupCallId group_call_id,
@@ -2087,7 +2092,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
     td_->user_manager_->on_get_users(std::move(result.ok_ref()->users_), "finish_get_group_call");
     td_->chat_manager_->on_get_chats(std::move(result.ok_ref()->chats_), "finish_get_group_call");
 
-    if (update_group_call(result.ok()->call_, DialogId()) != input_group_call_id) {
+    if (update_group_call(result.ok()->call_, DialogId(), false) != input_group_call_id) {
       LOG(ERROR) << "Expected " << input_group_call_id << ", but received " << to_string(result.ok());
       result = Status::Error(500, "Receive another group call");
     }
@@ -2822,7 +2827,7 @@ void GroupCallManager::on_sync_group_call_participants(InputGroupCallId input_gr
     on_get_group_call_participants(input_group_call_id, std::move(participants), true, string());
   }
 
-  if (update_group_call(call->call_, DialogId()) != input_group_call_id) {
+  if (update_group_call(call->call_, DialogId(), false) != input_group_call_id) {
     LOG(ERROR) << "Expected " << input_group_call_id << ", but received " << to_string(result.ok());
   }
 }
@@ -5179,7 +5184,7 @@ void GroupCallManager::set_group_call_participant_is_speaking(
 
   if (group_call->audio_source == audio_source && group_call->is_speaking != is_speaking) {
     group_call->is_speaking = is_speaking;
-    if (is_speaking && group_call->dialog_id.is_valid()) {
+    if (is_speaking && group_call->dialog_id.is_valid() && !group_call->is_live_story) {
       pending_send_speaking_action_timeout_.add_timeout_in(group_call_id.get(), 0.0);
     }
   }
@@ -5764,7 +5769,8 @@ void GroupCallManager::on_poll_group_call_blocks(InputGroupCallId input_group_ca
                                                  GROUP_CALL_BLOCK_POLL_TIMEOUT);
 }
 
-void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id) {
+void GroupCallManager::on_update_group_call(telegram_api::object_ptr<telegram_api::GroupCall> group_call_ptr,
+                                            DialogId dialog_id, bool is_live_story) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -5772,7 +5778,7 @@ void GroupCallManager::on_update_group_call(tl_object_ptr<telegram_api::GroupCal
     LOG(ERROR) << "Receive " << to_string(group_call_ptr) << " in invalid " << dialog_id;
     dialog_id = DialogId();
   }
-  auto input_group_call_id = update_group_call(group_call_ptr, dialog_id);
+  auto input_group_call_id = update_group_call(group_call_ptr, dialog_id, is_live_story);
   if (input_group_call_id.is_valid()) {
     LOG(INFO) << "Update " << input_group_call_id << " from " << dialog_id;
   } else {
@@ -5836,7 +5842,7 @@ bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
 }
 
 InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr,
-                                                     DialogId dialog_id) {
+                                                     DialogId dialog_id, bool is_live_story) {
   CHECK(group_call_ptr != nullptr);
 
   InputGroupCallId input_group_call_id;
@@ -5926,13 +5932,17 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   pending_group_call_join_params_.clear();
 
   bool need_update = false;
-  auto *group_call = add_group_call(input_group_call_id, dialog_id);
+  auto *group_call = add_group_call(input_group_call_id, dialog_id, is_live_story);
   call.group_call_id = group_call->group_call_id;
   call.dialog_id = dialog_id.is_valid() ? dialog_id : group_call->dialog_id;
+  call.is_live_story = group_call->is_live_story;
   call.can_be_managed = call.is_active && !call.is_conference && can_manage_group_calls(call.dialog_id).is_ok();
   call.can_self_unmute = call.is_active && (!call.mute_new_participants || call.can_be_managed || call.is_creator);
   if (!group_call->dialog_id.is_valid()) {
     group_call->dialog_id = dialog_id;
+  }
+  if (!group_call->is_live_story && is_live_story) {
+    group_call->is_live_story = true;
   }
   if (call.is_active && join_params.empty() && !group_call->is_joined &&
       (group_call->need_rejoin || group_call->is_being_joined)) {
@@ -6411,7 +6421,7 @@ bool GroupCallManager::set_group_call_unmuted_video_count(GroupCall *group_call,
 
 void GroupCallManager::update_group_call_dialog(const GroupCall *group_call, const char *source, bool force) {
   CHECK(group_call != nullptr);
-  if (!group_call->dialog_id.is_valid()) {
+  if (!group_call->dialog_id.is_valid() || group_call->is_live_story) {
     return;
   }
 

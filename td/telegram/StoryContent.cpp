@@ -520,7 +520,8 @@ td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const 
     case StoryContentType::LiveStream: {
       const auto *s = static_cast<const StoryContentLiveStream *>(content);
       return td_api::make_object<td_api::storyContentLiveStream>(
-          td->group_call_manager_->get_group_call_id(s->input_group_call_id_, DialogId()).get(), s->is_rtmp_stream_);
+          td->group_call_manager_->get_group_call_id(s->input_group_call_id_, DialogId(), true).get(),
+          s->is_rtmp_stream_);
     }
     default:
       UNREACHABLE();

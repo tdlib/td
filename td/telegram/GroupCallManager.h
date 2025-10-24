@@ -53,7 +53,7 @@ class GroupCallManager final : public Actor {
   // use get_group_call_is_joined internally instead
   bool is_group_call_joined(InputGroupCallId input_group_call_id) const;
 
-  GroupCallId get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id);
+  GroupCallId get_group_call_id(InputGroupCallId input_group_call_id, DialogId dialog_id, bool is_live_story);
 
   void get_group_call_join_as(DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
@@ -176,7 +176,8 @@ class GroupCallManager final : public Actor {
   void on_update_group_call_chain_blocks(InputGroupCallId input_group_call_id, int32 sub_chain_id,
                                          vector<string> &&blocks, int32 next_offset);
 
-  void on_update_group_call(tl_object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id);
+  void on_update_group_call(telegram_api::object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id,
+                            bool is_live_story);
 
   void on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id, bool is_muted_by_admin, int32 date,
                                       bool is_recursive = false);
@@ -254,7 +255,7 @@ class GroupCallManager final : public Actor {
 
   GroupCallId get_next_group_call_id(InputGroupCallId input_group_call_id);
 
-  GroupCall *add_group_call(InputGroupCallId input_group_call_id, DialogId dialog_id);
+  GroupCall *add_group_call(InputGroupCallId input_group_call_id, DialogId dialog_id, bool is_live_story);
 
   const GroupCall *get_group_call(InputGroupCallId input_group_call_id) const;
   GroupCall *get_group_call(InputGroupCallId input_group_call_id);
@@ -467,7 +468,8 @@ class GroupCallManager final : public Actor {
 
   void on_group_call_left_impl(GroupCall *group_call, bool need_rejoin, const char *source);
 
-  InputGroupCallId update_group_call(const tl_object_ptr<telegram_api::GroupCall> &group_call_ptr, DialogId dialog_id);
+  InputGroupCallId update_group_call(const telegram_api::object_ptr<telegram_api::GroupCall> &group_call_ptr,
+                                     DialogId dialog_id, bool is_live_story);
 
   void on_receive_group_call_version(InputGroupCallId input_group_call_id, int32 version, bool immediate_sync = false);
 

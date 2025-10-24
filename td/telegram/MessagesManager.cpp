@@ -5246,7 +5246,7 @@ void MessagesManager::on_update_delete_scheduled_messages(DialogId dialog_id,
 void MessagesManager::on_dialog_speaking_action(DialogId dialog_id, DialogId speaking_dialog_id, int32 date) {
   const Dialog *d = get_dialog_force(dialog_id, "on_dialog_speaking_action");
   if (d != nullptr && d->active_group_call_id.is_valid()) {
-    auto group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, dialog_id);
+    auto group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, dialog_id, false);
     td_->group_call_manager_->on_user_speaking_in_group_call(group_call_id, speaking_dialog_id, false, date);
   }
 }
@@ -16767,7 +16767,7 @@ td_api::object_ptr<td_api::chatJoinRequestsInfo> MessagesManager::get_chat_join_
 }
 
 td_api::object_ptr<td_api::videoChat> MessagesManager::get_video_chat_object(const Dialog *d) const {
-  auto active_group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id);
+  auto active_group_call_id = td_->group_call_manager_->get_group_call_id(d->active_group_call_id, d->dialog_id, false);
   auto default_participant_alias =
       d->default_join_group_call_as_dialog_id.is_valid()
           ? get_message_sender_object_const(td_, d->default_join_group_call_as_dialog_id, "get_video_chat_object")
