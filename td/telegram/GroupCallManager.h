@@ -262,7 +262,7 @@ class GroupCallManager final : public Actor {
 
   Status can_join_group_calls(DialogId dialog_id) const;
 
-  Status can_manage_group_calls(DialogId dialog_id) const;
+  Status can_manage_group_calls(DialogId dialog_id, bool allow_live_story) const;
 
   bool can_manage_group_call(InputGroupCallId input_group_call_id, bool allow_owned) const;
 

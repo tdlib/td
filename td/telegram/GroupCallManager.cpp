@@ -1766,8 +1766,16 @@ Status GroupCallManager::can_join_group_calls(DialogId dialog_id) const {
   return td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "can_join_group_calls");
 }
 
-Status GroupCallManager::can_manage_group_calls(DialogId dialog_id) const {
+Status GroupCallManager::can_manage_group_calls(DialogId dialog_id, bool allow_live_story) const {
   switch (dialog_id.get_type()) {
+    case DialogType::User:
+      if (!allow_live_story) {
+        return Status::Error(400, "Chat can't have a video chat");
+      }
+      if (td_->dialog_manager_->get_my_dialog_id() != dialog_id) {
+        return Status::Error(400, "Not enough rights in the chat");
+      }
+      break;
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
       if (!td_->chat_manager_->get_chat_permissions(chat_id).can_manage_calls()) {
@@ -1782,7 +1790,6 @@ Status GroupCallManager::can_manage_group_calls(DialogId dialog_id) const {
       }
       break;
     }
-    case DialogType::User:
     case DialogType::SecretChat:
       return Status::Error(400, "Chat can't have a video chat");
     case DialogType::None:
@@ -1805,7 +1812,7 @@ bool GroupCallManager::can_manage_group_call(const GroupCall *group_call, bool a
   if (group_call->is_conference) {
     return allow_owned && group_call->is_creator;
   }
-  return can_manage_group_calls(group_call->dialog_id).is_ok();
+  return can_manage_group_calls(group_call->dialog_id, true).is_ok();
 }
 
 bool GroupCallManager::get_group_call_can_self_unmute(InputGroupCallId input_group_call_id) const {
@@ -1860,7 +1867,7 @@ void GroupCallManager::create_video_chat(DialogId dialog_id, string title, int32
                                          Promise<GroupCallId> &&promise) {
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "create_video_chat"));
-  TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id, false));
 
   title = clean_name(title, MAX_TITLE_LENGTH);
 
@@ -1984,7 +1991,7 @@ void GroupCallManager::get_video_chat_rtmp_stream_url(DialogId dialog_id, bool i
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
                                                                         "get_video_chat_rtmp_stream_url"));
   if (dialog_id.get_type() != DialogType::User) {
-    TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id));
+    TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id, true));
   } else if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
     return promise.set_error(400, "Have not enough rights");
   }
@@ -2028,14 +2035,14 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
     auto *group_call_participants = add_group_call_participants(input_group_call_id, "on_update_group_call_rights");
     if (group_call_participants->are_administrators_loaded) {
       update_group_call_participants_can_be_muted(
-          input_group_call_id, can_manage_group_calls(group_call->dialog_id).is_ok(), group_call_participants,
+          input_group_call_id, can_manage_group_calls(group_call->dialog_id, true).is_ok(), group_call_participants,
           group_call->is_conference && group_call->is_creator);
     }
   }
 
   if (group_call != nullptr && group_call->is_inited) {
-    bool can_be_managed =
-        !group_call->is_conference && group_call->is_active && can_manage_group_calls(group_call->dialog_id).is_ok();
+    bool can_be_managed = !group_call->is_conference && group_call->is_active &&
+                          can_manage_group_calls(group_call->dialog_id, true).is_ok();
     if (can_be_managed != group_call->can_be_managed) {
       group_call->can_be_managed = can_be_managed;
       send_update_group_call(group_call, "on_update_group_call_rights");
@@ -3845,7 +3852,7 @@ void GroupCallManager::end_group_call_screen_sharing(GroupCallId group_call_id, 
 
 void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input_group_call_id, DialogId dialog_id) {
   if (!dialog_id.is_valid() || !need_group_call_participants(input_group_call_id) ||
-      can_manage_group_calls(dialog_id).is_error()) {
+      can_manage_group_calls(dialog_id, true).is_error()) {
     LOG(INFO) << "Don't need to load administrators in " << input_group_call_id << " from " << dialog_id;
     return;
   }
@@ -3876,7 +3883,7 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
     return;
   }
   CHECK(group_call != nullptr);
-  if (!group_call->dialog_id.is_valid() || !can_manage_group_calls(group_call->dialog_id).is_ok() ||
+  if (!group_call->dialog_id.is_valid() || !can_manage_group_calls(group_call->dialog_id, true).is_ok() ||
       group_call->is_conference) {
     return;
   }
@@ -5926,7 +5933,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   call.group_call_id = group_call->group_call_id;
   call.dialog_id = dialog_id.is_valid() ? dialog_id : group_call->dialog_id;
   call.is_live_story = group_call->is_live_story;
-  call.can_be_managed = call.is_active && !call.is_conference && can_manage_group_calls(call.dialog_id).is_ok();
+  call.can_be_managed =
+      call.is_active && !call.is_conference && can_manage_group_calls(call.dialog_id, call.is_live_story).is_ok();
   call.can_self_unmute = call.is_active && (!call.mute_new_participants || call.can_be_managed || call.is_creator);
   if (!group_call->dialog_id.is_valid()) {
     group_call->dialog_id = dialog_id;
