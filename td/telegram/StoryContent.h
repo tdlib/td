@@ -62,7 +62,8 @@ void merge_story_contents(Td *td, const StoryContent *old_content, StoryContent 
 
 unique_ptr<StoryContent> copy_story_content(const StoryContent *content);
 
-td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const StoryContent *content);
+td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const StoryContent *content,
+                                                                  DialogId owner_dialog_id);
 
 FileId get_story_content_any_file_id(const StoryContent *content);
 

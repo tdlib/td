@@ -135,8 +135,8 @@ static td_api::object_ptr<td_api::botMediaPreview> convert_bot_media_preview(
     return nullptr;
   }
   append(file_ids, get_story_content_file_ids(td, content.get()));
-  return td_api::make_object<td_api::botMediaPreview>(max(media->date_, 0),
-                                                      get_story_content_object(td, content.get()));
+  return td_api::make_object<td_api::botMediaPreview>(
+      max(media->date_, 0), get_story_content_object(td, content.get(), DialogId(bot_user_id)));
 }
 
 class GetPreviewMediasQuery final : public Td::ResultHandler {

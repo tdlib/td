@@ -4072,7 +4072,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
       can_be_added_to_album, can_be_deleted, can_be_edited, can_be_forwarded, can_be_replied, can_set_privacy_settings,
       can_toggle_is_pinned, can_get_statistics, can_get_interactions, has_expired_viewers, std::move(repost_info),
       std::move(interaction_info), story->chosen_reaction_type_.get_reaction_type_object(), std::move(privacy_settings),
-      get_story_content_object(td_, content), std::move(story_areas),
+      get_story_content_object(td_, content, owner_dialog_id), std::move(story_areas),
       get_formatted_text_object(td_->user_manager_.get(), *caption, true, get_story_content_duration(td_, content)),
       StoryAlbumId::get_story_album_ids_object(story->album_ids_));
 }
