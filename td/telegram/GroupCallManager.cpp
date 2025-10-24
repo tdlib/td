@@ -5226,6 +5226,9 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
     }
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
+  if (group_call->is_live_story) {
+    return promise.set_error(400, "Can't manage participants in story live streams");
+  }
 
   auto participants = add_group_call_participants(input_group_call_id, "toggle_group_call_participant_is_muted");
   auto participant = get_group_call_participant(participants, dialog_id);

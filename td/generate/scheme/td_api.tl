@@ -12437,7 +12437,7 @@ toggleGroupCallIsMyVideoEnabled group_call_id:int32 is_my_video_enabled:Bool = O
 //@is_speaking Pass true if the user is speaking
 setGroupCallParticipantIsSpeaking group_call_id:int32 audio_source:int32 is_speaking:Bool = MessageSender;
 
-//@description Toggles whether a participant of an active group call is muted, unmuted, or allowed to unmute themselves
+//@description Toggles whether a participant of an active group call is muted, unmuted, or allowed to unmute themselves; not supported for story live streams
 //@group_call_id Group call identifier
 //@participant_id Participant identifier
 //@is_muted Pass true to mute the user; pass false to unmute them
@@ -12461,7 +12461,8 @@ toggleGroupCallParticipantIsHandRaised group_call_id:int32 participant_id:Messag
 //@limit The maximum number of participants to return; must be positive
 getGroupCallParticipants input_group_call:InputGroupCall limit:int32 = GroupCallParticipants;
 
-//@description Loads more participants of a group call. The loaded participants will be received through updates. Use the field groupCall.loaded_all_participants to check whether all participants have already been loaded
+//@description Loads more participants of a group call. The loaded participants will be received through updates.
+//-Use the field groupCall.loaded_all_participants to check whether all participants have already been loaded
 //@group_call_id Group call identifier. The group call must be previously received through getGroupCall and must be joined or being joined
 //@limit The maximum number of participants to load; up to 100
 loadGroupCallParticipants group_call_id:int32 limit:int32 = Ok;
@@ -12469,7 +12470,7 @@ loadGroupCallParticipants group_call_id:int32 limit:int32 = Ok;
 //@description Leaves a group call @group_call_id Group call identifier
 leaveGroupCall group_call_id:int32 = Ok;
 
-//@description Ends a group call. Requires groupCall.can_be_managed right for video chats or groupCall.is_owned otherwise @group_call_id Group call identifier
+//@description Ends a group call. Requires groupCall.can_be_managed right for video chats and live stream stories or groupCall.is_owned otherwise @group_call_id Group call identifier
 endGroupCall group_call_id:int32 = Ok;
 
 //@description Returns information about available video chat streams @group_call_id Group call identifier
