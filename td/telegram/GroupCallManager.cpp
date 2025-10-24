@@ -4934,9 +4934,10 @@ void GroupCallManager::do_delete_group_call_participants(InputGroupCallId input_
   if (!is_group_call_active(group_call) || group_call->is_being_left) {
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
-  if (!group_call->is_conference) {
-    return promise.set_error(
-        400, "Use setChatMemberStatus to ban participants from video chats and the corresponding chats");
+  if (!group_call->is_conference || group_call->is_live_story) {
+    return promise.set_error(400,
+                             "Use setChatMemberStatus or setMessageSenderBlockList to ban participants from video "
+                             "chats or story live streams");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
