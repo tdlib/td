@@ -5054,15 +5054,15 @@ class CliClient final : public Actor {
       GroupCallId group_call_id;
       get_args(args, group_call_id);
       send_request(td_api::make_object<td_api::getGroupCall>(group_call_id));
-    } else if (op == "gvcs") {
+    } else if (op == "ggcs") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);
-      send_request(td_api::make_object<td_api::getVideoChatStreams>(group_call_id));
-    } else if (op == "gvcss") {
+      send_request(td_api::make_object<td_api::getGroupCallStreams>(group_call_id));
+    } else if (op == "ggcss") {
       GroupCallId group_call_id;
       int32 channel_id;
       get_args(args, group_call_id, channel_id);
-      send_request(td_api::make_object<td_api::getVideoChatStreamSegment>(
+      send_request(td_api::make_object<td_api::getGroupCallStreamSegment>(
           group_call_id, (std::time(nullptr) - 5) * 1000, 0, channel_id, nullptr));
     } else if (op == "egcd" || op == "egcds") {
       GroupCallId group_call_id;

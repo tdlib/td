@@ -5949,14 +5949,14 @@ groupCallVideoQualityMedium = GroupCallVideoQuality;
 groupCallVideoQualityFull = GroupCallVideoQuality;
 
 
-//@description Describes an available stream in a video chat
+//@description Describes an available stream in a video chat or a story live stream
 //@channel_id Identifier of an audio/video channel
 //@scale Scale of segment durations in the stream. The duration is 1000/(2**scale) milliseconds
 //@time_offset Point in time when the stream currently ends; Unix timestamp in milliseconds
-videoChatStream channel_id:int32 scale:int32 time_offset:int53 = VideoChatStream;
+groupCallStream channel_id:int32 scale:int32 time_offset:int53 = GroupCallStream;
 
-//@description Represents a list of video chat streams @streams A list of video chat streams
-videoChatStreams streams:vector<videoChatStream> = VideoChatStreams;
+//@description Represents a list of group call streams @streams A list of group call streams
+groupCallStreams streams:vector<groupCallStream> = GroupCallStreams;
 
 //@description Represents an RTMP URL @url The URL @stream_key Stream key
 rtmpUrl url:string stream_key:string = RtmpUrl;
@@ -12473,16 +12473,16 @@ leaveGroupCall group_call_id:int32 = Ok;
 //@description Ends a group call. Requires groupCall.can_be_managed right for video chats and live stream stories or groupCall.is_owned otherwise @group_call_id Group call identifier
 endGroupCall group_call_id:int32 = Ok;
 
-//@description Returns information about available video chat streams @group_call_id Group call identifier
-getVideoChatStreams group_call_id:int32 = VideoChatStreams;
+//@description Returns information about available streams in a video chat or a story live stream @group_call_id Group call identifier
+getGroupCallStreams group_call_id:int32 = GroupCallStreams;
 
-//@description Returns a file with a segment of a video chat stream in a modified OGG format for audio or MPEG-4 format for video
+//@description Returns a file with a segment of a video chat or story live stream in a modified OGG format for audio or MPEG-4 format for video
 //@group_call_id Group call identifier
 //@time_offset Point in time when the stream segment begins; Unix timestamp in milliseconds
 //@scale Segment duration scale; 0-1. Segment's duration is 1000/(2**scale) milliseconds
 //@channel_id Identifier of an audio/video channel to get as received from tgcalls
 //@video_quality Video quality as received from tgcalls; pass null to get the worst available quality
-getVideoChatStreamSegment group_call_id:int32 time_offset:int53 scale:int32 channel_id:int32 video_quality:GroupCallVideoQuality = Data;
+getGroupCallStreamSegment group_call_id:int32 time_offset:int53 scale:int32 channel_id:int32 video_quality:GroupCallVideoQuality = Data;
 
 //@description Encrypts group call data before sending them over network using tgcalls
 //@group_call_id Group call identifier. The call must not be a video chat

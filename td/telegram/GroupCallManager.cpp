@@ -67,10 +67,10 @@ T tde2e_move_as_ok_impl(tde2e_api::Result<T> result, int line) {
 }  // namespace
 
 class GetGroupCallStreamChannelsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::videoChatStreams>> promise_;
+  Promise<td_api::object_ptr<td_api::groupCallStreams>> promise_;
 
  public:
-  explicit GetGroupCallStreamChannelsQuery(Promise<td_api::object_ptr<td_api::videoChatStreams>> &&promise)
+  explicit GetGroupCallStreamChannelsQuery(Promise<td_api::object_ptr<td_api::groupCallStreams>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -88,10 +88,10 @@ class GetGroupCallStreamChannelsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     auto streams = transform(ptr->channels_, [](const tl_object_ptr<telegram_api::groupCallStreamChannel> &channel) {
-      return td_api::make_object<td_api::videoChatStream>(channel->channel_, channel->scale_,
+      return td_api::make_object<td_api::groupCallStream>(channel->channel_, channel->scale_,
                                                           channel->last_timestamp_ms_);
     });
-    promise_.set_value(td_api::make_object<td_api::videoChatStreams>(std::move(streams)));
+    promise_.set_value(td_api::make_object<td_api::groupCallStreams>(std::move(streams)));
   }
 
   void on_error(Status status) final {
@@ -3214,7 +3214,7 @@ int32 GroupCallManager::cancel_join_group_call_presentation_request(InputGroupCa
 }
 
 void GroupCallManager::get_group_call_streams(GroupCallId group_call_id,
-                                              Promise<td_api::object_ptr<td_api::videoChatStreams>> &&promise) {
+                                              Promise<td_api::object_ptr<td_api::groupCallStreams>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
@@ -3252,7 +3252,7 @@ void GroupCallManager::get_group_call_streams(GroupCallId group_call_id,
 
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), input_group_call_id, audio_source = group_call->audio_source,
-       promise = std::move(promise)](Result<td_api::object_ptr<td_api::videoChatStreams>> &&result) mutable {
+       promise = std::move(promise)](Result<td_api::object_ptr<td_api::groupCallStreams>> &&result) mutable {
         send_closure(actor_id, &GroupCallManager::finish_get_group_call_streams, input_group_call_id, audio_source,
                      std::move(result), std::move(promise));
       });
@@ -3261,8 +3261,8 @@ void GroupCallManager::get_group_call_streams(GroupCallId group_call_id,
 }
 
 void GroupCallManager::finish_get_group_call_streams(InputGroupCallId input_group_call_id, int32 audio_source,
-                                                     Result<td_api::object_ptr<td_api::videoChatStreams>> &&result,
-                                                     Promise<td_api::object_ptr<td_api::videoChatStreams>> &&promise) {
+                                                     Result<td_api::object_ptr<td_api::groupCallStreams>> &&result,
+                                                     Promise<td_api::object_ptr<td_api::groupCallStreams>> &&promise) {
   if (!G()->close_flag() && result.is_error()) {
     auto message = result.error().message();
     if (message == "GROUPCALL_JOIN_MISSING" || message == "GROUPCALL_FORBIDDEN" || message == "GROUPCALL_INVALID") {
