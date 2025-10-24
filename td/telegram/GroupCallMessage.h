@@ -46,6 +46,8 @@ class GroupCallMessage {
     return id_;
   }
 
+  string encode_to_json() const;
+
   td_api::object_ptr<td_api::groupCallMessage> get_group_call_message_object(Td *td) const;
 };
 

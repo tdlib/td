@@ -38,7 +38,6 @@
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/FlatHashSet.h"
-#include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
@@ -4738,101 +4737,13 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
 
   auto as_dialog_id =
       group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id();
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updateNewGroupCallMessage>(
-          group_call->group_call_id.get(), GroupCallMessage(as_dialog_id, message).get_group_call_message_object(td_)));
+  auto group_call_message = GroupCallMessage(as_dialog_id, message);
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateNewGroupCallMessage>(
+                   group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_)));
 
   if (group_call->is_conference || group_call->call_id != tde2e_api::CallId()) {
-    auto json_message = json_encode<string>(json_object([&message](auto &o) {
-      o("_", "groupCallMessage");
-      o("random_id", to_string(Random::secure_int64()));
-      o("message", json_object([&message](auto &o) {
-          o("_", "textWithEntities");
-          o("text", message.text);
-          o("entities", json_array(message.entities, [](auto &entity) {
-              return json_object([&entity](auto &o) {
-                switch (entity.type) {
-                  case MessageEntity::Type::Mention:
-                    o("_", "messageEntityUnknown");
-                    break;
-                  case MessageEntity::Type::Hashtag:
-                    o("_", "messageEntityUnknown");
-                    break;
-                  case MessageEntity::Type::Cashtag:
-                    o("_", "messageEntityUnknown");
-                    break;
-                  case MessageEntity::Type::BotCommand:
-                    o("_", "messageEntityUnknown");
-                    break;
-                  case MessageEntity::Type::PhoneNumber:
-                    o("_", "messageEntityUnknown");
-                    break;
-                  case MessageEntity::Type::BankCardNumber:
-                    o("_", "messageEntityUnknown");
-                    break;
-                  case MessageEntity::Type::Url:
-                    o("_", "messageEntityUrl");
-                    break;
-                  case MessageEntity::Type::EmailAddress:
-                    o("_", "messageEntityEmail");
-                    break;
-                  case MessageEntity::Type::Bold:
-                    o("_", "messageEntityBold");
-                    break;
-                  case MessageEntity::Type::Italic:
-                    o("_", "messageEntityItalic");
-                    break;
-                  case MessageEntity::Type::Underline:
-                    o("_", "messageEntityUnderline");
-                    break;
-                  case MessageEntity::Type::Strikethrough:
-                    o("_", "messageEntityStrike");
-                    break;
-                  case MessageEntity::Type::BlockQuote:
-                    o("_", "messageEntityBlockquote");
-                    break;
-                  case MessageEntity::Type::Code:
-                    o("_", "messageEntityCode");
-                    break;
-                  case MessageEntity::Type::Pre:
-                    o("_", "messageEntityPre");
-                    o("language", string());
-                    break;
-                  case MessageEntity::Type::PreCode:
-                    o("_", "messageEntityPre");
-                    o("language", entity.argument);
-                    break;
-                  case MessageEntity::Type::TextUrl:
-                    o("_", "messageEntityTextUrl");
-                    o("url", entity.argument);
-                    break;
-                  case MessageEntity::Type::MentionName:
-                    o("_", "messageEntityMentionName");
-                    o("user_id", 0);
-                    break;
-                  case MessageEntity::Type::MediaTimestamp:
-                    o("_", "messageEntityUnknown");
-                    break;
-                  case MessageEntity::Type::Spoiler:
-                    o("_", "messageEntitySpoiler");
-                    break;
-                  case MessageEntity::Type::CustomEmoji:
-                    o("_", "messageEntityCustomEmoji");
-                    o("document_id", to_string(entity.custom_emoji_id.get()));
-                    break;
-                  case MessageEntity::Type::ExpandableBlockQuote:
-                    o("_", "messageEntityBlockquote");
-                    break;
-                  default:
-                    UNREACHABLE();
-                }
-                o("offset", entity.offset);
-                o("length", entity.length);
-              });
-            }));
-        }));
-    }));
+    auto json_message = group_call_message.encode_to_json();
     auto r_data = tde2e_api::call_encrypt(group_call->call_id, tde2e_api::CallChannelId(), json_message, 0);
     if (r_data.is_error()) {
       return promise.set_error(400, r_data.error().message);

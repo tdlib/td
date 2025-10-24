@@ -17,6 +17,7 @@
 
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/Random.h"
 #include "td/utils/Status.h"
 #include "td/utils/utf8.h"
 
@@ -188,6 +189,98 @@ GroupCallMessage::GroupCallMessage(Td *td, telegram_api::object_ptr<telegram_api
 
 GroupCallMessage::GroupCallMessage(DialogId dialog_id, FormattedText text)
     : id_(0), date_(G()->unix_time()), dialog_id_(dialog_id), text_(std::move(text)), paid_message_star_count_() {
+}
+
+string GroupCallMessage::encode_to_json() const {
+  return json_encode<string>(json_object([message = &text_](auto &o) {
+    o("_", "groupCallMessage");
+    o("random_id", to_string(Random::secure_int64()));
+    o("message", json_object([message](auto &o) {
+        o("_", "textWithEntities");
+        o("text", message->text);
+        o("entities", json_array(message->entities, [](auto &entity) {
+            return json_object([&entity](auto &o) {
+              switch (entity.type) {
+                case MessageEntity::Type::Mention:
+                  o("_", "messageEntityUnknown");
+                  break;
+                case MessageEntity::Type::Hashtag:
+                  o("_", "messageEntityUnknown");
+                  break;
+                case MessageEntity::Type::Cashtag:
+                  o("_", "messageEntityUnknown");
+                  break;
+                case MessageEntity::Type::BotCommand:
+                  o("_", "messageEntityUnknown");
+                  break;
+                case MessageEntity::Type::PhoneNumber:
+                  o("_", "messageEntityUnknown");
+                  break;
+                case MessageEntity::Type::BankCardNumber:
+                  o("_", "messageEntityUnknown");
+                  break;
+                case MessageEntity::Type::Url:
+                  o("_", "messageEntityUrl");
+                  break;
+                case MessageEntity::Type::EmailAddress:
+                  o("_", "messageEntityEmail");
+                  break;
+                case MessageEntity::Type::Bold:
+                  o("_", "messageEntityBold");
+                  break;
+                case MessageEntity::Type::Italic:
+                  o("_", "messageEntityItalic");
+                  break;
+                case MessageEntity::Type::Underline:
+                  o("_", "messageEntityUnderline");
+                  break;
+                case MessageEntity::Type::Strikethrough:
+                  o("_", "messageEntityStrike");
+                  break;
+                case MessageEntity::Type::BlockQuote:
+                  o("_", "messageEntityBlockquote");
+                  break;
+                case MessageEntity::Type::Code:
+                  o("_", "messageEntityCode");
+                  break;
+                case MessageEntity::Type::Pre:
+                  o("_", "messageEntityPre");
+                  o("language", string());
+                  break;
+                case MessageEntity::Type::PreCode:
+                  o("_", "messageEntityPre");
+                  o("language", entity.argument);
+                  break;
+                case MessageEntity::Type::TextUrl:
+                  o("_", "messageEntityTextUrl");
+                  o("url", entity.argument);
+                  break;
+                case MessageEntity::Type::MentionName:
+                  o("_", "messageEntityMentionName");
+                  o("user_id", 0);
+                  break;
+                case MessageEntity::Type::MediaTimestamp:
+                  o("_", "messageEntityUnknown");
+                  break;
+                case MessageEntity::Type::Spoiler:
+                  o("_", "messageEntitySpoiler");
+                  break;
+                case MessageEntity::Type::CustomEmoji:
+                  o("_", "messageEntityCustomEmoji");
+                  o("document_id", to_string(entity.custom_emoji_id.get()));
+                  break;
+                case MessageEntity::Type::ExpandableBlockQuote:
+                  o("_", "messageEntityBlockquote");
+                  break;
+                default:
+                  UNREACHABLE();
+              }
+              o("offset", entity.offset);
+              o("length", entity.length);
+            });
+          }));
+      }));
+  }));
 }
 
 td_api::object_ptr<td_api::groupCallMessage> GroupCallMessage::get_group_call_message_object(Td *td) const {
