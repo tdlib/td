@@ -122,7 +122,7 @@ class UpdatesManager final : public Actor {
   static string extract_join_group_call_presentation_params(telegram_api::Updates *updates_ptr);
 
   static telegram_api::object_ptr<telegram_api::StoryItem> extract_story(telegram_api::Updates *updates_ptr,
-                                                                         DialogId owner_dialog_id);
+                                                                         DialogId owner_dialog_id, bool is_business);
 
   static vector<DialogId> get_update_notify_settings_dialog_ids(const telegram_api::Updates *updates_ptr);
 

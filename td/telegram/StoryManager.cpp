@@ -1437,6 +1437,67 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
   }
 };
 
+class StartLiveStoryQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::story>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit StartLiveStoryQuery(Promise<td_api::object_ptr<td_api::story>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const UserPrivacySettingRules &privacy_rules,
+            const vector<StoryAlbumId> &story_album_ids, bool is_pinned, bool noforwards, bool is_rtmp_stream,
+            bool enable_messages, int64 paid_message_star_count) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    // StoryAlbumId::get_input_story_album_ids(story->album_ids_)
+    int32 flags = telegram_api::stories_startLive::MESSAGES_ENABLED_MASK;
+    if (paid_message_star_count != 0) {
+      flags |= telegram_api::stories_startLive::SEND_PAID_MESSAGES_STARS_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_startLive(flags, is_pinned, noforwards, is_rtmp_stream, std::move(input_peer), string(),
+                                        vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(),
+                                        privacy_rules.get_input_privacy_rules(td_), Random::secure_int64(),
+                                        enable_messages, paid_message_star_count),
+        {{dialog_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_startLive>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for StartLiveStoryQuery: " << to_string(ptr);
+
+    td_->updates_manager_->process_updates_users_and_chats(ptr.get());
+
+    auto story = UpdatesManager::extract_story(ptr.get(), dialog_id_, false);
+    if (story == nullptr) {
+      LOG(ERROR) << "Receive unexpected live story: " << to_string(ptr);
+      return promise_.set_error(400, "Failed to create live story");
+    }
+    auto story_id = td_->story_manager_->on_get_story(dialog_id_, std::move(story));
+    if (!story_id.is_valid()) {
+      return promise_.set_error(400, "Failed to create live story");
+    }
+    promise_.set_value(td_->story_manager_->get_story_object({dialog_id_, story_id}));
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for StartLiveStoryQuery: " << status;
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "StartLiveStoryQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class StoryManager::EditStoryQuery final : public Td::ResultHandler {
   DialogId dialog_id_;
   unique_ptr<PendingStory> pending_story_;
@@ -6024,6 +6085,30 @@ void StoryManager::on_send_story_file_parts_missing(unique_ptr<PendingStory> &&p
   do_send_story(std::move(pending_story), std::move(bad_parts));
 }
 
+void StoryManager::start_live_story(DialogId dialog_id, td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
+                                    vector<StoryAlbumId> story_album_ids, bool is_pinned, bool protect_content,
+                                    bool is_rtmp_stream, bool enable_messages, int64 paid_message_star_count,
+                                    Promise<td_api::object_ptr<td_api::story>> &&promise) {
+  if (!td_->dialog_manager_->have_dialog_force(dialog_id, "start_live_story")) {
+    return promise.set_error(400, "Chat not found");
+  }
+  if (!can_post_stories(dialog_id)) {
+    return promise.set_error(400, "Not enough rights to post stories in the chat");
+  }
+  for (auto story_album_id : story_album_ids) {
+    TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
+  }
+  if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
+    settings = td_api::make_object<td_api::storyPrivacySettingsEveryone>();
+  }
+  TRY_RESULT_PROMISE(promise, privacy_rules,
+                     UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(settings)));
+
+  td_->create_handler<StartLiveStoryQuery>(std::move(promise))
+      ->send(dialog_id, privacy_rules, story_album_ids, is_pinned, protect_content, is_rtmp_stream, enable_messages,
+             paid_message_star_count);
+}
+
 class StoryManager::EditStoryLogEvent {
  public:
   const PendingStory *pending_story_in_;
@@ -6247,7 +6332,7 @@ void StoryManager::on_edit_business_story(unique_ptr<PendingStory> &&pending_sto
 
   td_->updates_manager_->process_updates_users_and_chats(updates.get());
 
-  auto story = UpdatesManager::extract_story(updates.get(), pending_story->dialog_id_);
+  auto story = UpdatesManager::extract_story(updates.get(), pending_story->dialog_id_, true);
   if (story == nullptr) {
     LOG(ERROR) << "Receive unexpected edit story result: " << to_string(updates);
     promise.set_error(400, "Failed to edit story");

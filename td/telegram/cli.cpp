@@ -5591,6 +5591,14 @@ class CliClient final : public Actor {
                                                               duration, 0.5, true),
           areas, get_caption(), rules, to_integers<int32>(album_ids), active_period ? active_period : 86400,
           get_reposted_story_full_id(), op == "psvp", protect_content));
+    } else if (op == "slss" || op == "slssp" || op == "slssr") {
+      ChatId chat_id;
+      StoryPrivacySettings rules;
+      bool protect_content;
+      string album_ids;
+      get_args(args, chat_id, rules, protect_content, album_ids);
+      send_request(td_api::make_object<td_api::startLiveStreamStory>(
+          chat_id, rules, to_integers<int32>(album_ids), op == "slssp", protect_content, op == "slssr", true, 1));
     } else if (op == "esc") {
       ChatId story_poster_chat_id;
       StoryId story_id;
