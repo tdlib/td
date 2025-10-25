@@ -3004,6 +3004,7 @@ void UserManager::set_my_online_status(bool is_online, bool send_update, bool is
 
 void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&user_ptr, const char *source) {
   LOG(DEBUG) << "Receive from " << source << ' ' << to_string(user_ptr);
+  CHECK(user_ptr != nullptr);
   int32 constructor_id = user_ptr->get_id();
   if (constructor_id == telegram_api::userEmpty::ID) {
     auto user = move_tl_object_as<telegram_api::userEmpty>(user_ptr);

@@ -5624,6 +5624,7 @@ void ChatManager::update_channel_full(ChannelFull *channel_full, ChannelId chann
 
 void ChatManager::on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat, const char *source) {
   LOG(DEBUG) << "Receive from " << source << ' ' << to_string(chat);
+  CHECK(chat != nullptr);
   switch (chat->get_id()) {
     case telegram_api::chatEmpty::ID:
       on_get_chat_empty(static_cast<telegram_api::chatEmpty &>(*chat), source);
