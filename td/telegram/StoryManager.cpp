@@ -5762,16 +5762,7 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
     }
   }
   TRY_RESULT_PROMISE(promise, story_id, get_next_yet_unsent_story_id(dialog_id));
-  vector<MediaArea> areas;
-  if (input_areas != nullptr) {
-    vector<MediaArea> old_media_areas;
-    for (auto &input_area : input_areas->areas_) {
-      MediaArea media_area(td_, std::move(input_area), old_media_areas);
-      if (media_area.is_valid()) {
-        areas.push_back(std::move(media_area));
-      }
-    }
-  }
+  auto areas = MediaArea::get_media_areas(td_, std::move(input_areas), vector<MediaArea>());
   if (!is_bot && !td_->option_manager_->get_option_boolean("can_use_text_entities_in_story_caption")) {
     caption.entities.clear();
   }
@@ -6097,12 +6088,7 @@ void StoryManager::edit_story(DialogId owner_dialog_id, StoryId story_id,
                               get_input_story_content(td_, std::move(input_story_content), owner_dialog_id));
   }
   if (are_media_areas_edited) {
-    for (auto &input_area : input_areas->areas_) {
-      MediaArea media_area(td_, std::move(input_area), story->areas_);
-      if (media_area.is_valid()) {
-        areas.push_back(std::move(media_area));
-      }
-    }
+    areas = MediaArea::get_media_areas(td_, std::move(input_areas), story->areas_);
     auto *current_areas = &story->areas_;
     auto it = being_edited_stories_.find(story_full_id);
     if (it != being_edited_stories_.end() && it->second->edit_media_areas_) {
@@ -6198,16 +6184,7 @@ void StoryManager::edit_business_story(DialogId owner_dialog_id, StoryId story_i
 
   bool is_bot = true;
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_story_content), owner_dialog_id));
-  vector<MediaArea> areas;
-  if (input_areas != nullptr) {
-    vector<MediaArea> old_media_areas;
-    for (auto &input_area : input_areas->areas_) {
-      MediaArea media_area(td_, std::move(input_area), old_media_areas);
-      if (media_area.is_valid()) {
-        areas.push_back(std::move(media_area));
-      }
-    }
-  }
+  auto areas = MediaArea::get_media_areas(td_, std::move(input_areas), vector<MediaArea>());
   TRY_RESULT_PROMISE(promise, caption,
                      get_formatted_text(td_, DialogId(), std::move(input_caption), is_bot, true, false, false));
   TRY_RESULT_PROMISE(promise, privacy_rules,

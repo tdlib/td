@@ -81,6 +81,9 @@ class MediaArea {
   static vector<telegram_api::object_ptr<telegram_api::MediaArea>> get_input_media_areas(
       const Td *td, const vector<MediaArea> &media_areas);
 
+  static vector<MediaArea> get_media_areas(Td *td, td_api::object_ptr<td_api::inputStoryAreas> &&input_story_areas,
+                                           const vector<MediaArea> &old_media_areas);
+
   bool is_valid() const {
     return type_ != Type::None;
   }
