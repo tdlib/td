@@ -1334,7 +1334,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   vector<string> emoji_sounds;
   string animation_search_provider;
   string animation_search_emojis;
-  bool can_archive_and_mute_new_chats_from_unknown_users = false;
   double animated_emoji_zoom = 0.0;
   vector<string> premium_features;
   auto &premium_limit_keys = get_premium_limit_keys();
@@ -1342,17 +1341,12 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string premium_invoice_slug;
   bool is_premium_available = false;
   vector<string> fragment_prefixes;
-  bool premium_gift_attach_menu_icon = false;
-  bool premium_gift_text_field_icon = false;
-  // bool archive_all_stories = false;
   int32 transcribe_audio_trial_weekly_number = 0;
   int32 transcribe_audio_trial_duration_max = 0;
   int32 transcribe_audio_trial_cooldown_until = 0;
   vector<string> business_features;
   string premium_manage_subscription_url;
   bool need_premium_for_new_chat_privacy = true;
-  bool channel_revenue_withdrawal_enabled = false;
-  bool can_edit_fact_check = false;
   vector<string> starref_start_param_prefixes;
   int32 freeze_since_date = 0;
   int32 freeze_until_date = 0;
@@ -1362,6 +1356,18 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string verify_age_bot_username;
   string verify_age_country;
   int32 verify_age_min = 0;
+
+  // {"stories_all_hidden", "archive_all_stories"}
+  static const FlatHashMap<Slice, Slice, SliceHash> bool_keys = {
+      {"autoarchive_setting_available", "can_archive_and_mute_new_chats_from_unknown_users"},
+      {"can_edit_factcheck", "can_edit_fact_check"},
+      {"channel_revenue_withdrawal_enabled", "can_withdraw_chat_revenue"},
+      {"premium_gift_attach_menu_icon", "gift_premium_from_attachment_menu"},
+      {"premium_gift_text_field_icon", "gift_premium_from_input_field"},
+      {"story_weather_preload", "can_preload_weather"},
+      {"stars_gifts_enabled", "can_gift_stars"},
+      {"stars_paid_messages_available", "can_enable_paid_messages"},
+      {"video_ignore_alt_documents", ""}};
 
   static const FlatHashMap<Slice, Slice, SliceHash> integer_keys = {
       {"authorization_autoconfirm_period", ""},
@@ -1474,6 +1480,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     for (auto &key_value : static_cast<telegram_api::jsonObject *>(config.get())->value_) {
       Slice key = key_value->key_;
 
+      {
+        auto it = bool_keys.find(key);
+        if (it != bool_keys.end()) {
+          G()->set_option_boolean(it->second.empty() ? key : it->second,
+                                  get_json_value_bool(std::move(key_value->value_), key));
+          continue;
+        }
+      }
       {
         auto it = integer_keys.find(key);
         if (it != integer_keys.end()) {
@@ -1650,10 +1664,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
-      if (key == "autoarchive_setting_available") {
-        can_archive_and_mute_new_chats_from_unknown_users = get_json_value_bool(std::move(key_value->value_), key);
-        continue;
-      }
       if (key == "autologin_domains") {
         if (value->get_id() == telegram_api::jsonArray::ID) {
           auto domains = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
@@ -1783,18 +1793,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
-      if (key == "premium_gift_attach_menu_icon") {
-        premium_gift_attach_menu_icon = get_json_value_bool(std::move(key_value->value_), key);
-        continue;
-      }
-      if (key == "premium_gift_text_field_icon") {
-        premium_gift_text_field_icon = get_json_value_bool(std::move(key_value->value_), key);
-        continue;
-      }
-      if (key == "stories_all_hidden") {
-        // archive_all_stories = get_json_value_bool(std::move(key_value->value_), key);
-        continue;
-      }
       if (key == "stories_venue_search_username") {
         G()->set_option_string("venue_search_bot_username", get_json_value_string(std::move(key_value->value_), key));
         continue;
@@ -1834,16 +1832,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         need_premium_for_new_chat_privacy = !get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
-      if (key == "channel_revenue_withdrawal_enabled") {
-        channel_revenue_withdrawal_enabled = get_json_value_bool(std::move(key_value->value_), key);
-        continue;
-      }
       if (key == "premium_manage_subscription_url") {
         premium_manage_subscription_url = get_json_value_string(std::move(key_value->value_), key);
-        continue;
-      }
-      if (key == "can_edit_factcheck") {
-        can_edit_fact_check = get_json_value_bool(std::move(key_value->value_), key);
         continue;
       }
       if (key == "web_app_allowed_protocols") {
@@ -1866,16 +1856,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         G()->set_option_string("weather_bot_username", get_json_value_string(std::move(key_value->value_), key));
         continue;
       }
-      if (key == "story_weather_preload") {
-        G()->set_option_boolean("can_preload_weather", get_json_value_bool(std::move(key_value->value_), key));
-        continue;
-      }
       if (key == "ton_proxy_address") {
         G()->set_option_string("ton_proxy_address", get_json_value_string(std::move(key_value->value_), key));
-        continue;
-      }
-      if (key == "stars_gifts_enabled") {
-        G()->set_option_boolean("can_gift_stars", get_json_value_bool(std::move(key_value->value_), key));
         continue;
       }
       if (key == "starref_start_param_prefixes") {
@@ -1894,16 +1876,8 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
-      if (key == "video_ignore_alt_documents") {
-        G()->set_option_boolean("video_ignore_alt_documents", get_json_value_bool(std::move(key_value->value_), key));
-        continue;
-      }
       if (key == "ton_blockchain_explorer_url") {
         G()->set_option_string("ton_blockchain_explorer_url", get_json_value_string(std::move(key_value->value_), key));
-        continue;
-      }
-      if (key == "stars_paid_messages_available") {
-        G()->set_option_boolean("can_enable_paid_messages", get_json_value_bool(std::move(key_value->value_), key));
         continue;
       }
       if (key == "freeze_since_date") {
@@ -2051,12 +2025,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     options.set_option_string("animation_search_emojis", animation_search_emojis);
   }
-  if (!can_archive_and_mute_new_chats_from_unknown_users) {
-    options.set_option_empty("can_archive_and_mute_new_chats_from_unknown_users");
-  } else {
-    options.set_option_boolean("can_archive_and_mute_new_chats_from_unknown_users",
-                               can_archive_and_mute_new_chats_from_unknown_users);
-  }
 
   options.set_option_boolean("can_accept_calls", can_accept_calls);
 
@@ -2082,28 +2050,6 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_string("premium_invoice_slug", premium_invoice_slug);
   }
 
-  if (premium_gift_attach_menu_icon) {
-    options.set_option_boolean("gift_premium_from_attachment_menu", premium_gift_attach_menu_icon);
-  } else {
-    options.set_option_empty("gift_premium_from_attachment_menu");
-  }
-  if (premium_gift_text_field_icon) {
-    options.set_option_boolean("gift_premium_from_input_field", premium_gift_text_field_icon);
-  } else {
-    options.set_option_empty("gift_premium_from_input_field");
-  }
-  if (can_edit_fact_check) {
-    options.set_option_boolean("can_edit_fact_check", can_edit_fact_check);
-  } else {
-    options.set_option_empty("can_edit_fact_check");
-  }
-
-  if (!options.get_option_boolean("need_synchronize_archive_all_stories")) {
-    // options.set_option_boolean("archive_all_stories", archive_all_stories);
-  }
-  options.set_option_empty("archive_all_stories");
-
-  options.set_option_boolean("can_withdraw_chat_revenue", channel_revenue_withdrawal_enabled);
   options.set_option_boolean("need_premium_for_new_chat_privacy", need_premium_for_new_chat_privacy);
 
   options.set_option_empty("default_ton_blockchain_config");
