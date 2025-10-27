@@ -9411,6 +9411,10 @@ updateStoryListChatCount story_list:StoryList chat_count:int32 = Update;
 //@cooldown_until_date Point in time (Unix timestamp) when stealth mode can be enabled again; 0 if there is no active cooldown
 updateStoryStealthMode active_until_date:int32 cooldown_until_date:int32 = Update;
 
+//@description Lists of bots which Mini Apps must be allowed to read text from clipboard and must be opened without a warning
+//@bot_user_ids List of user identifiers of the bots; the corresponding user objects may not be sent
+updateTrustedMiniAppBots bot_user_ids:vector<int53> = Update;
+
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
 

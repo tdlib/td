@@ -515,7 +515,8 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "video_ignore_alt_documents",
                                                               "video_note_size_max",
                                                               "weather_bot_username",
-                                                              "webfile_dc_id"};
+                                                              "webfile_dc_id",
+                                                              "whitelisted_bots"};
   return internal_options.count(name) > 0;
 }
 
@@ -530,6 +531,10 @@ td_api::object_ptr<td_api::Update> OptionManager::get_internal_option_update(Sli
       return get_update_suggested_actions_object(td_->user_manager_.get(), added_actions, {},
                                                  "get_internal_option_update");
     }
+  }
+  if (name == "whitelisted_bots") {
+    return td_api::make_object<td_api::updateTrustedMiniAppBots>(
+        transform(full_split(get_option_string(name), ','), to_integer<int64>));
   }
   return nullptr;
 }

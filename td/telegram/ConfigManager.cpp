@@ -1356,6 +1356,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string verify_age_bot_username;
   string verify_age_country;
   int32 verify_age_min = 0;
+  string whitelisted_bots;
 
   // {"stories_all_hidden", "archive_all_stories"}
   static const FlatHashMap<Slice, Slice, SliceHash> bool_keys = {
@@ -1941,6 +1942,25 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         verify_age_min = get_json_value_int(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "whitelisted_bots") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto bot_user_ids = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &bot_user_id : bot_user_ids) {
+            auto user_id = UserId(get_json_value_long(std::move(bot_user_id), key));
+            if (user_id.is_valid()) {
+              if (!whitelisted_bots.empty()) {
+                whitelisted_bots += ',';
+              }
+              whitelisted_bots += to_string(user_id.get());
+            } else {
+              LOG(ERROR) << "Receive unexpected bot user identifier " << user_id;
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected whitelisted_bots " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -1985,6 +2005,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   } else {
     options.set_option_string("restriction_add_platforms", restriction_add_platforms);
   }
+  options.set_option_string("whitelisted_bots", whitelisted_bots);
 
   if (!dice_emojis.empty()) {
     vector<string> dice_success_values(dice_emojis.size());
