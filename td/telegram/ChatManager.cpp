@@ -7663,11 +7663,11 @@ void ChatManager::on_update_channel_story_ids_impl(Channel *c, ChannelId channel
     return;
   }
 
-  auto has_unread_stories = get_channel_has_unread_stories(c);
+  auto active_story_state = get_channel_active_story_state(c);
   if (c->has_live_story != has_live_story) {
     LOG(DEBUG) << "Change has_live_story of " << channel_id << " to " << has_live_story;
     c->has_live_story = has_live_story;
-    c->is_changed = true;
+    c->need_save_to_database = true;
   }
   if (c->max_active_story_id != max_active_story_id) {
     LOG(DEBUG) << "Change last active story of " << channel_id << " from " << c->max_active_story_id << " to "
@@ -7697,8 +7697,8 @@ void ChatManager::on_update_channel_story_ids_impl(Channel *c, ChannelId channel
     c->max_read_story_id = max_read_story_id;
     c->need_save_to_database = true;
   }
-  if (has_unread_stories != get_channel_has_unread_stories(c)) {
-    LOG(DEBUG) << "Change has_unread_stories of " << channel_id << " to " << !has_unread_stories;
+  if (active_story_state != get_channel_active_story_state(c)) {
+    LOG(DEBUG) << "Change active_story_state of " << channel_id;
     c->is_changed = true;
   }
 }
@@ -7718,15 +7718,15 @@ void ChatManager::on_update_channel_max_read_story_id(Channel *c, ChannelId chan
     return;
   }
 
-  auto has_unread_stories = get_channel_has_unread_stories(c);
+  auto active_story_state = get_channel_active_story_state(c);
   if (max_read_story_id.get() > c->max_read_story_id.get()) {
     LOG(DEBUG) << "Change last read story of " << channel_id << " from " << c->max_read_story_id << " to "
                << max_read_story_id;
     c->max_read_story_id = max_read_story_id;
     c->need_save_to_database = true;
   }
-  if (has_unread_stories != get_channel_has_unread_stories(c)) {
-    LOG(DEBUG) << "Change has_unread_stories of " << channel_id << " to " << !has_unread_stories;
+  if (active_story_state != get_channel_active_story_state(c)) {
+    LOG(DEBUG) << "Change active_story_state of " << channel_id;
     c->is_changed = true;
   }
 }
@@ -9584,7 +9584,7 @@ td_api::object_ptr<td_api::updateSupergroup> ChatManager::get_update_unknown_sup
   return td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
       channel_id.get(), nullptr, 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), 0, 0, false,
       false, false, false, false, !is_megagroup, false, false, !is_megagroup, false, false, false, false, nullptr,
-      false, false, nullptr, 0, false, false));
+      false, false, nullptr, 0, nullptr));
 }
 
 int64 ChatManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
@@ -9605,9 +9605,9 @@ bool ChatManager::need_poll_channel_active_stories(const Channel *c, ChannelId c
          have_input_peer_channel(c, channel_id, AccessRights::Read);
 }
 
-bool ChatManager::get_channel_has_unread_stories(const Channel *c) {
+ActiveStoryState ChatManager::get_channel_active_story_state(const Channel *c) {
   CHECK(c != nullptr);
-  return c->max_active_story_id.get() > c->max_read_story_id.get();
+  return ActiveStoryState(c->max_active_story_id, c->max_read_story_id, c->has_live_story);
 }
 
 td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(ChannelId channel_id) const {
@@ -9626,7 +9626,7 @@ td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(Channe
       get_channel_join_request(c), c->is_slow_mode_enabled, !c->is_megagroup, c->is_gigagroup, c->is_forum,
       c->is_monoforum, c->is_admined_monoforum, get_channel_verification_status_object(c),
       c->broadcast_messages_allowed, c->is_forum_tabs, get_restriction_info_object(c->restriction_reasons),
-      c->paid_message_star_count, c->max_active_story_id.is_valid(), get_channel_has_unread_stories(c));
+      c->paid_message_star_count, get_channel_active_story_state(c).get_active_story_state_object());
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_object(ChannelId channel_id) const {

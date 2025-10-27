@@ -13,6 +13,19 @@ bool ActiveStoryState::has_unread_stories() const {
   return max_active_story_id_.get() > max_read_story_id_.get();
 }
 
+td_api::object_ptr<td_api::ActiveStoryState> ActiveStoryState::get_active_story_state_object() const {
+  if (!max_active_story_id_.is_server()) {
+    return nullptr;
+  }
+  if (has_live_story_) {
+    return td_api::make_object<td_api::activeStoryStateLiveStream>(max_active_story_id_.get());
+  }
+  if (has_unread_stories()) {
+    return td_api::make_object<td_api::activeStoryStateUnread>();
+  }
+  return td_api::make_object<td_api::activeStoryStateRead>();
+}
+
 bool operator==(const ActiveStoryState &lhs, const ActiveStoryState &rhs) {
   if (lhs.has_live_story_ != rhs.has_live_story_) {
     return false;

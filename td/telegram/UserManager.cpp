@@ -3694,11 +3694,11 @@ void UserManager::on_update_user_story_ids_impl(User *u, UserId user_id,
     return;
   }
 
-  auto has_unread_stories = get_user_has_unread_stories(u);
+  auto active_story_state = get_user_active_story_state(u);
   if (u->has_live_story != has_live_story) {
     LOG(DEBUG) << "Change has_live_story of " << user_id << " to " << has_live_story;
     u->has_live_story = has_live_story;
-    u->is_changed = true;
+    u->need_save_to_database = true;
   }
   if (u->max_active_story_id != max_active_story_id) {
     LOG(DEBUG) << "Change last active story of " << user_id << " from " << u->max_active_story_id << " to "
@@ -3728,8 +3728,8 @@ void UserManager::on_update_user_story_ids_impl(User *u, UserId user_id,
     u->max_read_story_id = max_read_story_id;
     u->need_save_to_database = true;
   }
-  if (has_unread_stories != get_user_has_unread_stories(u)) {
-    LOG(DEBUG) << "Change has_unread_stories of " << user_id << " to " << !has_unread_stories;
+  if (active_story_state != get_user_active_story_state(u)) {
+    LOG(DEBUG) << "Change active_story_state of " << user_id;
     u->is_changed = true;
   }
 }
@@ -3749,15 +3749,15 @@ void UserManager::on_update_user_max_read_story_id(User *u, UserId user_id, Stor
     return;
   }
 
-  auto has_unread_stories = get_user_has_unread_stories(u);
+  auto active_story_state = get_user_active_story_state(u);
   if (max_read_story_id.get() > u->max_read_story_id.get()) {
     LOG(DEBUG) << "Change last read story of " << user_id << " from " << u->max_read_story_id << " to "
                << max_read_story_id;
     u->max_read_story_id = max_read_story_id;
     u->need_save_to_database = true;
   }
-  if (has_unread_stories != get_user_has_unread_stories(u)) {
-    LOG(DEBUG) << "Change has_unread_stories of " << user_id << " to " << !has_unread_stories;
+  if (active_story_state != get_user_active_story_state(u)) {
+    LOG(DEBUG) << "Change active_story_state of " << user_id;
     u->is_changed = true;
   }
 }
@@ -9776,9 +9776,9 @@ td_api::object_ptr<td_api::UserStatus> UserManager::get_user_status_object(UserI
   }
 }
 
-bool UserManager::get_user_has_unread_stories(const User *u) {
+ActiveStoryState UserManager::get_user_active_story_state(const User *u) {
   CHECK(u != nullptr);
-  return u->max_active_story_id.get() > u->max_read_story_id.get();
+  return ActiveStoryState(u->max_active_story_id, u->max_read_story_id, u->has_live_story);
 }
 
 td_api::object_ptr<td_api::updateUser> UserManager::get_update_user_object(UserId user_id, const User *u) const {
@@ -9793,7 +9793,7 @@ td_api::object_ptr<td_api::updateUser> UserManager::get_update_unknown_user_obje
   return td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
       user_id.get(), "", "", nullptr, "", td_api::make_object<td_api::userStatusEmpty>(), nullptr,
       td_->theme_manager_->get_accent_color_id_object(AccentColorId(user_id)), 0, nullptr, -1, 0, nullptr, false, false,
-      false, nullptr, false, false, nullptr, false, false, false, 0, have_access,
+      false, nullptr, false, false, nullptr, nullptr, false, 0, have_access,
       td_api::make_object<td_api::userTypeUnknown>(), "", false));
 }
 
@@ -9851,9 +9851,9 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
       td_->theme_manager_->get_profile_accent_color_id_object(u->profile_accent_color_id),
       u->profile_background_custom_emoji_id.get(), std::move(emoji_status), is_user_contact(u, user_id, false),
       is_user_contact(u, user_id, true), u->is_close_friend, std::move(verification_status), u->is_premium,
-      u->is_support, get_restriction_info_object(u->restriction_reasons), u->max_active_story_id.is_valid(),
-      get_user_has_unread_stories(u), restricts_new_chats, u->paid_message_star_count, have_access, std::move(type),
-      u->language_code, u->attach_menu_enabled);
+      u->is_support, get_restriction_info_object(u->restriction_reasons),
+      get_user_active_story_state(u).get_active_story_state_object(), restricts_new_chats, u->paid_message_star_count,
+      have_access, std::move(type), u->language_code, u->attach_menu_enabled);
 }
 
 vector<int64> UserManager::get_user_ids_object(const vector<UserId> &user_ids, const char *source) const {

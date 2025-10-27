@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccentColorId.h"
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/ActiveStoryState.h"
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
@@ -884,7 +885,7 @@ class ChatManager final : public Actor {
 
   bool need_poll_channel_active_stories(const Channel *c, ChannelId channel_id) const;
 
-  static bool get_channel_has_unread_stories(const Channel *c);
+  static ActiveStoryState get_channel_active_story_state(const Channel *c);
 
   td_api::object_ptr<td_api::updateSupergroup> get_update_supergroup_object(ChannelId channel_id,
                                                                             const Channel *c) const;

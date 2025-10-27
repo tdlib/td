@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccentColorId.h"
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/ActiveStoryState.h"
 #include "td/telegram/Birthdate.h"
 #include "td/telegram/BotCommand.h"
 #include "td/telegram/BotMenuButton.h"
@@ -1152,7 +1153,7 @@ class UserManager final : public Actor {
 
   td_api::object_ptr<td_api::UserStatus> get_user_status_object(UserId user_id, const User *u, int32 unix_time) const;
 
-  static bool get_user_has_unread_stories(const User *u);
+  static ActiveStoryState get_user_active_story_state(const User *u);
 
   td_api::object_ptr<td_api::updateUser> get_update_user_object(UserId user_id, const User *u) const;
 

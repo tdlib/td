@@ -28,6 +28,8 @@ class ActiveStoryState {
       , max_read_story_id_(max_read_story_id)
       , has_live_story_(has_live_story) {
   }
+
+  td_api::object_ptr<td_api::ActiveStoryState> get_active_story_state_object() const;
 };
 
 bool operator==(const ActiveStoryState &lhs, const ActiveStoryState &rhs);
