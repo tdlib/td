@@ -2088,6 +2088,7 @@ void ChatManager::Channel::store(StorerT &storer) const {
     STORE_FLAG(has_monoforum_channel_id);
     STORE_FLAG(is_forum_tabs);
     STORE_FLAG(is_admined_monoforum);
+    STORE_FLAG(has_live_story);
     END_STORE_FLAGS();
   }
 
@@ -2237,6 +2238,7 @@ void ChatManager::Channel::parse(ParserT &parser) {
     PARSE_FLAG(has_monoforum_channel_id);
     PARSE_FLAG(is_forum_tabs);
     PARSE_FLAG(is_admined_monoforum);
+    PARSE_FLAG(has_live_story);
     END_PARSE_FLAGS();
   }
 
@@ -7618,7 +7620,8 @@ void ChatManager::on_update_channel_is_forum(Channel *c, ChannelId channel_id, b
   }
 }
 
-void ChatManager::on_update_channel_story_ids(ChannelId channel_id, StoryId max_active_story_id,
+void ChatManager::on_update_channel_story_ids(ChannelId channel_id,
+                                              telegram_api::object_ptr<telegram_api::recentStory> &&recent_story,
                                               StoryId max_read_story_id) {
   if (!channel_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << channel_id;
@@ -7627,17 +7630,24 @@ void ChatManager::on_update_channel_story_ids(ChannelId channel_id, StoryId max_
 
   Channel *c = get_channel_force(channel_id, "on_update_channel_story_ids");
   if (c != nullptr) {
-    on_update_channel_story_ids_impl(c, channel_id, max_active_story_id, max_read_story_id);
+    on_update_channel_story_ids_impl(c, channel_id, std::move(recent_story), max_read_story_id);
     update_channel(c, channel_id);
   } else {
     LOG(INFO) << "Ignore update channel story identifiers about unknown " << channel_id;
   }
 }
 
-void ChatManager::on_update_channel_story_ids_impl(Channel *c, ChannelId channel_id, StoryId max_active_story_id,
+void ChatManager::on_update_channel_story_ids_impl(Channel *c, ChannelId channel_id,
+                                                   telegram_api::object_ptr<telegram_api::recentStory> &&recent_story,
                                                    StoryId max_read_story_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
+  }
+  StoryId max_active_story_id;
+  bool has_live_story = false;
+  if (recent_story != nullptr) {
+    max_active_story_id = StoryId(recent_story->max_id_);
+    has_live_story = recent_story->live_;
   }
   if (max_active_story_id != StoryId() && !max_active_story_id.is_server()) {
     LOG(ERROR) << "Receive max active " << max_active_story_id << " for " << channel_id;
@@ -7647,8 +7657,17 @@ void ChatManager::on_update_channel_story_ids_impl(Channel *c, ChannelId channel
     LOG(ERROR) << "Receive max read " << max_read_story_id << " for " << channel_id;
     return;
   }
+  if (has_live_story && max_active_story_id == StoryId()) {
+    LOG(ERROR) << "Receive live story without identifier for " << channel_id;
+    return;
+  }
 
   auto has_unread_stories = get_channel_has_unread_stories(c);
+  if (c->has_live_story != has_live_story) {
+    LOG(DEBUG) << "Change has_live_story of " << channel_id << " to " << has_live_story;
+    c->has_live_story = has_live_story;
+    c->is_changed = true;
+  }
   if (c->max_active_story_id != max_active_story_id) {
     LOG(DEBUG) << "Change last active story of " << channel_id << " from " << c->max_active_story_id << " to "
                << max_active_story_id;
@@ -9324,8 +9343,7 @@ void ChatManager::on_get_channel(telegram_api::channel &channel, const char *sou
                                         RestrictedRights(channel.default_banned_rights_, ChannelType::Megagroup));
   if (!td_->auth_manager_->is_bot() && (stories_available || stories_unavailable)) {
     // update at the end, because it calls need_poll_channel_active_stories
-    on_update_channel_story_ids_impl(
-        c, channel_id, stories_available ? StoryId(channel.stories_max_id_->max_id_) : StoryId(), StoryId());
+    on_update_channel_story_ids_impl(c, channel_id, std::move(channel.stories_max_id_), StoryId());
   }
 
   if (c->cache_version != Channel::CACHE_VERSION) {

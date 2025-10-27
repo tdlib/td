@@ -1842,6 +1842,7 @@ void UserManager::User::store(StorerT &storer) const {
     STORE_FLAG(has_paid_message_star_count);
     STORE_FLAG(has_peer_color_collectible);
     STORE_FLAG(has_bot_forum_view);
+    STORE_FLAG(has_live_story);
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -1991,6 +1992,7 @@ void UserManager::User::parse(ParserT &parser) {
     PARSE_FLAG(has_paid_message_star_count);
     PARSE_FLAG(has_peer_color_collectible);
     PARSE_FLAG(has_bot_forum_view);
+    PARSE_FLAG(has_live_story);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -3290,8 +3292,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     }
     if (stories_available || stories_unavailable) {
       // update at the end, because it calls need_poll_user_active_stories
-      on_update_user_story_ids_impl(u, user_id, stories_available ? StoryId(user->stories_max_id_->max_id_) : StoryId(),
-                                    StoryId());
+      on_update_user_story_ids_impl(u, user_id, std::move(user->stories_max_id_), StoryId());
     }
     auto restriction_reasons = get_restriction_reasons(std::move(user->restriction_reason_));
     if (restriction_reasons != u->restriction_reasons) {
@@ -3650,7 +3651,9 @@ void UserManager::on_update_user_emoji_status(User *u, UserId user_id, unique_pt
   }
 }
 
-void UserManager::on_update_user_story_ids(UserId user_id, StoryId max_active_story_id, StoryId max_read_story_id) {
+void UserManager::on_update_user_story_ids(UserId user_id,
+                                           telegram_api::object_ptr<telegram_api::recentStory> &&recent_story,
+                                           StoryId max_read_story_id) {
   if (!user_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << user_id;
     return;
@@ -3658,17 +3661,24 @@ void UserManager::on_update_user_story_ids(UserId user_id, StoryId max_active_st
 
   User *u = get_user_force(user_id, "on_update_user_story_ids");
   if (u != nullptr) {
-    on_update_user_story_ids_impl(u, user_id, max_active_story_id, max_read_story_id);
+    on_update_user_story_ids_impl(u, user_id, std::move(recent_story), max_read_story_id);
     update_user(u, user_id);
   } else {
     LOG(INFO) << "Ignore update user story identifiers about unknown " << user_id;
   }
 }
 
-void UserManager::on_update_user_story_ids_impl(User *u, UserId user_id, StoryId max_active_story_id,
+void UserManager::on_update_user_story_ids_impl(User *u, UserId user_id,
+                                                telegram_api::object_ptr<telegram_api::recentStory> &&recent_story,
                                                 StoryId max_read_story_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
+  }
+  StoryId max_active_story_id;
+  bool has_live_story = false;
+  if (recent_story != nullptr) {
+    max_active_story_id = StoryId(recent_story->max_id_);
+    has_live_story = recent_story->live_;
   }
   if (max_active_story_id != StoryId() && !max_active_story_id.is_server()) {
     LOG(ERROR) << "Receive max active " << max_active_story_id << " for " << user_id;
@@ -3678,8 +3688,17 @@ void UserManager::on_update_user_story_ids_impl(User *u, UserId user_id, StoryId
     LOG(ERROR) << "Receive max read " << max_read_story_id << " for " << user_id;
     return;
   }
+  if (has_live_story && max_active_story_id == StoryId()) {
+    LOG(ERROR) << "Receive live story without identifier for " << user_id;
+    return;
+  }
 
   auto has_unread_stories = get_user_has_unread_stories(u);
+  if (u->has_live_story != has_live_story) {
+    LOG(DEBUG) << "Change has_live_story of " << user_id << " to " << has_live_story;
+    u->has_live_story = has_live_story;
+    u->is_changed = true;
+  }
   if (u->max_active_story_id != max_active_story_id) {
     LOG(DEBUG) << "Change last active story of " << user_id << " from " << u->max_active_story_id << " to "
                << max_active_story_id;

@@ -388,7 +388,8 @@ class StoryManager final : public Actor {
 
   void on_view_dialog_active_stories(vector<DialogId> dialog_ids);
 
-  void on_get_dialog_max_active_story_ids(const vector<DialogId> &dialog_ids, const vector<int32> &max_story_ids);
+  void on_get_dialog_max_active_story_ids(const vector<DialogId> &dialog_ids,
+                                          vector<telegram_api::object_ptr<telegram_api::recentStory>> &&recent_stories);
 
   bool have_story(StoryFullId story_full_id) const;
 
@@ -662,7 +663,9 @@ class StoryManager final : public Actor {
 
   void on_toggle_story_is_pinned(StoryFullId story_full_id, bool is_pinned, Promise<Unit> &&promise);
 
-  void on_update_dialog_max_story_ids(DialogId owner_dialog_id, StoryId max_story_id, StoryId max_read_story_id);
+  void on_update_dialog_max_story_ids(DialogId owner_dialog_id,
+                                      telegram_api::object_ptr<telegram_api::recentStory> &&recent_story,
+                                      StoryId max_read_story_id);
 
   void on_update_dialog_max_read_story_id(DialogId owner_dialog_id, StoryId max_read_story_id);
 

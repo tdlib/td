@@ -138,7 +138,8 @@ class UserManager final : public Actor {
 
   void on_update_user_emoji_status(UserId user_id, telegram_api::object_ptr<telegram_api::EmojiStatus> &&emoji_status);
 
-  void on_update_user_story_ids(UserId user_id, StoryId max_active_story_id, StoryId max_read_story_id);
+  void on_update_user_story_ids(UserId user_id, telegram_api::object_ptr<telegram_api::recentStory> &&recent_story,
+                                StoryId max_read_story_id);
 
   void on_update_user_max_read_story_id(UserId user_id, StoryId max_read_story_id);
 
@@ -624,6 +625,7 @@ class UserManager final : public Actor {
     bool attach_menu_enabled = false;
     bool stories_hidden = false;
     bool contact_require_premium = false;
+    bool has_live_story = false;
 
     bool is_photo_inited = false;
 
@@ -920,7 +922,9 @@ class UserManager final : public Actor {
 
   void on_update_user_emoji_status(User *u, UserId user_id, unique_ptr<EmojiStatus> emoji_status);
 
-  void on_update_user_story_ids_impl(User *u, UserId user_id, StoryId max_active_story_id, StoryId max_read_story_id);
+  void on_update_user_story_ids_impl(User *u, UserId user_id,
+                                     telegram_api::object_ptr<telegram_api::recentStory> &&recent_story,
+                                     StoryId max_read_story_id);
 
   void on_update_user_max_read_story_id(User *u, UserId user_id, StoryId max_read_story_id);
 

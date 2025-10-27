@@ -1214,9 +1214,7 @@ class GetStoriesMaxIdsQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    auto ids = transform(ptr, [](const auto &recent_story) { return recent_story->max_id_; });
-    td_->story_manager_->on_get_dialog_max_active_story_ids(dialog_ids_, std::move(ids));
+    td_->story_manager_->on_get_dialog_max_active_story_ids(dialog_ids_, result_ptr.move_as_ok());
   }
 
   void on_error(Status status) final {
@@ -4845,18 +4843,19 @@ DialogId StoryManager::on_get_dialog_stories(DialogId owner_dialog_id,
   return story_dialog_id;
 }
 
-void StoryManager::on_update_dialog_max_story_ids(DialogId owner_dialog_id, StoryId max_story_id,
+void StoryManager::on_update_dialog_max_story_ids(DialogId owner_dialog_id,
+                                                  telegram_api::object_ptr<telegram_api::recentStory> &&recent_story,
                                                   StoryId max_read_story_id) {
   switch (owner_dialog_id.get_type()) {
     case DialogType::User:
       // use send_closure_later because story order can be updated from update_user
       send_closure_later(td_->user_manager_actor_, &UserManager::on_update_user_story_ids,
-                         owner_dialog_id.get_user_id(), max_story_id, max_read_story_id);
+                         owner_dialog_id.get_user_id(), std::move(recent_story), max_read_story_id);
       break;
     case DialogType::Channel:
       // use send_closure_later because story order can be updated from update_channel
       send_closure_later(td_->chat_manager_actor_, &ChatManager::on_update_channel_story_ids,
-                         owner_dialog_id.get_channel_id(), max_story_id, max_read_story_id);
+                         owner_dialog_id.get_channel_id(), std::move(recent_story), max_read_story_id);
       break;
     case DialogType::Chat:
     case DialogType::SecretChat:
@@ -4950,7 +4949,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
             << max_read_story_id << " from " << source;
 
   if (story_ids.empty()) {
-    on_update_dialog_max_story_ids(owner_dialog_id, StoryId(), StoryId());
+    on_update_dialog_max_story_ids(owner_dialog_id, nullptr, StoryId());
     auto *active_stories = get_active_stories(owner_dialog_id);
     if (active_stories != nullptr) {
       LOG(INFO) << "Delete active stories for " << owner_dialog_id;
@@ -4990,7 +4989,8 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
       }
     }
   }
-  on_update_dialog_max_story_ids(owner_dialog_id, story_ids.back(), max_read_story_id);
+  // on_update_dialog_max_story_ids(owner_dialog_id, story_ids.back(), max_read_story_id);
+
   bool need_save_to_database = false;
   if (active_stories->max_read_story_id_ != max_read_story_id || active_stories->story_ids_ != story_ids) {
     need_save_to_database = true;
@@ -5483,29 +5483,25 @@ void StoryManager::on_view_dialog_active_stories(vector<DialogId> dialog_ids) {
   }
 }
 
-void StoryManager::on_get_dialog_max_active_story_ids(const vector<DialogId> &dialog_ids,
-                                                      const vector<int32> &max_story_ids) {
+void StoryManager::on_get_dialog_max_active_story_ids(
+    const vector<DialogId> &dialog_ids, vector<telegram_api::object_ptr<telegram_api::recentStory>> &&recent_stories) {
   for (auto &dialog_id : dialog_ids) {
     auto is_deleted = being_reloaded_active_stories_dialog_ids_.erase(dialog_id) > 0;
     CHECK(is_deleted);
   }
-  if (dialog_ids.size() != max_story_ids.size()) {
-    if (!max_story_ids.empty()) {
-      LOG(ERROR) << "Receive " << max_story_ids.size() << " max active story identifiers for " << dialog_ids;
+  if (dialog_ids.size() != recent_stories.size()) {
+    if (!recent_stories.empty()) {
+      LOG(ERROR) << "Receive " << recent_stories.size() << " max active story identifiers for " << dialog_ids;
     }
     return;
   }
   for (size_t i = 0; i < dialog_ids.size(); i++) {
-    auto max_story_id = StoryId(max_story_ids[i]);
     auto dialog_id = dialog_ids[i];
-    if (max_story_id == StoryId() || max_story_id.is_server()) {
-      if (dialog_id.get_type() == DialogType::User) {
-        td_->user_manager_->on_update_user_story_ids(dialog_id.get_user_id(), max_story_id, StoryId());
-      } else {
-        td_->chat_manager_->on_update_channel_story_ids(dialog_id.get_channel_id(), max_story_id, StoryId());
-      }
+    if (dialog_id.get_type() == DialogType::User) {
+      td_->user_manager_->on_update_user_story_ids(dialog_id.get_user_id(), std::move(recent_stories[i]), StoryId());
     } else {
-      LOG(ERROR) << "Receive " << max_story_id << " as maximum active story for " << dialog_id;
+      td_->chat_manager_->on_update_channel_story_ids(dialog_id.get_channel_id(), std::move(recent_stories[i]),
+                                                      StoryId());
     }
   }
 }
