@@ -6,6 +6,7 @@
 //
 #include "td/telegram/ChatManager.h"
 
+#include "td/telegram/ActiveStoryState.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BotVerification.h"
 #include "td/telegram/BotVerification.hpp"

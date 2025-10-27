@@ -284,6 +284,7 @@ function split_file($file, $chunks, $undo) {
         $td_methods = array(
             'AccentColorId' => 'AccentColorId',
             'account_manager[_(-](?![.]get[(][)])|AccountManager[^;>]' => 'AccountManager',
+            'ActiveStoryState' => 'ActiveStoryState',
             'AffiliateType' => 'AffiliateType',
             'AgeVerificationParameters' => 'AgeVerificationParameters',
             'alarm_manager[_(-](?![.]get[(][)])|AlarmManager' => 'AlarmManager',

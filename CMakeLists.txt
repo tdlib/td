@@ -342,6 +342,7 @@ set(TD_MTPROTO_SOURCE
 
 set(TDLIB_SOURCE_PART1
   td/telegram/AccountManager.cpp
+  td/telegram/ActiveStoryState.cpp
   td/telegram/AffiliateType.cpp
   td/telegram/AgeVerificationParameters.cpp
   td/telegram/AlarmManager.cpp
@@ -679,6 +680,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/AccentColorId.h
   td/telegram/AccessRights.h
   td/telegram/AccountManager.h
+  td/telegram/ActiveStoryState.h
   td/telegram/AffectedHistory.h
   td/telegram/AffiliateType.h
   td/telegram/AgeVerificationParameters.h

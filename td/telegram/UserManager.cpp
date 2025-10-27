@@ -6,6 +6,7 @@
 //
 #include "td/telegram/UserManager.h"
 
+#include "td/telegram/ActiveStoryState.h"
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AudiosManager.h"
 #include "td/telegram/AuthManager.h"
