@@ -12240,7 +12240,7 @@ approveSuggestedPost chat_id:int53 message_id:int53 send_date:int32 = Ok;
 //@comment Comment for the creator of the suggested post; 0-128 characters
 declineSuggestedPost chat_id:int53 message_id:int53 comment:string = Ok;
 
-//@description Sent a suggested post based on a previously sent message in a channel direct messages chat. Can be also used to suggest price or time change for an existing suggested post.
+//@description Send a suggested post based on a previously sent message in a channel direct messages chat. Can be also used to suggest price or time change for an existing suggested post.
 //-Returns the sent message
 //@chat_id Identifier of the channel direct messages chat
 //@message_id Identifier of the message in the chat which will be sent as suggested post. Use messageProperties.can_add_offer to check whether an offer can be added
