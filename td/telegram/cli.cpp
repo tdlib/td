@@ -5016,16 +5016,16 @@ class CliClient final : public Actor {
       string log_file;
       get_args(args, call_id, log_file);
       send_request(td_api::make_object<td_api::sendCallLog>(call_id, as_input_file(log_file)));
-    } else if (op == "ggcap") {
+    } else if (op == "gvcap") {
       ChatId chat_id;
       get_args(args, chat_id);
-      send_request(td_api::make_object<td_api::getGroupCallAvailableParticipants>(chat_id));
-    } else if (op == "sgcdp") {
+      send_request(td_api::make_object<td_api::getVideoChatAvailableParticipants>(chat_id));
+    } else if (op == "svcdp") {
       ChatId chat_id;
       string participant_id;
       get_args(args, chat_id, participant_id);
       send_request(
-          td_api::make_object<td_api::setGroupCallDefaultParticipant>(chat_id, as_message_sender(participant_id)));
+          td_api::make_object<td_api::setVideoChatDefaultParticipant>(chat_id, as_message_sender(participant_id)));
     } else if (op == "cvc") {
       ChatId chat_id;
       string title;

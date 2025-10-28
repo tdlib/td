@@ -1761,8 +1761,21 @@ GroupCallManager::GroupCall *GroupCallManager::get_group_call(InputGroupCallId i
   }
 }
 
-Status GroupCallManager::can_join_group_calls(DialogId dialog_id) const {
-  return td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "can_join_group_calls");
+Status GroupCallManager::can_join_video_chats(DialogId dialog_id) const {
+  TRY_STATUS(td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "can_join_video_chats"));
+  switch (dialog_id.get_type()) {
+    case DialogType::Chat:
+    case DialogType::Channel:
+      break;
+    case DialogType::User:
+      return Status::Error(400, "Chat can't have a video chat");
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      break;
+  }
+  return Status::OK();
 }
 
 Status GroupCallManager::can_manage_group_calls(DialogId dialog_id, bool allow_live_story) const {
@@ -1828,14 +1841,14 @@ bool GroupCallManager::get_group_call_joined_date_asc(InputGroupCallId input_gro
 
 void GroupCallManager::get_group_call_join_as(DialogId dialog_id,
                                               Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
-  TRY_STATUS_PROMISE(promise, can_join_group_calls(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_join_video_chats(dialog_id));
 
   td_->create_handler<GetGroupCallJoinAsQuery>(std::move(promise))->send(dialog_id);
 }
 
 void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, DialogId as_dialog_id,
                                                       Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(promise, can_join_group_calls(dialog_id));
+  TRY_STATUS_PROMISE(promise, can_join_video_chats(dialog_id));
 
   switch (as_dialog_id.get_type()) {
     case DialogType::User:
@@ -3612,6 +3625,9 @@ void GroupCallManager::join_video_chat(GroupCallId group_call_id, DialogId as_di
     }
     if (!td_->dialog_manager_->have_input_peer(as_dialog_id, false, AccessRights::Read)) {
       return promise.set_error(400, "Can't access the join as participant");
+    }
+    if (as_dialog_id != my_dialog_id && group_call->is_live_story) {
+      return promise.set_error(400, "Can't join live streams as another chat");
     }
   }
 

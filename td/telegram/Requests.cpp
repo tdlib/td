@@ -4733,13 +4733,13 @@ void Requests::on_request(uint64 id, td_api::sendCallLog &request) {
                std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getGroupCallAvailableParticipants &request) {
+void Requests::on_request(uint64 id, const td_api::getVideoChatAvailableParticipants &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->group_call_manager_->get_group_call_join_as(DialogId(request.chat_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::setGroupCallDefaultParticipant &request) {
+void Requests::on_request(uint64 id, const td_api::setVideoChatDefaultParticipant &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, default_join_as_dialog_id,
