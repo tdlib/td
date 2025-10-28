@@ -4038,6 +4038,11 @@ StoryManager::StoryInfo StoryManager::get_story_info(StoryFullId story_full_id) 
   return story_info;
 }
 
+bool StoryManager::is_story_live(StoryFullId story_full_id) const {
+  const auto *story = get_story(story_full_id);
+  return story != nullptr && story->is_live_;
+}
+
 td_api::object_ptr<td_api::storyInfo> StoryManager::get_story_info_object(StoryFullId story_full_id) const {
   auto story_info = get_story_info(story_full_id);
   if (!story_info.story_id_.is_valid()) {
@@ -4998,7 +5003,18 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
       }
     }
   }
-  // on_update_dialog_max_story_ids(owner_dialog_id, story_ids.back(), max_read_story_id);
+  telegram_api::object_ptr<telegram_api::recentStory> recent_story;
+  for (auto story_id : story_ids) {
+    if (is_story_live({owner_dialog_id, story_id})) {
+      recent_story = telegram_api::make_object<telegram_api::recentStory>(telegram_api::recentStory::MAX_ID_MASK, true,
+                                                                          story_id.get());
+    }
+  }
+  if (recent_story == nullptr) {
+    recent_story = telegram_api::make_object<telegram_api::recentStory>(telegram_api::recentStory::MAX_ID_MASK, false,
+                                                                        story_ids.back().get());
+  }
+  on_update_dialog_max_story_ids(owner_dialog_id, std::move(recent_story), max_read_story_id);
 
   bool need_save_to_database = false;
   if (active_stories->max_read_story_id_ != max_read_story_id || active_stories->story_ids_ != story_ids) {
@@ -5010,6 +5026,7 @@ void StoryManager::on_update_active_stories(DialogId owner_dialog_id, StoryId ma
   } else if (update_active_stories_order(owner_dialog_id, active_stories.get(), &need_save_to_database)) {
     send_update_chat_active_stories(owner_dialog_id, active_stories.get(), "on_update_active_stories 3");
   }
+
   if (need_save_to_database && !from_database) {
     save_active_stories(owner_dialog_id, active_stories.get(), std::move(promise), source);
   } else {

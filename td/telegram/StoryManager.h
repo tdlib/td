@@ -559,6 +559,8 @@ class StoryManager final : public Actor {
 
   StoryInfo get_story_info(StoryFullId story_full_id) const;
 
+  bool is_story_live(StoryFullId story_full_id) const;
+
   td_api::object_ptr<td_api::storyInfo> get_story_info_object(StoryFullId story_full_id) const;
 
   td_api::object_ptr<td_api::story> get_story_object(StoryFullId story_full_id, const Story *story) const;
