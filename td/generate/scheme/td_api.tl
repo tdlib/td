@@ -11804,9 +11804,9 @@ canPostStory chat_id:int53 = CanPostStoryResult;
 //@protect_content Pass true if the content of the story must be protected from forwarding and screenshotting
 postStory chat_id:int53 content:InputStoryContent areas:inputStoryAreas caption:formattedText privacy_settings:StoryPrivacySettings album_ids:vector<int32> active_period:int32 from_story_full_id:storyFullId is_posted_to_chat_page:Bool protect_content:Bool = Story;
 
-//@description Starts a new live stream on behalf of a chat; requires can_post_stories administrator right for supergroup and channel chats
-//@chat_id Identifier of the chat that will start the live stream. Pass Saved Messages chat identifier when starting a live stream on behalf of the current user
-//@privacy_settings The privacy settings for the story; ignored for stories posted on behalf of supergroup and channel chats
+//@description Starts a new live stream on behalf of a chat; requires can_post_stories administrator right for channel chats
+//@chat_id Identifier of the chat that will start the live stream. Pass Saved Messages chat identifier when starting a live stream on behalf of the current user, or a channel chat identifier
+//@privacy_settings The privacy settings for the story; ignored for stories posted on behalf of channel chats
 //@album_ids Identifiers of story albums to which the story will be added upon posting. An album can have up to getOption("story_album_size_max") stories
 //@is_posted_to_chat_page Pass true to keep the story accessible after expiration
 //@protect_content Pass true if the content of the story must be protected from forwarding and screenshotting

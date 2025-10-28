@@ -6118,6 +6118,9 @@ void StoryManager::start_live_story(DialogId dialog_id, td_api::object_ptr<td_ap
   if (!can_post_stories(dialog_id)) {
     return promise.set_error(400, "Not enough rights to post stories in the chat");
   }
+  if (td_->dialog_manager_->is_group_dialog(dialog_id)) {
+    return promise.set_error(400, "Can't start live story in the chat");
+  }
   for (auto story_album_id : story_album_ids) {
     TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
   }
