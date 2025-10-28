@@ -2694,9 +2694,6 @@ void GroupCallManager::add_group_call_message(GroupCall *group_call, GroupCallMe
     return;
   }
   // TODO update group call spendings
-  if (group_call_message.has_empty_text()) {
-    return;
-  }
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewGroupCallMessage>(
                    group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_)));
