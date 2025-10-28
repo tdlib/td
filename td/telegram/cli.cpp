@@ -5106,6 +5106,13 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::groupCallJoinParameters>(
               group_call_source_, get_group_call_join_payload(op == "jvcv", false), true, true),
           invite_hash));
+    } else if (op == "jsls" || op == "jslsv") {
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+
+      send_request(td_api::make_object<td_api::joinStoryLiveStream>(
+          group_call_id, td_api::make_object<td_api::groupCallJoinParameters>(
+                             group_call_source_, get_group_call_join_payload(op == "jslsv", false), true, true)));
     } else if (op == "sgcss") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);

@@ -4820,6 +4820,13 @@ void Requests::on_request(uint64 id, td_api::joinVideoChat &request) {
                                             std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::joinStoryLiveStream &request) {
+  CHECK_IS_USER();
+  CREATE_TEXT_REQUEST_PROMISE();
+  td_->group_call_manager_->join_video_chat(GroupCallId(request.group_call_id_), DialogId(),
+                                            std::move(request.join_parameters_), string(), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::startGroupCallScreenSharing &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.payload_);

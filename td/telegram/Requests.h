@@ -809,6 +809,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::joinVideoChat &request);
 
+  void on_request(uint64 id, td_api::joinStoryLiveStream &request);
+
   void on_request(uint64 id, td_api::startGroupCallScreenSharing &request);
 
   void on_request(uint64 id, const td_api::endGroupCallScreenSharing &request);
