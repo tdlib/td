@@ -6936,7 +6936,7 @@ class CliClient final : public Actor {
       } else {
         send_request(td_api::make_object<td_api::stopPoll>(chat_id, message_id, nullptr));
       }
-    } else if (op == "atdlt") {
+    } else if (op == "achlt") {
       ChatId chat_id;
       MessageId message_id;
       int32 task_id;
@@ -6945,7 +6945,7 @@ class CliClient final : public Actor {
         return td_api::make_object<td_api::inputChecklistTask>(task_id++, as_formatted_text(task));
       });
       send_request(td_api::make_object<td_api::addChecklistTasks>(chat_id, message_id, std::move(tasks)));
-    } else if (op == "mtdltad") {
+    } else if (op == "mchltad") {
       ChatId chat_id;
       MessageId message_id;
       string done_task_ids;
