@@ -1726,7 +1726,8 @@ class MessagesManager final : public Actor {
   Result<MessageSendOptions> process_message_send_options(DialogId dialog_id,
                                                           tl_object_ptr<td_api::messageSendOptions> &&options,
                                                           bool allow_update_stickersets_order, bool allow_effect,
-                                                          bool allow_suggested_post, int32 message_count) const;
+                                                          bool allow_suggested_post, bool allow_repeat_period,
+                                                          int32 message_count) const;
 
   static Status can_use_message_send_options(const MessageSendOptions &options,
                                              const unique_ptr<MessageContent> &content, MessageSelfDestructType ttl);
@@ -2477,7 +2478,7 @@ class MessagesManager final : public Actor {
   void do_repair_dialog_active_group_call_id(DialogId dialog_id);
 
   static Result<std::pair<int32, int32>> get_message_schedule_date(
-      td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state);
+      td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state, bool allow_repeat_period);
 
   tl_object_ptr<td_api::MessageSendingState> get_message_sending_state_object(const Message *m) const;
 

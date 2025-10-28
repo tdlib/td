@@ -19858,7 +19858,7 @@ void MessagesManager::on_set_message_reactions(MessageFullId message_full_id, Re
 }
 
 Result<std::pair<int32, int32>> MessagesManager::get_message_schedule_date(
-    td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state) {
+    td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state, bool allow_repeat_period) {
   if (scheduling_state == nullptr) {
     return std::make_pair(0, 0);
   }
@@ -19882,7 +19882,18 @@ Result<std::pair<int32, int32>> MessagesManager::get_message_schedule_date(
       if (send_date - G()->unix_time() > 367 * 86400) {
         return Status::Error(400, "Send date is too far in the future");
       }
-      return std::make_pair(send_date, send_at_date->repeat_period_);
+      auto repeat_period = send_at_date->repeat_period_;
+      if (!allow_repeat_period && repeat_period != 0) {
+        return Status::Error(400, "Repeated scheduled messages aren't supported");
+      }
+      if (repeat_period != 0 && repeat_period != 86400 && repeat_period != 7 * 86400 && repeat_period != 14 * 86400 &&
+          repeat_period != 30 * 86400 && repeat_period != 91 * 86400 && repeat_period != 182 * 86400 &&
+          repeat_period != 365 * 86400) {
+        if (!G()->is_test_dc() || (repeat_period != 60 && repeat_period != 300)) {
+          return Status::Error(400, "Invalid message repeat period specified");
+        }
+      }
+      return std::make_pair(send_date, repeat_period);
     }
     default:
       UNREACHABLE();
@@ -21100,7 +21111,8 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
 
   TRY_STATUS(can_send_message(dialog_id));
   TRY_RESULT(message_reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
-  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true, true, true, 1));
+  TRY_RESULT(message_send_options,
+             process_message_send_options(dialog_id, std::move(options), true, true, true, true, 1));
   TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content),
                                                             !message_send_options.allow_paid));
   TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
@@ -21222,7 +21234,7 @@ Status MessagesManager::check_paid_message_star_count(int64 &paid_message_star_c
 
 Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_send_options(
     DialogId dialog_id, tl_object_ptr<td_api::messageSendOptions> &&options, bool allow_update_stickersets_order,
-    bool allow_effect, bool allow_suggested_post, int32 message_count) const {
+    bool allow_effect, bool allow_suggested_post, bool allow_repeat_period, int32 message_count) const {
   MessageSendOptions result;
   if (options == nullptr) {
     return std::move(result);
@@ -21241,7 +21253,7 @@ Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_sen
     TRY_STATUS(check_paid_message_star_count(result.paid_message_star_count, message_count));
   }
   result.only_preview = options->only_preview_;
-  TRY_RESULT(schedule_date, get_message_schedule_date(std::move(options->scheduling_state_)));
+  TRY_RESULT(schedule_date, get_message_schedule_date(std::move(options->scheduling_state_), allow_repeat_period));
   result.schedule_date = schedule_date.first;
   result.schedule_repeat_period = schedule_date.second;
   result.sending_id = options->sending_id_;
@@ -21357,7 +21369,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
   }
 
   TRY_STATUS(can_send_message(dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true, true, false,
+  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), true, true, false, false,
                                                                 static_cast<int32>(input_message_contents.size())));
 
   vector<InputMessageContent> message_contents;
@@ -22457,7 +22469,8 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_r
   }
 
   TRY_STATUS(can_send_message(dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(dialog_id, std::move(options), false, false, false, 1));
+  TRY_RESULT(message_send_options,
+             process_message_send_options(dialog_id, std::move(options), false, false, false, false, 1));
   bool to_secret = false;
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -23277,7 +23290,7 @@ void MessagesManager::edit_message_reply_markup(MessageFullId message_full_id,
 void MessagesManager::edit_message_scheduling_state(
     MessageFullId message_full_id, td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state,
     Promise<Unit> &&promise) {
-  TRY_RESULT_PROMISE(promise, schedule_date, get_message_schedule_date(std::move(scheduling_state)));
+  TRY_RESULT_PROMISE(promise, schedule_date, get_message_schedule_date(std::move(scheduling_state), true));
 
   auto dialog_id = message_full_id.get_dialog_id();
   TRY_RESULT_PROMISE(promise, d,
@@ -24072,9 +24085,10 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   }
 
   TRY_STATUS(can_send_message(to_dialog_id));
-  TRY_RESULT(message_send_options, process_message_send_options(to_dialog_id, std::move(options), false, false,
-                                                                add_offer || message_ids.size() == 1u,
-                                                                static_cast<int32>(message_ids.size())));
+  TRY_RESULT(message_send_options,
+             process_message_send_options(to_dialog_id, std::move(options), false, false,
+                                          add_offer || message_ids.size() == 1u, message_ids.size() == 1u,
+                                          static_cast<int32>(message_ids.size())));
   TRY_RESULT(message_topic, MessageTopic::get_send_message_topic(td_, to_dialog_id, topic_id));
   if (message_topic.is_thread()) {
     return Status::Error(400, "Can't forward messages to a specific message thread");
