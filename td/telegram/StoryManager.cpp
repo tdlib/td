@@ -1704,6 +1704,7 @@ void StoryManager::Story::store(StorerT &storer) const {
   STORE_FLAG(has_forward_info);
   STORE_FLAG(has_sender_dialog_id);
   STORE_FLAG(has_album_ids);
+  STORE_FLAG(is_live_);
   END_STORE_FLAGS();
   store(date_, storer);
   store(expire_date_, storer);
@@ -1771,6 +1772,7 @@ void StoryManager::Story::parse(ParserT &parser) {
   PARSE_FLAG(has_forward_info);
   PARSE_FLAG(has_sender_dialog_id);
   PARSE_FLAG(has_album_ids);
+  PARSE_FLAG(is_live_);
   END_PARSE_FLAGS();
   parse(date_, parser);
   parse(expire_date_, parser);
@@ -1811,6 +1813,7 @@ void StoryManager::StoryInfo::store(StorerT &storer) const {
   using td::store;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_for_close_friends_);
+  STORE_FLAG(is_live_);
   END_STORE_FLAGS();
   store(story_id_, storer);
   store(date_, storer);
@@ -1822,6 +1825,7 @@ void StoryManager::StoryInfo::parse(ParserT &parser) {
   using td::parse;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_for_close_friends_);
+  PARSE_FLAG(is_live_);
   END_PARSE_FLAGS();
   parse(story_id_, parser);
   parse(date_, parser);
@@ -4030,6 +4034,7 @@ StoryManager::StoryInfo StoryManager::get_story_info(StoryFullId story_full_id) 
   story_info.date_ = story->date_;
   story_info.expire_date_ = story->expire_date_;
   story_info.is_for_close_friends_ = story->is_for_close_friends_;
+  story_info.is_live_ = story->is_live_;
   return story_info;
 }
 
@@ -4039,7 +4044,7 @@ td_api::object_ptr<td_api::storyInfo> StoryManager::get_story_info_object(StoryF
     return nullptr;
   }
   return td_api::make_object<td_api::storyInfo>(story_info.story_id_.get(), story_info.date_,
-                                                story_info.is_for_close_friends_);
+                                                story_info.is_for_close_friends_, story_info.is_live_);
 }
 
 td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId story_full_id) const {
@@ -4375,12 +4380,13 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     story_item->expire_date_ = story_item->date_ + 1;
   }
 
+  bool is_live = content_type == StoryContentType::LiveStream;
   if (story->is_edited_ != story_item->edited_ || story->is_pinned_ != story_item->pinned_ ||
       story->is_public_ != story_item->public_ || story->is_for_close_friends_ != story_item->close_friends_ ||
       story->is_for_contacts_ != story_item->contacts_ ||
       story->is_for_selected_contacts_ != story_item->selected_contacts_ ||
       story->noforwards_ != story_item->noforwards_ || story->date_ != story_item->date_ ||
-      story->expire_date_ != story_item->expire_date_) {
+      story->expire_date_ != story_item->expire_date_ || story->is_live_ != is_live) {
     story->is_edited_ = story_item->edited_;
     story->is_pinned_ = story_item->pinned_;
     story->is_public_ = story_item->public_;
@@ -4390,6 +4396,7 @@ StoryId StoryManager::on_get_new_story(DialogId owner_dialog_id,
     story->noforwards_ = story_item->noforwards_;
     story->date_ = story_item->date_;
     story->expire_date_ = story_item->expire_date_;
+    story->is_live_ = is_live;
     is_changed = true;
   }
   if (owner_dialog_id.get_type() == DialogType::User && !is_my_story(owner_dialog_id)) {
@@ -4535,6 +4542,7 @@ StoryId StoryManager::on_get_skipped_story(DialogId owner_dialog_id,
   story_info.date_ = story_item->date_;
   story_info.expire_date_ = story_item->expire_date_;
   story_info.is_for_close_friends_ = story_item->close_friends_;
+  story_info.is_live_ = story_item->live_;
   return on_get_story_info(owner_dialog_id, std::move(story_info));
 }
 
@@ -4574,10 +4582,11 @@ StoryId StoryManager::on_get_story_info(DialogId owner_dialog_id, StoryInfo &&st
   }
 
   if (story->date_ != story_info.date_ || story->expire_date_ != story_info.expire_date_ ||
-      story->is_for_close_friends_ != story_info.is_for_close_friends_) {
+      story->is_for_close_friends_ != story_info.is_for_close_friends_ || story->is_live_ != story_info.is_live_) {
     story->date_ = story_info.date_;
     story->expire_date_ = story_info.expire_date_;
     story->is_for_close_friends_ = story_info.is_for_close_friends_;
+    story->is_live_ = story_info.is_live_;
     on_story_changed(story_full_id, story, true, true);
   }
   return story_id;
@@ -5935,6 +5944,7 @@ void StoryManager::do_send_story(unique_ptr<PendingStory> &&pending_story, vecto
     story->content_ = copy_story_content(pending_story->story_->content_.get());
     story->areas_ = pending_story->story_->areas_;
     story->caption_ = pending_story->story_->caption_;
+    // story->is_live_ = false;
     send_update_story(story_full_id, story.get());
     stories_.set(story_full_id, std::move(story));
 

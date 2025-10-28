@@ -5645,7 +5645,8 @@ storyFullId poster_chat_id:int53 story_id:int32 = StoryFullId;
 //@story_id Unique story identifier among stories of the chat
 //@date Point in time (Unix timestamp) when the story was published
 //@is_for_close_friends True, if the story is available only to close friends
-storyInfo story_id:int32 date:int32 is_for_close_friends:Bool = StoryInfo;
+//@is_live_stream True, if the story is a live stream
+storyInfo story_id:int32 date:int32 is_for_close_friends:Bool is_live_stream:Bool = StoryInfo;
 
 //@description Describes active stories posted by a chat
 //@chat_id Identifier of the chat that posted the stories

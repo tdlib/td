@@ -69,6 +69,7 @@ class StoryManager final : public Actor {
     bool is_for_close_friends_ = false;
     bool is_for_contacts_ = false;
     bool is_for_selected_contacts_ = false;
+    bool is_live_ = false;
     bool is_outgoing_ = false;
     bool noforwards_ = false;
     mutable bool is_update_sent_ = false;  // whether the story is known to the app
@@ -94,6 +95,7 @@ class StoryManager final : public Actor {
     int32 date_ = 0;
     int32 expire_date_ = 0;
     bool is_for_close_friends_ = false;
+    bool is_live_ = false;
 
     template <class StorerT>
     void store(StorerT &storer) const;
