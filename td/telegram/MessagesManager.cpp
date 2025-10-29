@@ -7873,7 +7873,7 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
       UNREACHABLE();
       return false;
   }
-  if (!can_forward_message_content(m->content.get())) {
+  if (!can_forward_message_content(m->content.get(), is_copy)) {
     return false;
   }
   if (!(is_copy && td_->auth_manager_->is_bot()) && get_message_has_protected_content(from_dialog_id, m)) {
