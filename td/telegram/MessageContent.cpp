@@ -5440,7 +5440,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
   return Status::OK();
 }
 
-bool can_forward_message_content(const MessageContent *content, bool is_copy) {
+bool can_forward_message_content(const Td *td, const MessageContent *content, bool is_copy) {
   auto content_type = content->get_type();
   if (content_type == MessageContentType::Text) {
     auto *text = static_cast<const MessageText *>(content);
@@ -5453,7 +5453,11 @@ bool can_forward_message_content(const MessageContent *content, bool is_copy) {
   }
   if (is_copy) {
     if (content_type == MessageContentType::Giveaway || content_type == MessageContentType::GiveawayWinners ||
-        content_type == MessageContentType::PaidMedia) {
+        content_type == MessageContentType::PaidMedia || content_type == MessageContentType::Invoice) {
+      return false;
+    }
+    if (content_type == MessageContentType::Poll &&
+        !td->poll_manager_->has_input_media(static_cast<const MessagePoll *>(content)->poll_id)) {
       return false;
     }
   }
