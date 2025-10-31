@@ -39,7 +39,7 @@ void Grease::init(MutableSlice res) {
 class TlsHello {
  public:
   struct Op {
-    enum class Type { String, Random, Zero, Domain, Grease, Key, BeginScope, EndScope, Permutation };
+    enum class Type { String, Random, Zero, Domain, Grease, Key, BeginScope, EndScope, Permutation, Padding };
     Type type;
     int length;
     int seed;
@@ -96,6 +96,11 @@ class TlsHello {
       res.parts = std::move(parts);
       return res;
     }
+    static Op padding() {
+      Op res;
+      res.type = Type::Padding;
+      return res;
+    }
   };
 
   static const TlsHello &get_default() {
@@ -134,7 +139,8 @@ class TlsHello {
           Op::grease(6),
           Op::str("\x03\x04\x03\x03\x03\x02\x03\x01\x00\x1b\x00\x03\x02\x00\x01"),
           Op::grease(3),
-          Op::str("\x00\x01\x00\x00\x15")};
+          Op::str("\x00\x01\x00"),
+          Op::padding()};
 #else
       res.ops_ = {
           Op::str("\x16\x03\x01\x02\x00\x01\x00\x01\xfc\x03\x03"),
@@ -166,7 +172,8 @@ class TlsHello {
                vector<Op>{Op::str("\x44\x69\x00\x05\x00\x03\x02\x68\x32")},
                vector<Op>{Op::str("\xff\x01\x00\x01\x00")}}),
           Op::grease(3),
-          Op::str("\x00\x01\x00\x00\x15")};
+          Op::str("\x00\x01\x00"),
+          Op::padding()};
 #endif
       return res;
     }();
@@ -220,13 +227,13 @@ class TlsHelloCalcLength {
         size_ += op.data.size();
         break;
       case Type::Random:
-        if (op.length <= 0 || op.length > 1024) {
+        if (op.length <= 0 || op.length > 2048) {
           return on_error(Status::Error("Invalid random length"));
         }
         size_ += op.length;
         break;
       case Type::Zero:
-        if (op.length <= 0 || op.length > 1024) {
+        if (op.length <= 0 || op.length > 2048) {
           return on_error(Status::Error("Invalid zero length"));
         }
         size_ += op.length;
@@ -270,6 +277,11 @@ class TlsHelloCalcLength {
         }
         break;
       }
+      case Type::Padding:
+        if (size_ < 513) {
+          size_ = 517;
+        }
+        break;
       default:
         UNREACHABLE();
     }
@@ -283,19 +295,11 @@ class TlsHelloCalcLength {
     if (status_.is_error()) {
       return std::move(status_);
     }
-    if (size_ > 514) {
-      return Status::Error("Too long for zero padding");
+    if (!scope_offset_.empty()) {
+      return Status::Error("Unbalanced scopes");
     }
     if (size_ < 11 + 32) {
       return Status::Error("Too small for hash");
-    }
-    int zero_pad = 515 - static_cast<int>(size_);
-    using Op = TlsHello::Op;
-    do_op(Op::begin_scope(), nullptr);
-    do_op(Op::zero(zero_pad), nullptr);
-    do_op(Op::end_scope(), nullptr);
-    if (!scope_offset_.empty()) {
-      return Status::Error("Unbalanced scopes");
     }
     return size_;
   }
@@ -405,18 +409,22 @@ class TlsHelloStore {
         }
         break;
       }
+      case Type::Padding: {
+        auto size = 513 - static_cast<int>(get_offset());
+        if (size > 0) {
+          do_op(TlsHello::Op::str("\x00\x15"), nullptr);
+          do_op(TlsHello::Op::begin_scope(), nullptr);
+          do_op(TlsHello::Op::zero(size), nullptr);
+          do_op(TlsHello::Op::end_scope(), nullptr);
+        }
+        break;
+      }
       default:
         UNREACHABLE();
     }
   }
 
   void finish(Slice secret, int32 unix_time) {
-    int zero_pad = 515 - static_cast<int>(get_offset());
-    using Op = TlsHello::Op;
-    do_op(Op::begin_scope(), nullptr);
-    do_op(Op::zero(zero_pad), nullptr);
-    do_op(Op::end_scope(), nullptr);
-
     auto hash_dest = data_.substr(11, 32);
     hmac_sha256(secret, data_, hash_dest);
     int32 old = as<int32>(hash_dest.substr(28).data());
