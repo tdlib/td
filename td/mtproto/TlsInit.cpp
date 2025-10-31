@@ -96,6 +96,12 @@ class TlsHello {
       res.parts = std::move(parts);
       return res;
     }
+    static Op ech_payload() {
+      Op res;
+      res.type = Type::Random;
+      res.length = Random::fast(0, 3) * 32 + 144;
+      return res;
+    }
     static Op padding() {
       Op res;
       res.type = Type::Padding;
@@ -158,12 +164,12 @@ class TlsHello {
           Op::begin_scope(),
           Op::grease(2),
           Op::str("\x00\x00"),
-
           Op::permutation(
               {vector<Op>{Op::str("\x00\x00"), Op::begin_scope(), Op::begin_scope(), Op::str("\x00"), Op::begin_scope(),
                           Op::domain(), Op::end_scope(), Op::end_scope(), Op::end_scope()},
                vector<Op>{Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00")},
-               vector<Op>{Op::str("\x00\x0a\x00\x0a\x00\x08"), Op::grease(4), Op::str("\x00\x1d\x00\x17\x00\x18")},
+               vector<Op>{Op::str("\x00\x0a\x00\x0c\x00\x0a"), Op::grease(4),
+                          Op::str("\x11\xec\x00\x1d\x00\x17\x00\x18")},
                vector<Op>{Op::str("\x00\x0b\x00\x02\x01\x00")},
                vector<Op>{
                    Op::str("\x00\x0d\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01")},
@@ -172,9 +178,12 @@ class TlsHello {
                vector<Op>{Op::str("\x00\x1b\x00\x03\x02\x00\x02")}, vector<Op>{Op::str("\x00\x23\x00\x00")},
                vector<Op>{Op::str("\x00\x2b\x00\x07\x06"), Op::grease(6), Op::str("\x03\x04\x03\x03")},
                vector<Op>{Op::str("\x00\x2d\x00\x02\x01\x01")},
-               vector<Op>{Op::str("\x00\x33\x00\x2b\x00\x29"), Op::grease(4), Op::str("\x00\x01\x00\x00\x1d\x00\x20"),
-                          Op::key()},
-               vector<Op>{Op::str("\x44\x69\x00\x05\x00\x03\x02\x68\x32")},
+               vector<Op>{Op::str("\x00\x33\x04\xef\x04\xed"), Op::grease(4), Op::str("\x00\x01\x00\x11\xec\x04\xc0"),
+                          Op::random(1184), Op::key(), Op::str("\x00\x1d\x00\x20"), Op::key()},
+               vector<Op>{Op::str("\x44\xcd\x00\x05\x00\x03\x02\x68\x32")},
+               vector<Op>{Op::str("\xfe\x02"), Op::begin_scope(), Op::str("\x00\x00\x01\x00\x01"), Op::random(1),
+                          Op::str("\x00\x20"), Op::random(20), Op::begin_scope(), Op::ech_payload(), Op::end_scope(),
+                          Op::end_scope()},
                vector<Op>{Op::str("\xff\x01\x00\x01\x00")}}),
           Op::grease(3),
           Op::str("\x00\x01\x00"),
@@ -438,6 +447,7 @@ class TlsHelloStore {
     int32 old = as<int32>(hash_dest.substr(28).data());
     as<int32>(hash_dest.substr(28).data()) = old ^ unix_time;
     CHECK(dest_.empty());
+    // LOG(ERROR) << hex_encode(data_);
   }
 
  private:
@@ -529,6 +539,13 @@ void TlsInit::send_hello() {
 }
 
 Status TlsInit::wait_hello_response() {
+  /*
+  auto it2 = fd_.input_buffer().clone();
+  string buffer(it2.size(), '\0');
+  it2.advance(it2.size(), buffer);
+  LOG(ERROR) << hex_encode(buffer);
+  */
+
   auto it = fd_.input_buffer().clone();
   for (auto prefix : {Slice("\x16\x03\x03"), Slice("\x14\x03\x03\x00\x01\x01\x17\x03\x03")}) {
     if (it.size() < prefix.size() + 2) {
