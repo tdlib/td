@@ -159,6 +159,7 @@ class LinkManager final : public Actor {
   class InternalLinkMyStars;
   class InternalLinkMyToncoins;
   class InternalLinkPassportDataRequest;
+  class InternalLinkPasswordSettings;
   class InternalLinkPremiumFeatures;
   class InternalLinkPremiumGift;
   class InternalLinkPremiumGiftCode;

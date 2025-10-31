@@ -782,6 +782,12 @@ class LinkManager::InternalLinkPassportDataRequest final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkPasswordSettings final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypePasswordSettings>();
+  }
+};
+
 class LinkManager::InternalLinkPremiumFeatures final : public InternalLink {
   string referrer_;
 
@@ -1796,6 +1802,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (path.size() == 2 && path[1] == "login_email") {
       // settings/login_email
       return td::make_unique<InternalLinkLoginEmailSettings>();
+    }
+    if (path.size() == 2 && path[1] == "password") {
+      // settings/password
+      return td::make_unique<InternalLinkPasswordSettings>();
     }
     if (path.size() == 2 && path[1] == "privacy") {
       // settings/privacy
@@ -2842,6 +2852,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
                        << "&scope=" << url_encode(link->scope_) << "&public_key=" << url_encode(link->public_key_)
                        << "&nonce=" << url_encode(link->nonce_) << "&callback_url=" << url_encode(link->callback_url_);
     }
+    case td_api::internalLinkTypePasswordSettings::ID:
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      return "tg://settings/password";
     case td_api::internalLinkTypePhoneNumberConfirmation::ID: {
       auto link = static_cast<const td_api::internalLinkTypePhoneNumberConfirmation *>(type_ptr);
       if (!is_valid_phone_number(link->phone_number_)) {
