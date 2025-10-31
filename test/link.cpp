@@ -305,6 +305,10 @@ static auto language_settings() {
   return td::td_api::make_object<td::td_api::internalLinkTypeLanguageSettings>();
 }
 
+static auto login_email_settings() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeLoginEmailSettings>();
+}
+
 static auto main_web_app(const td::string &bot_username, const td::string &start_parameter, bool is_compact,
                          bool is_full_screen) {
   return td::td_api::make_object<td::td_api::internalLinkTypeMainWebApp>(bot_username, start_parameter,
@@ -1652,6 +1656,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/folders", chat_folder_settings());
   parse_internal_link("tg://settings/filters", settings());
   parse_internal_link("tg://settings/language", language_settings());
+  parse_internal_link("tg://settings/login_email", login_email_settings());
   parse_internal_link("tg://settings/privacy", privacy_and_security_settings());
 
   parse_internal_link("tg://stars", my_stars());

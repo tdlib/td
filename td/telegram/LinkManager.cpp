@@ -686,6 +686,12 @@ class LinkManager::InternalLinkLanguageSettings final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkLoginEmailSettings final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeLoginEmailSettings>();
+  }
+};
+
 class LinkManager::InternalLinkMainWebApp final : public InternalLink {
   string bot_username_;
   string start_parameter_;
@@ -1787,6 +1793,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       // settings/language
       return td::make_unique<InternalLinkLanguageSettings>();
     }
+    if (path.size() == 2 && path[1] == "login_email") {
+      // settings/login_email
+      return td::make_unique<InternalLinkLoginEmailSettings>();
+    }
     if (path.size() == 2 && path[1] == "privacy") {
       // settings/privacy
       return td::make_unique<InternalLinkPrivacyAndSecuritySettings>();
@@ -2731,6 +2741,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings/language";
+    case td_api::internalLinkTypeLoginEmailSettings::ID:
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      return "tg://settings/login_email";
     case td_api::internalLinkTypeMainWebApp::ID: {
       auto link = static_cast<const td_api::internalLinkTypeMainWebApp *>(type_ptr);
       if (!is_valid_username(link->bot_username_)) {

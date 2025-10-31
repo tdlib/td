@@ -8138,6 +8138,9 @@ internalLinkTypeLanguagePack language_pack_id:string = InternalLinkType;
 //@description The link is a link to the language section of the application settings
 internalLinkTypeLanguageSettings = InternalLinkType;
 
+//@description The link is a link to the login email set up section of the application settings, forcing set up of the login email
+internalLinkTypeLoginEmailSettings = InternalLinkType;
+
 //@description The link is a link to the main Web App of a bot. Call searchPublicChat with the given bot username, check that the user is a bot and has the main Web App.
 //-If the bot can be added to attachment menu, then use getAttachmentMenuBot to receive information about the bot, then if the bot isn't added to side menu,
 //-show a disclaimer about Mini Apps being third-party applications, ask the user to accept their Terms of service and confirm adding the bot to side and attachment menu,
