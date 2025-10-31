@@ -143,14 +143,19 @@ class TlsHello {
           Op::padding()};
 #else
       res.ops_ = {
-          Op::str("\x16\x03\x01\x02\x00\x01\x00\x01\xfc\x03\x03"),
+          Op::str("\x16\x03\x01"),
+          Op::begin_scope(),
+          Op::str("\x01\x00"),
+          Op::begin_scope(),
+          Op::str("\x03\x03"),
           Op::zero(32),
           Op::str("\x20"),
           Op::random(32),
           Op::str("\x00\x20"),
           Op::grease(0),
-          Op::str("\x13\x01\x13\x02\x13\x03\xc0\x2b\xc0\x2f\xc0\x2c\xc0\x30\xcc\xa9\xcc\xa8\xc0\x13\xc0\x14\x00\x9c"
-                  "\x00\x9d\x00\x2f\x00\x35\x01\x00\x01\x93"),
+          Op::str("\x13\x01\x13\x02\x13\x03\xc0\x2b\xc0\x2f\xc0\x2c\xc0\x30\xcc\xa9\xcc\xa8\xc0\x13\xc0\x14\x00\x9c\x00"
+                  "\x9d\x00\x2f\x00\x35\x01\x00"),
+          Op::begin_scope(),
           Op::grease(2),
           Op::str("\x00\x00"),
 
@@ -173,7 +178,10 @@ class TlsHello {
                vector<Op>{Op::str("\xff\x01\x00\x01\x00")}}),
           Op::grease(3),
           Op::str("\x00\x01\x00"),
-          Op::padding()};
+          Op::padding(),
+          Op::end_scope(),
+          Op::end_scope(),
+          Op::end_scope()};
 #endif
       return res;
     }();
