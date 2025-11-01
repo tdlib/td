@@ -1904,6 +1904,7 @@ void StoryManager::start_up() {
   if (!td_->auth_manager_->is_authorized()) {
     return;
   }
+  td_->messages_manager_->init();
 
   auto stealth_mode_str = G()->td_db()->get_binlog_pmc()->get(get_story_stealth_mode_key());
   if (!stealth_mode_str.empty()) {

@@ -874,6 +874,8 @@ class MessagesManager final : public Actor {
 
   void on_authorization_success();
 
+  void init();
+
   void before_get_difference();
 
   void after_get_difference();
@@ -2851,8 +2853,6 @@ class MessagesManager final : public Actor {
   void hangup() final;
 
   void create_folders(int source);
-
-  void init();
 
   void ttl_db_loop();
 
