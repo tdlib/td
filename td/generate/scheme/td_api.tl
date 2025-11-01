@@ -12417,6 +12417,9 @@ toggleVideoChatMuteNewParticipants group_call_id:int32 mute_new_participants:Boo
 //@can_send_messages New value of the can_send_messages setting
 toggleGroupCallCanSendMessages group_call_id:int32 can_send_messages:Bool = Ok;
 
+//@description Returns the list of message sender identifiers, on whose behalf a story live stream message can be sent @chat_id Chat identifier
+getStoryLiveStreamAvailableMessageSenders chat_id:int53 = ChatMessageSenders;
+
 //@description Sends a message to other participants of a group call. Requires groupCall.can_send_messages right
 //@group_call_id Group call identifier
 //@text Text of the message to send; 0-getOption("group_call_message_text_length_max") characters

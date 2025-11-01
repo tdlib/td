@@ -57,6 +57,8 @@ class GroupCallManager final : public Actor {
 
   void get_group_call_join_as(DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
+  void get_group_call_send_as(DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise);
+
   void set_group_call_default_join_as(DialogId dialog_id, DialogId as_dialog_id, Promise<Unit> &&promise);
 
   void create_video_chat(DialogId dialog_id, string title, int32 start_date, bool is_rtmp_stream,

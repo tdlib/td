@@ -179,6 +179,51 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
   }
 };
 
+class GetGroupCallSendAsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatMessageSenders>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetGroupCallSendAsQuery(Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id) {
+    dialog_id_ = dialog_id;
+
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+
+    send_query(
+        G()->net_query_creator().create(telegram_api::channels_getSendAs(0, false, true, std::move(input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_getSendAs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetGroupCallSendAsQuery: " << to_string(ptr);
+
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetGroupCallSendAsQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetGroupCallSendAsQuery");
+
+    vector<td_api::object_ptr<td_api::chatMessageSender>> message_senders;
+    for (auto &peer : ptr->peers_) {
+      message_senders.push_back(td_api::make_object<td_api::chatMessageSender>(
+          get_message_sender_object(td_, DialogId(peer->peer_), "GetGroupCallSendAsQuery"), peer->premium_required_));
+    }
+    promise_.set_value(td_api::make_object<td_api::chatMessageSenders>(std::move(message_senders)));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallSendAsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SaveDefaultGroupCallJoinAsQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -1844,6 +1889,14 @@ void GroupCallManager::get_group_call_join_as(DialogId dialog_id,
   TRY_STATUS_PROMISE(promise, can_join_video_chats(dialog_id));
 
   td_->create_handler<GetGroupCallJoinAsQuery>(std::move(promise))->send(dialog_id);
+}
+
+void GroupCallManager::get_group_call_send_as(DialogId dialog_id,
+                                              Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "get_group_call_send_as"));
+
+  td_->create_handler<GetGroupCallSendAsQuery>(std::move(promise))->send(dialog_id);
 }
 
 void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, DialogId as_dialog_id,
