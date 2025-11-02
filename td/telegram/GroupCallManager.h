@@ -513,11 +513,11 @@ class GroupCallManager final : public Actor {
   vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> get_recent_speakers(const GroupCall *group_call,
                                                                                  bool for_update);
 
-  static tl_object_ptr<td_api::updateGroupCall> get_update_group_call_object(
-      const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers);
+  static td_api::object_ptr<td_api::updateGroupCall> get_update_group_call_object(
+      Td *td, const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers);
 
-  static tl_object_ptr<td_api::groupCall> get_group_call_object(
-      const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers);
+  static td_api::object_ptr<td_api::groupCall> get_group_call_object(
+      Td *td, const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers);
 
   tl_object_ptr<td_api::updateGroupCallParticipant> get_update_group_call_participant_object(
       GroupCallId group_call_id, const GroupCallParticipant &participant);

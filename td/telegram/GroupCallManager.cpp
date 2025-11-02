@@ -1368,6 +1368,7 @@ struct GroupCallManager::GroupCall {
   string title;
   string invite_link;
   int64 send_paid_message_star_count = 0;
+  DialogId message_sender_dialog_id;
   bool is_inited = false;
   bool is_active = false;
   bool is_conference = false;
@@ -2081,7 +2082,7 @@ void GroupCallManager::get_group_call(GroupCallId group_call_id,
 
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call != nullptr && group_call->is_inited) {
-    return promise.set_value(get_group_call_object(group_call, get_recent_speakers(group_call, false)));
+    return promise.set_value(get_group_call_object(td_, group_call, get_recent_speakers(group_call, false)));
   }
 
   reload_group_call(input_group_call_id, std::move(promise));
@@ -2179,7 +2180,7 @@ void GroupCallManager::finish_get_group_call(InputGroupCallId input_group_call_i
   CHECK(group_call != nullptr && group_call->is_inited);
   for (auto &promise : promises) {
     if (promise) {
-      promise.set_value(get_group_call_object(group_call, get_recent_speakers(group_call, false)));
+      promise.set_value(get_group_call_object(td_, group_call, get_recent_speakers(group_call, false)));
     }
   }
 }
@@ -5858,6 +5859,8 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       call.title = group_call->title_;
       call.invite_link = group_call->invite_link_;
       call.send_paid_message_star_count = StarManager::get_star_count(group_call->send_paid_messages_stars_);
+      call.message_sender_dialog_id =
+          group_call->default_send_as_ == nullptr ? DialogId() : DialogId(group_call->default_send_as_);
       call.start_subscribed = group_call->schedule_start_subscribed_;
       call.mute_new_participants = group_call->join_muted_;
       call.joined_date_asc = group_call->join_date_asc_;
@@ -5890,6 +5893,9 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       }
       if (call.scheduled_start_date == 0) {
         call.start_subscribed = false;
+      }
+      if (call.message_sender_dialog_id == DialogId() && is_live_story) {
+        call.message_sender_dialog_id = td_->dialog_manager_->get_my_dialog_id();
       }
 
       call.version = group_call->version_;
@@ -6053,6 +6059,10 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       }
       if (call.send_paid_message_star_count != group_call->send_paid_message_star_count) {
         group_call->send_paid_message_star_count = call.send_paid_message_star_count;
+        need_update = true;
+      }
+      if (call.message_sender_dialog_id != group_call->message_sender_dialog_id && !is_min) {
+        group_call->message_sender_dialog_id = call.message_sender_dialog_id;
         need_update = true;
       }
       if (call.can_be_managed != group_call->can_be_managed && !is_min) {
@@ -6544,15 +6554,15 @@ vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> GroupCallManager::get
     if (!for_update) {
       // the change must be received through update first
       LOG(INFO) << "Send update about " << group_call->group_call_id << " from get_recent_speakers";
-      send_closure(G()->td(), &Td::send_update, get_update_group_call_object(group_call, get_result()));
+      send_closure(G()->td(), &Td::send_update, get_update_group_call_object(td_, group_call, get_result()));
     }
   }
 
   return get_result();
 }
 
-tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
-    const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers) {
+td_api::object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
+    Td *td, const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers) {
   CHECK(group_call != nullptr);
   CHECK(group_call->is_inited);
 
@@ -6572,24 +6582,30 @@ tl_object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   int32 record_start_date = get_group_call_record_start_date(group_call);
   int32 record_duration = record_start_date == 0 ? 0 : max(G()->unix_time() - record_start_date + 1, 1);
   bool is_video_recorded = get_group_call_is_video_recorded(group_call);
+  td_api::object_ptr<td_api::MessageSender> message_sender_id;
+  if (group_call->is_live_story) {
+    CHECK(group_call->message_sender_dialog_id.is_valid());
+    message_sender_id = get_message_sender_object(td, group_call->message_sender_dialog_id, "groupCall");
+  }
   return td_api::make_object<td_api::groupCall>(
       group_call->group_call_id.get(), get_group_call_title(group_call), group_call->invite_link,
       group_call->send_paid_message_star_count, scheduled_start_date, start_subscribed, is_active,
       !group_call->is_conference && !group_call->is_live_story, group_call->is_live_story,
       !group_call->is_conference && group_call->is_rtmp_stream, is_joined, group_call->need_rejoin,
       group_call->is_creator, group_call->can_be_managed, group_call->participant_count,
-      group_call->has_hidden_listeners, group_call->loaded_all_participants, std::move(recent_speakers),
-      is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
+      group_call->has_hidden_listeners, group_call->loaded_all_participants, std::move(message_sender_id),
+      std::move(recent_speakers), is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
       can_toggle_mute_new_participants, are_messages_enabled, can_toggle_are_messages_enabled, record_duration,
       is_video_recorded, group_call->duration);
 }
 
-tl_object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
-    const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers) {
-  return td_api::make_object<td_api::updateGroupCall>(get_group_call_object(group_call, std::move(recent_speakers)));
+td_api::object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
+    Td *td, const GroupCall *group_call, vector<td_api::object_ptr<td_api::groupCallRecentSpeaker>> recent_speakers) {
+  return td_api::make_object<td_api::updateGroupCall>(
+      get_group_call_object(td, group_call, std::move(recent_speakers)));
 }
 
-tl_object_ptr<td_api::updateGroupCallParticipant> GroupCallManager::get_update_group_call_participant_object(
+td_api::object_ptr<td_api::updateGroupCallParticipant> GroupCallManager::get_update_group_call_participant_object(
     GroupCallId group_call_id, const GroupCallParticipant &participant) {
   return td_api::make_object<td_api::updateGroupCallParticipant>(group_call_id.get(),
                                                                  participant.get_group_call_participant_object(td_));
@@ -6598,7 +6614,7 @@ tl_object_ptr<td_api::updateGroupCallParticipant> GroupCallManager::get_update_g
 void GroupCallManager::send_update_group_call(const GroupCall *group_call, const char *source) {
   LOG(INFO) << "Send update about " << group_call->group_call_id << " from " << source;
   send_closure(G()->td(), &Td::send_update,
-               get_update_group_call_object(group_call, get_recent_speakers(group_call, true)));
+               get_update_group_call_object(td_, group_call, get_recent_speakers(group_call, true)));
 }
 
 void GroupCallManager::send_update_group_call_participant(GroupCallId group_call_id,
