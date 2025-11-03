@@ -692,8 +692,7 @@ TEST(Mtproto, TlsTransport) {
           }
         };
 
-        // const td::string domain = "www.google.com";
-        const td::string domain = "t.me";
+        const td::string domain = "www.google.com";
         td::IPAddress ip_address;
         auto resolve_status = ip_address.init_host_port(domain, 443);
         if (resolve_status.is_error()) {

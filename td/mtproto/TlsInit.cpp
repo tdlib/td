@@ -39,7 +39,19 @@ void Grease::init(MutableSlice res) {
 class TlsHello {
  public:
   struct Op {
-    enum class Type { String, Random, Zero, Domain, Grease, Key, BeginScope, EndScope, Permutation, Padding };
+    enum class Type {
+      String,
+      Random,
+      Zero,
+      Domain,
+      Grease,
+      Key,
+      MlKem768Key,
+      BeginScope,
+      EndScope,
+      Permutation,
+      Padding
+    };
     Type type;
     int length;
     int seed;
@@ -88,6 +100,11 @@ class TlsHello {
     static Op key() {
       Op res;
       res.type = Type::Key;
+      return res;
+    }
+    static Op ml_kem_768_key() {
+      Op res;
+      res.type = Type::MlKem768Key;
       return res;
     }
     static Op permutation(vector<vector<Op>> parts) {
@@ -179,7 +196,7 @@ class TlsHello {
                vector<Op>{Op::str("\x00\x2b\x00\x07\x06"), Op::grease(6), Op::str("\x03\x04\x03\x03")},
                vector<Op>{Op::str("\x00\x2d\x00\x02\x01\x01")},
                vector<Op>{Op::str("\x00\x33\x04\xef\x04\xed"), Op::grease(4), Op::str("\x00\x01\x00\x11\xec\x04\xc0"),
-                          Op::random(1184), Op::key(), Op::str("\x00\x1d\x00\x20"), Op::key()},
+                          Op::ml_kem_768_key(), Op::key(), Op::str("\x00\x1d\x00\x20"), Op::key()},
                vector<Op>{Op::str("\x44\xcd\x00\x05\x00\x03\x02\x68\x32")},
                vector<Op>{Op::str("\xfe\x02"), Op::begin_scope(), Op::str("\x00\x00\x01\x00\x01"), Op::random(1),
                           Op::str("\x00\x20"), Op::random(20), Op::begin_scope(), Op::ech_payload(), Op::end_scope(),
@@ -268,6 +285,9 @@ class TlsHelloCalcLength {
         break;
       case Type::Key:
         size_ += 32;
+        break;
+      case Type::MlKem768Key:
+        size_ += 1184;
         break;
       case Type::BeginScope:
         size_ += 2;
@@ -388,6 +408,17 @@ class TlsHelloStore {
         dest_.remove_prefix(32);
         break;
       }
+      case Type::MlKem768Key:
+        for (size_t i = 0; i < 384; i++) {
+          auto a = Random::secure_uint32() % 3329;
+          auto b = Random::secure_uint32() % 3329;
+          dest_[0] = static_cast<char>(a & 255);
+          dest_[1] = static_cast<char>((a >> 8) + ((b & 15) << 4));
+          dest_[2] = static_cast<char>(b >> 4);
+          dest_.remove_prefix(3);
+        }
+        do_op(TlsHello::Op::random(32), nullptr);
+        break;
       case Type::BeginScope:
         scope_offset_.push_back(get_offset());
         dest_.remove_prefix(2);
