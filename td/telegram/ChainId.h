@@ -10,6 +10,7 @@
 #include "td/telegram/ChatId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/FolderId.h"
+#include "td/telegram/InputGroupCallId.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/PollId.h"
@@ -36,6 +37,9 @@ class ChainId {
   }
 
   ChainId(DialogId dialog_id) : id((static_cast<uint64>(dialog_id.get()) << 10) + 10) {
+  }
+
+  ChainId(InputGroupCallId input_group_call_id) : id(input_group_call_id.get_hash()) {
   }
 
   ChainId(MessageFullId message_full_id) : ChainId(message_full_id.get_dialog_id()) {
