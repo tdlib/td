@@ -1001,16 +1001,28 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
 
 class SendGroupCallMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  DialogId as_dialog_id_;
 
  public:
   explicit SendGroupCallMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(InputGroupCallId input_group_call_id, const FormattedText &text) {
+  void send(InputGroupCallId input_group_call_id, const FormattedText &text, DialogId as_dialog_id) {
+    as_dialog_id_ = as_dialog_id;
+    int32 flags = 0;
+    telegram_api::object_ptr<telegram_api::InputPeer> send_as_input_peer;
+    if (as_dialog_id != DialogId()) {
+      send_as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
+      if (send_as_input_peer == nullptr) {
+        return on_error(Status::Error(400, "Can't access sender chat"));
+      }
+      flags |= telegram_api::phone_sendGroupCallMessage::SEND_AS_MASK;
+    }
     send_query(G()->net_query_creator().create(
         telegram_api::phone_sendGroupCallMessage(
-            0, input_group_call_id.get_input_group_call(), Random::secure_int64(),
-            get_input_text_with_entities(td_->user_manager_.get(), text, "SendGroupCallMessageQuery"), 0, nullptr),
+            flags, input_group_call_id.get_input_group_call(), Random::secure_int64(),
+            get_input_text_with_entities(td_->user_manager_.get(), text, "SendGroupCallMessageQuery"), 0,
+            std::move(send_as_input_peer)),
         {{input_group_call_id}}));
   }
 
@@ -1024,6 +1036,7 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(as_dialog_id_, status, "SendGroupCallMessageQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -4906,7 +4919,10 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
   }
 
   auto as_dialog_id =
-      group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id();
+      group_call->is_live_story
+          ? group_call->message_sender_dialog_id
+          : (group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id());
+  CHECK(as_dialog_id.is_valid());
   auto group_call_message = GroupCallMessage(as_dialog_id, message);
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewGroupCallMessage>(
@@ -4921,7 +4937,8 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
     td_->create_handler<SendGroupCallEncryptedMessageQuery>(std::move(promise))
         ->send(input_group_call_id, r_data.value());
   } else {
-    td_->create_handler<SendGroupCallMessageQuery>(std::move(promise))->send(input_group_call_id, message);
+    td_->create_handler<SendGroupCallMessageQuery>(std::move(promise))
+        ->send(input_group_call_id, message, group_call->is_live_story ? as_dialog_id : DialogId());
   }
 }
 
