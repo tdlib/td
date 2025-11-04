@@ -576,6 +576,8 @@ class GroupCallManager final : public Actor {
   FlatHashMap<int64, MessageFullId> group_call_message_full_ids_;
   int64 current_call_id_ = 0;
 
+  FlatHashMap<DialogId, InputGroupCallId, DialogIdHash> dialog_live_stories_;
+
   uint64 toggle_recording_generation_ = 0;
 
   uint64 toggle_is_muted_generation_ = 0;

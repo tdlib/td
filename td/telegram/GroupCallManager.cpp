@@ -6421,7 +6421,13 @@ bool GroupCallManager::set_group_call_unmuted_video_count(GroupCall *group_call,
 
 void GroupCallManager::update_group_call_dialog(const GroupCall *group_call, const char *source, bool force) {
   CHECK(group_call != nullptr);
-  if (!group_call->dialog_id.is_valid() || group_call->is_live_story) {
+  if (!group_call->dialog_id.is_valid()) {
+    return;
+  }
+  if (group_call->is_live_story) {
+    if (group_call->is_active) {
+      dialog_live_stories_[group_call->dialog_id] = get_input_group_call_id(group_call->group_call_id).ok();
+    }
     return;
   }
 
