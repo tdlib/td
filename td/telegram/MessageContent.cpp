@@ -11232,7 +11232,7 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::PrizeStars: {
       const auto *content = static_cast<const MessagePrizeStars *>(message_content);
-      dependencies.add_dialog_and_dependencies(DialogId(content->boosted_dialog_id));
+      dependencies.add_dialog_and_dependencies(content->boosted_dialog_id);
       break;
     }
     case MessageContentType::StarGift: {

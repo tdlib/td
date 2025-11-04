@@ -4586,7 +4586,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteScheduled
   td_->messages_manager_->on_update_delete_scheduled_messages(dialog_id, std::move(message_ids));
   if (!td_->auth_manager_->is_bot()) {
     for (auto message_id : update->sent_messages_) {
-      auto message_full_id = MessageFullId{DialogId(dialog_id), MessageId(ServerMessageId(message_id))};
+      auto message_full_id = MessageFullId{dialog_id, MessageId(ServerMessageId(message_id))};
       td_->messages_manager_->wait_message_add(
           message_full_id, PromiseCreator::lambda([message_full_id](Result<Unit> &&result) {
             if (result.is_ok() && !G()->close_flag()) {
