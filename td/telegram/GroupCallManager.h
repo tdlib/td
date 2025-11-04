@@ -61,6 +61,8 @@ class GroupCallManager final : public Actor {
 
   void set_group_call_default_join_as(DialogId dialog_id, DialogId as_dialog_id, Promise<Unit> &&promise);
 
+  void set_group_call_default_send_as(GroupCallId group_call_id, DialogId as_dialog_id, Promise<Unit> &&promise);
+
   void create_video_chat(DialogId dialog_id, string title, int32 start_date, bool is_rtmp_stream,
                          Promise<GroupCallId> &&promise);
 

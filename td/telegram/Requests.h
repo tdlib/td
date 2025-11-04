@@ -823,6 +823,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getStoryLiveStreamAvailableMessageSenders &request);
 
+  void on_request(uint64 id, const td_api::setGroupCallMessageSender &request);
+
   void on_request(uint64 id, td_api::sendGroupCallMessage &request);
 
   void on_request(uint64 id, const td_api::revokeGroupCallInviteLink &request);

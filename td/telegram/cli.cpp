@@ -5146,6 +5146,12 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getStoryLiveStreamAvailableMessageSenders>(chat_id));
+    } else if (op == "sgcms") {
+      GroupCallId group_call_id;
+      string message_sender_id;
+      get_args(args, group_call_id, message_sender_id);
+      send_request(
+          td_api::make_object<td_api::setGroupCallMessageSender>(group_call_id, as_message_sender(message_sender_id)));
     } else if (op == "sgcm") {
       GroupCallId group_call_id;
       string text;

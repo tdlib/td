@@ -260,6 +260,40 @@ class SaveDefaultGroupCallJoinAsQuery final : public Td::ResultHandler {
   }
 };
 
+class SaveDefaultGroupCallSendAsQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId as_dialog_id_;
+
+ public:
+  explicit SaveDefaultGroupCallSendAsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, DialogId as_dialog_id) {
+    as_dialog_id_ = as_dialog_id;
+    auto as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Read);
+    CHECK(as_input_peer != nullptr);
+
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_saveDefaultSendAs(input_group_call_id.get_input_group_call(), std::move(as_input_peer))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_saveDefaultSendAs>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto success = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SaveDefaultGroupCallSendAsQuery: " << success;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(as_dialog_id_, status, "SaveDefaultGroupCallSendAsQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class CreateGroupCallQuery final : public Td::ResultHandler {
   Promise<InputGroupCallId> promise_;
   DialogId dialog_id_;
@@ -1927,6 +1961,49 @@ void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, Dialog
 
   td_->create_handler<SaveDefaultGroupCallJoinAsQuery>(std::move(promise))->send(dialog_id, as_dialog_id);
   td_->messages_manager_->on_update_dialog_default_join_group_call_as_dialog_id(dialog_id, as_dialog_id, true);
+}
+
+void GroupCallManager::set_group_call_default_send_as(GroupCallId group_call_id, DialogId as_dialog_id,
+                                                      Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+  if (!group_call->is_inited || !group_call->is_active) {
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+  if (!group_call->is_live_story) {
+    return promise.set_error(400, "Group call message sender can't be set explicitly");
+  }
+  if (!group_call->is_joined || group_call->is_being_left) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, as_dialog_id,
+                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+            } else {
+              send_closure(actor_id, &GroupCallManager::set_group_call_default_send_as, group_call_id, as_dialog_id,
+                           std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(as_dialog_id, false, AccessRights::Read,
+                                                                        "set_group_call_default_send_as"));
+  if (as_dialog_id.get_type() == DialogType::User && as_dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
+    return promise.set_error(400, "Can't send live stream messages as another user");
+  }
+  if (group_call->message_sender_dialog_id == as_dialog_id) {
+    return promise.set_value(Unit());
+  }
+  group_call->message_sender_dialog_id = as_dialog_id;
+  send_update_group_call(group_call, "set_group_call_default_send_as");
+
+  td_->create_handler<SaveDefaultGroupCallSendAsQuery>(std::move(promise))->send(input_group_call_id, as_dialog_id);
 }
 
 void GroupCallManager::create_video_chat(DialogId dialog_id, string title, int32 start_date, bool is_rtmp_stream,

@@ -4808,6 +4808,15 @@ void Requests::on_request(uint64 id, const td_api::getStoryLiveStreamAvailableMe
   td_->group_call_manager_->get_group_call_send_as(DialogId(request.chat_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::setGroupCallMessageSender &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, message_sender_dialog_id,
+                     get_message_sender_dialog_id(td_, request.message_sender_id_, true, false));
+  td_->group_call_manager_->set_group_call_default_send_as(GroupCallId(request.group_call_id_),
+                                                           message_sender_dialog_id, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::joinGroupCall &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

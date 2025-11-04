@@ -12421,6 +12421,11 @@ toggleGroupCallCanSendMessages group_call_id:int32 can_send_messages:Bool = Ok;
 //@description Returns the list of message sender identifiers, on whose behalf a story live stream message can be sent @chat_id Chat identifier
 getStoryLiveStreamAvailableMessageSenders chat_id:int53 = ChatMessageSenders;
 
+//@description Selects a message sender to send messages in a live stream story group call
+//@group_call_id Group call identifier
+//@message_sender_id New message sender for the group call
+setGroupCallMessageSender group_call_id:int32 message_sender_id:MessageSender = Ok;
+
 //@description Sends a message to other participants of a group call. Requires groupCall.can_send_messages right
 //@group_call_id Group call identifier
 //@text Text of the message to send; 0-getOption("group_call_message_text_length_max") characters
