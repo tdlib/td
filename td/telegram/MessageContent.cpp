@@ -876,17 +876,17 @@ class MessageGiftPremium final : public MessageContent {
   int64 amount = 0;
   string crypto_currency;
   int64 crypto_amount = 0;
-  int32 months = 0;
+  int32 days = 0;
 
   MessageGiftPremium() = default;
   MessageGiftPremium(FormattedText &&text, string &&currency, int64 amount, string &&crypto_currency,
-                     int64 crypto_amount, int32 months)
+                     int64 crypto_amount, int32 days)
       : text(std::move(text))
       , currency(std::move(currency))
       , amount(amount)
       , crypto_currency(std::move(crypto_currency))
       , crypto_amount(crypto_amount)
-      , months(months) {
+      , days(days) {
   }
 
   MessageContentType get_type() const final {
@@ -1971,13 +1971,15 @@ static void store(const MessageContent *content, StorerT &storer) {
       const auto *m = static_cast<const MessageGiftPremium *>(content);
       bool has_crypto_amount = !m->crypto_currency.empty();
       bool has_text = !m->text.text.empty();
+      bool has_days = true;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_crypto_amount);
       STORE_FLAG(has_text);
+      STORE_FLAG(has_days);
       END_STORE_FLAGS();
       store(m->currency, storer);
       store(m->amount, storer);
-      store(m->months, storer);
+      store(m->days, storer);
       if (has_crypto_amount) {
         store(m->crypto_currency, storer);
         store(m->crypto_amount, storer);
@@ -3117,13 +3119,21 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       auto m = make_unique<MessageGiftPremium>();
       bool has_crypto_amount;
       bool has_text;
+      bool has_days;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_crypto_amount);
       PARSE_FLAG(has_text);
+      PARSE_FLAG(has_days);
       END_PARSE_FLAGS();
       parse(m->currency, parser);
       parse(m->amount, parser);
-      parse(m->months, parser);
+      parse(m->days, parser);
+      if (!has_days) {
+        m->days *= 30;
+        if (m->days == 0) {
+          m->days = 7;
+        }
+      }
       if (has_crypto_amount) {
         parse(m->crypto_currency, parser);
         parse(m->crypto_amount, parser);
@@ -3821,6 +3831,10 @@ void store_message_content(const MessageContent *content, LogEventStorerUnsafe &
 
 void parse_message_content(unique_ptr<MessageContent> &content, LogEventParser &parser) {
   parse(content, parser);
+}
+
+static int32 get_month_count(int32 day_count) {
+  return max(static_cast<int32>(1), day_count / 30);
 }
 
 InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
@@ -7043,7 +7057,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *rhs = static_cast<const MessageGiftPremium *>(new_content);
       if (lhs->text != rhs->text || lhs->currency != rhs->currency || lhs->amount != rhs->amount ||
           lhs->crypto_currency != rhs->crypto_currency || lhs->crypto_amount != rhs->crypto_amount ||
-          lhs->months != rhs->months) {
+          lhs->days != rhs->days) {
         need_update = true;
       }
       break;
@@ -7429,8 +7443,8 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
       return td->stickers_manager_->register_dice(dice->emoji, dice->dice_value, message_full_id, {}, source);
     }
     case MessageContentType::GiftPremium:
-      return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftPremium *>(content)->months, 0,
-                                                          message_full_id, source);
+      return td->stickers_manager_->register_premium_gift(
+          get_month_count(static_cast<const MessageGiftPremium *>(content)->days), 0, message_full_id, source);
     case MessageContentType::GiftCode:
       return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftCode *>(content)->months, 0,
                                                           message_full_id, source);
@@ -7520,8 +7534,8 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
         }
         break;
       case MessageContentType::GiftPremium:
-        if (static_cast<const MessageGiftPremium *>(old_content)->months ==
-            static_cast<const MessageGiftPremium *>(new_content)->months) {
+        if (get_month_count(static_cast<const MessageGiftPremium *>(old_content)->days) ==
+            get_month_count(static_cast<const MessageGiftPremium *>(new_content)->days)) {
           return;
         }
         break;
@@ -7602,8 +7616,8 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
       return td->stickers_manager_->unregister_dice(dice->emoji, dice->dice_value, message_full_id, {}, source);
     }
     case MessageContentType::GiftPremium:
-      return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftPremium *>(content)->months, 0,
-                                                            message_full_id, source);
+      return td->stickers_manager_->unregister_premium_gift(
+          get_month_count(static_cast<const MessageGiftPremium *>(content)->days), 0, message_full_id, source);
     case MessageContentType::GiftCode:
       return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftCode *>(content)->months, 0,
                                                             message_full_id, source);
@@ -9094,7 +9108,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
                                      "messageActionGiftPremium");
       return td::make_unique<MessageGiftPremium>(std::move(text), std::move(action->currency_), action->amount_,
                                                  std::move(action->crypto_currency_), action->crypto_amount_,
-                                                 max(1, action->days_ / 30));
+                                                 action->days_);
     }
     case telegram_api::messageActionTopicCreate::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionTopicCreate>(action_ptr);
@@ -9768,7 +9782,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       }
       return td_api::make_object<td_api::messageGiftedPremium>(
           gifter_user_id, receiver_user_id, get_text_object(m->text), m->currency, m->amount, m->crypto_currency,
-          m->crypto_amount, m->months, td->stickers_manager_->get_premium_gift_sticker_object(m->months, 0));
+          m->crypto_amount, m->days,
+          td->stickers_manager_->get_premium_gift_sticker_object(get_month_count(m->days), 0));
     }
     case MessageContentType::TopicCreate: {
       const auto *m = static_cast<const MessageTopicCreate *>(content);
