@@ -151,6 +151,7 @@ class LinkManager final : public Actor {
   class InternalLinkInvoice;
   class InternalLinkLanguage;
   class InternalLinkLanguageSettings;
+  class InternalLinkLiveStory;
   class InternalLinkLoginEmailSettings;
   class InternalLinkMainWebApp;
   class InternalLinkMessage;

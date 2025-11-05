@@ -305,6 +305,10 @@ static auto language_settings() {
   return td::td_api::make_object<td::td_api::internalLinkTypeLanguageSettings>();
 }
 
+static auto live_story(const td::string &poster_username) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeLiveStory>(poster_username);
+}
+
 static auto login_email_settings() {
   return td::td_api::make_object<td::td_api::internalLinkTypeLoginEmailSettings>();
 }
@@ -1451,12 +1455,16 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg:resolve?domain=telegram&&&&&&&story=%31ab", public_chat("telegram"));
   parse_internal_link("tg:resolve?domain=telegram&&&&&&&story=%31%39", story("telegram", 19));
   parse_internal_link("tg:resolve?domain=telegram&&&&&&&story=2222222222", public_chat("telegram"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&story=live", live_story("telegram"));
+  parse_internal_link("tg:resolve?domain=telegram&&&&&&&story=Live", public_chat("telegram"));
 
   parse_internal_link("t.me/username/s/1234", story("username", 1234));
   parse_internal_link("t.me/username/s/3?qwe=12312#12312", story("username", 3));
   parse_internal_link("t.me/username/s/1", story("username", 1));
   parse_internal_link("t.me/username/s/2", story("username", 2));
   parse_internal_link("t.me/username/s/5", story("username", 5));
+  parse_internal_link("t.me/username/s/live", live_story("username"));
+  parse_internal_link("t.me/username/s/Live", public_chat("username"));
   parse_internal_link("t.me/username/s/", public_chat("username"));
   parse_internal_link("t.me/username#/s/123", public_chat("username"));
   parse_internal_link("t.me/username?story=123", public_chat("username"));

@@ -686,6 +686,18 @@ class LinkManager::InternalLinkLanguageSettings final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkLiveStory final : public InternalLink {
+  string dialog_username_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeLiveStory>(dialog_username_);
+  }
+
+ public:
+  explicit InternalLinkLiveStory(string dialog_username) : dialog_username_(std::move(dialog_username)) {
+  }
+};
+
 class LinkManager::InternalLinkLoginEmailSettings final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeLoginEmailSettings>();
@@ -1674,6 +1686,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           // resolve?domain=<username>&story=<story_id>
           return td::make_unique<InternalLinkStory>(std::move(username), StoryId(to_integer<int32>(arg.second)));
         }
+        if (arg.first == "story" && arg.second == "live") {
+          // resolve?domain=<username>&story=live
+          return td::make_unique<InternalLinkLiveStory>(std::move(username));
+        }
         if (arg.first == "startapp" && is_valid_start_parameter(arg.second) && !url_query.has_arg("appname")) {
           // resolve?domain=<bot_username>&startapp=
           // resolve?domain=<bot_username>&startapp=<start_parameter>&mode=compact
@@ -2187,6 +2203,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (path.size() == 3 && path[1] == "s" && is_valid_story_id(path[2])) {
       // /<username>/s/<story_id>
       return td::make_unique<InternalLinkStory>(std::move(username), StoryId(to_integer<int32>(path[2])));
+    }
+    if (path.size() == 3 && path[1] == "s" && path[2] == "live") {
+      // /<username>/s/live
+      return td::make_unique<InternalLinkLiveStory>(std::move(username));
     }
     if (path.size() == 3 && path[1] == "c" && is_valid_star_gift_collection_id(path[2])) {
       // /<username>/c/<collection_id>
@@ -2751,6 +2771,17 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings/language";
+    case td_api::internalLinkTypeLiveStory::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeLiveStory *>(type_ptr);
+      if (!is_valid_username(link->story_poster_username_)) {
+        return Status::Error(400, "Invalid story poster username specified");
+      }
+      if (is_internal) {
+        return PSTRING() << "tg://resolve?domain=" << link->story_poster_username_ << "&story=live";
+      } else {
+        return PSTRING() << get_t_me_url() << link->story_poster_username_ << "/s/live";
+      }
+    }
     case td_api::internalLinkTypeLoginEmailSettings::ID:
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");

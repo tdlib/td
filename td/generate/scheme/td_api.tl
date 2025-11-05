@@ -8142,6 +8142,11 @@ internalLinkTypeLanguagePack language_pack_id:string = InternalLinkType;
 //@description The link is a link to the language section of the application settings
 internalLinkTypeLanguageSettings = InternalLinkType;
 
+//@description The link is a link to a live story. Call searchPublicChat with the given chat username, then getChatActiveStories to get active stories in the chat,
+//-then find a live story among active stories of the chat, and then joinStoryLiveStream to join the live story
+//@story_poster_username Username of the poster of the story
+internalLinkTypeLiveStory story_poster_username:string = InternalLinkType;
+
 //@description The link is a link to the login email set up section of the application settings, forcing set up of the login email
 internalLinkTypeLoginEmailSettings = InternalLinkType;
 
