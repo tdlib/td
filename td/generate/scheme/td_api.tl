@@ -4642,10 +4642,10 @@ messageGiftedPremium gifter_user_id:int53 receiver_user_id:int53 text:formattedT
 //@amount The paid amount, in the smallest units of the currency; 0 if unknown
 //@cryptocurrency Cryptocurrency used to pay for the gift; may be empty if none or unknown
 //@cryptocurrency_amount The paid amount, in the smallest units of the cryptocurrency; 0 if unknown
-//@month_count Number of months the Telegram Premium subscription will be active after code activation
+//@day_count Number of days the Telegram Premium subscription will be active after code activation
 //@sticker A sticker to be shown in the message; may be null if unknown
 //@code The gift code
-messagePremiumGiftCode creator_id:MessageSender text:formattedText is_from_giveaway:Bool is_unclaimed:Bool currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 month_count:int32 sticker:sticker code:string = MessageContent;
+messagePremiumGiftCode creator_id:MessageSender text:formattedText is_from_giveaway:Bool is_unclaimed:Bool currency:string amount:int53 cryptocurrency:string cryptocurrency_amount:int64 day_count:int32 sticker:sticker code:string = MessageContent;
 
 //@description A giveaway was created for the chat. Use telegramPaymentPurposePremiumGiveaway, storePaymentPurposePremiumGiveaway, telegramPaymentPurposeStarGiveaway, or storePaymentPurposeStarGiveaway to create a giveaway
 //@star_count Number of Telegram Stars that will be shared by winners of the giveaway; 0 for Telegram Premium giveaways

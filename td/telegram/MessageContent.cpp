@@ -1012,7 +1012,7 @@ class MessageGiftCode final : public MessageContent {
  public:
   DialogId creator_dialog_id;
   FormattedText text;
-  int32 months = 0;
+  int32 days = 0;
   string currency;
   int64 amount = 0;
   string crypto_currency;
@@ -1022,11 +1022,11 @@ class MessageGiftCode final : public MessageContent {
   string code;
 
   MessageGiftCode() = default;
-  MessageGiftCode(DialogId creator_dialog_id, FormattedText &&text, int32 months, string &&currency, int64 amount,
+  MessageGiftCode(DialogId creator_dialog_id, FormattedText &&text, int32 days, string &&currency, int64 amount,
                   string &&crypto_currency, int64 crypto_amount, bool via_giveaway, bool is_unclaimed, string &&code)
       : creator_dialog_id(creator_dialog_id)
       , text(std::move(text))
-      , months(months)
+      , days(days)
       , currency(std::move(currency))
       , amount(amount)
       , crypto_currency(std::move(crypto_currency))
@@ -2060,6 +2060,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_crypto_currency = !m->crypto_currency.empty();
       bool has_crypto_amount = m->crypto_amount > 0;
       bool has_text = !m->text.text.empty();
+      bool has_days = true;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->via_giveaway);
       STORE_FLAG(has_creator_dialog_id);
@@ -2069,11 +2070,12 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(has_crypto_currency);
       STORE_FLAG(has_crypto_amount);
       STORE_FLAG(has_text);
+      STORE_FLAG(has_days);
       END_STORE_FLAGS();
       if (has_creator_dialog_id) {
         store(m->creator_dialog_id, storer);
       }
-      store(m->months, storer);
+      store(m->days, storer);
       store(m->code, storer);
       if (has_currency) {
         store(m->currency, storer);
@@ -3246,6 +3248,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       bool has_crypto_currency;
       bool has_crypto_amount;
       bool has_text;
+      bool has_days;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(m->via_giveaway);
       PARSE_FLAG(has_creator_dialog_id);
@@ -3255,11 +3258,18 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(has_crypto_currency);
       PARSE_FLAG(has_crypto_amount);
       PARSE_FLAG(has_text);
+      PARSE_FLAG(has_days);
       END_PARSE_FLAGS();
       if (has_creator_dialog_id) {
         parse(m->creator_dialog_id, parser);
       }
-      parse(m->months, parser);
+      parse(m->days, parser);
+      if (!has_days) {
+        m->days *= 30;
+        if (m->days == 0) {
+          m->days = 7;
+        }
+      }
       parse(m->code, parser);
       if (has_currency) {
         parse(m->currency, parser);
@@ -7134,7 +7144,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::GiftCode: {
       const auto *lhs = static_cast<const MessageGiftCode *>(old_content);
       const auto *rhs = static_cast<const MessageGiftCode *>(new_content);
-      if (lhs->creator_dialog_id != rhs->creator_dialog_id || lhs->text != rhs->text || lhs->months != rhs->months ||
+      if (lhs->creator_dialog_id != rhs->creator_dialog_id || lhs->text != rhs->text || lhs->days != rhs->days ||
           lhs->currency != rhs->currency || lhs->amount != rhs->amount ||
           lhs->crypto_currency != rhs->crypto_currency || lhs->crypto_amount != rhs->crypto_amount ||
           lhs->via_giveaway != rhs->via_giveaway || lhs->is_unclaimed != rhs->is_unclaimed || lhs->code != rhs->code) {
@@ -7446,8 +7456,8 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
       return td->stickers_manager_->register_premium_gift(
           get_month_count(static_cast<const MessageGiftPremium *>(content)->days), 0, message_full_id, source);
     case MessageContentType::GiftCode:
-      return td->stickers_manager_->register_premium_gift(static_cast<const MessageGiftCode *>(content)->months, 0,
-                                                          message_full_id, source);
+      return td->stickers_manager_->register_premium_gift(
+          get_month_count(static_cast<const MessageGiftCode *>(content)->days), 0, message_full_id, source);
     case MessageContentType::Giveaway: {
       auto giveaway = static_cast<const MessageGiveaway *>(content);
       return td->stickers_manager_->register_premium_gift(giveaway->months, giveaway->star_count, message_full_id,
@@ -7540,8 +7550,8 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
         }
         break;
       case MessageContentType::GiftCode:
-        if (static_cast<const MessageGiftCode *>(old_content)->months ==
-            static_cast<const MessageGiftCode *>(new_content)->months) {
+        if (get_month_count(static_cast<const MessageGiftCode *>(old_content)->days) ==
+            get_month_count(static_cast<const MessageGiftCode *>(new_content)->days)) {
           return;
         }
         break;
@@ -7619,8 +7629,8 @@ void unregister_message_content(Td *td, const MessageContent *content, MessageFu
       return td->stickers_manager_->unregister_premium_gift(
           get_month_count(static_cast<const MessageGiftPremium *>(content)->days), 0, message_full_id, source);
     case MessageContentType::GiftCode:
-      return td->stickers_manager_->unregister_premium_gift(static_cast<const MessageGiftCode *>(content)->months, 0,
-                                                            message_full_id, source);
+      return td->stickers_manager_->unregister_premium_gift(
+          get_month_count(static_cast<const MessageGiftCode *>(content)->days), 0, message_full_id, source);
     case MessageContentType::Giveaway: {
       auto giveaway = static_cast<const MessageGiveaway *>(content);
       return td->stickers_manager_->unregister_premium_gift(giveaway->months, giveaway->star_count, message_full_id,
@@ -9189,10 +9199,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       auto text = get_formatted_text(td->user_manager_.get(), std::move(action->message_), true, false,
                                      "messageActionGiftCode");
-      return td::make_unique<MessageGiftCode>(dialog_id, std::move(text), max(1, action->days_ / 30),
-                                              std::move(action->currency_), action->amount_,
-                                              std::move(action->crypto_currency_), action->crypto_amount_,
-                                              action->via_giveaway_, action->unclaimed_, std::move(action->slug_));
+      return td::make_unique<MessageGiftCode>(dialog_id, std::move(text), action->days_, std::move(action->currency_),
+                                              action->amount_, std::move(action->crypto_currency_),
+                                              action->crypto_amount_, action->via_giveaway_, action->unclaimed_,
+                                              std::move(action->slug_));
     }
     case telegram_api::messageActionGiveawayResults::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionGiveawayResults>(action_ptr);
@@ -9846,7 +9856,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
               ? get_message_sender_object(td, m->creator_dialog_id, "messagePremiumGiftCode")
               : nullptr,
           get_text_object(m->text), m->via_giveaway, m->is_unclaimed, m->currency, m->amount, m->crypto_currency,
-          m->crypto_amount, m->months, td->stickers_manager_->get_premium_gift_sticker_object(m->months, 0), m->code);
+          m->crypto_amount, m->days,
+          td->stickers_manager_->get_premium_gift_sticker_object(get_month_count(m->days), 0), m->code);
     }
     case MessageContentType::Giveaway: {
       const auto *m = static_cast<const MessageGiveaway *>(content);
