@@ -1153,10 +1153,10 @@ premiumGiveawayPaymentOptions options:vector<premiumGiveawayPaymentOption> = Pre
 //@creation_date Point in time (Unix timestamp) when the code was created
 //@is_from_giveaway True, if the gift code was created for a giveaway
 //@giveaway_message_id Identifier of the corresponding giveaway message in the creator_id chat; can be 0 or an identifier of a deleted message
-//@month_count Number of months the Telegram Premium subscription will be active after code activation
+//@day_count Number of days the Telegram Premium subscription will be active after code activation
 //@user_id Identifier of a user for which the code was created; 0 if none
 //@use_date Point in time (Unix timestamp) when the code was activated; 0 if none
-premiumGiftCodeInfo creator_id:MessageSender creation_date:int32 is_from_giveaway:Bool giveaway_message_id:int53 month_count:int32 user_id:int53 use_date:int32 = PremiumGiftCodeInfo;
+premiumGiftCodeInfo creator_id:MessageSender creation_date:int32 is_from_giveaway:Bool giveaway_message_id:int53 day_count:int32 user_id:int53 use_date:int32 = PremiumGiftCodeInfo;
 
 //@description Describes an option for buying Telegram Stars. Use telegramPaymentPurposeStars for out-of-store payments
 //@currency ISO 4217 currency code for the payment

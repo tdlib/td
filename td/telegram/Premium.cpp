@@ -554,7 +554,7 @@ class CheckGiftCodeQuery final : public Td::ResultHandler {
     promise_.set_value(td_api::make_object<td_api::premiumGiftCodeInfo>(
         creator_dialog_id == DialogId() ? nullptr
                                         : get_message_sender_object(td_, creator_dialog_id, "premiumGiftCodeInfo"),
-        result->date_, result->via_giveaway_, message_id.get(), max(1, result->days_ / 30),
+        result->date_, result->via_giveaway_, message_id.get(), result->days_,
         td_->user_manager_->get_user_id_object(user_id, "premiumGiftCodeInfo"), result->used_date_));
   }
 
