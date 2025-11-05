@@ -204,6 +204,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("user_note_text_length_max", 128);
   set_default_integer_option("group_call_message_show_time_max", 10);
   set_default_integer_option("group_call_message_text_length_max", 128);
+  set_default_integer_option("paid_group_call_message_star_count_max", 10000);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();

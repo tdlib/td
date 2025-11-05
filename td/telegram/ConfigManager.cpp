@@ -1425,6 +1425,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"stargifts_pinned_to_top_limit", "pinned_gift_count_max"},
       {"starref_max_commission_permille", "affiliate_program_commission_per_mille_max"},
       {"starref_min_commission_permille", "affiliate_program_commission_per_mille_min"},
+      {"stars_groupcall_message_amount_max", "paid_group_call_message_star_count_max"},
       {"stars_paid_message_amount_max", "paid_message_star_count_max"},
       {"stars_paid_message_commission_permille", "paid_message_earnings_per_mille"},
       {"stars_paid_messages_channel_amount_default", "direct_channel_message_star_count_default"},
