@@ -965,7 +965,8 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
   }
 
   void send(InputGroupCallId input_group_call_id, bool reset_invite_hash, bool set_join_muted, bool join_muted,
-            bool set_messages_enabled, bool messages_enabled) {
+            bool set_messages_enabled, bool messages_enabled, bool set_paid_message_star_count,
+            int64 paid_message_star_count) {
     int32 flags = 0;
     if (set_join_muted) {
       flags |= telegram_api::phone_toggleGroupCallSettings::JOIN_MUTED_MASK;
@@ -973,10 +974,13 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
     if (set_messages_enabled) {
       flags |= telegram_api::phone_toggleGroupCallSettings::MESSAGES_ENABLED_MASK;
     }
-    send_query(G()->net_query_creator().create(
-        telegram_api::phone_toggleGroupCallSettings(
-            flags, reset_invite_hash, input_group_call_id.get_input_group_call(), join_muted, messages_enabled, false),
-        {{input_group_call_id}}));
+    if (set_paid_message_star_count) {
+      flags |= telegram_api::phone_toggleGroupCallSettings::SEND_PAID_MESSAGES_STARS_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::phone_toggleGroupCallSettings(
+                                                   flags, reset_invite_hash, input_group_call_id.get_input_group_call(),
+                                                   join_muted, messages_enabled, paid_message_star_count),
+                                               {{input_group_call_id}}));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1440,7 +1444,7 @@ struct GroupCallManager::GroupCall {
   DialogId dialog_id;
   string title;
   string invite_link;
-  int64 send_paid_message_star_count = 0;
+  int64 paid_message_star_count = 0;
   DialogId message_sender_dialog_id;
   bool is_inited = false;
   bool is_active = false;
@@ -1495,6 +1499,7 @@ struct GroupCallManager::GroupCall {
   int32 can_enable_video_version = -1;
   int32 mute_version = -1;
   int32 are_messages_enabled_version = -1;
+  int32 paid_message_star_count_version = -1;
   int32 stream_dc_id_version = -1;
   int32 record_start_date_version = -1;
   int32 scheduled_start_date_version = -1;
@@ -1512,6 +1517,8 @@ struct GroupCallManager::GroupCall {
   bool pending_mute_new_participants = false;
   bool have_pending_are_messages_enabled = false;
   bool pending_are_messages_enabled = false;
+  bool have_pending_paid_message_star_count = false;
+  int64 pending_paid_message_star_count = false;
   string pending_title;
   bool have_pending_record_start_date = false;
   int32 pending_record_start_date = 0;
@@ -2423,6 +2430,12 @@ bool GroupCallManager::get_group_call_are_messages_enabled(const GroupCall *grou
   CHECK(group_call != nullptr);
   return group_call->have_pending_are_messages_enabled ? group_call->pending_are_messages_enabled
                                                        : group_call->are_messages_enabled;
+}
+
+int64 GroupCallManager::get_group_call_paid_message_star_count(const GroupCall *group_call) {
+  CHECK(group_call != nullptr);
+  return group_call->have_pending_paid_message_star_count ? group_call->pending_paid_message_star_count
+                                                          : group_call->paid_message_star_count;
 }
 
 int32 GroupCallManager::get_group_call_record_start_date(const GroupCall *group_call) {
@@ -4749,7 +4762,7 @@ void GroupCallManager::send_toggle_group_call_mute_new_participants_query(InputG
                      mute_new_participants, std::move(result));
       });
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))
-      ->send(input_group_call_id, false, true, mute_new_participants, false, false);
+      ->send(input_group_call_id, false, true, mute_new_participants, false, false, false, 0);
 }
 
 void GroupCallManager::on_toggle_group_call_mute_new_participants(InputGroupCallId input_group_call_id,
@@ -4835,7 +4848,7 @@ void GroupCallManager::send_toggle_group_call_are_messages_enabled_query(InputGr
                      are_messages_enabled, std::move(result));
       });
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))
-      ->send(input_group_call_id, false, false, false, true, are_messages_enabled);
+      ->send(input_group_call_id, false, false, false, true, are_messages_enabled, false, 0);
 }
 
 void GroupCallManager::on_toggle_group_call_are_messages_enabled(InputGroupCallId input_group_call_id,
@@ -4869,6 +4882,93 @@ void GroupCallManager::on_toggle_group_call_are_messages_enabled(InputGroupCallI
     if (group_call->are_messages_enabled != are_messages_enabled) {
       LOG(ERROR) << "Failed to set are_messages_enabled to " << are_messages_enabled << " in " << input_group_call_id;
       send_update_group_call(group_call, "on_toggle_group_call_are_messages_enabled failed 2");
+    }
+  }
+}
+
+void GroupCallManager::set_group_call_paid_message_star_count(GroupCallId group_call_id, int64 paid_message_star_count,
+                                                              Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, paid_message_star_count,
+                                              promise = std::move(promise)](
+                                                 Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                        if (result.is_error()) {
+                          promise.set_error(result.move_as_error());
+                        } else {
+                          send_closure(actor_id, &GroupCallManager::set_group_call_paid_message_star_count,
+                                       group_call_id, paid_message_star_count, std::move(promise));
+                        }
+                      }));
+    return;
+  }
+  if (!group_call->is_active || !group_call->can_be_managed || !group_call->is_live_story) {
+    return promise.set_error(400, "Can't change paid_message_star_count setting");
+  }
+
+  if (paid_message_star_count == get_group_call_paid_message_star_count(group_call)) {
+    return promise.set_value(Unit());
+  }
+
+  // there is no reason to save promise; we will send an update with actual value anyway
+
+  group_call->pending_paid_message_star_count = paid_message_star_count;
+  if (!group_call->have_pending_paid_message_star_count) {
+    group_call->have_pending_paid_message_star_count = true;
+    send_set_group_call_paid_message_star_count_query(input_group_call_id, paid_message_star_count);
+  }
+  send_update_group_call(group_call, "set_group_call_paid_message_star_count");
+  promise.set_value(Unit());
+}
+
+void GroupCallManager::send_set_group_call_paid_message_star_count_query(InputGroupCallId input_group_call_id,
+                                                                         int64 paid_message_star_count) {
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), input_group_call_id, paid_message_star_count](Result<Unit> result) {
+        send_closure(actor_id, &GroupCallManager::on_set_group_call_paid_message_star_count, input_group_call_id,
+                     paid_message_star_count, std::move(result));
+      });
+  td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))
+      ->send(input_group_call_id, false, false, false, false, false, true, paid_message_star_count);
+}
+
+void GroupCallManager::on_set_group_call_paid_message_star_count(InputGroupCallId input_group_call_id,
+                                                                 int64 paid_message_star_count, Result<Unit> &&result) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (!is_group_call_active(group_call) || !group_call->have_pending_paid_message_star_count) {
+    return;
+  }
+
+  if (result.is_error()) {
+    group_call->have_pending_paid_message_star_count = false;
+    if (group_call->can_be_managed) {
+      LOG(ERROR) << "Failed to set paid_message_star_count to " << paid_message_star_count << " in "
+                 << input_group_call_id << ": " << result.error();
+    }
+    if (group_call->pending_paid_message_star_count != group_call->paid_message_star_count) {
+      send_update_group_call(group_call, "on_set_group_call_paid_message_star_count failed");
+    }
+  } else {
+    if (group_call->pending_paid_message_star_count != paid_message_star_count) {
+      // need to send another request
+      send_set_group_call_paid_message_star_count_query(input_group_call_id,
+                                                        group_call->pending_paid_message_star_count);
+      return;
+    }
+
+    group_call->have_pending_paid_message_star_count = false;
+    if (group_call->paid_message_star_count != paid_message_star_count) {
+      LOG(ERROR) << "Failed to set paid_message_star_count to " << paid_message_star_count << " in "
+                 << input_group_call_id;
+      send_update_group_call(group_call, "on_set_group_call_paid_message_star_count failed 2");
     }
   }
 }
@@ -4966,7 +5066,7 @@ void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, 
   }
 
   td_->create_handler<ToggleGroupCallSettingsQuery>(std::move(promise))
-      ->send(input_group_call_id, true, false, false, false, false);
+      ->send(input_group_call_id, true, false, false, false, false, false, 0);
 }
 
 void GroupCallManager::invite_group_call_participant(
@@ -5978,7 +6078,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       call.has_hidden_listeners = group_call->listeners_hidden_;
       call.title = group_call->title_;
       call.invite_link = group_call->invite_link_;
-      call.send_paid_message_star_count = StarManager::get_star_count(group_call->send_paid_messages_stars_);
+      call.paid_message_star_count = StarManager::get_star_count(group_call->send_paid_messages_stars_);
       call.message_sender_dialog_id =
           group_call->default_send_as_ == nullptr ? DialogId() : DialogId(group_call->default_send_as_);
       call.start_subscribed = group_call->schedule_start_subscribed_;
@@ -6024,6 +6124,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       call.start_subscribed_version = group_call->version_;
       call.mute_version = group_call->version_;
       call.are_messages_enabled_version = group_call->version_;
+      call.paid_message_star_count_version = group_call->version_;
       call.stream_dc_id_version = group_call->version_;
       call.record_start_date_version = group_call->version_;
       call.scheduled_start_date_version = group_call->version_;
@@ -6177,9 +6278,14 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         group_call->invite_link = std::move(call.invite_link);
         need_update = true;
       }
-      if (call.send_paid_message_star_count != group_call->send_paid_message_star_count) {
-        group_call->send_paid_message_star_count = call.send_paid_message_star_count;
-        need_update = true;
+      if (call.paid_message_star_count != group_call->paid_message_star_count &&
+          call.paid_message_star_count_version >= group_call->paid_message_star_count_version) {
+        auto old_paid_message_star_count = get_group_call_paid_message_star_count(group_call);
+        group_call->paid_message_star_count = call.paid_message_star_count;
+        group_call->paid_message_star_count_version = call.paid_message_star_count_version;
+        if (old_paid_message_star_count != get_group_call_paid_message_star_count(group_call)) {
+          need_update = true;
+        }
       }
       if (call.message_sender_dialog_id != group_call->message_sender_dialog_id && !is_min) {
         group_call->message_sender_dialog_id = call.message_sender_dialog_id;
@@ -6705,6 +6811,7 @@ td_api::object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   bool are_messages_enabled = get_group_call_are_messages_enabled(group_call);
   bool can_toggle_are_messages_enabled =
       group_call->is_active && group_call->can_be_managed && group_call->allowed_toggle_are_messages_enabled;
+  auto paid_message_star_count = get_group_call_paid_message_star_count(group_call);
   int32 record_start_date = get_group_call_record_start_date(group_call);
   int32 record_duration = record_start_date == 0 ? 0 : max(G()->unix_time() - record_start_date + 1, 1);
   bool is_video_recorded = get_group_call_is_video_recorded(group_call);
@@ -6715,7 +6822,7 @@ td_api::object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   }
   return td_api::make_object<td_api::groupCall>(
       group_call->group_call_id.get(), get_group_call_title(group_call), group_call->invite_link,
-      group_call->send_paid_message_star_count, scheduled_start_date, start_subscribed, is_active,
+      paid_message_star_count, scheduled_start_date, start_subscribed, is_active,
       !group_call->is_conference && !group_call->is_live_story, group_call->is_live_story,
       !group_call->is_conference && group_call->is_rtmp_stream, is_joined, group_call->need_rejoin,
       group_call->is_creator, group_call->can_be_managed, group_call->participant_count,

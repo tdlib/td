@@ -128,6 +128,9 @@ class GroupCallManager final : public Actor {
   void toggle_group_call_are_messages_enabled(GroupCallId group_call_id, bool are_messages_enabled,
                                               Promise<Unit> &&promise);
 
+  void set_group_call_paid_message_star_count(GroupCallId group_call_id, int64 paid_message_star_count,
+                                              Promise<Unit> &&promise);
+
   void send_group_call_message(GroupCallId group_call_id, td_api::object_ptr<td_api::formattedText> &&text,
                                Promise<Unit> &&promise);
 
@@ -314,6 +317,8 @@ class GroupCallManager final : public Actor {
 
   static bool get_group_call_are_messages_enabled(const GroupCall *group_call);
 
+  static int64 get_group_call_paid_message_star_count(const GroupCall *group_call);
+
   static int32 get_group_call_record_start_date(const GroupCall *group_call);
 
   static bool get_group_call_is_video_recorded(const GroupCall *group_call);
@@ -449,6 +454,12 @@ class GroupCallManager final : public Actor {
                                                          bool are_messages_enabled);
 
   void on_toggle_group_call_are_messages_enabled(InputGroupCallId input_group_call_id, bool are_messages_enabled,
+                                                 Result<Unit> &&result);
+
+  void send_set_group_call_paid_message_star_count_query(InputGroupCallId input_group_call_id,
+                                                         int64 paid_message_star_count);
+
+  void on_set_group_call_paid_message_star_count(InputGroupCallId input_group_call_id, int64 paid_message_star_count,
                                                  Result<Unit> &&result);
 
   void send_toggle_group_call_recording_query(InputGroupCallId input_group_call_id, bool is_enabled,

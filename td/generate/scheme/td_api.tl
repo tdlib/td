@@ -12485,6 +12485,11 @@ toggleGroupCallIsMyVideoPaused group_call_id:int32 is_my_video_paused:Bool = Ok;
 //@description Toggles whether current user's video is enabled @group_call_id Group call identifier @is_my_video_enabled Pass true if the current user's video is enabled
 toggleGroupCallIsMyVideoEnabled group_call_id:int32 is_my_video_enabled:Bool = Ok;
 
+//@description Changes the minimum number of Telegram Stars that must be paid by general participant for each sent message to a live story call
+//@group_call_id Group call identifier; must be an identifier of a live story call
+//@paid_message_star_count The new minimum number of Telegram Stars; 0-getOption("paid_group_call_message_star_count_max")
+setGroupCallPaidMessageStarCount group_call_id:int32 paid_message_star_count:int53 = Ok;
+
 //@description Informs TDLib that speaking state of a participant of an active group call has changed. Returns identifier of the participant if it is found
 //@group_call_id Group call identifier
 //@audio_source Group call participant's synchronization audio source identifier, or 0 for the current user

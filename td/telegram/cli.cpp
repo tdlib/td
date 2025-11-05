@@ -5142,6 +5142,12 @@ class CliClient final : public Actor {
       bool can_send_messages;
       get_args(args, group_call_id, can_send_messages);
       send_request(td_api::make_object<td_api::toggleGroupCallCanSendMessages>(group_call_id, can_send_messages));
+    } else if (op == "sgcpmsc") {
+      GroupCallId group_call_id;
+      int64 paid_message_star_count;
+      get_args(args, group_call_id, paid_message_star_count);
+      send_request(
+          td_api::make_object<td_api::setGroupCallPaidMessageStarCount>(group_call_id, paid_message_star_count));
     } else if (op == "gslsams") {
       ChatId chat_id;
       get_args(args, chat_id);
