@@ -468,6 +468,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/GroupCallJoinParameters.cpp
   td/telegram/GroupCallManager.cpp
   td/telegram/GroupCallMessage.cpp
+  td/telegram/GroupCallMessageLimit.cpp
   td/telegram/GroupCallParticipant.cpp
   td/telegram/GroupCallParticipantOrder.cpp
   td/telegram/GroupCallVideoPayload.cpp
@@ -835,6 +836,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/GroupCallId.h
   td/telegram/GroupCallManager.h
   td/telegram/GroupCallMessage.h
+  td/telegram/GroupCallMessageLimit.h
   td/telegram/GroupCallParticipant.h
   td/telegram/GroupCallParticipantOrder.h
   td/telegram/GroupCallVideoPayload.h
@@ -1134,6 +1136,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/ForumTopicInfo.hpp
   td/telegram/Game.hpp
   td/telegram/GiveawayParameters.hpp
+  td/telegram/GroupCallMessageLimit.hpp
   td/telegram/InputInvoice.hpp
   td/telegram/InputMessageText.hpp
   td/telegram/MediaArea.hpp

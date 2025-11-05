@@ -6053,6 +6053,16 @@ groupCallInfo group_call_id:int32 join_payload:string = GroupCallInfo;
 //@text Text of the message
 groupCallMessage sender_id:MessageSender text:formattedText = GroupCallMessage;
 
+//@description Represents a level of features for a message sent in a live story group call
+//@min_star_count The minimum number of Telegram Stars required to get features of the level
+//@pin_duration The amount of time the message of this level will be pinned, in seconds
+//@max_text_length The maximum allowed length of the message text
+//@max_custom_emoji_count The maximum allowed number of custom emoji in the message text
+//@first_color The first color used to show the message text in the RGB format
+//@second_color The second color used to show the message text in the RGB format
+//@background_color Background color for the message the RGB format
+groupCallMessageLevel min_star_count:int53 pin_duration:int32 max_text_length:int32 max_custom_emoji_count:int32 first_color:int32 second_color:int32 background_color:int32 = GroupCallMessageLevel;
+
 
 //@class InviteGroupCallParticipantResult @description Describes result of group call participant invitation
 
@@ -9560,6 +9570,9 @@ updateTonRevenueStatus status:tonRevenueStatus = Update;
 //@left_count Number of left speech recognition attempts this week
 //@next_reset_date Point in time (Unix timestamp) when the weekly number of tries will reset; 0 if unknown
 updateSpeechRecognitionTrial max_media_duration:int32 weekly_count:int32 left_count:int32 next_reset_date:int32 = Update;
+
+//@description The levels of live story group call messages has changed @levels New description of the levels in decreasing order of groupCallMessageLevel.min_star_count 
+updateGroupCallMessageLevels levels:vector<groupCallMessageLevel> = Update;
 
 //@description The list of supported dice emojis has changed @emojis The new list of supported dice emojis
 updateDiceEmojis emojis:vector<string> = Update;

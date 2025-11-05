@@ -1,0 +1,64 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2025
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#pragma once
+
+#include "td/telegram/DialogId.h"
+#include "td/telegram/MessageEntity.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
+
+#include "td/utils/common.h"
+
+namespace td {
+
+class GroupCallMessageLimit {
+  int64 star_count_ = 0;
+  int32 pin_duration_ = 0;
+  int32 max_text_length_ = 0;
+  int32 max_emoji_count_ = 0;
+  int32 color1_ = 0;
+  int32 color2_ = 0;
+  int32 color_bg_ = 0;
+
+  friend bool operator==(const GroupCallMessageLimit &lhs, const GroupCallMessageLimit &rhs);
+
+  static bool is_valid_color(int32 color) {
+    return 0 <= color && color <= 0xFFFFFF;
+  }
+
+ public:
+  explicit GroupCallMessageLimit(telegram_api::object_ptr<telegram_api::JSONValue> &&limit);
+
+  bool is_valid() const;
+
+  td_api::object_ptr<td_api::groupCallMessageLevel> get_group_call_message_level_object() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
+};
+
+class GroupCallMessageLimits {
+  vector<GroupCallMessageLimit> limits_;
+
+  friend bool operator==(const GroupCallMessageLimits &lhs, const GroupCallMessageLimits &rhs);
+
+ public:
+  explicit GroupCallMessageLimits(telegram_api::object_ptr<telegram_api::JSONValue> &&limits);
+
+  td_api::object_ptr<td_api::updateGroupCallMessageLevels> get_update_group_call_message_levels_object() const;
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
+
+  template <class ParserT>
+  void parse(ParserT &parser);
+};
+
+}  // namespace td
