@@ -21069,7 +21069,8 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
 
   if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
     auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
-    TRY_RESULT(copy_options, process_message_copy_options(dialog_id, std::move(input_message->copy_options_)));
+    TRY_RESULT(copy_options,
+               MessageCopyOptions::get_message_copy_options(td_, dialog_id, std::move(input_message->copy_options_)));
     copy_options.input_reply_to = std::move(input_reply_to);
     TRY_RESULT_ASSIGN(copy_options.reply_markup, get_dialog_reply_markup(dialog_id, std::move(reply_markup)));
     return forward_message(
@@ -21138,7 +21139,8 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   if (input_message_content != nullptr && input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
     // for sendMessageAlbum/editMessageMedia/addLocalMessage
     auto input_message = td_api::move_object_as<td_api::inputMessageForwarded>(input_message_content);
-    TRY_RESULT(copy_options, process_message_copy_options(dialog_id, std::move(input_message->copy_options_)));
+    TRY_RESULT(copy_options,
+               MessageCopyOptions::get_message_copy_options(td_, dialog_id, std::move(input_message->copy_options_)));
     if (!copy_options.send_copy) {
       return Status::Error(400, "Can't use forwarded message");
     }
@@ -21183,22 +21185,6 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_, is_premium));
   TRY_STATUS(can_send_message_content(dialog_id, content.content.get(), false, check_permissions, td_));
   return std::move(content);
-}
-
-Result<MessageCopyOptions> MessagesManager::process_message_copy_options(
-    DialogId dialog_id, tl_object_ptr<td_api::messageCopyOptions> &&options) const {
-  if (options == nullptr || !options->send_copy_) {
-    return MessageCopyOptions();
-  }
-  MessageCopyOptions result;
-  result.send_copy = true;
-  result.replace_caption = options->replace_caption_;
-  if (result.replace_caption) {
-    TRY_RESULT_ASSIGN(result.new_caption, get_formatted_text(td_, dialog_id, std::move(options->new_caption_),
-                                                             td_->auth_manager_->is_bot(), true, false, false));
-    result.new_invert_media = options->new_show_caption_above_media_;
-  }
-  return std::move(result);
 }
 
 Status MessagesManager::check_paid_message_star_count(int64 &paid_message_star_count, int32 message_count) const {

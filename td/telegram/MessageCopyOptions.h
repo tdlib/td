@@ -6,11 +6,14 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageTopic.h"
+#include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {
@@ -34,6 +37,9 @@ struct MessageCopyOptions {
   MessageCopyOptions(MessageCopyOptions &&) noexcept = default;
   MessageCopyOptions &operator=(MessageCopyOptions &&) noexcept = default;
   ~MessageCopyOptions();
+
+  static Result<MessageCopyOptions> get_message_copy_options(Td *td, DialogId dialog_id,
+                                                             td_api::object_ptr<td_api::messageCopyOptions> &&options);
 
   bool is_supported_server_side(const Td *td, const MessageTopic &message_topic) const;
 };

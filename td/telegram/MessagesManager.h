@@ -1714,9 +1714,6 @@ class MessagesManager final : public Actor {
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
       bool check_permissions = true);
 
-  Result<MessageCopyOptions> process_message_copy_options(DialogId dialog_id,
-                                                          tl_object_ptr<td_api::messageCopyOptions> &&options) const;
-
   Status check_paid_message_star_count(int64 &paid_message_star_count, int32 message_count) const;
 
   Result<MessageSendOptions> process_message_send_options(DialogId dialog_id,

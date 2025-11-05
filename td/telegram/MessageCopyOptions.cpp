@@ -6,7 +6,9 @@
 //
 #include "td/telegram/MessageCopyOptions.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ReplyMarkup.h"
+#include "td/telegram/Td.h"
 
 namespace td {
 
@@ -25,6 +27,22 @@ bool MessageCopyOptions::is_supported_server_side(const Td *td, const MessageTop
     return false;
   }
   return true;
+}
+
+Result<MessageCopyOptions> MessageCopyOptions::get_message_copy_options(
+    Td *td, DialogId dialog_id, td_api::object_ptr<td_api::messageCopyOptions> &&options) {
+  if (options == nullptr || !options->send_copy_) {
+    return MessageCopyOptions();
+  }
+  MessageCopyOptions result;
+  result.send_copy = true;
+  result.replace_caption = options->replace_caption_;
+  if (result.replace_caption) {
+    TRY_RESULT_ASSIGN(result.new_caption, get_formatted_text(td, dialog_id, std::move(options->new_caption_),
+                                                             td->auth_manager_->is_bot(), true, false, false));
+    result.new_invert_media = options->new_show_caption_above_media_;
+  }
+  return std::move(result);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, MessageCopyOptions copy_options) {
