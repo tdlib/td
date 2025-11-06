@@ -51,6 +51,15 @@ GroupCallMessageLimit::GroupCallMessageLimit(telegram_api::object_ptr<telegram_a
   }
 }
 
+GroupCallMessageLimit GroupCallMessageLimit::basic() {
+  GroupCallMessageLimit result;
+  result.max_text_length_ = 30;
+  result.color1_ = 9788635;
+  result.color2_ = 9788635;
+  result.color_bg_ = 4786075;
+  return result;
+}
+
 bool GroupCallMessageLimit::is_valid() const {
   return star_count_ >= 0 && pin_duration_ >= 0 && max_text_length_ > 0 && max_emoji_count_ >= 0 &&
          is_valid_color(color1_) && is_valid_color(color2_) && is_valid_color(color_bg_);
@@ -84,6 +93,12 @@ GroupCallMessageLimits::GroupCallMessageLimits(telegram_api::object_ptr<telegram
     }
     limits_.push_back(std::move(limit));
   }
+}
+
+GroupCallMessageLimits GroupCallMessageLimits::basic() {
+  GroupCallMessageLimits result;
+  result.limits_.push_back(GroupCallMessageLimit::basic());
+  return result;
 }
 
 td_api::object_ptr<td_api::updateGroupCallMessageLevels>

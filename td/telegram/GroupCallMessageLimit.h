@@ -35,6 +35,8 @@ class GroupCallMessageLimit {
 
   explicit GroupCallMessageLimit(telegram_api::object_ptr<telegram_api::JSONValue> &&limit);
 
+  static GroupCallMessageLimit basic();
+
   bool is_valid() const;
 
   td_api::object_ptr<td_api::groupCallMessageLevel> get_group_call_message_level_object() const;
@@ -55,6 +57,8 @@ class GroupCallMessageLimits {
   GroupCallMessageLimits() = default;
 
   explicit GroupCallMessageLimits(telegram_api::object_ptr<telegram_api::JSONValue> &&limits);
+
+  static GroupCallMessageLimits basic();
 
   td_api::object_ptr<td_api::updateGroupCallMessageLevels> get_update_group_call_message_levels_object() const;
 

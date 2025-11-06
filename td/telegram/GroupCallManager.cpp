@@ -18,6 +18,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/GroupCallJoinParameters.h"
 #include "td/telegram/GroupCallMessage.h"
+#include "td/telegram/GroupCallMessageLimit.hpp"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
@@ -1592,6 +1593,14 @@ GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), pare
 
   poll_group_call_blocks_timeout_.set_callback(on_poll_group_call_blocks_timeout_callback);
   poll_group_call_blocks_timeout_.set_callback_data(static_cast<void *>(this));
+
+  if (!td_->auth_manager_->is_bot()) {
+    auto status = log_event_parse(message_limits_, G()->td_db()->get_binlog_pmc()->get("group_call_message_limits"));
+    if (status.is_error()) {
+      message_limits_ = GroupCallMessageLimits::basic();
+    }
+    send_closure(G()->td(), &Td::send_update, message_limits_.get_update_group_call_message_levels_object());
+  }
 }
 
 GroupCallManager::~GroupCallManager() = default;
@@ -6003,6 +6012,7 @@ void GroupCallManager::on_update_group_call_message_limits(telegram_api::object_
   }
   message_limits_ = new_limits;
   send_closure(G()->td(), &Td::send_update, message_limits_.get_update_group_call_message_levels_object());
+  G()->td_db()->get_binlog_pmc()->set("group_call_message_limits", log_event_store(message_limits_).as_slice().str());
 }
 
 bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_group_call_id) {
