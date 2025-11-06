@@ -6567,18 +6567,20 @@ void UserManager::get_user_profile_photos(UserId user_id, int32 offset, int32 li
   pending_request.offset = offset;
   pending_request.limit = limit;
   pending_request.promise = std::move(promise);
-  user_photos->pending_requests.push_back(std::move(pending_request));
-  if (user_photos->pending_requests.size() != 1u) {
+  auto &requests = pending_get_user_photos_requests_[user_id];
+  requests.push_back(std::move(pending_request));
+  if (requests.size() != 1u) {
     return;
   }
 
-  send_get_user_photos_query(user_id, user_photos);
+  send_get_user_photos_query(user_id, user_photos, requests);
 }
 
-void UserManager::send_get_user_photos_query(UserId user_id, const UserPhotos *user_photos) {
-  CHECK(!user_photos->pending_requests.empty());
-  auto offset = user_photos->pending_requests[0].offset;
-  auto limit = user_photos->pending_requests[0].limit;
+void UserManager::send_get_user_photos_query(UserId user_id, const UserPhotos *user_photos,
+                                             const vector<PendingGetPhotoRequest> &requests) {
+  CHECK(!requests.empty());
+  auto offset = requests[0].offset;
+  auto limit = requests[0].limit;
 
   if (user_photos->count != -1 && offset >= user_photos->offset) {
     int32 cache_end = user_photos->offset + narrow_cast<int32>(user_photos->photos.size());
@@ -6600,15 +6602,16 @@ void UserManager::send_get_user_photos_query(UserId user_id, const UserPhotos *u
 
 void UserManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&result) {
   G()->ignore_result_if_closing(result);
-  auto user_photos = add_user_photos(user_id);
-  auto pending_requests = std::move(user_photos->pending_requests);
+  auto pending_requests = std::move(pending_get_user_photos_requests_[user_id]);
   CHECK(!pending_requests.empty());
+  pending_get_user_photos_requests_.erase(user_id);
   if (result.is_error()) {
     for (auto &request : pending_requests) {
       request.promise.set_error(result.error().clone());
     }
     return;
   }
+  auto user_photos = add_user_photos(user_id);
   if (user_photos->count == -1) {
     CHECK(have_min_user(user_id));
     // received result has just been dropped; resend request
@@ -6619,8 +6622,9 @@ void UserManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&resu
         return;
       }
     }
-    user_photos->pending_requests = std::move(pending_requests);
-    return send_get_user_photos_query(user_id, user_photos);
+    auto &requests = pending_get_user_photos_requests_[user_id];
+    requests = std::move(pending_requests);
+    return send_get_user_photos_query(user_id, user_photos, requests);
   }
 
   CHECK(user_photos->offset != -1);
@@ -6661,10 +6665,11 @@ void UserManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&resu
   }
 
   if (!left_requests.empty()) {
-    bool need_send = user_photos->pending_requests.empty();
-    append(user_photos->pending_requests, std::move(left_requests));
+    auto &requests = pending_get_user_photos_requests_[user_id];
+    bool need_send = requests.empty();
+    append(requests, std::move(left_requests));
     if (need_send) {
-      send_get_user_photos_query(user_id, user_photos);
+      send_get_user_photos_query(user_id, user_photos, requests);
     }
   }
 }
@@ -6752,7 +6757,7 @@ void UserManager::on_get_user_photos(UserId user_id, int32 offset, int32 limit, 
             << offset << " and limit " << limit;
   UserPhotos *user_photos = add_user_photos(user_id);
   user_photos->count = total_count;
-  CHECK(!user_photos->pending_requests.empty());
+  CHECK(pending_get_user_photos_requests_.count(user_id));
 
   if (user_photos->offset == -1) {
     user_photos->offset = 0;

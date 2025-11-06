@@ -803,8 +803,6 @@ class UserManager final : public Actor {
     vector<Photo> photos;
     int32 count = -1;
     int32 offset = -1;
-
-    vector<PendingGetPhotoRequest> pending_requests;
   };
 
   struct PendingGetSavedMusicRequest {
@@ -1031,7 +1029,8 @@ class UserManager final : public Actor {
 
   void on_get_support_user(UserId user_id, Promise<td_api::object_ptr<td_api::user>> &&promise);
 
-  void send_get_user_photos_query(UserId user_id, const UserPhotos *user_photos);
+  void send_get_user_photos_query(UserId user_id, const UserPhotos *user_photos,
+                                  const vector<PendingGetPhotoRequest> &requests);
 
   void on_get_user_profile_photos(UserId user_id, Result<Unit> &&result);
 
@@ -1187,6 +1186,8 @@ class UserManager final : public Actor {
   WaitFreeHashMap<UserId, unique_ptr<User>, UserIdHash> users_;
   WaitFreeHashMap<UserId, unique_ptr<UserFull>, UserIdHash> users_full_;
   WaitFreeHashMap<UserId, unique_ptr<UserPhotos>, UserIdHash> user_photos_;
+  WaitFreeHashMap<UserId, vector<PendingGetPhotoRequest>, UserIdHash> pending_get_user_photos_requests_;
+
   mutable FlatHashSet<UserId, UserIdHash> unknown_users_;
   WaitFreeHashMap<UserId, telegram_api::object_ptr<telegram_api::UserProfilePhoto>, UserIdHash> pending_user_photos_;
   struct UserIdPhotoIdHash {
