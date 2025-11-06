@@ -11,6 +11,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConnectionState.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/GroupCallManager.h"
 #include "td/telegram/JsonValue.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -1960,6 +1961,11 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         } else {
           LOG(ERROR) << "Receive unexpected whitelisted_bots " << to_string(*value);
         }
+        continue;
+      }
+      if (key == "stars_groupcall_message_limits") {
+        send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call_message_limits,
+                     std::move(key_value->value_));
         continue;
       }
 

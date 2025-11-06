@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/GroupCallId.h"
+#include "td/telegram/GroupCallMessageLimit.h"
 #include "td/telegram/GroupCallParticipant.h"
 #include "td/telegram/GroupCallParticipantOrder.h"
 #include "td/telegram/InputGroupCall.h"
@@ -185,6 +186,8 @@ class GroupCallManager final : public Actor {
 
   void on_update_group_call(telegram_api::object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id,
                             bool is_live_story);
+
+  void on_update_group_call_message_limits(telegram_api::object_ptr<telegram_api::JSONValue> limits);
 
   void on_user_speaking_in_group_call(GroupCallId group_call_id, DialogId dialog_id, bool is_muted_by_admin, int32 date,
                                       bool is_recursive = false);
@@ -598,6 +601,8 @@ class GroupCallManager final : public Actor {
   uint64 set_volume_level_generation_ = 0;
 
   uint64 toggle_is_hand_raised_generation_ = 0;
+
+  GroupCallMessageLimits message_limits_;
 
   MultiTimeout update_group_call_participant_order_timeout_{"UpdateGroupCallParticipantOrderTimeout"};
   MultiTimeout check_group_call_is_joined_timeout_{"CheckGroupCallIsJoinedTimeout"};

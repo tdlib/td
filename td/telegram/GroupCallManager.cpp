@@ -5996,6 +5996,15 @@ void GroupCallManager::on_update_group_call(telegram_api::object_ptr<telegram_ap
   }
 }
 
+void GroupCallManager::on_update_group_call_message_limits(telegram_api::object_ptr<telegram_api::JSONValue> limits) {
+  GroupCallMessageLimits new_limits(std::move(limits));
+  if (message_limits_ == new_limits) {
+    return;
+  }
+  message_limits_ = new_limits;
+  send_closure(G()->td(), &Td::send_update, message_limits_.get_update_group_call_message_levels_object());
+}
+
 bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_group_call_id) {
   auto *group_call = get_group_call(input_group_call_id);
   if (need_group_call_participants(input_group_call_id, group_call)) {
