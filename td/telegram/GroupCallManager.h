@@ -216,6 +216,8 @@ class GroupCallManager final : public Actor {
 
   void unregister_group_call(MessageFullId message_full_id, const char *source);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   struct GroupCall;
   struct GroupCallParticipants;

@@ -6897,4 +6897,12 @@ void GroupCallManager::unregister_group_call(MessageFullId message_full_id, cons
   update_group_call_timeout_.cancel_timeout(call_id, "unregister_group_call");
 }
 
+void GroupCallManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  updates.push_back(message_limits_.get_update_group_call_message_levels_object());
+}
+
 }  // namespace td
