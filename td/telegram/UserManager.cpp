@@ -6019,7 +6019,11 @@ bool UserManager::delete_my_profile_photo_from_cache(int64 profile_photo_id) {
       user_photos->count -= narrow_cast<int32>(removed_photos);
       // offset was not changed
       CHECK(user_photos->count >= 0);
-    } else if (user_photos->offset == 0) {
+      if (user_photos->count == 0) {
+        CHECK(user_photos->photos.empty());
+        user_photos->offset = 0;
+      }
+    } else if (user_photos->offset == 0 && static_cast<size_t>(user_photos->count) > user_photos->photos.size()) {
       // failed to find photo to remove from cache, but offset doesn't need to be adjusted
       user_photos->count--;
     } else {
@@ -6532,7 +6536,7 @@ void UserManager::get_user_profile_photos(UserId user_id, int32 offset, int32 li
 
   apply_pending_user_photo(u, user_id, "get_user_profile_photos");
 
-  auto user_photos = add_user_photos(user_id);
+  auto *user_photos = add_user_photos(user_id);
   if (user_photos->count != -1) {  // know photo count
     CHECK(user_photos->offset != -1);
     LOG(INFO) << "Have " << user_photos->count << " cached user profile photos at offset " << user_photos->offset;
