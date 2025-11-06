@@ -6536,7 +6536,7 @@ void UserManager::get_user_profile_photos(UserId user_id, int32 offset, int32 li
 
   apply_pending_user_photo(u, user_id, "get_user_profile_photos");
 
-  auto *user_photos = add_user_photos(user_id);
+  const auto *user_photos = add_user_photos(user_id);
   if (user_photos->count != -1) {  // know photo count
     CHECK(user_photos->offset != -1);
     LOG(INFO) << "Have " << user_photos->count << " cached user profile photos at offset " << user_photos->offset;
@@ -6611,7 +6611,7 @@ void UserManager::on_get_user_profile_photos(UserId user_id, Result<Unit> &&resu
     }
     return;
   }
-  auto user_photos = add_user_photos(user_id);
+  const auto *user_photos = add_user_photos(user_id);
   if (user_photos->count == -1) {
     CHECK(have_min_user(user_id));
     // received result has just been dropped; resend request
