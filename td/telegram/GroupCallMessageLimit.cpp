@@ -101,6 +101,10 @@ GroupCallMessageLimits::GroupCallMessageLimits(telegram_api::object_ptr<telegram
     }
     limits_.push_back(std::move(limit));
   }
+  if (limits_.empty() || limits_.back() < GroupCallMessageLimit::basic()) {
+    LOG(ERROR) << "Receive no basic limit";
+    limits_.push_back(GroupCallMessageLimit::basic());
+  }
 }
 
 GroupCallMessageLimits GroupCallMessageLimits::basic() {
