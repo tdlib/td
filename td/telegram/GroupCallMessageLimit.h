@@ -26,6 +26,8 @@ class GroupCallMessageLimit {
 
   friend bool operator==(const GroupCallMessageLimit &lhs, const GroupCallMessageLimit &rhs);
 
+  friend bool operator<(const GroupCallMessageLimit &lhs, const GroupCallMessageLimit &rhs);
+
   static bool is_valid_color(int32 color) {
     return 0 <= color && color <= 0xFFFFFF;
   }
@@ -48,6 +50,10 @@ class GroupCallMessageLimit {
   void parse(ParserT &parser);
 };
 
+bool operator==(const GroupCallMessageLimit &lhs, const GroupCallMessageLimit &rhs);
+
+bool operator<(const GroupCallMessageLimit &lhs, const GroupCallMessageLimit &rhs);
+
 class GroupCallMessageLimits {
   vector<GroupCallMessageLimit> limits_;
 
@@ -68,5 +74,7 @@ class GroupCallMessageLimits {
   template <class ParserT>
   void parse(ParserT &parser);
 };
+
+bool operator==(const GroupCallMessageLimits &lhs, const GroupCallMessageLimits &rhs);
 
 }  // namespace td

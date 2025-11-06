@@ -76,6 +76,10 @@ bool operator==(const GroupCallMessageLimit &lhs, const GroupCallMessageLimit &r
          lhs.color1_ == rhs.color1_ && lhs.color2_ == rhs.color2_ && lhs.color_bg_ == rhs.color_bg_;
 }
 
+bool operator<(const GroupCallMessageLimit &lhs, const GroupCallMessageLimit &rhs) {
+  return lhs.star_count_ > rhs.star_count_;
+}
+
 GroupCallMessageLimits::GroupCallMessageLimits(telegram_api::object_ptr<telegram_api::JSONValue> &&limits) {
   if (limits == nullptr) {
     return;
@@ -89,6 +93,10 @@ GroupCallMessageLimits::GroupCallMessageLimits(telegram_api::object_ptr<telegram
     GroupCallMessageLimit limit(std::move(value));
     if (!limit.is_valid()) {
       LOG(ERROR) << "Receive an invalid group call message level";
+      continue;
+    }
+    if (!limits_.empty() && !(limits_.back() < limit)) {
+      LOG(ERROR) << "Receive limits in invalid order";
       continue;
     }
     limits_.push_back(std::move(limit));
