@@ -19,7 +19,8 @@ namespace td {
 class Td;
 
 class GroupCallMessage {
-  int64 id_ = 0;
+  int64 random_id_ = 0;
+  int32 server_id_ = 0;
   int32 date_ = 0;
   DialogId dialog_id_;
   FormattedText text_;
@@ -35,11 +36,15 @@ class GroupCallMessage {
   GroupCallMessage(DialogId dialog_id, FormattedText text);
 
   bool is_valid() const {
-    return dialog_id_.is_valid() && !text_.text.empty() && id_ != 0;
+    return dialog_id_.is_valid() && (server_id_ != 0 || random_id_ != 0);
   }
 
-  int64 get_message_id() const {
-    return id_;
+  int32 get_server_id() const {
+    return server_id_;
+  }
+
+  int64 get_unique_id() const {
+    return server_id_ ? static_cast<int64>(server_id_) : random_id_;
   }
 
   string encode_to_json() const;

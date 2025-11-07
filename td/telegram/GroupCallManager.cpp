@@ -1491,7 +1491,7 @@ struct GroupCallManager::GroupCall {
   tde2e_api::CallVerificationState call_verification_state;
   int32 block_next_offset[2] = {};
   vector<int64> blockchain_participant_ids;
-  FlatHashSet<int64> message_random_ids;
+  FlatHashSet<int64> message_unique_ids;
 
   int32 version = -1;
   int32 leave_version = -1;
@@ -2893,9 +2893,9 @@ void GroupCallManager::add_group_call_message(GroupCall *group_call, GroupCallMe
   if (!group_call_message.is_valid()) {
     return;
   }
-  auto message_id = group_call_message.get_message_id();
-  if (!group_call->message_random_ids.insert(message_id).second) {
-    LOG(INFO) << "Skip duplicate " << message_id;
+  auto unique_id = group_call_message.get_unique_id();
+  if (!group_call->message_unique_ids.insert(unique_id).second) {
+    LOG(INFO) << "Skip duplicate " << unique_id;
     return;
   }
   // TODO update group call spendings
