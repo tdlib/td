@@ -185,6 +185,10 @@ GroupCallMessage::GroupCallMessage(Td *td, telegram_api::object_ptr<telegram_api
     , sender_dialog_id_(message->from_id_)
     , text_(get_formatted_text(td->user_manager_.get(), std::move(message->message_), true, false, "GroupCallMessage"))
     , paid_message_star_count_(StarManager::get_star_count(message->paid_message_stars_)) {
+  if (server_id_ <= 0) {
+    LOG(ERROR) << "Receive group call message " << server_id_;
+    sender_dialog_id_ = {};
+  }
 }
 
 GroupCallMessage::GroupCallMessage(DialogId sender_dialog_id, FormattedText text)

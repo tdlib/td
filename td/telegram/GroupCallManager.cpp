@@ -1440,6 +1440,34 @@ class DiscardGroupCallQuery final : public Td::ResultHandler {
   }
 };
 
+class GroupCallManager::GroupCallMessages {
+  FlatHashMap<DialogId, FlatHashSet<int64>, DialogIdHash> random_ids_;
+  FlatHashSet<int32> server_ids_;
+
+  bool is_new_message(const GroupCallMessage &message) {
+    auto server_id = message.get_server_id();
+    if (server_id != 0) {
+      return server_ids_.insert(server_id).second;
+    }
+    auto random_id = message.get_random_id();
+    if (random_id != 0) {
+      auto sender_dialog_id = message.get_sender_dialog_id();
+      CHECK(sender_dialog_id.is_valid());
+      auto &random_ids = random_ids_[sender_dialog_id];
+      return random_ids.insert(random_id).second;
+    }
+    return true;
+  }
+
+ public:
+  bool add_message(const GroupCallMessage &message) {
+    if (!is_new_message(message)) {
+      return false;
+    }
+    return true;
+  }
+};
+
 struct GroupCallManager::GroupCall {
   GroupCallId group_call_id;
   DialogId dialog_id;
@@ -1491,7 +1519,7 @@ struct GroupCallManager::GroupCall {
   tde2e_api::CallVerificationState call_verification_state;
   int32 block_next_offset[2] = {};
   vector<int64> blockchain_participant_ids;
-  FlatHashSet<int64> message_unique_ids;
+  GroupCallMessages messages;
 
   int32 version = -1;
   int32 leave_version = -1;
@@ -2893,9 +2921,8 @@ void GroupCallManager::add_group_call_message(GroupCall *group_call, GroupCallMe
   if (!group_call_message.is_valid()) {
     return;
   }
-  auto unique_id = group_call_message.get_unique_id();
-  if (!group_call->message_unique_ids.insert(unique_id).second) {
-    LOG(INFO) << "Skip duplicate " << unique_id;
+  if (!group_call->messages.add_message(group_call_message)) {
+    LOG(INFO) << "Skip duplicate " << group_call_message;
     return;
   }
   // TODO update group call spendings

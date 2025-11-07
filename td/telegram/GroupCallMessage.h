@@ -36,15 +36,15 @@ class GroupCallMessage {
   GroupCallMessage(DialogId sender_dialog_id, FormattedText text);
 
   bool is_valid() const {
-    return sender_dialog_id_.is_valid() && (server_id_ != 0 || random_id_ != 0);
+    return sender_dialog_id_.is_valid();
   }
 
   int32 get_server_id() const {
     return server_id_;
   }
 
-  int64 get_unique_id() const {
-    return server_id_ ? static_cast<int64>(server_id_) : random_id_;
+  int64 get_random_id() const {
+    return random_id_;
   }
 
   DialogId get_sender_dialog_id() const {

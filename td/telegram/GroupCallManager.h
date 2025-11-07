@@ -219,6 +219,7 @@ class GroupCallManager final : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
+  class GroupCallMessages;
   struct GroupCall;
   struct GroupCallParticipants;
   struct GroupCallRecentSpeakers;
