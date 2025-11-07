@@ -1870,6 +1870,9 @@ string StarManager::get_unused_star_transaction_field(
   if (transaction->stargift_drop_original_details_) {
     return "gift original details drop";
   }
+  if (transaction->phonegroup_message_) {
+    return "live story message";
+  }
   return string();
 }
 
