@@ -25,6 +25,7 @@ class GroupCallMessage {
   DialogId sender_dialog_id_;
   FormattedText text_;
   int64 paid_message_star_count_ = 0;
+  bool from_admin_ = false;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const GroupCallMessage &group_call_message);
 

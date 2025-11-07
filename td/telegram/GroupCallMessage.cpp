@@ -184,7 +184,8 @@ GroupCallMessage::GroupCallMessage(Td *td, telegram_api::object_ptr<telegram_api
     , date_(max(1000000000, message->date_))
     , sender_dialog_id_(message->from_id_)
     , text_(get_formatted_text(td->user_manager_.get(), std::move(message->message_), true, false, "GroupCallMessage"))
-    , paid_message_star_count_(StarManager::get_star_count(message->paid_message_stars_)) {
+    , paid_message_star_count_(StarManager::get_star_count(message->paid_message_stars_))
+    , from_admin_(message->from_admin_) {
   if (server_id_ <= 0) {
     LOG(ERROR) << "Receive group call message " << server_id_;
     sender_dialog_id_ = {};
@@ -291,7 +292,7 @@ td_api::object_ptr<td_api::groupCallMessage> GroupCallMessage::get_group_call_me
                                                                                              int32 message_id) const {
   return td_api::make_object<td_api::groupCallMessage>(
       message_id, get_message_sender_object(td, sender_dialog_id_, "get_group_call_message_object"), date_,
-      get_formatted_text_object(td->user_manager_.get(), text_, true, -1), paid_message_star_count_);
+      get_formatted_text_object(td->user_manager_.get(), text_, true, -1), paid_message_star_count_, from_admin_);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const GroupCallMessage &group_call_message) {

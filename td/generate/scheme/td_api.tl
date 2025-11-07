@@ -6054,7 +6054,8 @@ groupCallInfo group_call_id:int32 join_payload:string = GroupCallInfo;
 //@date Point in time (Unix timestamp) when the message was sent
 //@text Text of the message
 //@paid_message_star_count The number of Telegram Stars that were paid to send the message; for live stream stories only
-groupCallMessage message_id:int32 sender_id:MessageSender date:int32 text:formattedText paid_message_star_count:int53 = GroupCallMessage;
+//@is_from_owner True, if the message is sent by the owner of the call and must be treated as a message of the maximum level; for live stream stories only
+groupCallMessage message_id:int32 sender_id:MessageSender date:int32 text:formattedText paid_message_star_count:int53 is_from_owner:Bool = GroupCallMessage;
 
 //@description Represents a level of features for a message sent in a live story group call
 //@min_star_count The minimum number of Telegram Stars required to get features of the level
