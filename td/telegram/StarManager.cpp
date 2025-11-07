@@ -1678,7 +1678,7 @@ void StarManager::reload_owned_star_count() {
 }
 
 void StarManager::reload_owned_ton_count() {
-  // do_get_ton_transactions(td_->dialog_manager_->get_my_dialog_id(), string(), 1, nullptr, Auto());
+  do_get_ton_transactions(string(), 1, nullptr, Auto());
 }
 
 void StarManager::on_update_stars_revenue_status(
