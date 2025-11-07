@@ -206,6 +206,8 @@ class GroupCallManager final : public Actor {
   void on_new_encrypted_group_call_message(InputGroupCallId input_group_call_id, DialogId sender_dialog_id,
                                            string &&encrypted_message);
 
+  void on_group_call_messages_deleted(InputGroupCallId input_group_call_id, vector<int32> &&server_ids);
+
   void process_join_video_chat_response(InputGroupCallId input_group_call_id, uint64 generation,
                                         tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);
 

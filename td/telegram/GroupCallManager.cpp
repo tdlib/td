@@ -1444,7 +1444,9 @@ class GroupCallManager::GroupCallMessages {
   FlatHashMap<DialogId, FlatHashSet<int64>, DialogIdHash> random_ids_;
   FlatHashSet<int32> server_ids_;
   int32 current_message_id_ = 0;
-  FlatHashMap<int32, int32> server_id_to_message_ids_;
+  FlatHashMap<int32, int32> server_id_to_message_id_;
+  FlatHashMap<int32, int32> message_id_to_server_id_;
+  FlatHashSet<int32> message_ids_;
 
   bool is_new_message(const GroupCallMessage &message) {
     auto server_id = message.get_server_id();
@@ -1469,9 +1471,38 @@ class GroupCallManager::GroupCallMessages {
     auto message_id = ++current_message_id_;
     auto server_id = message.get_server_id();
     if (server_id != 0) {
-      server_id_to_message_ids_[server_id] = message_id;
+      server_id_to_message_id_[server_id] = message_id;
+      message_id_to_server_id_[message_id] = server_id;
     }
+    message_ids_.insert(message_id);
     return message_id;
+  }
+
+  std::pair<int32, bool> delete_message(int32 message_id) {
+    int32 server_id = 0;
+    auto server_id_it = message_id_to_server_id_.find(message_id);
+    if (server_id_it != message_id_to_server_id_.end()) {
+      server_id = server_id_it->second;
+      message_id_to_server_id_.erase(server_id_it);
+      auto is_deleted = server_id_to_message_id_.erase(server_id) > 0;
+      CHECK(is_deleted);
+    }
+    return {server_id, message_ids_.erase(message_id) > 0};
+  }
+
+  vector<int32> delete_server_messages(const vector<int32> &server_ids) {
+    vector<int32> deleted_message_ids;
+    for (auto server_id : server_ids) {
+      auto message_id_it = server_id_to_message_id_.find(server_id);
+      if (message_id_it == server_id_to_message_id_.end()) {
+        continue;
+      }
+      auto message_id = message_id_it->second;
+      auto real_server_id = delete_message(message_id).first;
+      CHECK(real_server_id == server_id);
+      deleted_message_ids.push_back(message_id);
+      return deleted_message_ids;
+    }
   }
 };
 
@@ -2997,6 +3028,41 @@ void GroupCallManager::on_new_encrypted_group_call_message(InputGroupCallId inpu
   }
 
   add_group_call_message(group_call, GroupCallMessage(td_, sender_dialog_id, std::move(r_message.value())));
+}
+
+void GroupCallManager::on_group_call_messages_deleted(InputGroupCallId input_group_call_id,
+                                                      vector<int32> &&server_ids) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
+    return;
+  }
+  if (!group_call->is_live_story) {
+    LOG(ERROR) << "Receive updateDeleteGroupCallMessages in " << input_group_call_id;
+    return;
+  }
+  if (!group_call->is_joined || group_call->is_being_left) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id,
+                                  server_ids = std::move(server_ids)](Result<Unit> &&result) mutable {
+            if (result.is_ok()) {
+              send_closure(actor_id, &GroupCallManager::on_group_call_messages_deleted, input_group_call_id,
+                           std::move(server_ids));
+            }
+          }));
+    }
+    return;
+  }
+
+  auto message_ids = group_call->messages.delete_server_messages(server_ids);
+  if (!message_ids.empty()) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateGroupCallMessagesDeleted>(group_call->group_call_id.get(),
+                                                                             std::move(message_ids)));
+  }
 }
 
 bool GroupCallManager::is_my_audio_source(InputGroupCallId input_group_call_id, const GroupCall *group_call,

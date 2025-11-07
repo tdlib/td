@@ -9403,6 +9403,11 @@ updateGroupCallVerificationState group_call_id:int32 generation:int32 emojis:vec
 //@message The message
 updateNewGroupCallMessage group_call_id:int32 message:groupCallMessage = Update;
 
+//@description Some group call messages were deleted
+//@group_call_id Identifier of the group call
+//@message_ids Identifiers of the deleted messages
+updateGroupCallMessagesDeleted group_call_id:int32 message_ids:vector<int32> = Update;
+
 //@description New call signaling data arrived @call_id The call identifier @data The data
 updateNewCallSignalingData call_id:int32 data:bytes = Update;
 

@@ -635,6 +635,8 @@ class UpdatesManager final : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateGroupCallEncryptedMessage> update, Promise<Unit> &&promise);
 
+  void on_update(tl_object_ptr<telegram_api::updateDeleteGroupCallMessages> update, Promise<Unit> &&promise);
+
   void on_update(tl_object_ptr<telegram_api::updateContactsReset> update, Promise<Unit> &&promise);
 
   void on_update(tl_object_ptr<telegram_api::updateLangPackTooLong> update, Promise<Unit> &&promise);
@@ -713,8 +715,6 @@ class UpdatesManager final : public Actor {
   // unsupported updates
 
   void on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise);
-
-  void on_update(tl_object_ptr<telegram_api::updateDeleteGroupCallMessages> update, Promise<Unit> &&promise);
 };
 
 }  // namespace td

@@ -4526,6 +4526,13 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallEncryp
   promise.set_value(Unit());
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteGroupCallMessages> update,
+                               Promise<Unit> &&promise) {
+  send_closure(G()->group_call_manager(), &GroupCallManager::on_group_call_messages_deleted,
+               InputGroupCallId(update->call_), std::move(update->messages_));
+  promise.set_value(Unit());
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateContactsReset> update, Promise<Unit> &&promise) {
   td_->user_manager_->on_update_contacts_reset();
   promise.set_value(Unit());
@@ -4815,11 +4822,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueSta
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
-  promise.set_value(Unit());
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteGroupCallMessages> update,
-                               Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 
