@@ -287,9 +287,10 @@ string GroupCallMessage::encode_to_json() const {
   }));
 }
 
-td_api::object_ptr<td_api::groupCallMessage> GroupCallMessage::get_group_call_message_object(Td *td) const {
+td_api::object_ptr<td_api::groupCallMessage> GroupCallMessage::get_group_call_message_object(Td *td,
+                                                                                             int32 message_id) const {
   return td_api::make_object<td_api::groupCallMessage>(
-      get_message_sender_object(td, sender_dialog_id_, "get_group_call_message_object"),
+      message_id, get_message_sender_object(td, sender_dialog_id_, "get_group_call_message_object"),
       get_formatted_text_object(td->user_manager_.get(), text_, true, -1));
 }
 

@@ -1443,6 +1443,8 @@ class DiscardGroupCallQuery final : public Td::ResultHandler {
 class GroupCallManager::GroupCallMessages {
   FlatHashMap<DialogId, FlatHashSet<int64>, DialogIdHash> random_ids_;
   FlatHashSet<int32> server_ids_;
+  int32 current_message_id_ = 0;
+  FlatHashMap<int32, int32> server_id_to_message_ids_;
 
   bool is_new_message(const GroupCallMessage &message) {
     auto server_id = message.get_server_id();
@@ -1460,11 +1462,16 @@ class GroupCallManager::GroupCallMessages {
   }
 
  public:
-  bool add_message(const GroupCallMessage &message) {
+  int32 add_message(const GroupCallMessage &message) {
     if (!is_new_message(message)) {
-      return false;
+      return 0;
     }
-    return true;
+    auto message_id = ++current_message_id_;
+    auto server_id = message.get_server_id();
+    if (server_id != 0) {
+      server_id_to_message_ids_[server_id] = message_id;
+    }
+    return message_id;
   }
 };
 
@@ -2921,14 +2928,15 @@ void GroupCallManager::add_group_call_message(GroupCall *group_call, GroupCallMe
   if (!group_call_message.is_valid()) {
     return;
   }
-  if (!group_call->messages.add_message(group_call_message)) {
+  auto message_id = group_call->messages.add_message(group_call_message);
+  if (message_id == 0) {
     LOG(INFO) << "Skip duplicate " << group_call_message;
     return;
   }
   // TODO update group call spendings
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewGroupCallMessage>(
-                   group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_)));
+                   group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_, message_id)));
 }
 
 void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_call_id,
@@ -5060,9 +5068,11 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
           : (group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id());
   CHECK(as_dialog_id.is_valid());
   auto group_call_message = GroupCallMessage(as_dialog_id, message);
+  auto message_id = group_call->messages.add_message(group_call_message);
+  CHECK(message_id != 0);
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewGroupCallMessage>(
-                   group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_)));
+                   group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_, message_id)));
 
   if (group_call->is_conference || group_call->call_id != tde2e_api::CallId()) {
     auto json_message = group_call_message.encode_to_json();

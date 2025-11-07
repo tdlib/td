@@ -6049,9 +6049,10 @@ groupCallParticipants total_count:int32 participant_ids:vector<MessageSender> = 
 groupCallInfo group_call_id:int32 join_payload:string = GroupCallInfo;
 
 //@description Represents a message sent in a group call
+//@message_id Unique message identifier within group call
 //@sender_id Identifier of the sender of the message
 //@text Text of the message
-groupCallMessage sender_id:MessageSender text:formattedText = GroupCallMessage;
+groupCallMessage message_id:int32 sender_id:MessageSender text:formattedText = GroupCallMessage;
 
 //@description Represents a level of features for a message sent in a live story group call
 //@min_star_count The minimum number of Telegram Stars required to get features of the level
