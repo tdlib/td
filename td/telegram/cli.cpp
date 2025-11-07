@@ -5163,6 +5163,12 @@ class CliClient final : public Actor {
       string text;
       get_args(args, group_call_id, text);
       send_request(td_api::make_object<td_api::sendGroupCallMessage>(group_call_id, as_formatted_text(text)));
+    } else if (op == "dgcm" || op == "dgcms") {
+      GroupCallId group_call_id;
+      string message_ids;
+      get_args(args, group_call_id, message_ids);
+      send_request(td_api::make_object<td_api::deleteGroupCallMessages>(group_call_id, to_integers<int32>(message_ids),
+                                                                        op == "dgcms"));
     } else if (op == "rgcil") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);

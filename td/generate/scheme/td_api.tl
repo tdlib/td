@@ -12461,6 +12461,12 @@ setGroupCallMessageSender group_call_id:int32 message_sender_id:MessageSender = 
 //@text Text of the message to send; 0-getOption("group_call_message_text_length_max") characters
 sendGroupCallMessage group_call_id:int32 text:formattedText = Ok;
 
+//@description Deletes messages in a group call; for live story calls only. Requires groupCall.can_delete_messages right
+//@group_call_id Group call identifier
+//@message_ids Identifiers of the messages to be deleted
+//@report_spam Pass true to report the messages as spam
+deleteGroupCallMessages group_call_id:int32 message_ids:vector<int32> report_spam:Bool = Ok;
+
 //@description Invites a user to an active group call; for group calls not bound to a chat only. Sends a service message of the type messageGroupCall.
 //-The group call can have at most getOption("group_call_participant_count_max") participants
 //@group_call_id Group call identifier

@@ -135,6 +135,9 @@ class GroupCallManager final : public Actor {
   void send_group_call_message(GroupCallId group_call_id, td_api::object_ptr<td_api::formattedText> &&text,
                                Promise<Unit> &&promise);
 
+  void delete_group_call_messages(GroupCallId group_call_id, const vector<int32> &message_ids, bool report_spam,
+                                  Promise<Unit> &&promise);
+
   void revoke_group_call_invite_link(GroupCallId group_call_id, Promise<Unit> &&promise);
 
   void invite_group_call_participant(GroupCallId group_call_id, UserId user_id, bool is_video,
