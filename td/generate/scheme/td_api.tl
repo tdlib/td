@@ -12426,10 +12426,10 @@ joinGroupCall input_group_call:InputGroupCall join_parameters:groupCallJoinParam
 //@invite_hash Invite hash as received from internalLinkTypeVideoChat
 joinVideoChat group_call_id:int32 participant_id:MessageSender join_parameters:groupCallJoinParameters invite_hash:string = Text;
 
-//@description Joins an active story live stream. Returns join response payload for tgcalls
+//@description Joins a group call of an active live story. Returns join response payload for tgcalls
 //@group_call_id Group call identifier
 //@join_parameters Parameters to join the call
-joinStoryLiveStream group_call_id:int32 join_parameters:groupCallJoinParameters = Text;
+joinLiveStory group_call_id:int32 join_parameters:groupCallJoinParameters = Text;
 
 //@description Starts screen sharing in a joined group call. Returns join response payload for tgcalls
 //@group_call_id Group call identifier
