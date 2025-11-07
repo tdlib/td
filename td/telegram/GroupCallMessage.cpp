@@ -291,7 +291,7 @@ td_api::object_ptr<td_api::groupCallMessage> GroupCallMessage::get_group_call_me
                                                                                              int32 message_id) const {
   return td_api::make_object<td_api::groupCallMessage>(
       message_id, get_message_sender_object(td, sender_dialog_id_, "get_group_call_message_object"),
-      get_formatted_text_object(td->user_manager_.get(), text_, true, -1));
+      get_formatted_text_object(td->user_manager_.get(), text_, true, -1), paid_message_star_count_);
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const GroupCallMessage &group_call_message) {

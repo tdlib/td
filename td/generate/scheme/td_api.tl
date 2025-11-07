@@ -6049,10 +6049,11 @@ groupCallParticipants total_count:int32 participant_ids:vector<MessageSender> = 
 groupCallInfo group_call_id:int32 join_payload:string = GroupCallInfo;
 
 //@description Represents a message sent in a group call
-//@message_id Unique message identifier within group call
+//@message_id Unique message identifier within the group call
 //@sender_id Identifier of the sender of the message
 //@text Text of the message
-groupCallMessage message_id:int32 sender_id:MessageSender text:formattedText = GroupCallMessage;
+//@paid_message_star_count The number of Telegram Stars that were paid to send the message; for live stream stories only
+groupCallMessage message_id:int32 sender_id:MessageSender text:formattedText paid_message_star_count:int53 = GroupCallMessage;
 
 //@description Represents a level of features for a message sent in a live story group call
 //@min_star_count The minimum number of Telegram Stars required to get features of the level
