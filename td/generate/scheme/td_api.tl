@@ -12456,10 +12456,10 @@ toggleVideoChatMuteNewParticipants group_call_id:int32 mute_new_participants:Boo
 //@can_send_messages New value of the can_send_messages setting
 toggleGroupCallCanSendMessages group_call_id:int32 can_send_messages:Bool = Ok;
 
-//@description Returns the list of message sender identifiers, on whose behalf a story live stream message can be sent @chat_id Chat identifier
-getStoryLiveStreamAvailableMessageSenders chat_id:int53 = ChatMessageSenders;
+//@description Returns the list of message sender identifiers, on whose behalf messages can be sent to a live story @chat_id Chat identifier
+getLiveStoryAvailableMessageSenders chat_id:int53 = ChatMessageSenders;
 
-//@description Selects a message sender to send messages in a live stream story group call
+//@description Selects a message sender to send messages in a live story group call
 //@group_call_id Group call identifier
 //@message_sender_id New message sender for the group call
 setGroupCallMessageSender group_call_id:int32 message_sender_id:MessageSender = Ok;

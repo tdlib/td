@@ -823,7 +823,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::setGroupCallPaidMessageStarCount &request);
 
-  void on_request(uint64 id, const td_api::getStoryLiveStreamAvailableMessageSenders &request);
+  void on_request(uint64 id, const td_api::getLiveStoryAvailableMessageSenders &request);
 
   void on_request(uint64 id, const td_api::setGroupCallMessageSender &request);
 

@@ -4804,7 +4804,7 @@ void Requests::on_request(uint64 id, const td_api::toggleVideoChatEnabledStartNo
                                                                request.enabled_start_notification_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getStoryLiveStreamAvailableMessageSenders &request) {
+void Requests::on_request(uint64 id, const td_api::getLiveStoryAvailableMessageSenders &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   td_->group_call_manager_->get_group_call_send_as(DialogId(request.chat_id_), std::move(promise));
