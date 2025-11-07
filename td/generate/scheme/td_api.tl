@@ -12475,6 +12475,12 @@ sendGroupCallMessage group_call_id:int32 text:formattedText = Ok;
 //@report_spam Pass true to report the messages as spam
 deleteGroupCallMessages group_call_id:int32 message_ids:vector<int32> report_spam:Bool = Ok;
 
+//@description Deletes all messages sent by the specified message sender in a group call; for live story calls only. Requires groupCall.can_delete_messages right
+//@group_call_id Group call identifier
+//@sender_id Identifier of the sender of messages to delete
+//@report_spam Pass true to report the messages as spam
+deleteGroupCallMessagesBySender group_call_id:int32 sender_id:MessageSender report_spam:Bool = Ok;
+
 //@description Invites a user to an active group call; for group calls not bound to a chat only. Sends a service message of the type messageGroupCall.
 //-The group call can have at most getOption("group_call_participant_count_max") participants
 //@group_call_id Group call identifier

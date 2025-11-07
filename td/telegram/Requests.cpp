@@ -4908,6 +4908,14 @@ void Requests::on_request(uint64 id, const td_api::deleteGroupCallMessages &requ
                                                        request.report_spam_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::deleteGroupCallMessagesBySender &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, sender_dialog_id, get_message_sender_dialog_id(td_, request.sender_id_, false, false));
+  td_->group_call_manager_->delete_group_call_messages_by_sender(GroupCallId(request.group_call_id_), sender_dialog_id,
+                                                                 request.report_spam_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::revokeGroupCallInviteLink &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

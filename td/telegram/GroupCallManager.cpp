@@ -1103,6 +1103,38 @@ class DeleteGroupCallMessagesQuery final : public Td::ResultHandler {
   }
 };
 
+class DeleteGroupCallParticipantMessagesQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit DeleteGroupCallParticipantMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, DialogId sender_dialog_id, bool report_spam) {
+    auto input_peer = td_->dialog_manager_->get_input_peer(sender_dialog_id, AccessRights::Know);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_deleteGroupCallParticipantMessages(
+            0, report_spam, input_group_call_id.get_input_group_call(), std::move(input_peer)),
+        {{input_group_call_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_deleteGroupCallParticipantMessages>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeleteGroupCallParticipantMessagesQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class InviteConferenceCallParticipantQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::InviteGroupCallParticipantResult>> promise_;
 
@@ -1476,7 +1508,7 @@ class GroupCallManager::GroupCallMessages {
   int32 current_message_id_ = 0;
   FlatHashMap<int32, int32> server_id_to_message_id_;
   FlatHashMap<int32, int32> message_id_to_server_id_;
-  FlatHashSet<int32> message_ids_;
+  FlatHashMap<int32, DialogId> message_id_to_sender_dialog_id_;
 
   bool is_new_message(const GroupCallMessage &message) {
     auto server_id = message.get_server_id();
@@ -1504,7 +1536,7 @@ class GroupCallManager::GroupCallMessages {
       server_id_to_message_id_[server_id] = message_id;
       message_id_to_server_id_[message_id] = server_id;
     }
-    message_ids_.insert(message_id);
+    message_id_to_sender_dialog_id_.emplace(message_id, message.get_sender_dialog_id());
     return message_id;
   }
 
@@ -1517,7 +1549,23 @@ class GroupCallManager::GroupCallMessages {
       auto is_deleted = server_id_to_message_id_.erase(server_id) > 0;
       CHECK(is_deleted);
     }
-    return {server_id, message_ids_.erase(message_id) > 0};
+    return {server_id, message_id_to_sender_dialog_id_.erase(message_id) > 0};
+  }
+
+  void delete_messages_by_sender(DialogId sender_dialog_id, vector<int32> &server_ids,
+                                 vector<int32> &deleted_message_ids) {
+    for (const auto &it : message_id_to_sender_dialog_id_) {
+      if (it.second == sender_dialog_id) {
+        deleted_message_ids.push_back(it.first);
+      }
+    }
+    for (auto message_id : deleted_message_ids) {
+      auto result = delete_message(message_id);
+      CHECK(result.second);
+      if (result.first != 0) {
+        server_ids.push_back(result.first);
+      }
+    }
   }
 
   vector<int32> delete_server_messages(const vector<int32> &server_ids) {
@@ -5239,6 +5287,66 @@ void GroupCallManager::delete_group_call_messages(GroupCallId group_call_id, con
   if (!server_ids.empty()) {
     td_->create_handler<DeleteGroupCallMessagesQuery>(std::move(promise))
         ->send(input_group_call_id, std::move(server_ids), report_spam);
+  }
+  if (!deleted_message_ids.empty()) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateGroupCallMessagesDeleted>(group_call_id.get(),
+                                                                             std::move(deleted_message_ids)));
+  }
+}
+
+void GroupCallManager::delete_group_call_messages_by_sender(GroupCallId group_call_id, DialogId sender_dialog_id,
+                                                            bool report_spam, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, sender_dialog_id, report_spam,
+                                              promise = std::move(promise)](
+                                                 Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                        if (result.is_error()) {
+                          promise.set_error(result.move_as_error());
+                        } else {
+                          send_closure(actor_id, &GroupCallManager::delete_group_call_messages_by_sender, group_call_id,
+                                       sender_dialog_id, report_spam, std::move(promise));
+                        }
+                      }));
+    return;
+  }
+  if (!group_call->is_live_story) {
+    return promise.set_error(400, "Can't delete messages in the group call");
+  }
+  if (!group_call->is_joined) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, sender_dialog_id, report_spam,
+                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+            } else {
+              send_closure(actor_id, &GroupCallManager::delete_group_call_messages_by_sender, group_call_id,
+                           sender_dialog_id, report_spam, std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+  if (!td_->dialog_manager_->have_input_peer(sender_dialog_id, false, AccessRights::Know)) {
+    return promise.set_error(400, "Message sender not found");
+  }
+  if (sender_dialog_id.get_type() == DialogType::SecretChat) {
+    return promise.set_value(Unit());
+  }
+
+  vector<int32> server_ids;
+  vector<int32> deleted_message_ids;
+  group_call->messages.delete_messages_by_sender(sender_dialog_id, server_ids, deleted_message_ids);
+  if (!server_ids.empty()) {
+    td_->create_handler<DeleteGroupCallParticipantMessagesQuery>(std::move(promise))
+        ->send(input_group_call_id, sender_dialog_id, report_spam);
   }
   if (!deleted_message_ids.empty()) {
     send_closure(G()->td(), &Td::send_update,
