@@ -399,6 +399,12 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                   td_->dialog_manager_->force_create_dialog(dialog_id, "starsTransactionPeer", true);
                   auto chat_id =
                       td_->dialog_manager_->get_chat_id_object(dialog_id, "starTransactionTypePaidMessageSend");
+                  if (transaction->phonegroup_message_) {
+                    transaction->phonegroup_message_ = false;
+                    LOG_IF(ERROR, transaction->paid_messages_ != 1)
+                        << "Receive " << transaction->paid_messages_ << " paid group call messages";
+                    return td_api::make_object<td_api::starTransactionTypePaidGroupCallMessageSend>(chat_id);
+                  }
                   if (product_info != nullptr && product_info->title_ == "Suggested Post" &&
                       td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
                     return td_api::make_object<td_api::starTransactionTypeSuggestedPostPaymentSend>(chat_id);
