@@ -1443,9 +1443,8 @@ class StartLiveStoryQuery final : public Td::ResultHandler {
   explicit StartLiveStoryQuery(Promise<td_api::object_ptr<td_api::story>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, const UserPrivacySettingRules &privacy_rules,
-            const vector<StoryAlbumId> &story_album_ids, bool is_pinned, bool noforwards, bool is_rtmp_stream,
-            bool enable_messages, int64 paid_message_star_count) {
+  void send(DialogId dialog_id, const UserPrivacySettingRules &privacy_rules, bool is_pinned, bool noforwards,
+            bool is_rtmp_stream, bool enable_messages, int64 paid_message_star_count) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
@@ -1453,7 +1452,6 @@ class StartLiveStoryQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
 
-    // StoryAlbumId::get_input_story_album_ids(story->album_ids_)
     int32 flags = telegram_api::stories_startLive::MESSAGES_ENABLED_MASK;
     if (paid_message_star_count != 0) {
       flags |= telegram_api::stories_startLive::SEND_PAID_MESSAGES_STARS_MASK;
@@ -6109,8 +6107,8 @@ void StoryManager::on_send_story_file_parts_missing(unique_ptr<PendingStory> &&p
 }
 
 void StoryManager::start_live_story(DialogId dialog_id, td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
-                                    vector<StoryAlbumId> story_album_ids, bool is_pinned, bool protect_content,
-                                    bool is_rtmp_stream, bool enable_messages, int64 paid_message_star_count,
+                                    bool is_pinned, bool protect_content, bool is_rtmp_stream, bool enable_messages,
+                                    int64 paid_message_star_count,
                                     Promise<td_api::object_ptr<td_api::story>> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "start_live_story")) {
     return promise.set_error(400, "Chat not found");
@@ -6121,9 +6119,6 @@ void StoryManager::start_live_story(DialogId dialog_id, td_api::object_ptr<td_ap
   if (td_->dialog_manager_->is_group_dialog(dialog_id)) {
     return promise.set_error(400, "Can't start live story in the chat");
   }
-  for (auto story_album_id : story_album_ids) {
-    TRY_STATUS_PROMISE(promise, check_story_album_id(story_album_id));
-  }
   if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
     settings = td_api::make_object<td_api::storyPrivacySettingsEveryone>();
   }
@@ -6131,7 +6126,7 @@ void StoryManager::start_live_story(DialogId dialog_id, td_api::object_ptr<td_ap
                      UserPrivacySettingRules::get_user_privacy_setting_rules(td_, std::move(settings)));
 
   td_->create_handler<StartLiveStoryQuery>(std::move(promise))
-      ->send(dialog_id, privacy_rules, story_album_ids, is_pinned, protect_content, is_rtmp_stream, enable_messages,
+      ->send(dialog_id, privacy_rules, is_pinned, protect_content, is_rtmp_stream, enable_messages,
              paid_message_star_count);
 }
 

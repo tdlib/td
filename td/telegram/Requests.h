@@ -695,7 +695,7 @@ class Requests {
 
   void on_request(uint64 id, td_api::postStory &request);
 
-  void on_request(uint64 id, td_api::startLiveStreamStory &request);
+  void on_request(uint64 id, td_api::startLiveStory &request);
 
   void on_request(uint64 id, td_api::editStory &request);
 

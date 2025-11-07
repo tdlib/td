@@ -238,9 +238,8 @@ class StoryManager final : public Actor {
 
   void on_send_story_file_parts_missing(unique_ptr<PendingStory> &&pending_story, vector<int> &&bad_parts);
 
-  void start_live_story(DialogId dialog_id, td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
-                        vector<StoryAlbumId> story_album_ids, bool is_pinned, bool protect_content, bool is_rtmp_stream,
-                        bool enable_messages, int64 paid_message_star_count,
+  void start_live_story(DialogId dialog_id, td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, bool is_pinned,
+                        bool protect_content, bool is_rtmp_stream, bool enable_messages, int64 paid_message_star_count,
                         Promise<td_api::object_ptr<td_api::story>> &&promise);
 
   void edit_story(DialogId owner_dialog_id, StoryId story_id,
