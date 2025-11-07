@@ -446,9 +446,8 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
             }
             if (transaction->posts_search_) {
               if (for_user && is_purchase) {
-                SCOPE_EXIT {
-                  transaction->posts_search_ = false;
-                };
+                transaction->posts_search_ = false;
+                product_info = nullptr;
                 return td_api::make_object<td_api::starTransactionTypePublicPostSearch>();
               }
               return nullptr;
@@ -496,6 +495,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                       }
                     } else if (transaction->stargift_drop_original_details_) {
                       if (for_user) {
+                        product_info = nullptr;
                         transaction->stargift_drop_original_details_ = false;
                         return td_api::make_object<td_api::starTransactionTypeGiftOriginalDetailsDrop>(
                             get_message_sender_object(td_, user_id, DialogId(),
@@ -664,6 +664,7 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                 if (gift.is_unique()) {
                   if (transaction->stargift_drop_original_details_) {
                     if (for_user) {
+                      product_info = nullptr;
                       transaction->stargift_drop_original_details_ = false;
                       return td_api::make_object<td_api::starTransactionTypeGiftOriginalDetailsDrop>(
                           get_message_sender_object(td_, UserId(), dialog_id,
