@@ -18,7 +18,7 @@ td_api::object_ptr<td_api::ActiveStoryState> ActiveStoryState::get_active_story_
     return nullptr;
   }
   if (has_live_story_) {
-    return td_api::make_object<td_api::activeStoryStateLiveStream>(max_active_story_id_.get());
+    return td_api::make_object<td_api::activeStoryStateLive>(max_active_story_id_.get());
   }
   if (has_unread_stories()) {
     return td_api::make_object<td_api::activeStoryStateUnread>();

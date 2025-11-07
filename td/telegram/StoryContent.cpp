@@ -523,7 +523,7 @@ td_api::object_ptr<td_api::StoryContent> get_story_content_object(Td *td, const 
       return td_api::make_object<td_api::storyContentUnsupported>();
     case StoryContentType::LiveStream: {
       const auto *s = static_cast<const StoryContentLiveStream *>(content);
-      return td_api::make_object<td_api::storyContentLiveStream>(
+      return td_api::make_object<td_api::storyContentLive>(
           td->group_call_manager_->get_group_call_id(s->input_group_call_id_, owner_dialog_id, true).get(),
           s->is_rtmp_stream_);
     }

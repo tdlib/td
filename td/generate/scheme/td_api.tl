@@ -1743,8 +1743,8 @@ tonTransactions ton_amount:int53 transactions:vector<tonTransaction> next_offset
 
 //@class ActiveStoryState @description Describes state of active stories posted by a chat
 
-//@description The chat has an active live stream story @story_id Identifier of the active live stream story
-activeStoryStateLiveStream story_id:int32 = ActiveStoryState;
+//@description The chat has an active live story @story_id Identifier of the active live story
+activeStoryStateLive story_id:int32 = ActiveStoryState;
 
 //@description The chat has some unread active stories
 activeStoryStateUnread = ActiveStoryState;
@@ -5544,10 +5544,10 @@ storyContentPhoto photo:photo = StoryContent;
 //@description A video story @video The video in MPEG4 format @alternative_video Alternative version of the video in MPEG4 format, encoded with H.264 codec; may be null
 storyContentVideo video:storyVideo alternative_video:storyVideo = StoryContent;
 
-//@description A live stream story
+//@description A live story
 //@group_call_id Identifier of the corresponding group call. The group call can be received through the method getGroupCall
 //@is_rtmp_stream True, if the call is an RTMP stream instead of an ordinary group call
-storyContentLiveStream group_call_id:int32 is_rtmp_stream:Bool = StoryContent;
+storyContentLive group_call_id:int32 is_rtmp_stream:Bool = StoryContent;
 
 //@description A story content that is not supported in the current TDLib version
 storyContentUnsupported = StoryContent;
@@ -5657,8 +5657,8 @@ storyFullId poster_chat_id:int53 story_id:int32 = StoryFullId;
 //@story_id Unique story identifier among stories of the chat
 //@date Point in time (Unix timestamp) when the story was published
 //@is_for_close_friends True, if the story is available only to close friends
-//@is_live_stream True, if the story is a live stream
-storyInfo story_id:int32 date:int32 is_for_close_friends:Bool is_live_stream:Bool = StoryInfo;
+//@is_live True, if the story is a live story
+storyInfo story_id:int32 date:int32 is_for_close_friends:Bool is_live:Bool = StoryInfo;
 
 //@description Describes active stories posted by a chat
 //@chat_id Identifier of the chat that posted the stories
@@ -5992,21 +5992,21 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@id Group call identifier
 //@title Group call title; for video chats only
 //@invite_link Invite link for the group call; for group calls that aren't bound to a chat. For video chats call getVideoChatInviteLink to get the link. Live stream stories doesn't have invite links
-//@paid_message_star_count The minimum number of Telegram Stars that must be paid by general participant for each sent message to the call; for live stream stories only
+//@paid_message_star_count The minimum number of Telegram Stars that must be paid by general participant for each sent message to the call; for live stories only
 //@scheduled_start_date Point in time (Unix timestamp) when the group call is expected to be started by an administrator; 0 if it is already active or was ended; for video chats only
 //@enabled_start_notification True, if the group call is scheduled and the current user will receive a notification when the group call starts; for video chats only
 //@is_active True, if the call is active
 //@is_video_chat True, if the call is bound to a chat
-//@is_live_stream_story True, if the call is a live stream story of a chat
-//@is_rtmp_stream True, if the call is an RTMP stream instead of an ordinary video chat; for video chats and live stream stories only
+//@is_live_story True, if the call is a live story of a chat
+//@is_rtmp_stream True, if the call is an RTMP stream instead of an ordinary video chat; for video chats and live stories only
 //@is_joined True, if the call is joined
 //@need_rejoin True, if user was kicked from the call because of network loss and the call needs to be rejoined
 //@is_owned True, if the user is the owner of the call and can end the call, change volume level of other users, or ban users there; for group calls that aren't bound to a chat
-//@can_be_managed True, if the current user can manage the group call; for video chats and live stream stories only
+//@can_be_managed True, if the current user can manage the group call; for video chats and live stories only
 //@participant_count Number of participants in the group call
-//@has_hidden_listeners True, if group call participants, which are muted, aren't returned in participant list; for video chats and live stream stories only
+//@has_hidden_listeners True, if group call participants, which are muted, aren't returned in participant list; for video chats and live stories only
 //@loaded_all_participants True, if all group call participants are loaded
-//@message_sender_id Message sender chosen to send messages to the group call; for live stream stories only; may be null if the call isn't a live stream story
+//@message_sender_id Message sender chosen to send messages to the group call; for live stories only; may be null if the call isn't a live story
 //@recent_speakers At most 3 recently speaking users in the group call
 //@is_my_video_enabled True, if the current user's video is enabled
 //@is_my_video_paused True, if the current user's video is paused
@@ -6018,7 +6018,7 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@record_duration Duration of the ongoing group call recording, in seconds; 0 if none. An updateGroupCall update is not triggered when value of this field changes, but the same recording goes on
 //@is_video_recorded True, if a video file is being recorded for the call
 //@duration Call duration, in seconds; for ended calls only
-groupCall id:int32 title:string invite_link:string paid_message_star_count:int53 scheduled_start_date:int32 enabled_start_notification:Bool is_active:Bool is_video_chat:Bool is_live_stream_story:Bool is_rtmp_stream:Bool is_joined:Bool need_rejoin:Bool is_owned:Bool can_be_managed:Bool participant_count:int32 has_hidden_listeners:Bool loaded_all_participants:Bool message_sender_id:MessageSender recent_speakers:vector<groupCallRecentSpeaker> is_my_video_enabled:Bool is_my_video_paused:Bool can_enable_video:Bool mute_new_participants:Bool can_toggle_mute_new_participants:Bool can_send_messages:Bool can_toggle_can_send_messages:Bool record_duration:int32 is_video_recorded:Bool duration:int32 = GroupCall;
+groupCall id:int32 title:string invite_link:string paid_message_star_count:int53 scheduled_start_date:int32 enabled_start_notification:Bool is_active:Bool is_video_chat:Bool is_live_story:Bool is_rtmp_stream:Bool is_joined:Bool need_rejoin:Bool is_owned:Bool can_be_managed:Bool participant_count:int32 has_hidden_listeners:Bool loaded_all_participants:Bool message_sender_id:MessageSender recent_speakers:vector<groupCallRecentSpeaker> is_my_video_enabled:Bool is_my_video_paused:Bool can_enable_video:Bool mute_new_participants:Bool can_toggle_mute_new_participants:Bool can_send_messages:Bool can_toggle_can_send_messages:Bool record_duration:int32 is_video_recorded:Bool duration:int32 = GroupCall;
 
 //@description Describes a group of video synchronization source identifiers @semantics The semantics of sources, one of "SIM" or "FID" @source_ids The list of synchronization source identifiers
 groupCallVideoSourceGroup semantics:string source_ids:vector<int32> = GroupCallVideoSourceGroup;
@@ -6062,8 +6062,8 @@ groupCallInfo group_call_id:int32 join_payload:string = GroupCallInfo;
 //@sender_id Identifier of the sender of the message
 //@date Point in time (Unix timestamp) when the message was sent
 //@text Text of the message
-//@paid_message_star_count The number of Telegram Stars that were paid to send the message; for live stream stories only
-//@is_from_owner True, if the message is sent by the owner of the call and must be treated as a message of the maximum level; for live stream stories only
+//@paid_message_star_count The number of Telegram Stars that were paid to send the message; for live stories only
+//@is_from_owner True, if the message is sent by the owner of the call and must be treated as a message of the maximum level; for live stories only
 groupCallMessage message_id:int32 sender_id:MessageSender date:int32 text:formattedText paid_message_star_count:int53 is_from_owner:Bool = GroupCallMessage;
 
 //@description Represents a level of features for a message sent in a live story group call
@@ -8166,7 +8166,7 @@ internalLinkTypeLanguagePack language_pack_id:string = InternalLinkType;
 internalLinkTypeLanguageSettings = InternalLinkType;
 
 //@description The link is a link to a live story. Call searchPublicChat with the given chat username, then getChatActiveStories to get active stories in the chat,
-//-then find a live story among active stories of the chat, and then joinStoryLiveStream to join the live story
+//-then find a live story among active stories of the chat, and then joinLiveStory to join the live story
 //@story_poster_username Username of the poster of the story
 internalLinkTypeLiveStory story_poster_username:string = InternalLinkType;
 
@@ -12395,12 +12395,12 @@ createVideoChat chat_id:int53 title:string start_date:int32 is_rtmp_stream:Bool 
 //@description Creates a new group call that isn't bound to a chat @join_parameters Parameters to join the call; pass null to only create call link without joining the call
 createGroupCall join_parameters:groupCallJoinParameters = GroupCallInfo;
 
-//@description Returns RTMP URL for streaming to the video chat of a chat or a story live stream; requires can_manage_video_chats administrator right for basic group, supergroup and channel chats
+//@description Returns RTMP URL for streaming to the video chat of a chat or a live story; requires can_manage_video_chats administrator right for basic group, supergroup and channel chats
 //@chat_id Chat identifier
 //@for_live_story Pass true to get URL for streaming of a live story
 getGroupCallRtmpUrl chat_id:int53 for_live_story:Bool = RtmpUrl;
 
-//@description Replaces the current RTMP URL for streaming to the video chat of a chat or a story live stream; requires owner privileges for basic group, supergroup and channel chats
+//@description Replaces the current RTMP URL for streaming to the video chat of a chat or a live story; requires owner privileges for basic group, supergroup and channel chats
 //@chat_id Chat identifier
 //@for_live_story Pass true to replace the URL for streaming of a live story
 replaceGroupCallRtmpUrl chat_id:int53 for_live_story:Bool = RtmpUrl;
@@ -12538,7 +12538,7 @@ setGroupCallPaidMessageStarCount group_call_id:int32 paid_message_star_count:int
 //@is_speaking Pass true if the user is speaking
 setGroupCallParticipantIsSpeaking group_call_id:int32 audio_source:int32 is_speaking:Bool = MessageSender;
 
-//@description Toggles whether a participant of an active group call is muted, unmuted, or allowed to unmute themselves; not supported for story live streams
+//@description Toggles whether a participant of an active group call is muted, unmuted, or allowed to unmute themselves; not supported for live stories
 //@group_call_id Group call identifier
 //@participant_id Participant identifier
 //@is_muted Pass true to mute the user; pass false to unmute them
@@ -12571,13 +12571,13 @@ loadGroupCallParticipants group_call_id:int32 limit:int32 = Ok;
 //@description Leaves a group call @group_call_id Group call identifier
 leaveGroupCall group_call_id:int32 = Ok;
 
-//@description Ends a group call. Requires groupCall.can_be_managed right for video chats and live stream stories or groupCall.is_owned otherwise @group_call_id Group call identifier
+//@description Ends a group call. Requires groupCall.can_be_managed right for video chats and live stories or groupCall.is_owned otherwise @group_call_id Group call identifier
 endGroupCall group_call_id:int32 = Ok;
 
-//@description Returns information about available streams in a video chat or a story live stream @group_call_id Group call identifier
+//@description Returns information about available streams in a video chat or a live story @group_call_id Group call identifier
 getGroupCallStreams group_call_id:int32 = GroupCallStreams;
 
-//@description Returns a file with a segment of a video chat or story live stream in a modified OGG format for audio or MPEG-4 format for video
+//@description Returns a file with a segment of a video chat or live story in a modified OGG format for audio or MPEG-4 format for video
 //@group_call_id Group call identifier
 //@time_offset Point in time when the stream segment begins; Unix timestamp in milliseconds
 //@scale Segment duration scale; 0-1. Segment's duration is 1000/(2**scale) milliseconds

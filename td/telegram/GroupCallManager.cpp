@@ -5446,9 +5446,9 @@ void GroupCallManager::do_delete_group_call_participants(InputGroupCallId input_
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (!group_call->is_conference || group_call->is_live_story) {
-    return promise.set_error(400,
-                             "Use setChatMemberStatus or setMessageSenderBlockList to ban participants from video "
-                             "chats or story live streams");
+    return promise.set_error(
+        400,
+        "Use setChatMemberStatus or setMessageSenderBlockList to ban participants from video chats or live stories");
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
@@ -5738,7 +5738,7 @@ void GroupCallManager::toggle_group_call_participant_is_muted(GroupCallId group_
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   if (group_call->is_live_story) {
-    return promise.set_error(400, "Can't manage participants in story live streams");
+    return promise.set_error(400, "Can't manage participants in live stories");
   }
 
   auto participants = add_group_call_participants(input_group_call_id, "toggle_group_call_participant_is_muted");
