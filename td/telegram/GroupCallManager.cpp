@@ -2617,6 +2617,14 @@ bool GroupCallManager::get_group_call_can_enable_video(const GroupCall *group_ca
   return group_call->unmuted_video_count < group_call->unmuted_video_limit;
 }
 
+bool GroupCallManager::get_group_call_can_delete_messages(const GroupCall *group_call) {
+  CHECK(group_call != nullptr);
+  if (!group_call->is_live_story) {
+    return false;
+  }
+  return group_call->is_creator || group_call->can_be_managed;
+}
+
 bool GroupCallManager::is_group_call_active(const GroupCall *group_call) {
   return group_call != nullptr && group_call->is_inited && group_call->is_active;
 }
@@ -5253,9 +5261,6 @@ void GroupCallManager::delete_group_call_messages(GroupCallId group_call_id, con
                       }));
     return;
   }
-  if (!group_call->is_live_story) {
-    return promise.set_error(400, "Can't delete messages in the group call");
-  }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(
@@ -5271,6 +5276,9 @@ void GroupCallManager::delete_group_call_messages(GroupCallId group_call_id, con
       return;
     }
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+  if (!get_group_call_can_delete_messages(group_call)) {
+    return promise.set_error(400, "Can't delete messages in the group call");
   }
 
   vector<int32> server_ids;
@@ -5315,9 +5323,6 @@ void GroupCallManager::delete_group_call_messages_by_sender(GroupCallId group_ca
                       }));
     return;
   }
-  if (!group_call->is_live_story) {
-    return promise.set_error(400, "Can't delete messages in the group call");
-  }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(
@@ -5333,6 +5338,9 @@ void GroupCallManager::delete_group_call_messages_by_sender(GroupCallId group_ca
       return;
     }
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+  if (!get_group_call_can_delete_messages(group_call)) {
+    return promise.set_error(400, "Can't delete messages in the group call");
   }
   if (!td_->dialog_manager_->have_input_peer(sender_dialog_id, false, AccessRights::Know)) {
     return promise.set_error(400, "Message sender not found");
@@ -7134,6 +7142,7 @@ td_api::object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
   bool are_messages_enabled = get_group_call_are_messages_enabled(group_call);
   bool can_toggle_are_messages_enabled =
       group_call->is_active && group_call->can_be_managed && group_call->allowed_toggle_are_messages_enabled;
+  bool can_delete_messages = get_group_call_can_delete_messages(group_call);
   auto paid_message_star_count = get_group_call_paid_message_star_count(group_call);
   int32 record_start_date = get_group_call_record_start_date(group_call);
   int32 record_duration = record_start_date == 0 ? 0 : max(G()->unix_time() - record_start_date + 1, 1);
@@ -7151,8 +7160,8 @@ td_api::object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
       group_call->is_creator, group_call->can_be_managed, group_call->participant_count,
       group_call->has_hidden_listeners, group_call->loaded_all_participants, std::move(message_sender_id),
       std::move(recent_speakers), is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
-      can_toggle_mute_new_participants, are_messages_enabled, can_toggle_are_messages_enabled, record_duration,
-      is_video_recorded, group_call->duration);
+      can_toggle_mute_new_participants, are_messages_enabled, can_toggle_are_messages_enabled, can_delete_messages,
+      record_duration, is_video_recorded, group_call->duration);
 }
 
 td_api::object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
