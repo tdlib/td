@@ -7012,18 +7012,20 @@ void UserManager::get_user_saved_music(UserId user_id, int32 offset, int32 limit
   pending_request.offset = offset;
   pending_request.limit = limit;
   pending_request.promise = std::move(promise);
-  user_saved_music->pending_requests.push_back(std::move(pending_request));
-  if (user_saved_music->pending_requests.size() != 1u) {
+  auto &requests = pending_get_user_saved_music_requests_[user_id];
+  requests.push_back(std::move(pending_request));
+  if (requests.size() != 1u) {
     return;
   }
 
-  send_get_user_saved_music_query(user_id, user_saved_music);
+  send_get_user_saved_music_query(user_id, user_saved_music, requests);
 }
 
-void UserManager::send_get_user_saved_music_query(UserId user_id, const UserSavedMusic *user_saved_music) {
-  CHECK(!user_saved_music->pending_requests.empty());
-  auto offset = user_saved_music->pending_requests[0].offset;
-  auto limit = user_saved_music->pending_requests[0].limit;
+void UserManager::send_get_user_saved_music_query(UserId user_id, const UserSavedMusic *user_saved_music,
+                                                  const vector<PendingGetSavedMusicRequest> &requests) {
+  CHECK(!requests.empty());
+  auto offset = requests[0].offset;
+  auto limit = requests[0].limit;
 
   if (user_saved_music->count != -1 && offset >= user_saved_music->offset) {
     int32 cache_end = user_saved_music->offset + narrow_cast<int32>(user_saved_music->saved_music_file_ids.size());
@@ -7044,15 +7046,16 @@ void UserManager::send_get_user_saved_music_query(UserId user_id, const UserSave
 
 void UserManager::finish_get_user_saved_music(UserId user_id, Result<Unit> &&result) {
   G()->ignore_result_if_closing(result);
-  auto user_saved_music = add_user_saved_music(user_id);
-  auto pending_requests = std::move(user_saved_music->pending_requests);
+  auto pending_requests = std::move(pending_get_user_saved_music_requests_[user_id]);
   CHECK(!pending_requests.empty());
+  pending_get_user_saved_music_requests_.erase(user_id);
   if (result.is_error()) {
     for (auto &request : pending_requests) {
       request.promise.set_error(result.error().clone());
     }
     return;
   }
+  auto user_saved_music = add_user_saved_music(user_id);
   if (user_saved_music->count == -1) {
     CHECK(have_min_user(user_id));
     // received result has just been dropped; resend request
@@ -7063,8 +7066,9 @@ void UserManager::finish_get_user_saved_music(UserId user_id, Result<Unit> &&res
         return;
       }
     }
-    user_saved_music->pending_requests = std::move(pending_requests);
-    return send_get_user_saved_music_query(user_id, user_saved_music);
+    auto &requests = pending_get_user_saved_music_requests_[user_id];
+    requests = std::move(pending_requests);
+    return send_get_user_saved_music_query(user_id, user_saved_music, requests);
   }
 
   CHECK(user_saved_music->offset != -1);
@@ -7105,10 +7109,11 @@ void UserManager::finish_get_user_saved_music(UserId user_id, Result<Unit> &&res
   }
 
   if (!left_requests.empty()) {
-    bool need_send = user_saved_music->pending_requests.empty();
-    append(user_saved_music->pending_requests, std::move(left_requests));
+    auto &requests = pending_get_user_saved_music_requests_[user_id];
+    bool need_send = requests.empty();
+    append(requests, std::move(left_requests));
     if (need_send) {
-      send_get_user_saved_music_query(user_id, user_saved_music);
+      send_get_user_saved_music_query(user_id, user_saved_music, requests);
     }
   }
 }
@@ -7141,7 +7146,7 @@ void UserManager::on_get_user_saved_music(UserId user_id, int32 offset, int32 li
             << " with offset " << offset << " and limit " << limit;
   UserSavedMusic *user_saved_music = add_user_saved_music(user_id);
   user_saved_music->count = total_count;
-  CHECK(!user_saved_music->pending_requests.empty());
+  CHECK(pending_get_user_saved_music_requests_.count(user_id));
 
   if (user_saved_music->offset == -1) {
     user_saved_music->offset = 0;

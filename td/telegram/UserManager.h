@@ -816,8 +816,6 @@ class UserManager final : public Actor {
     vector<FileId> saved_music_file_ids;
     int32 count = -1;
     int32 offset = -1;
-
-    vector<PendingGetSavedMusicRequest> pending_requests;
   };
 
   class UserLogEvent;
@@ -1038,7 +1036,8 @@ class UserManager final : public Actor {
 
   void apply_pending_user_photo(User *u, UserId user_id, const char *source);
 
-  void send_get_user_saved_music_query(UserId user_id, const UserSavedMusic *user_saved_music);
+  void send_get_user_saved_music_query(UserId user_id, const UserSavedMusic *user_saved_music,
+                                       const vector<PendingGetSavedMusicRequest> &requests);
 
   void finish_get_user_saved_music(UserId user_id, Result<Unit> &&result);
 
@@ -1219,6 +1218,7 @@ class UserManager final : public Actor {
   };
   WaitFreeHashMap<UserSavedMusicId, FileSourceId, UserSavedMusicIdHash> user_saved_music_file_source_ids_;
   WaitFreeHashMap<UserId, unique_ptr<UserSavedMusic>, UserIdHash> user_saved_music_;
+  WaitFreeHashMap<UserId, vector<PendingGetSavedMusicRequest>, UserIdHash> pending_get_user_saved_music_requests_;
 
   bool are_my_saved_music_ids_inited_ = false;
   vector<Promise<Unit>> reload_my_saved_music_queries_;
