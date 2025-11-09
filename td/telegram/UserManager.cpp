@@ -6980,7 +6980,7 @@ void UserManager::get_user_saved_music(UserId user_id, int32 offset, int32 limit
     return promise.set_error(400, "User not found");
   }
 
-  auto user_saved_music = add_user_saved_music(user_id);
+  const auto *user_saved_music = add_user_saved_music(user_id);
   if (user_saved_music->count != -1) {  // know saved music count
     CHECK(user_saved_music->offset != -1);
     LOG(INFO) << "Have " << user_saved_music->count << " cached saved music files at offset "
@@ -7055,7 +7055,7 @@ void UserManager::finish_get_user_saved_music(UserId user_id, Result<Unit> &&res
     }
     return;
   }
-  auto user_saved_music = add_user_saved_music(user_id);
+  const auto *user_saved_music = add_user_saved_music(user_id);
   if (user_saved_music->count == -1) {
     CHECK(have_min_user(user_id));
     // received result has just been dropped; resend request
