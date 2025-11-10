@@ -12477,8 +12477,10 @@ setGroupCallMessageSender group_call_id:int32 message_sender_id:MessageSender = 
 
 //@description Sends a message to other participants of a group call. Requires groupCall.can_send_messages right
 //@group_call_id Group call identifier
-//@text Text of the message to send; 0-getOption("group_call_message_text_length_max") characters
-sendGroupCallMessage group_call_id:int32 text:formattedText = Ok;
+//@text Text of the message to send; 0-getOption("group_call_message_text_length_max") characters for non-live-stories; see updateGroupCallMessageLevels for live story restrictions,
+//-which depends on paid_message_star_count
+//@paid_message_star_count The number of Telegram Stars the user agreed to pay to send the message; for live stories only
+sendGroupCallMessage group_call_id:int32 text:formattedText paid_message_star_count:int64 = Ok;
 
 //@description Deletes messages in a group call; for live story calls only. Requires groupCall.can_delete_messages right
 //@group_call_id Group call identifier

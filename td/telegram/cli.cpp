@@ -5159,7 +5159,8 @@ class CliClient final : public Actor {
       GroupCallId group_call_id;
       string text;
       get_args(args, group_call_id, text);
-      send_request(td_api::make_object<td_api::sendGroupCallMessage>(group_call_id, as_formatted_text(text)));
+      send_request(td_api::make_object<td_api::sendGroupCallMessage>(group_call_id, as_formatted_text(text),
+                                                                     paid_message_star_count_));
     } else if (op == "dgcm" || op == "dgcms") {
       GroupCallId group_call_id;
       string message_ids;

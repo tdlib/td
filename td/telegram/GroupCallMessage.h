@@ -34,7 +34,7 @@ class GroupCallMessage {
 
   GroupCallMessage(Td *td, telegram_api::object_ptr<telegram_api::groupCallMessage> &&message);
 
-  GroupCallMessage(DialogId sender_dialog_id, FormattedText text);
+  GroupCallMessage(DialogId sender_dialog_id, FormattedText text, int64 paid_message_star_count);
 
   bool is_valid() const {
     return sender_dialog_id_.is_valid();

@@ -1007,13 +1007,16 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
 class SendGroupCallMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId as_dialog_id_;
+  int64 paid_message_star_count_;
 
  public:
   explicit SendGroupCallMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(InputGroupCallId input_group_call_id, const FormattedText &text, DialogId as_dialog_id) {
+  void send(InputGroupCallId input_group_call_id, const FormattedText &text, DialogId as_dialog_id,
+            int64 paid_message_star_count) {
     as_dialog_id_ = as_dialog_id;
+    paid_message_star_count_ = paid_message_star_count;
     int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputPeer> send_as_input_peer;
     if (as_dialog_id != DialogId()) {
@@ -1023,11 +1026,15 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
       }
       flags |= telegram_api::phone_sendGroupCallMessage::SEND_AS_MASK;
     }
+    if (paid_message_star_count > 0) {
+      td_->star_manager_->add_pending_owned_star_count(-paid_message_star_count, false);
+      flags |= telegram_api::phone_sendGroupCallMessage::ALLOW_PAID_STARS_MASK;
+    }
     send_query(G()->net_query_creator().create(
         telegram_api::phone_sendGroupCallMessage(
             flags, input_group_call_id.get_input_group_call(), Random::secure_int64(),
-            get_input_text_with_entities(td_->user_manager_.get(), text, "SendGroupCallMessageQuery"), 0,
-            std::move(send_as_input_peer)),
+            get_input_text_with_entities(td_->user_manager_.get(), text, "SendGroupCallMessageQuery"),
+            paid_message_star_count, std::move(send_as_input_peer)),
         {{input_group_call_id}}));
   }
 
@@ -1037,11 +1044,13 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
+    td_->star_manager_->add_pending_owned_star_count(paid_message_star_count_, true);
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(as_dialog_id_, status, "SendGroupCallMessageQuery");
+    send_closure(G()->star_manager(), &StarManager::add_pending_owned_star_count, paid_message_star_count_, false);
     promise_.set_error(std::move(status));
   }
 };
@@ -5172,35 +5181,38 @@ void GroupCallManager::on_set_group_call_paid_message_star_count(InputGroupCallI
 
 void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
                                                td_api::object_ptr<td_api::formattedText> &&text,
-                                               Promise<Unit> &&promise) {
+                                               int64 paid_message_star_count, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+  if (paid_message_star_count < 0) {
+    return promise.set_error(400, "Invalid number of Telegram Stars specified");
+  }
 
   auto *group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited) {
     reload_group_call(input_group_call_id,
                       PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, text = std::move(text),
-                                              promise = std::move(promise)](
+                                              paid_message_star_count, promise = std::move(promise)](
                                                  Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
                         if (result.is_error()) {
                           promise.set_error(result.move_as_error());
                         } else {
                           send_closure(actor_id, &GroupCallManager::send_group_call_message, group_call_id,
-                                       std::move(text), std::move(promise));
+                                       std::move(text), paid_message_star_count, std::move(promise));
                         }
                       }));
     return;
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
-      group_call->after_join.push_back(
-          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, text = std::move(text),
-                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+      group_call->after_join.push_back(PromiseCreator::lambda(
+          [actor_id = actor_id(this), group_call_id, text = std::move(text), paid_message_star_count,
+           promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
               promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::send_group_call_message, group_call_id, std::move(text),
-                           std::move(promise));
+                           paid_message_star_count, std::move(promise));
             }
           }));
       return;
@@ -5211,8 +5223,17 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
   TRY_RESULT_PROMISE(
       promise, message,
       get_formatted_text(td_, group_call->dialog_id, std::move(text), td_->auth_manager_->is_bot(), true, true, false));
-  if (static_cast<int64>(utf8_length(message.text)) > G()->get_option_integer("group_call_message_text_length_max")) {
-    return promise.set_error(400, "Message is too long");
+  if (group_call->is_live_story) {
+    if (!td_->star_manager_->has_owned_star_count(paid_message_star_count)) {
+      return promise.set_error(400, "Have not enough Telegram Stars");
+    }
+  } else {
+    if (paid_message_star_count != 0) {
+      return promise.set_error(400, "Paid messages can't be sent to the call");
+    }
+    if (static_cast<int64>(utf8_length(message.text)) > G()->get_option_integer("group_call_message_text_length_max")) {
+      return promise.set_error(400, "Message is too long");
+    }
   }
 
   auto as_dialog_id =
@@ -5220,7 +5241,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
           ? group_call->message_sender_dialog_id
           : (group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id());
   CHECK(as_dialog_id.is_valid());
-  auto group_call_message = GroupCallMessage(as_dialog_id, message);
+  auto group_call_message = GroupCallMessage(as_dialog_id, message, paid_message_star_count);
   auto message_id = group_call->messages.add_message(group_call_message);
   CHECK(message_id != 0);
   send_closure(G()->td(), &Td::send_update,
@@ -5237,7 +5258,8 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
         ->send(input_group_call_id, r_data.value());
   } else {
     td_->create_handler<SendGroupCallMessageQuery>(std::move(promise))
-        ->send(input_group_call_id, message, group_call->is_live_story ? as_dialog_id : DialogId());
+        ->send(input_group_call_id, message, group_call->is_live_story ? as_dialog_id : DialogId(),
+               paid_message_star_count);
   }
 }
 
