@@ -9417,7 +9417,8 @@ updateGroupCallParticipants group_call_id:int32 participant_user_ids:vector<int6
 //@emojis Group call state fingerprint represented as 4 emoji; may be empty if the state isn't verified yet
 updateGroupCallVerificationState group_call_id:int32 generation:int32 emojis:vector<string> = Update;
 
-//@description A new message was received in a group call. It must be shown for at most getOption("group_call_message_show_time_max") seconds after receiving
+//@description A new message was received in a group call. It must be shown for at most getOption("group_call_message_show_time_max") seconds after receiving if the call isn't a live story
+//-and according to updateGroupCallMessageLevels otherwise. If message.paid_message_star_count is less than groupCall.paid_message_star_count, then only paid reaction animation must be shown
 //@group_call_id Identifier of the group call
 //@message The message
 updateNewGroupCallMessage group_call_id:int32 message:groupCallMessage = Update;
