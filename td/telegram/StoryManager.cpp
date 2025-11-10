@@ -2051,7 +2051,7 @@ void StoryManager::on_story_expire_timeout(int64 story_global_id) {
 
   auto story_full_id = stories_by_global_id_.get(story_global_id);
   auto story = get_story(story_full_id);
-  if (story == nullptr) {
+  if (story == nullptr || story->is_live_) {
     return;
   }
   if (is_active_story(story)) {
@@ -2286,7 +2286,7 @@ bool StoryManager::can_delete_story(StoryFullId story_full_id, const Story *stor
 }
 
 bool StoryManager::is_active_story(const Story *story) {
-  return story != nullptr && G()->unix_time() < story->expire_date_;
+  return story != nullptr && (story->is_live_ || G()->unix_time() < story->expire_date_);
 }
 
 Status StoryManager::can_manage_story_albums(DialogId owner_dialog_id, const char *source) const {
@@ -3319,7 +3319,7 @@ void StoryManager::on_story_replied(StoryFullId story_full_id, UserId replier_us
     return;
   }
   const Story *story = get_story_force(story_full_id, "on_story_replied");
-  if (story == nullptr || !is_my_story(story_full_id.get_dialog_id())) {
+  if (story == nullptr || !is_my_story(story_full_id.get_dialog_id()) || story->is_live_) {
     return;
   }
 
@@ -3545,6 +3545,9 @@ void StoryManager::read_stories_on_server(DialogId owner_dialog_id, StoryId stor
 
 Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Story *story, int32 unix_time) const {
   CHECK(story != nullptr);
+  if (story->is_live_) {
+    return Status::Error(400, "Story viewers aren't available");
+  }
   if (!is_my_story(story_full_id.get_dialog_id())) {
     return Status::Error(400, "Story must be outgoing");
   }
@@ -3562,7 +3565,7 @@ Status StoryManager::can_get_story_viewers(StoryFullId story_full_id, const Stor
 
 bool StoryManager::has_unexpired_viewers(StoryFullId story_full_id, const Story *story) const {
   CHECK(story != nullptr);
-  return is_my_story(story_full_id.get_dialog_id()) && story_full_id.get_story_id().is_server() &&
+  return is_my_story(story_full_id.get_dialog_id()) && story_full_id.get_story_id().is_server() && !story->is_live_ &&
          G()->unix_time() < get_story_viewers_expire_date(story);
 }
 
@@ -4120,7 +4123,7 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   auto repost_info =
       story->forward_info_ != nullptr ? story->forward_info_->get_story_repost_info_object(td_) : nullptr;
   auto interaction_info = story->interaction_info_.get_story_interaction_info_object(td_);
-  auto has_expired_viewers = is_my_story(owner_dialog_id) && story_id.is_server() &&
+  auto has_expired_viewers = is_my_story(owner_dialog_id) && story_id.is_server() && !story->is_live_ &&
                              unix_time >= get_story_viewers_expire_date(story) && interaction_info != nullptr &&
                              interaction_info->view_count_ > interaction_info->reaction_count_;
   const auto &reaction_counts = story->interaction_info_.get_reaction_counts();
@@ -4667,11 +4670,17 @@ void StoryManager::delete_story_from_database(StoryFullId story_full_id) {
 
 void StoryManager::set_story_expire_timeout(const Story *story) {
   CHECK(story->global_id_ > 0);
+  if (story->is_live_) {
+    return;
+  }
   story_expire_timeout_.set_timeout_in(story->global_id_, story->expire_date_ - G()->unix_time());
 }
 
 void StoryManager::set_story_can_get_viewers_timeout(const Story *story) {
   CHECK(story->global_id_ > 0);
+  if (story->is_live_) {
+    return;
+  }
   story_can_get_viewers_timeout_.set_timeout_in(story->global_id_,
                                                 get_story_viewers_expire_date(story) - G()->unix_time() + 2);
 }
@@ -4695,7 +4704,8 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
       LOG(INFO) << "Add " << story_full_id << " to database";
 
       int32 expires_at = 0;
-      if (is_active_story(story) && !can_access_expired_story(story_full_id.get_dialog_id(), story)) {
+      if (is_active_story(story) && !can_access_expired_story(story_full_id.get_dialog_id(), story) &&
+          !story->is_live_) {
         expires_at = story->expire_date_;
       }
 
