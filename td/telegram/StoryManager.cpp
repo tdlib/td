@@ -4113,8 +4113,8 @@ td_api::object_ptr<td_api::story> StoryManager::get_story_object(StoryFullId sto
   auto can_be_edited = can_edit_story(story_full_id, story);
   auto can_be_forwarded = !story->noforwards_ && story_id.is_server() &&
                           privacy_settings->get_id() == td_api::storyPrivacySettingsEveryone::ID && !story->is_live_;
-  auto can_be_replied =
-      story_id.is_server() && owner_dialog_id != changelog_dialog_id && owner_dialog_id.get_type() == DialogType::User;
+  auto can_be_replied = story_id.is_server() && owner_dialog_id != changelog_dialog_id &&
+                        owner_dialog_id.get_type() == DialogType::User && !story->is_live_;
   auto can_set_privacy_settings = can_set_story_privacy_settings(story_full_id, story);
   auto can_toggle_is_pinned = can_toggle_story_is_pinned(story_full_id, story);
   auto unix_time = G()->unix_time();
