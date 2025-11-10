@@ -2429,7 +2429,7 @@ bool StoryManager::can_get_story_statistics(StoryFullId story_full_id, const Sto
   if (td_->auth_manager_->is_bot()) {
     return false;
   }
-  if (story == nullptr || !story_full_id.get_story_id().is_server()) {
+  if (story == nullptr || !story_full_id.get_story_id().is_server() || story->is_live_) {
     return false;
   }
   auto dialog_id = story_full_id.get_dialog_id();
