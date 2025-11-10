@@ -423,17 +423,21 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                     transaction->paid_messages_ = 0;
                     affiliate = nullptr;
                   };
+                  auto sender_id = get_message_sender_object(td_, dialog_id, "starTransactionTypePaidMessage");
                   if (transaction->phonegroup_message_ && !for_supergroup) {
                     transaction->phonegroup_message_ = false;
                     LOG_IF(ERROR, transaction->paid_messages_ != 1)
                         << "Receive " << transaction->paid_messages_ << " received paid group call messages";
+                    if (transaction->reaction_) {
+                      transaction->reaction_ = false;
+                      return td_api::make_object<td_api::starTransactionTypePaidGroupCallReactionReceive>(
+                          std::move(sender_id), affiliate->commission_per_mille_, std::move(affiliate->star_amount_));
+                    }
                     return td_api::make_object<td_api::starTransactionTypePaidGroupCallMessageReceive>(
-                        get_message_sender_object(td_, dialog_id, "starTransactionTypePaidGroupCallMessageReceive"),
-                        affiliate->commission_per_mille_, std::move(affiliate->star_amount_));
+                        std::move(sender_id), affiliate->commission_per_mille_, std::move(affiliate->star_amount_));
                   }
                   return td_api::make_object<td_api::starTransactionTypePaidMessageReceive>(
-                      get_message_sender_object(td_, dialog_id, "starTransactionTypePaidMessageReceive"),
-                      transaction->paid_messages_, affiliate->commission_per_mille_,
+                      std::move(sender_id), transaction->paid_messages_, affiliate->commission_per_mille_,
                       std::move(affiliate->star_amount_));
                 }
                 if (for_channel && dialog_id.get_type() == DialogType::User) {
