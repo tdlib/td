@@ -1660,6 +1660,9 @@ starTransactionTypePaidGroupCallMessageSend chat_id:int53 = StarTransactionType;
 //@commission_star_amount The amount of Telegram Stars that were received by Telegram; can be negative for refunds
 starTransactionTypePaidGroupCallMessageReceive sender_id:MessageSender commission_per_mille:int32 commission_star_amount:starAmount = StarTransactionType;
 
+//@description The transaction is a sending of a paid group reaction; for regular users only @chat_id Identifier of the chat that received the payment
+starTransactionTypePaidGroupCallReactionSend chat_id:int53 = StarTransactionType;
+
 //@description The transaction is a payment for a suggested post; for regular users only
 //@chat_id Identifier of the channel chat that posted the post
 starTransactionTypeSuggestedPostPaymentSend chat_id:int53 = StarTransactionType;

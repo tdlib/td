@@ -403,6 +403,10 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                     transaction->phonegroup_message_ = false;
                     LOG_IF(ERROR, transaction->paid_messages_ != 1)
                         << "Receive " << transaction->paid_messages_ << " paid group call messages";
+                    if (transaction->reaction_) {
+                      transaction->reaction_ = false;
+                      return td_api::make_object<td_api::starTransactionTypePaidGroupCallReactionSend>(chat_id);
+                    }
                     return td_api::make_object<td_api::starTransactionTypePaidGroupCallMessageSend>(chat_id);
                   }
                   if (product_info != nullptr && product_info->title_ == "Suggested Post" &&
