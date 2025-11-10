@@ -5013,13 +5013,13 @@ telegram_api::object_ptr<telegram_api::InputUser> UserManager::get_input_user_fo
 }
 
 bool UserManager::have_input_peer_user(UserId user_id, AccessRights access_rights) const {
-  if (user_id == get_my_id()) {
-    return true;
-  }
   return have_input_peer_user(get_user(user_id), user_id, access_rights);
 }
 
 bool UserManager::have_input_peer_user(const User *u, UserId user_id, AccessRights access_rights) const {
+  if (user_id == get_my_id()) {
+    return true;
+  }
   if (u == nullptr || u->access_hash == -1 || u->is_min_access_hash) {
     if (u == nullptr) {
       LOG(DEBUG) << "Have no user";
@@ -9818,7 +9818,7 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
   auto emoji_status = EmojiStatus::get_emoji_status_object(u->last_sent_emoji_status);
   auto verification_status =
       get_verification_status_object(td_, u->is_verified, u->is_scam, u->is_fake, u->bot_verification_icon);
-  auto have_access = user_id == get_my_id() || have_input_peer_user(u, user_id, AccessRights::Know);
+  auto have_access = have_input_peer_user(u, user_id, AccessRights::Know);
   auto restricts_new_chats = u->contact_require_premium && !u->is_mutual_contact;
   return td_api::make_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->usernames.get_usernames_object(), u->phone_number,
