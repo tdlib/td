@@ -2270,7 +2270,7 @@ bool StoryManager::can_toggle_story_is_pinned(StoryFullId story_full_id, const S
 }
 
 bool StoryManager::can_add_story_to_album(StoryFullId story_full_id, const Story *story) const {
-  if (!story_full_id.get_story_id().is_server()) {
+  if (!story_full_id.get_story_id().is_server() || story->is_live_) {
     return false;
   }
   auto owner_dialog_id = story_full_id.get_dialog_id();
