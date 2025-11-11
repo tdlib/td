@@ -3338,6 +3338,9 @@ bool StoryManager::has_suggested_reaction(const Story *story, const ReactionType
 }
 
 bool StoryManager::can_use_story_reaction(const Story *story, const ReactionType &reaction_type) const {
+  if (story->is_live_) {
+    return false;
+  }
   if (reaction_type.is_empty()) {
     return true;
   }
