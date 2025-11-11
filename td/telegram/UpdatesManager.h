@@ -121,6 +121,9 @@ class UpdatesManager final : public Actor {
 
   static string extract_join_group_call_presentation_params(telegram_api::Updates *updates_ptr);
 
+  static vector<telegram_api::object_ptr<telegram_api::updateGroupCallMessage>> extract_group_call_messages(
+      telegram_api::Updates *updates_ptr);
+
   static telegram_api::object_ptr<telegram_api::StoryItem> extract_story(telegram_api::Updates *updates_ptr,
                                                                          DialogId owner_dialog_id, bool is_business);
 

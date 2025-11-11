@@ -1588,6 +1588,18 @@ string UpdatesManager::extract_join_group_call_presentation_params(telegram_api:
   return string();
 }
 
+vector<telegram_api::object_ptr<telegram_api::updateGroupCallMessage>> UpdatesManager::extract_group_call_messages(
+    telegram_api::Updates *updates_ptr) {
+  vector<telegram_api::object_ptr<telegram_api::updateGroupCallMessage>> result;
+  auto updates = get_updates(updates_ptr);
+  for (auto it = updates->begin(); it != updates->end(); ++it) {
+    if ((*it)->get_id() == telegram_api::updateGroupCallMessage::ID) {
+      result.push_back(telegram_api::move_object_as<telegram_api::updateGroupCallMessage>(*it));
+    }
+  }
+  return result;
+}
+
 telegram_api::object_ptr<telegram_api::StoryItem> UpdatesManager::extract_story(telegram_api::Updates *updates_ptr,
                                                                                 DialogId owner_dialog_id,
                                                                                 bool is_business) {

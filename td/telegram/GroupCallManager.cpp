@@ -1535,12 +1535,26 @@ class GroupCallManager::GroupCallMessages {
   }
 
  public:
-  int32 add_message(const GroupCallMessage &message) {
+  int32 get_max_server_message_id() const {
+    int32 max_server_message_id = 0;
+    for (auto &it : server_id_to_message_id_) {
+      if (it.first > max_server_message_id) {
+        max_server_message_id = it.first;
+      }
+    }
+    return max_server_message_id;
+  }
+
+  int32 add_message(const GroupCallMessage &message, int32 max_old_server_message_id) {
+    auto server_id = message.get_server_id();
+    if (max_old_server_message_id != 0 && server_id != 0 && server_id <= max_old_server_message_id) {
+      LOG(DEBUG) << "Skip too old message " << server_id;
+      return 0;
+    }
     if (!is_new_message(message)) {
       return 0;
     }
     auto message_id = ++current_message_id_;
-    auto server_id = message.get_server_id();
     if (server_id != 0) {
       server_id_to_message_id_[server_id] = message_id;
       message_id_to_server_id_[message_id] = server_id;
@@ -2216,7 +2230,7 @@ void GroupCallManager::set_group_call_default_send_as(GroupCallId group_call_id,
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(as_dialog_id, false, AccessRights::Read,
                                                                         "set_group_call_default_send_as"));
   if (as_dialog_id.get_type() == DialogType::User && as_dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
-    return promise.set_error(400, "Can't send live stream messages as another user");
+    return promise.set_error(400, "Can't send live story comments as another user");
   }
   if (group_call->message_sender_dialog_id == as_dialog_id) {
     return promise.set_value(Unit());
@@ -3063,11 +3077,12 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   return need_update;
 }
 
-void GroupCallManager::add_group_call_message(GroupCall *group_call, const GroupCallMessage &group_call_message) {
+void GroupCallManager::add_group_call_message(GroupCall *group_call, const GroupCallMessage &group_call_message,
+                                              int32 max_old_server_message_id) {
   if (!group_call_message.is_valid()) {
     return;
   }
-  auto message_id = group_call->messages.add_message(group_call_message);
+  auto message_id = group_call->messages.add_message(group_call_message, max_old_server_message_id);
   if (message_id == 0) {
     LOG(INFO) << "Skip duplicate " << group_call_message;
     return;
@@ -3101,7 +3116,7 @@ void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_ca
     return;
   }
 
-  add_group_call_message(group_call, GroupCallMessage(td_, std::move(message)));
+  add_group_call_message(group_call, GroupCallMessage(td_, std::move(message)), 0);
 }
 
 void GroupCallManager::on_new_encrypted_group_call_message(InputGroupCallId input_group_call_id,
@@ -3135,7 +3150,7 @@ void GroupCallManager::on_new_encrypted_group_call_message(InputGroupCallId inpu
     return;
   }
 
-  add_group_call_message(group_call, GroupCallMessage(td_, sender_dialog_id, std::move(r_message.value())));
+  add_group_call_message(group_call, GroupCallMessage(td_, sender_dialog_id, std::move(r_message.value())), 0);
 }
 
 void GroupCallManager::on_group_call_messages_deleted(InputGroupCallId input_group_call_id,
@@ -4350,7 +4365,22 @@ void GroupCallManager::process_join_video_chat_response(InputGroupCallId input_g
     LOG(INFO) << "Ignore JoinVideoChatQuery response with " << input_group_call_id << " and generation " << generation;
     return;
   }
+  CHECK(updates != nullptr);
 
+  auto new_message_updates = UpdatesManager::extract_group_call_messages(updates.get());
+  if (!new_message_updates.empty()) {
+    std::reverse(new_message_updates.begin(), new_message_updates.end());
+    auto group_call = get_group_call(input_group_call_id);
+    CHECK(group_call != nullptr);
+    auto max_old_server_message_id = group_call->messages.get_max_server_message_id();
+    for (auto &update : new_message_updates) {
+      if (input_group_call_id != InputGroupCallId(update->call_)) {
+        LOG(ERROR) << "Receive message in " << InputGroupCallId(update->call_) << " instead of " << input_group_call_id;
+        continue;
+      }
+      add_group_call_message(group_call, GroupCallMessage(td_, std::move(update->message_)), max_old_server_message_id);
+    }
+  }
   td_->updates_manager_->on_get_updates(std::move(updates),
                                         PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable {
                                           promise.set_error(500, "Wrong join response received");
@@ -5263,7 +5293,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
           : (group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id());
   CHECK(as_dialog_id.is_valid());
   auto group_call_message = GroupCallMessage(as_dialog_id, message, paid_message_star_count);
-  add_group_call_message(group_call, group_call_message);
+  add_group_call_message(group_call, group_call_message, 0);
 
   if (group_call->is_conference || group_call->call_id != tde2e_api::CallId()) {
     auto json_message = group_call_message.encode_to_json();
@@ -6375,6 +6405,7 @@ bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
     update_group_call_participant_order_timeout_.cancel_timeout(group_call->group_call_id.get());
     remove_recent_group_call_speaker(input_group_call_id, group_call->as_dialog_id);
 
+    LOG(INFO) << "Delete all group call messages";
     group_call->messages.delete_all_messages();
   }
 
