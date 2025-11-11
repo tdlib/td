@@ -1561,6 +1561,18 @@ class GroupCallManager::GroupCallMessages {
     return {server_id, message_id_to_sender_dialog_id_.erase(message_id) > 0};
   }
 
+  vector<int32> delete_all_messages() {
+    vector<int32> message_ids;
+    for (const auto &it : message_id_to_server_id_) {
+      message_ids.push_back(it.first);
+    }
+    for (auto message_id : message_ids) {
+      auto result = delete_message(message_id);
+      CHECK(result.second);
+    }
+    return message_ids;
+  }
+
   void delete_messages_by_sender(DialogId sender_dialog_id, vector<int32> &server_ids,
                                  vector<int32> &deleted_message_ids) {
     for (const auto &it : message_id_to_sender_dialog_id_) {
@@ -6353,6 +6365,8 @@ bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
   if (group_call != nullptr) {
     update_group_call_participant_order_timeout_.cancel_timeout(group_call->group_call_id.get());
     remove_recent_group_call_speaker(input_group_call_id, group_call->as_dialog_id);
+
+    group_call->messages.delete_all_messages();
   }
 
   auto participants_it = group_call_participants_.find(input_group_call_id);
