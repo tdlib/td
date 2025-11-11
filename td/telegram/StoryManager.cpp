@@ -3221,7 +3221,7 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
     return promise.set_value(Unit());
   }
 
-  if (can_get_story_view_count(owner_dialog_id) && story_id.is_server()) {
+  if (can_get_story_view_count(owner_dialog_id) && story_id.is_server() && !story->is_live_) {
     if (opened_stories_with_view_count_.empty()) {
       schedule_interaction_info_update();
     }
@@ -3274,14 +3274,15 @@ void StoryManager::close_story(DialogId owner_dialog_id, StoryId story_id, Promi
 
   StoryFullId story_full_id{owner_dialog_id, story_id};
   if (can_get_story_view_count(owner_dialog_id) && story_id.is_server()) {
-    auto &open_count = opened_stories_with_view_count_[story_full_id];
-    if (open_count == 0) {
-      return promise.set_error(400, "The story wasn't opened");
-    }
-    if (--open_count == 0) {
-      opened_stories_with_view_count_.erase(story_full_id);
-      if (opened_stories_with_view_count_.empty()) {
-        interaction_info_update_timeout_.cancel_timeout();
+    auto it = opened_stories_with_view_count_.find(story_full_id);
+    if (it != opened_stories_with_view_count_.end()) {
+      auto &open_count = it->second;
+      CHECK(open_count > 0);
+      if (--open_count == 0) {
+        opened_stories_with_view_count_.erase(it);
+        if (opened_stories_with_view_count_.empty()) {
+          interaction_info_update_timeout_.cancel_timeout();
+        }
       }
     }
   }
