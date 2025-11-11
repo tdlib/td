@@ -521,7 +521,7 @@ class GroupCallManager final : public Actor {
 
   bool set_group_call_unmuted_video_count(GroupCall *group_call, int32 count, const char *source);
 
-  void add_group_call_message(GroupCall *group_call, GroupCallMessage &&group_call_message);
+  void add_group_call_message(GroupCall *group_call, const GroupCallMessage &group_call_message);
 
   void update_group_call_dialog(const GroupCall *group_call, const char *source, bool force);
 

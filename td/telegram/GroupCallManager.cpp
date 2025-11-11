@@ -3051,7 +3051,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   return need_update;
 }
 
-void GroupCallManager::add_group_call_message(GroupCall *group_call, GroupCallMessage &&group_call_message) {
+void GroupCallManager::add_group_call_message(GroupCall *group_call, const GroupCallMessage &group_call_message) {
   if (!group_call_message.is_valid()) {
     return;
   }
@@ -5242,11 +5242,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
           : (group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id());
   CHECK(as_dialog_id.is_valid());
   auto group_call_message = GroupCallMessage(as_dialog_id, message, paid_message_star_count);
-  auto message_id = group_call->messages.add_message(group_call_message);
-  CHECK(message_id != 0);
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateNewGroupCallMessage>(
-                   group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_, message_id)));
+  add_group_call_message(group_call, group_call_message);
 
   if (group_call->is_conference || group_call->call_id != tde2e_api::CallId()) {
     auto json_message = group_call_message.encode_to_json();
