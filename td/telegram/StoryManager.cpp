@@ -2494,9 +2494,13 @@ void StoryManager::load_active_stories(StoryListId story_list_id, Promise<Unit> 
     if (story_list.list_last_story_date_ != MAX_DIALOG_DATE) {
       auto min_story_date = story_list.list_last_story_date_;
       story_list.list_last_story_date_ = MAX_DIALOG_DATE;
+      vector<DialogId> updated_dialog_ids;
       for (auto it = story_list.ordered_stories_.upper_bound(min_story_date); it != story_list.ordered_stories_.end();
            ++it) {
-        on_dialog_active_stories_order_updated(it->get_dialog_id(), "load_active_stories");
+        updated_dialog_ids.push_back(it->get_dialog_id());
+      }
+      for (auto dialog_id : updated_dialog_ids) {
+        on_dialog_active_stories_order_updated(dialog_id, "load_active_stories");
       }
       update_story_list_sent_total_count(story_list_id, story_list, "load_active_stories");
     }
@@ -2554,10 +2558,14 @@ void StoryManager::on_load_active_stories_from_database(StoryListId story_list_i
       if (story_list.list_last_story_date_ < max_story_date) {
         auto min_story_date = story_list.list_last_story_date_;
         story_list.list_last_story_date_ = max_story_date;
+        vector<DialogId> updated_dialog_ids;
         for (auto it = story_list.ordered_stories_.upper_bound(min_story_date);
              it != story_list.ordered_stories_.end() && *it <= max_story_date; ++it) {
           auto dialog_id = it->get_dialog_id();
           owner_dialog_ids.erase(dialog_id);
+          updated_dialog_ids.push_back(dialog_id);
+        }
+        for (auto dialog_id : updated_dialog_ids) {
           on_dialog_active_stories_order_updated(dialog_id, "on_load_active_stories_from_database 1");
         }
         for (auto owner_dialog_id : owner_dialog_ids) {
