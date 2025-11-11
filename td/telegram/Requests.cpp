@@ -4378,9 +4378,8 @@ void Requests::on_request(uint64 id, td_api::postStory &request) {
 void Requests::on_request(uint64 id, td_api::startLiveStory &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->story_manager_->start_live_story(DialogId(request.chat_id_), std::move(request.privacy_settings_),
-                                        request.is_posted_to_chat_page_, request.protect_content_,
-                                        request.is_rtmp_stream_, request.enable_messages_,
+  td_->story_manager_->start_live_story(DialogId(request.chat_id_), std::move(request.privacy_settings_), false,
+                                        request.protect_content_, request.is_rtmp_stream_, request.enable_messages_,
                                         request.paid_message_star_count_, std::move(promise));
 }
 
