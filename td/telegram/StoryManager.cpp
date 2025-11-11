@@ -3249,7 +3249,7 @@ void StoryManager::open_story(DialogId owner_dialog_id, StoryId story_id, Promis
   }
 
   bool is_active = is_active_story(story);
-  bool need_increment_story_views = story_id.is_server() && !is_active && story->is_pinned_;
+  bool need_increment_story_views = story_id.is_server() && !is_active && story->is_pinned_ && !story->is_live_;
   bool need_read_story = story_id.is_server() && is_active;
 
   if (need_increment_story_views) {
