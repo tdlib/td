@@ -4215,6 +4215,9 @@ void GroupCallManager::start_group_call_screen_sharing(GroupCallId group_call_id
     }
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
+  if (group_call->is_live_story) {
+    return promise.set_error(400, "Can't use screen sharing in live stories");
+  }
 
   cancel_join_group_call_presentation_request(input_group_call_id);
 
@@ -4257,6 +4260,9 @@ void GroupCallManager::end_group_call_screen_sharing(GroupCallId group_call_id, 
       return;
     }
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+  if (group_call->is_live_story) {
+    return promise.set_error(400, "Can't use screen sharing in live stories");
   }
 
   cancel_join_group_call_presentation_request(input_group_call_id);
@@ -4789,6 +4795,9 @@ void GroupCallManager::toggle_group_call_is_my_presentation_paused(GroupCallId g
 
   if (is_my_presentation_paused == get_group_call_is_my_presentation_paused(group_call)) {
     return promise.set_value(Unit());
+  }
+  if (group_call->is_live_story) {
+    return promise.set_error(400, "Can't use screen sharing in live stories");
   }
 
   // there is no reason to save promise; we will send an update with actual value anyway

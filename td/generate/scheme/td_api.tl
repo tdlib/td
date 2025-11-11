@@ -12441,16 +12441,16 @@ joinVideoChat group_call_id:int32 participant_id:MessageSender join_parameters:g
 //@join_parameters Parameters to join the call
 joinLiveStory group_call_id:int32 join_parameters:groupCallJoinParameters = Text;
 
-//@description Starts screen sharing in a joined group call. Returns join response payload for tgcalls
+//@description Starts screen sharing in a joined group call; not supported in live stories. Returns join response payload for tgcalls
 //@group_call_id Group call identifier
 //@audio_source_id Screen sharing audio channel synchronization source identifier; received from tgcalls
 //@payload Group call join payload; received from tgcalls
 startGroupCallScreenSharing group_call_id:int32 audio_source_id:int32 payload:string = Text;
 
-//@description Pauses or unpauses screen sharing in a joined group call @group_call_id Group call identifier @is_paused Pass true to pause screen sharing; pass false to unpause it
+//@description Pauses or unpauses screen sharing in a joined group call; not supported in live stories @group_call_id Group call identifier @is_paused Pass true to pause screen sharing; pass false to unpause it
 toggleGroupCallScreenSharingIsPaused group_call_id:int32 is_paused:Bool = Ok;
 
-//@description Ends screen sharing in a joined group call @group_call_id Group call identifier
+//@description Ends screen sharing in a joined group call; not supported in live stories @group_call_id Group call identifier
 endGroupCallScreenSharing group_call_id:int32 = Ok;
 
 //@description Sets title of a video chat; requires groupCall.can_be_managed right @group_call_id Group call identifier @title New group call title; 1-64 characters
