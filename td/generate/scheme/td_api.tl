@@ -6071,7 +6071,7 @@ groupCallInfo group_call_id:int32 join_payload:string = GroupCallInfo;
 //@message_id Unique message identifier within the group call
 //@sender_id Identifier of the sender of the message
 //@date Point in time (Unix timestamp) when the message was sent
-//@text Text of the message
+//@text Text of the message. If empty, then the message is a paid reaction in a live story
 //@paid_message_star_count The number of Telegram Stars that were paid to send the message; for live stories only
 //@is_from_owner True, if the message is sent by the owner of the call and must be treated as a message of the maximum level; for live stories only
 groupCallMessage message_id:int32 sender_id:MessageSender date:int32 text:formattedText paid_message_star_count:int53 is_from_owner:Bool = GroupCallMessage;
