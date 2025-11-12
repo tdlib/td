@@ -6583,6 +6583,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
     call.loaded_all_participants = group_call->loaded_all_participants;
     call.audio_source = group_call->audio_source;
     call.as_dialog_id = group_call->as_dialog_id;
+    call.messages = std::move(group_call->messages);
     *group_call = std::move(call);
 
     need_update = true;
