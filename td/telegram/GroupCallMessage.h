@@ -52,6 +52,10 @@ class GroupCallMessage {
     return sender_dialog_id_;
   }
 
+  int64 get_paid_message_star_count() const {
+    return paid_message_star_count_;
+  }
+
   string encode_to_json() const;
 
   td_api::object_ptr<td_api::groupCallMessage> get_group_call_message_object(Td *td, int32 message_id) const;

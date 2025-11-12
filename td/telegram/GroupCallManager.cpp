@@ -3063,7 +3063,8 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   return need_update;
 }
 
-void GroupCallManager::add_group_call_message(GroupCall *group_call, const GroupCallMessage &group_call_message) {
+void GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
+                                              const GroupCallMessage &group_call_message, bool is_old) {
   if (!group_call_message.is_valid()) {
     return;
   }
@@ -3072,7 +3073,21 @@ void GroupCallManager::add_group_call_message(GroupCall *group_call, const Group
     LOG(INFO) << "Skip duplicate " << group_call_message;
     return;
   }
-  // TODO update group call spendings
+  if (!is_old) {
+    auto paid_message_star_count = group_call_message.get_paid_message_star_count();
+    if (paid_message_star_count > 0) {
+      if (need_group_call_participants(input_group_call_id, group_call)) {
+        auto *participant = get_group_call_participant(input_group_call_id, group_call_message.get_sender_dialog_id(),
+                                                       "add_group_call_message");
+        if (participant != nullptr) {
+          participant->total_paid_star_count += paid_message_star_count;
+          if (participant->order.is_valid()) {
+            send_update_group_call_participant(input_group_call_id, *participant, "add_group_call_message");
+          }
+        }
+      }
+    }
+  }
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateNewGroupCallMessage>(
                    group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_, message_id)));
@@ -3101,7 +3116,7 @@ void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_ca
     return;
   }
 
-  add_group_call_message(group_call, GroupCallMessage(td_, std::move(message)));
+  add_group_call_message(input_group_call_id, group_call, GroupCallMessage(td_, std::move(message)));
 }
 
 void GroupCallManager::on_new_encrypted_group_call_message(InputGroupCallId input_group_call_id,
@@ -3135,7 +3150,8 @@ void GroupCallManager::on_new_encrypted_group_call_message(InputGroupCallId inpu
     return;
   }
 
-  add_group_call_message(group_call, GroupCallMessage(td_, sender_dialog_id, std::move(r_message.value())));
+  add_group_call_message(input_group_call_id, group_call,
+                         GroupCallMessage(td_, sender_dialog_id, std::move(r_message.value())));
 }
 
 void GroupCallManager::on_group_call_messages_deleted(InputGroupCallId input_group_call_id,
@@ -4362,7 +4378,7 @@ void GroupCallManager::process_join_video_chat_response(InputGroupCallId input_g
         LOG(ERROR) << "Receive message in " << InputGroupCallId(update->call_) << " instead of " << input_group_call_id;
         continue;
       }
-      add_group_call_message(group_call, GroupCallMessage(td_, std::move(update->message_)));
+      add_group_call_message(input_group_call_id, group_call, GroupCallMessage(td_, std::move(update->message_)), true);
     }
   }
   td_->updates_manager_->on_get_updates(std::move(updates),
@@ -5281,7 +5297,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
           : (group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id());
   CHECK(as_dialog_id.is_valid());
   auto group_call_message = GroupCallMessage(as_dialog_id, message, paid_message_star_count);
-  add_group_call_message(group_call, group_call_message);
+  add_group_call_message(input_group_call_id, group_call, group_call_message);
 
   if (group_call->is_conference || group_call->call_id != tde2e_api::CallId()) {
     auto json_message = group_call_message.encode_to_json();
