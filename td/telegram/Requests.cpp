@@ -4897,7 +4897,14 @@ void Requests::on_request(uint64 id, td_api::sendGroupCallMessage &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->group_call_manager_->send_group_call_message(GroupCallId(request.group_call_id_), std::move(request.text_),
-                                                    request.paid_message_star_count_, std::move(promise));
+                                                    request.paid_message_star_count_, false, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::sendPaidLiveStoryReaction &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->group_call_manager_->send_group_call_message(GroupCallId(request.group_call_id_), nullptr, request.star_count_,
+                                                    true, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::deleteGroupCallMessages &request) {

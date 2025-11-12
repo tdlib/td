@@ -5216,10 +5216,11 @@ void GroupCallManager::on_set_group_call_paid_message_star_count(InputGroupCallI
 
 void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
                                                td_api::object_ptr<td_api::formattedText> &&text,
-                                               int64 paid_message_star_count, Promise<Unit> &&promise) {
+                                               int64 paid_message_star_count, bool is_reaction,
+                                               Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
-  if (paid_message_star_count < 0) {
+  if (paid_message_star_count < 0 || (is_reaction && paid_message_star_count == 0)) {
     return promise.set_error(400, "Invalid number of Telegram Stars specified");
   }
 
@@ -5227,13 +5228,13 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
   if (group_call == nullptr || !group_call->is_inited) {
     reload_group_call(input_group_call_id,
                       PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, text = std::move(text),
-                                              paid_message_star_count, promise = std::move(promise)](
+                                              paid_message_star_count, is_reaction, promise = std::move(promise)](
                                                  Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
                         if (result.is_error()) {
                           promise.set_error(result.move_as_error());
                         } else {
                           send_closure(actor_id, &GroupCallManager::send_group_call_message, group_call_id,
-                                       std::move(text), paid_message_star_count, std::move(promise));
+                                       std::move(text), paid_message_star_count, is_reaction, std::move(promise));
                         }
                       }));
     return;
@@ -5241,13 +5242,13 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
       group_call->after_join.push_back(PromiseCreator::lambda(
-          [actor_id = actor_id(this), group_call_id, text = std::move(text), paid_message_star_count,
+          [actor_id = actor_id(this), group_call_id, text = std::move(text), paid_message_star_count, is_reaction,
            promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
               promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
               send_closure(actor_id, &GroupCallManager::send_group_call_message, group_call_id, std::move(text),
-                           paid_message_star_count, std::move(promise));
+                           paid_message_star_count, is_reaction, std::move(promise));
             }
           }));
       return;
@@ -5255,15 +5256,18 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
-  TRY_RESULT_PROMISE(
-      promise, message,
-      get_formatted_text(td_, group_call->dialog_id, std::move(text), td_->auth_manager_->is_bot(), true, true, false));
+  TRY_RESULT_PROMISE(promise, message,
+                     get_formatted_text(td_, group_call->dialog_id, std::move(text), td_->auth_manager_->is_bot(),
+                                        is_reaction, true, false));
   if (group_call->is_live_story) {
     if (!td_->star_manager_->has_owned_star_count(paid_message_star_count)) {
       return promise.set_error(400, "Have not enough Telegram Stars");
     }
   } else {
     if (paid_message_star_count != 0) {
+      if (is_reaction) {
+        return promise.set_error(400, "Reactions can't be sent to the call");
+      }
       return promise.set_error(400, "Paid messages can't be sent to the call");
     }
     if (static_cast<int64>(utf8_length(message.text)) > G()->get_option_integer("group_call_message_text_length_max")) {

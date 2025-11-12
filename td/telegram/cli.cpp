@@ -5161,6 +5161,11 @@ class CliClient final : public Actor {
       get_args(args, group_call_id, text);
       send_request(td_api::make_object<td_api::sendGroupCallMessage>(group_call_id, as_formatted_text(text),
                                                                      paid_message_star_count_));
+    } else if (op == "splsr") {
+      GroupCallId group_call_id;
+      int64 star_count;
+      get_args(args, group_call_id);
+      send_request(td_api::make_object<td_api::sendPaidLiveStoryReaction>(group_call_id, star_count));
     } else if (op == "dgcm" || op == "dgcms") {
       GroupCallId group_call_id;
       string message_ids;

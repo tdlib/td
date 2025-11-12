@@ -12476,10 +12476,16 @@ setGroupCallMessageSender group_call_id:int32 message_sender_id:MessageSender = 
 
 //@description Sends a message to other participants of a group call. Requires groupCall.can_send_messages right
 //@group_call_id Group call identifier
-//@text Text of the message to send; 0-getOption("group_call_message_text_length_max") characters for non-live-stories; see updateGroupCallMessageLevels for live story restrictions,
+//@text Text of the message to send; 1-getOption("group_call_message_text_length_max") characters for non-live-stories; see updateGroupCallMessageLevels for live story restrictions,
 //-which depends on paid_message_star_count
-//@paid_message_star_count The number of Telegram Stars the user agreed to pay to send the message; for live stories only
-sendGroupCallMessage group_call_id:int32 text:formattedText paid_message_star_count:int64 = Ok;
+//@paid_message_star_count The number of Telegram Stars the user agreed to pay to send the message; for live stories only; 0-getOption("paid_group_call_message_star_count_max").
+//-Must be 0 for messages sent to live stories posted on behalf of the current user
+sendGroupCallMessage group_call_id:int32 text:formattedText paid_message_star_count:int53 = Ok;
+
+//@description Sends a paid reaction in a live story group call. Can't be used for live stories posted on behalf of the current user
+//@group_call_id Group call identifier
+//@star_count The number of Telegram Stars to pay; 1-getOption("paid_group_call_message_star_count_max")
+sendPaidLiveStoryReaction group_call_id:int32 star_count:int53 = Ok;
 
 //@description Deletes messages in a group call; for live story calls only. Requires groupCall.can_delete_messages right
 //@group_call_id Group call identifier

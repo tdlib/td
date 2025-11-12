@@ -133,7 +133,7 @@ class GroupCallManager final : public Actor {
                                               Promise<Unit> &&promise);
 
   void send_group_call_message(GroupCallId group_call_id, td_api::object_ptr<td_api::formattedText> &&text,
-                               int64 paid_message_star_count, Promise<Unit> &&promise);
+                               int64 paid_message_star_count, bool is_reaction, Promise<Unit> &&promise);
 
   void delete_group_call_messages(GroupCallId group_call_id, const vector<int32> &message_ids, bool report_spam,
                                   Promise<Unit> &&promise);
