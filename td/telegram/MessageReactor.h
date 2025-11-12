@@ -36,10 +36,14 @@ class MessageReactor {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const MessageReactor &reactor);
 
+  void store_min_channel(Td *td);
+
  public:
   MessageReactor() = default;
 
   MessageReactor(Td *td, telegram_api::object_ptr<telegram_api::messageReactor> &&reactor);
+
+  MessageReactor(Td *td, telegram_api::object_ptr<telegram_api::groupCallDonor> &&donor);
 
   MessageReactor(DialogId dialog_id, int32 count, bool is_anonymous)
       : dialog_id_(dialog_id), count_(count), is_me_(true), is_anonymous_(is_anonymous) {
