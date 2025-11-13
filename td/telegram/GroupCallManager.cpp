@@ -1658,6 +1658,18 @@ class GroupCallManager::GroupCallMessages {
       CHECK(result.second);
       deleted_message_ids.push_back(message_id);
     }
+    auto now = Time::now();
+    vector<int32> expired_message_ids;
+    for (const auto &it : message_info_) {
+      if (it.second.delete_time_ > 0.0 && it.second.delete_time_ < now) {
+        expired_message_ids.push_back(it.first);
+      }
+    }
+    for (auto message_id : expired_message_ids) {
+      auto result = delete_message(message_id);
+      CHECK(result.second);
+      deleted_message_ids.push_back(message_id);
+    }
     return deleted_message_ids;
   }
 
