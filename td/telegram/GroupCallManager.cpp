@@ -1688,6 +1688,20 @@ class GroupCallManager::GroupCallMessages {
     }
     return deleted_message_ids;
   }
+
+  bool is_empty() const {
+    return message_info_.empty();
+  }
+
+  double get_next_delete_time() const {
+    double next_delete_time = 0.0;
+    for (const auto &it : message_info_) {
+      if (it.second.delete_time_ != 0 && (next_delete_time == 0.0 || it.second.delete_time_ < next_delete_time)) {
+        next_delete_time = it.second.delete_time_;
+      }
+    }
+    return next_delete_time;
+  }
 };
 
 struct GroupCallManager::GroupCall {
@@ -1843,6 +1857,9 @@ GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), pare
 
   poll_group_call_blocks_timeout_.set_callback(on_poll_group_call_blocks_timeout_callback);
   poll_group_call_blocks_timeout_.set_callback_data(static_cast<void *>(this));
+
+  delete_group_call_messages_timeout_.set_callback(on_delete_group_call_messages_timeout_callback);
+  delete_group_call_messages_timeout_.set_callback_data(static_cast<void *>(this));
 
   if (!td_->auth_manager_->is_bot()) {
     auto status = log_event_parse(message_limits_, G()->td_db()->get_binlog_pmc()->get("group_call_message_limits"));
@@ -2068,6 +2085,32 @@ void GroupCallManager::on_poll_group_call_blocks_timeout(int64 call_id) {
     return;
   }
   poll_group_call_blocks(group_call, static_cast<int32>(call_id % 2));
+}
+
+void GroupCallManager::on_delete_group_call_messages_timeout_callback(void *group_call_manager_ptr,
+                                                                      int64 group_call_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto group_call_manager = static_cast<GroupCallManager *>(group_call_manager_ptr);
+  send_closure_later(group_call_manager->actor_id(group_call_manager),
+                     &GroupCallManager::on_delete_group_call_messages_timeout,
+                     GroupCallId(narrow_cast<int32>(group_call_id_int)));
+}
+
+void GroupCallManager::on_delete_group_call_messages_timeout(GroupCallId group_call_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr) {
+    return;
+  }
+
+  delete_old_group_call_messages(group_call);
 }
 
 bool GroupCallManager::is_group_call_being_joined(InputGroupCallId input_group_call_id) const {
@@ -3154,6 +3197,16 @@ void GroupCallManager::delete_old_group_call_messages(GroupCall *group_call) {
                  td_api::make_object<td_api::updateGroupCallMessagesDeleted>(group_call->group_call_id.get(),
                                                                              std::move(old_message_ids)));
   }
+  schedule_group_call_message_deletion(group_call);
+}
+
+void GroupCallManager::schedule_group_call_message_deletion(const GroupCall *group_call) {
+  auto next_delete_time = group_call->messages.get_next_delete_time();
+  if (next_delete_time > 0) {
+    delete_group_call_messages_timeout_.set_timeout_at(group_call->group_call_id.get(), next_delete_time);
+  } else {
+    delete_group_call_messages_timeout_.cancel_timeout(group_call->group_call_id.get());
+  }
 }
 
 void GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
@@ -3301,6 +3354,7 @@ void GroupCallManager::on_group_call_messages_deleted(InputGroupCallId input_gro
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateGroupCallMessagesDeleted>(group_call->group_call_id.get(),
                                                                              std::move(message_ids)));
+    schedule_group_call_message_deletion(group_call);
   }
 }
 
@@ -5488,6 +5542,7 @@ void GroupCallManager::delete_group_call_messages(GroupCallId group_call_id, con
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateGroupCallMessagesDeleted>(group_call_id.get(),
                                                                              std::move(deleted_message_ids)));
+    schedule_group_call_message_deletion(group_call);
   }
 }
 
@@ -5548,6 +5603,7 @@ void GroupCallManager::delete_group_call_messages_by_sender(GroupCallId group_ca
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateGroupCallMessagesDeleted>(group_call_id.get(),
                                                                              std::move(deleted_message_ids)));
+    schedule_group_call_message_deletion(group_call);
   }
 }
 
@@ -6563,6 +6619,7 @@ bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
 
     LOG(INFO) << "Delete all group call messages";
     group_call->messages.delete_all_messages();
+    schedule_group_call_message_deletion(group_call);
   }
 
   auto participants_it = group_call_participants_.find(input_group_call_id);

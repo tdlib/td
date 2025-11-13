@@ -270,11 +270,15 @@ class GroupCallManager final : public Actor {
 
   void on_update_group_call_timeout(int64 call_id);
 
+  void on_update_group_call_message(int64 call_id);
+
   static void on_poll_group_call_blocks_timeout_callback(void *group_call_manager_ptr, int64 call_id);
 
   void on_poll_group_call_blocks_timeout(int64 call_id);
 
-  void on_update_group_call_message(int64 call_id);
+  static void on_delete_group_call_messages_timeout_callback(void *group_call_manager_ptr, int64 group_call_id_int);
+
+  void on_delete_group_call_messages_timeout(GroupCallId group_call_id);
 
   GroupCallId get_next_group_call_id(InputGroupCallId input_group_call_id);
 
@@ -523,7 +527,9 @@ class GroupCallManager final : public Actor {
 
   bool set_group_call_unmuted_video_count(GroupCall *group_call, int32 count, const char *source);
 
-  static void delete_old_group_call_messages(GroupCall *group_call);
+  void delete_old_group_call_messages(GroupCall *group_call);
+
+  void schedule_group_call_message_deletion(const GroupCall *group_call);
 
   void add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
                               const GroupCallMessage &group_call_message, bool is_old = false);
@@ -629,6 +635,7 @@ class GroupCallManager final : public Actor {
   MultiTimeout sync_participants_timeout_{"SyncParticipantsTimeout"};
   MultiTimeout update_group_call_timeout_{"UpdateGroupCallTimeout"};
   MultiTimeout poll_group_call_blocks_timeout_{"PollGroupCallBlocksTimeout"};
+  MultiTimeout delete_group_call_messages_timeout_{"DeleteGroupCallMessagesTimeout"};
 };
 
 }  // namespace td
