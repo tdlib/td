@@ -1091,7 +1091,7 @@ foundAffiliatePrograms total_count:int32 programs:vector<foundAffiliateProgram> 
 //@is_disconnected True, if the program was canceled by the bot, or disconnected by the chat owner and isn't available anymore
 //@user_count The number of users that used the affiliate program
 //@revenue_star_count The number of Telegram Stars that were earned by the affiliate program
-connectedAffiliateProgram url:string bot_user_id:int53 parameters:affiliateProgramParameters connection_date:int32 is_disconnected:Bool user_count:int64 revenue_star_count:int64 = ConnectedAffiliateProgram;
+connectedAffiliateProgram url:string bot_user_id:int53 parameters:affiliateProgramParameters connection_date:int32 is_disconnected:Bool user_count:int64 revenue_star_count:int53 = ConnectedAffiliateProgram;
 
 //@description Represents a list of affiliate programs that were connected to an affiliate
 //@total_count The total number of affiliate programs that were connected to the affiliate
