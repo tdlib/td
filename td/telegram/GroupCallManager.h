@@ -141,6 +141,8 @@ class GroupCallManager final : public Actor {
   void delete_group_call_messages_by_sender(GroupCallId group_call_id, DialogId sender_dialog_id, bool report_spam,
                                             Promise<Unit> &&promise);
 
+  void get_group_call_stars(GroupCallId group_call_id, Promise<td_api::object_ptr<td_api::liveStoryDonors>> &&promise);
+
   void revoke_group_call_invite_link(GroupCallId group_call_id, Promise<Unit> &&promise);
 
   void invite_group_call_participant(GroupCallId group_call_id, UserId user_id, bool is_video,

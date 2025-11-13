@@ -2410,6 +2410,11 @@ paidReactionTypeChat chat_id:int53 = PaidReactionType;
 //@is_anonymous True, if the reactor is anonymous
 paidReactor sender_id:MessageSender star_count:int32 is_top:Bool is_me:Bool is_anonymous:Bool = PaidReactor;
 
+//@description Contains a list of users and chats that spend most money on paid messages and reactions in a live stream
+//@total_star_count Total amount of spend Telegram Stars
+//@top_donors List of top donors in the live stream
+liveStoryDonors total_star_count:int53 top_donors:vector<paidReactor> = LiveStoryDonors;
+
 //@description Contains information about a forwarded message
 //@origin Origin of the forwarded message
 //@date Point in time (Unix timestamp) when the message was originally sent
@@ -12498,6 +12503,9 @@ deleteGroupCallMessages group_call_id:int32 message_ids:vector<int32> report_spa
 //@sender_id Identifier of the sender of messages to delete
 //@report_spam Pass true to report the messages as spam
 deleteGroupCallMessagesBySender group_call_id:int32 sender_id:MessageSender report_spam:Bool = Ok;
+
+//@description Returns the list of top live story donors @group_call_id Group call identifier of the live story
+getLiveStoryTopDonors group_call_id:int32 = LiveStoryDonors;
 
 //@description Invites a user to an active group call; for group calls not bound to a chat only. Sends a service message of the type messageGroupCall.
 //-The group call can have at most getOption("group_call_participant_count_max") participants

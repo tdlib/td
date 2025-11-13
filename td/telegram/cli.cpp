@@ -5178,6 +5178,10 @@ class CliClient final : public Actor {
       get_args(args, group_call_id, sender_id);
       send_request(td_api::make_object<td_api::deleteGroupCallMessagesBySender>(
           group_call_id, as_message_sender(sender_id), op == "dgcmbss"));
+    } else if (op == "glstd") {
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+      send_request(td_api::make_object<td_api::getLiveStoryTopDonors>(group_call_id));
     } else if (op == "rgcil") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);

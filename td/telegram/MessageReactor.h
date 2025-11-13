@@ -65,6 +65,10 @@ class MessageReactor {
 
   bool fix_is_me(DialogId my_dialog_id);
 
+  int32 get_count() const {
+    return count_;
+  }
+
   void add_count(int32 count, DialogId reactor_dialog_id, DialogId my_dialog_id) {
     count_ += count;
     if (reactor_dialog_id == DialogId()) {
