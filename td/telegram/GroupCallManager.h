@@ -523,6 +523,8 @@ class GroupCallManager final : public Actor {
 
   bool set_group_call_unmuted_video_count(GroupCall *group_call, int32 count, const char *source);
 
+  static void delete_old_group_call_messages(GroupCall *group_call);
+
   void add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
                               const GroupCallMessage &group_call_message, bool is_old = false);
 

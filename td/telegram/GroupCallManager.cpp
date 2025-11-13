@@ -1569,7 +1569,7 @@ class GroupCallManager::GroupCallMessages {
   int32 current_message_id_ = 0;
   FlatHashMap<int32, int32> server_id_to_message_id_;
   FlatHashMap<int32, int32> message_id_to_server_id_;
-  FlatHashMap<int32, DialogId> message_id_to_sender_dialog_id_;
+  std::map<int32, DialogId> message_id_to_sender_dialog_id_;
 
   bool is_new_message(const GroupCallMessage &message) {
     auto server_id = message.get_server_id();
@@ -1639,6 +1639,18 @@ class GroupCallManager::GroupCallMessages {
         server_ids.push_back(result.first);
       }
     }
+  }
+
+  vector<int32> delete_old_group_call_messages() {
+    const size_t max_message_count = 100u;
+    vector<int32> deleted_message_ids;
+    while (message_id_to_sender_dialog_id_.size() > max_message_count) {
+      auto message_id = message_id_to_sender_dialog_id_.begin()->first;
+      auto result = delete_message(message_id);
+      CHECK(result.second);
+      deleted_message_ids.push_back(message_id);
+    }
+    return deleted_message_ids;
   }
 
   vector<int32> delete_server_messages(const vector<int32> &server_ids) {
@@ -3115,6 +3127,15 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
   return need_update;
 }
 
+void GroupCallManager::delete_old_group_call_messages(GroupCall *group_call) {
+  auto old_message_ids = group_call->messages.delete_old_group_call_messages();
+  if (!old_message_ids.empty()) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateGroupCallMessagesDeleted>(group_call->group_call_id.get(),
+                                                                             std::move(old_message_ids)));
+  }
+}
+
 void GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
                                               const GroupCallMessage &group_call_message, bool is_old) {
   if (!group_call_message.is_valid()) {
@@ -3130,6 +3151,7 @@ void GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_
           G()->td(), &Td::send_update,
           td_api::make_object<td_api::updateNewGroupCallMessage>(
               group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_, message_id)));
+      delete_old_group_call_messages(group_call);
     }
   }
   if (!is_old && paid_message_star_count > 0 && group_call->is_live_story) {
