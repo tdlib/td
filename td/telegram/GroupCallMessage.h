@@ -26,6 +26,7 @@ class GroupCallMessage {
   FormattedText text_;
   int64 paid_message_star_count_ = 0;
   bool from_admin_ = false;
+  bool is_local_ = false;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const GroupCallMessage &group_call_message);
 
@@ -38,6 +39,10 @@ class GroupCallMessage {
 
   bool is_valid() const {
     return sender_dialog_id_.is_valid();
+  }
+
+  bool is_local() const {
+    return is_local_;
   }
 
   bool is_reaction() const {
@@ -54,6 +59,10 @@ class GroupCallMessage {
 
   DialogId get_sender_dialog_id() const {
     return sender_dialog_id_;
+  }
+
+  int32 get_date() const {
+    return date_;
   }
 
   int64 get_paid_message_star_count() const {

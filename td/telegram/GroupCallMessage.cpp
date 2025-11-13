@@ -196,7 +196,8 @@ GroupCallMessage::GroupCallMessage(DialogId sender_dialog_id, FormattedText text
     : date_(G()->unix_time())
     , sender_dialog_id_(sender_dialog_id)
     , text_(std::move(text))
-    , paid_message_star_count_(paid_message_star_count) {
+    , paid_message_star_count_(paid_message_star_count)
+    , is_local_(true) {
 }
 
 string GroupCallMessage::encode_to_json() const {

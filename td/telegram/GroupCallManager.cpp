@@ -27,6 +27,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
@@ -45,10 +46,12 @@
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
+#include "td/utils/Time.h"
 #include "td/utils/UInt.h"
 #include "td/utils/utf8.h"
 
 #include <algorithm>
+#include <limits>
 #include <map>
 #include <utility>
 
@@ -1569,7 +1572,11 @@ class GroupCallManager::GroupCallMessages {
   int32 current_message_id_ = 0;
   FlatHashMap<int32, int32> server_id_to_message_id_;
   FlatHashMap<int32, int32> message_id_to_server_id_;
-  std::map<int32, DialogId> message_id_to_sender_dialog_id_;
+  struct MessageInfo {
+    DialogId sender_dialog_id_;
+    double delete_time_;
+  };
+  std::map<int32, MessageInfo> message_info_;
 
   bool is_new_message(const GroupCallMessage &message) {
     auto server_id = message.get_server_id();
@@ -1587,7 +1594,7 @@ class GroupCallManager::GroupCallMessages {
   }
 
  public:
-  int32 add_message(const GroupCallMessage &message) {
+  int32 add_message(const GroupCallMessage &message, int64 delete_in) {
     auto server_id = message.get_server_id();
     if (!is_new_message(message)) {
       return 0;
@@ -1597,7 +1604,8 @@ class GroupCallManager::GroupCallMessages {
       server_id_to_message_id_[server_id] = message_id;
       message_id_to_server_id_[message_id] = server_id;
     }
-    message_id_to_sender_dialog_id_.emplace(message_id, message.get_sender_dialog_id());
+    auto delete_time = delete_in == 0 ? 0.0 : Time::now() + delete_in;
+    message_info_.emplace(message_id, MessageInfo{message.get_sender_dialog_id(), delete_time});
     return message_id;
   }
 
@@ -1610,7 +1618,7 @@ class GroupCallManager::GroupCallMessages {
       auto is_deleted = server_id_to_message_id_.erase(server_id) > 0;
       CHECK(is_deleted);
     }
-    return {server_id, message_id_to_sender_dialog_id_.erase(message_id) > 0};
+    return {server_id, message_info_.erase(message_id) > 0};
   }
 
   vector<int32> delete_all_messages() {
@@ -1627,8 +1635,8 @@ class GroupCallManager::GroupCallMessages {
 
   void delete_messages_by_sender(DialogId sender_dialog_id, vector<int32> &server_ids,
                                  vector<int32> &deleted_message_ids) {
-    for (const auto &it : message_id_to_sender_dialog_id_) {
-      if (it.second == sender_dialog_id) {
+    for (const auto &it : message_info_) {
+      if (it.second.sender_dialog_id_ == sender_dialog_id) {
         deleted_message_ids.push_back(it.first);
       }
     }
@@ -1644,8 +1652,8 @@ class GroupCallManager::GroupCallMessages {
   vector<int32> delete_old_group_call_messages() {
     const size_t max_message_count = 100u;
     vector<int32> deleted_message_ids;
-    while (message_id_to_sender_dialog_id_.size() > max_message_count) {
-      auto message_id = message_id_to_sender_dialog_id_.begin()->first;
+    while (message_info_.size() > max_message_count) {
+      auto message_id = message_info_.begin()->first;
       auto result = delete_message(message_id);
       CHECK(result.second);
       deleted_message_ids.push_back(message_id);
@@ -3143,7 +3151,19 @@ void GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_
   }
   auto paid_message_star_count = group_call_message.get_paid_message_star_count();
   if (paid_message_star_count >= group_call->paid_message_star_count) {
-    auto message_id = group_call->messages.add_message(group_call_message);
+    int64 delete_in = 0;
+    if (!group_call_message.is_local()) {
+      if (group_call->is_live_story) {
+        if (is_old) {
+          delete_in = clamp(group_call_message.get_date() + 86400 - G()->unix_time(), 1, 86400);
+        } else {
+          delete_in = 86400;
+        }
+      } else {
+        delete_in = td_->option_manager_->get_option_integer("group_call_message_show_time_max", 30);
+      }
+    }
+    auto message_id = group_call->messages.add_message(group_call_message, delete_in);
     if (message_id == 0) {
       LOG(INFO) << "Skip duplicate " << group_call_message;
     } else {
