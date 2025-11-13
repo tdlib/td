@@ -2408,7 +2408,7 @@ paidReactionTypeChat chat_id:int53 = PaidReactionType;
 //@is_top True, if the reactor is one of the most active reactors; may be false if the reactor is the current user
 //@is_me True, if the paid reaction was added by the current user
 //@is_anonymous True, if the reactor is anonymous
-paidReactor sender_id:MessageSender star_count:int32 is_top:Bool is_me:Bool is_anonymous:Bool = PaidReactor;
+paidReactor sender_id:MessageSender star_count:int53 is_top:Bool is_me:Bool is_anonymous:Bool = PaidReactor;
 
 //@description Contains a list of users and chats that spend most money on paid messages and reactions in a live stream
 //@total_star_count Total amount of spend Telegram Stars
