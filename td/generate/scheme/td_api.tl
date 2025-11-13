@@ -2300,7 +2300,7 @@ secretChat id:int32 user_id:int53 state:SecretChatState is_outbound:Bool key_has
 //@next_free_query_in Amount of time till the next free query can be sent; 0 if it can be sent now
 //@star_count Number of Telegram Stars that must be paid for each non-free query
 //@is_current_query_free True, if the search for the specified query isn't charged
-publicPostSearchLimits daily_free_query_count:int32 remaining_free_query_count:int32 next_free_query_in:int32 star_count:int64 is_current_query_free:Bool = PublicPostSearchLimits;
+publicPostSearchLimits daily_free_query_count:int32 remaining_free_query_count:int32 next_free_query_in:int32 star_count:int53 is_current_query_free:Bool = PublicPostSearchLimits;
 
 
 //@class MessageSender @description Contains information about the sender of a message
