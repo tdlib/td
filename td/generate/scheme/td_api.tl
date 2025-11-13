@@ -9423,10 +9423,16 @@ updateGroupCallParticipants group_call_id:int32 participant_user_ids:vector<int6
 updateGroupCallVerificationState group_call_id:int32 generation:int32 emojis:vector<string> = Update;
 
 //@description A new message was received in a group call. It must be shown for at most getOption("group_call_message_show_time_max") seconds after receiving if the call isn't a live story
-//-and according to updateGroupCallMessageLevels otherwise. If message.paid_message_star_count is less than groupCall.paid_message_star_count, then only paid reaction animation must be shown
+//-and according to updateGroupCallMessageLevels otherwise
 //@group_call_id Identifier of the group call
 //@message The message
 updateNewGroupCallMessage group_call_id:int32 message:groupCallMessage = Update;
+
+//@description A new paid reaction was received in a live story group call
+//@group_call_id Identifier of the group call
+//@sender_id Identifier of the sender of the reaction
+//@star_count The number of Telegram Stars that were paid to send the reaction
+updateNewGroupCallPaidReaction group_call_id:int32 sender_id:MessageSender star_count:int53 = Update;
 
 //@description Some group call messages were deleted
 //@group_call_id Identifier of the group call

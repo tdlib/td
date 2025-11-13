@@ -40,6 +40,10 @@ class GroupCallMessage {
     return sender_dialog_id_.is_valid();
   }
 
+  bool is_reaction() const {
+    return text_.text.empty();
+  }
+
   int32 get_server_id() const {
     return server_id_;
   }

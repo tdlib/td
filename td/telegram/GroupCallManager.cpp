@@ -3120,29 +3120,38 @@ void GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_
   if (!group_call_message.is_valid()) {
     return;
   }
-  auto message_id = group_call->messages.add_message(group_call_message);
-  if (message_id == 0) {
-    LOG(INFO) << "Skip duplicate " << group_call_message;
-    return;
+  auto paid_message_star_count = group_call_message.get_paid_message_star_count();
+  if (paid_message_star_count >= group_call->paid_message_star_count) {
+    auto message_id = group_call->messages.add_message(group_call_message);
+    if (message_id == 0) {
+      LOG(INFO) << "Skip duplicate " << group_call_message;
+    } else {
+      send_closure(
+          G()->td(), &Td::send_update,
+          td_api::make_object<td_api::updateNewGroupCallMessage>(
+              group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_, message_id)));
+    }
   }
-  if (!is_old) {
-    auto paid_message_star_count = group_call_message.get_paid_message_star_count();
-    if (paid_message_star_count > 0) {
-      if (need_group_call_participants(input_group_call_id, group_call)) {
-        auto *participant = get_group_call_participant(input_group_call_id, group_call_message.get_sender_dialog_id(),
-                                                       "add_group_call_message");
-        if (participant != nullptr) {
-          participant->total_paid_star_count += paid_message_star_count;
-          if (participant->order.is_valid()) {
-            send_update_group_call_participant(input_group_call_id, *participant, "add_group_call_message");
-          }
+  if (!is_old && paid_message_star_count > 0 && group_call->is_live_story) {
+    if (need_group_call_participants(input_group_call_id, group_call)) {
+      auto *participant = get_group_call_participant(input_group_call_id, group_call_message.get_sender_dialog_id(),
+                                                     "add_group_call_message");
+      if (participant != nullptr) {
+        participant->total_paid_star_count += paid_message_star_count;
+        if (participant->order.is_valid()) {
+          send_update_group_call_participant(input_group_call_id, *participant, "add_group_call_message");
         }
       }
     }
+    if (group_call_message.is_reaction()) {
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateNewGroupCallPaidReaction>(
+                       group_call->group_call_id.get(),
+                       get_message_sender_object(td_, group_call_message.get_sender_dialog_id(),
+                                                 "updateNewGroupCallPaidReaction"),
+                       paid_message_star_count));
+    }
   }
-  send_closure(G()->td(), &Td::send_update,
-               td_api::make_object<td_api::updateNewGroupCallMessage>(
-                   group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_, message_id)));
 }
 
 void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_call_id,
@@ -5509,9 +5518,8 @@ void GroupCallManager::get_group_call_stars(GroupCallId group_call_id,
   }
   if (!group_call->is_joined) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
-      group_call->after_join.push_back(
-          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id,
-                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+      group_call->after_join.push_back(PromiseCreator::lambda(
+          [actor_id = actor_id(this), group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
             if (result.is_error()) {
               promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
