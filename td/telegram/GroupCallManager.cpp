@@ -1612,11 +1612,11 @@ class GroupCallManager::GroupCallMessages {
 
  public:
   int32 add_message(const GroupCallMessage &message, int64 delete_in) {
-    auto server_id = message.get_server_id();
     if (!is_new_message(message)) {
       return 0;
     }
     auto message_id = ++current_message_id_;
+    auto server_id = message.get_server_id();
     if (server_id != 0) {
       server_id_to_message_id_[server_id] = message_id;
       message_id_to_server_id_[message_id] = server_id;
@@ -1624,6 +1624,26 @@ class GroupCallManager::GroupCallMessages {
     auto delete_time = delete_in == 0 ? 0.0 : Time::now() + delete_in;
     message_info_.emplace(message_id, MessageInfo{message.get_sender_dialog_id(), delete_time});
     return message_id;
+  }
+
+  bool on_message_sent(int32 message_id, const GroupCallMessage &message) {
+    if (!is_new_message(message)) {
+      return false;
+    }
+    auto it = message_info_.find(message_id);
+    if (it == message_info_.end()) {
+      return false;
+    }
+    if (it->second.sender_dialog_id_ != message.get_sender_dialog_id()) {
+      LOG(ERROR) << "Sender changed from " << it->second.sender_dialog_id_ << " to " << message.get_sender_dialog_id();
+      it->second.sender_dialog_id_ = message.get_sender_dialog_id();
+    }
+    auto server_id = message.get_server_id();
+    CHECK(server_id != 0);
+    CHECK(message_id_to_server_id_.count(message_id) == 0);
+    server_id_to_message_id_[server_id] = message_id;
+    message_id_to_server_id_[message_id] = server_id;
+    return true;
   }
 
   bool has_message(int32 message_id) const {
@@ -3288,8 +3308,16 @@ int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call
 
 void GroupCallManager::on_group_call_message_sent(InputGroupCallId input_group_call_id, int32 message_id,
                                                   telegram_api::object_ptr<telegram_api::groupCallMessage> &&message) {
-  // only date could have changed
-  // nothing to do
+  GroupCallMessage group_call_message(td_, std::move(message));
+  if (!group_call_message.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << group_call_message;
+    return;
+  }
+  auto group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
+    return;
+  }
+  group_call->messages.on_message_sent(message_id, group_call_message);
 }
 
 void GroupCallManager::on_group_call_message_sending_failed(InputGroupCallId input_group_call_id, int32 message_id,
