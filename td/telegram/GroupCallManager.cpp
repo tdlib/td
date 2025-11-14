@@ -5534,6 +5534,11 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
     if (!td_->star_manager_->has_owned_star_count(paid_message_star_count)) {
       return promise.set_error(400, "Have not enough Telegram Stars");
     }
+    for (auto &c : message.text) {
+      if (c == '\n') {
+        c = ' ';
+      }
+    }
   } else {
     if (paid_message_star_count != 0) {
       if (is_reaction) {
