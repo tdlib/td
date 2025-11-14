@@ -208,6 +208,9 @@ class GroupCallManager final : public Actor {
                                          vector<tl_object_ptr<telegram_api::groupCallParticipant>> &&participants,
                                          int32 version, bool is_recursive = false);
 
+  void on_group_call_message_sent(InputGroupCallId input_group_call_id, int32 message_id,
+                                  telegram_api::object_ptr<telegram_api::groupCallMessage> &&message);
+
   void on_new_group_call_message(InputGroupCallId input_group_call_id,
                                  telegram_api::object_ptr<telegram_api::groupCallMessage> &&message);
 
@@ -531,8 +534,8 @@ class GroupCallManager final : public Actor {
 
   void schedule_group_call_message_deletion(const GroupCall *group_call);
 
-  void add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
-                              const GroupCallMessage &group_call_message, bool is_old = false);
+  int32 add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
+                               const GroupCallMessage &group_call_message, bool is_old = false);
 
   void update_group_call_dialog(const GroupCall *group_call, const char *source, bool force);
 

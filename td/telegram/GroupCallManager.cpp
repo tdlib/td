@@ -1010,6 +1010,8 @@ class ToggleGroupCallSettingsQuery final : public Td::ResultHandler {
 
 class SendGroupCallMessageQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
+  InputGroupCallId input_group_call_id_;
+  int32 message_id_;
   DialogId as_dialog_id_;
   int64 paid_message_star_count_;
 
@@ -1017,8 +1019,9 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
   explicit SendGroupCallMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(InputGroupCallId input_group_call_id, const FormattedText &text, DialogId as_dialog_id,
+  void send(InputGroupCallId input_group_call_id, int32 message_id, const FormattedText &text, DialogId as_dialog_id,
             int64 paid_message_star_count) {
+    message_id_ = message_id;
     as_dialog_id_ = as_dialog_id;
     paid_message_star_count_ = paid_message_star_count;
     int32 flags = 0;
@@ -1049,12 +1052,24 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
     }
 
     td_->star_manager_->add_pending_owned_star_count(paid_message_star_count_, true);
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendGroupCallMessageQuery: " << to_string(ptr);
+    auto group_call_messages = UpdatesManager::extract_group_call_messages(ptr.get());
+    if (group_call_messages.size() != 1u || InputGroupCallId(group_call_messages[0]->call_) != input_group_call_id_) {
+      LOG(ERROR) << "Receive invalid response " << to_string(ptr) << " with " << group_call_messages.size()
+                 << " messages";
+      return on_error(Status::Error(500, "Receive invalid response"));
+    }
+    td_->group_call_manager_->on_group_call_message_sent(input_group_call_id_, message_id_,
+                                                         std::move(group_call_messages[0]->message_));
     promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(as_dialog_id_, status, "SendGroupCallMessageQuery");
     send_closure(G()->star_manager(), &StarManager::add_pending_owned_star_count, paid_message_star_count_, false);
+    // on_group_call_message_sending_failed(input_group_call_id_, message_id_);
     promise_.set_error(std::move(status));
   }
 };
@@ -3209,11 +3224,13 @@ void GroupCallManager::schedule_group_call_message_deletion(const GroupCall *gro
   }
 }
 
-void GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
-                                              const GroupCallMessage &group_call_message, bool is_old) {
+int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
+                                               const GroupCallMessage &group_call_message, bool is_old) {
   if (!group_call_message.is_valid()) {
-    return;
+    LOG(INFO) << "Skip invalid " << group_call_message;
+    return 0;
   }
+  int32 message_id = 0;
   auto paid_message_star_count = group_call_message.get_paid_message_star_count();
   if (paid_message_star_count >= group_call->paid_message_star_count) {
     int64 delete_in = 0;
@@ -3228,7 +3245,7 @@ void GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_
         delete_in = td_->option_manager_->get_option_integer("group_call_message_show_time_max", 30);
       }
     }
-    auto message_id = group_call->messages.add_message(group_call_message, delete_in);
+    message_id = group_call->messages.add_message(group_call_message, delete_in);
     if (message_id == 0) {
       LOG(INFO) << "Skip duplicate " << group_call_message;
     } else {
@@ -3259,6 +3276,13 @@ void GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_
                        paid_message_star_count));
     }
   }
+  return message_id;
+}
+
+void GroupCallManager::on_group_call_message_sent(InputGroupCallId input_group_call_id, int32 message_id,
+                                                  telegram_api::object_ptr<telegram_api::groupCallMessage> &&message) {
+  // only date could have changed
+  // nothing to do
 }
 
 void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_call_id,
@@ -5466,8 +5490,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
           : (group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id());
   CHECK(as_dialog_id.is_valid());
   auto group_call_message = GroupCallMessage(as_dialog_id, message, paid_message_star_count);
-  add_group_call_message(input_group_call_id, group_call, group_call_message);
-
+  auto message_id = add_group_call_message(input_group_call_id, group_call, group_call_message);
   if (group_call->is_conference || group_call->call_id != tde2e_api::CallId()) {
     auto json_message = group_call_message.encode_to_json();
     auto r_data = tde2e_api::call_encrypt(group_call->call_id, tde2e_api::CallChannelId(), json_message, 0);
@@ -5478,7 +5501,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
         ->send(input_group_call_id, r_data.value());
   } else {
     td_->create_handler<SendGroupCallMessageQuery>(std::move(promise))
-        ->send(input_group_call_id, message, group_call->is_live_story ? as_dialog_id : DialogId(),
+        ->send(input_group_call_id, message_id, message, group_call->is_live_story ? as_dialog_id : DialogId(),
                paid_message_star_count);
   }
 }
