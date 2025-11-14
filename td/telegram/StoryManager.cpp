@@ -2286,7 +2286,7 @@ bool StoryManager::can_delete_story(StoryFullId story_full_id, const Story *stor
 }
 
 bool StoryManager::is_active_story(const Story *story) {
-  return story != nullptr && (story->is_live_ || G()->unix_time() < story->expire_date_);
+  return story != nullptr && G()->unix_time() < story->expire_date_;
 }
 
 Status StoryManager::can_manage_story_albums(DialogId owner_dialog_id, const char *source) const {
@@ -4674,9 +4674,6 @@ void StoryManager::delete_story_from_database(StoryFullId story_full_id) {
 
 void StoryManager::set_story_expire_timeout(const Story *story) {
   CHECK(story->global_id_ > 0);
-  if (story->is_live_) {
-    return;
-  }
   story_expire_timeout_.set_timeout_in(story->global_id_, story->expire_date_ - G()->unix_time());
 }
 
@@ -4708,8 +4705,7 @@ void StoryManager::on_story_changed(StoryFullId story_full_id, const Story *stor
       LOG(INFO) << "Add " << story_full_id << " to database";
 
       int32 expires_at = 0;
-      if (is_active_story(story) && !can_access_expired_story(story_full_id.get_dialog_id(), story) &&
-          !story->is_live_) {
+      if (is_active_story(story) && !can_access_expired_story(story_full_id.get_dialog_id(), story)) {
         expires_at = story->expire_date_;
       }
 
