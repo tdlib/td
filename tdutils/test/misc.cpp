@@ -713,6 +713,60 @@ TEST(Misc, to_wstring) {
 }
 #endif
 
+static void test_check_utf8(td::CSlice str, bool result) {
+  ASSERT_EQ(result, td::check_utf8(str));
+}
+
+TEST(Misc, check_utf8) {
+  test_check_utf8("", true);
+  test_check_utf8("\xe0", false);
+  test_check_utf8("\xf0", false);
+  test_check_utf8("\xff", false);
+  for (int i = 0; i <= 255; i++) {
+    test_check_utf8(td::string(1, static_cast<char>(i)), i <= 0x7F);
+    test_check_utf8(td::string(2, static_cast<char>(i)), i <= 0x7F);
+    test_check_utf8(td::string(10, static_cast<char>(i)), i <= 0x7F);
+  }
+  test_check_utf8("artem", true);
+  test_check_utf8("артем", true);
+  test_check_utf8("\xAF", false);
+  test_check_utf8("\xAF\xAF", false);
+  test_check_utf8("\xB0\x00", false);
+  test_check_utf8("\xB0\x80", false);
+  test_check_utf8("\xB1\x7F", false);
+  test_check_utf8("\xB1\x80", false);
+  test_check_utf8("\xB1\x8F", false);
+  test_check_utf8("\xC2\x80", true);
+  test_check_utf8("\xC2\x8F", true);
+  test_check_utf8("\xCF\xAF", true);
+  test_check_utf8("\xDF\xBF", true);
+  test_check_utf8("\xDF\xC0", false);
+  test_check_utf8("\xE0\xBF", false);
+  test_check_utf8("\xE0\x90\x80", false);
+  test_check_utf8("\xE0\x9F\x80", false);
+  test_check_utf8("\xE0\xA0\x80", true);
+  test_check_utf8("\xED\x9F\xBF", true);
+  test_check_utf8("\xED\x9F\xC0", false);
+  test_check_utf8("\xED\xA0\x80", false);
+  test_check_utf8("\xED\xA0\xBF", false);
+  test_check_utf8("\xED\xBF\xBF", false);
+  test_check_utf8("\xEE\x80\x80", true);
+  test_check_utf8("\xEF\xBF\xBF", true);
+  test_check_utf8("\xEF\xBF\xC0", false);
+  test_check_utf8("\xEF\xC0\xBF", false);
+  test_check_utf8("\xF0\xBF\xBF", false);
+  test_check_utf8("\xEF\x90\x80\x80", false);
+  test_check_utf8("\xF0\x8F\x80\x80", false);
+  test_check_utf8("\xF0\x90\x80\x80", true);
+  test_check_utf8("\xF4\x8F\xBF\xBF", true);
+  test_check_utf8("\xF5\x8F\xBF\xBF", false);
+  test_check_utf8("\xF4\x90\x80\x80", false);
+  test_check_utf8("\xF4\x90\xBF\xBF", false);
+  test_check_utf8("\xF4\x8F\xC0\x80", false);
+  test_check_utf8("\xF4\x8F\xC0\xBF", false);
+  test_check_utf8("\xF4\x8F\xBF\xC0", false);
+}
+
 static void test_translit(const td::string &word, const td::vector<td::string> &result, bool allow_partial = true) {
   ASSERT_EQ(result, td::get_word_transliterations(word, allow_partial));
 }
