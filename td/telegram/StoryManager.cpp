@@ -5068,8 +5068,14 @@ bool StoryManager::update_active_stories_order(DialogId owner_dialog_id, ActiveS
   if (active_stories->max_read_story_id_.get() < last_story_id.get()) {
     new_private_order += static_cast<int64>(1) << 35;
   }
+  for (auto story_id : active_stories->story_ids_) {
+    if (is_story_live({owner_dialog_id, story_id})) {
+      new_private_order += static_cast<int64>(1) << 36;
+      break;
+    }
+  }
   if (owner_dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
-    new_private_order += static_cast<int64>(1) << 36;
+    new_private_order += static_cast<int64>(1) << 37;
   }
   CHECK(new_private_order != 0);
 
