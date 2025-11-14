@@ -192,11 +192,13 @@ GroupCallMessage::GroupCallMessage(Td *td, telegram_api::object_ptr<telegram_api
   }
 }
 
-GroupCallMessage::GroupCallMessage(DialogId sender_dialog_id, FormattedText text, int64 paid_message_star_count)
+GroupCallMessage::GroupCallMessage(DialogId sender_dialog_id, FormattedText text, int64 paid_message_star_count,
+                                   bool from_admin)
     : date_(G()->unix_time())
     , sender_dialog_id_(sender_dialog_id)
     , text_(std::move(text))
     , paid_message_star_count_(paid_message_star_count)
+    , from_admin_(from_admin)
     , is_local_(true) {
 }
 

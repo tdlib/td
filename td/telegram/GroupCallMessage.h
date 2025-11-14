@@ -35,7 +35,7 @@ class GroupCallMessage {
 
   GroupCallMessage(Td *td, telegram_api::object_ptr<telegram_api::groupCallMessage> &&message);
 
-  GroupCallMessage(DialogId sender_dialog_id, FormattedText text, int64 paid_message_star_count);
+  GroupCallMessage(DialogId sender_dialog_id, FormattedText text, int64 paid_message_star_count, bool from_admin);
 
   bool is_valid() const {
     return sender_dialog_id_.is_valid();
@@ -47,6 +47,10 @@ class GroupCallMessage {
 
   bool is_reaction() const {
     return text_.text.empty();
+  }
+
+  bool is_from_admin() const {
+    return from_admin_;
   }
 
   int32 get_server_id() const {

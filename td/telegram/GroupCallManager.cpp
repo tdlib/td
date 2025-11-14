@@ -1021,6 +1021,7 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
 
   void send(InputGroupCallId input_group_call_id, int32 message_id, const FormattedText &text, DialogId as_dialog_id,
             int64 paid_message_star_count) {
+    input_group_call_id_ = input_group_call_id;
     message_id_ = message_id;
     as_dialog_id_ = as_dialog_id;
     paid_message_star_count_ = paid_message_star_count;
@@ -3237,7 +3238,8 @@ int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call
   }
   int32 message_id = 0;
   auto paid_message_star_count = group_call_message.get_paid_message_star_count();
-  if (paid_message_star_count >= group_call->paid_message_star_count) {
+  if (paid_message_star_count >= group_call->paid_message_star_count ||
+      (group_call_message.is_from_admin() && !group_call_message.is_reaction())) {
     int64 delete_in = 0;
     if (!group_call_message.is_local()) {
       if (group_call->is_live_story) {
@@ -5521,7 +5523,8 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
           ? group_call->message_sender_dialog_id
           : (group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id());
   CHECK(as_dialog_id.is_valid());
-  auto group_call_message = GroupCallMessage(as_dialog_id, message, paid_message_star_count);
+  auto group_call_message = GroupCallMessage(as_dialog_id, message, paid_message_star_count,
+                                             group_call->is_creator || group_call->can_be_managed);
   auto message_id = add_group_call_message(input_group_call_id, group_call, group_call_message);
   if (group_call->is_conference || group_call->call_id != tde2e_api::CallId()) {
     auto json_message = group_call_message.encode_to_json();
