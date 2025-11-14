@@ -1069,7 +1069,8 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(as_dialog_id_, status, "SendGroupCallMessageQuery");
     send_closure(G()->star_manager(), &StarManager::add_pending_owned_star_count, paid_message_star_count_, false);
-    // on_group_call_message_sending_failed(input_group_call_id_, message_id_);
+    td_->group_call_manager_->on_group_call_message_sending_failed(input_group_call_id_, message_id_, as_dialog_id_,
+                                                                   paid_message_star_count_, status);
     promise_.set_error(std::move(status));
   }
 };
@@ -1622,6 +1623,10 @@ class GroupCallManager::GroupCallMessages {
     auto delete_time = delete_in == 0 ? 0.0 : Time::now() + delete_in;
     message_info_.emplace(message_id, MessageInfo{message.get_sender_dialog_id(), delete_time});
     return message_id;
+  }
+
+  bool has_message(int32 message_id) const {
+    return message_info_.count(message_id) > 0;
   }
 
   std::pair<int32, bool> delete_message(int32 message_id) {
@@ -3283,6 +3288,33 @@ void GroupCallManager::on_group_call_message_sent(InputGroupCallId input_group_c
                                                   telegram_api::object_ptr<telegram_api::groupCallMessage> &&message) {
   // only date could have changed
   // nothing to do
+}
+
+void GroupCallManager::on_group_call_message_sending_failed(InputGroupCallId input_group_call_id, int32 message_id,
+                                                            DialogId sender_dialog_id, int64 paid_message_star_count,
+                                                            const Status &status) {
+  auto group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
+    return;
+  }
+  if (paid_message_star_count > 0 && group_call->is_live_story) {
+    if (need_group_call_participants(input_group_call_id, group_call)) {
+      auto *participant =
+          get_group_call_participant(input_group_call_id, sender_dialog_id, "on_group_call_message_sending_failed");
+      if (participant != nullptr) {
+        participant->total_paid_star_count -= paid_message_star_count;
+        if (participant->order.is_valid()) {
+          send_update_group_call_participant(input_group_call_id, *participant, "on_group_call_message_sending_failed");
+        }
+      }
+    }
+  }
+  if (group_call->messages.has_message(message_id)) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateGroupCallMessageSendFailed>(
+                     group_call->group_call_id.get(), message_id,
+                     td_api::make_object<td_api::error>(status.code(), status.message().str())));
+  }
 }
 
 void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_call_id,

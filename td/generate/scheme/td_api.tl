@@ -9431,6 +9431,12 @@ updateNewGroupCallMessage group_call_id:int32 message:groupCallMessage = Update;
 //@star_count The number of Telegram Stars that were paid to send the reaction
 updateNewGroupCallPaidReaction group_call_id:int32 sender_id:MessageSender star_count:int53 = Update;
 
+//@description A group call message failed to send
+//@group_call_id Identifier of the group call
+//@message_id Message identifier
+//@error The cause of the message sending failure
+updateGroupCallMessageSendFailed group_call_id:int32 message_id:int32 error:error = Update;
+
 //@description Some group call messages were deleted
 //@group_call_id Identifier of the group call
 //@message_ids Identifiers of the deleted messages

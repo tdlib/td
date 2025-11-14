@@ -211,6 +211,10 @@ class GroupCallManager final : public Actor {
   void on_group_call_message_sent(InputGroupCallId input_group_call_id, int32 message_id,
                                   telegram_api::object_ptr<telegram_api::groupCallMessage> &&message);
 
+  void on_group_call_message_sending_failed(InputGroupCallId input_group_call_id, int32 message_id,
+                                            DialogId sender_dialog_id, int64 paid_message_star_count,
+                                            const Status &status);
+
   void on_new_group_call_message(InputGroupCallId input_group_call_id,
                                  telegram_api::object_ptr<telegram_api::groupCallMessage> &&message);
 
