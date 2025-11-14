@@ -1014,17 +1014,19 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
   int32 message_id_;
   DialogId as_dialog_id_;
   int64 paid_message_star_count_;
+  bool is_live_story_;
 
  public:
   explicit SendGroupCallMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(InputGroupCallId input_group_call_id, int32 message_id, const FormattedText &text, DialogId as_dialog_id,
-            int64 paid_message_star_count) {
+            int64 paid_message_star_count, bool is_live_story) {
     input_group_call_id_ = input_group_call_id;
     message_id_ = message_id;
     as_dialog_id_ = as_dialog_id;
     paid_message_star_count_ = paid_message_star_count;
+    is_live_story_ = is_live_story;
     int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputPeer> send_as_input_peer;
     if (as_dialog_id != DialogId()) {
@@ -1056,14 +1058,16 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendGroupCallMessageQuery: " << to_string(ptr);
-    auto group_call_messages = UpdatesManager::extract_group_call_messages(ptr.get());
-    if (group_call_messages.size() != 1u || InputGroupCallId(group_call_messages[0]->call_) != input_group_call_id_) {
-      LOG(ERROR) << "Receive invalid response " << to_string(ptr) << " with " << group_call_messages.size()
-                 << " messages";
-      return on_error(Status::Error(500, "Receive invalid response"));
+    if (is_live_story_) {
+      auto group_call_messages = UpdatesManager::extract_group_call_messages(ptr.get());
+      if (group_call_messages.size() != 1u || InputGroupCallId(group_call_messages[0]->call_) != input_group_call_id_) {
+        LOG(ERROR) << "Receive invalid response " << to_string(ptr) << " with " << group_call_messages.size()
+                   << " messages";
+        return on_error(Status::Error(500, "Receive invalid response"));
+      }
+      td_->group_call_manager_->on_group_call_message_sent(input_group_call_id_, message_id_,
+                                                           std::move(group_call_messages[0]->message_));
     }
-    td_->group_call_manager_->on_group_call_message_sent(input_group_call_id_, message_id_,
-                                                         std::move(group_call_messages[0]->message_));
     promise_.set_value(Unit());
   }
 
@@ -5570,7 +5574,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
   } else {
     td_->create_handler<SendGroupCallMessageQuery>(std::move(promise))
         ->send(input_group_call_id, message_id, message, group_call->is_live_story ? as_dialog_id : DialogId(),
-               paid_message_star_count);
+               paid_message_star_count, group_call->is_live_story);
   }
 }
 
