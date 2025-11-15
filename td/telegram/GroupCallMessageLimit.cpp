@@ -113,6 +113,16 @@ GroupCallMessageLimits GroupCallMessageLimits::basic() {
   return result;
 }
 
+int32 GroupCallMessageLimits::get_level(int64 star_count) const {
+  for (size_t i = 0; i < limits_.size(); i++) {
+    if (star_count >= limits_[i].get_star_count()) {
+      return static_cast<int32>(limits_.size() - i) - 1;
+    }
+  }
+  UNREACHABLE();
+  return 0;
+}
+
 td_api::object_ptr<td_api::updateGroupCallMessageLevels>
 GroupCallMessageLimits::get_update_group_call_message_levels_object() const {
   return td_api::make_object<td_api::updateGroupCallMessageLevels>(

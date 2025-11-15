@@ -41,6 +41,10 @@ class GroupCallMessageLimit {
 
   bool is_valid() const;
 
+  int64 get_star_count() const {
+    return star_count_;
+  }
+
   td_api::object_ptr<td_api::groupCallMessageLevel> get_group_call_message_level_object() const;
 
   template <class StorerT>
@@ -65,6 +69,8 @@ class GroupCallMessageLimits {
   explicit GroupCallMessageLimits(telegram_api::object_ptr<telegram_api::JSONValue> &&limits);
 
   static GroupCallMessageLimits basic();
+
+  int32 get_level(int64 star_count) const;
 
   td_api::object_ptr<td_api::updateGroupCallMessageLevels> get_update_group_call_message_levels_object() const;
 

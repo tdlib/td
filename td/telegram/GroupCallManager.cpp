@@ -1596,8 +1596,9 @@ class GroupCallManager::GroupCallMessages {
   struct MessageInfo {
     DialogId sender_dialog_id_;
     double delete_time_;
+    int64 star_count_;
   };
-  std::map<int32, MessageInfo> message_info_;
+  std::map<int32, MessageInfo, std::greater<int32>> message_info_;
 
   bool is_new_message(const GroupCallMessage &message) {
     auto server_id = message.get_server_id();
@@ -1626,7 +1627,8 @@ class GroupCallManager::GroupCallMessages {
       message_id_to_server_id_[message_id] = server_id;
     }
     auto delete_time = delete_in == 0 ? 0.0 : Time::now() + delete_in;
-    message_info_.emplace(message_id, MessageInfo{message.get_sender_dialog_id(), delete_time});
+    message_info_.emplace(
+        message_id, MessageInfo{message.get_sender_dialog_id(), delete_time, message.get_paid_message_star_count()});
     return message_id;
   }
 
@@ -1694,26 +1696,25 @@ class GroupCallManager::GroupCallMessages {
     }
   }
 
-  vector<int32> delete_old_group_call_messages() {
-    const size_t max_message_count = 100u;
-    vector<int32> deleted_message_ids;
-    while (message_info_.size() > max_message_count) {
-      auto message_id = message_info_.begin()->first;
-      auto result = delete_message(message_id);
-      CHECK(result.second);
-      deleted_message_ids.push_back(message_id);
-    }
+  vector<int32> delete_old_group_call_messages(const GroupCallMessageLimits &message_limits) {
+    constexpr int32 MAX_LEVEL_MESSAGE_COUNT = 100;
+    constexpr int32 MAX_LEVEL = 20;
+    int32 level_count[MAX_LEVEL] = {0};
     auto now = Time::now();
-    vector<int32> expired_message_ids;
+    vector<int32> deleted_message_ids;
     for (const auto &it : message_info_) {
       if (it.second.delete_time_ > 0.0 && it.second.delete_time_ < now) {
-        expired_message_ids.push_back(it.first);
+        deleted_message_ids.push_back(it.first);
+      } else {
+        auto level = clamp(message_limits.get_level(it.second.star_count_), 0, MAX_LEVEL - 1);
+        if (++level_count[level] >= MAX_LEVEL_MESSAGE_COUNT) {
+          deleted_message_ids.push_back(it.first);
+        }
       }
     }
-    for (auto message_id : expired_message_ids) {
+    for (auto message_id : deleted_message_ids) {
       auto result = delete_message(message_id);
       CHECK(result.second);
-      deleted_message_ids.push_back(message_id);
     }
     return deleted_message_ids;
   }
@@ -3236,7 +3237,7 @@ bool GroupCallManager::process_pending_group_call_participant_updates(InputGroup
 }
 
 void GroupCallManager::delete_old_group_call_messages(GroupCall *group_call) {
-  auto old_message_ids = group_call->messages.delete_old_group_call_messages();
+  auto old_message_ids = group_call->messages.delete_old_group_call_messages(message_limits_);
   if (!old_message_ids.empty()) {
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateGroupCallMessagesDeleted>(group_call->group_call_id.get(),
