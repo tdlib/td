@@ -1597,6 +1597,9 @@ class GroupCallManager::GroupCallMessages {
       return 0;
     }
     auto message_id = ++current_message_id_;
+    if (current_message_id_ == 2000000000) {
+      current_message_id_ = 0;
+    }
     auto server_id = message.get_server_id();
     if (server_id != 0) {
       server_id_to_message_id_[server_id] = message_id;
@@ -1647,13 +1650,15 @@ class GroupCallManager::GroupCallMessages {
 
   vector<int32> delete_all_messages() {
     vector<int32> message_ids;
-    for (const auto &it : message_id_to_server_id_) {
+    for (const auto &it : message_info_) {
       message_ids.push_back(it.first);
     }
     for (auto message_id : message_ids) {
       auto result = delete_message(message_id);
       CHECK(result.second);
     }
+    // don't need to clear random_ids_
+    server_ids_.clear();
     return message_ids;
   }
 
@@ -6756,8 +6761,13 @@ bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
     remove_recent_group_call_speaker(input_group_call_id, group_call->as_dialog_id);
 
     LOG(INFO) << "Delete all group call messages";
-    group_call->messages.delete_all_messages();
-    schedule_group_call_message_deletion(group_call);
+    auto message_ids = group_call->messages.delete_all_messages();
+    if (!message_ids.empty()) {
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateGroupCallMessagesDeleted>(group_call->group_call_id.get(),
+                                                                               std::move(message_ids)));
+      schedule_group_call_message_deletion(group_call);
+    }
   }
 
   auto participants_it = group_call_participants_.find(input_group_call_id);
