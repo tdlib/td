@@ -1058,16 +1058,14 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendGroupCallMessageQuery: " << to_string(ptr);
-    if (is_live_story_) {
-      auto group_call_messages = UpdatesManager::extract_group_call_messages(ptr.get());
-      if (group_call_messages.size() != 1u || InputGroupCallId(group_call_messages[0]->call_) != input_group_call_id_) {
-        LOG(ERROR) << "Receive invalid response " << to_string(ptr) << " with " << group_call_messages.size()
-                   << " messages";
-        return on_error(Status::Error(500, "Receive invalid response"));
-      }
-      td_->group_call_manager_->on_group_call_message_sent(input_group_call_id_, message_id_,
-                                                           std::move(group_call_messages[0]->message_));
+    auto group_call_messages = UpdatesManager::extract_group_call_messages(ptr.get());
+    if (group_call_messages.size() != 1u || InputGroupCallId(group_call_messages[0]->call_) != input_group_call_id_) {
+      LOG(ERROR) << "Receive invalid response " << to_string(ptr) << " with " << group_call_messages.size()
+                 << " messages";
+      return on_error(Status::Error(500, "Receive invalid response"));
     }
+    td_->group_call_manager_->on_group_call_message_sent(input_group_call_id_, message_id_,
+                                                         std::move(group_call_messages[0]->message_));
     promise_.set_value(Unit());
   }
 
@@ -1616,7 +1614,7 @@ class GroupCallManager::GroupCallMessages {
   }
 
  public:
-  int32 add_message(const GroupCallMessage &message, int64 delete_in) {
+  int32 add_message(const GroupCallMessage &message, int32 delete_in) {
     if (!is_new_message(message)) {
       return 0;
     }
@@ -1632,7 +1630,7 @@ class GroupCallManager::GroupCallMessages {
     return message_id;
   }
 
-  bool on_message_sent(int32 message_id, const GroupCallMessage &message) {
+  bool on_message_sent(int32 message_id, const GroupCallMessage &message, int32 delete_in) {
     if (!is_new_message(message)) {
       return false;
     }
@@ -1644,6 +1642,7 @@ class GroupCallManager::GroupCallMessages {
       LOG(ERROR) << "Sender changed from " << it->second.sender_dialog_id_ << " to " << message.get_sender_dialog_id();
       it->second.sender_dialog_id_ = message.get_sender_dialog_id();
     }
+    it->second.delete_time_ = delete_in == 0 ? 0.0 : Time::now() + delete_in;
     auto server_id = message.get_server_id();
     CHECK(server_id != 0);
     CHECK(message_id_to_server_id_.count(message_id) == 0);
@@ -3255,6 +3254,23 @@ void GroupCallManager::schedule_group_call_message_deletion(const GroupCall *gro
   }
 }
 
+int32 GroupCallManager::get_group_call_message_delete_in(const GroupCall *group_call,
+                                                         const GroupCallMessage &group_call_message,
+                                                         bool is_old) const {
+  if (group_call_message.is_local()) {
+    return 0;
+  }
+  if (group_call->is_live_story) {
+    if (is_old) {
+      return clamp(group_call_message.get_date() + 86400 - G()->unix_time(), 1, 86400);
+    } else {
+      return 86400;
+    }
+  }
+  return static_cast<int32>(clamp(td_->option_manager_->get_option_integer("group_call_message_show_time_max", 30),
+                                  static_cast<int64>(1), static_cast<int64>(1000000000)));
+}
+
 int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
                                                const GroupCallMessage &group_call_message, bool is_old) {
   if (!group_call_message.is_valid()) {
@@ -3265,19 +3281,8 @@ int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call
   auto paid_message_star_count = group_call_message.get_paid_message_star_count();
   if (paid_message_star_count >= group_call->paid_message_star_count ||
       (group_call_message.is_from_admin() && !group_call_message.is_reaction())) {
-    int64 delete_in = 0;
-    if (!group_call_message.is_local()) {
-      if (group_call->is_live_story) {
-        if (is_old) {
-          delete_in = clamp(group_call_message.get_date() + 86400 - G()->unix_time(), 1, 86400);
-        } else {
-          delete_in = 86400;
-        }
-      } else {
-        delete_in = td_->option_manager_->get_option_integer("group_call_message_show_time_max", 30);
-      }
-    }
-    message_id = group_call->messages.add_message(group_call_message, delete_in);
+    message_id = group_call->messages.add_message(
+        group_call_message, get_group_call_message_delete_in(group_call, group_call_message, is_old));
     if (message_id == 0) {
       LOG(INFO) << "Skip duplicate " << group_call_message;
     } else {
@@ -3322,7 +3327,9 @@ void GroupCallManager::on_group_call_message_sent(InputGroupCallId input_group_c
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
     return;
   }
-  group_call->messages.on_message_sent(message_id, group_call_message);
+  group_call->messages.on_message_sent(message_id, group_call_message,
+                                       get_group_call_message_delete_in(group_call, group_call_message, false));
+  schedule_group_call_message_deletion(group_call);
 }
 
 void GroupCallManager::on_group_call_message_sending_failed(InputGroupCallId input_group_call_id, int32 message_id,
