@@ -16055,7 +16055,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
                                       (dialog_type == DialogType::User || dialog_type == DialogType::SecretChat) &&
                                       can_send_message(dialog_id).is_ok();
 
-  if (source == MessageSource::DialogList && dialog_type == DialogType::User) {
+  if (source == MessageSource::DialogList) {
     td_->story_manager_->on_view_dialog_active_stories({dialog_id});
   }
 
@@ -16539,7 +16539,6 @@ void MessagesManager::open_dialog(Dialog *d) {
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      td_->story_manager_->on_view_dialog_active_stories({dialog_id});
       break;
     case DialogType::Chat:
       td_->chat_manager_->repair_chat_participants(dialog_id.get_chat_id());
@@ -16555,8 +16554,6 @@ void MessagesManager::open_dialog(Dialog *d) {
           td_->dialog_participant_manager_->get_channel_participants(channel_id, ChannelParticipantFilter::recent(),
                                                                      string(), 0, 200, 200, Auto());
         }
-      } else {
-        td_->story_manager_->on_view_dialog_active_stories({dialog_id});
       }
       get_channel_difference(dialog_id, d->pts, 0, MessageId(), true, "open_dialog");
       reget_dialog_action_bar(dialog_id, "open_dialog", false);
@@ -16588,6 +16585,7 @@ void MessagesManager::open_dialog(Dialog *d) {
 
   if (!td_->auth_manager_->is_bot()) {
     td_->dialog_participant_manager_->on_dialog_opened(dialog_id);
+    td_->story_manager_->on_view_dialog_active_stories({dialog_id});
 
     if (d->has_scheduled_database_messages && !d->is_has_scheduled_database_messages_checked) {
       CHECK(G()->use_message_database());
