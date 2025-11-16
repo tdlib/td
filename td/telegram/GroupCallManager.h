@@ -529,6 +529,9 @@ class GroupCallManager final : public Actor {
 
   bool try_clear_group_call_participants(InputGroupCallId input_group_call_id);
 
+  void on_get_group_call_stars(InputGroupCallId input_group_call_id,
+                               Result<telegram_api::object_ptr<telegram_api::phone_groupCallStars>> r_stars);
+
   bool set_group_call_participant_count(GroupCall *group_call, int32 count, const char *source,
                                         bool force_update = false);
 
@@ -621,6 +624,9 @@ class GroupCallManager final : public Actor {
   FlatHashMap<InputGroupCallId, unique_ptr<PendingJoinPresentationRequest>, InputGroupCallIdHash>
       pending_join_presentation_requests_;
   uint64 join_group_request_generation_ = 0;
+
+  FlatHashMap<InputGroupCallId, vector<Promise<td_api::object_ptr<td_api::liveStoryDonors>>>, InputGroupCallIdHash>
+      get_stars_queries_;
 
   FlatHashMap<MessageFullId, int64, MessageFullIdHash> group_call_messages_;
   FlatHashMap<int64, MessageFullId> group_call_message_full_ids_;

@@ -1168,10 +1168,10 @@ class DeleteGroupCallParticipantMessagesQuery final : public Td::ResultHandler {
 };
 
 class GetGroupCallStarsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::liveStoryDonors>> promise_;
+  Promise<telegram_api::object_ptr<telegram_api::phone_groupCallStars>> promise_;
 
  public:
-  explicit GetGroupCallStarsQuery(Promise<td_api::object_ptr<td_api::liveStoryDonors>> &&promise)
+  explicit GetGroupCallStarsQuery(Promise<telegram_api::object_ptr<telegram_api::phone_groupCallStars>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -1188,29 +1188,7 @@ class GetGroupCallStarsQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetGroupCallStarsQuery: " << to_string(ptr);
-    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetGroupCallStarsQuery");
-    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetGroupCallStarsQuery");
-
-    auto total_count = StarManager::get_star_count(ptr->total_stars_);
-    int64 sum_star_count = 0;
-    vector<MessageReactor> reactors;
-    for (auto &donor : ptr->top_donors_) {
-      MessageReactor reactor(td_, std::move(donor));
-      if (!reactor.is_valid()) {
-        LOG(ERROR) << "Receive invalid " << reactor;
-        continue;
-      }
-      sum_star_count += reactor.get_count();
-      reactors.push_back(std::move(reactor));
-    }
-    if (total_count < sum_star_count) {
-      LOG(ERROR) << "Receive " << total_count << " total donated Stars and " << sum_star_count
-                 << " Stars for top donors";
-      total_count = sum_star_count;
-    }
-    auto result =
-        transform(reactors, [td = td_](const MessageReactor &reactor) { return reactor.get_paid_reactor_object(td); });
-    promise_.set_value(td_api::make_object<td_api::liveStoryDonors>(total_count, std::move(result)));
+    promise_.set_value(std::move(ptr));
   }
 
   void on_error(Status status) final {
@@ -5748,7 +5726,60 @@ void GroupCallManager::get_group_call_stars(GroupCallId group_call_id,
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
 
-  td_->create_handler<GetGroupCallStarsQuery>(std::move(promise))->send(input_group_call_id);
+  auto &queries = get_stars_queries_[input_group_call_id];
+  queries.push_back(std::move(promise));
+  if (queries.size() != 1u) {
+    return;
+  }
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id](
+                                 Result<telegram_api::object_ptr<telegram_api::phone_groupCallStars>> r_stars) {
+        send_closure(actor_id, &GroupCallManager::on_get_group_call_stars, input_group_call_id, std::move(r_stars));
+      });
+  td_->create_handler<GetGroupCallStarsQuery>(std::move(query_promise))->send(input_group_call_id);
+}
+
+void GroupCallManager::on_get_group_call_stars(
+    InputGroupCallId input_group_call_id,
+    Result<telegram_api::object_ptr<telegram_api::phone_groupCallStars>> r_stars) {
+  if (G()->close_flag()) {
+    return;
+  }
+  auto it = get_stars_queries_.find(input_group_call_id);
+  CHECK(it != get_stars_queries_.end());
+  auto promises = std::move(it->second);
+  CHECK(!promises.empty());
+  get_stars_queries_.erase(it);
+
+  if (r_stars.is_error()) {
+    return fail_promises(promises, r_stars.move_as_error());
+  }
+  auto stars = r_stars.move_as_ok();
+
+  td_->user_manager_->on_get_users(std::move(stars->users_), "on_get_group_call_stars");
+  td_->chat_manager_->on_get_chats(std::move(stars->chats_), "on_get_group_call_stars");
+
+  auto total_count = StarManager::get_star_count(stars->total_stars_);
+  int64 sum_star_count = 0;
+  vector<MessageReactor> reactors;
+  for (auto &donor : stars->top_donors_) {
+    MessageReactor reactor(td_, std::move(donor));
+    if (!reactor.is_valid()) {
+      LOG(ERROR) << "Receive invalid " << reactor;
+      continue;
+    }
+    sum_star_count += reactor.get_count();
+    reactors.push_back(std::move(reactor));
+  }
+  if (total_count < sum_star_count) {
+    LOG(ERROR) << "Receive " << total_count << " total donated Stars and " << sum_star_count << " Stars for top donors";
+    total_count = sum_star_count;
+  }
+  for (auto &promise : promises) {
+    auto result =
+        transform(reactors, [td = td_](const MessageReactor &reactor) { return reactor.get_paid_reactor_object(td); });
+    promise.set_value(td_api::make_object<td_api::liveStoryDonors>(total_count, std::move(result)));
+  }
 }
 
 void GroupCallManager::revoke_group_call_invite_link(GroupCallId group_call_id, Promise<Unit> &&promise) {
