@@ -829,7 +829,11 @@ class Requests {
 
   void on_request(uint64 id, td_api::sendGroupCallMessage &request);
 
-  void on_request(uint64 id, const td_api::sendPaidLiveStoryReaction &request);
+  void on_request(uint64 id, const td_api::sendLiveStoryReaction &request);
+
+  void on_request(uint64 id, const td_api::commitPendingLiveStoryReactions &request);
+
+  void on_request(uint64 id, const td_api::removePendingLiveStoryReactions &request);
 
   void on_request(uint64 id, const td_api::deleteGroupCallMessages &request);
 

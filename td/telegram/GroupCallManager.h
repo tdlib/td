@@ -135,6 +135,12 @@ class GroupCallManager final : public Actor {
   void send_group_call_message(GroupCallId group_call_id, td_api::object_ptr<td_api::formattedText> &&text,
                                int64 paid_message_star_count, bool is_reaction, Promise<Unit> &&promise);
 
+  void send_group_call_reaction(GroupCallId group_call_id, int64 star_count, Promise<Unit> &&promise);
+
+  void commit_pending_group_call_reactions(GroupCallId group_call_id, Promise<Unit> &&promise);
+
+  void remove_pending_group_call_reactions(GroupCallId group_call_id, Promise<Unit> &&promise);
+
   void delete_group_call_messages(GroupCallId group_call_id, const vector<int32> &message_ids, bool report_spam,
                                   Promise<Unit> &&promise);
 
@@ -559,7 +565,7 @@ class GroupCallManager final : public Actor {
                                   DialogId sender_dialog_id, bool is_outgoing, bool is_reaction, int64 star_count);
 
   void remove_group_call_spent_stars(InputGroupCallId input_group_call_id, GroupCall *group_call,
-                                     DialogId sender_dialog_id, int64 star_count);
+                                     int64 star_count);
 
   int32 add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
                                const GroupCallMessage &group_call_message, bool is_old = false);

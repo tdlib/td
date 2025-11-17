@@ -4900,11 +4900,25 @@ void Requests::on_request(uint64 id, td_api::sendGroupCallMessage &request) {
                                                     request.paid_message_star_count_, false, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::sendPaidLiveStoryReaction &request) {
+void Requests::on_request(uint64 id, const td_api::sendLiveStoryReaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->group_call_manager_->send_group_call_message(GroupCallId(request.group_call_id_), nullptr, request.star_count_,
-                                                    true, std::move(promise));
+  td_->group_call_manager_->send_group_call_reaction(GroupCallId(request.group_call_id_), request.star_count_,
+                                                     std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::commitPendingLiveStoryReactions &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->group_call_manager_->commit_pending_group_call_reactions(GroupCallId(request.group_call_id_),
+                                                                std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::removePendingLiveStoryReactions &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->group_call_manager_->remove_pending_group_call_reactions(GroupCallId(request.group_call_id_),
+                                                                std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::deleteGroupCallMessages &request) {

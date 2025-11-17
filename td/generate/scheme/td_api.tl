@@ -12499,12 +12499,19 @@ setGroupCallMessageSender group_call_id:int32 message_sender_id:MessageSender = 
 //-Must be 0 for messages sent to live stories posted on behalf of the current user
 sendGroupCallMessage group_call_id:int32 text:formattedText paid_message_star_count:int53 = Ok;
 
-//@description Sends a paid reaction in a live story group call. Can't be used for live stories posted on behalf of the current user
+//@description Sends a paid reaction in a live story group call. Can't be used for live stories posted on behalf of the current user.
+//-Call commitPendingLiveStoryReactions or removePendingLiveStoryReactions to actually send all pending reactions when the undo timer is over
 //@group_call_id Group call identifier
-//@star_count The number of Telegram Stars to pay; 1-getOption("paid_group_call_message_star_count_max")
-sendPaidLiveStoryReaction group_call_id:int32 star_count:int53 = Ok;
+//@star_count Number of Telegram Stars to be used for the reaction. The total number of pending paid reactions must not exceed getOption("paid_group_call_message_star_count_max")
+sendLiveStoryReaction group_call_id:int32 star_count:int53 = Ok;
 
-//@description Deletes messages in a group call; for live story calls only. Requires groupCall.can_delete_messages right
+//@description Applies all pending paid reactions in a live story group call @group_call_id Group call identifier
+commitPendingLiveStoryReactions group_call_id:int32 = Ok;
+
+//@description Removes all pending paid reactions in a live story group call @group_call_id Group call identifier
+removePendingLiveStoryReactions group_call_id:int32 = Ok;
+
+//@description Deletes messages in a group call; for live story calls only. Requires groupCallMessage.can_be_deleted right
 //@group_call_id Group call identifier
 //@message_ids Identifiers of the messages to be deleted
 //@report_spam Pass true to report the messages as spam

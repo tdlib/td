@@ -5164,8 +5164,16 @@ class CliClient final : public Actor {
     } else if (op == "splsr") {
       GroupCallId group_call_id;
       int64 star_count;
+      get_args(args, group_call_id, star_count);
+      send_request(td_api::make_object<td_api::sendLiveStoryReaction>(group_call_id, star_count));
+    } else if (op == "cplsr") {
+      GroupCallId group_call_id;
       get_args(args, group_call_id);
-      send_request(td_api::make_object<td_api::sendPaidLiveStoryReaction>(group_call_id, star_count));
+      send_request(td_api::make_object<td_api::commitPendingLiveStoryReactions>(group_call_id));
+    } else if (op == "rplsr") {
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+      send_request(td_api::make_object<td_api::removePendingLiveStoryReactions>(group_call_id));
     } else if (op == "dgcm" || op == "dgcms") {
       GroupCallId group_call_id;
       string message_ids;

@@ -1037,7 +1037,9 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
       flags |= telegram_api::phone_sendGroupCallMessage::SEND_AS_MASK;
     }
     if (paid_message_star_count > 0) {
-      td_->star_manager_->add_pending_owned_star_count(-paid_message_star_count, false);
+      if (!text.text.empty()) {
+        td_->star_manager_->add_pending_owned_star_count(-paid_message_star_count, false);
+      }
       flags |= telegram_api::phone_sendGroupCallMessage::ALLOW_PAID_STARS_MASK;
     }
     send_query(G()->net_query_creator().create(
@@ -1784,6 +1786,7 @@ struct GroupCallManager::GroupCall {
   int32 block_next_offset[2] = {};
   vector<int64> blockchain_participant_ids;
   GroupCallMessages messages;
+  int64 pending_reaction_star_count = 0;
 
   int32 version = -1;
   int32 leave_version = -1;
@@ -3311,7 +3314,7 @@ void GroupCallManager::add_group_call_spent_stars(InputGroupCallId input_group_c
 }
 
 void GroupCallManager::remove_group_call_spent_stars(InputGroupCallId input_group_call_id, GroupCall *group_call,
-                                                     DialogId sender_dialog_id, int64 star_count) {
+                                                     int64 star_count) {
   if (need_group_call_participants(input_group_call_id, group_call)) {
     auto *group_call_participants = add_group_call_participants(input_group_call_id, "remove_group_call_spent_stars");
     if (group_call_participants->are_top_donors_loaded) {
@@ -3393,7 +3396,7 @@ void GroupCallManager::on_group_call_message_sending_failed(InputGroupCallId inp
     return;
   }
   if (paid_message_star_count > 0 && group_call->is_live_story) {
-    remove_group_call_spent_stars(input_group_call_id, group_call, sender_dialog_id, paid_message_star_count);
+    remove_group_call_spent_stars(input_group_call_id, group_call, paid_message_star_count);
   }
   if (group_call->messages.has_message(message_id)) {
     send_closure(G()->td(), &Td::send_update,
@@ -5585,7 +5588,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
                      get_formatted_text(td_, group_call->dialog_id, std::move(text), td_->auth_manager_->is_bot(),
                                         is_reaction, true, false));
   if (group_call->is_live_story) {
-    if (!td_->star_manager_->has_owned_star_count(paid_message_star_count)) {
+    if (!is_reaction && !td_->star_manager_->has_owned_star_count(paid_message_star_count)) {
       return promise.set_error(400, "Have not enough Telegram Stars");
     }
     for (auto &c : message.text) {
@@ -5622,10 +5625,157 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
     td_->create_handler<SendGroupCallEncryptedMessageQuery>(std::move(promise))
         ->send(input_group_call_id, r_data.value());
   } else {
+    CHECK(is_reaction == message.text.empty());
     td_->create_handler<SendGroupCallMessageQuery>(std::move(promise))
         ->send(input_group_call_id, message_id, message, group_call->is_live_story ? as_dialog_id : DialogId(),
                paid_message_star_count, group_call->is_live_story);
   }
+}
+
+void GroupCallManager::send_group_call_reaction(GroupCallId group_call_id, int64 star_count, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+  if (star_count <= 0 ||
+      star_count > td_->option_manager_->get_option_integer("paid_group_call_message_star_count_max")) {
+    return promise.set_error(400, "Invalid number of Telegram Stars specified");
+  }
+
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(
+        input_group_call_id,
+        PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, star_count, promise = std::move(promise)](
+                                   Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+          if (result.is_error()) {
+            promise.set_error(result.move_as_error());
+          } else {
+            send_closure(actor_id, &GroupCallManager::send_group_call_reaction, group_call_id, star_count,
+                         std::move(promise));
+          }
+        }));
+    return;
+  }
+  if (!group_call->is_joined) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(
+          PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, star_count,
+                                  promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+            } else {
+              send_closure(actor_id, &GroupCallManager::send_group_call_reaction, group_call_id, star_count,
+                           std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+  if (!group_call->is_live_story) {
+    return promise.set_error(400, "Reactions can't be sent to the call");
+  }
+  if (!td_->star_manager_->has_owned_star_count(star_count)) {
+    return promise.set_error(400, "Have not enough Telegram Stars");
+  }
+
+  if (group_call->pending_reaction_star_count > 1000000000 || star_count > 1000000000) {
+    LOG(ERROR) << "Pending paid reactions overflown";
+    return promise.set_error(400, "Too many Stars added");
+  }
+  td_->star_manager_->add_pending_owned_star_count(-star_count, false);
+  group_call->pending_reaction_star_count += star_count;
+
+  add_group_call_spent_stars(input_group_call_id, group_call, group_call->message_sender_dialog_id, true, true,
+                             star_count);
+  promise.set_value(Unit());
+}
+
+void GroupCallManager::commit_pending_group_call_reactions(GroupCallId group_call_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, promise = std::move(promise)](
+                                                 Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                        if (result.is_error()) {
+                          promise.set_error(result.move_as_error());
+                        } else {
+                          send_closure(actor_id, &GroupCallManager::commit_pending_group_call_reactions, group_call_id,
+                                       std::move(promise));
+                        }
+                      }));
+    return;
+  }
+  if (!group_call->is_joined) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(PromiseCreator::lambda(
+          [actor_id = actor_id(this), group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+            } else {
+              send_closure(actor_id, &GroupCallManager::commit_pending_group_call_reactions, group_call_id,
+                           std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+  if (!group_call->is_live_story) {
+    return promise.set_error(400, "Reactions can't be sent to the call");
+  }
+  if (group_call->pending_reaction_star_count == 0) {
+    return promise.set_value(Unit());
+  }
+
+  auto star_count = group_call->pending_reaction_star_count;
+  group_call->pending_reaction_star_count = 0;
+
+  send_group_call_message(group_call_id, nullptr, star_count, true, std::move(promise));
+}
+
+void GroupCallManager::remove_pending_group_call_reactions(GroupCallId group_call_id, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call == nullptr || !group_call->is_inited) {
+    reload_group_call(input_group_call_id,
+                      PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, promise = std::move(promise)](
+                                                 Result<td_api::object_ptr<td_api::groupCall>> &&result) mutable {
+                        if (result.is_error()) {
+                          promise.set_error(result.move_as_error());
+                        } else {
+                          send_closure(actor_id, &GroupCallManager::commit_pending_group_call_reactions, group_call_id,
+                                       std::move(promise));
+                        }
+                      }));
+    return;
+  }
+  if (!group_call->is_joined) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(PromiseCreator::lambda(
+          [actor_id = actor_id(this), group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+            } else {
+              send_closure(actor_id, &GroupCallManager::commit_pending_group_call_reactions, group_call_id,
+                           std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+  if (!group_call->is_live_story) {
+    return promise.set_error(400, "Reactions can't be sent to the call");
+  }
+
+  if (group_call->pending_reaction_star_count > 0) {
+    remove_group_call_spent_stars(input_group_call_id, group_call, group_call->pending_reaction_star_count);
+    group_call->pending_reaction_star_count = 0;
+  }
+  promise.set_value(Unit());
 }
 
 void GroupCallManager::delete_group_call_messages(GroupCallId group_call_id, const vector<int32> &message_ids,
