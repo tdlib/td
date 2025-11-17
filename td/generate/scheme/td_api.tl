@@ -9441,6 +9441,9 @@ updateGroupCallMessageSendFailed group_call_id:int32 message_id:int32 error:erro
 //@message_ids Identifiers of the deleted messages
 updateGroupCallMessagesDeleted group_call_id:int32 message_ids:vector<int32> = Update;
 
+//@description The list of top donors in live story group call has changed @group_call_id Identifier of the group call @donors New list of live story donors
+updateLiveStoryTopDonors group_call_id:int32 donors:liveStoryDonors = Update;
+
 //@description New call signaling data arrived @call_id The call identifier @data The data
 updateNewCallSignalingData call_id:int32 data:bytes = Update;
 

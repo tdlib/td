@@ -532,6 +532,9 @@ class GroupCallManager final : public Actor {
   td_api::object_ptr<td_api::liveStoryDonors> get_live_story_donors_object(
       const GroupCallParticipants *group_call_participants) const;
 
+  void send_update_live_story_top_donors(GroupCallId group_call_id,
+                                         const GroupCallParticipants *group_call_participants);
+
   void on_get_group_call_stars(InputGroupCallId input_group_call_id,
                                Result<telegram_api::object_ptr<telegram_api::phone_groupCallStars>> r_stars);
 

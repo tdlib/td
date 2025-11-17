@@ -3292,6 +3292,7 @@ int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call
 
         group_call_participants->total_star_count += paid_message_star_count;
         group_call_participants->top_donors = std::move(top_donors);
+        send_update_live_story_top_donors(group_call->group_call_id, group_call_participants);
       }
     }
     if (group_call_message.is_reaction()) {
@@ -3352,6 +3353,7 @@ void GroupCallManager::on_group_call_message_sending_failed(InputGroupCallId inp
       MessageReactor::fix_message_reactors(group_call_participants->top_donors, false, true);
 
       group_call_participants->total_star_count -= paid_message_star_count;
+      send_update_live_story_top_donors(group_call->group_call_id, group_call_participants);
     }
   }
   if (group_call->messages.has_message(message_id)) {
@@ -5712,6 +5714,16 @@ td_api::object_ptr<td_api::liveStoryDonors> GroupCallManager::get_live_story_don
   return td_api::make_object<td_api::liveStoryDonors>(group_call_participants->total_star_count, std::move(reactors));
 }
 
+void GroupCallManager::send_update_live_story_top_donors(GroupCallId group_call_id,
+                                                         const GroupCallParticipants *group_call_participants) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateLiveStoryTopDonors>(
+                   group_call_id.get(), get_live_story_donors_object(group_call_participants)));
+}
+
 void GroupCallManager::get_group_call_stars(GroupCallId group_call_id,
                                             Promise<td_api::object_ptr<td_api::liveStoryDonors>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
@@ -5782,7 +5794,8 @@ void GroupCallManager::on_get_group_call_stars(
   CHECK(!promises.empty());
   get_stars_queries_.erase(it);
 
-  if (!need_group_call_participants(input_group_call_id, get_group_call(input_group_call_id)) && r_stars.is_ok()) {
+  const auto *group_call = get_group_call(input_group_call_id);
+  if (!need_group_call_participants(input_group_call_id, group_call) && r_stars.is_ok()) {
     r_stars = Status::Error(400, "GROUPCALL_JOIN_MISSING");
   }
 
@@ -5820,6 +5833,9 @@ void GroupCallManager::on_get_group_call_stars(
     group_call_participants->are_top_donors_loaded = true;
     group_call_participants->total_star_count = total_star_count;
     group_call_participants->top_donors = reactors;
+
+    CHECK(group_call != nullptr);
+    send_update_live_story_top_donors(group_call->group_call_id, group_call_participants);
   }
 
   for (auto &promise : promises) {
