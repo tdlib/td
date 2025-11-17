@@ -5134,11 +5134,11 @@ class CliClient final : public Actor {
       GroupCallId group_call_id;
       get_args(args, group_call_id);
       send_request(td_api::make_object<td_api::toggleVideoChatMuteNewParticipants>(group_call_id, op == "tvcmnpe"));
-    } else if (op == "tgccsm") {
+    } else if (op == "tgcama") {
       GroupCallId group_call_id;
-      bool can_send_messages;
-      get_args(args, group_call_id, can_send_messages);
-      send_request(td_api::make_object<td_api::toggleGroupCallCanSendMessages>(group_call_id, can_send_messages));
+      bool are_messages_allowed;
+      get_args(args, group_call_id, are_messages_allowed);
+      send_request(td_api::make_object<td_api::toggleGroupCallAreMessagesAllowed>(group_call_id, are_messages_allowed));
     } else if (op == "sgcpmsc") {
       GroupCallId group_call_id;
       int64 paid_message_star_count;

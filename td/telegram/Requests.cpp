@@ -4879,11 +4879,11 @@ void Requests::on_request(uint64 id, const td_api::toggleVideoChatMuteNewPartici
                                                                     request.mute_new_participants_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::toggleGroupCallCanSendMessages &request) {
+void Requests::on_request(uint64 id, const td_api::toggleGroupCallAreMessagesAllowed &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->group_call_manager_->toggle_group_call_are_messages_enabled(GroupCallId(request.group_call_id_),
-                                                                   request.can_send_messages_, std::move(promise));
+                                                                   request.are_messages_allowed_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::setGroupCallPaidMessageStarCount &request) {
