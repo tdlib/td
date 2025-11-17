@@ -1893,6 +1893,9 @@ GroupCallManager::GroupCallManager(Td *td, ActorShared<> parent) : td_(td), pare
   delete_group_call_messages_timeout_.set_callback(on_delete_group_call_messages_timeout_callback);
   delete_group_call_messages_timeout_.set_callback_data(static_cast<void *>(this));
 
+  poll_group_call_stars_timeout_.set_callback(on_poll_group_call_stars_timeout_callback);
+  poll_group_call_stars_timeout_.set_callback_data(static_cast<void *>(this));
+
   if (!td_->auth_manager_->is_bot()) {
     auto status = log_event_parse(message_limits_, G()->td_db()->get_binlog_pmc()->get("group_call_message_limits"));
     if (status.is_error()) {
@@ -2143,6 +2146,32 @@ void GroupCallManager::on_delete_group_call_messages_timeout(GroupCallId group_c
   }
 
   on_group_call_messages_deleted(group_call, group_call->messages.delete_old_group_call_messages(message_limits_));
+}
+
+void GroupCallManager::on_poll_group_call_stars_timeout_callback(void *group_call_manager_ptr,
+                                                                 int64 group_call_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto group_call_manager = static_cast<GroupCallManager *>(group_call_manager_ptr);
+  send_closure_later(group_call_manager->actor_id(group_call_manager),
+                     &GroupCallManager::on_poll_group_call_stars_timeout,
+                     GroupCallId(narrow_cast<int32>(group_call_id_int)));
+}
+
+void GroupCallManager::on_poll_group_call_stars_timeout(GroupCallId group_call_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto input_group_call_id = get_input_group_call_id(group_call_id).move_as_ok();
+  auto *group_call = get_group_call(input_group_call_id);
+  if (!need_group_call_participants(input_group_call_id, group_call)) {
+    return;
+  }
+
+  get_group_call_stars_from_server(input_group_call_id, Auto());
 }
 
 bool GroupCallManager::is_group_call_being_joined(InputGroupCallId input_group_call_id) const {
@@ -4795,6 +4824,7 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
     td_->dialog_manager_->reload_dialog_info_full(group_call->dialog_id, "finish_join_group_call");
 
     if (group_call->is_live_story) {
+      poll_group_call_stars_timeout_.cancel_timeout(group_call->group_call_id.get());
       get_group_call_stars_from_server(input_group_call_id, Auto());
     }
   }
@@ -5804,8 +5834,12 @@ void GroupCallManager::on_get_group_call_stars(
   get_stars_queries_.erase(it);
 
   const auto *group_call = get_group_call(input_group_call_id);
-  if (!need_group_call_participants(input_group_call_id, group_call) && r_stars.is_ok()) {
-    r_stars = Status::Error(400, "GROUPCALL_JOIN_MISSING");
+  if (!need_group_call_participants(input_group_call_id, group_call)) {
+    if (r_stars.is_ok()) {
+      r_stars = Status::Error(400, "GROUPCALL_JOIN_MISSING");
+    }
+  } else {
+    poll_group_call_stars_timeout_.add_timeout_in(group_call->group_call_id.get(), 30.0);
   }
 
   if (r_stars.is_error()) {
@@ -5848,7 +5882,9 @@ void GroupCallManager::on_get_group_call_stars(
   }
 
   for (auto &promise : promises) {
-    promise.set_value(get_live_story_donors_object(group_call_participants));
+    if (promise) {
+      promise.set_value(get_live_story_donors_object(group_call_participants));
+    }
   }
 }
 

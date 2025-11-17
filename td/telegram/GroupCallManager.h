@@ -287,6 +287,10 @@ class GroupCallManager final : public Actor {
 
   void on_delete_group_call_messages_timeout(GroupCallId group_call_id);
 
+  static void on_poll_group_call_stars_timeout_callback(void *group_call_manager_ptr, int64 group_call_id_int);
+
+  void on_poll_group_call_stars_timeout(GroupCallId call_id);
+
   GroupCallId get_next_group_call_id(InputGroupCallId input_group_call_id);
 
   GroupCall *add_group_call(InputGroupCallId input_group_call_id, DialogId dialog_id, bool is_live_story);
@@ -661,6 +665,7 @@ class GroupCallManager final : public Actor {
   MultiTimeout update_group_call_timeout_{"UpdateGroupCallTimeout"};
   MultiTimeout poll_group_call_blocks_timeout_{"PollGroupCallBlocksTimeout"};
   MultiTimeout delete_group_call_messages_timeout_{"DeleteGroupCallMessagesTimeout"};
+  MultiTimeout poll_group_call_stars_timeout_{"PollGroupCallStarsTimeout"};
 };
 
 }  // namespace td
