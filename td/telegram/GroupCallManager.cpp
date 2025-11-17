@@ -4793,6 +4793,10 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
   if (group_call != nullptr && group_call->dialog_id.is_valid()) {
     update_group_call_dialog(group_call, "finish_join_group_call", false);
     td_->dialog_manager_->reload_dialog_info_full(group_call->dialog_id, "finish_join_group_call");
+
+    if (group_call->is_live_story) {
+      get_group_call_stars_from_server(input_group_call_id, Auto());
+    }
   }
 }
 
@@ -5769,6 +5773,11 @@ void GroupCallManager::get_group_call_stars(GroupCallId group_call_id,
     return promise.set_value(get_live_story_donors_object(group_call_participants));
   }
 
+  get_group_call_stars_from_server(input_group_call_id, std::move(promise));
+}
+
+void GroupCallManager::get_group_call_stars_from_server(
+    InputGroupCallId input_group_call_id, Promise<td_api::object_ptr<td_api::liveStoryDonors>> &&promise) {
   auto &queries = get_stars_queries_[input_group_call_id];
   queries.push_back(std::move(promise));
   if (queries.size() != 1u) {
