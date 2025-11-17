@@ -84,6 +84,10 @@ class MessageReactor {
     }
   }
 
+  void remove_count(int32 count) {
+    count_ = max(count_ - count, 0);
+  }
+
   td_api::object_ptr<td_api::paidReactor> get_paid_reactor_object(Td *td) const;
 
   void add_min_channel(Td *td) const;

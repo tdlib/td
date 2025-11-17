@@ -3340,6 +3340,19 @@ void GroupCallManager::on_group_call_message_sending_failed(InputGroupCallId inp
   }
   if (paid_message_star_count > 0 && group_call->is_live_story &&
       need_group_call_participants(input_group_call_id, group_call)) {
+    auto *group_call_participants =
+        add_group_call_participants(input_group_call_id, "on_group_call_message_sending_failed");
+    if (group_call_participants->are_top_donors_loaded) {
+      for (auto &donor : group_call_participants->top_donors) {
+        if (donor.is_me()) {
+          donor.remove_count(static_cast<int32>(paid_message_star_count));
+          break;
+        }
+      }
+      MessageReactor::fix_message_reactors(group_call_participants->top_donors, false, true);
+
+      group_call_participants->total_star_count -= paid_message_star_count;
+    }
   }
   if (group_call->messages.has_message(message_id)) {
     send_closure(G()->td(), &Td::send_update,
