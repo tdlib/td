@@ -1074,7 +1074,7 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(as_dialog_id_, status, "SendGroupCallMessageQuery");
     send_closure(G()->star_manager(), &StarManager::add_pending_owned_star_count, paid_message_star_count_, false);
-    td_->group_call_manager_->on_group_call_message_sending_failed(input_group_call_id_, message_id_, as_dialog_id_,
+    td_->group_call_manager_->on_group_call_message_sending_failed(input_group_call_id_, message_id_,
                                                                    paid_message_star_count_, status);
     promise_.set_error(std::move(status));
   }
@@ -3389,8 +3389,7 @@ void GroupCallManager::on_group_call_message_sent(InputGroupCallId input_group_c
 }
 
 void GroupCallManager::on_group_call_message_sending_failed(InputGroupCallId input_group_call_id, int32 message_id,
-                                                            DialogId sender_dialog_id, int64 paid_message_star_count,
-                                                            const Status &status) {
+                                                            int64 paid_message_star_count, const Status &status) {
   auto group_call = get_group_call(input_group_call_id);
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
     return;
