@@ -3310,6 +3310,26 @@ void GroupCallManager::add_group_call_spent_stars(InputGroupCallId input_group_c
   }
 }
 
+void GroupCallManager::remove_group_call_spent_stars(InputGroupCallId input_group_call_id, GroupCall *group_call,
+                                                     DialogId sender_dialog_id, int64 star_count) {
+  if (need_group_call_participants(input_group_call_id, group_call)) {
+    auto *group_call_participants = add_group_call_participants(input_group_call_id, "remove_group_call_spent_stars");
+    if (group_call_participants->are_top_donors_loaded) {
+      for (auto &donor : group_call_participants->top_donors) {
+        if (donor.is_me()) {
+          donor.remove_count(static_cast<int32>(star_count));
+          break;
+        }
+      }
+      MessageReactor::fix_message_reactors(group_call_participants->top_donors, false, true);
+
+      group_call_participants->total_star_count -= star_count;
+      send_update_live_story_top_donors(group_call->group_call_id, group_call_participants);
+    }
+  }
+  // don't neet to undo updateNewGroupCallPaidReaction
+}
+
 int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
                                                const GroupCallMessage &group_call_message, bool is_old) {
   if (!group_call_message.is_valid()) {
@@ -3372,22 +3392,8 @@ void GroupCallManager::on_group_call_message_sending_failed(InputGroupCallId inp
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
     return;
   }
-  if (paid_message_star_count > 0 && group_call->is_live_story &&
-      need_group_call_participants(input_group_call_id, group_call)) {
-    auto *group_call_participants =
-        add_group_call_participants(input_group_call_id, "on_group_call_message_sending_failed");
-    if (group_call_participants->are_top_donors_loaded) {
-      for (auto &donor : group_call_participants->top_donors) {
-        if (donor.is_me()) {
-          donor.remove_count(static_cast<int32>(paid_message_star_count));
-          break;
-        }
-      }
-      MessageReactor::fix_message_reactors(group_call_participants->top_donors, false, true);
-
-      group_call_participants->total_star_count -= paid_message_star_count;
-      send_update_live_story_top_donors(group_call->group_call_id, group_call_participants);
-    }
+  if (paid_message_star_count > 0 && group_call->is_live_story) {
+    remove_group_call_spent_stars(input_group_call_id, group_call, sender_dialog_id, paid_message_star_count);
   }
   if (group_call->messages.has_message(message_id)) {
     send_closure(G()->td(), &Td::send_update,
