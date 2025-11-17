@@ -13,6 +13,7 @@
 #include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 
 #include <algorithm>
@@ -109,13 +110,19 @@ void MessageReactor::fix_message_reactors(vector<MessageReactor> &reactors, bool
     }
   }
   bool was_me = false;
-  for (const auto &reactor : reactors) {
-    CHECK(reactor.is_valid());
+  td::remove_if(reactors, [&was_me](const MessageReactor &reactor) {
+    if (!reactor.is_valid()) {
+      return true;
+    }
     if (reactor.is_me()) {
-      CHECK(!was_me);
+      if (was_me) {
+        LOG(ERROR) << "Receive self mutiple times";
+        return true;
+      }
       was_me = true;
     }
-  }
+    return false;
+  });
   std::sort(reactors.begin(), reactors.end());
   if (reactors.size() > TOP_REACTOR_COUNT && !reactors[TOP_REACTOR_COUNT].is_me()) {
     reactors.resize(TOP_REACTOR_COUNT);
