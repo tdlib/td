@@ -5703,10 +5703,13 @@ void GroupCallManager::delete_group_call_messages_by_sender(GroupCallId group_ca
 td_api::object_ptr<td_api::liveStoryDonors> GroupCallManager::get_live_story_donors_object(
     const GroupCallParticipants *group_call_participants) const {
   CHECK(group_call_participants->are_top_donors_loaded);
-  return td_api::make_object<td_api::liveStoryDonors>(
-      group_call_participants->total_star_count,
-      transform(group_call_participants->top_donors,
-                [td = td_](const MessageReactor &reactor) { return reactor.get_paid_reactor_object(td); }));
+  vector<td_api::object_ptr<td_api::paidReactor>> reactors;
+  for (const auto &donor : group_call_participants->top_donors) {
+    if (reactors.size() < 3u || donor.is_me()) {
+      reactors.push_back(donor.get_paid_reactor_object(td_));
+    }
+  }
+  return td_api::make_object<td_api::liveStoryDonors>(group_call_participants->total_star_count, std::move(reactors));
 }
 
 void GroupCallManager::get_group_call_stars(GroupCallId group_call_id,
