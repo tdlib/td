@@ -3277,6 +3277,39 @@ int32 GroupCallManager::get_group_call_message_delete_in(const GroupCall *group_
                                   static_cast<int64>(1), static_cast<int64>(1000000000)));
 }
 
+void GroupCallManager::add_group_call_spent_stars(InputGroupCallId input_group_call_id, GroupCall *group_call,
+                                                  DialogId sender_dialog_id, bool is_outgoing, bool is_reaction,
+                                                  int64 star_count) {
+  if (need_group_call_participants(input_group_call_id, group_call)) {
+    auto *group_call_participants = add_group_call_participants(input_group_call_id, "add_group_call_spent_stars");
+    if (group_call_participants->are_top_donors_loaded) {
+      vector<MessageReactor> top_donors;
+      bool is_found = false;
+      for (const auto &donor : group_call_participants->top_donors) {
+        top_donors.push_back(donor);
+        if ((donor.is_me() && is_outgoing) || donor.is_same(sender_dialog_id)) {
+          is_found = true;
+          top_donors.back().add_count(static_cast<int32>(star_count), sender_dialog_id, DialogId());
+        }
+      }
+      if (!is_found) {
+        top_donors.emplace_back(sender_dialog_id, static_cast<int32>(star_count), is_outgoing, false);
+      }
+      MessageReactor::fix_message_reactors(top_donors, false, true);
+
+      group_call_participants->total_star_count += star_count;
+      group_call_participants->top_donors = std::move(top_donors);
+      send_update_live_story_top_donors(group_call->group_call_id, group_call_participants);
+    }
+  }
+  if (is_reaction) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateNewGroupCallPaidReaction>(
+                     group_call->group_call_id.get(),
+                     get_message_sender_object(td_, sender_dialog_id, "updateNewGroupCallPaidReaction"), star_count));
+  }
+}
+
 int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
                                                const GroupCallMessage &group_call_message, bool is_old) {
   if (!group_call_message.is_valid()) {
@@ -3300,38 +3333,9 @@ int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call
     }
   }
   if (!is_old && paid_message_star_count > 0 && group_call->is_live_story) {
-    if (need_group_call_participants(input_group_call_id, group_call)) {
-      auto *group_call_participants = add_group_call_participants(input_group_call_id, "add_group_call_message");
-      if (group_call_participants->are_top_donors_loaded) {
-        auto sender_dialog_id = group_call_message.get_sender_dialog_id();
-        vector<MessageReactor> top_donors;
-        bool is_found = false;
-        for (const auto &donor : group_call_participants->top_donors) {
-          top_donors.push_back(donor);
-          if ((donor.is_me() && group_call_message.is_local()) || donor.is_same(sender_dialog_id)) {
-            is_found = true;
-            top_donors.back().add_count(static_cast<int32>(paid_message_star_count), sender_dialog_id, DialogId());
-          }
-        }
-        if (!is_found) {
-          top_donors.emplace_back(sender_dialog_id, static_cast<int32>(paid_message_star_count),
-                                  group_call_message.is_local(), false);
-        }
-        MessageReactor::fix_message_reactors(top_donors, false, true);
-
-        group_call_participants->total_star_count += paid_message_star_count;
-        group_call_participants->top_donors = std::move(top_donors);
-        send_update_live_story_top_donors(group_call->group_call_id, group_call_participants);
-      }
-    }
-    if (group_call_message.is_reaction()) {
-      send_closure(G()->td(), &Td::send_update,
-                   td_api::make_object<td_api::updateNewGroupCallPaidReaction>(
-                       group_call->group_call_id.get(),
-                       get_message_sender_object(td_, group_call_message.get_sender_dialog_id(),
-                                                 "updateNewGroupCallPaidReaction"),
-                       paid_message_star_count));
-    }
+    add_group_call_spent_stars(input_group_call_id, group_call, group_call_message.get_sender_dialog_id(),
+                               group_call_message.is_local(), group_call_message.is_reaction(),
+                               paid_message_star_count);
   }
   return message_id;
 }

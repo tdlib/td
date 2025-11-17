@@ -555,6 +555,9 @@ class GroupCallManager final : public Actor {
   int32 get_group_call_message_delete_in(const GroupCall *group_call, const GroupCallMessage &group_call_message,
                                          bool is_old) const;
 
+  void add_group_call_spent_stars(InputGroupCallId input_group_call_id, GroupCall *group_call,
+                                  DialogId sender_dialog_id, bool is_outgoing, bool is_reaction, int64 star_count);
+
   int32 add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
                                const GroupCallMessage &group_call_message, bool is_old = false);
 
