@@ -7669,6 +7669,8 @@ td_api::object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
       group_call->is_active && group_call->can_be_managed && group_call->allowed_toggle_mute_new_participants;
   bool can_enable_video = get_group_call_can_enable_video(group_call);
   bool are_messages_enabled = get_group_call_are_messages_enabled(group_call);
+  bool can_send_messages =
+      are_messages_enabled || (group_call->is_active && (group_call->is_creator || group_call->can_be_managed));
   bool can_toggle_are_messages_enabled =
       group_call->is_active && group_call->can_be_managed && group_call->allowed_toggle_are_messages_enabled;
   bool can_delete_messages = get_group_call_can_delete_messages(group_call);
@@ -7689,8 +7691,8 @@ td_api::object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
       group_call->is_creator, group_call->can_be_managed, group_call->participant_count,
       group_call->has_hidden_listeners, group_call->loaded_all_participants, std::move(message_sender_id),
       std::move(recent_speakers), is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
-      can_toggle_mute_new_participants, are_messages_enabled, can_toggle_are_messages_enabled, can_delete_messages,
-      record_duration, is_video_recorded, group_call->duration);
+      can_toggle_mute_new_participants, can_send_messages, are_messages_enabled, can_toggle_are_messages_enabled,
+      can_delete_messages, record_duration, is_video_recorded, group_call->duration);
 }
 
 td_api::object_ptr<td_api::updateGroupCall> GroupCallManager::get_update_group_call_object(
