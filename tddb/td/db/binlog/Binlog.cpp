@@ -703,12 +703,14 @@ void Binlog::do_reindex() {
   auto ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
 
   [&](Slice msg) {
-    if (start_size > (10 << 20) || finish_time - start_time > 1) {
-      LOG(WARNING) << "Slow " << msg;
+    if (finish_time - start_time > 1) {
+      LOG(WARNING) << "Slow regenerate " << msg;
+    } else if (start_size > (10 << 20)) {
+      LOG(WARNING) << "Large " << msg;
     } else {
-      LOG(INFO) << msg;
+      LOG(INFO) << "Regenerate " << msg;
     }
-  }(PSLICE() << "Regenerate index " << tag("name", path_) << tag("time", format::as_time(finish_time - start_time))
+  }(PSLICE() << "index " << tag("name", path_) << tag("time", format::as_time(finish_time - start_time))
              << tag("before_size", format::as_size(start_size)) << tag("after_size", format::as_size(finish_size))
              << tag("ratio", ratio) << tag("before_events", start_events) << tag("after_events", finish_events));
 
