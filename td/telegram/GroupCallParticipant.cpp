@@ -22,7 +22,6 @@ GroupCallParticipant::GroupCallParticipant(const tl_object_ptr<telegram_api::gro
   CHECK(participant != nullptr);
   dialog_id = DialogId(participant->peer_);
   about = participant->about_;
-  total_paid_star_count = StarManager::get_star_count(participant->paid_stars_total_);
   audio_source = participant->source_;
   server_is_muted_by_themselves = participant->can_self_unmute_;
   server_is_muted_by_admin = participant->muted_ && !participant->can_self_unmute_;
@@ -285,17 +284,16 @@ td_api::object_ptr<td_api::groupCallParticipant> GroupCallParticipant::get_group
   return td_api::make_object<td_api::groupCallParticipant>(
       get_message_sender_object(td, dialog_id, "get_group_call_participant_object"), audio_source,
       presentation_audio_source, video_payload.get_group_call_participant_video_info_object(),
-      presentation_payload.get_group_call_participant_video_info_object(), about, total_paid_star_count, is_self,
-      is_speaking, get_is_hand_raised(), can_be_muted_for_all_users, can_be_unmuted_for_all_users,
-      can_be_muted_only_for_self, can_be_unmuted_only_for_self, get_is_muted_for_all_users(), get_is_muted_locally(),
-      get_is_muted_by_themselves(), get_volume_level(), order.get_group_call_participant_order_object());
+      presentation_payload.get_group_call_participant_video_info_object(), about, is_self, is_speaking,
+      get_is_hand_raised(), can_be_muted_for_all_users, can_be_unmuted_for_all_users, can_be_muted_only_for_self,
+      can_be_unmuted_only_for_self, get_is_muted_for_all_users(), get_is_muted_locally(), get_is_muted_by_themselves(),
+      get_volume_level(), order.get_group_call_participant_order_object());
 }
 
 bool operator==(const GroupCallParticipant &lhs, const GroupCallParticipant &rhs) {
   return lhs.dialog_id == rhs.dialog_id && lhs.audio_source == rhs.audio_source &&
          lhs.presentation_audio_source == rhs.presentation_audio_source && lhs.video_payload == rhs.video_payload &&
-         lhs.presentation_payload == rhs.presentation_payload && lhs.about == rhs.about &&
-         lhs.total_paid_star_count == rhs.total_paid_star_count && lhs.is_self == rhs.is_self &&
+         lhs.presentation_payload == rhs.presentation_payload && lhs.about == rhs.about && lhs.is_self == rhs.is_self &&
          lhs.is_speaking == rhs.is_speaking && lhs.get_is_hand_raised() == rhs.get_is_hand_raised() &&
          lhs.can_be_muted_for_all_users == rhs.can_be_muted_for_all_users &&
          lhs.can_be_unmuted_for_all_users == rhs.can_be_unmuted_for_all_users &&

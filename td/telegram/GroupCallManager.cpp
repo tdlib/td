@@ -3273,15 +3273,8 @@ int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call
   if (!is_old && paid_message_star_count > 0 && group_call->is_live_story) {
     if (need_group_call_participants(input_group_call_id, group_call)) {
       auto *group_call_participants = add_group_call_participants(input_group_call_id, "add_group_call_message");
-      auto sender_dialog_id = group_call_message.get_sender_dialog_id();
-      auto *participant = get_group_call_participant(group_call_participants, sender_dialog_id);
-      if (participant != nullptr) {
-        participant->total_paid_star_count += paid_message_star_count;
-        if (participant->order.is_valid()) {
-          send_update_group_call_participant(input_group_call_id, *participant, "add_group_call_message");
-        }
-      }
       if (group_call_participants->are_top_donors_loaded) {
+        auto sender_dialog_id = group_call_message.get_sender_dialog_id();
         vector<MessageReactor> top_donors;
         bool is_found = false;
         for (const auto &donor : group_call_participants->top_donors) {
@@ -3292,7 +3285,8 @@ int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call
           }
         }
         if (!is_found) {
-          top_donors.emplace_back(sender_dialog_id, static_cast<int32>(paid_message_star_count), group_call_message.is_local(), false);
+          top_donors.emplace_back(sender_dialog_id, static_cast<int32>(paid_message_star_count),
+                                  group_call_message.is_local(), false);
         }
         MessageReactor::fix_message_reactors(top_donors, false, true);
 
@@ -3344,17 +3338,8 @@ void GroupCallManager::on_group_call_message_sending_failed(InputGroupCallId inp
   if (group_call == nullptr || !group_call->is_inited || !group_call->is_active) {
     return;
   }
-  if (paid_message_star_count > 0 && group_call->is_live_story) {
-    if (need_group_call_participants(input_group_call_id, group_call)) {
-      auto *participant =
-          get_group_call_participant(input_group_call_id, sender_dialog_id, "on_group_call_message_sending_failed");
-      if (participant != nullptr) {
-        participant->total_paid_star_count -= paid_message_star_count;
-        if (participant->order.is_valid()) {
-          send_update_group_call_participant(input_group_call_id, *participant, "on_group_call_message_sending_failed");
-        }
-      }
-    }
+  if (paid_message_star_count > 0 && group_call->is_live_story &&
+      need_group_call_participants(input_group_call_id, group_call)) {
   }
   if (group_call->messages.has_message(message_id)) {
     send_closure(G()->td(), &Td::send_update,
@@ -4347,7 +4332,6 @@ void GroupCallManager::join_video_chat(GroupCallId group_call_id, DialogId as_di
     participant.is_self = true;
     participant.dialog_id = as_dialog_id;
     participant.about = td_->dialog_manager_->get_dialog_about(participant.dialog_id);
-    participant.total_paid_star_count = 0;
     participant.audio_source = parameters.audio_source_;
     participant.joined_date = G()->unix_time();
     // if can_self_unmute has never been inited from self-participant,
