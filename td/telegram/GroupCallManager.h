@@ -221,7 +221,7 @@ class GroupCallManager final : public Actor {
   void on_new_encrypted_group_call_message(InputGroupCallId input_group_call_id, DialogId sender_dialog_id,
                                            string &&encrypted_message);
 
-  void on_group_call_messages_deleted(InputGroupCallId input_group_call_id, vector<int32> &&server_ids);
+  void on_update_group_call_messages_deleted(InputGroupCallId input_group_call_id, vector<int32> &&server_ids);
 
   void process_join_video_chat_response(InputGroupCallId input_group_call_id, uint64 generation,
                                         tl_object_ptr<telegram_api::Updates> &&updates, Promise<Unit> &&promise);
@@ -537,8 +537,6 @@ class GroupCallManager final : public Actor {
 
   bool set_group_call_unmuted_video_count(GroupCall *group_call, int32 count, const char *source);
 
-  void delete_old_group_call_messages(GroupCall *group_call);
-
   void schedule_group_call_message_deletion(const GroupCall *group_call);
 
   int32 get_group_call_message_delete_in(const GroupCall *group_call, const GroupCallMessage &group_call_message,
@@ -546,6 +544,8 @@ class GroupCallManager final : public Actor {
 
   int32 add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
                                const GroupCallMessage &group_call_message, bool is_old = false);
+
+  void on_group_call_messages_deleted(const GroupCall *group_call, vector<int32> &&message_ids);
 
   void update_group_call_dialog(const GroupCall *group_call, const char *source, bool force);
 

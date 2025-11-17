@@ -4540,7 +4540,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateGroupCallEncryp
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteGroupCallMessages> update,
                                Promise<Unit> &&promise) {
-  send_closure(G()->group_call_manager(), &GroupCallManager::on_group_call_messages_deleted,
+  send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call_messages_deleted,
                InputGroupCallId(update->call_), std::move(update->messages_));
   promise.set_value(Unit());
 }
