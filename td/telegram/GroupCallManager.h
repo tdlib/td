@@ -529,6 +529,9 @@ class GroupCallManager final : public Actor {
 
   bool try_clear_group_call_participants(InputGroupCallId input_group_call_id);
 
+  td_api::object_ptr<td_api::liveStoryDonors> get_live_story_donors_object(
+      const GroupCallParticipants *group_call_participants) const;
+
   void on_get_group_call_stars(InputGroupCallId input_group_call_id,
                                Result<telegram_api::object_ptr<telegram_api::phone_groupCallStars>> r_stars);
 

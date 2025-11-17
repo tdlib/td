@@ -1831,6 +1831,10 @@ struct GroupCallManager::GroupCallParticipants {
   bool are_administrators_loaded = false;
   vector<DialogId> administrator_dialog_ids;
 
+  bool are_top_donors_loaded = false;
+  int64 total_star_count = 0;
+  vector<MessageReactor> top_donors;
+
   struct PendingUpdates {
     FlatHashMap<DialogId, unique_ptr<GroupCallParticipant>, DialogIdHash> updates;
   };
@@ -5680,6 +5684,15 @@ void GroupCallManager::delete_group_call_messages_by_sender(GroupCallId group_ca
   }
 }
 
+td_api::object_ptr<td_api::liveStoryDonors> GroupCallManager::get_live_story_donors_object(
+    const GroupCallParticipants *group_call_participants) const {
+  CHECK(group_call_participants->are_top_donors_loaded);
+  return td_api::make_object<td_api::liveStoryDonors>(
+      group_call_participants->total_star_count,
+      transform(group_call_participants->top_donors,
+                [td = td_](const MessageReactor &reactor) { return reactor.get_paid_reactor_object(td); }));
+}
+
 void GroupCallManager::get_group_call_stars(GroupCallId group_call_id,
                                             Promise<td_api::object_ptr<td_api::liveStoryDonors>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
@@ -5713,6 +5726,17 @@ void GroupCallManager::get_group_call_stars(GroupCallId group_call_id,
     }
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
+  if (!group_call->is_live_story) {
+    return promise.set_error(400, "The group call isn't a live story");
+  }
+  if (!need_group_call_participants(input_group_call_id, group_call)) {
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+
+  auto *group_call_participants = add_group_call_participants(input_group_call_id, "get_group_call_stars");
+  if (group_call_participants->are_top_donors_loaded) {
+    return promise.set_value(get_live_story_donors_object(group_call_participants));
+  }
 
   auto &queries = get_stars_queries_[input_group_call_id];
   queries.push_back(std::move(promise));
@@ -5739,6 +5763,10 @@ void GroupCallManager::on_get_group_call_stars(
   CHECK(!promises.empty());
   get_stars_queries_.erase(it);
 
+  if (!need_group_call_participants(input_group_call_id, get_group_call(input_group_call_id)) && r_stars.is_ok()) {
+    r_stars = Status::Error(400, "GROUPCALL_JOIN_MISSING");
+  }
+
   if (r_stars.is_error()) {
     return fail_promises(promises, r_stars.move_as_error());
   }
@@ -5747,7 +5775,7 @@ void GroupCallManager::on_get_group_call_stars(
   td_->user_manager_->on_get_users(std::move(stars->users_), "on_get_group_call_stars");
   td_->chat_manager_->on_get_chats(std::move(stars->chats_), "on_get_group_call_stars");
 
-  auto total_count = StarManager::get_star_count(stars->total_stars_);
+  auto total_star_count = StarManager::get_star_count(stars->total_stars_);
   int64 sum_star_count = 0;
   vector<MessageReactor> reactors;
   for (auto &donor : stars->top_donors_) {
@@ -5759,14 +5787,23 @@ void GroupCallManager::on_get_group_call_stars(
     sum_star_count += reactor.get_count();
     reactors.push_back(std::move(reactor));
   }
-  if (total_count < sum_star_count) {
-    LOG(ERROR) << "Receive " << total_count << " total donated Stars and " << sum_star_count << " Stars for top donors";
-    total_count = sum_star_count;
+  if (total_star_count < sum_star_count) {
+    LOG(ERROR) << "Receive " << total_star_count << " total donated Stars and " << sum_star_count
+               << " Stars for top donors";
+    total_star_count = sum_star_count;
   }
+
+  auto *group_call_participants = add_group_call_participants(input_group_call_id, "on_get_group_call_stars");
+  if (!group_call_participants->are_top_donors_loaded ||
+      group_call_participants->total_star_count != total_star_count ||
+      group_call_participants->top_donors != reactors) {
+    group_call_participants->are_top_donors_loaded = true;
+    group_call_participants->total_star_count = total_star_count;
+    group_call_participants->top_donors = reactors;
+  }
+
   for (auto &promise : promises) {
-    auto result =
-        transform(reactors, [td = td_](const MessageReactor &reactor) { return reactor.get_paid_reactor_object(td); });
-    promise.set_value(td_api::make_object<td_api::liveStoryDonors>(total_count, std::move(result)));
+    promise.set_value(get_live_story_donors_object(group_call_participants));
   }
 }
 
