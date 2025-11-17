@@ -648,7 +648,7 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
     }
     result->top_reactors_.push_back(std::move(reactor));
   }
-  MessageReactor::fix_message_reactors(result->top_reactors_, true);
+  MessageReactor::fix_message_reactors(result->top_reactors_, true, false);
   return result;
 }
 
@@ -702,7 +702,7 @@ void MessageReactions::update_from(const MessageReactions &old_reactions, Dialog
         if (reactor.is_me()) {
           // self paid reaction was known, keep it
           top_reactors_.push_back(reactor);
-          MessageReactor::fix_message_reactors(top_reactors_, false);
+          MessageReactor::fix_message_reactors(top_reactors_, false, false);
         }
       }
     }
@@ -981,7 +981,7 @@ vector<MessageReactor> MessageReactions::apply_reactor_pending_paid_reactions(Di
       top_reactors.emplace_back(reactor_dialog_id, pending_paid_reactions_, false);
     }
   }
-  MessageReactor::fix_message_reactors(top_reactors, false);
+  MessageReactor::fix_message_reactors(top_reactors, false, false);
   return top_reactors;
 }
 

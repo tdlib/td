@@ -5787,6 +5787,7 @@ void GroupCallManager::on_get_group_call_stars(
     sum_star_count += reactor.get_count();
     reactors.push_back(std::move(reactor));
   }
+  MessageReactor::fix_message_reactors(reactors, true, true);
   if (total_star_count < sum_star_count) {
     LOG(ERROR) << "Receive " << total_star_count << " total donated Stars and " << sum_star_count
                << " Stars for top donors";

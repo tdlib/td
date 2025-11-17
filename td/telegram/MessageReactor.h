@@ -86,7 +86,7 @@ class MessageReactor {
 
   void add_dependencies(Dependencies &dependencies) const;
 
-  static void fix_message_reactors(vector<MessageReactor> &reactors, bool need_warning);
+  static void fix_message_reactors(vector<MessageReactor> &reactors, bool need_warning, bool for_group_call);
 
   template <class StorerT>
   void store(StorerT &storer) const;
