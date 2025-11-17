@@ -11884,7 +11884,7 @@ postStory chat_id:int53 content:InputStoryContent areas:inputStoryAreas caption:
 //@protect_content Pass true if the content of the story must be protected from screenshotting
 //@is_rtmp_stream Pass true to create an RTMP stream instead of an ordinary group call
 //@enable_messages Pass true to allow viewers of the story to send messages
-//@paid_message_star_count The minimum number of Telegram Stars that must be paid by viewers for each sent message to the call; 0-10000
+//@paid_message_star_count The minimum number of Telegram Stars that must be paid by viewers for each sent message to the call; 0-getOption("paid_group_call_message_star_count_max")
 startLiveStory chat_id:int53 privacy_settings:StoryPrivacySettings protect_content:Bool is_rtmp_stream:Bool enable_messages:Bool paid_message_star_count:int53 = Story;
 
 //@description Changes content and caption of a story. Can be called only if story.can_be_edited == true
