@@ -45,8 +45,8 @@ class MessageReactor {
 
   MessageReactor(Td *td, telegram_api::object_ptr<telegram_api::groupCallDonor> &&donor);
 
-  MessageReactor(DialogId dialog_id, int32 count, bool is_anonymous)
-      : dialog_id_(dialog_id), count_(count), is_me_(true), is_anonymous_(is_anonymous) {
+  MessageReactor(DialogId dialog_id, int32 count, bool is_me, bool is_anonymous)
+      : dialog_id_(dialog_id), count_(count), is_me_(is_me), is_anonymous_(is_anonymous) {
   }
 
   bool is_valid() const {
@@ -55,6 +55,10 @@ class MessageReactor {
 
   bool is_me() const {
     return is_me_;
+  }
+
+  bool is_same(DialogId dialog_id) const {
+    return dialog_id_ == dialog_id;
   }
 
   bool is_anonymous() const {

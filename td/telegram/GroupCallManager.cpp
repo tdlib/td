@@ -3272,13 +3272,32 @@ int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call
   }
   if (!is_old && paid_message_star_count > 0 && group_call->is_live_story) {
     if (need_group_call_participants(input_group_call_id, group_call)) {
-      auto *participant = get_group_call_participant(input_group_call_id, group_call_message.get_sender_dialog_id(),
-                                                     "add_group_call_message");
+      auto *group_call_participants = add_group_call_participants(input_group_call_id, "add_group_call_message");
+      auto sender_dialog_id = group_call_message.get_sender_dialog_id();
+      auto *participant = get_group_call_participant(group_call_participants, sender_dialog_id);
       if (participant != nullptr) {
         participant->total_paid_star_count += paid_message_star_count;
         if (participant->order.is_valid()) {
           send_update_group_call_participant(input_group_call_id, *participant, "add_group_call_message");
         }
+      }
+      if (group_call_participants->are_top_donors_loaded) {
+        vector<MessageReactor> top_donors;
+        bool is_found = false;
+        for (const auto &donor : group_call_participants->top_donors) {
+          top_donors.push_back(donor);
+          if ((donor.is_me() && group_call_message.is_local()) || donor.is_same(sender_dialog_id)) {
+            is_found = true;
+            top_donors.back().add_count(static_cast<int32>(paid_message_star_count), sender_dialog_id, DialogId());
+          }
+        }
+        if (!is_found) {
+          top_donors.emplace_back(sender_dialog_id, static_cast<int32>(paid_message_star_count), group_call_message.is_local(), false);
+        }
+        MessageReactor::fix_message_reactors(top_donors, false, true);
+
+        group_call_participants->total_star_count += paid_message_star_count;
+        group_call_participants->top_donors = std::move(top_donors);
       }
     }
     if (group_call_message.is_reaction()) {

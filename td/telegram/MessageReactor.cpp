@@ -85,7 +85,7 @@ bool MessageReactor::fix_is_me(DialogId my_dialog_id) {
 }
 
 void MessageReactor::fix_message_reactors(vector<MessageReactor> &reactors, bool need_warning, bool for_group_call) {
-  size_t TOP_REACTOR_COUNT = for_group_call ? 10u : 3u;
+  size_t TOP_REACTOR_COUNT = for_group_call ? 100u : 3u;
   if (reactors.size() > TOP_REACTOR_COUNT + 1) {
     LOG(ERROR) << "Have too many " << reactors;
     reactors.resize(TOP_REACTOR_COUNT + 1);
