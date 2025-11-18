@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/ToDoCompletion.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/tl_helpers.h"
 

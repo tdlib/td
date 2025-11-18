@@ -9630,7 +9630,7 @@ updateTonRevenueStatus status:tonRevenueStatus = Update;
 //@next_reset_date Point in time (Unix timestamp) when the weekly number of tries will reset; 0 if unknown
 updateSpeechRecognitionTrial max_media_duration:int32 weekly_count:int32 left_count:int32 next_reset_date:int32 = Update;
 
-//@description The levels of live story group call messages has changed @levels New description of the levels in decreasing order of groupCallMessageLevel.min_star_count 
+//@description The levels of live story group call messages has changed @levels New description of the levels in decreasing order of groupCallMessageLevel.min_star_count
 updateGroupCallMessageLevels levels:vector<groupCallMessageLevel> = Update;
 
 //@description The list of supported dice emojis has changed @emojis The new list of supported dice emojis

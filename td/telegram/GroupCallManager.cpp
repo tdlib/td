@@ -9,7 +9,6 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatManager.h"
-#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogActionManager.h"
 #include "td/telegram/DialogManager.h"
@@ -19,6 +18,7 @@
 #include "td/telegram/GroupCallJoinParameters.h"
 #include "td/telegram/GroupCallMessage.h"
 #include "td/telegram/GroupCallMessageLimit.hpp"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageReactor.h"
 #include "td/telegram/MessageSender.h"
@@ -31,10 +31,10 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
-#include "td/telegram/Version.h"
 
 #include "td/actor/SleepActor.h"
 
@@ -51,7 +51,7 @@
 #include "td/utils/utf8.h"
 
 #include <algorithm>
-#include <limits>
+#include <functional>
 #include <map>
 #include <utility>
 

@@ -33,6 +33,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TranscriptionManager.h"
+#include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
 
 #include "td/mtproto/AuthData.h"

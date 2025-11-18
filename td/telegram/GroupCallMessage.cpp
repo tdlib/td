@@ -6,6 +6,7 @@
 //
 #include "td/telegram/GroupCallMessage.h"
 
+#include "td/telegram/CustomEmojiId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageSender.h"
@@ -14,6 +15,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserManager.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"

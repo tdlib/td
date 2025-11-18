@@ -17,6 +17,7 @@
 #include "td/utils/logging.h"
 
 #include <algorithm>
+#include <limits>
 
 namespace td {
 
