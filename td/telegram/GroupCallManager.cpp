@@ -1629,9 +1629,10 @@ class GroupCallManager::GroupCallMessages {
     it->second.delete_time_ = delete_in == 0 ? 0.0 : Time::now() + delete_in;
     auto server_id = message.get_server_id();
     CHECK(server_id != 0);
-    CHECK(message_id_to_server_id_.count(message_id) == 0);
     server_id_to_message_id_[server_id] = message_id;
-    message_id_to_server_id_[message_id] = server_id;
+    auto &old_server_id = message_id_to_server_id_[message_id];
+    CHECK(old_server_id == 0);
+    old_server_id = server_id;
     return true;
   }
 
@@ -1823,7 +1824,7 @@ struct GroupCallManager::GroupCall {
   bool have_pending_are_messages_enabled = false;
   bool pending_are_messages_enabled = false;
   bool have_pending_paid_message_star_count = false;
-  int64 pending_paid_message_star_count = false;
+  int64 pending_paid_message_star_count = 0;
   string pending_title;
   bool have_pending_record_start_date = false;
   int32 pending_record_start_date = 0;

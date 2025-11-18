@@ -2717,9 +2717,10 @@ UserManager::~UserManager() {
       G()->get_gc_scheduler_id(), users_, users_full_, user_photos_, unknown_users_, pending_user_photos_,
       user_profile_photo_file_source_ids_, user_saved_music_, user_saved_music_file_source_ids_, my_photo_file_id_,
       user_full_file_source_ids_, secret_chats_, unknown_secret_chats_, secret_chats_with_user_);
-  Scheduler::instance()->destroy_on_scheduler(G()->get_gc_scheduler_id(), loaded_from_database_users_,
-                                              unavailable_user_fulls_, loaded_from_database_secret_chats_,
-                                              resolved_phone_numbers_, all_imported_contacts_, restricted_user_ids_);
+  Scheduler::instance()->destroy_on_scheduler(
+      G()->get_gc_scheduler_id(), loaded_from_database_users_, unavailable_user_fulls_,
+      loaded_from_database_secret_chats_, resolved_phone_numbers_, all_imported_contacts_, restricted_user_ids_,
+      pending_get_user_photos_requests_, pending_get_user_saved_music_requests_);
 }
 
 void UserManager::tear_down() {

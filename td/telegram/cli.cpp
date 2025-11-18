@@ -5110,7 +5110,7 @@ class CliClient final : public Actor {
       get_args(args, group_call_id);
       send_request(td_api::make_object<td_api::joinLiveStory>(
           group_call_id, td_api::make_object<td_api::groupCallJoinParameters>(
-                             group_call_source_, get_group_call_join_payload(op == "jslsv", false), true, true)));
+                             group_call_source_, get_group_call_join_payload(op == "jlsv", false), true, true)));
     } else if (op == "sgcss") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);
