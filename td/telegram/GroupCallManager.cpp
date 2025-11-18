@@ -1060,6 +1060,7 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendGroupCallMessageQuery: " << to_string(ptr);
+    td_->updates_manager_->process_updates_users_and_chats(ptr.get());
     auto group_call_messages = UpdatesManager::extract_group_call_messages(ptr.get());
     if (group_call_messages.size() != 1u || InputGroupCallId(group_call_messages[0]->call_) != input_group_call_id_) {
       LOG(ERROR) << "Receive invalid response " << to_string(ptr) << " with " << group_call_messages.size()
@@ -4676,6 +4677,8 @@ void GroupCallManager::process_join_video_chat_response(InputGroupCallId input_g
 
   auto new_message_updates = UpdatesManager::extract_group_call_messages(updates.get());
   if (!new_message_updates.empty()) {
+    td_->updates_manager_->process_updates_users_and_chats(updates.get());
+
     std::reverse(new_message_updates.begin(), new_message_updates.end());
     auto group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr);
