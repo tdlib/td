@@ -5734,7 +5734,13 @@ void GroupCallManager::commit_pending_group_call_reactions(GroupCallId group_cal
   auto star_count = group_call->pending_reaction_star_count;
   group_call->pending_reaction_star_count = 0;
 
-  send_group_call_message(group_call_id, nullptr, star_count, true, std::move(promise));
+  auto as_dialog_id = group_call->message_sender_dialog_id;
+  CHECK(as_dialog_id.is_valid());
+  auto group_call_message =
+      GroupCallMessage(as_dialog_id, {}, star_count, group_call->is_creator || group_call->can_be_managed);
+  auto message_id = add_group_call_message(input_group_call_id, group_call, group_call_message, true);
+  td_->create_handler<SendGroupCallMessageQuery>(std::move(promise))
+      ->send(input_group_call_id, message_id, FormattedText(), as_dialog_id, star_count, group_call->is_live_story);
 }
 
 void GroupCallManager::remove_pending_group_call_reactions(GroupCallId group_call_id, Promise<Unit> &&promise) {
