@@ -266,7 +266,7 @@ class StoryManager final : public Actor {
 
   void load_active_stories(StoryListId story_list_id, Promise<Unit> &&promise);
 
-  void reload_active_stories();
+  void reload_active_stories(Promise<Unit> &&promise);
 
   void reload_all_read_stories();
 

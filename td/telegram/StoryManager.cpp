@@ -2668,10 +2668,9 @@ void StoryManager::load_active_stories_from_server(StoryListId story_list_id, St
   }
 }
 
-void StoryManager::reload_active_stories() {
-  for (auto story_list_id : {StoryListId::main(), StoryListId::archive()}) {
-    load_active_stories_from_server(story_list_id, get_story_list(story_list_id), false, Promise<Unit>());
-  }
+void StoryManager::reload_active_stories(Promise<Unit> &&promise) {
+  load_active_stories_from_server(StoryListId::main(), get_story_list(StoryListId::main()), false, std::move(promise));
+  load_active_stories_from_server(StoryListId::archive(), get_story_list(StoryListId::archive()), false, Auto());
 }
 
 void StoryManager::on_load_active_stories_from_server(
