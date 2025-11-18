@@ -5590,6 +5590,9 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
                      get_formatted_text(td_, group_call->dialog_id, std::move(text), td_->auth_manager_->is_bot(),
                                         is_reaction, true, false));
   if (group_call->is_live_story) {
+    if (paid_message_star_count > 0 && group_call->dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+      return promise.set_error(400, "Can't send paid messages to self");
+    }
     if (!is_reaction && !td_->star_manager_->has_owned_star_count(paid_message_star_count)) {
       return promise.set_error(400, "Have not enough Telegram Stars");
     }
@@ -5675,6 +5678,9 @@ void GroupCallManager::send_group_call_reaction(GroupCallId group_call_id, int64
   }
   if (!group_call->is_live_story) {
     return promise.set_error(400, "Reactions can't be sent to the call");
+  }
+  if (group_call->dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+    return promise.set_error(400, "Can't send paid reactions to self");
   }
   if (!td_->star_manager_->has_owned_star_count(star_count)) {
     return promise.set_error(400, "Have not enough Telegram Stars");
