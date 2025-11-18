@@ -3264,6 +3264,24 @@ void GroupCallManager::schedule_group_call_message_deletion(const GroupCall *gro
   }
 }
 
+bool GroupCallManager::can_delete_group_call_message(const GroupCall *group_call, DialogId sender_dialog_id) const {
+  CHECK(group_call != nullptr);
+  if (!group_call->is_inited) {
+    LOG(ERROR) << "Have a non-inited group call";
+    return false;
+  }
+  if (!group_call->is_active || !group_call->is_live_story) {
+    return false;
+  }
+  if (sender_dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
+    return true;
+  }
+  if (get_group_call_can_delete_messages(group_call)) {
+    return true;
+  }
+  return false;
+}
+
 int32 GroupCallManager::get_group_call_message_delete_in(const GroupCall *group_call,
                                                          const GroupCallMessage &group_call_message,
                                                          bool is_old) const {
@@ -3349,10 +3367,12 @@ int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call
     if (message_id == 0) {
       LOG(INFO) << "Skip duplicate " << group_call_message;
     } else {
-      send_closure(
-          G()->td(), &Td::send_update,
-          td_api::make_object<td_api::updateNewGroupCallMessage>(
-              group_call->group_call_id.get(), group_call_message.get_group_call_message_object(td_, message_id)));
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updateNewGroupCallMessage>(
+                       group_call->group_call_id.get(),
+                       group_call_message.get_group_call_message_object(
+                           td_, message_id,
+                           can_delete_group_call_message(group_call, group_call_message.get_sender_dialog_id()))));
       on_group_call_messages_deleted(group_call, group_call->messages.delete_old_group_call_messages(message_limits_));
     }
   }

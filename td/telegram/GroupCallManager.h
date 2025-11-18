@@ -557,6 +557,8 @@ class GroupCallManager final : public Actor {
 
   void schedule_group_call_message_deletion(const GroupCall *group_call);
 
+  bool can_delete_group_call_message(const GroupCall *group_call, DialogId sender_dialog_id) const;
+
   int32 get_group_call_message_delete_in(const GroupCall *group_call, const GroupCallMessage &group_call_message,
                                          bool is_old) const;
 

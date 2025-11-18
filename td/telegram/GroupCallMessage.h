@@ -75,7 +75,8 @@ class GroupCallMessage {
 
   string encode_to_json() const;
 
-  td_api::object_ptr<td_api::groupCallMessage> get_group_call_message_object(Td *td, int32 message_id) const;
+  td_api::object_ptr<td_api::groupCallMessage> get_group_call_message_object(Td *td, int32 message_id,
+                                                                             bool can_be_deleted) const;
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const GroupCallMessage &group_call_message);
