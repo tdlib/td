@@ -1639,6 +1639,14 @@ class GroupCallManager::GroupCallMessages {
     return message_info_.count(message_id) > 0;
   }
 
+  DialogId get_message_sender_dialog_id(int32 message_id) const {
+    auto it = message_info_.find(message_id);
+    if (it == message_info_.end()) {
+      return DialogId();
+    }
+    return it->second.sender_dialog_id_;
+  }
+
   std::pair<int32, bool> delete_message(int32 message_id) {
     int32 server_id = 0;
     auto server_id_it = message_id_to_server_id_.find(message_id);
@@ -5849,8 +5857,11 @@ void GroupCallManager::delete_group_call_messages(GroupCallId group_call_id, con
     }
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
-  if (!get_group_call_can_delete_messages(group_call)) {
-    return promise.set_error(400, "Can't delete messages in the group call");
+  for (auto message_id : message_ids) {
+    auto sender_dialog_id = group_call->messages.get_message_sender_dialog_id(message_id);
+    if (sender_dialog_id != DialogId() && !can_delete_group_call_message(group_call, sender_dialog_id)) {
+      return promise.set_error(400, "Can't delete the message");
+    }
   }
 
   vector<int32> server_ids;
