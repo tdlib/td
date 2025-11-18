@@ -1561,12 +1561,16 @@ void UpdatesManager::process_updates_users_and_chats(telegram_api::Updates *upda
       auto updates = static_cast<telegram_api::updatesCombined *>(updates_ptr);
       td_->user_manager_->on_get_users(std::move(updates->users_), "updatesCombined 2");
       td_->chat_manager_->on_get_chats(std::move(updates->chats_), "updatesCombined 2");
+      updates->users_.clear();
+      updates->chats_.clear();
       break;
     }
     case telegram_api::updates::ID: {
       auto updates = static_cast<telegram_api::updates *>(updates_ptr);
       td_->user_manager_->on_get_users(std::move(updates->users_), "updates 2");
       td_->chat_manager_->on_get_chats(std::move(updates->chats_), "updates 2");
+      updates->users_.clear();
+      updates->chats_.clear();
       break;
     }
     default:
