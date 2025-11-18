@@ -4236,6 +4236,12 @@ td_api::object_ptr<td_api::CanPostStoryResult> StoryManager::get_can_post_story_
       }
     }
   }
+  if (begins_with(error.message(), "STORY_LIVE_ALREADY_")) {
+    auto r_story_id = to_integer_safe<int32>(error.message().substr(Slice("STORY_LIVE_ALREADY_").size()));
+    if (r_story_id.is_ok() && StoryId(r_story_id.ok()).is_server()) {
+      return td_api::make_object<td_api::canPostStoryResultLiveStoryIsActive>(StoryId(r_story_id.ok()).get());
+    }
+  }
   return nullptr;
 }
 
