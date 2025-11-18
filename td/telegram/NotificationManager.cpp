@@ -3371,7 +3371,7 @@ Status NotificationManager::process_push_notification_payload(string payload, bo
   }
 
   if (begins_with(loc_key, "STORY_")) {
-    // TODO STORY_NOTEXT, STORY_HIDDEN_AUTHOR notifications
+    // TODO STORY_NOTEXT, STORY_HIDDEN_AUTHOR, STORY_LIVE notifications
     return Status::Error(406, "Story notifications are unsupported");
   }
 
