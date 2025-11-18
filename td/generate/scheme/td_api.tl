@@ -7402,8 +7402,17 @@ canPostStoryResultWeeklyLimitExceeded retry_after:int32 = CanPostStoryResult;
 //@description The monthly limit for the number of posted stories exceeded. The user needs to buy Telegram Premium or wait specified time @retry_after Time left before the user can post the next story
 canPostStoryResultMonthlyLimitExceeded retry_after:int32 = CanPostStoryResult;
 
-//@description The user or the chat has an active live story. The live story must be deleted first @story_id Identifier of the live story
+//@description The user or the chat has an active live story. The live story must be deleted first @story_id Identifier of the active live story
 canPostStoryResultLiveStoryIsActive story_id:int32 = CanPostStoryResult;
+
+
+//@class StartLiveStoryResult @description Represents result of starting a live story
+
+//@description The live story was successfully posted @story The live story
+startLiveStoryResultOk story:story = StartLiveStoryResult;
+
+//@description The live story failed to post with an error to be handled @error_type Type of the error; other error types may be returned as regular errors
+startLiveStoryResultFail error_type:CanPostStoryResult = StartLiveStoryResult;
 
 
 //@class CanTransferOwnershipResult @description Represents result of checking whether the current session can be used to transfer a chat ownership to another user
@@ -11888,7 +11897,7 @@ postStory chat_id:int53 content:InputStoryContent areas:inputStoryAreas caption:
 //@is_rtmp_stream Pass true to create an RTMP stream instead of an ordinary group call
 //@enable_messages Pass true to allow viewers of the story to send messages
 //@paid_message_star_count The minimum number of Telegram Stars that must be paid by viewers for each sent message to the call; 0-getOption("paid_group_call_message_star_count_max")
-startLiveStory chat_id:int53 privacy_settings:StoryPrivacySettings protect_content:Bool is_rtmp_stream:Bool enable_messages:Bool paid_message_star_count:int53 = Story;
+startLiveStory chat_id:int53 privacy_settings:StoryPrivacySettings protect_content:Bool is_rtmp_stream:Bool enable_messages:Bool paid_message_star_count:int53 = StartLiveStoryResult;
 
 //@description Changes content and caption of a story. Can be called only if story.can_be_edited == true
 //@story_poster_chat_id Identifier of the chat that posted the story

@@ -240,7 +240,7 @@ class StoryManager final : public Actor {
 
   void start_live_story(DialogId dialog_id, td_api::object_ptr<td_api::StoryPrivacySettings> &&settings, bool is_pinned,
                         bool protect_content, bool is_rtmp_stream, bool enable_messages, int64 paid_message_star_count,
-                        Promise<td_api::object_ptr<td_api::story>> &&promise);
+                        Promise<td_api::object_ptr<td_api::StartLiveStoryResult>> &&promise);
 
   void edit_story(DialogId owner_dialog_id, StoryId story_id,
                   td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,

@@ -1436,11 +1436,12 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
 };
 
 class StartLiveStoryQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::story>> promise_;
+  Promise<td_api::object_ptr<td_api::StartLiveStoryResult>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit StartLiveStoryQuery(Promise<td_api::object_ptr<td_api::story>> &&promise) : promise_(std::move(promise)) {
+  explicit StartLiveStoryQuery(Promise<td_api::object_ptr<td_api::StartLiveStoryResult>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(DialogId dialog_id, const UserPrivacySettingRules &privacy_rules, bool is_pinned, bool noforwards,
@@ -1484,11 +1485,16 @@ class StartLiveStoryQuery final : public Td::ResultHandler {
     if (!story_id.is_valid()) {
       return promise_.set_error(400, "Failed to create live story");
     }
-    promise_.set_value(td_->story_manager_->get_story_object({dialog_id_, story_id}));
+    promise_.set_value(td_api::make_object<td_api::startLiveStoryResultOk>(
+        td_->story_manager_->get_story_object({dialog_id_, story_id})));
   }
 
   void on_error(Status status) final {
     LOG(INFO) << "Receive error for StartLiveStoryQuery: " << status;
+    auto result = StoryManager::get_can_post_story_result_object(status);
+    if (result != nullptr) {
+      return promise_.set_value(td_api::make_object<td_api::startLiveStoryResultFail>(std::move(result)));
+    }
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "StartLiveStoryQuery");
     promise_.set_error(std::move(status));
   }
@@ -6130,7 +6136,7 @@ void StoryManager::on_send_story_file_parts_missing(unique_ptr<PendingStory> &&p
 void StoryManager::start_live_story(DialogId dialog_id, td_api::object_ptr<td_api::StoryPrivacySettings> &&settings,
                                     bool is_pinned, bool protect_content, bool is_rtmp_stream, bool enable_messages,
                                     int64 paid_message_star_count,
-                                    Promise<td_api::object_ptr<td_api::story>> &&promise) {
+                                    Promise<td_api::object_ptr<td_api::StartLiveStoryResult>> &&promise) {
   if (!td_->dialog_manager_->have_dialog_force(dialog_id, "start_live_story")) {
     return promise.set_error(400, "Chat not found");
   }
