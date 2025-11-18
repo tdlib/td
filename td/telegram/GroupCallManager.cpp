@@ -1074,7 +1074,7 @@ class SendGroupCallMessageQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(as_dialog_id_, status, "SendGroupCallMessageQuery");
-    send_closure(G()->star_manager(), &StarManager::add_pending_owned_star_count, paid_message_star_count_, false);
+    td_->star_manager_->add_pending_owned_star_count(paid_message_star_count_, false);
     td_->group_call_manager_->on_group_call_message_sending_failed(input_group_call_id_, message_id_,
                                                                    paid_message_star_count_, status);
     promise_.set_error(std::move(status));
@@ -5774,6 +5774,7 @@ void GroupCallManager::remove_pending_group_call_reactions(GroupCallId group_cal
   }
 
   if (group_call->pending_reaction_star_count > 0) {
+    td_->star_manager_->add_pending_owned_star_count(group_call->pending_reaction_star_count, false);
     remove_group_call_spent_stars(input_group_call_id, group_call, group_call->pending_reaction_star_count);
     group_call->pending_reaction_star_count = 0;
   }
@@ -7025,6 +7026,8 @@ bool GroupCallManager::try_clear_group_call_participants(InputGroupCallId input_
 
     LOG(INFO) << "Delete all group call messages";
     on_group_call_messages_deleted(group_call, group_call->messages.delete_all_messages());
+
+    td_->star_manager_->add_pending_owned_star_count(group_call->pending_reaction_star_count, false);
   }
 
   auto participants_it = group_call_participants_.find(input_group_call_id);
