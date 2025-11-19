@@ -402,12 +402,12 @@ class CreateConferenceCallQuery final : public Td::ResultHandler {
   }
 };
 
-class GetGroupCallRtmpStreamUrlGroupCallQuery final : public Td::ResultHandler {
+class GetGroupCallStreamRtmpUrlQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::rtmpUrl>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetGroupCallRtmpStreamUrlGroupCallQuery(Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise)
+  explicit GetGroupCallStreamRtmpUrlQuery(Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -432,7 +432,7 @@ class GetGroupCallRtmpStreamUrlGroupCallQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallRtmpStreamUrlGroupCallQuery");
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "GetGroupCallStreamRtmpUrlQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -2564,7 +2564,7 @@ void GroupCallManager::get_video_chat_rtmp_stream_url(DialogId dialog_id, bool i
     return promise.set_error(400, "Have not enough rights");
   }
 
-  td_->create_handler<GetGroupCallRtmpStreamUrlGroupCallQuery>(std::move(promise))->send(dialog_id, is_story, revoke);
+  td_->create_handler<GetGroupCallStreamRtmpUrlQuery>(std::move(promise))->send(dialog_id, is_story, revoke);
 }
 
 void GroupCallManager::on_video_chat_created(DialogId dialog_id, InputGroupCallId input_group_call_id,
