@@ -2326,6 +2326,9 @@ bool GroupCallManager::can_manage_group_call(const GroupCall *group_call, bool a
   if (group_call->is_conference) {
     return allow_owned && group_call->is_creator;
   }
+  if (group_call->is_live_story && group_call->is_creator) {
+    return true;
+  }
   return can_manage_group_calls(group_call->dialog_id, true).is_ok();
 }
 
