@@ -2831,7 +2831,7 @@ bool ChatManager::have_input_peer_channel(const Channel *c, ChannelId channel_id
     if (is_public) {
       return true;
     }
-    if (!from_linked && c->has_linked_channel) {
+    if (!from_linked && c->has_linked_channel && c->is_megagroup) {
       auto linked_channel_id = get_linked_channel_id(channel_id);
       if (linked_channel_id.is_valid() && have_channel(linked_channel_id)) {
         if (have_input_peer_channel(get_channel(linked_channel_id), linked_channel_id, access_rights, true)) {
