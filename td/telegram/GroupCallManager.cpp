@@ -6058,12 +6058,10 @@ void GroupCallManager::on_get_group_call_stars(
   get_stars_queries_.erase(it);
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (!need_group_call_participants(input_group_call_id, group_call)) {
+  auto need_participants = need_group_call_participants(input_group_call_id, group_call);
+  if (!need_participants) {
     if (r_stars.is_ok()) {
       r_stars = Status::Error(400, "GROUPCALL_JOIN_MISSING");
-    }
-    if (group_call != nullptr) {
-      group_call->old_messages.clear();
     }
   } else {
     poll_group_call_stars_timeout_.add_timeout_in(group_call->group_call_id.get(), 30.0);
@@ -6071,8 +6069,13 @@ void GroupCallManager::on_get_group_call_stars(
 
   if (r_stars.is_error()) {
     if (group_call != nullptr) {
-      for (const auto &message : group_call->old_messages) {
-        add_group_call_message(input_group_call_id, group_call, message, true);
+      auto error_message = r_stars.error().message();
+      if (error_message == "GROUPCALL_FORBIDDEN" || error_message == "GROUPCALL_INVALID") {
+        on_group_call_left(input_group_call_id, group_call->audio_source, false);
+      } else if (need_participants) {
+        for (const auto &message : group_call->old_messages) {
+          add_group_call_message(input_group_call_id, group_call, message, true);
+        }
       }
       group_call->old_messages.clear();
     }
