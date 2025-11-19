@@ -4900,7 +4900,7 @@ void Requests::on_request(uint64 id, td_api::sendGroupCallMessage &request) {
                                                     request.paid_message_star_count_, false, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::sendLiveStoryReaction &request) {
+void Requests::on_request(uint64 id, const td_api::addPendingLiveStoryReaction &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->group_call_manager_->send_group_call_reaction(GroupCallId(request.group_call_id_), request.star_count_,

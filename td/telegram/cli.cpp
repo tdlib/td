@@ -5161,11 +5161,11 @@ class CliClient final : public Actor {
       get_args(args, group_call_id, text);
       send_request(td_api::make_object<td_api::sendGroupCallMessage>(group_call_id, as_formatted_text(text),
                                                                      paid_message_star_count_));
-    } else if (op == "splsr") {
+    } else if (op == "aplsr") {
       GroupCallId group_call_id;
       int64 star_count;
       get_args(args, group_call_id, star_count);
-      send_request(td_api::make_object<td_api::sendLiveStoryReaction>(group_call_id, star_count));
+      send_request(td_api::make_object<td_api::addPendingLiveStoryReaction>(group_call_id, star_count));
     } else if (op == "cplsr") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);

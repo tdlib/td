@@ -12512,11 +12512,11 @@ setGroupCallMessageSender group_call_id:int32 message_sender_id:MessageSender = 
 //-Must be 0 for messages sent to live stories posted by the current user
 sendGroupCallMessage group_call_id:int32 text:formattedText paid_message_star_count:int53 = Ok;
 
-//@description Sends a paid reaction in a live story group call. Can't be used for live stories posted by the current user.
-//-Call commitPendingLiveStoryReactions or removePendingLiveStoryReactions to actually send all pending reactions when the undo timer is over
+//@description Adds pending paid reaction in a live story group call. Can't be used in live stories posted by the current user.
+//-Call commitPendingLiveStoryReactions or removePendingLiveStoryReactions to actually send all pending reactions when the undo timer is over or abort the sending
 //@group_call_id Group call identifier
 //@star_count Number of Telegram Stars to be used for the reaction. The total number of pending paid reactions must not exceed getOption("paid_group_call_message_star_count_max")
-sendLiveStoryReaction group_call_id:int32 star_count:int53 = Ok;
+addPendingLiveStoryReaction group_call_id:int32 star_count:int53 = Ok;
 
 //@description Applies all pending paid reactions in a live story group call @group_call_id Group call identifier
 commitPendingLiveStoryReactions group_call_id:int32 = Ok;
