@@ -3582,6 +3582,11 @@ void GroupCallManager::on_sync_group_call_participants(InputGroupCallId input_gr
     CHECK(group_call->syncing_participants);
     group_call->syncing_participants = false;
 
+    if (!group_call->is_joined) {
+      group_call->need_syncing_participants = true;
+      return;
+    }
+
     sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(),
                                               group_call->need_syncing_participants ? 0.0 : 1.0);
     return;
@@ -6063,7 +6068,7 @@ void GroupCallManager::on_get_group_call_stars(
     if (r_stars.is_ok()) {
       r_stars = Status::Error(400, "GROUPCALL_JOIN_MISSING");
     }
-  } else {
+  } else if (group_call->is_joined) {
     poll_group_call_stars_timeout_.add_timeout_in(group_call->group_call_id.get(), 30.0);
   }
 
