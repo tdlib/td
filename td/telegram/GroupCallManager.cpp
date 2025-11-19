@@ -4821,6 +4821,10 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
   } else if (it->second->private_key_id != tde2e_api::PrivateKeyId()) {
     LOG(ERROR) << "Have private key in " << input_group_call_id;
   }
+  if (group_call->is_live_story) {
+    poll_group_call_stars_timeout_.cancel_timeout(group_call->group_call_id.get());
+    get_group_call_stars_from_server(input_group_call_id, Auto());
+  }
 
   it->second->promise.set_value(std::move(json_response));
   if (group_call->audio_source != 0) {
@@ -4872,11 +4876,6 @@ void GroupCallManager::finish_join_group_call(InputGroupCallId input_group_call_
   if (group_call != nullptr && group_call->dialog_id.is_valid()) {
     update_group_call_dialog(group_call, "finish_join_group_call", false);
     td_->dialog_manager_->reload_dialog_info_full(group_call->dialog_id, "finish_join_group_call");
-
-    if (group_call->is_live_story) {
-      poll_group_call_stars_timeout_.cancel_timeout(group_call->group_call_id.get());
-      get_group_call_stars_from_server(input_group_call_id, Auto());
-    }
   }
 }
 
