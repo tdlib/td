@@ -2558,11 +2558,7 @@ void GroupCallManager::get_video_chat_rtmp_stream_url(DialogId dialog_id, bool i
                                                       Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
                                                                         "get_video_chat_rtmp_stream_url"));
-  if (dialog_id.get_type() != DialogType::User) {
-    TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id, true));
-  } else if (dialog_id != td_->dialog_manager_->get_my_dialog_id()) {
-    return promise.set_error(400, "Have not enough rights");
-  }
+  TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id, is_story));
 
   td_->create_handler<GetGroupCallStreamRtmpUrlQuery>(std::move(promise))->send(dialog_id, is_story, revoke);
 }
