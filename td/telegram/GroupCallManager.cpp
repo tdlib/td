@@ -3547,7 +3547,7 @@ bool GroupCallManager::is_my_audio_source(InputGroupCallId input_group_call_id, 
 
 void GroupCallManager::sync_group_call_participants(InputGroupCallId input_group_call_id) {
   auto *group_call = get_group_call(input_group_call_id);
-  if (!need_group_call_participants(input_group_call_id, group_call)) {
+  if (!need_group_call_participants(input_group_call_id, group_call) || group_call->is_live_story) {
     return;
   }
   CHECK(group_call != nullptr && group_call->is_inited);
