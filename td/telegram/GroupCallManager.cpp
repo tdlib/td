@@ -2315,6 +2315,13 @@ Status GroupCallManager::can_manage_group_calls(DialogId dialog_id, bool allow_l
   return Status::OK();
 }
 
+bool GroupCallManager::get_group_call_is_creator(const GroupCall *group_call) {
+  if (group_call == nullptr || !group_call->is_creator) {
+    return false;
+  }
+  return group_call->is_conference || group_call->is_live_story;
+}
+
 bool GroupCallManager::can_manage_group_call(InputGroupCallId input_group_call_id) const {
   return can_manage_group_call(get_group_call(input_group_call_id));
 }
@@ -2598,9 +2605,9 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
 
     auto *group_call_participants = add_group_call_participants(input_group_call_id, "on_update_group_call_rights");
     if (group_call_participants->are_administrators_loaded) {
-      update_group_call_participants_can_be_muted(
-          input_group_call_id, can_manage_group_calls(group_call->dialog_id, true).is_ok(), group_call_participants,
-          group_call->is_conference && group_call->is_creator);
+      update_group_call_participants_can_be_muted(input_group_call_id,
+                                                  can_manage_group_calls(group_call->dialog_id, true).is_ok(),
+                                                  group_call_participants, get_group_call_is_creator(group_call));
     }
   }
 
@@ -3849,7 +3856,7 @@ std::pair<int32, int32> GroupCallManager::process_group_call_participant(InputGr
       participant.is_just_joined = false;
       participant.order = get_real_participant_order(my_can_self_unmute, participant, participants);
       update_group_call_participant_can_be_muted(can_manage, participants, participant,
-                                                 group_call->is_conference && group_call->is_creator);
+                                                 get_group_call_is_creator(group_call));
 
       LOG(INFO) << "Edit " << old_participant << " to " << participant;
       if (old_participant != participant && (old_participant.order.is_valid() || participant.order.is_valid())) {
@@ -3886,7 +3893,7 @@ std::pair<int32, int32> GroupCallManager::process_group_call_participant(InputGr
   participant.is_just_joined = false;
   participants->local_unmuted_video_count += participant.get_has_video();
   update_group_call_participant_can_be_muted(can_manage, participants, participant,
-                                             group_call->is_conference && group_call->is_creator);
+                                             get_group_call_is_creator(group_call));
   participants->participants.push_back(std::move(participant));
   if (participants->participants.back().order.is_valid()) {
     send_update_group_call_participant(input_group_call_id, participants->participants.back(),
@@ -4690,7 +4697,7 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
   group_call_participants->administrator_dialog_ids = std::move(administrator_dialog_ids);
 
   update_group_call_participants_can_be_muted(input_group_call_id, true, group_call_participants,
-                                              group_call->is_conference && group_call->is_creator);
+                                              get_group_call_is_creator(group_call));
 }
 
 void GroupCallManager::process_join_video_chat_response(InputGroupCallId input_group_call_id, uint64 generation,
@@ -6541,7 +6548,7 @@ void GroupCallManager::on_toggle_group_call_participant_is_muted(InputGroupCallI
   participant->have_pending_is_muted = false;
   bool can_manage = can_manage_group_call(group_call);
   if (update_group_call_participant_can_be_muted(can_manage, participants, *participant,
-                                                 group_call->is_conference && group_call->is_creator) ||
+                                                 get_group_call_is_creator(group_call)) ||
       participant->server_is_muted_by_themselves != participant->pending_is_muted_by_themselves ||
       participant->server_is_muted_by_admin != participant->pending_is_muted_by_admin ||
       participant->server_is_muted_locally != participant->pending_is_muted_locally) {
@@ -7877,8 +7884,8 @@ td_api::object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
       group_call->is_active && group_call->can_be_managed && group_call->allowed_toggle_mute_new_participants;
   bool can_enable_video = get_group_call_can_enable_video(group_call);
   bool are_messages_enabled = get_group_call_are_messages_enabled(group_call);
-  bool can_send_messages =
-      are_messages_enabled || (group_call->is_active && (group_call->is_creator || group_call->can_be_managed));
+  bool can_send_messages = are_messages_enabled || (group_call->is_active && group_call->is_live_story &&
+                                                    (group_call->is_creator || group_call->can_be_managed));
   bool can_toggle_are_messages_enabled =
       group_call->is_active && group_call->can_be_managed && group_call->allowed_toggle_are_messages_enabled;
   bool can_delete_messages = get_group_call_can_delete_messages(group_call);

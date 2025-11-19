@@ -307,6 +307,8 @@ class GroupCallManager final : public Actor {
 
   Status can_manage_group_calls(DialogId dialog_id, bool allow_live_story) const;
 
+  static bool get_group_call_is_creator(const GroupCall *group_call);
+
   bool can_manage_group_call(InputGroupCallId input_group_call_id) const;
 
   bool can_manage_group_call(const GroupCall *group_call) const;
