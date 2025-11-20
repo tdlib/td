@@ -2338,7 +2338,7 @@ bool GroupCallManager::can_manage_group_call(const GroupCall *group_call) const 
   if (group_call->is_live_story && group_call->is_creator) {
     return true;
   }
-  return can_manage_group_calls(group_call->dialog_id, true).is_ok();
+  return can_manage_group_calls(group_call->dialog_id, group_call->is_live_story).is_ok();
 }
 
 bool GroupCallManager::get_group_call_can_self_unmute(InputGroupCallId input_group_call_id) const {
@@ -2620,8 +2620,7 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
   }
 
   if (group_call != nullptr && group_call->is_inited) {
-    bool can_be_managed = !group_call->is_conference && group_call->is_active &&
-                          can_manage_group_calls(group_call->dialog_id, true).is_ok();
+    bool can_be_managed = !group_call->is_conference && group_call->is_active && can_manage_group_call(group_call);
     if (can_be_managed != group_call->can_be_managed) {
       group_call->can_be_managed = can_be_managed;
       send_update_group_call(group_call, "on_update_group_call_rights");
@@ -7303,8 +7302,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   call.group_call_id = group_call->group_call_id;
   call.dialog_id = dialog_id.is_valid() ? dialog_id : group_call->dialog_id;
   call.is_live_story = group_call->is_live_story;
-  call.can_be_managed =
-      call.is_active && !call.is_conference && can_manage_group_calls(call.dialog_id, call.is_live_story).is_ok();
+  call.can_be_managed = call.is_active && !call.is_conference && can_manage_group_call(&call);
   call.can_self_unmute = call.is_active && (!call.mute_new_participants || call.can_be_managed || call.is_creator);
   if (!group_call->dialog_id.is_valid()) {
     group_call->dialog_id = dialog_id;
