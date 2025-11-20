@@ -4469,6 +4469,22 @@ void GroupCallManager::join_video_chat(GroupCallId group_call_id, DialogId as_di
   try_load_group_call_administrators(input_group_call_id, group_call->dialog_id);
 }
 
+void GroupCallManager::join_live_story(GroupCallId group_call_id,
+                                       td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters,
+                                       Promise<string> &&promise) {
+  auto query_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), group_call_id, join_parameters = std::move(join_parameters),
+                              promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure_later(actor_id, &GroupCallManager::join_video_chat, group_call_id, DialogId(),
+                             std::move(join_parameters), string(), std::move(promise));
+        }
+      });
+  td_->chat_manager_->load_created_public_broadcasts(std::move(query_promise));
+}
+
 void GroupCallManager::encrypt_group_call_data(GroupCallId group_call_id,
                                                td_api::object_ptr<td_api::GroupCallDataChannel> &&data_channel,
                                                string &&data, int32 unencrypted_prefix_size,

@@ -97,6 +97,9 @@ class GroupCallManager final : public Actor {
                        td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters, const string &invite_hash,
                        Promise<string> &&promise);
 
+  void join_live_story(GroupCallId group_call_id, td_api::object_ptr<td_api::groupCallJoinParameters> &&join_parameters,
+                       Promise<string> &&promise);
+
   void encrypt_group_call_data(GroupCallId group_call_id,
                                td_api::object_ptr<td_api::GroupCallDataChannel> &&data_channel, string &&data,
                                int32 unencrypted_prefix_size, Promise<string> &&promise);
