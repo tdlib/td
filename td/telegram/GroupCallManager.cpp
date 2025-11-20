@@ -3325,28 +3325,34 @@ int32 GroupCallManager::get_group_call_message_delete_in(const GroupCall *group_
                                   static_cast<int64>(1), static_cast<int64>(1000000000)));
 }
 
+static void add_top_donors_spent_stars(int64 &total_star_count, vector<MessageReactor> &top_donors,
+                                       DialogId sender_dialog_id, bool is_outgoing, int64 star_count) {
+  vector<MessageReactor> new_top_donors;
+  bool is_found = false;
+  for (const auto &donor : top_donors) {
+    new_top_donors.push_back(donor);
+    if ((donor.is_me() && is_outgoing) || donor.is_same(sender_dialog_id)) {
+      is_found = true;
+      new_top_donors.back().add_count(static_cast<int32>(star_count), sender_dialog_id, DialogId());
+    }
+  }
+  if (!is_found) {
+    new_top_donors.emplace_back(sender_dialog_id, static_cast<int32>(star_count), is_outgoing, false);
+  }
+  MessageReactor::fix_message_reactors(new_top_donors, false, true);
+
+  total_star_count += star_count;
+  top_donors = std::move(new_top_donors);
+}
+
 void GroupCallManager::add_group_call_spent_stars(InputGroupCallId input_group_call_id, GroupCall *group_call,
                                                   DialogId sender_dialog_id, bool is_outgoing, bool is_reaction,
                                                   int64 star_count) {
   if (need_group_call_participants(input_group_call_id, group_call)) {
     auto *group_call_participants = add_group_call_participants(input_group_call_id, "add_group_call_spent_stars");
     if (group_call_participants->are_top_donors_loaded) {
-      vector<MessageReactor> top_donors;
-      bool is_found = false;
-      for (const auto &donor : group_call_participants->top_donors) {
-        top_donors.push_back(donor);
-        if ((donor.is_me() && is_outgoing) || donor.is_same(sender_dialog_id)) {
-          is_found = true;
-          top_donors.back().add_count(static_cast<int32>(star_count), sender_dialog_id, DialogId());
-        }
-      }
-      if (!is_found) {
-        top_donors.emplace_back(sender_dialog_id, static_cast<int32>(star_count), is_outgoing, false);
-      }
-      MessageReactor::fix_message_reactors(top_donors, false, true);
-
-      group_call_participants->total_star_count += star_count;
-      group_call_participants->top_donors = std::move(top_donors);
+      add_top_donors_spent_stars(group_call_participants->total_star_count, group_call_participants->top_donors,
+                                 sender_dialog_id, is_outgoing, star_count);
       send_update_live_story_top_donors(group_call->group_call_id, group_call_participants);
     }
   }
