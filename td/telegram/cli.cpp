@@ -5040,16 +5040,22 @@ class CliClient final : public Actor {
             group_call_source_, get_group_call_join_payload(op == "cgcv", false), true, true);
       }
       send_request(td_api::make_object<td_api::createGroupCall>(std::move(parameters)));
-    } else if (op == "ggcru") {
+    } else if (op == "gvcru") {
       ChatId chat_id;
-      bool for_live_story;
-      get_args(args, chat_id, for_live_story);
-      send_request(td_api::make_object<td_api::getGroupCallRtmpUrl>(chat_id, for_live_story));
-    } else if (op == "rgcru") {
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::getVideoChatRtmpUrl>(chat_id));
+    } else if (op == "rvcru") {
       ChatId chat_id;
-      bool for_live_story;
-      get_args(args, chat_id, for_live_story);
-      send_request(td_api::make_object<td_api::replaceGroupCallRtmpUrl>(chat_id, for_live_story));
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::replaceVideoChatRtmpUrl>(chat_id));
+    } else if (op == "glsru") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::getLiveStoryRtmpUrl>(chat_id));
+    } else if (op == "rlsru") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::replaceLiveStoryRtmpUrl>(chat_id));
     } else if (op == "ggc") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);

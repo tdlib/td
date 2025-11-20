@@ -795,9 +795,13 @@ class Requests {
 
   void on_request(uint64 id, td_api::createGroupCall &request);
 
-  void on_request(uint64 id, const td_api::getGroupCallRtmpUrl &request);
+  void on_request(uint64 id, const td_api::getVideoChatRtmpUrl &request);
 
-  void on_request(uint64 id, const td_api::replaceGroupCallRtmpUrl &request);
+  void on_request(uint64 id, const td_api::replaceVideoChatRtmpUrl &request);
+
+  void on_request(uint64 id, const td_api::getLiveStoryRtmpUrl &request);
+
+  void on_request(uint64 id, const td_api::replaceLiveStoryRtmpUrl &request);
 
   void on_request(uint64 id, const td_api::getGroupCall &request);
 

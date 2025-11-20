@@ -30,6 +30,7 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/StarManager.h"
+#include "td/telegram/StoryManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -2566,7 +2567,13 @@ void GroupCallManager::get_video_chat_rtmp_stream_url(DialogId dialog_id, bool i
                                                       Promise<td_api::object_ptr<td_api::rtmpUrl>> &&promise) {
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
                                                                         "get_video_chat_rtmp_stream_url"));
-  TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id, is_story));
+  if (is_story) {
+    if (!td_->story_manager_->can_post_stories(dialog_id)) {
+      return promise.set_error(400, "Not enough rights");
+    }
+  } else {
+    TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id, false));
+  }
 
   td_->create_handler<GetGroupCallStreamRtmpUrlQuery>(std::move(promise))->send(dialog_id, is_story, revoke);
 }

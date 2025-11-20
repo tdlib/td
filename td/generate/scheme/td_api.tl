@@ -12438,15 +12438,17 @@ createVideoChat chat_id:int53 title:string start_date:int32 is_rtmp_stream:Bool 
 //@description Creates a new group call that isn't bound to a chat @join_parameters Parameters to join the call; pass null to only create call link without joining the call
 createGroupCall join_parameters:groupCallJoinParameters = GroupCallInfo;
 
-//@description Returns RTMP URL for streaming to the video chat of a chat or a live story; requires can_manage_video_chats administrator right for basic group, supergroup and channel chats
-//@chat_id Chat identifier
-//@for_live_story Pass true to get URL for streaming of a live story
-getGroupCallRtmpUrl chat_id:int53 for_live_story:Bool = RtmpUrl;
+//@description Returns RTMP URL for streaming to the video chat of a chat; requires can_manage_video_chats administrator right @chat_id Chat identifier
+getVideoChatRtmpUrl chat_id:int53 = RtmpUrl;
 
-//@description Replaces the current RTMP URL for streaming to the video chat of a chat or a live story; requires owner privileges for basic group, supergroup and channel chats
-//@chat_id Chat identifier
-//@for_live_story Pass true to replace the URL for streaming of a live story
-replaceGroupCallRtmpUrl chat_id:int53 for_live_story:Bool = RtmpUrl;
+//@description Replaces the current RTMP URL for streaming to the video chat of a chat; requires owner privileges in the chat @chat_id Chat identifier
+replaceVideoChatRtmpUrl chat_id:int53 = RtmpUrl;
+
+//@description Returns RTMP URL for streaming to a live story; requires can_post_stories administrator right for channel chats @chat_id Chat identifier
+getLiveStoryRtmpUrl chat_id:int53 = RtmpUrl;
+
+//@description Replaces the current RTMP URL for streaming to a live story; requires owner privileges for channel chats @chat_id Chat identifier
+replaceLiveStoryRtmpUrl chat_id:int53 = RtmpUrl;
 
 //@description Returns information about a group call @group_call_id Group call identifier
 getGroupCall group_call_id:int32 = GroupCall;

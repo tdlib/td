@@ -227,6 +227,8 @@ class StoryManager final : public Actor {
 
   void update_dialogs_to_send_stories(ChannelId channel_id, bool can_send_stories);
 
+  bool can_post_stories(DialogId owner_dialog_id) const;
+
   void can_send_story(DialogId dialog_id, Promise<td_api::object_ptr<td_api::CanPostStoryResult>> &&promise);
 
   void send_story(DialogId dialog_id, td_api::object_ptr<td_api::InputStoryContent> &&input_story_content,
@@ -491,8 +493,6 @@ class StoryManager final : public Actor {
   bool can_get_story_view_count(DialogId owner_dialog_id);
 
   bool can_have_stories(DialogId owner_dialog_id) const;
-
-  bool can_post_stories(DialogId owner_dialog_id) const;
 
   bool can_edit_stories(DialogId owner_dialog_id) const;
 
