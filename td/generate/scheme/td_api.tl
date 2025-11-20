@@ -9510,7 +9510,7 @@ updateStoryListChatCount story_list:StoryList chat_count:int32 = Update;
 updateStoryStealthMode active_until_date:int32 cooldown_until_date:int32 = Update;
 
 //@description Lists of bots which Mini Apps must be allowed to read text from clipboard and must be opened without a warning
-//@bot_user_ids List of user identifiers of the bots; the corresponding user objects may not be sent
+//@bot_user_ids List of user identifiers of the bots; the corresponding users may not be sent using updateUser updates and may not be accessible
 updateTrustedMiniAppBots bot_user_ids:vector<int53> = Update;
 
 //@description An option changed its value @name The option name @value The new option value
