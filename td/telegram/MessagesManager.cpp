@@ -22039,7 +22039,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   MessageTopic message_topic;
   int32 flags = 0;
   int32 schedule_date = 0;
-  int32 schedule_repeat_period = 0;
+  // int32 schedule_repeat_period = 0;
   MessageEffectId effect_id;
   bool is_copy = false;
   int64 paid_message_star_count = 0;
@@ -22055,7 +22055,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     message_topic = get_send_message_topic(dialog_id, m);
     flags = get_message_flags(m);
     schedule_date = get_message_schedule_date(m);
-    schedule_repeat_period = get_message_schedule_repeat_period(m);
+    // schedule_repeat_period = get_message_schedule_repeat_period(m);
     effect_id = m->effect_id;
     is_copy = m->is_copy;
     paid_message_star_count += m->paid_message_star_count;
