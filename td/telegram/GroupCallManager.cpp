@@ -3295,6 +3295,16 @@ bool GroupCallManager::can_delete_group_call_message(const GroupCall *group_call
   if (get_group_call_can_delete_messages(group_call)) {
     return true;
   }
+  if (group_call->dialog_id.get_type() == DialogType::Channel &&
+      td_->chat_manager_->get_channel_status(group_call->dialog_id.get_channel_id()).is_administrator()) {
+    return true;
+  }
+  const auto &created_public_broadcasts = td_->chat_manager_->get_created_public_broadcasts();
+  for (auto channel_id : created_public_broadcasts) {
+    if (sender_dialog_id == DialogId(channel_id)) {
+      return true;
+    }
+  }
   return false;
 }
 
