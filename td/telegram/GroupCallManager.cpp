@@ -6141,6 +6141,10 @@ void GroupCallManager::on_get_group_call_stars(
                << " Stars for top donors";
     total_star_count = sum_star_count;
   }
+  if (group_call->pending_reaction_star_count > 0) {
+    add_top_donors_spent_stars(total_star_count, reactors, group_call->message_sender_dialog_id, true,
+                               group_call->pending_reaction_star_count);
+  }
 
   CHECK(group_call != nullptr);
   auto *group_call_participants = add_group_call_participants(input_group_call_id, "on_get_group_call_stars");
