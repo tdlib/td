@@ -6005,7 +6005,8 @@ groupCallRecentSpeaker participant_id:MessageSender is_speaking:Bool = GroupCall
 //@description Describes a group call
 //@id Group call identifier
 //@title Group call title; for video chats only
-//@invite_link Invite link for the group call; for group calls that aren't bound to a chat. For video chats call getVideoChatInviteLink to get the link. Live stream stories doesn't have invite links
+//@invite_link Invite link for the group call; for group calls that aren't bound to a chat. For video chats call getVideoChatInviteLink to get the link.
+//-For live stories in chats with username call getInternalLink with internalLinkTypeLiveStory
 //@paid_message_star_count The minimum number of Telegram Stars that must be paid by general participant for each sent message to the call; for live stories only
 //@scheduled_start_date Point in time (Unix timestamp) when the group call is expected to be started by an administrator; 0 if it is already active or was ended; for video chats only
 //@enabled_start_notification True, if the group call is scheduled and the current user will receive a notification when the group call starts; for video chats only
