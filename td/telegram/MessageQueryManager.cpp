@@ -2464,7 +2464,7 @@ void MessageQueryManager::try_reload_message_reactions(DialogId dialog_id, bool 
 
 void MessageQueryManager::get_paid_message_reaction_senders(
     DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
-  MultiPromiseActorSafe mpas{"PreloadSelfAndBroadcastsMultiPromiseActor"};
+  MultiPromiseActorSafe mpas{"GetPaidMessageReactionSendersMultiPromiseActor"};
   mpas.add_promise(PromiseCreator::lambda(
       [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
         if (result.is_error()) {
@@ -2484,7 +2484,7 @@ void MessageQueryManager::do_get_paid_message_reaction_senders(
     DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
-                                                                        "get_paid_message_reaction_senders"));
+                                                                        "do_get_paid_message_reaction_senders"));
   if (!td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
     return promise.set_value(td_api::make_object<td_api::messageSenders>());
   }

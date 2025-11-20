@@ -20850,7 +20850,10 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
 
 void MessagesManager::get_dialog_send_message_as_dialog_ids(
     DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise) {
-  MultiPromiseActorSafe mpas{"PreloadSelfAndBroadcastsMultiPromiseActor"};
+  TRY_RESULT_PROMISE(promise, d,
+                     check_dialog_access(dialog_id, true, AccessRights::Read, "get_dialog_send_message_as_dialog_ids"));
+
+  MultiPromiseActorSafe mpas{"GetDialogSendMessageAsDialogIdsMultiPromiseActor"};
   mpas.add_promise(PromiseCreator::lambda(
       [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
         if (result.is_error()) {
@@ -20861,6 +20864,10 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
         }
       }));
   auto lock = mpas.get_promise();
+  if (!d->default_send_message_as_dialog_id.is_valid() && !d->is_available_reactions_inited) {
+    // default_send_message_as_dialog_id may be uninited
+    td_->dialog_manager_->get_dialog_info_full(dialog_id, mpas.get_promise(), "get_dialog_send_message_as_dialog_ids");
+  }
   td_->chat_manager_->load_created_public_broadcasts(mpas.get_promise());
   td_->user_manager_->get_me(mpas.get_promise());
   lock.set_value(Unit());
@@ -20869,8 +20876,8 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
 void MessagesManager::do_get_dialog_send_message_as_dialog_ids(
     DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  TRY_RESULT_PROMISE(promise, d,
-                     check_dialog_access(dialog_id, true, AccessRights::Read, "get_dialog_send_message_as_dialog_ids"));
+  TRY_RESULT_PROMISE(
+      promise, d, check_dialog_access(dialog_id, true, AccessRights::Read, "do_get_dialog_send_message_as_dialog_ids"));
   if (!d->default_send_message_as_dialog_id.is_valid() || can_send_message(dialog_id).is_error() ||
       td_->dialog_manager_->is_monoforum_channel(dialog_id)) {
     return promise.set_value(td_api::make_object<td_api::chatMessageSenders>());
@@ -20887,7 +20894,7 @@ void MessagesManager::do_get_dialog_send_message_as_dialog_ids(
   const auto &created_public_broadcasts = td_->chat_manager_->get_created_public_broadcasts();
   if (!created_public_broadcasts.empty()) {
     auto add_sender = [&senders, td = td_](DialogId dialog_id, bool needs_premium) {
-      auto sender = get_message_sender_object(td, dialog_id, "get_dialog_send_message_as_dialog_ids");
+      auto sender = get_message_sender_object(td, dialog_id, "do_get_dialog_send_message_as_dialog_ids");
       senders->senders_.push_back(td_api::make_object<td_api::chatMessageSender>(std::move(sender), needs_premium));
     };
     if (is_broadcast) {
@@ -20906,8 +20913,8 @@ void MessagesManager::do_get_dialog_send_message_as_dialog_ids(
     std::multimap<int64, Sender> sorted_senders;
 
     bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
-    auto linked_channel_id = td_->chat_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id(),
-                                                                               "get_dialog_send_message_as_dialog_ids");
+    auto linked_channel_id = td_->chat_manager_->get_channel_linked_channel_id(
+        dialog_id.get_channel_id(), "do_get_dialog_send_message_as_dialog_ids");
     for (auto channel_id : created_public_broadcasts) {
       if (DialogId(channel_id) == dialog_id) {
         continue;
