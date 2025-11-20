@@ -2410,9 +2410,9 @@ paidReactionTypeChat chat_id:int53 = PaidReactionType;
 //@is_anonymous True, if the reactor is anonymous
 paidReactor sender_id:MessageSender star_count:int53 is_top:Bool is_me:Bool is_anonymous:Bool = PaidReactor;
 
-//@description Contains a list of users and chats that spend most money on paid messages and reactions in a live stream
+//@description Contains a list of users and chats that spend most money on paid messages and reactions in a live story
 //@total_star_count Total amount of spend Telegram Stars
-//@top_donors List of top donors in the live stream
+//@top_donors List of top donors in the live story
 liveStoryDonors total_star_count:int53 top_donors:vector<paidReactor> = LiveStoryDonors;
 
 //@description Contains information about a forwarded message
@@ -5986,7 +5986,7 @@ groupCallVideoQualityMedium = GroupCallVideoQuality;
 groupCallVideoQualityFull = GroupCallVideoQuality;
 
 
-//@description Describes an available stream in a video chat or a story live stream
+//@description Describes an available stream in a video chat or a live story
 //@channel_id Identifier of an audio/video channel
 //@scale Scale of segment durations in the stream. The duration is 1000/(2**scale) milliseconds
 //@time_offset Point in time when the stream currently ends; Unix timestamp in milliseconds
