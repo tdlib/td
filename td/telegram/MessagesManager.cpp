@@ -20849,7 +20849,25 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
 }
 
 void MessagesManager::get_dialog_send_message_as_dialog_ids(
-    DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise, bool is_recursive) {
+    DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise) {
+  MultiPromiseActorSafe mpas{"PreloadSelfAndBroadcastsMultiPromiseActor"};
+  mpas.add_promise(PromiseCreator::lambda(
+      [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure_later(actor_id, &MessagesManager::do_get_dialog_send_message_as_dialog_ids, dialog_id,
+                             std::move(promise));
+        }
+      }));
+  auto lock = mpas.get_promise();
+  td_->chat_manager_->load_created_public_broadcasts(mpas.get_promise());
+  td_->user_manager_->get_me(mpas.get_promise());
+  lock.set_value(Unit());
+}
+
+void MessagesManager::do_get_dialog_send_message_as_dialog_ids(
+    DialogId dialog_id, Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, d,
                      check_dialog_access(dialog_id, true, AccessRights::Read, "get_dialog_send_message_as_dialog_ids"));
@@ -20863,80 +20881,54 @@ void MessagesManager::get_dialog_send_message_as_dialog_ids(
   if (is_broadcast && !td_->chat_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
     return promise.set_value(td_api::make_object<td_api::chatMessageSenders>());
   }
-  if (!td_->user_manager_->have_min_user(td_->user_manager_->get_my_id())) {
-    auto new_promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), dialog_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
-          if (result.is_error()) {
-            promise.set_error(result.move_as_error());
-          } else {
-            send_closure_later(actor_id, &MessagesManager::get_dialog_send_message_as_dialog_ids, dialog_id,
-                               std::move(promise), false);
-          }
-        });
-    td_->user_manager_->get_me(std::move(new_promise));
-    return;
-  }
 
-  if (td_->chat_manager_->are_created_public_broadcasts_inited()) {
-    auto senders = td_api::make_object<td_api::chatMessageSenders>();
-    const auto &created_public_broadcasts = td_->chat_manager_->get_created_public_broadcasts();
-    if (!created_public_broadcasts.empty()) {
-      auto add_sender = [&senders, td = td_](DialogId dialog_id, bool needs_premium) {
-        auto sender = get_message_sender_object(td, dialog_id, "get_dialog_send_message_as_dialog_ids");
-        senders->senders_.push_back(td_api::make_object<td_api::chatMessageSender>(std::move(sender), needs_premium));
-      };
-      if (is_broadcast) {
-        add_sender(td_->dialog_manager_->get_my_dialog_id(), false);
-      }
-      if (td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr)) {
-        add_sender(dialog_id, false);
-      } else {
-        add_sender(td_->dialog_manager_->get_my_dialog_id(), false);
-      }
-
-      struct Sender {
-        ChannelId channel_id;
-        bool needs_premium;
-      };
-      std::multimap<int64, Sender> sorted_senders;
-
-      bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
-      auto linked_channel_id = td_->chat_manager_->get_channel_linked_channel_id(
-          dialog_id.get_channel_id(), "get_dialog_send_message_as_dialog_ids");
-      for (auto channel_id : created_public_broadcasts) {
-        if (DialogId(channel_id) == dialog_id) {
-          continue;
-        }
-        int64 score = td_->chat_manager_->get_channel_participant_count(channel_id);
-        bool needs_premium = !is_premium && !is_broadcast && channel_id != linked_channel_id &&
-                             !td_->chat_manager_->get_channel_is_verified(channel_id);
-        if (needs_premium) {
-          score -= static_cast<int64>(1) << 40;
-        }
-        if (channel_id == linked_channel_id) {
-          score += static_cast<int64>(1) << 32;
-        }
-        sorted_senders.emplace(-score, Sender{channel_id, needs_premium});
-      };
-
-      for (auto &sender : sorted_senders) {
-        add_sender(DialogId(sender.second.channel_id), sender.second.needs_premium);
-      }
+  CHECK(td_->chat_manager_->are_created_public_broadcasts_inited());
+  auto senders = td_api::make_object<td_api::chatMessageSenders>();
+  const auto &created_public_broadcasts = td_->chat_manager_->get_created_public_broadcasts();
+  if (!created_public_broadcasts.empty()) {
+    auto add_sender = [&senders, td = td_](DialogId dialog_id, bool needs_premium) {
+      auto sender = get_message_sender_object(td, dialog_id, "get_dialog_send_message_as_dialog_ids");
+      senders->senders_.push_back(td_api::make_object<td_api::chatMessageSender>(std::move(sender), needs_premium));
+    };
+    if (is_broadcast) {
+      add_sender(td_->dialog_manager_->get_my_dialog_id(), false);
     }
-    return promise.set_value(std::move(senders));
-  }
-
-  CHECK(!is_recursive);
-  auto new_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, promise = std::move(promise)](
-                                                Result<td_api::object_ptr<td_api::chats>> &&result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
+    if (td_->dialog_manager_->is_anonymous_administrator(dialog_id, nullptr)) {
+      add_sender(dialog_id, false);
     } else {
-      send_closure_later(actor_id, &MessagesManager::get_dialog_send_message_as_dialog_ids, dialog_id,
-                         std::move(promise), true);
+      add_sender(td_->dialog_manager_->get_my_dialog_id(), false);
     }
-  });
-  td_->chat_manager_->get_created_public_dialogs(PublicDialogType::ForPersonalDialog, std::move(new_promise), true);
+
+    struct Sender {
+      ChannelId channel_id;
+      bool needs_premium;
+    };
+    std::multimap<int64, Sender> sorted_senders;
+
+    bool is_premium = td_->option_manager_->get_option_boolean("is_premium");
+    auto linked_channel_id = td_->chat_manager_->get_channel_linked_channel_id(dialog_id.get_channel_id(),
+                                                                               "get_dialog_send_message_as_dialog_ids");
+    for (auto channel_id : created_public_broadcasts) {
+      if (DialogId(channel_id) == dialog_id) {
+        continue;
+      }
+      int64 score = td_->chat_manager_->get_channel_participant_count(channel_id);
+      bool needs_premium = !is_premium && !is_broadcast && channel_id != linked_channel_id &&
+                           !td_->chat_manager_->get_channel_is_verified(channel_id);
+      if (needs_premium) {
+        score -= static_cast<int64>(1) << 40;
+      }
+      if (channel_id == linked_channel_id) {
+        score += static_cast<int64>(1) << 32;
+      }
+      sorted_senders.emplace(-score, Sender{channel_id, needs_premium});
+    };
+
+    for (auto &sender : sorted_senders) {
+      add_sender(DialogId(sender.second.channel_id), sender.second.needs_premium);
+    }
+  }
+  return promise.set_value(std::move(senders));
 }
 
 void MessagesManager::set_dialog_default_send_message_as_dialog_id(DialogId dialog_id,

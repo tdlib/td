@@ -147,8 +147,7 @@ class MessageQueryManager final : public Actor {
   bool has_message_pending_read_reactions(MessageFullId message_full_id) const;
 
   void get_paid_message_reaction_senders(DialogId dialog_id,
-                                         Promise<td_api::object_ptr<td_api::messageSenders>> &&promise,
-                                         bool is_recursive = false);
+                                         Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
   void add_to_do_list_tasks(MessageFullId message_full_id,
                             vector<td_api::object_ptr<td_api::inputChecklistTask>> &&tasks, Promise<Unit> &&promise);
@@ -255,6 +254,9 @@ class MessageQueryManager final : public Actor {
                               Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
   void on_read_message_reactions(DialogId dialog_id, vector<MessageId> &&message_ids, Result<Unit> &&result);
+
+  void do_get_paid_message_reaction_senders(DialogId dialog_id,
+                                            Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
   void process_discussion_message_impl(telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result,
                                        DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,

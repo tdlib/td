@@ -4210,7 +4210,7 @@ void ChatManager::check_created_public_dialogs_limit(PublicDialogType type, Prom
 }
 
 void ChatManager::load_created_public_broadcasts(Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot() || created_public_channels_inited_[2]) {
+  if (td_->auth_manager_->is_bot() || are_created_public_broadcasts_inited()) {
     return promise.set_value(Unit());
   }
 
