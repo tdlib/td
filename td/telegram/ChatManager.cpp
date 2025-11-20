@@ -4209,6 +4209,22 @@ void ChatManager::check_created_public_dialogs_limit(PublicDialogType type, Prom
   td_->create_handler<GetCreatedPublicChannelsQuery>(std::move(promise))->send(type, true);
 }
 
+void ChatManager::load_created_public_broadcasts(Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot() || created_public_channels_inited_[2]) {
+    return promise.set_value(Unit());
+  }
+
+  auto new_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<td_api::object_ptr<td_api::chats>> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          promise.set_value(Unit());
+        }
+      });
+  get_created_public_dialogs(PublicDialogType::ForPersonalDialog, std::move(new_promise), true);
+}
+
 bool ChatManager::are_created_public_broadcasts_inited() const {
   return created_public_channels_inited_[2];
 }

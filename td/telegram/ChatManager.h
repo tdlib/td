@@ -202,6 +202,8 @@ class ChatManager final : public Actor {
 
   void on_get_created_public_channels(PublicDialogType type, vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
+  void load_created_public_broadcasts(Promise<Unit> &&promise);
+
   bool are_created_public_broadcasts_inited() const;
 
   const vector<ChannelId> &get_created_public_broadcasts() const;
