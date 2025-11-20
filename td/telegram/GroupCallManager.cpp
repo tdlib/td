@@ -2613,8 +2613,7 @@ void GroupCallManager::on_update_group_call_rights(InputGroupCallId input_group_
 
     auto *group_call_participants = add_group_call_participants(input_group_call_id, "on_update_group_call_rights");
     if (group_call_participants->are_administrators_loaded) {
-      update_group_call_participants_can_be_muted(input_group_call_id,
-                                                  can_manage_group_calls(group_call->dialog_id, true).is_ok(),
+      update_group_call_participants_can_be_muted(input_group_call_id, can_manage_group_call(group_call),
                                                   group_call_participants, get_group_call_is_creator(group_call));
     }
   }
@@ -4677,8 +4676,12 @@ void GroupCallManager::end_group_call_screen_sharing(GroupCallId group_call_id, 
 }
 
 void GroupCallManager::try_load_group_call_administrators(InputGroupCallId input_group_call_id, DialogId dialog_id) {
-  if (!dialog_id.is_valid() || !need_group_call_participants(input_group_call_id) ||
-      can_manage_group_calls(dialog_id, true).is_error()) {
+  if (!dialog_id.is_valid()) {
+    return;
+  }
+  auto *group_call = get_group_call(input_group_call_id);
+  if (group_call->is_conference || group_call->is_live_story ||
+      !need_group_call_participants(input_group_call_id, group_call) || !can_manage_group_call(group_call)) {
     LOG(INFO) << "Don't need to load administrators in " << input_group_call_id << " from " << dialog_id;
     return;
   }
@@ -4716,8 +4719,8 @@ void GroupCallManager::finish_load_group_call_administrators(InputGroupCallId in
     return;
   }
   CHECK(group_call != nullptr);
-  if (!group_call->dialog_id.is_valid() || !can_manage_group_calls(group_call->dialog_id, true).is_ok() ||
-      group_call->is_conference) {
+  if (!group_call->dialog_id.is_valid() || group_call->is_conference || group_call->is_live_story ||
+      !can_manage_group_call(group_call)) {
     return;
   }
 
