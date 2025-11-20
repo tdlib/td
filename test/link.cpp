@@ -351,6 +351,10 @@ static auto phone_number_confirmation(const td::string &hash, const td::string &
   return td::td_api::make_object<td::td_api::internalLinkTypePhoneNumberConfirmation>(hash, phone_number);
 }
 
+static auto phone_number_privacy_settings() {
+  return td::td_api::make_object<td::td_api::internalLinkTypePhoneNumberPrivacySettings>();
+}
+
 static auto premium_features(const td::string &referrer) {
   return td::td_api::make_object<td::td_api::internalLinkTypePremiumFeatures>(referrer);
 }
@@ -1670,6 +1674,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/language", language_settings());
   parse_internal_link("tg://settings/login_email", login_email_settings());
   parse_internal_link("tg://settings/password", password_settings());
+  parse_internal_link("tg://settings/phone_privacy", phone_number_privacy_settings());
   parse_internal_link("tg://settings/privacy", privacy_and_security_settings());
 
   parse_internal_link("tg://stars", my_stars());

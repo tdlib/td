@@ -8245,6 +8245,9 @@ internalLinkTypePasswordSettings = InternalLinkType;
 //@phone_number Phone number value from the link
 internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = InternalLinkType;
 
+//@description The link is a link to the phone number privacy settings section of the application settings
+internalLinkTypePhoneNumberPrivacySettings = InternalLinkType;
+
 //@description The link is a link to the Premium features screen of the application from which the user can subscribe to Telegram Premium. Call getPremiumFeatures with the given referrer to process the link
 //@referrer Referrer specified in the link
 internalLinkTypePremiumFeatures referrer:string = InternalLinkType;

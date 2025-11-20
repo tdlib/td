@@ -800,6 +800,12 @@ class LinkManager::InternalLinkPasswordSettings final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkPhoneNumberPrivacySettings final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypePhoneNumberPrivacySettings>();
+  }
+};
+
 class LinkManager::InternalLinkPremiumFeatures final : public InternalLink {
   string referrer_;
 
@@ -1822,6 +1828,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (path.size() == 2 && path[1] == "password") {
       // settings/password
       return td::make_unique<InternalLinkPasswordSettings>();
+    }
+    if (path.size() == 2 && path[1] == "phone_privacy") {
+      // settings/phone_privacy
+      return td::make_unique<InternalLinkPhoneNumberPrivacySettings>();
     }
     if (path.size() == 2 && path[1] == "privacy") {
       // settings/privacy
@@ -2904,6 +2914,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
                          << "&hash=" << url_encode(link->hash_);
       }
     }
+    case td_api::internalLinkTypePhoneNumberPrivacySettings::ID:
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      return "tg://settings/phone_privacy";
     case td_api::internalLinkTypePremiumFeatures::ID: {
       auto link = static_cast<const td_api::internalLinkTypePremiumFeatures *>(type_ptr);
       if (!is_internal) {
