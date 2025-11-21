@@ -3774,8 +3774,10 @@ linkPreviewTypeGroupCall = LinkPreviewType;
 //@description The link is a link to an invoice
 linkPreviewTypeInvoice = LinkPreviewType;
 
-//@description The link is a link to a live story group call @photo Photo of the chat which posted the live story; may be null if none
-linkPreviewTypeLiveStory photo:chatPhoto = LinkPreviewType;
+//@description The link is a link to a live story group call
+//@story_poster_chat_id The identifier of the chat that posted the story
+//@story_id Story identifier
+linkPreviewTypeLiveStory story_poster_chat_id:int53 story_id:int32 = LinkPreviewType;
 
 //@description The link is a link to a text or a poll Telegram message
 linkPreviewTypeMessage = LinkPreviewType;
