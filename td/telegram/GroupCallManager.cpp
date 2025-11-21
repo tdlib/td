@@ -2335,10 +2335,36 @@ bool GroupCallManager::can_manage_group_call(const GroupCall *group_call) const 
   if (group_call->is_conference) {
     return group_call->is_creator;
   }
-  if (group_call->is_live_story && group_call->is_creator) {
-    return true;
+  auto dialog_id = group_call->dialog_id;
+  if (group_call->is_live_story) {
+    if (group_call->is_creator) {
+      return true;
+    }
+    switch (dialog_id.get_type()) {
+      case DialogType::User:
+        return dialog_id == td_->dialog_manager_->get_my_dialog_id();
+      case DialogType::Channel:
+        return td_->chat_manager_->get_channel_permissions(dialog_id.get_channel_id()).can_manage_calls();
+      case DialogType::Chat:
+      case DialogType::SecretChat:
+      case DialogType::None:
+      default:
+        return false;
+    }
   }
-  return can_manage_group_calls(group_call->dialog_id, group_call->is_live_story).is_ok();
+  // video chat
+  switch (dialog_id.get_type()) {
+    return false;
+    case DialogType::Chat:
+      return td_->chat_manager_->get_chat_permissions(dialog_id.get_chat_id()).can_manage_calls();
+    case DialogType::Channel:
+      return td_->chat_manager_->get_channel_permissions(dialog_id.get_channel_id()).can_manage_calls();
+    case DialogType::User:
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      return false;
+  }
 }
 
 bool GroupCallManager::get_group_call_can_self_unmute(InputGroupCallId input_group_call_id) const {
