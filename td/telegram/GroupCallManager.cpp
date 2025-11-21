@@ -6696,6 +6696,9 @@ void GroupCallManager::set_group_call_participant_volume_level(GroupCallId group
     }
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
+  if (group_call->is_live_story) {
+    return promise.set_error(400, "Can't manage participants in live stories");
+  }
 
   auto participant =
       get_group_call_participant(input_group_call_id, dialog_id, "set_group_call_participant_volume_level");
@@ -6886,7 +6889,7 @@ void GroupCallManager::load_group_call_participants(GroupCallId group_call_id, i
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
-  if (!need_group_call_participants(input_group_call_id, group_call)) {
+  if (!need_group_call_participants(input_group_call_id, group_call) || group_call->is_live_story) {
     return promise.set_error(400, "Can't load group call participants");
   }
   CHECK(group_call != nullptr && group_call->is_inited);
@@ -7597,6 +7600,9 @@ void GroupCallManager::on_user_speaking_in_group_call(GroupCallId group_call_id,
     return;
   }
   if (group_call->has_hidden_listeners && is_muted_by_admin) {
+    return;
+  }
+  if (group_call->is_live_story) {
     return;
   }
 

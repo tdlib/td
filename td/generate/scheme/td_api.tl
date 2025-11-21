@@ -12507,7 +12507,7 @@ toggleGroupCallAreMessagesAllowed group_call_id:int32 are_messages_allowed:Bool 
 //@description Returns the list of message sender identifiers, on whose behalf messages can be sent to a live story @chat_id Chat identifier
 getLiveStoryAvailableMessageSenders chat_id:int53 = ChatMessageSenders;
 
-//@description Selects a message sender to send messages in a live story group call
+//@description Selects a message sender to send messages in a live story call
 //@group_call_id Group call identifier
 //@message_sender_id New message sender for the group call
 setGroupCallMessageSender group_call_id:int32 message_sender_id:MessageSender = Ok;
@@ -12610,7 +12610,7 @@ setGroupCallParticipantIsSpeaking group_call_id:int32 audio_source:int32 is_spea
 //@is_muted Pass true to mute the user; pass false to unmute them
 toggleGroupCallParticipantIsMuted group_call_id:int32 participant_id:MessageSender is_muted:Bool = Ok;
 
-//@description Changes volume level of a participant of an active group call. If the current user can manage the group call or is the owner of the group call,
+//@description Changes volume level of a participant of an active group call; not supported for live stories. If the current user can manage the group call or is the owner of the group call,
 //-then the participant's volume level will be changed for all users with the default volume level
 //@group_call_id Group call identifier
 //@participant_id Participant identifier
@@ -12628,7 +12628,7 @@ toggleGroupCallParticipantIsHandRaised group_call_id:int32 participant_id:Messag
 //@limit The maximum number of participants to return; must be positive
 getGroupCallParticipants input_group_call:InputGroupCall limit:int32 = GroupCallParticipants;
 
-//@description Loads more participants of a group call. The loaded participants will be received through updates.
+//@description Loads more participants of a group call; not supported in live stories. The loaded participants will be received through updates.
 //-Use the field groupCall.loaded_all_participants to check whether all participants have already been loaded
 //@group_call_id Group call identifier. The group call must be previously received through getGroupCall and must be joined or being joined
 //@limit The maximum number of participants to load; up to 100
