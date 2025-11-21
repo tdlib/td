@@ -5653,6 +5653,14 @@ void GroupCallManager::on_set_group_call_paid_message_star_count(InputGroupCallI
   }
 }
 
+bool GroupCallManager::get_group_call_message_is_from_admin(const GroupCall *group_call, DialogId sender_dialog_id) {
+  if (!group_call->is_live_story) {
+    return false;
+  }
+  return sender_dialog_id == group_call->dialog_id ||
+         (group_call->can_be_managed && sender_dialog_id.get_type() == DialogType::User);
+}
+
 void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
                                                td_api::object_ptr<td_api::formattedText> &&text,
                                                int64 paid_message_star_count, bool is_reaction,
@@ -5728,7 +5736,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
           : (group_call->as_dialog_id.is_valid() ? group_call->as_dialog_id : td_->dialog_manager_->get_my_dialog_id());
   CHECK(as_dialog_id.is_valid());
   auto group_call_message = GroupCallMessage(as_dialog_id, message, paid_message_star_count,
-                                             group_call->is_creator || group_call->can_be_managed);
+                                             get_group_call_message_is_from_admin(group_call, as_dialog_id));
   auto message_id = add_group_call_message(input_group_call_id, group_call, group_call_message);
   if (group_call->is_conference || group_call->call_id != tde2e_api::CallId()) {
     auto json_message = group_call_message.encode_to_json();
@@ -5852,7 +5860,7 @@ void GroupCallManager::commit_pending_group_call_reactions(GroupCallId group_cal
   auto as_dialog_id = group_call->message_sender_dialog_id;
   CHECK(as_dialog_id.is_valid());
   auto group_call_message =
-      GroupCallMessage(as_dialog_id, {}, star_count, group_call->is_creator || group_call->can_be_managed);
+      GroupCallMessage(as_dialog_id, {}, star_count, get_group_call_message_is_from_admin(group_call, as_dialog_id));
   auto message_id = add_group_call_message(input_group_call_id, group_call, group_call_message, true);
   td_->create_handler<SendGroupCallMessageQuery>(std::move(promise))
       ->send(input_group_call_id, message_id, FormattedText(), as_dialog_id, star_count, group_call->is_live_story);

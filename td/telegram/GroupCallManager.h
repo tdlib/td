@@ -310,6 +310,8 @@ class GroupCallManager final : public Actor {
 
   Status can_manage_video_chats(DialogId dialog_id) const;
 
+  static bool get_group_call_message_is_from_admin(const GroupCall *group_call, DialogId sender_dialog_id);
+
   static bool get_group_call_is_creator(const GroupCall *group_call);
 
   bool can_manage_group_call(InputGroupCallId input_group_call_id) const;
