@@ -4820,7 +4820,7 @@ void Requests::on_request(uint64 id, const td_api::getLiveStoryAvailableMessageS
   td_->group_call_manager_->get_group_call_send_as(DialogId(request.chat_id_), std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::setGroupCallMessageSender &request) {
+void Requests::on_request(uint64 id, const td_api::setLiveStoryMessageSender &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, message_sender_dialog_id,

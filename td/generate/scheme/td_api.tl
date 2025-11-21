@@ -12510,7 +12510,7 @@ getLiveStoryAvailableMessageSenders chat_id:int53 = ChatMessageSenders;
 //@description Selects a message sender to send messages in a live story call
 //@group_call_id Group call identifier
 //@message_sender_id New message sender for the group call
-setGroupCallMessageSender group_call_id:int32 message_sender_id:MessageSender = Ok;
+setLiveStoryMessageSender group_call_id:int32 message_sender_id:MessageSender = Ok;
 
 //@description Sends a message to other participants of a group call. Requires groupCall.can_send_messages right
 //@group_call_id Group call identifier
