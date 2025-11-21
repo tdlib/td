@@ -8007,8 +8007,9 @@ td_api::object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
       paid_message_star_count, scheduled_start_date, start_subscribed, is_active,
       !group_call->is_conference && !group_call->is_live_story, group_call->is_live_story,
       !group_call->is_conference && group_call->is_rtmp_stream, is_joined, group_call->need_rejoin,
-      group_call->is_creator, group_call->can_be_managed, group_call->participant_count,
-      group_call->has_hidden_listeners, group_call->loaded_all_participants, std::move(message_sender_id),
+      group_call->is_creator && !group_call->is_live_story, group_call->can_be_managed, group_call->participant_count,
+      group_call->has_hidden_listeners || group_call->is_live_story,
+      group_call->loaded_all_participants || group_call->is_live_story, std::move(message_sender_id),
       std::move(recent_speakers), is_my_video_enabled, is_my_video_paused, can_enable_video, mute_new_participants,
       can_toggle_mute_new_participants, can_send_messages, are_messages_enabled, can_toggle_are_messages_enabled,
       can_delete_messages, record_duration, is_video_recorded, group_call->duration);
