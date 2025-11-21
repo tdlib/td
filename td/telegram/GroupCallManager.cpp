@@ -2282,16 +2282,8 @@ Status GroupCallManager::can_join_video_chats(DialogId dialog_id) const {
   return Status::OK();
 }
 
-Status GroupCallManager::can_manage_group_calls(DialogId dialog_id, bool allow_live_story) const {
+Status GroupCallManager::can_manage_video_chats(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
-    case DialogType::User:
-      if (!allow_live_story) {
-        return Status::Error(400, "Chat can't have a video chat");
-      }
-      if (td_->dialog_manager_->get_my_dialog_id() != dialog_id) {
-        return Status::Error(400, "Not enough rights in the chat");
-      }
-      break;
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
       if (!td_->chat_manager_->get_chat_permissions(chat_id).can_manage_calls()) {
@@ -2306,11 +2298,10 @@ Status GroupCallManager::can_manage_group_calls(DialogId dialog_id, bool allow_l
       }
       break;
     }
+    case DialogType::User:
     case DialogType::SecretChat:
       return Status::Error(400, "Chat can't have a video chat");
     case DialogType::None:
-      // OK
-      break;
     default:
       UNREACHABLE();
   }
@@ -2470,7 +2461,7 @@ void GroupCallManager::create_video_chat(DialogId dialog_id, string title, int32
                                          Promise<GroupCallId> &&promise) {
   TRY_STATUS_PROMISE(
       promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "create_video_chat"));
-  TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id, false));
+  TRY_STATUS_PROMISE(promise, can_manage_video_chats(dialog_id));
 
   title = clean_name(title, MAX_TITLE_LENGTH);
 
@@ -2598,7 +2589,7 @@ void GroupCallManager::get_video_chat_rtmp_stream_url(DialogId dialog_id, bool i
       return promise.set_error(400, "Not enough rights");
     }
   } else {
-    TRY_STATUS_PROMISE(promise, can_manage_group_calls(dialog_id, false));
+    TRY_STATUS_PROMISE(promise, can_manage_video_chats(dialog_id));
   }
 
   td_->create_handler<GetGroupCallStreamRtmpUrlQuery>(std::move(promise))->send(dialog_id, is_story, revoke);
