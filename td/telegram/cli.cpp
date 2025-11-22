@@ -5152,9 +5152,9 @@ class CliClient final : public Actor {
       send_request(
           td_api::make_object<td_api::setGroupCallPaidMessageStarCount>(group_call_id, paid_message_star_count));
     } else if (op == "glsams") {
-      ChatId chat_id;
-      get_args(args, chat_id);
-      send_request(td_api::make_object<td_api::getLiveStoryAvailableMessageSenders>(chat_id));
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+      send_request(td_api::make_object<td_api::getLiveStoryAvailableMessageSenders>(group_call_id));
     } else if (op == "slsms") {
       GroupCallId group_call_id;
       string message_sender_id;

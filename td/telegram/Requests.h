@@ -829,7 +829,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getLiveStoryAvailableMessageSenders &request);
 
-  void on_request(uint64 id, const td_api::setGroupCallMessageSender &request);
+  void on_request(uint64 id, const td_api::setLiveStoryMessageSender &request);
 
   void on_request(uint64 id, td_api::sendGroupCallMessage &request);
 

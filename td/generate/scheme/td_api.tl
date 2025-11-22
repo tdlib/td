@@ -12504,8 +12504,8 @@ toggleVideoChatMuteNewParticipants group_call_id:int32 mute_new_participants:Boo
 //@are_messages_allowed New value of the are_messages_allowed setting
 toggleGroupCallAreMessagesAllowed group_call_id:int32 are_messages_allowed:Bool = Ok;
 
-//@description Returns the list of message sender identifiers, on whose behalf messages can be sent to a live story @chat_id Chat identifier
-getLiveStoryAvailableMessageSenders chat_id:int53 = ChatMessageSenders;
+//@description Returns the list of message sender identifiers, on whose behalf messages can be sent to a live story @group_call_id Group call identifier
+getLiveStoryAvailableMessageSenders group_call_id:int32 = ChatMessageSenders;
 
 //@description Selects a message sender to send messages in a live story call
 //@group_call_id Group call identifier
