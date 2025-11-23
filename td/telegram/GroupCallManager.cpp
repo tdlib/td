@@ -7328,9 +7328,6 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       if (call.scheduled_start_date == 0) {
         call.start_subscribed = false;
       }
-      if (call.message_sender_dialog_id == DialogId() && is_live_story) {
-        call.message_sender_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-      }
 
       call.version = group_call->version_;
       call.title_version = group_call->version_;
@@ -7356,6 +7353,9 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   }
   if (!input_group_call_id.is_valid() || call.participant_count < 0) {
     return {};
+  }
+  if (call.message_sender_dialog_id == DialogId() && is_live_story) {
+    call.message_sender_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   }
 
   string join_params = std::move(pending_group_call_join_params_);
