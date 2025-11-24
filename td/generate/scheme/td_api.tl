@@ -12504,6 +12504,9 @@ toggleVideoChatMuteNewParticipants group_call_id:int32 mute_new_participants:Boo
 //@are_messages_allowed New value of the are_messages_allowed setting
 toggleGroupCallAreMessagesAllowed group_call_id:int32 are_messages_allowed:Bool = Ok;
 
+//@description Returns information about the user or the chat that streams to a live story; for live stories that aren't an RTMP stream only @group_call_id Group call identifier
+getLiveStoryStreamer group_call_id:int32 = GroupCallParticipant;
+
 //@description Returns the list of message sender identifiers, on whose behalf messages can be sent to a live story @group_call_id Group call identifier
 getLiveStoryAvailableMessageSenders group_call_id:int32 = ChatMessageSenders;
 

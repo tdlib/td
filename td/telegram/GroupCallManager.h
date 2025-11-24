@@ -58,6 +58,9 @@ class GroupCallManager final : public Actor {
 
   void get_group_call_join_as(DialogId dialog_id, Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
+  void get_group_call_streamer(GroupCallId group_call_id,
+                               Promise<td_api::object_ptr<td_api::groupCallParticipant>> &&promise);
+
   void get_group_call_send_as(GroupCallId group_call_id,
                               Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise);
 
@@ -202,8 +205,8 @@ class GroupCallManager final : public Actor {
   void on_update_group_call_chain_blocks(InputGroupCallId input_group_call_id, int32 sub_chain_id,
                                          vector<string> &&blocks, int32 next_offset);
 
-  void on_update_group_call(telegram_api::object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id,
-                            bool is_live_story);
+  InputGroupCallId on_update_group_call(telegram_api::object_ptr<telegram_api::GroupCall> group_call_ptr,
+                                        DialogId dialog_id, bool is_live_story);
 
   void on_update_group_call_message_limits(telegram_api::object_ptr<telegram_api::JSONValue> limits);
 

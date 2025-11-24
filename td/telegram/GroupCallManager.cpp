@@ -474,6 +474,56 @@ class GetGroupCallQuery final : public Td::ResultHandler {
   }
 };
 
+class GetGroupCallStreamerQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::groupCallParticipant>> promise_;
+  InputGroupCallId input_group_call_id_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetGroupCallStreamerQuery(Promise<td_api::object_ptr<td_api::groupCallParticipant>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(InputGroupCallId input_group_call_id, DialogId dialog_id) {
+    input_group_call_id_ = input_group_call_id;
+    dialog_id_ = dialog_id;
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_getGroupCall(input_group_call_id.get_input_group_call(), 10)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_getGroupCall>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetGroupCallStreamerQuery: " << to_string(ptr);
+
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetGroupCallStreamerQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetGroupCallStreamerQuery");
+
+    if (td_->group_call_manager_->on_update_group_call(std::move(ptr->call_), dialog_id_, true) !=
+        input_group_call_id_) {
+      LOG(ERROR) << "Expected " << input_group_call_id_ << ", but received " << to_string(ptr);
+      return on_error(Status::Error(500, "Receive another group call"));
+    }
+
+    for (auto &group_call_participant : ptr->participants_) {
+      GroupCallParticipant participant(group_call_participant, 0);
+      if (participant.is_valid() && (participant.dialog_id == dialog_id_ || !participant.video_payload.is_empty())) {
+        return promise_.set_value(participant.get_group_call_participant_object(td_));
+      }
+    }
+
+    promise_.set_value(nullptr);
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetGroupCallParticipantQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   InputGroupCallId input_group_call_id_;
@@ -2381,6 +2431,38 @@ void GroupCallManager::get_group_call_join_as(DialogId dialog_id,
   TRY_STATUS_PROMISE(promise, can_join_video_chats(dialog_id));
 
   td_->create_handler<GetGroupCallJoinAsQuery>(std::move(promise))->send(dialog_id);
+}
+
+void GroupCallManager::get_group_call_streamer(GroupCallId group_call_id,
+                                               Promise<td_api::object_ptr<td_api::groupCallParticipant>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+  if (!group_call->is_inited || !group_call->is_active) {
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+  auto dialog_id = group_call->dialog_id;
+  if (!group_call->is_live_story || !dialog_id.is_valid() || group_call->is_rtmp_stream) {
+    return promise.set_value(nullptr);
+  }
+  if (!group_call->is_joined || group_call->is_being_left) {
+    if (group_call->is_being_joined || group_call->need_rejoin) {
+      group_call->after_join.push_back(PromiseCreator::lambda(
+          [actor_id = actor_id(this), group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+            if (result.is_error()) {
+              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+            } else {
+              send_closure(actor_id, &GroupCallManager::get_group_call_streamer, group_call_id, std::move(promise));
+            }
+          }));
+      return;
+    }
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+
+  td_->create_handler<GetGroupCallStreamerQuery>(std::move(promise))->send(input_group_call_id, dialog_id);
 }
 
 void GroupCallManager::get_group_call_send_as(GroupCallId group_call_id,
@@ -7178,10 +7260,10 @@ void GroupCallManager::on_poll_group_call_blocks(InputGroupCallId input_group_ca
                                                  GROUP_CALL_BLOCK_POLL_TIMEOUT);
 }
 
-void GroupCallManager::on_update_group_call(telegram_api::object_ptr<telegram_api::GroupCall> group_call_ptr,
-                                            DialogId dialog_id, bool is_live_story) {
+InputGroupCallId GroupCallManager::on_update_group_call(
+    telegram_api::object_ptr<telegram_api::GroupCall> group_call_ptr, DialogId dialog_id, bool is_live_story) {
   if (td_->auth_manager_->is_bot()) {
-    return;
+    return {};
   }
   if (dialog_id != DialogId() && !dialog_id.is_valid()) {
     LOG(ERROR) << "Receive " << to_string(group_call_ptr) << " in invalid " << dialog_id;
@@ -7193,6 +7275,7 @@ void GroupCallManager::on_update_group_call(telegram_api::object_ptr<telegram_ap
   } else {
     LOG(ERROR) << "Receive invalid " << to_string(group_call_ptr);
   }
+  return input_group_call_id;
 }
 
 void GroupCallManager::on_update_group_call_message_limits(telegram_api::object_ptr<telegram_api::JSONValue> limits) {
@@ -7354,9 +7437,6 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   if (!input_group_call_id.is_valid() || call.participant_count < 0) {
     return {};
   }
-  if (call.message_sender_dialog_id == DialogId() && is_live_story) {
-    call.message_sender_dialog_id = td_->dialog_manager_->get_my_dialog_id();
-  }
 
   string join_params = std::move(pending_group_call_join_params_);
   pending_group_call_join_params_.clear();
@@ -7368,15 +7448,20 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   call.is_live_story = group_call->is_live_story;
   call.can_be_managed = call.is_active && !call.is_conference && can_manage_group_call(&call);
   call.can_self_unmute = call.is_active && (!call.mute_new_participants || call.can_be_managed || call.is_creator);
-  if (!group_call->dialog_id.is_valid()) {
+  if (!group_call->dialog_id.is_valid() && group_call->dialog_id != dialog_id) {
+    need_update = true;
     group_call->dialog_id = dialog_id;
   }
   if (!group_call->is_live_story && is_live_story) {
+    need_update = true;
     group_call->is_live_story = true;
   }
   if (call.is_active && join_params.empty() && !group_call->is_joined &&
       (group_call->need_rejoin || group_call->is_being_joined)) {
     call.participant_count++;
+  }
+  if (call.message_sender_dialog_id == DialogId() && call.is_live_story) {
+    call.message_sender_dialog_id = td_->dialog_manager_->get_my_dialog_id();
   }
   LOG(INFO) << "Update " << call.group_call_id << " with " << group_call->participant_count
             << " participants and version " << group_call->version;

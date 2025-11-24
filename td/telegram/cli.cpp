@@ -5151,6 +5151,10 @@ class CliClient final : public Actor {
       get_args(args, group_call_id, paid_message_star_count);
       send_request(
           td_api::make_object<td_api::setGroupCallPaidMessageStarCount>(group_call_id, paid_message_star_count));
+    } else if (op == "glss") {
+      GroupCallId group_call_id;
+      get_args(args, group_call_id);
+      send_request(td_api::make_object<td_api::getLiveStoryStreamer>(group_call_id));
     } else if (op == "glsams") {
       GroupCallId group_call_id;
       get_args(args, group_call_id);
