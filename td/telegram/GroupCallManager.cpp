@@ -3535,6 +3535,10 @@ int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call
     LOG(INFO) << "Skip invalid " << group_call_message;
     return 0;
   }
+  if (group_call_message.is_reaction() && !group_call->is_live_story) {
+    LOG(INFO) << "Ignore reaction in " << input_group_call_id;
+    return 0;
+  }
   LOG(INFO) << "Receive " << (is_old ? "old " : "new ") << group_call_message;
   int32 message_id = 0;
   auto paid_message_star_count = group_call_message.get_paid_message_star_count();
