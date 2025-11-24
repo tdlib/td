@@ -3554,6 +3554,13 @@ int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call
   return message_id;
 }
 
+void GroupCallManager::apply_old_server_messages(InputGroupCallId input_group_call_id, GroupCall *group_call) {
+  for (const auto &message : group_call->old_messages) {
+    add_group_call_message(input_group_call_id, group_call, message, true);
+  }
+  group_call->old_messages.clear();
+}
+
 void GroupCallManager::on_group_call_messages_deleted(const GroupCall *group_call, vector<int32> &&message_ids) {
   if (!message_ids.empty()) {
     send_closure(G()->td(), &Td::send_update,
@@ -4897,21 +4904,17 @@ void GroupCallManager::process_join_video_chat_response(InputGroupCallId input_g
     std::reverse(new_message_updates.begin(), new_message_updates.end());
     auto group_call = get_group_call(input_group_call_id);
     CHECK(group_call != nullptr);
-    vector<GroupCallMessage> old_messages;
+    group_call->old_messages.clear();
     for (auto &update : new_message_updates) {
       if (input_group_call_id != InputGroupCallId(update->call_)) {
         LOG(ERROR) << "Receive message in " << InputGroupCallId(update->call_) << " instead of " << input_group_call_id;
         continue;
       }
-      old_messages.push_back(GroupCallMessage(td_, std::move(update->message_)));
+      group_call->old_messages.push_back(GroupCallMessage(td_, std::move(update->message_)));
     }
     if (need_group_call_participants(input_group_call_id, group_call) &&
         add_group_call_participants(input_group_call_id, "process_join_video_chat_response")->are_top_donors_loaded) {
-      for (const auto &message : old_messages) {
-        add_group_call_message(input_group_call_id, group_call, message, true);
-      }
-    } else {
-      group_call->old_messages = std::move(old_messages);
+      apply_old_server_messages(input_group_call_id, group_call);
     }
   }
   td_->updates_manager_->on_get_updates(std::move(updates),
@@ -6259,9 +6262,7 @@ void GroupCallManager::on_get_group_call_stars(
       if (error_message == "GROUPCALL_FORBIDDEN" || error_message == "GROUPCALL_INVALID") {
         on_group_call_left(input_group_call_id, group_call->audio_source, false);
       } else if (need_participants) {
-        for (const auto &message : group_call->old_messages) {
-          add_group_call_message(input_group_call_id, group_call, message, true);
-        }
+        apply_old_server_messages(input_group_call_id, group_call);
       }
       group_call->old_messages.clear();
     }

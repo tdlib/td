@@ -581,6 +581,8 @@ class GroupCallManager final : public Actor {
   int32 add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
                                const GroupCallMessage &group_call_message, bool is_old = false);
 
+  void apply_old_server_messages(InputGroupCallId input_group_call_id, GroupCall *group_call);
+
   void on_group_call_messages_deleted(const GroupCall *group_call, vector<int32> &&message_ids);
 
   void update_group_call_dialog(const GroupCall *group_call, const char *source, bool force);
