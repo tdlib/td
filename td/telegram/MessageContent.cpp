@@ -1570,6 +1570,17 @@ class MessageSuggestBirthday final : public MessageContent {
   }
 };
 
+static int32 get_month_count(int32 day_count) {
+  return max(static_cast<int32>(1), day_count / 30);
+}
+
+static int32 get_day_count(int32 month_count) {
+  if (month_count <= 0 || month_count > 10000000) {
+    return 7;
+  }
+  return month_count * 30 + month_count / 3 + month_count / 12;
+}
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -3131,10 +3142,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       parse(m->amount, parser);
       parse(m->days, parser);
       if (!has_days) {
-        m->days *= 30;
-        if (m->days == 0) {
-          m->days = 7;
-        }
+        m->days = get_day_count(m->days);
       }
       if (has_crypto_amount) {
         parse(m->crypto_currency, parser);
@@ -3265,10 +3273,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       }
       parse(m->days, parser);
       if (!has_days) {
-        m->days *= 30;
-        if (m->days == 0) {
-          m->days = 7;
-        }
+        m->days = get_day_count(m->days);
       }
       parse(m->code, parser);
       if (has_currency) {
@@ -3841,10 +3846,6 @@ void store_message_content(const MessageContent *content, LogEventStorerUnsafe &
 
 void parse_message_content(unique_ptr<MessageContent> &content, LogEventParser &parser) {
   parse(content, parser);
-}
-
-static int32 get_month_count(int32 day_count) {
-  return max(static_cast<int32>(1), day_count / 30);
 }
 
 InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
