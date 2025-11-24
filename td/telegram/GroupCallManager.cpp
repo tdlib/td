@@ -1697,6 +1697,14 @@ class GroupCallManager::GroupCallMessages {
     return message_info_.count(message_id) > 0;
   }
 
+  FlatHashSet<int32> get_server_message_ids() const {
+    FlatHashSet<int32> result;
+    for (auto &it : server_id_to_message_id_) {
+      result.insert(it.first);
+    }
+    return result;
+  }
+
   DialogId get_message_sender_dialog_id(int32 message_id) const {
     auto it = message_info_.find(message_id);
     if (it == message_info_.end()) {
@@ -3555,10 +3563,18 @@ int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call
 }
 
 void GroupCallManager::apply_old_server_messages(InputGroupCallId input_group_call_id, GroupCall *group_call) {
+  auto server_message_ids = group_call->messages.get_server_message_ids();
   for (const auto &message : group_call->old_messages) {
     add_group_call_message(input_group_call_id, group_call, message, true);
+    server_message_ids.erase(message.get_server_id());
   }
   group_call->old_messages.clear();
+
+  vector<int32> server_ids;
+  for (auto &server_id : server_message_ids) {
+    server_ids.push_back(server_id);
+  }
+  on_group_call_messages_deleted(group_call, group_call->messages.delete_server_messages(server_ids));
 }
 
 void GroupCallManager::on_group_call_messages_deleted(const GroupCall *group_call, vector<int32> &&message_ids) {
