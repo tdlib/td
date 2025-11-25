@@ -58,4 +58,10 @@ Status validate_bot_language_code(const string &language_code);
 vector<int32> search_strings_by_prefix(const vector<string> &strings, const string &query, int32 limit,
                                        bool return_all_for_empty_query, int32 &total_count);
 
+// converts Premium duration in days to approximate duration in months
+int32 get_premium_duration_month_count(int32 day_count);
+
+// converts Premium duration in months to duration in days
+int32 get_premium_duration_day_count(int32 month_count);
+
 }  // namespace td

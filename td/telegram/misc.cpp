@@ -416,4 +416,15 @@ vector<int32> search_strings_by_prefix(const vector<string> &strings, const stri
   return transform(result.second, [](int64 key) { return narrow_cast<int32>(key); });
 }
 
+int32 get_premium_duration_month_count(int32 day_count) {
+  return max(static_cast<int32>(1), day_count / 30);
+}
+
+int32 get_premium_duration_day_count(int32 month_count) {
+  if (month_count <= 0 || month_count > 10000000) {
+    return 7;
+  }
+  return month_count * 30 + month_count / 3 + month_count / 12;
+}
+
 }  // namespace td
