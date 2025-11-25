@@ -3621,6 +3621,9 @@ void GroupCallManager::on_group_call_message_sending_failed(InputGroupCallId inp
                      group_call->group_call_id.get(), message_id,
                      td_api::make_object<td_api::error>(status.code(), status.message().str())));
   }
+  if (group_call->is_live_story && status.code() == 400 && status.message() == CSlice("SEND_AS_PEER_INVALID")) {
+    reload_group_call(input_group_call_id, Auto());
+  }
 }
 
 void GroupCallManager::on_new_group_call_message(InputGroupCallId input_group_call_id,
