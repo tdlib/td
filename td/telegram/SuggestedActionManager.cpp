@@ -74,6 +74,7 @@ void SuggestedActionManager::start_up() {
       LOG(ERROR) << "Failed to parse suggested actions from binlog: " << status;
       save_suggested_actions();
     } else {
+      td::remove_if(suggested_actions, [](const auto &suggested_action) { return !suggested_action.is_persistent(); });
       ::td::update_suggested_actions(td_->user_manager_.get(), suggested_actions_, std::move(suggested_actions));
     }
   }
