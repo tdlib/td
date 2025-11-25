@@ -157,6 +157,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::setPassword &request);
 
+  void on_request(uint64 id, const td_api::isLoginEmailAddressRequired &request);
+
   void on_request(uint64 id, td_api::setLoginEmailAddress &request);
 
   void on_request(uint64 id, const td_api::resendLoginEmailAddressCode &request);

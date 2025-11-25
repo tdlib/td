@@ -62,6 +62,48 @@ class DismissSuggestionQuery final : public Td::ResultHandler {
   }
 };
 
+class CheckPromoDataQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit CheckPromoDataQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::help_getPromoData()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::help_getPromoData>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for CheckPromoDataQuery: " << to_string(ptr);
+    switch (ptr->get_id()) {
+      case telegram_api::help_promoDataEmpty::ID:
+        break;
+      case telegram_api::help_promoData::ID: {
+        auto promo = telegram_api::move_object_as<telegram_api::help_promoData>(ptr);
+        for (const auto &action : promo->pending_suggestions_) {
+          if (action == "SETUP_LOGIN_EMAIL" || action == "SETUP_LOGIN_EMAIL_NOSKIP") {
+            return promise_.set_value(Unit());
+          }
+        }
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+    promise_.set_error(404, "Not Found");
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 SuggestedActionManager::SuggestedActionManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -229,6 +271,10 @@ void SuggestedActionManager::remove_dialog_suggested_action(SuggestedAction acti
   if (it->second.empty()) {
     dialog_suggested_actions_.erase(it);
   }
+}
+
+void SuggestedActionManager::is_login_email_address_required(Promise<Unit> &&promise) {
+  td_->create_handler<CheckPromoDataQuery>(std::move(promise))->send();
 }
 
 void SuggestedActionManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

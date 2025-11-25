@@ -8712,7 +8712,7 @@ suggestedActionExtendStarSubscriptions = SuggestedAction;
 //@url The link to open when the suggestion is clicked
 suggestedActionCustom name:string title:formattedText description:formattedText url:string = SuggestedAction;
 
-//@description Suggests the user to add login email address. Call setLoginEmailAddress or checkLoginEmailAddressCode to change the login email address
+//@description Suggests the user to add login email address. Call isLoginEmailAddressRequired, and then setLoginEmailAddress or checkLoginEmailAddressCode to change the login email address
 //@can_be_hidden True, if the suggested action can be hidden using hideSuggestedAction. Otherwise, the user must not be able to use the app without setting up the email address
 suggestedActionSetLoginEmailAddress can_be_hidden:Bool = SuggestedAction;
 
@@ -9980,8 +9980,11 @@ getPasswordState = PasswordState;
 //@new_recovery_email_address New recovery email address; may be empty
 setPassword old_password:string new_password:string new_hint:string set_recovery_email_address:Bool new_recovery_email_address:string = PasswordState;
 
+//@description Checks whether the current user is required to set login email address
+isLoginEmailAddressRequired = Ok;
+
 //@description Changes the login email address of the user. The email address can be changed only if the current user already has login email and passwordState.login_email_address_pattern is non-empty,
-//-or the user received suggestedActionSetLoginEmailAddress. The change will not be applied until the new login email address is confirmed with checkLoginEmailAddressCode.
+//-or the user received suggestedActionSetLoginEmailAddress and isLoginEmailAddressRequired succeeds. The change will not be applied until the new login email address is confirmed with checkLoginEmailAddressCode.
 //-To use Apple ID/Google ID instead of an email address, call checkLoginEmailAddressCode directly
 //@new_login_email_address New login email address
 setLoginEmailAddress new_login_email_address:string = EmailAddressAuthenticationCodeInfo;

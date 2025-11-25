@@ -2956,6 +2956,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkEmailAddressVerificationCode>(args));
     } else if (op == "reavc") {
       send_request(td_api::make_object<td_api::resendEmailAddressVerificationCode>());
+    } else if (op == "ilear") {
+      send_request(td_api::make_object<td_api::isLoginEmailAddressRequired>());
     } else if (op == "slea") {
       send_request(td_api::make_object<td_api::setLoginEmailAddress>(args));
     } else if (op == "rleac") {

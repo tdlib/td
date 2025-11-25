@@ -35,6 +35,8 @@ class SuggestedActionManager final : public Actor {
 
   void set_dialog_pending_suggestions(DialogId dialog_id, vector<string> &&pending_suggestions);
 
+  void is_login_email_address_required(Promise<Unit> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

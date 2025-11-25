@@ -2265,6 +2265,12 @@ void Requests::on_request(uint64 id, td_api::setPassword &request) {
                std::move(request.new_recovery_email_address_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::isLoginEmailAddressRequired &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->suggested_action_manager_->is_login_email_address_required(std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setLoginEmailAddress &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.new_login_email_address_);
