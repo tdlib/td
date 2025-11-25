@@ -1844,6 +1844,7 @@ struct GroupCallManager::GroupCall {
   bool are_messages_enabled = false;
   bool allowed_toggle_are_messages_enabled = false;
   bool is_blockchain_being_polled[2] = {false, false};
+  bool can_choose_message_sender = false;
   int32 scheduled_start_date = 0;
   int32 participant_count = 0;
   int32 duration = 0;
@@ -7400,6 +7401,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       call.title = group_call->title_;
       call.invite_link = group_call->invite_link_;
       call.paid_message_star_count = StarManager::get_star_count(group_call->send_paid_messages_stars_);
+      call.can_choose_message_sender = group_call->default_send_as_ != nullptr;
       call.message_sender_dialog_id =
           group_call->default_send_as_ == nullptr ? DialogId() : DialogId(group_call->default_send_as_);
       call.start_subscribed = group_call->schedule_start_subscribed_;
@@ -7610,6 +7612,9 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         if (old_paid_message_star_count != get_group_call_paid_message_star_count(group_call)) {
           need_update = true;
         }
+      }
+      if (call.can_choose_message_sender != group_call->can_choose_message_sender && !is_min) {
+        group_call->can_choose_message_sender = call.can_choose_message_sender;
       }
       if (call.message_sender_dialog_id != group_call->message_sender_dialog_id && !is_min) {
         group_call->message_sender_dialog_id = call.message_sender_dialog_id;
