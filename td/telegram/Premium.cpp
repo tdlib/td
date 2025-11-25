@@ -551,10 +551,12 @@ class CheckGiftCodeQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive " << to_string(result);
       message_id = MessageId();
     }
+    auto month_count = get_premium_duration_month_count(result->days_);
     promise_.set_value(td_api::make_object<td_api::premiumGiftCodeInfo>(
         creator_dialog_id == DialogId() ? nullptr
                                         : get_message_sender_object(td_, creator_dialog_id, "premiumGiftCodeInfo"),
-        result->date_, result->via_giveaway_, message_id.get(), result->days_,
+        result->date_, result->via_giveaway_, message_id.get(),
+        get_premium_duration_day_count(month_count) == result->days_ ? month_count : 0, result->days_,
         td_->user_manager_->get_user_id_object(user_id, "premiumGiftCodeInfo"), result->used_date_));
   }
 
