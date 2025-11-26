@@ -2412,7 +2412,6 @@ bool GroupCallManager::can_manage_group_call(const GroupCall *group_call) const 
   }
   // video chat
   switch (dialog_id.get_type()) {
-    return false;
     case DialogType::Chat:
       return td_->chat_manager_->get_chat_permissions(dialog_id.get_chat_id()).can_manage_calls();
     case DialogType::Channel:
