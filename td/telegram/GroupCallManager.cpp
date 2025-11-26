@@ -2476,6 +2476,23 @@ void GroupCallManager::get_group_call_streamer(GroupCallId group_call_id,
 
 void GroupCallManager::get_group_call_send_as(GroupCallId group_call_id,
                                               Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise) {
+  MultiPromiseActorSafe mpas{"GetGroupCallSendAsMultiPromiseActor"};
+  mpas.add_promise(PromiseCreator::lambda(
+      [actor_id = actor_id(this), group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure_later(actor_id, &GroupCallManager::do_get_group_call_send_as, group_call_id, std::move(promise));
+        }
+      }));
+  auto lock = mpas.get_promise();
+  td_->chat_manager_->load_created_public_broadcasts(mpas.get_promise());
+  td_->user_manager_->get_me(mpas.get_promise());
+  lock.set_value(Unit());
+}
+
+void GroupCallManager::do_get_group_call_send_as(GroupCallId group_call_id,
+                                                 Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
@@ -2495,7 +2512,7 @@ void GroupCallManager::get_group_call_send_as(GroupCallId group_call_id,
             if (result.is_error()) {
               promise.set_error(400, "GROUPCALL_JOIN_MISSING");
             } else {
-              send_closure(actor_id, &GroupCallManager::get_group_call_send_as, group_call_id, std::move(promise));
+              send_closure(actor_id, &GroupCallManager::do_get_group_call_send_as, group_call_id, std::move(promise));
             }
           }));
       return;
@@ -2503,7 +2520,7 @@ void GroupCallManager::get_group_call_send_as(GroupCallId group_call_id,
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
   }
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
-                                                                        "get_group_call_send_as"));
+                                                                        "do_get_group_call_send_as"));
 
   td_->create_handler<GetGroupCallSendAsQuery>(std::move(promise))
       ->send(dialog_id, get_group_call_are_messages_enabled(group_call));

@@ -458,6 +458,9 @@ class GroupCallManager final : public Actor {
 
   void process_group_call_after_join_requests(InputGroupCallId input_group_call_id, const char *source);
 
+  void do_get_group_call_send_as(GroupCallId group_call_id,
+                                 Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise);
+
   GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id, const char *source);
 
   GroupCallParticipant *get_group_call_participant(InputGroupCallId input_group_call_id, DialogId dialog_id,
