@@ -2522,8 +2522,33 @@ void GroupCallManager::do_get_group_call_send_as(GroupCallId group_call_id,
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
                                                                         "do_get_group_call_send_as"));
 
-  td_->create_handler<GetGroupCallSendAsQuery>(std::move(promise))
-      ->send(dialog_id, get_group_call_are_messages_enabled(group_call));
+  auto senders = td_api::make_object<td_api::chatMessageSenders>();
+  auto add_sender = [&senders, td = td_](DialogId sender_dialog_id) {
+    senders->senders_.push_back(td_api::make_object<td_api::chatMessageSender>(
+        get_message_sender_object(td, sender_dialog_id, "do_get_group_call_send_as"), false));
+  };
+  if (dialog_id.get_type() == DialogType::Channel && group_call->can_be_managed) {
+    add_sender(dialog_id);
+  }
+  bool are_messages_enabled = get_group_call_are_messages_enabled(group_call);
+  if (are_messages_enabled || group_call->can_be_managed) {
+    add_sender(td_->dialog_manager_->get_my_dialog_id());
+  }
+  if (are_messages_enabled && group_call->can_choose_message_sender) {
+    const auto &created_public_broadcasts = td_->chat_manager_->get_created_public_broadcasts();
+    std::multimap<int64, ChannelId> sorted_channel_ids;
+    for (auto channel_id : created_public_broadcasts) {
+      int64 score = td_->chat_manager_->get_channel_participant_count(channel_id);
+      sorted_channel_ids.emplace(-score, channel_id);
+    };
+    for (auto &channel_id : sorted_channel_ids) {
+      auto channel_dialog_id = DialogId(channel_id.second);
+      if (channel_dialog_id != dialog_id) {
+        add_sender(channel_dialog_id);
+      }
+    }
+  }
+  promise.set_value(std::move(senders));
 }
 
 void GroupCallManager::set_group_call_default_join_as(DialogId dialog_id, DialogId as_dialog_id,
