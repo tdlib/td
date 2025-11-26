@@ -8,6 +8,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogAction.h"
 #include "td/telegram/DialogActionManager.h"
@@ -37,6 +38,7 @@
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/actor/MultiPromise.h"
 #include "td/actor/SleepActor.h"
 
 #include "td/utils/algorithm.h"
