@@ -61,6 +61,9 @@ class GroupCallManager final : public Actor {
   void get_group_call_streamer(GroupCallId group_call_id,
                                Promise<td_api::object_ptr<td_api::groupCallParticipant>> &&promise);
 
+  void on_update_group_call_can_choose_message_sender(InputGroupCallId input_group_call_id,
+                                                      bool can_choose_message_sender);
+
   void get_group_call_send_as(GroupCallId group_call_id,
                               Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise);
 
@@ -458,7 +461,7 @@ class GroupCallManager final : public Actor {
 
   void process_group_call_after_join_requests(InputGroupCallId input_group_call_id, const char *source);
 
-  void do_get_group_call_send_as(GroupCallId group_call_id,
+  void do_get_group_call_send_as(InputGroupCallId input_group_call_id,
                                  Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise);
 
   GroupCallParticipants *add_group_call_participants(InputGroupCallId input_group_call_id, const char *source);

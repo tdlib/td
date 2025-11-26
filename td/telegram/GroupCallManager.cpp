@@ -186,18 +186,17 @@ class GetGroupCallJoinAsQuery final : public Td::ResultHandler {
 };
 
 class GetGroupCallSendAsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::chatMessageSenders>> promise_;
+  Promise<Unit> promise_;
+  InputGroupCallId input_group_call_id_;
   DialogId dialog_id_;
-  bool are_messages_enabled_;
 
  public:
-  explicit GetGroupCallSendAsQuery(Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise)
-      : promise_(std::move(promise)) {
+  explicit GetGroupCallSendAsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, bool are_messages_enabled) {
+  void send(InputGroupCallId input_group_call_id, DialogId dialog_id) {
+    input_group_call_id_ = input_group_call_id;
     dialog_id_ = dialog_id;
-    are_messages_enabled_ = are_messages_enabled;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
@@ -218,16 +217,16 @@ class GetGroupCallSendAsQuery final : public Td::ResultHandler {
     td_->user_manager_->on_get_users(std::move(ptr->users_), "GetGroupCallSendAsQuery");
     td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetGroupCallSendAsQuery");
 
-    vector<td_api::object_ptr<td_api::chatMessageSender>> message_senders;
+    bool can_choose_message_sender = false;
     for (auto &peer : ptr->peers_) {
       DialogId dialog_id(peer->peer_);
-      if (!are_messages_enabled_ && dialog_id != td_->dialog_manager_->get_my_dialog_id() && dialog_id != dialog_id_) {
-        continue;
+      if (dialog_id != td_->dialog_manager_->get_my_dialog_id() && dialog_id != dialog_id_) {
+        can_choose_message_sender = true;
       }
-      message_senders.push_back(td_api::make_object<td_api::chatMessageSender>(
-          get_message_sender_object(td_, dialog_id, "GetGroupCallSendAsQuery"), peer->premium_required_));
     }
-    promise_.set_value(td_api::make_object<td_api::chatMessageSenders>(std::move(message_senders)));
+    td_->group_call_manager_->on_update_group_call_can_choose_message_sender(input_group_call_id_,
+                                                                             can_choose_message_sender);
+    promise_.set_value(Unit());
   }
 
   void on_error(Status status) final {
@@ -1844,7 +1843,8 @@ struct GroupCallManager::GroupCall {
   bool are_messages_enabled = false;
   bool allowed_toggle_are_messages_enabled = false;
   bool is_blockchain_being_polled[2] = {false, false};
-  bool can_choose_message_sender = false;
+  bool can_choose_message_sender = true;
+  bool loaded_available_message_senders = false;
   int32 scheduled_start_date = 0;
   int32 participant_count = 0;
   int32 duration = 0;
@@ -2474,26 +2474,16 @@ void GroupCallManager::get_group_call_streamer(GroupCallId group_call_id,
   td_->create_handler<GetGroupCallStreamerQuery>(std::move(promise))->send(input_group_call_id, dialog_id);
 }
 
-void GroupCallManager::get_group_call_send_as(GroupCallId group_call_id,
-                                              Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise) {
-  MultiPromiseActorSafe mpas{"GetGroupCallSendAsMultiPromiseActor"};
-  mpas.add_promise(PromiseCreator::lambda(
-      [actor_id = actor_id(this), group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
-        if (result.is_error()) {
-          promise.set_error(result.move_as_error());
-        } else {
-          send_closure_later(actor_id, &GroupCallManager::do_get_group_call_send_as, group_call_id, std::move(promise));
-        }
-      }));
-  auto lock = mpas.get_promise();
-  td_->chat_manager_->load_created_public_broadcasts(mpas.get_promise());
-  td_->user_manager_->get_me(mpas.get_promise());
-  lock.set_value(Unit());
+void GroupCallManager::on_update_group_call_can_choose_message_sender(InputGroupCallId input_group_call_id,
+                                                                      bool can_choose_message_sender) {
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+  group_call->loaded_available_message_senders = true;
+  group_call->can_choose_message_sender = can_choose_message_sender;
 }
 
-void GroupCallManager::do_get_group_call_send_as(GroupCallId group_call_id,
-                                                 Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise) {
-  TRY_STATUS_PROMISE(promise, G()->close_status());
+void GroupCallManager::get_group_call_send_as(GroupCallId group_call_id,
+                                              Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise) {
   TRY_RESULT_PROMISE(promise, input_group_call_id, get_input_group_call_id(group_call_id));
 
   auto *group_call = get_group_call(input_group_call_id);
@@ -2505,16 +2495,53 @@ void GroupCallManager::do_get_group_call_send_as(GroupCallId group_call_id,
   if (!group_call->is_live_story || !dialog_id.is_valid()) {
     return promise.set_value(td_api::make_object<td_api::chatMessageSenders>());
   }
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "get_group_call_send_as"));
+
+  MultiPromiseActorSafe mpas{"GetGroupCallSendAsMultiPromiseActor"};
+  mpas.add_promise(PromiseCreator::lambda(
+      [actor_id = actor_id(this), input_group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          send_closure_later(actor_id, &GroupCallManager::do_get_group_call_send_as, input_group_call_id,
+                             std::move(promise));
+        }
+      }));
+  auto lock = mpas.get_promise();
+  td_->create_handler<GetGroupCallSendAsQuery>(group_call->loaded_available_message_senders ? Promise<Unit>()
+                                                                                            : mpas.get_promise())
+      ->send(input_group_call_id, dialog_id);
+  td_->chat_manager_->load_created_public_broadcasts(mpas.get_promise());
+  td_->user_manager_->get_me(mpas.get_promise());
+  lock.set_value(Unit());
+}
+
+void GroupCallManager::do_get_group_call_send_as(InputGroupCallId input_group_call_id,
+                                                 Promise<td_api::object_ptr<td_api::chatMessageSenders>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+
+  auto *group_call = get_group_call(input_group_call_id);
+  CHECK(group_call != nullptr);
+  CHECK(group_call->is_inited);
+  if (!group_call->is_active) {
+    return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+  }
+  auto dialog_id = group_call->dialog_id;
+  if (!group_call->is_live_story || !dialog_id.is_valid()) {
+    return promise.set_value(td_api::make_object<td_api::chatMessageSenders>());
+  }
   if (!group_call->is_joined || group_call->is_being_left) {
     if (group_call->is_being_joined || group_call->need_rejoin) {
-      group_call->after_join.push_back(PromiseCreator::lambda(
-          [actor_id = actor_id(this), group_call_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
-            if (result.is_error()) {
-              promise.set_error(400, "GROUPCALL_JOIN_MISSING");
-            } else {
-              send_closure(actor_id, &GroupCallManager::do_get_group_call_send_as, group_call_id, std::move(promise));
-            }
-          }));
+      group_call->after_join.push_back(PromiseCreator::lambda([actor_id = actor_id(this), input_group_call_id,
+                                                               promise =
+                                                                   std::move(promise)](Result<Unit> &&result) mutable {
+        if (result.is_error()) {
+          promise.set_error(400, "GROUPCALL_JOIN_MISSING");
+        } else {
+          send_closure(actor_id, &GroupCallManager::do_get_group_call_send_as, input_group_call_id, std::move(promise));
+        }
+      }));
       return;
     }
     return promise.set_error(400, "GROUPCALL_JOIN_MISSING");
@@ -7443,7 +7470,6 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
       call.title = group_call->title_;
       call.invite_link = group_call->invite_link_;
       call.paid_message_star_count = StarManager::get_star_count(group_call->send_paid_messages_stars_);
-      call.can_choose_message_sender = group_call->default_send_as_ != nullptr;
       call.message_sender_dialog_id =
           group_call->default_send_as_ == nullptr ? DialogId() : DialogId(group_call->default_send_as_);
       call.start_subscribed = group_call->schedule_start_subscribed_;
@@ -7516,6 +7542,7 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
   call.is_live_story = group_call->is_live_story;
   call.can_be_managed = call.is_active && !call.is_conference && can_manage_group_call(&call);
   call.can_self_unmute = call.is_active && (!call.mute_new_participants || call.can_be_managed || call.is_creator);
+  call.can_choose_message_sender = group_call->can_choose_message_sender;
   if (!group_call->dialog_id.is_valid() && group_call->dialog_id != dialog_id) {
     need_update = true;
     group_call->dialog_id = dialog_id;
@@ -7654,9 +7681,6 @@ InputGroupCallId GroupCallManager::update_group_call(const tl_object_ptr<telegra
         if (old_paid_message_star_count != get_group_call_paid_message_star_count(group_call)) {
           need_update = true;
         }
-      }
-      if (call.can_choose_message_sender != group_call->can_choose_message_sender && !is_min) {
-        group_call->can_choose_message_sender = call.can_choose_message_sender;
       }
       if (call.message_sender_dialog_id != group_call->message_sender_dialog_id && !is_min) {
         group_call->message_sender_dialog_id = call.message_sender_dialog_id;
