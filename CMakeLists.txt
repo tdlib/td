@@ -349,6 +349,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/AnimationsManager.cpp
   td/telegram/Application.cpp
   td/telegram/AttachMenuManager.cpp
+  td/telegram/AuctionBidLevel.cpp
   td/telegram/AudiosManager.cpp
   td/telegram/AuthManager.cpp
   td/telegram/AutoDownloadSettings.cpp
@@ -689,6 +690,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/AnimationsManager.h
   td/telegram/Application.h
   td/telegram/AttachMenuManager.h
+  td/telegram/AuctionBidLevel.h
   td/telegram/AudiosManager.h
   td/telegram/AuthManager.h
   td/telegram/AutoDownloadSettings.h

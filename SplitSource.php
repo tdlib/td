@@ -290,6 +290,7 @@ function split_file($file, $chunks, $undo) {
             'alarm_manager[_(-](?![.]get[(][)])|AlarmManager' => 'AlarmManager',
             'animations_manager[_(-](?![.]get[(][)])|AnimationsManager[^;>]' => 'AnimationsManager',
             'attach_menu_manager[_(-](?![.]get[(][)])|AttachMenuManager[^;>]' => 'AttachMenuManager',
+            'AuctionBidLevel' => 'AuctionBidLevel',
             'audios_manager[_(-](?![.]get[(][)])|AudiosManager' => 'AudiosManager',
             'auth_manager[_(-](?![.]get[(][)])|AuthManager' => 'AuthManager',
             'AutoDownloadSettings|[a-z_]*auto_download_settings' => 'AutoDownloadSettings',

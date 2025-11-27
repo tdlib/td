@@ -1496,6 +1496,13 @@ receivedGifts total_count:int32 gifts:vector<receivedGift> are_notifications_ena
 giftUpgradePreview models:vector<upgradedGiftModel> symbols:vector<upgradedGiftSymbol> backdrops:vector<upgradedGiftBackdrop> prices:vector<giftUpgradePrice> next_prices:vector<giftUpgradePrice> = GiftUpgradePreview;
 
 
+//@description Describes a bid in an auction
+//@star_count The number of Telegram Stars that were put in the bid
+//@bid_date Point in time (Unix timestamp) when the bid was made
+//@position Position of the bid in the list of all bids
+auctionBid star_count:int53 bid_date:int32 position:int32 = AuctionBid;
+
+
 //@class TransactionDirection @description Describes direction of transactions in a transaction list
 
 //@description The transaction is incoming and increases the amount of owned currency
