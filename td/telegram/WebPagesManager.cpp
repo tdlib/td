@@ -714,6 +714,8 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             }
             break;
           }
+          case telegram_api::webPageAttributeStarGiftAuction::ID:
+            break;
           default:
             UNREACHABLE();
         }
