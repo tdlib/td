@@ -201,7 +201,9 @@ class GetGroupCallSendAsQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Have no access to the chat"));
+    }
 
     send_query(
         G()->net_query_creator().create(telegram_api::channels_getSendAs(0, false, true, std::move(input_peer))));
@@ -5110,6 +5112,9 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
   if (group_call->is_live_story) {
     poll_group_call_stars_timeout_.cancel_timeout(group_call->group_call_id.get());
     get_group_call_stars_from_server(input_group_call_id, Auto());
+    if (!group_call->loaded_available_message_senders) {
+      td_->create_handler<GetGroupCallSendAsQuery>(Promise<Unit>())->send(input_group_call_id, group_call->dialog_id);
+    }
   }
 
   it->second->promise.set_value(std::move(json_response));
