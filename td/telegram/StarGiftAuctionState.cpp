@@ -1,0 +1,94 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2025
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#include "td/telegram/StarGiftAuctionState.h"
+
+#include "td/telegram/StarManager.h"
+#include "td/telegram/Td.h"
+#include "td/telegram/UserManager.h"
+
+#include "td/utils/algorithm.h"
+#include "td/utils/logging.h"
+
+namespace td {
+
+StarGiftAuctionState::StarGiftAuctionState(telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &state_ptr) {
+  CHECK(state_ptr != nullptr);
+  switch (state_ptr->get_id()) {
+    case telegram_api::starGiftAuctionState::ID: {
+      auto state = telegram_api::move_object_as<telegram_api::starGiftAuctionState>(state_ptr);
+      is_active_ = true;
+      start_date_ = state->start_date_;
+      end_date_ = state->end_date_;
+      version_ = state->version_;
+      min_bid_amount_ = StarManager::get_star_count(state->min_bid_amount_);
+      bid_levels_ = AuctionBidLevel::get_auction_bid_levels(state->bid_levels_);
+      for (auto &top_bidder : state->top_bidders_) {
+        UserId top_bidder_user_id(top_bidder);
+        if (!top_bidder_user_id.is_valid()) {
+          LOG(ERROR) << "Receive " << top_bidder_user_id;
+        } else {
+          top_bidder_user_ids_.push_back(top_bidder_user_id);
+        }
+      }
+      const size_t MAX_BIDDER_COUNT = 3u;
+      if (top_bidder_user_ids_.size() > MAX_BIDDER_COUNT) {
+        LOG(ERROR) << "Receive " << top_bidder_user_ids_;
+        top_bidder_user_ids_.resize(MAX_BIDDER_COUNT);
+      }
+      next_round_at_ = state->next_round_at_;
+      gifts_left_ = state->gifts_left_;
+      current_round_ = state->current_round_;
+      total_rounds_ = state->total_rounds_;
+      if (total_rounds_ <= 0) {
+        LOG(ERROR) << "Receive total " << total_rounds_ << " rounds";
+        total_rounds_ = 1;
+      }
+      if (current_round_ <= 0 || current_round_ > total_rounds_) {
+        LOG(ERROR) << "Receive round " << current_round_ << " out of " << total_rounds_ << " rounds";
+        current_round_ = clamp(current_round_, 1, total_rounds_);
+      }
+      break;
+    }
+    case telegram_api::starGiftAuctionStateFinished::ID: {
+      auto state = telegram_api::move_object_as<telegram_api::starGiftAuctionStateFinished>(state_ptr);
+      is_active_ = false;
+      start_date_ = state->start_date_;
+      end_date_ = state->end_date_;
+      average_price_ = StarManager::get_star_count(state->average_price_);
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+}
+
+td_api::object_ptr<td_api::AuctionState> StarGiftAuctionState::get_auction_state_object(
+    Td *td, const StarGiftAuctionUserState &user_state) const {
+  if (is_active_) {
+    auto bid_levels =
+        transform(bid_levels_, [](const AuctionBidLevel &level) { return level.get_auction_bid_object(); });
+    auto top_bidder_user_ids = transform(top_bidder_user_ids_, [td](UserId user_id) {
+      return td->user_manager_->get_user_id_object(user_id, "auctionStateActive");
+    });
+    return td_api::make_object<td_api::auctionStateActive>(start_date_, end_date_, min_bid_amount_,
+                                                           std::move(bid_levels), std::move(top_bidder_user_ids),
+                                                           next_round_at_, current_round_, total_rounds_, gifts_left_);
+  } else {
+    return td_api::make_object<td_api::auctionStateFinished>(start_date_, end_date_, average_price_);
+  }
+}
+
+bool operator==(const StarGiftAuctionState &lhs, const StarGiftAuctionState &rhs) {
+  return lhs.is_active_ == rhs.is_active_ && lhs.start_date_ == rhs.start_date_ && lhs.end_date_ == rhs.end_date_ &&
+         lhs.version_ == rhs.version_ && lhs.min_bid_amount_ == rhs.min_bid_amount_ &&
+         lhs.bid_levels_ == rhs.bid_levels_ && lhs.top_bidder_user_ids_ == rhs.top_bidder_user_ids_ &&
+         lhs.next_round_at_ == rhs.next_round_at_ && lhs.gifts_left_ == rhs.gifts_left_ &&
+         lhs.current_round_ == rhs.current_round_ && lhs.total_rounds_ == rhs.total_rounds_ &&
+         lhs.average_price_ == rhs.average_price_;
+}
+
+}  // namespace td

@@ -10,7 +10,6 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
-#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
 namespace td {
@@ -21,6 +20,8 @@ class AuctionBidLevel {
   int32 date_;
 
   friend bool operator<(const AuctionBidLevel &lhs, const AuctionBidLevel &rhs);
+
+  friend bool operator==(const AuctionBidLevel &lhs, const AuctionBidLevel &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const AuctionBidLevel &bid_level);
 
@@ -34,6 +35,8 @@ class AuctionBidLevel {
 };
 
 bool operator<(const AuctionBidLevel &lhs, const AuctionBidLevel &rhs);
+
+bool operator==(const AuctionBidLevel &lhs, const AuctionBidLevel &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const AuctionBidLevel &bid_level);
 

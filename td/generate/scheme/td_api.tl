@@ -1503,6 +1503,27 @@ giftUpgradePreview models:vector<upgradedGiftModel> symbols:vector<upgradedGiftS
 auctionBid star_count:int53 bid_date:int32 position:int32 = AuctionBid;
 
 
+//@class AuctionState @description Describes state of an auction
+
+//@description Contains information about an ongoing auction
+//@start_date Point in time (Unix timestamp) when the auction started
+//@end_date Point in time (Unix timestamp) when the auction will be ended
+//@min_bid The minimum possible bid in the auction in Telegram Stars
+//@bid_levels A sparse list of bids that were made in the auction
+//@top_bidder_user_ids User identifiers of at most 3 users with the biggest bids
+//@current_round_end_date Point in time (Unix timestamp) when the current round will end
+//@current_round_number 1-based number of the current round
+//@total_round_count The total number of rounds
+//@left_item_count The number of items that have to be distributed on the auciton
+auctionStateActive start_date:int32 end_date:int32 min_bid:int53 bid_levels:vector<auctionBid> top_bidder_user_ids:vector<int53> current_round_end_date:int32 current_round_number:int32 total_round_count:int32 left_item_count:int32 = AuctionState;
+
+//@description Contains information about a finished auction
+//@start_date Point in time (Unix timestamp) when the auction started
+//@end_date Point in time (Unix timestamp) when the auction will be ended
+//@average_price Average price of bought items in Telegram Stars
+auctionStateFinished start_date:int32 end_date:int32 average_price:int53 = AuctionState;
+
+
 //@class TransactionDirection @description Describes direction of transactions in a transaction list
 
 //@description The transaction is incoming and increases the amount of owned currency

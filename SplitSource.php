@@ -430,6 +430,7 @@ function split_file($file, $chunks, $undo) {
             'StarGift[^A-Z]' => 'StarGift',
             'StarGiftAttribute[^I]' => 'StarGiftAttribute',
             'StarGiftAttributeId' => 'StarGiftAttributeId',
+            'StarGiftAuctionState' => 'StarGiftAuctionState',
             'StarGiftCollectionId' => 'StarGiftCollectionId',
             'StarGiftId' => 'StarGiftId',
             'star_gift_manager[_(-](?![.]get[(][)])|StarGiftManager' => 'StarGiftManager',

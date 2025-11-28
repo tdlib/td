@@ -8,6 +8,8 @@
 
 #include "td/telegram/StarManager.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 AuctionBidLevel::AuctionBidLevel(const telegram_api::object_ptr<telegram_api::auctionBidLevel> &bid_level)
@@ -39,7 +41,12 @@ td_api::object_ptr<td_api::auctionBid> AuctionBidLevel::get_auction_bid_object()
 }
 
 bool operator<(const AuctionBidLevel &lhs, const AuctionBidLevel &rhs) {
-  return lhs.star_count_ > rhs.star_count_ || (lhs.star_count_ == rhs.star_count_ && lhs.date_ < rhs.date_);
+  return lhs.position_ < rhs.position_ &&
+         (lhs.star_count_ > rhs.star_count_ || (lhs.star_count_ == rhs.star_count_ && lhs.date_ <= rhs.date_));
+}
+
+bool operator==(const AuctionBidLevel &lhs, const AuctionBidLevel &rhs) {
+  return lhs.position_ == rhs.position_ && lhs.star_count_ == rhs.star_count_ && lhs.date_ == rhs.date_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const AuctionBidLevel &bid_level) {
