@@ -41,6 +41,7 @@ class StarGift {
 
   bool has_colors_ = false;
   bool is_for_birthday_ = false;
+  bool is_auction_ = false;
 
   bool is_unique_ = false;
   bool resale_ton_only_ = false;
@@ -51,6 +52,7 @@ class StarGift {
   StarGiftAttributeOriginalDetails original_details_;
   string title_;
   string slug_;
+  string auction_slug_;
   DialogId host_dialog_id_;
   DialogId owner_dialog_id_;
   string owner_address_;
@@ -62,6 +64,7 @@ class StarGift {
   int64 resale_star_count_ = 0;
   int64 resale_ton_count_ = 0;
   int64 regular_gift_id_ = 0;
+  int32 gifts_per_round_ = 0;
   string value_currency_;
   int64 value_amount_ = 0;
   DialogId theme_dialog_id_;

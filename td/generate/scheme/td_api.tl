@@ -1205,6 +1205,11 @@ acceptedGiftTypes unlimited_gifts:Bool limited_gifts:Bool upgraded_gifts:Bool gi
 giftSettings show_gift_button:Bool accepted_gift_types:acceptedGiftTypes = GiftSettings;
 
 
+//@description Describes an auction on which a gift can be purchased
+//@id Identifier of the auction
+//@gifts_per_round Number of gifts distributed in each round
+giftAuction id:string gifts_per_round:int32 = GiftAuction;
+
 //@description Describes the maximum number of times that a specific gift can be purchased
 //@total_count The maximum number of times the gifts can be purchased
 //@remaining_count Number of remaining times the gift can be purchased
@@ -1308,13 +1313,14 @@ upgradedGiftColors id:int64 model_custom_emoji_id:int64 symbol_custom_emoji_id:i
 //@has_colors True, if the gift can be used to customize the user's name, and backgrounds of profile photo, reply header, and link preview
 //@is_for_birthday True, if the gift is a birthday gift
 //@is_premium True, if the gift can be bought only by Telegram Premium subscribers
+//@auction_info Information about the auction on which the gift can be purchased; may be null if the gift can be purchased directly
 //@next_send_date Point in time (Unix timestamp) when the gift can be sent next time by the current user; can be 0 or a date in the past.
 //-If the date is in the future, then call canSendGift to get the reason, why the gift can't be sent now
 //@user_limits Number of times the gift can be purchased by the current user; may be null if not limited
 //@overall_limits Number of times the gift can be purchased all users; may be null if not limited
 //@first_send_date Point in time (Unix timestamp) when the gift was send for the first time; for sold out gifts only
 //@last_send_date Point in time (Unix timestamp) when the gift was send for the last time; for sold out gifts only
-gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 has_colors:Bool is_for_birthday:Bool is_premium:Bool next_send_date:int32 user_limits:giftPurchaseLimits overall_limits:giftPurchaseLimits first_send_date:int32 last_send_date:int32 = Gift;
+gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 has_colors:Bool is_for_birthday:Bool is_premium:Bool auction_info:giftAuction next_send_date:int32 user_limits:giftPurchaseLimits overall_limits:giftPurchaseLimits first_send_date:int32 last_send_date:int32 = Gift;
 
 //@description Describes an upgraded gift that can be transferred to another owner or transferred to the TON blockchain as an NFT
 //@id Unique identifier of the gift
