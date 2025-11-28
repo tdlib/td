@@ -7,6 +7,7 @@
 #include "td/telegram/GroupCallMessageLimit.h"
 
 #include "td/telegram/JsonValue.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/StarManager.h"
 
 #include "td/utils/algorithm.h"

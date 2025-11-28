@@ -69,19 +69,12 @@ class StarGiftAttributeBackdrop {
 
   friend bool operator==(const StarGiftAttributeBackdrop &lhs, const StarGiftAttributeBackdrop &rhs);
 
-  bool is_valid_color(int32 color) const {
-    return 0 <= color && color <= 0xFFFFFF;
-  }
-
  public:
   StarGiftAttributeBackdrop() = default;
 
   explicit StarGiftAttributeBackdrop(telegram_api::object_ptr<telegram_api::starGiftAttributeBackdrop> &&attribute);
 
-  bool is_valid() const {
-    return 0 < rarity_permille_ && rarity_permille_ <= 1000 && is_valid_color(center_color_) &&
-           is_valid_color(edge_color_) && is_valid_color(pattern_color_) && is_valid_color(text_color_);
-  }
+  bool is_valid() const;
 
   td_api::object_ptr<td_api::upgradedGiftBackdrop> get_upgraded_gift_backdrop_object() const;
 

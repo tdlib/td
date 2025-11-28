@@ -26,10 +26,6 @@ class GroupCallMessageLimit {
 
   friend bool operator<(const GroupCallMessageLimit &lhs, const GroupCallMessageLimit &rhs);
 
-  static bool is_valid_color(int32 color) {
-    return 0 <= color && color <= 0xFFFFFF;
-  }
-
  public:
   GroupCallMessageLimit() = default;
 
