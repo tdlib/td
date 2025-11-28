@@ -88,6 +88,9 @@ class GetStarGiftsQuery final : public Td::ResultHandler {
           if (star_gift->require_premium_) {
             continue;
           }
+          if (star_gift->auction_) {
+            continue;
+          }
           if (star_gift->locked_until_date_ > G()->unix_time()) {
             continue;
           }
