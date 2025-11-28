@@ -19,7 +19,7 @@ class AuctionBidLevel {
   int64 star_count_;
   int32 date_;
 
-  friend bool operator<(const AuctionBidLevel &lhs, const AuctionBidLevel &rhs);
+  bool is_before(const AuctionBidLevel &other) const;
 
   friend bool operator==(const AuctionBidLevel &lhs, const AuctionBidLevel &rhs);
 
@@ -33,8 +33,6 @@ class AuctionBidLevel {
 
   td_api::object_ptr<td_api::auctionBid> get_auction_bid_object() const;
 };
-
-bool operator<(const AuctionBidLevel &lhs, const AuctionBidLevel &rhs);
 
 bool operator==(const AuctionBidLevel &lhs, const AuctionBidLevel &rhs);
 

@@ -18,12 +18,17 @@ AuctionBidLevel::AuctionBidLevel(const telegram_api::object_ptr<telegram_api::au
     , date_(bid_level->date_) {
 }
 
+bool AuctionBidLevel::is_before(const AuctionBidLevel &other) const {
+  return position_ < other.position_ &&
+         (star_count_ > other.star_count_ || (star_count_ == other.star_count_ && date_ <= other.date_));
+}
+
 vector<AuctionBidLevel> AuctionBidLevel::get_auction_bid_levels(
     const vector<telegram_api::object_ptr<telegram_api::auctionBidLevel>> &bid_levels) {
   vector<AuctionBidLevel> result;
   for (const auto &bid_level : bid_levels) {
     AuctionBidLevel level(bid_level);
-    if (result.empty() || result.back() < level) {
+    if (result.empty() || result.back().is_before(level)) {
       result.push_back(std::move(level));
     }
   }
@@ -38,11 +43,6 @@ vector<AuctionBidLevel> AuctionBidLevel::get_auction_bid_levels(
 
 td_api::object_ptr<td_api::auctionBid> AuctionBidLevel::get_auction_bid_object() const {
   return td_api::make_object<td_api::auctionBid>(star_count_, date_, position_);
-}
-
-bool operator<(const AuctionBidLevel &lhs, const AuctionBidLevel &rhs) {
-  return lhs.position_ < rhs.position_ &&
-         (lhs.star_count_ > rhs.star_count_ || (lhs.star_count_ == rhs.star_count_ && lhs.date_ <= rhs.date_));
 }
 
 bool operator==(const AuctionBidLevel &lhs, const AuctionBidLevel &rhs) {
