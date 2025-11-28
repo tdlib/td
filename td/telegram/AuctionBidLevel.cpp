@@ -10,10 +10,28 @@
 
 namespace td {
 
-AuctionBidLevel::AuctionBidLevel(telegram_api::object_ptr<telegram_api::auctionBidLevel> &bid_level)
+AuctionBidLevel::AuctionBidLevel(const telegram_api::object_ptr<telegram_api::auctionBidLevel> &bid_level)
     : position_(bid_level->pos_)
     , star_count_(StarManager::get_star_count(bid_level->amount_))
     , date_(bid_level->date_) {
+}
+
+vector<AuctionBidLevel> AuctionBidLevel::get_auction_bid_levels(
+    const vector<telegram_api::object_ptr<telegram_api::auctionBidLevel>> &bid_levels) {
+  vector<AuctionBidLevel> result;
+  for (const auto &bid_level : bid_levels) {
+    AuctionBidLevel level(bid_level);
+    if (result.empty() || result.back() < level) {
+      result.push_back(std::move(level));
+    }
+  }
+  if (result.size() != bid_levels.size()) {
+    LOG(ERROR) << "Receive unsorted bid levels";
+    for (const auto &bid_level : bid_levels) {
+      LOG(ERROR) << to_string(bid_level);
+    }
+  }
+  return result;
 }
 
 td_api::object_ptr<td_api::auctionBid> AuctionBidLevel::get_auction_bid_object() const {

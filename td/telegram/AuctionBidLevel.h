@@ -25,7 +25,10 @@ class AuctionBidLevel {
   friend StringBuilder &operator<<(StringBuilder &string_builder, const AuctionBidLevel &bid_level);
 
  public:
-  AuctionBidLevel(telegram_api::object_ptr<telegram_api::auctionBidLevel> &bid_level);
+  explicit AuctionBidLevel(const telegram_api::object_ptr<telegram_api::auctionBidLevel> &bid_level);
+
+  static vector<AuctionBidLevel> get_auction_bid_levels(
+      const vector<telegram_api::object_ptr<telegram_api::auctionBidLevel>> &bid_levels);
 
   td_api::object_ptr<td_api::auctionBid> get_auction_bid_object() const;
 };
