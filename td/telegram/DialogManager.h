@@ -215,6 +215,8 @@ class DialogManager final : public Actor {
 
   void report_dialog_photo(DialogId dialog_id, FileId file_id, ReportReason &&reason, Promise<Unit> &&promise);
 
+  Status can_delete_all_dialog_messages_by_sender(DialogId dialog_id) const;
+
   Status can_pin_messages(DialogId dialog_id) const;
 
   bool can_use_premium_custom_emoji_in_dialog(DialogId dialog_id) const;

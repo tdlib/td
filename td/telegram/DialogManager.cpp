@@ -2708,6 +2708,32 @@ void DialogManager::report_dialog_photo(DialogId dialog_id, FileId file_id, Repo
       ->send(dialog_id, file_id, full_remote_location->as_input_photo(), std::move(reason));
 }
 
+Status DialogManager::can_delete_all_dialog_messages_by_sender(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::Chat:
+    case DialogType::SecretChat:
+    case DialogType::None:
+      return Status::Error(400, "All messages from a sender can be deleted only in supergroup chats");
+    case DialogType::Channel: {
+      auto channel_id = dialog_id.get_channel_id();
+      if (!td_->chat_manager_->is_megagroup_channel(channel_id) ||
+          td_->chat_manager_->is_monoforum_channel(channel_id)) {
+        return Status::Error(400, "The method is available only in regular supergroup chats");
+      }
+      auto channel_status = td_->chat_manager_->get_channel_permissions(channel_id);
+      if (!channel_status.can_delete_messages()) {
+        return Status::Error(400, "Need delete messages administrator right in the supergroup chat");
+      }
+      break;
+    }
+    default:
+      UNREACHABLE();
+      break;
+  }
+  return Status::OK();
+}
+
 Status DialogManager::can_pin_messages(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
