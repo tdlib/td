@@ -9,6 +9,9 @@
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/StarGift.h"
+#include "td/telegram/StarGiftAuctionState.h"
+#include "td/telegram/StarGiftAuctionUserState.h"
 #include "td/telegram/StarGiftCollectionId.h"
 #include "td/telegram/StarGiftId.h"
 #include "td/telegram/StarGiftResalePrice.h"
@@ -49,6 +52,9 @@ class StarGiftManager final : public Actor {
 
   void send_gift(int64 gift_id, DialogId dialog_id, td_api::object_ptr<td_api::formattedText> text, bool is_private,
                  bool pay_for_upgrade, Promise<Unit> &&promise);
+
+  void get_gift_auction_state(const string &auction_id,
+                              Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise);
 
   void convert_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, Promise<Unit> &&promise);
 
@@ -127,6 +133,12 @@ class StarGiftManager final : public Actor {
   void unregister_gift(MessageFullId message_full_id, const char *source);
 
  private:
+  struct AuctionInfo {
+    StarGift gift_;
+    StarGiftAuctionState state_;
+    StarGiftAuctionUserState user_state_;
+  };
+
   void start_up() final;
 
   void tear_down() final;
@@ -151,6 +163,14 @@ class StarGiftManager final : public Actor {
 
   void on_dialog_gift_transferred(DialogId from_dialog_id, DialogId to_dialog_id, Promise<Unit> &&promise);
 
+  void reload_gift_auction_state(telegram_api::object_ptr<telegram_api::InputStarGiftAuction> &&input_auction,
+                                 Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise);
+
+  void on_get_auction_state(Result<telegram_api::object_ptr<telegram_api::payments_starGiftAuctionState>> r_state,
+                            Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise);
+
+  td_api::object_ptr<td_api::giftAuctionState> get_gift_auction_state_object(const AuctionInfo &info) const;
+
   Td *td_;
   ActorShared<> parent_;
 
@@ -161,6 +181,8 @@ class StarGiftManager final : public Actor {
   WaitFreeHashMap<int64, MessageFullId> gift_message_full_ids_by_id_;
   FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_gift_messages_;
   MultiTimeout update_gift_message_timeout_{"UpdateGiftMessageTimeout"};
+
+  FlatHashMap<int64, AuctionInfo> gift_auction_infos_;
 };
 
 }  // namespace td

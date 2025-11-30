@@ -1541,6 +1541,12 @@ auctionStateActive start_date:int32 end_date:int32 min_bid:int53 bid_levels:vect
 auctionStateFinished start_date:int32 end_date:int32 average_price:int53 acquired_item_count:int32 = AuctionState;
 
 
+//@description Represent auction state of a gift
+//@gift The gift
+//@state Auction state of the gift
+giftAuctionState gift:gift state:AuctionState = GiftAuctionState;
+
+
 //@class TransactionDirection @description Describes direction of transactions in a transaction list
 
 //@description The transaction is incoming and increases the amount of owned currency
@@ -13507,6 +13513,9 @@ canSendGift gift_id:int64 = CanSendGiftResult;
 //@is_private Pass true to show gift text and sender only to the gift receiver; otherwise, everyone will be able to see them
 //@pay_for_upgrade Pass true to additionally pay for the gift upgrade and allow the receiver to upgrade it for free
 sendGift gift_id:int64 owner_id:MessageSender text:formattedText is_private:Bool pay_for_upgrade:Bool = Ok;
+
+//@description Returns auction state for a gift @auction_id Unique identifier of the auction
+getGiftAuctionState auction_id:string = GiftAuctionState;
 
 //@description Sells a gift for Telegram Stars; requires owner privileges for gifts owned by a chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only

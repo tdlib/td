@@ -279,6 +279,36 @@ class GetGiftPaymentFormQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarGiftAuctionStateQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::payments_starGiftAuctionState>> promise_;
+
+ public:
+  explicit GetStarGiftAuctionStateQuery(
+      Promise<telegram_api::object_ptr<telegram_api::payments_starGiftAuctionState>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputStarGiftAuction> input_auction, int32 version) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_getStarGiftAuctionState(std::move(input_auction), version)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarGiftAuctionState>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetStarGiftAuctionStateQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ConvertStarGiftQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -1891,6 +1921,57 @@ void StarGiftManager::send_gift(int64 gift_id, DialogId dialog_id, td_api::objec
   }
   td_->create_handler<GetGiftPaymentFormQuery>(std::move(promise))
       ->send(std::move(input_invoice), std::move(send_input_invoice), star_count);
+}
+
+void StarGiftManager::get_gift_auction_state(const string &auction_id,
+                                             Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise) {
+  reload_gift_auction_state(telegram_api::make_object<telegram_api::inputStarGiftAuctionSlug>(auction_id),
+                            std::move(promise));
+}
+
+void StarGiftManager::reload_gift_auction_state(
+    telegram_api::object_ptr<telegram_api::InputStarGiftAuction> &&input_auction,
+    Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise) {
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), promise = std::move(promise)](
+          Result<telegram_api::object_ptr<telegram_api::payments_starGiftAuctionState>> r_state) mutable {
+        send_closure(actor_id, &StarGiftManager::on_get_auction_state, std::move(r_state), std::move(promise));
+      });
+  td_->create_handler<GetStarGiftAuctionStateQuery>(std::move(query_promise))->send(std::move(input_auction), 0);
+}
+
+void StarGiftManager::on_get_auction_state(
+    Result<telegram_api::object_ptr<telegram_api::payments_starGiftAuctionState>> r_state,
+    Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (r_state.is_error()) {
+    return promise.set_error(r_state.move_as_error());
+  }
+  auto state = r_state.move_as_ok();
+
+  td_->user_manager_->on_get_users(std::move(state->users_), "on_get_auction_state");
+  auto gift = StarGift(td_, std::move(state->gift_), false);
+  if (!gift.is_valid() || gift.get_id() == 0) {
+    LOG(ERROR) << "Receive invalid auction gift";
+    return promise.set_error(500, "Receive invalid response");
+  }
+
+  auto &info = gift_auction_infos_[gift.get_id()];
+  info.gift_ = std::move(gift);
+  auto new_state = StarGiftAuctionState(state->state_);
+  if (new_state.get_version() >= info.state_.get_version()) {
+    info.state_ = std::move(new_state);
+  }
+  info.user_state_ = StarGiftAuctionUserState(state->user_state_);
+
+  // TODO state->timeout_
+  promise.set_value(get_gift_auction_state_object(info));
+}
+
+td_api::object_ptr<td_api::giftAuctionState> StarGiftManager::get_gift_auction_state_object(
+    const AuctionInfo &info) const {
+  return td_api::make_object<td_api::giftAuctionState>(info.gift_.get_gift_object(td_),
+                                                       info.state_.get_auction_state_object(td_, info.user_state_));
 }
 
 void StarGiftManager::convert_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id,

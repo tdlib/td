@@ -39,7 +39,13 @@ class StarGiftAuctionState {
   friend bool operator==(const StarGiftAuctionState &lhs, const StarGiftAuctionState &rhs);
 
  public:
+  StarGiftAuctionState() = default;
+
   explicit StarGiftAuctionState(telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &state_ptr);
+
+  int32 get_version() const {
+    return version_;
+  }
 
   td_api::object_ptr<td_api::AuctionState> get_auction_state_object(Td *td,
                                                                     const StarGiftAuctionUserState &user_state) const;

@@ -3129,6 +3129,10 @@ class CliClient final : public Actor {
       get_args(args, gift_id, owner_id, pay_for_upgrade, text);
       send_request(td_api::make_object<td_api::sendGift>(gift_id, as_message_sender(owner_id), as_formatted_text(text),
                                                          op == "sendgp", pay_for_upgrade));
+    } else if (op == "ggas") {
+      string auction_id;
+      get_args(args, auction_id);
+      send_request(td_api::make_object<td_api::getGiftAuctionState>(auction_id));
     } else if (op == "sellg") {
       string star_gift_id;
       get_args(args, star_gift_id);
