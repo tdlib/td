@@ -2,14 +2,72 @@
 <html>
 
 <head>
-  <title>TDLib build instructions</title>
+  <title id="pageTitle">TDLib build instructions</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+    // Load branding configuration
+    async function loadBranding() {
+      try {
+        const response = await fetch('branding.json');
+        const branding = await response.json();
+
+        // Apply colors to CSS variables
+        const root = document.documentElement;
+        if (branding.colors) {
+          if (branding.colors.primary) {
+            root.style.setProperty('--color-primary', branding.colors.primary);
+          }
+          if (branding.colors.primaryLight) {
+            root.style.setProperty('--color-primary-light', branding.colors.primaryLight);
+          }
+          if (branding.colors.secondary) {
+            root.style.setProperty('--color-secondary', branding.colors.secondary);
+          }
+          if (branding.colors.secondaryLight) {
+            root.style.setProperty('--color-secondary-light', branding.colors.secondaryLight);
+          }
+        }
+
+        // Apply branding name
+        if (branding.branding && branding.branding.name) {
+          document.getElementById('pageTitle').textContent = branding.branding.name + ' build instructions';
+        }
+
+        // Apply logo if configured
+        if (branding.assets && branding.assets.logo) {
+          const logoContainer = document.getElementById('logoContainer');
+          if (logoContainer) {
+            const logo = document.createElement('img');
+            logo.src = branding.assets.logo;
+            logo.alt = branding.assets.logoAlt || 'Logo';
+            logo.style.maxHeight = '60px';
+            logo.style.marginBottom = '20px';
+            logoContainer.appendChild(logo);
+          }
+        }
+
+        return branding;
+      } catch (error) {
+        console.warn('Could not load branding.json, using defaults:', error);
+        return null;
+      }
+    }
+
+    // Load branding before page renders
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadBranding);
+    } else {
+      loadBranding();
+    }
+  </script>
   <style>
     :root {
       --background: #fafafa;
       --color: black;
       --color-primary: #0088ff;
       --color-primary-light: #42a7ff;
+      --color-secondary: #6c757d;
+      --color-secondary-light: #95999c;
       --color-code-block: #ebf9ff;
       --color-select-border: rgb(211, 211, 211);
       --color-checkbox-background: rgb(211, 211, 211);
@@ -192,6 +250,7 @@
 <body onload="onLoad(true)" onpopstate="onLoad(false)">
 
 <div class="main">
+  <div id="logoContainer" style="text-align: center;"></div>
   <div id="languageSelectDiv">
     <p>Choose a programming language from which you want to use TDLib:</p>
     <select id="languageSelect" onchange="onLanguageChanged(false)" autofocus class="large">

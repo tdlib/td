@@ -1,0 +1,17 @@
+{
+  "colors": {
+    "primary": "#0088ff",
+    "primaryLight": "#42a7ff",
+    "secondary": "#6c757d",
+    "secondaryLight": "#95999c"
+  },
+  "assets": {
+    "logo": "assets/logo.png",
+    "icon": "assets/icon.png",
+    "logoAlt": "TDLib Logo"
+  },
+  "branding": {
+    "name": "TDLib",
+    "description": "Telegram Database Library"
+  }
+}
