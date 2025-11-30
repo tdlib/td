@@ -1508,6 +1508,14 @@ giftUpgradePreview models:vector<upgradedGiftModel> symbols:vector<upgradedGiftS
 //@position Position of the bid in the list of all bids
 auctionBid star_count:int53 bid_date:int32 position:int32 = AuctionBid;
 
+//@description Describes a bid of the current user in an auction
+//@star_count The number of Telegram Stars that were put in the bid
+//@bid_date Point in time (Unix timestamp) when the bid was made
+//@next_bid_star_count The minimum number of Telegram Stars that can be put for the next bid
+//@owner_id Identifier of the user or the chat that will receive the auctioned item
+//@was_returned True, if the bid was returned to the user, because it was outbid and can't win anymore
+userAuctionBid star_count:int53 bid_date:int32 next_bid_star_count:int53 owner_id:MessageSender was_returned:Bool = UserAuctionBid;
+
 
 //@class AuctionState @description Describes state of an auction
 
