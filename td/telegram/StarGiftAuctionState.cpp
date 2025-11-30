@@ -6,6 +6,7 @@
 //
 #include "td/telegram/StarGiftAuctionState.h"
 
+#include "td/telegram/StarGiftAuctionUserState.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
@@ -74,11 +75,13 @@ td_api::object_ptr<td_api::AuctionState> StarGiftAuctionState::get_auction_state
     auto top_bidder_user_ids = transform(top_bidder_user_ids_, [td](UserId user_id) {
       return td->user_manager_->get_user_id_object(user_id, "auctionStateActive");
     });
-    return td_api::make_object<td_api::auctionStateActive>(start_date_, end_date_, min_bid_amount_,
-                                                           std::move(bid_levels), std::move(top_bidder_user_ids),
-                                                           next_round_at_, current_round_, total_rounds_, gifts_left_);
+    return td_api::make_object<td_api::auctionStateActive>(
+        start_date_, end_date_, min_bid_amount_, std::move(bid_levels), std::move(top_bidder_user_ids), next_round_at_,
+        current_round_, total_rounds_, gifts_left_, user_state.get_acquired_count(),
+        user_state.get_user_auction_bid_object(td));
   } else {
-    return td_api::make_object<td_api::auctionStateFinished>(start_date_, end_date_, average_price_);
+    return td_api::make_object<td_api::auctionStateFinished>(start_date_, end_date_, average_price_,
+                                                             user_state.get_acquired_count());
   }
 }
 
