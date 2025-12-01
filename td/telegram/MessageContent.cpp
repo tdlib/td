@@ -4064,6 +4064,14 @@ static Result<InputMessageContent> create_input_message_content(
     const PathView path_view(suggested_path);
     file_name = path_view.file_name().str();
     mime_type = MimeType::from_extension(path_view.extension());
+    if (!check_utf8(file_name)) {
+      auto extension = path_view.extension();
+      if (extension.empty()) {
+        file_name = PSTRING() << "file." << extension;
+      } else {
+        file_name = "file";
+      }
+    }
   }
 
   bool disable_web_page_preview = false;
