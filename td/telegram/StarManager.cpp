@@ -1889,6 +1889,9 @@ string StarManager::get_unused_star_transaction_field(
   if (transaction->phonegroup_message_) {
     return "live story message";
   }
+  if (transaction->stargift_auction_bid_) {
+    return "gift auction bid";
+  }
   return string();
 }
 
