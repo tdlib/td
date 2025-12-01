@@ -3817,6 +3817,14 @@ linkPreviewTypeExternalAudio url:string mime_type:string duration:int32 = LinkPr
 //@duration Duration of the video, in seconds; 0 if unknown
 linkPreviewTypeExternalVideo url:string mime_type:string width:int32 height:int32 duration:int32 = LinkPreviewType;
 
+//@description The link is a link to a gift auction
+//@gift The gift
+//@auction_end_date Point in time (Unix timestamp) when the auction will be ended
+//@center_color Center color in RGB format
+//@edge_color Edge color in RGB format
+//@text_color Text color in RGB format
+linkPreviewTypeGiftAuction gift:gift auction_end_date:int32 center_color:int32 edge_color:int32 text_color:int32 = LinkPreviewType;
+
 //@description The link is a link to a gift collection @icons Icons for some gifts from the collection; may be empty
 linkPreviewTypeGiftCollection icons:vector<sticker> = LinkPreviewType;
 

@@ -1536,6 +1536,16 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
   }
   if (begins_with(web_page->type_, "telegram_")) {
     Slice type = Slice(web_page->type_).substr(9);
+    if (type == "auction") {
+      if (web_page->star_gifts_.size() == 1) {
+        return td_api::make_object<td_api::linkPreviewTypeGiftAuction>(
+            web_page->star_gifts_[0].get_gift_object(td_), web_page->auction_end_date_, web_page->auction_center_color_,
+            web_page->auction_edge_color_, web_page->auction_text_color_);
+      } else {
+        LOG(ERROR) << "Receive gift auction " << web_page->url_ << " without the gift";
+        return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
+      }
+    }
     if (type == "background") {
       LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
       LOG_IF(ERROR,
