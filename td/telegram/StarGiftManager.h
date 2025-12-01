@@ -146,6 +146,10 @@ class StarGiftManager final : public Actor {
     StarGift gift_;
     StarGiftAuctionState state_;
     StarGiftAuctionUserState user_state_;
+
+    bool operator==(const AuctionInfo &other) const {
+      return gift_ == other.gift_ && state_ == other.state_ && user_state_ == other.user_state_;
+    }
   };
 
   void start_up() final;
@@ -181,6 +185,11 @@ class StarGiftManager final : public Actor {
 
   void on_get_auction_state(Result<telegram_api::object_ptr<telegram_api::payments_starGiftAuctionState>> r_state,
                             Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise);
+
+  void reload_active_gift_auctions();
+
+  void on_get_active_gift_auctions(
+      Result<telegram_api::object_ptr<telegram_api::payments_StarGiftActiveAuctions>> r_auctions);
 
   td_api::object_ptr<td_api::giftAuctionState> get_gift_auction_state_object(const AuctionInfo &info) const;
 

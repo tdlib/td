@@ -310,6 +310,35 @@ class GetStarGiftAuctionStateQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarGiftActiveAuctionsQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::payments_StarGiftActiveAuctions>> promise_;
+
+ public:
+  explicit GetStarGiftActiveAuctionsQuery(
+      Promise<telegram_api::object_ptr<telegram_api::payments_StarGiftActiveAuctions>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarGiftActiveAuctions(0)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarGiftActiveAuctions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetStarGiftActiveAuctionsQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetStarGiftAuctionAcquiredGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::giftAuctionAcquiredGifts>> promise_;
 
@@ -2036,6 +2065,7 @@ void StarGiftManager::on_update_gift_auction_state(
     int64 gift_id, telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &&state) {
   auto it = gift_auction_infos_.find(gift_id);
   if (it == gift_auction_infos_.end()) {
+    reload_active_gift_auctions();
     return;
   }
   auto &info = it->second;
@@ -2051,6 +2081,7 @@ void StarGiftManager::on_update_gift_auction_user_state(
     int64 gift_id, telegram_api::object_ptr<telegram_api::starGiftAuctionUserState> &&state) {
   auto it = gift_auction_infos_.find(gift_id);
   if (it == gift_auction_infos_.end()) {
+    reload_active_gift_auctions();
     return;
   }
   auto &info = it->second;
@@ -2060,6 +2091,53 @@ void StarGiftManager::on_update_gift_auction_user_state(
   }
   info.user_state_ = std::move(new_user_state);
   send_update_gift_auction_state(info);
+}
+
+void StarGiftManager::reload_active_gift_auctions() {
+  auto promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this)](
+          Result<telegram_api::object_ptr<telegram_api::payments_StarGiftActiveAuctions>> r_auctions) mutable {
+        send_closure(actor_id, &StarGiftManager::on_get_active_gift_auctions, std::move(r_auctions));
+      });
+  td_->create_handler<GetStarGiftActiveAuctionsQuery>(std::move(promise))->send();
+}
+
+void StarGiftManager::on_get_active_gift_auctions(
+    Result<telegram_api::object_ptr<telegram_api::payments_StarGiftActiveAuctions>> r_auctions) {
+  if (G()->close_flag()) {
+    return;
+  }
+  if (r_auctions.is_error()) {
+    // TODO reload after some time
+    return;
+  }
+  auto auctions_ptr = r_auctions.move_as_ok();
+
+  switch (auctions_ptr->get_id()) {
+    case telegram_api::payments_starGiftActiveAuctionsNotModified::ID:
+      LOG(ERROR) << "Receive " << to_string(auctions_ptr);
+      break;
+    case telegram_api::payments_starGiftActiveAuctions::ID: {
+      auto auctions = telegram_api::move_object_as<telegram_api::payments_starGiftActiveAuctions>(auctions_ptr);
+      td_->user_manager_->on_get_users(std::move(auctions->users_), "on_get_active_gift_auctions");
+      vector<AuctionInfo> new_active_auctions;
+      for (auto &auction : auctions->auctions_) {
+        auto r_info =
+            get_auction_info(std::move(auction->gift_), std::move(auction->state_), std::move(auction->user_state_));
+        if (r_info.is_error()) {
+          continue;
+        }
+        new_active_auctions.push_back(r_info.move_as_ok());
+      }
+      if (active_gift_auctions_ != new_active_auctions) {
+        active_gift_auctions_ = std::move(new_active_auctions);
+        send_update_active_gift_auctions();
+      }
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
 }
 
 void StarGiftManager::get_gift_auction_acquired_gifts(
