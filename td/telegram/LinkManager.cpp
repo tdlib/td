@@ -630,6 +630,18 @@ class LinkManager::InternalLinkGame final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkGiftAuction final : public InternalLink {
+  string slug_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeGiftAuction>(slug_);
+  }
+
+ public:
+  explicit InternalLinkGiftAuction(string slug) : slug_(std::move(slug)) {
+  }
+};
+
 class LinkManager::InternalLinkGroupCall final : public InternalLink {
   string url_;
 
@@ -1493,9 +1505,9 @@ LinkManager::LinkInfo LinkManager::get_link_info(Slice link) {
     if (ends_with(host, ".t.me") && host.size() >= 9 && host.find('.') == host.size() - 5) {
       Slice subdomain(&host[0], host.size() - 5);
       static const FlatHashSet<Slice, SliceHash> disallowed_subdomains(
-          {"addemoji",    "addlist",  "addstickers", "addtheme", "auth",  "boost", "call", "confirmphone",
-           "contact",     "giftcode", "invoice",     "joinchat", "login", "m",     "nft",  "proxy",
-           "setlanguage", "share",    "socks",       "web",      "a",     "k",     "z"});
+          {"addemoji",     "addlist",     "addstickers", "addtheme", "auction",  "auth",  "boost", "call",
+           "confirmphone", "contact",     "giftcode",    "invoice",  "joinchat", "login", "m",     "nft",
+           "proxy",        "setlanguage", "share",       "socks",    "web",      "a",     "k",     "z"});
       if (is_valid_username(subdomain) && disallowed_subdomains.count(subdomain) == 0) {
         result.type_ = LinkType::TMe;
         result.query_ = PSTRING() << '/' << subdomain << http_url.query_;
@@ -1979,6 +1991,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (has_arg("balance") && is_valid_star_top_up_purpose(purpose)) {
       return td::make_unique<InternalLinkBuyStars>(to_integer<int64>(url_query.get_arg("balance")), std::move(purpose));
     }
+  } else if (path.size() == 1 && path[0] == "stargift_auction") {
+    auto slug = get_url_query_slug(true, url_query, "stargift_auction");
+    if (!slug.empty()) {
+      // stargift_auction?slug=<slug>
+      return td::make_unique<InternalLinkGiftAuction>(slug);
+    }
   }
   if (!path.empty() && !path[0].empty()) {
     return td::make_unique<InternalLinkUnknownDeepLink>(PSTRING() << "tg://" << query);
@@ -2047,6 +2065,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
     if (!invite_hash.empty() && !is_valid_phone_number(invite_hash) && is_base64url_characters(invite_hash)) {
       // /joinchat/<hash>
       return td::make_unique<InternalLinkDialogInvite>(get_dialog_invite_link(invite_hash, true));
+    }
+  } else if (path[0] == "auction") {
+    auto slug = get_url_query_slug(false, url_query, "auction");
+    if (!slug.empty()) {
+      // /auction/<slug>
+      return td::make_unique<InternalLinkGiftAuction>(slug);
     }
   } else if (path[0][0] == ' ' || path[0][0] == '+') {
     auto invite_hash = get_url_query_hash(false, url_query);
@@ -2704,6 +2728,17 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return PSTRING() << "tg://resolve?domain=" << link->bot_username_ << "&game=" << link->game_short_name_;
       } else {
         return PSTRING() << get_t_me_url() << link->bot_username_ << "?game=" << link->game_short_name_;
+      }
+    }
+    case td_api::internalLinkTypeGiftAuction::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeGiftAuction *>(type_ptr);
+      if (link->auction_id_.empty()) {
+        return Status::Error(400, "Invalid gift auction identifier specified");
+      }
+      if (is_internal) {
+        return PSTRING() << "tg://stargift_auction?slug=" << url_encode(link->auction_id_);
+      } else {
+        return PSTRING() << get_t_me_url() << "auction/" << url_encode(link->auction_id_);
       }
     }
     case td_api::internalLinkTypeGiftCollection::ID: {

@@ -8222,6 +8222,9 @@ internalLinkTypeEditProfileSettings = InternalLinkType;
 //@game_short_name Short name of the game
 internalLinkTypeGame bot_username:string game_short_name:string = InternalLinkType;
 
+//@description The link is a link to a gift auction. Call getGiftAuctionState with the given auction identifier to process the link @auction_id Unique identifier of the auction
+internalLinkTypeGiftAuction auction_id:string = InternalLinkType;
+
 //@description The link is a link to a gift collection. Call searchPublicChat with the given username, then call getReceivedGifts with the received gift owner identifier
 //-and the given collection identifier, then show the collection if received
 //@gift_owner_username Username of the owner of the gift collection
