@@ -2093,6 +2093,26 @@ void StarGiftManager::on_update_gift_auction_user_state(
   send_update_gift_auction_state(info);
 }
 
+void StarGiftManager::schedule_active_gift_auctions_reload() {
+  if (active_gift_auctions_reload_timeout_.has_timeout()) {
+    return;
+  }
+
+  LOG(INFO) << "Schedule active gift auctions reload";
+  active_gift_auctions_reload_timeout_.set_callback(std::move(reload_active_gift_auctions_static));
+  active_gift_auctions_reload_timeout_.set_callback_data(static_cast<void *>(td_));
+  active_gift_auctions_reload_timeout_.set_timeout_in(10.0);
+}
+
+void StarGiftManager::reload_active_gift_auctions_static(void *td) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  CHECK(td != nullptr);
+  static_cast<Td *>(td)->star_gift_manager_->reload_active_gift_auctions();
+}
+
 void StarGiftManager::reload_active_gift_auctions() {
   auto promise = PromiseCreator::lambda(
       [actor_id = actor_id(this)](
@@ -2108,7 +2128,7 @@ void StarGiftManager::on_get_active_gift_auctions(
     return;
   }
   if (r_auctions.is_error()) {
-    // TODO reload after some time
+    schedule_active_gift_auctions_reload();
     return;
   }
   auto auctions_ptr = r_auctions.move_as_ok();

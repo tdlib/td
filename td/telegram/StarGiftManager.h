@@ -20,6 +20,7 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -186,6 +187,10 @@ class StarGiftManager final : public Actor {
   void on_get_auction_state(Result<telegram_api::object_ptr<telegram_api::payments_starGiftAuctionState>> r_state,
                             Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise);
 
+  void schedule_active_gift_auctions_reload();
+
+  static void reload_active_gift_auctions_static(void *td);
+
   void reload_active_gift_auctions();
 
   void on_get_active_gift_auctions(
@@ -210,6 +215,8 @@ class StarGiftManager final : public Actor {
 
   FlatHashMap<int64, AuctionInfo> gift_auction_infos_;
   vector<AuctionInfo> active_gift_auctions_;
+
+  Timeout active_gift_auctions_reload_timeout_;
 };
 
 }  // namespace td
