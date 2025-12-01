@@ -36,6 +36,10 @@ class StarGiftAuctionUserState {
   int32 get_acquired_count() const {
     return acquired_count_;
   }
+
+  bool is_active() const {
+    return bid_dialog_id_ != DialogId();
+  }
 };
 
 bool operator==(const StarGiftAuctionUserState &lhs, const StarGiftAuctionUserState &rhs);

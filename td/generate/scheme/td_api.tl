@@ -9556,6 +9556,9 @@ updateNewCallSignalingData call_id:int32 data:bytes = Update;
 //@description State of a gift auction was updated @state New state of the auction
 updateGiftAuctionState state:giftAuctionState = Update;
 
+//@description The list of auctions in which participate the current user has changed @states New states of the auctions
+updateActiveGiftAuctions states:vector<giftAuctionState> = Update;
+
 //@description Some privacy setting rules have been changed @setting The privacy setting @rules New privacy rules
 updateUserPrivacySettingRules setting:UserPrivacySetting rules:userPrivacySettingRules = Update;
 

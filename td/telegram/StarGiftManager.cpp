@@ -2059,12 +2059,46 @@ td_api::object_ptr<td_api::giftAuctionState> StarGiftManager::get_gift_auction_s
                                                        info.state_.get_auction_state_object(td_, info.user_state_));
 }
 
-void StarGiftManager::send_update_gift_auction_state(const AuctionInfo &info) const {
+void StarGiftManager::send_update_gift_auction_state(const AuctionInfo &info) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  bool is_active = info.user_state_.is_active();
+  auto gift_id = info.gift_.get_id();
+  bool is_found = false;
+  for (auto it = active_gift_auctions_.begin(); it != active_gift_auctions_.end(); ++it) {
+    auto &active_info = *it;
+    if (active_info.gift_.get_id() == gift_id) {
+      if (is_active) {
+        if (active_info.state_ != info.state_ || active_info.user_state_ != info.user_state_) {
+          active_info.state_ = info.state_;
+          active_info.user_state_ = info.user_state_;
+          send_update_active_gift_auctions();
+        }
+      } else {
+        active_gift_auctions_.erase(it);
+        send_update_active_gift_auctions();
+      }
+      is_found = true;
+      break;
+    }
+  }
+  if (!is_found && is_active) {
+    active_gift_auctions_.push_back(info);
+    send_update_active_gift_auctions();
+  }
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateGiftAuctionState>(get_gift_auction_state_object(info)));
+}
+
+void StarGiftManager::send_update_active_gift_auctions() {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateActiveGiftAuctions>(transform(
+          active_gift_auctions_, [this](const AuctionInfo &info) { return get_gift_auction_state_object(info); })));
 }
 
 void StarGiftManager::convert_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id,
