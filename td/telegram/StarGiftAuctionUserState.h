@@ -40,4 +40,8 @@ class StarGiftAuctionUserState {
 
 bool operator==(const StarGiftAuctionUserState &lhs, const StarGiftAuctionUserState &rhs);
 
+inline bool operator!=(const StarGiftAuctionUserState &lhs, const StarGiftAuctionUserState &rhs) {
+  return !(lhs == rhs);
+}
+
 }  // namespace td

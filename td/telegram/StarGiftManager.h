@@ -171,6 +171,8 @@ class StarGiftManager final : public Actor {
 
   td_api::object_ptr<td_api::giftAuctionState> get_gift_auction_state_object(const AuctionInfo &info) const;
 
+  void send_update_gift_auction_state(const AuctionInfo &info) const;
+
   Td *td_;
   ActorShared<> parent_;
 

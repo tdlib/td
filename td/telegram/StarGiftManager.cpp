@@ -1959,10 +1959,19 @@ void StarGiftManager::on_get_auction_state(
   auto &info = gift_auction_infos_[gift.get_id()];
   info.gift_ = std::move(gift);
   auto new_state = StarGiftAuctionState(state->state_);
-  if (new_state.get_version() >= info.state_.get_version()) {
+  bool is_changed = false;
+  if (new_state.get_version() >= info.state_.get_version() && new_state != info.state_) {
     info.state_ = std::move(new_state);
+    is_changed = true;
   }
-  info.user_state_ = StarGiftAuctionUserState(state->user_state_);
+  auto new_user_state = StarGiftAuctionUserState(state->user_state_);
+  if (info.user_state_ != new_user_state) {
+    info.user_state_ = std::move(new_user_state);
+    is_changed = true;
+  }
+  if (is_changed) {
+    send_update_gift_auction_state(info);
+  }
 
   // TODO state->timeout_
   promise.set_value(get_gift_auction_state_object(info));
@@ -1972,6 +1981,14 @@ td_api::object_ptr<td_api::giftAuctionState> StarGiftManager::get_gift_auction_s
     const AuctionInfo &info) const {
   return td_api::make_object<td_api::giftAuctionState>(info.gift_.get_gift_object(td_),
                                                        info.state_.get_auction_state_object(td_, info.user_state_));
+}
+
+void StarGiftManager::send_update_gift_auction_state(const AuctionInfo &info) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateGiftAuctionState>(get_gift_auction_state_object(info)));
 }
 
 void StarGiftManager::convert_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id,
