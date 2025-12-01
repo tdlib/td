@@ -1977,6 +1977,36 @@ void StarGiftManager::on_get_auction_state(
   promise.set_value(get_gift_auction_state_object(info));
 }
 
+void StarGiftManager::on_update_gift_auction_state(
+    int64 gift_id, telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &&state) {
+  auto it = gift_auction_infos_.find(gift_id);
+  if (it == gift_auction_infos_.end()) {
+    return;
+  }
+  auto &info = it->second;
+  auto new_state = StarGiftAuctionState(state);
+  if (new_state.get_version() <= info.state_.get_version() || new_state == info.state_) {
+    return;
+  }
+  info.state_ = std::move(new_state);
+  send_update_gift_auction_state(info);
+}
+
+void StarGiftManager::on_update_gift_auction_user_state(
+    int64 gift_id, telegram_api::object_ptr<telegram_api::starGiftAuctionUserState> &&state) {
+  auto it = gift_auction_infos_.find(gift_id);
+  if (it == gift_auction_infos_.end()) {
+    return;
+  }
+  auto &info = it->second;
+  auto new_user_state = StarGiftAuctionUserState(state);
+  if (new_user_state == info.user_state_) {
+    return;
+  }
+  info.user_state_ = std::move(new_user_state);
+  send_update_gift_auction_state(info);
+}
+
 td_api::object_ptr<td_api::giftAuctionState> StarGiftManager::get_gift_auction_state_object(
     const AuctionInfo &info) const {
   return td_api::make_object<td_api::giftAuctionState>(info.gift_.get_gift_object(td_),
