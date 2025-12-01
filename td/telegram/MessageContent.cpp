@@ -10006,7 +10006,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
           star_gift_id = StarGiftId(gift_message_id.get_server_message_id());
         }
       }
-      if (m->sender_dialog_id != DialogId()) {
+      if (m->is_auction_acquired) {
+        star_gift_id = {};
+        sender_dialog_id = td->dialog_manager_->get_my_dialog_id();
+      } else if (m->sender_dialog_id != DialogId()) {
         sender_dialog_id = m->sender_dialog_id;
       } else if (m->is_prepaid_upgrade && is_outgoing) {
         sender_dialog_id = DialogId();

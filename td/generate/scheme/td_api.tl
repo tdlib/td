@@ -4807,7 +4807,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift; 0 if the gift can't be sold by the receiver
 //@prepaid_upgrade_star_count Number of Telegram Stars that were paid by the sender for the ability to upgrade the gift
 //@is_upgrade_separate True, if the upgrade was bought after the gift was sent. In this case, prepaid upgrade cost must not be added to the gift cost
-//@is_from_auction True, if the gift was purchased on an auction
+//@is_from_auction True, if the message is a notification about a gift won on an auction
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone will be able to see them
 //@is_saved True, if the gift is displayed on the user's or the channel's profile page; only for the receiver of the gift
 //@is_prepaid_upgrade True, if the message is about prepaid upgrade of the gift by another user
