@@ -1970,6 +1970,38 @@ void StarGiftManager::get_gift_auction_state(const string &auction_id,
                             std::move(promise));
 }
 
+Result<StarGiftManager::AuctionInfo> StarGiftManager::get_auction_info(
+    telegram_api::object_ptr<telegram_api::StarGift> &&star_gift,
+    telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &&state,
+    telegram_api::object_ptr<telegram_api::starGiftAuctionUserState> &&user_state) {
+  auto gift = StarGift(td_, std::move(star_gift), false);
+  if (!gift.is_valid() || gift.get_id() == 0) {
+    LOG(ERROR) << "Receive invalid auction gift";
+    return Status::Error(500, "Receive invalid response");
+  }
+
+  bool is_changed = false;
+  auto &info = gift_auction_infos_[gift.get_id()];
+  if (info.gift_ != gift) {
+    info.gift_ = std::move(gift);
+    is_changed = true;
+  }
+  auto new_state = StarGiftAuctionState(state);
+  if (new_state.get_version() >= info.state_.get_version() && new_state != info.state_) {
+    info.state_ = std::move(new_state);
+    is_changed = true;
+  }
+  auto new_user_state = StarGiftAuctionUserState(user_state);
+  if (info.user_state_ != new_user_state) {
+    info.user_state_ = std::move(new_user_state);
+    is_changed = true;
+  }
+  if (is_changed) {
+    send_update_gift_auction_state(info);
+  }
+  return std::move(info);
+}
+
 void StarGiftManager::reload_gift_auction_state(
     telegram_api::object_ptr<telegram_api::InputStarGiftAuction> &&input_auction,
     Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise) {
@@ -1991,28 +2023,10 @@ void StarGiftManager::on_get_auction_state(
   auto state = r_state.move_as_ok();
 
   td_->user_manager_->on_get_users(std::move(state->users_), "on_get_auction_state");
-  auto gift = StarGift(td_, std::move(state->gift_), false);
-  if (!gift.is_valid() || gift.get_id() == 0) {
-    LOG(ERROR) << "Receive invalid auction gift";
-    return promise.set_error(500, "Receive invalid response");
-  }
 
-  auto &info = gift_auction_infos_[gift.get_id()];
-  info.gift_ = std::move(gift);
-  auto new_state = StarGiftAuctionState(state->state_);
-  bool is_changed = false;
-  if (new_state.get_version() >= info.state_.get_version() && new_state != info.state_) {
-    info.state_ = std::move(new_state);
-    is_changed = true;
-  }
-  auto new_user_state = StarGiftAuctionUserState(state->user_state_);
-  if (info.user_state_ != new_user_state) {
-    info.user_state_ = std::move(new_user_state);
-    is_changed = true;
-  }
-  if (is_changed) {
-    send_update_gift_auction_state(info);
-  }
+  TRY_RESULT_PROMISE(
+      promise, info,
+      get_auction_info(std::move(state->gift_), std::move(state->state_), std::move(state->user_state_)));
 
   // TODO state->timeout_
   promise.set_value(get_gift_auction_state_object(info));
