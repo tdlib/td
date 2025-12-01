@@ -3133,6 +3133,10 @@ class CliClient final : public Actor {
       string auction_id;
       get_args(args, auction_id);
       send_request(td_api::make_object<td_api::getGiftAuctionState>(auction_id));
+    } else if (op == "ggaag") {
+      int64 gift_id;
+      get_args(args, gift_id);
+      send_request(td_api::make_object<td_api::getGiftAuctionAcquiredGifts>(gift_id));
     } else if (op == "sellg") {
       string star_gift_id;
       get_args(args, star_gift_id);

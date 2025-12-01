@@ -7933,6 +7933,12 @@ void Requests::on_request(uint64 id, td_api::getGiftAuctionState &request) {
   td_->star_gift_manager_->get_gift_auction_state(request.auction_id_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getGiftAuctionAcquiredGifts &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->star_gift_manager_->get_gift_auction_acquired_gifts(request.gift_id_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::sellGift &request) {
   CHECK_IS_USER_OR_BUSINESS();
   CREATE_OK_REQUEST_PROMISE();

@@ -17,6 +17,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageQuote.h"
+#include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OnlineManager.h"
 #include "td/telegram/PasswordManager.h"
@@ -302,6 +303,46 @@ class GetStarGiftAuctionStateQuery final : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetStarGiftAuctionStateQuery: " << to_string(ptr);
     promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetStarGiftAuctionAcquiredGiftsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftAuctionAcquiredGifts>> promise_;
+
+ public:
+  explicit GetStarGiftAuctionAcquiredGiftsQuery(Promise<td_api::object_ptr<td_api::giftAuctionAcquiredGifts>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 gift_id) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarGiftAuctionAcquiredGifts(gift_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarGiftAuctionAcquiredGifts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetStarGiftAuctionAcquiredGiftsQuery: " << to_string(ptr);
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetStarGiftAuctionAcquiredGiftsQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetStarGiftAuctionAcquiredGiftsQuery");
+
+    vector<td_api::object_ptr<td_api::giftAuctionAcquiredGift>> gifts;
+    for (auto &gift : ptr->gifts_) {
+      auto text = get_formatted_text(td_->user_manager_.get(), std::move(gift->message_), true, false,
+                                     "giftAuctionAcquiredGift");
+      gifts.push_back(td_api::make_object<td_api::giftAuctionAcquiredGift>(
+          get_message_sender_object(td_, DialogId(gift->peer_), "giftAuctionAcquiredGift"), gift->date_,
+          StarManager::get_star_count(gift->bid_amount_), gift->round_, gift->pos_,
+          get_formatted_text_object(td_->user_manager_.get(), text, true, -1), gift->name_hidden_));
+    }
+    promise_.set_value(td_api::make_object<td_api::giftAuctionAcquiredGifts>(std::move(gifts)));
   }
 
   void on_error(Status status) final {
@@ -2005,6 +2046,11 @@ void StarGiftManager::on_update_gift_auction_user_state(
   }
   info.user_state_ = std::move(new_user_state);
   send_update_gift_auction_state(info);
+}
+
+void StarGiftManager::get_gift_auction_acquired_gifts(
+    int64 gift_id, Promise<td_api::object_ptr<td_api::giftAuctionAcquiredGifts>> &&promise) {
+  td_->create_handler<GetStarGiftAuctionAcquiredGiftsQuery>(std::move(promise))->send(gift_id);
 }
 
 td_api::object_ptr<td_api::giftAuctionState> StarGiftManager::get_gift_auction_state_object(

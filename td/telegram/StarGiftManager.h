@@ -62,6 +62,9 @@ class StarGiftManager final : public Actor {
   void on_update_gift_auction_user_state(int64 gift_id,
                                          telegram_api::object_ptr<telegram_api::starGiftAuctionUserState> &&user_state);
 
+  void get_gift_auction_acquired_gifts(int64 gift_id,
+                                       Promise<td_api::object_ptr<td_api::giftAuctionAcquiredGifts>> &&promise);
+
   void convert_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, Promise<Unit> &&promise);
 
   void save_gift(StarGiftId star_gift_id, bool is_saved, Promise<Unit> &&promise);
