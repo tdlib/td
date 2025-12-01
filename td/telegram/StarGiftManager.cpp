@@ -2207,6 +2207,9 @@ void StarGiftManager::send_update_active_gift_auctions() {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  if (!active_gift_auctions_.empty()) {
+    schedule_active_gift_auctions_reload();
+  }
   send_closure(
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateActiveGiftAuctions>(transform(
