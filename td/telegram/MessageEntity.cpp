@@ -3898,18 +3898,12 @@ vector<MessageEntity> get_message_entities(Td *td, vector<tl_object_ptr<secret_a
       case secret_api::messageEntityBankCard::ID:
         // skip, will find it ourselves
         break;
-      case secret_api::messageEntityUrl::ID: {
-        auto entity = static_cast<const secret_api::messageEntityUrl *>(secret_entity.get());
-        // TODO skip URL when find_urls will be better
-        entities.emplace_back(MessageEntity::Type::Url, entity->offset_, entity->length_);
+      case secret_api::messageEntityUrl::ID:
+        // skip, will find it ourselves
         break;
-      }
-      case secret_api::messageEntityEmail::ID: {
-        auto entity = static_cast<const secret_api::messageEntityEmail *>(secret_entity.get());
-        // TODO skip emails when find_urls will be better
-        entities.emplace_back(MessageEntity::Type::EmailAddress, entity->offset_, entity->length_);
+      case secret_api::messageEntityEmail::ID:
+        // skip, will find it ourselves
         break;
-      }
       case secret_api::messageEntityBold::ID: {
         auto entity = static_cast<const secret_api::messageEntityBold *>(secret_entity.get());
         entities.emplace_back(MessageEntity::Type::Bold, entity->offset_, entity->length_);
