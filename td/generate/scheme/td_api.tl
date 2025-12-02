@@ -13570,6 +13570,11 @@ closeGiftAuction gift_id:int64 = Ok;
 //@is_private Pass true to show gift text and sender only to the gift receiver; otherwise, everyone will be able to see them
 placeGiftAuctionBid gift_id:int64 star_count:int53 user_id:int53 text:formattedText is_private:Bool = Ok;
 
+//@description Increases a bid for an auction gift without changing gift text and receiver
+//@gift_id Identifier of the gift to put the bid on
+//@star_count The number of Telegram Stars to put in the bid
+increaseGiftAuctionBid gift_id:int64 star_count:int53 = Ok;
+
 //@description Sells a gift for Telegram Stars; requires owner privileges for gifts owned by a chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@received_gift_id Identifier of the gift
