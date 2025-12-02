@@ -2124,7 +2124,7 @@ Result<StarGiftManager::AuctionInfo> StarGiftManager::get_auction_info(
     is_changed = true;
   }
   auto new_state = StarGiftAuctionState(state);
-  if (new_state.get_version() >= info.state_.get_version() && new_state != info.state_) {
+  if (!new_state.is_not_modified() && new_state.get_version() >= info.state_.get_version() && new_state != info.state_) {
     info.state_ = std::move(new_state);
     is_changed = true;
   }
@@ -2183,6 +2183,10 @@ void StarGiftManager::on_update_gift_auction_state(
   }
   auto &info = it->second;
   auto new_state = StarGiftAuctionState(state);
+  if (new_state.is_not_modified()) {
+    LOG(ERROR) << "Receive " << to_string(state);
+    return;
+  }
   if (new_state.get_version() <= info.state_.get_version() || new_state == info.state_) {
     return;
   }

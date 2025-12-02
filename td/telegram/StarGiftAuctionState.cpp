@@ -62,6 +62,9 @@ StarGiftAuctionState::StarGiftAuctionState(telegram_api::object_ptr<telegram_api
       average_price_ = StarManager::get_star_count(state->average_price_);
       break;
     }
+    case telegram_api::starGiftAuctionStateNotModified::ID:
+      is_not_modified_ = false;
+      break;
     default:
       UNREACHABLE();
   }
