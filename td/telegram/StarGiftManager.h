@@ -177,6 +177,10 @@ class StarGiftManager final : public Actor {
 
   void on_update_gift_message(MessageFullId message_full_id);
 
+  static void on_reload_gift_auction_timeout_callback(void *star_gift_manager_ptr, int64 gift_id);
+
+  void on_reload_gift_auction_timeout(int64 gift_id);
+
   void on_online();
 
   void on_dialog_gift_transferred(DialogId from_dialog_id, DialogId to_dialog_id, Promise<Unit> &&promise);
@@ -220,6 +224,7 @@ class StarGiftManager final : public Actor {
   FlatHashMap<int64, AuctionInfo> gift_auction_infos_;
   vector<AuctionInfo> active_gift_auctions_;
   FlatHashMap<int64, int32> gift_auction_open_counts_;
+  MultiTimeout reload_gift_auction_timeout_{"ReloadGiftAuctionTimeout"};
 
   Timeout active_gift_auctions_reload_timeout_;
 };

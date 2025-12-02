@@ -1903,6 +1903,9 @@ class UpdateStarGiftCollectionQuery final : public Td::ResultHandler {
 StarGiftManager::StarGiftManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   update_gift_message_timeout_.set_callback(on_update_gift_message_timeout_callback);
   update_gift_message_timeout_.set_callback_data(static_cast<void *>(this));
+
+  reload_gift_auction_timeout_.set_callback(on_reload_gift_auction_timeout_callback);
+  reload_gift_auction_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 StarGiftManager::~StarGiftManager() {
@@ -2057,7 +2060,10 @@ void StarGiftManager::on_get_auction_state(
       promise, info,
       get_auction_info(std::move(state->gift_), std::move(state->state_), std::move(state->user_state_)));
 
-  // TODO state->timeout_
+  auto gift_id = info.gift_.get_id();
+  if (gift_auction_infos_.count(gift_id) > 0) {
+    reload_gift_auction_timeout_.set_timeout_in(gift_id, state->timeout_);
+  }
   if (promise) {
     promise.set_value(get_gift_auction_state_object(info));
   }
@@ -2755,6 +2761,24 @@ void StarGiftManager::on_update_gift_message(MessageFullId message_full_id) {
   auto timeout = get_gift_message_polling_timeout();
   LOG(INFO) << "Schedule updating of gift in " << message_full_id << " in " << timeout;
   update_gift_message_timeout_.add_timeout_in(message_number, timeout);
+}
+
+void StarGiftManager::on_reload_gift_auction_timeout_callback(void *star_gift_manager_ptr, int64 gift_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto star_gift_manager = static_cast<StarGiftManager *>(star_gift_manager_ptr);
+  send_closure_later(star_gift_manager->actor_id(star_gift_manager), &StarGiftManager::on_reload_gift_auction_timeout,
+                     gift_id);
+}
+
+void StarGiftManager::on_reload_gift_auction_timeout(int64 gift_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+  CHECK(!td_->auth_manager_->is_bot());
+  reload_gift_auction_state(telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id), Auto());
 }
 
 }  // namespace td
