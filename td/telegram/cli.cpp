@@ -3137,6 +3137,14 @@ class CliClient final : public Actor {
       int64 gift_id;
       get_args(args, gift_id);
       send_request(td_api::make_object<td_api::getGiftAuctionAcquiredGifts>(gift_id));
+    } else if (op == "oga") {
+      int64 gift_id;
+      get_args(args, gift_id);
+      send_request(td_api::make_object<td_api::openGiftAuction>(gift_id));
+    } else if (op == "cga") {
+      int64 gift_id;
+      get_args(args, gift_id);
+      send_request(td_api::make_object<td_api::closeGiftAuction>(gift_id));
     } else if (op == "sellg") {
       string star_gift_id;
       get_args(args, star_gift_id);

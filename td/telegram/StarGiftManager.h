@@ -66,6 +66,10 @@ class StarGiftManager final : public Actor {
   void get_gift_auction_acquired_gifts(int64 gift_id,
                                        Promise<td_api::object_ptr<td_api::giftAuctionAcquiredGifts>> &&promise);
 
+  void open_gift_auction(int64 gift_id, bool is_recursive, Promise<Unit> &&promise);
+
+  void close_gift_auction(int64 gift_id, Promise<Unit> &&promise);
+
   void convert_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, Promise<Unit> &&promise);
 
   void save_gift(StarGiftId star_gift_id, bool is_saved, Promise<Unit> &&promise);
@@ -215,6 +219,7 @@ class StarGiftManager final : public Actor {
 
   FlatHashMap<int64, AuctionInfo> gift_auction_infos_;
   vector<AuctionInfo> active_gift_auctions_;
+  FlatHashMap<int64, int32> gift_auction_open_counts_;
 
   Timeout active_gift_auctions_reload_timeout_;
 };

@@ -2058,7 +2058,9 @@ void StarGiftManager::on_get_auction_state(
       get_auction_info(std::move(state->gift_), std::move(state->state_), std::move(state->user_state_)));
 
   // TODO state->timeout_
-  promise.set_value(get_gift_auction_state_object(info));
+  if (promise) {
+    promise.set_value(get_gift_auction_state_object(info));
+  }
 }
 
 void StarGiftManager::on_update_gift_auction_state(
@@ -2214,6 +2216,43 @@ void StarGiftManager::send_update_active_gift_auctions() {
       G()->td(), &Td::send_update,
       td_api::make_object<td_api::updateActiveGiftAuctions>(transform(
           active_gift_auctions_, [this](const AuctionInfo &info) { return get_gift_auction_state_object(info); })));
+}
+
+void StarGiftManager::open_gift_auction(int64 gift_id, bool is_recursive, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (gift_auction_infos_.find(gift_id) == gift_auction_infos_.end()) {
+    CHECK(!is_recursive);
+    return reload_gift_auction_state(
+        telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id),
+        PromiseCreator::lambda([actor_id = actor_id(this), gift_id, promise = std::move(promise)](
+                                   Result<td_api::object_ptr<td_api::giftAuctionState>> &&r_state) mutable {
+          if (r_state.is_error()) {
+            return promise.set_error(r_state.move_as_error());
+          } else {
+            send_closure(actor_id, &StarGiftManager::open_gift_auction, gift_id, true, std::move(promise));
+          }
+        }));
+  }
+
+  auto &count = gift_auction_open_counts_[gift_id];
+  if (++count == 1) {
+    LOG(INFO) << "Opened auction for gift " << gift_id;
+    if (!is_recursive) {
+      reload_gift_auction_state(telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id), Auto());
+    }
+  }
+  promise.set_value(Unit());
+}
+
+void StarGiftManager::close_gift_auction(int64 gift_id, Promise<Unit> &&promise) {
+  auto it = gift_auction_open_counts_.find(gift_id);
+  if (it == gift_auction_open_counts_.end()) {
+    return promise.set_error(400, "The gift auction isn't open");
+  }
+  if (--it->second == 0) {
+    gift_auction_open_counts_.erase(it);
+  }
+  promise.set_value(Unit());
 }
 
 void StarGiftManager::convert_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id,

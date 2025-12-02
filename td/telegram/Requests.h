@@ -1690,6 +1690,10 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getGiftAuctionAcquiredGifts &request);
 
+  void on_request(uint64 id, const td_api::openGiftAuction &request);
+
+  void on_request(uint64 id, const td_api::closeGiftAuction &request);
+
   void on_request(uint64 id, td_api::sellGift &request);
 
   void on_request(uint64 id, const td_api::toggleGiftIsSaved &request);

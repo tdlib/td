@@ -8247,7 +8247,8 @@ internalLinkTypeEditProfileSettings = InternalLinkType;
 //@game_short_name Short name of the game
 internalLinkTypeGame bot_username:string game_short_name:string = InternalLinkType;
 
-//@description The link is a link to a gift auction. Call getGiftAuctionState with the given auction identifier to process the link @auction_id Unique identifier of the auction
+//@description The link is a link to a gift auction. Call getGiftAuctionState with the given auction identifier to process the link
+//@auction_id Unique identifier of the auction
 internalLinkTypeGiftAuction auction_id:string = InternalLinkType;
 
 //@description The link is a link to a gift collection. Call searchPublicChat with the given username, then call getReceivedGifts with the received gift owner identifier
@@ -13553,6 +13554,12 @@ getGiftAuctionState auction_id:string = GiftAuctionState;
 
 //@description Returns the gifts that were acquired by the current user on a gift auction @gift_id Identifier of the auctioned gift
 getGiftAuctionAcquiredGifts gift_id:int64 = GiftAuctionAcquiredGifts;
+
+//@description Informs TDLib that a gift auction was opened by the user @gift_id Identifier of the gift, which auction was opened
+openGiftAuction gift_id:int64 = Ok;
+
+//@description Informs TDLib that a gift auction was closed by the user @gift_id Identifier of the gift, which auction was closed
+closeGiftAuction gift_id:int64 = Ok;
 
 //@description Sells a gift for Telegram Stars; requires owner privileges for gifts owned by a chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
