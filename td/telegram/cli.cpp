@@ -3149,6 +3149,14 @@ class CliClient final : public Actor {
       string star_gift_id;
       get_args(args, star_gift_id);
       send_request(td_api::make_object<td_api::sellGift>(business_connection_id_, star_gift_id));
+    } else if (op == "pgab" || op == "pgabp") {
+      int64 gift_id;
+      int64 star_count;
+      UserId user_id;
+      string text;
+      get_args(args, gift_id, star_count, user_id, text);
+      send_request(td_api::make_object<td_api::placeGiftAuctionBid>(gift_id, star_count, user_id,
+                                                                    as_formatted_text(text), op == "pgabp"));
     } else if (op == "tgis") {
       string star_gift_id;
       bool is_saved;

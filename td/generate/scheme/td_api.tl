@@ -13561,6 +13561,15 @@ openGiftAuction gift_id:int64 = Ok;
 //@description Informs TDLib that a gift auction was closed by the user @gift_id Identifier of the gift, which auction was closed
 closeGiftAuction gift_id:int64 = Ok;
 
+//@description Places a bid on an auction gift
+//@gift_id Identifier of the gift to place the bid on
+//@star_count The number of Telegram Stars to place in the bid
+//@user_id Identifier of the user that will receive the gift
+//@text Text to show along with the gift; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed.
+//-Must be empty if the receiver enabled paid messages
+//@is_private Pass true to show gift text and sender only to the gift receiver; otherwise, everyone will be able to see them
+placeGiftAuctionBid gift_id:int64 star_count:int53 user_id:int53 text:formattedText is_private:Bool = Ok;
+
 //@description Sells a gift for Telegram Stars; requires owner privileges for gifts owned by a chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@received_gift_id Identifier of the gift

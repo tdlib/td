@@ -33,6 +33,10 @@ class StarGiftAuctionUserState {
 
   td_api::object_ptr<td_api::userAuctionBid> get_user_auction_bid_object(Td *td) const;
 
+  int64 get_bid_amount() const {
+    return bid_amount_;
+  }
+
   int32 get_acquired_count() const {
     return acquired_count_;
   }

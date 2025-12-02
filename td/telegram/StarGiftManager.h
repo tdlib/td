@@ -70,6 +70,9 @@ class StarGiftManager final : public Actor {
 
   void close_gift_auction(int64 gift_id, Promise<Unit> &&promise);
 
+  void place_gift_auction_bid(int64 gift_id, int64 star_count, UserId user_id,
+                              td_api::object_ptr<td_api::formattedText> text, bool is_private, Promise<Unit> &&promise);
+
   void convert_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, Promise<Unit> &&promise);
 
   void save_gift(StarGiftId star_gift_id, bool is_saved, Promise<Unit> &&promise);
@@ -209,6 +212,10 @@ class StarGiftManager final : public Actor {
   void send_update_gift_auction_state(const AuctionInfo &info);
 
   void send_update_active_gift_auctions();
+
+  void do_place_gift_auction_bid(int64 gift_id, int64 star_count, UserId user_id,
+                                 td_api::object_ptr<td_api::formattedText> text, bool is_private,
+                                 Promise<Unit> &&promise);
 
   Td *td_;
   ActorShared<> parent_;
