@@ -2103,7 +2103,7 @@ void StarGiftManager::send_gift(int64 gift_id, DialogId dialog_id, td_api::objec
 
 void StarGiftManager::get_gift_auction_state(const string &auction_id,
                                              Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise) {
-  reload_gift_auction_state(telegram_api::make_object<telegram_api::inputStarGiftAuctionSlug>(auction_id),
+  reload_gift_auction_state(telegram_api::make_object<telegram_api::inputStarGiftAuctionSlug>(auction_id), 0,
                             std::move(promise));
 }
 
@@ -2140,14 +2140,14 @@ Result<StarGiftManager::AuctionInfo> StarGiftManager::get_auction_info(
 }
 
 void StarGiftManager::reload_gift_auction_state(
-    telegram_api::object_ptr<telegram_api::InputStarGiftAuction> &&input_auction,
+    telegram_api::object_ptr<telegram_api::InputStarGiftAuction> &&input_auction, int32 version,
     Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise) {
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), promise = std::move(promise)](
           Result<telegram_api::object_ptr<telegram_api::payments_starGiftAuctionState>> r_state) mutable {
         send_closure(actor_id, &StarGiftManager::on_get_auction_state, std::move(r_state), std::move(promise));
       });
-  td_->create_handler<GetStarGiftAuctionStateQuery>(std::move(query_promise))->send(std::move(input_auction), 0);
+  td_->create_handler<GetStarGiftAuctionStateQuery>(std::move(query_promise))->send(std::move(input_auction), version);
 }
 
 void StarGiftManager::on_get_auction_state(
@@ -2331,10 +2331,11 @@ void StarGiftManager::send_update_active_gift_auctions() {
 
 void StarGiftManager::open_gift_auction(int64 gift_id, bool is_recursive, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
-  if (gift_auction_infos_.find(gift_id) == gift_auction_infos_.end()) {
+  auto it = gift_auction_infos_.find(gift_id);
+  if (it == gift_auction_infos_.end()) {
     CHECK(!is_recursive);
     return reload_gift_auction_state(
-        telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id),
+        telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id), 0,
         PromiseCreator::lambda([actor_id = actor_id(this), gift_id, promise = std::move(promise)](
                                    Result<td_api::object_ptr<td_api::giftAuctionState>> &&r_state) mutable {
           if (r_state.is_error()) {
@@ -2349,7 +2350,8 @@ void StarGiftManager::open_gift_auction(int64 gift_id, bool is_recursive, Promis
   if (++count == 1) {
     LOG(INFO) << "Opened auction for gift " << gift_id;
     if (!is_recursive) {
-      reload_gift_auction_state(telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id), Auto());
+      reload_gift_auction_state(telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id),
+                                it->second.state_.get_version(), Auto());
     }
   }
   promise.set_value(Unit());
@@ -2371,7 +2373,7 @@ void StarGiftManager::place_gift_auction_bid(int64 gift_id, int64 star_count, Us
                                              Promise<Unit> &&promise) {
   if (gift_auction_infos_.find(gift_id) == gift_auction_infos_.end()) {
     return reload_gift_auction_state(
-        telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id),
+        telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id), 0,
         PromiseCreator::lambda(
             [actor_id = actor_id(this), gift_id, star_count, user_id, text = std::move(text), is_private,
              promise = std::move(promise)](Result<td_api::object_ptr<td_api::giftAuctionState>> &&r_state) mutable {
@@ -2431,7 +2433,7 @@ void StarGiftManager::do_place_gift_auction_bid(int64 gift_id, int64 star_count,
 void StarGiftManager::update_gift_auction_bid(int64 gift_id, int64 star_count, Promise<Unit> &&promise) {
   if (gift_auction_infos_.find(gift_id) == gift_auction_infos_.end()) {
     return reload_gift_auction_state(
-        telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id),
+        telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id), 0,
         PromiseCreator::lambda([actor_id = actor_id(this), gift_id, star_count, promise = std::move(promise)](
                                    Result<td_api::object_ptr<td_api::giftAuctionState>> &&r_state) mutable {
           if (r_state.is_error()) {
@@ -2984,7 +2986,12 @@ void StarGiftManager::on_reload_gift_auction_timeout(int64 gift_id) {
     return;
   }
   CHECK(!td_->auth_manager_->is_bot());
-  reload_gift_auction_state(telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id), Auto());
+  int32 version = 0;
+  auto it = gift_auction_infos_.find(gift_id);
+  if (it != gift_auction_infos_.end()) {
+    version = it->second.state_.get_version();
+  }
+  reload_gift_auction_state(telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id), version, Auto());
 }
 
 }  // namespace td

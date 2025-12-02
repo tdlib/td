@@ -195,7 +195,7 @@ class StarGiftManager final : public Actor {
                                        telegram_api::object_ptr<telegram_api::starGiftAuctionUserState> &&user_state);
 
   void reload_gift_auction_state(telegram_api::object_ptr<telegram_api::InputStarGiftAuction> &&input_auction,
-                                 Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise);
+                                 int32 version, Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise);
 
   void on_get_auction_state(Result<telegram_api::object_ptr<telegram_api::payments_starGiftAuctionState>> r_state,
                             Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise);
