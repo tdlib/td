@@ -253,6 +253,7 @@ class WebPagesManager::WebPage {
   bool video_cover_photo_ = false;
   mutable bool is_album_ = false;
   mutable bool is_album_checked_ = false;
+  mutable bool was_reloaded_ = false;
   Document document_;
   vector<Document> documents_;
   ThemeSettings theme_settings_;
@@ -617,6 +618,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       LOG(INFO) << "Receive " << web_page_id;
       auto page = make_unique<WebPage>();
 
+      page->was_reloaded_ = true;
       page->url_ = std::move(web_page->url_);
       page->display_url_ = std::move(web_page->display_url_);
       page->type_ = std::move(web_page->type_);
@@ -1529,8 +1531,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
   return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
 }
 
-td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_type_object(
-    const WebPage *web_page) const {
+td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_type_object(const WebPage *web_page,
+                                                                                          bool &need_reload) const {
+  need_reload = false;
   if (is_web_page_album(web_page)) {
     return get_link_preview_type_album_object(web_page->instant_view_);
   }
@@ -1543,6 +1546,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
             web_page->auction_edge_color_, web_page->auction_text_color_);
       } else {
         LOG(ERROR) << "Receive gift auction " << web_page->url_ << " without the gift";
+        need_reload = true;
         return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
       }
     }
@@ -1662,6 +1666,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
             web_page->star_gifts_[0].get_upgraded_gift_object(td_));
       } else {
         LOG(ERROR) << "Receive upgraded gift " << web_page->url_ << " without the gift";
+        need_reload = true;
         return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
       }
     }
@@ -1689,6 +1694,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
             td_->dialog_manager_->get_chat_id_object(story_sender_dialog_id, "webPage"), story_id.get());
       } else {
         LOG(ERROR) << "Receive Telegram story " << web_page->url_ << " without story";
+        need_reload = true;
         return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
       }
     }
@@ -2035,7 +2041,12 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
     }
     return false;
   }();
-  auto link_preview_type = get_link_preview_type_object(web_page);
+  bool need_reload = false;
+  auto link_preview_type = get_link_preview_type_object(web_page, need_reload);
+  if (need_reload && !web_page->was_reloaded_) {
+    web_page->was_reloaded_ = true;
+    td_->create_handler<GetWebPageQuery>(Auto())->send(WebPageId(), web_page->url_, 0);
+  }
   bool show_media_above_description = false;
   if (show_large_media) {
     auto type_id = link_preview_type->get_id();
