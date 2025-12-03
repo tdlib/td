@@ -2049,7 +2049,7 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
   auto link_preview_type = get_link_preview_type_object(web_page, need_reload);
   if (need_reload && !web_page->was_reloaded_) {
     web_page->was_reloaded_ = true;
-    td_->create_handler<GetWebPageQuery>(Auto())->send(WebPageId(), web_page->url_, 0);
+    td_->create_handler<GetWebPageQuery>(Promise<WebPageId>())->send(WebPageId(), web_page->url_, 0);
   }
   bool show_media_above_description = false;
   if (show_large_media) {

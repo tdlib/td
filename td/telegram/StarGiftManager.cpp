@@ -2379,7 +2379,7 @@ void StarGiftManager::close_gift_auction(int64 gift_id, Promise<Unit> &&promise)
 void StarGiftManager::place_gift_auction_bid(int64 gift_id, int64 star_count, UserId user_id,
                                              td_api::object_ptr<td_api::formattedText> text, bool is_private,
                                              Promise<Unit> &&promise) {
-  if (gift_auction_infos_.find(gift_id) == gift_auction_infos_.end()) {
+  if (gift_auction_infos_.count(gift_id) == 0) {
     return reload_gift_auction_state(
         telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id), 0,
         PromiseCreator::lambda(
@@ -2420,7 +2420,7 @@ void StarGiftManager::do_place_gift_auction_bid(int64 gift_id, int64 star_count,
       get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(text), false, true, true, false));
   MessageQuote::remove_unallowed_quote_entities(message);
 
-  auto flags = telegram_api::inputInvoiceStarGiftAuctionBid::PEER_MASK;
+  int32 flags = telegram_api::inputInvoiceStarGiftAuctionBid::PEER_MASK;
   auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftAuctionBid>(
       flags, is_private, old_star_count != 0, std::move(input_peer), gift_id, star_count, nullptr);
   auto send_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftAuctionBid>(
@@ -2439,7 +2439,7 @@ void StarGiftManager::do_place_gift_auction_bid(int64 gift_id, int64 star_count,
 }
 
 void StarGiftManager::update_gift_auction_bid(int64 gift_id, int64 star_count, Promise<Unit> &&promise) {
-  if (gift_auction_infos_.find(gift_id) == gift_auction_infos_.end()) {
+  if (gift_auction_infos_.count(gift_id) == 0) {
     return reload_gift_auction_state(
         telegram_api::make_object<telegram_api::inputStarGiftAuction>(gift_id), 0,
         PromiseCreator::lambda([actor_id = actor_id(this), gift_id, star_count, promise = std::move(promise)](

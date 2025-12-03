@@ -9,8 +9,6 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/StarManager.h"
 
-#include "td/utils/logging.h"
-
 namespace td {
 
 StarGiftAuctionUserState::StarGiftAuctionUserState(

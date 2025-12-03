@@ -6,8 +6,6 @@
 //
 #include "td/telegram/StarGiftBackground.h"
 
-#include "td/utils/logging.h"
-
 namespace td {
 
 td_api::object_ptr<td_api::giftBackground> StarGiftBackground::get_gift_background_object() const {
