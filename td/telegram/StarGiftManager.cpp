@@ -323,6 +323,7 @@ class PutGiftAuctionBidQuery final : public Td::ResultHandler {
       LOG(ERROR) << "Receive FORM_SUBMIT_DUPLICATE";
     }
     td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+    td_->star_manager_->reload_owned_star_count();
     promise_.set_error(std::move(status));
   }
 };
@@ -330,6 +331,7 @@ class PutGiftAuctionBidQuery final : public Td::ResultHandler {
 class GetGiftAuctionBidPaymentFormQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   int64 star_count_;
+  int64 old_star_count_;
   telegram_api::object_ptr<telegram_api::inputInvoiceStarGiftAuctionBid> send_input_invoice_;
 
  public:
@@ -341,6 +343,7 @@ class GetGiftAuctionBidPaymentFormQuery final : public Td::ResultHandler {
             int64 old_star_count) {
     send_input_invoice_ = std::move(send_input_invoice);
     star_count_ = star_count;
+    old_star_count_ = old_star_count;
     td_->star_manager_->add_pending_owned_star_count(old_star_count - star_count, false);
     send_query(
         G()->net_query_creator().create(telegram_api::payments_getPaymentForm(0, std::move(input_invoice), nullptr)));
@@ -358,7 +361,7 @@ class GetGiftAuctionBidPaymentFormQuery final : public Td::ResultHandler {
       case telegram_api::payments_paymentForm::ID:
       case telegram_api::payments_paymentFormStars::ID:
         LOG(ERROR) << "Receive " << to_string(payment_form_ptr);
-        td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+        td_->star_manager_->add_pending_owned_star_count(star_count_ - old_star_count_, false);
         promise_.set_error(500, "Unsupported");
         break;
       case telegram_api::payments_paymentFormStarGift::ID: {
@@ -366,7 +369,7 @@ class GetGiftAuctionBidPaymentFormQuery final : public Td::ResultHandler {
         if (!td_->auth_manager_->is_bot()) {
           if (payment_form->invoice_->prices_.size() != 1u ||
               payment_form->invoice_->prices_[0]->amount_ != star_count_) {
-            td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+            td_->star_manager_->add_pending_owned_star_count(star_count_ - old_star_count_, false);
             return promise_.set_error(500, "Receive invalid payment form");
           }
         }
@@ -380,7 +383,7 @@ class GetGiftAuctionBidPaymentFormQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
-    td_->star_manager_->add_pending_owned_star_count(star_count_, false);
+    td_->star_manager_->add_pending_owned_star_count(star_count_ - old_star_count_, false);
     promise_.set_error(std::move(status));
   }
 };
@@ -2124,7 +2127,8 @@ Result<StarGiftManager::AuctionInfo> StarGiftManager::get_auction_info(
     is_changed = true;
   }
   auto new_state = StarGiftAuctionState(state);
-  if (!new_state.is_not_modified() && new_state.get_version() >= info.state_.get_version() && new_state != info.state_) {
+  if (!new_state.is_not_modified() && new_state.get_version() >= info.state_.get_version() &&
+      new_state != info.state_) {
     info.state_ = std::move(new_state);
     is_changed = true;
   }
@@ -2418,9 +2422,9 @@ void StarGiftManager::do_place_gift_auction_bid(int64 gift_id, int64 star_count,
 
   auto flags = telegram_api::inputInvoiceStarGiftAuctionBid::PEER_MASK;
   auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftAuctionBid>(
-      flags, is_private, false, std::move(input_peer), gift_id, star_count, nullptr);
+      flags, is_private, old_star_count != 0, std::move(input_peer), gift_id, star_count, nullptr);
   auto send_input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftAuctionBid>(
-      flags, is_private, false, std::move(send_input_peer), gift_id, star_count, nullptr);
+      flags, is_private, old_star_count != 0, std::move(send_input_peer), gift_id, star_count, nullptr);
   if (!message.text.empty()) {
     input_invoice->flags_ |= telegram_api::inputInvoiceStarGiftAuctionBid::MESSAGE_MASK;
     input_invoice->message_ =
