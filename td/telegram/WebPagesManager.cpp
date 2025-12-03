@@ -750,8 +750,6 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             }
             page->star_gifts_.push_back(std::move(star_gift));
             page->auction_end_date_ = attribute->end_date_;
-            page->gift_background_ = make_unique<StarGiftBackground>(attribute->center_color_, attribute->edge_color_,
-                                                                     attribute->text_color_);
             if (page->type_ != "telegram_auction") {
               LOG(ERROR) << "Receive webPageAttributeStarGiftAuction for " << page->type_;
             }

@@ -8816,6 +8816,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionTodoAppendTasks::ID:
       case telegram_api::messageActionGiftTon::ID:
       case telegram_api::messageActionSuggestBirthday::ID:
+      case telegram_api::messageActionStarGiftPurchaseOffer::ID:
+      case telegram_api::messageActionStarGiftPurchaseOfferDeclined::ID:
         // ok
         break;
       default:
@@ -9487,6 +9489,12 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionSuggestBirthday::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionSuggestBirthday>(action_ptr);
       return td::make_unique<MessageSuggestBirthday>(Birthdate(std::move(action->birthday_)));
+    }
+    case telegram_api::messageActionStarGiftPurchaseOffer::ID: {
+      return td::make_unique<MessageUnsupported>();
+    }
+    case telegram_api::messageActionStarGiftPurchaseOfferDeclined::ID: {
+      return td::make_unique<MessageUnsupported>();
     }
     default:
       UNREACHABLE();

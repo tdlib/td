@@ -1963,7 +1963,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
         telegram_api::messages_forwardMessages(
             flags, false, false, false, false, false, false, false, std::move(from_input_peer),
             MessageId::get_server_message_ids(message_ids), std::move(random_ids), std::move(to_input_peer), top_msg_id,
-            std::move(input_reply_to), schedule_date, schedule_repeat_period, std::move(as_input_peer), nullptr,
+            std::move(input_reply_to), schedule_date, schedule_repeat_period, std::move(as_input_peer), nullptr, 0,
             new_video_start_timestamp, paid_message_star_count, std::move(post)),
         {{to_dialog_id, MessageContentType::Text}, {to_dialog_id, MessageContentType::Photo}});
     if (td_->option_manager_->get_option_boolean("use_quick_ack")) {

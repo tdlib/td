@@ -1019,6 +1019,8 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionSuggestedPostRefund::ID:
         case telegram_api::messageActionGiftTon::ID:
         case telegram_api::messageActionSuggestBirthday::ID:
+        case telegram_api::messageActionStarGiftPurchaseOffer::ID:
+        case telegram_api::messageActionStarGiftPurchaseOfferDeclined::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
