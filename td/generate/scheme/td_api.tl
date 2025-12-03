@@ -1210,6 +1210,12 @@ giftSettings show_gift_button:Bool accepted_gift_types:acceptedGiftTypes = GiftS
 //@gifts_per_round Number of gifts distributed in each round
 giftAuction id:string gifts_per_round:int32 = GiftAuction;
 
+//@description Describes background of a gift
+//@center_color Center color in RGB format
+//@edge_color Edge color in RGB format
+//@text_color Text color in RGB format
+giftBackground center_color:int32 edge_color:int32 text_color:int32 = GiftBackground;
+
 //@description Describes the maximum number of times that a specific gift can be purchased
 //@total_count The maximum number of times the gifts can be purchased
 //@remaining_count Number of remaining times the gift can be purchased
@@ -3835,11 +3841,9 @@ linkPreviewTypeExternalVideo url:string mime_type:string width:int32 height:int3
 
 //@description The link is a link to a gift auction
 //@gift The gift
+//@gift_background Describes background of the gift
 //@auction_end_date Point in time (Unix timestamp) when the auction will be ended
-//@center_color Center color in RGB format
-//@edge_color Edge color in RGB format
-//@text_color Text color in RGB format
-linkPreviewTypeGiftAuction gift:gift auction_end_date:int32 center_color:int32 edge_color:int32 text_color:int32 = LinkPreviewType;
+linkPreviewTypeGiftAuction gift:gift gift_background:giftBackground auction_end_date:int32 = LinkPreviewType;
 
 //@description The link is a link to a gift collection @icons Icons for some gifts from the collection; may be empty
 linkPreviewTypeGiftCollection icons:vector<sticker> = LinkPreviewType;

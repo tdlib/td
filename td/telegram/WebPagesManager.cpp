@@ -30,6 +30,8 @@
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/StarGift.h"
+#include "td/telegram/StarGiftBackground.h"
+#include "td/telegram/StarGiftBackground.hpp"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
@@ -262,9 +264,7 @@ class WebPagesManager::WebPage {
   vector<StarGift> star_gifts_;
   WebPageInstantView instant_view_;
   int32 auction_end_date_ = 0;
-  int32 auction_center_color_ = 0;
-  int32 auction_edge_color_ = 0;
-  int32 auction_text_color_ = 0;
+  unique_ptr<StarGiftBackground> gift_background_;
 
   FileSourceId file_source_id_;
 
@@ -291,8 +291,8 @@ class WebPagesManager::WebPage {
     bool has_sticker_ids = !sticker_ids_.empty();
     bool has_theme_settings = !theme_settings_.is_empty();
     bool has_star_gifts = !star_gifts_.empty();
-    bool has_auction =
-        auction_end_date_ != 0 || auction_center_color_ != 0 || auction_edge_color_ != 0 || auction_text_color_ != 0;
+    bool has_auction_end_date = auction_end_date_ != 0;
+    bool has_gift_background = gift_background_ != nullptr;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_type);
     STORE_FLAG(has_site_name);
@@ -314,7 +314,8 @@ class WebPagesManager::WebPage {
     STORE_FLAG(has_theme_settings);
     STORE_FLAG(has_star_gifts);
     STORE_FLAG(video_cover_photo_);
-    STORE_FLAG(has_auction);
+    STORE_FLAG(has_auction_end_date);
+    STORE_FLAG(has_gift_background);
     END_STORE_FLAGS();
 
     store(url_, storer);
@@ -369,11 +370,11 @@ class WebPagesManager::WebPage {
     if (has_star_gifts) {
       store(star_gifts_, storer);
     }
-    if (has_auction) {
+    if (has_auction_end_date) {
       store(auction_end_date_, storer);
-      store(auction_center_color_, storer);
-      store(auction_edge_color_, storer);
-      store(auction_text_color_, storer);
+    }
+    if (has_gift_background) {
+      store(gift_background_, storer);
     }
   }
 
@@ -398,7 +399,8 @@ class WebPagesManager::WebPage {
     bool has_sticker_ids;
     bool has_theme_settings;
     bool has_star_gifts;
-    bool has_auction;
+    bool has_auction_end_date;
+    bool has_gift_background;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_type);
     PARSE_FLAG(has_site_name);
@@ -420,7 +422,8 @@ class WebPagesManager::WebPage {
     PARSE_FLAG(has_theme_settings);
     PARSE_FLAG(has_star_gifts);
     PARSE_FLAG(video_cover_photo_);
-    PARSE_FLAG(has_auction);
+    PARSE_FLAG(has_auction_end_date);
+    PARSE_FLAG(has_gift_background);
     END_PARSE_FLAGS();
 
     parse(url_, parser);
@@ -484,11 +487,11 @@ class WebPagesManager::WebPage {
     if (has_star_gifts) {
       parse(star_gifts_, parser);
     }
-    if (has_auction) {
+    if (has_auction_end_date) {
       parse(auction_end_date_, parser);
-      parse(auction_center_color_, parser);
-      parse(auction_edge_color_, parser);
-      parse(auction_text_color_, parser);
+    }
+    if (has_gift_background) {
+      parse(gift_background_, parser);
     }
 
     if (has_instant_view) {
@@ -509,8 +512,7 @@ class WebPagesManager::WebPage {
            lhs.document_ == rhs.document_ && lhs.documents_ == rhs.documents_ &&
            lhs.theme_settings_ == rhs.theme_settings_ && lhs.story_full_ids_ == rhs.story_full_ids_ &&
            lhs.sticker_ids_ == rhs.sticker_ids_ && lhs.star_gifts_ == rhs.star_gifts_ &&
-           lhs.auction_end_date_ == rhs.auction_end_date_ && lhs.auction_center_color_ == rhs.auction_center_color_ &&
-           lhs.auction_edge_color_ == rhs.auction_edge_color_ && lhs.auction_text_color_ == rhs.auction_text_color_ &&
+           lhs.auction_end_date_ == rhs.auction_end_date_ && lhs.gift_background_ == rhs.gift_background_ &&
            lhs.instant_view_.is_empty_ == rhs.instant_view_.is_empty_ &&
            lhs.instant_view_.is_v2_ == rhs.instant_view_.is_v2_;
   }
@@ -748,9 +750,8 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             }
             page->star_gifts_.push_back(std::move(star_gift));
             page->auction_end_date_ = attribute->end_date_;
-            page->auction_center_color_ = attribute->center_color_;
-            page->auction_edge_color_ = attribute->edge_color_;
-            page->auction_text_color_ = attribute->text_color_;
+            page->gift_background_ = make_unique<StarGiftBackground>(attribute->center_color_, attribute->edge_color_,
+                                                                     attribute->text_color_);
             if (page->type_ != "telegram_auction") {
               LOG(ERROR) << "Receive webPageAttributeStarGiftAuction for " << page->type_;
             }
@@ -1541,9 +1542,12 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
     Slice type = Slice(web_page->type_).substr(9);
     if (type == "auction") {
       if (web_page->star_gifts_.size() == 1) {
+        td_api::object_ptr<td_api::giftBackground> background;
+        if (web_page->gift_background_ != nullptr) {
+          background = web_page->gift_background_->get_gift_background_object();
+        }
         return td_api::make_object<td_api::linkPreviewTypeGiftAuction>(
-            web_page->star_gifts_[0].get_gift_object(td_), web_page->auction_end_date_, web_page->auction_center_color_,
-            web_page->auction_edge_color_, web_page->auction_text_color_);
+            web_page->star_gifts_[0].get_gift_object(td_), std::move(background), web_page->auction_end_date_);
       } else {
         LOG(ERROR) << "Receive gift auction " << web_page->url_ << " without the gift";
         need_reload = true;
