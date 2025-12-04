@@ -2164,6 +2164,7 @@ void StarGiftManager::on_get_auction_state(
   auto state = r_state.move_as_ok();
 
   td_->user_manager_->on_get_users(std::move(state->users_), "on_get_auction_state");
+  td_->chat_manager_->on_get_chats(std::move(state->chats_), "on_get_auction_state");
 
   auto info = get_auction_info(std::move(state->gift_), std::move(state->state_), std::move(state->user_state_));
   if (info == nullptr) {
@@ -2262,6 +2263,7 @@ void StarGiftManager::on_get_active_gift_auctions(
     case telegram_api::payments_starGiftActiveAuctions::ID: {
       auto auctions = telegram_api::move_object_as<telegram_api::payments_starGiftActiveAuctions>(auctions_ptr);
       td_->user_manager_->on_get_users(std::move(auctions->users_), "on_get_active_gift_auctions");
+      td_->chat_manager_->on_get_chats(std::move(auctions->chats_), "on_get_active_gift_auctions");
       vector<AuctionInfo> new_active_auctions;
       for (auto &auction : auctions->auctions_) {
         auto info =
