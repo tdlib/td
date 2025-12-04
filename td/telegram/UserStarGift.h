@@ -35,6 +35,7 @@ class UserStarGift {
   int32 can_transfer_at_ = 0;
   int32 can_resell_at_ = 0;
   int32 can_export_at_ = 0;
+  int32 gift_num_ = 0;
   bool is_name_hidden_ = false;
   bool is_saved_ = false;
   bool is_pinned_ = false;
