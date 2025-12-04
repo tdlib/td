@@ -180,6 +180,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
   is_auction_ = star_gift->auction_;
   auction_slug_ = std::move(star_gift->auction_slug_);
   gifts_per_round_ = max(0, star_gift->gifts_per_round_);
+  auction_start_date_ = max(0, star_gift->auction_start_date_);
   locked_until_date_ = max(0, star_gift->locked_until_date_);
   if (star_gift->background_ != nullptr) {
     background_ = make_unique_value<StarGiftBackground>(star_gift->background_);
@@ -199,7 +200,7 @@ td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td,
   CHECK(!is_unique_);
   td_api::object_ptr<td_api::giftAuction> gift_auction;
   if (is_auction_) {
-    gift_auction = td_api::make_object<td_api::giftAuction>(auction_slug_, gifts_per_round_);
+    gift_auction = td_api::make_object<td_api::giftAuction>(auction_slug_, gifts_per_round_, auction_start_date_);
   }
   td_api::object_ptr<td_api::giftBackground> background;
   if (background_ != nullptr) {

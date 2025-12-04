@@ -49,6 +49,7 @@ void StarGift::store(StorerT &storer) const {
   bool has_peer_color = peer_color_ != nullptr;
   bool has_flags2 = true;
   bool has_background = background_ != nullptr;
+  bool has_auction_start_date = auction_start_date_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_limited);
   STORE_FLAG(has_default_sell_star_count);
@@ -84,6 +85,7 @@ void StarGift::store(StorerT &storer) const {
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_auction_);
   STORE_FLAG(has_background);
+  STORE_FLAG(has_auction_start_date);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -174,6 +176,9 @@ void StarGift::store(StorerT &storer) const {
   if (has_background) {
     td::store(background_, storer);
   }
+  if (has_auction_start_date) {
+    td::store(auction_start_date_, storer);
+  }
 }
 
 template <class ParserT>
@@ -204,6 +209,7 @@ void StarGift::parse(ParserT &parser) {
   bool has_peer_color;
   bool has_flags2;
   bool has_background = false;
+  bool has_auction_start_date = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_limited);
   PARSE_FLAG(has_default_sell_star_count);
@@ -240,6 +246,7 @@ void StarGift::parse(ParserT &parser) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_auction_);
     PARSE_FLAG(has_background);
+    PARSE_FLAG(has_auction_start_date);
     END_PARSE_FLAGS();
   }
   td::parse(id_, parser);
@@ -337,6 +344,9 @@ void StarGift::parse(ParserT &parser) {
   }
   if (has_background) {
     td::parse(background_, parser);
+  }
+  if (has_auction_start_date) {
+    td::parse(auction_start_date_, parser);
   }
 }
 

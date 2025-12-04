@@ -1208,7 +1208,8 @@ giftSettings show_gift_button:Bool accepted_gift_types:acceptedGiftTypes = GiftS
 //@description Describes an auction on which a gift can be purchased
 //@id Identifier of the auction
 //@gifts_per_round Number of gifts distributed in each round
-giftAuction id:string gifts_per_round:int32 = GiftAuction;
+//@start_date Point in time (Unix timestamp) when the auction will start
+giftAuction id:string gifts_per_round:int32 start_date:int32 = GiftAuction;
 
 //@description Describes background of a gift
 //@center_color Center color in RGB format
@@ -1526,8 +1527,8 @@ userAuctionBid star_count:int53 bid_date:int32 next_bid_star_count:int53 owner_i
 
 //@class AuctionState @description Describes state of an auction
 
-//@description Contains information about an ongoing auction
-//@start_date Point in time (Unix timestamp) when the auction started
+//@description Contains information about an ongoing or scheduled auction
+//@start_date Point in time (Unix timestamp) when the auction started or will start
 //@end_date Point in time (Unix timestamp) when the auction will be ended
 //@min_bid The minimum possible bid in the auction in Telegram Stars
 //@bid_levels A sparse list of bids that were made in the auction
