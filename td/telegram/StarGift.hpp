@@ -10,6 +10,7 @@
 #include "td/telegram/PeerColorCollectible.hpp"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarGiftAttribute.hpp"
+#include "td/telegram/StarGiftBackground.hpp"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
@@ -47,6 +48,7 @@ void StarGift::store(StorerT &storer) const {
   bool has_host_dialog_id = host_dialog_id_.is_valid();
   bool has_peer_color = peer_color_ != nullptr;
   bool has_flags2 = true;
+  bool has_background = background_ != nullptr;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_limited);
   STORE_FLAG(has_default_sell_star_count);
@@ -81,6 +83,7 @@ void StarGift::store(StorerT &storer) const {
   END_STORE_FLAGS();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_auction_);
+  STORE_FLAG(has_background);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -168,6 +171,9 @@ void StarGift::store(StorerT &storer) const {
     td::store(auction_slug_, storer);
     td::store(gifts_per_round_, storer);
   }
+  if (has_background) {
+    td::store(background_, storer);
+  }
 }
 
 template <class ParserT>
@@ -197,6 +203,7 @@ void StarGift::parse(ParserT &parser) {
   bool has_host_dialog_id;
   bool has_peer_color;
   bool has_flags2;
+  bool has_background = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_limited);
   PARSE_FLAG(has_default_sell_star_count);
@@ -232,6 +239,7 @@ void StarGift::parse(ParserT &parser) {
   if (has_flags2) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_auction_);
+    PARSE_FLAG(has_background);
     END_PARSE_FLAGS();
   }
   td::parse(id_, parser);
@@ -326,6 +334,9 @@ void StarGift::parse(ParserT &parser) {
   if (is_auction_) {
     td::parse(auction_slug_, parser);
     td::parse(gifts_per_round_, parser);
+  }
+  if (has_background) {
+    td::parse(background_, parser);
   }
 }
 

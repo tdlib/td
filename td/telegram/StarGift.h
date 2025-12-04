@@ -10,6 +10,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/PeerColorCollectible.h"
 #include "td/telegram/StarGiftAttribute.h"
+#include "td/telegram/StarGiftBackground.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -38,6 +39,7 @@ class StarGift {
   int32 per_user_remains_ = 0;
   int32 per_user_total_ = 0;
   int32 locked_until_date_ = 0;
+  unique_value_ptr<StarGiftBackground> background_;
 
   bool has_colors_ = false;
   bool is_for_birthday_ = false;
