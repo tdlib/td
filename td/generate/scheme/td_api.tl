@@ -1550,7 +1550,10 @@ auctionStateActive start_date:int32 end_date:int32 min_bid:int53 bid_levels:vect
 //@end_date Point in time (Unix timestamp) when the auction will be ended
 //@average_price Average price of bought items in Telegram Stars
 //@acquired_item_count The number of items that were purchased by the current user on the auction
-auctionStateFinished start_date:int32 end_date:int32 average_price:int53 acquired_item_count:int32 = AuctionState;
+//@telegram_listed_item_count Number of items from the auction being resold on Telegram
+//@fragment_listed_item_count Number of items from the auction being resold on Fragment
+//@fragment_url The HTTPS link to the Fragment for the resold items; may be empty if there are no such items being sold on Fragment
+auctionStateFinished start_date:int32 end_date:int32 average_price:int53 acquired_item_count:int32 telegram_listed_item_count:int32 fragment_listed_item_count:int32 fragment_url:string = AuctionState;
 
 
 //@description Represent auction state of a gift

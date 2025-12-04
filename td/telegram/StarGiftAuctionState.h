@@ -37,6 +37,9 @@ class StarGiftAuctionState {
 
   // finished
   int64 average_price_ = 0;
+  int32 listed_count_ = 0;
+  int32 fragment_listed_count_ = 0;
+  string fragment_listed_url_;
 
   friend bool operator==(const StarGiftAuctionState &lhs, const StarGiftAuctionState &rhs);
 

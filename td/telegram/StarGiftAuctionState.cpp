@@ -63,6 +63,9 @@ StarGiftAuctionState::StarGiftAuctionState(
       start_date_ = state->start_date_;
       end_date_ = state->end_date_;
       average_price_ = StarManager::get_star_count(state->average_price_);
+      listed_count_ = max(0, state->listed_count_);
+      fragment_listed_count_ = max(0, state->fragment_listed_count_);
+      fragment_listed_url_ = std::move(state->fragment_listed_url_);
       break;
     }
     case telegram_api::starGiftAuctionStateNotModified::ID:
@@ -87,7 +90,8 @@ td_api::object_ptr<td_api::AuctionState> StarGiftAuctionState::get_auction_state
         user_state.get_user_auction_bid_object(td));
   } else {
     return td_api::make_object<td_api::auctionStateFinished>(start_date_, end_date_, average_price_,
-                                                             user_state.get_acquired_count());
+                                                             user_state.get_acquired_count(), listed_count_,
+                                                             fragment_listed_count_, fragment_listed_url_);
   }
 }
 
@@ -97,7 +101,9 @@ bool operator==(const StarGiftAuctionState &lhs, const StarGiftAuctionState &rhs
          lhs.bid_levels_ == rhs.bid_levels_ && lhs.top_bidder_user_ids_ == rhs.top_bidder_user_ids_ &&
          lhs.next_round_at_ == rhs.next_round_at_ && lhs.last_gift_num_ == rhs.last_gift_num_ &&
          lhs.gifts_left_ == rhs.gifts_left_ && lhs.current_round_ == rhs.current_round_ &&
-         lhs.total_rounds_ == rhs.total_rounds_ && lhs.average_price_ == rhs.average_price_;
+         lhs.total_rounds_ == rhs.total_rounds_ && lhs.average_price_ == rhs.average_price_ &&
+         lhs.listed_count_ == rhs.listed_count_ && lhs.fragment_listed_count_ == rhs.fragment_listed_count_ &&
+         lhs.fragment_listed_url_ == rhs.fragment_listed_url_;
 }
 
 }  // namespace td
