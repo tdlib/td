@@ -71,6 +71,7 @@ class StarGift {
   int32 auction_start_date_ = 0;
   string value_currency_;
   int64 value_amount_ = 0;
+  int64 value_usd_amount_ = 0;
   DialogId theme_dialog_id_;
   unique_value_ptr<PeerColorCollectible> peer_color_;
 
