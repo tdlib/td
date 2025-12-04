@@ -1540,12 +1540,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
     Slice type = Slice(web_page->type_).substr(9);
     if (type == "auction") {
       if (web_page->star_gifts_.size() == 1) {
-        td_api::object_ptr<td_api::giftBackground> background;
-        if (web_page->gift_background_ != nullptr) {
-          background = web_page->gift_background_->get_gift_background_object();
-        }
         return td_api::make_object<td_api::linkPreviewTypeGiftAuction>(
-            web_page->star_gifts_[0].get_gift_object(td_), std::move(background), web_page->auction_end_date_);
+            web_page->star_gifts_[0].get_gift_object(td_, web_page->gift_background_.get()),
+            web_page->auction_end_date_);
       } else {
         LOG(ERROR) << "Receive gift auction " << web_page->url_ << " without the gift";
         need_reload = true;

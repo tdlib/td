@@ -3842,9 +3842,8 @@ linkPreviewTypeExternalVideo url:string mime_type:string width:int32 height:int3
 
 //@description The link is a link to a gift auction
 //@gift The gift
-//@gift_background Background of the gift
 //@auction_end_date Point in time (Unix timestamp) when the auction will be ended
-linkPreviewTypeGiftAuction gift:gift gift_background:giftBackground auction_end_date:int32 = LinkPreviewType;
+linkPreviewTypeGiftAuction gift:gift auction_end_date:int32 = LinkPreviewType;
 
 //@description The link is a link to a gift collection @icons Icons for some gifts from the collection; may be empty
 linkPreviewTypeGiftCollection icons:vector<sticker> = LinkPreviewType;

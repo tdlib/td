@@ -193,7 +193,8 @@ td_api::object_ptr<td_api::giftPurchaseLimits> StarGift::get_gift_purchase_limit
   return td_api::make_object<td_api::giftPurchaseLimits>(total, remains);
 }
 
-td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
+td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td,
+                                                           const StarGiftBackground *external_background) const {
   CHECK(is_valid());
   CHECK(!is_unique_);
   td_api::object_ptr<td_api::giftAuction> gift_auction;
@@ -203,6 +204,8 @@ td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
   td_api::object_ptr<td_api::giftBackground> background;
   if (background_ != nullptr) {
     background = background_->get_gift_background_object();
+  } else if (external_background != nullptr) {
+    background = external_background->get_gift_background_object();
   }
   return td_api::make_object<td_api::gift>(id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "gift"),
                                            td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_,
