@@ -32,6 +32,7 @@ class StarGift {
   int64 star_count_ = 0;
   int64 default_sell_star_count_ = 0;
   int64 upgrade_star_count_ = 0;
+  int32 upgrade_variants_ = 0;
   int32 availability_remains_ = 0;
   int32 availability_total_ = 0;
   int32 first_sale_date_ = 0;
