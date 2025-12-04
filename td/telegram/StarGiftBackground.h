@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
@@ -25,8 +26,10 @@ class StarGiftBackground {
  public:
   StarGiftBackground() = default;
 
-  StarGiftBackground(int32 center_color, int32 edge_color, int32 text_color)
-      : center_color_(center_color), edge_color_(edge_color), text_color_(text_color) {
+  explicit StarGiftBackground(const telegram_api::object_ptr<telegram_api::starGiftBackground> &background)
+      : center_color_(background->center_color_)
+      , edge_color_(background->edge_color_)
+      , text_color_(background->text_color_) {
   }
 
   td_api::object_ptr<td_api::giftBackground> get_gift_background_object() const;
