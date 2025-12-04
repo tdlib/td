@@ -30,6 +30,7 @@ class StarGiftAuctionState {
   vector<AuctionBidLevel> bid_levels_;
   vector<UserId> top_bidder_user_ids_;
   int32 next_round_at_ = 0;
+  int32 last_gift_num_ = 0;
   int32 gifts_left_ = 0;
   int32 current_round_ = 0;
   int32 total_rounds_ = 0;

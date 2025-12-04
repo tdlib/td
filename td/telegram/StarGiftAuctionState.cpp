@@ -43,6 +43,7 @@ StarGiftAuctionState::StarGiftAuctionState(
         top_bidder_user_ids_.resize(MAX_BIDDER_COUNT);
       }
       next_round_at_ = state->next_round_at_;
+      last_gift_num_ = state->last_gift_num_;
       gifts_left_ = state->gifts_left_;
       current_round_ = state->current_round_;
       total_rounds_ = state->total_rounds_;
@@ -82,7 +83,7 @@ td_api::object_ptr<td_api::AuctionState> StarGiftAuctionState::get_auction_state
     });
     return td_api::make_object<td_api::auctionStateActive>(
         start_date_, end_date_, min_bid_amount_, std::move(bid_levels), std::move(top_bidder_user_ids), next_round_at_,
-        current_round_, total_rounds_, gifts_left_, user_state.get_acquired_count(),
+        current_round_, total_rounds_, last_gift_num_, gifts_left_, user_state.get_acquired_count(),
         user_state.get_user_auction_bid_object(td));
   } else {
     return td_api::make_object<td_api::auctionStateFinished>(start_date_, end_date_, average_price_,
@@ -94,9 +95,9 @@ bool operator==(const StarGiftAuctionState &lhs, const StarGiftAuctionState &rhs
   return lhs.is_active_ == rhs.is_active_ && lhs.start_date_ == rhs.start_date_ && lhs.end_date_ == rhs.end_date_ &&
          lhs.version_ == rhs.version_ && lhs.min_bid_amount_ == rhs.min_bid_amount_ &&
          lhs.bid_levels_ == rhs.bid_levels_ && lhs.top_bidder_user_ids_ == rhs.top_bidder_user_ids_ &&
-         lhs.next_round_at_ == rhs.next_round_at_ && lhs.gifts_left_ == rhs.gifts_left_ &&
-         lhs.current_round_ == rhs.current_round_ && lhs.total_rounds_ == rhs.total_rounds_ &&
-         lhs.average_price_ == rhs.average_price_;
+         lhs.next_round_at_ == rhs.next_round_at_ && lhs.last_gift_num_ == rhs.last_gift_num_ &&
+         lhs.gifts_left_ == rhs.gifts_left_ && lhs.current_round_ == rhs.current_round_ &&
+         lhs.total_rounds_ == rhs.total_rounds_ && lhs.average_price_ == rhs.average_price_;
 }
 
 }  // namespace td
