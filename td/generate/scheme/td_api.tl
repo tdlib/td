@@ -4821,6 +4821,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@receiver_id Receiver of the gift
 //@received_gift_id Unique identifier of the received gift for the current user; only for the receiver of the gift
 //@text Message added to the gift
+//@unique_gift_number Unique number of the gift among gifts upgraded from the same gift after upgrade; 0 if yet unassigned
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift; 0 if the gift can't be sold by the receiver
 //@prepaid_upgrade_star_count Number of Telegram Stars that were paid by the sender for the ability to upgrade the gift
 //@is_upgrade_separate True, if the upgrade was bought after the gift was sent. In this case, prepaid upgrade cost must not be added to the gift cost
@@ -4834,7 +4835,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@was_refunded True, if the gift was refunded and isn't available anymore
 //@upgraded_received_gift_id Identifier of the corresponding upgraded gift; may be empty if unknown. Use getReceivedGift to get information about the gift
 //@prepaid_upgrade_hash If non-empty, then the user can pay for an upgrade of the gift using buyGiftUpgrade
-messageGift gift:gift sender_id:MessageSender receiver_id:MessageSender received_gift_id:string text:formattedText sell_star_count:int53 prepaid_upgrade_star_count:int53 is_upgrade_separate:Bool is_from_auction:Bool is_private:Bool is_saved:Bool is_prepaid_upgrade:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool was_refunded:Bool upgraded_received_gift_id:string prepaid_upgrade_hash:string = MessageContent;
+messageGift gift:gift sender_id:MessageSender receiver_id:MessageSender received_gift_id:string text:formattedText unique_gift_number:int32 sell_star_count:int53 prepaid_upgrade_star_count:int53 is_upgrade_separate:Bool is_from_auction:Bool is_private:Bool is_saved:Bool is_prepaid_upgrade:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool was_refunded:Bool upgraded_received_gift_id:string prepaid_upgrade_hash:string = MessageContent;
 
 //@description An upgraded gift was received or sent by the current user, or the current user was notified about a channel gift
 //@gift The gift
