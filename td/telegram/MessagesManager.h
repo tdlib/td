@@ -1846,9 +1846,9 @@ class MessagesManager final : public Actor {
                                   const MessageInputReplyTo input_reply_to, DialogId from_dialog_id,
                                   telegram_api::object_ptr<telegram_api::InputPeer> as_input_peer,
                                   vector<MessageId> message_ids, vector<int64> random_ids, int32 schedule_date,
-                                  int32 schedule_repeat_period, int32 new_video_start_timestamp,
-                                  int64 paid_message_star_count, unique_ptr<SuggestedPost> &&suggested_post,
-                                  Promise<Unit> &&promise);
+                                  int32 schedule_repeat_period, MessageEffectId effect_id,
+                                  int32 new_video_start_timestamp, int64 paid_message_star_count,
+                                  unique_ptr<SuggestedPost> &&suggested_post, Promise<Unit> &&promise);
 
   Result<td_api::object_ptr<td_api::message>> forward_message(DialogId to_dialog_id,
                                                               const td_api::object_ptr<td_api::MessageTopic> &topic_id,
