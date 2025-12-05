@@ -107,6 +107,10 @@ class StarGift {
     return upgrade_star_count_;
   }
 
+  bool is_auction() const {
+    return is_auction_ && !auction_slug_.empty() && gifts_per_round_ > 0;
+  }
+
   static void fix_availability(int32 &total, int32 &remains);
 
   static td_api::object_ptr<td_api::giftPurchaseLimits> get_gift_purchase_limits_object(int32 total, int32 remains);

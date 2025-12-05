@@ -2183,7 +2183,7 @@ const StarGiftManager::AuctionInfo *StarGiftManager::get_auction_info(
     telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &&state,
     telegram_api::object_ptr<telegram_api::starGiftAuctionUserState> &&user_state) {
   auto gift = StarGift(td_, std::move(star_gift), false);
-  if (!gift.is_valid() || gift.get_id() == 0) {
+  if (!gift.is_valid() || gift.get_id() == 0 || !gift.is_auction()) {
     LOG(ERROR) << "Receive invalid auction gift";
     return nullptr;
   }
