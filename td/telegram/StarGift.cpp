@@ -35,7 +35,7 @@ void StarGift::fix_availability(int32 &total, int32 &remains) {
   }
 }
 
-StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&star_gift_ptr, bool allow_unique_gift) {
+StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> star_gift_ptr, bool allow_unique_gift) {
   CHECK(star_gift_ptr != nullptr);
   auto constructor_id = star_gift_ptr->get_id();
   if (allow_unique_gift && constructor_id == telegram_api::starGiftUnique::ID) {
@@ -187,6 +187,9 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
   if (star_gift->background_ != nullptr) {
     background_ = make_unique_value<StarGiftBackground>(star_gift->background_);
   }
+  if (is_auction_ && (auction_slug_.empty() || gifts_per_round_ == 0)) {
+    LOG(ERROR) << "Receive invalid auctioned gift";
+  }
 }
 
 td_api::object_ptr<td_api::giftPurchaseLimits> StarGift::get_gift_purchase_limits_object(int32 total, int32 remains) {
@@ -202,6 +205,9 @@ td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td,
   CHECK(!is_unique_);
   td_api::object_ptr<td_api::giftAuction> gift_auction;
   if (is_auction_) {
+    if (auction_slug_.empty() || gifts_per_round_ == 0) {
+      LOG(ERROR) << "Receive auctioned gift without auction identifier";
+    }
     gift_auction = td_api::make_object<td_api::giftAuction>(auction_slug_, gifts_per_round_, auction_start_date_);
   }
   td_api::object_ptr<td_api::giftBackground> background;

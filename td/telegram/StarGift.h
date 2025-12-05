@@ -82,7 +82,7 @@ class StarGift {
  public:
   StarGift() = default;
 
-  StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&star_gift_ptr, bool allow_unique_gift);
+  StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> star_gift_ptr, bool allow_unique_gift);
 
   bool is_valid() const {
     return id_ != 0 && (is_unique_ ? model_.is_valid() && pattern_.is_valid() && backdrop_.is_valid()
