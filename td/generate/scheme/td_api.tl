@@ -1512,6 +1512,12 @@ receivedGifts total_count:int32 gifts:vector<receivedGift> are_notifications_ena
 //@next_prices Next changes for the price for gift upgrade with more granularity than in prices
 giftUpgradePreview models:vector<upgradedGiftModel> symbols:vector<upgradedGiftSymbol> backdrops:vector<upgradedGiftBackdrop> prices:vector<giftUpgradePrice> next_prices:vector<giftUpgradePrice> = GiftUpgradePreview;
 
+//@description Contains all possible variants of upgraded gifts for the given regular gift
+//@models Models that can be chosen for the gift after upgrade
+//@symbols Symbols that can be chosen for the gift after upgrade
+//@backdrops Backdrops that can be chosen for the gift after upgrade
+giftUpgradeVariants models:vector<upgradedGiftModel> symbols:vector<upgradedGiftSymbol> backdrops:vector<upgradedGiftBackdrop> = GiftUpgradeVariants;
+
 
 //@description Describes a bid in an auction
 //@star_count The number of Telegram Stars that were put in the bid
@@ -13619,6 +13625,9 @@ toggleChatGiftNotifications chat_id:int53 are_enabled:Bool = Ok;
 
 //@description Returns examples of possible upgraded gifts for a regular gift @gift_id Identifier of the gift
 getGiftUpgradePreview gift_id:int64 = GiftUpgradePreview;
+
+//@description Returns all possible variants of upgraded gifts for a regular gift @gift_id Identifier of the gift
+getGiftUpgradeVariants gift_id:int64 = GiftUpgradeVariants;
 
 //@description Upgrades a regular gift
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only

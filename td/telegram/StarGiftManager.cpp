@@ -698,6 +698,74 @@ class GetUpgradeGiftPreviewQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarGiftUpgradeAttributesQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::giftUpgradeVariants>> promise_;
+
+ public:
+  explicit GetStarGiftUpgradeAttributesQuery(Promise<td_api::object_ptr<td_api::giftUpgradeVariants>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 gift_id) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_getStarGiftUpgradeAttributes(gift_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getStarGiftUpgradeAttributes>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetStarGiftUpgradeAttributesQuery: " << to_string(ptr);
+    auto result = td_api::make_object<td_api::giftUpgradeVariants>();
+    for (auto &attribute : ptr->attributes_) {
+      switch (attribute->get_id()) {
+        case telegram_api::starGiftAttributeModel::ID: {
+          auto model = StarGiftAttributeSticker(
+              td_, telegram_api::move_object_as<telegram_api::starGiftAttributeModel>(attribute));
+          if (!model.is_valid()) {
+            LOG(ERROR) << "Receive invalid model";
+          } else {
+            result->models_.push_back(model.get_upgraded_gift_model_object(td_));
+          }
+          break;
+        }
+        case telegram_api::starGiftAttributePattern::ID: {
+          auto pattern = StarGiftAttributeSticker(
+              td_, telegram_api::move_object_as<telegram_api::starGiftAttributePattern>(attribute));
+          if (!pattern.is_valid()) {
+            LOG(ERROR) << "Receive invalid symbol";
+          } else {
+            result->symbols_.push_back(pattern.get_upgraded_gift_symbol_object(td_));
+          }
+          break;
+        }
+        case telegram_api::starGiftAttributeBackdrop::ID: {
+          auto backdrop = StarGiftAttributeBackdrop(
+              telegram_api::move_object_as<telegram_api::starGiftAttributeBackdrop>(attribute));
+          if (!backdrop.is_valid()) {
+            LOG(ERROR) << "Receive invalid backdrop";
+          } else {
+            result->backdrops_.push_back(backdrop.get_upgraded_gift_backdrop_object());
+          }
+          break;
+        }
+        case telegram_api::starGiftAttributeOriginalDetails::ID:
+          LOG(ERROR) << "Receive unexpected original details";
+          break;
+        default:
+          UNREACHABLE();
+      }
+    }
+    promise_.set_value(std::move(result));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 static Promise<Unit> get_gift_upgrade_promise(Td *td, const telegram_api::object_ptr<telegram_api::Updates> &updates,
                                               Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise) {
   if (td->auth_manager_->is_bot()) {
@@ -2550,6 +2618,11 @@ void StarGiftManager::toggle_chat_star_gift_notifications(DialogId dialog_id, bo
 void StarGiftManager::get_gift_upgrade_preview(int64 gift_id,
                                                Promise<td_api::object_ptr<td_api::giftUpgradePreview>> &&promise) {
   td_->create_handler<GetUpgradeGiftPreviewQuery>(std::move(promise))->send(gift_id);
+}
+
+void StarGiftManager::get_gift_upgrade_variants(int64 gift_id,
+                                                Promise<td_api::object_ptr<td_api::giftUpgradeVariants>> &&promise) {
+  td_->create_handler<GetStarGiftUpgradeAttributesQuery>(std::move(promise))->send(gift_id);
 }
 
 void StarGiftManager::upgrade_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id,

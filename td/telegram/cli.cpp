@@ -3191,6 +3191,10 @@ class CliClient final : public Actor {
       int64 gift_id;
       get_args(args, gift_id);
       send_request(td_api::make_object<td_api::getGiftUpgradePreview>(gift_id));
+    } else if (op == "gguv") {
+      int64 gift_id;
+      get_args(args, gift_id);
+      send_request(td_api::make_object<td_api::getGiftUpgradeVariants>(gift_id));
     } else if (op == "ug") {
       string received_gift_id;
       bool keep_original_details;

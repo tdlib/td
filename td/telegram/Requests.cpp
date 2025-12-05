@@ -8001,6 +8001,12 @@ void Requests::on_request(uint64 id, const td_api::getGiftUpgradePreview &reques
   td_->star_gift_manager_->get_gift_upgrade_preview(request.gift_id_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getGiftUpgradeVariants &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->star_gift_manager_->get_gift_upgrade_variants(request.gift_id_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::upgradeGift &request) {
   CHECK_IS_USER_OR_BUSINESS();
   CREATE_REQUEST_PROMISE();
