@@ -1527,6 +1527,13 @@ auctionBid star_count:int53 bid_date:int32 position:int32 = AuctionBid;
 //@was_returned True, if the bid was returned to the user, because it was outbid and can't win anymore
 userAuctionBid star_count:int53 bid_date:int32 next_bid_star_count:int53 owner_id:MessageSender was_returned:Bool = UserAuctionBid;
 
+//@description Describes a round of an auction
+//@number 1-based number of the round
+//@duration Duration of the round, in seconds
+//@extend_time The number of seconds for which the round will be extended if there will be changes in the top winners
+//@top_winner_count The number of top winners who trigger round extension if changed
+auctionRound number:int32 duration:int32 extend_time:int32 top_winner_count:int32 = AuctionRound;
+
 
 //@class AuctionState @description Describes state of an auction
 
