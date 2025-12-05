@@ -1567,9 +1567,10 @@ giftAuctionState gift:gift state:AuctionState = GiftAuctionState;
 //@star_count The number of Telegram Stars that were paid for the gift
 //@auction_round_number Identifier of the auction round in which the gift was acquired
 //@auction_round_position Position of the user in the round among all auction participants
+//@unique_gift_number Unique number of the gift among gifts upgraded from the same gift after upgrade; 0 if yet unassigned
 //@text Message added to the gift
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone will be able to see them
-giftAuctionAcquiredGift receiver_id:MessageSender date:int32 star_count:int53 auction_round_number:int32 auction_round_position:int32 text:formattedText is_private:Bool = GiftAuctionAcquiredGift;
+giftAuctionAcquiredGift receiver_id:MessageSender date:int32 star_count:int53 auction_round_number:int32 auction_round_position:int32 unique_gift_number:int32 text:formattedText is_private:Bool = GiftAuctionAcquiredGift;
 
 //@description Represents a list of gifts that were acquired by the current user on an auction @gifts The list of acquired gifts
 giftAuctionAcquiredGifts gifts:vector<giftAuctionAcquiredGift> = GiftAuctionAcquiredGifts;

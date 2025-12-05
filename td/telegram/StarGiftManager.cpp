@@ -476,7 +476,7 @@ class GetStarGiftAuctionAcquiredGiftsQuery final : public Td::ResultHandler {
                                      "giftAuctionAcquiredGift");
       gifts.push_back(td_api::make_object<td_api::giftAuctionAcquiredGift>(
           get_message_sender_object(td_, DialogId(gift->peer_), "giftAuctionAcquiredGift"), gift->date_,
-          StarManager::get_star_count(gift->bid_amount_), gift->round_, gift->pos_,
+          StarManager::get_star_count(gift->bid_amount_), gift->round_, gift->pos_, gift->gift_num_,
           get_formatted_text_object(td_->user_manager_.get(), text, true, -1), gift->name_hidden_));
     }
     promise_.set_value(td_api::make_object<td_api::giftAuctionAcquiredGifts>(std::move(gifts)));
