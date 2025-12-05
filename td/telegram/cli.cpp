@@ -607,7 +607,7 @@ class CliClient final : public Actor {
   }
 
   vector<int32> as_story_ids(Slice story_ids) const {
-    return transform(autosplit(story_ids), [this](Slice str) { return as_story_id(str); });
+    return transform(autosplit(story_ids), [](Slice str) { return as_story_id(str); });
   }
 
   static int32 as_story_album_id(Slice str) {
@@ -615,7 +615,7 @@ class CliClient final : public Actor {
   }
 
   vector<int32> as_story_album_ids(Slice story_album_ids) const {
-    return transform(autosplit(story_album_ids), [this](Slice str) { return as_story_album_id(str); });
+    return transform(autosplit(story_album_ids), [](Slice str) { return as_story_album_id(str); });
   }
 
   static int32 as_gift_collection_id(Slice str) {
@@ -3310,7 +3310,7 @@ class CliClient final : public Actor {
       get_args(args, owner_id, collection_ids);
       send_request(td_api::make_object<td_api::reorderGiftCollections>(
           as_message_sender(owner_id),
-          transform(autosplit(collection_ids), [this](Slice str) { return as_gift_collection_id(str); })));
+          transform(autosplit(collection_ids), [](Slice str) { return as_gift_collection_id(str); })));
     } else if (op == "dgic") {
       string owner_id;
       GiftCollectionId gift_collection_id;
