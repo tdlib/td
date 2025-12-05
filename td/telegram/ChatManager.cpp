@@ -4895,7 +4895,9 @@ void ChatManager::on_load_channel_from_database(ChannelId channel_id, string val
         }
       } else {
         for (auto &promise : promises) {
-          load_channel_from_database_impl(c->monoforum_channel_id, true, std::move(promise));
+          load_channel_from_database_impl(
+              c->monoforum_channel_id, true,
+              PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable { promise.set_value(Unit()); }));
         }
       }
       return;
@@ -8701,12 +8703,16 @@ bool ChatManager::get_channel(ChannelId channel_id, int left_tries, Promise<Unit
   }
   if (c->monoforum_channel_id.is_valid() && !have_channel(c->monoforum_channel_id)) {
     if (left_tries > 2 && G()->use_chat_info_database()) {
-      send_closure_later(actor_id(this), &ChatManager::load_channel_from_database, nullptr, c->monoforum_channel_id,
-                         std::move(promise));
+      send_closure_later(
+          actor_id(this), &ChatManager::load_channel_from_database, nullptr, c->monoforum_channel_id,
+          PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable { promise.set_value(Unit()); }));
       return false;
     }
     if (left_tries > 1 && td_->auth_manager_->is_bot()) {
-      get_channel_queries_.add_query(c->monoforum_channel_id.get(), std::move(promise), "get channel monoforum");
+      get_channel_queries_.add_query(
+          c->monoforum_channel_id.get(),
+          PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable { promise.set_value(Unit()); }),
+          "get channel monoforum");
       return false;
     }
   }
