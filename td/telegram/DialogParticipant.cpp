@@ -87,9 +87,6 @@ AdministratorRights::AdministratorRights(bool is_anonymous, bool can_manage_dial
            (static_cast<uint64>(is_anonymous) * IS_ANONYMOUS);
   if (flags_ != 0) {
     flags_ |= CAN_MANAGE_DIALOG;
-    if (channel_type == ChannelType::Broadcast) {
-      flags_ |= CAN_RESTRICT_MEMBERS;
-    }
   }
 }
 
