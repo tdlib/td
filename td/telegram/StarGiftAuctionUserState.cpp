@@ -12,7 +12,7 @@
 namespace td {
 
 StarGiftAuctionUserState::StarGiftAuctionUserState(
-    telegram_api::object_ptr<telegram_api::starGiftAuctionUserState> &state) {
+    const telegram_api::object_ptr<telegram_api::starGiftAuctionUserState> &state) {
   CHECK(state != nullptr);
   bid_amount_ = StarManager::get_star_count(state->bid_amount_);
   bid_date_ = max(0, state->bid_date_);

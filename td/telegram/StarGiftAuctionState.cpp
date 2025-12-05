@@ -17,11 +17,12 @@
 
 namespace td {
 
-StarGiftAuctionState::StarGiftAuctionState(telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &state_ptr) {
+StarGiftAuctionState::StarGiftAuctionState(
+    const telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &state_ptr) {
   CHECK(state_ptr != nullptr);
   switch (state_ptr->get_id()) {
     case telegram_api::starGiftAuctionState::ID: {
-      auto state = telegram_api::move_object_as<telegram_api::starGiftAuctionState>(state_ptr);
+      const auto *state = static_cast<const telegram_api::starGiftAuctionState *>(state_ptr.get());
       is_active_ = true;
       start_date_ = state->start_date_;
       end_date_ = state->end_date_;
@@ -56,7 +57,7 @@ StarGiftAuctionState::StarGiftAuctionState(telegram_api::object_ptr<telegram_api
       break;
     }
     case telegram_api::starGiftAuctionStateFinished::ID: {
-      auto state = telegram_api::move_object_as<telegram_api::starGiftAuctionStateFinished>(state_ptr);
+      const auto *state = static_cast<const telegram_api::starGiftAuctionStateFinished *>(state_ptr.get());
       is_active_ = false;
       start_date_ = state->start_date_;
       end_date_ = state->end_date_;

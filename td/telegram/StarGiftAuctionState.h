@@ -42,7 +42,7 @@ class StarGiftAuctionState {
  public:
   StarGiftAuctionState() = default;
 
-  explicit StarGiftAuctionState(telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &state_ptr);
+  explicit StarGiftAuctionState(const telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &state_ptr);
 
   bool is_not_modified() const {
     return is_not_modified_;
