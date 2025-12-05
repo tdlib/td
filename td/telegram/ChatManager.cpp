@@ -8708,7 +8708,7 @@ bool ChatManager::get_channel(ChannelId channel_id, int left_tries, Promise<Unit
           PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable { promise.set_value(Unit()); }));
       return false;
     }
-    if (left_tries > 1 && td_->auth_manager_->is_bot()) {
+    if (left_tries > 1 && td_->auth_manager_->is_bot() && (c->is_monoforum || c->status.can_manage_direct_messages())) {
       get_channel_queries_.add_query(
           c->monoforum_channel_id.get(),
           PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable { promise.set_value(Unit()); }),
