@@ -12922,6 +12922,12 @@ removeProfileAudio file_id:int32 = Ok;
 //@for_clicked_animated_emoji_message Pass true to get the outline scaled for clicked animated emoji message
 getStickerOutline sticker_file_id:int32 for_animated_emoji:Bool for_clicked_animated_emoji_message:Bool = Outline;
 
+//@description Returns outline of a sticker as an SVG path. This is an offline method. Returns an empty string if the outline isn't known
+//@sticker_file_id File identifier of the sticker
+//@for_animated_emoji Pass true to get the outline scaled for animated emoji
+//@for_clicked_animated_emoji_message Pass true to get the outline scaled for clicked animated emoji message
+getStickerOutlineSvgPath sticker_file_id:int32 for_animated_emoji:Bool for_clicked_animated_emoji_message:Bool = Text;
+
 //@description Returns stickers from the installed sticker sets that correspond to any of the given emoji or can be found by sticker-specific keywords. If the query is non-empty, then favorite, recently used or trending stickers may also be returned
 //@sticker_type Type of the stickers to return
 //@query Search query; a space-separated list of emojis or a keyword prefix. If empty, returns all known installed stickers

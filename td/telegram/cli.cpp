@@ -4392,6 +4392,11 @@ class CliClient final : public Actor {
       int32 sticker_file_id;
       get_args(args, sticker_file_id);
       send_request(td_api::make_object<td_api::getStickerOutline>(sticker_file_id, op == "gsoa", op == "gsoc"));
+    } else if (op == "gsosp" || op == "gsospa" || op == "gsospc") {
+      int32 sticker_file_id;
+      get_args(args, sticker_file_id);
+      send_request(
+          td_api::make_object<td_api::getStickerOutlineSvgPath>(sticker_file_id, op == "gsospa", op == "gsospc"));
     } else if (op == "gs" || op == "gsmm" || op == "gsee" || op == "gseeme") {
       SearchQuery query;
       get_args(args, query);

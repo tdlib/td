@@ -1412,6 +1412,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getStickerOutline &request);
 
+  void on_request(uint64 id, const td_api::getStickerOutlineSvgPath &request);
+
   void on_request(uint64 id, td_api::getStickers &request);
 
   void on_request(uint64 id, td_api::getAllStickerEmojis &request);

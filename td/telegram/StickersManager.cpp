@@ -2141,6 +2141,35 @@ td_api::object_ptr<td_api::outline> StickersManager::get_sticker_outline_object(
   return get_outline_object(sticker->minithumbnail_, zoom, PSLICE() << document_id << " in " << sticker->set_id_);
 }
 
+string StickersManager::get_sticker_outline_svg_path(FileId file_id, bool for_animated_emoji,
+                                                     bool for_clicked_animated_emoji) const {
+  const auto *sticker = get_sticker(file_id);
+  if (sticker == nullptr || sticker->minithumbnail_.empty()) {
+    return string();
+  }
+
+  int64 document_id = 0;
+  auto file_view = td_->file_manager_->get_file_view(sticker->file_id_);
+  if (!file_view.is_encrypted()) {
+    const auto *full_remote_location = file_view.get_full_remote_location();
+    if (full_remote_location != nullptr && full_remote_location->is_document()) {
+      document_id = full_remote_location->get_id();
+    }
+  }
+  double zoom = 1.0;
+  if ((is_sticker_format_vector(sticker->format_) || sticker->type_ == StickerType::CustomEmoji) &&
+      (for_animated_emoji || for_clicked_animated_emoji)) {
+    if (sticker->type_ == StickerType::CustomEmoji &&
+        max(sticker->dimensions_.width, sticker->dimensions_.height) <= 100) {
+      zoom *= 5.12;
+    }
+    if (for_clicked_animated_emoji) {
+      zoom *= 3;
+    }
+  }
+  return get_outline_svg_path(sticker->minithumbnail_, zoom, PSLICE() << document_id << " in " << sticker->set_id_);
+}
+
 tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_id, bool for_animated_emoji,
                                                                    bool for_clicked_animated_emoji) const {
   if (!file_id.is_valid()) {

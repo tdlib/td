@@ -14,4 +14,6 @@ namespace td {
 
 td_api::object_ptr<td_api::outline> get_outline_object(CSlice path, double zoom, Slice source);
 
+string get_outline_svg_path(CSlice path, double zoom, Slice source);
+
 }  // namespace td

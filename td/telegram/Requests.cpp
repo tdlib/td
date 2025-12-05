@@ -6938,6 +6938,13 @@ void Requests::on_request(uint64 id, const td_api::getStickerOutline &request) {
       FileId(request.sticker_file_id_, 0), request.for_animated_emoji_, request.for_clicked_animated_emoji_message_));
 }
 
+void Requests::on_request(uint64 id, const td_api::getStickerOutlineSvgPath &request) {
+  CHECK_IS_USER();
+  CREATE_TEXT_REQUEST_PROMISE();
+  promise.set_value(td_->stickers_manager_->get_sticker_outline_svg_path(
+      FileId(request.sticker_file_id_, 0), request.for_animated_emoji_, request.for_clicked_animated_emoji_message_));
+}
+
 void Requests::on_request(uint64 id, td_api::getStickers &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);

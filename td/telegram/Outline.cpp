@@ -39,7 +39,7 @@ td_api::object_ptr<td_api::outline> get_outline_object(CSlice path, double zoom,
 
   CHECK(!sb.is_error());
   path = sb.as_cslice();
-  LOG(DEBUG) << "Transform SVG path " << path;
+  LOG(DEBUG) << "Uncompressed SVG path: " << path;
 
   size_t pos = 0;
   auto skip_commas = [&path, &pos] {
@@ -249,6 +249,199 @@ td_api::object_ptr<td_api::outline> get_outline_object(CSlice path, double zoom,
   */
 
   return td_api::make_object<td_api::outline>(std::move(result));
+}
+
+string get_outline_svg_path(CSlice path, double zoom, Slice source) {
+  if (path.empty()) {
+    return string();
+  }
+
+  auto buf = StackAllocator::alloc(1 << 9);
+  StringBuilder sb(buf.as_slice(), true);
+
+  sb << 'M';
+  for (unsigned char c : path) {
+    if (c >= 128 + 64) {
+      sb << "AACAAAAHAAALMAAAQASTAVAAAZaacaaaahaaalmaaaqastava.az0123456789-,"[c - 128 - 64];
+    } else {
+      if (c >= 128) {
+        sb << ',';
+      } else if (c >= 64) {
+        sb << '-';
+      }
+      sb << (c & 63);
+    }
+  }
+  sb << 'z';
+
+  CHECK(!sb.is_error());
+  path = sb.as_cslice();
+  LOG(DEBUG) << "Uncompressed SVG path: " << path;
+
+  size_t pos = 0;
+  auto skip_commas = [&path, &pos] {
+    while (path[pos] == ',') {
+      pos++;
+    }
+  };
+  auto get_number = [&] {
+    skip_commas();
+    int sign = 1;
+    if (path[pos] == '-') {
+      sign = -1;
+      pos++;
+    }
+    double res = 0;
+    while (is_digit(path[pos])) {
+      res = res * 10 + path[pos++] - '0';
+    }
+    if (path[pos] == '.') {
+      pos++;
+      double mul = 0.1;
+      while (is_digit(path[pos])) {
+        res += (path[pos] - '0') * mul;
+        mul *= 0.1;
+        pos++;
+      }
+    }
+    return sign * res;
+  };
+
+  string result;
+  auto make_point = [zoom, &result](double x, double y) {
+    result += (PSTRING() << ' ' << static_cast<int>(x * zoom) << ' ' << static_cast<int>(y * zoom));
+  };
+
+  double x = 0;
+  double y = 0;
+  while (path[pos] != '\0') {
+    skip_commas();
+    if (path[pos] == '\0') {
+      break;
+    }
+
+    while (path[pos] == 'm' || path[pos] == 'M') {
+      auto command = path[pos++];
+      do {
+        if (command == 'm') {
+          x += get_number();
+          y += get_number();
+        } else {
+          x = get_number();
+          y = get_number();
+        }
+        skip_commas();
+      } while (path[pos] != '\0' && !is_alpha(path[pos]));
+    }
+    result += 'M';
+    make_point(x, y);
+
+    double start_x = x;
+    double start_y = y;
+
+    bool have_last_end_control_point = false;
+    double last_end_control_point_x = 0;
+    double last_end_control_point_y = 0;
+    bool is_closed = false;
+    char command = '-';
+    while (!is_closed) {
+      skip_commas();
+      if (path[pos] == '\0') {
+        LOG(ERROR) << "Receive unclosed path " << path << " from " << source;
+        return nullptr;
+      }
+      if (is_alpha(path[pos])) {
+        command = path[pos++];
+      }
+      switch (command) {
+        case 'l':
+        case 'L':
+        case 'h':
+        case 'H':
+        case 'v':
+        case 'V':
+          if (command == 'l' || command == 'h') {
+            x += get_number();
+          } else if (command == 'L' || command == 'H') {
+            x = get_number();
+          }
+          if (command == 'l' || command == 'v') {
+            y += get_number();
+          } else if (command == 'L' || command == 'V') {
+            y = get_number();
+          }
+          result += " L";
+          make_point(x, y);
+          have_last_end_control_point = false;
+          break;
+        case 'C':
+        case 'c':
+        case 'S':
+        case 's': {
+          double start_control_point_x;
+          double start_control_point_y;
+          if (command == 'S' || command == 's') {
+            if (have_last_end_control_point) {
+              start_control_point_x = 2 * x - last_end_control_point_x;
+              start_control_point_y = 2 * y - last_end_control_point_y;
+            } else {
+              start_control_point_x = x;
+              start_control_point_y = y;
+            }
+          } else {
+            start_control_point_x = get_number();
+            start_control_point_y = get_number();
+            if (command == 'c') {
+              start_control_point_x += x;
+              start_control_point_y += y;
+            }
+          }
+
+          last_end_control_point_x = get_number();
+          last_end_control_point_y = get_number();
+          if (command == 'c' || command == 's') {
+            last_end_control_point_x += x;
+            last_end_control_point_y += y;
+          }
+          have_last_end_control_point = true;
+
+          if (command == 'c' || command == 's') {
+            x += get_number();
+            y += get_number();
+          } else {
+            x = get_number();
+            y = get_number();
+          }
+
+          result += " C";
+          make_point(start_control_point_x, start_control_point_y);
+          make_point(last_end_control_point_x, last_end_control_point_y);
+          make_point(x, y);
+          break;
+        }
+        case 'm':
+        case 'M':
+          pos--;
+          // fallthrough
+        case 'z':
+        case 'Z':
+          if (x != start_x || y != start_y) {
+            x = start_x;
+            y = start_y;
+            result += " L";
+            make_point(x, y);
+          }
+          is_closed = true;
+          break;
+        default:
+          LOG(ERROR) << "Receive invalid command " << command << " at pos " << pos << " from " << source << ": "
+                     << path;
+          return nullptr;
+      }
+    }
+  }
+  result += 'z';
+  return result;
 }
 
 }  // namespace td
