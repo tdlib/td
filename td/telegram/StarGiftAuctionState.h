@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/AuctionBidLevel.h"
+#include "td/telegram/StarGiftAuctionRound.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -29,6 +30,7 @@ class StarGiftAuctionState {
   int64 min_bid_amount_ = 0;
   vector<AuctionBidLevel> bid_levels_;
   vector<UserId> top_bidder_user_ids_;
+  vector<StarGiftAuctionRound> rounds_;
   int32 next_round_at_ = 0;
   int32 last_gift_num_ = 0;
   int32 gifts_left_ = 0;

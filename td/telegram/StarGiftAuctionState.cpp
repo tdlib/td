@@ -42,6 +42,9 @@ StarGiftAuctionState::StarGiftAuctionState(
         LOG(ERROR) << "Receive " << top_bidder_user_ids_;
         top_bidder_user_ids_.resize(MAX_BIDDER_COUNT);
       }
+      for (const auto &round : state->rounds_) {
+        rounds_.emplace_back(round);
+      }
       next_round_at_ = state->next_round_at_;
       last_gift_num_ = state->last_gift_num_;
       gifts_left_ = state->gifts_left_;
@@ -84,10 +87,12 @@ td_api::object_ptr<td_api::AuctionState> StarGiftAuctionState::get_auction_state
     auto top_bidder_user_ids = transform(top_bidder_user_ids_, [td](UserId user_id) {
       return td->user_manager_->get_user_id_object(user_id, "auctionStateActive");
     });
+    auto rounds =
+        transform(rounds_, [td](const StarGiftAuctionRound &round) { return round.get_auction_round_object(); });
     return td_api::make_object<td_api::auctionStateActive>(
-        start_date_, end_date_, min_bid_amount_, std::move(bid_levels), std::move(top_bidder_user_ids), next_round_at_,
-        current_round_, total_rounds_, last_gift_num_, gifts_left_, user_state.get_acquired_count(),
-        user_state.get_user_auction_bid_object(td));
+        start_date_, end_date_, min_bid_amount_, std::move(bid_levels), std::move(top_bidder_user_ids),
+        std::move(rounds), next_round_at_, current_round_, total_rounds_, last_gift_num_, gifts_left_,
+        user_state.get_acquired_count(), user_state.get_user_auction_bid_object(td));
   } else {
     return td_api::make_object<td_api::auctionStateFinished>(start_date_, end_date_, average_price_,
                                                              user_state.get_acquired_count(), listed_count_,
@@ -99,10 +104,11 @@ bool operator==(const StarGiftAuctionState &lhs, const StarGiftAuctionState &rhs
   return lhs.is_active_ == rhs.is_active_ && lhs.start_date_ == rhs.start_date_ && lhs.end_date_ == rhs.end_date_ &&
          lhs.version_ == rhs.version_ && lhs.min_bid_amount_ == rhs.min_bid_amount_ &&
          lhs.bid_levels_ == rhs.bid_levels_ && lhs.top_bidder_user_ids_ == rhs.top_bidder_user_ids_ &&
-         lhs.next_round_at_ == rhs.next_round_at_ && lhs.last_gift_num_ == rhs.last_gift_num_ &&
-         lhs.gifts_left_ == rhs.gifts_left_ && lhs.current_round_ == rhs.current_round_ &&
-         lhs.total_rounds_ == rhs.total_rounds_ && lhs.average_price_ == rhs.average_price_ &&
-         lhs.listed_count_ == rhs.listed_count_ && lhs.fragment_listed_count_ == rhs.fragment_listed_count_ &&
+         lhs.rounds_ == rhs.rounds_ && lhs.next_round_at_ == rhs.next_round_at_ &&
+         lhs.last_gift_num_ == rhs.last_gift_num_ && lhs.gifts_left_ == rhs.gifts_left_ &&
+         lhs.current_round_ == rhs.current_round_ && lhs.total_rounds_ == rhs.total_rounds_ &&
+         lhs.average_price_ == rhs.average_price_ && lhs.listed_count_ == rhs.listed_count_ &&
+         lhs.fragment_listed_count_ == rhs.fragment_listed_count_ &&
          lhs.fragment_listed_url_ == rhs.fragment_listed_url_;
 }
 

@@ -1543,6 +1543,7 @@ auctionRound number:int32 duration:int32 extend_time:int32 top_winner_count:int3
 //@min_bid The minimum possible bid in the auction in Telegram Stars
 //@bid_levels A sparse list of bids that were made in the auction
 //@top_bidder_user_ids User identifiers of at most 3 users with the biggest bids
+//@rounds Rounds of the auction in which their duration or extension rules are changed
 //@current_round_end_date Point in time (Unix timestamp) when the current round will end
 //@current_round_number 1-based number of the current round
 //@total_round_count The total number of rounds
@@ -1550,7 +1551,7 @@ auctionRound number:int32 duration:int32 extend_time:int32 top_winner_count:int3
 //@left_item_count The number of items that have to be distributed on the auction
 //@acquired_item_count The number of items that were purchased by the current user on the auction
 //@user_bid Bid of the current user in the auction; may be null if none
-auctionStateActive start_date:int32 end_date:int32 min_bid:int53 bid_levels:vector<auctionBid> top_bidder_user_ids:vector<int53> current_round_end_date:int32 current_round_number:int32 total_round_count:int32 distributed_item_count:int32 left_item_count:int32 acquired_item_count:int32 user_bid:userAuctionBid = AuctionState;
+auctionStateActive start_date:int32 end_date:int32 min_bid:int53 bid_levels:vector<auctionBid> top_bidder_user_ids:vector<int53> rounds:vector<auctionRound> current_round_end_date:int32 current_round_number:int32 total_round_count:int32 distributed_item_count:int32 left_item_count:int32 acquired_item_count:int32 user_bid:userAuctionBid = AuctionState;
 
 //@description Contains information about a finished auction
 //@start_date Point in time (Unix timestamp) when the auction started

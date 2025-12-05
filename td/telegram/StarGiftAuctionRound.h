@@ -24,7 +24,7 @@ class StarGiftAuctionRound {
  public:
   StarGiftAuctionRound() = default;
 
-  explicit StarGiftAuctionRound(const telegram_api::object_ptr<telegram_api::StarGiftAuctionRound> &&round_ptr);
+  explicit StarGiftAuctionRound(const telegram_api::object_ptr<telegram_api::StarGiftAuctionRound> &round_ptr);
 
   td_api::object_ptr<td_api::auctionRound> get_auction_round_object() const;
 };

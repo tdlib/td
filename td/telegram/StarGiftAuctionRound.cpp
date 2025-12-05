@@ -9,7 +9,7 @@
 namespace td {
 
 StarGiftAuctionRound::StarGiftAuctionRound(
-    const telegram_api::object_ptr<telegram_api::StarGiftAuctionRound> &&round_ptr) {
+    const telegram_api::object_ptr<telegram_api::StarGiftAuctionRound> &round_ptr) {
   CHECK(round_ptr != nullptr);
   switch (round_ptr->get_id()) {
     case telegram_api::starGiftAuctionRound::ID: {
