@@ -2110,14 +2110,14 @@ void StarGiftManager::get_gift_auction_state(const string &auction_id,
                             std::move(promise));
 }
 
-Result<StarGiftManager::AuctionInfo> StarGiftManager::get_auction_info(
+const StarGiftManager::AuctionInfo *StarGiftManager::get_auction_info(
     telegram_api::object_ptr<telegram_api::StarGift> &&star_gift,
     telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &&state,
     telegram_api::object_ptr<telegram_api::starGiftAuctionUserState> &&user_state) {
   auto gift = StarGift(td_, std::move(star_gift), false);
   if (!gift.is_valid() || gift.get_id() == 0) {
     LOG(ERROR) << "Receive invalid auction gift";
-    return Status::Error(500, "Receive invalid response");
+    return nullptr;
   }
 
   bool is_changed = false;
@@ -2140,7 +2140,7 @@ Result<StarGiftManager::AuctionInfo> StarGiftManager::get_auction_info(
   if (is_changed) {
     send_update_gift_auction_state(info);
   }
-  return std::move(info);
+  return &info;
 }
 
 void StarGiftManager::reload_gift_auction_state(
@@ -2165,16 +2165,17 @@ void StarGiftManager::on_get_auction_state(
 
   td_->user_manager_->on_get_users(std::move(state->users_), "on_get_auction_state");
 
-  TRY_RESULT_PROMISE(
-      promise, info,
-      get_auction_info(std::move(state->gift_), std::move(state->state_), std::move(state->user_state_)));
+  auto info = get_auction_info(std::move(state->gift_), std::move(state->state_), std::move(state->user_state_));
+  if (info == nullptr) {
+    return promise.set_error(500, "Receive invalid response");
+  }
 
-  auto gift_id = info.gift_.get_id();
+  auto gift_id = info->gift_.get_id();
   if (gift_auction_infos_.count(gift_id) > 0) {
     reload_gift_auction_timeout_.set_timeout_in(gift_id, state->timeout_);
   }
   if (promise) {
-    promise.set_value(get_gift_auction_state_object(info));
+    promise.set_value(get_gift_auction_state_object(*info));
   }
 }
 
@@ -2263,12 +2264,12 @@ void StarGiftManager::on_get_active_gift_auctions(
       td_->user_manager_->on_get_users(std::move(auctions->users_), "on_get_active_gift_auctions");
       vector<AuctionInfo> new_active_auctions;
       for (auto &auction : auctions->auctions_) {
-        auto r_info =
+        auto info =
             get_auction_info(std::move(auction->gift_), std::move(auction->state_), std::move(auction->user_state_));
-        if (r_info.is_error()) {
+        if (info == nullptr) {
           continue;
         }
-        new_active_auctions.push_back(r_info.move_as_ok());
+        new_active_auctions.push_back(*info);
       }
       if (active_gift_auctions_ != new_active_auctions) {
         active_gift_auctions_ = std::move(new_active_auctions);
