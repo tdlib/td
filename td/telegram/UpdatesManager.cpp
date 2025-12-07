@@ -70,6 +70,7 @@
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/SpecialStickerSetType.h"
 #include "td/telegram/StarAmount.h"
+#include "td/telegram/StarGiftManager.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StatisticsManager.h"
@@ -4600,6 +4601,18 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDeleteGroupCall
                                Promise<Unit> &&promise) {
   send_closure(G()->group_call_manager(), &GroupCallManager::on_update_group_call_messages_deleted,
                InputGroupCallId(update->call_), std::move(update->messages_));
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarGiftAuctionState> update,
+                               Promise<Unit> &&promise) {
+  td_->star_gift_manager_->on_update_gift_auction_state(update->gift_id_, std::move(update->state_));
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarGiftAuctionUserState> update,
+                               Promise<Unit> &&promise) {
+  td_->star_gift_manager_->on_update_gift_auction_user_state(update->gift_id_, std::move(update->user_state_));
   promise.set_value(Unit());
 }
 

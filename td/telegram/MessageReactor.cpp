@@ -48,7 +48,7 @@ MessageReactor::MessageReactor(Td *td, telegram_api::object_ptr<telegram_api::gr
           td::min(static_cast<int64>(std::numeric_limits<int32>::max()), StarManager::get_star_count(donor->stars_))))
     , is_top_(donor->top_)
     , is_me_(donor->my_)
-    , is_anonymous_(donor->anonymous_) {
+    , is_anonymous_() {
   store_min_channel(td);
 }
 

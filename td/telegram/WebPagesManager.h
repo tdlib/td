@@ -141,7 +141,8 @@ class WebPagesManager final : public Actor {
   td_api::object_ptr<td_api::LinkPreviewType> get_link_preview_type_album_object(
       const WebPageInstantView &instant_view) const;
 
-  td_api::object_ptr<td_api::LinkPreviewType> get_link_preview_type_object(const WebPage *web_page) const;
+  td_api::object_ptr<td_api::LinkPreviewType> get_link_preview_type_object(const WebPage *web_page,
+                                                                           bool &need_reload) const;
 
   td_api::object_ptr<td_api::webPageInstantView> get_web_page_instant_view_object(
       WebPageId web_page_id, const WebPageInstantView *web_page_instant_view, Slice web_page_url) const;

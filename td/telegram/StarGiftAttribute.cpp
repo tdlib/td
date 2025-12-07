@@ -8,6 +8,7 @@
 
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageSender.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
@@ -68,6 +69,11 @@ StarGiftAttributeBackdrop::StarGiftAttributeBackdrop(
     , pattern_color_(attribute->pattern_color_)
     , text_color_(attribute->text_color_)
     , rarity_permille_(attribute->rarity_permille_) {
+}
+
+bool StarGiftAttributeBackdrop::is_valid() const {
+  return 0 < rarity_permille_ && rarity_permille_ <= 1000 && is_valid_color(center_color_) &&
+         is_valid_color(edge_color_) && is_valid_color(pattern_color_) && is_valid_color(text_color_);
 }
 
 td_api::object_ptr<td_api::upgradedGiftBackdrop> StarGiftAttributeBackdrop::get_upgraded_gift_backdrop_object() const {

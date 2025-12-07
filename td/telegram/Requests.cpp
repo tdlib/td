@@ -1999,6 +1999,16 @@ Promise<int32> Requests::create_count_request_promise(uint64 id) {
   });
 }
 
+Promise<SentEmailCode> Requests::create_sent_email_code_request_promise(uint64 id) {
+  return PromiseCreator::lambda([actor_id = td_actor_, id](Result<SentEmailCode> result) mutable {
+    if (result.is_error()) {
+      send_closure(actor_id, &Td::send_error, id, result.move_as_error());
+    } else {
+      send_closure(actor_id, &Td::send_result, id, result.ok().get_email_address_authentication_code_info_object());
+    }
+  });
+}
+
 #define CLEAN_INPUT_STRING(field_name)                                  \
   if (!clean_input_string(field_name)) {                                \
     return send_error_raw(id, 400, "Strings must be encoded in UTF-8"); \
@@ -2051,6 +2061,12 @@ Promise<int32> Requests::create_count_request_promise(uint64 id) {
   static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::count>>::value, \
                 "");                                                                                                 \
   auto promise = create_count_request_promise(id)
+
+#define CREATE_SENT_EMAIL_CODE_REQUEST_PROMISE()                                                     \
+  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType,                            \
+                             td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>>::value, \
+                "");                                                                                 \
+  auto promise = create_sent_email_code_request_promise(id)
 
 void Requests::on_request(uint64 id, const td_api::setTdlibParameters &request) {
   send_error_raw(id, 400, "Unexpected setTdlibParameters");
@@ -2274,29 +2290,15 @@ void Requests::on_request(uint64 id, const td_api::isLoginEmailAddressRequired &
 void Requests::on_request(uint64 id, td_api::setLoginEmailAddress &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.new_login_email_address_);
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<SentEmailCode> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(result.ok().get_email_address_authentication_code_info_object());
-    }
-  });
+  CREATE_SENT_EMAIL_CODE_REQUEST_PROMISE();
   send_closure(td_->password_manager_, &PasswordManager::set_login_email_address,
-               std::move(request.new_login_email_address_), std::move(query_promise));
+               std::move(request.new_login_email_address_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::resendLoginEmailAddressCode &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<SentEmailCode> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(result.ok().get_email_address_authentication_code_info_object());
-    }
-  });
-  send_closure(td_->password_manager_, &PasswordManager::resend_login_email_address_code, std::move(query_promise));
+  CREATE_SENT_EMAIL_CODE_REQUEST_PROMISE();
+  send_closure(td_->password_manager_, &PasswordManager::resend_login_email_address_code, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::checkLoginEmailAddressCode &request) {
@@ -2346,15 +2348,8 @@ void Requests::on_request(uint64 id, const td_api::cancelRecoveryEmailAddressVer
 
 void Requests::on_request(uint64 id, const td_api::requestPasswordRecovery &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<SentEmailCode> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(result.ok().get_email_address_authentication_code_info_object());
-    }
-  });
-  send_closure(td_->password_manager_, &PasswordManager::request_password_recovery, std::move(query_promise));
+  CREATE_SENT_EMAIL_CODE_REQUEST_PROMISE();
+  send_closure(td_->password_manager_, &PasswordManager::request_password_recovery, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::checkPasswordRecoveryCode &request) {
@@ -7931,6 +7926,44 @@ void Requests::on_request(uint64 id, td_api::sendGift &request) {
                                      request.pay_for_upgrade_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getGiftAuctionState &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.auction_id_);
+  CREATE_REQUEST_PROMISE();
+  td_->star_gift_manager_->get_gift_auction_state(request.auction_id_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::getGiftAuctionAcquiredGifts &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->star_gift_manager_->get_gift_auction_acquired_gifts(request.gift_id_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::openGiftAuction &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->star_gift_manager_->open_gift_auction(request.gift_id_, false, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::closeGiftAuction &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->star_gift_manager_->close_gift_auction(request.gift_id_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, td_api::placeGiftAuctionBid &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->star_gift_manager_->place_gift_auction_bid(request.gift_id_, request.star_count_, UserId(request.user_id_),
+                                                  std::move(request.text_), request.is_private_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::increaseGiftAuctionBid &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->star_gift_manager_->update_gift_auction_bid(request.gift_id_, request.star_count_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::sellGift &request) {
   CHECK_IS_USER_OR_BUSINESS();
   CREATE_OK_REQUEST_PROMISE();
@@ -8224,30 +8257,15 @@ void Requests::on_request(uint64 id, td_api::getPreferredCountryLanguage &reques
 void Requests::on_request(uint64 id, td_api::sendEmailAddressVerificationCode &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.email_address_);
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<SentEmailCode> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(result.ok().get_email_address_authentication_code_info_object());
-    }
-  });
+  CREATE_SENT_EMAIL_CODE_REQUEST_PROMISE();
   send_closure(td_->password_manager_, &PasswordManager::send_email_address_verification_code,
-               std::move(request.email_address_), std::move(query_promise));
+               std::move(request.email_address_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::resendEmailAddressVerificationCode &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<SentEmailCode> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(result.ok().get_email_address_authentication_code_info_object());
-    }
-  });
-  send_closure(td_->password_manager_, &PasswordManager::resend_email_address_verification_code,
-               std::move(query_promise));
+  CREATE_SENT_EMAIL_CODE_REQUEST_PROMISE();
+  send_closure(td_->password_manager_, &PasswordManager::resend_email_address_verification_code, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::checkEmailAddressVerificationCode &request) {

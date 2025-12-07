@@ -177,6 +177,9 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> &&st
     td->dialog_manager_->force_create_dialog(released_by_dialog_id_, "StarGift", true);
   }
   is_premium_ = star_gift->require_premium_;
+  is_auction_ = star_gift->auction_;
+  auction_slug_ = std::move(star_gift->auction_slug_);
+  gifts_per_round_ = max(0, star_gift->gifts_per_round_);
   locked_until_date_ = max(0, star_gift->locked_until_date_);
 }
 
@@ -190,10 +193,14 @@ td_api::object_ptr<td_api::giftPurchaseLimits> StarGift::get_gift_purchase_limit
 td_api::object_ptr<td_api::gift> StarGift::get_gift_object(const Td *td) const {
   CHECK(is_valid());
   CHECK(!is_unique_);
+  td_api::object_ptr<td_api::giftAuction> gift_auction;
+  if (is_auction_) {
+    gift_auction = td_api::make_object<td_api::giftAuction>(auction_slug_, gifts_per_round_);
+  }
   return td_api::make_object<td_api::gift>(
       id_, td->dialog_manager_->get_chat_id_object(released_by_dialog_id_, "gift"),
       td->stickers_manager_->get_sticker_object(sticker_file_id_), star_count_, default_sell_star_count_,
-      upgrade_star_count_, has_colors_, is_for_birthday_, is_premium_, locked_until_date_,
+      upgrade_star_count_, has_colors_, is_for_birthday_, is_premium_, std::move(gift_auction), locked_until_date_,
       get_gift_purchase_limits_object(per_user_total_, per_user_remains_),
       get_gift_purchase_limits_object(availability_total_, availability_remains_), first_sale_date_, last_sale_date_);
 }

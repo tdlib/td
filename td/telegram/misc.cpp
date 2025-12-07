@@ -427,4 +427,8 @@ int32 get_premium_duration_day_count(int32 month_count) {
   return month_count * 30 + month_count / 3 + month_count / 12;
 }
 
+bool is_valid_color(int32 color) {
+  return 0 <= color && color <= 0xFFFFFF;
+}
+
 }  // namespace td

@@ -80,6 +80,7 @@ void StarGift::store(StorerT &storer) const {
   STORE_FLAG(has_flags2);
   END_STORE_FLAGS();
   BEGIN_STORE_FLAGS();
+  STORE_FLAG(is_auction_);
   END_STORE_FLAGS();
   td::store(id_, storer);
   if (!is_unique_) {
@@ -163,6 +164,10 @@ void StarGift::store(StorerT &storer) const {
   if (has_peer_color) {
     td::store(peer_color_, storer);
   }
+  if (is_auction_) {
+    td::store(auction_slug_, storer);
+    td::store(gifts_per_round_, storer);
+  }
 }
 
 template <class ParserT>
@@ -226,6 +231,7 @@ void StarGift::parse(ParserT &parser) {
   END_PARSE_FLAGS();
   if (has_flags2) {
     BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_auction_);
     END_PARSE_FLAGS();
   }
   td::parse(id_, parser);
@@ -316,6 +322,10 @@ void StarGift::parse(ParserT &parser) {
   }
   if (has_peer_color) {
     td::parse(peer_color_, parser);
+  }
+  if (is_auction_) {
+    td::parse(auction_slug_, parser);
+    td::parse(gifts_per_round_, parser);
   }
 }
 

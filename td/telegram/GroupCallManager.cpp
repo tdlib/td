@@ -201,7 +201,9 @@ class GetGroupCallSendAsQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
 
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
-    CHECK(input_peer != nullptr);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Have no access to the chat"));
+    }
 
     send_query(
         G()->net_query_creator().create(telegram_api::channels_getSendAs(0, false, true, std::move(input_peer))));
@@ -5049,7 +5051,9 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
   if (it == pending_join_requests_.end()) {
     return false;
   }
-  CHECK(it->second != nullptr);
+  auto request = std::move(it->second);
+  CHECK(request != nullptr);
+  pending_join_requests_.erase(it);
 
   LOG(INFO) << "Successfully joined " << input_group_call_id;
 
@@ -5060,14 +5064,14 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
   group_call->is_being_joined = false;
   group_call->is_being_left = false;
   group_call->joined_date = G()->unix_time();
-  group_call->audio_source = it->second->audio_source;
-  group_call->as_dialog_id = it->second->as_dialog_id;
+  group_call->audio_source = request->audio_source;
+  group_call->as_dialog_id = request->as_dialog_id;
   if (group_call->is_conference) {
-    if (it->second->private_key_id == tde2e_api::PrivateKeyId()) {
+    if (request->private_key_id == tde2e_api::PrivateKeyId()) {
       LOG(ERROR) << "Have no private key in " << input_group_call_id;
     } else {
-      group_call->private_key_id = it->second->private_key_id;
-      group_call->public_key_id = it->second->public_key_id;
+      group_call->private_key_id = request->private_key_id;
+      group_call->public_key_id = request->public_key_id;
 
       auto block_it = being_joined_call_blocks_.find(input_group_call_id);
       if (block_it != being_joined_call_blocks_.end()) {
@@ -5104,15 +5108,18 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
         LOG(ERROR) << "Have no blocks in " << input_group_call_id;
       }
     }
-  } else if (it->second->private_key_id != tde2e_api::PrivateKeyId()) {
+  } else if (request->private_key_id != tde2e_api::PrivateKeyId()) {
     LOG(ERROR) << "Have private key in " << input_group_call_id;
   }
+  request->promise.set_value(std::move(json_response));
+
   if (group_call->is_live_story) {
     poll_group_call_stars_timeout_.cancel_timeout(group_call->group_call_id.get());
     get_group_call_stars_from_server(input_group_call_id, Auto());
+    if (!group_call->loaded_available_message_senders) {
+      td_->create_handler<GetGroupCallSendAsQuery>(Promise<Unit>())->send(input_group_call_id, group_call->dialog_id);
+    }
   }
-
-  it->second->promise.set_value(std::move(json_response));
   if (group_call->audio_source != 0) {
     check_group_call_is_joined_timeout_.set_timeout_in(group_call->group_call_id.get(),
                                                        CHECK_GROUP_CALL_IS_JOINED_TIMEOUT);
@@ -5120,7 +5127,6 @@ bool GroupCallManager::on_join_group_call_response(InputGroupCallId input_group_
   if (group_call->need_syncing_participants) {
     sync_participants_timeout_.add_timeout_in(group_call->group_call_id.get(), 0.0);
   }
-  pending_join_requests_.erase(it);
   try_clear_group_call_participants(input_group_call_id);
   process_group_call_after_join_requests(input_group_call_id, "on_join_group_call_response");
   return true;

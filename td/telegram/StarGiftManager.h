@@ -9,14 +9,19 @@
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/StarGift.h"
+#include "td/telegram/StarGiftAuctionState.h"
+#include "td/telegram/StarGiftAuctionUserState.h"
 #include "td/telegram/StarGiftCollectionId.h"
 #include "td/telegram/StarGiftId.h"
 #include "td/telegram/StarGiftResalePrice.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiTimeout.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -49,6 +54,27 @@ class StarGiftManager final : public Actor {
 
   void send_gift(int64 gift_id, DialogId dialog_id, td_api::object_ptr<td_api::formattedText> text, bool is_private,
                  bool pay_for_upgrade, Promise<Unit> &&promise);
+
+  void get_gift_auction_state(const string &auction_id,
+                              Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise);
+
+  void on_update_gift_auction_state(int64 gift_id,
+                                    telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &&state);
+
+  void on_update_gift_auction_user_state(int64 gift_id,
+                                         telegram_api::object_ptr<telegram_api::starGiftAuctionUserState> &&user_state);
+
+  void get_gift_auction_acquired_gifts(int64 gift_id,
+                                       Promise<td_api::object_ptr<td_api::giftAuctionAcquiredGifts>> &&promise);
+
+  void open_gift_auction(int64 gift_id, bool is_recursive, Promise<Unit> &&promise);
+
+  void close_gift_auction(int64 gift_id, Promise<Unit> &&promise);
+
+  void place_gift_auction_bid(int64 gift_id, int64 star_count, UserId user_id,
+                              td_api::object_ptr<td_api::formattedText> text, bool is_private, Promise<Unit> &&promise);
+
+  void update_gift_auction_bid(int64 gift_id, int64 star_count, Promise<Unit> &&promise);
 
   void convert_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, Promise<Unit> &&promise);
 
@@ -127,6 +153,16 @@ class StarGiftManager final : public Actor {
   void unregister_gift(MessageFullId message_full_id, const char *source);
 
  private:
+  struct AuctionInfo {
+    StarGift gift_;
+    StarGiftAuctionState state_;
+    StarGiftAuctionUserState user_state_;
+
+    bool operator==(const AuctionInfo &other) const {
+      return gift_ == other.gift_ && state_ == other.state_ && user_state_ == other.user_state_;
+    }
+  };
+
   void start_up() final;
 
   void tear_down() final;
@@ -147,9 +183,44 @@ class StarGiftManager final : public Actor {
 
   void on_update_gift_message(MessageFullId message_full_id);
 
+  static void on_reload_gift_auction_timeout_callback(void *star_gift_manager_ptr, int64 gift_id);
+
+  void on_reload_gift_auction_timeout(int64 gift_id);
+
   void on_online();
 
   void on_dialog_gift_transferred(DialogId from_dialog_id, DialogId to_dialog_id, Promise<Unit> &&promise);
+
+  Result<AuctionInfo> get_auction_info(telegram_api::object_ptr<telegram_api::StarGift> &&star_gift,
+                                       telegram_api::object_ptr<telegram_api::StarGiftAuctionState> &&state,
+                                       telegram_api::object_ptr<telegram_api::starGiftAuctionUserState> &&user_state);
+
+  void reload_gift_auction_state(telegram_api::object_ptr<telegram_api::InputStarGiftAuction> &&input_auction,
+                                 int32 version, Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise);
+
+  void on_get_auction_state(Result<telegram_api::object_ptr<telegram_api::payments_starGiftAuctionState>> r_state,
+                            Promise<td_api::object_ptr<td_api::giftAuctionState>> &&promise);
+
+  void schedule_active_gift_auctions_reload();
+
+  static void reload_active_gift_auctions_static(void *td);
+
+  void reload_active_gift_auctions();
+
+  void on_get_active_gift_auctions(
+      Result<telegram_api::object_ptr<telegram_api::payments_StarGiftActiveAuctions>> r_auctions);
+
+  td_api::object_ptr<td_api::giftAuctionState> get_gift_auction_state_object(const AuctionInfo &info) const;
+
+  void send_update_gift_auction_state(const AuctionInfo &info);
+
+  void send_update_active_gift_auctions();
+
+  void do_place_gift_auction_bid(int64 gift_id, int64 star_count, UserId user_id,
+                                 td_api::object_ptr<td_api::formattedText> text, bool is_private,
+                                 Promise<Unit> &&promise);
+
+  void do_update_gift_auction_bid(int64 gift_id, int64 star_count, Promise<Unit> &&promise);
 
   Td *td_;
   ActorShared<> parent_;
@@ -161,6 +232,13 @@ class StarGiftManager final : public Actor {
   WaitFreeHashMap<int64, MessageFullId> gift_message_full_ids_by_id_;
   FlatHashSet<MessageFullId, MessageFullIdHash> being_reloaded_gift_messages_;
   MultiTimeout update_gift_message_timeout_{"UpdateGiftMessageTimeout"};
+
+  FlatHashMap<int64, AuctionInfo> gift_auction_infos_;
+  vector<AuctionInfo> active_gift_auctions_;
+  FlatHashMap<int64, int32> gift_auction_open_counts_;
+  MultiTimeout reload_gift_auction_timeout_{"ReloadGiftAuctionTimeout"};
+
+  Timeout active_gift_auctions_reload_timeout_;
 };
 
 }  // namespace td

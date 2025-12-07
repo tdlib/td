@@ -6,6 +6,8 @@
 //
 #include "td/telegram/BackgroundType.h"
 
+#include "td/telegram/misc.h"
+
 #include "td/utils/base64.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
@@ -21,10 +23,6 @@ static string get_color_hex_string(int32 color) {
     result += "0123456789abcdef"[(color >> i) & 0xF];
   }
   return result;
-}
-
-static bool is_valid_color(int32 color) {
-  return 0 <= color && color <= 0xFFFFFF;
 }
 
 static bool validate_alpha_color(int32 &color) {

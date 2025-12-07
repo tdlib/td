@@ -64,4 +64,7 @@ int32 get_premium_duration_month_count(int32 day_count);
 // converts Premium duration in months to duration in days
 int32 get_premium_duration_day_count(int32 month_count);
 
+// checks that the integer represents a valid RGB color
+bool is_valid_color(int32 color);
+
 }  // namespace td

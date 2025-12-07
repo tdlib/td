@@ -30,6 +30,8 @@
 #include "td/telegram/PhotoFormat.h"
 #include "td/telegram/QuickReplyManager.h"
 #include "td/telegram/StarGift.h"
+#include "td/telegram/StarGiftBackground.h"
+#include "td/telegram/StarGiftBackground.hpp"
 #include "td/telegram/StickerFormat.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
@@ -253,6 +255,7 @@ class WebPagesManager::WebPage {
   bool video_cover_photo_ = false;
   mutable bool is_album_ = false;
   mutable bool is_album_checked_ = false;
+  mutable bool was_reloaded_ = false;
   Document document_;
   vector<Document> documents_;
   ThemeSettings theme_settings_;
@@ -260,6 +263,8 @@ class WebPagesManager::WebPage {
   vector<FileId> sticker_ids_;
   vector<StarGift> star_gifts_;
   WebPageInstantView instant_view_;
+  int32 auction_end_date_ = 0;
+  unique_ptr<StarGiftBackground> gift_background_;
 
   FileSourceId file_source_id_;
 
@@ -286,6 +291,8 @@ class WebPagesManager::WebPage {
     bool has_sticker_ids = !sticker_ids_.empty();
     bool has_theme_settings = !theme_settings_.is_empty();
     bool has_star_gifts = !star_gifts_.empty();
+    bool has_auction_end_date = auction_end_date_ != 0;
+    bool has_gift_background = gift_background_ != nullptr;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_type);
     STORE_FLAG(has_site_name);
@@ -307,6 +314,8 @@ class WebPagesManager::WebPage {
     STORE_FLAG(has_theme_settings);
     STORE_FLAG(has_star_gifts);
     STORE_FLAG(video_cover_photo_);
+    STORE_FLAG(has_auction_end_date);
+    STORE_FLAG(has_gift_background);
     END_STORE_FLAGS();
 
     store(url_, storer);
@@ -361,6 +370,12 @@ class WebPagesManager::WebPage {
     if (has_star_gifts) {
       store(star_gifts_, storer);
     }
+    if (has_auction_end_date) {
+      store(auction_end_date_, storer);
+    }
+    if (has_gift_background) {
+      store(gift_background_, storer);
+    }
   }
 
   template <class ParserT>
@@ -384,6 +399,8 @@ class WebPagesManager::WebPage {
     bool has_sticker_ids;
     bool has_theme_settings;
     bool has_star_gifts;
+    bool has_auction_end_date;
+    bool has_gift_background;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_type);
     PARSE_FLAG(has_site_name);
@@ -405,6 +422,8 @@ class WebPagesManager::WebPage {
     PARSE_FLAG(has_theme_settings);
     PARSE_FLAG(has_star_gifts);
     PARSE_FLAG(video_cover_photo_);
+    PARSE_FLAG(has_auction_end_date);
+    PARSE_FLAG(has_gift_background);
     END_PARSE_FLAGS();
 
     parse(url_, parser);
@@ -468,6 +487,12 @@ class WebPagesManager::WebPage {
     if (has_star_gifts) {
       parse(star_gifts_, parser);
     }
+    if (has_auction_end_date) {
+      parse(auction_end_date_, parser);
+    }
+    if (has_gift_background) {
+      parse(gift_background_, parser);
+    }
 
     if (has_instant_view) {
       instant_view_.is_empty_ = false;
@@ -487,6 +512,7 @@ class WebPagesManager::WebPage {
            lhs.document_ == rhs.document_ && lhs.documents_ == rhs.documents_ &&
            lhs.theme_settings_ == rhs.theme_settings_ && lhs.story_full_ids_ == rhs.story_full_ids_ &&
            lhs.sticker_ids_ == rhs.sticker_ids_ && lhs.star_gifts_ == rhs.star_gifts_ &&
+           lhs.auction_end_date_ == rhs.auction_end_date_ && lhs.gift_background_ == rhs.gift_background_ &&
            lhs.instant_view_.is_empty_ == rhs.instant_view_.is_empty_ &&
            lhs.instant_view_.is_v2_ == rhs.instant_view_.is_v2_;
   }
@@ -594,6 +620,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       LOG(INFO) << "Receive " << web_page_id;
       auto page = make_unique<WebPage>();
 
+      page->was_reloaded_ = true;
       page->url_ = std::move(web_page->url_);
       page->display_url_ = std::move(web_page->display_url_);
       page->type_ = std::move(web_page->type_);
@@ -711,6 +738,22 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
             }
             if (page->type_ != "telegram_collection") {
               LOG(ERROR) << "Receive webPageAttributeStarGiftCollection for " << page->type_;
+            }
+            break;
+          }
+          case telegram_api::webPageAttributeStarGiftAuction::ID: {
+            auto attribute = telegram_api::move_object_as<telegram_api::webPageAttributeStarGiftAuction>(attribute_ptr);
+            auto star_gift = StarGift(td_, std::move(attribute->gift_), false);
+            if (!star_gift.is_valid()) {
+              LOG(ERROR) << "Receive no gift in webPageAttributeStarGiftAuction";
+              break;
+            }
+            page->star_gifts_.push_back(std::move(star_gift));
+            page->auction_end_date_ = attribute->end_date_;
+            page->gift_background_ = make_unique<StarGiftBackground>(attribute->center_color_, attribute->edge_color_,
+                                                                     attribute->text_color_);
+            if (page->type_ != "telegram_auction") {
+              LOG(ERROR) << "Receive webPageAttributeStarGiftAuction for " << page->type_;
             }
             break;
           }
@@ -1489,13 +1532,28 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
   return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
 }
 
-td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_type_object(
-    const WebPage *web_page) const {
+td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_type_object(const WebPage *web_page,
+                                                                                          bool &need_reload) const {
+  need_reload = false;
   if (is_web_page_album(web_page)) {
     return get_link_preview_type_album_object(web_page->instant_view_);
   }
   if (begins_with(web_page->type_, "telegram_")) {
     Slice type = Slice(web_page->type_).substr(9);
+    if (type == "auction") {
+      if (web_page->star_gifts_.size() == 1) {
+        td_api::object_ptr<td_api::giftBackground> background;
+        if (web_page->gift_background_ != nullptr) {
+          background = web_page->gift_background_->get_gift_background_object();
+        }
+        return td_api::make_object<td_api::linkPreviewTypeGiftAuction>(
+            web_page->star_gifts_[0].get_gift_object(td_), std::move(background), web_page->auction_end_date_);
+      } else {
+        LOG(ERROR) << "Receive gift auction " << web_page->url_ << " without the gift";
+        need_reload = true;
+        return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
+      }
+    }
     if (type == "background") {
       LOG_IF(ERROR, !web_page->photo_.is_empty()) << "Receive photo for " << web_page->url_;
       LOG_IF(ERROR,
@@ -1612,6 +1670,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
             web_page->star_gifts_[0].get_upgraded_gift_object(td_));
       } else {
         LOG(ERROR) << "Receive upgraded gift " << web_page->url_ << " without the gift";
+        need_reload = true;
         return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
       }
     }
@@ -1639,6 +1698,7 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
             td_->dialog_manager_->get_chat_id_object(story_sender_dialog_id, "webPage"), story_id.get());
       } else {
         LOG(ERROR) << "Receive Telegram story " << web_page->url_ << " without story";
+        need_reload = true;
         return td_api::make_object<td_api::linkPreviewTypeUnsupported>();
       }
     }
@@ -1985,7 +2045,12 @@ td_api::object_ptr<td_api::linkPreview> WebPagesManager::get_link_preview_object
     }
     return false;
   }();
-  auto link_preview_type = get_link_preview_type_object(web_page);
+  bool need_reload = false;
+  auto link_preview_type = get_link_preview_type_object(web_page, need_reload);
+  if (need_reload && !web_page->was_reloaded_) {
+    web_page->was_reloaded_ = true;
+    td_->create_handler<GetWebPageQuery>(Promise<WebPageId>())->send(WebPageId(), web_page->url_, 0);
+  }
   bool show_media_above_description = false;
   if (show_large_media) {
     auto type_id = link_preview_type->get_id();

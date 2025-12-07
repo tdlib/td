@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
-project(TDLib VERSION 1.8.57 LANGUAGES CXX C)
+project(TDLib VERSION 1.8.58 LANGUAGES CXX C)
 
 if (NOT DEFINED CMAKE_MODULE_PATH)
   set(CMAKE_MODULE_PATH "")
@@ -349,6 +349,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/AnimationsManager.cpp
   td/telegram/Application.cpp
   td/telegram/AttachMenuManager.cpp
+  td/telegram/AuctionBidLevel.cpp
   td/telegram/AudiosManager.cpp
   td/telegram/AuthManager.cpp
   td/telegram/AutoDownloadSettings.cpp
@@ -610,6 +611,9 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StarGift.cpp
   td/telegram/StarGiftAttribute.cpp
   td/telegram/StarGiftAttributeId.cpp
+  td/telegram/StarGiftAuctionState.cpp
+  td/telegram/StarGiftAuctionUserState.cpp
+  td/telegram/StarGiftBackground.cpp
   td/telegram/StarGiftCollection.cpp
   td/telegram/StarGiftId.cpp
   td/telegram/StarGiftManager.cpp
@@ -689,6 +693,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/AnimationsManager.h
   td/telegram/Application.h
   td/telegram/AttachMenuManager.h
+  td/telegram/AuctionBidLevel.h
   td/telegram/AudiosManager.h
   td/telegram/AuthManager.h
   td/telegram/AutoDownloadSettings.h
@@ -1012,6 +1017,9 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StarGift.h
   td/telegram/StarGiftAttribute.h
   td/telegram/StarGiftAttributeId.h
+  td/telegram/StarGiftAuctionState.h
+  td/telegram/StarGiftAuctionUserState.h
+  td/telegram/StarGiftBackground.h
   td/telegram/StarGiftCollection.h
   td/telegram/StarGiftCollectionId.h
   td/telegram/StarGiftId.h
@@ -1178,6 +1186,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StarAmount.hpp
   td/telegram/StarGift.hpp
   td/telegram/StarGiftAttribute.hpp
+  td/telegram/StarGiftBackground.hpp
   td/telegram/StarGiftId.hpp
   td/telegram/StarGiftResalePrice.hpp
   td/telegram/StarGiftSettings.hpp

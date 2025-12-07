@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/SentEmailCode.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/td_api.h"
 
@@ -99,6 +100,8 @@ class Requests {
   Promise<string> create_http_url_request_promise(uint64 id);
 
   Promise<int32> create_count_request_promise(uint64 id);
+
+  Promise<SentEmailCode> create_sent_email_code_request_promise(uint64 id);
 
   template <class T>
   void on_request(uint64 id, const T &) = delete;
@@ -1682,6 +1685,18 @@ class Requests {
   void on_request(uint64 id, const td_api::canSendGift &request);
 
   void on_request(uint64 id, td_api::sendGift &request);
+
+  void on_request(uint64 id, td_api::getGiftAuctionState &request);
+
+  void on_request(uint64 id, const td_api::getGiftAuctionAcquiredGifts &request);
+
+  void on_request(uint64 id, const td_api::openGiftAuction &request);
+
+  void on_request(uint64 id, const td_api::closeGiftAuction &request);
+
+  void on_request(uint64 id, td_api::placeGiftAuctionBid &request);
+
+  void on_request(uint64 id, const td_api::increaseGiftAuctionBid &request);
 
   void on_request(uint64 id, td_api::sellGift &request);
 

@@ -1205,6 +1205,17 @@ acceptedGiftTypes unlimited_gifts:Bool limited_gifts:Bool upgraded_gifts:Bool gi
 giftSettings show_gift_button:Bool accepted_gift_types:acceptedGiftTypes = GiftSettings;
 
 
+//@description Describes an auction on which a gift can be purchased
+//@id Identifier of the auction
+//@gifts_per_round Number of gifts distributed in each round
+giftAuction id:string gifts_per_round:int32 = GiftAuction;
+
+//@description Describes background of a gift
+//@center_color Center color in RGB format
+//@edge_color Edge color in RGB format
+//@text_color Text color in RGB format
+giftBackground center_color:int32 edge_color:int32 text_color:int32 = GiftBackground;
+
 //@description Describes the maximum number of times that a specific gift can be purchased
 //@total_count The maximum number of times the gifts can be purchased
 //@remaining_count Number of remaining times the gift can be purchased
@@ -1308,13 +1319,14 @@ upgradedGiftColors id:int64 model_custom_emoji_id:int64 symbol_custom_emoji_id:i
 //@has_colors True, if the gift can be used to customize the user's name, and backgrounds of profile photo, reply header, and link preview
 //@is_for_birthday True, if the gift is a birthday gift
 //@is_premium True, if the gift can be bought only by Telegram Premium subscribers
+//@auction_info Information about the auction on which the gift can be purchased; may be null if the gift can be purchased directly
 //@next_send_date Point in time (Unix timestamp) when the gift can be sent next time by the current user; can be 0 or a date in the past.
 //-If the date is in the future, then call canSendGift to get the reason, why the gift can't be sent now
 //@user_limits Number of times the gift can be purchased by the current user; may be null if not limited
 //@overall_limits Number of times the gift can be purchased all users; may be null if not limited
 //@first_send_date Point in time (Unix timestamp) when the gift was send for the first time; for sold out gifts only
 //@last_send_date Point in time (Unix timestamp) when the gift was send for the last time; for sold out gifts only
-gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 has_colors:Bool is_for_birthday:Bool is_premium:Bool next_send_date:int32 user_limits:giftPurchaseLimits overall_limits:giftPurchaseLimits first_send_date:int32 last_send_date:int32 = Gift;
+gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_sell_star_count:int53 upgrade_star_count:int53 has_colors:Bool is_for_birthday:Bool is_premium:Bool auction_info:giftAuction next_send_date:int32 user_limits:giftPurchaseLimits overall_limits:giftPurchaseLimits first_send_date:int32 last_send_date:int32 = Gift;
 
 //@description Describes an upgraded gift that can be transferred to another owner or transferred to the TON blockchain as an NFT
 //@id Unique identifier of the gift
@@ -1496,6 +1508,64 @@ receivedGifts total_count:int32 gifts:vector<receivedGift> are_notifications_ena
 giftUpgradePreview models:vector<upgradedGiftModel> symbols:vector<upgradedGiftSymbol> backdrops:vector<upgradedGiftBackdrop> prices:vector<giftUpgradePrice> next_prices:vector<giftUpgradePrice> = GiftUpgradePreview;
 
 
+//@description Describes a bid in an auction
+//@star_count The number of Telegram Stars that were put in the bid
+//@bid_date Point in time (Unix timestamp) when the bid was made
+//@position Position of the bid in the list of all bids
+auctionBid star_count:int53 bid_date:int32 position:int32 = AuctionBid;
+
+//@description Describes a bid of the current user in an auction
+//@star_count The number of Telegram Stars that were put in the bid
+//@bid_date Point in time (Unix timestamp) when the bid was made
+//@next_bid_star_count The minimum number of Telegram Stars that can be put for the next bid
+//@owner_id Identifier of the user or the chat that will receive the auctioned item. If the auction is opened in context of another user or chat, then a warning is supposed to be shown to the current user
+//@was_returned True, if the bid was returned to the user, because it was outbid and can't win anymore
+userAuctionBid star_count:int53 bid_date:int32 next_bid_star_count:int53 owner_id:MessageSender was_returned:Bool = UserAuctionBid;
+
+
+//@class AuctionState @description Describes state of an auction
+
+//@description Contains information about an ongoing auction
+//@start_date Point in time (Unix timestamp) when the auction started
+//@end_date Point in time (Unix timestamp) when the auction will be ended
+//@min_bid The minimum possible bid in the auction in Telegram Stars
+//@bid_levels A sparse list of bids that were made in the auction
+//@top_bidder_user_ids User identifiers of at most 3 users with the biggest bids
+//@current_round_end_date Point in time (Unix timestamp) when the current round will end
+//@current_round_number 1-based number of the current round
+//@total_round_count The total number of rounds
+//@left_item_count The number of items that have to be distributed on the auciton
+//@acquired_item_count The number of items that were purchased by the current user on the auciton
+//@user_bid Bid of the current user in the auction; may be null if none
+auctionStateActive start_date:int32 end_date:int32 min_bid:int53 bid_levels:vector<auctionBid> top_bidder_user_ids:vector<int53> current_round_end_date:int32 current_round_number:int32 total_round_count:int32 left_item_count:int32 acquired_item_count:int32 user_bid:userAuctionBid = AuctionState;
+
+//@description Contains information about a finished auction
+//@start_date Point in time (Unix timestamp) when the auction started
+//@end_date Point in time (Unix timestamp) when the auction will be ended
+//@average_price Average price of bought items in Telegram Stars
+//@acquired_item_count The number of items that were purchased by the current user on the auciton
+auctionStateFinished start_date:int32 end_date:int32 average_price:int53 acquired_item_count:int32 = AuctionState;
+
+
+//@description Represent auction state of a gift
+//@gift The gift
+//@state Auction state of the gift
+giftAuctionState gift:gift state:AuctionState = GiftAuctionState;
+
+//@description Represents a gift that was acquired by the current user on an auction
+//@receiver_id Receiver of the gift
+//@date Point in time (Unix timestamp) when the gift was acquired
+//@star_count The number of Telegram Stars that were paid for the gift
+//@auction_round_number Identifier of the auction round in which the gift was acquired
+//@auction_round_position Position of the user in the round among all auction participants
+//@text Message added to the gift
+//@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone will be able to see them
+giftAuctionAcquiredGift receiver_id:MessageSender date:int32 star_count:int53 auction_round_number:int32 auction_round_position:int32 text:formattedText is_private:Bool = GiftAuctionAcquiredGift;
+
+//@description Represents a list of gifts that were acquired by the current user on an auction @gifts The list of acquired gifts
+giftAuctionAcquiredGifts gifts:vector<giftAuctionAcquiredGift> = GiftAuctionAcquiredGifts;
+
+
 //@class TransactionDirection @description Describes direction of transactions in a transaction list
 
 //@description The transaction is incoming and increases the amount of owned currency
@@ -1598,6 +1668,9 @@ starTransactionTypeChannelSubscriptionPurchase chat_id:int53 subscription_period
 //@user_id Identifier of the user that bought the subscription
 //@subscription_period The number of seconds between consecutive Telegram Star debitings
 starTransactionTypeChannelSubscriptionSale user_id:int53 subscription_period:int32 = StarTransactionType;
+
+//@description The transaction is a bid on a gift auction; for regular users only @owner_id Identifier of the user that will receive the gift @gift The gift
+starTransactionTypeGiftAuctionBid owner_id:MessageSender gift:gift = StarTransactionType;
 
 //@description The transaction is a purchase of a regular gift; for regular users and bots only @owner_id Identifier of the user or the channel that received the gift @gift The gift
 starTransactionTypeGiftPurchase owner_id:MessageSender gift:gift = StarTransactionType;
@@ -3766,6 +3839,12 @@ linkPreviewTypeExternalAudio url:string mime_type:string duration:int32 = LinkPr
 //@duration Duration of the video, in seconds; 0 if unknown
 linkPreviewTypeExternalVideo url:string mime_type:string width:int32 height:int32 duration:int32 = LinkPreviewType;
 
+//@description The link is a link to a gift auction
+//@gift The gift
+//@gift_background Background of the gift
+//@auction_end_date Point in time (Unix timestamp) when the auction will be ended
+linkPreviewTypeGiftAuction gift:gift gift_background:giftBackground auction_end_date:int32 = LinkPreviewType;
+
 //@description The link is a link to a gift collection @icons Icons for some gifts from the collection; may be empty
 linkPreviewTypeGiftCollection icons:vector<sticker> = LinkPreviewType;
 
@@ -4745,6 +4824,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@sell_star_count Number of Telegram Stars that can be claimed by the receiver instead of the regular gift; 0 if the gift can't be sold by the receiver
 //@prepaid_upgrade_star_count Number of Telegram Stars that were paid by the sender for the ability to upgrade the gift
 //@is_upgrade_separate True, if the upgrade was bought after the gift was sent. In this case, prepaid upgrade cost must not be added to the gift cost
+//@is_from_auction True, if the message is a notification about a gift won on an auction
 //@is_private True, if the sender and gift text are shown only to the gift receiver; otherwise, everyone will be able to see them
 //@is_saved True, if the gift is displayed on the user's or the channel's profile page; only for the receiver of the gift
 //@is_prepaid_upgrade True, if the message is about prepaid upgrade of the gift by another user
@@ -4754,7 +4834,7 @@ messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id
 //@was_refunded True, if the gift was refunded and isn't available anymore
 //@upgraded_received_gift_id Identifier of the corresponding upgraded gift; may be empty if unknown. Use getReceivedGift to get information about the gift
 //@prepaid_upgrade_hash If non-empty, then the user can pay for an upgrade of the gift using buyGiftUpgrade
-messageGift gift:gift sender_id:MessageSender receiver_id:MessageSender received_gift_id:string text:formattedText sell_star_count:int53 prepaid_upgrade_star_count:int53 is_upgrade_separate:Bool is_private:Bool is_saved:Bool is_prepaid_upgrade:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool was_refunded:Bool upgraded_received_gift_id:string prepaid_upgrade_hash:string = MessageContent;
+messageGift gift:gift sender_id:MessageSender receiver_id:MessageSender received_gift_id:string text:formattedText sell_star_count:int53 prepaid_upgrade_star_count:int53 is_upgrade_separate:Bool is_from_auction:Bool is_private:Bool is_saved:Bool is_prepaid_upgrade:Bool can_be_upgraded:Bool was_converted:Bool was_upgraded:Bool was_refunded:Bool upgraded_received_gift_id:string prepaid_upgrade_hash:string = MessageContent;
 
 //@description An upgraded gift was received or sent by the current user, or the current user was notified about a channel gift
 //@gift The gift
@@ -8171,6 +8251,10 @@ internalLinkTypeEditProfileSettings = InternalLinkType;
 //@game_short_name Short name of the game
 internalLinkTypeGame bot_username:string game_short_name:string = InternalLinkType;
 
+//@description The link is a link to a gift auction. Call getGiftAuctionState with the given auction identifier to process the link
+//@auction_id Unique identifier of the auction
+internalLinkTypeGiftAuction auction_id:string = InternalLinkType;
+
 //@description The link is a link to a gift collection. Call searchPublicChat with the given username, then call getReceivedGifts with the received gift owner identifier
 //-and the given collection identifier, then show the collection if received
 //@gift_owner_username Username of the owner of the gift collection
@@ -9473,6 +9557,12 @@ updateLiveStoryTopDonors group_call_id:int32 donors:liveStoryDonors = Update;
 
 //@description New call signaling data arrived @call_id The call identifier @data The data
 updateNewCallSignalingData call_id:int32 data:bytes = Update;
+
+//@description State of a gift auction was updated @state New state of the auction
+updateGiftAuctionState state:giftAuctionState = Update;
+
+//@description The list of auctions in which participate the current user has changed @states New states of the auctions
+updateActiveGiftAuctions states:vector<giftAuctionState> = Update;
 
 //@description Some privacy setting rules have been changed @setting The privacy setting @rules New privacy rules
 updateUserPrivacySettingRules setting:UserPrivacySetting rules:userPrivacySettingRules = Update;
@@ -13462,6 +13552,32 @@ canSendGift gift_id:int64 = CanSendGiftResult;
 //@is_private Pass true to show gift text and sender only to the gift receiver; otherwise, everyone will be able to see them
 //@pay_for_upgrade Pass true to additionally pay for the gift upgrade and allow the receiver to upgrade it for free
 sendGift gift_id:int64 owner_id:MessageSender text:formattedText is_private:Bool pay_for_upgrade:Bool = Ok;
+
+//@description Returns auction state for a gift @auction_id Unique identifier of the auction
+getGiftAuctionState auction_id:string = GiftAuctionState;
+
+//@description Returns the gifts that were acquired by the current user on a gift auction @gift_id Identifier of the auctioned gift
+getGiftAuctionAcquiredGifts gift_id:int64 = GiftAuctionAcquiredGifts;
+
+//@description Informs TDLib that a gift auction was opened by the user @gift_id Identifier of the gift, which auction was opened
+openGiftAuction gift_id:int64 = Ok;
+
+//@description Informs TDLib that a gift auction was closed by the user @gift_id Identifier of the gift, which auction was closed
+closeGiftAuction gift_id:int64 = Ok;
+
+//@description Places a bid on an auction gift
+//@gift_id Identifier of the gift to place the bid on
+//@star_count The number of Telegram Stars to place in the bid
+//@user_id Identifier of the user that will receive the gift
+//@text Text to show along with the gift; 0-getOption("gift_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, and CustomEmoji entities are allowed.
+//-Must be empty if the receiver enabled paid messages
+//@is_private Pass true to show gift text and sender only to the gift receiver; otherwise, everyone will be able to see them
+placeGiftAuctionBid gift_id:int64 star_count:int53 user_id:int53 text:formattedText is_private:Bool = Ok;
+
+//@description Increases a bid for an auction gift without changing gift text and receiver
+//@gift_id Identifier of the gift to put the bid on
+//@star_count The number of Telegram Stars to put in the bid
+increaseGiftAuctionBid gift_id:int64 star_count:int53 = Ok;
 
 //@description Sells a gift for Telegram Stars; requires owner privileges for gifts owned by a chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only

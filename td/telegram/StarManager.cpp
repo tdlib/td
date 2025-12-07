@@ -525,6 +525,13 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                         return td_api::make_object<td_api::starTransactionTypeGiftUpgradePurchase>(
                             td_api::make_object<td_api::messageSenderUser>(user_id_object), gift.get_gift_object(td_));
                       }
+                    } else if (transaction->stargift_auction_bid_) {
+                      if (for_user) {
+                        transaction->stargift_auction_bid_ = false;
+                        product_info = nullptr;
+                        return td_api::make_object<td_api::starTransactionTypeGiftAuctionBid>(
+                            td_api::make_object<td_api::messageSenderUser>(user_id_object), gift.get_gift_object(td_));
+                      }
                     } else if (for_user || for_bot) {
                       product_info = nullptr;
                       return td_api::make_object<td_api::starTransactionTypeGiftPurchase>(
@@ -1881,6 +1888,9 @@ string StarManager::get_unused_star_transaction_field(
   }
   if (transaction->phonegroup_message_) {
     return "live story message";
+  }
+  if (transaction->stargift_auction_bid_) {
+    return "gift auction bid";
   }
   return string();
 }
