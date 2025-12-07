@@ -50,7 +50,7 @@ If you use Python >= 3.6, take a look at [python-telegram](https://github.com/al
 The wrapper uses the full power of asyncio, has a good documentation and has several examples. It can be installed through pip or used in a Docker container.
 You can also try a fork [python-telegram](https://github.com/iTeam-co/pytglib) of this library.
 
-If you want to use TDLib with asyncio and Python >= 3.9, take a look at [aiotdlib](https://github.com/pylakey/aiotdlib) or [Pytdbot](https://github.com/pytdbot/client).
+If you want to use TDLib with asyncio and Python >= 3.9, take a look at [aiotdlib](https://github.com/pylakey/aiotdlib) or [Pytdbot](https://github.com/pytdbot/client) (built on [AYMENJD/tdjson](https://github.com/AYMENJD/tdjson), a high-performance TDLib binding).
 
 For older Python versions you can use [pytdlib](https://github.com/pytdlib/pytdlib).
 This wrapper contains generator for TDLib API classes and basic interface for interaction with TDLib.
