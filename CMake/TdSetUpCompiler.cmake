@@ -153,16 +153,13 @@ function(td_set_up_compiler)
     add_cxx_compiler_flag("-Wno-cast-function-type")
   endif()
   if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0))
-    # warns about a lot of "return std::move", which are not redundant for compilers without fix for DR 1579, i.e. GCC 4.9 or clang 3.8
+    # warns about a lot of "return std::move", which are not redundant for compilers without proper fix for DR 1579, i.e. GCC 8
     # see http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#1579
+    # see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80452
     add_cxx_compiler_flag("-Wno-redundant-move")
   endif()
   if (GCC)
     add_cxx_compiler_flag("-Wno-stringop-overflow")  # some false positives
-  endif()
-  if (CLANG AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.5))
-    # https://stackoverflow.com/questions/26744556/warning-returning-a-captured-reference-from-a-lambda
-    add_cxx_compiler_flag("-Wno-return-stack-address")
   endif()
   if (GCC AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0))
     # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=104030
