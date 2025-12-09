@@ -305,7 +305,7 @@ class GetForumTopicQuery final : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     forum_topic_id_ = forum_topic_id;
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -370,7 +370,7 @@ class GetForumTopicsQuery final : public Td::ResultHandler {
             ForumTopicId offset_forum_topic_id, int32 limit) {
     dialog_id_ = dialog_id;
 
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
