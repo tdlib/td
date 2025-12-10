@@ -936,6 +936,18 @@ giftResalePriceStar star_count:int53 = GiftResalePrice;
 giftResalePriceTon toncoin_cent_count:int53 = GiftResalePrice;
 
 
+//@class GiftPurchaseOfferState @description Describes state of a gift purchase offer
+
+//@description The offer must be approved or declined
+giftPurchaseOfferStatePending = GiftPurchaseOfferState;
+
+//@description The offer was approved
+giftPurchaseOfferStateApproved = GiftPurchaseOfferState;
+
+//@description The offer was declined
+giftPurchaseOfferStateDeclined = GiftPurchaseOfferState;
+
+
 //@class SuggestedPostPrice @description Describes price of a suggested post
 
 //@description Describes price of a suggested post in Telegram Stars
@@ -1357,7 +1369,7 @@ gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_s
 //@original_details Information about the originally sent gift; may be null if unknown
 //@colors Colors that can be set for user's name, background of empty chat photo, replies to messages and link previews; may be null if none
 //@resale_parameters Resale parameters of the gift; may be null if resale isn't possible
-//@min_offer_star_count The minimum amount of Telegram Stars that must be offered for the gift in sendStarGiftOffer; 0 if offers aren't accepted for the gift
+//@min_offer_star_count The minimum amount of Telegram Stars that must be offered for the gift in sendGiftPurchaseOffer; 0 if offers aren't accepted for the gift
 //@value_currency ISO 4217 currency code of the currency in which value of the gift is represented; may be empty if unavailable
 //@value_amount Estimated value of the gift; in the smallest units of the currency; 0 if unavailable
 //@value_usd_amount Estimated value of the gift in USD; in USD cents; 0 if unavailable
@@ -4886,6 +4898,16 @@ messageUpgradedGift gift:upgradedGift sender_id:MessageSender receiver_id:Messag
 //@receiver_id Receiver of the gift
 //@origin Origin of the upgraded gift
 messageRefundedUpgradedGift gift:gift sender_id:MessageSender receiver_id:MessageSender origin:UpgradedGiftOrigin = MessageContent;
+
+//@description An offer to purchase an upgraded gift was received by the current user
+//@gift The gift
+//@state State of the offer
+//@price The proposed price
+//@expiration_date Point in time (Unix timestamp) when the offer will expire or has expired
+messageUpgradedGiftPurchaseOffer gift:upgradedGift state:GiftPurchaseOfferState price:GiftResalePrice expiration_date:int32 = MessageContent;
+
+//@description An offer to purchase an already refunded upgraded gift was received by the current user @gift The gift @price The proposed price
+messageRefundedUpgradedGiftPurchaseOffer gift:gift price:GiftResalePrice = MessageContent;
 
 //@description Paid messages were refunded @message_count The number of refunded messages @star_count The number of refunded Telegram Stars
 messagePaidMessagesRefunded message_count:int32 star_count:int53 = MessageContent;
