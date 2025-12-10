@@ -1905,6 +1905,9 @@ string StarManager::get_unused_star_transaction_field(
   if (transaction->stargift_auction_bid_) {
     return "gift auction bid";
   }
+  if (transaction->offer_) {
+    return "gift purchase offer";
+  }
   return string();
 }
 
