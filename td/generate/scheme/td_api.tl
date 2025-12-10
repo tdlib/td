@@ -4909,6 +4909,12 @@ messageUpgradedGiftPurchaseOffer gift:upgradedGift state:GiftPurchaseOfferState 
 //@description An offer to purchase an already refunded upgraded gift was received by the current user @gift The gift @price The proposed price
 messageRefundedUpgradedGiftPurchaseOffer gift:gift price:GiftResalePrice = MessageContent;
 
+//@description An offer to purchase a gift was declined or expired
+//@gift The gift; may be a regular gift if the gift was refunded
+//@price The proposed price
+//@was_expired True, if the offer has expired; otherwise, the offer was explicitly declined
+messageUpgradedGiftPurchaseOfferDeclined gift:SentGift price:GiftResalePrice was_expired:Bool = MessageContent;
+
 //@description Paid messages were refunded @message_count The number of refunded messages @star_count The number of refunded Telegram Stars
 messagePaidMessagesRefunded message_count:int32 star_count:int53 = MessageContent;
 
