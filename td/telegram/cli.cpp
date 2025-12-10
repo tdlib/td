@@ -3235,6 +3235,10 @@ class CliClient final : public Actor {
       get_args(args, owner_id, gift_name, price, duration);
       send_request(td_api::make_object<td_api::sendGiftPurchaseOffer>(as_message_sender(owner_id), gift_name, price,
                                                                       duration, paid_message_star_count_));
+    } else if (op == "pgpoa" || op == "pgpod") {
+      MessageId message_id;
+      get_args(args, message_id);
+      send_request(td_api::make_object<td_api::processGiftPurchaseOffer>(message_id, op == "pgpoa"));
     } else if (op == "grgs" || op == "grgsp") {
       string owner_id;
       int32 limit;

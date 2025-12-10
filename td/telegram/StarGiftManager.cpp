@@ -1502,6 +1502,34 @@ class SendStarGiftOfferQuery final : public Td::ResultHandler {
   }
 };
 
+class ResolveStarGiftOfferQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ResolveStarGiftOfferQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(MessageId message_id, bool decline) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_resolveStarGiftOffer(0, decline, message_id.get_server_message_id().get())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_resolveStarGiftOffer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ResolveStarGiftOfferQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetSavedStarGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
   DialogId dialog_id_;
@@ -2841,6 +2869,13 @@ void StarGiftManager::send_gift_offer(DialogId owner_dialog_id, const string &gi
   td_->star_manager_->add_pending_owned_amount(price, -1, false);
   td_->create_handler<SendStarGiftOfferQuery>(std::move(promise))
       ->send(owner_dialog_id, gift_name, price, duration, paid_message_star_count);
+}
+
+void StarGiftManager::process_gift_offer(MessageId message_id, bool decline, Promise<Unit> &&promise) {
+  if (!message_id.is_server()) {
+    return promise.set_error(400, "Invalid offer message identifier specified");
+  }
+  td_->create_handler<ResolveStarGiftOfferQuery>(std::move(promise))->send(message_id, decline);
 }
 
 void StarGiftManager::get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,

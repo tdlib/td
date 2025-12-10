@@ -13707,6 +13707,11 @@ sendResoldGift gift_name:string owner_id:MessageSender price:GiftResalePrice = G
 //@paid_message_star_count The number of Telegram Stars the user agreed to pay additionally for sending of the offer message to the current gift owner; pass userFull.outgoing_paid_message_star_count for users and 0 otherwise
 sendGiftPurchaseOffer owner_id:MessageSender gift_name:string price:GiftResalePrice duration:int32 paid_message_star_count:int53 = Ok;
 
+//@description Handles a pending gift purchase offer
+//@message_id Identifier of the message with the gift purchase offer
+//@approve Pass true to approve the request; pass false to decline it
+processGiftPurchaseOffer message_id:int53 approve:Bool = Ok;
+
 //@description Returns gifts received by the given user or chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@owner_id Identifier of the gift receiver
