@@ -1534,8 +1534,8 @@ userAuctionBid star_count:int53 bid_date:int32 next_bid_star_count:int53 owner_i
 //@current_round_end_date Point in time (Unix timestamp) when the current round will end
 //@current_round_number 1-based number of the current round
 //@total_round_count The total number of rounds
-//@left_item_count The number of items that have to be distributed on the auciton
-//@acquired_item_count The number of items that were purchased by the current user on the auciton
+//@left_item_count The number of items that have to be distributed on the auction
+//@acquired_item_count The number of items that were purchased by the current user on the auction
 //@user_bid Bid of the current user in the auction; may be null if none
 auctionStateActive start_date:int32 end_date:int32 min_bid:int53 bid_levels:vector<auctionBid> top_bidder_user_ids:vector<int53> current_round_end_date:int32 current_round_number:int32 total_round_count:int32 left_item_count:int32 acquired_item_count:int32 user_bid:userAuctionBid = AuctionState;
 
@@ -1543,7 +1543,7 @@ auctionStateActive start_date:int32 end_date:int32 min_bid:int53 bid_levels:vect
 //@start_date Point in time (Unix timestamp) when the auction started
 //@end_date Point in time (Unix timestamp) when the auction will be ended
 //@average_price Average price of bought items in Telegram Stars
-//@acquired_item_count The number of items that were purchased by the current user on the auciton
+//@acquired_item_count The number of items that were purchased by the current user on the auction
 auctionStateFinished start_date:int32 end_date:int32 average_price:int53 acquired_item_count:int32 = AuctionState;
 
 
