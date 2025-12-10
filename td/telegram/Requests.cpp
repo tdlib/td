@@ -8057,6 +8057,17 @@ void Requests::on_request(uint64 id, td_api::sendResoldGift &request) {
   td_->star_gift_manager_->send_resold_gift(request.gift_name_, owner_dialog_id, std::move(price), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::sendGiftPurchaseOffer &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.gift_name_);
+  CREATE_OK_REQUEST_PROMISE();
+  TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
+  TRY_RESULT_PROMISE(promise, price,
+                     StarGiftResalePrice::get_star_gift_resale_price(td_, std::move(request.price_), false));
+  td_->star_gift_manager_->send_gift_offer(owner_dialog_id, request.gift_name_, std::move(price), request.duration_,
+                                           request.paid_message_star_count_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getReceivedGifts &request) {
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();

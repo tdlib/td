@@ -1456,6 +1456,52 @@ class GetGiftResalePaymentFormQuery final : public Td::ResultHandler {
   }
 };
 
+class SendStarGiftOfferQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  StarGiftResalePrice price_;
+  int64 paid_message_star_count_;
+
+ public:
+  explicit SendStarGiftOfferQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const string &slug, const StarGiftResalePrice &price, int32 duration,
+            int64 paid_message_star_count) {
+    dialog_id_ = dialog_id;
+    price_ = price;
+    paid_message_star_count_ = paid_message_star_count;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    int32 flags = 0;
+    if (paid_message_star_count > 0) {
+      flags |= telegram_api::payments_sendStarGiftOffer::ALLOW_PAID_STARS_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::payments_sendStarGiftOffer(flags, std::move(input_peer), slug, price.get_input_stars_amount(),
+                                                 duration, Random::secure_int64(), paid_message_star_count),
+        {{dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_sendStarGiftOffer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SendStarGiftOfferQuery: " << to_string(ptr);
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->star_manager_->add_pending_owned_star_count(paid_message_star_count_, false);
+    td_->star_manager_->add_pending_owned_amount(price_, 1, false);
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendStarGiftOfferQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetSavedStarGiftsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
   DialogId dialog_id_;
@@ -2774,6 +2820,27 @@ void StarGiftManager::send_resold_gift(const string &gift_name, DialogId receive
       0, price.is_ton(), gift_name, std::move(resale_input_peer));
   td_->create_handler<GetGiftResalePaymentFormQuery>(std::move(promise))
       ->send(std::move(input_invoice), std::move(resale_input_invoice), price);
+}
+
+void StarGiftManager::send_gift_offer(DialogId owner_dialog_id, const string &gift_name, StarGiftResalePrice price,
+                                      int32 duration, int64 paid_message_star_count, Promise<Unit> &&promise) {
+  if (!td_->dialog_manager_->have_input_peer(owner_dialog_id, false, AccessRights::Read)) {
+    return promise.set_error(400, "Can't access the chat");
+  }
+  if (paid_message_star_count < 0) {
+    return promise.set_error(400, "Invalid amount of Telegram Stars specified");
+  }
+  if (!td_->star_manager_->has_owned_star_count(paid_message_star_count)) {
+    return promise.set_error(400, "Have not enough Telegram Stars");
+  }
+  td_->star_manager_->add_pending_owned_star_count(-paid_message_star_count, false);
+  if (!td_->star_manager_->has_owned_amount(price)) {
+    td_->star_manager_->add_pending_owned_star_count(paid_message_star_count, false);
+    return promise.set_error(400, "Have not enough funds");
+  }
+  td_->star_manager_->add_pending_owned_amount(price, -1, false);
+  td_->create_handler<SendStarGiftOfferQuery>(std::move(promise))
+      ->send(owner_dialog_id, gift_name, price, duration, paid_message_star_count);
 }
 
 void StarGiftManager::get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,

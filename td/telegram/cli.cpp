@@ -3227,6 +3227,14 @@ class CliClient final : public Actor {
       GiftResalePrice price;
       get_args(args, gift_name, owner_id, price);
       send_request(td_api::make_object<td_api::sendResoldGift>(gift_name, as_message_sender(owner_id), price));
+    } else if (op == "sgpo") {
+      string owner_id;
+      string gift_name;
+      GiftResalePrice price;
+      int32 duration;
+      get_args(args, owner_id, gift_name, price, duration);
+      send_request(td_api::make_object<td_api::sendGiftPurchaseOffer>(as_message_sender(owner_id), gift_name, price,
+                                                                      duration, paid_message_star_count_));
     } else if (op == "grgs" || op == "grgsp") {
       string owner_id;
       int32 limit;

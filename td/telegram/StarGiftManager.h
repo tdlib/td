@@ -102,6 +102,9 @@ class StarGiftManager final : public Actor {
   void send_resold_gift(const string &gift_name, DialogId receiver_dialog_id, StarGiftResalePrice price,
                         Promise<td_api::object_ptr<td_api::GiftResaleResult>> &&promise);
 
+  void send_gift_offer(DialogId owner_dialog_id, const string &gift_name, StarGiftResalePrice price, int32 duration,
+                       int64 paid_message_star_count, Promise<Unit> &&promise);
+
   void get_saved_star_gifts(BusinessConnectionId business_connection_id, DialogId dialog_id,
                             StarGiftCollectionId collection_id, bool exclude_unsaved, bool exclude_saved,
                             bool exclude_unlimited, bool exclude_upgradable, bool exclude_non_upgradable,

@@ -13699,6 +13699,14 @@ dropGiftOriginalDetails received_gift_id:string star_count:int53 = Ok;
 //@price The price that the user agreed to pay for the gift
 sendResoldGift gift_name:string owner_id:MessageSender price:GiftResalePrice = GiftResaleResult;
 
+//@description Sends an offer to purchase an upgraded gift
+//@owner_id Identifier of the user or the channel chat that currently owns the gift and will receive the offer
+//@gift_name Name of the upgraded gift
+//@price The price that the user agreed to pay for the gift
+//@duration Duration of the offer in seconds; must be one of 21600, 43200, 86400, 129600, 172800, or 259200. Can also be 120 if Telegram test environment is used 
+//@paid_message_star_count The number of Telegram Stars the user agreed to pay additionally for sending of the offer message to the current gift owner; pass userFull.outgoing_paid_message_star_count for users and 0 otherwise
+sendGiftPurchaseOffer owner_id:MessageSender gift_name:string price:GiftResalePrice duration:int32 paid_message_star_count:int53 = Ok;
+
 //@description Returns gifts received by the given user or chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
 //@owner_id Identifier of the gift receiver
