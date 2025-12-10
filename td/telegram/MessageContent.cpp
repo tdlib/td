@@ -1346,6 +1346,7 @@ class MessageStarGiftUnique final : public MessageContent {
   bool is_upgrade = false;
   bool is_prepaid_upgrade = false;
   bool is_assigned = false;
+  bool from_offer = false;
   bool can_transfer = false;
   bool was_transferred = false;
   bool was_refunded = false;
@@ -1355,8 +1356,8 @@ class MessageStarGiftUnique final : public MessageContent {
                         DialogId owner_dialog_id, int64 saved_id, StarGiftResalePrice resale_price,
                         int64 transfer_star_count, int64 drop_original_details_star_count, int32 can_transfer_at,
                         int32 can_resell_at, int32 can_export_at, bool is_saved, bool is_upgrade,
-                        bool is_prepaid_upgrade, bool is_assigned, bool can_transfer, bool was_transferred,
-                        bool was_refunded)
+                        bool is_prepaid_upgrade, bool is_assigned, bool from_offer, bool can_transfer,
+                        bool was_transferred, bool was_refunded)
       : gift_message_id(gift_message_id)
       , star_gift(std::move(star_gift))
       , sender_dialog_id(sender_dialog_id)
@@ -1372,6 +1373,7 @@ class MessageStarGiftUnique final : public MessageContent {
       , is_upgrade(is_upgrade)
       , is_prepaid_upgrade(is_prepaid_upgrade)
       , is_assigned(is_assigned)
+      , from_offer(from_offer)
       , can_transfer(can_transfer)
       , was_transferred(was_transferred)
       , was_refunded(was_refunded) {
@@ -2388,6 +2390,7 @@ static void store(const MessageContent *content, StorerT &storer) {
       STORE_FLAG(m->is_prepaid_upgrade);
       STORE_FLAG(has_drop_original_details_star_count);
       STORE_FLAG(m->is_assigned);
+      STORE_FLAG(m->from_offer);
       END_STORE_FLAGS();
       store(m->star_gift, storer);
       if (has_transfer_star_count) {
@@ -3630,6 +3633,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       PARSE_FLAG(m->is_prepaid_upgrade);
       PARSE_FLAG(has_drop_original_details_star_count);
       PARSE_FLAG(m->is_assigned);
+      PARSE_FLAG(m->from_offer);
       END_PARSE_FLAGS();
       parse(m->star_gift, parser);
       if (has_transfer_star_count) {
@@ -7319,8 +7323,9 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
           lhs->can_transfer_at != rhs->can_transfer_at || lhs->can_resell_at != rhs->can_resell_at ||
           lhs->can_export_at != rhs->can_export_at || lhs->is_saved != rhs->is_saved ||
           lhs->is_upgrade != rhs->is_upgrade || lhs->is_prepaid_upgrade != rhs->is_prepaid_upgrade ||
-          lhs->is_assigned != rhs->is_assigned || lhs->can_transfer != rhs->can_transfer ||
-          lhs->was_transferred != rhs->was_transferred || lhs->was_refunded != rhs->was_refunded) {
+          lhs->is_assigned != rhs->is_assigned || lhs->from_offer != rhs->from_offer ||
+          lhs->can_transfer != rhs->can_transfer || lhs->was_transferred != rhs->was_transferred ||
+          lhs->was_refunded != rhs->was_refunded) {
         need_update = true;
       }
       break;
@@ -9393,7 +9398,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
           StarGiftResalePrice(std::move(action->resale_amount_)), StarManager::get_star_count(action->transfer_stars_),
           StarManager::get_star_count(action->drop_original_details_stars_), max(0, action->can_transfer_at_),
           max(0, action->can_resell_at_), max(0, action->can_export_at_), action->saved_, action->upgrade_,
-          action->prepaid_upgrade_, action->assigned_,
+          action->prepaid_upgrade_, action->assigned_, action->from_offer_,
           (action->flags_ & telegram_api::messageActionStarGiftUnique::TRANSFER_STARS_MASK) != 0, action->transferred_,
           action->refunded_);
     }
@@ -10057,6 +10062,9 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
         receiver_dialog_id = m->is_upgrade != is_outgoing ? dialog_id : td->dialog_manager_->get_my_dialog_id();
       }
       auto origin = [&]() -> td_api::object_ptr<td_api::UpgradedGiftOrigin> {
+        if (m->from_offer) {
+          return td_api::make_object<td_api::upgradedGiftOriginOffer>();
+        }
         if (m->is_assigned) {
           return td_api::make_object<td_api::upgradedGiftOriginBlockchain>();
         }
