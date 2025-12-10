@@ -72,6 +72,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> star
         resale_ton_only_ = star_gift->resale_ton_only_;
       }
     }
+    offer_min_star_count_ = StarManager::get_star_count(star_gift->offer_min_stars_);
     is_theme_available_ = star_gift->theme_available_;
     if (star_gift->released_by_ != nullptr) {
       released_by_dialog_id_ = DialogId(star_gift->released_by_);
@@ -244,7 +245,7 @@ td_api::object_ptr<td_api::upgradedGift> StarGift::get_upgraded_gift_object(Td *
       pattern_.get_upgraded_gift_symbol_object(td), backdrop_.get_upgraded_gift_backdrop_object(),
       original_details_.get_upgraded_gift_original_details_object(td),
       peer_color_ == nullptr ? nullptr : peer_color_->get_upgraded_gift_colors_object(), std::move(resale_parameters),
-      value_currency_, value_amount_, value_usd_amount_);
+      offer_min_star_count_, value_currency_, value_amount_, value_usd_amount_);
 }
 
 td_api::object_ptr<td_api::giftForResale> StarGift::get_gift_for_resale_object(Td *td) const {
@@ -292,10 +293,11 @@ bool operator==(const StarGift &lhs, const StarGift &rhs) {
          lhs.unique_availability_issued_ == rhs.unique_availability_issued_ &&
          lhs.unique_availability_total_ == rhs.unique_availability_total_ &&
          lhs.resale_star_count_ == rhs.resale_star_count_ && lhs.resale_ton_count_ == rhs.resale_ton_count_ &&
-         lhs.regular_gift_id_ == rhs.regular_gift_id_ && lhs.gifts_per_round_ == rhs.gifts_per_round_ &&
-         lhs.auction_start_date_ == rhs.auction_start_date_ && lhs.value_currency_ == rhs.value_currency_ &&
-         lhs.value_amount_ == rhs.value_amount_ && lhs.value_usd_amount_ == rhs.value_usd_amount_ &&
-         lhs.theme_dialog_id_ == rhs.theme_dialog_id_ && lhs.peer_color_ == rhs.peer_color_;
+         lhs.offer_min_star_count_ == rhs.offer_min_star_count_ && lhs.regular_gift_id_ == rhs.regular_gift_id_ &&
+         lhs.gifts_per_round_ == rhs.gifts_per_round_ && lhs.auction_start_date_ == rhs.auction_start_date_ &&
+         lhs.value_currency_ == rhs.value_currency_ && lhs.value_amount_ == rhs.value_amount_ &&
+         lhs.value_usd_amount_ == rhs.value_usd_amount_ && lhs.theme_dialog_id_ == rhs.theme_dialog_id_ &&
+         lhs.peer_color_ == rhs.peer_color_;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const StarGift &star_gift) {

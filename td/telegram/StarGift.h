@@ -66,6 +66,7 @@ class StarGift {
   int32 unique_availability_total_ = 0;
   int64 resale_star_count_ = 0;
   int64 resale_ton_count_ = 0;
+  int64 offer_min_star_count_ = 0;
   int64 regular_gift_id_ = 0;
   int32 gifts_per_round_ = 0;
   int32 auction_start_date_ = 0;
