@@ -4912,8 +4912,9 @@ messageRefundedUpgradedGiftPurchaseOffer gift:gift price:GiftResalePrice = Messa
 //@description An offer to purchase a gift was declined or expired
 //@gift The gift; may be a regular gift if the gift was refunded
 //@price The proposed price
+//@offer_message_id Identifier of the message with purchase offer which was declined or expired
 //@was_expired True, if the offer has expired; otherwise, the offer was explicitly declined
-messageUpgradedGiftPurchaseOfferDeclined gift:SentGift price:GiftResalePrice was_expired:Bool = MessageContent;
+messageUpgradedGiftPurchaseOfferDeclined gift:SentGift price:GiftResalePrice offer_message_id:int53 was_expired:Bool = MessageContent;
 
 //@description Paid messages were refunded @message_count The number of refunded messages @star_count The number of refunded Telegram Stars
 messagePaidMessagesRefunded message_count:int32 star_count:int53 = MessageContent;
@@ -10229,6 +10230,7 @@ getMessageLocally chat_id:int53 message_id:int53 = Message;
 //-the giveaway message for messageGiveawayCompleted, the checklist message for messageChecklistTasksDone, messageChecklistTasksAdded, the message with suggested post information
 //-for messageSuggestedPostApprovalFailed, messageSuggestedPostApproved, messageSuggestedPostDeclined, messageSuggestedPostPaid, messageSuggestedPostRefunded,
 //-the message with the regular gift that was upgraded for messageUpgradedGift with origin of the type upgradedGiftOriginUpgrade,
+//-the message with gift purchase offer for messageUpgradedGiftPurchaseOfferDeclined,
 //-and the topic creation message for topic messages without non-bundled replied message. Returns a 404 error if the message doesn't exist
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message

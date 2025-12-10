@@ -1606,11 +1606,16 @@ class MessageStarGiftPurchaseOfferDeclined final : public MessageContent {
  public:
   StarGift star_gift;
   StarGiftResalePrice price;
+  MessageId offer_message_id;
   bool was_expired = false;
 
   MessageStarGiftPurchaseOfferDeclined() = default;
-  MessageStarGiftPurchaseOfferDeclined(StarGift &&star_gift, StarGiftResalePrice &&price, bool was_expired)
-      : star_gift(std::move(star_gift)), price(std::move(price)), was_expired(was_expired) {
+  MessageStarGiftPurchaseOfferDeclined(StarGift &&star_gift, StarGiftResalePrice &&price, MessageId offer_message_id,
+                                       bool was_expired)
+      : star_gift(std::move(star_gift))
+      , price(std::move(price))
+      , offer_message_id(offer_message_id)
+      , was_expired(was_expired) {
   }
 
   MessageContentType get_type() const final {
@@ -2636,11 +2641,16 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::StarGiftPurchaseOfferDeclined: {
       const auto *m = static_cast<const MessageStarGiftPurchaseOfferDeclined *>(content);
+      bool has_offer_message_id = m->offer_message_id.is_valid();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->was_expired);
+      STORE_FLAG(has_offer_message_id);
       END_STORE_FLAGS();
       store(m->star_gift, storer);
       store(m->price, storer);
+      if (has_offer_message_id) {
+        store(m->offer_message_id, storer);
+      }
       break;
     }
     default:
@@ -3925,11 +3935,16 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::StarGiftPurchaseOfferDeclined: {
       auto m = make_unique<MessageStarGiftPurchaseOfferDeclined>();
+      bool has_offer_message_id;
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(m->was_expired);
+      PARSE_FLAG(has_offer_message_id);
       END_PARSE_FLAGS();
       parse(m->star_gift, parser);
       parse(m->price, parser);
+      if (has_offer_message_id) {
+        parse(m->offer_message_id, parser);
+      }
       if (!m->star_gift.is_valid()) {
         is_bad = true;
         break;
@@ -5908,6 +5923,14 @@ MessageFullId get_message_content_replied_message_id(DialogId dialog_id, const M
 
       return {dialog_id, m->suggested_post_message_id};
     }
+    case MessageContentType::StarGiftPurchaseOfferDeclined: {
+      auto *m = static_cast<const MessageStarGiftPurchaseOfferDeclined *>(content);
+      if (!m->offer_message_id.is_valid()) {
+        return MessageFullId();
+      }
+
+      return {dialog_id, m->offer_message_id};
+    }
     // update getRepliedMessage documentation
     default:
       return MessageFullId();
@@ -7550,7 +7573,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::StarGiftPurchaseOfferDeclined: {
       const auto *lhs = static_cast<const MessageStarGiftPurchaseOfferDeclined *>(old_content);
       const auto *rhs = static_cast<const MessageStarGiftPurchaseOfferDeclined *>(new_content);
-      if (lhs->star_gift != rhs->star_gift || lhs->price != rhs->price || lhs->was_expired != rhs->was_expired) {
+      if (lhs->star_gift != rhs->star_gift || lhs->price != rhs->price ||
+          lhs->offer_message_id != rhs->offer_message_id || lhs->was_expired != rhs->was_expired) {
         need_update = true;
       }
       break;
@@ -8986,6 +9010,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
   }
   switch (action_ptr->get_id()) {
+    case telegram_api::messageActionHistoryClear::ID:
     case telegram_api::messageActionPinMessage::ID:
     case telegram_api::messageActionGameScore::ID:
     case telegram_api::messageActionPaymentSent::ID:
@@ -9000,7 +9025,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionSuggestedPostApproval::ID:
     case telegram_api::messageActionSuggestedPostSuccess::ID:
     case telegram_api::messageActionSuggestedPostRefund::ID:
-    case telegram_api::messageActionHistoryClear::ID:
+    case telegram_api::messageActionStarGiftPurchaseOfferDeclined::ID:
       // ok
       break;
     default:
@@ -9667,8 +9692,13 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (!star_gift.is_valid()) {
         break;
       }
+      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
+      if (!reply_to_message_id.is_valid() && reply_to_message_id != MessageId()) {
+        LOG(ERROR) << "Receive gift purchase offer decline with " << reply_to_message_id << " in " << owner_dialog_id;
+        reply_to_message_id = MessageId();
+      }
       return td::make_unique<MessageStarGiftPurchaseOfferDeclined>(
-          std::move(star_gift), StarGiftResalePrice(std::move(action->price_)), action->expired_);
+          std::move(star_gift), StarGiftResalePrice(std::move(action->price_)), reply_to_message_id, action->expired_);
     }
     default:
       UNREACHABLE();
@@ -10383,7 +10413,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     case MessageContentType::StarGiftPurchaseOfferDeclined: {
       const auto *m = static_cast<const MessageStarGiftPurchaseOfferDeclined *>(content);
       return td_api::make_object<td_api::messageUpgradedGiftPurchaseOfferDeclined>(
-          m->star_gift.get_sent_gift_object(td), m->price.get_gift_resale_price_object(), m->was_expired);
+          m->star_gift.get_sent_gift_object(td), m->price.get_gift_resale_price_object(), m->offer_message_id.get(),
+          m->was_expired);
     }
     default:
       UNREACHABLE();
