@@ -4899,14 +4899,14 @@ messageUpgradedGift gift:upgradedGift sender_id:MessageSender receiver_id:Messag
 //@origin Origin of the upgraded gift
 messageRefundedUpgradedGift gift:gift sender_id:MessageSender receiver_id:MessageSender origin:UpgradedGiftOrigin = MessageContent;
 
-//@description An offer to purchase an upgraded gift was received by the current user
+//@description An offer to purchase an upgraded gift was sent or received
 //@gift The gift
 //@state State of the offer
 //@price The proposed price
 //@expiration_date Point in time (Unix timestamp) when the offer will expire or has expired
 messageUpgradedGiftPurchaseOffer gift:upgradedGift state:GiftPurchaseOfferState price:GiftResalePrice expiration_date:int32 = MessageContent;
 
-//@description An offer to purchase an already refunded upgraded gift was received by the current user @gift The gift @price The proposed price
+//@description An offer to purchase an already refunded upgraded gift was sent or received @gift The gift @price The proposed price
 messageRefundedUpgradedGiftPurchaseOffer gift:gift price:GiftResalePrice = MessageContent;
 
 //@description An offer to purchase a gift was declined or expired
