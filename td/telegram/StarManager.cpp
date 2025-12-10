@@ -880,6 +880,28 @@ class GetTonTransactionsQuery final : public Td::ResultHandler {
           case telegram_api::starsTransactionPeerAPI::ID:
             return nullptr;
           case telegram_api::starsTransactionPeerFragment::ID: {
+            auto state = [&]() -> td_api::object_ptr<td_api::RevenueWithdrawalState> {
+              if (transaction->transaction_date_ > 0) {
+                SCOPE_EXIT {
+                  transaction->transaction_date_ = 0;
+                  transaction->transaction_url_.clear();
+                };
+                return td_api::make_object<td_api::revenueWithdrawalStateSucceeded>(transaction->transaction_date_,
+                                                                                    transaction->transaction_url_);
+              }
+              if (transaction->pending_) {
+                transaction->pending_ = false;
+                return td_api::make_object<td_api::revenueWithdrawalStatePending>();
+              }
+              if (transaction->failed_) {
+                transaction->failed_ = false;
+                return td_api::make_object<td_api::revenueWithdrawalStateFailed>();
+              }
+              return nullptr;
+            }();
+            if (state != nullptr || is_refund) {
+              return td_api::make_object<td_api::tonTransactionTypeFragmentWithdrawal>(std::move(state));
+            }
             SCOPE_EXIT {
               transaction->gift_ = false;
             };

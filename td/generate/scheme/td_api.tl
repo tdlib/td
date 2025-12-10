@@ -1835,6 +1835,9 @@ starTransactions star_amount:starAmount transactions:vector<starTransaction> nex
 //@sticker The sticker to be shown in the transaction information; may be null if unknown
 tonTransactionTypeFragmentDeposit is_gift:Bool sticker:sticker = TonTransactionType;
 
+//@description The transaction is a withdrawal of earned Toncoins to Fragment @withdrawal_state State of the withdrawal; may be null for refunds from Fragment
+tonTransactionTypeFragmentWithdrawal withdrawal_state:RevenueWithdrawalState = TonTransactionType;
+
 //@description The transaction is a payment for a suggested post @chat_id Identifier of the channel chat that posted the post
 tonTransactionTypeSuggestedPostPayment chat_id:int53 = TonTransactionType;
 
