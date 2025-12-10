@@ -1164,7 +1164,7 @@ premiumGiveawayPaymentOptions options:vector<premiumGiveawayPaymentOption> = Pre
 //@creator_id Identifier of a chat or a user that created the gift code; may be null if unknown. If null and the code is from messagePremiumGiftCode message, then creator_id from the message can be used
 //@creation_date Point in time (Unix timestamp) when the code was created
 //@is_from_giveaway True, if the gift code was created for a giveaway
-//@giveaway_message_id Identifier of the corresponding giveaway message in the creator_id chat; can be 0 or an identifier of a deleted message
+//@giveaway_message_id Identifier of the corresponding giveaway message in the creator_id chat; may be 0 or an identifier of a deleted message
 //@month_count Number of months the Telegram Premium subscription will be active after code activation; 0 if the number of months isn't integer
 //@day_count Number of days the Telegram Premium subscription will be active after code activation
 //@user_id Identifier of a user for which the code was created; 0 if none
@@ -1263,7 +1263,7 @@ canSendGiftResultFail reason:formattedText = CanSendGiftResult;
 //@class UpgradedGiftOrigin @description Describes origin from which the upgraded gift was obtained
 
 //@description The gift was obtained by upgrading of a previously received gift
-//@gift_message_id Identifier of the message with the regular gift that was upgraded; can be 0 or an identifier of a deleted message
+//@gift_message_id Identifier of the message with the regular gift that was upgraded; may be 0 or an identifier of a deleted message
 upgradedGiftOriginUpgrade gift_message_id:int53 = UpgradedGiftOrigin;
 
 //@description The gift was transferred from another owner
@@ -1337,7 +1337,7 @@ upgradedGiftColors id:int64 model_custom_emoji_id:int64 symbol_custom_emoji_id:i
 //@is_for_birthday True, if the gift is a birthday gift
 //@is_premium True, if the gift can be bought only by Telegram Premium subscribers
 //@auction_info Information about the auction on which the gift can be purchased; may be null if the gift can be purchased directly
-//@next_send_date Point in time (Unix timestamp) when the gift can be sent next time by the current user; can be 0 or a date in the past.
+//@next_send_date Point in time (Unix timestamp) when the gift can be sent next time by the current user; may be 0 or a date in the past.
 //-If the date is in the future, then call canSendGift to get the reason, why the gift can't be sent now
 //@user_limits Number of times the gift can be purchased by the current user; may be null if not limited
 //@overall_limits Number of times the gift can be purchased all users; may be null if not limited
@@ -1636,7 +1636,7 @@ starTransactionTypeUserDeposit user_id:int53 sticker:sticker = StarTransactionTy
 
 //@description The transaction is a deposit of Telegram Stars from a giveaway; relevant for regular users only
 //@chat_id Identifier of a supergroup or a channel chat that created the giveaway
-//@giveaway_message_id Identifier of the message with the giveaway; can be 0 or an identifier of a deleted message
+//@giveaway_message_id Identifier of the message with the giveaway; may be 0 or an identifier of a deleted message
 starTransactionTypeGiveawayDeposit chat_id:int53 giveaway_message_id:int53 = StarTransactionType;
 
 //@description The transaction is a withdrawal of earned Telegram Stars to Fragment; relevant for regular users, bots, supergroup and channel chats only
@@ -1663,13 +1663,13 @@ starTransactionTypeBotPaidMediaSale user_id:int53 media:vector<PaidMedia> payloa
 
 //@description The transaction is a purchase of paid media from a channel by the current user; relevant for regular users only
 //@chat_id Identifier of the channel chat that sent the paid media
-//@message_id Identifier of the corresponding message with paid media; can be 0 or an identifier of a deleted message
+//@message_id Identifier of the corresponding message with paid media; may be 0 or an identifier of a deleted message
 //@media The bought media if the transaction wasn't refunded
 starTransactionTypeChannelPaidMediaPurchase chat_id:int53 message_id:int53 media:vector<PaidMedia> = StarTransactionType;
 
 //@description The transaction is a sale of paid media by the channel chat; relevant for channel chats only
 //@user_id Identifier of the user that bought the media
-//@message_id Identifier of the corresponding message with paid media; can be 0 or an identifier of a deleted message
+//@message_id Identifier of the corresponding message with paid media; may be 0 or an identifier of a deleted message
 //@media The bought media
 starTransactionTypeChannelPaidMediaSale user_id:int53 message_id:int53 media:vector<PaidMedia> = StarTransactionType;
 
@@ -1742,12 +1742,12 @@ starTransactionTypeUpgradedGiftSale user_id:int53 gift:upgradedGift commission_p
 
 //@description The transaction is a sending of a paid reaction to a message in a channel chat by the current user; relevant for regular users only
 //@chat_id Identifier of the channel chat
-//@message_id Identifier of the reacted message; can be 0 or an identifier of a deleted message
+//@message_id Identifier of the reacted message; may be 0 or an identifier of a deleted message
 starTransactionTypeChannelPaidReactionSend chat_id:int53 message_id:int53 = StarTransactionType;
 
 //@description The transaction is a receiving of a paid reaction to a message by the channel chat; relevant for channel chats only
 //@user_id Identifier of the user that added the paid reaction
-//@message_id Identifier of the reacted message; can be 0 or an identifier of a deleted message
+//@message_id Identifier of the reacted message; may be 0 or an identifier of a deleted message
 starTransactionTypeChannelPaidReactionReceive user_id:int53 message_id:int53 = StarTransactionType;
 
 //@description The transaction is a receiving of a commission from an affiliate program; relevant for regular users, bots and channel chats only
@@ -4734,7 +4734,7 @@ messageGameScore game_message_id:int53 game_id:int64 score:int32 = MessageConten
 
 //@description A payment has been sent to a bot or a business account
 //@invoice_chat_id Identifier of the chat, containing the corresponding invoice message
-//@invoice_message_id Identifier of the message with the corresponding invoice; can be 0 or an identifier of a deleted message
+//@invoice_message_id Identifier of the message with the corresponding invoice; may be 0 or an identifier of a deleted message
 //@currency Currency for the price of the product
 //@total_amount Total price for the product, in the smallest units of the currency
 //@subscription_until_date Point in time (Unix timestamp) when the subscription will expire; 0 if unknown or the payment isn't recurring
@@ -4805,7 +4805,7 @@ messageGiveawayCreated star_count:int53 = MessageContent;
 messageGiveaway parameters:giveawayParameters winner_count:int32 prize:GiveawayPrize sticker:sticker = MessageContent;
 
 //@description A giveaway without public winners has been completed for the chat
-//@giveaway_message_id Identifier of the message with the giveaway; can be 0 if the message was deleted
+//@giveaway_message_id Identifier of the message with the giveaway; may be 0 or an identifier of a deleted message
 //@winner_count Number of winners in the giveaway
 //@is_star_giveaway True, if the giveaway is a Telegram Star giveaway
 //@unclaimed_prize_count Number of undistributed prizes; for Telegram Premium giveaways only
@@ -4849,7 +4849,7 @@ messageGiftedTon gifter_user_id:int53 receiver_user_id:int53 ton_amount:int53 tr
 //@star_count Number of Telegram Stars that were received
 //@transaction_id Identifier of the transaction for Telegram Stars credit
 //@boosted_chat_id Identifier of the supergroup or channel chat, which was automatically boosted by the winners of the giveaway
-//@giveaway_message_id Identifier of the message with the giveaway in the boosted chat; can be 0 if the message was deleted
+//@giveaway_message_id Identifier of the message with the giveaway in the boosted chat; may be 0 or an identifier of a deleted message
 //@is_unclaimed True, if the corresponding winner wasn't chosen and the Telegram Stars were received by the owner of the boosted chat
 //@sticker A sticker to be shown in the message; may be null if unknown
 messageGiveawayPrizeStars star_count:int53 transaction_id:string boosted_chat_id:int53 giveaway_message_id:int53 is_unclaimed:Bool sticker:sticker = MessageContent;
@@ -4912,7 +4912,7 @@ messageRefundedUpgradedGiftPurchaseOffer gift:gift price:GiftResalePrice = Messa
 //@description An offer to purchase a gift was declined or expired
 //@gift The gift; may be a regular gift if the gift was refunded
 //@price The proposed price
-//@offer_message_id Identifier of the message with purchase offer which was declined or expired
+//@offer_message_id Identifier of the message with purchase offer which was declined or expired; may be 0 or an identifier of a deleted message
 //@was_expired True, if the offer has expired; otherwise, the offer was explicitly declined
 messageUpgradedGiftPurchaseOfferDeclined gift:SentGift price:GiftResalePrice offer_message_id:int53 was_expired:Bool = MessageContent;
 
@@ -4929,40 +4929,40 @@ messagePaidMessagePriceChanged paid_message_star_count:int53 = MessageContent;
 messageDirectMessagePriceChanged is_enabled:Bool paid_message_star_count:int53 = MessageContent;
 
 //@description Some tasks from a checklist were marked as done or not done
-//@checklist_message_id Identifier of the message with the checklist; can be 0 if the message was deleted
+//@checklist_message_id Identifier of the message with the checklist; may be 0 or an identifier of a deleted message
 //@marked_as_done_task_ids Identifiers of tasks that were marked as done
 //@marked_as_not_done_task_ids Identifiers of tasks that were marked as not done
 messageChecklistTasksDone checklist_message_id:int53 marked_as_done_task_ids:vector<int32> marked_as_not_done_task_ids:vector<int32> = MessageContent;
 
 //@description Some tasks were added to a checklist
-//@checklist_message_id Identifier of the message with the checklist; can be 0 if the message was deleted
+//@checklist_message_id Identifier of the message with the checklist; may be 0 or an identifier of a deleted message
 //@tasks List of tasks added to the checklist
 messageChecklistTasksAdded checklist_message_id:int53 tasks:vector<checklistTask> = MessageContent;
 
 //@description Approval of suggested post has failed, because the user which proposed the post had no enough funds
-//@suggested_post_message_id Identifier of the message with the suggested post; can be 0 if the message was deleted
+//@suggested_post_message_id Identifier of the message with the suggested post; may be 0 or an identifier of a deleted message
 //@price Price of the suggested post
 messageSuggestedPostApprovalFailed suggested_post_message_id:int53 price:SuggestedPostPrice = MessageContent;
 
 //@description A suggested post was approved
-//@suggested_post_message_id Identifier of the message with the suggested post; can be 0 if the message was deleted
+//@suggested_post_message_id Identifier of the message with the suggested post; may be 0 or an identifier of a deleted message
 //@price Price of the suggested post; may be null if the post is non-paid
 //@send_date Point in time (Unix timestamp) when the post is expected to be published
 messageSuggestedPostApproved suggested_post_message_id:int53 price:SuggestedPostPrice send_date:int32 = MessageContent;
 
 //@description A suggested post was declined
-//@suggested_post_message_id Identifier of the message with the suggested post; can be 0 if the message was deleted
+//@suggested_post_message_id Identifier of the message with the suggested post; may be 0 or an identifier of a deleted message
 //@comment Comment added by administrator of the channel when the post was declined
 messageSuggestedPostDeclined suggested_post_message_id:int53 comment:string = MessageContent;
 
 //@description A suggested post was published for getOption("suggested_post_lifetime_min") seconds and payment for the post was received
-//@suggested_post_message_id Identifier of the message with the suggested post; can be 0 if the message was deleted
+//@suggested_post_message_id Identifier of the message with the suggested post; may be 0 or an identifier of a deleted message
 //@star_amount The amount of received Telegram Stars
 //@ton_amount The amount of received Toncoins; in the smallest units of the cryptocurrency
 messageSuggestedPostPaid suggested_post_message_id:int53 star_amount:starAmount ton_amount:int53 = MessageContent;
 
 //@description A suggested post was refunded
-//@suggested_post_message_id Identifier of the message with the suggested post; can be 0 if the message was deleted
+//@suggested_post_message_id Identifier of the message with the suggested post; may be 0 or an identifier of a deleted message
 //@reason Reason of the refund
 messageSuggestedPostRefunded suggested_post_message_id:int53 reason:SuggestedPostRefundReason = MessageContent;
 
