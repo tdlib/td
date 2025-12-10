@@ -1715,6 +1715,9 @@ starTransactionTypeGiftAuctionBid owner_id:MessageSender gift:gift = StarTransac
 //@description The transaction is a purchase of a regular gift; relevant for regular users and bots only @owner_id Identifier of the user or the channel that received the gift @gift The gift
 starTransactionTypeGiftPurchase owner_id:MessageSender gift:gift = StarTransactionType;
 
+//@description The transaction is an offer of gift purchase; relevant for regular users only @gift The gift
+starTransactionTypeGiftPurchaseOffer gift:upgradedGift = StarTransactionType;
+
 //@description The transaction is a transfer of an upgraded gift; relevant for regular users only @owner_id Identifier of the user or the channel that received the gift @gift The gift
 starTransactionTypeGiftTransfer owner_id:MessageSender gift:upgradedGift = StarTransactionType;
 

@@ -510,6 +510,12 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
                                                       "starTransactionTypeGiftOriginalDetailsDrop"),
                             gift.get_upgraded_gift_object(td_));
                       }
+                    } else if (transaction->offer_) {
+                      if (for_user) {
+                        transaction->offer_ = false;
+                        return td_api::make_object<td_api::starTransactionTypeGiftPurchaseOffer>(
+                            gift.get_upgraded_gift_object(td_));
+                      }
                     } else {
                       if (for_user) {
                         return td_api::make_object<td_api::starTransactionTypeGiftTransfer>(
