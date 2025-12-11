@@ -4916,9 +4916,6 @@ messageRefundedUpgradedGift gift:gift sender_id:MessageSender receiver_id:Messag
 //@expiration_date Point in time (Unix timestamp) when the offer will expire or has expired
 messageUpgradedGiftPurchaseOffer gift:upgradedGift state:GiftPurchaseOfferState price:GiftResalePrice expiration_date:int32 = MessageContent;
 
-//@description An offer to purchase an already refunded upgraded gift was sent or received @gift The gift @price The proposed price
-messageRefundedUpgradedGiftPurchaseOffer gift:gift price:GiftResalePrice = MessageContent;
-
 //@description An offer to purchase a gift was declined or expired
 //@gift The gift; may be a regular gift if the gift was refunded
 //@price The proposed price

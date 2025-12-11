@@ -3926,7 +3926,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       parse(m->star_gift, parser);
       parse(m->price, parser);
       parse(m->expires_at, parser);
-      if (!m->star_gift.is_valid()) {
+      if (!m->star_gift.is_valid() || !m->star_gift.is_unique()) {
         is_bad = true;
         break;
       }
@@ -9679,7 +9679,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionStarGiftPurchaseOffer::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionStarGiftPurchaseOffer>(action_ptr);
       StarGift star_gift(td, std::move(action->gift_), true);
-      if (!star_gift.is_valid()) {
+      if (!star_gift.is_valid() || !star_gift.is_unique()) {
         break;
       }
       return td::make_unique<MessageStarGiftPurchaseOffer>(
@@ -10393,10 +10393,6 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::StarGiftPurchaseOffer: {
       const auto *m = static_cast<const MessageStarGiftPurchaseOffer *>(content);
-      if (!m->star_gift.is_unique()) {
-        return td_api::make_object<td_api::messageRefundedUpgradedGiftPurchaseOffer>(
-            m->star_gift.get_gift_object(td), m->price.get_gift_resale_price_object());
-      }
       auto state = [&]() -> td_api::object_ptr<td_api::GiftPurchaseOfferState> {
         if (m->is_accepted) {
           return td_api::make_object<td_api::giftPurchaseOfferStateApproved>();
