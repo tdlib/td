@@ -949,14 +949,14 @@ giftResalePriceTon toncoin_cent_count:int53 = GiftResalePrice;
 
 //@class GiftPurchaseOfferState @description Describes state of a gift purchase offer
 
-//@description The offer must be approved or declined
+//@description The offer must be accepted or rejected
 giftPurchaseOfferStatePending = GiftPurchaseOfferState;
 
-//@description The offer was approved
-giftPurchaseOfferStateApproved = GiftPurchaseOfferState;
+//@description The offer was accepted
+giftPurchaseOfferStateAccepted = GiftPurchaseOfferState;
 
-//@description The offer was declined
-giftPurchaseOfferStateDeclined = GiftPurchaseOfferState;
+//@description The offer was rejected
+giftPurchaseOfferStateRejected = GiftPurchaseOfferState;
 
 
 //@class SuggestedPostPrice @description Describes price of a suggested post

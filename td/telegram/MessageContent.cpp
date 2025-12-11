@@ -10395,10 +10395,10 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       const auto *m = static_cast<const MessageStarGiftPurchaseOffer *>(content);
       auto state = [&]() -> td_api::object_ptr<td_api::GiftPurchaseOfferState> {
         if (m->is_accepted) {
-          return td_api::make_object<td_api::giftPurchaseOfferStateApproved>();
+          return td_api::make_object<td_api::giftPurchaseOfferStateAccepted>();
         }
         if (m->is_declined) {
-          return td_api::make_object<td_api::giftPurchaseOfferStateDeclined>();
+          return td_api::make_object<td_api::giftPurchaseOfferStateRejected>();
         }
         return td_api::make_object<td_api::giftPurchaseOfferStatePending>();
       }();
