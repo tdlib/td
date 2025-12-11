@@ -56,7 +56,7 @@ For older Python versions you can use [pytdlib](https://github.com/pytdlib/pytdl
 This wrapper contains generator for TDLib API classes and basic interface for interaction with TDLib.
 
 You can also check out [example/python/tdjson_example.py](https://github.com/tdlib/td/blob/master/example/python/tdjson_example.py),
-[tdlib-python](https://github.com/JunaidBabu/tdlib-python), or [Python Wrapper TDLib](https://github.com/alvhix/pywtdlib) for some basic examples of TDLib JSON interface integration with Python.
+[tdlib-python](https://github.com/JunaidBabu/tdlib-python), [sidusai-python](https://github.com/sidus-ai/sidus-ai-core/pull/22/files), or [Python Wrapper TDLib](https://github.com/alvhix/pywtdlib) for some basic examples of TDLib JSON interface integration with Python.
 
 <a name="javascript"></a>
 ## Using TDLib in JavaScript projects
