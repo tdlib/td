@@ -120,6 +120,14 @@ formattedText text:string entities:vector<textEntity> = FormattedText;
 //@description Contains Telegram terms of service @text Text of the terms of service @min_user_age The minimum age of a user to be able to accept the terms; 0 if age isn't restricted @show_popup True, if a blocking popup with terms of service must be shown to the user
 termsOfService text:formattedText min_user_age:int32 show_popup:Bool = TermsOfService;
 
+//@description Describes a passkey
+//@id Unique identifier of the passkey
+//@name Name of the passkey
+//@addition_date Point in time (Unix timestamp) when the passkey was added
+//@last_usage_date Point in time (Unix timestamp) when the passkey was used last time; 0 if never
+//@software_icon_custom_emoji_id Identifier of the custom emoji that is used as the icon of the software, which created the passkey; 0 if unknown
+passkey id:string name:string addition_date:int32 last_usage_date:int32 software_icon_custom_emoji_id:int64 = Passkey;
+
 
 //@class AuthorizationState @description Represents the current authorization state of the TDLib client
 

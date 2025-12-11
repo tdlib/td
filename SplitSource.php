@@ -396,6 +396,7 @@ function split_file($file, $chunks, $undo) {
             'online_manager[_(-](?![.]get[(][)])|OnlineManager' => 'OnlineManager',
             'option_manager[_(-](?![.]get[(][)])|OptionManager' => 'OptionManager',
             'PaidReactionType' => 'PaidReactionType',
+            'Passkey' => 'Passkey',
             'password_manager[_(-](?![.]get[(][)])|PasswordManager' => 'PasswordManager',
             'PeerColor[^A-Z]' => 'PeerColor',
             'PeerColorCollectible' => 'PeerColorCollectible',

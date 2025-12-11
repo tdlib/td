@@ -556,6 +556,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/OrderInfo.cpp
   td/telegram/Outline.cpp
   td/telegram/PaidReactionType.cpp
+  td/telegram/Passkey.cpp
   td/telegram/PasswordManager.cpp
   td/telegram/Payments.cpp
   td/telegram/PeerColor.cpp
@@ -950,6 +951,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/OrderInfo.h
   td/telegram/Outline.h
   td/telegram/PaidReactionType.h
+  td/telegram/Passkey.h
   td/telegram/PasswordManager.h
   td/telegram/Payments.h
   td/telegram/PeerColor.h
