@@ -4917,11 +4917,11 @@ messageRefundedUpgradedGift gift:gift sender_id:MessageSender receiver_id:Messag
 messageUpgradedGiftPurchaseOffer gift:upgradedGift state:GiftPurchaseOfferState price:GiftResalePrice expiration_date:int32 = MessageContent;
 
 //@description An offer to purchase a gift was declined or expired
-//@gift The gift; may be a regular gift if the gift was refunded
+//@gift The gift
 //@price The proposed price
 //@offer_message_id Identifier of the message with purchase offer which was declined or expired; may be 0 or an identifier of a deleted message
 //@was_expired True, if the offer has expired; otherwise, the offer was explicitly declined
-messageUpgradedGiftPurchaseOfferDeclined gift:SentGift price:GiftResalePrice offer_message_id:int53 was_expired:Bool = MessageContent;
+messageUpgradedGiftPurchaseOfferDeclined gift:upgradedGift price:GiftResalePrice offer_message_id:int53 was_expired:Bool = MessageContent;
 
 //@description Paid messages were refunded @message_count The number of refunded messages @star_count The number of refunded Telegram Stars
 messagePaidMessagesRefunded message_count:int32 star_count:int53 = MessageContent;

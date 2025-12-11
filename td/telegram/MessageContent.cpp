@@ -3945,7 +3945,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       if (has_offer_message_id) {
         parse(m->offer_message_id, parser);
       }
-      if (!m->star_gift.is_valid()) {
+      if (!m->star_gift.is_valid() || !m->star_gift.is_unique()) {
         is_bad = true;
         break;
       }
@@ -9689,7 +9689,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionStarGiftPurchaseOfferDeclined::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionStarGiftPurchaseOfferDeclined>(action_ptr);
       StarGift star_gift(td, std::move(action->gift_), true);
-      if (!star_gift.is_valid()) {
+      if (!star_gift.is_valid() || !star_gift.is_unique()) {
         break;
       }
       auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
@@ -10409,7 +10409,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     case MessageContentType::StarGiftPurchaseOfferDeclined: {
       const auto *m = static_cast<const MessageStarGiftPurchaseOfferDeclined *>(content);
       return td_api::make_object<td_api::messageUpgradedGiftPurchaseOfferDeclined>(
-          m->star_gift.get_sent_gift_object(td), m->price.get_gift_resale_price_object(), m->offer_message_id.get(),
+          m->star_gift.get_upgraded_gift_object(td), m->price.get_gift_resale_price_object(), m->offer_message_id.get(),
           m->was_expired);
     }
     default:
