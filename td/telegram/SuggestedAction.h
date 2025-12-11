@@ -107,7 +107,7 @@ inline bool operator<(const SuggestedAction &lhs, const SuggestedAction &rhs) {
     return static_cast<int32>(lhs.type_) < static_cast<int32>(rhs.type_);
   }
   if (lhs.custom_type_ != rhs.custom_type_) {
-    return lhs.custom_type_ == rhs.custom_type_;
+    return lhs.custom_type_ < rhs.custom_type_;
   }
   return lhs.url_ < rhs.url_;
 }
