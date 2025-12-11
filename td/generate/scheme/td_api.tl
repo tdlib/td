@@ -128,6 +128,9 @@ termsOfService text:formattedText min_user_age:int32 show_popup:Bool = TermsOfSe
 //@software_icon_custom_emoji_id Identifier of the custom emoji that is used as the icon of the software, which created the passkey; 0 if unknown
 passkey id:string name:string addition_date:int32 last_usage_date:int32 software_icon_custom_emoji_id:int64 = Passkey;
 
+//@description Contains a list of passkeys @passkeys List of passkeys
+passkeys passkeys:vector<passkey> = Passkeys;
+
 
 //@class AuthorizationState @description Represents the current authorization state of the TDLib client
 
