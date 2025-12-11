@@ -9546,7 +9546,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       if (!reply_to_message_id.is_valid() && reply_to_message_id != MessageId()) {
         LOG(ERROR) << "Receive unique gift message with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
-      } else if (reply_to_message_id != MessageId() && action->resale_amount_ != nullptr) {
+      } else if (reply_to_message_id != MessageId() && action->resale_amount_ != nullptr && !action->from_offer_) {
         if (message_date >= 1754000000) {
           LOG(ERROR) << "Receive " << replied_message_info << " in " << owner_dialog_id << " for " << to_string(action);
         }
@@ -10250,7 +10250,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       }
       auto origin = [&]() -> td_api::object_ptr<td_api::UpgradedGiftOrigin> {
         if (m->from_offer) {
-          return td_api::make_object<td_api::upgradedGiftOriginOffer>();
+          return td_api::make_object<td_api::upgradedGiftOriginOffer>(m->resale_price.get_gift_resale_price_object());
         }
         if (m->is_assigned) {
           return td_api::make_object<td_api::upgradedGiftOriginBlockchain>();

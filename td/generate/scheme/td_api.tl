@@ -1269,7 +1269,7 @@ upgradedGiftOriginUpgrade gift_message_id:int53 = UpgradedGiftOrigin;
 //@description The gift was transferred from another owner
 upgradedGiftOriginTransfer = UpgradedGiftOrigin;
 
-//@description The gift was bought from another user @price Price paid by the sender for the gift
+//@description The gift was bought from another user @price Price paid for the gift
 upgradedGiftOriginResale price:GiftResalePrice = UpgradedGiftOrigin;
 
 //@description The gift was assigned from blockchain and isn't owned by the current user. The gift can't be transferred, resold or withdrawn to blockchain
@@ -1278,8 +1278,8 @@ upgradedGiftOriginBlockchain = UpgradedGiftOrigin;
 //@description The sender or receiver of the message has paid for upgraid of the gift, which has been completed
 upgradedGiftOriginPrepaidUpgrade = UpgradedGiftOrigin;
 
-//@description The gift was bought through an offer
-upgradedGiftOriginOffer = UpgradedGiftOrigin;
+//@description The gift was bought through an offer @price Price paid for the gift
+upgradedGiftOriginOffer price:GiftResalePrice = UpgradedGiftOrigin;
 
 
 //@description Describes a model of an upgraded gift
