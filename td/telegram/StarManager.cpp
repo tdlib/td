@@ -776,7 +776,9 @@ class GetStarsTransactionsQuery final : public Td::ResultHandler {
         }
       }();
       if (type == nullptr) {
-        LOG(ERROR) << "Receive unsupported Star transaction in " << dialog_id_ << ": " << to_string(transaction);
+        if (!(transaction->offer_ && transaction->date_ < 1765550000 && !is_purchase)) {
+          LOG(ERROR) << "Receive unsupported Star transaction in " << dialog_id_ << ": " << to_string(transaction);
+        }
         type = td_api::make_object<td_api::starTransactionTypeUnsupported>();
       }
       auto star_transaction =
