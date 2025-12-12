@@ -844,6 +844,20 @@ void PasswordManager::init_passkey_registration(Promise<string> &&promise) {
       }));
 }
 
+void PasswordManager::register_passkey(string client_data, string attestation_data,
+                                       Promise<td_api::object_ptr<td_api::passkey>> &&promise) {
+  auto query = G()->net_query_creator().create(
+      telegram_api::account_registerPasskey(telegram_api::make_object<telegram_api::inputPasskeyCredentialPublicKey>(
+          "1", "1",
+          telegram_api::make_object<telegram_api::inputPasskeyResponseRegister>(
+              telegram_api::make_object<telegram_api::dataJSON>(client_data), BufferSlice(attestation_data)))));
+  send_with_promise(
+      std::move(query), PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+        TRY_RESULT_PROMISE(promise, result, fetch_result<telegram_api::account_registerPasskey>(std::move(r_query)));
+        promise.set_value(Passkey(std::move(result)).get_passkey_object());
+      }));
+}
+
 void PasswordManager::get_passkeys(Promise<td_api::object_ptr<td_api::passkeys>> &&promise) {
   auto query = G()->net_query_creator().create(telegram_api::account_getPasskeys());
   send_with_promise(

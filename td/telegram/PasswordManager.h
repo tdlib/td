@@ -83,6 +83,9 @@ class PasswordManager final : public NetQueryCallback {
 
   void init_passkey_registration(Promise<string> &&promise);
 
+  void register_passkey(string client_data, string attestation_data,
+                        Promise<td_api::object_ptr<td_api::passkey>> &&promise);
+
   void get_passkeys(Promise<td_api::object_ptr<td_api::passkeys>> &&promise);
 
   void delete_passkey(string passkey_id, Promise<Unit> &&promise);

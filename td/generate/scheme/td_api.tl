@@ -11275,6 +11275,11 @@ unpinAllForumTopicMessages chat_id:int53 forum_topic_id:int32 = Ok;
 //@description Returns parameters for creation of a new passkey as JSON-serialized string
 getPasskeyParameters = Text;
 
+//@description Adds a passkey allowed to be used for the login by the current user and returns the added passkey. Call getPasskeyParameters to get parameters for creation of the passkey
+//@client_data JSON-encoded client data
+//@attestation_object Passkey attestation object
+addPasskey client_data:string attestation_object:bytes = Passkey;
+
 //@description Returns the list of passkeys allowed to be used for the login by the current user
 getAddedPasskeys = Passkeys;
 

@@ -3634,6 +3634,14 @@ void Requests::on_request(uint64 id, const td_api::getPasskeyParameters &request
   send_closure(td_->password_manager_, &PasswordManager::init_passkey_registration, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::addPasskey &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.client_data_);
+  CREATE_REQUEST_PROMISE();
+  send_closure(td_->password_manager_, &PasswordManager::register_passkey, std::move(request.client_data_),
+               std::move(request.attestation_object_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getAddedPasskeys &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

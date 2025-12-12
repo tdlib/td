@@ -3574,6 +3574,12 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getChatScheduledMessages>(chat_id));
     } else if (op == "gpkp") {
       send_request(td_api::make_object<td_api::getPasskeyParameters>());
+    } else if (op == "apk") {
+      string client_data;
+      string attestation_object;
+      get_args(args, client_data, attestation_object);
+      send_request(
+          td_api::make_object<td_api::addPasskey>(client_data, base64url_decode(attestation_object).move_as_ok()));
     } else if (op == "gapk") {
       send_request(td_api::make_object<td_api::getAddedPasskeys>());
     } else if (op == "rapk") {
