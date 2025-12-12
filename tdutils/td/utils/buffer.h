@@ -69,8 +69,6 @@ class BufferAllocator {
   static size_t get_buffer_mem();
   static int64 get_buffer_slice_size();
 
-  static void clear_thread_local();
-
  private:
   friend class BufferSlice;
 
