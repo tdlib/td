@@ -8837,6 +8837,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionSuggestedPostApproval::ID:
     case telegram_api::messageActionSuggestedPostSuccess::ID:
     case telegram_api::messageActionSuggestedPostRefund::ID:
+    case telegram_api::messageActionHistoryClear::ID:
       // ok
       break;
     default:
