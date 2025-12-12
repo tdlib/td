@@ -81,6 +81,8 @@ class PasswordManager final : public NetQueryCallback {
 
   static TempPasswordState get_temp_password_state_sync();
 
+  void init_passkey_registration(Promise<string> &&promise);
+
   void get_passkeys(Promise<td_api::object_ptr<td_api::passkeys>> &&promise);
 
   void delete_passkey(string passkey_id, Promise<Unit> &&promise);

@@ -3572,6 +3572,8 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getChatScheduledMessages>(chat_id));
+    } else if (op == "gpkp") {
+      send_request(td_api::make_object<td_api::getPasskeyParameters>());
     } else if (op == "gapk") {
       send_request(td_api::make_object<td_api::getAddedPasskeys>());
     } else if (op == "rapk") {

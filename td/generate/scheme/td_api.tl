@@ -11272,6 +11272,9 @@ readAllForumTopicReactions chat_id:int53 forum_topic_id:int32 = Ok;
 unpinAllForumTopicMessages chat_id:int53 forum_topic_id:int32 = Ok;
 
 
+//@description Returns parameters for creation of a new passkey as JSON-serialized string
+getPasskeyParameters = Text;
+
 //@description Returns the list of passkeys allowed to be used for the login by the current user
 getAddedPasskeys = Passkeys;
 

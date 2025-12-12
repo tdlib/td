@@ -3628,6 +3628,12 @@ void Requests::on_request(uint64 id, const td_api::getChatScheduledMessages &req
   CREATE_REQUEST(GetChatScheduledMessagesRequest, request.chat_id_);
 }
 
+void Requests::on_request(uint64 id, const td_api::getPasskeyParameters &request) {
+  CHECK_IS_USER();
+  CREATE_TEXT_REQUEST_PROMISE();
+  send_closure(td_->password_manager_, &PasswordManager::init_passkey_registration, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getAddedPasskeys &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

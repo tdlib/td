@@ -512,6 +512,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getChatScheduledMessages &request);
 
+  void on_request(uint64 id, const td_api::getPasskeyParameters &request);
+
   void on_request(uint64 id, const td_api::getAddedPasskeys &request);
 
   void on_request(uint64 id, td_api::removeAddedPasskey &request);
