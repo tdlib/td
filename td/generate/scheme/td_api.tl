@@ -1864,7 +1864,8 @@ tonTransactionTypeUpgradedGiftPurchase user_id:int53 gift:upgradedGift = TonTran
 //@gift The gift
 //@commission_per_mille The number of Toncoins received by the Telegram for each 1000 Toncoins received by the seller of the gift
 //@commission_toncoin_amount The amount of Toncoins that were received by the Telegram; in the smallest units of the currency
-tonTransactionTypeUpgradedGiftSale user_id:int53 gift:upgradedGift commission_per_mille:int32 commission_toncoin_amount:int53 = TonTransactionType;
+//@via_offer True, if the gift was sold through a purchase offer
+tonTransactionTypeUpgradedGiftSale user_id:int53 gift:upgradedGift commission_per_mille:int32 commission_toncoin_amount:int53 via_offer:Bool = TonTransactionType;
 
 //@description The transaction is a transaction of an unsupported type
 tonTransactionTypeUnsupported = TonTransactionType;

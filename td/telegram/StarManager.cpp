@@ -934,11 +934,16 @@ class GetTonTransactionsQuery final : public Td::ResultHandler {
                 return nullptr;
               }
               td_->star_gift_manager_->on_get_star_gift(gift, true);
-              if (transaction->stargift_resale_) {
+              if (transaction->stargift_resale_ || transaction->offer_) {
                 transaction->stargift_resale_ = false;
                 auto user_id_object =
                     td_->user_manager_->get_user_id_object(dialog_id.get_user_id(), "starsTransactionPeer");
                 if (is_purchase) {
+                  if (transaction->offer_) {
+                    transaction->offer_ = false;
+                    return td_api::make_object<td_api::tonTransactionTypeGiftPurchaseOffer>(
+                        gift.get_upgraded_gift_object(td_));
+                  }
                   return td_api::make_object<td_api::tonTransactionTypeUpgradedGiftPurchase>(
                       user_id_object, gift.get_upgraded_gift_object(td_));
                 } else if (transaction->starref_commission_permille_ > 0 &&
@@ -948,19 +953,16 @@ class GetTonTransactionsQuery final : public Td::ResultHandler {
                     transaction->starref_peer_ = nullptr;  // ignore
                     transaction->starref_commission_permille_ = 0;
                     transaction->starref_amount_ = nullptr;
+                    transaction->offer_ = false;
                   };
                   return td_api::make_object<td_api::tonTransactionTypeUpgradedGiftSale>(
                       user_id_object, gift.get_upgraded_gift_object(td_), transaction->starref_commission_permille_,
                       TonAmount(
                           telegram_api::move_object_as<telegram_api::starsTonAmount>(transaction->starref_amount_),
                           true)
-                          .get_ton_amount());
+                          .get_ton_amount(),
+                      transaction->offer_);
                 }
-              }
-              if (transaction->offer_) {
-                transaction->offer_ = false;
-                return td_api::make_object<td_api::tonTransactionTypeGiftPurchaseOffer>(
-                    gift.get_upgraded_gift_object(td_));
               }
               return nullptr;
             }
