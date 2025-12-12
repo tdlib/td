@@ -11,6 +11,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/Passkey.h"
 #include "td/telegram/SuggestedAction.h"
 #include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/TdDb.h"
@@ -831,6 +832,20 @@ void PasswordManager::cache_secret(secure_storage::Secret secret) {
 void PasswordManager::drop_cached_secret() {
   LOG(INFO) << "Drop passport secret";
   secret_ = optional<secure_storage::Secret>();
+}
+
+void PasswordManager::get_passkeys(Promise<td_api::object_ptr<td_api::passkeys>> &&promise) {
+  auto query = G()->net_query_creator().create(telegram_api::account_getPasskeys());
+  send_with_promise(
+      std::move(query), PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+        TRY_RESULT_PROMISE(promise, result, fetch_result<telegram_api::account_getPasskeys>(std::move(r_query)));
+        vector<td_api::object_ptr<td_api::passkey>> passkeys;
+        for (auto &api_passkey : result->passkeys_) {
+          auto passkey = Passkey(std::move(api_passkey));
+          passkeys.push_back(passkey.get_passkey_object());
+        }
+        promise.set_value(td_api::make_object<td_api::passkeys>(std::move(passkeys)));
+      }));
 }
 
 void PasswordManager::timeout_expired() {

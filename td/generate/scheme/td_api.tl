@@ -11272,6 +11272,10 @@ readAllForumTopicReactions chat_id:int53 forum_topic_id:int32 = Ok;
 unpinAllForumTopicMessages chat_id:int53 forum_topic_id:int32 = Ok;
 
 
+//@description Returns the list of passkeys allowed to be used for the login by the current user
+getAddedPasskeys = Passkeys;
+
+
 //@description Returns information about an emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction
 getEmojiReaction emoji:string = EmojiReaction;
 

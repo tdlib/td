@@ -81,6 +81,8 @@ class PasswordManager final : public NetQueryCallback {
 
   static TempPasswordState get_temp_password_state_sync();
 
+  void get_passkeys(Promise<td_api::object_ptr<td_api::passkeys>> &&promise);
+
  private:
   ActorShared<> parent_;
 
