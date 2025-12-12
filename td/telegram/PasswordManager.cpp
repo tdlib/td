@@ -848,6 +848,15 @@ void PasswordManager::get_passkeys(Promise<td_api::object_ptr<td_api::passkeys>>
       }));
 }
 
+void PasswordManager::delete_passkey(string passkey_id, Promise<Unit> &&promise) {
+  auto query = G()->net_query_creator().create(telegram_api::account_deletePasskey(passkey_id));
+  send_with_promise(
+      std::move(query), PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+        TRY_STATUS_PROMISE(promise, fetch_result<telegram_api::account_deletePasskey>(std::move(r_query)));
+        promise.set_value(Unit());
+      }));
+}
+
 void PasswordManager::timeout_expired() {
   if (Time::now() >= secret_expire_time_) {
     drop_cached_secret();

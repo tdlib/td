@@ -514,6 +514,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getAddedPasskeys &request);
 
+  void on_request(uint64 id, td_api::removeAddedPasskey &request);
+
   void on_request(uint64 id, const td_api::getEmojiReaction &request);
 
   void on_request(uint64 id, const td_api::getCustomEmojiReactionAnimations &request);

@@ -11275,6 +11275,9 @@ unpinAllForumTopicMessages chat_id:int53 forum_topic_id:int32 = Ok;
 //@description Returns the list of passkeys allowed to be used for the login by the current user
 getAddedPasskeys = Passkeys;
 
+//@description Removes a passkey from the list of passkeys allowed to be used for the login by the current user @passkey_id Unique identifier of the passkey to remove
+removeAddedPasskey passkey_id:string = Ok;
+
 
 //@description Returns information about an emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction
 getEmojiReaction emoji:string = EmojiReaction;

@@ -3572,8 +3572,12 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::getChatScheduledMessages>(chat_id));
-    } else if (op == "gap") {
+    } else if (op == "gapk") {
       send_request(td_api::make_object<td_api::getAddedPasskeys>());
+    } else if (op == "rapk") {
+      string passkey_id;
+      get_args(args, passkey_id);
+      send_request(td_api::make_object<td_api::removeAddedPasskey>(passkey_id));
     } else if (op == "sdrt") {
       string reaction;
       get_args(args, reaction);

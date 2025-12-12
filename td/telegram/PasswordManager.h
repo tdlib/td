@@ -83,6 +83,8 @@ class PasswordManager final : public NetQueryCallback {
 
   void get_passkeys(Promise<td_api::object_ptr<td_api::passkeys>> &&promise);
 
+  void delete_passkey(string passkey_id, Promise<Unit> &&promise);
+
  private:
   ActorShared<> parent_;
 
