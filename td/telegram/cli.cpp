@@ -606,7 +606,7 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
-  vector<int32> as_story_ids(Slice story_ids) const {
+  static vector<int32> as_story_ids(Slice story_ids) {
     return transform(autosplit(story_ids), [](Slice str) { return as_story_id(str); });
   }
 
@@ -614,7 +614,7 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
-  vector<int32> as_story_album_ids(Slice story_album_ids) const {
+  static vector<int32> as_story_album_ids(Slice story_album_ids) {
     return transform(autosplit(story_album_ids), [](Slice str) { return as_story_album_id(str); });
   }
 
