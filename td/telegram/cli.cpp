@@ -622,6 +622,10 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
+  static vector<int32> as_gift_collection_ids(Slice gift_collection_ids) {
+    return transform(autosplit(gift_collection_ids), [](Slice str) { return as_gift_collection_id(str); });
+  }
+
   td_api::object_ptr<td_api::businessRecipients> as_business_recipients(string chat_ids) const {
     return td_api::make_object<td_api::businessRecipients>(as_chat_ids(chat_ids), vector<int64>(), false, false, false,
                                                            false, true);
@@ -3308,9 +3312,8 @@ class CliClient final : public Actor {
       string owner_id;
       string collection_ids;
       get_args(args, owner_id, collection_ids);
-      send_request(td_api::make_object<td_api::reorderGiftCollections>(
-          as_message_sender(owner_id),
-          transform(autosplit(collection_ids), [](Slice str) { return as_gift_collection_id(str); })));
+      send_request(td_api::make_object<td_api::reorderGiftCollections>(as_message_sender(owner_id),
+                                                                       as_gift_collection_ids(collection_ids)));
     } else if (op == "dgic") {
       string owner_id;
       GiftCollectionId gift_collection_id;
