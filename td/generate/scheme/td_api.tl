@@ -8879,7 +8879,7 @@ suggestedActionCustom name:string title:formattedText description:formattedText 
 //@can_be_hidden True, if the suggested action can be hidden using hideSuggestedAction. Otherwise, the user must not be able to use the app without setting up the email address
 suggestedActionSetLoginEmailAddress can_be_hidden:Bool = SuggestedAction;
 
-//@description Suggests the user to add a passkey for login using addPasskey
+//@description Suggests the user to add a passkey for login using addLoginPasskey
 suggestedActionAddLoginPasskey = SuggestedAction;
 
 
@@ -11282,13 +11282,13 @@ getPasskeyParameters = Text;
 //@description Adds a passkey allowed to be used for the login by the current user and returns the added passkey. Call getPasskeyParameters to get parameters for creation of the passkey
 //@client_data JSON-encoded client data
 //@attestation_object Passkey attestation object
-addPasskey client_data:string attestation_object:bytes = Passkey;
+addLoginPasskey client_data:string attestation_object:bytes = Passkey;
 
 //@description Returns the list of passkeys allowed to be used for the login by the current user
-getAddedPasskeys = Passkeys;
+getLoginPasskeys = Passkeys;
 
 //@description Removes a passkey from the list of passkeys allowed to be used for the login by the current user @passkey_id Unique identifier of the passkey to remove
-removeAddedPasskey passkey_id:string = Ok;
+removeLoginPasskey passkey_id:string = Ok;
 
 
 //@description Returns information about an emoji reaction. Returns a 404 error if the reaction is not found @emoji Text representation of the reaction

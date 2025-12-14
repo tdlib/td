@@ -514,11 +514,11 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getPasskeyParameters &request);
 
-  void on_request(uint64 id, td_api::addPasskey &request);
+  void on_request(uint64 id, td_api::addLoginPasskey &request);
 
-  void on_request(uint64 id, const td_api::getAddedPasskeys &request);
+  void on_request(uint64 id, const td_api::getLoginPasskeys &request);
 
-  void on_request(uint64 id, td_api::removeAddedPasskey &request);
+  void on_request(uint64 id, td_api::removeLoginPasskey &request);
 
   void on_request(uint64 id, const td_api::getEmojiReaction &request);
 
