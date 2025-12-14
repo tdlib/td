@@ -1093,7 +1093,7 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(str));
   }
 
-  vector<int32> as_shortcut_ids(Slice shortcut_ids) const {
+  static vector<int32> as_shortcut_ids(Slice shortcut_ids) {
     return transform(autosplit(shortcut_ids), as_shortcut_id);
   }
 
@@ -1123,11 +1123,16 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  int64 as_saved_messages_topic_id(int64 saved_messages_topic_id) const {
+  static int64 as_saved_messages_topic_id(int64 saved_messages_topic_id) {
     if (saved_messages_topic_id == -1) {
       return 2666000;
     }
     return saved_messages_topic_id;
+  }
+
+  vector<int64> as_saved_messages_topic_ids(Slice saved_messages_topic_ids) const {
+    return transform(autosplit(saved_messages_topic_ids),
+                     [this](Slice str) { return as_saved_messages_topic_id(as_chat_id(str)); });
   }
 
   int64 get_saved_messages_topic_id() const {
@@ -3515,8 +3520,7 @@ class CliClient final : public Actor {
       send_request(
           td_api::make_object<td_api::toggleSavedMessagesTopicIsPinned>(get_saved_messages_topic_id(), is_pinned));
     } else if (op == "spsmt") {
-      send_request(td_api::make_object<td_api::setPinnedSavedMessagesTopics>(
-          transform(autosplit(args), [this](Slice str) { return as_saved_messages_topic_id(as_chat_id(str)); })));
+      send_request(td_api::make_object<td_api::setPinnedSavedMessagesTopics>(as_saved_messages_topic_ids(args)));
     } else if (op == "gcc") {
       UserId user_id;
       ChatId offset_chat_id;
