@@ -8879,6 +8879,9 @@ suggestedActionCustom name:string title:formattedText description:formattedText 
 //@can_be_hidden True, if the suggested action can be hidden using hideSuggestedAction. Otherwise, the user must not be able to use the app without setting up the email address
 suggestedActionSetLoginEmailAddress can_be_hidden:Bool = SuggestedAction;
 
+//@description Suggests the user to add a passkey for login using addPasskey
+suggestedActionAddLoginPasskey = SuggestedAction;
+
 
 //@description Contains a counter @count Count
 count count:int32 = Count;

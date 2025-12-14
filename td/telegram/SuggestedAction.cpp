@@ -57,6 +57,8 @@ SuggestedAction::SuggestedAction(Slice action_str) {
     init(Type::SetupLoginEmail);
   } else if (action_str == Slice("SETUP_LOGIN_EMAIL_NOSKIP")) {
     init(Type::SetupLoginEmailNoskip);
+  } else if (action_str == Slice("SETUP_PASSKEY")) {
+    init(Type::SetupPasskey);
   }
 }
 
@@ -156,6 +158,9 @@ SuggestedAction::SuggestedAction(td_api::object_ptr<td_api::SuggestedAction> &&s
       }
       break;
     }
+    case td_api::suggestedActionAddLoginPasskey::ID:
+      init(Type::SetupPasskey);
+      break;
     default:
       UNREACHABLE();
   }
@@ -197,6 +202,8 @@ string SuggestedAction::get_suggested_action_str() const {
       return "SETUP_LOGIN_EMAIL";
     case Type::SetupLoginEmailNoskip:
       return "SETUP_LOGIN_EMAIL_NOSKIP";
+    case Type::SetupPasskey:
+      return "SETUP_PASSKEY";
     default:
       return string();
   }
@@ -244,6 +251,8 @@ td_api::object_ptr<td_api::SuggestedAction> SuggestedAction::get_suggested_actio
       return td_api::make_object<td_api::suggestedActionSetLoginEmailAddress>(true);
     case Type::SetupLoginEmailNoskip:
       return td_api::make_object<td_api::suggestedActionSetLoginEmailAddress>(false);
+    case Type::SetupPasskey:
+      return td_api::make_object<td_api::suggestedActionAddLoginPasskey>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -321,6 +330,7 @@ void dismiss_suggested_action(SuggestedAction action, Promise<Unit> &&promise) {
     case SuggestedAction::Type::UserpicSetup:
     case SuggestedAction::Type::Custom:
     case SuggestedAction::Type::SetupLoginEmail:
+    case SuggestedAction::Type::SetupPasskey:
       return send_closure_later(G()->suggested_action_manager(), &SuggestedActionManager::dismiss_suggested_action,
                                 std::move(action), std::move(promise));
     case SuggestedAction::Type::SetPassword: {

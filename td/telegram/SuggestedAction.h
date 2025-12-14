@@ -39,7 +39,8 @@ struct SuggestedAction {
     UserpicSetup,
     Custom,
     SetupLoginEmail,
-    SetupLoginEmailNoskip
+    SetupLoginEmailNoskip,
+    SetupPasskey
   };
   Type type_ = Type::Empty;
   DialogId dialog_id_;
