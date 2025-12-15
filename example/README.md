@@ -52,6 +52,8 @@ You can also try a fork [python-telegram](https://github.com/iTeam-co/pytglib) o
 
 If you want to use TDLib with asyncio and Python >= 3.9, take a look at [aiotdlib](https://github.com/pylakey/aiotdlib) or [Pytdbot](https://github.com/pytdbot/client) (built on [AYMENJD/tdjson](https://github.com/AYMENJD/tdjson), a high-performance TDLib binding).
 
+If you want to use TDLib with [SidusAI](https://sidusai.ai/), take a look at [sidusai-tdlib](https://github.com/sidus-ai/sidus-ai-core/pull/22/files).
+
 For older Python versions you can use [pytdlib](https://github.com/pytdlib/pytdlib).
 This wrapper contains generator for TDLib API classes and basic interface for interaction with TDLib.
 
