@@ -2853,6 +2853,16 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::requestQrCodeAuthentication>(as_user_ids(args)));
     } else if (op == "gapo") {
       send_request(td_api::make_object<td_api::getAuthenticationPasskeyParameters>());
+    } else if (op == "capk") {
+      string credential_id;
+      string client_data;
+      string authenticator_data;
+      string signature;
+      string user_handle;
+      get_args(args, credential_id, client_data, authenticator_data, signature, user_handle);
+      send_request(td_api::make_object<td_api::checkAuthenticationPasskey>(
+          credential_id, client_data, base64url_decode(authenticator_data).move_as_ok(),
+          base64url_decode(signature).move_as_ok(), user_handle));
     } else if (op == "cqr") {
       send_request(td_api::make_object<td_api::confirmQrCodeAuthentication>(args));
     } else if (op == "gcs") {

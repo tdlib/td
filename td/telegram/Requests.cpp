@@ -2146,6 +2146,14 @@ void Requests::on_request(uint64 id, const td_api::getAuthenticationPasskeyParam
   send_closure(td_->password_manager_, &PasswordManager::get_passkey_login_options, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::checkAuthenticationPasskey &request) {
+  CLEAN_INPUT_STRING(request.credential_id_);
+  CLEAN_INPUT_STRING(request.client_data_);
+  CLEAN_INPUT_STRING(request.user_handle_);
+  send_closure(td_->auth_manager_actor_, &AuthManager::finish_passkey_login, id, request.credential_id_,
+               request.client_data_, request.authenticator_data_, request.signature_, request.user_handle_);
+}
+
 void Requests::on_request(uint64 id, const td_api::resetAuthenticationEmailAddress &request) {
   send_closure(td_->auth_manager_actor_, &AuthManager::reset_email_address, id);
 }

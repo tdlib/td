@@ -455,12 +455,12 @@ void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
   if (state_ != State::WaitPhoneNumber) {
     return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationBotToken unexpected"));
   }
-  if (!send_code_helper_.get_phone_number().empty() || was_qr_code_request_) {
+  if (!send_code_helper_.get_phone_number().empty() || was_qr_code_request_ || was_passkey_login_request_) {
     return on_query_error(
-        query_id, Status::Error(400, "Cannot set bot token after authentication began. You need to log out first"));
+        query_id, Status::Error(400, "Cannot set bot token after authentication began. You must log out first"));
   }
   if (was_check_bot_token_ && bot_token_ != bot_token) {
-    return on_query_error(query_id, Status::Error(400, "Cannot change bot token. You need to log out first"));
+    return on_query_error(query_id, Status::Error(400, "Cannot change bot token. You must log out first"));
   }
 
   on_new_query(query_id);
@@ -485,7 +485,7 @@ void AuthManager::request_qr_code_authentication(uint64 query_id, vector<UserId>
     return on_query_error(
         query_id,
         Status::Error(400,
-                      "Cannot request QR code authentication after bot token was entered. You need to log out first"));
+                      "Cannot request QR code authentication after bot token was entered. You must log out first"));
   }
   for (auto &other_user_id : other_user_ids) {
     if (!other_user_id.is_valid()) {
@@ -496,6 +496,7 @@ void AuthManager::request_qr_code_authentication(uint64 query_id, vector<UserId>
   other_user_ids_ = std::move(other_user_ids);
   send_code_helper_ = SendCodeHelper();
   terms_of_service_ = TermsOfService();
+  passkey_parameters_ = {};
   was_qr_code_request_ = true;
 
   on_new_query(query_id);
@@ -536,6 +537,49 @@ void AuthManager::on_update_login_token() {
   send_export_login_token_query();
 }
 
+void AuthManager::finish_passkey_login(uint64 query_id, const string &passkey_id, const string &client_data,
+                                       const string &authenticator_data, const string &signature,
+                                       const string &user_handle) {
+  if (state_ != State::WaitPhoneNumber) {
+    if ((state_ == State::WaitPremiumPurchase || state_ == State::WaitEmailAddress || state_ == State::WaitEmailCode ||
+         state_ == State::WaitCode || state_ == State::WaitPassword || state_ == State::WaitRegistration) &&
+        net_query_id_ == 0) {
+      // ok
+    } else {
+      return on_query_error(query_id, Status::Error(400, "Call to checkAuthenticationPasskey unexpected"));
+    }
+  }
+  if (was_check_bot_token_) {
+    return on_query_error(
+        query_id,
+        Status::Error(400,
+                      "Cannot request passkey authentication after bot token was entered. You must log out first"));
+  }
+
+  other_user_ids_ = {};
+  send_code_helper_ = SendCodeHelper();
+  terms_of_service_ = TermsOfService();
+  passkey_parameters_ = PasskeyParameters(passkey_id, client_data, authenticator_data, signature, user_handle);
+  was_passkey_login_request_ = true;
+
+  on_new_query(query_id);
+
+  send_finish_passkey_login_query();
+}
+
+void AuthManager::send_finish_passkey_login_query() {
+  int32 flags = 0;
+  auto credential = telegram_api::make_object<telegram_api::inputPasskeyCredentialPublicKey>(
+      passkey_parameters_.passkey_id_, passkey_parameters_.passkey_id_,
+      telegram_api::make_object<telegram_api::inputPasskeyResponseLogin>(
+          telegram_api::make_object<telegram_api::dataJSON>(passkey_parameters_.client_data_),
+          BufferSlice(passkey_parameters_.authenticator_data_), BufferSlice(passkey_parameters_.signature_),
+          passkey_parameters_.user_handle_));
+  start_net_query(NetQueryType::FinishPasskeyLogin,
+                  G()->net_query_creator().create_unauth(
+                      telegram_api::auth_finishPasskeyLogin(flags, std::move(credential), 0, 0)));
+}
+
 void AuthManager::on_update_sent_code(telegram_api::object_ptr<telegram_api::auth_SentCode> &&sent_code_ptr) {
   if (G()->close_flag()) {
     return;
@@ -560,7 +604,7 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
   }
   if (was_check_bot_token_) {
     return on_query_error(
-        query_id, Status::Error(400, "Cannot set phone number after bot token was entered. You need to log out first"));
+        query_id, Status::Error(400, "Cannot set phone number after bot token was entered. You must log out first"));
   }
   if (phone_number.empty()) {
     return on_query_error(query_id, Status::Error(400, "Phone number must be non-empty"));
@@ -568,6 +612,7 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
 
   other_user_ids_.clear();
   was_qr_code_request_ = false;
+  was_passkey_login_request_ = false;
 
   store_product_id_.clear();
   support_email_address_.clear();
@@ -584,6 +629,7 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number,
   if (send_code_helper_.get_phone_number() != phone_number) {
     send_code_helper_ = SendCodeHelper();
     terms_of_service_ = TermsOfService();
+    passkey_parameters_ = {};
   }
 
   on_new_query(query_id);
@@ -1162,6 +1208,14 @@ void AuthManager::on_get_login_token(tl_object_ptr<telegram_api::auth_LoginToken
   }
 }
 
+void AuthManager::on_finish_passkey_login_result(NetQueryPtr &&net_query) {
+  auto r_authorization = fetch_result<telegram_api::auth_finishPasskeyLogin>(std::move(net_query));
+  if (r_authorization.is_error()) {
+    return on_current_query_error(r_authorization.move_as_error());
+  }
+  on_get_authorization(r_authorization.move_as_ok());
+}
+
 void AuthManager::on_get_password_result(NetQueryPtr &&net_query) {
   auto r_password = fetch_result<telegram_api::account_getPassword>(std::move(net_query));
   if (r_password.is_error() && query_id_ != 0) {
@@ -1442,7 +1496,8 @@ void AuthManager::on_result(NetQueryPtr net_query) {
     if (net_query->is_error()) {
       if ((type == NetQueryType::SendCode || type == NetQueryType::SendEmailCode ||
            type == NetQueryType::VerifyEmailAddress || type == NetQueryType::SignIn ||
-           type == NetQueryType::RequestQrCode || type == NetQueryType::ImportQrCode) &&
+           type == NetQueryType::RequestQrCode || type == NetQueryType::ImportQrCode ||
+           type == NetQueryType::FinishPasskeyLogin) &&
           net_query->error().code() == 401 && net_query->error().message() == CSlice("SESSION_PASSWORD_NEEDED")) {
         auto dc_id = DcId::main();
         if (type == NetQueryType::ImportQrCode) {
@@ -1463,14 +1518,16 @@ void AuthManager::on_result(NetQueryPtr net_query) {
             other_user_ids_.clear();
             send_code_helper_ = SendCodeHelper();
             terms_of_service_ = TermsOfService();
+            passkey_parameters_ = {};
             was_qr_code_request_ = false;
+            was_passkey_login_request_ = false;
             was_check_bot_token_ = false;
           }
           on_current_query_error(net_query->move_as_error());
           return;
         }
         if (type != NetQueryType::RequestQrCode && type != NetQueryType::ImportQrCode &&
-            type != NetQueryType::GetPassword) {
+            type != NetQueryType::GetPassword && type != NetQueryType::FinishPasskeyLogin) {
           LOG(INFO) << "Ignore error for net query of type " << static_cast<int32>(type);
           type = NetQueryType::None;
         }
@@ -1516,6 +1573,9 @@ void AuthManager::on_result(NetQueryPtr net_query) {
       break;
     case NetQueryType::ImportQrCode:
       on_request_qr_code_result(std::move(net_query), true);
+      break;
+    case NetQueryType::FinishPasskeyLogin:
+      on_finish_passkey_login_result(std::move(net_query));
       break;
     case NetQueryType::GetPassword:
       on_get_password_result(std::move(net_query));

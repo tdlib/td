@@ -162,6 +162,7 @@ bool Td::is_authentication_request(int32 id) {
     case td_api::registerUser::ID:
     case td_api::requestQrCodeAuthentication::ID:
     case td_api::getAuthenticationPasskeyParameters::ID:
+    case td_api::checkAuthenticationPasskey::ID:
     case td_api::resetAuthenticationEmailAddress::ID:
     case td_api::checkAuthenticationPassword::ID:
     case td_api::requestAuthenticationPasswordRecovery::ID:
