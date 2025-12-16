@@ -537,6 +537,11 @@ void AuthManager::on_update_login_token() {
   send_export_login_token_query();
 }
 
+void AuthManager::on_init_passkey_login(int32 dc_id, uint64 main_auth_key_id) {
+  passkey_dc_id_ = dc_id;
+  passkey_auth_key_id_ = static_cast<int64>(main_auth_key_id);
+}
+
 void AuthManager::finish_passkey_login(uint64 query_id, const string &passkey_id, const string &client_data,
                                        const string &authenticator_data, const string &signature,
                                        const string &user_handle) {
@@ -569,6 +574,9 @@ void AuthManager::finish_passkey_login(uint64 query_id, const string &passkey_id
 
 void AuthManager::send_finish_passkey_login_query() {
   int32 flags = 0;
+  if (passkey_dc_id_ != 0) {
+    flags |= telegram_api::auth_finishPasskeyLogin::FROM_DC_ID_MASK;
+  }
   auto credential = telegram_api::make_object<telegram_api::inputPasskeyCredentialPublicKey>(
       passkey_parameters_.passkey_id_, passkey_parameters_.passkey_id_,
       telegram_api::make_object<telegram_api::inputPasskeyResponseLogin>(
@@ -576,8 +584,8 @@ void AuthManager::send_finish_passkey_login_query() {
           BufferSlice(passkey_parameters_.authenticator_data_), BufferSlice(passkey_parameters_.signature_),
           passkey_parameters_.user_handle_));
   start_net_query(NetQueryType::FinishPasskeyLogin,
-                  G()->net_query_creator().create_unauth(
-                      telegram_api::auth_finishPasskeyLogin(flags, std::move(credential), 0, 0)));
+                  G()->net_query_creator().create_unauth(telegram_api::auth_finishPasskeyLogin(
+                      flags, std::move(credential), passkey_dc_id_, passkey_auth_key_id_)));
 }
 
 void AuthManager::on_update_sent_code(telegram_api::object_ptr<telegram_api::auth_SentCode> &&sent_code_ptr) {

@@ -64,6 +64,8 @@ class AuthManager final : public NetActor {
 
   void request_qr_code_authentication(uint64 query_id, vector<UserId> other_user_ids);
 
+  void on_init_passkey_login(int32 dc_id, uint64 main_auth_key_id);
+
   void finish_passkey_login(uint64 query_id, const string &passkey_id, const string &client_data,
                             const string &authenticator_data, const string &signature, const string &user_handle);
 
@@ -239,6 +241,8 @@ class AuthManager final : public NetActor {
   NetQueryType net_query_type_ = NetQueryType::None;
 
   PasskeyParameters passkey_parameters_;
+  int32 passkey_dc_id_ = 0;
+  int64 passkey_auth_key_id_ = 0;
 
   vector<uint64> pending_get_authorization_state_requests_;
 

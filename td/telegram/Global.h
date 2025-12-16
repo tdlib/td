@@ -220,6 +220,9 @@ class Global final : public ActorContext {
     attach_menu_manager_ = attach_menu_manager;
   }
 
+  ActorId<AuthManager> auth_manager() const {
+    return auth_manager_;
+  }
   void set_auth_manager(ActorId<AuthManager> auth_manager) {
     auth_manager_ = auth_manager;
   }
