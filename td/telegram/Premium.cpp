@@ -365,7 +365,7 @@ class GetPremiumPromoQuery final : public Td::ResultHandler {
           auto animation_object = td_->animations_manager_->get_animation_object(parsed_document.file_id);
           business_animations.push_back(td_api::make_object<td_api::businessFeaturePromotionAnimation>(
               std::move(business_feature), std::move(animation_object)));
-        } else if (G()->is_test_dc()) {
+        } else if (promo->video_sections_[i] != "gifts") {
           LOG(ERROR) << "Receive unsupported feature " << promo->video_sections_[i];
         }
       }
@@ -1251,6 +1251,8 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
     auto feature = get_premium_feature_object(premium_feature);
     if (feature != nullptr) {
       features.push_back(std::move(feature));
+    } else {
+      LOG(ERROR) << "Receive unsupported Premium feature " << premium_feature;
     }
   }
 
