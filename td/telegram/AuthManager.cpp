@@ -545,7 +545,7 @@ void AuthManager::on_init_passkey_login(int32 dc_id, uint64 main_auth_key_id) {
 void AuthManager::finish_passkey_login(uint64 query_id, const string &passkey_id, const string &client_data,
                                        const string &authenticator_data, const string &signature,
                                        const string &user_handle) {
-  if (state_ != State::WaitPhoneNumber) {
+  if (state_ != State::WaitPhoneNumber && state_ != State::WaitQrCodeConfirmation) {
     if ((state_ == State::WaitPremiumPurchase || state_ == State::WaitEmailAddress || state_ == State::WaitEmailCode ||
          state_ == State::WaitCode || state_ == State::WaitPassword || state_ == State::WaitRegistration) &&
         net_query_id_ == 0) {

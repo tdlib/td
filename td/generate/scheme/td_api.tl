@@ -10090,8 +10090,8 @@ requestQrCodeAuthentication other_user_ids:vector<int53> = Ok;
 //@description Returns parameters for authentication using a passkey as JSON-serialized string
 getAuthenticationPasskeyParameters = Text;
 
-//@description Checks a passkey to log in to the corresponding account. Call getAuthenticationPasskeyParameters to get parameters for the passkey.
-//-Works only when the current authorization state is authorizationStateWaitPhoneNumber, or if there is no pending authentication query and the current authorization state is
+//@description Checks a passkey to log in to the corresponding account. Call getAuthenticationPasskeyParameters to get parameters for the passkey. Works only when the current authorization state is
+//-authorizationStateWaitPhoneNumber or authorizationStateWaitOtherDeviceConfirmation, or if there is no pending authentication query and the current authorization state is
 //-authorizationStateWaitPremiumPurchase, authorizationStateWaitEmailAddress, authorizationStateWaitEmailCode, authorizationStateWaitCode, authorizationStateWaitRegistration, or authorizationStateWaitPassword
 //@credential_id Base64url-encoded identifier of the credential
 //@client_data JSON-encoded client data
