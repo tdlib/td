@@ -370,6 +370,8 @@ void Session::send(NetQueryPtr &&query) {
   last_activity_timestamp_ = Time::now();
 
   // query->debug(PSTRING() << get_name() << ": received by Session");
+  query->set_real_dc_id(raw_dc_id_);
+  query->set_main_auth_key_id(auth_data_.get_main_auth_key().id());
   query->set_session_id(auth_data_.get_session_id());
   VLOG(net_query) << "Receive query " << query;
   if (query->update_is_ready()) {

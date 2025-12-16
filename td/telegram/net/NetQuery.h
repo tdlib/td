@@ -149,6 +149,20 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     return tl_magic(answer_);
   }
 
+  int32 get_real_dc_id() const {
+    return real_dc_id_.load(std::memory_order_relaxed);
+  }
+  void set_real_dc_id(int32 real_dc_id) {
+    real_dc_id_.store(real_dc_id, std::memory_order_relaxed);
+  }
+
+  uint64 get_main_auth_key_id() const {
+    return main_auth_key_id_.load(std::memory_order_relaxed);
+  }
+  void set_main_auth_key_id(uint64 auth_key_id) {
+    main_auth_key_id_.store(auth_key_id, std::memory_order_relaxed);
+  }
+
   uint64 session_id() const {
     return session_id_.load(std::memory_order_relaxed);
   }
@@ -283,6 +297,8 @@ class NetQuery final : public TsListNode<NetQueryDebug> {
     ~movable_atomic() = default;
   };
 
+  movable_atomic<int32> real_dc_id_{0};
+  movable_atomic<uint64> main_auth_key_id_{0};
   movable_atomic<uint64> session_id_{0};
   uint64 message_id_{0};
 
