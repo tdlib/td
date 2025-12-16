@@ -7,11 +7,13 @@
 #include "td/telegram/StarGiftManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BusinessConnectionManager.h"
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
@@ -2150,6 +2152,62 @@ class UpdateStarGiftCollectionQuery final : public Td::ResultHandler {
   }
 };
 
+class GetStarGiftPromoAnimationQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::animation>> promise_;
+
+ public:
+  explicit GetStarGiftPromoAnimationQuery(Promise<td_api::object_ptr<td_api::animation>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::help_getPremiumPromo()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::help_getPremiumPromo>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto promo = result_ptr.move_as_ok();
+
+    td_->user_manager_->on_get_users(std::move(promo->users_), "GetPremiumPromoQuery");
+
+    for (size_t i = 0; i < promo->video_sections_.size(); i++) {
+      if (i >= promo->videos_.size()) {
+        break;
+      }
+      if (promo->video_sections_[i] != "gifts") {
+        continue;
+      }
+
+      auto video = std::move(promo->videos_[i]);
+      if (video->get_id() != telegram_api::document::ID) {
+        LOG(ERROR) << "Receive " << to_string(video) << " for " << promo->video_sections_[i];
+        break;
+      }
+
+      auto parsed_document =
+          td_->documents_manager_->on_get_document(telegram_api::move_object_as<telegram_api::document>(video),
+                                                   DialogId(), false, nullptr, Document::Type::Animation);
+
+      if (parsed_document.type != Document::Type::Animation) {
+        LOG(ERROR) << "Receive " << parsed_document.type << " for " << promo->video_sections_[i];
+        break;
+      }
+
+      return promise_.set_value(td_->animations_manager_->get_animation_object(parsed_document.file_id));
+    }
+
+    promise_.set_value(nullptr);
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 StarGiftManager::StarGiftManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   update_gift_message_timeout_.set_callback(on_update_gift_message_timeout_callback);
   update_gift_message_timeout_.set_callback_data(static_cast<void *>(this));
@@ -3061,6 +3119,10 @@ void StarGiftManager::reorder_gift_collection_gifts(DialogId dialog_id, StarGift
   }
   td_->create_handler<UpdateStarGiftCollectionQuery>(std::move(promise))
       ->send(dialog_id, collection_id, {}, {}, {}, star_gift_ids);
+}
+
+void StarGiftManager::get_star_gift_promo_animation(Promise<td_api::object_ptr<td_api::animation>> &&promise) {
+  td_->create_handler<GetStarGiftPromoAnimationQuery>(std::move(promise))->send();
 }
 
 void StarGiftManager::register_gift(MessageFullId message_full_id, const char *source) {

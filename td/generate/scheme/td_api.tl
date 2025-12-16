@@ -13799,6 +13799,9 @@ getUpgradedGiftValueInfo name:string = UpgradedGiftValueInfo;
 //@password The 2-step verification password of the current user
 getUpgradedGiftWithdrawalUrl received_gift_id:string password:string = HttpUrl;
 
+//@description Returns promotional anumation for upgraded gifts
+getUpgradedGiftsPromotionalAnimation = Animation;
+
 //@description Changes resale price of a unique gift owned by the current user
 //@received_gift_id Identifier of the unique gift
 //@price The new price for the unique gift; pass null to disallow gift resale. The current user will receive

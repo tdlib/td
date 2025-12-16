@@ -155,6 +155,8 @@ class StarGiftManager final : public Actor {
                                      const vector<StarGiftId> &star_gift_ids,
                                      Promise<td_api::object_ptr<td_api::giftCollection>> &&promise);
 
+  void get_star_gift_promo_animation(Promise<td_api::object_ptr<td_api::animation>> &&promise);
+
   void register_gift(MessageFullId message_full_id, const char *source);
 
   void unregister_gift(MessageFullId message_full_id, const char *source);

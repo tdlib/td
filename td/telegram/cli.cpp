@@ -3291,6 +3291,8 @@ class CliClient final : public Actor {
       string password;
       get_args(args, received_gift_id, password);
       send_request(td_api::make_object<td_api::getUpgradedGiftWithdrawalUrl>(received_gift_id, password));
+    } else if (op == "gugpa") {
+      send_request(td_api::make_object<td_api::getUpgradedGiftsPromotionalAnimation>());
     } else if (op == "sgfr" || op == "sgfrd" || op == "sgfrn") {
       int64 gift_id;
       string limit;
