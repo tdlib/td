@@ -15,6 +15,7 @@
 #include "td/telegram/SuggestedActionManager.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TempPasswordState.hpp"
 
 #include "td/mtproto/DhHandshake.h"
 
@@ -30,14 +31,6 @@
 #include "td/utils/Time.h"
 
 namespace td {
-
-tl_object_ptr<td_api::temporaryPasswordState> TempPasswordState::get_temporary_password_state_object() const {
-  auto unix_time = G()->unix_time();
-  if (!has_temp_password || valid_until <= unix_time) {
-    return make_tl_object<td_api::temporaryPasswordState>(false, 0);
-  }
-  return make_tl_object<td_api::temporaryPasswordState>(true, valid_until - unix_time);
-}
 
 static void hash_sha256(Slice data, Slice salt, MutableSlice dest) {
   sha256(PSLICE() << salt << data << salt, dest);

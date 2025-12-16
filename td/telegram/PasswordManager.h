@@ -13,6 +13,7 @@
 #include "td/telegram/SentEmailCode.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/TempPasswordState.h"
 
 #include "td/actor/actor.h"
 
@@ -26,30 +27,6 @@
 #include "td/utils/tl_helpers.h"
 
 namespace td {
-
-struct TempPasswordState {
-  bool has_temp_password = false;
-  string temp_password;
-  int32 valid_until = 0;  // unix_time
-
-  tl_object_ptr<td_api::temporaryPasswordState> get_temporary_password_state_object() const;
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    using ::td::store;
-    CHECK(has_temp_password);
-    store(temp_password, storer);
-    store(valid_until, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    using ::td::parse;
-    has_temp_password = true;
-    parse(temp_password, parser);
-    parse(valid_until, parser);
-  }
-};
 
 class PasswordManager final : public NetQueryCallback {
  public:

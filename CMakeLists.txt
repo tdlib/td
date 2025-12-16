@@ -651,6 +651,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/TargetDialogTypes.cpp
   td/telegram/Td.cpp
   td/telegram/TdDb.cpp
+  td/telegram/TempPasswordState.cpp
   td/telegram/TermsOfService.cpp
   td/telegram/TermsOfServiceManager.cpp
   td/telegram/ThemeManager.cpp
@@ -1065,6 +1066,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/Td.h
   td/telegram/TdCallback.h
   td/telegram/TdDb.h
+  td/telegram/TempPasswordState.h
   td/telegram/TermsOfService.h
   td/telegram/TermsOfServiceManager.h
   td/telegram/ThemeManager.h
@@ -1201,6 +1203,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/SuggestedAction.hpp
   td/telegram/SuggestedPost.hpp
   td/telegram/SuggestedPostPrice.hpp
+  td/telegram/TempPasswordState.hpp
   td/telegram/TermsOfService.hpp
   td/telegram/ThemeSettings.hpp
   td/telegram/ToDoCompletion.hpp
