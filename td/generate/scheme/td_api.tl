@@ -7176,6 +7176,9 @@ premiumFeatureMessageEffects = PremiumFeature;
 //@description The ability to create and use checklist messages
 premiumFeatureChecklists = PremiumFeature;
 
+//@description The ability to require a payment for incoming messages in new chats
+premiumFeaturePaidMessages = PremiumFeature;
+
 
 //@class BusinessFeature @description Describes a feature available to Business user accounts
 
