@@ -834,6 +834,15 @@ void PasswordManager::drop_cached_secret() {
   secret_ = optional<secure_storage::Secret>();
 }
 
+void PasswordManager::get_passkey_login_options(Promise<string> &&promise) {
+  auto query = G()->net_query_creator().create_unauth(telegram_api::auth_initPasskeyLogin(api_id_, api_hash_));
+  send_with_promise(
+      std::move(query), PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+        TRY_RESULT_PROMISE(promise, result, fetch_result<telegram_api::auth_initPasskeyLogin>(std::move(r_query)));
+        promise.set_value(std::move(result->options_->data_));
+      }));
+}
+
 void PasswordManager::init_passkey_registration(Promise<string> &&promise) {
   auto query = G()->net_query_creator().create(telegram_api::account_initPasskeyRegistration());
   send_with_promise(

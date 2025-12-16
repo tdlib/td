@@ -132,6 +132,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::requestQrCodeAuthentication &request);
 
+  void on_request(uint64 id, const td_api::getAuthenticationPasskeyParameters &request);
+
   void on_request(uint64 id, const td_api::resetAuthenticationEmailAddress &request);
 
   void on_request(uint64 id, td_api::checkAuthenticationPassword &request);

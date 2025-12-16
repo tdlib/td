@@ -2851,6 +2851,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::checkAuthenticationBotToken>(args));
     } else if (op == "qr") {
       send_request(td_api::make_object<td_api::requestQrCodeAuthentication>(as_user_ids(args)));
+    } else if (op == "gapo") {
+      send_request(td_api::make_object<td_api::getAuthenticationPasskeyParameters>());
     } else if (op == "cqr") {
       send_request(td_api::make_object<td_api::confirmQrCodeAuthentication>(args));
     } else if (op == "gcs") {

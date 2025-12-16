@@ -161,6 +161,7 @@ bool Td::is_authentication_request(int32 id) {
     case td_api::checkAuthenticationCode::ID:
     case td_api::registerUser::ID:
     case td_api::requestQrCodeAuthentication::ID:
+    case td_api::getAuthenticationPasskeyParameters::ID:
     case td_api::resetAuthenticationEmailAddress::ID:
     case td_api::checkAuthenticationPassword::ID:
     case td_api::requestAuthenticationPasswordRecovery::ID:
@@ -913,7 +914,7 @@ void Td::init(Parameters parameters, Result<TdDb::OpenedDatabase> r_opened_datab
 
   init_managers();
 
-  init_pure_actor_managers();
+  init_pure_actor_managers(parameters);
 
   secret_chats_manager_ =
       create_actor<SecretChatsManager>("SecretChatsManager", create_reference(), parameters.use_secret_chats_);
@@ -1303,14 +1304,15 @@ void Td::init_managers() {
   G()->set_web_pages_manager(web_pages_manager_actor_.get());
 }
 
-void Td::init_pure_actor_managers() {
+void Td::init_pure_actor_managers(const Parameters &parameters) {
   cashtag_search_hints_ = create_actor<HashtagHints>("CashtagSearchHints", "cashtag_search", '$', create_reference());
   device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
   hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", '#', create_reference());
   hashtag_search_hints_ = create_actor<HashtagHints>("HashtagSearchHints", "search", '#', create_reference());
   language_pack_manager_ = create_actor<LanguagePackManager>("LanguagePackManager", create_reference());
   G()->set_language_pack_manager(language_pack_manager_.get());
-  password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
+  password_manager_ =
+      create_actor<PasswordManager>("PasswordManager", parameters.api_id_, parameters.api_hash_, create_reference());
   G()->set_password_manager(password_manager_.get());
   secure_manager_ = create_actor<SecureManager>("SecureManager", create_reference());
 }

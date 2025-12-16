@@ -2140,6 +2140,12 @@ void Requests::on_request(uint64 id, const td_api::requestQrCodeAuthentication &
                UserId::get_user_ids(request.other_user_ids_));
 }
 
+void Requests::on_request(uint64 id, const td_api::getAuthenticationPasskeyParameters &request) {
+  // this is a regular request
+  CREATE_TEXT_REQUEST_PROMISE();
+  send_closure(td_->password_manager_, &PasswordManager::get_passkey_login_options, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::resetAuthenticationEmailAddress &request) {
   send_closure(td_->auth_manager_actor_, &AuthManager::reset_email_address, id);
 }

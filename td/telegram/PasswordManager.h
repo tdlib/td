@@ -35,7 +35,8 @@ class PasswordManager final : public NetQueryCallback {
   using ResetPasswordResult = tl_object_ptr<td_api::ResetPasswordResult>;
   using PasswordInputSettings = tl_object_ptr<telegram_api::account_passwordInputSettings>;
 
-  explicit PasswordManager(ActorShared<> parent) : parent_(std::move(parent)) {
+  PasswordManager(int32 api_id, const string &api_hash, ActorShared<> parent)
+      : parent_(std::move(parent)), api_id_(api_id), api_hash_(api_hash) {
   }
 
   static tl_object_ptr<telegram_api::InputCheckPasswordSRP> get_input_check_password(Slice password, Slice client_salt,
@@ -81,6 +82,8 @@ class PasswordManager final : public NetQueryCallback {
 
   static TempPasswordState get_temp_password_state_sync();
 
+  void get_passkey_login_options(Promise<string> &&promise);
+
   void init_passkey_registration(Promise<string> &&promise);
 
   void register_passkey(string client_data, string attestation_data,
@@ -92,6 +95,9 @@ class PasswordManager final : public NetQueryCallback {
 
  private:
   ActorShared<> parent_;
+
+  int32 api_id_;
+  string api_hash_;
 
   struct PasswordState {
     bool has_password = false;

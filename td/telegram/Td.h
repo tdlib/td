@@ -441,7 +441,7 @@ class Td final : public Actor {
 
   void init_managers();
 
-  void init_pure_actor_managers();
+  void init_pure_actor_managers(const Parameters &parameters);
 
   void process_binlog_events(TdDb::OpenedDatabase &&events);
 
