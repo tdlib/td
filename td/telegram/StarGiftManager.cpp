@@ -13,6 +13,7 @@
 #include "td/telegram/ChatManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/EmojiStatus.h"
 #include "td/telegram/Global.h"
@@ -2172,7 +2173,7 @@ class GetStarGiftPromoAnimationQuery final : public Td::ResultHandler {
 
     auto promo = result_ptr.move_as_ok();
 
-    td_->user_manager_->on_get_users(std::move(promo->users_), "GetPremiumPromoQuery");
+    td_->user_manager_->on_get_users(std::move(promo->users_), "GetStarGiftPromoAnimationQuery");
 
     for (size_t i = 0; i < promo->video_sections_.size(); i++) {
       if (i >= promo->videos_.size()) {

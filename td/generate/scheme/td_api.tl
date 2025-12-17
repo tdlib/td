@@ -1564,7 +1564,7 @@ userAuctionBid star_count:int53 bid_date:int32 next_bid_star_count:int53 owner_i
 //@description Describes a round of an auction
 //@number 1-based number of the round
 //@duration Duration of the round, in seconds
-//@extend_time The number of seconds for which the round will be extended if there will be changes in the top winners
+//@extend_time The number of seconds for which the round will be extended if there are changes in the top winners
 //@top_winner_count The number of top winners who trigger round extension if changed
 auctionRound number:int32 duration:int32 extend_time:int32 top_winner_count:int32 = AuctionRound;
 
@@ -11293,10 +11293,10 @@ readAllForumTopicReactions chat_id:int53 forum_topic_id:int32 = Ok;
 unpinAllForumTopicMessages chat_id:int53 forum_topic_id:int32 = Ok;
 
 
-//@description Returns parameters for creation of a new passkey as JSON-serialized string
+//@description Returns parameters for creating of a new passkey as JSON-serialized string
 getPasskeyParameters = Text;
 
-//@description Adds a passkey allowed to be used for the login by the current user and returns the added passkey. Call getPasskeyParameters to get parameters for creation of the passkey
+//@description Adds a passkey allowed to be used for the login by the current user and returns the added passkey. Call getPasskeyParameters to get parameters for creating of the passkey
 //@client_data JSON-encoded client data
 //@attestation_object Passkey attestation object
 addLoginPasskey client_data:string attestation_object:bytes = Passkey;
@@ -13759,8 +13759,8 @@ sendResoldGift gift_name:string owner_id:MessageSender price:GiftResalePrice = G
 //@owner_id Identifier of the user or the channel chat that currently owns the gift and will receive the offer
 //@gift_name Name of the upgraded gift
 //@price The price that the user agreed to pay for the gift
-//@duration Duration of the offer in seconds; must be one of 21600, 43200, 86400, 129600, 172800, or 259200. Can also be 120 if Telegram test environment is used 
-//@paid_message_star_count The number of Telegram Stars the user agreed to pay additionally for sending of the offer message to the current gift owner; pass userFull.outgoing_paid_message_star_count for users and 0 otherwise
+//@duration Duration of the offer, in seconds; must be one of 21600, 43200, 86400, 129600, 172800, or 259200. Can also be 120 if Telegram test environment is used
+//@paid_message_star_count The number of Telegram Stars the user agreed to pay additionally for sending of the offer message to the current gift owner; pass userFullInfo.outgoing_paid_message_star_count for users and 0 otherwise
 sendGiftPurchaseOffer owner_id:MessageSender gift_name:string price:GiftResalePrice duration:int32 paid_message_star_count:int53 = Ok;
 
 //@description Handles a pending gift purchase offer

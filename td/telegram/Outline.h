@@ -8,6 +8,7 @@
 
 #include "td/telegram/td_api.h"
 
+#include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
 namespace td {

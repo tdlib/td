@@ -607,7 +607,7 @@ class CliClient final : public Actor {
   }
 
   static vector<int32> as_story_ids(Slice story_ids) {
-    return transform(autosplit(story_ids), [](Slice str) { return as_story_id(str); });
+    return transform(autosplit(story_ids), as_story_id);
   }
 
   static int32 as_story_album_id(Slice str) {
@@ -615,7 +615,7 @@ class CliClient final : public Actor {
   }
 
   static vector<int32> as_story_album_ids(Slice story_album_ids) {
-    return transform(autosplit(story_album_ids), [](Slice str) { return as_story_album_id(str); });
+    return transform(autosplit(story_album_ids), as_story_album_id);
   }
 
   static int32 as_gift_collection_id(Slice str) {
@@ -623,7 +623,7 @@ class CliClient final : public Actor {
   }
 
   static vector<int32> as_gift_collection_ids(Slice gift_collection_ids) {
-    return transform(autosplit(gift_collection_ids), [](Slice str) { return as_gift_collection_id(str); });
+    return transform(autosplit(gift_collection_ids), as_gift_collection_id);
   }
 
   td_api::object_ptr<td_api::businessRecipients> as_business_recipients(string chat_ids) const {

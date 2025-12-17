@@ -9,6 +9,7 @@
 #include "td/telegram/BusinessConnectionId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageFullId.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarGiftAuctionState.h"
 #include "td/telegram/StarGiftAuctionUserState.h"
