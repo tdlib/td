@@ -5836,6 +5836,7 @@ void UserManager::send_update_profile_photo_query(UserId user_id, FileId file_id
 void UserManager::upload_profile_photo(UserId user_id, FileUploadId file_upload_id, bool is_fallback, bool only_suggest,
                                        bool is_animation, double main_frame_timestamp, Promise<Unit> &&promise,
                                        int reupload_count, vector<int> bad_parts) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(file_upload_id.is_valid());
   bool is_inserted =
       being_uploaded_profile_photos_

@@ -2334,6 +2334,7 @@ void DialogManager::set_dialog_photo(DialogId dialog_id, const td_api::object_pt
 void DialogManager::send_edit_dialog_photo_query(
     DialogId dialog_id, FileUploadId file_upload_id,
     telegram_api::object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   td_->create_handler<EditDialogPhotoQuery>(std::move(promise))
       ->send(dialog_id, file_upload_id, std::move(input_chat_photo));
 }
@@ -2341,6 +2342,7 @@ void DialogManager::send_edit_dialog_photo_query(
 void DialogManager::upload_dialog_photo(DialogId dialog_id, FileUploadId file_upload_id, bool is_animation,
                                         double main_frame_timestamp, bool is_reupload, Promise<Unit> &&promise,
                                         vector<int> bad_parts) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(file_upload_id.is_valid());
   LOG(INFO) << "Ask to upload chat photo " << file_upload_id;
   bool is_inserted = being_uploaded_dialog_photos_

@@ -1806,6 +1806,7 @@ void MessageQueryManager::on_get_affected_history(DialogId dialog_id, AffectedHi
 
 void MessageQueryManager::upload_message_covers(BusinessConnectionId business_connection_id, DialogId dialog_id,
                                                 vector<const Photo *> covers, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   CHECK(!covers.empty());
   MultiPromiseActorSafe mpas{"UploadMessageCoversMultiPromiseActor"};
   mpas.add_promise(std::move(promise));
@@ -1821,6 +1822,7 @@ void MessageQueryManager::upload_message_covers(BusinessConnectionId business_co
 void MessageQueryManager::upload_message_cover(BusinessConnectionId business_connection_id, DialogId dialog_id,
                                                Photo photo, FileUploadId file_upload_id, Promise<Unit> &&promise,
                                                vector<int> bad_parts) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
   BeingUploadedCover cover;
   cover.business_connection_id_ = business_connection_id;
   cover.dialog_id_ = dialog_id;
