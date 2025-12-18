@@ -11128,7 +11128,7 @@ setBusinessAccountGiftSettings business_connection_id:string settings:giftSettin
 //@description Returns the amount of Telegram Stars owned by a business account; for bots only @business_connection_id Unique identifier of business connection
 getBusinessAccountStarAmount business_connection_id:string = StarAmount;
 
-//@description Transfer Telegram Stars from the business account to the business bot; for bots only
+//@description Transfers Telegram Stars from the business account to the business bot; for bots only
 //@business_connection_id Unique identifier of business connection
 //@star_count Number of Telegram Stars to transfer
 transferBusinessAccountStars business_connection_id:string star_count:int53 = Ok;
@@ -12076,7 +12076,7 @@ toggleChatIsPinned chat_list:ChatList chat_id:int53 is_pinned:Bool = Ok;
 //@description Changes the order of pinned chats @chat_list Chat list in which to change the order of pinned chats @chat_ids The new list of pinned chats
 setPinnedChats chat_list:ChatList chat_ids:vector<int53> = Ok;
 
-//@description Traverse all chats in a chat list and marks all messages in the chats as read @chat_list Chat list in which to mark all chats as read
+//@description Traverses all chats in a chat list and marks all messages in the chats as read @chat_list Chat list in which to mark all chats as read
 readChatList chat_list:ChatList = Ok;
 
 
@@ -12389,7 +12389,7 @@ cancelDownloadFile file_id:int32 only_if_pending:Bool = Ok;
 //@description Returns suggested name for saving a file in a given directory @file_id Identifier of the file @directory Directory in which the file is expected to be saved
 getSuggestedFileName file_id:int32 directory:string = Text;
 
-//@description Preliminary uploads a file to the cloud before sending it in a message, which can be useful for uploading of being recorded voice and video notes.
+//@description Preliminarily uploads a file to the cloud before sending it in a message, which can be useful for uploading of being recorded voice and video notes.
 //-In all other cases there is no need to preliminary upload a file. Updates updateFile will be used to notify about upload progress.
 //-The upload will not be completed until the file is sent in a message
 //@file File to upload
@@ -12460,7 +12460,7 @@ removeAllFilesFromDownloads only_active:Bool only_completed:Bool delete_from_cac
 searchFileDownloads query:string only_active:Bool only_completed:Bool offset:string limit:int32 = FoundFileDownloads;
 
 
-//@description Application or reCAPTCHA verification has been completed. Can be called before authorization
+//@description Informs TDLib that application or reCAPTCHA verification has been completed. Can be called before authorization
 //@verification_id Unique identifier for the verification process as received from updateApplicationVerificationRequired or updateApplicationRecaptchaVerificationRequired
 //@token Play Integrity API token for the Android application, or secret from push notification for the iOS application for application verification, or reCAPTCHA token for reCAPTCHA verifications;
 //-pass an empty string to abort verification and receive the error "VERIFICATION_FAILED" for the request
@@ -13123,7 +13123,7 @@ getStickerEmojis sticker:InputFile = Emojis;
 //@input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
 searchEmojis text:string input_language_codes:vector<string> = EmojiKeywords;
 
-//@description Return emojis matching the keyword. Supported only if the file database is enabled. Order of results is unspecified
+//@description Returns emojis matching the keyword. Supported only if the file database is enabled. Order of results is unspecified
 //@text Text to search for
 //@input_language_codes List of possible IETF language tags of the user's input language; may be empty if unknown
 getKeywordEmojis text:string input_language_codes:vector<string> = Emojis;
@@ -13279,7 +13279,7 @@ reportPhoneNumberCodeMissing mobile_network_code:string = Ok;
 //@reason Reason of code resending; pass null if unknown
 resendPhoneNumberCode reason:ResendCodeReason = AuthenticationCodeInfo;
 
-//@description Check the authentication code and completes the request for which the code was sent if appropriate @code Authentication code to check
+//@description Checks the authentication code and completes the request for which the code was sent if appropriate @code Authentication code to check
 checkPhoneNumberCode code:string = Ok;
 
 
@@ -13397,7 +13397,7 @@ editBotMediaPreview bot_user_id:int53 language_code:string file_id:int32 content
 //@file_ids File identifiers of the media in the new order
 reorderBotMediaPreviews bot_user_id:int53 language_code:string file_ids:vector<int32> = Ok;
 
-//@description Delete media previews from the list of media previews of a bot
+//@description Deletes media previews from the list of media previews of a bot
 //@bot_user_id Identifier of the target bot. The bot must be owned and must have the main Web App
 //@language_code Language code of the media previews to delete
 //@file_ids File identifiers of the media to delete
@@ -13990,7 +13990,7 @@ allowUnpaidMessagesFromUser user_id:int53 refund_payments:Bool = Ok;
 setChatPaidMessageStarCount chat_id:int53 paid_message_star_count:int53 = Ok;
 
 
-//@description Check whether the current user can message another user or try to create a chat with them
+//@description Checks whether the current user can message another user or try to create a chat with them
 //@user_id Identifier of the other user
 //@only_local Pass true to get only locally available information without sending network requests
 canSendMessageToUser user_id:int53 only_local:Bool = CanSendMessageToUserResult;
@@ -14353,7 +14353,7 @@ getPremiumGiftPaymentOptions = PremiumGiftPaymentOptions;
 //@boosted_chat_id Identifier of the supergroup or channel chat, which will be automatically boosted by receivers of the gift codes and which is administered by the user
 getPremiumGiveawayPaymentOptions boosted_chat_id:int53 = PremiumGiveawayPaymentOptions;
 
-//@description Return information about a Telegram Premium gift code @code The code to check
+//@description Returns information about a Telegram Premium gift code @code The code to check
 checkPremiumGiftCode code:string = PremiumGiftCodeInfo;
 
 //@description Applies a Telegram Premium gift code @code The code to apply
