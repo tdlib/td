@@ -43,7 +43,7 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedS
   if (gift->from_id_ != nullptr) {
     sender_dialog_id_ = DialogId(gift->from_id_);
     if (!sender_dialog_id_.is_valid()) {
-      LOG(ERROR) << "Receive " << sender_dialog_id_ << " as sender of a gift";
+      LOG(ERROR) << "Receive " << sender_dialog_id_ << " as sender of " << gift_;
       sender_dialog_id_ = DialogId();
     }
   }
@@ -52,7 +52,7 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedS
     if (collection_id.is_valid()) {
       collection_ids_.push_back(collection_id);
     } else {
-      LOG(ERROR) << "Receive " << collection_id;
+      LOG(ERROR) << "Receive " << collection_id << " for " << gift_;
     }
   }
   auto is_user = dialog_id.get_type() == DialogType::User;
@@ -67,11 +67,11 @@ UserStarGift::UserStarGift(Td *td, telegram_api::object_ptr<telegram_api::savedS
     }
   }
   if (sender_dialog_id_ != DialogId() && !sender_dialog_id_.is_valid()) {
-    LOG(ERROR) << "Receive " << sender_dialog_id_ << " as sender of a gift";
+    LOG(ERROR) << "Receive " << sender_dialog_id_ << " as sender of " << gift_;
     sender_dialog_id_ = DialogId();
   }
   if (!is_saved_ && is_user && !is_me && !td->auth_manager_->is_bot()) {
-    LOG(ERROR) << "Receive non-saved gift for another user";
+    LOG(ERROR) << "Receive non-saved " << gift_ << " for " << dialog_id;
     is_saved_ = true;
   }
   td->star_gift_manager_->on_get_star_gift(gift_, true);
