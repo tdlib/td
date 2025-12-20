@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+
 # Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com),
 # Pellegrino Prevete (pellegrinoprevete@gmail.com)  2014-2025
-#
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
@@ -17,7 +17,8 @@ class TdExample:
     """A Python client for the Telegram API using TDLib."""
 
     def __init__(self, api_id: int = None, api_hash: str = None):
-        """Initialize a Telegram client.
+        """
+        Initialize a Telegram client.
 
         Args:
             api_id: Telegram API ID (get from https://my.telegram.org)
@@ -38,7 +39,7 @@ class TdExample:
                 tdjson_path = os.path.join(os.path.dirname(__file__), "tdjson.dll")
             else:
                 sys.exit(
-                    "Error: Can't find 'tdjson' library. Make sure it's installed correctly."
+                    "Error: Can't find 'tdjson' library. Please ensure it's installed correctly."
                 )
 
         try:
@@ -48,27 +49,22 @@ class TdExample:
 
     def _setup_functions(self) -> None:
         """Set up function signatures for TDLib calls."""
-        # Create client ID
         self._td_create_client_id = self.tdjson.td_create_client_id
         self._td_create_client_id.restype = c_int
         self._td_create_client_id.argtypes = []
 
-        # Receive updates
         self._td_receive = self.tdjson.td_receive
         self._td_receive.restype = c_char_p
         self._td_receive.argtypes = [c_double]
 
-        # Send requests
         self._td_send = self.tdjson.td_send
         self._td_send.restype = None
         self._td_send.argtypes = [c_int, c_char_p]
 
-        # Execute synchronous requests
         self._td_execute = self.tdjson.td_execute
         self._td_execute.restype = c_char_p
         self._td_execute.argtypes = [c_char_p]
 
-        # Set log callback
         self.log_message_callback_type = CFUNCTYPE(None, c_int, c_char_p)
         self._td_set_log_message_callback = self.tdjson.td_set_log_message_callback
         self._td_set_log_message_callback.restype = None
@@ -83,7 +79,6 @@ class TdExample:
         Args:
             verbosity_level: 0-fatal, 1-errors, 2-warnings, 3+-debug
         """
-
         @self.log_message_callback_type
         def on_log_message_callback(verbosity_level, message):
             if verbosity_level == 0:
@@ -136,7 +131,7 @@ class TdExample:
         """Start the authentication process."""
         self.send({"@type": "getOption", "name": "version"})
 
-        print("Starting Telegram authentication flow...")
+        print("Starting the Telegram authentication process...")
         print("Press Ctrl+C to cancel at any time.")
 
         try:
@@ -152,12 +147,10 @@ class TdExample:
             if not event:
                 continue
 
-            # Print all updates for debugging
             event_type = event["@type"]
             if event_type != "updateAuthorizationState":
-                print(f"Receive: {json.dumps(event, indent=2)}")
+                print(f"Received update: {json.dumps(event, indent=2)}")
 
-            # Process authorization states
             if event_type == "updateAuthorizationState":
                 auth_state = event["authorization_state"]
                 auth_type = auth_state["@type"]
@@ -169,10 +162,10 @@ class TdExample:
                 elif auth_type == "authorizationStateWaitTdlibParameters":
                     if not self.api_id or not self.api_hash:
                         print(
-                            "\nYou MUST obtain your own api_id and api_hash at https://my.telegram.org"
+                            "\nYou must obtain your own API ID and API Hash at https://my.telegram.org"
                         )
                         self.api_id = int(input("Please enter your API ID: "))
-                        self.api_hash = input("Please enter your API hash: ")
+                        self.api_hash = input("Please enter your API Hash: ")
 
                     print("Setting TDLib parameters...")
                     self.send(
@@ -252,53 +245,51 @@ class TdExample:
                     print("Authorization complete! You are now logged in.")
                     return
 
+    def main(self):
+        """Main function to demonstrate client usage."""
+        # Example API credentials - DO NOT USE THESE
+        # Get your own from https://my.telegram.org
+        DEFAULT_API_ID = 94575
+        DEFAULT_API_HASH = "a3406de8d171bb422bb6ddf3bbd800e2"
 
-def main():
-    """Main function to demonstrate client usage."""
-    # Example API credentials - DO NOT USE THESE
-    # Get your own from https://my.telegram.org
-    DEFAULT_API_ID = 94575
-    DEFAULT_API_HASH = "a3406de8d171bb422bb6ddf3bbd800e2"
+        print("TDLib Python Client")
+        print("===================")
+        print(
+            "IMPORTANT: You must obtain your own API ID and API Hash at https://my.telegram.org"
+        )
+        print("The default values are for demonstration only.\n")
 
-    print("TDLib Python Client")
-    print("===================")
-    print(
-        "IMPORTANT: You should obtain your own api_id and api_hash at https://my.telegram.org"
-    )
-    print("         The default values are for demonstration only.\n")
+        use_default = (
+            input("Use default API credentials for testing? (y/n): ").lower() == "y"
+        )
 
-    use_default = (
-        input("Use default API credentials for testing? (y/n): ").lower() == "y"
-    )
+        if use_default:
+            client = TdExample(DEFAULT_API_ID, DEFAULT_API_HASH)
+        else:
+            client = TdExample()
 
-    if use_default:
-        client = TdExample(DEFAULT_API_ID, DEFAULT_API_HASH)
-    else:
-        client = TdExample()
+        # Test execute method
+        print("\nTesting TDLib execute method...")
+        result = client.execute(
+            {
+                "@type": "getTextEntities",
+                "text": "@telegram /test_command https://telegram.org telegram.me",
+            }
+        )
+        print(f"Text entities: {json.dumps(result, indent=2)}")
 
-    # Test execute method
-    print("\nTesting TDLib execute method...")
-    result = client.execute(
-        {
-            "@type": "getTextEntities",
-            "text": "@telegram /test_command https://telegram.org telegram.me",
-        }
-    )
-    print(f"Text entities: {json.dumps(result, indent=2)}")
+        # Start login process
+        client.login()
 
-    # Start login process
-    client.login()
-
-    # Main event loop
-    print("\nEntering main event loop. Press Ctrl+C to exit.")
-    try:
-        while True:
-            event = client.receive()
-            if event:
-                print(json.dumps(event, indent=2))
-    except KeyboardInterrupt:
-        print("\nExiting...")
-
+        # Main event loop
+        print("\nEntering main event loop. Press Ctrl+C to exit.")
+        try:
+            while True:
+                event = client.receive()
+                if event:
+                    print(f"Received event: {json.dumps(event, indent=2)}")
+        except KeyboardInterrupt:
+            print("\nExiting. Goodbye.")
 
 if __name__ == "__main__":
-    main()
+    TdExample().main()
