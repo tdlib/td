@@ -8391,6 +8391,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
     }
     case telegram_api::messageMediaDice::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaDice>(media_ptr);
+      if (media->game_outcome_ != nullptr) {
+        return make_unique<MessageUnsupported>();
+      }
 
       auto m = td::make_unique<MessageDice>(media->emoticon_, media->value_);
       if (!m->is_valid()) {
