@@ -8432,41 +8432,13 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
                                                                                std::move(promise));
 }
 
-Status MessagesManager::fix_delete_message_min_max_dates(int32 &min_date, int32 &max_date) {
-  if (min_date > max_date) {
-    return Status::Error(400, "Wrong date interval specified");
-  }
-
-  const int32 telegram_launch_date = 1376438400;
-  if (max_date < telegram_launch_date) {
-    max_date = 0;
-    min_date = 0;
-    return Status::OK();
-  }
-  if (min_date < telegram_launch_date) {
-    min_date = telegram_launch_date;
-  }
-
-  auto current_date = max(G()->unix_time(), 1635000000);
-  if (min_date >= current_date - 30) {
-    max_date = 0;
-    min_date = 0;
-    return Status::OK();
-  }
-  if (max_date >= current_date - 30) {
-    max_date = current_date - 31;
-  }
-  CHECK(min_date <= max_date);
-  return Status::OK();
-}
-
 void MessagesManager::delete_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
                                                      Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
 
   TRY_RESULT_PROMISE(promise, d,
                      check_dialog_access(dialog_id, false, AccessRights::Read, "delete_dialog_messages_by_date"));
-  TRY_STATUS_PROMISE(promise, fix_delete_message_min_max_dates(min_date, max_date));
+  TRY_STATUS_PROMISE(promise, MessageQueryManager::fix_delete_message_min_max_dates(min_date, max_date));
   if (max_date == 0) {
     return promise.set_value(Unit());
   }
