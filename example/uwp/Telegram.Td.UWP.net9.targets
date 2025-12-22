@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- Set the platform from the RID, first -->
+  <PropertyGroup>
+    <TelegramTdPlatform Condition="$(RuntimeIdentifier.EndsWith('-x64'))">x64</TelegramTdPlatform>
+    <TelegramTdPlatform Condition="$(RuntimeIdentifier.EndsWith('-x86'))">x86</TelegramTdPlatform>
+    <TelegramTdPlatform Condition="$(RuntimeIdentifier.EndsWith('-arm64'))">arm64</TelegramTdPlatform>
+    <TelegramTdPlatform Condition="$(RuntimeIdentifier.EndsWith('-arm'))">arm</TelegramTdPlatform>
+    <OpenSSLPlatform Condition="$(RuntimeIdentifier.EndsWith('-x64'))">-x64</OpenSSLPlatform>
+    <OpenSSLPlatform Condition="$(RuntimeIdentifier.EndsWith('-x86'))"></OpenSSLPlatform>
+    <OpenSSLPlatform Condition="$(RuntimeIdentifier.EndsWith('-arm64'))">-arm64</OpenSSLPlatform>
+    <OpenSSLPlatform Condition="$(RuntimeIdentifier.EndsWith('-arm'))">-arm</OpenSSLPlatform>
+  </PropertyGroup>
+
+  <!-- If still empty, try to set the platform based on the build platform -->
+  <PropertyGroup Condition="'$(TelegramTdPlatform)' == ''">
+    <TelegramTdPlatform Condition="'$(Platform)' == 'Win32'">x86</TelegramTdPlatform>
+    <TelegramTdPlatform Condition="'$(Platform)' != 'Win32'">$(Platform)</TelegramTdPlatform>
+    <OpenSSLPlatform Condition="'$(Platform)' == 'Win32'"></OpenSSLPlatform>
+    <OpenSSLPlatform Condition="'$(Platform)' != 'Win32'">-$(Platform)</OpenSSLPlatform>
+  </PropertyGroup>
+
+  <!-- Register the Telegram.Td .winmd in the APPX manifest (requires the new MSIX tooling) -->
+  <ItemGroup>
+    <WindowsMetadataReference Include="$(MSBuildThisFileDirectory)..\..\lib\uap10.0\Telegram.Td.winmd" Implementation="Telegram.Td.dll" />
+    <ReferenceCopyLocalPaths Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(TelegramTdPlatform)\native\Telegram.Td.dll" />
+    <ReferenceCopyLocalPaths Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(TelegramTdPlatform)\native\libcrypto-3$(OpenSSLPlatform).dll" />
+    <ReferenceCopyLocalPaths Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(TelegramTdPlatform)\native\libssl-3$(OpenSSLPlatform).dll" />
+    <ReferenceCopyLocalPaths Include="$(MSBuildThisFileDirectory)..\..\runtimes\win10-$(TelegramTdPlatform)\native\zlib1.dll" />
+  
+    <CsWinRTInputs Include="$(MSBuildThisFileDirectory)..\..\lib\uap10.0\Telegram.Td.winmd" />
+  </ItemGroup>
+
+</Project>
