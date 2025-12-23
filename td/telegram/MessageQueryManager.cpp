@@ -2663,6 +2663,38 @@ void MessageQueryManager::block_message_sender_from_replies_on_server(MessageId 
       ->send(message_id, need_delete_message, need_delete_all_messages, report_spam);
 }
 
+void MessageQueryManager::delete_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date,
+                                                         bool revoke, Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "delete_dialog_messages_by_date"));
+  TRY_STATUS_PROMISE(promise, fix_delete_message_min_max_dates(min_date, max_date));
+  if (max_date == 0) {
+    return promise.set_value(Unit());
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      break;
+    case DialogType::Chat:
+      if (revoke) {
+        return promise.set_error(400, "Bulk message revocation is unsupported in basic group chats");
+      }
+      break;
+    case DialogType::Channel:
+      return promise.set_error(400, "Bulk message deletion is unsupported in supergroup chats");
+    case DialogType::SecretChat:
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      break;
+  }
+
+  td_->messages_manager_->delete_local_dialog_messages_by_date(dialog_id, min_date, max_date);
+
+  delete_dialog_messages_by_date_on_server(dialog_id, min_date, max_date, revoke, 0, std::move(promise));
+}
+
 class MessageQueryManager::DeleteAllCallMessagesOnServerLogEvent {
  public:
   bool revoke_;

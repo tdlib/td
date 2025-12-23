@@ -3905,8 +3905,8 @@ void Requests::on_request(uint64 id, const td_api::deleteChatMessagesBySender &r
 void Requests::on_request(uint64 id, const td_api::deleteChatMessagesByDate &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->delete_dialog_messages_by_date(DialogId(request.chat_id_), request.min_date_,
-                                                         request.max_date_, request.revoke_, std::move(promise));
+  td_->message_query_manager_->delete_dialog_messages_by_date(DialogId(request.chat_id_), request.min_date_,
+                                                              request.max_date_, request.revoke_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::readAllChatMentions &request) {

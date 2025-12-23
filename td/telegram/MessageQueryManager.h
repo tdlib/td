@@ -166,6 +166,9 @@ class MessageQueryManager final : public Actor {
                                                    bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
                                                    Promise<Unit> &&promise);
 
+  void delete_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
+                                      Promise<Unit> &&promise);
+
   void delete_all_call_messages_on_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise);
 
   void delete_all_channel_messages_by_sender_on_server(ChannelId channel_id, DialogId sender_dialog_id,
@@ -175,9 +178,6 @@ class MessageQueryManager final : public Actor {
                                        bool revoke, bool allow_error, uint64 log_event_id, Promise<Unit> &&promise);
 
   static Status fix_delete_message_min_max_dates(int32 &min_date, int32 &max_date);
-
-  void delete_dialog_messages_by_date_on_server(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
-                                                uint64 log_event_id, Promise<Unit> &&promise);
 
   void delete_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, bool revoke, uint64 log_event_id,
                                  Promise<Unit> &&promise);
@@ -265,6 +265,9 @@ class MessageQueryManager final : public Actor {
                                        MessageId expected_message_id, Promise<MessageThreadInfo> promise);
 
   void erase_delete_messages_log_event(uint64 log_event_id);
+
+  void delete_dialog_messages_by_date_on_server(DialogId dialog_id, int32 min_date, int32 max_date, bool revoke,
+                                                uint64 log_event_id, Promise<Unit> &&promise);
 
   static uint64 save_block_message_sender_from_replies_on_server_log_event(MessageId message_id,
                                                                            bool need_delete_message,
