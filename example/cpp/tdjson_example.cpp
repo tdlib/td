@@ -15,71 +15,71 @@
 
 namespace SimpleJson {
   class Value {
-  public:
-    enum Type { Null, String, Number, Boolean, Object, Array };
+    public:
+      enum Type { Null, String, Number, Boolean, Object, Array };
 
-    Type type;
-    std::string stringValue;
-    double numberValue;
-    bool boolValue;
-    std::map<std::string, Value> objectValue;
-    std::vector<Value> arrayValue;
+      Type type;
+      std::string stringValue;
+      double numberValue;
+      bool boolValue;
+      std::map<std::string, Value> objectValue;
+      std::vector<Value> arrayValue;
 
-    Value() : type(Null) {}
-    Value(const std::string& str) : type(String), stringValue(str) {}
-    Value(double num) : type(Number), numberValue(num) {}
-    Value(bool b) : type(Boolean), boolValue(b) {}
+      Value() : type(Null) {}
+      Value(const std::string& str) : type(String), stringValue(str) {}
+      Value(double num) : type(Number), numberValue(num) {}
+      Value(bool b) : type(Boolean), boolValue(b) {}
 
-    bool isString() const { return type == String; }
-    bool isNumber() const { return type == Number; }
-    bool isBoolean() const { return type == Boolean; }
-    bool isObject() const { return type == Object; }
-    bool isArray() const { return type == Array; }
-    bool isNull() const { return type == Null; }
+      bool isString() const { return type == String; }
+      bool isNumber() const { return type == Number; }
+      bool isBoolean() const { return type == Boolean; }
+      bool isObject() const { return type == Object; }
+      bool isArray() const { return type == Array; }
+      bool isNull() const { return type == Null; }
 
-    std::string asString() const {
-      if (type == String) return stringValue;
-      if (type == Number) return std::to_string(numberValue);
-      if (type == Boolean) return boolValue ? "true" : "false";
-      return "";
-    }
+      std::string asString() const {
+        if (type == String) return stringValue;
+        if (type == Number) return std::to_string(numberValue);
+        if (type == Boolean) return boolValue ? "true" : "false";
+        return "";
+      }
 
-    double asNumber() const {
-      if (type == Number) return numberValue;
-      if (type == String) return std::atof(stringValue.c_str());
-      if (type == Boolean) return boolValue ? 1.0 : 0.0;
-      return 0.0;
-    }
+      double asNumber() const {
+        if (type == Number) return numberValue;
+        if (type == String) return std::atof(stringValue.c_str());
+        if (type == Boolean) return boolValue ? 1.0 : 0.0;
+        return 0.0;
+      }
 
-    bool asBoolean() const {
-      if (type == Boolean) return boolValue;
-      if (type == Number) return numberValue != 0.0;
-      if (type == String) return !stringValue.empty();
-      return false;
-    }
+      bool asBoolean() const {
+        if (type == Boolean) return boolValue;
+        if (type == Number) return numberValue != 0.0;
+        if (type == String) return !stringValue.empty();
+        return false;
+      }
 
-    bool has(const std::string& key) const {
-      return isObject() && objectValue.find(key) != objectValue.end();
-    }
+      bool has(const std::string& key) const {
+        return isObject() && objectValue.find(key) != objectValue.end();
+      }
 
-    const Value& get(const std::string& key) const {
-      static Value nullValue;
-      if (!isObject()) return nullValue;
-      auto it = objectValue.find(key);
-      if (it != objectValue.end()) return it->second;
-      return nullValue;
-    }
+      const Value& get(const std::string& key) const {
+        static Value nullValue;
+        if (!isObject()) return nullValue;
+        auto it = objectValue.find(key);
+        if (it != objectValue.end()) return it->second;
+        return nullValue;
+      }
 
-    Value& operator[](const std::string& key) {
-      type = Object;
-      return objectValue[key];
-    }
+      Value& operator[](const std::string& key) {
+        type = Object;
+        return objectValue[key];
+      }
 
-    size_t size() const {
-      if (isArray()) return arrayValue.size();
-      if (isObject()) return objectValue.size();
-      return 0;
-    }
+      size_t size() const {
+        if (isArray()) return arrayValue.size();
+        if (isObject()) return objectValue.size();
+        return 0;
+      }
   };
 
   Value parseValue(const std::string& str, size_t& pos);
@@ -270,141 +270,141 @@ namespace SimpleJson {
 }
 
 class TDLibAuthHelper {
-private:
-  int client_id;
-  bool is_authorized;
-  bool need_quit;
-  bool parameters_sent;
+  private:
+    int client_id;
+    bool is_authorized;
+    bool need_quit;
+    bool parameters_sent;
 
-  void send_query(const std::string& query) {
-    td_send(client_id, query.c_str());
-  }
+    void send_query(const std::string& query) {
+      td_send(client_id, query.c_str());
+    }
 
-  void process_response(const std::string& response) {
-    SimpleJson::Value json = SimpleJson::parse(response);
+    void process_response(const std::string& response) {
+      SimpleJson::Value json = SimpleJson::parse(response);
 
-    if (!json.isObject()) return;
+      if (!json.isObject()) return;
 
-    std::string type = SimpleJson::getString(json, "@type");
+      std::string type = SimpleJson::getString(json, "@type");
 
-    if (type == "updateAuthorizationState") {
-      SimpleJson::Value authState = SimpleJson::getObject(json, "authorization_state");
-      std::string authType = SimpleJson::getString(authState, "@type");
+      if (type == "updateAuthorizationState") {
+        SimpleJson::Value authState = SimpleJson::getObject(json, "authorization_state");
+        std::string authType = SimpleJson::getString(authState, "@type");
 
-      if (authType == "authorizationStateWaitTdlibParameters") {
-        if (!parameters_sent) {
-          send_tdlib_parameters();
-          parameters_sent = true;
+        if (authType == "authorizationStateWaitTdlibParameters") {
+          if (!parameters_sent) {
+            send_tdlib_parameters();
+            parameters_sent = true;
+          }
+        } else if (authType == "authorizationStateWaitPhoneNumber") {
+          std::cout << "Please enter phone number (international format): ";
+          std::string phone_number;
+          std::getline(std::cin, phone_number);
+
+          std::string query = R"({
+            "@type": "setAuthenticationPhoneNumber",
+            "phone_number": ")" + phone_number + R"("
+          })";
+          send_query(query);
+        } else if (authType == "authorizationStateWaitCode") {
+          std::cout << "Please enter code: ";
+          std::string code;
+          std::getline(std::cin, code);
+
+          std::string query = R"({
+            "@type": "checkAuthenticationCode",
+            "code": ")" + code + R"("
+          })";
+          send_query(query);
+        } else if (authType == "authorizationStateWaitPassword") {
+          std::cout << "Please enter password: ";
+          std::string password;
+          std::getline(std::cin, password);
+
+          std::string query = R"({
+            "@type": "checkAuthenticationPassword",
+            "password": ")" + password + R"("
+          })";
+          send_query(query);
+        } else if (authType == "authorizationStateReady") {
+          std::cout << "Authorization complete! You are now logged in." << std::endl;
+          is_authorized = true;
+          need_quit = true;
+        } else if (authType == "authorizationStateClosed") {
+          std::cout << "Authorization state closed." << std::endl;
+          need_quit = true;
+        } else if (authType == "authorizationStateWaitPremiumPurchase") {
+          std::cout << "Telegram Premium subscription is required." << std::endl;
+          need_quit = true;
         }
-      } else if (authType == "authorizationStateWaitPhoneNumber") {
-        std::cout << "Please enter phone number (international format): ";
-        std::string phone_number;
-        std::getline(std::cin, phone_number);
-
-        std::string query = R"({
-          "@type": "setAuthenticationPhoneNumber",
-          "phone_number": ")" + phone_number + R"("
-        })";
-        send_query(query);
-      } else if (authType == "authorizationStateWaitCode") {
-        std::cout << "Please enter code: ";
-        std::string code;
-        std::getline(std::cin, code);
-
-        std::string query = R"({
-          "@type": "checkAuthenticationCode",
-          "code": ")" + code + R"("
-        })";
-        send_query(query);
-      } else if (authType == "authorizationStateWaitPassword") {
-        std::cout << "Please enter password: ";
-        std::string password;
-        std::getline(std::cin, password);
-
-        std::string query = R"({
-          "@type": "checkAuthenticationPassword",
-          "password": ")" + password + R"("
-        })";
-        send_query(query);
-      } else if (authType == "authorizationStateReady") {
-        std::cout << "Authorization complete! You are now logged in." << std::endl;
-        is_authorized = true;
-        need_quit = true;
-      } else if (authType == "authorizationStateClosed") {
-        std::cout << "Authorization state closed." << std::endl;
-        need_quit = true;
-      } else if (authType == "authorizationStateWaitPremiumPurchase") {
-        std::cout << "Telegram Premium subscription is required." << std::endl;
-        need_quit = true;
-      }
-    } else if (type == "error") {
-      std::cout << "ERROR: " << response << std::endl;
-      std::string message = SimpleJson::getString(json, "message");
-      if (message.find("Valid api_id must be provided") != std::string::npos) {
-        std::cout << "\n=== API CREDENTIALS ERROR ===" << std::endl;
-        std::cout << "Please check your api_id and api_hash." << std::endl;
-        std::cout << "Get them from: https://my.telegram.org" << std::endl;
-        need_quit = true;
+      } else if (type == "error") {
+        std::cout << "ERROR: " << response << std::endl;
+        std::string message = SimpleJson::getString(json, "message");
+        if (message.find("Valid api_id must be provided") != std::string::npos) {
+          std::cout << "\n=== API CREDENTIALS ERROR ===" << std::endl;
+          std::cout << "Please check your api_id and api_hash." << std::endl;
+          std::cout << "Get them from: https://my.telegram.org" << std::endl;
+          need_quit = true;
+        }
       }
     }
-  }
 
-  void send_tdlib_parameters() {
-    std::string query = R"({
-      "@type": "setTdlibParameters",
-      "database_directory": "tdlib_data",
-      "use_message_database": true,
-      "use_secret_chats": true,
-      "api_id": )" + get_api_id() + R"(,
-      "api_hash": ")" + get_api_hash() + R"(",
-      "system_language_code": "en",
-      "device_model": "C++ TDLib Client",
-      "application_version": "1.1"
-    })";
+    void send_tdlib_parameters() {
+      std::string query = R"({
+        "@type": "setTdlibParameters",
+        "database_directory": "tdlib_data",
+        "use_message_database": true,
+        "use_secret_chats": true,
+        "api_id": )" + get_api_id() + R"(,
+        "api_hash": ")" + get_api_hash() + R"(",
+        "system_language_code": "en",
+        "device_model": "C++ TDLib Client",
+        "application_version": "1.1"
+      })";
 
-    std::cout << "Setting TDLib parameters..." << std::endl;
-    send_query(query);
-  }
-
-  std::string get_api_id() {
-    const char* api_id_env = std::getenv("TD_API_ID");
-    if (api_id_env) {
-      return api_id_env;
+      std::cout << "Setting TDLib parameters..." << std::endl;
+      send_query(query);
     }
-    return "94575";
-  }
 
-  std::string get_api_hash() {
-    const char* api_hash_env = std::getenv("TD_API_HASH");
-    if (api_hash_env) {
-      return api_hash_env;
+    std::string get_api_id() {
+      const char* api_id_env = std::getenv("TD_API_ID");
+      if (api_id_env) {
+        return api_id_env;
+      }
+      return "94575";
     }
-    return "a3406de8d171bb422bb6ddf3bbd800e2";
-  }
 
-public:
-  TDLibAuthHelper(int id) : client_id(id), is_authorized(false), 
-                            need_quit(false), parameters_sent(false) {}
+    std::string get_api_hash() {
+      const char* api_hash_env = std::getenv("TD_API_HASH");
+      if (api_hash_env) {
+        return api_hash_env;
+      }
+      return "a3406de8d171bb422bb6ddf3bbd800e2";
+    }
 
-  void run_auth_flow() {
-    const double WAIT_TIMEOUT = 1.0;
+  public:
+    TDLibAuthHelper(int id) : client_id(id), is_authorized(false), 
+                              need_quit(false), parameters_sent(false) {}
 
-    std::cout << "Starting Telegram authentication flow..." << std::endl;
-    std::cout << "Press Ctrl+C to cancel at any time." << std::endl;
+    void run_auth_flow() {
+      const double WAIT_TIMEOUT = 1.0;
 
-    send_query("{\"@type\":\"getOption\",\"name\":\"version\"}");
+      std::cout << "Starting Telegram authentication flow..." << std::endl;
+      std::cout << "Press Ctrl+C to cancel at any time." << std::endl;
 
-    while (!need_quit) {
-      const char *result = td_receive(WAIT_TIMEOUT);
-      if (result != nullptr && result[0] != '\0') {
-        process_response(result);
+      send_query("{\"@type\":\"getOption\",\"name\":\"version\"}");
+
+      while (!need_quit) {
+        const char *result = td_receive(WAIT_TIMEOUT);
+        if (result != nullptr && result[0] != '\0') {
+          process_response(result);
+        }
       }
     }
-  }
 
-  bool is_auth_complete() const {
-    return is_authorized;
-  }
+    bool is_auth_complete() const {
+      return is_authorized;
+    }
 };
 
 int main() {
