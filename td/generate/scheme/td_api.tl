@@ -476,7 +476,7 @@ photo has_stickers:Bool minithumbnail:minithumbnail sizes:vector<photoSize> = Ph
 //@set_id Identifier of the sticker set to which the sticker belongs; 0 if none
 //@width Sticker width; as defined by the sender
 //@height Sticker height; as defined by the sender
-//@emoji Emoji corresponding to the sticker
+//@emoji Emoji corresponding to the sticker; may be empty if unknown
 //@format Sticker format
 //@full_type Sticker's full type
 //@thumbnail Sticker thumbnail in WEBP or JPEG format; may be null
