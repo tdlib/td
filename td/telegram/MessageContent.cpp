@@ -761,18 +761,20 @@ class MessageDice final : public MessageContent {
   int32 dice_value = 0;
   bool is_stake = false;
   string seed;
+  string state_hash;
   int64 stake_ton_count = 0;
   int64 prize_ton_count = 0;
 
   static constexpr const char *DEFAULT_EMOJI = "🎲";
 
   MessageDice() = default;
-  MessageDice(const string &emoji, int32 dice_value, bool is_stake, string seed, int64 stake_ton_count,
-              int64 prize_ton_count)
+  MessageDice(const string &emoji, int32 dice_value, bool is_stake, string seed, string state_hash,
+              int64 stake_ton_count, int64 prize_ton_count)
       : emoji(emoji.empty() ? string(DEFAULT_EMOJI) : remove_emoji_modifiers(emoji))
       , dice_value(dice_value)
       , is_stake(is_stake)
       , seed(std::move(seed))
+      , state_hash(std::move(state_hash))
       , stake_ton_count(stake_ton_count)
       , prize_ton_count(prize_ton_count) {
   }
@@ -792,15 +794,21 @@ class MessageDice final : public MessageContent {
     } else if (dice_value > 1000) {
       return false;
     }
-    if (is_stake && dice_value != 0) {
-      if (emoji != DEFAULT_EMOJI) {
-        return false;
-      }
-      if (seed.empty()) {
-        return false;
-      }
-      if (stake_ton_count <= 0 || prize_ton_count <= 0) {
-        return false;
+    if (is_stake) {
+      if (dice_value != 0) {
+        if (emoji != DEFAULT_EMOJI) {
+          return false;
+        }
+        if (seed.empty()) {
+          return false;
+        }
+        if (stake_ton_count <= 0 || prize_ton_count <= 0) {
+          return false;
+        }
+      } else {
+        if (state_hash.empty() || seed.size() != 32u) {
+          return false;
+        }
       }
     }
     return true;
@@ -1999,11 +2007,13 @@ static void store(const MessageContent *content, StorerT &storer) {
       bool has_seed = !m->seed.empty();
       bool has_stake_ton_count = m->stake_ton_count != 0;
       bool has_prize_ton_count = m->prize_ton_count != 0;
+      bool has_state_hash = !m->state_hash.empty();
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->is_stake);
       STORE_FLAG(has_seed);
       STORE_FLAG(has_stake_ton_count);
       STORE_FLAG(has_prize_ton_count);
+      STORE_FLAG(has_state_hash);
       END_STORE_FLAGS();
       store(m->emoji, storer);
       store(m->dice_value, storer);
@@ -2015,6 +2025,9 @@ static void store(const MessageContent *content, StorerT &storer) {
       }
       if (has_prize_ton_count) {
         store(m->prize_ton_count, storer);
+      }
+      if (has_state_hash) {
+        store(m->state_hash, storer);
       }
       break;
     }
@@ -3191,12 +3204,14 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       bool has_seed = false;
       bool has_stake_ton_count = false;
       bool has_prize_ton_count = false;
+      bool has_state_hash = false;
       if (parser.version() >= static_cast<int32>(Version::AddDiceFlags)) {
         BEGIN_PARSE_FLAGS();
         PARSE_FLAG(m->is_stake);
         PARSE_FLAG(has_seed);
         PARSE_FLAG(has_stake_ton_count);
         PARSE_FLAG(has_prize_ton_count);
+        PARSE_FLAG(has_state_hash);
         END_PARSE_FLAGS();
       }
       if (parser.version() >= static_cast<int32>(Version::AddDiceEmoji)) {
@@ -3214,6 +3229,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       }
       if (has_prize_ton_count) {
         parse(m->prize_ton_count, parser);
+      }
+      if (has_state_hash) {
+        parse(m->state_hash, parser);
       }
       is_bad = !m->is_valid();
       content = std::move(m);
@@ -4347,7 +4365,7 @@ static Result<InputMessageContent> create_input_message_content(
       if (!clean_input_string(input_dice->emoji_)) {
         return Status::Error(400, "Dice emoji must be encoded in UTF-8");
       }
-      content = td::make_unique<MessageDice>(input_dice->emoji_, 0, false, string(), 0, 0);
+      content = td::make_unique<MessageDice>(input_dice->emoji_, 0, false, string(), string(), 0, 0);
       clear_draft = input_dice->clear_draft_;
       break;
     }
@@ -7238,7 +7256,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       if (lhs->emoji != rhs->emoji || lhs->dice_value != rhs->dice_value || lhs->is_stake != rhs->is_stake ||
           lhs->stake_ton_count != rhs->stake_ton_count || lhs->prize_ton_count != rhs->prize_ton_count) {
         need_update = true;
-      } else if (lhs->seed != rhs->seed) {
+      } else if (lhs->seed != rhs->seed || lhs->state_hash != rhs->state_hash) {
         is_content_changed = true;
       }
       break;
@@ -8468,7 +8486,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
 
       auto m = td::make_unique<MessageDice>(
           media->emoticon_, media->value_, is_stake, is_stake ? media->game_outcome_->seed_.as_slice().str() : string(),
-          is_stake ? TonAmount::get_ton_count(media->game_outcome_->stake_ton_amount_, false) : 0,
+          string(), is_stake ? TonAmount::get_ton_count(media->game_outcome_->stake_ton_amount_, false) : 0,
           is_stake ? TonAmount::get_ton_count(media->game_outcome_->ton_amount_, false) : 0);
       if (!m->is_valid()) {
         break;
@@ -8806,7 +8824,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       auto old_content = static_cast<const MessageDice *>(content);
       return td::make_unique<MessageDice>(old_content->emoji,
                                           type != MessageContentDupType::Forward ? 0 : old_content->dice_value, false,
-                                          string(), 0, 0);
+                                          string(), string(), 0, 0);
     }
     case MessageContentType::Document: {
       auto result = make_unique<MessageDocument>(*static_cast<const MessageDocument *>(content));
