@@ -11,6 +11,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
+#include "td/telegram/EmojiGameInfo.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/MessageFullId.h"
@@ -208,6 +209,8 @@ class MessageQueryManager final : public Actor {
                                           SavedMessagesTopicId saved_messages_topic_id, uint64 log_event_id,
                                           Promise<Unit> &&promise);
 
+  void on_update_emoji_game_info(telegram_api::object_ptr<telegram_api::messages_EmojiGameInfo> &&game_info);
+
   void on_binlog_events(vector<BinlogEvent> &&events);
 
  private:
@@ -326,6 +329,10 @@ class MessageQueryManager final : public Actor {
   FlatHashMap<MessageFullId, int32, MessageFullIdHash> pending_read_reactions_;
 
   std::shared_ptr<UploadCoverCallback> upload_cover_callback_;
+
+  bool is_emoji_game_info_inited_ = false;
+  double emoji_game_info_receive_time_ = 0.0;
+  EmojiGameInfo emoji_game_info_;
 
   Td *td_;
   ActorShared<> parent_;

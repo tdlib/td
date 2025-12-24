@@ -50,6 +50,10 @@ td_api::object_ptr<td_api::stakeDiceState> EmojiGameInfo::get_stake_dice_state_o
                                                      vector<int32>(params_.begin(), params_.begin() + 6), params_[6]);
 }
 
+td_api::object_ptr<td_api::updateStakeDiceState> EmojiGameInfo::get_update_stake_dice_state_object() const {
+  return td_api::make_object<td_api::updateStakeDiceState>(get_stake_dice_state_object());
+}
+
 bool operator==(const EmojiGameInfo &lhs, const EmojiGameInfo &rhs) {
   return lhs.game_hash_ == rhs.game_hash_ && lhs.prev_stake_ == rhs.prev_stake_ &&
          lhs.current_streak_ == rhs.current_streak_ && lhs.params_ == rhs.params_;

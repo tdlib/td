@@ -3389,6 +3389,18 @@ void MessageQueryManager::unpin_all_dialog_messages_on_server(DialogId dialog_id
                                             get_erase_log_event_promise(log_event_id, std::move(promise)));
 }
 
+void MessageQueryManager::on_update_emoji_game_info(
+    telegram_api::object_ptr<telegram_api::messages_EmojiGameInfo> &&game_info) {
+  EmojiGameInfo emoji_game_info(std::move(game_info));
+  if (is_emoji_game_info_inited_ && emoji_game_info == emoji_game_info_) {
+    return;
+  }
+  emoji_game_info_ = std::move(emoji_game_info);
+  emoji_game_info_receive_time_ = Time::now();
+  is_emoji_game_info_inited_ = true;
+  send_closure(G()->td(), &Td::send_update, emoji_game_info_.get_update_stake_dice_state_object());
+}
+
 void MessageQueryManager::on_binlog_events(vector<BinlogEvent> &&events) {
   if (G()->close_flag()) {
     return;

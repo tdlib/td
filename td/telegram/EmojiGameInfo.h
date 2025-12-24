@@ -22,9 +22,13 @@ class EmojiGameInfo {
   friend bool operator==(const EmojiGameInfo &lhs, const EmojiGameInfo &rhs);
 
  public:
+  EmojiGameInfo() = default;
+
   explicit EmojiGameInfo(telegram_api::object_ptr<telegram_api::messages_EmojiGameInfo> &&game_info);
 
   td_api::object_ptr<td_api::stakeDiceState> get_stake_dice_state_object() const;
+
+  td_api::object_ptr<td_api::updateStakeDiceState> get_update_stake_dice_state_object() const;
 };
 
 bool operator==(const EmojiGameInfo &lhs, const EmojiGameInfo &rhs);
