@@ -4929,12 +4929,12 @@ messageRefundedUpgradedGift gift:gift sender_id:MessageSender receiver_id:Messag
 //@expiration_date Point in time (Unix timestamp) when the offer will expire or has expired
 messageUpgradedGiftPurchaseOffer gift:upgradedGift state:GiftPurchaseOfferState price:GiftResalePrice expiration_date:int32 = MessageContent;
 
-//@description An offer to purchase a gift was declined or expired
+//@description An offer to purchase a gift was rejected or expired
 //@gift The gift
 //@price The proposed price
-//@offer_message_id Identifier of the message with purchase offer which was declined or expired; may be 0 or an identifier of a deleted message
-//@was_expired True, if the offer has expired; otherwise, the offer was explicitly declined
-messageUpgradedGiftPurchaseOfferDeclined gift:upgradedGift price:GiftResalePrice offer_message_id:int53 was_expired:Bool = MessageContent;
+//@offer_message_id Identifier of the message with purchase offer which was rejected or expired; may be 0 or an identifier of a deleted message
+//@was_expired True, if the offer has expired; otherwise, the offer was explicitly rejected
+messageUpgradedGiftPurchaseOfferRejected gift:upgradedGift price:GiftResalePrice offer_message_id:int53 was_expired:Bool = MessageContent;
 
 //@description Paid messages were refunded @message_count The number of refunded messages @star_count The number of refunded Telegram Stars
 messagePaidMessagesRefunded message_count:int32 star_count:int53 = MessageContent;
@@ -10269,7 +10269,7 @@ getMessageLocally chat_id:int53 message_id:int53 = Message;
 //-the giveaway message for messageGiveawayCompleted, the checklist message for messageChecklistTasksDone, messageChecklistTasksAdded, the message with suggested post information
 //-for messageSuggestedPostApprovalFailed, messageSuggestedPostApproved, messageSuggestedPostDeclined, messageSuggestedPostPaid, messageSuggestedPostRefunded,
 //-the message with the regular gift that was upgraded for messageUpgradedGift with origin of the type upgradedGiftOriginUpgrade,
-//-the message with gift purchase offer for messageUpgradedGiftPurchaseOfferDeclined,
+//-the message with gift purchase offer for messageUpgradedGiftPurchaseOfferRejected,
 //-and the topic creation message for topic messages without non-bundled replied message. Returns a 404 error if the message doesn't exist
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message
@@ -13765,8 +13765,8 @@ sendGiftPurchaseOffer owner_id:MessageSender gift_name:string price:GiftResalePr
 
 //@description Handles a pending gift purchase offer
 //@message_id Identifier of the message with the gift purchase offer
-//@approve Pass true to approve the request; pass false to decline it
-processGiftPurchaseOffer message_id:int53 approve:Bool = Ok;
+//@accept Pass true to accept the request; pass false to reject it
+processGiftPurchaseOffer message_id:int53 accept:Bool = Ok;
 
 //@description Returns gifts received by the given user or chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only

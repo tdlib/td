@@ -10411,7 +10411,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::StarGiftPurchaseOfferDeclined: {
       const auto *m = static_cast<const MessageStarGiftPurchaseOfferDeclined *>(content);
-      return td_api::make_object<td_api::messageUpgradedGiftPurchaseOfferDeclined>(
+      return td_api::make_object<td_api::messageUpgradedGiftPurchaseOfferRejected>(
           m->star_gift.get_upgraded_gift_object(td), m->price.get_gift_resale_price_object(), m->offer_message_id.get(),
           m->was_expired);
     }

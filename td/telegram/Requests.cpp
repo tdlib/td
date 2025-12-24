@@ -8103,7 +8103,7 @@ void Requests::on_request(uint64 id, td_api::sendGiftPurchaseOffer &request) {
 void Requests::on_request(uint64 id, const td_api::processGiftPurchaseOffer &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->star_gift_manager_->process_gift_offer(MessageId(request.message_id_), !request.approve_, std::move(promise));
+  td_->star_gift_manager_->process_gift_offer(MessageId(request.message_id_), !request.accept_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getReceivedGifts &request) {
