@@ -70,6 +70,7 @@ enum class Version : int32 {
   SupportStarGiveaways,
   SupportGiftChatThemes,  // 55
   SupportBotTopics,
+  AddDiceFlags,
   Next
 };
 
