@@ -946,12 +946,12 @@ chatAdministratorRights can_manage_chat:Bool can_change_info:Bool can_post_messa
 //@class GiftResalePrice @description Describes price of a resold gift
 
 //@description Describes price of a resold gift in Telegram Stars
-//@star_count The amount of Telegram Stars expected to be paid for the gift. Must be in range
+//@star_count The amount of Telegram Stars expected to be paid for the gift. Must be in the range
 //-getOption("gift_resale_star_count_min")-getOption("gift_resale_star_count_max") for gifts put for resale
 giftResalePriceStar star_count:int53 = GiftResalePrice;
 
 //@description Describes price of a resold gift in Toncoins
-//@toncoin_cent_count The amount of 1/100 of Toncoin expected to be paid for the gift. Must be in range
+//@toncoin_cent_count The amount of 1/100 of Toncoin expected to be paid for the gift. Must be in the range
 //-getOption("gift_resale_toncoin_cent_count_min")-getOption("gift_resale_toncoin_cent_count_max")
 giftResalePriceTon toncoin_cent_count:int53 = GiftResalePrice;
 
@@ -4638,7 +4638,7 @@ messagePoll poll:poll = MessageContent;
 //@final_state The animated stickers with the final dice animation; may be null if unknown. The update updateMessageContent will be sent when the sticker became known
 //@value The dice value. If the value is 0, then the dice don't have final state yet
 //@stake_toncoin_amount The amount of Toncoins that were staked; in the smallest units of the currency
-//@prize_toncoin_amount The amount of Toncoins that were gained from the roll; in the smallest units of the currency
+//@prize_toncoin_amount The amount of Toncoins that were gained from the roll; in the smallest units of the currency; -1 if the dice don't have final state yet
 messageStakeDice initial_state:DiceStickers final_state:DiceStickers value:int32 stake_toncoin_amount:int53 prize_toncoin_amount:int53 = MessageContent;
 
 //@description A message with a forwarded story
@@ -5187,7 +5187,7 @@ messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText
 //@text Formatted text to be sent; 0-getOption("message_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, BlockQuote, ExpandableBlockQuote,
 //-Code, Pre, PreCode, TextUrl and MentionName entities are allowed to be specified manually
 //@link_preview_options Options to be used for generation of a link preview; may be null if none; pass null to use default link preview options
-//@clear_draft True, if a chat message draft must be deleted
+//@clear_draft True, if the chat message draft must be deleted
 inputMessageText text:formattedText link_preview_options:linkPreviewOptions clear_draft:Bool = InputMessageContent;
 
 //@description An animation message (GIF-style).
@@ -5322,6 +5322,13 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@close_date Point in time (Unix timestamp) when the poll will automatically be closed; for bots only
 //@is_closed True, if the poll needs to be sent already closed; for bots only
 inputMessagePoll question:formattedText options:vector<formattedText> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
+
+//@description A stake dice message
+//@state_hash Hash of the stake dice state. The state hash can be used only if it was received recently enough. Otherwise, a new state must be requested using getStakeDiceState
+//@stake_toncoin_amount The amount of Toncoins that will be staked; in the smallest units of the currency. Must be in the range
+//-getOption("stake_dice_stake_amount_min")-getOption("stake_dice_stake_amount_max")
+//@clear_draft True, if the chat message draft must be deleted
+inputMessageStakeDice state_hash:string stake_toncoin_amount:int53 clear_draft:Bool = InputMessageContent;
 
 //@description A message with a forwarded story. Stories can't be forwarded to secret chats. A story can be forwarded only if story.can_be_forwarded
 //@story_poster_chat_id Identifier of the chat that posted the story

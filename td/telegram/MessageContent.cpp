@@ -131,6 +131,7 @@
 #include "td/utils/MimeType.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
+#include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/tl_helpers.h"
@@ -4415,6 +4416,21 @@ static Result<InputMessageContent> create_input_message_content(
           make_unique<MessagePhoto>(std::move(photo), std::move(caption), input_photo->has_spoiler_ && !is_secret);
       break;
     }
+    case td_api::inputMessageStakeDice::ID: {
+      auto input_dice = static_cast<td_api::inputMessageStakeDice *>(input_message_content.get());
+      if (!clean_input_string(input_dice->state_hash_)) {
+        return Status::Error(400, "State hash must be encoded in UTF-8");
+      }
+      if (input_dice->state_hash_.empty()) {
+        return Status::Error(400, "State hash must be non-empty");
+      }
+      string client_seed(32, '\0');
+      Random::secure_bytes(client_seed);
+      content = td::make_unique<MessageDice>(MessageDice::DEFAULT_EMOJI, 0, true, std::move(client_seed),
+                                             std::move(input_dice->state_hash_), input_dice->stake_toncoin_amount_, -1);
+      clear_draft = input_dice->clear_draft_;
+      break;
+    }
     case td_api::inputMessageSticker::ID: {
       auto input_sticker = static_cast<td_api::inputMessageSticker *>(input_message_content.get());
 
@@ -5041,7 +5057,8 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::Dice: {
       const auto *m = static_cast<const MessageDice *>(content);
       if (m->is_stake) {
-        return nullptr;
+        return make_tl_object<telegram_api::inputMediaStakeDice>(m->state_hash, m->stake_ton_count,
+                                                                 BufferSlice(m->seed));
       }
       return make_tl_object<telegram_api::inputMediaDice>(m->emoji);
     }
@@ -8822,6 +8839,10 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       return make_unique<MessageContact>(*static_cast<const MessageContact *>(content));
     case MessageContentType::Dice: {
       auto old_content = static_cast<const MessageDice *>(content);
+      if (type == MessageContentDupType::Send && old_content->is_stake) {
+        return td::make_unique<MessageDice>(old_content->emoji, 0, true, old_content->seed, old_content->state_hash,
+                                            old_content->stake_ton_count, 0);
+      }
       return td::make_unique<MessageDice>(old_content->emoji,
                                           type != MessageContentDupType::Forward ? 0 : old_content->dice_value, false,
                                           string(), string(), 0, 0);

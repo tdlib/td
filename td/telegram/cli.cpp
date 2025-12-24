@@ -6593,6 +6593,14 @@ class CliClient final : public Actor {
       string emoji;
       get_args(args, chat_id, emoji);
       send_message(chat_id, td_api::make_object<td_api::inputMessageDice>(emoji, op == "sdicecd"));
+    } else if (op == "stake") {
+      ChatId chat_id;
+      string state_hash;
+      int64 stake_toncoin_amount;
+      bool clear_draft;
+      get_args(args, chat_id, state_hash, stake_toncoin_amount, clear_draft);
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessageStakeDice>(state_hash, stake_toncoin_amount, clear_draft));
     } else if (op == "sd" || op == "sdf") {
       ChatId chat_id;
       string document;
