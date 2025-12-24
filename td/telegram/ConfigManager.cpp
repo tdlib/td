@@ -1471,7 +1471,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"upload_premium_speedup_upload", "premium_upload_speedup"}};
   static const FlatHashMap<Slice, Slice, SliceHash> long_keys = {
       {"stories_changelog_user_id", "stories_changelog_user_id"},
-      {"telegram_antispam_user_id", "anti_spam_bot_user_id"}};
+      {"telegram_antispam_user_id", "anti_spam_bot_user_id"},
+      {"ton_stakedice_stake_amount_max", "stake_dice_stake_amount_max"},
+      {"ton_stakedice_stake_amount_min", "stake_dice_stake_amount_min"}};
   static const FlatHashSet<Slice, SliceHash> ignored_options(
       {"channel_color_level_min", "default_emoji_statuses_stickerset_id", "dialog_filters_enabled",
        "dialog_filters_tooltip", "forum_upgrade_participants_min", "getfile_experimental_params",

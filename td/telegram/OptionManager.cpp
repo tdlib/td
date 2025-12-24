@@ -206,6 +206,8 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("group_call_message_text_length_max", 128);
   set_default_integer_option("paid_group_call_message_star_count_max", 10000);
   set_default_integer_option("login_passkey_count_max", 5);
+  set_default_integer_option("stake_dice_stake_amount_max", 50000000000);
+  set_default_integer_option("stake_dice_stake_amount_min", 100000000);
 
   if (options.isset("my_phone_number") || !options.isset("my_id")) {
     update_premium_options();
