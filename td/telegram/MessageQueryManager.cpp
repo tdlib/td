@@ -2663,6 +2663,22 @@ void MessageQueryManager::block_message_sender_from_replies_on_server(MessageId 
       ->send(message_id, need_delete_message, need_delete_all_messages, report_spam);
 }
 
+void MessageQueryManager::delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id,
+                                                           Promise<Unit> &&promise) {
+  CHECK(!td_->auth_manager_->is_bot());
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, true, AccessRights::Write,
+                                                                        "delete_dialog_messages_by_sender"));
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->can_delete_all_dialog_messages_by_sender(dialog_id));
+  if (!td_->dialog_manager_->have_input_peer(sender_dialog_id, false, AccessRights::Know)) {
+    return promise.set_error(400, "Message sender not found");
+  }
+
+  td_->messages_manager_->delete_local_dialog_messages_by_sender(dialog_id, sender_dialog_id);
+
+  CHECK(dialog_id.get_type() == DialogType::Channel);
+  delete_all_channel_messages_by_sender_on_server(dialog_id.get_channel_id(), sender_dialog_id, 0, std::move(promise));
+}
+
 void MessageQueryManager::delete_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date,
                                                          bool revoke, Promise<Unit> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());

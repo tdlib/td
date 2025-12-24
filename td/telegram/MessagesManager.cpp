@@ -8398,17 +8398,9 @@ vector<MessageId> MessagesManager::find_unloadable_messages(const Dialog *d, int
   return message_ids;
 }
 
-void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id,
-                                                       Promise<Unit> &&promise) {
-  bool is_bot = td_->auth_manager_->is_bot();
-  CHECK(!is_bot);
-
-  TRY_RESULT_PROMISE(promise, d,
-                     check_dialog_access(dialog_id, true, AccessRights::Write, "delete_dialog_messages_by_sender"));
-  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->can_delete_all_dialog_messages_by_sender(dialog_id));
-
-  if (!td_->dialog_manager_->have_input_peer(sender_dialog_id, false, AccessRights::Know)) {
-    return promise.set_error(400, "Message sender not found");
+void MessagesManager::delete_local_dialog_messages_by_sender(DialogId dialog_id, DialogId sender_dialog_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
   }
 
   if (G()->use_message_database()) {
@@ -8417,19 +8409,20 @@ void MessagesManager::delete_dialog_messages_by_sender(DialogId dialog_id, Dialo
                                                                            Auto());  // TODO Promise
   }
 
+  auto *d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    return;
+  }
+
   CHECK(dialog_id.get_type() == DialogType::Channel);
   auto channel_id = dialog_id.get_channel_id();
   vector<MessageId> message_ids = find_dialog_messages(
-      d, [sender_dialog_id, channel_status = td_->chat_manager_->get_channel_permissions(channel_id),
-          is_bot](const Message *m) {
-        return sender_dialog_id == get_message_sender(m) &&
-               can_delete_channel_message(false, channel_status, m, is_bot);
+      d,
+      [sender_dialog_id, channel_status = td_->chat_manager_->get_channel_permissions(channel_id)](const Message *m) {
+        return sender_dialog_id == get_message_sender(m) && can_delete_channel_message(false, channel_status, m, false);
       });
 
   delete_dialog_messages(d, message_ids, false, DELETE_MESSAGE_USER_REQUEST_SOURCE);
-
-  td_->message_query_manager_->delete_all_channel_messages_by_sender_on_server(channel_id, sender_dialog_id, 0,
-                                                                               std::move(promise));
 }
 
 void MessagesManager::delete_local_dialog_messages_by_date(DialogId dialog_id, int32 min_date, int32 max_date) {

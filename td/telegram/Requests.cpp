@@ -3898,8 +3898,8 @@ void Requests::on_request(uint64 id, const td_api::deleteChatMessagesBySender &r
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, sender_dialog_id, get_message_sender_dialog_id(td_, request.sender_id_, false, false));
-  td_->messages_manager_->delete_dialog_messages_by_sender(DialogId(request.chat_id_), sender_dialog_id,
-                                                           std::move(promise));
+  td_->message_query_manager_->delete_dialog_messages_by_sender(DialogId(request.chat_id_), sender_dialog_id,
+                                                                std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::deleteChatMessagesByDate &request) {
