@@ -211,6 +211,8 @@ class MessageQueryManager final : public Actor {
 
   void on_update_emoji_game_info(telegram_api::object_ptr<telegram_api::messages_EmojiGameInfo> &&game_info);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
   void on_binlog_events(vector<BinlogEvent> &&events);
 
  private:

@@ -2268,6 +2268,8 @@ void Requests::on_request(uint64 id, const td_api::getCurrentState &request) {
 
     td_->group_call_manager_->get_current_state(updates);
 
+    td_->message_query_manager_->get_current_state(updates);
+
     // TODO updateFileGenerationStart generation_id:int64 original_path:string destination_path:string conversion:string = Update;
     // TODO updateCall call:call = Update;
     // TODO updateGroupCall call:groupCall = Update;
