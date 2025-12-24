@@ -5641,6 +5641,8 @@ class CliClient final : public Actor {
                                                                       get_message_self_destruct_type()));
     } else if (op == "cadm") {
       send_request(td_api::make_object<td_api::clearAllDraftMessages>());
+    } else if (op == "gsds") {
+      send_request(td_api::make_object<td_api::getStakeDiceState>());
     } else if (op == "tchpc") {
       ChatId chat_id;
       bool has_protected_content;

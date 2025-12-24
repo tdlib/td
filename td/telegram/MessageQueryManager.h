@@ -163,6 +163,8 @@ class MessageQueryManager final : public Actor {
                                   DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
                                   MessageId expected_message_id, Promise<MessageThreadInfo> promise);
 
+  void get_emoji_game_info(Promise<td_api::object_ptr<td_api::stakeDiceState>> &&promise);
+
   void block_message_sender_from_replies_on_server(MessageId message_id, bool need_delete_message,
                                                    bool need_delete_all_messages, bool report_spam, uint64 log_event_id,
                                                    Promise<Unit> &&promise);
@@ -266,6 +268,9 @@ class MessageQueryManager final : public Actor {
   void process_discussion_message_impl(telegram_api::object_ptr<telegram_api::messages_discussionMessage> &&result,
                                        DialogId dialog_id, MessageId message_id, DialogId expected_dialog_id,
                                        MessageId expected_message_id, Promise<MessageThreadInfo> promise);
+
+  void on_get_emoji_game_info(telegram_api::object_ptr<telegram_api::messages_EmojiGameInfo> &&result,
+                              Promise<td_api::object_ptr<td_api::stakeDiceState>> &&promise);
 
   void erase_delete_messages_log_event(uint64 log_event_id);
 

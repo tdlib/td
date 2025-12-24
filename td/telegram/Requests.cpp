@@ -6053,6 +6053,12 @@ void Requests::on_request(uint64 id, const td_api::clearAllDraftMessages &reques
   td_->messages_manager_->clear_all_draft_messages(request.exclude_secret_chats_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getStakeDiceState &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->message_query_manager_->get_emoji_game_info(std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::downloadFile &request) {
   CREATE_REQUEST_PROMISE();
   td_->file_manager_->download_file(FileId(request.file_id_, 0), request.priority_, request.offset_, request.limit_,

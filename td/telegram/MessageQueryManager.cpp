@@ -1134,6 +1134,34 @@ class GetDiscussionMessageQuery final : public Td::ResultHandler {
   }
 };
 
+class GetEmojiGameInfoQuery final : public Td::ResultHandler {
+  Promise<telegram_api::object_ptr<telegram_api::messages_EmojiGameInfo>> promise_;
+
+ public:
+  explicit GetEmojiGameInfoQuery(Promise<telegram_api::object_ptr<telegram_api::messages_EmojiGameInfo>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(telegram_api::messages_getEmojiGameInfo()));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_getEmojiGameInfo>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetEmojiGameInfoQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class BlockFromRepliesQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -2609,6 +2637,26 @@ void MessageQueryManager::process_discussion_message_impl(
                                                             message_thread_info.unread_message_count);
   }
   promise.set_value(std::move(message_thread_info));
+}
+
+void MessageQueryManager::get_emoji_game_info(Promise<td_api::object_ptr<td_api::stakeDiceState>> &&promise) {
+  auto query_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), promise = std::move(promise)](
+          Result<telegram_api::object_ptr<telegram_api::messages_EmojiGameInfo>> result) mutable {
+        if (result.is_error()) {
+          return promise.set_error(result.move_as_error());
+        }
+        send_closure(actor_id, &MessageQueryManager::on_get_emoji_game_info, result.move_as_ok(), std::move(promise));
+      });
+  td_->create_handler<GetEmojiGameInfoQuery>(std::move(query_promise))->send();
+}
+
+void MessageQueryManager::on_get_emoji_game_info(
+    telegram_api::object_ptr<telegram_api::messages_EmojiGameInfo> &&result,
+    Promise<td_api::object_ptr<td_api::stakeDiceState>> &&promise) {
+  on_update_emoji_game_info(std::move(result));
+  CHECK(is_emoji_game_info_inited_);
+  promise.set_value(emoji_game_info_.get_stake_dice_state_object());
 }
 
 class MessageQueryManager::BlockMessageSenderFromRepliesOnServerLogEvent {

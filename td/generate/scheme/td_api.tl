@@ -12055,6 +12055,10 @@ getChatAdministrators chat_id:int53 = ChatAdministrators;
 clearAllDraftMessages exclude_secret_chats:Bool = Ok;
 
 
+//@description Returns the current state of stake dice
+getStakeDiceState = StakeDiceState;
+
+
 //@description Returns saved notification sound by its identifier. Returns a 404 error if there is no saved notification sound with the specified identifier @notification_sound_id Identifier of the notification sound
 getSavedNotificationSound notification_sound_id:int64 = NotificationSounds;
 
