@@ -8358,10 +8358,6 @@ void MessagesManager::delete_topic_history(DialogId dialog_id, ForumTopicId foru
   td_->message_query_manager_->delete_topic_history_on_server(dialog_id, forum_topic_id, 0, std::move(promise));
 }
 
-void MessagesManager::delete_all_call_messages(bool revoke, Promise<Unit> &&promise) {
-  td_->message_query_manager_->delete_all_call_messages_on_server(revoke, 0, std::move(promise));
-}
-
 vector<MessageId> MessagesManager::find_dialog_messages(const Dialog *d,
                                                         const std::function<bool(const Message *)> &condition) {
   vector<MessageId> message_ids;

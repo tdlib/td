@@ -3593,7 +3593,7 @@ void Requests::on_request(uint64 id, const td_api::clearSearchedForTags &request
 void Requests::on_request(uint64 id, const td_api::deleteAllCallMessages &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->delete_all_call_messages(request.revoke_, std::move(promise));
+  td_->message_query_manager_->delete_all_call_messages(request.revoke_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::searchChatRecentLocationMessages &request) {

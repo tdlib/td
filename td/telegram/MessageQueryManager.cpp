@@ -2711,6 +2711,10 @@ void MessageQueryManager::delete_dialog_messages_by_date(DialogId dialog_id, int
   delete_dialog_messages_by_date_on_server(dialog_id, min_date, max_date, revoke, 0, std::move(promise));
 }
 
+void MessageQueryManager::delete_all_call_messages(bool revoke, Promise<Unit> &&promise) {
+  delete_all_call_messages_on_server(revoke, 0, std::move(promise));
+}
+
 class MessageQueryManager::DeleteAllCallMessagesOnServerLogEvent {
  public:
   bool revoke_;
