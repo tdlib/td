@@ -4300,7 +4300,7 @@ static Result<InputMessageContent> create_input_message_content(
 
       if (input_paid_media->star_count_ <= 0 ||
           input_paid_media->star_count_ >
-              td->option_manager_->get_option_integer("paid_media_message_star_count_max")) {
+              (is_bot ? 1000000 : td->option_manager_->get_option_integer("paid_media_message_star_count_max"))) {
         return Status::Error(400, "Invalid media price specified");
       }
       vector<MessageExtendedMedia> extended_media;

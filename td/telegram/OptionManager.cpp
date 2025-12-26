@@ -158,7 +158,7 @@ OptionManager::OptionManager(Td *td)
   set_default_integer_option("fact_check_length_max", 1024);
   set_default_integer_option("star_withdrawal_count_min", is_test_dc ? 10 : 1000);
   set_default_integer_option("story_link_area_count_max", 3);
-  set_default_integer_option("paid_media_message_star_count_max", 10000);
+  set_default_integer_option("paid_media_message_star_count_max", 25000);
   set_default_integer_option("bot_media_preview_count_max", 12);
   set_default_integer_option("paid_reaction_star_count_max", 10000);
   set_default_integer_option("subscription_star_count_max", 10000);
