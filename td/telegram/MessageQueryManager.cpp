@@ -3098,6 +3098,16 @@ void MessageQueryManager::delete_scheduled_messages_on_server(DialogId dialog_id
   td_->create_handler<DeleteScheduledMessagesQuery>(std::move(promise))->send(dialog_id, std::move(message_ids));
 }
 
+void MessageQueryManager::delete_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                               Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(
+      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "delete_topic_history"));
+
+  // TODO check rights and delete topic history locally
+
+  delete_topic_history_on_server(dialog_id, forum_topic_id, 0, std::move(promise));
+}
+
 class MessageQueryManager::DeleteTopicHistoryOnServerLogEvent {
  public:
   DialogId dialog_id_;

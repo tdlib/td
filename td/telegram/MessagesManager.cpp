@@ -8348,16 +8348,6 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
                                                                revoke, allow_error, 0, std::move(promise));
 }
 
-void MessagesManager::delete_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise) {
-  TRY_STATUS_PROMISE(
-      promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read, "delete_topic_history"));
-
-  // auto old_order = d->order;
-  // delete_all_dialog_topic_messages(d, forum_topic_id);
-
-  td_->message_query_manager_->delete_topic_history_on_server(dialog_id, forum_topic_id, 0, std::move(promise));
-}
-
 vector<MessageId> MessagesManager::find_dialog_messages(const Dialog *d,
                                                         const std::function<bool(const Message *)> &condition) {
   vector<MessageId> message_ids;

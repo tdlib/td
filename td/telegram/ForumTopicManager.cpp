@@ -19,6 +19,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessageQueryManager.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageThreadDb.h"
 #include "td/telegram/MessageTopic.h"
@@ -1002,7 +1003,7 @@ void ForumTopicManager::delete_forum_topic(DialogId dialog_id, ForumTopicId foru
     }
     send_closure(actor_id, &ForumTopicManager::on_delete_forum_topic, dialog_id, forum_topic_id, std::move(promise));
   });
-  td_->messages_manager_->delete_topic_history(dialog_id, forum_topic_id, std::move(delete_promise));
+  td_->message_query_manager_->delete_topic_history(dialog_id, forum_topic_id, std::move(delete_promise));
 }
 
 void ForumTopicManager::on_delete_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id,

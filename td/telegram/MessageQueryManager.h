@@ -184,8 +184,7 @@ class MessageQueryManager final : public Actor {
   void delete_scheduled_messages_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
                                            Promise<Unit> &&promise);
 
-  void delete_topic_history_on_server(DialogId dialog_id, ForumTopicId forum_topic_id, uint64 log_event_id,
-                                      Promise<Unit> &&promise);
+  void delete_topic_history(DialogId dialog_id, ForumTopicId forum_topic_id, Promise<Unit> &&promise);
 
   void read_all_dialog_mentions_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
@@ -272,6 +271,9 @@ class MessageQueryManager final : public Actor {
                                                 uint64 log_event_id, Promise<Unit> &&promise);
 
   void delete_all_call_messages_on_server(bool revoke, uint64 log_event_id, Promise<Unit> &&promise);
+
+  void delete_topic_history_on_server(DialogId dialog_id, ForumTopicId forum_topic_id, uint64 log_event_id,
+                                      Promise<Unit> &&promise);
 
   static uint64 save_block_message_sender_from_replies_on_server_log_event(MessageId message_id,
                                                                            bool need_delete_message,
