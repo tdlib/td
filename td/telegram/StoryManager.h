@@ -442,6 +442,7 @@ class StoryManager final : public Actor {
   class UploadMediaCallback;
 
   class SendStoryQuery;
+  class RepostBusinessStoryQuery;
   class EditStoryQuery;
   class EditBusinessStoryQuery;
 

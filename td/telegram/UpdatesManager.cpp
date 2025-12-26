@@ -1613,7 +1613,7 @@ telegram_api::object_ptr<telegram_api::StoryItem> UpdatesManager::extract_story(
                                                                                 DialogId owner_dialog_id,
                                                                                 bool is_business) {
   auto updates = get_updates(updates_ptr);
-  if (is_business && updates->size() != 1u) {
+  if (is_business && updates->size() != 1u && updates->size() != 2u) {
     return nullptr;
   }
   for (auto it = updates->begin(); it != updates->end(); ++it) {
