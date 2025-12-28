@@ -20373,30 +20373,7 @@ int64 MessagesManager::begin_send_message(DialogId dialog_id, const Message *m) 
 }
 
 Status MessagesManager::can_send_message(DialogId dialog_id) const {
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Write)) {
-    return Status::Error(400, "Have no write access to the chat");
-  }
-
-  if (dialog_id.get_type() == DialogType::Channel) {
-    auto channel_id = dialog_id.get_channel_id();
-    auto channel_type = td_->chat_manager_->get_channel_type(channel_id);
-    auto channel_status = td_->chat_manager_->get_channel_permissions(channel_id);
-
-    switch (channel_type) {
-      case ChannelType::Unknown:
-      case ChannelType::Megagroup:
-        break;
-      case ChannelType::Broadcast: {
-        if (!channel_status.can_post_messages()) {
-          return Status::Error(400, "Need administrator rights in the channel chat");
-        }
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
-  }
-  return Status::OK();
+  return td_->dialog_manager_->can_send_message_to_dialog(dialog_id);
 }
 
 MessageId MessagesManager::get_persistent_message_id(const Dialog *d, MessageId message_id) const {
