@@ -157,6 +157,16 @@ Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::importedContact> 
                  edit_note, std::move(note_text));
 }
 
+Result<vector<Contact>> get_contacts(Td *td, vector<td_api::object_ptr<td_api::importedContact>> &&imported_contacts) {
+  vector<Contact> contacts;
+  contacts.reserve(imported_contacts.size());
+  for (auto &imported_contact : imported_contacts) {
+    TRY_RESULT(contact, get_contact(td, std::move(imported_contact)));
+    contacts.push_back(std::move(contact));
+  }
+  return contacts;
+}
+
 Result<Contact> process_input_message_contact(Td *td,
                                               td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) {
   CHECK(input_message_content != nullptr);

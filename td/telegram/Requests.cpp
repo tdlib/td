@@ -6224,16 +6224,11 @@ void Requests::on_request(uint64 id, td_api::addContact &request) {
 
 void Requests::on_request(uint64 id, td_api::importContacts &request) {
   CHECK_IS_USER();
-  vector<Contact> contacts;
-  contacts.reserve(request.contacts_.size());
-  for (auto &contact : request.contacts_) {
-    auto r_contact = get_contact(td_, std::move(contact));
-    if (r_contact.is_error()) {
-      return send_closure(td_actor_, &Td::send_error, id, r_contact.move_as_error());
-    }
-    contacts.push_back(r_contact.move_as_ok());
+  auto r_contacts = get_contacts(td_, std::move(request.contacts_));
+  if (r_contacts.is_error()) {
+    return send_closure(td_actor_, &Td::send_error, id, r_contacts.move_as_error());
   }
-  CREATE_REQUEST(ImportContactsRequest, std::move(contacts));
+  CREATE_REQUEST(ImportContactsRequest, r_contacts.move_as_ok());
 }
 
 void Requests::on_request(uint64 id, const td_api::getContacts &request) {
@@ -6260,16 +6255,11 @@ void Requests::on_request(uint64 id, const td_api::getImportedContactCount &requ
 
 void Requests::on_request(uint64 id, td_api::changeImportedContacts &request) {
   CHECK_IS_USER();
-  vector<Contact> contacts;
-  contacts.reserve(request.contacts_.size());
-  for (auto &contact : request.contacts_) {
-    auto r_contact = get_contact(td_, std::move(contact));
-    if (r_contact.is_error()) {
-      return send_closure(td_actor_, &Td::send_error, id, r_contact.move_as_error());
-    }
-    contacts.push_back(r_contact.move_as_ok());
+  auto r_contacts = get_contacts(td_, std::move(request.contacts_));
+  if (r_contacts.is_error()) {
+    return send_closure(td_actor_, &Td::send_error, id, r_contacts.move_as_error());
   }
-  CREATE_REQUEST(ChangeImportedContactsRequest, std::move(contacts));
+  CREATE_REQUEST(ChangeImportedContactsRequest, r_contacts.move_as_ok());
 }
 
 void Requests::on_request(uint64 id, const td_api::clearImportedContacts &request) {

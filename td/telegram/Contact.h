@@ -162,6 +162,8 @@ Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::contact> &&contac
 
 Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::importedContact> &&contact) TD_WARN_UNUSED_RESULT;
 
+Result<vector<Contact>> get_contacts(Td *td, vector<td_api::object_ptr<td_api::importedContact>> &&contacts);
+
 Result<Contact> process_input_message_contact(
     Td *td, td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 
