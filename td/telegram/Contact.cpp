@@ -109,7 +109,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Contact &contact)
                         << ", vCard size = " << contact.vcard_.size() << ' ' << contact.user_id_ << ']';
 }
 
-Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::contact> &&contact) {
+static Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::contact> &&contact) {
   if (contact == nullptr) {
     return Status::Error(400, "Contact must be non-empty");
   }
