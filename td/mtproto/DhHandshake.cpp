@@ -117,8 +117,10 @@ Status DhHandshake::dh_check(const BigNum &prime, const BigNum &g_a, const BigNu
         y[i] = '1';
       }
     }
+#ifdef TD_DEBUG
     LOG(ERROR) << x;
     LOG(ERROR) << y;
+#endif
     return Status::Error("g^a or g^b is not between 2^{2048-64} and dh_prime - 2^{2048-64}");
   }
 
