@@ -107,6 +107,7 @@ Status DhHandshake::dh_check(const BigNum &prime, const BigNum &g_a, const BigNu
 
   if (BigNum::compare(left, g_a) > 0 || BigNum::compare(g_a, right) > 0 || BigNum::compare(left, g_b) > 0 ||
       BigNum::compare(g_b, right) > 0) {
+#ifdef TD_DEBUG
     std::string x(2048, '0');
     std::string y(2048, '0');
     for (int i = 0; i < 2048; i++) {
@@ -117,7 +118,6 @@ Status DhHandshake::dh_check(const BigNum &prime, const BigNum &g_a, const BigNu
         y[i] = '1';
       }
     }
-#ifdef TD_DEBUG
     LOG(ERROR) << x;
     LOG(ERROR) << y;
 #endif
