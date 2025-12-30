@@ -1027,6 +1027,7 @@ class MessagesManager final : public Actor {
     int32 edit_date = 0;
     vector<RestrictionReason> restriction_reasons;
     string author_signature;
+    string summary_from_language;
     int64 media_album_id = 0;
     MessageEffectId effect_id;
     int32 report_delivery_until_date = 0;
@@ -1091,6 +1092,7 @@ class MessagesManager final : public Actor {
     vector<RestrictionReason> restriction_reasons;
 
     string author_signature;
+    string summary_from_language;
 
     bool is_channel_post = false;
     bool is_topic_message = false;
