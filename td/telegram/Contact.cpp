@@ -38,6 +38,22 @@ Contact::Contact(string phone_number, string first_name, string last_name, bool 
     , note_(std::move(note)) {
 }
 
+Status Contact::validate() {
+  if (!clean_input_string(phone_number_)) {
+    return Status::Error(400, "Phone number must be encoded in UTF-8");
+  }
+  if (!clean_input_string(first_name_)) {
+    return Status::Error(400, "First name must be encoded in UTF-8");
+  }
+  if (!clean_input_string(last_name_)) {
+    return Status::Error(400, "Last name must be encoded in UTF-8");
+  }
+  if (!clean_input_string(vcard_)) {
+    return Status::Error(400, "vCard must be encoded in UTF-8");
+  }
+  return Status::OK();
+}
+
 void Contact::set_user_id(UserId user_id) {
   user_id_ = user_id;
 }
@@ -113,48 +129,29 @@ static Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::contact> &
   if (contact == nullptr) {
     return Status::Error(400, "Contact must be non-empty");
   }
-
-  if (!clean_input_string(contact->phone_number_)) {
-    return Status::Error(400, "Phone number must be encoded in UTF-8");
-  }
-  if (!clean_input_string(contact->first_name_)) {
-    return Status::Error(400, "First name must be encoded in UTF-8");
-  }
-  if (!clean_input_string(contact->last_name_)) {
-    return Status::Error(400, "Last name must be encoded in UTF-8");
-  }
-  if (!clean_input_string(contact->vcard_)) {
-    return Status::Error(400, "vCard must be encoded in UTF-8");
-  }
   UserId user_id(contact->user_id_);
   if (user_id != UserId() && !td->user_manager_->have_user_force(user_id, "get_contact")) {
     return Status::Error(400, "User not found");
   }
 
-  return Contact(std::move(contact->phone_number_), std::move(contact->first_name_), std::move(contact->last_name_),
-                 std::move(contact->vcard_), user_id);
+  auto result = Contact(std::move(contact->phone_number_), std::move(contact->first_name_),
+                        std::move(contact->last_name_), std::move(contact->vcard_), user_id);
+  TRY_STATUS(result.validate());
+  return std::move(result);
 }
 
 Result<Contact> get_contact(Td *td, td_api::object_ptr<td_api::importedContact> &&contact) {
   if (contact == nullptr) {
     return Status::Error(400, "Contact must be non-empty");
   }
-
-  if (!clean_input_string(contact->phone_number_)) {
-    return Status::Error(400, "Phone number must be encoded in UTF-8");
-  }
-  if (!clean_input_string(contact->first_name_)) {
-    return Status::Error(400, "First name must be encoded in UTF-8");
-  }
-  if (!clean_input_string(contact->last_name_)) {
-    return Status::Error(400, "Last name must be encoded in UTF-8");
-  }
   bool edit_note = contact->note_ != nullptr;
   TRY_RESULT(note_text, get_formatted_text(td, DialogId(), std::move(contact->note_), false, true, true, false));
   MessageQuote::remove_unallowed_quote_entities(note_text);
 
-  return Contact(std::move(contact->phone_number_), std::move(contact->first_name_), std::move(contact->last_name_),
-                 edit_note, std::move(note_text));
+  auto result = Contact(std::move(contact->phone_number_), std::move(contact->first_name_),
+                        std::move(contact->last_name_), edit_note, std::move(note_text));
+  TRY_STATUS(result.validate());
+  return std::move(result);
 }
 
 Result<vector<Contact>> get_contacts(Td *td, vector<td_api::object_ptr<td_api::importedContact>> &&imported_contacts) {

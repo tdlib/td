@@ -49,6 +49,8 @@ class Contact {
 
   Contact(string phone_number, string first_name, string last_name, bool edit_note, FormattedText &&note);
 
+  Status validate();
+
   void set_user_id(UserId user_id);
 
   UserId get_user_id() const;
