@@ -2804,6 +2804,14 @@ void Requests::on_request(uint64 id, td_api::translateMessageText &request) {
                                                  request.to_language_code_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::summarizeMessage &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.translate_to_language_code_);
+  CREATE_REQUEST_PROMISE();
+  td_->message_query_manager_->summarize_message_text({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                                      request.translate_to_language_code_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::recognizeSpeech &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

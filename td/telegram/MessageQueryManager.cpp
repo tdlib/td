@@ -1019,6 +1019,45 @@ class GetMessagesReactionsQuery final : public Td::ResultHandler {
   }
 };
 
+class SummarizeTextQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::formattedText>> promise_;
+
+ public:
+  explicit SummarizeTextQuery(Promise<td_api::object_ptr<td_api::formattedText>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, MessageId message_id, const string &to_language_code) {
+    int32 flags = 0;
+    if (!to_language_code.empty()) {
+      flags |= telegram_api::messages_summarizeText::TO_LANG_MASK;
+    }
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return promise_.set_error(400, "Chat is not accessible");
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_summarizeText(
+        flags, std::move(input_peer), message_id.get_server_message_id().get(), to_language_code)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_summarizeText>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SummarizeTextQuery: " << to_string(ptr);
+    auto formatted_text =
+        get_formatted_text(td_->user_manager_.get(), std::move(ptr), true, true, "SummarizeTextQuery");
+    promise_.set_value(get_formatted_text_object(td_->user_manager_.get(), formatted_text, true, -1));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class AppendToDoListQuery final : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -2535,6 +2574,21 @@ void MessageQueryManager::do_get_paid_message_reaction_senders(
     add_sender(DialogId(channel_id.second));
   }
   return promise.set_value(std::move(senders));
+}
+
+void MessageQueryManager::summarize_message_text(MessageFullId message_full_id, const string &to_language_code,
+                                                 Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
+  auto dialog_id = message_full_id.get_dialog_id();
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
+                                                                        "summarize_message_text"));
+  if (!td_->messages_manager_->have_message_force(message_full_id, "summarize_message_text")) {
+    return promise.set_error(400, "Message not found");
+  }
+  auto message_id = message_full_id.get_message_id();
+  if (!message_id.is_server()) {
+    return promise.set_error(400, "Message can't be summarized");
+  }
+  td_->create_handler<SummarizeTextQuery>(std::move(promise))->send(dialog_id, message_id, to_language_code);
 }
 
 void MessageQueryManager::add_to_do_list_tasks(MessageFullId message_full_id,
