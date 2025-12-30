@@ -6,9 +6,13 @@
 //
 #include "td/telegram/EmojiGameInfo.h"
 
+#include "td/telegram/OptionManager.h"
+#include "td/telegram/Td.h"
 #include "td/telegram/TonAmount.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 
 namespace td {
 
@@ -41,17 +45,21 @@ EmojiGameInfo::EmojiGameInfo(telegram_api::object_ptr<telegram_api::messages_Emo
   }
 }
 
-td_api::object_ptr<td_api::stakeDiceState> EmojiGameInfo::get_stake_dice_state_object() const {
+td_api::object_ptr<td_api::stakeDiceState> EmojiGameInfo::get_stake_dice_state_object(const Td *td) const {
   if (game_hash_.empty()) {
     return td_api::make_object<td_api::stakeDiceState>();
   }
   CHECK(params_.size() == 7u);
-  return td_api::make_object<td_api::stakeDiceState>(game_hash_, prev_stake_, current_streak_,
+  auto suggested_amounts =
+      transform(full_split(td->option_manager_->get_option_string("ton_stakedice_stake_suggested_amounts"), ','),
+                to_integer<int64>);
+  return td_api::make_object<td_api::stakeDiceState>(game_hash_, prev_stake_, std::move(suggested_amounts),
+                                                     current_streak_,
                                                      vector<int32>(params_.begin(), params_.begin() + 6), params_[6]);
 }
 
-td_api::object_ptr<td_api::updateStakeDiceState> EmojiGameInfo::get_update_stake_dice_state_object() const {
-  return td_api::make_object<td_api::updateStakeDiceState>(get_stake_dice_state_object());
+td_api::object_ptr<td_api::updateStakeDiceState> EmojiGameInfo::get_update_stake_dice_state_object(const Td *td) const {
+  return td_api::make_object<td_api::updateStakeDiceState>(get_stake_dice_state_object(td));
 }
 
 bool operator==(const EmojiGameInfo &lhs, const EmojiGameInfo &rhs) {

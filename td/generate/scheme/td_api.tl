@@ -558,10 +558,11 @@ game id:int64 short_name:string title:string text:formattedText description:stri
 //@description Describes state of the stake dice
 //@state_hash Hash of the state to use for sending the next dice; may be empty if the stake dice can't be sent by the current user
 //@stake_toncoin_amount The amount of Toncoins that was staked in the previous roll; in the smallest units of the currency
+//@suggested_stake_toncoin_amounts The amounts of Toncoins that are suggested to be staked; in the smallest units of the currency
 //@current_streak The number of rolled sixes towards the streak; 0-2
 //@prize_per_mille The number of Toncoins received by the user for each 1000 Toncoins staked if the dice outcome is 1-6 correspondingly; may be empty if the stake dice can't be sent by the current user
 //@streak_prize_per_mille The number of Toncoins received by the user for each 1000 Toncoins staked if the dice outcome is 6 three times in a row with the same stake
-stakeDiceState state_hash:string stake_toncoin_amount:int53 current_streak:int32 prize_per_mille:vector<int32> streak_prize_per_mille:int32 = StakeDiceState;
+stakeDiceState state_hash:string stake_toncoin_amount:int53 suggested_stake_toncoin_amounts:vector<int53> current_streak:int32 prize_per_mille:vector<int32> streak_prize_per_mille:int32 = StakeDiceState;
 
 //@description Describes a Web App. Use getInternalLink with internalLinkTypeWebApp to share the Web App
 //@short_name Web App short name

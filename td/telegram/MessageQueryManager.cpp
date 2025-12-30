@@ -2656,7 +2656,7 @@ void MessageQueryManager::on_get_emoji_game_info(
     Promise<td_api::object_ptr<td_api::stakeDiceState>> &&promise) {
   on_update_emoji_game_info(std::move(result));
   CHECK(is_emoji_game_info_inited_);
-  promise.set_value(emoji_game_info_.get_stake_dice_state_object());
+  promise.set_value(emoji_game_info_.get_stake_dice_state_object(td_));
 }
 
 class MessageQueryManager::BlockMessageSenderFromRepliesOnServerLogEvent {
@@ -3449,7 +3449,7 @@ void MessageQueryManager::on_update_emoji_game_info(
   emoji_game_info_ = std::move(emoji_game_info);
   emoji_game_info_receive_time_ = Time::now();
   is_emoji_game_info_inited_ = true;
-  send_closure(G()->td(), &Td::send_update, emoji_game_info_.get_update_stake_dice_state_object());
+  send_closure(G()->td(), &Td::send_update, emoji_game_info_.get_update_stake_dice_state_object(td_));
 }
 
 void MessageQueryManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
@@ -3458,7 +3458,7 @@ void MessageQueryManager::get_current_state(vector<td_api::object_ptr<td_api::Up
   }
 
   if (is_emoji_game_info_inited_ && emoji_game_info_receive_time_ > Time::now() - 60) {
-    updates.push_back(emoji_game_info_.get_update_stake_dice_state_object());
+    updates.push_back(emoji_game_info_.get_update_stake_dice_state_object(td_));
   }
 }
 
