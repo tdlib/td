@@ -5227,7 +5227,7 @@ inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_id
 //@thumbnail Sticker thumbnail; pass null to skip thumbnail uploading
 //@width Sticker width
 //@height Sticker height
-//@emoji Emoji used to choose the sticker
+//@emoji Emoji used to choose the sticker; may be null or empty if unknown
 inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 height:int32 emoji:string = InputMessageContent;
 
 //@description A video message
