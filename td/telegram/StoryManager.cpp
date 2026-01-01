@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2025
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -1432,6 +1432,73 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
 
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "SendStoryQuery");
     td_->story_manager_->delete_pending_story(std::move(pending_story_), std::move(status));
+  }
+};
+
+class StoryManager::RepostBusinessStoryQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::story>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit RepostBusinessStoryQuery(Promise<td_api::object_ptr<td_api::story>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, DialogId from_dialog_id, StoryId from_story_id, int32 active_period, bool is_pinned,
+            bool protect_content) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Write);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+
+    auto fwd_input_peer = td_->dialog_manager_->get_input_peer(from_dialog_id, AccessRights::Read);
+    CHECK(fwd_input_peer != nullptr);
+
+    int32 flags =
+        telegram_api::stories_sendStory::FWD_FROM_ID_MASK | telegram_api::stories_sendStory::FWD_FROM_STORY_MASK;
+    if (active_period != 86400) {
+      flags |= telegram_api::stories_sendStory::PERIOD_MASK;
+    }
+    auto privacy_rules = UserPrivacySettingRules::get_user_privacy_setting_rules(
+                             td_, td_api::make_object<td_api::storyPrivacySettingsEveryone>())
+                             .move_as_ok()
+                             .get_input_privacy_rules(td_);
+    send_query(G()->net_query_creator().create(
+        telegram_api::stories_sendStory(flags, is_pinned, protect_content, false, std::move(input_peer),
+                                        telegram_api::make_object<telegram_api::inputMediaEmpty>(),
+                                        vector<telegram_api::object_ptr<telegram_api::MediaArea>>(), string(),
+                                        vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(),
+                                        std::move(privacy_rules), Random::secure_int64(), active_period,
+                                        std::move(fwd_input_peer), from_story_id.get(), vector<int>()),
+        {{dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::stories_sendStory>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto updates = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for RepostBusinessStoryQuery: " << to_string(updates);
+    td_->updates_manager_->process_updates_users_and_chats(updates.get());
+
+    auto story = UpdatesManager::extract_story(updates.get(), dialog_id_, true);
+    if (story == nullptr) {
+      LOG(ERROR) << "Receive unexpected repost story result: " << to_string(updates);
+      promise_.set_error(400, "Failed to repost story");
+    } else {
+      auto story_id = td_->story_manager_->on_get_story(dialog_id_, std::move(story));
+      promise_.set_value(td_->story_manager_->get_story_object({dialog_id_, story_id}));
+      td_->story_manager_->on_delete_story({dialog_id_, story_id});
+    }
+  }
+
+  void on_error(Status status) final {
+    LOG(INFO) << "Receive error for RepostBusinessStoryQuery: " << status;
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "RepostBusinessStoryQuery");
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -5848,6 +5915,25 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   }
 
   bool is_bot = td_->auth_manager_->is_bot();
+  if (active_period != 86400 && !(G()->is_test_dc() && (active_period == 60 || active_period == 300))) {
+    bool is_premium = td_->option_manager_->get_option_boolean("is_premium") || is_bot;
+    if (!is_premium || !td::contains(vector<int32>{6 * 3600, 12 * 3600, 2 * 86400}, active_period)) {
+      return promise.set_error(400, "Invalid story active period specified");
+    }
+  }
+
+  if (is_bot && from_story_full_id != nullptr) {
+    auto from_dialog_id = DialogId(from_story_full_id->poster_chat_id_);
+    auto from_story_id = StoryId(from_story_full_id->story_id_);
+    if (!from_story_id.is_valid() || from_dialog_id.get_type() != DialogType::User ||
+        !td_->dialog_manager_->have_input_peer(from_dialog_id, false, AccessRights::Read)) {
+      return promise.set_error(400, "Invalid story to repost specified");
+    }
+    td_->create_handler<RepostBusinessStoryQuery>(std::move(promise))
+        ->send(dialog_id, from_dialog_id, from_story_id, active_period, is_pinned, protect_content);
+    return;
+  }
+
   TRY_RESULT_PROMISE(promise, content, get_input_story_content(td_, std::move(input_story_content), dialog_id));
   TRY_RESULT_PROMISE(promise, caption,
                      get_formatted_text(td_, DialogId(), std::move(input_caption), is_bot, true, false, false));
@@ -5859,36 +5945,22 @@ void StoryManager::send_story(DialogId dialog_id, td_api::object_ptr<td_api::Inp
   unique_ptr<StoryForwardInfo> forward_info;
   StoryFullId forward_from_story_full_id;
   if (from_story_full_id != nullptr) {
+    CHECK(!is_bot);
     forward_from_story_full_id =
         StoryFullId(DialogId(from_story_full_id->poster_chat_id_), StoryId(from_story_full_id->story_id_));
-    if (is_bot) {
-      auto from_dialog_id = forward_from_story_full_id.get_dialog_id();
-      if (!forward_from_story_full_id.is_valid() || from_dialog_id.get_type() != DialogType::User ||
-          !td_->dialog_manager_->have_input_peer(from_dialog_id, false, AccessRights::Read)) {
-        return promise.set_error(400, "Invalid story to repost specified");
-      }
-      forward_info = make_unique<StoryForwardInfo>(forward_from_story_full_id, true);
+    const Story *story = get_story(forward_from_story_full_id);
+    if (story == nullptr || story->content_ == nullptr) {
+      return promise.set_error(400, "Story to repost not found");
+    }
+    if (story->noforwards_) {
+      return promise.set_error(400, "Story can't be reposted");
+    }
+    if (story->forward_info_ != nullptr) {
+      forward_info = make_unique<StoryForwardInfo>(*story->forward_info_);
     } else {
-      const Story *story = get_story(forward_from_story_full_id);
-      if (story == nullptr || story->content_ == nullptr) {
-        return promise.set_error(400, "Story to repost not found");
-      }
-      if (story->noforwards_) {
-        return promise.set_error(400, "Story can't be reposted");
-      }
-      if (story->forward_info_ != nullptr) {
-        forward_info = make_unique<StoryForwardInfo>(*story->forward_info_);
-      } else {
-        forward_info = make_unique<StoryForwardInfo>(forward_from_story_full_id, true);
-      }
+      forward_info = make_unique<StoryForwardInfo>(forward_from_story_full_id, true);
     }
     forward_info->hide_sender_if_needed(td_);
-  }
-  if (active_period != 86400 && !(G()->is_test_dc() && (active_period == 60 || active_period == 300))) {
-    bool is_premium = td_->option_manager_->get_option_boolean("is_premium") || is_bot;
-    if (!is_premium || !td::contains(vector<int32>{6 * 3600, 12 * 3600, 2 * 86400}, active_period)) {
-      return promise.set_error(400, "Invalid story active period specified");
-    }
   }
   TRY_RESULT_PROMISE(promise, story_id, get_next_yet_unsent_story_id(dialog_id));
   auto areas = MediaArea::get_media_areas(td_, std::move(input_areas), vector<MediaArea>());

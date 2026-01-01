@@ -1,5 +1,5 @@
 #
-# Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2025
+# Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 #
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -256,7 +256,7 @@ def generate_test_vectors():
 
 def print_cpp_header(test_vectors):
     print("//")
-    print("// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2025")
+    print("// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026")
     print("//")
     print("// Distributed under the Boost Software License, Version 1.0. (See accompanying")
     print("// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)")

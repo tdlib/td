@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2025
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -1613,7 +1613,7 @@ telegram_api::object_ptr<telegram_api::StoryItem> UpdatesManager::extract_story(
                                                                                 DialogId owner_dialog_id,
                                                                                 bool is_business) {
   auto updates = get_updates(updates_ptr);
-  if (is_business && updates->size() != 1u) {
+  if (is_business && updates->size() != 1u && updates->size() != 2u) {
     return nullptr;
   }
   for (auto it = updates->begin(); it != updates->end(); ++it) {

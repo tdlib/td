@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2025
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -5814,6 +5814,9 @@ void UserManager::set_user_profile_photo(UserId user_id, const td_api::object_pt
     return promise.set_error(400, "Can't set personal or suggest photo to bots");
   }
   if (input_photo == nullptr) {
+    if (only_suggest) {
+      return promise.set_error(400, "Photo must be non-empty");
+    }
     td_->create_handler<DeleteContactProfilePhotoQuery>(std::move(promise))->send(user_id, std::move(input_user));
     return;
   }

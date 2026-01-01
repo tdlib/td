@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2025
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -2317,7 +2317,7 @@ void SavedMessagesManager::delete_topic_messages_by_date(DialogId dialog_id,
                                                          int32 max_date, Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, saved_messages_topic_id.is_valid_in(td_, dialog_id));
 
-  TRY_STATUS_PROMISE(promise, MessagesManager::fix_delete_message_min_max_dates(min_date, max_date));
+  TRY_STATUS_PROMISE(promise, MessageQueryManager::fix_delete_message_min_max_dates(min_date, max_date));
   if (max_date == 0) {
     return promise.set_value(Unit());
   }
