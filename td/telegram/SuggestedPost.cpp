@@ -39,7 +39,7 @@ Result<unique_ptr<SuggestedPost>> SuggestedPost::get_suggested_post(
   auto result = make_unique<SuggestedPost>();
   result->price_ = std::move(price);
   result->schedule_date_ = send_date;
-  return result;
+  return std::move(result);
 }
 
 telegram_api::object_ptr<telegram_api::suggestedPost> SuggestedPost::get_input_suggested_post() const {
