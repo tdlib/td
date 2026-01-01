@@ -79,7 +79,7 @@ index a1d13e9..8efcf20 100644
  # The architecture of the machine doing the build
  HOST_ARCH=$(shell uname -m)
  HOST_PYTHON=install/macOS/macosx/python-$(PYTHON_VERSION)
-@@ -212,6 +236,10 @@ ARCH-$(target)=$$(subst .,,$$(suffix $(target)))
+@@ -212,12 +236,12 @@ ARCH-$(target)=$$(subst .,,$$(suffix $(target)))
  
  ifeq ($(os),macOS)
  TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-darwin
@@ -88,9 +88,15 @@ index a1d13e9..8efcf20 100644
 +else ifeq ($(os),visionOS-simulator)
 +TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-xros-simulator
  else
- 	ifeq ($$(findstring simulator,$$(SDK-$(target))),)
+-	ifeq ($$(findstring simulator,$$(SDK-$(target))),)
  TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))
-@@ -662,7 +690,7 @@ BZIP2_FATLIB-$(sdk)=$$(BZIP2_MERGE-$(sdk))/lib/libbz2.a
+-	else
+-TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))-simulator
+-	endif
+ endif
+ 
+ SDK_ROOT-$(target)=$$(shell xcrun --sdk $$(SDK-$(target)) --show-sdk-path)
+@@ -662,7 +686,7 @@ BZIP2_FATLIB-$(sdk)=$$(BZIP2_MERGE-$(sdk))/lib/libbz2.a
  XZ_MERGE-$(sdk)=$(PROJECT_DIR)/merge/$(os)/$(sdk)/xz-$(XZ_VERSION)
  XZ_FATLIB-$(sdk)=$$(XZ_MERGE-$(sdk))/lib/liblzma.a
  
@@ -99,7 +105,7 @@ index a1d13e9..8efcf20 100644
  OPENSSL_FATINCLUDE-$(sdk)=$$(OPENSSL_MERGE-$(sdk))/include
  OPENSSL_SSL_FATLIB-$(sdk)=$$(OPENSSL_MERGE-$(sdk))/lib/libssl.a
  OPENSSL_CRYPTO_FATLIB-$(sdk)=$$(OPENSSL_MERGE-$(sdk))/lib/libcrypto.a
-@@ -716,14 +744,14 @@ $$(OPENSSL_SSL_FATLIB-$(sdk)): $$(foreach target,$$(SDK_TARGETS-$(sdk)),$$(OPENS
+@@ -716,14 +740,14 @@ $$(OPENSSL_SSL_FATLIB-$(sdk)): $$(foreach target,$$(SDK_TARGETS-$(sdk)),$$(OPENS
  	mkdir -p $$(OPENSSL_MERGE-$(sdk))/lib
  	lipo -create -output $$@ \
  		$$(foreach target,$$(SDK_TARGETS-$(sdk)),$$(OPENSSL_SSL_LIB-$$(target))) \
