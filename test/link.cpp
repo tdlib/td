@@ -1374,6 +1374,10 @@ TEST(Link, parse_internal_link_part3) {
   parse_internal_link("tg:resolve?domain=username&startchannel&admin=", public_chat("username"));
   parse_internal_link(
       "tg:resolve?domain=username&startchannel&admin=post_messages+manage_direct_messages",
+      bot_add_to_channel("username", chat_administrator_rights(true, false, true, false, false, false, false, false,
+                                                               false, false, false, false, false, false, true, false)));
+  parse_internal_link(
+      "tg:resolve?domain=username&startchannel&admin=post_messages+manage_direct_messages+restrict_members",
       bot_add_to_channel("username", chat_administrator_rights(true, false, true, false, false, false, true, false,
                                                                false, false, false, false, false, false, true, false)));
   parse_internal_link(
@@ -1414,7 +1418,7 @@ TEST(Link, parse_internal_link_part3) {
   parse_internal_link("t.me/username?startchannel&admin=", public_chat("username"));
   parse_internal_link("t.me/username?startchannel&admin=post_messages",
                       bot_add_to_channel("username", chat_administrator_rights(true, false, true, false, false, false,
-                                                                               true, false, false, false, false, false,
+                                                                               false, false, false, false, false, false,
                                                                                false, false, false, false)));
   parse_internal_link(
       "t.me/"
