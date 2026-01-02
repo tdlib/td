@@ -479,8 +479,8 @@ static td_api::object_ptr<td_api::ChatEventAction> get_chat_event_action_object(
     }
     case telegram_api::channelAdminLogEventActionChangeWallpaper::ID: {
       auto action = telegram_api::move_object_as<telegram_api::channelAdminLogEventActionChangeWallpaper>(action_ptr);
-      auto old_background_info = BackgroundInfo(td, std::move(action->prev_value_), true);
-      auto new_background_info = BackgroundInfo(td, std::move(action->new_value_), true);
+      auto old_background_info = BackgroundInfo(td, std::move(action->prev_value_), true, false);
+      auto new_background_info = BackgroundInfo(td, std::move(action->new_value_), true, false);
       return td_api::make_object<td_api::chatEventBackgroundChanged>(
           old_background_info.get_chat_background_object(td), new_background_info.get_chat_background_object(td));
     }

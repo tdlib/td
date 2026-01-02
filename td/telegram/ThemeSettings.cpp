@@ -15,7 +15,7 @@ ThemeSettings::ThemeSettings(Td *td, telegram_api::object_ptr<telegram_api::them
     accent_color_ = settings->accent_color_;
     bool has_outbox_accent_color = (settings->flags_ & telegram_api::themeSettings::OUTBOX_ACCENT_COLOR_MASK) != 0;
     message_accent_color_ = (has_outbox_accent_color ? settings->outbox_accent_color_ : accent_color_);
-    background_info_ = BackgroundInfo(td, std::move(settings->wallpaper_), true);
+    background_info_ = BackgroundInfo(td, std::move(settings->wallpaper_), true, true /*gift themes are pattern-like*/);
     base_theme_ = get_base_theme(settings->base_theme_);
     message_colors_ = std::move(settings->message_colors_);
     animate_message_colors_ = settings->message_colors_animated_;

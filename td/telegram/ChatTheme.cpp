@@ -37,7 +37,7 @@ ChatTheme::ChatTheme(Td *td, telegram_api::object_ptr<telegram_api::ChatTheme> t
       bool was_light = false;
       bool was_dark = false;
       for (auto &settings : chat_theme->theme_settings_) {
-        ThemeSettings theme_settings(td, std::move(settings));
+        auto theme_settings = ThemeSettings(td, std::move(settings));
         if (theme_settings.is_empty()) {
           LOG(ERROR) << "Receive empty chat theme settings for " << star_gift;
           continue;

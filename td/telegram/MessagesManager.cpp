@@ -28105,7 +28105,7 @@ void MessagesManager::on_update_dialog_background(DialogId dialog_id,
     return;
   }
 
-  set_dialog_background(d, BackgroundInfo(td_, std::move(wallpaper), true));
+  set_dialog_background(d, BackgroundInfo(td_, std::move(wallpaper), true, false));
 }
 
 void MessagesManager::set_dialog_background(Dialog *d, BackgroundInfo &&background_info) {
