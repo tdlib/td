@@ -130,6 +130,7 @@ StarGift::StarGift(Td *td, telegram_api::object_ptr<telegram_api::StarGift> star
     value_usd_amount_ = star_gift->value_usd_amount_;
     if (star_gift->theme_peer_ != nullptr) {
       theme_dialog_id_ = DialogId(star_gift->theme_peer_);
+      td->dialog_manager_->force_create_dialog(theme_dialog_id_, "StarGift", true);
     }
     if (star_gift->peer_color_ != nullptr) {
       if (star_gift->peer_color_->get_id() == telegram_api::peerColorCollectible::ID) {
