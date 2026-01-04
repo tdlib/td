@@ -21122,7 +21122,7 @@ Status MessagesManager::check_paid_message_star_count(int64 &paid_message_star_c
   return Status::OK();
 }
 
-Result<MessagesManager::MessageSendOptions> MessagesManager::process_message_send_options(
+Result<MessageSendOptions> MessagesManager::process_message_send_options(
     DialogId dialog_id, tl_object_ptr<td_api::messageSendOptions> &&options, bool allow_update_stickersets_order,
     bool allow_effect, bool allow_suggested_post, bool allow_repeat_period, int32 message_count) const {
   MessageSendOptions result;

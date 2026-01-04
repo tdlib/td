@@ -894,6 +894,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/MessageSearchOffset.h
   td/telegram/MessageSelfDestructType.h
   td/telegram/MessageSender.h
+  td/telegram/MessageSendOptions.h
   td/telegram/MessagesInfo.h
   td/telegram/MessagesManager.h
   td/telegram/MessageSource.h
