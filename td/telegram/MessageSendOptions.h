@@ -6,14 +6,23 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageEffectId.h"
 #include "td/telegram/SuggestedPost.h"
+#include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
 
+#include <utility>
+
 namespace td {
 
-struct MessageSendOptions {
+class Td;
+
+class MessageSendOptions {
+  static constexpr int32 SCHEDULE_WHEN_ONLINE_DATE = 2147483646;
+
+ public:
   bool disable_notification = false;
   bool from_background = false;
   bool update_stickersets_order = false;
@@ -47,6 +56,20 @@ struct MessageSendOptions {
       , paid_message_star_count(paid_message_star_count)
       , suggested_post(std::move(suggested_post)) {
   }
+
+  static Result<std::pair<int32, int32>> get_message_schedule_date(
+      td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state, bool allow_repeat_period);
+
+  static td_api::object_ptr<td_api::MessageSchedulingState> get_message_scheduling_state_object(
+      int32 send_date, int32 repeat_period, bool video_processing_pending);
+
+  static Status check_paid_message_star_count(Td *td, int64 &paid_message_star_count, int32 message_count);
+
+  static Result<MessageSendOptions> get_message_send_options(Td *td, DialogId dialog_id,
+                                                             td_api::object_ptr<td_api::messageSendOptions> &&options,
+                                                             bool allow_update_stickersets_order, bool allow_effect,
+                                                             bool allow_suggested_post, bool allow_repeat_period,
+                                                             int32 message_count);
 };
 
 }  // namespace td

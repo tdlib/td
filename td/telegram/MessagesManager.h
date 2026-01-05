@@ -1617,8 +1617,6 @@ class MessagesManager final : public Actor {
 
   static constexpr int32 MAX_RESEND_DELAY = 86400;  // seconds, some reasonable limit
 
-  static constexpr int32 SCHEDULE_WHEN_ONLINE_DATE = 2147483646;
-
   static constexpr bool DROP_SEND_MESSAGE_UPDATES = false;
 
   vector<UserId> get_message_user_ids(const Message *m) const;
@@ -1679,14 +1677,6 @@ class MessagesManager final : public Actor {
   Result<InputMessageContent> process_input_message_content(
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
       bool check_permissions = true);
-
-  Status check_paid_message_star_count(int64 &paid_message_star_count, int32 message_count) const;
-
-  Result<MessageSendOptions> process_message_send_options(DialogId dialog_id,
-                                                          tl_object_ptr<td_api::messageSendOptions> &&options,
-                                                          bool allow_update_stickersets_order, bool allow_effect,
-                                                          bool allow_suggested_post, bool allow_repeat_period,
-                                                          int32 message_count) const;
 
   static Status can_use_message_send_options(const MessageSendOptions &options,
                                              const unique_ptr<MessageContent> &content, MessageSelfDestructType ttl);
@@ -2436,13 +2426,7 @@ class MessagesManager final : public Actor {
 
   void do_repair_dialog_active_group_call_id(DialogId dialog_id);
 
-  static Result<std::pair<int32, int32>> get_message_schedule_date(
-      td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state, bool allow_repeat_period);
-
   tl_object_ptr<td_api::MessageSendingState> get_message_sending_state_object(const Message *m) const;
-
-  static tl_object_ptr<td_api::MessageSchedulingState> get_message_scheduling_state_object(
-      int32 send_date, int32 repeat_period, bool video_processing_pending);
 
   td_api::object_ptr<td_api::MessageContent> get_message_message_content_object(DialogId dialog_id,
                                                                                 const Message *m) const;

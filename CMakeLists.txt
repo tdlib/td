@@ -512,6 +512,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/MessageSearchOffset.cpp
   td/telegram/MessageSelfDestructType.cpp
   td/telegram/MessageSender.cpp
+  td/telegram/MessageSendOptions.cpp
   td/telegram/MessagesInfo.cpp
   td/telegram/MessagesManager.cpp
   td/telegram/MessageSource.cpp
