@@ -22,7 +22,10 @@ StarGiftAttributeSticker::StarGiftAttributeSticker(
                            ->on_get_sticker_document(std::move(attribute->document_), StickerFormat::Unknown,
                                                      "StarGiftAttributeSticker")
                            .second)
-    , rarity_permille_(attribute->rarity_permille_) {
+    , rarity_permille_(
+          attribute->rarity_->get_id() == telegram_api::starGiftAttributeRarity::ID
+              ? static_cast<const telegram_api::starGiftAttributeRarity *>(attribute->rarity_.get())->permille_
+              : 0) {
 }
 
 StarGiftAttributeSticker::StarGiftAttributeSticker(
@@ -32,7 +35,10 @@ StarGiftAttributeSticker::StarGiftAttributeSticker(
                            ->on_get_sticker_document(std::move(attribute->document_), StickerFormat::Unknown,
                                                      "StarGiftAttributeSticker")
                            .second)
-    , rarity_permille_(attribute->rarity_permille_) {
+    , rarity_permille_(
+          attribute->rarity_->get_id() == telegram_api::starGiftAttributeRarity::ID
+              ? static_cast<const telegram_api::starGiftAttributeRarity *>(attribute->rarity_.get())->permille_
+              : 0) {
 }
 
 td_api::object_ptr<td_api::upgradedGiftModel> StarGiftAttributeSticker::get_upgraded_gift_model_object(
@@ -68,7 +74,10 @@ StarGiftAttributeBackdrop::StarGiftAttributeBackdrop(
     , edge_color_(attribute->edge_color_)
     , pattern_color_(attribute->pattern_color_)
     , text_color_(attribute->text_color_)
-    , rarity_permille_(attribute->rarity_permille_) {
+    , rarity_permille_(
+          attribute->rarity_->get_id() == telegram_api::starGiftAttributeRarity::ID
+              ? static_cast<const telegram_api::starGiftAttributeRarity *>(attribute->rarity_.get())->permille_
+              : 0) {
 }
 
 bool StarGiftAttributeBackdrop::is_valid() const {

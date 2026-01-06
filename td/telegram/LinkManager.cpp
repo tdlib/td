@@ -1323,7 +1323,7 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_acceptUrlAuth::URL_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_acceptUrlAuth(
-        flags, allow_write_access, std::move(input_peer),
+        flags, allow_write_access, false, std::move(input_peer),
         message_full_id.get_message_id().get_server_message_id().get(), button_id, url_)));
   }
 

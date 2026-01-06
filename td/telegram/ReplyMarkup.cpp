@@ -844,24 +844,32 @@ unique_ptr<ReplyMarkup> dup_reply_markup(const unique_ptr<ReplyMarkup> &reply_ma
 }
 
 static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(const KeyboardButton &keyboard_button) {
+  int32 flags = 0;
+  telegram_api::object_ptr<telegram_api::keyboardButtonStyle> style;
   switch (keyboard_button.type) {
     case KeyboardButton::Type::Text:
-      return make_tl_object<telegram_api::keyboardButton>(keyboard_button.text);
+      return make_tl_object<telegram_api::keyboardButton>(flags, std::move(style), keyboard_button.text);
     case KeyboardButton::Type::RequestPhoneNumber:
-      return make_tl_object<telegram_api::keyboardButtonRequestPhone>(keyboard_button.text);
+      return make_tl_object<telegram_api::keyboardButtonRequestPhone>(flags, std::move(style), keyboard_button.text);
     case KeyboardButton::Type::RequestLocation:
-      return make_tl_object<telegram_api::keyboardButtonRequestGeoLocation>(keyboard_button.text);
+      return make_tl_object<telegram_api::keyboardButtonRequestGeoLocation>(flags, std::move(style),
+                                                                            keyboard_button.text);
     case KeyboardButton::Type::RequestPoll:
-      return make_tl_object<telegram_api::keyboardButtonRequestPoll>(0, false, keyboard_button.text);
+      return make_tl_object<telegram_api::keyboardButtonRequestPoll>(flags, std::move(style), false,
+                                                                     keyboard_button.text);
     case KeyboardButton::Type::RequestPollQuiz:
-      return make_tl_object<telegram_api::keyboardButtonRequestPoll>(1, true, keyboard_button.text);
+      return make_tl_object<telegram_api::keyboardButtonRequestPoll>(
+          flags | telegram_api::keyboardButtonRequestPoll::QUIZ_MASK, std::move(style), true, keyboard_button.text);
     case KeyboardButton::Type::RequestPollRegular:
-      return make_tl_object<telegram_api::keyboardButtonRequestPoll>(1, false, keyboard_button.text);
+      return make_tl_object<telegram_api::keyboardButtonRequestPoll>(
+          flags | telegram_api::keyboardButtonRequestPoll::QUIZ_MASK, std::move(style), false, keyboard_button.text);
     case KeyboardButton::Type::WebView:
-      return make_tl_object<telegram_api::keyboardButtonSimpleWebView>(keyboard_button.text, keyboard_button.url);
+      return make_tl_object<telegram_api::keyboardButtonSimpleWebView>(flags, std::move(style), keyboard_button.text,
+                                                                       keyboard_button.url);
     case KeyboardButton::Type::RequestDialog:
       CHECK(keyboard_button.requested_dialog_type != nullptr);
-      return keyboard_button.requested_dialog_type->get_input_keyboard_button_request_peer(keyboard_button.text);
+      return keyboard_button.requested_dialog_type->get_input_keyboard_button_request_peer(flags, std::move(style),
+                                                                                           keyboard_button.text);
     default:
       UNREACHABLE();
       return nullptr;
@@ -870,31 +878,32 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(con
 
 static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
     UserManager *user_manager, const InlineKeyboardButton &keyboard_button) {
+  int32 flags = 0;
+  telegram_api::object_ptr<telegram_api::keyboardButtonStyle> style;
   switch (keyboard_button.type) {
     case InlineKeyboardButton::Type::Url:
-      return make_tl_object<telegram_api::keyboardButtonUrl>(keyboard_button.text, keyboard_button.data);
+      return make_tl_object<telegram_api::keyboardButtonUrl>(flags, std::move(style), keyboard_button.text,
+                                                             keyboard_button.data);
     case InlineKeyboardButton::Type::Callback:
-      return make_tl_object<telegram_api::keyboardButtonCallback>(0, false, keyboard_button.text,
+      return make_tl_object<telegram_api::keyboardButtonCallback>(flags, false, std::move(style), keyboard_button.text,
                                                                   BufferSlice(keyboard_button.data));
     case InlineKeyboardButton::Type::CallbackGame:
-      return make_tl_object<telegram_api::keyboardButtonGame>(keyboard_button.text);
+      return make_tl_object<telegram_api::keyboardButtonGame>(flags, std::move(style), keyboard_button.text);
     case InlineKeyboardButton::Type::SwitchInline: {
-      int32 flags = 0;
       auto peer_types = TargetDialogTypes(keyboard_button.id).get_input_peer_types();
       if (!peer_types.empty()) {
         flags |= telegram_api::keyboardButtonSwitchInline::PEER_TYPES_MASK;
       }
-      return make_tl_object<telegram_api::keyboardButtonSwitchInline>(flags, false, keyboard_button.text,
-                                                                      keyboard_button.data, std::move(peer_types));
+      return make_tl_object<telegram_api::keyboardButtonSwitchInline>(
+          flags, false, std::move(style), keyboard_button.text, keyboard_button.data, std::move(peer_types));
     }
     case InlineKeyboardButton::Type::SwitchInlineCurrentDialog:
       return make_tl_object<telegram_api::keyboardButtonSwitchInline>(
-          0, true, keyboard_button.text, keyboard_button.data,
+          flags, true, std::move(style), keyboard_button.text, keyboard_button.data,
           vector<telegram_api::object_ptr<telegram_api::InlineQueryPeerType>>());
     case InlineKeyboardButton::Type::Buy:
-      return make_tl_object<telegram_api::keyboardButtonBuy>(keyboard_button.text);
+      return make_tl_object<telegram_api::keyboardButtonBuy>(flags, std::move(style), keyboard_button.text);
     case InlineKeyboardButton::Type::UrlAuth: {
-      int32 flags = 0;
       bool request_write_access = false;
       int64 bot_user_id = keyboard_button.id;
       if (bot_user_id > 0) {
@@ -908,11 +917,12 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
       auto r_input_user = user_manager->get_input_user(UserId(bot_user_id));
       if (r_input_user.is_error()) {
         LOG(ERROR) << "Failed to get InputUser for " << bot_user_id << ": " << r_input_user.error();
-        return make_tl_object<telegram_api::keyboardButtonUrl>(keyboard_button.text, keyboard_button.data);
+        return make_tl_object<telegram_api::keyboardButtonUrl>(flags, std::move(style), keyboard_button.text,
+                                                               keyboard_button.data);
       }
-      return make_tl_object<telegram_api::inputKeyboardButtonUrlAuth>(flags, request_write_access, keyboard_button.text,
-                                                                      keyboard_button.forward_text,
-                                                                      keyboard_button.data, r_input_user.move_as_ok());
+      return make_tl_object<telegram_api::inputKeyboardButtonUrlAuth>(
+          flags, request_write_access, std::move(style), keyboard_button.text, keyboard_button.forward_text,
+          keyboard_button.data, r_input_user.move_as_ok());
     }
     case InlineKeyboardButton::Type::CallbackWithPassword:
       UNREACHABLE();
@@ -923,13 +933,15 @@ static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
         LOG(ERROR) << "Failed to get InputUser for " << keyboard_button.user_id << ": " << r_input_user.error();
         r_input_user = make_tl_object<telegram_api::inputUserEmpty>();
       }
-      return make_tl_object<telegram_api::inputKeyboardButtonUserProfile>(keyboard_button.text,
+      return make_tl_object<telegram_api::inputKeyboardButtonUserProfile>(flags, std::move(style), keyboard_button.text,
                                                                           r_input_user.move_as_ok());
     }
     case InlineKeyboardButton::Type::WebView:
-      return make_tl_object<telegram_api::keyboardButtonWebView>(keyboard_button.text, keyboard_button.data);
+      return make_tl_object<telegram_api::keyboardButtonWebView>(flags, std::move(style), keyboard_button.text,
+                                                                 keyboard_button.data);
     case InlineKeyboardButton::Type::Copy:
-      return make_tl_object<telegram_api::keyboardButtonCopy>(keyboard_button.text, keyboard_button.data);
+      return make_tl_object<telegram_api::keyboardButtonCopy>(flags, std::move(style), keyboard_button.text,
+                                                              keyboard_button.data);
     default:
       UNREACHABLE();
       return nullptr;

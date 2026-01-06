@@ -9086,6 +9086,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionSuggestedPostApproval::ID:
       case telegram_api::messageActionSuggestedPostSuccess::ID:
       case telegram_api::messageActionSuggestedPostRefund::ID:
+      case telegram_api::messageActionNewCreatorPending::ID:
+      case telegram_api::messageActionChangeCreator::ID:
         LOG(ERROR) << "Receive business " << to_string(action_ptr);
         break;
       case telegram_api::messageActionHistoryClear::ID:
@@ -9817,6 +9819,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessageStarGiftPurchaseOfferDeclined>(
           std::move(star_gift), StarGiftResalePrice(std::move(action->price_)), reply_to_message_id, action->expired_);
     }
+    case telegram_api::messageActionNewCreatorPending::ID:
+      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionChangeCreator::ID:
+      return td::make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }
