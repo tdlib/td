@@ -1302,6 +1302,9 @@ upgradedGiftOriginPrepaidUpgrade = UpgradedGiftOrigin;
 //@description The gift was bought through an offer @price Price paid for the gift
 upgradedGiftOriginOffer price:GiftResalePrice = UpgradedGiftOrigin;
 
+//@description The gift was crafted from other gifts
+upgradedGiftOriginCraft = UpgradedGiftOrigin;
+
 
 //@description Describes a model of an upgraded gift
 //@name Name of the model
