@@ -20950,7 +20950,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_message(
                                                                                 true, true, true, true, 1));
   TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content),
                                                             !message_send_options.allow_paid));
-  TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
+  TRY_STATUS(message_send_options.can_use_for(message_content));
 
   // there must be no errors after get_message_to_send call
 
@@ -21052,26 +21052,6 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   return std::move(content);
 }
 
-Status MessagesManager::can_use_message_send_options(const MessageSendOptions &options,
-                                                     const unique_ptr<MessageContent> &content,
-                                                     MessageSelfDestructType ttl) {
-  if (options.schedule_date != 0) {
-    if (ttl.is_valid()) {
-      return Status::Error(400, "Can't send scheduled self-destructing messages");
-    }
-    if (content->get_type() == MessageContentType::LiveLocation) {
-      return Status::Error(400, "Can't send scheduled live location messages");
-    }
-  }
-
-  return Status::OK();
-}
-
-Status MessagesManager::can_use_message_send_options(const MessageSendOptions &options,
-                                                     const InputMessageContent &content) {
-  return can_use_message_send_options(options, content.content, content.ttl);
-}
-
 Status MessagesManager::can_use_forum_topic_id(Dialog *d, ForumTopicId forum_topic_id) {
   if (forum_topic_id == ForumTopicId()) {
     return Status::OK();
@@ -21122,7 +21102,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_message_group
   for (auto &input_message_content : input_message_contents) {
     TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content),
                                                               !message_send_options.allow_paid));
-    TRY_STATUS(can_use_message_send_options(message_send_options, message_content));
+    TRY_STATUS(message_send_options.can_use_for(message_content));
     message_contents.push_back(std::move(message_content));
   }
   TRY_STATUS(check_message_group_message_contents(message_contents));
@@ -22246,7 +22226,7 @@ Result<td_api::object_ptr<td_api::message>> MessagesManager::send_inline_query_r
 
   TRY_RESULT(message_topic, MessageTopic::get_send_message_topic(td_, dialog_id, topic_id));
   auto input_reply_to = create_message_input_reply_to(d, message_topic, std::move(reply_to), false);
-  TRY_STATUS(can_use_message_send_options(message_send_options, content->message_content, MessageSelfDestructType()));
+  TRY_STATUS(message_send_options.can_use_for(content->message_content, MessageSelfDestructType()));
   TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false, true, td_));
 
   auto message_content = dup_message_content(td_, dialog_id, content->message_content.get(),
@@ -23937,8 +23917,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
       continue;
     }
 
-    auto can_use_options_status =
-        can_use_message_send_options(message_send_options, content, MessageSelfDestructType());
+    auto can_use_options_status = message_send_options.can_use_for(content, MessageSelfDestructType());
     if (can_use_options_status.is_error()) {
       LOG(INFO) << "Can't forward " << message_id << ": " << can_send_status.message();
       continue;

@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageEffectId.h"
+#include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/SuggestedPost.h"
 #include "td/telegram/td_api.h"
 
@@ -17,6 +18,8 @@
 
 namespace td {
 
+struct InputMessageContent;
+class MessageContent;
 class Td;
 
 class MessageSendOptions {
@@ -70,6 +73,10 @@ class MessageSendOptions {
                                                              bool allow_update_stickersets_order, bool allow_effect,
                                                              bool allow_suggested_post, bool allow_repeat_period,
                                                              int32 message_count);
+
+  Status can_use_for(const unique_ptr<MessageContent> &content, MessageSelfDestructType ttl) const;
+
+  Status can_use_for(const InputMessageContent &content) const;
 };
 
 }  // namespace td

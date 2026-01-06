@@ -9,6 +9,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageContent.h"
 #include "td/telegram/StarManager.h"
 #include "td/telegram/Td.h"
 
@@ -158,6 +159,22 @@ Result<MessageSendOptions> MessageSendOptions::get_message_send_options(
   }
 
   return std::move(result);
+}
+
+Status MessageSendOptions::can_use_for(const unique_ptr<MessageContent> &content, MessageSelfDestructType ttl) const {
+  if (schedule_date != 0) {
+    if (ttl.is_valid()) {
+      return Status::Error(400, "Can't send scheduled self-destructing messages");
+    }
+    if (content->get_type() == MessageContentType::LiveLocation) {
+      return Status::Error(400, "Can't send scheduled live location messages");
+    }
+  }
+  return Status::OK();
+}
+
+Status MessageSendOptions::can_use_for(const InputMessageContent &content) const {
+  return can_use_for(content.content, content.ttl);
 }
 
 }  // namespace td

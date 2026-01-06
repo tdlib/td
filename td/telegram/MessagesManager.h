@@ -1677,11 +1677,6 @@ class MessagesManager final : public Actor {
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
       bool check_permissions = true);
 
-  static Status can_use_message_send_options(const MessageSendOptions &options,
-                                             const unique_ptr<MessageContent> &content, MessageSelfDestructType ttl);
-
-  static Status can_use_message_send_options(const MessageSendOptions &options, const InputMessageContent &content);
-
   Status can_use_forum_topic_id(Dialog *d, ForumTopicId forum_topic_id);
 
   int64 generate_new_random_id(const Dialog *d);
