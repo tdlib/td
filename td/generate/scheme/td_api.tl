@@ -8254,10 +8254,49 @@ reportStoryResultOptionRequired title:string options:vector<reportOption> = Repo
 reportStoryResultTextRequired option_id:bytes is_optional:Bool = ReportStoryResult;
 
 
-//@class InternalLinkType @description Describes an internal https://t.me or tg: link, which must be processed by the application in a special way
+//@class SettingsSection @description Describes a section of the application settings
 
-//@description The link is a link to the Devices section of the application. Use getActiveSessions to get the list of active sessions and show them to the user
-internalLinkTypeActiveSessions = InternalLinkType;
+//@description The appearance section
+settingsSectionAppearance = SettingsSection;
+
+//@description The chat folders settings section
+settingsSectionChatFolders = SettingsSection;
+
+//@description The default message auto-delete timer settings section
+settingsSectionDefaultMessageAutoDeleteTimer = SettingsSection;
+
+//@description The Devices section. Use getActiveSessions to get the list of active sessions
+settingsSectionDevices = SettingsSection;
+
+//@description The profile edit section
+settingsSectionEditProfile = SettingsSection;
+
+//@description The application language section
+settingsSectionLanguage = SettingsSection;
+
+//@description The login email set up section
+settingsSectionLoginEmail = SettingsSection;
+
+//@description The Telegram Star balance and transactions of the current user section
+settingsSectionMyStars = SettingsSection;
+
+//@description The Toncoin balance and transactions of the current user section
+settingsSectionMyToncoins = SettingsSection;
+
+//@description The password set up section
+settingsSectionPassword = SettingsSection;
+
+//@description The phone number change section
+settingsSectionPhoneNumber = SettingsSection;
+
+//@description The phone number privacy settings section
+settingsSectionPhoneNumberPrivacy = SettingsSection;
+
+//@description The privacy and security section
+settingsSectionPrivacyAndSecurity = SettingsSection;
+
+
+//@class InternalLinkType @description Describes an internal https://t.me or tg: link, which must be processed by the application in a special way
 
 //@description The link is a link to an attachment menu bot to be opened in the specified or a chosen chat. Process given target_chat to open the chat.
 //-Then, call searchPublicChat with the given bot username, check that the user is a bot and can be added to attachment menu. Then, use getAttachmentMenuBot to receive information about the bot.
@@ -8312,9 +8351,6 @@ internalLinkTypeBusinessChat link_name:string = InternalLinkType;
 //@purpose Purpose of Telegram Star purchase. Arbitrary string specified by the server, for example, "subs" if the Telegram Stars are required to extend channel subscriptions
 internalLinkTypeBuyStars star_count:int53 purpose:string = InternalLinkType;
 
-//@description The link is a link to the change phone number section of the application
-internalLinkTypeChangePhoneNumber = InternalLinkType;
-
 //@description The link is an affiliate program link. Call searchChatAffiliateProgram with the given username and referrer to process the link
 //@username Username to be passed to searchChatAffiliateProgram
 //@referrer Referrer to be passed to searchChatAffiliateProgram
@@ -8331,24 +8367,15 @@ internalLinkTypeChatBoost url:string = InternalLinkType;
 //@invite_link Internal representation of the invite link
 internalLinkTypeChatFolderInvite invite_link:string = InternalLinkType;
 
-//@description The link is a link to the folder section of the application settings
-internalLinkTypeChatFolderSettings = InternalLinkType;
-
 //@description The link is a chat invite link. Call checkChatInviteLink with the given invite link to process the link.
 //-If the link is valid and the user wants to join the chat, then call joinChatByInviteLink
 //@invite_link Internal representation of the invite link
 internalLinkTypeChatInvite invite_link:string = InternalLinkType;
 
-//@description The link is a link to the default message auto-delete timer settings section of the application settings
-internalLinkTypeDefaultMessageAutoDeleteTimerSettings = InternalLinkType;
-
 //@description The link is a link to a channel direct messages chat by username of the channel. Call searchPublicChat with the given chat username to process the link.
 //-If the chat is found and is channel, open the direct messages chat of the channel
 //@channel_username Username of the channel
 internalLinkTypeDirectMessagesChat channel_username:string = InternalLinkType;
-
-//@description The link is a link to the edit profile section of the application settings
-internalLinkTypeEditProfileSettings = InternalLinkType;
 
 //@description The link is a link to a game. Call searchPublicChat with the given bot username, check that the user is a bot,
 //-ask the current user to select a chat to send the game, and then call sendMessage with inputMessageGame
@@ -8385,16 +8412,10 @@ internalLinkTypeInvoice invoice_name:string = InternalLinkType;
 //@language_pack_id Language pack identifier
 internalLinkTypeLanguagePack language_pack_id:string = InternalLinkType;
 
-//@description The link is a link to the language section of the application settings
-internalLinkTypeLanguageSettings = InternalLinkType;
-
 //@description The link is a link to a live story. Call searchPublicChat with the given chat username, then getChatActiveStories to get active stories in the chat,
 //-then find a live story among active stories of the chat, and then joinLiveStory to join the live story
 //@story_poster_username Username of the poster of the story
 internalLinkTypeLiveStory story_poster_username:string = InternalLinkType;
-
-//@description The link is a link to the login email set up section of the application settings, forcing set up of the login email
-internalLinkTypeLoginEmailSettings = InternalLinkType;
 
 //@description The link is a link to the main Web App of a bot. Call searchPublicChat with the given bot username, check that the user is a bot and has the main Web App.
 //-If the bot can be added to attachment menu, then use getAttachmentMenuBot to receive information about the bot, then if the bot isn't added to side menu,
@@ -8416,12 +8437,6 @@ internalLinkTypeMessage url:string = InternalLinkType;
 //@contains_link True, if the first line of the text contains a link. If true, the input field needs to be focused and the text after the link must be selected
 internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLinkType;
 
-//@description The link is a link to the screen with information about Telegram Star balance and transactions of the current user
-internalLinkTypeMyStars = InternalLinkType;
-
-//@description The link is a link to the screen with information about Toncoin balance and transactions of the current user
-internalLinkTypeMyToncoins = InternalLinkType;
-
 //@description The link contains a request of Telegram passport data. Call getPassportAuthorizationForm with the given parameters to process the link if the link was received from outside of the application; otherwise, ignore it
 //@bot_user_id User identifier of the service's bot; the corresponding user may be unknown yet
 //@scope Telegram Passport element types requested by the service
@@ -8431,17 +8446,11 @@ internalLinkTypeMyToncoins = InternalLinkType;
 //-If empty, then onActivityResult method must be used to return response on Android, or the link tgbot{bot_user_id}://passport/success or tgbot{bot_user_id}://passport/cancel must be opened otherwise
 internalLinkTypePassportDataRequest bot_user_id:int53 scope:string public_key:string nonce:string callback_url:string = InternalLinkType;
 
-//@description The link is a link to the password section of the application settings
-internalLinkTypePasswordSettings = InternalLinkType;
-
 //@description The link can be used to confirm ownership of a phone number to prevent account deletion. Call sendPhoneNumberCode with the given phone number and with phoneNumberCodeTypeConfirmOwnership with the given hash to process the link.
 //-If succeeded, call checkPhoneNumberCode to check entered by the user code, or resendPhoneNumberCode to resend it
 //@hash Hash value from the link
 //@phone_number Phone number value from the link
 internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = InternalLinkType;
-
-//@description The link is a link to the phone number privacy settings section of the application settings
-internalLinkTypePhoneNumberPrivacySettings = InternalLinkType;
 
 //@description The link is a link to the Premium features screen of the application from which the user can subscribe to Telegram Premium. Call getPremiumFeatures with the given referrer to process the link
 //@referrer Referrer specified in the link
@@ -8455,9 +8464,6 @@ internalLinkTypePremiumGift referrer:string = InternalLinkType;
 //-If the code is valid and the user wants to apply it, then call applyPremiumGiftCode
 //@code The Telegram Premium gift code
 internalLinkTypePremiumGiftCode code:string = InternalLinkType;
-
-//@description The link is a link to the privacy and security section of the application settings
-internalLinkTypePrivacyAndSecuritySettings = InternalLinkType;
 
 //@description The link is a link to a proxy. Call addProxy with the given parameters to process the link and add the proxy
 //@server Proxy server domain or IP address
@@ -8480,8 +8486,8 @@ internalLinkTypeQrCodeAuthentication = InternalLinkType;
 //@description The link forces restore of App Store purchases when opened. For official iOS application only
 internalLinkTypeRestorePurchases = InternalLinkType;
 
-//@description The link is a link to application settings
-internalLinkTypeSettings = InternalLinkType;
+//@description The link is a link to application settings @section Section of the application settings to open; may be null if none
+internalLinkTypeSettings section:SettingsSection = InternalLinkType;
 
 //@description The link is a link to a sticker set. Call searchStickerSet with the given sticker set name to process the link and show the sticker set.
 //-If the sticker set is found and the user wants to add it, then call changeStickerSet
@@ -8502,9 +8508,6 @@ internalLinkTypeStoryAlbum story_album_owner_username:string story_album_id:int3
 
 //@description The link is a link to a cloud theme. TDLib has no theme support yet @theme_name Name of the theme
 internalLinkTypeTheme theme_name:string = InternalLinkType;
-
-//@description The link is a link to the theme section of the application settings
-internalLinkTypeThemeSettings = InternalLinkType;
 
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link @link Link to be passed to getDeepLinkInfo
 internalLinkTypeUnknownDeepLink link:string = InternalLinkType;

@@ -127,7 +127,6 @@ class LinkManager final : public Actor {
 
   void tear_down() final;
 
-  class InternalLinkActiveSessions;
   class InternalLinkAttachMenuBot;
   class InternalLinkAuthenticationCode;
   class InternalLinkBackground;
@@ -136,37 +135,26 @@ class LinkManager final : public Actor {
   class InternalLinkBotStartInGroup;
   class InternalLinkBusinessChat;
   class InternalLinkBuyStars;
-  class InternalLinkChangePhoneNumber;
   class InternalLinkConfirmPhone;
-  class InternalLinkDefaultMessageAutoDeleteTimerSettings;
   class InternalLinkDialogBoost;
   class InternalLinkDialogFolderInvite;
-  class InternalLinkDialogFolderSettings;
   class InternalLinkDialogInvite;
   class InternalLinkDialogReferralProgram;
-  class InternalLinkEditProfileSettings;
   class InternalLinkGame;
   class InternalLinkGiftAuction;
   class InternalLinkGroupCall;
   class InternalLinkInstantView;
   class InternalLinkInvoice;
   class InternalLinkLanguage;
-  class InternalLinkLanguageSettings;
   class InternalLinkLiveStory;
-  class InternalLinkLoginEmailSettings;
   class InternalLinkMainWebApp;
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
   class InternalLinkMonoforum;
-  class InternalLinkMyStars;
-  class InternalLinkMyToncoins;
   class InternalLinkPassportDataRequest;
-  class InternalLinkPasswordSettings;
-  class InternalLinkPhoneNumberPrivacySettings;
   class InternalLinkPremiumFeatures;
   class InternalLinkPremiumGift;
   class InternalLinkPremiumGiftCode;
-  class InternalLinkPrivacyAndSecuritySettings;
   class InternalLinkProxy;
   class InternalLinkPublicDialog;
   class InternalLinkQrCodeAuthentication;
@@ -177,7 +165,6 @@ class LinkManager final : public Actor {
   class InternalLinkStory;
   class InternalLinkStoryAlbum;
   class InternalLinkTheme;
-  class InternalLinkThemeSettings;
   class InternalLinkUnknownDeepLink;
   class InternalLinkUnsupportedProxy;
   class InternalLinkUpgradedGift;

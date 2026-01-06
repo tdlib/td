@@ -175,6 +175,10 @@ static auto chat_administrator_rights(bool can_manage_chat, bool can_change_info
       can_post_stories, can_edit_stories, can_delete_stories, can_manage_direct_messages, is_anonymous);
 }
 
+static auto settings(td::td_api::object_ptr<td::td_api::SettingsSection> section = nullptr) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeSettings>(std::move(section));
+}
+
 static auto target_chat_chosen(bool allow_users, bool allow_bots, bool allow_groups, bool allow_channels) {
   return td::td_api::make_object<td::td_api::targetChatChosen>(
       td::td_api::make_object<td::td_api::targetChatTypes>(allow_users, allow_bots, allow_groups, allow_channels));
@@ -191,7 +195,7 @@ static td::td_api::object_ptr<td::td_api::WebAppOpenMode> web_app_open_mode(bool
 }
 
 static auto active_sessions() {
-  return td::td_api::make_object<td::td_api::internalLinkTypeActiveSessions>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionDevices>());
 }
 
 static auto attachment_menu_bot(td::td_api::object_ptr<td::td_api::targetChatChosen> chat_types,
@@ -242,7 +246,7 @@ static auto buy_stars(td::int64 star_count, const td::string &purpose) {
 }
 
 static auto change_phone_number() {
-  return td::td_api::make_object<td::td_api::internalLinkTypeChangePhoneNumber>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionPhoneNumber>());
 }
 
 static auto chat_affiliate_program(const td::string &username, const td::string &referral) {
@@ -258,7 +262,7 @@ static auto chat_folder_invite(const td::string &slug) {
 }
 
 static auto chat_folder_settings() {
-  return td::td_api::make_object<td::td_api::internalLinkTypeChatFolderSettings>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionChatFolders>());
 }
 
 static auto chat_invite(const td::string &hash) {
@@ -266,7 +270,7 @@ static auto chat_invite(const td::string &hash) {
 }
 
 static auto default_message_auto_delete_timer_settings() {
-  return td::td_api::make_object<td::td_api::internalLinkTypeDefaultMessageAutoDeleteTimerSettings>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionDefaultMessageAutoDeleteTimer>());
 }
 
 static auto direct_messages_chat(const td::string &channel_username) {
@@ -274,7 +278,7 @@ static auto direct_messages_chat(const td::string &channel_username) {
 }
 
 static auto edit_profile_settings() {
-  return td::td_api::make_object<td::td_api::internalLinkTypeEditProfileSettings>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionEditProfile>());
 }
 
 static auto game(const td::string &bot_username, const td::string &game_short_name) {
@@ -306,7 +310,7 @@ static auto language_pack(const td::string &language_pack_name) {
 }
 
 static auto language_settings() {
-  return td::td_api::make_object<td::td_api::internalLinkTypeLanguageSettings>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionLanguage>());
 }
 
 static auto live_story(const td::string &poster_username) {
@@ -314,7 +318,7 @@ static auto live_story(const td::string &poster_username) {
 }
 
 static auto login_email_settings() {
-  return td::td_api::make_object<td::td_api::internalLinkTypeLoginEmailSettings>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionLoginEmail>());
 }
 
 static auto main_web_app(const td::string &bot_username, const td::string &start_parameter, bool is_compact,
@@ -334,11 +338,11 @@ static auto message_draft(td::string text, bool contains_url) {
 }
 
 static auto my_stars() {
-  return td::td_api::make_object<td::td_api::internalLinkTypeMyStars>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionMyStars>());
 }
 
 static auto my_toncoins() {
-  return td::td_api::make_object<td::td_api::internalLinkTypeMyToncoins>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionMyToncoins>());
 }
 
 static auto passport_data_request(td::int32 bot_user_id, const td::string &scope, const td::string &public_key,
@@ -348,7 +352,7 @@ static auto passport_data_request(td::int32 bot_user_id, const td::string &scope
 }
 
 static auto password_settings() {
-  return td::td_api::make_object<td::td_api::internalLinkTypePasswordSettings>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionPassword>());
 }
 
 static auto phone_number_confirmation(const td::string &hash, const td::string &phone_number) {
@@ -356,7 +360,7 @@ static auto phone_number_confirmation(const td::string &hash, const td::string &
 }
 
 static auto phone_number_privacy_settings() {
-  return td::td_api::make_object<td::td_api::internalLinkTypePhoneNumberPrivacySettings>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionPhoneNumberPrivacy>());
 }
 
 static auto premium_features(const td::string &referrer) {
@@ -372,7 +376,7 @@ static auto premium_gift_code(const td::string &code) {
 }
 
 static auto privacy_and_security_settings() {
-  return td::td_api::make_object<td::td_api::internalLinkTypePrivacyAndSecuritySettings>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionPrivacyAndSecurity>());
 }
 
 static auto proxy_mtproto(const td::string &server, td::int32 port, const td::string &secret) {
@@ -399,10 +403,6 @@ static auto restore_purchases() {
   return td::td_api::make_object<td::td_api::internalLinkTypeRestorePurchases>();
 }
 
-static auto settings() {
-  return td::td_api::make_object<td::td_api::internalLinkTypeSettings>();
-}
-
 static auto sticker_set(const td::string &sticker_set_name, bool expect_custom_emoji) {
   return td::td_api::make_object<td::td_api::internalLinkTypeStickerSet>(sticker_set_name, expect_custom_emoji);
 }
@@ -420,7 +420,7 @@ static auto theme(const td::string &theme_name) {
 }
 
 static auto theme_settings() {
-  return td::td_api::make_object<td::td_api::internalLinkTypeThemeSettings>();
+  return settings(td::td_api::make_object<td::td_api::settingsSectionAppearance>());
 }
 
 static auto unknown_deep_link(const td::string &link) {
@@ -1694,7 +1694,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/themes#test", theme_settings());
   parse_internal_link("tg://settings/themesa#test", settings());
   parse_internal_link("tg://settings/themes/?as#rad", theme_settings());
-  parse_internal_link("tg://settings/themes/a", settings());
+  parse_internal_link("tg://settings/themes/a", theme_settings());
   parse_internal_link("tg://settings/asdsathemesasdas/devices", settings());
   parse_internal_link("tg://settings/auto_delete", default_message_auto_delete_timer_settings());
   parse_internal_link("tg://settings/devices", active_sessions());
@@ -1715,6 +1715,8 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://stars/aadsa#test", my_stars());
   parse_internal_link("tg://stars/theme#test", my_stars());
   parse_internal_link("tg:stars/theme#test", my_stars());
+  parse_internal_link("tg://settings/stars", my_stars());
+  parse_internal_link("tg://settings/stars/123123", my_stars());
 
   parse_internal_link("tg://ton", my_toncoins());
   parse_internal_link("tg://ton?asdsa?D?SADasD?asD", my_toncoins());
@@ -1723,6 +1725,8 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://ton/aadsa#test", my_toncoins());
   parse_internal_link("tg://ton/theme#test", my_toncoins());
   parse_internal_link("tg:ton/theme#test", my_toncoins());
+  parse_internal_link("tg://settings/ton", my_toncoins());
+  parse_internal_link("tg://settings/ton/12312", my_toncoins());
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
   parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));
