@@ -3273,6 +3273,12 @@ class CliClient final : public Actor {
       string received_gift_id;
       get_args(args, received_gift_id);
       send_request(td_api::make_object<td_api::getReceivedGift>(received_gift_id));
+    } else if (op == "ggfc") {
+      int64 gift_id;
+      int32 limit;
+      string offset;
+      get_args(args, gift_id, limit, offset);
+      send_request(td_api::make_object<td_api::getGiftsForCrafting>(gift_id, offset, limit));
     } else if (op == "gug") {
       string name;
       get_args(args, name);

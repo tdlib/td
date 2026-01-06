@@ -1671,6 +1671,56 @@ class GetSavedStarGiftQuery final : public Td::ResultHandler {
   }
 };
 
+class GetCraftStarGiftsQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
+
+ public:
+  explicit GetCraftStarGiftsQuery(Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(int64 gift_id, const string &offset, int32 limit) {
+    send_query(G()->net_query_creator().create(telegram_api::payments_getCraftStarGifts(gift_id, offset, limit)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::payments_getCraftStarGifts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetCraftStarGiftsQuery: " << to_string(ptr);
+    td_->user_manager_->on_get_users(std::move(ptr->users_), "GetCraftStarGiftsQuery");
+    td_->chat_manager_->on_get_chats(std::move(ptr->chats_), "GetCraftStarGiftsQuery");
+
+    auto total_count = ptr->count_;
+    if (total_count < static_cast<int32>(ptr->gifts_.size())) {
+      LOG(ERROR) << "Receive " << ptr->gifts_.size() << " gifts with total count = " << total_count;
+      total_count = static_cast<int32>(ptr->gifts_.size());
+    }
+    vector<td_api::object_ptr<td_api::receivedGift>> gifts;
+    for (auto &gift : ptr->gifts_) {
+      UserStarGift user_gift(td_, std::move(gift), td_->dialog_manager_->get_my_dialog_id());
+      if (!user_gift.is_valid()) {
+        LOG(ERROR) << "Receive invalid gift for crafting";
+        continue;
+      }
+      if (!user_gift.is_unique()) {
+        LOG(ERROR) << "Receive non-unique gift for crafting";
+        continue;
+      }
+      gifts.push_back(user_gift.get_received_gift_object(td_));
+    }
+    promise_.set_value(
+        td_api::make_object<td_api::receivedGifts>(total_count, std::move(gifts), true, ptr->next_offset_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetUniqueStarGiftQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::upgradedGift>> promise_;
 
@@ -2961,6 +3011,14 @@ void StarGiftManager::get_saved_star_gift(StarGiftId star_gift_id,
     return promise.set_error(400, "Invalid gift identifier specified");
   }
   td_->create_handler<GetSavedStarGiftQuery>(std::move(promise))->send(star_gift_id);
+}
+
+void StarGiftManager::get_craft_star_gifts(int64 gift_id, const string &offset, int32 limit,
+                                           Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise) {
+  if (limit < 0) {
+    return promise.set_error(400, "Limit must be non-negative");
+  }
+  td_->create_handler<GetCraftStarGiftsQuery>(std::move(promise))->send(gift_id, offset, limit);
 }
 
 void StarGiftManager::get_upgraded_gift(const string &name,

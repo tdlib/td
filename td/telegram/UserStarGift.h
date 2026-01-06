@@ -52,6 +52,10 @@ class UserStarGift {
     return gift_.is_valid() && (is_name_hidden_ || sender_dialog_id_ != DialogId());
   }
 
+  bool is_unique() const {
+    return gift_.is_unique();
+  }
+
   td_api::object_ptr<td_api::receivedGift> get_received_gift_object(Td *td) const;
 };
 

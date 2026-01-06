@@ -1746,6 +1746,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getReceivedGift &request);
 
+  void on_request(uint64 id, td_api::getGiftsForCrafting &request);
+
   void on_request(uint64 id, td_api::getUpgradedGift &request);
 
   void on_request(uint64 id, td_api::getUpgradedGiftValueInfo &request);

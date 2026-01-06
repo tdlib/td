@@ -8123,6 +8123,14 @@ void Requests::on_request(uint64 id, const td_api::getReceivedGift &request) {
   td_->star_gift_manager_->get_saved_star_gift(StarGiftId(request.received_gift_id_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getGiftsForCrafting &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.offset_);
+  CREATE_REQUEST_PROMISE();
+  td_->star_gift_manager_->get_craft_star_gifts(request.regular_gift_id_, request.offset_, request.limit_,
+                                                std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getUpgradedGift &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.name_);

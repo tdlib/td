@@ -13832,6 +13832,12 @@ getReceivedGifts business_connection_id:string owner_id:MessageSender collection
 //@description Returns information about a received gift @received_gift_id Identifier of the gift
 getReceivedGift received_gift_id:string = ReceivedGift;
 
+//@description Returns upgraded gifts of the current user that can be used to craft another gifts
+//@regular_gift_id Identifier of the regular gift that will be used for crafting
+//@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
+//@limit The maximum number of gifts to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
+getGiftsForCrafting regular_gift_id:int64 offset:string limit:int32 = ReceivedGifts;
+
 //@description Returns information about an upgraded gift by its name @name Unique name of the upgraded gift
 getUpgradedGift name:string = UpgradedGift;
 
