@@ -50,6 +50,7 @@ class StarGift {
   bool resale_ton_only_ = false;
   bool is_theme_available_ = false;
   bool is_burned_ = false;
+  bool is_crafted_ = false;
   StarGiftAttributeSticker model_;
   StarGiftAttributeSticker pattern_;
   StarGiftAttributeBackdrop backdrop_;
