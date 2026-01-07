@@ -277,8 +277,8 @@ static auto direct_messages_chat(const td::string &channel_username) {
   return td::td_api::make_object<td::td_api::internalLinkTypeDirectMessagesChat>(channel_username);
 }
 
-static auto edit_profile_settings() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionEditProfile>());
+static auto edit_profile_settings(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionEditProfile>(subsection));
 }
 
 static auto game(const td::string &bot_username, const td::string &game_short_name) {
@@ -1696,6 +1696,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/devices", active_sessions());
   parse_internal_link("tg://settings/change_number", change_phone_number());
   parse_internal_link("tg://settings/edit_profile", edit_profile_settings());
+  parse_internal_link("tg://settings/edit", edit_profile_settings());
   parse_internal_link("tg://settings/folders", chat_folder_settings());
   parse_internal_link("tg://settings/filters", settings());
   parse_internal_link("tg://settings/language", language_settings());
@@ -1720,6 +1721,14 @@ TEST(Link, parse_internal_link_part4) {
 
   parse_internal_link("tg://settings/appearance/themes/edit", appearance("themes/edit"));
   parse_internal_link("tg://settings/appearance/app-icon", appearance("app-icon"));
+
+  parse_internal_link("tg://settings/edit/abacaba", edit_profile_settings());
+  parse_internal_link("tg://settings/edit-profile/abacaba", settings());
+  parse_internal_link("tg://settings/edit_profile/abacaba", edit_profile_settings());
+  parse_internal_link("tg://settings/edit/log-out", edit_profile_settings("log-out"));
+  parse_internal_link("tg://settings/edit_profile/log-out", edit_profile_settings());
+  parse_internal_link("tg://settings/edit/your-color", edit_profile_settings("your-color"));
+  parse_internal_link("tg://settings/edit_profile/your-color", edit_profile_settings());
 
   parse_internal_link("tg://stars", my_stars());
   parse_internal_link("tg://stars?asdsa?D?SADasD?asD", my_stars());
