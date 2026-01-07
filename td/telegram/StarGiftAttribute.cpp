@@ -72,7 +72,7 @@ StarGiftAttributeBackdrop::StarGiftAttributeBackdrop(
 }
 
 bool StarGiftAttributeBackdrop::is_valid() const {
-  return 0 < rarity_permille_ && rarity_permille_ <= 1000 && is_valid_color(center_color_) &&
+  return 0 <= rarity_permille_ && rarity_permille_ <= 1000 && is_valid_color(center_color_) &&
          is_valid_color(edge_color_) && is_valid_color(pattern_color_) && is_valid_color(text_color_);
 }
 
