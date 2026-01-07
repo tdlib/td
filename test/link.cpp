@@ -375,8 +375,8 @@ static auto premium_gift_code(const td::string &code) {
   return td::td_api::make_object<td::td_api::internalLinkTypePremiumGiftCode>(code);
 }
 
-static auto privacy_and_security_settings() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionPrivacyAndSecurity>());
+static auto privacy_and_security_settings(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionPrivacyAndSecurity>(subsection));
 }
 
 static auto proxy_mtproto(const td::string &server, td::int32 port, const td::string &secret) {
@@ -1712,6 +1712,14 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/language/show-button", language_settings("show-button"));
   parse_internal_link("tg://settings/language/translate-chats", language_settings("translate-chats"));
   parse_internal_link("tg://settings/language/do-not-translate", language_settings("do-not-translate"));
+
+  parse_internal_link("tg://settings/privacy/abacaba", privacy_and_security_settings());
+  parse_internal_link("tg://settings/privacy/auto-delete", privacy_and_security_settings("auto-delete"));
+  parse_internal_link("tg://settings/privacy/passcode/auto-lock", privacy_and_security_settings("passcode/auto-lock"));
+  parse_internal_link("tg://settings/privacy/passcode/auto-locks", privacy_and_security_settings());
+  parse_internal_link("tg://settings/privacy/login-email", privacy_and_security_settings("login-email"));
+  parse_internal_link("tg://settings/privacy/auto-delete/set-custom",
+                      privacy_and_security_settings("auto-delete/set-custom"));
 
   parse_internal_link("tg://stars", my_stars());
   parse_internal_link("tg://stars?asdsa?D?SADasD?asD", my_stars());

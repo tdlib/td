@@ -175,6 +175,29 @@ static const vector<string> &get_language_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_privacy_settings_subsections() {
+  static const vector<string> subsections{
+      "blocked", "blocked/edit", "blocked/block-user", "blocked/block-user/chats", "blocked/block-user/contacts",
+      "active-websites", "active-websites/edit", "active-websites/disconnect-all", "passcode", "passcode/disable",
+      "passcode/change", "passcode/auto-lock", "passcode/face-id", "passcode/fingerprint", "2sv", "2sv/change",
+      "2sv/disable", "2sv/change-email", "passkey", "passkey/create", "auto-delete", "auto-delete/set-custom",
+      "login-email", "phone-number", "phone-number/never", "phone-number/always", "last-seen", "last-seen/never",
+      "last-seen/always", "last-seen/hide-read-time", "profile-photos", "profile-photos/never", "profile-photos/always",
+      "profile-photos/set-public", "profile-photos/update-public", "profile-photos/remove-public", "bio",
+      "bio/never-share", "bio/always-share", "gifts", "gifts/show-icon", "gifts/never-share", "gifts/always-share",
+      "gifts/accepted-types", "birthday", "birthday/add", "birthday/never", "birthday/always", "saved-music",
+      "saved-music/never", "saved-music/always", "forwards", "forwards/never", "forwards/always", "calls",
+      "calls/never", "calls/always", "calls/p2p", "calls/p2p/never", "calls/p2p/always", "calls/ios-integration",
+      "voice", "voice/never", "voice/always", "messages", "messages/set-price", "messages/remove-fee", "invites",
+      "invites/never", "invites/always", "self-destruct", "data-settings", "data-settings/sync-contacts",
+      "data-settings/delete-synced", "data-settings/suggest-contacts", "data-settings/delete-cloud-drafts",
+      "data-settings/clear-payment-info", "data-settings/link-previews", "data-settings/bot-settings",
+      "data-settings/map-provider",
+      // no formatting
+      "archive-and-mute"};
+  return subsections;
+}
+
 static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
   const auto &path = url_query.path_;
   if (is_tg) {
@@ -860,6 +883,14 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
       if (path_.empty()) {
         return nullptr;
       }
+      string subsection;
+      if (path_.size() >= 2u) {
+        subsection = path_[1];
+        for (size_t i = 2; i < path_.size(); i++) {
+          subsection += '/';
+          subsection += path_[i];
+        }
+      }
       if (path_[0] == "auto_delete") {
         return td_api::make_object<td_api::settingsSectionDefaultMessageAutoDeleteTimer>();
       }
@@ -891,6 +922,9 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionPhoneNumberPrivacy>();
       }
       if (path_[0] == "privacy") {
+        if (!subsection.empty() && td::contains(get_privacy_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>(subsection);
+        }
         return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>();
       }
       if (path_[0] == "stars") {
@@ -2928,8 +2962,14 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           return "tg://settings/change_number";
         case td_api::settingsSectionPhoneNumberPrivacy::ID:
           return "tg://settings/phone_privacy";
-        case td_api::settingsSectionPrivacyAndSecurity::ID:
+        case td_api::settingsSectionPrivacyAndSecurity::ID: {
+          const auto &subsection =
+              static_cast<const td_api::settingsSectionPrivacyAndSecurity *>(section_ptr)->subsection_;
+          if (td::contains(get_privacy_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/privacy/" << subsection;
+          }
           return "tg://settings/privacy";
+        }
         default:
           UNREACHABLE();
           return "";
