@@ -8290,8 +8290,9 @@ settingsSectionDevices = SettingsSection;
 //@description The profile edit section
 settingsSectionEditProfile = SettingsSection;
 
-//@description The application language section
-settingsSectionLanguage = SettingsSection;
+//@description The application language section @subsection Subsection of the section if any; may be one of "show-button" for Show Translate Button toggle,
+//-"translate-chats" for Translate Entire Chats toggle, "do-not-translate" - for Do Not Translate language list
+settingsSectionLanguage subsection:string = SettingsSection;
 
 //@description The login email set up section
 settingsSectionLoginEmail = SettingsSection;

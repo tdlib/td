@@ -170,6 +170,11 @@ static bool is_valid_story_album_id(Slice story_album_id) {
   return r_story_album_id.is_ok() && StoryAlbumId(r_story_album_id.ok()).is_valid();
 }
 
+static const vector<string> &get_language_settings_subsections() {
+  static const vector<string> subsections{"show-button", "translate-chats", "do-not-translate"};
+  return subsections;
+}
+
 static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
   const auto &path = url_query.path_;
   if (is_tg) {
@@ -871,6 +876,9 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionChatFolders>();
       }
       if (path_[0] == "language") {
+        if (path_.size() >= 2u && td::contains(get_language_settings_subsections(), path_[1])) {
+          return td_api::make_object<td_api::settingsSectionLanguage>(path_[1]);
+        }
         return td_api::make_object<td_api::settingsSectionLanguage>();
       }
       if (path_[0] == "login_email") {
@@ -2901,8 +2909,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           return "tg://settings/devices";
         case td_api::settingsSectionEditProfile::ID:
           return "tg://settings/edit_profile";
-        case td_api::settingsSectionLanguage::ID:
+        case td_api::settingsSectionLanguage::ID: {
+          const auto &subsection = static_cast<const td_api::settingsSectionLanguage *>(section_ptr)->subsection_;
+          if (td::contains(get_language_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/language/" << subsection;
+          }
           return "tg://settings/language";
+        }
         case td_api::settingsSectionLoginEmail::ID:
           return "tg://settings/login_email";
         case td_api::settingsSectionMyStars::ID:

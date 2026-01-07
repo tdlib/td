@@ -309,8 +309,8 @@ static auto language_pack(const td::string &language_pack_name) {
   return td::td_api::make_object<td::td_api::internalLinkTypeLanguagePack>(language_pack_name);
 }
 
-static auto language_settings() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionLanguage>());
+static auto language_settings(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionLanguage>(subsection));
 }
 
 static auto live_story(const td::string &poster_username) {
@@ -1707,6 +1707,11 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/password", password_settings());
   parse_internal_link("tg://settings/phone_privacy", phone_number_privacy_settings());
   parse_internal_link("tg://settings/privacy", privacy_and_security_settings());
+
+  parse_internal_link("tg://settings/language/abacaba", language_settings());
+  parse_internal_link("tg://settings/language/show-button", language_settings("show-button"));
+  parse_internal_link("tg://settings/language/translate-chats", language_settings("translate-chats"));
+  parse_internal_link("tg://settings/language/do-not-translate", language_settings("do-not-translate"));
 
   parse_internal_link("tg://stars", my_stars());
   parse_internal_link("tg://stars?asdsa?D?SADasD?asD", my_stars());
