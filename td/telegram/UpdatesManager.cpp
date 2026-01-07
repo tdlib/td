@@ -1612,6 +1612,18 @@ string UpdatesManager::extract_join_group_call_presentation_params(telegram_api:
   return string();
 }
 
+bool UpdatesManager::extract_star_gift_craft_fail(telegram_api::Updates *updates_ptr) {
+  auto updates = get_updates(updates_ptr);
+  for (auto it = updates->begin(); it != updates->end(); ++it) {
+    auto *update = it->get();
+    if (update->get_id() == telegram_api::updateStarGiftCraftFail::ID) {
+      updates->erase(it);
+      return true;
+    }
+  }
+  return false;
+}
+
 vector<telegram_api::object_ptr<telegram_api::updateGroupCallMessage>> UpdatesManager::extract_group_call_messages(
     telegram_api::Updates *updates_ptr) {
   vector<telegram_api::object_ptr<telegram_api::updateGroupCallMessage>> result;

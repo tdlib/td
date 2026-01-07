@@ -35614,6 +35614,15 @@ void MessagesManager::finish_gift_upgrade(MessageFullId message_full_id,
                                                                    message_full_id.get_dialog_id(), m->message_id));
 }
 
+void MessagesManager::finish_gift_craft(MessageFullId message_full_id,
+                                        Promise<td_api::object_ptr<td_api::CraftGiftResult>> &&promise) {
+  auto m = get_message_force(message_full_id, "finish_gift_craft");
+  if (m == nullptr || m->content->get_type() != MessageContentType::StarGiftUnique) {
+    return promise.set_error(500, "Gift not found");
+  }
+  promise.set_value(get_message_content_craft_gift_result_object(m->content.get(), td_, m->message_id));
+}
+
 Result<MessagesManager::InvoiceMessageInfo> MessagesManager::get_invoice_message_info(MessageFullId message_full_id) {
   auto m = get_message_force(message_full_id, "get_invoice_message_info");
   if (m == nullptr) {

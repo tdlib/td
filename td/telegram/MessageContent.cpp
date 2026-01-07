@@ -10589,6 +10589,21 @@ td_api::object_ptr<td_api::upgradeGiftResult> get_message_content_upgrade_gift_r
   }
 }
 
+td_api::object_ptr<td_api::CraftGiftResult> get_message_content_craft_gift_result_object(const MessageContent *content,
+                                                                                         Td *td, MessageId message_id) {
+  switch (content->get_type()) {
+    case MessageContentType::StarGiftUnique: {
+      const auto *m = static_cast<const MessageStarGiftUnique *>(content);
+      StarGiftId star_gift_id = StarGiftId(message_id.get_server_message_id());
+      return td_api::make_object<td_api::craftGiftResultSuccess>(m->star_gift.get_upgraded_gift_object(td),
+                                                                 star_gift_id.get_star_gift_id());
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 FormattedText *get_message_content_text_mutable(MessageContent *content) {
   return const_cast<FormattedText *>(get_message_content_text(content));
 }

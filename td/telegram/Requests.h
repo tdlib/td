@@ -1732,6 +1732,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::buyGiftUpgrade &request);
 
+  void on_request(uint64 id, const td_api::craftGift &request);
+
   void on_request(uint64 id, td_api::transferGift &request);
 
   void on_request(uint64 id, const td_api::dropGiftOriginalDetails &request);

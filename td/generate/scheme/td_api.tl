@@ -1430,6 +1430,18 @@ upgradedGiftValueInfo currency:string value:int53 is_value_average:Bool initial_
 //@export_date Point in time (Unix timestamp) when the gift can be transferred to the TON blockchain as an NFT; can be in the past
 upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be_transferred:Bool transfer_star_count:int53 drop_original_details_star_count:int53 next_transfer_date:int32 next_resale_date:int32 export_date:int32 = UpgradeGiftResult;
 
+
+//@class CraftGiftResult @description Contains result of gift crafting
+
+//@description Craft was successful
+//@gift The created gift
+//@received_gift_id Unique identifier of the received gift for the current user
+craftGiftResultSuccess gift:upgradedGift received_gift_id:string = CraftGiftResult;
+
+//@description Craft has failed
+craftGiftResultFail = CraftGiftResult;
+
+
 //@description Describes a gift that is available for purchase
 //@gift The gift
 //@resale_count Number of gifts that are available for resale
@@ -13779,6 +13791,10 @@ upgradeGift business_connection_id:string received_gift_id:string keep_original_
 //@prepaid_upgrade_hash Prepaid upgrade hash as received along with the gift
 //@star_count The Telegram Star amount the user agreed to pay for the upgrade; must be equal to gift.upgrade_star_count
 buyGiftUpgrade owner_id:MessageSender prepaid_upgrade_hash:string star_count:int53 = Ok;
+
+//@description Crafts a new gift from other gifts that will be permanently lost
+//@received_gift_ids Identifier of the gifts to use for crafting
+craftGift received_gift_ids:vector<string> = CraftGiftResult;
 
 //@description Sends an upgraded gift to another user or channel chat
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only
