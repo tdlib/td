@@ -8281,9 +8281,6 @@ settingsSectionAppearance = SettingsSection;
 //@description The chat folders settings section
 settingsSectionChatFolders = SettingsSection;
 
-//@description The default message auto-delete timer settings section
-settingsSectionDefaultMessageAutoDeleteTimer = SettingsSection;
-
 //@description The Devices section. Use getActiveSessions to get the list of active sessions
 settingsSectionDevices = SettingsSection;
 

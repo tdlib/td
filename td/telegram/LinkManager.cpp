@@ -892,7 +892,7 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         }
       }
       if (path_[0] == "auto_delete") {
-        return td_api::make_object<td_api::settingsSectionDefaultMessageAutoDeleteTimer>();
+        return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>("auto-delete");
       }
       if (path_[0] == "change_number") {
         return td_api::make_object<td_api::settingsSectionPhoneNumber>();
@@ -2937,8 +2937,6 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           return "tg://settings/themes";
         case td_api::settingsSectionChatFolders::ID:
           return "tg://settings/folders";
-        case td_api::settingsSectionDefaultMessageAutoDeleteTimer::ID:
-          return "tg://settings/auto_delete";
         case td_api::settingsSectionDevices::ID:
           return "tg://settings/devices";
         case td_api::settingsSectionEditProfile::ID:
@@ -2966,6 +2964,9 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           if (td::contains(get_privacy_settings_subsections(), subsection)) {
             if (subsection == "phone-number") {
               return "tg://settings/phone_privacy";
+            }
+            if (subsection == "auto-delete") {
+              return "tg://settings/auto_delete";
             }
             return PSTRING() << "tg://settings/privacy/" << subsection;
           }

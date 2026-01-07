@@ -269,10 +269,6 @@ static auto chat_invite(const td::string &hash) {
   return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>("tg:join?invite=" + hash);
 }
 
-static auto default_message_auto_delete_timer_settings() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionDefaultMessageAutoDeleteTimer>());
-}
-
 static auto direct_messages_chat(const td::string &channel_username) {
   return td::td_api::make_object<td::td_api::internalLinkTypeDirectMessagesChat>(channel_username);
 }
@@ -1692,7 +1688,8 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/themes/?as#rad", theme_settings());
   parse_internal_link("tg://settings/themes/a", theme_settings());
   parse_internal_link("tg://settings/asdsathemesasdas/devices", settings());
-  parse_internal_link("tg://settings/auto_delete", default_message_auto_delete_timer_settings());
+  parse_internal_link("tg://settings/auto_delete", privacy_and_security_settings("auto-delete"));
+  parse_internal_link("tg://settings/auto_delete/test", privacy_and_security_settings("auto-delete"));
   parse_internal_link("tg://settings/devices", active_sessions());
   parse_internal_link("tg://settings/change_number", change_phone_number());
   parse_internal_link("tg://settings/edit_profile", edit_profile_settings());
