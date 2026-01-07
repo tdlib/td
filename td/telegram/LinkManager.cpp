@@ -170,6 +170,23 @@ static bool is_valid_story_album_id(Slice story_album_id) {
   return r_story_album_id.is_ok() && StoryAlbumId(r_story_album_id.ok()).is_valid();
 }
 
+static const vector<string> &get_appearance_settings_subsections() {
+  static const vector<string> subsections{
+      "themes/edit", "themes/create", "wallpapers", "wallpapers/edit", "wallpapers/set", "wallpapers/choose-photo",
+      "your-color/profile", "your-color/profile/add-icons", "your-color/profile/use-gift", "your-color/profile/reset",
+      "your-color/name", "your-color/name/add-icons", "your-color/name/use-gift", "night-mode", "auto-night-mode",
+      "text-size", "text-size/use-system", "message-corners", "animations", "stickers-and-emoji",
+      "stickers-and-emoji/edit", "stickers-and-emoji/trending", "stickers-and-emoji/archived",
+      "stickers-and-emoji/archived/edit", "stickers-and-emoji/emoji", "stickers-and-emoji/emoji/edit",
+      "stickers-and-emoji/emoji/archived", "stickers-and-emoji/emoji/archived/edit", "stickers-and-emoji/emoji/suggest",
+      "stickers-and-emoji/emoji/quick-reaction", "stickers-and-emoji/emoji/quick-reaction/choose",
+      "stickers-and-emoji/suggest-by-emoji", "stickers-and-emoji/emoji/large", "stickers-and-emoji/emoji/dynamic-order",
+      "stickers-and-emoji/emoji/show-more", "app-icon",
+      // no formatting
+      "tap-for-next-media"};
+  return subsections;
+}
+
 static const vector<string> &get_language_settings_subsections() {
   static const vector<string> subsections{"show-button", "translate-chats", "do-not-translate"};
   return subsections;
@@ -890,6 +907,12 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
           subsection += '/';
           subsection += path_[i];
         }
+      }
+      if (path_[0] == "appearance") {
+        if (!subsection.empty() && td::contains(get_appearance_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionAppearance>(subsection);
+        }
+        return td_api::make_object<td_api::settingsSectionAppearance>();
       }
       if (path_[0] == "auto_delete") {
         return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>("auto-delete");
@@ -2933,8 +2956,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return "tg://settings";
       }
       switch (section_ptr->get_id()) {
-        case td_api::settingsSectionAppearance::ID:
+        case td_api::settingsSectionAppearance::ID: {
+          const auto &subsection = static_cast<const td_api::settingsSectionAppearance *>(section_ptr)->subsection_;
+          if (td::contains(get_appearance_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/appearance/" << subsection;
+          }
           return "tg://settings/themes";
+        }
         case td_api::settingsSectionChatFolders::ID:
           return "tg://settings/folders";
         case td_api::settingsSectionDevices::ID:

@@ -198,6 +198,10 @@ static auto active_sessions() {
   return settings(td::td_api::make_object<td::td_api::settingsSectionDevices>());
 }
 
+static auto appearance(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionAppearance>(subsection));
+}
+
 static auto attachment_menu_bot(td::td_api::object_ptr<td::td_api::targetChatChosen> chat_types,
                                 td::td_api::object_ptr<td::td_api::InternalLinkType> chat_link,
                                 const td::string &bot_username, const td::string &start_parameter) {
@@ -409,10 +413,6 @@ static auto story_album(const td::string &owner_username, td::int32 story_album_
 
 static auto theme(const td::string &theme_name) {
   return td::td_api::make_object<td::td_api::internalLinkTypeTheme>(theme_name);
-}
-
-static auto theme_settings() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionAppearance>());
 }
 
 static auto unknown_deep_link(const td::string &link) {
@@ -1683,10 +1683,13 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/#test", settings());
   parse_internal_link("tg://settings/aadsa#test", settings());
   parse_internal_link("tg://settings/theme#test", settings());
-  parse_internal_link("tg://settings/themes#test", theme_settings());
+  parse_internal_link("tg://settings/themes#test", appearance());
+  parse_internal_link("tg://settings/appearance#test", appearance());
   parse_internal_link("tg://settings/themesa#test", settings());
-  parse_internal_link("tg://settings/themes/?as#rad", theme_settings());
-  parse_internal_link("tg://settings/themes/a", theme_settings());
+  parse_internal_link("tg://settings/themes/?as#rad", appearance());
+  parse_internal_link("tg://settings/appearance/?as#rad", appearance());
+  parse_internal_link("tg://settings/themes/a", appearance());
+  parse_internal_link("tg://settings/appearance/a", appearance());
   parse_internal_link("tg://settings/asdsathemesasdas/devices", settings());
   parse_internal_link("tg://settings/auto_delete", privacy_and_security_settings("auto-delete"));
   parse_internal_link("tg://settings/auto_delete/test", privacy_and_security_settings("auto-delete"));
@@ -1714,6 +1717,9 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/privacy/phone-number", privacy_and_security_settings("phone-number"));
   parse_internal_link("tg://settings/privacy/auto-delete/set-custom",
                       privacy_and_security_settings("auto-delete/set-custom"));
+
+  parse_internal_link("tg://settings/appearance/themes/edit", appearance("themes/edit"));
+  parse_internal_link("tg://settings/appearance/app-icon", appearance("app-icon"));
 
   parse_internal_link("tg://stars", my_stars());
   parse_internal_link("tg://stars?asdsa?D?SADasD?asD", my_stars());

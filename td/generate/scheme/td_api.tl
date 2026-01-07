@@ -8275,8 +8275,18 @@ reportStoryResultTextRequired option_id:bytes is_optional:Bool = ReportStoryResu
 
 //@class SettingsSection @description Describes a section of the application settings
 
-//@description The appearance section
-settingsSectionAppearance = SettingsSection;
+//@description The appearance section @subsection Subsection of the section if any; may be one of
+//-"themes/edit", "themes/create", "wallpapers", "wallpapers/edit", "wallpapers/set", "wallpapers/choose-photo",
+//-"your-color/profile", "your-color/profile/add-icons", "your-color/profile/use-gift", "your-color/profile/reset",
+//-"your-color/name", "your-color/name/add-icons", "your-color/name/use-gift", "night-mode", "auto-night-mode",
+//-"text-size", "text-size/use-system", "message-corners", "animations", "stickers-and-emoji",
+//-"stickers-and-emoji/edit", "stickers-and-emoji/trending", "stickers-and-emoji/archived",
+//-"stickers-and-emoji/archived/edit", "stickers-and-emoji/emoji", "stickers-and-emoji/emoji/edit",
+//-"stickers-and-emoji/emoji/archived", "stickers-and-emoji/emoji/archived/edit", "stickers-and-emoji/emoji/suggest",
+//-"stickers-and-emoji/emoji/quick-reaction", "stickers-and-emoji/emoji/quick-reaction/choose",
+//-"stickers-and-emoji/suggest-by-emoji", "stickers-and-emoji/emoji/large", "stickers-and-emoji/emoji/dynamic-order",
+//-"stickers-and-emoji/emoji/show-more", "app-icon", "tap-for-next-media"
+settingsSectionAppearance subsection:string = SettingsSection;
 
 //@description The chat folders settings section
 settingsSectionChatFolders = SettingsSection;
