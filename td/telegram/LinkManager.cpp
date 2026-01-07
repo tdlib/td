@@ -194,6 +194,16 @@ static const vector<string> &get_edit_profile_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_edit_profile_other_settings_subsections() {
+  static const vector<string> subsections{"emoji-status", "profile-color", "profile-color/profile",
+                                          "profile-color/profile/add-icons", "profile-color/profile/use-gift",
+                                          "profile-color/name", "profile-color/name/add-icons",
+                                          "profile-color/name/use-gift", "profile-photo",
+                                          // no formatting
+                                          "profile-photo/use-emoji"};
+  return subsections;
+}
+
 static const vector<string> &get_language_settings_subsections() {
   static const vector<string> subsections{"show-button", "translate-chats", "do-not-translate"};
   return subsections;
@@ -938,6 +948,17 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
       }
       if (path_[0] == "edit_profile") {
         return td_api::make_object<td_api::settingsSectionEditProfile>();
+      }
+      if (path_[0] == "emoji-status" || path_[0] == "profile-color" || path_[0] == "profile-photo") {
+        if (subsection.empty()) {
+          subsection = path_[0];
+        } else {
+          subsection = PSTRING() << path_[0] << '/' << subsection;
+        }
+        if (td::contains(get_edit_profile_other_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionEditProfile>(subsection);
+        }
+        return td_api::make_object<td_api::settingsSectionEditProfile>(path_[0]);
       }
       if (path_[0] == "folders") {
         return td_api::make_object<td_api::settingsSectionChatFolders>();
@@ -2984,6 +3005,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           const auto &subsection = static_cast<const td_api::settingsSectionEditProfile *>(section_ptr)->subsection_;
           if (td::contains(get_edit_profile_settings_subsections(), subsection)) {
             return PSTRING() << "tg://settings/edit/" << subsection;
+          } else if (td::contains(get_edit_profile_other_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/" << subsection;
           }
           return "tg://settings/edit_profile";
         }

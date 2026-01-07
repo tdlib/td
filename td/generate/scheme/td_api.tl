@@ -8295,7 +8295,9 @@ settingsSectionChatFolders = SettingsSection;
 settingsSectionDevices = SettingsSection;
 
 //@description The profile edit section @subsection Subsection of the section if any; may be one of "set-photo", "first-name", "last-name",
-//-"bio", "birthday", "change-number", "username", "your-color", "channel", "add-account", "log-out"
+//-"emoji-status", "bio", "birthday", "change-number", "username", "your-color", "channel", "add-account", "log-out",
+//-"profile-color", "profile-color/profile", "profile-color/profile/add-icons", "profile-color/profile/use-gift", "profile-color/name",
+//-"profile-color/name/add-icons", "profile-color/name/use-gift", "profile-photo", "profile-photo/use-emoji"
 settingsSectionEditProfile subsection:string = SettingsSection;
 
 //@description The application language section @subsection Subsection of the section if any; may be one of "show-button" for Show Translate Button toggle,

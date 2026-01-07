@@ -1729,6 +1729,16 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/edit_profile/log-out", edit_profile_settings());
   parse_internal_link("tg://settings/edit/your-color", edit_profile_settings("your-color"));
   parse_internal_link("tg://settings/edit_profile/your-color", edit_profile_settings());
+  parse_internal_link("tg://settings/emoji-status", edit_profile_settings("emoji-status"));
+  parse_internal_link("tg://settings/profile-color", edit_profile_settings("profile-color"));
+  parse_internal_link("tg://settings/profile-color/abacaba", edit_profile_settings("profile-color"));
+  parse_internal_link("tg://settings/profile-color/profile", edit_profile_settings("profile-color/profile"));
+  parse_internal_link("tg://settings/profile-color/profile/abacaba", edit_profile_settings("profile-color"));
+  parse_internal_link("tg://settings/profile-color/profile/use-gift",
+                      edit_profile_settings("profile-color/profile/use-gift"));
+  parse_internal_link("tg://settings/profile-photo", edit_profile_settings("profile-photo"));
+  parse_internal_link("tg://settings/profile-photo/use-emojis", edit_profile_settings("profile-photo"));
+  parse_internal_link("tg://settings/profile-photo/use-emoji", edit_profile_settings("profile-photo/use-emoji"));
 
   parse_internal_link("tg://stars", my_stars());
   parse_internal_link("tg://stars?asdsa?D?SADasD?asD", my_stars());
