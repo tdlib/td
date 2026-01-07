@@ -187,6 +187,35 @@ static const vector<string> &get_appearance_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_data_settings_subsections() {
+  static const vector<string> subsections{
+      "storage", "storage/edit", "storage/auto-remove", "storage/clear-cache", "max-cache", "usage", "usage/mobile",
+      "usage/mobile/auto-download", "usage/mobile/auto-download/enable", "usage/mobile/auto-download/usage",
+      "usage/mobile/auto-download/photos", "usage/mobile/auto-download/stories", "usage/mobile/auto-download/videos",
+      "usage/mobile/auto-download/files", "usage/wifi", "usage/wifi/auto-download", "usage/wifi/auto-download/enable",
+      "usage/wifi/auto-download/usage", "usage/wifi/auto-download/photos", "usage/wifi/auto-download/stories",
+      "usage/wifi/auto-download/videos", "usage/wifi/auto-download/files", "usage/wifi/reset", "usage/roaming",
+      "usage/roaming/auto-download", "usage/roaming/auto-download/enable", "usage/roaming/auto-download/usage",
+      "usage/roaming/auto-download/photos", "usage/roaming/auto-download/stories", "usage/roaming/auto-download/videos",
+      "usage/roaming/auto-download/files", "auto-download/data", "auto-download/data/enable",
+      "auto-download/data/usage", "auto-download/data/photos", "auto-download/data/stories",
+      "auto-download/data/videos", "auto-download/data/files", "auto-download/wifi", "auto-download/wifi/enable",
+      "auto-download/wifi/usage", "auto-download/wifi/photos", "auto-download/wifi/stories",
+      "auto-download/wifi/videos", "auto-download/wifi/files", "auto-download/roaming", "auto-download/roaming/enable",
+      "auto-download/roaming/usage", "auto-download/roaming/photos", "auto-download/roaming/stories",
+      "auto-download/roaming/videos", "auto-download/roaming/files", "auto-download/reset", "save-to-photos/chats",
+      "save-to-photos/chats/max-video-size", "save-to-photos/chats/add-exception", "save-to-photos/chats/delete-all",
+      "save-to-photos/groups", "save-to-photos/groups/max-video-size", "save-to-photos/groups/add-exception",
+      "save-to-photos/groups/delete-all", "save-to-photos/channels", "save-to-photos/channels/max-video-size",
+      "save-to-photos/channels/add-exception", "save-to-photos/channels/delete-all", "use-less-data", "open-links",
+      "share-sheet", "share-sheet/suggested-chats", "share-sheet/suggest-by", "share-sheet/reset",
+      "saved-edited-photos", "pause-music", "raise-to-listen", "raise-to-speak", "show-18-content", "proxy",
+      "proxy/edit", "proxy/use-proxy", "proxy/add-proxy", "proxy/share-list",
+      // no formatting
+      "proxy/use-for-calls"};
+  return subsections;
+}
+
 static const vector<string> &get_edit_profile_settings_subsections() {
   static const vector<string> subsections{"set-photo", "first-name",    "last-name", "bio",
                                           "birthday",  "change-number", "username",  "your-color",
@@ -956,6 +985,12 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
       }
       if (path_[0] == "change_number") {
         return td_api::make_object<td_api::settingsSectionPhoneNumber>();
+      }
+      if (path_[0] == "data") {
+        if (!subsection.empty() && td::contains(get_data_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionDataAndStorage>(subsection);
+        }
+        return td_api::make_object<td_api::settingsSectionDataAndStorage>();
       }
       if (path_[0] == "devices") {
         return td_api::make_object<td_api::settingsSectionDevices>();
@@ -3025,6 +3060,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         }
         case td_api::settingsSectionChatFolders::ID:
           return "tg://settings/folders";
+        case td_api::settingsSectionDataAndStorage::ID: {
+          const auto &subsection = static_cast<const td_api::settingsSectionDataAndStorage *>(section_ptr)->subsection_;
+          if (td::contains(get_data_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/data/" << subsection;
+          }
+          return "tg://settings/data";
+        }
         case td_api::settingsSectionDevices::ID:
           return "tg://settings/devices";
         case td_api::settingsSectionEditProfile::ID: {

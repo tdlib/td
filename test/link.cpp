@@ -273,6 +273,10 @@ static auto chat_invite(const td::string &hash) {
   return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>("tg:join?invite=" + hash);
 }
 
+static auto data_and_storage_settings(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionDataAndStorage>(subsection));
+}
+
 static auto direct_messages_chat(const td::string &channel_username) {
   return td::td_api::make_object<td::td_api::internalLinkTypeDirectMessagesChat>(channel_username);
 }
@@ -1699,6 +1703,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/auto_delete/test", privacy_and_security_settings("auto-delete"));
   parse_internal_link("tg://settings/devices", active_sessions());
   parse_internal_link("tg://settings/change_number", change_phone_number());
+  parse_internal_link("tg://settings/data", data_and_storage_settings());
   parse_internal_link("tg://settings/edit_profile", edit_profile_settings());
   parse_internal_link("tg://settings/edit", edit_profile_settings());
   parse_internal_link("tg://settings/folders", chat_folder_settings());
@@ -1749,6 +1754,11 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/notifications/reset", notification_settings("reset"));
   parse_internal_link("tg://settings/notifications/groups/delete-exceptions",
                       notification_settings("groups/delete-exceptions"));
+
+  parse_internal_link("tg://settings/data/app-icon", data_and_storage_settings());
+  parse_internal_link("tg://settings/data/reset", data_and_storage_settings());
+  parse_internal_link("tg://settings/data/storage", data_and_storage_settings("storage"));
+  parse_internal_link("tg://settings/data/proxy/use-for-calls", data_and_storage_settings("proxy/use-for-calls"));
 
   parse_internal_link("tg://stars", my_stars());
   parse_internal_link("tg://stars?asdsa?D?SADasD?asD", my_stars());
