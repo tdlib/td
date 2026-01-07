@@ -919,7 +919,7 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionPassword>();
       }
       if (path_[0] == "phone_privacy") {
-        return td_api::make_object<td_api::settingsSectionPhoneNumberPrivacy>();
+        return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>("phone-number");
       }
       if (path_[0] == "privacy") {
         if (!subsection.empty() && td::contains(get_privacy_settings_subsections(), subsection)) {
@@ -2960,12 +2960,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           return "tg://settings/password";
         case td_api::settingsSectionPhoneNumber::ID:
           return "tg://settings/change_number";
-        case td_api::settingsSectionPhoneNumberPrivacy::ID:
-          return "tg://settings/phone_privacy";
         case td_api::settingsSectionPrivacyAndSecurity::ID: {
           const auto &subsection =
               static_cast<const td_api::settingsSectionPrivacyAndSecurity *>(section_ptr)->subsection_;
           if (td::contains(get_privacy_settings_subsections(), subsection)) {
+            if (subsection == "phone-number") {
+              return "tg://settings/phone_privacy";
+            }
             return PSTRING() << "tg://settings/privacy/" << subsection;
           }
           return "tg://settings/privacy";

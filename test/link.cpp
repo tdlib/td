@@ -359,10 +359,6 @@ static auto phone_number_confirmation(const td::string &hash, const td::string &
   return td::td_api::make_object<td::td_api::internalLinkTypePhoneNumberConfirmation>(hash, phone_number);
 }
 
-static auto phone_number_privacy_settings() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionPhoneNumberPrivacy>());
-}
-
 static auto premium_features(const td::string &referrer) {
   return td::td_api::make_object<td::td_api::internalLinkTypePremiumFeatures>(referrer);
 }
@@ -1705,7 +1701,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/language", language_settings());
   parse_internal_link("tg://settings/login_email", login_email_settings());
   parse_internal_link("tg://settings/password", password_settings());
-  parse_internal_link("tg://settings/phone_privacy", phone_number_privacy_settings());
+  parse_internal_link("tg://settings/phone_privacy", privacy_and_security_settings("phone-number"));
   parse_internal_link("tg://settings/privacy", privacy_and_security_settings());
 
   parse_internal_link("tg://settings/language/abacaba", language_settings());
@@ -1718,6 +1714,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/privacy/passcode/auto-lock", privacy_and_security_settings("passcode/auto-lock"));
   parse_internal_link("tg://settings/privacy/passcode/auto-locks", privacy_and_security_settings());
   parse_internal_link("tg://settings/privacy/login-email", privacy_and_security_settings("login-email"));
+  parse_internal_link("tg://settings/privacy/phone-number", privacy_and_security_settings("phone-number"));
   parse_internal_link("tg://settings/privacy/auto-delete/set-custom",
                       privacy_and_security_settings("auto-delete/set-custom"));
 

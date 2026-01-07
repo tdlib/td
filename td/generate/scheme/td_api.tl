@@ -8309,9 +8309,6 @@ settingsSectionPassword = SettingsSection;
 //@description The phone number change section
 settingsSectionPhoneNumber = SettingsSection;
 
-//@description The phone number privacy settings section
-settingsSectionPhoneNumberPrivacy = SettingsSection;
-
 //@description The privacy and security section @subsection Subsection of the section if any; may be one of
 //-"blocked", "blocked/edit", "blocked/block-user", "blocked/block-user/chats", "blocked/block-user/contacts",
 //-"active-websites", "active-websites/edit", "active-websites/disconnect-all", "passcode", "passcode/disable",
