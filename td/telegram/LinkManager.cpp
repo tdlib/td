@@ -209,6 +209,26 @@ static const vector<string> &get_language_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_notification_settings_subsections() {
+  static const vector<string> subsections{
+      "accounts", "private-chats", "private-chats/edit", "private-chats/show", "private-chats/preview",
+      "private-chats/sound", "private-chats/add-exception", "private-chats/delete-exceptions",
+      "private-chats/light-color", "private-chats/vibrate", "private-chats/priority", "groups", "groups/edit",
+      "groups/show", "groups/preview", "groups/sound", "groups/add-exception", "groups/delete-exceptions",
+      "groups/light-color", "groups/vibrate", "groups/priority", "channels", "channels/edit", "channels/show",
+      "channels/preview", "channels/sound", "channels/add-exception", "channels/delete-exceptions",
+      "channels/light-color", "channels/vibrate", "channels/priority", "stories", "stories/new", "stories/important",
+      "stories/show-sender", "stories/sound", "stories/add-exception", "stories/delete-exceptions",
+      "stories/light-color", "stories/vibrate", "stories/priority", "reactions", "reactions/messages",
+      "reactions/stories", "reactions/show-sender", "reactions/sound", "reactions/light-color", "reactions/vibrate",
+      "reactions/priority", "in-app-sounds", "in-app-vibrate", "in-app-preview", "in-chat-sounds", "in-app-popup",
+      "lock-screen-names", "include-channels", "include-muted-chats", "count-unread-messages", "new-contacts",
+      "pinned-messages", "reset",
+      // no formatting
+      "web"};
+  return subsections;
+}
+
 static const vector<string> &get_privacy_settings_subsections() {
   static const vector<string> subsections{
       "blocked", "blocked/edit", "blocked/block-user", "blocked/block-user/chats", "blocked/block-user/contacts",
@@ -971,6 +991,12 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
       }
       if (path_[0] == "login_email") {
         return td_api::make_object<td_api::settingsSectionLoginEmail>();
+      }
+      if (path_[0] == "notifications") {
+        if (!subsection.empty() && td::contains(get_notification_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionNotifications>(subsection);
+        }
+        return td_api::make_object<td_api::settingsSectionNotifications>();
       }
       if (path_[0] == "password") {
         return td_api::make_object<td_api::settingsSectionPassword>();
@@ -3023,6 +3049,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           return "tg://stars";
         case td_api::settingsSectionMyToncoins::ID:
           return "tg://ton";
+        case td_api::settingsSectionNotifications::ID: {
+          const auto &subsection = static_cast<const td_api::settingsSectionNotifications *>(section_ptr)->subsection_;
+          if (td::contains(get_notification_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/notifications/" << subsection;
+          }
+          return "tg://settings/notifications";
+        }
         case td_api::settingsSectionPassword::ID:
           return "tg://settings/password";
         case td_api::settingsSectionPhoneNumber::ID:

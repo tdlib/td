@@ -345,6 +345,10 @@ static auto my_toncoins() {
   return settings(td::td_api::make_object<td::td_api::settingsSectionMyToncoins>());
 }
 
+static auto notification_settings(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionNotifications>(subsection));
+}
+
 static auto passport_data_request(td::int32 bot_user_id, const td::string &scope, const td::string &public_key,
                                   const td::string &nonce, const td::string &callback_url) {
   return td::td_api::make_object<td::td_api::internalLinkTypePassportDataRequest>(bot_user_id, scope, public_key, nonce,
@@ -1701,6 +1705,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/filters", settings());
   parse_internal_link("tg://settings/language", language_settings());
   parse_internal_link("tg://settings/login_email", login_email_settings());
+  parse_internal_link("tg://settings/notifications", notification_settings());
   parse_internal_link("tg://settings/password", password_settings());
   parse_internal_link("tg://settings/phone_privacy", privacy_and_security_settings("phone-number"));
   parse_internal_link("tg://settings/privacy", privacy_and_security_settings());
@@ -1739,6 +1744,11 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/profile-photo", edit_profile_settings("profile-photo"));
   parse_internal_link("tg://settings/profile-photo/use-emojis", edit_profile_settings("profile-photo"));
   parse_internal_link("tg://settings/profile-photo/use-emoji", edit_profile_settings("profile-photo/use-emoji"));
+
+  parse_internal_link("tg://settings/notifications/app-icon", notification_settings());
+  parse_internal_link("tg://settings/notifications/reset", notification_settings("reset"));
+  parse_internal_link("tg://settings/notifications/groups/delete-exceptions",
+                      notification_settings("groups/delete-exceptions"));
 
   parse_internal_link("tg://stars", my_stars());
   parse_internal_link("tg://stars?asdsa?D?SADasD?asD", my_stars());
