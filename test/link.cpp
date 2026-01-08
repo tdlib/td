@@ -203,6 +203,10 @@ static auto edit_profile_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionEditProfile>(subsection));
 }
 
+static auto faq() {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionFaq>());
+}
+
 static auto language_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionLanguage>(subsection));
 }
@@ -1721,7 +1725,8 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/privacy/passcode/auto-lock", privacy_and_security_settings("passcode/auto-lock"));
   parse_internal_link("tg://settings/privacy/passcode/auto-locks", privacy_and_security_settings());
   parse_internal_link("tg://settings/privacy/phone-number/never", privacy_and_security_settings());
-  parse_internal_link("tg://settings/privacy/phone-number/never-share", privacy_and_security_settings("phone-number/never-share"));
+  parse_internal_link("tg://settings/privacy/phone-number/never-share",
+                      privacy_and_security_settings("phone-number/never-share"));
   parse_internal_link("tg://settings/privacy/login-email", privacy_and_security_settings("login-email"));
   parse_internal_link("tg://settings/privacy/phone-number", privacy_and_security_settings("phone-number"));
   parse_internal_link("tg://settings/privacy/auto-delete/set-custom",
@@ -1791,6 +1796,9 @@ TEST(Link, parse_internal_link_part4) {
 
   parse_internal_link("tg://ask-question", unknown_deep_link("tg://ask-question"));
   parse_internal_link("tg://settings/ask-question", ask_question());
+
+  parse_internal_link("tg://faq", unknown_deep_link("tg://faq"));
+  parse_internal_link("tg://settings/faq", faq());
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
   parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));

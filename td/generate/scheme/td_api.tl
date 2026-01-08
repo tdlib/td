@@ -8330,6 +8330,9 @@ settingsSectionDevices subsection:string = SettingsSection;
 //-"profile-color/name/add-icons", "profile-color/name/use-gift", "profile-photo", "profile-photo/use-emoji"
 settingsSectionEditProfile subsection:string = SettingsSection;
 
+//@description The FAQ section
+settingsSectionFaq = SettingsSection;
+
 //@description The application language section @subsection Subsection of the section if any; may be one of "show-button" for Show Translate Button toggle,
 //-"translate-chats" for Translate Entire Chats toggle, "do-not-translate" - for Do Not Translate language list
 settingsSectionLanguage subsection:string = SettingsSection;
