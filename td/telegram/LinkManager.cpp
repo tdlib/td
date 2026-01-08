@@ -1074,6 +1074,9 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         }
         return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>();
       }
+      if (path_[0] == "privacy-policy") {
+        return td_api::make_object<td_api::settingsSectionPrivacyPolicy>();
+      }
       if (path_[0] == "stars") {
         return td_api::make_object<td_api::settingsSectionMyStars>();
       }
@@ -3166,6 +3169,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           }
           return "tg://settings/privacy";
         }
+        case td_api::settingsSectionPrivacyPolicy::ID:
+          return "tg://settings/privacy-policy";
         default:
           UNREACHABLE();
           return "";

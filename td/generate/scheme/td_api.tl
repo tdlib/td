@@ -8362,7 +8362,7 @@ settingsSectionMyToncoins = SettingsSection;
 //-"pinned-messages", "reset", "web"
 settingsSectionNotifications subsection:string = SettingsSection;
 
-//@description The Premium subscription section
+//@description The "Telegram Premium" section
 settingsSectionPremium = SettingsSection;
 
 //@description The privacy and security section @subsection Subsection of the section if any; may be one of
@@ -8384,6 +8384,9 @@ settingsSectionPremium = SettingsSection;
 //-"data-settings/delete-cloud-drafts", "data-settings/clear-payment-info", "data-settings/link-previews",
 //-"data-settings/bot-settings", "data-settings/map-provider", "archive-and-mute"
 settingsSectionPrivacyAndSecurity subsection:string = SettingsSection;
+
+//@description The "Privacy Policy" section
+settingsSectionPrivacyPolicy = SettingsSection;
 
 
 //@class InternalLinkType @description Describes an internal https://t.me or tg: link, which must be processed by the application in a special way
