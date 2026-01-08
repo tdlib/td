@@ -1035,6 +1035,9 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
       if (path_[0] == "faq") {
         return td_api::make_object<td_api::settingsSectionFaq>();
       }
+      if (path_[0] == "features") {
+        return td_api::make_object<td_api::settingsSectionFeatures>();
+      }
       if (path_[0] == "folders") {
         if (!subsection.empty() && td::contains(get_folder_settings_subsections(), subsection)) {
           return td_api::make_object<td_api::settingsSectionChatFolders>(subsection);
@@ -3121,6 +3124,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         }
         case td_api::settingsSectionFaq::ID:
           return "tg://settings/faq";
+        case td_api::settingsSectionFeatures::ID:
+          return "tg://settings/features";
         case td_api::settingsSectionLanguage::ID: {
           const auto &subsection = static_cast<const td_api::settingsSectionLanguage *>(section_ptr)->subsection_;
           if (td::contains(get_language_settings_subsections(), subsection)) {

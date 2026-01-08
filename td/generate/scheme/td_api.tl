@@ -8333,6 +8333,9 @@ settingsSectionEditProfile subsection:string = SettingsSection;
 //@description The FAQ section
 settingsSectionFaq = SettingsSection;
 
+//@description The "Telegram Features" section
+settingsSectionFeatures = SettingsSection;
+
 //@description The application language section @subsection Subsection of the section if any; may be one of "show-button" for Show Translate Button toggle,
 //-"translate-chats" for Translate Entire Chats toggle, "do-not-translate" - for Do Not Translate language list
 settingsSectionLanguage subsection:string = SettingsSection;

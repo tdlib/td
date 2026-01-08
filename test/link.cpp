@@ -207,6 +207,10 @@ static auto faq() {
   return settings(td::td_api::make_object<td::td_api::settingsSectionFaq>());
 }
 
+static auto features() {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionFeatures>());
+}
+
 static auto language_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionLanguage>(subsection));
 }
@@ -1799,6 +1803,9 @@ TEST(Link, parse_internal_link_part4) {
 
   parse_internal_link("tg://faq", unknown_deep_link("tg://faq"));
   parse_internal_link("tg://settings/faq", faq());
+
+  parse_internal_link("tg://features", unknown_deep_link("tg://features"));
+  parse_internal_link("tg://settings/features", features());
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
   parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));
