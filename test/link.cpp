@@ -219,10 +219,6 @@ static auto notification_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionNotifications>(subsection));
 }
 
-static auto password_settings() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionPassword>());
-}
-
 static auto privacy_and_security_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionPrivacyAndSecurity>(subsection));
 }
@@ -1707,7 +1703,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/language", language_settings());
   parse_internal_link("tg://settings/login_email", privacy_and_security_settings("login-email"));
   parse_internal_link("tg://settings/notifications", notification_settings());
-  parse_internal_link("tg://settings/password", password_settings());
+  parse_internal_link("tg://settings/password", privacy_and_security_settings("2sv"));
   parse_internal_link("tg://settings/phone_privacy", privacy_and_security_settings("phone-number"));
   parse_internal_link("tg://settings/privacy", privacy_and_security_settings());
 

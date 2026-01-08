@@ -8351,9 +8351,6 @@ settingsSectionMyToncoins = SettingsSection;
 //-"pinned-messages", "reset", "web"
 settingsSectionNotifications subsection:string = SettingsSection;
 
-//@description The password set up section
-settingsSectionPassword = SettingsSection;
-
 //@description The phone number change section
 settingsSectionPhoneNumber = SettingsSection;
 
