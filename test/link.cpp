@@ -183,6 +183,10 @@ static auto appearance(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionAppearance>(subsection));
 }
 
+static auto ask_question() {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionAskQuestion>());
+}
+
 static auto chat_folder_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionChatFolders>(subsection));
 }
@@ -1782,6 +1786,9 @@ TEST(Link, parse_internal_link_part4) {
 
   parse_internal_link("tg://premium", unknown_deep_link("tg://premium"));
   parse_internal_link("tg://settings/premium", premium());
+
+  parse_internal_link("tg://ask-question", unknown_deep_link("tg://ask-question"));
+  parse_internal_link("tg://settings/ask-question", ask_question());
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
   parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));

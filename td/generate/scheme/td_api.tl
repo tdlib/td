@@ -8288,6 +8288,9 @@ reportStoryResultTextRequired option_id:bytes is_optional:Bool = ReportStoryResu
 //-"stickers-and-emoji/emoji/show-more", "app-icon", "tap-for-next-media"
 settingsSectionAppearance subsection:string = SettingsSection;
 
+//@description The "Ask a question" section
+settingsSectionAskQuestion = SettingsSection;
+
 //@description The chat folder settings section @subsection Subsection of the section if any; may be one of
 //-"edit", "create", "add-recommended", "show-tags", "tab-view"
 settingsSectionChatFolders subsection:string = SettingsSection;
@@ -8331,10 +8334,10 @@ settingsSectionEditProfile subsection:string = SettingsSection;
 //-"translate-chats" for Translate Entire Chats toggle, "do-not-translate" - for Do Not Translate language list
 settingsSectionLanguage subsection:string = SettingsSection;
 
-//@description The Telegram Star balance and transactions of the current user section
+//@description The Telegram Star balance and transaction section
 settingsSectionMyStars = SettingsSection;
 
-//@description The Toncoin balance and transactions of the current user section
+//@description The Toncoin balance and transaction section
 settingsSectionMyToncoins = SettingsSection;
 
 //@description The notification settings section @subsection Subsection of the section if any; may be one of

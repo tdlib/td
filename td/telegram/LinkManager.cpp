@@ -990,6 +990,9 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         }
         return td_api::make_object<td_api::settingsSectionAppearance>();
       }
+      if (path_[0] == "ask-question") {
+        return td_api::make_object<td_api::settingsSectionAskQuestion>();
+      }
       if (path_[0] == "auto_delete") {
         return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>("auto-delete");
       }
@@ -3077,6 +3080,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           }
           return "tg://settings/themes";
         }
+        case td_api::settingsSectionAskQuestion::ID:
+          return "tg://settings/ask-question";
         case td_api::settingsSectionChatFolders::ID: {
           const auto &subsection = static_cast<const td_api::settingsSectionChatFolders *>(section_ptr)->subsection_;
           if (td::contains(get_folder_settings_subsections(), subsection)) {
