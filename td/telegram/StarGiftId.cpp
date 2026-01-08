@@ -98,6 +98,10 @@ vector<telegram_api::object_ptr<telegram_api::InputSavedStarGift>> StarGiftId::g
                    [td](const StarGiftId &star_gift_id) { return star_gift_id.get_input_saved_star_gift(td); });
 }
 
+vector<StarGiftId> StarGiftId::get_star_gift_ids(const vector<string> &star_gift_ids) {
+  return transform(star_gift_ids, [](const string &star_gift_id) { return StarGiftId(star_gift_id); });
+}
+
 string StarGiftId::get_star_gift_id() const {
   switch (type_) {
     case Type::Empty:
