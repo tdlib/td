@@ -216,7 +216,7 @@ static const vector<string> &get_data_settings_subsections() {
   return subsections;
 }
 
-static const vector<string> &get_devices_settings_subsections() {
+static const vector<string> &get_device_settings_subsections() {
   static const vector<string> subsections{"edit", "link-desktop", "terminate-sessions", "auto-terminate"};
   return subsections;
 }
@@ -235,6 +235,11 @@ static const vector<string> &get_edit_profile_other_settings_subsections() {
                                           "profile-color/name/use-gift", "profile-photo",
                                           // no formatting
                                           "profile-photo/use-emoji"};
+  return subsections;
+}
+
+static const vector<string> &get_folder_settings_subsections() {
+  static const vector<string> subsections{"edit", "create", "add-recommended", "show-tags", "tab-view"};
   return subsections;
 }
 
@@ -998,7 +1003,7 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionDataAndStorage>();
       }
       if (path_[0] == "devices") {
-        if (!subsection.empty() && td::contains(get_devices_settings_subsections(), subsection)) {
+        if (!subsection.empty() && td::contains(get_device_settings_subsections(), subsection)) {
           return td_api::make_object<td_api::settingsSectionDevices>(subsection);
         }
         return td_api::make_object<td_api::settingsSectionDevices>();
@@ -1024,11 +1029,14 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionEditProfile>(path_[0]);
       }
       if (path_[0] == "folders") {
+        if (!subsection.empty() && td::contains(get_folder_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionChatFolders>(subsection);
+        }
         return td_api::make_object<td_api::settingsSectionChatFolders>();
       }
       if (path_[0] == "language") {
-        if (path_.size() >= 2u && td::contains(get_language_settings_subsections(), path_[1])) {
-          return td_api::make_object<td_api::settingsSectionLanguage>(path_[1]);
+        if (!subsection.empty() && td::contains(get_language_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionLanguage>(subsection);
         }
         return td_api::make_object<td_api::settingsSectionLanguage>();
       }
@@ -3066,8 +3074,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           }
           return "tg://settings/themes";
         }
-        case td_api::settingsSectionChatFolders::ID:
+        case td_api::settingsSectionChatFolders::ID: {
+          const auto &subsection = static_cast<const td_api::settingsSectionChatFolders *>(section_ptr)->subsection_;
+          if (td::contains(get_folder_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/folders/" << subsection;
+          }
           return "tg://settings/folders";
+        }
         case td_api::settingsSectionDataAndStorage::ID: {
           const auto &subsection = static_cast<const td_api::settingsSectionDataAndStorage *>(section_ptr)->subsection_;
           if (td::contains(get_data_settings_subsections(), subsection)) {
@@ -3077,7 +3090,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         }
         case td_api::settingsSectionDevices::ID: {
           const auto &subsection = static_cast<const td_api::settingsSectionDevices *>(section_ptr)->subsection_;
-          if (td::contains(get_devices_settings_subsections(), subsection)) {
+          if (td::contains(get_device_settings_subsections(), subsection)) {
             return PSTRING() << "tg://settings/devices/" << subsection;
           }
           return "tg://settings/devices";

@@ -187,8 +187,8 @@ static auto change_phone_number() {
   return settings(td::td_api::make_object<td::td_api::settingsSectionPhoneNumber>());
 }
 
-static auto chat_folder_settings() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionChatFolders>());
+static auto chat_folder_settings(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionChatFolders>(subsection));
 }
 
 static auto data_and_storage_settings(td::string subsection = td::string()) {
@@ -1726,6 +1726,9 @@ TEST(Link, parse_internal_link_part4) {
 
   parse_internal_link("tg://settings/devices/edit", devices("edit"));
   parse_internal_link("tg://settings/devices/auto-terminate", devices("auto-terminate"));
+
+  parse_internal_link("tg://settings/folders/edit", chat_folder_settings("edit"));
+  parse_internal_link("tg://settings/folders/tab-view", chat_folder_settings("tab-view"));
 
   parse_internal_link("tg://settings/edit/abacaba", edit_profile_settings());
   parse_internal_link("tg://settings/edit-profile/abacaba", settings());

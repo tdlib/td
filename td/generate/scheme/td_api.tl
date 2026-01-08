@@ -8288,8 +8288,8 @@ reportStoryResultTextRequired option_id:bytes is_optional:Bool = ReportStoryResu
 //-"stickers-and-emoji/emoji/show-more", "app-icon", "tap-for-next-media"
 settingsSectionAppearance subsection:string = SettingsSection;
 
-//@description The chat folders settings section
-settingsSectionChatFolders = SettingsSection;
+//@description The chat folder settings section @subsection Subsection of the section if any; may be one of "edit", "create", "add-recommended", "show-tags", "tab-view"
+settingsSectionChatFolders subsection:string = SettingsSection;
 
 //@description The data and storage settings section @subsection Subsection of the section if any; may be one of
 //-"storage", "storage/edit", "storage/auto-remove", "storage/clear-cache", "max-cache", "usage", "usage/mobile",
