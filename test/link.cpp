@@ -321,10 +321,6 @@ static auto live_story(const td::string &poster_username) {
   return td::td_api::make_object<td::td_api::internalLinkTypeLiveStory>(poster_username);
 }
 
-static auto login_email_settings() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionLoginEmail>());
-}
-
 static auto main_web_app(const td::string &bot_username, const td::string &start_parameter, bool is_compact,
                          bool is_full_screen) {
   return td::td_api::make_object<td::td_api::internalLinkTypeMainWebApp>(bot_username, start_parameter,
@@ -1709,7 +1705,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/folders", chat_folder_settings());
   parse_internal_link("tg://settings/filters", settings());
   parse_internal_link("tg://settings/language", language_settings());
-  parse_internal_link("tg://settings/login_email", login_email_settings());
+  parse_internal_link("tg://settings/login_email", privacy_and_security_settings("login-email"));
   parse_internal_link("tg://settings/notifications", notification_settings());
   parse_internal_link("tg://settings/password", password_settings());
   parse_internal_link("tg://settings/phone_privacy", privacy_and_security_settings("phone-number"));

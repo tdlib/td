@@ -8329,9 +8329,6 @@ settingsSectionEditProfile subsection:string = SettingsSection;
 //-"translate-chats" for Translate Entire Chats toggle, "do-not-translate" - for Do Not Translate language list
 settingsSectionLanguage subsection:string = SettingsSection;
 
-//@description The login email set up section
-settingsSectionLoginEmail = SettingsSection;
-
 //@description The Telegram Star balance and transactions of the current user section
 settingsSectionMyStars = SettingsSection;
 

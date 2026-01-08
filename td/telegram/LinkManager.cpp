@@ -1025,7 +1025,7 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionLanguage>();
       }
       if (path_[0] == "login_email") {
-        return td_api::make_object<td_api::settingsSectionLoginEmail>();
+        return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>("login-email");
       }
       if (path_[0] == "notifications") {
         if (!subsection.empty() && td::contains(get_notification_settings_subsections(), subsection)) {
@@ -3085,8 +3085,6 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           }
           return "tg://settings/language";
         }
-        case td_api::settingsSectionLoginEmail::ID:
-          return "tg://settings/login_email";
         case td_api::settingsSectionMyStars::ID:
           return "tg://stars";
         case td_api::settingsSectionMyToncoins::ID:
@@ -3111,6 +3109,9 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
             }
             if (subsection == "auto-delete") {
               return "tg://settings/auto_delete";
+            }
+            if (subsection == "login-email") {
+              return "tg://settings/login_email";
             }
             return PSTRING() << "tg://settings/privacy/" << subsection;
           }
