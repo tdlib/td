@@ -994,7 +994,7 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>("auto-delete");
       }
       if (path_[0] == "change_number") {
-        return td_api::make_object<td_api::settingsSectionPhoneNumber>();
+        return td_api::make_object<td_api::settingsSectionEditProfile>("change-number");
       }
       if (path_[0] == "data") {
         if (!subsection.empty() && td::contains(get_data_settings_subsections(), subsection)) {
@@ -3098,6 +3098,9 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         case td_api::settingsSectionEditProfile::ID: {
           const auto &subsection = static_cast<const td_api::settingsSectionEditProfile *>(section_ptr)->subsection_;
           if (td::contains(get_edit_profile_settings_subsections(), subsection)) {
+            if (subsection == "change-number") {
+              return "tg://settings/change_number";
+            }
             return PSTRING() << "tg://settings/edit/" << subsection;
           } else if (td::contains(get_edit_profile_other_settings_subsections(), subsection)) {
             return PSTRING() << "tg://settings/" << subsection;
@@ -3122,8 +3125,6 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           }
           return "tg://settings/notifications";
         }
-        case td_api::settingsSectionPhoneNumber::ID:
-          return "tg://settings/change_number";
         case td_api::settingsSectionPrivacyAndSecurity::ID: {
           const auto &subsection =
               static_cast<const td_api::settingsSectionPrivacyAndSecurity *>(section_ptr)->subsection_;

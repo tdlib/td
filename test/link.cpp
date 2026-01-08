@@ -183,10 +183,6 @@ static auto appearance(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionAppearance>(subsection));
 }
 
-static auto change_phone_number() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionPhoneNumber>());
-}
-
 static auto chat_folder_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionChatFolders>(subsection));
 }
@@ -1694,7 +1690,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/auto_delete", privacy_and_security_settings("auto-delete"));
   parse_internal_link("tg://settings/auto_delete/test", privacy_and_security_settings("auto-delete"));
   parse_internal_link("tg://settings/devices", devices());
-  parse_internal_link("tg://settings/change_number", change_phone_number());
+  parse_internal_link("tg://settings/change_number", edit_profile_settings("change-number"));
   parse_internal_link("tg://settings/data", data_and_storage_settings());
   parse_internal_link("tg://settings/edit_profile", edit_profile_settings());
   parse_internal_link("tg://settings/edit", edit_profile_settings());
@@ -1737,6 +1733,8 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/edit_profile/log-out", edit_profile_settings());
   parse_internal_link("tg://settings/edit/your-color", edit_profile_settings("your-color"));
   parse_internal_link("tg://settings/edit_profile/your-color", edit_profile_settings());
+  parse_internal_link("tg://settings/edit/change_number", edit_profile_settings());
+  parse_internal_link("tg://settings/edit/change-number", edit_profile_settings("change-number"));
   parse_internal_link("tg://settings/emoji-status", edit_profile_settings("emoji-status"));
   parse_internal_link("tg://settings/profile-color", edit_profile_settings("profile-color"));
   parse_internal_link("tg://settings/profile-color/abacaba", edit_profile_settings("profile-color"));

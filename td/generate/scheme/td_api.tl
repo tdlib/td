@@ -8288,7 +8288,8 @@ reportStoryResultTextRequired option_id:bytes is_optional:Bool = ReportStoryResu
 //-"stickers-and-emoji/emoji/show-more", "app-icon", "tap-for-next-media"
 settingsSectionAppearance subsection:string = SettingsSection;
 
-//@description The chat folder settings section @subsection Subsection of the section if any; may be one of "edit", "create", "add-recommended", "show-tags", "tab-view"
+//@description The chat folder settings section @subsection Subsection of the section if any; may be one of
+//-"edit", "create", "add-recommended", "show-tags", "tab-view"
 settingsSectionChatFolders subsection:string = SettingsSection;
 
 //@description The data and storage settings section @subsection Subsection of the section if any; may be one of
@@ -8316,7 +8317,8 @@ settingsSectionChatFolders subsection:string = SettingsSection;
 //-"proxy/edit", "proxy/use-proxy", "proxy/add-proxy", "proxy/share-list", "proxy/use-for-calls"
 settingsSectionDataAndStorage subsection:string = SettingsSection;
 
-//@description The Devices section @subsection Subsection of the section if any; may be one of "edit", "link-desktop", "terminate-sessions", "auto-terminate"
+//@description The Devices section @subsection Subsection of the section if any; may be one of
+//-"edit", "link-desktop", "terminate-sessions", "auto-terminate"
 settingsSectionDevices subsection:string = SettingsSection;
 
 //@description The profile edit section @subsection Subsection of the section if any; may be one of "set-photo", "first-name", "last-name",
@@ -8350,9 +8352,6 @@ settingsSectionMyToncoins = SettingsSection;
 //-"lock-screen-names", "include-channels", "include-muted-chats", "count-unread-messages", "new-contacts",
 //-"pinned-messages", "reset", "web"
 settingsSectionNotifications subsection:string = SettingsSection;
-
-//@description The phone number change section
-settingsSectionPhoneNumber = SettingsSection;
 
 //@description The privacy and security section @subsection Subsection of the section if any; may be one of
 //-"blocked", "blocked/edit", "blocked/block-user", "blocked/block-user/chats", "blocked/block-user/contacts",
