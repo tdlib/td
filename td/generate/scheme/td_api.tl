@@ -8340,8 +8340,9 @@ settingsSectionFeatures = SettingsSection;
 //-"translate-chats" for Translate Entire Chats toggle, "do-not-translate" - for Do Not Translate language list
 settingsSectionLanguage subsection:string = SettingsSection;
 
-//@description The Telegram Star balance and transaction section
-settingsSectionMyStars = SettingsSection;
+//@description The Telegram Star balance and transaction section @subsection Subsection of the section if any; may be one of
+//-"top-up", "stats", "gift", "earn"
+settingsSectionMyStars subsection:string = SettingsSection;
 
 //@description The Toncoin balance and transaction section
 settingsSectionMyToncoins = SettingsSection;

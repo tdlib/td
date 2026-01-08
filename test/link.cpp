@@ -215,8 +215,8 @@ static auto language_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionLanguage>(subsection));
 }
 
-static auto my_stars() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionMyStars>());
+static auto my_stars(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionMyStars>(subsection));
 }
 
 static auto my_toncoins() {
@@ -1790,8 +1790,10 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://stars/aadsa#test", my_stars());
   parse_internal_link("tg://stars/theme#test", my_stars());
   parse_internal_link("tg:stars/theme#test", my_stars());
+  parse_internal_link("tg://stars/earn#test", my_stars());
   parse_internal_link("tg://settings/stars", my_stars());
   parse_internal_link("tg://settings/stars/123123", my_stars());
+  parse_internal_link("tg://settings/stars/earn#test", my_stars("earn"));
 
   parse_internal_link("tg://ton", my_toncoins());
   parse_internal_link("tg://ton?asdsa?D?SADasD?asD", my_toncoins());

@@ -248,6 +248,11 @@ static const vector<string> &get_language_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_my_stars_settings_subsections() {
+  static const vector<string> subsections{"top-up", "stats", "gift", "earn"};
+  return subsections;
+}
+
 static const vector<string> &get_notification_settings_subsections() {
   static const vector<string> subsections{
       "accounts", "private-chats", "private-chats/edit", "private-chats/show", "private-chats/preview",
@@ -1081,6 +1086,9 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionSearch>();
       }
       if (path_[0] == "stars") {
+        if (!subsection.empty() && td::contains(get_my_stars_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionMyStars>(subsection);
+        }
         return td_api::make_object<td_api::settingsSectionMyStars>();
       }
       if (path_[0] == "themes") {
@@ -3139,8 +3147,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           }
           return "tg://settings/language";
         }
-        case td_api::settingsSectionMyStars::ID:
+        case td_api::settingsSectionMyStars::ID: {
+          const auto &subsection = static_cast<const td_api::settingsSectionMyStars *>(section_ptr)->subsection_;
+          if (td::contains(get_my_stars_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/stars/" << subsection;
+          }
           return "tg://stars";
+        }
         case td_api::settingsSectionMyToncoins::ID:
           return "tg://ton";
         case td_api::settingsSectionNotifications::ID: {
