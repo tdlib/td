@@ -239,6 +239,10 @@ static auto privacy_policy() {
   return settings(td::td_api::make_object<td::td_api::settingsSectionPrivacyPolicy>());
 }
 
+static auto search() {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionSearch>());
+}
+
 static auto target_chat_chosen(bool allow_users, bool allow_bots, bool allow_groups, bool allow_channels) {
   return td::td_api::make_object<td::td_api::targetChatChosen>(
       td::td_api::make_object<td::td_api::targetChatTypes>(allow_users, allow_bots, allow_groups, allow_channels));
@@ -1813,6 +1817,9 @@ TEST(Link, parse_internal_link_part4) {
 
   parse_internal_link("tg://privacy-policy", unknown_deep_link("tg://privacy-policy"));
   parse_internal_link("tg://settings/privacy-policy", privacy_policy());
+
+  parse_internal_link("tg://search", unknown_deep_link("tg://search"));
+  parse_internal_link("tg://settings/search", search());
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
   parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));

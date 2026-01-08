@@ -8388,6 +8388,9 @@ settingsSectionPrivacyAndSecurity subsection:string = SettingsSection;
 //@description The "Privacy Policy" section
 settingsSectionPrivacyPolicy = SettingsSection;
 
+//@description Search in Settings
+settingsSectionSearch = SettingsSection;
+
 
 //@class InternalLinkType @description Describes an internal https://t.me or tg: link, which must be processed by the application in a special way
 
