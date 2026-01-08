@@ -8316,8 +8316,8 @@ settingsSectionChatFolders = SettingsSection;
 //-"proxy/edit", "proxy/use-proxy", "proxy/add-proxy", "proxy/share-list", "proxy/use-for-calls"
 settingsSectionDataAndStorage subsection:string = SettingsSection;
 
-//@description The Devices section. Use getActiveSessions to get the list of active sessions
-settingsSectionDevices = SettingsSection;
+//@description The Devices section @subsection Subsection of the section if any; may be one of "edit", "link-desktop", "terminate-sessions", "auto-terminate"
+settingsSectionDevices subsection:string = SettingsSection;
 
 //@description The profile edit section @subsection Subsection of the section if any; may be one of "set-photo", "first-name", "last-name",
 //-"emoji-status", "bio", "birthday", "change-number", "username", "your-color", "channel", "add-account", "log-out",

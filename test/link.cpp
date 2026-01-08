@@ -179,10 +179,6 @@ static auto settings(td::td_api::object_ptr<td::td_api::SettingsSection> section
   return td::td_api::make_object<td::td_api::internalLinkTypeSettings>(std::move(section));
 }
 
-static auto active_sessions() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionDevices>());
-}
-
 static auto appearance(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionAppearance>(subsection));
 }
@@ -197,6 +193,10 @@ static auto chat_folder_settings() {
 
 static auto data_and_storage_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionDataAndStorage>(subsection));
+}
+
+static auto devices(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionDevices>(subsection));
 }
 
 static auto edit_profile_settings(td::string subsection = td::string()) {
@@ -1697,7 +1697,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/asdsathemesasdas/devices", settings());
   parse_internal_link("tg://settings/auto_delete", privacy_and_security_settings("auto-delete"));
   parse_internal_link("tg://settings/auto_delete/test", privacy_and_security_settings("auto-delete"));
-  parse_internal_link("tg://settings/devices", active_sessions());
+  parse_internal_link("tg://settings/devices", devices());
   parse_internal_link("tg://settings/change_number", change_phone_number());
   parse_internal_link("tg://settings/data", data_and_storage_settings());
   parse_internal_link("tg://settings/edit_profile", edit_profile_settings());
@@ -1727,6 +1727,9 @@ TEST(Link, parse_internal_link_part4) {
 
   parse_internal_link("tg://settings/appearance/themes/edit", appearance("themes/edit"));
   parse_internal_link("tg://settings/appearance/app-icon", appearance("app-icon"));
+
+  parse_internal_link("tg://settings/devices/edit", devices("edit"));
+  parse_internal_link("tg://settings/devices/auto-terminate", devices("auto-terminate"));
 
   parse_internal_link("tg://settings/edit/abacaba", edit_profile_settings());
   parse_internal_link("tg://settings/edit-profile/abacaba", settings());

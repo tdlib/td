@@ -216,6 +216,11 @@ static const vector<string> &get_data_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_devices_settings_subsections() {
+  static const vector<string> subsections{"edit", "link-desktop", "terminate-sessions", "auto-terminate"};
+  return subsections;
+}
+
 static const vector<string> &get_edit_profile_settings_subsections() {
   static const vector<string> subsections{"set-photo", "first-name",    "last-name", "bio",
                                           "birthday",  "change-number", "username",  "your-color",
@@ -993,6 +998,9 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionDataAndStorage>();
       }
       if (path_[0] == "devices") {
+        if (!subsection.empty() && td::contains(get_devices_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionDevices>(subsection);
+        }
         return td_api::make_object<td_api::settingsSectionDevices>();
       }
       if (path_[0] == "edit") {
@@ -3067,8 +3075,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           }
           return "tg://settings/data";
         }
-        case td_api::settingsSectionDevices::ID:
+        case td_api::settingsSectionDevices::ID: {
+          const auto &subsection = static_cast<const td_api::settingsSectionDevices *>(section_ptr)->subsection_;
+          if (td::contains(get_devices_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/devices/" << subsection;
+          }
           return "tg://settings/devices";
+        }
         case td_api::settingsSectionEditProfile::ID: {
           const auto &subsection = static_cast<const td_api::settingsSectionEditProfile *>(section_ptr)->subsection_;
           if (td::contains(get_edit_profile_settings_subsections(), subsection)) {
