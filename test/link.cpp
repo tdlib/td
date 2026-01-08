@@ -1720,6 +1720,8 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/privacy/auto-delete", privacy_and_security_settings("auto-delete"));
   parse_internal_link("tg://settings/privacy/passcode/auto-lock", privacy_and_security_settings("passcode/auto-lock"));
   parse_internal_link("tg://settings/privacy/passcode/auto-locks", privacy_and_security_settings());
+  parse_internal_link("tg://settings/privacy/phone-number/never", privacy_and_security_settings());
+  parse_internal_link("tg://settings/privacy/phone-number/never-share", privacy_and_security_settings("phone-number/never-share"));
   parse_internal_link("tg://settings/privacy/login-email", privacy_and_security_settings("login-email"));
   parse_internal_link("tg://settings/privacy/phone-number", privacy_and_security_settings("phone-number"));
   parse_internal_link("tg://settings/privacy/auto-delete/set-custom",

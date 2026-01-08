@@ -8364,18 +8364,19 @@ settingsSectionPremium = SettingsSection;
 //-"active-websites", "active-websites/edit", "active-websites/disconnect-all", "passcode", "passcode/disable",
 //-"passcode/change", "passcode/auto-lock", "passcode/face-id", "passcode/fingerprint", "2sv", "2sv/change",
 //-"2sv/disable", "2sv/change-email", "passkey", "passkey/create", "auto-delete", "auto-delete/set-custom",
-//-"login-email", "phone-number", "phone-number/never", "phone-number/always", "last-seen", "last-seen/never",
-//-"last-seen/always", "last-seen/hide-read-time", "profile-photos", "profile-photos/never", "profile-photos/always",
-//-"profile-photos/set-public", "profile-photos/update-public", "profile-photos/remove-public", "bio",
-//-"bio/never-share", "bio/always-share", "gifts", "gifts/show-icon", "gifts/never-share", "gifts/always-share",
-//-"gifts/accepted-types", "birthday", "birthday/add", "birthday/never", "birthday/always", "saved-music",
-//-"saved-music/never", "saved-music/always", "forwards", "forwards/never", "forwards/always", "calls",
-//-"calls/never", "calls/always", "calls/p2p", "calls/p2p/never", "calls/p2p/always", "calls/ios-integration",
-//-"voice", "voice/never", "voice/always", "messages", "messages/set-price", "messages/remove-fee", "invites",
-//-"invites/never", "invites/always", "self-destruct", "data-settings", "data-settings/sync-contacts",
-//-"data-settings/delete-synced", "data-settings/suggest-contacts", "data-settings/delete-cloud-drafts",
-//-"data-settings/clear-payment-info", "data-settings/link-previews", "data-settings/bot-settings",
-//-"data-settings/map-provider", "archive-and-mute"
+//-"login-email", "phone-number", "phone-number/never-share", "phone-number/always-share", "last-seen",
+//-"last-seen/never-share", "last-seen/always-share", "last-seen/hide-read-time", "profile-photos",
+//-"profile-photos/never-share", "profile-photos/always-share", "profile-photos/set-public",
+//-"profile-photos/update-public", "profile-photos/remove-public", "bio", "bio/never-share", "bio/always-share",
+//-"gifts", "gifts/show-icon", "gifts/never-share", "gifts/always-share", "gifts/accepted-types", "birthday",
+//-"birthday/add", "birthday/never-share", "birthday/always-share", "saved-music", "saved-music/never-share",
+//-"saved-music/always-share", "forwards", "forwards/never-share", "forwards/always-share", "calls",
+//-"calls/never-share", "calls/always-share", "calls/p2p", "calls/p2p/never-share", "calls/p2p/always-share",
+//-"calls/ios-integration", "voice", "voice/never-share", "voice/always-share", "messages", "messages/set-price",
+//-"messages/remove-fee", "invites", "invites/never-share", "invites/always-share", "self-destruct", "data-settings",
+//-"data-settings/sync-contacts", "data-settings/delete-synced", "data-settings/suggest-contacts",
+//-"data-settings/delete-cloud-drafts", "data-settings/clear-payment-info", "data-settings/link-previews",
+//-"data-settings/bot-settings", "data-settings/map-provider", "archive-and-mute"
 settingsSectionPrivacyAndSecurity subsection:string = SettingsSection;
 
 
