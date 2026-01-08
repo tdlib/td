@@ -1055,6 +1055,9 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
       if (path_[0] == "phone_privacy") {
         return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>("phone-number");
       }
+      if (path_[0] == "premium") {
+        return td_api::make_object<td_api::settingsSectionPremium>();
+      }
       if (path_[0] == "privacy") {
         if (!subsection.empty() && td::contains(get_privacy_settings_subsections(), subsection)) {
           return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>(subsection);
@@ -3125,6 +3128,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           }
           return "tg://settings/notifications";
         }
+        case td_api::settingsSectionPremium::ID:
+          return "tg://settings/premium";
         case td_api::settingsSectionPrivacyAndSecurity::ID: {
           const auto &subsection =
               static_cast<const td_api::settingsSectionPrivacyAndSecurity *>(section_ptr)->subsection_;

@@ -215,6 +215,10 @@ static auto notification_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionNotifications>(subsection));
 }
 
+static auto premium() {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionPremium>());
+}
+
 static auto privacy_and_security_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionPrivacyAndSecurity>(subsection));
 }
@@ -1775,6 +1779,9 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg:ton/theme#test", my_toncoins());
   parse_internal_link("tg://settings/ton", my_toncoins());
   parse_internal_link("tg://settings/ton/12312", my_toncoins());
+
+  parse_internal_link("tg://premium", unknown_deep_link("tg://premium"));
+  parse_internal_link("tg://settings/premium", premium());
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
   parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));

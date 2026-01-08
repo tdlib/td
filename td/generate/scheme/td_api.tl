@@ -8353,6 +8353,9 @@ settingsSectionMyToncoins = SettingsSection;
 //-"pinned-messages", "reset", "web"
 settingsSectionNotifications subsection:string = SettingsSection;
 
+//@description The Premium subscription section
+settingsSectionPremium = SettingsSection;
+
 //@description The privacy and security section @subsection Subsection of the section if any; may be one of
 //-"blocked", "blocked/edit", "blocked/block-user", "blocked/block-user/chats", "blocked/block-user/contacts",
 //-"active-websites", "active-websites/edit", "active-websites/disconnect-all", "passcode", "passcode/disable",
