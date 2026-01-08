@@ -8393,6 +8393,10 @@ settingsSectionPrivacyAndSecurity subsection:string = SettingsSection;
 //@description The "Privacy Policy" section
 settingsSectionPrivacyPolicy = SettingsSection;
 
+//@description The current user's QR code section @subsection Subsection of the section if any; may be one of
+//-"share", "scan"
+settingsSectionQrCode subsection:string = SettingsSection;
+
 //@description Search in Settings
 settingsSectionSearch = SettingsSection;
 

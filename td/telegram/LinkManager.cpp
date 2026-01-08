@@ -303,6 +303,11 @@ static const vector<string> &get_privacy_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_qr_code_settings_subsections() {
+  static const vector<string> subsections{"share", "scan"};
+  return subsections;
+}
+
 static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
   const auto &path = url_query.path_;
   if (is_tg) {
@@ -1098,6 +1103,12 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
       }
       if (path_[0] == "privacy-policy") {
         return td_api::make_object<td_api::settingsSectionPrivacyPolicy>();
+      }
+      if (path_[0] == "qr-code") {
+        if (td::contains(get_qr_code_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionQrCode>(subsection);
+        }
+        return td_api::make_object<td_api::settingsSectionQrCode>();
       }
       if (path_[0] == "search") {
         return td_api::make_object<td_api::settingsSectionSearch>();
@@ -3211,6 +3222,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         }
         case td_api::settingsSectionPrivacyPolicy::ID:
           return "tg://settings/privacy-policy";
+        case td_api::settingsSectionQrCode::ID: {
+          const auto &subsection = static_cast<const td_api::settingsSectionQrCode *>(section_ptr)->subsection_;
+          if (td::contains(get_qr_code_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/qr-code/" << subsection;
+          }
+          return "tg://settings/qr-code";
+        }
         case td_api::settingsSectionSearch::ID:
           return "tg://settings/search";
         default:

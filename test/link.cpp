@@ -243,6 +243,10 @@ static auto privacy_policy() {
   return settings(td::td_api::make_object<td::td_api::settingsSectionPrivacyPolicy>());
 }
 
+static auto qr_code(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionQrCode>(subsection));
+}
+
 static auto search() {
   return settings(td::td_api::make_object<td::td_api::settingsSectionSearch>());
 }
@@ -1832,6 +1836,11 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/chat/browser/abaa", in_app_browser());
   parse_internal_link("tg://settings/chat/browser/history", in_app_browser("history"));
   parse_internal_link("tg://settings/chat/browser/search", in_app_browser("search"));
+
+  parse_internal_link("tg://settings/qr-code", qr_code());
+  parse_internal_link("tg://settings/qr-code/share", qr_code("share"));
+  parse_internal_link("tg://settings/qr-code/share/", qr_code("share"));
+  parse_internal_link("tg://settings/qr-code/share/a", qr_code());
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
   parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));
