@@ -243,6 +243,12 @@ static const vector<string> &get_folder_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_in_app_browser_settings_subsections() {
+  static const vector<string> subsections{"enable-browser", "clear-cookies", "clear-cache", "history",
+                                          "clear-history",  "never-open",    "clear-list",  "search"};
+  return subsections;
+}
+
 static const vector<string> &get_language_settings_subsections() {
   static const vector<string> subsections{"show-button", "translate-chats", "do-not-translate"};
   return subsections;
@@ -991,7 +997,7 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         }
       }
       if (path_[0] == "appearance") {
-        if (!subsection.empty() && td::contains(get_appearance_settings_subsections(), subsection)) {
+        if (td::contains(get_appearance_settings_subsections(), subsection)) {
           return td_api::make_object<td_api::settingsSectionAppearance>(subsection);
         }
         return td_api::make_object<td_api::settingsSectionAppearance>();
@@ -1005,20 +1011,31 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
       if (path_[0] == "change_number") {
         return td_api::make_object<td_api::settingsSectionEditProfile>("change-number");
       }
+      if (path_[0] == "chat" && path_.size() >= 2u && path_[1] == "browser") {
+        if (path_.size() == 2u) {
+          subsection = string();
+        } else {
+          subsection = path_[2];
+        }
+        if (td::contains(get_in_app_browser_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionInAppBrowser>(subsection);
+        }
+        return td_api::make_object<td_api::settingsSectionInAppBrowser>();
+      }
       if (path_[0] == "data") {
-        if (!subsection.empty() && td::contains(get_data_settings_subsections(), subsection)) {
+        if (td::contains(get_data_settings_subsections(), subsection)) {
           return td_api::make_object<td_api::settingsSectionDataAndStorage>(subsection);
         }
         return td_api::make_object<td_api::settingsSectionDataAndStorage>();
       }
       if (path_[0] == "devices") {
-        if (!subsection.empty() && td::contains(get_device_settings_subsections(), subsection)) {
+        if (td::contains(get_device_settings_subsections(), subsection)) {
           return td_api::make_object<td_api::settingsSectionDevices>(subsection);
         }
         return td_api::make_object<td_api::settingsSectionDevices>();
       }
       if (path_[0] == "edit") {
-        if (!subsection.empty() && td::contains(get_edit_profile_settings_subsections(), subsection)) {
+        if (td::contains(get_edit_profile_settings_subsections(), subsection)) {
           return td_api::make_object<td_api::settingsSectionEditProfile>(subsection);
         }
         return td_api::make_object<td_api::settingsSectionEditProfile>();
@@ -1044,13 +1061,13 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionFeatures>();
       }
       if (path_[0] == "folders") {
-        if (!subsection.empty() && td::contains(get_folder_settings_subsections(), subsection)) {
+        if (td::contains(get_folder_settings_subsections(), subsection)) {
           return td_api::make_object<td_api::settingsSectionChatFolders>(subsection);
         }
         return td_api::make_object<td_api::settingsSectionChatFolders>();
       }
       if (path_[0] == "language") {
-        if (!subsection.empty() && td::contains(get_language_settings_subsections(), subsection)) {
+        if (td::contains(get_language_settings_subsections(), subsection)) {
           return td_api::make_object<td_api::settingsSectionLanguage>(subsection);
         }
         return td_api::make_object<td_api::settingsSectionLanguage>();
@@ -1059,7 +1076,7 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>("login-email");
       }
       if (path_[0] == "notifications") {
-        if (!subsection.empty() && td::contains(get_notification_settings_subsections(), subsection)) {
+        if (td::contains(get_notification_settings_subsections(), subsection)) {
           return td_api::make_object<td_api::settingsSectionNotifications>(subsection);
         }
         return td_api::make_object<td_api::settingsSectionNotifications>();
@@ -1074,7 +1091,7 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionPremium>();
       }
       if (path_[0] == "privacy") {
-        if (!subsection.empty() && td::contains(get_privacy_settings_subsections(), subsection)) {
+        if (td::contains(get_privacy_settings_subsections(), subsection)) {
           return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>(subsection);
         }
         return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>();
@@ -1086,7 +1103,7 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
         return td_api::make_object<td_api::settingsSectionSearch>();
       }
       if (path_[0] == "stars") {
-        if (!subsection.empty() && td::contains(get_my_stars_settings_subsections(), subsection)) {
+        if (td::contains(get_my_stars_settings_subsections(), subsection)) {
           return td_api::make_object<td_api::settingsSectionMyStars>(subsection);
         }
         return td_api::make_object<td_api::settingsSectionMyStars>();
@@ -3140,6 +3157,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           return "tg://settings/faq";
         case td_api::settingsSectionFeatures::ID:
           return "tg://settings/features";
+        case td_api::settingsSectionInAppBrowser::ID: {
+          const auto &subsection = static_cast<const td_api::settingsSectionInAppBrowser *>(section_ptr)->subsection_;
+          if (td::contains(get_in_app_browser_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/chat/browser/" << subsection;
+          }
+          return "tg://settings/chat/browser";
+        }
         case td_api::settingsSectionLanguage::ID: {
           const auto &subsection = static_cast<const td_api::settingsSectionLanguage *>(section_ptr)->subsection_;
           if (td::contains(get_language_settings_subsections(), subsection)) {

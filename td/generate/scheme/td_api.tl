@@ -8336,6 +8336,10 @@ settingsSectionFaq = SettingsSection;
 //@description The "Telegram Features" section
 settingsSectionFeatures = SettingsSection;
 
+//@description The in-app browser settings section @subsection Subsection of the section if any; may be one of
+//-"enable-browser", "clear-cookies", "clear-cache", "history", "clear-history", "never-open", "clear-list", "search"
+settingsSectionInAppBrowser subsection:string = SettingsSection;
+
 //@description The application language section @subsection Subsection of the section if any; may be one of "show-button" for Show Translate Button toggle,
 //-"translate-chats" for Translate Entire Chats toggle, "do-not-translate" - for Do Not Translate language list
 settingsSectionLanguage subsection:string = SettingsSection;

@@ -211,6 +211,10 @@ static auto features() {
   return settings(td::td_api::make_object<td::td_api::settingsSectionFeatures>());
 }
 
+static auto in_app_browser(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionInAppBrowser>(subsection));
+}
+
 static auto language_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionLanguage>(subsection));
 }
@@ -1822,6 +1826,12 @@ TEST(Link, parse_internal_link_part4) {
 
   parse_internal_link("tg://search", unknown_deep_link("tg://search"));
   parse_internal_link("tg://settings/search", search());
+
+  parse_internal_link("tg://settings/chat/browser", in_app_browser());
+  parse_internal_link("tg://settings/chat/browser/", in_app_browser());
+  parse_internal_link("tg://settings/chat/browser/abaa", in_app_browser());
+  parse_internal_link("tg://settings/chat/browser/history", in_app_browser("history"));
+  parse_internal_link("tg://settings/chat/browser/search", in_app_browser("search"));
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
   parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));
