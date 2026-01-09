@@ -187,6 +187,10 @@ static auto ask_question() {
   return settings(td::td_api::make_object<td::td_api::settingsSectionAskQuestion>());
 }
 
+static auto business(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionBusiness>(subsection));
+}
+
 static auto chat_folder_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionChatFolders>(subsection));
 }
@@ -1827,6 +1831,10 @@ TEST(Link, parse_internal_link_part4) {
 
   parse_internal_link("tg://ask-question", unknown_deep_link("tg://ask-question"));
   parse_internal_link("tg://settings/ask-question", ask_question());
+
+  parse_internal_link("tg://settings/business", business());
+  parse_internal_link("tg://settings/business/share", business());
+  parse_internal_link("tg://settings/business/do-not-hide-ads", business("do-not-hide-ads"));
 
   parse_internal_link("tg://faq", unknown_deep_link("tg://faq"));
   parse_internal_link("tg://settings/faq", faq());

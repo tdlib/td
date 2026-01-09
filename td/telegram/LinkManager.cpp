@@ -187,6 +187,11 @@ static const vector<string> &get_appearance_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_business_settings_subsections() {
+  static const vector<string> subsections{"do-not-hide-ads"};
+  return subsections;
+}
+
 static const vector<string> &get_data_settings_subsections() {
   static const vector<string> subsections{
       "storage", "storage/edit", "storage/auto-remove", "storage/clear-cache", "max-cache", "usage", "usage/mobile",
@@ -1020,6 +1025,12 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
       }
       if (path_[0] == "auto_delete") {
         return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>("auto-delete");
+      }
+      if (path_[0] == "business") {
+        if (td::contains(get_business_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionBusiness>(subsection);
+        }
+        return td_api::make_object<td_api::settingsSectionBusiness>();
       }
       if (path_[0] == "change_number") {
         return td_api::make_object<td_api::settingsSectionEditProfile>("change-number");
@@ -3142,6 +3153,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
             return PSTRING() << "tg://settings/appearance/" << subsection;
           }
           return "tg://settings/themes";
+        }
+        case td_api::settingsSectionBusiness::ID: {
+          const auto &subsection = static_cast<const td_api::settingsSectionBusiness *>(section_ptr)->subsection_;
+          if (td::contains(get_business_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/business/" << subsection;
+          }
+          return "tg://settings/business";
         }
         case td_api::settingsSectionAskQuestion::ID:
           return "tg://settings/ask-question";

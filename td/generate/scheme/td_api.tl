@@ -8291,6 +8291,10 @@ settingsSectionAppearance subsection:string = SettingsSection;
 //@description The "Ask a question" section
 settingsSectionAskQuestion = SettingsSection;
 
+//@description The Telegram Business section @subsection Subsection of the section if any; may be one of
+//-"do-not-hide-ads"
+settingsSectionBusiness subsection:string = SettingsSection;
+
 //@description The chat folder settings section @subsection Subsection of the section if any; may be one of
 //-"edit", "create", "add-recommended", "show-tags", "tab-view"
 settingsSectionChatFolders subsection:string = SettingsSection;
