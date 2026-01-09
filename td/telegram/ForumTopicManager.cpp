@@ -64,7 +64,7 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
     if (icon_custom_emoji_id.is_valid()) {
       flags |= telegram_api::messages_createForumTopic::ICON_EMOJI_ID_MASK;
     }
-    tl_object_ptr<telegram_api::InputPeer> as_input_peer;
+    telegram_api::object_ptr<telegram_api::InputPeer> as_input_peer;
     if (as_dialog_id.is_valid()) {
       as_input_peer = td_->dialog_manager_->get_input_peer(as_dialog_id, AccessRights::Write);
       if (as_input_peer != nullptr) {
@@ -107,10 +107,17 @@ class CreateForumTopicQuery final : public Td::ResultHandler {
     }
 
     auto action = static_cast<const telegram_api::messageActionTopicCreate *>(service_message->action_.get());
+    auto forum_topic_id = ForumTopicId(service_message->id_);
+    if (service_message->reply_to_ != nullptr &&
+        service_message->reply_to_->get_id() == telegram_api::messageReplyHeader::ID) {
+      auto reply_header = static_cast<const telegram_api::messageReplyHeader *>(service_message->reply_to_.get());
+      if (reply_header->forum_topic_ && reply_header->reply_to_top_id_ > 0) {
+        forum_topic_id = ForumTopicId(reply_header->reply_to_top_id_);
+      }
+    }
     auto forum_topic_info = td::make_unique<ForumTopicInfo>(
-        dialog_id_, ForumTopicId(service_message->id_), action->title_,
-        ForumTopicIcon(action->icon_color_, action->icon_emoji_id_), service_message->date_, creator_dialog_id_, true,
-        false, false, action->title_missing_);
+        dialog_id_, forum_topic_id, action->title_, ForumTopicIcon(action->icon_color_, action->icon_emoji_id_),
+        service_message->date_, creator_dialog_id_, true, false, false, action->title_missing_);
     td_->updates_manager_->on_get_updates(
         std::move(ptr), PromiseCreator::lambda([dialog_id = dialog_id_, forum_topic_info = std::move(forum_topic_info),
                                                 promise = std::move(promise_)](Unit result) mutable {
@@ -507,7 +514,7 @@ void ForumTopicManager::tear_down() {
 void ForumTopicManager::create_forum_topic(DialogId dialog_id, string &&title, bool title_missing,
                                            td_api::object_ptr<td_api::forumTopicIcon> &&icon,
                                            Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise) {
-  TRY_STATUS_PROMISE(promise, is_forum(dialog_id, !td_->auth_manager_->is_bot()));
+  TRY_STATUS_PROMISE(promise, is_forum(dialog_id, true));
   if (dialog_id.get_type() == DialogType::Channel) {
     auto channel_id = dialog_id.get_channel_id();
 
