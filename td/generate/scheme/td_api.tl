@@ -8367,6 +8367,10 @@ settingsSectionMyToncoins = SettingsSection;
 //-"pinned-messages", "reset", "web"
 settingsSectionNotifications subsection:string = SettingsSection;
 
+//@description The power saving settings section @subsection Subsection of the section if any; may be one of
+//-"videos", "gifs", "stickers", "emoji", "effects", "preload", "background", "call-animations", "particles", "transitions"
+settingsSectionPowerSaving subsection:string = SettingsSection;
+
 //@description The "Telegram Premium" section
 settingsSectionPremium = SettingsSection;
 

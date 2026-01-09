@@ -279,6 +279,14 @@ static const vector<string> &get_notification_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_power_saving_settings_subsections() {
+  static const vector<string> subsections{"videos", "gifs", "stickers", "emoji", "effects", "preload", "background",
+                                          "call-animations", "particles",
+                                          // no formatting
+                                          "transitions"};
+  return subsections;
+}
+
 static const vector<string> &get_privacy_settings_subsections() {
   static const vector<string> subsections{
       "blocked", "blocked/edit", "blocked/block-user", "blocked/block-user/chats", "blocked/block-user/contacts",
@@ -1085,6 +1093,12 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
           return td_api::make_object<td_api::settingsSectionNotifications>(subsection);
         }
         return td_api::make_object<td_api::settingsSectionNotifications>();
+      }
+      if (path_[0] == "power-saving") {
+        if (td::contains(get_power_saving_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionPowerSaving>(subsection);
+        }
+        return td_api::make_object<td_api::settingsSectionPowerSaving>();
       }
       if (path_[0] == "password") {
         return td_api::make_object<td_api::settingsSectionPrivacyAndSecurity>("2sv");
@@ -3197,6 +3211,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
             return PSTRING() << "tg://settings/notifications/" << subsection;
           }
           return "tg://settings/notifications";
+        }
+        case td_api::settingsSectionPowerSaving::ID: {
+          const auto &subsection = static_cast<const td_api::settingsSectionPowerSaving *>(section_ptr)->subsection_;
+          if (td::contains(get_power_saving_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/power-saving/" << subsection;
+          }
+          return "tg://settings/power-saving";
         }
         case td_api::settingsSectionPremium::ID:
           return "tg://settings/premium";

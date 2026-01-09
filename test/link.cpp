@@ -231,6 +231,10 @@ static auto notification_settings(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionNotifications>(subsection));
 }
 
+static auto power_saving(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionPowerSaving>(subsection));
+}
+
 static auto premium() {
   return settings(td::td_api::make_object<td::td_api::settingsSectionPremium>());
 }
@@ -1733,6 +1737,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/notifications", notification_settings());
   parse_internal_link("tg://settings/password", privacy_and_security_settings("2sv"));
   parse_internal_link("tg://settings/phone_privacy", privacy_and_security_settings("phone-number"));
+  parse_internal_link("tg://settings/power-saving", power_saving());
   parse_internal_link("tg://settings/privacy", privacy_and_security_settings());
 
   parse_internal_link("tg://settings/language/abacaba", language_settings());
@@ -1785,6 +1790,10 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/notifications/reset", notification_settings("reset"));
   parse_internal_link("tg://settings/notifications/groups/delete-exceptions",
                       notification_settings("groups/delete-exceptions"));
+
+  parse_internal_link("tg://settings/power-saving/app-icon", power_saving());
+  parse_internal_link("tg://settings/power-saving/call-animations", power_saving("call-animations"));
+  parse_internal_link("tg://settings/power-saving/transitions", power_saving("transitions"));
 
   parse_internal_link("tg://settings/data/app-icon", data_and_storage_settings());
   parse_internal_link("tg://settings/data/reset", data_and_storage_settings());
