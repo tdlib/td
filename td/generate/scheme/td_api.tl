@@ -8291,7 +8291,7 @@ settingsSectionAppearance subsection:string = SettingsSection;
 //@description The "Ask a question" section
 settingsSectionAskQuestion = SettingsSection;
 
-//@description The Telegram Business section @subsection Subsection of the section if any; may be one of
+//@description The "Telegram Business" section @subsection Subsection of the section if any; may be one of
 //-"do-not-hide-ads"
 settingsSectionBusiness subsection:string = SettingsSection;
 
@@ -8407,6 +8407,10 @@ settingsSectionQrCode subsection:string = SettingsSection;
 
 //@description Search in Settings
 settingsSectionSearch = SettingsSection;
+
+//@description The "Send a gift" section @subsection Subsection of the section if any; may be one of
+//-"self"
+settingsSectionSendGift subsection:string = SettingsSection;
 
 
 //@class InternalLinkType @description Describes an internal https://t.me or tg: link, which must be processed by the application in a special way

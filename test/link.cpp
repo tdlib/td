@@ -259,6 +259,10 @@ static auto search() {
   return settings(td::td_api::make_object<td::td_api::settingsSectionSearch>());
 }
 
+static auto send_gift(td::string subsection = td::string()) {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionSendGift>(subsection));
+}
+
 static auto target_chat_chosen(bool allow_users, bool allow_bots, bool allow_groups, bool allow_channels) {
   return td::td_api::make_object<td::td_api::targetChatChosen>(
       td::td_api::make_object<td::td_api::targetChatTypes>(allow_users, allow_bots, allow_groups, allow_channels));
@@ -1858,6 +1862,11 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/qr-code/share", qr_code("share"));
   parse_internal_link("tg://settings/qr-code/share/", qr_code("share"));
   parse_internal_link("tg://settings/qr-code/share/a", qr_code());
+
+  parse_internal_link("tg://settings/send-gift", send_gift());
+  parse_internal_link("tg://settings/send-gift/self", send_gift("self"));
+  parse_internal_link("tg://settings/send-gift/self/", send_gift("self"));
+  parse_internal_link("tg://settings/send-gift/self/a", send_gift());
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
   parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));

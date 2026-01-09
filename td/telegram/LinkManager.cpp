@@ -321,6 +321,11 @@ static const vector<string> &get_qr_code_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_send_gift_settings_subsections() {
+  static const vector<string> subsections{"self"};
+  return subsections;
+}
+
 static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
   const auto &path = url_query.path_;
   if (is_tg) {
@@ -1137,6 +1142,12 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
       }
       if (path_[0] == "search") {
         return td_api::make_object<td_api::settingsSectionSearch>();
+      }
+      if (path_[0] == "send-gift") {
+        if (td::contains(get_send_gift_settings_subsections(), subsection)) {
+          return td_api::make_object<td_api::settingsSectionSendGift>(subsection);
+        }
+        return td_api::make_object<td_api::settingsSectionSendGift>();
       }
       if (path_[0] == "stars") {
         if (td::contains(get_my_stars_settings_subsections(), subsection)) {
@@ -3270,6 +3281,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         }
         case td_api::settingsSectionSearch::ID:
           return "tg://settings/search";
+        case td_api::settingsSectionSendGift::ID: {
+          const auto &subsection = static_cast<const td_api::settingsSectionSendGift *>(section_ptr)->subsection_;
+          if (td::contains(get_send_gift_settings_subsections(), subsection)) {
+            return PSTRING() << "tg://settings/send-gift/" << subsection;
+          }
+          return "tg://settings/send-gift";
+        }
         default:
           UNREACHABLE();
           return "";
