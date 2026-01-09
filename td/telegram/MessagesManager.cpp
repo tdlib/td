@@ -20262,7 +20262,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   m->real_forward_from_dialog_id = real_forward_from_dialog_id;
   m->is_copy = is_copy || m->forward_info != nullptr;
   m->sending_id = options.sending_id;
-  m->suggested_post = options.has_suggested_post ? make_unique<SuggestedPost>(options.suggested_post) : nullptr;
+  m->suggested_post = SuggestedPost::clone(options.suggested_post);
 
   if (td_->auth_manager_->is_bot() || options.disable_notification ||
       td_->option_manager_->get_option_boolean("ignore_default_disable_notification")) {
@@ -23859,7 +23859,6 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   ForwardedMessages result;
   result.to_dialog = to_dialog;
   result.from_dialog = from_dialog;
-  result.message_send_options = message_send_options;
   auto &copied_messages = result.copied_messages;
   auto &forwarded_message_contents = result.forwarded_message_contents;
   result.drop_author = can_use_server_forward && copy_options[0].send_copy;
@@ -23991,6 +23990,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
   for (auto &message : copied_messages) {
     message.media_album_id = new_copied_media_album_ids[message.media_album_id].first;
   }
+  result.message_send_options = std::move(message_send_options);
   return std::move(result);
 }
 
@@ -24004,7 +24004,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
                                     new_video_start_timestamp, std::move(copy_options), add_offer));
   auto from_dialog = forwarded_messages_info.from_dialog;
   auto to_dialog = forwarded_messages_info.to_dialog;
-  const auto message_send_options = forwarded_messages_info.message_send_options;
+  const auto &message_send_options = forwarded_messages_info.message_send_options;
   auto &copied_messages = forwarded_messages_info.copied_messages;
   auto &forwarded_message_contents = forwarded_messages_info.forwarded_message_contents;
   auto drop_author = forwarded_messages_info.drop_author;
@@ -24187,8 +24187,8 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
-  MessageSendOptions message_send_options(false, false, false, false, false, false, false, 0, 0, sending_id,
-                                          MessageEffectId(), 0, SuggestedPost());
+  auto message_send_options =
+      MessageSendOptions(false, false, false, false, false, false, 0, 0, sending_id, MessageEffectId(), 0, nullptr);
   FlatHashMap<MessageId, MessageId, MessageIdHash> original_message_id_to_new_message_id;
   vector<td_api::object_ptr<td_api::message>> result;
   vector<Message *> sent_messages;
@@ -24409,12 +24409,12 @@ Result<vector<MessageId>> MessagesManager::resend_messages(DialogId dialog_id, v
     } else if (need_drop_reply) {
       message->input_reply_to = {};
     }
-    MessageSendOptions options(
+    auto options = MessageSendOptions(
         message->disable_notification, message->from_background, message->update_stickersets_order, message->noforwards,
-        message->allow_paid, false, message->suggested_post != nullptr, get_message_schedule_date(message.get()),
+        message->allow_paid, false, get_message_schedule_date(message.get()),
         get_message_schedule_repeat_period(message.get()), message->sending_id, message->effect_id,
         required_paid_message_star_count == 0 ? message->paid_message_star_count : paid_message_star_count,
-        message->suggested_post == nullptr ? SuggestedPost() : *message->suggested_post);
+        SuggestedPost::clone(message->suggested_post));
     Message *m = get_message_to_send(
         d, get_send_message_topic(dialog_id, message.get()), std::move(message->input_reply_to), options,
         std::move(new_contents[i]), message->invert_media, &need_update_dialog_pos, false, nullptr, DialogId(),

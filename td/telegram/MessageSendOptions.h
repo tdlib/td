@@ -9,7 +9,6 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageEffectId.h"
 #include "td/telegram/MessageSelfDestructType.h"
-#include "td/telegram/SuggestedPost.h"
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
@@ -21,6 +20,7 @@ namespace td {
 
 struct InputMessageContent;
 class MessageContent;
+class SuggestedPost;
 class Td;
 
 class MessageSendOptions {
@@ -33,33 +33,23 @@ class MessageSendOptions {
   bool protect_content = false;
   bool allow_paid = false;
   bool only_preview = false;
-  bool has_suggested_post = false;
   int32 schedule_date = 0;
   int32 schedule_repeat_period = 0;
   int32 sending_id = 0;
   MessageEffectId effect_id;
   int64 paid_message_star_count = 0;
-  SuggestedPost suggested_post;
+  unique_ptr<SuggestedPost> suggested_post;
 
   MessageSendOptions() = default;
   MessageSendOptions(bool disable_notification, bool from_background, bool update_stickersets_order,
-                     bool protect_content, bool allow_paid, bool only_preview, bool has_suggested_post,
-                     int32 schedule_date, int32 schedule_repeat_period, int32 sending_id, MessageEffectId effect_id,
-                     int64 paid_message_star_count, SuggestedPost &&suggested_post)
-      : disable_notification(disable_notification)
-      , from_background(from_background)
-      , update_stickersets_order(update_stickersets_order)
-      , protect_content(protect_content)
-      , allow_paid(allow_paid)
-      , only_preview(only_preview)
-      , has_suggested_post(has_suggested_post)
-      , schedule_date(schedule_date)
-      , schedule_repeat_period(schedule_repeat_period)
-      , sending_id(sending_id)
-      , effect_id(effect_id)
-      , paid_message_star_count(paid_message_star_count)
-      , suggested_post(std::move(suggested_post)) {
-  }
+                     bool protect_content, bool allow_paid, bool only_preview, int32 schedule_date,
+                     int32 schedule_repeat_period, int32 sending_id, MessageEffectId effect_id,
+                     int64 paid_message_star_count, unique_ptr<SuggestedPost> &&suggested_post);
+  MessageSendOptions(const MessageSendOptions &) = delete;
+  MessageSendOptions &operator=(const MessageSendOptions &) = delete;
+  MessageSendOptions(MessageSendOptions &&) = default;
+  MessageSendOptions &operator=(MessageSendOptions &&) = default;
+  ~MessageSendOptions();
 
   static Result<std::pair<int32, int32>> get_message_schedule_date(
       td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state, bool allow_repeat_period);

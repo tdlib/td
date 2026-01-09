@@ -12,9 +12,30 @@
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/StarManager.h"
+#include "td/telegram/SuggestedPost.h"
 #include "td/telegram/Td.h"
 
 namespace td {
+
+MessageSendOptions::MessageSendOptions(bool disable_notification, bool from_background, bool update_stickersets_order,
+                                       bool protect_content, bool allow_paid, bool only_preview, int32 schedule_date,
+                                       int32 schedule_repeat_period, int32 sending_id, MessageEffectId effect_id,
+                                       int64 paid_message_star_count, unique_ptr<SuggestedPost> &&suggested_post)
+    : disable_notification(disable_notification)
+    , from_background(from_background)
+    , update_stickersets_order(update_stickersets_order)
+    , protect_content(protect_content)
+    , allow_paid(allow_paid)
+    , only_preview(only_preview)
+    , schedule_date(schedule_date)
+    , schedule_repeat_period(schedule_repeat_period)
+    , sending_id(sending_id)
+    , effect_id(effect_id)
+    , paid_message_star_count(paid_message_star_count)
+    , suggested_post(std::move(suggested_post)) {
+}
+
+MessageSendOptions::~MessageSendOptions() = default;
 
 Result<std::pair<int32, int32>> MessageSendOptions::get_message_schedule_date(
     td_api::object_ptr<td_api::MessageSchedulingState> &&scheduling_state, bool allow_repeat_period) {
@@ -155,8 +176,7 @@ Result<MessageSendOptions> MessageSendOptions::get_message_send_options(
     if (!td->dialog_manager_->is_monoforum_channel(dialog_id)) {
       return Status::Error(400, "Suggested posts can be sent only to channel direct messages");
     }
-    result.has_suggested_post = true;
-    result.suggested_post = *suggested_post;
+    result.suggested_post = std::move(suggested_post);
   }
 
   return std::move(result);
