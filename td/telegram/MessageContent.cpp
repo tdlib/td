@@ -803,7 +803,7 @@ class MessageDice final : public MessageContent {
         if (seed.empty()) {
           return false;
         }
-        if (stake_ton_count <= 0 || prize_ton_count <= 0) {
+        if (stake_ton_count <= 0 || prize_ton_count < 0) {
           return false;
         }
       } else {
