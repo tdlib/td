@@ -10,10 +10,9 @@
 
 namespace td {
 
-string HttpHeaderCreator::get_host_header(HttpUrl::Protocol protocol, Slice host, int32 port);
-    if ((protocol == HttpUrl::Protocol::Https && port == 443) ||
-      (protocol == HttpUrl::Protocol::Http && port == 80)) {
-    return host;
+string HttpHeaderCreator::get_host_header(HttpUrl::Protocol protocol, Slice host, int32 port) {
+  if ((protocol == HttpUrl::Protocol::Https && port == 443) || (protocol == HttpUrl::Protocol::Http && port == 80)) {
+    return host.str();
   } else {
     return PSTRING() << host << ':' << port;
   }

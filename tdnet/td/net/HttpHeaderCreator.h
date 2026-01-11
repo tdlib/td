@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/utils/HttpUrl.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
@@ -63,6 +64,8 @@ class HttpHeaderCreator {
   void set_keep_alive() {
     add_header("Connection", "keep-alive");
   }
+
+  static string get_host_header(HttpUrl::Protocol protocol, Slice host, int32 port);
 
   Result<Slice> finish(Slice content = {}) TD_WARN_UNUSED_RESULT;
 
