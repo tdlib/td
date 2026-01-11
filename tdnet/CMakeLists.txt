@@ -19,6 +19,7 @@ set(TDNET_SOURCE
   td/net/HttpConnectionBase.cpp
   td/net/HttpContentLengthByteFlow.cpp
   td/net/HttpFile.cpp
+  td/net/HttpHeaderCreator.cpp
   td/net/HttpInboundConnection.cpp
   td/net/HttpOutboundConnection.cpp
   td/net/HttpProxy.cpp
