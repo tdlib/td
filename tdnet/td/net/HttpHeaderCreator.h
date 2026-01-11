@@ -16,28 +16,32 @@ namespace td {
 class HttpHeaderCreator {
   static constexpr size_t MAX_HEADER = 4096;
 
+  void init() {
+    sb_ = StringBuilder(MutableSlice{header_, MAX_HEADER});
+  }
+
  public:
   HttpHeaderCreator() : sb_(MutableSlice{header_, MAX_HEADER}) {
   }
 
   void init_ok() {
-    sb_ = StringBuilder(MutableSlice{header_, MAX_HEADER});
+    init();
     sb_ << "HTTP/1.1 200 OK\r\n";
   }
 
   void init_get(Slice url) {
-    sb_ = StringBuilder(MutableSlice{header_, MAX_HEADER});
+    init();
     sb_ << "GET " << url << " HTTP/1.1\r\n";
   }
 
   void init_post(Slice url) {
-    sb_ = StringBuilder(MutableSlice{header_, MAX_HEADER});
+    init();
     sb_ << "POST " << url << " HTTP/1.1\r\n";
   }
 
   void init_error(int code, Slice reason) {
-    sb_ = StringBuilder(MutableSlice{header_, MAX_HEADER});
-    sb_ << "HTTP/1.1 " << code << " " << reason << "\r\n";
+    init();
+    sb_ << "HTTP/1.1 " << code << ' ' << reason << "\r\n";
   }
 
   void init_status_line(int http_status_code) {
