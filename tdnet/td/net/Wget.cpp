@@ -65,7 +65,7 @@ Status Wget::try_init() {
     hc.add_header(header.first, header.second);
   }
   if (!was_host) {
-    hc.add_header("Host", url.host_);
+    hc.add_host_header(url.protocol_, url.host_, url.port_);
   }
   if (!was_accept_encoding) {
     hc.add_header("Accept-Encoding", "gzip, deflate");
