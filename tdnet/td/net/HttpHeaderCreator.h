@@ -65,6 +65,8 @@ class HttpHeaderCreator {
     add_header("Connection", "keep-alive");
   }
 
+  void add_host_header(HttpUrl::Protocol protocol, Slice host, int32 port);
+
   static string get_host_header(HttpUrl::Protocol protocol, Slice host, int32 port);
 
   Result<Slice> finish(Slice content = {}) TD_WARN_UNUSED_RESULT;
