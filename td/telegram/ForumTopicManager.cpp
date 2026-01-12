@@ -804,9 +804,9 @@ Status ForumTopicManager::set_forum_topic_draft_message(DialogId dialog_id, Foru
   TRY_STATUS(can_be_forum_topic_id(forum_topic_id));
   auto topic = get_topic(dialog_id, forum_topic_id);
   if (topic == nullptr || topic->topic_ == nullptr) {
-    return Status::Error(400, "Topic not found");
-  }
-  if (topic->topic_->set_draft_message(std::move(draft_message), false)) {
+    save_draft_message(td_, dialog_id, MessageTopic::forum(dialog_id, forum_topic_id), std::move(draft_message),
+                       Promise<Unit>());
+  } else if (topic->topic_->set_draft_message(std::move(draft_message), false)) {
     save_draft_message(td_, dialog_id, MessageTopic::forum(dialog_id, forum_topic_id),
                        topic->topic_->get_draft_message(), Promise<Unit>());
     on_forum_topic_changed(dialog_id, topic);
