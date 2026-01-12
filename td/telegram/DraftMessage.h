@@ -76,6 +76,8 @@ class DraftMessage {
 
   bool need_update_to(const DraftMessage &other, bool from_update) const;
 
+  static unique_ptr<DraftMessage> clone(const unique_ptr<DraftMessage> &draft_message);
+
   void add_dependencies(Dependencies &dependencies) const;
 
   td_api::object_ptr<td_api::draftMessage> get_draft_message_object(Td *td) const;

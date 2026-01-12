@@ -403,6 +403,37 @@ bool DraftMessage::need_update_to(const DraftMessage &other, bool from_update) c
   }
 }
 
+unique_ptr<DraftMessage> DraftMessage::clone(const unique_ptr<DraftMessage> &draft_message) {
+  if (draft_message == nullptr) {
+    return nullptr;
+  }
+  auto result = make_unique<DraftMessage>();
+  result->date_ = draft_message->date_;
+  result->message_input_reply_to_ = draft_message->message_input_reply_to_.clone();
+  result->input_message_text_ = draft_message->input_message_text_;
+  if (draft_message->local_content_ != nullptr) {
+    switch (draft_message->local_content_->get_type()) {
+      case DraftMessageContentType::VideoNote: {
+        auto *content = static_cast<const DraftMessageContentVideoNote *>(draft_message->local_content_.get());
+        result->local_content_ = td::make_unique<DraftMessageContentVideoNote>(
+            string(content->path_), content->duration_, content->length_, content->ttl_);
+        break;
+      }
+      case DraftMessageContentType::VoiceNote: {
+        auto *content = static_cast<const DraftMessageContentVoiceNote *>(draft_message->local_content_.get());
+        result->local_content_ = td::make_unique<DraftMessageContentVoiceNote>(
+            string(content->path_), content->duration_, string(content->waveform_), content->ttl_);
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+  result->message_effect_id_ = draft_message->message_effect_id_;
+  result->suggested_post_ = SuggestedPost::clone(draft_message->suggested_post_);
+  return result;
+}
+
 void DraftMessage::add_dependencies(Dependencies &dependencies) const {
   message_input_reply_to_.add_dependencies(dependencies);
   input_message_text_.add_dependencies(dependencies);
