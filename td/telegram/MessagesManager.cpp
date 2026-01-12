@@ -22643,6 +22643,7 @@ MessageTopic MessagesManager::get_message_topic(DialogId dialog_id, const Messag
 }
 
 MessageTopic MessagesManager::get_send_message_topic(DialogId dialog_id, const Message *m) const {
+  CHECK(m->message_id.is_yet_unsent() || m->is_failed_to_send);
   if (m->saved_messages_topic_id.is_valid() &&
       (m->sender_dialog_id == DialogId() || dialog_id.get_type() != DialogType::Channel)) {
     // saved_peer_id must be passed only in administered monororums

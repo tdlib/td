@@ -209,8 +209,11 @@ Result<MessageTopic> MessageTopic::get_message_topic(Td *td, DialogId dialog_id,
 
 Result<MessageTopic> MessageTopic::get_send_message_topic(Td *td, DialogId dialog_id,
                                                           const td_api::object_ptr<td_api::MessageTopic> &topic_id) {
-  TRY_RESULT(message_topic, MessageTopic::get_message_topic(td, dialog_id, topic_id));
+  TRY_RESULT(message_topic, get_message_topic(td, dialog_id, topic_id));
+  return get_send_message_topic(td, dialog_id, std::move(message_topic));
+}
 
+Result<MessageTopic> MessageTopic::get_send_message_topic(Td *td, DialogId dialog_id, MessageTopic &&message_topic) {
   // topic is required in administered direct messages chats
   if (td->dialog_manager_->is_admined_monoforum_channel(dialog_id) && !message_topic.is_monoforum()) {
     return Status::Error(400, "Channel direct messages topic must be specified");
