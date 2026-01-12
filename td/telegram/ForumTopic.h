@@ -38,8 +38,8 @@ class ForumTopic {
  public:
   ForumTopic() = default;
 
-  ForumTopic(Td *td, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic_ptr,
-             const DialogNotificationSettings *current_notification_settings);
+  ForumTopic(Td *td, telegram_api::object_ptr<telegram_api::ForumTopic> &&forum_topic_ptr,
+             const DialogNotificationSettings *current_notification_settings, unique_ptr<DraftMessage> &&draft_message);
 
   bool is_short() const {
     return is_short_;

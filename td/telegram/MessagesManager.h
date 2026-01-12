@@ -704,6 +704,8 @@ class MessagesManager final : public Actor {
 
   td_api::object_ptr<td_api::draftMessage> get_my_dialog_draft_message_object() const;
 
+  unique_ptr<DraftMessage> get_dialog_draft_message(DialogId dialog_id) const;
+
   tl_object_ptr<td_api::messages> get_dialog_history(DialogId dialog_id, MessageId from_message_id, int32 offset,
                                                      int32 limit, int left_tries, bool only_local,
                                                      Promise<Unit> &&promise);
@@ -2897,11 +2899,10 @@ class MessagesManager final : public Actor {
 
   vector<td_api::object_ptr<td_api::chatPosition>> get_chat_positions_object(const Dialog *d) const;
 
-  Status set_dialog_draft_message(Dialog *d, const MessageTopic &message_topic,
-                                  unique_ptr<DraftMessage> &&draft_message);
+  Status set_dialog_draft_message(Dialog *d, MessageTopic message_topic, unique_ptr<DraftMessage> &&draft_message);
 
   bool update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
-                                   bool need_update_dialog_pos);
+                                   bool need_update_dialog_pos, bool from_database = false);
 
   void clear_dialog_draft_by_sent_message(Dialog *d, const Message *m, bool need_update_dialog_pos);
 

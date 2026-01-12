@@ -17,8 +17,9 @@
 
 namespace td {
 
-ForumTopic::ForumTopic(Td *td, tl_object_ptr<telegram_api::ForumTopic> &&forum_topic_ptr,
-                       const DialogNotificationSettings *current_notification_settings) {
+ForumTopic::ForumTopic(Td *td, telegram_api::object_ptr<telegram_api::ForumTopic> &&forum_topic_ptr,
+                       const DialogNotificationSettings *current_notification_settings,
+                       unique_ptr<DraftMessage> &&draft_message) {
   CHECK(forum_topic_ptr != nullptr);
   if (forum_topic_ptr->get_id() != telegram_api::forumTopic::ID) {
     LOG(INFO) << "Receive " << to_string(forum_topic_ptr);
@@ -30,7 +31,11 @@ ForumTopic::ForumTopic(Td *td, tl_object_ptr<telegram_api::ForumTopic> &&forum_t
   is_pinned_ = forum_topic->pinned_;
   notification_settings_ =
       get_dialog_notification_settings(std::move(forum_topic->notify_settings_), current_notification_settings);
-  draft_message_ = ::td::get_draft_message(td, std::move(forum_topic->draft_));
+  if (draft_message != nullptr) {
+    draft_message_ = std::move(draft_message);
+  } else {
+    draft_message_ = ::td::get_draft_message(td, std::move(forum_topic->draft_));
+  }
 
   if (is_short_) {
     return;

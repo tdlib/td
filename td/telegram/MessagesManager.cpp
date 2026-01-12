@@ -15402,7 +15402,7 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id,
   return set_dialog_draft_message(d, message_topic, std::move(new_draft_message));
 }
 
-Status MessagesManager::set_dialog_draft_message(Dialog *d, const MessageTopic &message_topic,
+Status MessagesManager::set_dialog_draft_message(Dialog *d, MessageTopic message_topic,
                                                  unique_ptr<DraftMessage> &&draft_message) {
   if (message_topic.is_thread()) {
     auto top_thread_message_id = message_topic.get_top_thread_message_id();
@@ -15419,6 +15419,7 @@ Status MessagesManager::set_dialog_draft_message(Dialog *d, const MessageTopic &
     return Status::OK();
   }
   if (message_topic.is_forum()) {
+    CHECK(message_topic.get_forum_topic_id() != ForumTopicId::general());  // checked in get_send_message_topic
     return td_->forum_topic_manager_->set_forum_topic_draft_message(d->dialog_id, message_topic.get_forum_topic_id(),
                                                                     std::move(draft_message));
   }
@@ -16748,6 +16749,14 @@ td_api::object_ptr<td_api::draftMessage> MessagesManager::get_my_dialog_draft_me
     return nullptr;
   }
   return get_draft_message_object(td_, d->draft_message);
+}
+
+unique_ptr<DraftMessage> MessagesManager::get_dialog_draft_message(DialogId dialog_id) const {
+  const Dialog *d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    return nullptr;
+  }
+  return DraftMessage::clone(d->draft_message);
 }
 
 std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const {
@@ -27484,14 +27493,21 @@ void MessagesManager::on_update_dialog_draft_message(
 }
 
 bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
-                                                  bool need_update_dialog_pos) {
+                                                  bool need_update_dialog_pos, bool from_database) {
   CHECK(d != nullptr);
   if (!td_->auth_manager_->is_bot() && need_update_draft_message(d->draft_message, draft_message, from_update)) {
     d->draft_message = std::move(draft_message);
+    if (d->dialog_id.get_type() == DialogType::Channel &&
+        td_->chat_manager_->is_megagroup_channel(d->dialog_id.get_channel_id())) {
+      td_->forum_topic_manager_->on_update_forum_topic_draft_message(d->dialog_id, ForumTopicId::general(),
+                                                                     DraftMessage::clone(d->draft_message));
+    }
     if (need_update_dialog_pos) {
       update_dialog_pos(d, "update_dialog_draft_message", false);
     }
-    on_dialog_updated(d->dialog_id, "update_dialog_draft_message");
+    if (!from_database) {
+      on_dialog_updated(d->dialog_id, "update_dialog_draft_message");
+    }
     send_update_chat_draft_message(d);
     return true;
   }
@@ -27533,6 +27549,7 @@ void MessagesManager::clear_dialog_draft_by_sent_message(Dialog *d, const Messag
     }
   }
   if (m->initial_top_thread_message_id.is_valid()) {
+    // forum topics were handled earlier
     set_dialog_draft_message(d, get_send_message_topic(d->dialog_id, m), nullptr).ignore();
   } else {
     update_dialog_draft_message(d, nullptr, false, need_update_dialog_pos);
@@ -32662,10 +32679,8 @@ bool MessagesManager::add_pending_dialog_data(Dialog *d, unique_ptr<Message> &&l
       }
     }
   }
-  if (draft_message != nullptr) {
-    d->draft_message = std::move(draft_message);
+  if (update_dialog_draft_message(d, std::move(draft_message), false, false, true)) {
     need_update_dialog_pos = true;
-    send_update_chat_draft_message(d);
   }
   if (d->pending_order != DEFAULT_ORDER) {
     d->pending_order = DEFAULT_ORDER;

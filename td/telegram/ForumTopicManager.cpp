@@ -677,7 +677,7 @@ void ForumTopicManager::on_update_forum_topic_draft_message(DialogId dialog_id, 
   }
   auto topic = get_topic(dialog_id, forum_topic_id);
   if (topic == nullptr || topic->topic_ == nullptr) {
-    LOG(INFO) << "Ignore update about unknown " << forum_topic_id << " in " << dialog_id;
+    LOG(DEBUG) << "Ignore update about unknown " << forum_topic_id << " in " << dialog_id;
     return;
   }
   if (topic->topic_->set_draft_message(std::move(draft_message), true)) {
@@ -1138,7 +1138,12 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       }
       auto current_notification_settings =
           topic->topic_ == nullptr ? nullptr : topic->topic_->get_notification_settings();
-      auto forum_topic_full = td::make_unique<ForumTopic>(td_, std::move(forum_topic), current_notification_settings);
+      unique_ptr<DraftMessage> draft_message;
+      if (forum_topic_id == ForumTopicId::general()) {
+        draft_message = td_->messages_manager_->get_dialog_draft_message(dialog_id);
+      }
+      auto forum_topic_full = td::make_unique<ForumTopic>(td_, std::move(forum_topic), current_notification_settings,
+                                                          std::move(draft_message));
       if (forum_topic_full->is_short() && !td_->auth_manager_->is_bot()) {
         LOG(ERROR) << "Receive short forum topic";
         return ForumTopicId();
