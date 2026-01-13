@@ -8284,7 +8284,7 @@ reportStoryResultTextRequired option_id:bytes is_optional:Bool = ReportStoryResu
 //-"stickers-and-emoji/archived/edit", "stickers-and-emoji/emoji", "stickers-and-emoji/emoji/edit",
 //-"stickers-and-emoji/emoji/archived", "stickers-and-emoji/emoji/archived/edit", "stickers-and-emoji/emoji/suggest",
 //-"stickers-and-emoji/emoji/quick-reaction", "stickers-and-emoji/emoji/quick-reaction/choose",
-//-"stickers-and-emoji/suggest-by-emoji", "stickers-and-emoji/emoji/large", "stickers-and-emoji/emoji/dynamic-order",
+//-"stickers-and-emoji/suggest-by-emoji", "stickers-and-emoji/emoji/large-emoji", "stickers-and-emoji/emoji/dynamic-order",
 //-"stickers-and-emoji/emoji/show-more", "app-icon", "tap-for-next-media"
 settingsSectionAppearance subsection:string = SettingsSection;
 
@@ -8300,28 +8300,29 @@ settingsSectionBusiness subsection:string = SettingsSection;
 settingsSectionChatFolders subsection:string = SettingsSection;
 
 //@description The data and storage settings section @subsection Subsection of the section if any; may be one of
-//-"storage", "storage/edit", "storage/auto-remove", "storage/clear-cache", "max-cache", "usage", "usage/mobile",
-//-"usage/mobile/auto-download", "usage/mobile/auto-download/enable", "usage/mobile/auto-download/usage",
-//-"usage/mobile/auto-download/photos", "usage/mobile/auto-download/stories", "usage/mobile/auto-download/videos",
-//-"usage/mobile/auto-download/files", "usage/wifi", "usage/wifi/auto-download", "usage/wifi/auto-download/enable",
-//-"usage/wifi/auto-download/usage", "usage/wifi/auto-download/photos", "usage/wifi/auto-download/stories",
-//-"usage/wifi/auto-download/videos", "usage/wifi/auto-download/files", "usage/wifi/reset", "usage/roaming",
-//-"usage/roaming/auto-download", "usage/roaming/auto-download/enable", "usage/roaming/auto-download/usage",
-//-"usage/roaming/auto-download/photos", "usage/roaming/auto-download/stories", "usage/roaming/auto-download/videos",
-//-"usage/roaming/auto-download/files", "auto-download/data", "auto-download/data/enable",
-//-"auto-download/data/usage", "auto-download/data/photos", "auto-download/data/stories",
-//-"auto-download/data/videos", "auto-download/data/files", "auto-download/wifi", "auto-download/wifi/enable",
-//-"auto-download/wifi/usage", "auto-download/wifi/photos", "auto-download/wifi/stories",
-//-"auto-download/wifi/videos", "auto-download/wifi/files", "auto-download/roaming", "auto-download/roaming/enable",
-//-"auto-download/roaming/usage", "auto-download/roaming/photos", "auto-download/roaming/stories",
-//-"auto-download/roaming/videos", "auto-download/roaming/files", "auto-download/reset", "save-to-photos/chats",
-//-"save-to-photos/chats/max-video-size", "save-to-photos/chats/add-exception", "save-to-photos/chats/delete-all",
-//-"save-to-photos/groups", "save-to-photos/groups/max-video-size", "save-to-photos/groups/add-exception",
-//-"save-to-photos/groups/delete-all", "save-to-photos/channels", "save-to-photos/channels/max-video-size",
-//-"save-to-photos/channels/add-exception", "save-to-photos/channels/delete-all", "use-less-data", "open-links",
-//-"share-sheet", "share-sheet/suggested-chats", "share-sheet/suggest-by", "share-sheet/reset",
-//-"saved-edited-photos", "pause-music", "raise-to-listen", "raise-to-speak", "show-18-content", "proxy",
-//-"proxy/edit", "proxy/use-proxy", "proxy/add-proxy", "proxy/share-list", "proxy/use-for-calls"
+//-"storage", "storage/edit", "storage/auto-remove", "storage/clear-cache", "storage/max-cache", "usage",
+//-"usage/mobile", "usage/mobile/auto-download", "usage/mobile/auto-download/enable",
+//-"usage/mobile/auto-download/usage", "usage/mobile/auto-download/photos", "usage/mobile/auto-download/stories",
+//-"usage/mobile/auto-download/videos", "usage/mobile/auto-download/files", "usage/wifi", "usage/wifi/auto-download",
+//-"usage/wifi/auto-download/enable", "usage/wifi/auto-download/usage", "usage/wifi/auto-download/photos",
+//-"usage/wifi/auto-download/stories", "usage/wifi/auto-download/videos", "usage/wifi/auto-download/files",
+//-"usage/wifi/reset", "usage/roaming", "usage/roaming/auto-download", "usage/roaming/auto-download/enable",
+//-"usage/roaming/auto-download/usage", "usage/roaming/auto-download/photos", "usage/roaming/auto-download/stories",
+//-"usage/roaming/auto-download/videos", "usage/roaming/auto-download/files", "auto-download/data",
+//-"auto-download/data/enable", "auto-download/data/usage", "auto-download/data/photos",
+//-"auto-download/data/stories", "auto-download/data/videos", "auto-download/data/files", "auto-download/wifi",
+//-"auto-download/wifi/enable", "auto-download/wifi/usage", "auto-download/wifi/photos",
+//-"auto-download/wifi/stories", "auto-download/wifi/videos", "auto-download/wifi/files", "auto-download/roaming",
+//-"auto-download/roaming/enable", "auto-download/roaming/usage", "auto-download/roaming/photos",
+//-"auto-download/roaming/stories", "auto-download/roaming/videos", "auto-download/roaming/files",
+//-"auto-download/reset", "save-to-photos/chats", "save-to-photos/chats/max-video-size",
+//-"save-to-photos/chats/add-exception", "save-to-photos/chats/delete-all", "save-to-photos/groups",
+//-"save-to-photos/groups/max-video-size", "save-to-photos/groups/add-exception", "save-to-photos/groups/delete-all",
+//-"save-to-photos/channels", "save-to-photos/channels/max-video-size", "save-to-photos/channels/add-exception",
+//-"save-to-photos/channels/delete-all", "less-data-calls", "open-links", "share-sheet",
+//-"share-sheet/suggested-chats", "share-sheet/suggest-by", "share-sheet/reset", "saved-edited-photos",
+//-"pause-music", "raise-to-listen", "raise-to-speak", "show-18-content", "proxy", "proxy/edit", "proxy/use-proxy",
+//-"proxy/add-proxy", "proxy/share-list", "proxy/use-for-calls"
 settingsSectionDataAndStorage subsection:string = SettingsSection;
 
 //@description The Devices section @subsection Subsection of the section if any; may be one of
@@ -8383,19 +8384,17 @@ settingsSectionPremium = SettingsSection;
 //-"active-websites", "active-websites/edit", "active-websites/disconnect-all", "passcode", "passcode/disable",
 //-"passcode/change", "passcode/auto-lock", "passcode/face-id", "passcode/fingerprint", "2sv", "2sv/change",
 //-"2sv/disable", "2sv/change-email", "passkey", "passkey/create", "auto-delete", "auto-delete/set-custom",
-//-"login-email", "phone-number", "phone-number/never-share", "phone-number/always-share", "last-seen",
-//-"last-seen/never-share", "last-seen/always-share", "last-seen/hide-read-time", "profile-photos",
-//-"profile-photos/never-share", "profile-photos/always-share", "profile-photos/set-public",
-//-"profile-photos/update-public", "profile-photos/remove-public", "bio", "bio/never-share", "bio/always-share",
-//-"gifts", "gifts/show-icon", "gifts/never-share", "gifts/always-share", "gifts/accepted-types", "birthday",
-//-"birthday/add", "birthday/never-share", "birthday/always-share", "saved-music", "saved-music/never-share",
-//-"saved-music/always-share", "forwards", "forwards/never-share", "forwards/always-share", "calls",
-//-"calls/never-share", "calls/always-share", "calls/p2p", "calls/p2p/never-share", "calls/p2p/always-share",
-//-"calls/ios-integration", "voice", "voice/never-share", "voice/always-share", "messages", "messages/set-price",
-//-"messages/remove-fee", "invites", "invites/never-share", "invites/always-share", "self-destruct", "data-settings",
-//-"data-settings/sync-contacts", "data-settings/delete-synced", "data-settings/suggest-contacts",
-//-"data-settings/delete-cloud-drafts", "data-settings/clear-payment-info", "data-settings/link-previews",
-//-"data-settings/bot-settings", "data-settings/map-provider", "archive-and-mute"
+//-"login-email", "phone-number", "phone-number/never", "phone-number/always", "last-seen", "last-seen/never",
+//-"last-seen/always", "last-seen/hide-read-time", "profile-photos", "profile-photos/never", "profile-photos/always",
+//-"profile-photos/set-public", "profile-photos/update-public", "profile-photos/remove-public", "bio", "bio/never",
+//-"bio/always", "gifts", "gifts/show-icon", "gifts/never", "gifts/always", "gifts/accepted-types", "birthday",
+//-"birthday/add", "birthday/never", "birthday/always", "saved-music", "saved-music/never", "saved-music/always",
+//-"forwards", "forwards/never", "forwards/always", "calls", "calls/never", "calls/always", "calls/p2p",
+//-"calls/p2p/never", "calls/p2p/always", "calls/ios-integration", "voice", "voice/never", "voice/always",
+//-"messages", "messages/set-price", "messages/exceptions", "invites", "invites/never", "invites/always",
+//-"self-destruct", "data-settings", "data-settings/sync-contacts", "data-settings/delete-synced",
+//-"data-settings/suggest-contacts", "data-settings/delete-cloud-drafts", "data-settings/clear-payment-info",
+//-"data-settings/link-previews", "data-settings/bot-settings", "data-settings/map-provider", "archive-and-mute"
 settingsSectionPrivacyAndSecurity subsection:string = SettingsSection;
 
 //@description The "Privacy Policy" section

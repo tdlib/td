@@ -1757,9 +1757,8 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/privacy/auto-delete", privacy_and_security_settings("auto-delete"));
   parse_internal_link("tg://settings/privacy/passcode/auto-lock", privacy_and_security_settings("passcode/auto-lock"));
   parse_internal_link("tg://settings/privacy/passcode/auto-locks", privacy_and_security_settings());
-  parse_internal_link("tg://settings/privacy/phone-number/never", privacy_and_security_settings());
-  parse_internal_link("tg://settings/privacy/phone-number/never-share",
-                      privacy_and_security_settings("phone-number/never-share"));
+  parse_internal_link("tg://settings/privacy/phone-number/never", privacy_and_security_settings("phone-number/never"));
+  parse_internal_link("tg://settings/privacy/phone-number/never-share", privacy_and_security_settings());
   parse_internal_link("tg://settings/privacy/login-email", privacy_and_security_settings("login-email"));
   parse_internal_link("tg://settings/privacy/phone-number", privacy_and_security_settings("phone-number"));
   parse_internal_link("tg://settings/privacy/auto-delete/set-custom",
@@ -1784,14 +1783,14 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/edit/change_number", edit_profile_settings());
   parse_internal_link("tg://settings/edit/change-number", edit_profile_settings("change-number"));
   parse_internal_link("tg://settings/emoji-status", edit_profile_settings("emoji-status"));
-  parse_internal_link("tg://settings/profile-color", edit_profile_settings("profile-color"));
-  parse_internal_link("tg://settings/profile-color/abacaba", edit_profile_settings("profile-color"));
+  parse_internal_link("tg://settings/profile-color", edit_profile_settings());
+  parse_internal_link("tg://settings/profile-color/abacaba", edit_profile_settings());
   parse_internal_link("tg://settings/profile-color/profile", edit_profile_settings("profile-color/profile"));
-  parse_internal_link("tg://settings/profile-color/profile/abacaba", edit_profile_settings("profile-color"));
+  parse_internal_link("tg://settings/profile-color/profile/abacaba", edit_profile_settings());
   parse_internal_link("tg://settings/profile-color/profile/use-gift",
                       edit_profile_settings("profile-color/profile/use-gift"));
-  parse_internal_link("tg://settings/profile-photo", edit_profile_settings("profile-photo"));
-  parse_internal_link("tg://settings/profile-photo/use-emojis", edit_profile_settings("profile-photo"));
+  parse_internal_link("tg://settings/profile-photo", edit_profile_settings());
+  parse_internal_link("tg://settings/profile-photo/use-emojis", edit_profile_settings());
   parse_internal_link("tg://settings/profile-photo/use-emoji", edit_profile_settings("profile-photo/use-emoji"));
 
   parse_internal_link("tg://settings/notifications/app-icon", notification_settings());
