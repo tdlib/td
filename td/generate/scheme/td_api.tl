@@ -1895,6 +1895,12 @@ tonTransactionTypeUpgradedGiftPurchase user_id:int53 gift:upgradedGift = TonTran
 //@via_offer True, if the gift was sold through a purchase offer
 tonTransactionTypeUpgradedGiftSale user_id:int53 gift:upgradedGift commission_per_mille:int32 commission_toncoin_amount:int53 via_offer:Bool = TonTransactionType;
 
+//@description The transaction is a payment for stake dice throw
+tonTransactionTypeStakeDiceStake = TonTransactionType;
+
+//@description The transaction is a payment for successful stake dice throw
+tonTransactionTypeStakeDicePayout = TonTransactionType;
+
 //@description The transaction is a transaction of an unsupported type
 tonTransactionTypeUnsupported = TonTransactionType;
 
