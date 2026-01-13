@@ -8568,6 +8568,9 @@ internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLin
 //-"posts", "posts/all-stories", "posts/add-album", "gifts", "archived-posts"
 internalLinkTypeMyProfile section:string = InternalLinkType;
 
+//@description The link is a link to the screen for creating a new group chat
+internalLinkTypeNewGroupChat = InternalLinkType;
+
 //@description The link is a link to the screen for creating a new private chat with a contact
 internalLinkTypeNewPrivateChat = InternalLinkType;
 

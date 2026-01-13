@@ -401,6 +401,10 @@ static auto my_profile(const td::string &section) {
   return td::td_api::make_object<td::td_api::internalLinkTypeMyProfile>(section);
 }
 
+static auto new_group_chat() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeNewGroupChat>();
+}
+
 static auto new_private_chat() {
   return td::td_api::make_object<td::td_api::internalLinkTypeNewPrivateChat>();
 }
@@ -979,6 +983,8 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg://new", new_private_chat());
   parse_internal_link("tg://new/", new_private_chat());
   parse_internal_link("tg://new/asd", unknown_deep_link("tg://new/asd"));
+  parse_internal_link("tg://new/group", new_group_chat());
+  parse_internal_link("tg://new/group/", new_group_chat());
 
   parse_internal_link("t.me/joinchat?invite=abcdef", nullptr);
   parse_internal_link("t.me/joinchat", nullptr);
