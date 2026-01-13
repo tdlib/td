@@ -439,6 +439,10 @@ static auto restore_purchases() {
   return td::td_api::make_object<td::td_api::internalLinkTypeRestorePurchases>();
 }
 
+static auto saved_messages() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeSavedMessages>();
+}
+
 static auto sticker_set(const td::string &sticker_set_name, bool expect_custom_emoji) {
   return td::td_api::make_object<td::td_api::internalLinkTypeStickerSet>(sticker_set_name, expect_custom_emoji);
 }
@@ -938,6 +942,14 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg:restore_purchase", unknown_deep_link("tg://restore_purchase"));
   parse_internal_link("tg:restore_purchasess", unknown_deep_link("tg://restore_purchasess"));
   parse_internal_link("tg:restore_purchases/test?#", unknown_deep_link("tg://restore_purchases/test?"));
+
+  parse_internal_link("tg:settings/saved-messages?token=abacaba", saved_messages());
+  parse_internal_link("tg:settings/saved-messages?#", saved_messages());
+  parse_internal_link("tg:settings/saved-messages/?#", saved_messages());
+  parse_internal_link("tg:settings/saved-messages", saved_messages());
+  parse_internal_link("tg:settings/saved-message", settings());
+  parse_internal_link("tg:settings/saved-messagess", settings());
+  parse_internal_link("tg:settings/saved-messages/test?#", settings());
 
   parse_internal_link("t.me/joinchat?invite=abcdef", nullptr);
   parse_internal_link("t.me/joinchat", nullptr);

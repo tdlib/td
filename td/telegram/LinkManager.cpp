@@ -1001,6 +1001,12 @@ class LinkManager::InternalLinkRestorePurchases final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkSavedMessages final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeSavedMessages>();
+  }
+};
+
 class LinkManager::InternalLinkSettings final : public InternalLink {
   vector<string> path_;
 
@@ -2049,6 +2055,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (is_valid_premium_referrer(referrer)) {
       return td::make_unique<InternalLinkPremiumGift>(std::move(referrer));
     }
+  } else if (path.size() == 2 && path[0] == "settings" && path[1] == "saved-messages") {
+    // settings/saved-messages
+    return td::make_unique<InternalLinkSavedMessages>();
   } else if (!path.empty() && path[0] == "settings") {
     // settings[/section[/subsection]]
     return td::make_unique<InternalLinkSettings>(vector<string>{path.begin() + 1, path.end()});
@@ -3149,6 +3158,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://restore_purchases";
+    case td_api::internalLinkTypeSavedMessages::ID:
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      return "tg://settings/saved-messages";
     case td_api::internalLinkTypeSettings::ID: {
       auto link = static_cast<const td_api::internalLinkTypeSettings *>(type_ptr);
       if (!is_internal) {

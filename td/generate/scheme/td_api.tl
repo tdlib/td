@@ -8609,6 +8609,9 @@ internalLinkTypeQrCodeAuthentication = InternalLinkType;
 //@description The link forces restore of App Store purchases when opened. For official iOS application only
 internalLinkTypeRestorePurchases = InternalLinkType;
 
+//@description The link is a link to the Saved Messages chat. Call createPrivateChat with getOption("my_id") and open the chat
+internalLinkTypeSavedMessages = InternalLinkType;
+
 //@description The link is a link to application settings @section Section of the application settings to open; may be null if none
 internalLinkTypeSettings section:SettingsSection = InternalLinkType;
 
