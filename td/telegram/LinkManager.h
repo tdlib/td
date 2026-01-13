@@ -153,6 +153,7 @@ class LinkManager final : public Actor {
   class InternalLinkMessageDraft;
   class InternalLinkMonoforum;
   class InternalLinkMyProfile;
+  class InternalLinkNewChannelChat;
   class InternalLinkNewGroupChat;
   class InternalLinkNewPrivateChat;
   class InternalLinkPassportDataRequest;

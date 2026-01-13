@@ -917,6 +917,12 @@ class LinkManager::InternalLinkMyProfile final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkNewChannelChat final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeNewChannelChat>();
+  }
+};
+
 class LinkManager::InternalLinkNewGroupChat final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeNewGroupChat>();
@@ -2086,6 +2092,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 1 && path[0] == "new") {
     // new
     return td::make_unique<InternalLinkNewPrivateChat>();
+  } else if (path.size() == 2 && path[0] == "new" && path[1] == "channel") {
+    // new/channel
+    return td::make_unique<InternalLinkNewChannelChat>();
   } else if (path.size() == 2 && path[0] == "new" && path[1] == "group") {
     // new/group
     return td::make_unique<InternalLinkNewGroupChat>();
@@ -3173,6 +3182,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
       return "tg://settings/my-profile";
     }
+    case td_api::internalLinkTypeNewChannelChat::ID:
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      return "tg://new/channel";
     case td_api::internalLinkTypeNewGroupChat::ID:
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");
