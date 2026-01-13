@@ -518,7 +518,7 @@ void ForumTopicManager::create_forum_topic(DialogId dialog_id, string &&title, b
 
   auto new_title = clean_name(std::move(title), MAX_FORUM_TOPIC_TITLE_LENGTH);
   if (new_title.empty()) {
-    return promise.set_error(400, "Title must be non-empty");
+    return promise.set_error(400, "Name must be non-empty");
   }
 
   int32 icon_color = -1;
@@ -573,7 +573,7 @@ void ForumTopicManager::edit_forum_topic(DialogId dialog_id, ForumTopicId forum_
   bool edit_title = !title.empty();
   auto new_title = clean_name(std::move(title), MAX_FORUM_TOPIC_TITLE_LENGTH);
   if (edit_title && new_title.empty()) {
-    return promise.set_error(400, "Title must be non-empty");
+    return promise.set_error(400, "Name must be non-empty");
   }
   if (!edit_title && !edit_icon_custom_emoji) {
     return promise.set_value(Unit());
