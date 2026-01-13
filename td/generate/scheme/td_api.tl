@@ -8568,6 +8568,9 @@ internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLin
 //-"posts", "posts/all-stories", "posts/add-album", "gifts", "archived-posts"
 internalLinkTypeMyProfile section:string = InternalLinkType;
 
+//@description The link is a link to the screen for creating a new private chat with a contact
+internalLinkTypeNewPrivateChat = InternalLinkType;
+
 //@description The link contains a request of Telegram passport data. Call getPassportAuthorizationForm with the given parameters to process the link if the link was received from outside of the application; otherwise, ignore it
 //@bot_user_id User identifier of the service's bot; the corresponding user may be unknown yet
 //@scope Telegram Passport element types requested by the service

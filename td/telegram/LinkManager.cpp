@@ -917,6 +917,12 @@ class LinkManager::InternalLinkMyProfile final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkNewPrivateChat final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeNewPrivateChat>();
+  }
+};
+
 class LinkManager::InternalLinkPassportDataRequest final : public InternalLink {
   UserId bot_user_id_;
   string scope_;
@@ -2071,6 +2077,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (has_arg("token")) {
       return td::make_unique<InternalLinkQrCodeAuthentication>();
     }
+  } else if (path.size() == 1 && path[0] == "new") {
+    // new
+    return td::make_unique<InternalLinkNewPrivateChat>();
   } else if (path.size() == 1 && path[0] == "restore_purchases") {
     // restore_purchases
     return td::make_unique<InternalLinkRestorePurchases>();
@@ -3155,6 +3164,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
       return "tg://settings/my-profile";
     }
+    case td_api::internalLinkTypeNewPrivateChat::ID:
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      return "tg://new";
     case td_api::internalLinkTypePassportDataRequest::ID: {
       auto link = static_cast<const td_api::internalLinkTypePassportDataRequest *>(type_ptr);
       if (!is_internal) {
