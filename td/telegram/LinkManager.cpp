@@ -234,10 +234,9 @@ static const vector<string> &get_edit_profile_settings_subsections() {
 }
 
 static const vector<string> &get_edit_profile_other_settings_subsections() {
-  static const vector<string> subsections{"emoji-status", "profile-color", "profile-color/profile",
-                                          "profile-color/profile/add-icons", "profile-color/profile/use-gift",
-                                          "profile-color/name", "profile-color/name/add-icons",
-                                          "profile-color/name/use-gift", "profile-photo",
+  static const vector<string> subsections{"emoji-status", "profile-color/profile", "profile-color/profile/add-icons",
+                                          "profile-color/profile/use-gift", "profile-color/name",
+                                          "profile-color/name/add-icons", "profile-color/name/use-gift",
                                           // no formatting
                                           "profile-photo/use-emoji"};
   return subsections;
