@@ -135,6 +135,7 @@ class LinkManager final : public Actor {
   class InternalLinkBotStartInGroup;
   class InternalLinkBusinessChat;
   class InternalLinkBuyStars;
+  class InternalLinkCalls;
   class InternalLinkConfirmPhone;
   class InternalLinkDialogBoost;
   class InternalLinkDialogFolderInvite;

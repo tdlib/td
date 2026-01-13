@@ -324,6 +324,11 @@ static const vector<string> &get_send_gift_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_calls_sections() {
+  static const vector<string> sections{"all", "missed", "edit", "show-tab", "start-call"};
+  return sections;
+}
+
 static const vector<string> &get_my_profile_sections() {
   static const vector<string> sections{"posts", "posts/all-stories", "posts/add-album", "gifts", "archived-posts"};
   return sections;
@@ -678,6 +683,18 @@ class LinkManager::InternalLinkBuyStars final : public InternalLink {
   InternalLinkBuyStars(int64 star_count, string purpose)
       : star_count_(clamp(star_count, static_cast<int64>(1), static_cast<int64>(1000000000000)))
       , purpose_(std::move(purpose)) {
+  }
+};
+
+class LinkManager::InternalLinkCalls final : public InternalLink {
+  string section_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeCalls>(section_);
+  }
+
+ public:
+  explicit InternalLinkCalls(string section) : section_(std::move(section)) {
   }
 };
 
@@ -2075,6 +2092,20 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() >= 2 && path[0] == "settings" && path[1] == "saved-messages") {
     // settings/saved-messages
     return td::make_unique<InternalLinkSavedMessages>();
+  } else if (path.size() >= 2 && path[0] == "settings" && path[1] == "calls") {
+    // settings/calls[/section]
+    string section;
+    if (path.size() >= 3u) {
+      section = path[2];
+      for (size_t i = 3; i < path.size(); i++) {
+        section += '/';
+        section += path[i];
+      }
+    }
+    if (!td::contains(get_calls_sections(), section)) {
+      section = string();
+    }
+    return td::make_unique<InternalLinkCalls>(std::move(section));
   } else if (path.size() >= 2 && path[0] == "settings" && path[1] == "my-profile") {
     // settings/my-profile[/section]
     string section;
@@ -2869,6 +2900,16 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error(400, "Invalid purpose specified");
       }
       return PSTRING() << "tg://stars_topup?balance=" << link->star_count_ << "&purpose=" << url_encode(link->purpose_);
+    }
+    case td_api::internalLinkTypeCalls::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeCalls *>(type_ptr);
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      if (td::contains(get_calls_sections(), link->section_)) {
+        return PSTRING() << "tg://settings/calls/" << link->section_;
+      }
+      return "tg://settings/calls";
     }
     case td_api::internalLinkTypeChatAffiliateProgram::ID: {
       auto link = static_cast<const td_api::internalLinkTypeChatAffiliateProgram *>(type_ptr);

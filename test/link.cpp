@@ -325,6 +325,10 @@ static auto buy_stars(td::int64 star_count, const td::string &purpose) {
   return td::td_api::make_object<td::td_api::internalLinkTypeBuyStars>(star_count, purpose);
 }
 
+static auto calls(const td::string &section) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeCalls>(section);
+}
+
 static auto chat_affiliate_program(const td::string &username, const td::string &referral) {
   return td::td_api::make_object<td::td_api::internalLinkTypeChatAffiliateProgram>(username, referral);
 }
@@ -954,6 +958,13 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg:settings/saved-message", settings());
   parse_internal_link("tg:settings/saved-messagess", settings());
   parse_internal_link("tg:settings/saved-messages/test?#", saved_messages());
+
+  parse_internal_link("tg://settings/calls", calls(""));
+  parse_internal_link("tg://settings/calls/asdasd", calls(""));
+  parse_internal_link("tg://settings/calls/all", calls("all"));
+  parse_internal_link("tg://settings/calls/edit", calls("edit"));
+  parse_internal_link("tg://settings/calls/all", calls("all"));
+  parse_internal_link("tg://settings/calls/start-call", calls("start-call"));
 
   parse_internal_link("tg://settings/my-profile", my_profile(""));
   parse_internal_link("tg://settings/my-profile/asdasd", my_profile(""));

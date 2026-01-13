@@ -8474,6 +8474,10 @@ internalLinkTypeBusinessChat link_name:string = InternalLinkType;
 //@purpose Purpose of Telegram Star purchase. Arbitrary string specified by the server, for example, "subs" if the Telegram Stars are required to extend channel subscriptions
 internalLinkTypeBuyStars star_count:int53 purpose:string = InternalLinkType;
 
+//@description The link is a link to the Call tab @section Section of the page if any; may be one of
+//-"all", "missed", "edit", "show-tab", "start-call"
+internalLinkTypeCalls section:string = InternalLinkType;
+
 //@description The link is an affiliate program link. Call searchChatAffiliateProgram with the given username and referrer to process the link
 //@username Username to be passed to searchChatAffiliateProgram
 //@referrer Referrer to be passed to searchChatAffiliateProgram
