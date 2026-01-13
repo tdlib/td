@@ -324,6 +324,11 @@ static const vector<string> &get_send_gift_settings_subsections() {
   return subsections;
 }
 
+static const vector<string> &get_my_profile_sections() {
+  static const vector<string> sections{"posts", "posts/all-stories", "posts/add-album", "gifts", "archived-posts"};
+  return sections;
+}
+
 static string get_url_query_hash(bool is_tg, const HttpUrlQuery &url_query) {
   const auto &path = url_query.path_;
   if (is_tg) {
@@ -880,6 +885,18 @@ class LinkManager::InternalLinkMonoforum final : public InternalLink {
 
  public:
   explicit InternalLinkMonoforum(string channel_username) : channel_username_(std::move(channel_username)) {
+  }
+};
+
+class LinkManager::InternalLinkMyProfile final : public InternalLink {
+  string section_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeMyProfile>(section_);
+  }
+
+ public:
+  explicit InternalLinkMyProfile(string section) : section_(std::move(section)) {
   }
 };
 
@@ -2055,9 +2072,23 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (is_valid_premium_referrer(referrer)) {
       return td::make_unique<InternalLinkPremiumGift>(std::move(referrer));
     }
-  } else if (path.size() == 2 && path[0] == "settings" && path[1] == "saved-messages") {
+  } else if (path.size() >= 2 && path[0] == "settings" && path[1] == "saved-messages") {
     // settings/saved-messages
     return td::make_unique<InternalLinkSavedMessages>();
+  } else if (path.size() >= 2 && path[0] == "settings" && path[1] == "my-profile") {
+    // settings/my-profile[/section]
+    string section;
+    if (path.size() >= 3u) {
+      section = path[2];
+      for (size_t i = 3; i < path.size(); i++) {
+        section += '/';
+        section += path[i];
+      }
+    }
+    if (!td::contains(get_my_profile_sections(), section)) {
+      section = string();
+    }
+    return td::make_unique<InternalLinkMyProfile>(std::move(section));
   } else if (!path.empty() && path[0] == "settings") {
     // settings[/section[/subsection]]
     return td::make_unique<InternalLinkSettings>(vector<string>{path.begin() + 1, path.end()});
@@ -3072,6 +3103,16 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       } else {
         return PSTRING() << get_t_me_url() << "share/url?url=" << url_encode(url) << text;
       }
+    }
+    case td_api::internalLinkTypeMyProfile::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeMyProfile *>(type_ptr);
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      if (td::contains(get_my_profile_sections(), link->section_)) {
+        return PSTRING() << "tg://settings/my-profile/" << link->section_;
+      }
+      return "tg://settings/my-profile";
     }
     case td_api::internalLinkTypePassportDataRequest::ID: {
       auto link = static_cast<const td_api::internalLinkTypePassportDataRequest *>(type_ptr);

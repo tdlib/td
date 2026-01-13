@@ -393,6 +393,10 @@ static auto message_draft(td::string text, bool contains_url) {
   return td::td_api::make_object<td::td_api::internalLinkTypeMessageDraft>(std::move(formatted_text), contains_url);
 }
 
+static auto my_profile(const td::string &section) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeMyProfile>(section);
+}
+
 static auto passport_data_request(td::int32 bot_user_id, const td::string &scope, const td::string &public_key,
                                   const td::string &nonce, const td::string &callback_url) {
   return td::td_api::make_object<td::td_api::internalLinkTypePassportDataRequest>(bot_user_id, scope, public_key, nonce,
@@ -949,7 +953,13 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg:settings/saved-messages", saved_messages());
   parse_internal_link("tg:settings/saved-message", settings());
   parse_internal_link("tg:settings/saved-messagess", settings());
-  parse_internal_link("tg:settings/saved-messages/test?#", settings());
+  parse_internal_link("tg:settings/saved-messages/test?#", saved_messages());
+
+  parse_internal_link("tg://settings/my-profile", my_profile(""));
+  parse_internal_link("tg://settings/my-profile/asdasd", my_profile(""));
+  parse_internal_link("tg://settings/my-profile/posts", my_profile("posts"));
+  parse_internal_link("tg://settings/my-profile/posts/add-album", my_profile("posts/add-album"));
+  parse_internal_link("tg://settings/my-profile/archived-posts", my_profile("archived-posts"));
 
   parse_internal_link("t.me/joinchat?invite=abcdef", nullptr);
   parse_internal_link("t.me/joinchat", nullptr);

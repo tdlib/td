@@ -8560,6 +8560,10 @@ internalLinkTypeMessage url:string = InternalLinkType;
 //@contains_link True, if the first line of the text contains a link. If true, the input field needs to be focused and the text after the link must be selected
 internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLinkType;
 
+//@description The link is a link to the My Profile application page @section Section of the page if any; may be one of
+//-"posts", "posts/all-stories", "posts/add-album", "gifts", "archived-posts"
+internalLinkTypeMyProfile section:string = InternalLinkType;
+
 //@description The link contains a request of Telegram passport data. Call getPassportAuthorizationForm with the given parameters to process the link if the link was received from outside of the application; otherwise, ignore it
 //@bot_user_id User identifier of the service's bot; the corresponding user may be unknown yet
 //@scope Telegram Passport element types requested by the service

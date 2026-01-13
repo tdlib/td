@@ -151,6 +151,7 @@ class LinkManager final : public Actor {
   class InternalLinkMessage;
   class InternalLinkMessageDraft;
   class InternalLinkMonoforum;
+  class InternalLinkMyProfile;
   class InternalLinkPassportDataRequest;
   class InternalLinkPremiumFeatures;
   class InternalLinkPremiumGift;
