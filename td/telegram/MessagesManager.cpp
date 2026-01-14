@@ -23912,7 +23912,7 @@ Result<MessagesManager::ForwardedMessages> MessagesManager::get_forwarded_messag
     bool is_broken_server_copy = [&] {
       switch (forwarded_message->content->get_type()) {
         case MessageContentType::Dice:
-          return true;
+          return true;  // server always forwards the dice, despite it is possible to send a new one
         default:
           return false;
       }

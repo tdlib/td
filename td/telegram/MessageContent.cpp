@@ -8856,9 +8856,25 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       return make_unique<MessageContact>(*static_cast<const MessageContact *>(content));
     case MessageContentType::Dice: {
       auto old_content = static_cast<const MessageDice *>(content);
-      if (type == MessageContentDupType::Send && old_content->is_stake) {
-        return td::make_unique<MessageDice>(old_content->emoji, 0, true, old_content->seed, old_content->state_hash,
-                                            old_content->stake_ton_count, 0);
+      if (old_content->is_stake) {
+        switch (type) {
+          case MessageContentDupType::Send:
+            return td::make_unique<MessageDice>(old_content->emoji, 0, true, old_content->seed, old_content->state_hash,
+                                                old_content->stake_ton_count, 0);
+          case MessageContentDupType::SendViaBot:
+            UNREACHABLE();
+            break;
+          case MessageContentDupType::Forward:
+            return td::make_unique<MessageDice>(old_content->emoji, old_content->dice_value, true, old_content->seed,
+                                                old_content->state_hash, old_content->stake_ton_count,
+                                                old_content->prize_ton_count);
+          case MessageContentDupType::ServerCopy:
+          case MessageContentDupType::Copy:
+            // copy as a regular dice
+            break;
+          default:
+            UNREACHABLE();
+        }
       }
       return td::make_unique<MessageDice>(old_content->emoji,
                                           type != MessageContentDupType::Forward ? 0 : old_content->dice_value, false,
