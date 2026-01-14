@@ -1214,12 +1214,9 @@ class ImportContactsRequest final : public RequestActor<> {
   void do_send_result() final {
     CHECK(imported_contacts_.first.size() == contacts_.size());
     CHECK(imported_contacts_.second.size() == contacts_.size());
-    send_result(td_api::make_object<td_api::importedContacts>(transform(imported_contacts_.first,
-                                                                        [this](UserId user_id) {
-                                                                          return td_->user_manager_->get_user_id_object(
-                                                                              user_id, "ImportContactsRequest");
-                                                                        }),
-                                                              std::move(imported_contacts_.second)));
+    send_result(td_api::make_object<td_api::importedContacts>(
+        td_->user_manager_->get_user_ids_object(imported_contacts_.first, "ImportContactsRequest"),
+        std::move(imported_contacts_.second)));
   }
 
  public:
@@ -1277,12 +1274,9 @@ class ChangeImportedContactsRequest final : public RequestActor<> {
   void do_send_result() final {
     CHECK(imported_contacts_.first.size() == contacts_size_);
     CHECK(imported_contacts_.second.size() == contacts_size_);
-    send_result(td_api::make_object<td_api::importedContacts>(transform(imported_contacts_.first,
-                                                                        [this](UserId user_id) {
-                                                                          return td_->user_manager_->get_user_id_object(
-                                                                              user_id, "ChangeImportedContactsRequest");
-                                                                        }),
-                                                              std::move(imported_contacts_.second)));
+    send_result(td_api::make_object<td_api::importedContacts>(
+        td_->user_manager_->get_user_ids_object(imported_contacts_.first, "ChangeImportedContactsRequest"),
+        std::move(imported_contacts_.second)));
   }
 
  public:
