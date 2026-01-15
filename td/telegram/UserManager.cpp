@@ -8692,7 +8692,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     user_full->is_changed = true;
     td_->group_call_manager_->on_update_dialog_about(DialogId(user_id), user_full->about, true);
   }
-  if (is_bot && !td_->auth_manager_->is_bot()) {
+  if (is_bot && (!td_->auth_manager_->is_bot() || user_id == get_my_id())) {
     auto *bot_info = user_full->add_bot_info();
     AdministratorRights group_administrator_rights(user->bot_group_admin_rights_, ChannelType::Megagroup);
     AdministratorRights broadcast_administrator_rights(user->bot_broadcast_admin_rights_, ChannelType::Broadcast);
