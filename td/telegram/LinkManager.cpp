@@ -329,6 +329,11 @@ static const vector<string> &get_calls_sections() {
   return sections;
 }
 
+static const vector<string> &get_contacts_sections() {
+  static const vector<string> sections{"search", "sort", "new", "invite", "manage"};
+  return sections;
+}
+
 static const vector<string> &get_my_profile_sections() {
   static const vector<string> sections{"posts", "posts/all-stories", "posts/add-album", "gifts", "archived-posts"};
   return sections;
@@ -709,6 +714,18 @@ class LinkManager::InternalLinkConfirmPhone final : public InternalLink {
  public:
   InternalLinkConfirmPhone(string hash, string phone_number)
       : hash_(std::move(hash)), phone_number_(std::move(phone_number)) {
+  }
+};
+
+class LinkManager::InternalLinkContacts final : public InternalLink {
+  string section_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeContacts>(section_);
+  }
+
+ public:
+  explicit InternalLinkContacts(string section) : section_(std::move(section)) {
   }
 };
 
@@ -2079,6 +2096,12 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (is_valid_user_token(token)) {
       return td::make_unique<InternalLinkUserToken>(std::move(token));
     }
+  } else if (path.size() >= 1u && path[0] == "contacts") {
+    // contacts[/section]
+    if (path.size() == 2u && td::contains(get_contacts_sections(), path[1])) {
+      return td::make_unique<InternalLinkContacts>(path[1]);
+    }
+    return td::make_unique<InternalLinkContacts>(string());
   } else if (path.size() == 1 && path[0] == "login") {
     // login?code=123456
     auto code = get_arg("code");
@@ -2984,6 +3007,16 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error(400, "Invalid invite link specified");
       }
       return get_dialog_invite_link(invite_hash, is_internal);
+    }
+    case td_api::internalLinkTypeContacts::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeContacts *>(type_ptr);
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      if (td::contains(get_contacts_sections(), link->section_)) {
+        return PSTRING() << "tg://contacts/" << link->section_;
+      }
+      return "tg://contacts";
     }
     case td_api::internalLinkTypeDirectMessagesChat::ID: {
       auto link = static_cast<const td_api::internalLinkTypeDirectMessagesChat *>(type_ptr);

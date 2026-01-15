@@ -8474,7 +8474,7 @@ internalLinkTypeBusinessChat link_name:string = InternalLinkType;
 //@purpose Purpose of Telegram Star purchase. Arbitrary string specified by the server, for example, "subs" if the Telegram Stars are required to extend channel subscriptions
 internalLinkTypeBuyStars star_count:int53 purpose:string = InternalLinkType;
 
-//@description The link is a link to the Call tab @section Section of the page if any; may be one of
+//@description The link is a link to the Call tab or page @section Section of the page if any; may be one of
 //-"all", "missed", "edit", "show-tab", "start-call"
 internalLinkTypeCalls section:string = InternalLinkType;
 
@@ -8498,6 +8498,10 @@ internalLinkTypeChatFolderInvite invite_link:string = InternalLinkType;
 //-If the link is valid and the user wants to join the chat, then call joinChatByInviteLink
 //@invite_link Internal representation of the invite link
 internalLinkTypeChatInvite invite_link:string = InternalLinkType;
+
+//@description The link is a link to the Contacts tab or page @section Section of the page if any; may be one of
+//-"search", "sort", "new", "invite", "manage"
+internalLinkTypeContacts section:string = InternalLinkType;
 
 //@description The link is a link to a channel direct messages chat by username of the channel. Call searchPublicChat with the given chat username to process the link.
 //-If the chat is found and is channel, open the direct messages chat of the channel
