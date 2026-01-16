@@ -704,13 +704,15 @@ class GetUpgradeGiftPreviewQuery final : public Td::ResultHandler {
 
 class GetStarGiftUpgradeAttributesQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::giftUpgradeVariants>> promise_;
+  bool is_crafted_;
 
  public:
   explicit GetStarGiftUpgradeAttributesQuery(Promise<td_api::object_ptr<td_api::giftUpgradeVariants>> &&promise)
       : promise_(std::move(promise)) {
   }
 
-  void send(int64 gift_id) {
+  void send(int64 gift_id, bool is_crafted) {
+    is_crafted_ = is_crafted;
     send_query(G()->net_query_creator().create(telegram_api::payments_getStarGiftUpgradeAttributes(gift_id)));
   }
 
@@ -730,7 +732,7 @@ class GetStarGiftUpgradeAttributesQuery final : public Td::ResultHandler {
               td_, telegram_api::move_object_as<telegram_api::starGiftAttributeModel>(attribute));
           if (!model.is_valid()) {
             LOG(ERROR) << "Receive invalid model";
-          } else {
+          } else if (is_crafted_ == model.is_crafted()) {
             result->models_.push_back(model.get_upgraded_gift_model_object(td_));
           }
           break;
@@ -2876,9 +2878,9 @@ void StarGiftManager::get_gift_upgrade_preview(int64 gift_id,
   td_->create_handler<GetUpgradeGiftPreviewQuery>(std::move(promise))->send(gift_id);
 }
 
-void StarGiftManager::get_gift_upgrade_variants(int64 gift_id,
+void StarGiftManager::get_gift_upgrade_variants(int64 gift_id, bool is_crafted,
                                                 Promise<td_api::object_ptr<td_api::giftUpgradeVariants>> &&promise) {
-  td_->create_handler<GetStarGiftUpgradeAttributesQuery>(std::move(promise))->send(gift_id);
+  td_->create_handler<GetStarGiftUpgradeAttributesQuery>(std::move(promise))->send(gift_id, is_crafted);
 }
 
 void StarGiftManager::upgrade_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id,

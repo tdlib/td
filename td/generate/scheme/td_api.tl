@@ -13934,11 +13934,14 @@ setPinnedGifts owner_id:MessageSender received_gift_ids:vector<string> = Ok;
 //@are_enabled Pass true to enable notifications about new gifts owned by the channel chat; pass false to disable the notifications
 toggleChatGiftNotifications chat_id:int53 are_enabled:Bool = Ok;
 
-//@description Returns examples of possible upgraded gifts for a regular gift @gift_id Identifier of the gift
-getGiftUpgradePreview gift_id:int64 = GiftUpgradePreview;
+//@description Returns examples of possible upgraded gifts for a regular gift @regular_gift_id Identifier of the regular gift
+getGiftUpgradePreview regular_gift_id:int64 = GiftUpgradePreview;
 
-//@description Returns all possible variants of upgraded gifts for a regular gift @gift_id Identifier of the gift
-getGiftUpgradeVariants gift_id:int64 = GiftUpgradeVariants;
+//@description Returns all possible variants of upgraded gifts for a regular gift @regular_gift_id Identifier of the regular gift
+getGiftUpgradeVariants regular_gift_id:int64 = GiftUpgradeVariants;
+
+//@description Returns all possible variants of crafted gifts for a regular gift @regular_gift_id Identifier of the regular gift
+getGiftCraftVariants regular_gift_id:int64 = GiftUpgradeVariants;
 
 //@description Upgrades a regular gift
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only

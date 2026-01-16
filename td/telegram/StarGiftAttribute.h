@@ -41,6 +41,10 @@ class StarGiftAttributeSticker {
     return rarity_.is_valid() && sticker_file_id_.is_valid();
   }
 
+  bool is_crafted() const {
+    return is_crafted_;
+  }
+
   td_api::object_ptr<td_api::upgradedGiftModel> get_upgraded_gift_model_object(const Td *td) const;
 
   td_api::object_ptr<td_api::upgradedGiftSymbol> get_upgraded_gift_symbol_object(const Td *td) const;

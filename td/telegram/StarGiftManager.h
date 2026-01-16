@@ -87,7 +87,8 @@ class StarGiftManager final : public Actor {
 
   void get_gift_upgrade_preview(int64 gift_id, Promise<td_api::object_ptr<td_api::giftUpgradePreview>> &&promise);
 
-  void get_gift_upgrade_variants(int64 gift_id, Promise<td_api::object_ptr<td_api::giftUpgradeVariants>> &&promise);
+  void get_gift_upgrade_variants(int64 gift_id, bool is_crafted,
+                                 Promise<td_api::object_ptr<td_api::giftUpgradeVariants>> &&promise);
 
   void upgrade_gift(BusinessConnectionId business_connection_id, StarGiftId star_gift_id, bool keep_original_details,
                     int64 star_count, Promise<td_api::object_ptr<td_api::upgradeGiftResult>> &&promise);

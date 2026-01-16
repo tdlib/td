@@ -3200,13 +3200,17 @@ class CliClient final : public Actor {
       get_args(args, chat_id, are_enabled);
       send_request(td_api::make_object<td_api::toggleChatGiftNotifications>(chat_id, are_enabled));
     } else if (op == "ggup") {
-      int64 gift_id;
-      get_args(args, gift_id);
-      send_request(td_api::make_object<td_api::getGiftUpgradePreview>(gift_id));
+      int64 regular_gift_id;
+      get_args(args, regular_gift_id);
+      send_request(td_api::make_object<td_api::getGiftUpgradePreview>(regular_gift_id));
     } else if (op == "gguv") {
-      int64 gift_id;
-      get_args(args, gift_id);
-      send_request(td_api::make_object<td_api::getGiftUpgradeVariants>(gift_id));
+      int64 regular_gift_id;
+      get_args(args, regular_gift_id);
+      send_request(td_api::make_object<td_api::getGiftUpgradeVariants>(regular_gift_id));
+    } else if (op == "ggcv") {
+      int64 regular_gift_id;
+      get_args(args, regular_gift_id);
+      send_request(td_api::make_object<td_api::getGiftCraftVariants>(regular_gift_id));
     } else if (op == "ug") {
       string received_gift_id;
       bool keep_original_details;
