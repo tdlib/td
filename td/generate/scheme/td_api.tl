@@ -1310,7 +1310,7 @@ upgradedGiftOriginCraft = UpgradedGiftOrigin;
 //@class UpgradedGiftAttributeRarity @description Describes rarity of an upgraded gift attribute
 
 //@description The rarity is represented as the numeric frequence of the model
-//@per_mille The number of upgraded gifts that receive this model for each 1000 gifts upgraded
+//@per_mille The number of upgraded gifts that receive this attribute for each 1000 gifts upgraded
 upgradedGiftAttributeRarityPerMille per_mille:int32 = UpgradedGiftAttributeRarity;
 
 //@description The attribute is uncommon
@@ -1329,14 +1329,14 @@ upgradedGiftAttributeRarityLegendary = UpgradedGiftAttributeRarity;
 //@description Describes a model of an upgraded gift
 //@name Name of the model
 //@sticker The sticker representing the upgraded gift
-//@rarity_per_mille The number of upgraded gifts that receive this model for each 1000 gifts upgraded
-upgradedGiftModel name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftModel;
+//@rarity The rarity of the model
+upgradedGiftModel name:string sticker:sticker rarity:UpgradedGiftAttributeRarity = UpgradedGiftModel;
 
 //@description Describes a symbol shown on the pattern of an upgraded gift
 //@name Name of the symbol
 //@sticker The sticker representing the symbol
-//@rarity_per_mille The number of upgraded gifts that receive this symbol for each 1000 gifts upgraded
-upgradedGiftSymbol name:string sticker:sticker rarity_per_mille:int32 = UpgradedGiftSymbol;
+//@rarity The rarity of the symbol
+upgradedGiftSymbol name:string sticker:sticker rarity:UpgradedGiftAttributeRarity = UpgradedGiftSymbol;
 
 //@description Describes colors of a backdrop of an upgraded gift
 //@center_color A color in the center of the backdrop in the RGB format
@@ -1349,8 +1349,8 @@ upgradedGiftBackdropColors center_color:int32 edge_color:int32 symbol_color:int3
 //@id Unique identifier of the backdrop
 //@name Name of the backdrop
 //@colors Colors of the backdrop
-//@rarity_per_mille The number of upgraded gifts that receive this backdrop for each 1000 gifts upgraded
-upgradedGiftBackdrop id:int32 name:string colors:upgradedGiftBackdropColors rarity_per_mille:int32 = UpgradedGiftBackdrop;
+//@rarity The rarity of the backdrop
+upgradedGiftBackdrop id:int32 name:string colors:upgradedGiftBackdropColors rarity:UpgradedGiftAttributeRarity = UpgradedGiftBackdrop;
 
 //@description Describes the original details about the gift
 //@sender_id Identifier of the user or the chat that sent the gift; may be null if the gift was private

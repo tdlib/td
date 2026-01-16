@@ -22,10 +22,7 @@ StarGiftAttributeSticker::StarGiftAttributeSticker(
                            ->on_get_sticker_document(std::move(attribute->document_), StickerFormat::Unknown,
                                                      "StarGiftAttributeSticker")
                            .second)
-    , rarity_permille_(
-          attribute->rarity_->get_id() == telegram_api::starGiftAttributeRarity::ID
-              ? static_cast<const telegram_api::starGiftAttributeRarity *>(attribute->rarity_.get())->permille_
-              : 0) {
+    , rarity_(std::move(attribute->rarity_)) {
 }
 
 StarGiftAttributeSticker::StarGiftAttributeSticker(
@@ -35,24 +32,23 @@ StarGiftAttributeSticker::StarGiftAttributeSticker(
                            ->on_get_sticker_document(std::move(attribute->document_), StickerFormat::Unknown,
                                                      "StarGiftAttributeSticker")
                            .second)
-    , rarity_permille_(
-          attribute->rarity_->get_id() == telegram_api::starGiftAttributeRarity::ID
-              ? static_cast<const telegram_api::starGiftAttributeRarity *>(attribute->rarity_.get())->permille_
-              : 0) {
+    , rarity_(std::move(attribute->rarity_)) {
 }
 
 td_api::object_ptr<td_api::upgradedGiftModel> StarGiftAttributeSticker::get_upgraded_gift_model_object(
     const Td *td) const {
   CHECK(is_valid());
-  return td_api::make_object<td_api::upgradedGiftModel>(
-      name_, td->stickers_manager_->get_sticker_object(sticker_file_id_), rarity_permille_);
+  return td_api::make_object<td_api::upgradedGiftModel>(name_,
+                                                        td->stickers_manager_->get_sticker_object(sticker_file_id_),
+                                                        rarity_.get_upgraded_gift_attribute_rarity_object());
 }
 
 td_api::object_ptr<td_api::upgradedGiftSymbol> StarGiftAttributeSticker::get_upgraded_gift_symbol_object(
     const Td *td) const {
   CHECK(is_valid());
-  return td_api::make_object<td_api::upgradedGiftSymbol>(
-      name_, td->stickers_manager_->get_sticker_object(sticker_file_id_), rarity_permille_);
+  return td_api::make_object<td_api::upgradedGiftSymbol>(name_,
+                                                         td->stickers_manager_->get_sticker_object(sticker_file_id_),
+                                                         rarity_.get_upgraded_gift_attribute_rarity_object());
 }
 
 StarGiftAttributeId StarGiftAttributeSticker::get_id(Td *td, bool is_model) const {
@@ -62,8 +58,7 @@ StarGiftAttributeId StarGiftAttributeSticker::get_id(Td *td, bool is_model) cons
 }
 
 bool operator==(const StarGiftAttributeSticker &lhs, const StarGiftAttributeSticker &rhs) {
-  return lhs.name_ == rhs.name_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ &&
-         lhs.rarity_permille_ == rhs.rarity_permille_;
+  return lhs.name_ == rhs.name_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ && lhs.rarity_ == rhs.rarity_;
 }
 
 StarGiftAttributeBackdrop::StarGiftAttributeBackdrop(
@@ -74,15 +69,12 @@ StarGiftAttributeBackdrop::StarGiftAttributeBackdrop(
     , edge_color_(attribute->edge_color_)
     , pattern_color_(attribute->pattern_color_)
     , text_color_(attribute->text_color_)
-    , rarity_permille_(
-          attribute->rarity_->get_id() == telegram_api::starGiftAttributeRarity::ID
-              ? static_cast<const telegram_api::starGiftAttributeRarity *>(attribute->rarity_.get())->permille_
-              : 0) {
+    , rarity_(std::move(attribute->rarity_)) {
 }
 
 bool StarGiftAttributeBackdrop::is_valid() const {
-  return 0 <= rarity_permille_ && rarity_permille_ <= 1000 && is_valid_color(center_color_) &&
-         is_valid_color(edge_color_) && is_valid_color(pattern_color_) && is_valid_color(text_color_);
+  return rarity_.is_valid() && is_valid_color(center_color_) && is_valid_color(edge_color_) &&
+         is_valid_color(pattern_color_) && is_valid_color(text_color_);
 }
 
 td_api::object_ptr<td_api::upgradedGiftBackdrop> StarGiftAttributeBackdrop::get_upgraded_gift_backdrop_object() const {
@@ -90,7 +82,7 @@ td_api::object_ptr<td_api::upgradedGiftBackdrop> StarGiftAttributeBackdrop::get_
   return td_api::make_object<td_api::upgradedGiftBackdrop>(
       id_, name_,
       td_api::make_object<td_api::upgradedGiftBackdropColors>(center_color_, edge_color_, pattern_color_, text_color_),
-      rarity_permille_);
+      rarity_.get_upgraded_gift_attribute_rarity_object());
 }
 
 StarGiftAttributeId StarGiftAttributeBackdrop::get_id() const {
@@ -101,7 +93,7 @@ StarGiftAttributeId StarGiftAttributeBackdrop::get_id() const {
 bool operator==(const StarGiftAttributeBackdrop &lhs, const StarGiftAttributeBackdrop &rhs) {
   return lhs.id_ == rhs.id_ && lhs.name_ == rhs.name_ && lhs.center_color_ == rhs.center_color_ &&
          lhs.edge_color_ == rhs.edge_color_ && lhs.pattern_color_ == rhs.pattern_color_ &&
-         lhs.text_color_ == rhs.text_color_ && lhs.rarity_permille_ == rhs.rarity_permille_;
+         lhs.text_color_ == rhs.text_color_ && lhs.rarity_ == rhs.rarity_;
 }
 
 StarGiftAttributeOriginalDetails::StarGiftAttributeOriginalDetails(
