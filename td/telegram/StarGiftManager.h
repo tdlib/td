@@ -121,7 +121,7 @@ class StarGiftManager final : public Actor {
   void get_saved_star_gift(StarGiftId star_gift_id, Promise<td_api::object_ptr<td_api::receivedGift>> &&promise);
 
   void get_craft_star_gifts(int64 gift_id, const string &offset, int32 limit,
-                            Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise);
+                            Promise<td_api::object_ptr<td_api::giftsForCrafting>> &&promise);
 
   void get_upgraded_gift(const string &name, Promise<td_api::object_ptr<td_api::upgradedGift>> &&promise);
 

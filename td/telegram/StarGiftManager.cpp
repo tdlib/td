@@ -23,6 +23,7 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OnlineManager.h"
+#include "td/telegram/OptionManager.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/StarGift.h"
 #include "td/telegram/StarGiftAttribute.h"
@@ -1740,10 +1741,10 @@ class GetSavedStarGiftQuery final : public Td::ResultHandler {
 };
 
 class GetCraftStarGiftsQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::receivedGifts>> promise_;
+  Promise<td_api::object_ptr<td_api::giftsForCrafting>> promise_;
 
  public:
-  explicit GetCraftStarGiftsQuery(Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise)
+  explicit GetCraftStarGiftsQuery(Promise<td_api::object_ptr<td_api::giftsForCrafting>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -1780,8 +1781,12 @@ class GetCraftStarGiftsQuery final : public Td::ResultHandler {
       }
       gifts.push_back(user_gift.get_received_gift_object(td_));
     }
-    promise_.set_value(
-        td_api::make_object<td_api::receivedGifts>(total_count, std::move(gifts), true, ptr->next_offset_));
+    auto attribute_persistence_per_mille = transform(
+        full_split(td_->option_manager_->get_option_string("stargifts_craft_attribute_permilles", "60,180,450,1000"),
+                   ','),
+        to_integer<int32>);
+    promise_.set_value(td_api::make_object<td_api::giftsForCrafting>(
+        total_count, std::move(gifts), std::move(attribute_persistence_per_mille), ptr->next_offset_));
   }
 
   void on_error(Status status) final {
@@ -3088,7 +3093,7 @@ void StarGiftManager::get_saved_star_gift(StarGiftId star_gift_id,
 }
 
 void StarGiftManager::get_craft_star_gifts(int64 gift_id, const string &offset, int32 limit,
-                                           Promise<td_api::object_ptr<td_api::receivedGifts>> &&promise) {
+                                           Promise<td_api::object_ptr<td_api::giftsForCrafting>> &&promise) {
   if (limit < 0) {
     return promise.set_error(400, "Limit must be non-negative");
   }

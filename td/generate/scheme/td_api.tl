@@ -1580,6 +1580,14 @@ receivedGift received_gift_id:string sender_id:MessageSender text:formattedText 
 //@next_offset The offset for the next request. If empty, then there are no more results
 receivedGifts total_count:int32 gifts:vector<receivedGift> are_notifications_enabled:Bool next_offset:string = ReceivedGifts;
 
+//@description Represents a list of gifts received by a user or a chat
+//@total_count The total number of received gifts
+//@gifts The list of gifts
+//@attribute_persistence_per_mille The 4 numbers that describe probability of the crafted gift to have the backdrop or symbol of one of the original gifts
+//-if there are 1, 2, 3, or 4 gifts with the same attribute. Each number represents the number of crafted gifts with the original attribute per 1000 successful craftings
+//@next_offset The offset for the next request. If empty, then there are no more results
+giftsForCrafting total_count:int32 gifts:vector<receivedGift> attribute_persistence_per_mille:vector<int32> next_offset:string = GiftsForCrafting;
+
 //@description Contains examples of possible upgraded gifts for the given regular gift
 //@models Examples of possible models that can be chosen for the gift after upgrade
 //@symbols Examples of possible symbols that can be chosen for the gift after upgrade
@@ -14000,7 +14008,7 @@ getReceivedGift received_gift_id:string = ReceivedGift;
 //@regular_gift_id Identifier of the regular gift that will be used for crafting
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of gifts to be returned; must be positive and can't be greater than 100. For optimal performance, the number of returned objects is chosen by TDLib and can be smaller than the specified limit
-getGiftsForCrafting regular_gift_id:int64 offset:string limit:int32 = ReceivedGifts;
+getGiftsForCrafting regular_gift_id:int64 offset:string limit:int32 = GiftsForCrafting;
 
 //@description Returns information about an upgraded gift by its name @name Unique name of the upgraded gift
 getUpgradedGift name:string = UpgradedGift;
