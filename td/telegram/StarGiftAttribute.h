@@ -26,6 +26,7 @@ class StarGiftAttributeSticker {
   string name_;
   FileId sticker_file_id_;
   StarGiftAttributeRarity rarity_;
+  bool is_crafted_ = false;
 
   friend bool operator==(const StarGiftAttributeSticker &lhs, const StarGiftAttributeSticker &rhs);
 

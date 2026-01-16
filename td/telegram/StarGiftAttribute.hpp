@@ -23,6 +23,7 @@ void StarGiftAttributeSticker::store(StorerT &storer) const {
   CHECK(is_valid());
   Td *td = storer.context()->td().get_actor_unsafe();
   BEGIN_STORE_FLAGS();
+  STORE_FLAG(is_crafted_);
   END_STORE_FLAGS();
   td::store(name_, storer);
   td->stickers_manager_->store_sticker(sticker_file_id_, false, storer, "StarGiftAttributeSticker");
@@ -33,6 +34,7 @@ template <class ParserT>
 void StarGiftAttributeSticker::parse(ParserT &parser) {
   Td *td = parser.context()->td().get_actor_unsafe();
   BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(is_crafted_);
   END_PARSE_FLAGS();
   td::parse(name_, parser);
   sticker_file_id_ = td->stickers_manager_->parse_sticker(false, parser);

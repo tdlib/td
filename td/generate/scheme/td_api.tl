@@ -1330,7 +1330,8 @@ upgradedGiftAttributeRarityLegendary = UpgradedGiftAttributeRarity;
 //@name Name of the model
 //@sticker The sticker representing the upgraded gift
 //@rarity The rarity of the model
-upgradedGiftModel name:string sticker:sticker rarity:UpgradedGiftAttributeRarity = UpgradedGiftModel;
+//@is_crafted True, if the model can be obtained only through gift crafting
+upgradedGiftModel name:string sticker:sticker rarity:UpgradedGiftAttributeRarity is_crafted:Bool = UpgradedGiftModel;
 
 //@description Describes a symbol shown on the pattern of an upgraded gift
 //@name Name of the symbol

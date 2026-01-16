@@ -22,7 +22,8 @@ StarGiftAttributeSticker::StarGiftAttributeSticker(
                            ->on_get_sticker_document(std::move(attribute->document_), StickerFormat::Unknown,
                                                      "StarGiftAttributeSticker")
                            .second)
-    , rarity_(std::move(attribute->rarity_)) {
+    , rarity_(std::move(attribute->rarity_))
+    , is_crafted_(attribute->crafted_) {
 }
 
 StarGiftAttributeSticker::StarGiftAttributeSticker(
@@ -38,9 +39,9 @@ StarGiftAttributeSticker::StarGiftAttributeSticker(
 td_api::object_ptr<td_api::upgradedGiftModel> StarGiftAttributeSticker::get_upgraded_gift_model_object(
     const Td *td) const {
   CHECK(is_valid());
-  return td_api::make_object<td_api::upgradedGiftModel>(name_,
-                                                        td->stickers_manager_->get_sticker_object(sticker_file_id_),
-                                                        rarity_.get_upgraded_gift_attribute_rarity_object());
+  return td_api::make_object<td_api::upgradedGiftModel>(
+      name_, td->stickers_manager_->get_sticker_object(sticker_file_id_),
+      rarity_.get_upgraded_gift_attribute_rarity_object(), is_crafted_);
 }
 
 td_api::object_ptr<td_api::upgradedGiftSymbol> StarGiftAttributeSticker::get_upgraded_gift_symbol_object(
@@ -58,7 +59,8 @@ StarGiftAttributeId StarGiftAttributeSticker::get_id(Td *td, bool is_model) cons
 }
 
 bool operator==(const StarGiftAttributeSticker &lhs, const StarGiftAttributeSticker &rhs) {
-  return lhs.name_ == rhs.name_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ && lhs.rarity_ == rhs.rarity_;
+  return lhs.name_ == rhs.name_ && lhs.sticker_file_id_ == rhs.sticker_file_id_ && lhs.rarity_ == rhs.rarity_ &&
+         lhs.is_crafted_ == rhs.is_crafted_;
 }
 
 StarGiftAttributeBackdrop::StarGiftAttributeBackdrop(
