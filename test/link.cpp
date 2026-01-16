@@ -1829,6 +1829,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/privacy/auto-delete/set-custom",
                       privacy_and_security_settings("auto-delete/set-custom"));
 
+  parse_internal_link("tg://settings/appearance/themes", appearance("themes"));
   parse_internal_link("tg://settings/appearance/themes/edit", appearance("themes/edit"));
   parse_internal_link("tg://settings/appearance/app-icon", appearance("app-icon"));
 
