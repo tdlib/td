@@ -71,6 +71,7 @@ enum class Version : int32 {
   SupportGiftChatThemes,  // 55
   SupportBotTopics,
   AddDiceFlags,
+  AddStarGiftAttributeRarity,
   Next
 };
 

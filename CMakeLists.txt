@@ -614,6 +614,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StarGift.cpp
   td/telegram/StarGiftAttribute.cpp
   td/telegram/StarGiftAttributeId.cpp
+  td/telegram/StarGiftAttributeRarity.cpp
   td/telegram/StarGiftAuctionRound.cpp
   td/telegram/StarGiftAuctionState.cpp
   td/telegram/StarGiftAuctionUserState.cpp
@@ -1025,6 +1026,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StarGift.h
   td/telegram/StarGiftAttribute.h
   td/telegram/StarGiftAttributeId.h
+  td/telegram/StarGiftAttributeRarity.h
   td/telegram/StarGiftAuctionRound.h
   td/telegram/StarGiftAuctionState.h
   td/telegram/StarGiftAuctionUserState.h
@@ -1196,6 +1198,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StarAmount.hpp
   td/telegram/StarGift.hpp
   td/telegram/StarGiftAttribute.hpp
+  td/telegram/StarGiftAttributeRarity.hpp
   td/telegram/StarGiftBackground.hpp
   td/telegram/StarGiftId.hpp
   td/telegram/StarGiftResalePrice.hpp

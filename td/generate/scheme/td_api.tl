@@ -1307,6 +1307,25 @@ upgradedGiftOriginOffer price:GiftResalePrice = UpgradedGiftOrigin;
 upgradedGiftOriginCraft = UpgradedGiftOrigin;
 
 
+//@class UpgradedGiftAttributeRarity @description Describes rarity of an upgraded gift attribute
+
+//@description The rarity is represented as the numeric frequence of the model
+//@per_mille The number of upgraded gifts that receive this model for each 1000 gifts upgraded
+upgradedGiftAttributeRarityPerMille per_mille:int32 = UpgradedGiftAttributeRarity;
+
+//@description The attribute is uncommon
+upgradedGiftAttributeRarityUncommon = UpgradedGiftAttributeRarity;
+
+//@description The attribute is rare
+upgradedGiftAttributeRarityRare = UpgradedGiftAttributeRarity;
+
+//@description The attribute is epic
+upgradedGiftAttributeRarityEpic = UpgradedGiftAttributeRarity;
+
+//@description The attribute is legendary
+upgradedGiftAttributeRarityLegendary = UpgradedGiftAttributeRarity;
+
+
 //@description Describes a model of an upgraded gift
 //@name Name of the model
 //@sticker The sticker representing the upgraded gift
