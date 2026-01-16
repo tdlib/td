@@ -1360,6 +1360,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   int32 verify_age_min = 0;
   string whitelisted_bots;
   string ton_stakedice_stake_suggested_amounts;
+  string gift_craft_probabilities;
 
   // {"stories_all_hidden", "archive_all_stories"}
   static const FlatHashMap<Slice, Slice, SliceHash> bool_keys = {
@@ -1992,6 +1993,31 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "stargifts_craft_attribute_permilles") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          int32 count = 0;
+          auto probabilities = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &probability : probabilities) {
+            auto per_mille = get_json_value_int(std::move(probability), key);
+            if (0 < per_mille && per_mille <= 1000) {
+              if (count > 0) {
+                gift_craft_probabilities += ',';
+              }
+              gift_craft_probabilities += to_string(per_mille);
+              count++;
+            } else {
+              LOG(ERROR) << "Receive unexpected probability " << per_mille;
+            }
+          }
+          if (count != 4u) {
+            LOG(ERROR) << "Receive " << count << " gift craft probabilities";
+            gift_craft_probabilities.clear();
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected stargifts_craft_attribute_permilles " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2102,6 +2128,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_string("premium_invoice_slug", premium_invoice_slug);
   }
   options.set_option_string("ton_stakedice_stake_suggested_amounts", ton_stakedice_stake_suggested_amounts);
+  options.set_option_string("stargifts_craft_attribute_permilles", gift_craft_probabilities.empty() ? "60,180,450,1000" : gift_craft_probabilities);
 
   options.set_option_boolean("need_premium_for_new_chat_privacy", need_premium_for_new_chat_privacy);
 
