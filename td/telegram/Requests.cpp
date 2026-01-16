@@ -1808,9 +1808,7 @@ class GetSavedAnimationsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_api::make_object<td_api::animations>(transform(animation_ids_, [td = td_](FileId animation_id) {
-      return td->animations_manager_->get_animation_object(animation_id);
-    })));
+    send_result(td_->animations_manager_->get_animations_object(animation_ids_));
   }
 
  public:

@@ -37,7 +37,9 @@ class AnimationsManager final : public Actor {
 
   int32 get_animation_duration(FileId file_id) const;
 
-  tl_object_ptr<td_api::animation> get_animation_object(FileId file_id) const;
+  td_api::object_ptr<td_api::animation> get_animation_object(FileId file_id) const;
+
+  td_api::object_ptr<td_api::animations> get_animations_object(const vector<FileId> &file_ids) const;
 
   void create_animation(FileId file_id, string minithumbnail, PhotoSize thumbnail, AnimationSize animated_thumbnail,
                         bool has_stickers, vector<FileId> &&sticker_file_ids, string file_name, string mime_type,
