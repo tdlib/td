@@ -12226,6 +12226,11 @@ canTransferOwnership = CanTransferOwnershipResult;
 //@password The 2-step verification password of the current user
 transferChatOwnership chat_id:int53 user_id:int53 password:string = Ok;
 
+//@description Returns the user that will become owner of the chat after 7 days if the current user will not return to the chat during that period; requires owner privileges in the chat.
+//-Available only for supergroups and channel chats
+//@chat_id Chat identifier
+getChatOwnerAfterLeaving chat_id:int53 = User;
+
 //@description Returns information about a single member of a chat @chat_id Chat identifier @member_id Member identifier
 getChatMember chat_id:int53 member_id:MessageSender = ChatMember;
 

@@ -153,6 +153,8 @@ class DialogParticipantManager final : public Actor {
 
   void transfer_dialog_ownership(DialogId dialog_id, UserId user_id, const string &password, Promise<Unit> &&promise);
 
+  void get_future_creator_after_leave(DialogId dialog_id, Promise<td_api::object_ptr<td_api::user>> &&promise);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

@@ -7221,6 +7221,10 @@ class CliClient final : public Actor {
       string password;
       get_args(args, chat_id, user_id, password);
       send_request(td_api::make_object<td_api::transferChatOwnership>(chat_id, user_id, password));
+    } else if (op == "gcoal") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::getChatOwnerAfterLeaving>(chat_id));
     } else if (op == "log") {
       ChatId chat_id;
       string limit;

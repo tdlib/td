@@ -5848,6 +5848,12 @@ void Requests::on_request(uint64 id, td_api::transferChatOwnership &request) {
                                                               request.password_, std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getChatOwnerAfterLeaving &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->dialog_participant_manager_->get_future_creator_after_leave(DialogId(request.chat_id_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getChatMember &request) {
   CREATE_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, participant_dialog_id,

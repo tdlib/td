@@ -784,6 +784,42 @@ class EditChannelCreatorQuery final : public Td::ResultHandler {
   }
 };
 
+class GetFutureChannelCreatorAfterLeaveQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::user>> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit GetFutureChannelCreatorAfterLeaveQuery(Promise<td_api::object_ptr<td_api::user>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id) {
+    channel_id_ = channel_id;
+    auto input_channel = td_->chat_manager_->get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_query(G()->net_query_creator().create(
+        telegram_api::channels_getFutureCreatorAfterLeave(std::move(input_channel)), {{channel_id}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::channels_getFutureCreatorAfterLeave>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetFutureChannelCreatorAfterLeaveQuery: " << to_string(ptr);
+    auto user_id = UserManager::get_user_id(ptr);
+    td_->user_manager_->on_get_user(std::move(ptr), "GetFutureChannelCreatorAfterLeaveQuery");
+    promise_.set_value(td_->user_manager_->get_user_object(user_id));
+  }
+
+  void on_error(Status status) final {
+    td_->chat_manager_->on_get_channel_error(channel_id_, status, "GetFutureChannelCreatorAfterLeaveQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 DialogParticipantManager::DialogParticipantManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   update_dialog_online_member_count_timeout_.set_callback(on_update_dialog_online_member_count_timeout_callback);
   update_dialog_online_member_count_timeout_.set_callback_data(static_cast<void *>(this));
@@ -3054,6 +3090,18 @@ void DialogParticipantManager::transfer_channel_ownership(
 
   td_->create_handler<EditChannelCreatorQuery>(std::move(promise))
       ->send(channel_id, user_id, std::move(input_check_password));
+}
+
+void DialogParticipantManager::get_future_creator_after_leave(DialogId dialog_id,
+                                                              Promise<td_api::object_ptr<td_api::user>> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Write,
+                                                                        "get_future_creator_after_leave"));
+  if (dialog_id.get_type() != DialogType::Channel ||
+      !td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_creator()) {
+    return promise.set_value(nullptr);
+  }
+
+  td_->create_handler<GetFutureChannelCreatorAfterLeaveQuery>(std::move(promise))->send(dialog_id.get_channel_id());
 }
 
 void DialogParticipantManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
