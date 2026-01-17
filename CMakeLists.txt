@@ -413,6 +413,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/DialogId.cpp
   td/telegram/DialogInviteLink.cpp
   td/telegram/DialogInviteLinkManager.cpp
+  td/telegram/DialogListId.cpp
   td/telegram/DialogLocation.cpp
   td/telegram/DialogManager.cpp
   td/telegram/DialogNotificationSettings.cpp
