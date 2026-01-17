@@ -42,6 +42,9 @@ class DialogListId {
 
   td_api::object_ptr<td_api::ChatList> get_chat_list_object() const;
 
+  static vector<td_api::object_ptr<td_api::ChatList>> get_chat_lists_object(
+      const vector<DialogListId> &dialog_list_ids);
+
   int64 get() const {
     return id;
   }

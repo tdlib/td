@@ -16708,8 +16708,7 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
   auto available_reactions = get_dialog_active_reactions(d).get_chat_available_reactions_object(td_);
   auto is_translatable = d->is_translatable && is_premium;
   auto block_list_id = BlockListId(d->is_blocked, d->is_blocked_for_stories);
-  auto chat_lists = transform(get_dialog_list_ids(d),
-                              [](DialogListId dialog_list_id) { return dialog_list_id.get_chat_list_object(); });
+  auto chat_lists = DialogListId::get_chat_lists_object(get_dialog_list_ids(d));
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), td_->dialog_manager_->get_chat_type_object(d->dialog_id, source),
       td_->dialog_manager_->get_dialog_title(d->dialog_id),

@@ -5172,10 +5172,9 @@ void Requests::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSuperg
 
 void Requests::on_request(uint64 id, const td_api::getChatListsToAddChat &request) {
   CHECK_IS_USER();
-  auto dialog_lists = td_->messages_manager_->get_dialog_lists_to_add_dialog(DialogId(request.chat_id_));
-  auto chat_lists =
-      transform(dialog_lists, [](DialogListId dialog_list_id) { return dialog_list_id.get_chat_list_object(); });
-  send_closure(td_actor_, &Td::send_result, id, td_api::make_object<td_api::chatLists>(std::move(chat_lists)));
+  auto dialog_list_ids = td_->messages_manager_->get_dialog_lists_to_add_dialog(DialogId(request.chat_id_));
+  send_closure(td_actor_, &Td::send_result, id,
+               td_api::make_object<td_api::chatLists>(DialogListId::get_chat_lists_object(dialog_list_ids)));
 }
 
 void Requests::on_request(uint64 id, const td_api::addChatToList &request) {

@@ -6,6 +6,8 @@
 //
 #include "td/telegram/DialogListId.h"
 
+#include "td/utils/algorithm.h"
+
 namespace td {
 
 DialogListId::DialogListId(int64 dialog_list_id) : id(dialog_list_id) {
@@ -54,6 +56,11 @@ td_api::object_ptr<td_api::ChatList> DialogListId::get_chat_list_object() const 
   }
   UNREACHABLE();
   return nullptr;
+}
+
+vector<td_api::object_ptr<td_api::ChatList>> DialogListId::get_chat_lists_object(
+    const vector<DialogListId> &dialog_list_ids) {
+  return transform(dialog_list_ids, [](DialogListId dialog_list_id) { return dialog_list_id.get_chat_list_object(); });
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, DialogListId dialog_list_id) {
