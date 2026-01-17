@@ -35,6 +35,8 @@ class AudiosManager {
 
   td_api::object_ptr<td_api::notificationSound> get_notification_sound_object(FileId file_id) const;
 
+  td_api::object_ptr<td_api::notificationSounds> get_notification_sounds_object(const vector<FileId> &file_ids) const;
+
   void create_audio(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name, string mime_type,
                     int32 duration, string title, string performer, int32 date, bool replace);
 

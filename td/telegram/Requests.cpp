@@ -1870,10 +1870,7 @@ class GetSavedNotificationSoundsRequest final : public RequestActor<> {
   }
 
   void do_send_result() final {
-    send_result(td_api::make_object<td_api::notificationSounds>(
-        transform(ringtone_file_ids_, [td = td_](FileId ringtone_file_id) {
-          return td->audios_manager_->get_notification_sound_object(ringtone_file_id);
-        })));
+    send_result(td_->audios_manager_->get_notification_sounds_object(ringtone_file_ids_));
   }
 
  public:
