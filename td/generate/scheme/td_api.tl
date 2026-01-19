@@ -7987,6 +7987,13 @@ notification id:int32 date:int32 is_silent:Bool type:NotificationType = Notifica
 notificationGroup id:int32 type:NotificationGroupType chat_id:int53 total_count:int32 notifications:vector<notification> = NotificationGroup;
 
 
+//@description Describes a proxy server
+//@server Proxy server domain or IP address
+//@port Proxy server port
+//@type Type of the proxy
+proxy server:string port:int32 type:ProxyType = Proxy;
+
+
 //@class OptionValue @description Represents the value of an option
 
 //@description Represents a boolean option @value The value of the option
@@ -9154,12 +9161,10 @@ proxyTypeMtproto secret:string = ProxyType;
 
 //@description Contains information about a proxy server added to the list of proxies
 //@id Unique identifier of the proxy
-//@server Proxy server domain or IP address
-//@port Proxy server port
 //@last_used_date Point in time (Unix timestamp) when the proxy was last used; 0 if never
 //@is_enabled True, if the proxy is enabled now
-//@type Type of the proxy
-addedProxy id:int32 server:string port:int32 last_used_date:int32 is_enabled:Bool type:ProxyType = AddedProxy;
+//@proxy The proxy
+addedProxy id:int32 last_used_date:int32 is_enabled:Bool proxy:proxy = AddedProxy;
 
 //@description Represents a list of added proxy servers @proxies List of proxy servers
 addedProxies proxies:vector<addedProxy> = AddedProxies;

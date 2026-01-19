@@ -633,28 +633,10 @@ void ConnectionCreator::save_proxy_last_used_date(int32 delay) {
 td_api::object_ptr<td_api::addedProxy> ConnectionCreator::get_added_proxy_object(int32 proxy_id) const {
   auto it = proxies_.find(proxy_id);
   CHECK(it != proxies_.end());
-  const Proxy &proxy = it->second;
-  td_api::object_ptr<td_api::ProxyType> type;
-  switch (proxy.type()) {
-    case Proxy::Type::Socks5:
-      type = make_tl_object<td_api::proxyTypeSocks5>(proxy.user().str(), proxy.password().str());
-      break;
-    case Proxy::Type::HttpTcp:
-      type = make_tl_object<td_api::proxyTypeHttp>(proxy.user().str(), proxy.password().str(), false);
-      break;
-    case Proxy::Type::HttpCaching:
-      type = make_tl_object<td_api::proxyTypeHttp>(proxy.user().str(), proxy.password().str(), true);
-      break;
-    case Proxy::Type::Mtproto:
-      type = make_tl_object<td_api::proxyTypeMtproto>(proxy.secret().get_encoded_secret());
-      break;
-    default:
-      UNREACHABLE();
-  }
   auto last_used_date_it = proxy_last_used_date_.find(proxy_id);
   auto last_used_date = last_used_date_it == proxy_last_used_date_.end() ? 0 : last_used_date_it->second;
-  return make_tl_object<td_api::addedProxy>(proxy_id, proxy.server().str(), proxy.port(), last_used_date,
-                                            proxy_id == active_proxy_id_, std::move(type));
+  return td_api::make_object<td_api::addedProxy>(proxy_id, last_used_date, proxy_id == active_proxy_id_,
+                                                 it->second.get_proxy_object());
 }
 
 void ConnectionCreator::on_network(bool network_flag, uint32 network_generation) {

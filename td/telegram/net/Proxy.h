@@ -16,7 +16,16 @@
 
 namespace td {
 
+namespace tl {
+template <class Type>
+class unique_ptr;
+}  // namespace tl
+
 namespace td_api {
+template <class Type>
+using object_ptr = ::td::tl::unique_ptr<Type>;
+
+class proxy;
 class ProxyType;
 }  // namespace td_api
 
@@ -103,6 +112,8 @@ class Proxy {
   bool use_http_caching_proxy() const {
     return type() == Proxy::Type::HttpCaching;
   }
+
+  td_api::object_ptr<td_api::proxy> get_proxy_object() const;
 
   template <class StorerT>
   void store(StorerT &storer) const {

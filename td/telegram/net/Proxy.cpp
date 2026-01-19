@@ -48,6 +48,25 @@ Result<Proxy> Proxy::create_proxy(string server, int port, const td_api::ProxyTy
   }
 }
 
+td_api::object_ptr<td_api::proxy> Proxy::get_proxy_object() const {
+  auto type = [&]() -> td_api::object_ptr<td_api::ProxyType> {
+    switch (type_) {
+      case Type::Socks5:
+        return td_api::make_object<td_api::proxyTypeSocks5>(user_, password_);
+      case Type::HttpTcp:
+        return td_api::make_object<td_api::proxyTypeHttp>(user_, password_, false);
+      case Type::HttpCaching:
+        return td_api::make_object<td_api::proxyTypeHttp>(user_, password_, true);
+      case Type::Mtproto:
+        return td_api::make_object<td_api::proxyTypeMtproto>(secret_.get_encoded_secret());
+      default:
+        UNREACHABLE();
+        return nullptr;
+    }
+  }();
+  return td_api::make_object<td_api::proxy>(server_, port_, std::move(type));
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const Proxy &proxy) {
   switch (proxy.type()) {
     case Proxy::Type::Socks5:
