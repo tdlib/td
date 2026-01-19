@@ -993,7 +993,7 @@ class LinkManager::InternalLinkPostStory final : public InternalLink {
       }
       return nullptr;
     }();
-    return td_api::make_object<td_api::internalLinkTypePostStory>(std::move(content_type));
+    return td_api::make_object<td_api::internalLinkTypeNewStory>(std::move(content_type));
   }
 
  public:
@@ -3311,8 +3311,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
                          << "&hash=" << url_encode(link->hash_);
       }
     }
-    case td_api::internalLinkTypePostStory::ID: {
-      auto link = static_cast<const td_api::internalLinkTypePostStory *>(type_ptr);
+    case td_api::internalLinkTypeNewStory::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeNewStory *>(type_ptr);
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");
       }

@@ -421,6 +421,10 @@ static auto new_private_chat() {
   return td::td_api::make_object<td::td_api::internalLinkTypeNewPrivateChat>();
 }
 
+static auto new_story(td::td_api::object_ptr<td::td_api::StoryContentType> content_type) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeNewStory>(std::move(content_type));
+}
+
 static auto passport_data_request(td::int32 bot_user_id, const td::string &scope, const td::string &public_key,
                                   const td::string &nonce, const td::string &callback_url) {
   return td::td_api::make_object<td::td_api::internalLinkTypePassportDataRequest>(bot_user_id, scope, public_key, nonce,
@@ -429,10 +433,6 @@ static auto passport_data_request(td::int32 bot_user_id, const td::string &scope
 
 static auto phone_number_confirmation(const td::string &hash, const td::string &phone_number) {
   return td::td_api::make_object<td::td_api::internalLinkTypePhoneNumberConfirmation>(hash, phone_number);
-}
-
-static auto post_story(td::td_api::object_ptr<td::td_api::StoryContentType> content_type) {
-  return td::td_api::make_object<td::td_api::internalLinkTypePostStory>(std::move(content_type));
 }
 
 static auto premium_features_page(const td::string &referrer) {
@@ -1020,12 +1020,12 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg://new/channel", new_channel_chat());
   parse_internal_link("tg://new/channel/", new_channel_chat());
 
-  parse_internal_link("tg://post", post_story(nullptr));
-  parse_internal_link("tg://post/photo", post_story(td::td_api::make_object<td::td_api::storyContentTypePhoto>()));
-  parse_internal_link("tg://post/video", post_story(td::td_api::make_object<td::td_api::storyContentTypeVideo>()));
-  parse_internal_link("tg://post/live", post_story(td::td_api::make_object<td::td_api::storyContentTypeLive>()));
+  parse_internal_link("tg://post", new_story(nullptr));
+  parse_internal_link("tg://post/photo", new_story(td::td_api::make_object<td::td_api::storyContentTypePhoto>()));
+  parse_internal_link("tg://post/video", new_story(td::td_api::make_object<td::td_api::storyContentTypeVideo>()));
+  parse_internal_link("tg://post/live", new_story(td::td_api::make_object<td::td_api::storyContentTypeLive>()));
   parse_internal_link("tg://post/photos",
-                      post_story(td::td_api::make_object<td::td_api::storyContentTypeUnsupported>()));
+                      new_story(td::td_api::make_object<td::td_api::storyContentTypeUnsupported>()));
 
   parse_internal_link("t.me/joinchat?invite=abcdef", nullptr);
   parse_internal_link("t.me/joinchat", nullptr);

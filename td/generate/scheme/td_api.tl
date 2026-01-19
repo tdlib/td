@@ -8620,6 +8620,9 @@ internalLinkTypeNewGroupChat = InternalLinkType;
 //@description The link is a link to the screen for creating a new private chat with a contact
 internalLinkTypeNewPrivateChat = InternalLinkType;
 
+//@description The link is a link to open the story posting interface @content_type The type of the content of the story to post; may be null if unspecified
+internalLinkTypeNewStory content_type:StoryContentType = InternalLinkType;
+
 //@description The link contains a request of Telegram passport data. Call getPassportAuthorizationForm with the given parameters to process the link if the link was received from outside of the application; otherwise, ignore it
 //@bot_user_id User identifier of the service's bot; the corresponding user may be unknown yet
 //@scope Telegram Passport element types requested by the service
@@ -8634,9 +8637,6 @@ internalLinkTypePassportDataRequest bot_user_id:int53 scope:string public_key:st
 //@hash Hash value from the link
 //@phone_number Phone number value from the link
 internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = InternalLinkType;
-
-//@description The link is a link to open the story posting interface @content_type The type of the content of the story to post; may be null if unspecified
-internalLinkTypePostStory content_type:StoryContentType = InternalLinkType;
 
 //@description The link is a link to the Premium features screen of the application from which the user can subscribe to Telegram Premium. Call getPremiumFeatures with the given referrer to process the link
 //@referrer Referrer specified in the link
