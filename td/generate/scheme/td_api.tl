@@ -8334,7 +8334,7 @@ reportStoryResultTextRequired option_id:bytes is_optional:Bool = ReportStoryResu
 //-"stickers-and-emoji/archived/edit", "stickers-and-emoji/emoji", "stickers-and-emoji/emoji/edit",
 //-"stickers-and-emoji/emoji/archived", "stickers-and-emoji/emoji/archived/edit", "stickers-and-emoji/emoji/suggest",
 //-"stickers-and-emoji/emoji/quick-reaction", "stickers-and-emoji/emoji/quick-reaction/choose",
-//-"stickers-and-emoji/suggest-by-emoji", "stickers-and-emoji/emoji/large-emoji", "stickers-and-emoji/emoji/dynamic-order",
+//-"stickers-and-emoji/suggest-by-emoji", "stickers-and-emoji/large-emoji", "stickers-and-emoji/dynamic-order",
 //-"stickers-and-emoji/emoji/show-more", "app-icon", "tap-for-next-media"
 settingsSectionAppearance subsection:string = SettingsSection;
 
