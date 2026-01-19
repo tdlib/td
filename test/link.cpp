@@ -1002,6 +1002,7 @@ TEST(Link, parse_internal_link_part2) {
 
   parse_internal_link("tg://chats/search/", search());
   parse_internal_link("tg://chats/edit", chat_selection());
+  parse_internal_link("tg://chats/emoji-status", edit_profile_settings("emoji-status"));
 
   parse_internal_link("tg://contacts", contacts(""));
   parse_internal_link("tg://contacts/asdasd", contacts(""));

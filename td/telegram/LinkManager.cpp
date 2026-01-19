@@ -2144,6 +2144,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 2 && path[0] == "chats" && path[1] == "edit") {
     // chats/edit
     return td::make_unique<InternalLinkDialogSelection>();
+  } else if (path.size() == 2 && path[0] == "chats" && path[1] == "emoji-status") {
+    // chats/emoji-status
+    return td::make_unique<InternalLinkSettings>(vector<string>{"emoji-status"});
   } else if (path.size() == 2 && path[0] == "chats" && path[1] == "search") {
     // chats/search
     return td::make_unique<InternalLinkSearch>();
