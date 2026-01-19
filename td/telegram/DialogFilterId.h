@@ -34,6 +34,15 @@ class DialogFilterId {
     return DialogFilterId(static_cast<int32>(255));
   }
 
+  static vector<DialogFilterId> get_dialog_filter_ids(const vector<int32> &chat_folder_ids) {
+    vector<DialogFilterId> dialog_filter_ids;
+    dialog_filter_ids.reserve(chat_folder_ids.size());
+    for (auto chat_folder_id : chat_folder_ids) {
+      dialog_filter_ids.emplace_back(chat_folder_id);
+    }
+    return dialog_filter_ids;
+  }
+
   bool is_valid() const {
     // don't check max() for greater future flexibility
     return id >= min().get();

@@ -5232,9 +5232,8 @@ void Requests::on_request(uint64 id, td_api::getChatFolderChatCount &request) {
 void Requests::on_request(uint64 id, const td_api::reorderChatFolders &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->dialog_filter_manager_->reorder_dialog_filters(
-      transform(request.chat_folder_ids_, [](int32 id) { return DialogFilterId(id); }),
-      request.main_chat_list_position_, std::move(promise));
+  td_->dialog_filter_manager_->reorder_dialog_filters(DialogFilterId::get_dialog_filter_ids(request.chat_folder_ids_),
+                                                      request.main_chat_list_position_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::toggleChatFolderTags &request) {

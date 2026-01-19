@@ -35,7 +35,7 @@ class UserId {
     for (auto &input_user_id : input_user_ids) {
       UserId user_id(input_user_id);
       if (!only_valid || user_id.is_valid()) {
-        user_ids.emplace_back(user_id);
+        user_ids.push_back(user_id);
       }
     }
     return user_ids;
