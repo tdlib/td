@@ -255,12 +255,12 @@ static auto qr_code(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionQrCode>(subsection));
 }
 
-static auto search() {
-  return settings(td::td_api::make_object<td::td_api::settingsSectionSearch>());
-}
-
 static auto send_gift(td::string subsection = td::string()) {
   return settings(td::td_api::make_object<td::td_api::settingsSectionSendGift>(subsection));
+}
+
+static auto settings_search() {
+  return settings(td::td_api::make_object<td::td_api::settingsSectionSearch>());
 }
 
 static auto target_chat_chosen(bool allow_users, bool allow_bots, bool allow_groups, bool allow_channels) {
@@ -469,6 +469,10 @@ static auto restore_purchases() {
 
 static auto saved_messages() {
   return td::td_api::make_object<td::td_api::internalLinkTypeSavedMessages>();
+}
+
+static auto search() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeSearch>();
 }
 
 static auto sticker_set(const td::string &sticker_set_name, bool expect_custom_emoji) {
@@ -991,6 +995,8 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg://settings/my-profile/posts", my_profile("posts"));
   parse_internal_link("tg://settings/my-profile/posts/add-album", my_profile("posts/add-album"));
   parse_internal_link("tg://settings/my-profile/archived-posts", my_profile("archived-posts"));
+
+  parse_internal_link("tg://chat/search/", search());
 
   parse_internal_link("tg://contacts", contacts(""));
   parse_internal_link("tg://contacts/asdasd", contacts(""));
@@ -1926,7 +1932,7 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("tg://settings/privacy-policy", privacy_policy());
 
   parse_internal_link("tg://search", unknown_deep_link("tg://search"));
-  parse_internal_link("tg://settings/search", search());
+  parse_internal_link("tg://settings/search", settings_search());
 
   parse_internal_link("tg://settings/chat/browser", in_app_browser());
   parse_internal_link("tg://settings/chat/browser/", in_app_browser());

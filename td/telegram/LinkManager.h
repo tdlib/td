@@ -167,6 +167,7 @@ class LinkManager final : public Actor {
   class InternalLinkQrCodeAuthentication;
   class InternalLinkRestorePurchases;
   class InternalLinkSavedMessages;
+  class InternalLinkSearch;
   class InternalLinkSettings;
   class InternalLinkStickerSet;
   class InternalLinkStarGiftCollection;

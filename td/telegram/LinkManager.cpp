@@ -1103,6 +1103,12 @@ class LinkManager::InternalLinkSavedMessages final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkSearch final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeSearch>();
+  }
+};
+
 class LinkManager::InternalLinkSettings final : public InternalLink {
   vector<string> path_;
 
@@ -2129,6 +2135,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       return td::make_unique<InternalLinkContacts>(path[1]);
     }
     return td::make_unique<InternalLinkContacts>(string());
+  } else if (path.size() >= 2 && path[0] == "chat" && path[1] == "search") {
+    // chat/search
+    return td::make_unique<InternalLinkSearch>();
   } else if (path.size() == 1 && path[0] == "login") {
     // login?code=123456
     auto code = get_arg("code");
@@ -3371,6 +3380,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://settings/saved-messages";
+    case td_api::internalLinkTypeSearch::ID:
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      return "tg://chat/search";
     case td_api::internalLinkTypeSettings::ID: {
       auto link = static_cast<const td_api::internalLinkTypeSettings *>(type_ptr);
       if (!is_internal) {
