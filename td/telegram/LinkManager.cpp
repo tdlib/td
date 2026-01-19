@@ -674,7 +674,7 @@ class LinkManager::InternalLinkBuyStars final : public InternalLink {
   string purpose_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeBuyStars>(star_count_, purpose_);
+    return td_api::make_object<td_api::internalLinkTypeStarPurchase>(star_count_, purpose_);
   }
 
  public:
@@ -2982,19 +2982,6 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return PSTRING() << get_t_me_url() << "m/" << url_encode(link->link_name_);
       }
     }
-    case td_api::internalLinkTypeBuyStars::ID: {
-      auto link = static_cast<const td_api::internalLinkTypeBuyStars *>(type_ptr);
-      if (!is_internal) {
-        return Status::Error("HTTP link is unavailable for the link type");
-      }
-      if (link->star_count_ <= 0) {
-        return Status::Error(400, "Invalid Telegram Star amount provided");
-      }
-      if (!is_valid_star_top_up_purpose(link->purpose_)) {
-        return Status::Error(400, "Invalid purpose specified");
-      }
-      return PSTRING() << "tg://stars_topup?balance=" << link->star_count_ << "&purpose=" << url_encode(link->purpose_);
-    }
     case td_api::internalLinkTypeCallsPage::ID: {
       auto link = static_cast<const td_api::internalLinkTypeCallsPage *>(type_ptr);
       if (!is_internal) {
@@ -3279,6 +3266,27 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://new";
+    case td_api::internalLinkTypeNewStory::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeNewStory *>(type_ptr);
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      if (link->content_type_ != nullptr) {
+        switch (link->content_type_->get_id()) {
+          case td_api::storyContentTypePhoto::ID:
+            return "tg://post/photo";
+          case td_api::storyContentTypeVideo::ID:
+            return "tg://post/video";
+          case td_api::storyContentTypeLive::ID:
+            return "tg://post/live";
+          case td_api::storyContentTypeUnsupported::ID:
+            return "tg://post/unsupported";
+          default:
+            UNREACHABLE();
+        }
+      }
+      return "tg://post";
+    }
     case td_api::internalLinkTypePassportDataRequest::ID: {
       auto link = static_cast<const td_api::internalLinkTypePassportDataRequest *>(type_ptr);
       if (!is_internal) {
@@ -3310,27 +3318,6 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return PSTRING() << get_t_me_url() << "confirmphone?phone=" << url_encode(link->phone_number_)
                          << "&hash=" << url_encode(link->hash_);
       }
-    }
-    case td_api::internalLinkTypeNewStory::ID: {
-      auto link = static_cast<const td_api::internalLinkTypeNewStory *>(type_ptr);
-      if (!is_internal) {
-        return Status::Error("HTTP link is unavailable for the link type");
-      }
-      if (link->content_type_ != nullptr) {
-        switch (link->content_type_->get_id()) {
-          case td_api::storyContentTypePhoto::ID:
-            return "tg://post/photo";
-          case td_api::storyContentTypeVideo::ID:
-            return "tg://post/video";
-          case td_api::storyContentTypeLive::ID:
-            return "tg://post/live";
-          case td_api::storyContentTypeUnsupported::ID:
-            return "tg://post/unsupported";
-          default:
-            UNREACHABLE();
-        }
-      }
-      return "tg://post";
     }
     case td_api::internalLinkTypePremiumFeaturesPage::ID: {
       auto link = static_cast<const td_api::internalLinkTypePremiumFeaturesPage *>(type_ptr);
@@ -3539,6 +3526,19 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
           UNREACHABLE();
           return "";
       }
+    }
+    case td_api::internalLinkTypeStarPurchase::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeStarPurchase *>(type_ptr);
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      if (link->star_count_ <= 0) {
+        return Status::Error(400, "Invalid Telegram Star amount provided");
+      }
+      if (!is_valid_star_top_up_purpose(link->purpose_)) {
+        return Status::Error(400, "Invalid purpose specified");
+      }
+      return PSTRING() << "tg://stars_topup?balance=" << link->star_count_ << "&purpose=" << url_encode(link->purpose_);
     }
     case td_api::internalLinkTypeStickerSet::ID: {
       auto link = static_cast<const td_api::internalLinkTypeStickerSet *>(type_ptr);

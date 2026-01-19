@@ -321,10 +321,6 @@ static auto business_chat(const td::string &link_name) {
   return td::td_api::make_object<td::td_api::internalLinkTypeBusinessChat>(link_name);
 }
 
-static auto buy_stars(td::int64 star_count, const td::string &purpose) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeBuyStars>(star_count, purpose);
-}
-
 static auto calls_page(const td::string &section) {
   return td::td_api::make_object<td::td_api::internalLinkTypeCallsPage>(section);
 }
@@ -477,6 +473,10 @@ static auto saved_messages() {
 
 static auto search() {
   return td::td_api::make_object<td::td_api::internalLinkTypeSearch>();
+}
+
+static auto star_purchase(td::int64 star_count, const td::string &purpose) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeStarPurchase>(star_count, purpose);
 }
 
 static auto sticker_set(const td::string &sticker_set_name, bool expect_custom_emoji) {
@@ -1958,9 +1958,9 @@ TEST(Link, parse_internal_link_part4) {
 
   parse_internal_link("tg://stars_topup", unknown_deep_link("tg://stars_topup"));
   parse_internal_link("tg://stars_topup?balance=", unknown_deep_link("tg://stars_topup?balance="));
-  parse_internal_link("tg://stars_topup?balance=test", buy_stars(1, ""));
-  parse_internal_link("tg://stars_topup?balance=10&purpose=%30test", buy_stars(10, "0test"));
-  parse_internal_link("tg://stars_topup?balance=100000000000&purpose=subs", buy_stars(100000000000, "subs"));
+  parse_internal_link("tg://stars_topup?balance=test", star_purchase(1, ""));
+  parse_internal_link("tg://stars_topup?balance=10&purpose=%30test", star_purchase(10, "0test"));
+  parse_internal_link("tg://stars_topup?balance=100000000000&purpose=subs", star_purchase(100000000000, "subs"));
   parse_internal_link("tg://stars_topup?balance=10&purpose=%FFtest",
                       unknown_deep_link("tg://stars_topup?balance=10&purpose=%FFtest"));
 
