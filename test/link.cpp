@@ -345,6 +345,10 @@ static auto chat_invite(const td::string &hash) {
   return td::td_api::make_object<td::td_api::internalLinkTypeChatInvite>("tg:join?invite=" + hash);
 }
 
+static auto chat_selection() {
+  return td::td_api::make_object<td::td_api::internalLinkTypeChatSelection>();
+}
+
 static auto contacts(const td::string &section) {
   return td::td_api::make_object<td::td_api::internalLinkTypeContacts>(section);
 }
@@ -996,7 +1000,8 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg://settings/my-profile/posts/add-album", my_profile("posts/add-album"));
   parse_internal_link("tg://settings/my-profile/archived-posts", my_profile("archived-posts"));
 
-  parse_internal_link("tg://chat/search/", search());
+  parse_internal_link("tg://chats/search/", search());
+  parse_internal_link("tg://chats/edit", chat_selection());
 
   parse_internal_link("tg://contacts", contacts(""));
   parse_internal_link("tg://contacts/asdasd", contacts(""));

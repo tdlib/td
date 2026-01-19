@@ -779,6 +779,12 @@ class LinkManager::InternalLinkDialogReferralProgram final : public InternalLink
   }
 };
 
+class LinkManager::InternalLinkDialogSelection final : public InternalLink {
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeChatSelection>();
+  }
+};
+
 class LinkManager::InternalLinkGame final : public InternalLink {
   string bot_username_;
   string game_short_name_;
@@ -2135,8 +2141,11 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       return td::make_unique<InternalLinkContacts>(path[1]);
     }
     return td::make_unique<InternalLinkContacts>(string());
-  } else if (path.size() >= 2 && path[0] == "chat" && path[1] == "search") {
-    // chat/search
+  } else if (path.size() == 2 && path[0] == "chats" && path[1] == "edit") {
+    // chats/edit
+    return td::make_unique<InternalLinkDialogSelection>();
+  } else if (path.size() == 2 && path[0] == "chats" && path[1] == "search") {
+    // chats/search
     return td::make_unique<InternalLinkSearch>();
   } else if (path.size() == 1 && path[0] == "login") {
     // login?code=123456
@@ -3047,6 +3056,11 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
       return get_dialog_invite_link(invite_hash, is_internal);
     }
+    case td_api::internalLinkTypeChatSelection::ID:
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      return "tg://chats/edit";
     case td_api::internalLinkTypeContacts::ID: {
       auto link = static_cast<const td_api::internalLinkTypeContacts *>(type_ptr);
       if (!is_internal) {
@@ -3384,7 +3398,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");
       }
-      return "tg://chat/search";
+      return "tg://chats/search";
     case td_api::internalLinkTypeSettings::ID: {
       auto link = static_cast<const td_api::internalLinkTypeSettings *>(type_ptr);
       if (!is_internal) {

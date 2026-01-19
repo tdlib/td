@@ -8542,6 +8542,9 @@ internalLinkTypeChatFolderInvite invite_link:string = InternalLinkType;
 //@invite_link Internal representation of the invite link
 internalLinkTypeChatInvite invite_link:string = InternalLinkType;
 
+//@description The link is a link that allows to select some chats
+internalLinkTypeChatSelection = InternalLinkType;
+
 //@description The link is a link to the Contacts tab or page @section Section of the page if any; may be one of
 //-"search", "sort", "new", "invite", "manage"
 internalLinkTypeContacts section:string = InternalLinkType;
