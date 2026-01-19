@@ -500,7 +500,7 @@ static auto unknown_deep_link(const td::string &link) {
 }
 
 static auto unsupported_proxy() {
-  return td::td_api::make_object<td::td_api::internalLinkTypeUnsupportedProxy>();
+  return td::td_api::make_object<td::td_api::internalLinkTypeProxy>(nullptr);
 }
 
 static auto upgraded_gift(const td::string &name) {

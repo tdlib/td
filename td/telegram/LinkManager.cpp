@@ -1043,8 +1043,10 @@ class LinkManager::InternalLinkProxy final : public InternalLink {
   td_api::object_ptr<td_api::ProxyType> type_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    CHECK(type_ != nullptr);
     auto type = type_.get();
+    if (type == nullptr) {
+      return td_api::make_object<td_api::internalLinkTypeProxy>();
+    }
     auto proxy_type = [type]() -> td_api::object_ptr<td_api::ProxyType> {
       switch (type->get_id()) {
         case td_api::proxyTypeSocks5::ID: {
@@ -1357,12 +1359,6 @@ class LinkManager::InternalLinkUnknownDeepLink final : public InternalLink {
 
  public:
   explicit InternalLinkUnknownDeepLink(string link) : link_(std::move(link)) {
-  }
-};
-
-class LinkManager::InternalLinkUnsupportedProxy final : public InternalLink {
-  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeUnsupportedProxy>();
   }
 };
 
@@ -2280,7 +2276,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
           std::move(server), port,
           td_api::make_object<td_api::proxyTypeSocks5>(std::move(username), std::move(password)));
     } else {
-      return td::make_unique<InternalLinkUnsupportedProxy>();
+      return td::make_unique<InternalLinkProxy>(string(), 0, nullptr);
     }
   } else if (path.size() == 1 && path[0] == "proxy") {
     // proxy?server=<server>&port=<port>&secret=<secret>
@@ -2291,7 +2287,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       return td::make_unique<InternalLinkProxy>(
           std::move(server), port, td_api::make_object<td_api::proxyTypeMtproto>(r_secret.ok().get_encoded_secret()));
     } else {
-      return td::make_unique<InternalLinkUnsupportedProxy>();
+      return td::make_unique<InternalLinkProxy>(string(), 0, nullptr);
     }
   } else if (path.size() == 1 && path[0] == "privatepost") {
     // privatepost?channel=123456789&post=12345&single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
@@ -2509,7 +2505,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
           std::move(server), port,
           td_api::make_object<td_api::proxyTypeSocks5>(std::move(username), std::move(password)));
     } else {
-      return td::make_unique<InternalLinkUnsupportedProxy>();
+      return td::make_unique<InternalLinkProxy>(string(), 0, nullptr);
     }
   } else if (path[0] == "proxy") {
     // /proxy?server=<server>&port=<port>&secret=<secret>
@@ -2520,7 +2516,7 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkProxy>(
           std::move(server), port, td_api::make_object<td_api::proxyTypeMtproto>(r_secret.ok().get_encoded_secret()));
     } else {
-      return td::make_unique<InternalLinkUnsupportedProxy>();
+      return td::make_unique<InternalLinkProxy>(string(), 0, nullptr);
     }
   } else if (path[0] == "bg") {
     if (path.size() >= 2 && !path[1].empty()) {
@@ -3353,6 +3349,13 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypeProxy::ID: {
       auto link = static_cast<const td_api::internalLinkTypeProxy *>(type_ptr);
+      if (link->proxy_ == nullptr) {
+        if (is_internal) {
+          return "tg://proxy?port=-1&server=0.0.0.0";
+        } else {
+          return PSTRING() << get_t_me_url() << "proxy?port=-1&server=0.0.0.0";
+        }
+      }
       TRY_RESULT(proxy, Proxy::create_proxy(link->proxy_.get()));
       return get_proxy_link(proxy, is_internal);
     }
@@ -3609,12 +3612,6 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
       return std::move(static_cast<td_api::internalLinkTypeUnknownDeepLink &>(*parsed_object).link_);
     }
-    case td_api::internalLinkTypeUnsupportedProxy::ID:
-      if (is_internal) {
-        return "tg://proxy?port=-1&server=0.0.0.0";
-      } else {
-        return PSTRING() << get_t_me_url() << "proxy?port=-1&server=0.0.0.0";
-      }
     case td_api::internalLinkTypeUpgradedGift::ID: {
       auto link = static_cast<const td_api::internalLinkTypeUpgradedGift *>(type_ptr);
       if (!is_valid_upgraded_gift_name(link->name_)) {

@@ -176,7 +176,6 @@ class LinkManager final : public Actor {
   class InternalLinkStoryAlbum;
   class InternalLinkTheme;
   class InternalLinkUnknownDeepLink;
-  class InternalLinkUnsupportedProxy;
   class InternalLinkUpgradedGift;
   class InternalLinkUserPhoneNumber;
   class InternalLinkUserToken;

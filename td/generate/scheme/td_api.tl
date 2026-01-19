@@ -8653,7 +8653,8 @@ internalLinkTypePremiumGiftCode code:string = InternalLinkType;
 //@referrer Referrer specified in the link
 internalLinkTypePremiumGiftPurchase referrer:string = InternalLinkType;
 
-//@description The link is a link to a proxy. Call addProxy with the given parameters to process the link and add the proxy @proxy The proxy
+//@description The link is a link to a proxy. Call addProxy with the given parameters to process the link and add the proxy
+//@proxy The proxy; may be null if the proxy is unsupported, in which case an alert can be shown to the user
 internalLinkTypeProxy proxy:proxy = InternalLinkType;
 
 //@description The link is a link to a chat by its username. Call searchPublicChat with the given chat username to process the link.
@@ -8707,9 +8708,6 @@ internalLinkTypeTheme theme_name:string = InternalLinkType;
 
 //@description The link is an unknown tg: link. Call getDeepLinkInfo to process the link @link Link to be passed to getDeepLinkInfo
 internalLinkTypeUnknownDeepLink link:string = InternalLinkType;
-
-//@description The link is a link to an unsupported proxy. An alert can be shown to the user
-internalLinkTypeUnsupportedProxy = InternalLinkType;
 
 //@description The link is a link to an upgraded gift. Call getUpgradedGift with the given name to process the link @name Name of the unique gift
 internalLinkTypeUpgradedGift name:string = InternalLinkType;
