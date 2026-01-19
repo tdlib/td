@@ -688,7 +688,7 @@ class LinkManager::InternalLinkCalls final : public InternalLink {
   string section_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeCalls>(section_);
+    return td_api::make_object<td_api::internalLinkTypeCallsPage>(section_);
   }
 
  public:
@@ -714,7 +714,7 @@ class LinkManager::InternalLinkContacts final : public InternalLink {
   string section_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeContacts>(section_);
+    return td_api::make_object<td_api::internalLinkTypeContactsPage>(section_);
   }
 
  public:
@@ -925,7 +925,7 @@ class LinkManager::InternalLinkMyProfile final : public InternalLink {
   string section_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypeMyProfile>(section_);
+    return td_api::make_object<td_api::internalLinkTypeMyProfilePage>(section_);
   }
 
  public:
@@ -1005,7 +1005,7 @@ class LinkManager::InternalLinkPremiumFeatures final : public InternalLink {
   string referrer_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypePremiumFeatures>(referrer_);
+    return td_api::make_object<td_api::internalLinkTypePremiumFeaturesPage>(referrer_);
   }
 
  public:
@@ -1017,7 +1017,7 @@ class LinkManager::InternalLinkPremiumGift final : public InternalLink {
   string referrer_;
 
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
-    return td_api::make_object<td_api::internalLinkTypePremiumGift>(referrer_);
+    return td_api::make_object<td_api::internalLinkTypePremiumGiftPurchase>(referrer_);
   }
 
  public:
@@ -2995,8 +2995,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
       return PSTRING() << "tg://stars_topup?balance=" << link->star_count_ << "&purpose=" << url_encode(link->purpose_);
     }
-    case td_api::internalLinkTypeCalls::ID: {
-      auto link = static_cast<const td_api::internalLinkTypeCalls *>(type_ptr);
+    case td_api::internalLinkTypeCallsPage::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeCallsPage *>(type_ptr);
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");
       }
@@ -3057,8 +3057,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("HTTP link is unavailable for the link type");
       }
       return "tg://chats/edit";
-    case td_api::internalLinkTypeContacts::ID: {
-      auto link = static_cast<const td_api::internalLinkTypeContacts *>(type_ptr);
+    case td_api::internalLinkTypeContactsPage::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeContactsPage *>(type_ptr);
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");
       }
@@ -3254,8 +3254,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return PSTRING() << get_t_me_url() << "share/url?url=" << url_encode(url) << text;
       }
     }
-    case td_api::internalLinkTypeMyProfile::ID: {
-      auto link = static_cast<const td_api::internalLinkTypeMyProfile *>(type_ptr);
+    case td_api::internalLinkTypeMyProfilePage::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeMyProfilePage *>(type_ptr);
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");
       }
@@ -3332,8 +3332,8 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       }
       return "tg://post";
     }
-    case td_api::internalLinkTypePremiumFeatures::ID: {
-      auto link = static_cast<const td_api::internalLinkTypePremiumFeatures *>(type_ptr);
+    case td_api::internalLinkTypePremiumFeaturesPage::ID: {
+      auto link = static_cast<const td_api::internalLinkTypePremiumFeaturesPage *>(type_ptr);
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");
       }
@@ -3341,16 +3341,6 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return Status::Error("Invalid referrer specified");
       }
       return PSTRING() << "tg://premium_offer?ref=" << url_encode(link->referrer_);
-    }
-    case td_api::internalLinkTypePremiumGift::ID: {
-      auto link = static_cast<const td_api::internalLinkTypePremiumGift *>(type_ptr);
-      if (!is_internal) {
-        return Status::Error("HTTP link is unavailable for the link type");
-      }
-      if (!is_valid_premium_referrer(link->referrer_)) {
-        return Status::Error("Invalid referrer specified");
-      }
-      return PSTRING() << "tg://premium_multigift?ref=" << url_encode(link->referrer_);
     }
     case td_api::internalLinkTypePremiumGiftCode::ID: {
       auto link = static_cast<const td_api::internalLinkTypePremiumGiftCode *>(type_ptr);
@@ -3362,6 +3352,16 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
       } else {
         return PSTRING() << get_t_me_url() << "giftcode/" << url_encode(link->code_);
       }
+    }
+    case td_api::internalLinkTypePremiumGiftPurchase::ID: {
+      auto link = static_cast<const td_api::internalLinkTypePremiumGiftPurchase *>(type_ptr);
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      if (!is_valid_premium_referrer(link->referrer_)) {
+        return Status::Error("Invalid referrer specified");
+      }
+      return PSTRING() << "tg://premium_multigift?ref=" << url_encode(link->referrer_);
     }
     case td_api::internalLinkTypeProxy::ID: {
       auto link = static_cast<const td_api::internalLinkTypeProxy *>(type_ptr);

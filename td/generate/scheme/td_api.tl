@@ -8512,7 +8512,7 @@ internalLinkTypeBuyStars star_count:int53 purpose:string = InternalLinkType;
 
 //@description The link is a link to the Call tab or page @section Section of the page if any; may be one of
 //-"all", "missed", "edit", "show-tab", "start-call"
-internalLinkTypeCalls section:string = InternalLinkType;
+internalLinkTypeCallsPage section:string = InternalLinkType;
 
 //@description The link is an affiliate program link. Call searchChatAffiliateProgram with the given username and referrer to process the link
 //@username Username to be passed to searchChatAffiliateProgram
@@ -8540,7 +8540,7 @@ internalLinkTypeChatSelection = InternalLinkType;
 
 //@description The link is a link to the Contacts tab or page @section Section of the page if any; may be one of
 //-"search", "sort", "new", "invite", "manage"
-internalLinkTypeContacts section:string = InternalLinkType;
+internalLinkTypeContactsPage section:string = InternalLinkType;
 
 //@description The link is a link to a channel direct messages chat by username of the channel. Call searchPublicChat with the given chat username to process the link.
 //-If the chat is found and is channel, open the direct messages chat of the channel
@@ -8609,7 +8609,7 @@ internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLin
 
 //@description The link is a link to the My Profile application page @section Section of the page if any; may be one of
 //-"posts", "posts/all-stories", "posts/add-album", "gifts", "archived-posts"
-internalLinkTypeMyProfile section:string = InternalLinkType;
+internalLinkTypeMyProfilePage section:string = InternalLinkType;
 
 //@description The link is a link to the screen for creating a new channel chat
 internalLinkTypeNewChannelChat = InternalLinkType;
@@ -8640,16 +8640,16 @@ internalLinkTypePostStory content_type:StoryContentType = InternalLinkType;
 
 //@description The link is a link to the Premium features screen of the application from which the user can subscribe to Telegram Premium. Call getPremiumFeatures with the given referrer to process the link
 //@referrer Referrer specified in the link
-internalLinkTypePremiumFeatures referrer:string = InternalLinkType;
-
-//@description The link is a link to the screen for gifting Telegram Premium subscriptions to friends via inputInvoiceTelegram with telegramPaymentPurposePremiumGift payments or in-store purchases
-//@referrer Referrer specified in the link
-internalLinkTypePremiumGift referrer:string = InternalLinkType;
+internalLinkTypePremiumFeaturesPage referrer:string = InternalLinkType;
 
 //@description The link is a link with a Telegram Premium gift code. Call checkPremiumGiftCode with the given code to process the link.
 //-If the code is valid and the user wants to apply it, then call applyPremiumGiftCode
 //@code The Telegram Premium gift code
 internalLinkTypePremiumGiftCode code:string = InternalLinkType;
+
+//@description The link is a link to the screen for gifting Telegram Premium subscriptions to friends via inputInvoiceTelegram with telegramPaymentPurposePremiumGift payments or in-store purchases
+//@referrer Referrer specified in the link
+internalLinkTypePremiumGiftPurchase referrer:string = InternalLinkType;
 
 //@description The link is a link to a proxy. Call addProxy with the given parameters to process the link and add the proxy
 //@server Proxy server domain or IP address

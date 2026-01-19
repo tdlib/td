@@ -325,8 +325,8 @@ static auto buy_stars(td::int64 star_count, const td::string &purpose) {
   return td::td_api::make_object<td::td_api::internalLinkTypeBuyStars>(star_count, purpose);
 }
 
-static auto calls(const td::string &section) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeCalls>(section);
+static auto calls_page(const td::string &section) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeCallsPage>(section);
 }
 
 static auto chat_affiliate_program(const td::string &username, const td::string &referral) {
@@ -349,8 +349,8 @@ static auto chat_selection() {
   return td::td_api::make_object<td::td_api::internalLinkTypeChatSelection>();
 }
 
-static auto contacts(const td::string &section) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeContacts>(section);
+static auto contacts_page(const td::string &section) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeContactsPage>(section);
 }
 
 static auto direct_messages_chat(const td::string &channel_username) {
@@ -405,8 +405,8 @@ static auto message_draft(td::string text, bool contains_url) {
   return td::td_api::make_object<td::td_api::internalLinkTypeMessageDraft>(std::move(formatted_text), contains_url);
 }
 
-static auto my_profile(const td::string &section) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeMyProfile>(section);
+static auto my_profile_page(const td::string &section) {
+  return td::td_api::make_object<td::td_api::internalLinkTypeMyProfilePage>(section);
 }
 
 static auto new_channel_chat() {
@@ -435,16 +435,16 @@ static auto post_story(td::td_api::object_ptr<td::td_api::StoryContentType> cont
   return td::td_api::make_object<td::td_api::internalLinkTypePostStory>(std::move(content_type));
 }
 
-static auto premium_features(const td::string &referrer) {
-  return td::td_api::make_object<td::td_api::internalLinkTypePremiumFeatures>(referrer);
-}
-
-static auto premium_gift(const td::string &referrer) {
-  return td::td_api::make_object<td::td_api::internalLinkTypePremiumGift>(referrer);
+static auto premium_features_page(const td::string &referrer) {
+  return td::td_api::make_object<td::td_api::internalLinkTypePremiumFeaturesPage>(referrer);
 }
 
 static auto premium_gift_code(const td::string &code) {
   return td::td_api::make_object<td::td_api::internalLinkTypePremiumGiftCode>(code);
+}
+
+static auto premium_gift_purchase(const td::string &referrer) {
+  return td::td_api::make_object<td::td_api::internalLinkTypePremiumGiftPurchase>(referrer);
 }
 
 static auto proxy_mtproto(const td::string &server, td::int32 port, const td::string &secret) {
@@ -987,30 +987,30 @@ TEST(Link, parse_internal_link_part2) {
   parse_internal_link("tg:settings/saved-messagess", settings());
   parse_internal_link("tg:settings/saved-messages/test?#", saved_messages());
 
-  parse_internal_link("tg://settings/calls", calls(""));
-  parse_internal_link("tg://settings/calls/asdasd", calls(""));
-  parse_internal_link("tg://settings/calls/all", calls("all"));
-  parse_internal_link("tg://settings/calls/edit", calls("edit"));
-  parse_internal_link("tg://settings/calls/all", calls("all"));
-  parse_internal_link("tg://settings/calls/start-call", calls("start-call"));
+  parse_internal_link("tg://settings/calls", calls_page(""));
+  parse_internal_link("tg://settings/calls/asdasd", calls_page(""));
+  parse_internal_link("tg://settings/calls/all", calls_page("all"));
+  parse_internal_link("tg://settings/calls/edit", calls_page("edit"));
+  parse_internal_link("tg://settings/calls/all", calls_page("all"));
+  parse_internal_link("tg://settings/calls/start-call", calls_page("start-call"));
 
-  parse_internal_link("tg://settings/my-profile", my_profile(""));
-  parse_internal_link("tg://settings/my-profile/asdasd", my_profile(""));
-  parse_internal_link("tg://settings/my-profile/posts", my_profile("posts"));
-  parse_internal_link("tg://settings/my-profile/posts/add-album", my_profile("posts/add-album"));
-  parse_internal_link("tg://settings/my-profile/archived-posts", my_profile("archived-posts"));
+  parse_internal_link("tg://settings/my-profile", my_profile_page(""));
+  parse_internal_link("tg://settings/my-profile/asdasd", my_profile_page(""));
+  parse_internal_link("tg://settings/my-profile/posts", my_profile_page("posts"));
+  parse_internal_link("tg://settings/my-profile/posts/add-album", my_profile_page("posts/add-album"));
+  parse_internal_link("tg://settings/my-profile/archived-posts", my_profile_page("archived-posts"));
 
   parse_internal_link("tg://chats/search/", search());
   parse_internal_link("tg://chats/edit", chat_selection());
   parse_internal_link("tg://chats/emoji-status", edit_profile_settings("emoji-status"));
 
-  parse_internal_link("tg://contacts", contacts(""));
-  parse_internal_link("tg://contacts/asdasd", contacts(""));
-  parse_internal_link("tg://contacts/new", contacts("new"));
-  parse_internal_link("tg://contacts/edit", contacts(""));
-  parse_internal_link("tg://contacts/search", contacts("search"));
-  parse_internal_link("tg://contacts/search/search", contacts(""));
-  parse_internal_link("tg://contacts/manage", contacts("manage"));
+  parse_internal_link("tg://contacts", contacts_page(""));
+  parse_internal_link("tg://contacts/asdasd", contacts_page(""));
+  parse_internal_link("tg://contacts/new", contacts_page("new"));
+  parse_internal_link("tg://contacts/edit", contacts_page(""));
+  parse_internal_link("tg://contacts/search", contacts_page("search"));
+  parse_internal_link("tg://contacts/search/search", contacts_page(""));
+  parse_internal_link("tg://contacts/manage", contacts_page("manage"));
 
   parse_internal_link("tg://new", new_private_chat());
   parse_internal_link("tg://new/", new_private_chat());
@@ -1794,15 +1794,15 @@ TEST(Link, parse_internal_link_part4) {
   parse_internal_link("t.me/telegrampassport?bot_id=12345&public_key=key&scope=asd&payload=nonce%FF",
                       public_chat("telegrampassport"));
 
-  parse_internal_link("tg:premium_offer?ref=abcdef", premium_features("abcdef"));
-  parse_internal_link("tg:premium_offer?ref=abc%30ef", premium_features("abc0ef"));
+  parse_internal_link("tg:premium_offer?ref=abcdef", premium_features_page("abcdef"));
+  parse_internal_link("tg:premium_offer?ref=abc%30ef", premium_features_page("abc0ef"));
   parse_internal_link("tg:premium_offer?ref=abcde%ff", unknown_deep_link("tg://premium_offer?ref=abcde%ff"));
-  parse_internal_link("tg://premium_offer?ref=", premium_features(""));
+  parse_internal_link("tg://premium_offer?ref=", premium_features_page(""));
 
-  parse_internal_link("tg:premium_multigift?ref=abcdef", premium_gift("abcdef"));
-  parse_internal_link("tg:premium_multigift?ref=abc%30ef", premium_gift("abc0ef"));
+  parse_internal_link("tg:premium_multigift?ref=abcdef", premium_gift_purchase("abcdef"));
+  parse_internal_link("tg:premium_multigift?ref=abc%30ef", premium_gift_purchase("abc0ef"));
   parse_internal_link("tg:premium_multigift?ref=abcde%ff", unknown_deep_link("tg://premium_multigift?ref=abcde%ff"));
-  parse_internal_link("tg://premium_multigift?ref=", premium_gift(""));
+  parse_internal_link("tg://premium_multigift?ref=", premium_gift_purchase(""));
 
   parse_internal_link("tg://settings", settings());
   parse_internal_link("tg://setting", unknown_deep_link("tg://setting"));
