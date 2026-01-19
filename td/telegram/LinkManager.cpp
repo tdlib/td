@@ -1060,7 +1060,8 @@ class LinkManager::InternalLinkProxy final : public InternalLink {
           return nullptr;
       }
     }();
-    return td_api::make_object<td_api::internalLinkTypeProxy>(server_, port_, std::move(proxy_type));
+    return td_api::make_object<td_api::internalLinkTypeProxy>(
+        td_api::make_object<td_api::proxy>(server_, port_, std::move(proxy_type)));
   }
 
  public:
@@ -3352,7 +3353,7 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypeProxy::ID: {
       auto link = static_cast<const td_api::internalLinkTypeProxy *>(type_ptr);
-      TRY_RESULT(proxy, Proxy::create_proxy(link->server_, link->port_, link->type_.get()));
+      TRY_RESULT(proxy, Proxy::create_proxy(link->proxy_.get()));
       return get_proxy_link(proxy, is_internal);
     }
     case td_api::internalLinkTypePublicChat::ID: {

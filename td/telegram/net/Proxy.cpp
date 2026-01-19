@@ -48,6 +48,13 @@ Result<Proxy> Proxy::create_proxy(string server, int port, const td_api::ProxyTy
   }
 }
 
+Result<Proxy> Proxy::create_proxy(const td_api::proxy *proxy) {
+  if (proxy == nullptr) {
+    return Status::Error(400, "Proxy must be non-empty");
+  }
+  return create_proxy(proxy->server_, proxy->port_, proxy->type_.get());
+}
+
 td_api::object_ptr<td_api::proxy> Proxy::get_proxy_object() const {
   auto type = [&]() -> td_api::object_ptr<td_api::ProxyType> {
     switch (type_) {

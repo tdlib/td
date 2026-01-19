@@ -8653,11 +8653,8 @@ internalLinkTypePremiumGiftCode code:string = InternalLinkType;
 //@referrer Referrer specified in the link
 internalLinkTypePremiumGiftPurchase referrer:string = InternalLinkType;
 
-//@description The link is a link to a proxy. Call addProxy with the given parameters to process the link and add the proxy
-//@server Proxy server domain or IP address
-//@port Proxy server port
-//@type Type of the proxy
-internalLinkTypeProxy server:string port:int32 type:ProxyType = InternalLinkType;
+//@description The link is a link to a proxy. Call addProxy with the given parameters to process the link and add the proxy @proxy The proxy
+internalLinkTypeProxy proxy:proxy = InternalLinkType;
 
 //@description The link is a link to a chat by its username. Call searchPublicChat with the given chat username to process the link.
 //-If the chat is found, open its profile information screen or the chat itself.

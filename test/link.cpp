@@ -444,14 +444,14 @@ static auto premium_gift_purchase(const td::string &referrer) {
 }
 
 static auto proxy_mtproto(const td::string &server, td::int32 port, const td::string &secret) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeProxy>(
-      server, port, td::td_api::make_object<td::td_api::proxyTypeMtproto>(secret));
+  return td::td_api::make_object<td::td_api::internalLinkTypeProxy>(td::td_api::make_object<td::td_api::proxy>(
+      server, port, td::td_api::make_object<td::td_api::proxyTypeMtproto>(secret)));
 }
 
 static auto proxy_socks(const td::string &server, td::int32 port, const td::string &username,
                         const td::string &password) {
-  return td::td_api::make_object<td::td_api::internalLinkTypeProxy>(
-      server, port, td::td_api::make_object<td::td_api::proxyTypeSocks5>(username, password));
+  return td::td_api::make_object<td::td_api::internalLinkTypeProxy>(td::td_api::make_object<td::td_api::proxy>(
+      server, port, td::td_api::make_object<td::td_api::proxyTypeSocks5>(username, password)));
 }
 
 static auto public_chat(const td::string &chat_username, const td::string &draft_text = td::string(),
