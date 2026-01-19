@@ -72,11 +72,12 @@ class ConnectionCreator final : public NetQueryCallback {
                               std::shared_ptr<NetStatsCallback> media_callback);
 
   void add_proxy(int32 old_proxy_id, string server, int32 port, bool enable,
-                 td_api::object_ptr<td_api::ProxyType> proxy_type, Promise<td_api::object_ptr<td_api::proxy>> promise);
+                 td_api::object_ptr<td_api::ProxyType> proxy_type,
+                 Promise<td_api::object_ptr<td_api::addedProxy>> promise);
   void enable_proxy(int32 proxy_id, Promise<Unit> promise);
   void disable_proxy(Promise<Unit> promise);
   void remove_proxy(int32 proxy_id, Promise<Unit> promise);
-  void get_proxies(Promise<td_api::object_ptr<td_api::proxies>> promise);
+  void get_proxies(Promise<td_api::object_ptr<td_api::addedProxies>> promise);
   void get_proxy_link(int32 proxy_id, Promise<string> promise);
   void ping_proxy(int32 proxy_id, Promise<double> promise);
 
@@ -204,7 +205,7 @@ class ConnectionCreator final : public NetQueryCallback {
   static string get_proxy_database_key(int32 proxy_id);
   static string get_proxy_used_database_key(int32 proxy_id);
   void save_proxy_last_used_date(int32 delay);
-  td_api::object_ptr<td_api::proxy> get_proxy_object(int32 proxy_id) const;
+  td_api::object_ptr<td_api::addedProxy> get_added_proxy_object(int32 proxy_id) const;
 
   void start_up() final;
   void hangup_shared() final;

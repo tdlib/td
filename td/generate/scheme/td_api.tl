@@ -9152,17 +9152,17 @@ proxyTypeHttp username:string password:string http_only:Bool = ProxyType;
 proxyTypeMtproto secret:string = ProxyType;
 
 
-//@description Contains information about a proxy server
+//@description Contains information about a proxy server added to the list of proxies
 //@id Unique identifier of the proxy
 //@server Proxy server domain or IP address
 //@port Proxy server port
 //@last_used_date Point in time (Unix timestamp) when the proxy was last used; 0 if never
 //@is_enabled True, if the proxy is enabled now
 //@type Type of the proxy
-proxy id:int32 server:string port:int32 last_used_date:int32 is_enabled:Bool type:ProxyType = Proxy;
+addedProxy id:int32 server:string port:int32 last_used_date:int32 is_enabled:Bool type:ProxyType = AddedProxy;
 
-//@description Represents a list of proxy servers @proxies List of proxy servers
-proxies proxies:vector<proxy> = Proxies;
+//@description Represents a list of added proxy servers @proxies List of proxy servers
+addedProxies proxies:vector<addedProxy> = AddedProxies;
 
 
 //@description A sticker to be added to a sticker set
@@ -14775,7 +14775,7 @@ getApplicationDownloadLink = HttpUrl;
 //@port Proxy server port
 //@enable Pass true to immediately enable the proxy
 //@type Proxy type
-addProxy server:string port:int32 enable:Bool type:ProxyType = Proxy;
+addProxy server:string port:int32 enable:Bool type:ProxyType = AddedProxy;
 
 //@description Edits an existing proxy server for network requests. Can be called before authorization
 //@proxy_id Proxy identifier
@@ -14783,7 +14783,7 @@ addProxy server:string port:int32 enable:Bool type:ProxyType = Proxy;
 //@port Proxy server port
 //@enable Pass true to immediately enable the proxy
 //@type Proxy type
-editProxy proxy_id:int32 server:string port:int32 enable:Bool type:ProxyType = Proxy;
+editProxy proxy_id:int32 server:string port:int32 enable:Bool type:ProxyType = AddedProxy;
 
 //@description Enables a proxy. Only one proxy can be enabled at a time. Can be called before authorization @proxy_id Proxy identifier
 enableProxy proxy_id:int32 = Ok;
@@ -14795,7 +14795,7 @@ disableProxy = Ok;
 removeProxy proxy_id:int32 = Ok;
 
 //@description Returns the list of proxies that are currently set up. Can be called before authorization
-getProxies = Proxies;
+getProxies = AddedProxies;
 
 //@description Returns an HTTPS link, which can be used to add a proxy. Available only for SOCKS5 and MTProto proxies. Can be called before authorization @proxy_id Proxy identifier
 getProxyLink proxy_id:int32 = HttpUrl;

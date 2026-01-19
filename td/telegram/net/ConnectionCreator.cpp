@@ -151,7 +151,7 @@ void ConnectionCreator::set_net_stats_callback(std::shared_ptr<NetStatsCallback>
 
 void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port, bool enable,
                                   td_api::object_ptr<td_api::ProxyType> proxy_type,
-                                  Promise<td_api::object_ptr<td_api::proxy>> promise) {
+                                  Promise<td_api::object_ptr<td_api::addedProxy>> promise) {
   TRY_RESULT_PROMISE(promise, new_proxy, Proxy::create_proxy(std::move(server), port, proxy_type.get()));
   if (old_proxy_id >= 0) {
     if (proxies_.count(old_proxy_id) == 0) {
@@ -162,7 +162,7 @@ void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port,
       if (enable) {
         enable_proxy_impl(old_proxy_id);
       }
-      return promise.set_value(get_proxy_object(old_proxy_id));
+      return promise.set_value(get_added_proxy_object(old_proxy_id));
     }
     if (old_proxy_id == active_proxy_id_) {
       enable = true;
@@ -201,7 +201,7 @@ void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port,
   if (enable) {
     enable_proxy_impl(proxy_id);
   }
-  promise.set_value(get_proxy_object(proxy_id));
+  promise.set_value(get_added_proxy_object(proxy_id));
 }
 
 void ConnectionCreator::enable_proxy(int32 proxy_id, Promise<Unit> promise) {
@@ -235,9 +235,9 @@ void ConnectionCreator::remove_proxy(int32 proxy_id, Promise<Unit> promise) {
   promise.set_value(Unit());
 }
 
-void ConnectionCreator::get_proxies(Promise<td_api::object_ptr<td_api::proxies>> promise) {
-  promise.set_value(td_api::make_object<td_api::proxies>(
-      transform(proxies_, [this](const std::pair<int32, Proxy> &proxy) { return get_proxy_object(proxy.first); })));
+void ConnectionCreator::get_proxies(Promise<td_api::object_ptr<td_api::addedProxies>> promise) {
+  promise.set_value(td_api::make_object<td_api::addedProxies>(transform(
+      proxies_, [this](const std::pair<int32, Proxy> &proxy) { return get_added_proxy_object(proxy.first); })));
 }
 
 void ConnectionCreator::get_proxy_link(int32 proxy_id, Promise<string> promise) {
@@ -630,7 +630,7 @@ void ConnectionCreator::save_proxy_last_used_date(int32 delay) {
   G()->td_db()->get_binlog_pmc()->set(get_proxy_used_database_key(active_proxy_id_), to_string(date));
 }
 
-td_api::object_ptr<td_api::proxy> ConnectionCreator::get_proxy_object(int32 proxy_id) const {
+td_api::object_ptr<td_api::addedProxy> ConnectionCreator::get_added_proxy_object(int32 proxy_id) const {
   auto it = proxies_.find(proxy_id);
   CHECK(it != proxies_.end());
   const Proxy &proxy = it->second;
@@ -653,8 +653,8 @@ td_api::object_ptr<td_api::proxy> ConnectionCreator::get_proxy_object(int32 prox
   }
   auto last_used_date_it = proxy_last_used_date_.find(proxy_id);
   auto last_used_date = last_used_date_it == proxy_last_used_date_.end() ? 0 : last_used_date_it->second;
-  return make_tl_object<td_api::proxy>(proxy_id, proxy.server().str(), proxy.port(), last_used_date,
-                                       proxy_id == active_proxy_id_, std::move(type));
+  return make_tl_object<td_api::addedProxy>(proxy_id, proxy.server().str(), proxy.port(), last_used_date,
+                                            proxy_id == active_proxy_id_, std::move(type));
 }
 
 void ConnectionCreator::on_network(bool network_flag, uint32 network_generation) {
