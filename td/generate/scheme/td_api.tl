@@ -5791,6 +5791,21 @@ inputStoryAreas areas:vector<inputStoryArea> = InputStoryAreas;
 storyVideo duration:double width:int32 height:int32 has_stickers:Bool is_animation:Bool minithumbnail:minithumbnail thumbnail:thumbnail preload_prefix_size:int32 cover_frame_timestamp:double video:file = StoryVideo;
 
 
+//@class StoryContentType @description Contains the type of the content of a story
+
+//@description A photo story
+storyContentTypePhoto = StoryContentType;
+
+//@description A video story
+storyContentTypeVideo = StoryContentType;
+
+//@description A live story
+storyContentTypeLive = StoryContentType;
+
+//@description A story of unknown content type
+storyContentTypeUnsupported = StoryContentType;
+
+
 //@class StoryContent @description Contains the content of a story
 
 //@description A photo story @photo The photo
@@ -8623,6 +8638,9 @@ internalLinkTypePassportDataRequest bot_user_id:int53 scope:string public_key:st
 //@hash Hash value from the link
 //@phone_number Phone number value from the link
 internalLinkTypePhoneNumberConfirmation hash:string phone_number:string = InternalLinkType;
+
+//@description The link is a link to open the story posting interface @content_type The type of the content of the story to post; may be null if unspecified
+internalLinkTypePostStory content_type:StoryContentType = InternalLinkType;
 
 //@description The link is a link to the Premium features screen of the application from which the user can subscribe to Telegram Premium. Call getPremiumFeatures with the given referrer to process the link
 //@referrer Referrer specified in the link

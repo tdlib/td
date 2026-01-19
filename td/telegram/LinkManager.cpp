@@ -975,6 +975,33 @@ class LinkManager::InternalLinkPassportDataRequest final : public InternalLink {
   }
 };
 
+class LinkManager::InternalLinkPostStory final : public InternalLink {
+  string content_type_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    auto content_type = [&]() -> td_api::object_ptr<td_api::StoryContentType> {
+      if (content_type_ == "photo") {
+        return td_api::make_object<td_api::storyContentTypePhoto>();
+      }
+      if (content_type_ == "video") {
+        return td_api::make_object<td_api::storyContentTypeVideo>();
+      }
+      if (content_type_ == "live") {
+        return td_api::make_object<td_api::storyContentTypeLive>();
+      }
+      if (!content_type_.empty()) {
+        return td_api::make_object<td_api::storyContentTypeUnsupported>();
+      }
+      return nullptr;
+    }();
+    return td_api::make_object<td_api::internalLinkTypePostStory>(std::move(content_type));
+  }
+
+ public:
+  explicit InternalLinkPostStory(string content_type) : content_type_(std::move(content_type)) {
+  }
+};
+
 class LinkManager::InternalLinkPremiumFeatures final : public InternalLink {
   string referrer_;
 
@@ -2121,6 +2148,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 2 && path[0] == "new" && path[1] == "group") {
     // new/group
     return td::make_unique<InternalLinkNewGroupChat>();
+  } else if (path.size() <= 2 && path[0] == "post") {
+    // post[/content-type]
+    return td::make_unique<InternalLinkPostStory>(path.size() == 2 ? path[1] : string());
   } else if (path.size() == 1 && path[0] == "restore_purchases") {
     // restore_purchases
     return td::make_unique<InternalLinkRestorePurchases>();
@@ -3261,6 +3291,27 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
         return PSTRING() << get_t_me_url() << "confirmphone?phone=" << url_encode(link->phone_number_)
                          << "&hash=" << url_encode(link->hash_);
       }
+    }
+    case td_api::internalLinkTypePostStory::ID: {
+      auto link = static_cast<const td_api::internalLinkTypePostStory *>(type_ptr);
+      if (!is_internal) {
+        return Status::Error("HTTP link is unavailable for the link type");
+      }
+      if (link->content_type_ != nullptr) {
+        switch (link->content_type_->get_id()) {
+          case td_api::storyContentTypePhoto::ID:
+            return "tg://post/photo";
+          case td_api::storyContentTypeVideo::ID:
+            return "tg://post/video";
+          case td_api::storyContentTypeLive::ID:
+            return "tg://post/live";
+          case td_api::storyContentTypeUnsupported::ID:
+            return "tg://post/unsupported";
+          default:
+            UNREACHABLE();
+        }
+      }
+      return "tg://post";
     }
     case td_api::internalLinkTypePremiumFeatures::ID: {
       auto link = static_cast<const td_api::internalLinkTypePremiumFeatures *>(type_ptr);

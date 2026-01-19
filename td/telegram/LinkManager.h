@@ -158,6 +158,7 @@ class LinkManager final : public Actor {
   class InternalLinkNewGroupChat;
   class InternalLinkNewPrivateChat;
   class InternalLinkPassportDataRequest;
+  class InternalLinkPostStory;
   class InternalLinkPremiumFeatures;
   class InternalLinkPremiumGift;
   class InternalLinkPremiumGiftCode;
