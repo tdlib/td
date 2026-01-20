@@ -8189,8 +8189,9 @@ void Requests::on_request(uint64 id, td_api::searchGiftsForResale &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
   CREATE_REQUEST_PROMISE();
-  td_->star_gift_manager_->get_resale_star_gifts(request.gift_id_, request.order_, request.attributes_, request.offset_,
-                                                 request.limit_, std::move(promise));
+  td_->star_gift_manager_->get_resale_star_gifts(request.gift_id_, request.order_, request.for_crafting_,
+                                                 request.attributes_, request.offset_, request.limit_,
+                                                 std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getGiftCollections &request) {

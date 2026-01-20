@@ -133,7 +133,7 @@ class StarGiftManager final : public Actor {
 
   void set_star_gift_price(StarGiftId star_gift_id, StarGiftResalePrice price, Promise<Unit> &&promise);
 
-  void get_resale_star_gifts(int64 gift_id, const td_api::object_ptr<td_api::GiftForResaleOrder> &order,
+  void get_resale_star_gifts(int64 gift_id, const td_api::object_ptr<td_api::GiftForResaleOrder> &order, bool for_craft,
                              const vector<td_api::object_ptr<td_api::UpgradedGiftAttributeId>> &attributes,
                              const string &offset, int32 limit,
                              Promise<td_api::object_ptr<td_api::giftsForResale>> &&promise);

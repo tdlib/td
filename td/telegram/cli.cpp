@@ -3307,7 +3307,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getUpgradedGiftWithdrawalUrl>(received_gift_id, password));
     } else if (op == "gugpa") {
       send_request(td_api::make_object<td_api::getUpgradedGiftsPromotionalAnimation>());
-    } else if (op == "sgfr" || op == "sgfrd" || op == "sgfrn") {
+    } else if (op == "sgfr" || op == "sgfrd" || op == "sgfrn" || op == "spfrc") {
       int64 gift_id;
       string limit;
       string offset;
@@ -3321,7 +3321,7 @@ class CliClient final : public Actor {
         order = td_api::make_object<td_api::giftForResaleOrderPrice>();
       }
       send_request(td_api::make_object<td_api::searchGiftsForResale>(
-          gift_id, std::move(order), get_upgraded_gift_attribute_ids(), offset, as_limit(limit)));
+          gift_id, std::move(order), op == "spfrc", get_upgraded_gift_attribute_ids(), offset, as_limit(limit)));
     } else if (op == "ggic") {
       string owner_id;
       get_args(args, owner_id);

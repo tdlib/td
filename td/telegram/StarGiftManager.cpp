@@ -1939,7 +1939,7 @@ class GetResaleStarGiftsQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(int64 gift_id, const td_api::object_ptr<td_api::GiftForResaleOrder> &order,
+  void send(int64 gift_id, const td_api::object_ptr<td_api::GiftForResaleOrder> &order, bool for_craft,
             const vector<StarGiftAttributeId> &attribute_ids, const string &offset, int32 limit) {
     int32 flags = 0;
     auto order_id = order->get_id();
@@ -1951,8 +1951,8 @@ class GetResaleStarGiftsQuery final : public Td::ResultHandler {
       flags |= telegram_api::payments_getResaleStarGifts::ATTRIBUTES_HASH_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::payments_getResaleStarGifts(
-        flags, order_id == td_api::giftForResaleOrderPrice::ID, order_id == td_api::giftForResaleOrderNumber::ID, false,
-        0, gift_id, std::move(attributes), offset, limit)));
+        flags, order_id == td_api::giftForResaleOrderPrice::ID, order_id == td_api::giftForResaleOrderNumber::ID,
+        for_craft, 0, gift_id, std::move(attributes), offset, limit)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -3149,7 +3149,7 @@ void StarGiftManager::set_star_gift_price(StarGiftId star_gift_id, StarGiftResal
 }
 
 void StarGiftManager::get_resale_star_gifts(
-    int64 gift_id, const td_api::object_ptr<td_api::GiftForResaleOrder> &order,
+    int64 gift_id, const td_api::object_ptr<td_api::GiftForResaleOrder> &order, bool for_craft,
     const vector<td_api::object_ptr<td_api::UpgradedGiftAttributeId>> &attributes, const string &offset, int32 limit,
     Promise<td_api::object_ptr<td_api::giftsForResale>> &&promise) {
   if (limit < 0) {
@@ -3160,7 +3160,8 @@ void StarGiftManager::get_resale_star_gifts(
   }
   TRY_RESULT_PROMISE(promise, attribute_ids, StarGiftAttributeId::get_star_gift_attribute_ids(attributes));
 
-  td_->create_handler<GetResaleStarGiftsQuery>(std::move(promise))->send(gift_id, order, attribute_ids, offset, limit);
+  td_->create_handler<GetResaleStarGiftsQuery>(std::move(promise))
+      ->send(gift_id, order, for_craft, attribute_ids, offset, limit);
 }
 
 void StarGiftManager::get_gift_collections(DialogId dialog_id,
