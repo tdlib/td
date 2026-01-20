@@ -1235,6 +1235,18 @@ Status ForumTopicManager::can_be_forum_topic_id(ForumTopicId forum_topic_id) {
   return Status::OK();
 }
 
+bool ForumTopicManager::can_send_message_to_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id) const {
+  auto *topic_info = get_topic_info(dialog_id, forum_topic_id);
+  if (topic_info == nullptr) {
+    return true;  // allow sending to unknown topic
+  }
+  if (topic_info->is_closed() && !topic_info->is_outgoing() && dialog_id.get_type() == DialogType::Channel &&
+      !td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_administrator()) {
+    return false;  // don't allow sending to closed topic
+  }
+  return true;
+}
+
 ForumTopicManager::DialogTopics *ForumTopicManager::add_dialog_topics(DialogId dialog_id) {
   auto *dialog_topics = dialog_topics_.get_pointer(dialog_id);
   if (dialog_topics == nullptr) {

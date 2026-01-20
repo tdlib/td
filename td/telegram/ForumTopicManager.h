@@ -47,6 +47,8 @@ class ForumTopicManager final : public Actor {
 
   Status is_forum(DialogId dialog_id, bool allow_bots = false);
 
+  bool can_send_message_to_forum_topic(DialogId dialog_id, ForumTopicId forum_topic_id) const;
+
   void create_forum_topic(DialogId dialog_id, string &&title, bool title_missing,
                           td_api::object_ptr<td_api::forumTopicIcon> &&icon,
                           Promise<td_api::object_ptr<td_api::forumTopicInfo>> &&promise);
