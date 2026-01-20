@@ -1414,13 +1414,14 @@ gift id:int64 publisher_chat_id:int53 sticker:sticker star_count:int53 default_s
 //@symbol Symbol of the upgraded gift
 //@backdrop Backdrop of the upgraded gift
 //@original_details Information about the originally sent gift; may be null if unknown
-//@colors Colors that can be set for user's name, background of empty chat photo, replies to messages and link previews; may be null if none
+//@colors Colors that can be set for user's name, background of empty chat photo, replies to messages and link previews; may be null if none or unknown
 //@resale_parameters Resale parameters of the gift; may be null if resale isn't possible
 //@can_send_purchase_offer True, if an offer to purchase the gift can be sent using sendGiftPurchaseOffer
+//@craft_probability_per_mille Probability that the gift adds to the chance of successful crafting of a new gift; 0 if the gift can't be used for crafting; only for the receiver of the gift and gifts on sale
 //@value_currency ISO 4217 currency code of the currency in which value of the gift is represented; may be empty if unavailable
 //@value_amount Estimated value of the gift; in the smallest units of the currency; 0 if unavailable
 //@value_usd_amount Estimated value of the gift in USD; in USD cents; 0 if unavailable
-upgradedGift id:int64 regular_gift_id:int64 publisher_chat_id:int53 title:string name:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 is_burned:Bool is_crafted:Bool is_premium:Bool is_theme_available:Bool used_theme_chat_id:int53 host_id:MessageSender owner_id:MessageSender owner_address:string owner_name:string gift_address:string model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails colors:upgradedGiftColors resale_parameters:giftResaleParameters can_send_purchase_offer:Bool value_currency:string value_amount:int53 value_usd_amount:int53 = UpgradedGift;
+upgradedGift id:int64 regular_gift_id:int64 publisher_chat_id:int53 title:string name:string number:int32 total_upgraded_count:int32 max_upgraded_count:int32 is_burned:Bool is_crafted:Bool is_premium:Bool is_theme_available:Bool used_theme_chat_id:int53 host_id:MessageSender owner_id:MessageSender owner_address:string owner_name:string gift_address:string model:upgradedGiftModel symbol:upgradedGiftSymbol backdrop:upgradedGiftBackdrop original_details:upgradedGiftOriginalDetails colors:upgradedGiftColors resale_parameters:giftResaleParameters can_send_purchase_offer:Bool craft_probability_per_mille:int32 value_currency:string value_amount:int53 value_usd_amount:int53 = UpgradedGift;
 
 //@description Contains information about value of an upgraded gift
 //@currency ISO 4217 currency code of the currency in which the prices are represented
