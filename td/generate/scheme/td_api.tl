@@ -14771,19 +14771,15 @@ getApplicationDownloadLink = HttpUrl;
 
 
 //@description Adds a proxy server for network requests. Can be called before authorization
-//@server Proxy server domain or IP address
-//@port Proxy server port
+//@proxy The proxy to add
 //@enable Pass true to immediately enable the proxy
-//@type Proxy type
-addProxy server:string port:int32 enable:Bool type:ProxyType = AddedProxy;
+addProxy proxy:proxy enable:Bool = AddedProxy;
 
 //@description Edits an existing proxy server for network requests. Can be called before authorization
 //@proxy_id Proxy identifier
-//@server Proxy server domain or IP address
-//@port Proxy server port
+//@proxy The new information about the proxy
 //@enable Pass true to immediately enable the proxy
-//@type Proxy type
-editProxy proxy_id:int32 server:string port:int32 enable:Bool type:ProxyType = AddedProxy;
+editProxy proxy_id:int32 proxy:proxy enable:Bool = AddedProxy;
 
 //@description Enables a proxy. Only one proxy can be enabled at a time. Can be called before authorization @proxy_id Proxy identifier
 enableProxy proxy_id:int32 = Ok;
@@ -14873,12 +14869,10 @@ testSquareInt x:int32 = TestInt;
 testNetwork = Ok;
 
 //@description Sends a simple network request to the Telegram servers via proxy; for testing only. Can be called before authorization
-//@server Proxy server domain or IP address
-//@port Proxy server port
-//@type Proxy type
+//@proxy The proxy to test
 //@dc_id Identifier of a datacenter with which to test connection
 //@timeout The maximum overall timeout for the request
-testProxy server:string port:int32 type:ProxyType dc_id:int32 timeout:double = Ok;
+testProxy proxy:proxy dc_id:int32 timeout:double = Ok;
 
 //@description Forces an updates.getDifference call to the Telegram servers; for testing only
 testGetDifference = Ok;

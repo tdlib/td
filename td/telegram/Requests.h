@@ -1998,7 +1998,7 @@ class Requests {
 
   void on_request(uint64 id, const td_api::testNetwork &request);
 
-  void on_request(uint64 id, td_api::testProxy &request);
+  void on_request(uint64 id, const td_api::testProxy &request);
 
   void on_request(uint64 id, const td_api::testGetDifference &request);
 

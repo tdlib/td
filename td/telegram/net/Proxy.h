@@ -31,8 +31,6 @@ class ProxyType;
 
 class Proxy {
  public:
-  static Result<Proxy> create_proxy(string server, int port, const td_api::ProxyType *proxy_type);
-
   static Result<Proxy> create_proxy(const td_api::proxy *proxy);
 
   static Proxy socks5(string server, int32 port, string user, string password) {
@@ -160,6 +158,8 @@ class Proxy {
   string user_;
   string password_;
   mtproto::ProxySecret secret_;
+
+  static Result<Proxy> create_proxy(string server, int port, const td_api::ProxyType *proxy_type);
 };
 
 inline bool operator==(const Proxy &lhs, const Proxy &rhs) {

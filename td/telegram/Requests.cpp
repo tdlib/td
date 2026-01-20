@@ -8778,20 +8778,18 @@ void Requests::on_request(uint64 id, td_api::saveApplicationLogEvent &request) {
 }
 
 void Requests::on_request(uint64 id, td_api::addProxy &request) {
-  CLEAN_INPUT_STRING(request.server_);
   CREATE_REQUEST_PROMISE();
-  send_closure(G()->connection_creator(), &ConnectionCreator::add_proxy, -1, std::move(request.server_), request.port_,
-               request.enable_, std::move(request.type_), std::move(promise));
+  send_closure(G()->connection_creator(), &ConnectionCreator::add_proxy, -1, std::move(request.proxy_), request.enable_,
+               std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::editProxy &request) {
   if (request.proxy_id_ < 0) {
     return send_error_raw(id, 400, "Proxy identifier invalid");
   }
-  CLEAN_INPUT_STRING(request.server_);
   CREATE_REQUEST_PROMISE();
-  send_closure(G()->connection_creator(), &ConnectionCreator::add_proxy, request.proxy_id_, std::move(request.server_),
-               request.port_, request.enable_, std::move(request.type_), std::move(promise));
+  send_closure(G()->connection_creator(), &ConnectionCreator::add_proxy, request.proxy_id_, std::move(request.proxy_),
+               request.enable_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::enableProxy &request) {
@@ -8966,8 +8964,8 @@ void Requests::on_request(uint64 id, const td_api::testNetwork &request) {
   td_->country_info_manager_->get_current_country_code(std::move(query_promise));
 }
 
-void Requests::on_request(uint64 id, td_api::testProxy &request) {
-  auto r_proxy = Proxy::create_proxy(std::move(request.server_), request.port_, request.type_.get());
+void Requests::on_request(uint64 id, const td_api::testProxy &request) {
+  auto r_proxy = Proxy::create_proxy(request.proxy_.get());
   if (r_proxy.is_error()) {
     return send_closure(td_actor_, &Td::send_error, id, r_proxy.move_as_error());
   }

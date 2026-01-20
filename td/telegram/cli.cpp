@@ -2019,10 +2019,10 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setNetworkType>(td_api::make_object<td_api::networkTypeWiFi>()));
       send_request(td_api::make_object<td_api::getNetworkStatistics>());
       send_request(td_api::make_object<td_api::getCountryCode>());
-      send_request(
-          td_api::make_object<td_api::addProxy>("1.1.1.1", 1111, true, td_api::make_object<td_api::proxyTypeSocks5>()));
-      send_request(td_api::make_object<td_api::addProxy>("1.1.1.1", 1112, false,
-                                                         td_api::make_object<td_api::proxyTypeSocks5>()));
+      send_request(td_api::make_object<td_api::addProxy>(
+          td_api::make_object<td_api::proxy>("1.1.1.1", 1111, td_api::make_object<td_api::proxyTypeSocks5>()), true));
+      send_request(td_api::make_object<td_api::addProxy>(
+          td_api::make_object<td_api::proxy>("1.1.1.1", 1112, td_api::make_object<td_api::proxyTypeSocks5>()), false));
       send_request(td_api::make_object<td_api::pingProxy>(0));
 
       auto bad_request = td_api::make_object<td_api::setTdlibParameters>();
@@ -8328,13 +8328,13 @@ class CliClient final : public Actor {
           type = td_api::make_object<td_api::proxyTypeSocks5>(user, password);
         }
       }
+      auto proxy = td_api::make_object<td_api::proxy>(server, port, std::move(type));
       if (op[0] == 'e') {
-        send_request(
-            td_api::make_object<td_api::editProxy>(as_proxy_id(proxy_id), server, port, enable, std::move(type)));
+        send_request(td_api::make_object<td_api::editProxy>(as_proxy_id(proxy_id), std::move(proxy), enable));
       } else if (op == "tproxy") {
-        send_request(td_api::make_object<td_api::testProxy>(server, port, std::move(type), 2, 10.0));
+        send_request(td_api::make_object<td_api::testProxy>(std::move(proxy), 2, 10.0));
       } else {
-        send_request(td_api::make_object<td_api::addProxy>(server, port, enable, std::move(type)));
+        send_request(td_api::make_object<td_api::addProxy>(std::move(proxy), enable));
       }
     } else if (op == "gproxy" || op == "gproxies") {
       send_request(td_api::make_object<td_api::getProxies>());

@@ -149,10 +149,9 @@ void ConnectionCreator::set_net_stats_callback(std::shared_ptr<NetStatsCallback>
   media_net_stats_callback_ = std::move(media_callback);
 }
 
-void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port, bool enable,
-                                  td_api::object_ptr<td_api::ProxyType> proxy_type,
+void ConnectionCreator::add_proxy(int32 old_proxy_id, td_api::object_ptr<td_api::proxy> proxy, bool enable,
                                   Promise<td_api::object_ptr<td_api::addedProxy>> promise) {
-  TRY_RESULT_PROMISE(promise, new_proxy, Proxy::create_proxy(std::move(server), port, proxy_type.get()));
+  TRY_RESULT_PROMISE(promise, new_proxy, Proxy::create_proxy(proxy.get()));
   if (old_proxy_id >= 0) {
     if (proxies_.count(old_proxy_id) == 0) {
       return promise.set_error(400, "Proxy not found");

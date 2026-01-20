@@ -8,6 +8,8 @@
 
 #include "td/telegram/td_api.h"
 
+#include "td/utils/utf8.h"
+
 namespace td {
 
 Result<Proxy> Proxy::create_proxy(string server, int port, const td_api::ProxyType *proxy_type) {
@@ -19,6 +21,9 @@ Result<Proxy> Proxy::create_proxy(string server, int port, const td_api::ProxyTy
   }
   if (server.size() > 255) {
     return Status::Error(400, "Server name is too long");
+  }
+  if (!check_utf8(server)) {
+    return Status::Error(400, "Server name must be encoded in UTF-8");
   }
   if (port <= 0 || port > 65535) {
     return Status::Error(400, "Wrong port number");
