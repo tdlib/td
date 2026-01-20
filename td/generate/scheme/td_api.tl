@@ -1310,7 +1310,7 @@ upgradedGiftOriginCraft = UpgradedGiftOrigin;
 //@class UpgradedGiftAttributeRarity @description Describes rarity of an upgraded gift attribute
 
 //@description The rarity is represented as the numeric frequence of the model
-//@per_mille The number of upgraded gifts that receive this attribute for each 1000 gifts upgraded
+//@per_mille The number of upgraded gifts that receive this attribute for each 1000 gifts upgraded; if 0, then it can be shown as "<0.1%"
 upgradedGiftAttributeRarityPerMille per_mille:int32 = UpgradedGiftAttributeRarity;
 
 //@description The attribute is uncommon
