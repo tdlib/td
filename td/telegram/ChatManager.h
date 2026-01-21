@@ -407,7 +407,7 @@ class ChatManager final : public Actor {
 
   td_api::object_ptr<td_api::supergroup> get_supergroup_object(ChannelId channel_id) const;
 
-  tl_object_ptr<td_api::supergroupFullInfo> get_supergroup_full_info_object(ChannelId channel_id) const;
+  td_api::object_ptr<td_api::supergroupFullInfo> get_supergroup_full_info_object(ChannelId channel_id) const;
 
   tl_object_ptr<td_api::chatMember> get_chat_member_object(const DialogParticipant &dialog_participant,
                                                            const char *source) const;
@@ -904,8 +904,11 @@ class ChatManager final : public Actor {
 
   Status can_toggle_channel_aggressive_anti_spam(ChannelId channel_id, const ChannelFull *channel_full) const;
 
-  tl_object_ptr<td_api::supergroupFullInfo> get_supergroup_full_info_object(ChannelId channel_id,
-                                                                            const ChannelFull *channel_full) const;
+  td_api::object_ptr<td_api::supergroupFullInfo> get_supergroup_full_info_object(ChannelId channel_id,
+                                                                                 const ChannelFull *channel_full) const;
+
+  td_api::object_ptr<td_api::updateSupergroupFullInfo> get_update_supergroup_full_info_object(
+      ChannelId channel_id, const ChannelFull *channel_full, const char *source) const;
 
   vector<DialogId> get_dialog_ids(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source);
 

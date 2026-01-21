@@ -5632,18 +5632,11 @@ void ChatManager::update_channel_full(ChannelFull *channel_full, ChannelId chann
                                                 true);
     }
 
-    {
-      Channel *c = get_channel(channel_id);
-      CHECK(c == nullptr || c->is_update_supergroup_sent);
-    }
     if (!channel_full->is_update_channel_full_sent) {
       LOG(ERROR) << "Send partial updateSupergroupFullInfo for " << channel_id << " from " << source;
       channel_full->is_update_channel_full_sent = true;
     }
-    send_closure(
-        G()->td(), &Td::send_update,
-        make_tl_object<td_api::updateSupergroupFullInfo>(get_supergroup_id_object(channel_id, "update_channel_full"),
-                                                         get_supergroup_full_info_object(channel_id, channel_full)));
+    send_closure(G()->td(), &Td::send_update, get_update_supergroup_full_info_object(channel_id, channel_full, source));
     channel_full->need_send_update = false;
   }
   if (channel_full->need_save_to_database) {
@@ -9665,11 +9658,12 @@ td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(Channe
       c->paid_message_star_count, get_channel_active_story_state(c).get_active_story_state_object());
 }
 
-tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_object(ChannelId channel_id) const {
+td_api::object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_object(
+    ChannelId channel_id) const {
   return get_supergroup_full_info_object(channel_id, get_channel_full_const(channel_id));
 }
 
-tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_object(
+td_api::object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_object(
     ChannelId channel_id, const ChannelFull *channel_full) const {
   CHECK(channel_full != nullptr);
   double slow_mode_delay_expires_in = 0;
@@ -9706,6 +9700,16 @@ tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_
       channel_full->migrated_from_max_message_id.get());
 }
 
+td_api::object_ptr<td_api::updateSupergroupFullInfo> ChatManager::get_update_supergroup_full_info_object(
+    ChannelId channel_id, const ChannelFull *channel_full, const char *source) const {
+  {
+    const Channel *c = get_channel(channel_id);
+    CHECK(c == nullptr || c->is_update_supergroup_sent);
+  }
+  return td_api::make_object<td_api::updateSupergroupFullInfo>(
+      get_supergroup_id_object(channel_id, source), get_supergroup_full_info_object(channel_id, channel_full));
+}
+
 void ChatManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   for (auto chat_id : unknown_chats_) {
     if (!have_chat(chat_id)) {
@@ -9727,8 +9731,7 @@ void ChatManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &
   });
 
   channels_full_.foreach([&](const ChannelId &channel_id, const unique_ptr<ChannelFull> &channel_full) {
-    updates.push_back(td_api::make_object<td_api::updateSupergroupFullInfo>(
-        channel_id.get(), get_supergroup_full_info_object(channel_id, channel_full.get())));
+    updates.push_back(get_update_supergroup_full_info_object(channel_id, channel_full.get(), "get_current_state"));
   });
   chats_full_.foreach([&](const ChatId &chat_id, const unique_ptr<ChatFull> &chat_full) {
     updates.push_back(td_api::make_object<td_api::updateBasicGroupFullInfo>(
