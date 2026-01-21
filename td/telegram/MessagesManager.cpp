@@ -7906,7 +7906,15 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
   return true;
 }
 
-bool MessagesManager::can_reply_to_message(DialogId dialog_id, MessageId message_id) const {
+bool MessagesManager::can_reply_to_message(const Dialog *d, MessageId message_id, const Message *m) const {
+  CHECK(d != nullptr);
+  auto dialog_id = d->dialog_id;
+  if (!td_->auth_manager_->is_bot() && m != nullptr && m->is_topic_message && d->is_forum) {
+    auto forum_topic_id = ForumTopicId::from_top_thread_message_id(m->top_thread_message_id);
+    if (!td_->forum_topic_manager_->can_send_message_to_forum_topic(dialog_id, forum_topic_id)) {
+      return false;
+    }
+  }
   return message_id.is_valid() &&
          !(message_id == MessageId(ServerMessageId(1)) && dialog_id.get_type() == DialogType::Channel) &&
          !message_id.is_yet_unsent() && (!message_id.is_local() || dialog_id.get_type() == DialogType::SecretChat) &&
@@ -14801,7 +14809,7 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
   auto can_be_copied_to_secret_chat = can_be_copied && can_send_message_content_to_secret_chat(m->content->get_type());
   auto can_be_paid = get_invoice_message_info({dialog_id, message_id}).is_ok();
   auto can_be_pinned = can_pin_message(dialog_id, m).is_ok();
-  auto can_be_replied = can_reply_to_message(dialog_id, message_id);
+  auto can_be_replied = can_reply_to_message(d, message_id, m);
   auto can_be_replied_in_another_chat = can_reply_to_message_in_another_dialog(dialog_id, message_id, can_be_forwarded);
   auto can_be_shared_in_story = can_share_message_in_story(dialog_id, m);
   auto can_edit_media = can_edit_message_media(dialog_id, m, false);
@@ -20405,11 +20413,11 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
         return {};
       }
       message_id = get_persistent_message_id(d, message_id);
-      if (!can_reply_to_message(d->dialog_id, message_id)) {
-        message_id = {};
-      }
       auto checklist_task_id = max(0, reply_to_message->checklist_task_id_);
       const Message *m = get_message_force(d, message_id, "create_message_input_reply_to 2");
+      if (!can_reply_to_message(d, message_id, m)) {
+        message_id = {};
+      }
       if (m == nullptr) {
         if (message_id.is_server() && d->dialog_id.get_type() != DialogType::SecretChat &&
             d->last_new_message_id.is_valid() && message_id > d->last_new_message_id &&
