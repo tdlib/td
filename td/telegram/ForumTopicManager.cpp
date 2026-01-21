@@ -1241,7 +1241,7 @@ bool ForumTopicManager::can_send_message_to_forum_topic(DialogId dialog_id, Foru
     return true;  // allow sending to unknown topic
   }
   if (topic_info->is_closed() && !topic_info->is_outgoing() && dialog_id.get_type() == DialogType::Channel &&
-      !td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).is_administrator()) {
+      !td_->chat_manager_->get_channel_status(dialog_id.get_channel_id()).can_edit_topics()) {
     return false;  // don't allow sending to closed topic
   }
   return true;
