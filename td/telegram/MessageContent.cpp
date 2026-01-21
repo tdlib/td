@@ -9130,6 +9130,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionGameScore::ID:
     case telegram_api::messageActionPaymentSent::ID:
     case telegram_api::messageActionPaymentSentMe::ID:
+    case telegram_api::messageActionGeoProximityReached::ID:
     case telegram_api::messageActionTopicEdit::ID:
     case telegram_api::messageActionSetChatWallPaper::ID:
     case telegram_api::messageActionGiveawayResults::ID:
@@ -9354,6 +9355,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
         break;
       }
+      // ignore replied_message_info
 
       return make_unique<MessageProximityAlertTriggered>(traveler_dialog_id, watcher_dialog_id, distance);
     }
