@@ -4899,8 +4899,8 @@ void ChatManager::on_load_channel_from_database(ChannelId channel_id, string val
               c->monoforum_channel_id, true,
               PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable { promise.set_value(Unit()); }));
         }
+        return;
       }
-      return;
     }
   }
   set_promises(promises);
