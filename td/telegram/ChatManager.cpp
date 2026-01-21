@@ -5610,6 +5610,19 @@ void ChatManager::update_channel_full(ChannelFull *channel_full, ChannelId chann
     channel_full->is_slow_mode_next_send_date_changed = false;
   }
 
+  if (channel_full->is_photo_changed) {
+    if (channel_full->monoforum_channel_id.is_valid() && is_broadcast_channel(channel_id)) {
+      auto monoforum_channel_id = channel_full->monoforum_channel_id;
+      auto monoforum_channel_full = get_channel_full_const(monoforum_channel_id);
+      if (monoforum_channel_full != nullptr && monoforum_channel_full->is_update_channel_full_sent) {
+        send_closure(G()->td(), &Td::send_update,
+                     get_update_supergroup_full_info_object(monoforum_channel_id, monoforum_channel_full,
+                                                            "update_channel_full monoforum"));
+      }
+    }
+    channel_full->is_photo_changed = false;
+  }
+
   if (channel_full->need_save_to_database) {
     channel_full->is_changed |= td::remove_if(
         channel_full->bot_commands, [bot_user_ids = &channel_full->bot_user_ids](const BotCommands &commands) {
@@ -6592,6 +6605,7 @@ void ChatManager::on_update_channel_full_photo(ChannelFull *channel_full, Channe
   if (photo != channel_full->photo) {
     channel_full->photo = std::move(photo);
     channel_full->is_changed = true;
+    channel_full->is_photo_changed = true;
   }
 
   auto photo_file_ids = photo_get_file_ids(channel_full->photo);
@@ -7439,10 +7453,7 @@ void ChatManager::on_update_channel_photo(Channel *c, ChannelId channel_id, Dial
     if (invalidate_photo_cache) {
       auto channel_full = get_channel_full(channel_id, true, "on_update_channel_photo");  // must not load ChannelFull
       if (channel_full != nullptr) {
-        if (!channel_full->photo.is_empty()) {
-          channel_full->photo = Photo();
-          channel_full->is_changed = true;
-        }
+        on_update_channel_full_photo(channel_full, channel_id, Photo());
         if (c->photo.small_file_id.is_valid()) {
           if (channel_full->expires_at > 0.0) {
             channel_full->expires_at = 0.0;
@@ -9660,11 +9671,11 @@ td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(Channe
 
 td_api::object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_object(
     ChannelId channel_id) const {
-  return get_supergroup_full_info_object(channel_id, get_channel_full_const(channel_id));
+  return get_supergroup_full_info_object(channel_id, get_channel_full_const(channel_id), get_channel(channel_id));
 }
 
 td_api::object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_object(
-    ChannelId channel_id, const ChannelFull *channel_full) const {
+    ChannelId channel_id, const ChannelFull *channel_full, const Channel *c) const {
   CHECK(channel_full != nullptr);
   double slow_mode_delay_expires_in = 0;
   if (channel_full->slow_mode_next_send_date != 0 &&
@@ -9678,8 +9689,15 @@ td_api::object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_
                               ? nullptr
                               : channel_full->bot_verification->get_bot_verification_object(td_);
   bool has_hidden_participants = channel_full->has_hidden_participants || !channel_full->can_get_participants;
+  auto *photo = &channel_full->photo;
+  if (c != nullptr && c->is_monoforum) {
+    auto monoforum_channel_full = get_channel_full_const(channel_full->monoforum_channel_id);
+    if (monoforum_channel_full != nullptr) {
+      photo = &monoforum_channel_full->photo;
+    }
+  }
   return td_api::make_object<td_api::supergroupFullInfo>(
-      get_chat_photo_object(td_->file_manager_.get(), channel_full->photo), channel_full->description,
+      get_chat_photo_object(td_->file_manager_.get(), *photo), channel_full->description,
       channel_full->participant_count, channel_full->administrator_count, channel_full->restricted_count,
       channel_full->banned_count, DialogId(channel_full->linked_channel_id).get(),
       DialogId(channel_full->monoforum_channel_id).get(), channel_full->slow_mode_delay, slow_mode_delay_expires_in,
@@ -9702,12 +9720,10 @@ td_api::object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_
 
 td_api::object_ptr<td_api::updateSupergroupFullInfo> ChatManager::get_update_supergroup_full_info_object(
     ChannelId channel_id, const ChannelFull *channel_full, const char *source) const {
-  {
-    const Channel *c = get_channel(channel_id);
-    CHECK(c == nullptr || c->is_update_supergroup_sent);
-  }
+  const Channel *c = get_channel(channel_id);
+  CHECK(c == nullptr || c->is_update_supergroup_sent);
   return td_api::make_object<td_api::updateSupergroupFullInfo>(
-      get_supergroup_id_object(channel_id, source), get_supergroup_full_info_object(channel_id, channel_full));
+      get_supergroup_id_object(channel_id, source), get_supergroup_full_info_object(channel_id, channel_full, c));
 }
 
 void ChatManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
@@ -9731,6 +9747,7 @@ void ChatManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &
   });
 
   channels_full_.foreach([&](const ChannelId &channel_id, const unique_ptr<ChannelFull> &channel_full) {
+    CHECK(channel_full->is_update_channel_full_sent);
     updates.push_back(get_update_supergroup_full_info_object(channel_id, channel_full.get(), "get_current_state"));
   });
   chats_full_.foreach([&](const ChatId &chat_id, const unique_ptr<ChatFull> &chat_full) {

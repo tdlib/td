@@ -647,6 +647,7 @@ class ChatManager final : public Actor {
     bool has_stargifts_available = false;
     bool has_paid_messages_available = false;
 
+    bool is_photo_changed = true;
     bool is_slow_mode_next_send_date_changed = true;
     bool is_being_updated = false;
     bool is_changed = true;             // have new changes that need to be sent to the client and database
@@ -905,7 +906,8 @@ class ChatManager final : public Actor {
   Status can_toggle_channel_aggressive_anti_spam(ChannelId channel_id, const ChannelFull *channel_full) const;
 
   td_api::object_ptr<td_api::supergroupFullInfo> get_supergroup_full_info_object(ChannelId channel_id,
-                                                                                 const ChannelFull *channel_full) const;
+                                                                                 const ChannelFull *channel_full,
+                                                                                 const Channel *c) const;
 
   td_api::object_ptr<td_api::updateSupergroupFullInfo> get_update_supergroup_full_info_object(
       ChannelId channel_id, const ChannelFull *channel_full, const char *source) const;
