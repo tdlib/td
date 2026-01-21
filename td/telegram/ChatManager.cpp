@@ -5059,7 +5059,8 @@ string ChatManager::get_channel_full_database_value(const ChannelFull *channel_f
   return log_event_store(*channel_full).as_slice().str();
 }
 
-void ChatManager::on_load_channel_full_from_database(ChannelId channel_id, string value, const char *source) {
+void ChatManager::on_load_channel_full_from_database(ChannelId channel_id, string value, const char *source,
+                                                     bool is_recursive) {
   LOG(INFO) << "Successfully loaded full " << channel_id << " of size " << value.size() << " from database from "
             << source;
   //  G()->td_db()->get_sqlite_pmc()->erase(get_channel_full_database_key(channel_id), Auto());
@@ -5163,10 +5164,19 @@ void ChatManager::on_load_channel_full_from_database(ChannelId channel_id, strin
   if (channel_full->expires_at == 0.0) {
     load_channel_full(channel_id, true, Auto(), "on_load_channel_full_from_database");
   }
+
+  auto monoforum_channel_id = channel_full->monoforum_channel_id;
+  if (monoforum_channel_id.is_valid() && get_channel_full_const(monoforum_channel_id) == nullptr) {
+    if (is_recursive ||
+        get_channel_full_force(monoforum_channel_id, true, "on_load_channel_full_from_database", true) == nullptr) {
+      LOG(INFO) << "Can't find full " << monoforum_channel_id << " from full " << channel_id;
+      reload_channel_full(monoforum_channel_id, Promise<Unit>(), "on_load_channel_full_from_database");
+    }
+  }
 }
 
-ChatManager::ChannelFull *ChatManager::get_channel_full_force(ChannelId channel_id, bool only_local,
-                                                              const char *source) {
+ChatManager::ChannelFull *ChatManager::get_channel_full_force(ChannelId channel_id, bool only_local, const char *source,
+                                                              bool is_recursive) {
   if (!have_channel_force(channel_id, source)) {
     return nullptr;
   }
@@ -5184,7 +5194,8 @@ ChatManager::ChannelFull *ChatManager::get_channel_full_force(ChannelId channel_
 
   LOG(INFO) << "Trying to load full " << channel_id << " from database from " << source;
   on_load_channel_full_from_database(
-      channel_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_full_database_key(channel_id)), source);
+      channel_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_full_database_key(channel_id)), source,
+      is_recursive);
   return get_channel_full(channel_id, only_local, source);
 }
 
