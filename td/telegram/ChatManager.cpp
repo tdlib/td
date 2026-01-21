@@ -6131,6 +6131,13 @@ void ChatManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_
 
     td_->suggested_action_manager_->set_dialog_pending_suggestions(DialogId(channel_id),
                                                                    std::move(channel->pending_suggestions_));
+
+    if (monoforum_channel_id.is_valid() && c->is_monoforum && get_channel_full_const(monoforum_channel_id) == nullptr) {
+      return reload_channel_full(
+          monoforum_channel_id,
+          PromiseCreator::lambda([promise = std::move(promise)](Unit) mutable { promise.set_value(Unit()); }),
+          "on_get_channel_full 3");
+    }
   }
   promise.set_value(Unit());
 }
