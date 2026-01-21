@@ -3848,7 +3848,7 @@ bool ChatManager::can_get_channel_message_statistics(ChannelId channel_id) const
     return false;
   }
 
-  auto channel_full = get_channel_full(channel_id);
+  auto channel_full = get_channel_full_const(channel_id);
   if (channel_full != nullptr) {
     return channel_full->stats_dc_id.is_exact();
   }
@@ -3863,7 +3863,7 @@ bool ChatManager::can_get_channel_story_statistics(ChannelId channel_id) const {
     return false;
   }
 
-  auto channel_full = get_channel_full(channel_id);
+  auto channel_full = get_channel_full_const(channel_id);
   if (channel_full != nullptr) {
     return channel_full->stats_dc_id.is_exact();
   }
@@ -5065,7 +5065,7 @@ void ChatManager::on_load_channel_full_from_database(ChannelId channel_id, strin
   //  G()->td_db()->get_sqlite_pmc()->erase(get_channel_full_database_key(channel_id), Auto());
   //  return;
 
-  if (get_channel_full(channel_id, true, "on_load_channel_full_from_database") != nullptr || value.empty()) {
+  if (get_channel_full_const(channel_id) != nullptr || value.empty()) {
     return;
   }
 
@@ -6636,7 +6636,7 @@ void ChatManager::remove_linked_channel_id(ChannelId channel_id) {
 }
 
 ChannelId ChatManager::get_linked_channel_id(ChannelId channel_id) const {
-  auto channel_full = get_channel_full(channel_id);
+  auto channel_full = get_channel_full_const(channel_id);
   if (channel_full != nullptr) {
     return channel_full->linked_channel_id;
   }
@@ -7535,7 +7535,7 @@ void ChatManager::on_update_channel_status(Channel *c, ChannelId channel_id, Dia
 void ChatManager::on_channel_status_changed(Channel *c, ChannelId channel_id, const DialogParticipantStatus &old_status,
                                             const DialogParticipantStatus &new_status) {
   CHECK(c->is_update_supergroup_sent);
-  bool have_channel_full = get_channel_full(channel_id) != nullptr;
+  bool have_channel_full = get_channel_full_const(channel_id) != nullptr;
 
   if (old_status.can_post_stories() != new_status.can_post_stories()) {
     td_->story_manager_->update_dialogs_to_send_stories(channel_id, new_status.can_post_stories());
@@ -7597,7 +7597,7 @@ void ChatManager::on_channel_status_changed(Channel *c, ChannelId channel_id, co
   }
 
   // must not load ChannelFull, because must not change the Channel
-  CHECK(have_channel_full == (get_channel_full(channel_id) != nullptr));
+  CHECK(have_channel_full == (get_channel_full_const(channel_id) != nullptr));
 }
 
 void ChatManager::on_update_channel_default_permissions(Channel *c, ChannelId channel_id,
@@ -7846,14 +7846,14 @@ void ChatManager::on_update_channel_usernames(Channel *c, ChannelId channel_id, 
 
 void ChatManager::on_channel_usernames_changed(const Channel *c, ChannelId channel_id, const Usernames &old_usernames,
                                                const Usernames &new_usernames) {
-  bool have_channel_full = get_channel_full(channel_id) != nullptr;
+  bool have_channel_full = get_channel_full_const(channel_id) != nullptr;
   if (!old_usernames.has_first_username() || !new_usernames.has_first_username()) {
     // moving channel from private to public can change availability of chat members
     invalidate_channel_full(channel_id, !c->is_slow_mode_enabled, "on_channel_usernames_changed");
   }
 
   // must not load ChannelFull, because must not change the Channel
-  CHECK(have_channel_full == (get_channel_full(channel_id) != nullptr));
+  CHECK(have_channel_full == (get_channel_full_const(channel_id) != nullptr));
 }
 
 void ChatManager::on_update_channel_description(ChannelId channel_id, string &&description) {
@@ -8113,7 +8113,7 @@ FileSourceId ChatManager::get_channel_full_file_source_id(ChannelId channel_id) 
     return FileSourceId();
   }
 
-  auto channel_full = get_channel_full(channel_id);
+  auto channel_full = get_channel_full_const(channel_id);
   if (channel_full != nullptr) {
     VLOG(file_references) << "Don't need to create file source for full " << channel_id;
     // channel full was already added, source ID was registered and shouldn't be needed
@@ -8741,10 +8741,6 @@ void ChatManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promise, 
 }
 
 const ChatManager::ChannelFull *ChatManager::get_channel_full_const(ChannelId channel_id) const {
-  return channels_full_.get_pointer(channel_id);
-}
-
-const ChatManager::ChannelFull *ChatManager::get_channel_full(ChannelId channel_id) const {
   return channels_full_.get_pointer(channel_id);
 }
 
@@ -9652,7 +9648,7 @@ td_api::object_ptr<td_api::supergroup> ChatManager::get_supergroup_object(Channe
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_object(ChannelId channel_id) const {
-  return get_supergroup_full_info_object(channel_id, get_channel_full(channel_id));
+  return get_supergroup_full_info_object(channel_id, get_channel_full_const(channel_id));
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ChatManager::get_supergroup_full_info_object(

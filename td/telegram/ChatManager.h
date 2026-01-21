@@ -701,7 +701,6 @@ class ChatManager final : public Actor {
 
   Channel *add_channel(ChannelId channel_id, const char *source);
 
-  const ChannelFull *get_channel_full(ChannelId channel_id) const;
   const ChannelFull *get_channel_full_const(ChannelId channel_id) const;
   ChannelFull *get_channel_full(ChannelId channel_id, bool only_local, const char *source);
   ChannelFull *get_channel_full_force(ChannelId channel_id, bool only_local, const char *source);
