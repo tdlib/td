@@ -22656,6 +22656,10 @@ MessageTopic MessagesManager::get_send_message_topic(DialogId dialog_id, const M
     // saved_peer_id must be passed only in administered monororums
     return MessageTopic();
   }
+  if (!m->initial_is_topic_message && m->initial_top_thread_message_id == MessageId() &&
+      m->saved_messages_topic_id == SavedMessagesTopicId()) {
+    return MessageTopic();
+  }
   return MessageTopic(td_, dialog_id, m->initial_is_topic_message, m->initial_top_thread_message_id,
                       m->saved_messages_topic_id);
 }
