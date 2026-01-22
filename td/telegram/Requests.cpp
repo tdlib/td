@@ -6632,7 +6632,7 @@ void Requests::on_request(uint64 id, td_api::setMessageSenderBotVerification &re
 
 void Requests::on_request(uint64 id, const td_api::removeMessageSenderBotVerification &request) {
   CREATE_OK_REQUEST_PROMISE();
-  TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, request.verified_id_, true, false));
+  TRY_RESULT_PROMISE(promise, dialog_id, get_message_sender_dialog_id(td_, request.verified_id_, false, false));
   td_->bot_info_manager_->set_custom_bot_verification(UserId(request.bot_user_id_), dialog_id, false, string(),
                                                       std::move(promise));
 }

@@ -591,7 +591,8 @@ class SetCustomVerificationQuery final : public Td::ResultHandler {
   void send(telegram_api::object_ptr<telegram_api::InputUser> input_user, DialogId dialog_id, bool is_verified,
             const string &custom_description) {
     dialog_id_ = dialog_id;
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer =
+        td_->dialog_manager_->get_input_peer(dialog_id, is_verified ? AccessRights::Read : AccessRights::Know);
     CHECK(input_peer != nullptr);
 
     int32 flags = 0;
@@ -1066,7 +1067,7 @@ void BotInfoManager::set_custom_bot_verification(UserId bot_user_id, DialogId di
   if (bot_user_id != UserId()) {
     TRY_RESULT_PROMISE_ASSIGN(promise, bot_input_user, td_->user_manager_->get_input_user(bot_user_id));
   }
-  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
+  if (!td_->dialog_manager_->have_input_peer(dialog_id, false, is_verified ? AccessRights::Read : AccessRights::Know)) {
     return promise.set_error(400, "Can't access the verified entity");
   }
   td_->create_handler<SetCustomVerificationQuery>(std::move(promise))
