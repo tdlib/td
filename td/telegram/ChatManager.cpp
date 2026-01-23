@@ -7145,8 +7145,8 @@ void ChatManager::on_update_chat_default_permissions(ChatId chat_id, RestrictedR
   CHECK(c->version >= 0);
 
   if (version > c->version) {
-    // this should be unreachable, because version and default permissions must be already updated from
-    // the chat object in on_get_chat
+    // this should be unreachable unless the update was a short update, because version and
+    // default permissions must be already updated from the chat object in on_get_chat
     if (version != c->version + 1) {
       LOG(INFO) << "Default permissions of " << chat_id << " with version " << c->version
                 << " has changed, but new version is " << version;
@@ -7154,7 +7154,8 @@ void ChatManager::on_update_chat_default_permissions(ChatId chat_id, RestrictedR
       return;
     }
 
-    LOG_IF(ERROR, default_permissions == c->default_permissions)
+    // can happen when an administrator is assigned first time in an old basic group
+    LOG_IF(INFO, default_permissions == c->default_permissions)
         << "Receive updateChatDefaultBannedRights in " << chat_id << " with version " << version
         << " and default_permissions = " << default_permissions
         << ", but default_permissions are not changed. Current version is " << c->version;
