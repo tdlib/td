@@ -9455,6 +9455,7 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
   bool is_fake = false;
   bool autotranslation = false;
   bool broadcast_messages_allowed = false;
+  bool is_monoforum = channel.monoforum_;
   bool is_admined_monoforum = false;
 
   LOG_IF(ERROR, channel.broadcast_ == is_megagroup)
@@ -9470,7 +9471,7 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
   if (c->is_slow_mode_enabled != is_slow_mode_enabled || c->is_megagroup != is_megagroup ||
       !c->restriction_reasons.empty() || c->is_scam != is_scam || c->is_fake != is_fake ||
       c->join_to_send != join_to_send || c->join_request != join_request ||
-      c->broadcast_messages_allowed != broadcast_messages_allowed) {
+      c->broadcast_messages_allowed != broadcast_messages_allowed || c->is_monoforum != is_monoforum) {
     // c->has_linked_channel = has_linked_channel;
     c->is_slow_mode_enabled = is_slow_mode_enabled;
     c->is_megagroup = is_megagroup;
@@ -9480,6 +9481,7 @@ void ChatManager::on_get_channel_forbidden(telegram_api::channelForbidden &chann
     c->join_to_send = join_to_send;
     c->join_request = join_request;
     c->broadcast_messages_allowed = broadcast_messages_allowed;
+    c->is_monoforum = is_monoforum;
 
     c->is_changed = true;
     need_invalidate_channel_full = true;
