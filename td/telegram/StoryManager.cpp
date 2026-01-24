@@ -5758,9 +5758,8 @@ void StoryManager::return_dialogs_to_send_stories(Promise<td_api::object_ptr<td_
     return;
   }
 
-  auto total_count = narrow_cast<int32>(channel_ids.size());
-  promise.set_value(td_api::make_object<td_api::chats>(
-      total_count, transform(channel_ids, [](ChannelId channel_id) { return DialogId(channel_id).get(); })));
+  promise.set_value(td_->dialog_manager_->get_chats_object(-1, DialogId::get_dialog_ids(channel_ids),
+                                                           "return_dialogs_to_send_stories"));
 }
 
 void StoryManager::get_dialogs_to_send_stories(Promise<td_api::object_ptr<td_api::chats>> &&promise) {

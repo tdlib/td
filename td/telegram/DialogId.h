@@ -72,6 +72,14 @@ class DialogId {
 
   static vector<DialogId> get_dialog_ids(const vector<int64> &chat_ids);
 
+  static vector<DialogId> get_dialog_ids(const vector<UserId> &user_ids);
+
+  static vector<DialogId> get_dialog_ids(const vector<ChatId> &chat_ids);
+
+  static vector<DialogId> get_dialog_ids(const vector<ChannelId> &channel_ids);
+
+  static vector<DialogId> get_dialog_ids(const vector<SecretChatId> &secret_chat_ids);
+
   static vector<DialogId> remove_secret_chat_dialog_ids(vector<DialogId> dialog_ids);
 
   template <class StorerT>

@@ -860,8 +860,8 @@ class ChatManager final : public Actor {
 
   static bool is_suitable_created_public_channel(PublicDialogType type, const Channel *c);
 
-  static void return_created_public_dialogs(Promise<td_api::object_ptr<td_api::chats>> &&promise,
-                                            const vector<ChannelId> &channel_ids);
+  void return_created_public_dialogs(Promise<td_api::object_ptr<td_api::chats>> &&promise,
+                                     const vector<ChannelId> &channel_ids);
 
   void finish_get_created_public_dialogs(PublicDialogType type, Result<Unit> &&result);
 

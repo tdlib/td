@@ -4038,9 +4038,8 @@ void ChatManager::return_created_public_dialogs(Promise<td_api::object_ptr<td_ap
     return;
   }
 
-  auto total_count = narrow_cast<int32>(channel_ids.size());
-  promise.set_value(td_api::make_object<td_api::chats>(
-      total_count, transform(channel_ids, [](ChannelId channel_id) { return DialogId(channel_id).get(); })));
+  promise.set_value(td_->dialog_manager_->get_chats_object(-1, DialogId::get_dialog_ids(channel_ids),
+                                                           "return_created_public_dialogs"));
 }
 
 bool ChatManager::is_suitable_discussion_chat(const Chat *c) {
@@ -4294,7 +4293,7 @@ void ChatManager::update_dialogs_for_discussion(DialogId dialog_id, bool is_suit
 vector<DialogId> ChatManager::get_inactive_channels(Promise<Unit> &&promise) {
   if (inactive_channel_ids_inited_) {
     promise.set_value(Unit());
-    return transform(inactive_channel_ids_, [&](ChannelId channel_id) { return DialogId(channel_id); });
+    return DialogId::get_dialog_ids(inactive_channel_ids_);
   }
 
   td_->create_handler<GetInactiveChannelsQuery>(std::move(promise))->send();

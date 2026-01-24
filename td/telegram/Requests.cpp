@@ -7713,8 +7713,7 @@ void Requests::on_request(uint64 id, const td_api::getLoginUrl &request) {
 void Requests::on_request(uint64 id, const td_api::shareUsersWithBot &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  auto user_ids = UserId::get_user_ids(request.shared_user_ids_);
-  auto dialog_ids = transform(user_ids, [](UserId user_id) { return DialogId(user_id); });
+  auto dialog_ids = DialogId::get_dialog_ids(UserId::get_user_ids(request.shared_user_ids_));
   td_->messages_manager_->share_dialogs_with_bot({DialogId(request.chat_id_), MessageId(request.message_id_)},
                                                  request.button_id_, std::move(dialog_ids), true, request.only_check_,
                                                  std::move(promise));

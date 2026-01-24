@@ -1726,7 +1726,7 @@ std::pair<int32, vector<DialogId>> DialogParticipantManager::search_among_dialog
   }
 
   auto result = hints.search(query, limit, true);
-  return {narrow_cast<int32>(result.first), transform(result.second, [](int64 key) { return DialogId(key); })};
+  return {narrow_cast<int32>(result.first), DialogId::get_dialog_ids(result.second)};
 }
 
 DialogParticipants DialogParticipantManager::search_private_chat_participants(UserId peer_user_id, const string &query,

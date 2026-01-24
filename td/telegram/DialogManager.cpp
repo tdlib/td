@@ -1807,8 +1807,7 @@ std::pair<int32, vector<DialogId>> DialogManager::search_recently_found_dialogs(
   }
 
   auto hints_result = hints.search(query, limit, false);
-  return {narrow_cast<int32>(hints_result.first),
-          transform(hints_result.second, [](int64 key) { return DialogId(key); })};
+  return {narrow_cast<int32>(hints_result.first), DialogId::get_dialog_ids(hints_result.second)};
 }
 
 Status DialogManager::add_recently_found_dialog(DialogId dialog_id) {
