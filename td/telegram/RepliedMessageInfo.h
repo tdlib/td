@@ -86,7 +86,7 @@ class RepliedMessageInfo {
 
   vector<ChannelId> get_min_channel_ids(Td *td) const;
 
-  void add_dependencies(Dependencies &dependencies, bool is_bot) const;
+  void add_dependencies(Dependencies &dependencies, UserId my_user_id, bool is_bot) const;
 
   td_api::object_ptr<td_api::messageReplyToMessage> get_message_reply_to_message_object(Td *td, DialogId dialog_id,
                                                                                         MessageId message_id) const;

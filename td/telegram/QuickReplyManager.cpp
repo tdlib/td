@@ -1171,9 +1171,9 @@ void QuickReplyManager::add_quick_reply_message_dependencies(Dependencies &depen
                                                              const QuickReplyMessage *m) const {
   auto is_bot = td_->auth_manager_->is_bot();
   dependencies.add(m->via_bot_user_id);
-  add_message_content_dependencies(dependencies, m->content.get(), is_bot);
+  add_message_content_dependencies(dependencies, m->content.get(), td_->user_manager_->get_my_id(), is_bot);
   if (m->edited_content != nullptr) {
-    add_message_content_dependencies(dependencies, m->edited_content.get(), is_bot);
+    add_message_content_dependencies(dependencies, m->edited_content.get(), td_->user_manager_->get_my_id(), is_bot);
   }
   add_reply_markup_dependencies(dependencies, m->reply_markup.get());
 }

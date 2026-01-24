@@ -11434,7 +11434,8 @@ void update_failed_to_send_message_content(Td *td, unique_ptr<MessageContent> &c
   }
 }
 
-void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content, bool is_bot) {
+void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content,
+                                      UserId my_user_id, bool is_bot) {
   CHECK(message_content != nullptr);
   switch (message_content->get_type()) {
     case MessageContentType::Text: {
@@ -11661,16 +11662,25 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::StarGift: {
       const auto *content = static_cast<const MessageStarGift *>(message_content);
       content->star_gift.add_dependencies(dependencies);
-      dependencies.add_dialog_and_dependencies(content->sender_dialog_id);
-      dependencies.add_dialog_and_dependencies(content->receiver_dialog_id);
-      dependencies.add_dialog_and_dependencies(content->owner_dialog_id);
+      dependencies.add_message_sender_dependencies(content->sender_dialog_id);
+      dependencies.add_message_sender_dependencies(content->receiver_dialog_id);
+      dependencies.add_message_sender_dependencies(content->owner_dialog_id);
+      if ((content->receiver_dialog_id == DialogId() && content->owner_dialog_id == DialogId()) ||
+          content->is_auction_acquired) {
+        // possible sender or receiver
+        dependencies.add(my_user_id);
+      }
       break;
     }
     case MessageContentType::StarGiftUnique: {
       const auto *content = static_cast<const MessageStarGiftUnique *>(message_content);
       content->star_gift.add_dependencies(dependencies);
-      dependencies.add_dialog_and_dependencies(content->sender_dialog_id);
-      dependencies.add_dialog_and_dependencies(content->owner_dialog_id);
+      dependencies.add_message_sender_dependencies(content->sender_dialog_id);
+      dependencies.add_message_sender_dependencies(content->owner_dialog_id);
+      if (content->owner_dialog_id == DialogId()) {
+        // possible receiver
+        dependencies.add(my_user_id);
+      }
       break;
     }
     case MessageContentType::PaidMessagesRefunded:

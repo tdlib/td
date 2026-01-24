@@ -280,12 +280,12 @@ vector<ChannelId> RepliedMessageInfo::get_min_channel_ids(Td *td) const {
   return channel_ids;
 }
 
-void RepliedMessageInfo::add_dependencies(Dependencies &dependencies, bool is_bot) const {
+void RepliedMessageInfo::add_dependencies(Dependencies &dependencies, UserId my_user_id, bool is_bot) const {
   dependencies.add_dialog_and_dependencies(dialog_id_);
   origin_.add_dependencies(dependencies);
   quote_.add_dependencies(dependencies);
   if (content_ != nullptr) {
-    add_message_content_dependencies(dependencies, content_.get(), is_bot);
+    add_message_content_dependencies(dependencies, content_.get(), my_user_id, is_bot);
   }
 }
 

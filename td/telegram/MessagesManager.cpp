@@ -20671,11 +20671,12 @@ bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing)
 }
 
 void MessagesManager::add_message_dependencies(Dependencies &dependencies, const Message *m) const {
+  auto my_user_id = td_->user_manager_->get_my_id();
   auto is_bot = td_->auth_manager_->is_bot();
   dependencies.add(m->sender_user_id);
   dependencies.add_dialog_and_dependencies(m->sender_dialog_id);
   m->saved_messages_topic_id.add_dependencies(dependencies);
-  m->replied_message_info.add_dependencies(dependencies, is_bot);
+  m->replied_message_info.add_dependencies(dependencies, my_user_id, is_bot);
   dependencies.add_dialog_and_dependencies(m->reply_to_story_full_id.get_dialog_id());
   dependencies.add_dialog_and_dependencies(m->real_forward_from_dialog_id);
   dependencies.add(m->via_bot_user_id);
@@ -20697,7 +20698,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, const
   if (m->fact_check != nullptr) {
     m->fact_check->add_dependencies(dependencies);
   }
-  add_message_content_dependencies(dependencies, m->content.get(), is_bot);
+  add_message_content_dependencies(dependencies, m->content.get(), my_user_id, is_bot);
   add_reply_markup_dependencies(dependencies, m->reply_markup.get());
   add_draft_message_dependencies(dependencies, m->thread_draft_message);
 }
