@@ -26,6 +26,15 @@ class StarGiftCollectionId {
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   StarGiftCollectionId(T star_gift_collection_id) = delete;
 
+  static vector<StarGiftCollectionId> get_star_gift_collection_ids(const vector<int32> &input_ids) {
+    vector<StarGiftCollectionId> star_gift_collection_ids;
+    star_gift_collection_ids.reserve(input_ids.size());
+    for (auto &input_id : input_ids) {
+      star_gift_collection_ids.emplace_back(input_id);
+    }
+    return star_gift_collection_ids;
+  }
+
   int32 get() const {
     return id;
   }

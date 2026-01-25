@@ -8188,9 +8188,7 @@ void Requests::on_request(uint64 id, const td_api::reorderGiftCollections &reque
   CREATE_OK_REQUEST_PROMISE();
   TRY_RESULT_PROMISE(promise, owner_dialog_id, get_message_sender_dialog_id(td_, request.owner_id_, true, false));
   td_->star_gift_manager_->reorder_gift_collections(
-      owner_dialog_id,
-      transform(request.collection_ids_, [](int32 collection_id) { return StarGiftCollectionId(collection_id); }),
-      std::move(promise));
+      owner_dialog_id, StarGiftCollectionId::get_star_gift_collection_ids(request.collection_ids_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::deleteGiftCollection &request) {
