@@ -75,6 +75,10 @@ class MessageTopic {
     return type_ == Type::Forum;
   }
 
+  bool is_forum_general() const {
+    return type_ == Type::Forum && forum_topic_id_ == ForumTopicId::general();
+  }
+
   bool is_monoforum() const {
     return type_ == Type::Monoforum;
   }

@@ -20139,7 +20139,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   auto my_id = td_->user_manager_->get_my_id();
 
   int64 reply_to_random_id = 0;
-  bool is_general = message_topic.is_forum() && message_topic.get_forum_topic_id() == ForumTopicId::general();
+  bool is_general = message_topic.is_forum_general();
   auto initial_is_topic_message = message_topic.is_forum() && !is_general;
   auto initial_top_thread_message_id = MessageId(ServerMessageId(message_topic.get_input_top_msg_id()));
   bool is_topic_message = initial_is_topic_message;
