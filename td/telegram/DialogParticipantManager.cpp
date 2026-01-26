@@ -2188,7 +2188,7 @@ void DialogParticipantManager::leave_dialog(DialogId dialog_id, Promise<Unit> &&
       auto new_status = old_status;
       new_status.set_is_member(false);
       return restrict_channel_participant(channel_id, td_->dialog_manager_->get_my_dialog_id(), std::move(new_status),
-                                          std::move(old_status), std::move(promise));
+                                          std::move(old_status), false, std::move(promise));
     }
     case DialogType::SecretChat:
       return promise.set_error(400, "Can't leave secret chats");
@@ -2504,11 +2504,14 @@ void DialogParticipantManager::set_channel_participant_status(
     return promise.set_error(400, "Chat info not found");
   }
   auto new_status = get_dialog_participant_status(chat_member_status, td_->chat_manager_->get_channel_type(channel_id));
+  auto ignore_restricted_is_member = td_->auth_manager_->is_bot() && chat_member_status != nullptr &&
+                                     chat_member_status->get_id() == td_api::chatMemberStatusRestricted::ID;
 
   if (participant_dialog_id == td_->dialog_manager_->get_my_dialog_id()) {
     // fast path is needed, because get_channel_status may return Creator, while GetChannelParticipantQuery returning Left
     return set_channel_participant_status_impl(channel_id, participant_dialog_id, std::move(new_status),
-                                               td_->chat_manager_->get_channel_status(channel_id), std::move(promise));
+                                               td_->chat_manager_->get_channel_status(channel_id),
+                                               ignore_restricted_is_member, std::move(promise));
   }
   if (participant_dialog_id.get_type() != DialogType::User) {
     if (new_status.is_administrator() || new_status.is_member() || new_status.is_restricted()) {
@@ -2518,19 +2521,19 @@ void DialogParticipantManager::set_channel_participant_status(
     return restrict_channel_participant(
         channel_id, participant_dialog_id, std::move(new_status),
         new_status.is_banned() ? DialogParticipantStatus::Left() : DialogParticipantStatus::Banned(0),
-        std::move(promise));
+        ignore_restricted_is_member, std::move(promise));
   }
 
-  auto on_result_promise =
-      PromiseCreator::lambda([actor_id = actor_id(this), channel_id, participant_dialog_id, new_status,
-                              promise = std::move(promise)](Result<DialogParticipant> r_dialog_participant) mutable {
+  auto on_result_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), channel_id, participant_dialog_id, new_status, ignore_restricted_is_member,
+       promise = std::move(promise)](Result<DialogParticipant> r_dialog_participant) mutable {
         if (r_dialog_participant.is_error()) {
           return promise.set_error(r_dialog_participant.move_as_error());
         }
 
         send_closure(actor_id, &DialogParticipantManager::set_channel_participant_status_impl, channel_id,
                      participant_dialog_id, std::move(new_status), r_dialog_participant.ok().status_,
-                     std::move(promise));
+                     ignore_restricted_is_member, std::move(promise));
       });
 
   get_channel_participant(channel_id, participant_dialog_id, std::move(on_result_promise));
@@ -2539,6 +2542,7 @@ void DialogParticipantManager::set_channel_participant_status(
 void DialogParticipantManager::set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
                                                                    DialogParticipantStatus new_status,
                                                                    DialogParticipantStatus old_status,
+                                                                   bool ignore_restricted_is_member,
                                                                    Promise<Unit> &&promise) {
   if (old_status == new_status && !old_status.is_creator()) {
     return promise.set_value(Unit());
@@ -2616,7 +2620,7 @@ void DialogParticipantManager::set_channel_participant_status_impl(ChannelId cha
                                        std::move(promise));
   } else if (need_restrict) {
     return restrict_channel_participant(channel_id, participant_dialog_id, std::move(new_status), std::move(old_status),
-                                        std::move(promise));
+                                        ignore_restricted_is_member, std::move(promise));
   } else {
     CHECK(need_add);
     if (participant_dialog_id.get_type() != DialogType::User) {
@@ -2659,7 +2663,7 @@ void DialogParticipantManager::promote_channel_participant(ChannelId channel_id,
 
 void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
                                                             DialogParticipantStatus &&new_status,
-                                                            DialogParticipantStatus &&old_status,
+                                                            DialogParticipantStatus &&old_status, bool ignore_is_member,
                                                             Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
@@ -2725,7 +2729,7 @@ void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id
     return promise.set_error(400, "Not enough rights to restrict/unrestrict chat member");
   }
 
-  if (old_status.is_member() && !new_status.is_member() && !new_status.is_banned()) {
+  if (old_status.is_member() && !new_status.is_member() && !new_status.is_banned() && !ignore_is_member) {
     // we can't make participant Left without kicking it first
     auto on_result_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id, participant_dialog_id,
                                                      new_status = std::move(new_status),
@@ -2739,7 +2743,7 @@ void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id
           PromiseCreator::lambda([actor_id, channel_id, participant_dialog_id, new_status = std::move(new_status),
                                   promise = std::move(promise)](Unit) mutable {
             send_closure(actor_id, &DialogParticipantManager::restrict_channel_participant, channel_id,
-                         participant_dialog_id, std::move(new_status), DialogParticipantStatus::Banned(0),
+                         participant_dialog_id, std::move(new_status), DialogParticipantStatus::Banned(0), false,
                          std::move(promise));
           }))
           .release();
@@ -2749,7 +2753,7 @@ void DialogParticipantManager::restrict_channel_participant(ChannelId channel_id
     new_status = DialogParticipantStatus::Banned(G()->unix_time() + 60);
   }
 
-  if (new_status.is_member() && !old_status.is_member()) {
+  if (new_status.is_member() && !old_status.is_member() && !ignore_is_member) {
     // there is no way in server API to invite someone and change restrictions
     // we need to first change restrictions and then try to add the user
     CHECK(participant_dialog_id.get_type() == DialogType::User);

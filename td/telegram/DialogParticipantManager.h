@@ -252,14 +252,14 @@ class DialogParticipantManager final : public Actor {
 
   void set_channel_participant_status_impl(ChannelId channel_id, DialogId participant_dialog_id,
                                            DialogParticipantStatus new_status, DialogParticipantStatus old_status,
-                                           Promise<Unit> &&promise);
+                                           bool ignore_restricted_is_member, Promise<Unit> &&promise);
 
   void promote_channel_participant(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &new_status,
                                    const DialogParticipantStatus &old_status, Promise<Unit> &&promise);
 
   void restrict_channel_participant(ChannelId channel_id, DialogId participant_dialog_id,
                                     DialogParticipantStatus &&new_status, DialogParticipantStatus &&old_status,
-                                    Promise<Unit> &&promise);
+                                    bool ignore_is_member, Promise<Unit> &&promise);
 
   void speculative_add_channel_user(ChannelId channel_id, UserId user_id, const DialogParticipantStatus &new_status,
                                     const DialogParticipantStatus &old_status);
