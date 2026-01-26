@@ -20337,6 +20337,10 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   if (result->paid_message_star_count > 0) {
     td_->star_manager_->add_pending_owned_star_count(-result->paid_message_star_count, false);
   }
+  auto stake_ton_count = get_message_content_stake_ton_count(result->content.get());
+  if (stake_ton_count > 0) {
+    td_->star_manager_->add_pending_owned_ton_count(-stake_ton_count, false);
+  }
   return result;
 }
 
@@ -26076,6 +26080,12 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
   if (m->paid_message_star_count > 0) {
     td_->star_manager_->add_pending_owned_star_count(m->paid_message_star_count, true);
   }
+  auto stake_ton_count = get_message_content_stake_ton_count(m->content.get());
+  if (stake_ton_count > 0) {
+    auto prize_ton_count = get_message_content_prize_ton_count(m->content.get());
+    td_->star_manager_->add_pending_owned_ton_count(prize_ton_count, false);
+    td_->star_manager_->add_pending_owned_ton_count(stake_ton_count - prize_ton_count, true);
+  }
   if (!td_->auth_manager_->is_bot()) {
     yet_unsent_message_full_id_to_persistent_message_id_.emplace({d->dialog_id, old_message_id}, m->message_id);
 
@@ -27385,6 +27395,10 @@ void MessagesManager::fail_send_message(MessageFullId message_full_id, int32 err
   message->thumbnail_file_upload_ids = {};
   if (message->paid_message_star_count > 0) {
     td_->star_manager_->add_pending_owned_star_count(message->paid_message_star_count, false);
+  }
+  auto stake_ton_count = get_message_content_stake_ton_count(message->content.get());
+  if (stake_ton_count > 0) {
+    td_->star_manager_->add_pending_owned_ton_count(stake_ton_count, false);
   }
 
   bool need_update = false;
