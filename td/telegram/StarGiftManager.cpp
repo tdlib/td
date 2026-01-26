@@ -1567,6 +1567,8 @@ class SendStarGiftOfferQuery final : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SendStarGiftOfferQuery: " << to_string(ptr);
+    td_->star_manager_->add_pending_owned_star_count(paid_message_star_count_, true);
+    td_->star_manager_->add_pending_owned_amount(price_, 1, true);
     td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
   }
 
