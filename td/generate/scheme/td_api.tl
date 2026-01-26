@@ -13955,11 +13955,11 @@ toggleChatGiftNotifications chat_id:int53 are_enabled:Bool = Ok;
 //@description Returns examples of possible upgraded gifts for a regular gift @regular_gift_id Identifier of the regular gift
 getGiftUpgradePreview regular_gift_id:int64 = GiftUpgradePreview;
 
-//@description Returns all possible variants of upgraded gifts for a regular gift @regular_gift_id Identifier of the regular gift
-getGiftUpgradeVariants regular_gift_id:int64 = GiftUpgradeVariants;
-
-//@description Returns all possible variants of crafted gifts for a regular gift @regular_gift_id Identifier of the regular gift
-getGiftCraftVariants regular_gift_id:int64 = GiftUpgradeVariants;
+//@description Returns all possible variants of upgraded gifts for a regular gift
+//@regular_gift_id Identifier of the regular gift
+//@return_upgrade_models Pass True to get models that can be obtained by upgrading a regular gift
+//@return_craft_models Pass True to get models that can be obtained by crafting a gift from upgraded gifts
+getUpgradedGiftVariants regular_gift_id:int64 return_upgrade_models:Bool return_craft_models:Bool = GiftUpgradeVariants;
 
 //@description Upgrades a regular gift
 //@business_connection_id Unique identifier of business connection on behalf of which to send the request; for bots only

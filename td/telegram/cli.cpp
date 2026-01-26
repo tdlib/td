@@ -3203,14 +3203,10 @@ class CliClient final : public Actor {
       int64 regular_gift_id;
       get_args(args, regular_gift_id);
       send_request(td_api::make_object<td_api::getGiftUpgradePreview>(regular_gift_id));
-    } else if (op == "gguv") {
+    } else if (op == "gugv" || op == "gugvu" || op == "gugvc") {
       int64 regular_gift_id;
       get_args(args, regular_gift_id);
-      send_request(td_api::make_object<td_api::getGiftUpgradeVariants>(regular_gift_id));
-    } else if (op == "ggcv") {
-      int64 regular_gift_id;
-      get_args(args, regular_gift_id);
-      send_request(td_api::make_object<td_api::getGiftCraftVariants>(regular_gift_id));
+      send_request(td_api::make_object<td_api::getUpgradedGiftVariants>(regular_gift_id, op != "gugvc", op != "gugvu"));
     } else if (op == "ug") {
       string received_gift_id;
       bool keep_original_details;

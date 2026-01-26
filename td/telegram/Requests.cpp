@@ -8045,16 +8045,11 @@ void Requests::on_request(uint64 id, const td_api::getGiftUpgradePreview &reques
   td_->star_gift_manager_->get_gift_upgrade_preview(request.regular_gift_id_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getGiftUpgradeVariants &request) {
+void Requests::on_request(uint64 id, const td_api::getUpgradedGiftVariants &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->star_gift_manager_->get_gift_upgrade_variants(request.regular_gift_id_, false, std::move(promise));
-}
-
-void Requests::on_request(uint64 id, const td_api::getGiftCraftVariants &request) {
-  CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  td_->star_gift_manager_->get_gift_upgrade_variants(request.regular_gift_id_, true, std::move(promise));
+  td_->star_gift_manager_->get_gift_upgrade_variants(request.regular_gift_id_, request.return_upgrade_models_,
+                                                     request.return_craft_models_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::upgradeGift &request) {
