@@ -698,12 +698,12 @@ void ForumTopicManager::clear_forum_topic_draft_by_sent_message(DialogId dialog_
   if (td_->auth_manager_->is_bot()) {
     return;
   }
+  LOG(INFO) << "Clear draft in " << forum_topic_id << " of " << dialog_id << " by sent message";
   auto topic = get_topic(dialog_id, forum_topic_id);
   if (topic == nullptr || topic->topic_ == nullptr) {
     return;
   }
 
-  LOG(INFO) << "Clear draft in " << forum_topic_id << " of " << dialog_id << " by sent message";
   if (!message_clear_draft) {
     const auto *draft_message = topic->topic_->get_draft_message().get();
     if (draft_message == nullptr || !draft_message->need_clear_local(message_content_type)) {
@@ -1145,12 +1145,7 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
       }
       auto current_notification_settings =
           topic->topic_ == nullptr ? nullptr : topic->topic_->get_notification_settings();
-      unique_ptr<DraftMessage> draft_message;
-      if (forum_topic_id == ForumTopicId::general()) {
-        draft_message = td_->messages_manager_->get_dialog_draft_message(dialog_id);
-      }
-      auto forum_topic_full = td::make_unique<ForumTopic>(td_, std::move(forum_topic), current_notification_settings,
-                                                          std::move(draft_message));
+      auto forum_topic_full = td::make_unique<ForumTopic>(td_, std::move(forum_topic), current_notification_settings);
       if (forum_topic_full->is_short() && !td_->auth_manager_->is_bot()) {
         LOG(ERROR) << "Receive short forum topic";
         return ForumTopicId();

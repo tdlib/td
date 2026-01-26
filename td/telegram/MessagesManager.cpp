@@ -15413,7 +15413,7 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id,
   return set_dialog_draft_message(d, message_topic, std::move(new_draft_message));
 }
 
-Status MessagesManager::set_dialog_draft_message(Dialog *d, MessageTopic message_topic,
+Status MessagesManager::set_dialog_draft_message(Dialog *d, const MessageTopic &message_topic,
                                                  unique_ptr<DraftMessage> &&draft_message) {
   if (message_topic.is_thread()) {
     auto top_thread_message_id = message_topic.get_top_thread_message_id();
@@ -27517,11 +27517,6 @@ bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMes
   CHECK(d != nullptr);
   if (!td_->auth_manager_->is_bot() && need_update_draft_message(d->draft_message, draft_message, from_update)) {
     d->draft_message = std::move(draft_message);
-    if (d->dialog_id.get_type() == DialogType::Channel &&
-        td_->chat_manager_->is_megagroup_channel(d->dialog_id.get_channel_id())) {
-      td_->forum_topic_manager_->on_update_forum_topic_draft_message(d->dialog_id, ForumTopicId::general(),
-                                                                     DraftMessage::clone(d->draft_message));
-    }
     if (need_update_dialog_pos) {
       update_dialog_pos(d, "update_dialog_draft_message", false);
     }

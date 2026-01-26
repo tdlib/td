@@ -2901,7 +2901,8 @@ class MessagesManager final : public Actor {
 
   vector<td_api::object_ptr<td_api::chatPosition>> get_chat_positions_object(const Dialog *d) const;
 
-  Status set_dialog_draft_message(Dialog *d, MessageTopic message_topic, unique_ptr<DraftMessage> &&draft_message);
+  Status set_dialog_draft_message(Dialog *d, const MessageTopic &message_topic,
+                                  unique_ptr<DraftMessage> &&draft_message);
 
   bool update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
                                    bool need_update_dialog_pos, bool from_database = false);
