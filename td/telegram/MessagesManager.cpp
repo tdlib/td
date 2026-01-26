@@ -15430,7 +15430,6 @@ Status MessagesManager::set_dialog_draft_message(Dialog *d, const MessageTopic &
     return Status::OK();
   }
   if (message_topic.is_forum()) {
-    CHECK(message_topic.get_forum_topic_id() != ForumTopicId::general());  // checked in get_send_message_topic
     return td_->forum_topic_manager_->set_forum_topic_draft_message(d->dialog_id, message_topic.get_forum_topic_id(),
                                                                     std::move(draft_message));
   }
@@ -20140,10 +20139,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
   auto my_id = td_->user_manager_->get_my_id();
 
   int64 reply_to_random_id = 0;
-  bool is_topic_message = message_topic.is_forum();  // message_topic can't be General forum topic here
-  auto top_thread_message_id = MessageId(ServerMessageId(message_topic.get_input_top_msg_id()));
-  auto initial_is_topic_message = is_topic_message;
-  auto initial_top_thread_message_id = top_thread_message_id;
+  bool is_general = message_topic.is_forum() && message_topic.get_forum_topic_id() == ForumTopicId::general();
+  auto initial_is_topic_message = message_topic.is_forum() && !is_general;
+  auto initial_top_thread_message_id = MessageId(ServerMessageId(message_topic.get_input_top_msg_id()));
+  bool is_topic_message = initial_is_topic_message;
+  auto top_thread_message_id = is_general ? MessageId() : initial_top_thread_message_id;
   auto same_chat_reply_to_message_id = input_reply_to.get_same_chat_reply_to_message_id();
   if (same_chat_reply_to_message_id.is_valid() || same_chat_reply_to_message_id.is_valid_scheduled()) {
     // the message was forcely preloaded in create_message_input_reply_to
@@ -20170,6 +20170,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::create_message_to_send(
       is_topic_message = top_m->is_topic_message;
     }
   }
+  LOG(DEBUG) << "Create " << (is_topic_message ? "" : "non-") << "topic message in thread of " << top_thread_message_id;
 
   auto message = make_unique<Message>();
   auto *m = message.get();

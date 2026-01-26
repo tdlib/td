@@ -224,11 +224,6 @@ Result<MessageTopic> MessageTopic::get_send_message_topic(Td *td, DialogId dialo
     return MessageTopic();
   }
 
-  // sending to the general topic must be done implicitly
-  if (message_topic.is_general_forum()) {
-    return MessageTopic();
-  }
-
   if (message_topic.is_saved_messages()) {
     return Status::Error(400, "Messages can't be explicitly sent to a Saved Messages topic");
   }
