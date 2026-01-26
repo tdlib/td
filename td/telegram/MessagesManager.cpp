@@ -20328,18 +20328,8 @@ MessagesManager::Message *MessagesManager::get_message_to_send(
   auto result =
       add_message_to_dialog(d, std::move(message), false, true, &need_update, need_update_dialog_pos, "send message");
   LOG_CHECK(result != nullptr) << message_id << ' ' << debug_add_message_to_dialog_fail_reason_;
-  if (result->message_id.is_scheduled()) {
-    send_update_chat_has_scheduled_messages(d, false);
-  }
   if (options.update_stickersets_order && !td_->auth_manager_->is_bot()) {
     move_message_content_sticker_set_to_top(td_, result->content.get());
-  }
-  if (result->paid_message_star_count > 0) {
-    td_->star_manager_->add_pending_owned_star_count(-result->paid_message_star_count, false);
-  }
-  auto stake_ton_count = get_message_content_stake_ton_count(result->content.get());
-  if (stake_ton_count > 0) {
-    td_->star_manager_->add_pending_owned_ton_count(-stake_ton_count, false);
   }
   return result;
 }
@@ -30631,6 +30621,19 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     // must be called after the message is added to correctly update replies
     update_message_max_reply_media_timestamp(d, result_message, false);
     update_message_max_own_media_timestamp(d, result_message);
+
+    if (m->message_id.is_yet_unsent()) {
+      if (m->message_id.is_scheduled()) {
+        send_update_chat_has_scheduled_messages(d, false);
+      }
+      if (m->paid_message_star_count > 0) {
+        td_->star_manager_->add_pending_owned_star_count(-m->paid_message_star_count, false);
+      }
+      auto stake_ton_count = get_message_content_stake_ton_count(m->content.get());
+      if (stake_ton_count > 0) {
+        td_->star_manager_->add_pending_owned_ton_count(-stake_ton_count, false);
+      }
+    }
   }
 
   result_message->debug_source = source;
