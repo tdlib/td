@@ -6,6 +6,7 @@
 //
 #include "td/telegram/AuthManager.h"
 
+#include "td/telegram/Application.h"
 #include "td/telegram/AttachMenuManager.h"
 #include "td/telegram/AuthManager.hpp"
 #include "td/telegram/ConfigManager.h"
@@ -1434,6 +1435,7 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
     return on_current_query_ok();
   }
   auto auth = telegram_api::move_object_as<telegram_api::auth_authorization>(auth_ptr);
+  string debug = oneline(to_string(auth));
 
   td_->option_manager_->set_option_integer("authorization_date", G()->unix_time());
   if (was_check_bot_token_) {
@@ -1458,7 +1460,9 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   update_state(State::Ok);
   td_->messages_manager_->on_authorization_success();
   if (!td_->user_manager_->get_my_id().is_valid()) {
-    LOG(ERROR) << "Server didsn't send proper authorization";
+    LOG(ERROR) << "Server didsn't send proper authorization: " << debug;
+    save_app_log(td_, "tdlib.auth", DialogId(static_cast<int64>(1)),
+                 telegram_api::make_object<telegram_api::jsonString>(debug), Promise<Unit>());
     on_current_query_error(Status::Error(500, "Server didn't send proper authorization"));
     log_out(0);
     return;
