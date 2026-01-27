@@ -10289,6 +10289,9 @@ void MessagesManager::init() {
     }
   }
   init_state_ = 8;
+  if (was_authorized_user) {
+    init_state_ += 10;
+  }
 }
 
 void MessagesManager::on_authorization_success() {
@@ -15907,7 +15910,7 @@ bool MessagesManager::is_dialog_mention_notifications_disabled(const Dialog *d) 
 
 void MessagesManager::create_dialog(DialogId dialog_id, bool force, Promise<Unit> &&promise) {
   if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
-    if (!td_->dialog_manager_->have_dialog_info_force(dialog_id, "create dialog")) {
+    if (!td_->dialog_manager_->have_dialog_info_force(dialog_id, "create_dialog 1")) {
       return promise.set_error(400, "Chat info not found");
     }
     if (!td_->dialog_manager_->have_input_peer(dialog_id, true, AccessRights::Read)) {
@@ -15916,11 +15919,11 @@ void MessagesManager::create_dialog(DialogId dialog_id, bool force, Promise<Unit
   }
 
   if (force || td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
-    force_create_dialog(dialog_id, "create dialog");
+    force_create_dialog(dialog_id, "create_dialog 2");
   } else {
-    const Dialog *d = get_dialog_force(dialog_id, "create_dialog");
+    const Dialog *d = get_dialog_force(dialog_id, "create_dialog 3");
     if (!is_dialog_inited(d)) {
-      return send_get_dialog_query(dialog_id, std::move(promise), 0, "create_dialog");
+      return send_get_dialog_query(dialog_id, std::move(promise), 0, "create_dialog 4");
     }
   }
 
@@ -32931,7 +32934,8 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   LOG_CHECK(folder_ptr != nullptr) << is_inited_ << ' ' << init_state_ << ' ' << create_folders_source_ << ' '
                                    << G()->close_flag() << ' ' << dialog_id << ' ' << d->folder_id << ' '
                                    << is_loaded_from_database << ' ' << td_->auth_manager_->is_authorized() << ' '
-                                   << td_->auth_manager_->was_authorized() << ' ' << source;
+                                   << td_->auth_manager_->was_authorized() << ' ' << td_->user_manager_->get_my_id()
+                                   << ' ' << source;
   auto &folder = *folder_ptr;
   if (old_date == new_date) {
     if (new_order == DEFAULT_ORDER) {

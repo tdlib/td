@@ -1456,6 +1456,7 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
   }
   td_->user_manager_->on_get_user(std::move(auth->user_), "on_get_authorization");
   update_state(State::Ok);
+  td_->messages_manager_->on_authorization_success();
   if (!td_->user_manager_->get_my_id().is_valid()) {
     LOG(ERROR) << "Server didsn't send proper authorization";
     on_current_query_error(Status::Error(500, "Server didn't send proper authorization"));
@@ -1473,7 +1474,6 @@ void AuthManager::on_get_authorization(tl_object_ptr<telegram_api::auth_Authoriz
                                             base64url_encode(auth->future_auth_token_.as_slice()));
   }
   td_->attach_menu_manager_->init();
-  td_->messages_manager_->on_authorization_success();
   td_->dialog_filter_manager_->on_authorization_success();  // must be after MessagesManager::on_authorization_success()
                                                             // to have folders created
   td_->notification_manager_->init();
