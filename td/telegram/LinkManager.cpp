@@ -3786,6 +3786,17 @@ void LinkManager::get_external_link_info(string &&link, Promise<td_api::object_p
 
   auto r_url = parse_url(link);
   if (r_url.is_error()) {
+    auto info = get_link_info(link);
+    if (info.type_ == LinkType::Tg) {
+      const auto url_query = parse_url_query(info.query_);
+      const auto &path = url_query.path_;
+      if (path.size() == 1 &&
+          ((path[0] == "resolve" && url_query.get_arg("domain") == "oauth" && !url_query.get_arg("startapp").empty()) ||
+           (path[0] == "oauth" && !url_query.get_arg("token").empty()))) {
+        td_->create_handler<RequestUrlAuthQuery>(std::move(promise))->send(link, MessageFullId(), 0);
+        return;
+      }
+    }
     return promise.set_value(std::move(default_result));
   }
 
