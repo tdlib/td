@@ -8014,9 +8014,9 @@ class CliClient final : public Actor {
     } else if (op == "geli") {
       const string &link = args;
       send_request(td_api::make_object<td_api::getExternalLinkInfo>(link));
-    } else if (op == "gel" || op == "gelw") {
+    } else if (op == "gel" || op == "gelw" || op == "gelp") {
       const string &link = args;
-      send_request(td_api::make_object<td_api::getExternalLink>(link, op == "gelw"));
+      send_request(td_api::make_object<td_api::getExternalLink>(link, op == "gelw", op == "gelp"));
     } else if (op == "racm") {
       ChatId chat_id;
       get_args(args, chat_id);

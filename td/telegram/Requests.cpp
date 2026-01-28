@@ -3401,7 +3401,8 @@ void Requests::on_request(uint64 id, td_api::getExternalLink &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.link_);
   CREATE_REQUEST_PROMISE();
-  td_->link_manager_->get_link_login_url(request.link_, request.allow_write_access_, std::move(promise));
+  td_->link_manager_->get_link_login_url(request.link_, request.allow_write_access_, request.allow_phone_number_access_,
+                                         std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getChatHistory &request) {

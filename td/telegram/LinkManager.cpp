@@ -1655,7 +1655,8 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
   explicit AcceptUrlAuthQuery(Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(string url, MessageFullId message_full_id, int32 button_id, bool allow_write_access) {
+  void send(string url, MessageFullId message_full_id, int32 button_id, bool allow_write_access,
+            bool allow_phone_number_access) {
     url_ = std::move(url);
     int32 flags = 0;
     telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
@@ -1668,7 +1669,7 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
       flags |= telegram_api::messages_acceptUrlAuth::URL_MASK;
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_acceptUrlAuth(
-        flags, allow_write_access, false, std::move(input_peer),
+        flags, allow_write_access, allow_phone_number_access, std::move(input_peer),
         message_full_id.get_message_id().get_server_message_id().get(), button_id, url_)));
   }
 
@@ -3885,12 +3886,13 @@ void LinkManager::get_login_url(MessageFullId message_full_id, int64 button_id, 
                                 Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) {
   TRY_RESULT_PROMISE(promise, url, td_->messages_manager_->get_login_button_url(message_full_id, button_id));
   td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
-      ->send(std::move(url), message_full_id, narrow_cast<int32>(button_id), allow_write_access);
+      ->send(std::move(url), message_full_id, narrow_cast<int32>(button_id), allow_write_access, false);
 }
 
-void LinkManager::get_link_login_url(const string &url, bool allow_write_access,
+void LinkManager::get_link_login_url(const string &url, bool allow_write_access, bool allow_phone_number_access,
                                      Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) {
-  td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))->send(url, MessageFullId(), 0, allow_write_access);
+  td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
+      ->send(url, MessageFullId(), 0, allow_write_access, allow_phone_number_access);
 }
 
 Result<string> LinkManager::get_background_url(const string &name,

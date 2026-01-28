@@ -11722,7 +11722,7 @@ getLoginUrlInfo chat_id:int53 message_id:int53 button_id:int53 = LoginUrlInfo;
 //@chat_id Chat identifier of the message with the button
 //@message_id Message identifier of the message with the button
 //@button_id Button identifier
-//@allow_write_access Pass true to allow the bot to send messages to the current user
+//@allow_write_access Pass true to allow the bot to send messages to the current user. Phone number access can't be requested using the button
 getLoginUrl chat_id:int53 message_id:int53 button_id:int53 allow_write_access:Bool = HttpUrl;
 
 
@@ -11941,8 +11941,9 @@ getExternalLinkInfo link:string = LoginUrlInfo;
 
 //@description Returns an HTTP URL which can be used to automatically authorize the current user on a website after clicking an HTTP link. Use the method getExternalLinkInfo to find whether a prior user confirmation is needed
 //@link The HTTP link
-//@allow_write_access Pass true if the current user allowed the bot, returned in getExternalLinkInfo, to send them messages
-getExternalLink link:string allow_write_access:Bool = HttpUrl;
+//@allow_write_access Pass true if the current user allowed the bot that was returned in getExternalLinkInfo, to send them messages
+//@allow_phone_number_access Pass true if the current user allowed the bot that was returned in getExternalLinkInfo, to access their phone number
+getExternalLink link:string allow_write_access:Bool allow_phone_number_access:Bool = HttpUrl;
 
 
 //@description Marks all mentions in a chat as read @chat_id Chat identifier
