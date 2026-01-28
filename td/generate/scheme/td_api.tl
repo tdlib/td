@@ -678,7 +678,7 @@ userTypeDeleted = UserType;
 //@can_read_all_group_messages True, if the bot can read all messages in basic group or supergroup chats and not just those addressed to the bot. In private and channel chats a bot can always read all messages
 //@has_main_web_app True, if the bot has the main Web App
 //@has_topics True, if the bot has topics
-//@has_user_manageable_topics True, if users can create and delete topics in the chat with the bot 
+//@has_user_manageable_topics True, if users can create and delete topics in the chat with the bot
 //@is_inline True, if the bot supports inline queries
 //@inline_query_placeholder Placeholder for inline queries (displayed on the application input field)
 //@need_location True, if the location of the user is expected to be sent with every inline query to this bot
@@ -8338,8 +8338,8 @@ reportStoryResultTextRequired option_id:bytes is_optional:Bool = ReportStoryResu
 
 //@class SettingsSection @description Describes a section of the application settings
 
-//@description The appearance section @subsection Subsection of the section if any; may be one of
-//-"themes", "themes/edit", "themes/create", "wallpapers", "wallpapers/edit", "wallpapers/set",
+//@description The appearance section @subsection Subsection of the section; may be one of
+//-"", "themes", "themes/edit", "themes/create", "wallpapers", "wallpapers/edit", "wallpapers/set",
 //-"wallpapers/choose-photo", "your-color/profile", "your-color/profile/add-icons", "your-color/profile/use-gift",
 //-"your-color/profile/reset", "your-color/name", "your-color/name/add-icons", "your-color/name/use-gift",
 //-"night-mode", "auto-night-mode", "text-size", "text-size/use-system", "message-corners", "animations",
@@ -8354,16 +8354,16 @@ settingsSectionAppearance subsection:string = SettingsSection;
 //@description The "Ask a question" section
 settingsSectionAskQuestion = SettingsSection;
 
-//@description The "Telegram Business" section @subsection Subsection of the section if any; may be one of
-//-"do-not-hide-ads"
+//@description The "Telegram Business" section @subsection Subsection of the section; may be one of
+//-"", "do-not-hide-ads"
 settingsSectionBusiness subsection:string = SettingsSection;
 
-//@description The chat folder settings section @subsection Subsection of the section if any; may be one of
-//-"edit", "create", "add-recommended", "show-tags", "tab-view"
+//@description The chat folder settings section @subsection Subsection of the section; may be one of
+//-"", "edit", "create", "add-recommended", "show-tags", "tab-view"
 settingsSectionChatFolders subsection:string = SettingsSection;
 
-//@description The data and storage settings section @subsection Subsection of the section if any; may be one of
-//-"storage", "storage/edit", "storage/auto-remove", "storage/clear-cache", "storage/max-cache", "usage",
+//@description The data and storage settings section @subsection Subsection of the section; may be one of
+//-"", "storage", "storage/edit", "storage/auto-remove", "storage/clear-cache", "storage/max-cache", "usage",
 //-"usage/mobile", "usage/wifi", "usage/reset", "usage/roaming", "auto-download/mobile",
 //-"auto-download/mobile/enable", "auto-download/mobile/usage", "auto-download/mobile/photos",
 //-"auto-download/mobile/stories", "auto-download/mobile/videos", "auto-download/mobile/files", "auto-download/wifi",
@@ -8381,14 +8381,15 @@ settingsSectionChatFolders subsection:string = SettingsSection;
 //-"proxy/add-proxy", "proxy/share-list", "proxy/use-for-calls"
 settingsSectionDataAndStorage subsection:string = SettingsSection;
 
-//@description The Devices section @subsection Subsection of the section if any; may be one of
-//-"edit", "link-desktop", "terminate-sessions", "auto-terminate"
+//@description The Devices section @subsection Subsection of the section; may be one of
+//-"", "edit", "link-desktop", "terminate-sessions", "auto-terminate"
 settingsSectionDevices subsection:string = SettingsSection;
 
-//@description The profile edit section @subsection Subsection of the section if any; may be one of "set-photo", "first-name", "last-name",
-//-"emoji-status", "bio", "birthday", "change-number", "username", "your-color", "channel", "add-account", "log-out",
-//-"profile-color/profile", "profile-color/profile/add-icons", "profile-color/profile/use-gift", "profile-color/name",
-//-"profile-color/name/add-icons", "profile-color/name/use-gift", "profile-photo/use-emoji"
+//@description The profile edit section @subsection Subsection of the section; may be one of
+//-"", "set-photo", "first-name", "last-name", "emoji-status", "bio", "birthday", "change-number", "username",
+//-"your-color", "channel", "add-account", "log-out", "profile-color/profile", "profile-color/profile/add-icons",
+//-"profile-color/profile/use-gift", "profile-color/name", "profile-color/name/add-icons",
+//-"profile-color/name/use-gift", "profile-photo/use-emoji"
 settingsSectionEditProfile subsection:string = SettingsSection;
 
 //@description The FAQ section
@@ -8397,23 +8398,23 @@ settingsSectionFaq = SettingsSection;
 //@description The "Telegram Features" section
 settingsSectionFeatures = SettingsSection;
 
-//@description The in-app browser settings section @subsection Subsection of the section if any; may be one of
-//-"enable-browser", "clear-cookies", "clear-cache", "history", "clear-history", "never-open", "clear-list", "search"
+//@description The in-app browser settings section @subsection Subsection of the section; may be one of
+//-"", "enable-browser", "clear-cookies", "clear-cache", "history", "clear-history", "never-open", "clear-list", "search"
 settingsSectionInAppBrowser subsection:string = SettingsSection;
 
-//@description The application language section @subsection Subsection of the section if any; may be one of "show-button" for Show Translate Button toggle,
+//@description The application language section @subsection Subsection of the section; may be one of "", "show-button" for Show Translate Button toggle,
 //-"translate-chats" for Translate Entire Chats toggle, "do-not-translate" - for Do Not Translate language list
 settingsSectionLanguage subsection:string = SettingsSection;
 
-//@description The Telegram Star balance and transaction section @subsection Subsection of the section if any; may be one of
-//-"top-up", "stats", "gift", "earn"
+//@description The Telegram Star balance and transaction section @subsection Subsection of the section; may be one of
+//-"", "top-up", "stats", "gift", "earn"
 settingsSectionMyStars subsection:string = SettingsSection;
 
 //@description The Toncoin balance and transaction section
 settingsSectionMyToncoins = SettingsSection;
 
-//@description The notification settings section @subsection Subsection of the section if any; may be one of
-//-"accounts", "private-chats", "private-chats/edit", "private-chats/show", "private-chats/preview",
+//@description The notification settings section @subsection Subsection of the section; may be one of
+//-"", "accounts", "private-chats", "private-chats/edit", "private-chats/show", "private-chats/preview",
 //-"private-chats/sound", "private-chats/add-exception", "private-chats/delete-exceptions",
 //-"private-chats/light-color", "private-chats/vibrate", "private-chats/priority", "groups", "groups/edit",
 //-"groups/show", "groups/preview", "groups/sound", "groups/add-exception", "groups/delete-exceptions",
@@ -8428,15 +8429,15 @@ settingsSectionMyToncoins = SettingsSection;
 //-"pinned-messages", "reset", "web"
 settingsSectionNotifications subsection:string = SettingsSection;
 
-//@description The power saving settings section @subsection Subsection of the section if any; may be one of
-//-"videos", "gifs", "stickers", "emoji", "effects", "preload", "background", "call-animations", "particles", "transitions"
+//@description The power saving settings section @subsection Subsection of the section; may be one of
+//-"", "videos", "gifs", "stickers", "emoji", "effects", "preload", "background", "call-animations", "particles", "transitions"
 settingsSectionPowerSaving subsection:string = SettingsSection;
 
 //@description The "Telegram Premium" section
 settingsSectionPremium = SettingsSection;
 
-//@description The privacy and security section @subsection Subsection of the section if any; may be one of
-//-"blocked", "blocked/edit", "blocked/block-user", "blocked/block-user/chats", "blocked/block-user/contacts",
+//@description The privacy and security section @subsection Subsection of the section; may be one of
+//-"", "blocked", "blocked/edit", "blocked/block-user", "blocked/block-user/chats", "blocked/block-user/contacts",
 //-"active-websites", "active-websites/edit", "active-websites/disconnect-all", "passcode", "passcode/disable",
 //-"passcode/change", "passcode/auto-lock", "passcode/face-id", "passcode/fingerprint", "2sv", "2sv/change",
 //-"2sv/disable", "2sv/change-email", "passkey", "passkey/create", "auto-delete", "auto-delete/set-custom",
@@ -8456,15 +8457,15 @@ settingsSectionPrivacyAndSecurity subsection:string = SettingsSection;
 //@description The "Privacy Policy" section
 settingsSectionPrivacyPolicy = SettingsSection;
 
-//@description The current user's QR code section @subsection Subsection of the section if any; may be one of
-//-"share", "scan"
+//@description The current user's QR code section @subsection Subsection of the section; may be one of
+//-"", "share", "scan"
 settingsSectionQrCode subsection:string = SettingsSection;
 
 //@description Search in Settings
 settingsSectionSearch = SettingsSection;
 
-//@description The "Send a gift" section @subsection Subsection of the section if any; may be one of
-//-"self"
+//@description The "Send a gift" section @subsection Subsection of the section; may be one of
+//-"", "self"
 settingsSectionSendGift subsection:string = SettingsSection;
 
 
@@ -8518,8 +8519,8 @@ internalLinkTypeBotStartInGroup bot_username:string start_parameter:string admin
 //@link_name Name of the link
 internalLinkTypeBusinessChat link_name:string = InternalLinkType;
 
-//@description The link is a link to the Call tab or page @section Section of the page if any; may be one of
-//-"all", "missed", "edit", "show-tab", "start-call"
+//@description The link is a link to the Call tab or page @section Section of the page; may be one of
+//-"", "all", "missed", "edit", "show-tab", "start-call"
 internalLinkTypeCallsPage section:string = InternalLinkType;
 
 //@description The link is an affiliate program link. Call searchChatAffiliateProgram with the given username and referrer to process the link
@@ -8546,8 +8547,8 @@ internalLinkTypeChatInvite invite_link:string = InternalLinkType;
 //@description The link is a link that allows to select some chats
 internalLinkTypeChatSelection = InternalLinkType;
 
-//@description The link is a link to the Contacts tab or page @section Section of the page if any; may be one of
-//-"search", "sort", "new", "invite", "manage"
+//@description The link is a link to the Contacts tab or page @section Section of the page; may be one of
+//-"", "search", "sort", "new", "invite", "manage"
 internalLinkTypeContactsPage section:string = InternalLinkType;
 
 //@description The link is a link to a channel direct messages chat by username of the channel. Call searchPublicChat with the given chat username to process the link.
@@ -8615,8 +8616,8 @@ internalLinkTypeMessage url:string = InternalLinkType;
 //@contains_link True, if the first line of the text contains a link. If true, the input field needs to be focused and the text after the link must be selected
 internalLinkTypeMessageDraft text:formattedText contains_link:Bool = InternalLinkType;
 
-//@description The link is a link to the My Profile application page @section Section of the page if any; may be one of
-//-"posts", "posts/all-stories", "posts/add-album", "gifts", "archived-posts"
+//@description The link is a link to the My Profile application page @section Section of the page; may be one of
+//-"", "posts", "posts/all-stories", "posts/add-album", "gifts", "archived-posts"
 internalLinkTypeMyProfilePage section:string = InternalLinkType;
 
 //@description The link is a link to the screen for creating a new channel chat
@@ -12251,7 +12252,7 @@ canTransferOwnership = CanTransferOwnershipResult;
 //@password The 2-step verification password of the current user
 transferChatOwnership chat_id:int53 user_id:int53 password:string = Ok;
 
-//@description Returns the user that will become owner of the chat after 7 days if the current user will not return to the chat during that period; requires owner privileges in the chat.
+//@description Returns the user who will become the owner of the chat after 7 days if the current user does not return to the chat during that period; requires owner privileges in the chat.
 //-Available only for supergroups and channel chats
 //@chat_id Chat identifier
 getChatOwnerAfterLeaving chat_id:int53 = User;
@@ -13964,8 +13965,8 @@ getGiftUpgradePreview regular_gift_id:int64 = GiftUpgradePreview;
 
 //@description Returns all possible variants of upgraded gifts for a regular gift
 //@regular_gift_id Identifier of the regular gift
-//@return_upgrade_models Pass True to get models that can be obtained by upgrading a regular gift
-//@return_craft_models Pass True to get models that can be obtained by crafting a gift from upgraded gifts
+//@return_upgrade_models Pass true to get models that can be obtained by upgrading a regular gift
+//@return_craft_models Pass true to get models that can be obtained by crafting a gift from upgraded gifts
 getUpgradedGiftVariants regular_gift_id:int64 return_upgrade_models:Bool return_craft_models:Bool = GiftUpgradeVariants;
 
 //@description Upgrades a regular gift
@@ -14067,7 +14068,7 @@ setGiftResalePrice received_gift_id:string price:GiftResalePrice = Ok;
 //@description Returns upgraded gifts that can be bought from other owners using sendResoldGift
 //@gift_id Identifier of the regular gift that was upgraded to a unique gift
 //@order Order in which the results will be sorted
-//@for_crafting Pass True to get only gifts suitable for crafting
+//@for_crafting Pass true to get only gifts suitable for crafting
 //@attributes Attributes used to filter received gifts. If multiple attributes of the same type are specified, then all of them are allowed.
 //-If none attributes of specific type are specified, then all values for this attribute type are allowed
 //@offset Offset of the first entry to return as received from the previous request with the same order and attributes; use empty string to get the first chunk of results
