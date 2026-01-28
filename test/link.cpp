@@ -667,6 +667,12 @@ TEST(Link, parse_internal_link_part1) {
   parse_internal_link("tg:resolve?phone=123456&attach=test%30&startattach=*",
                       attachment_menu_bot(nullptr, user_phone_number("123456"), "test0", ""));
 
+  parse_internal_link("tg:resolve?domain=oauth&startapp=12345", nullptr);
+  parse_internal_link("tg:resolve?domain=oauth&startapp=", main_web_app("oauth", "", false, false));
+  parse_internal_link("tg:resolve?domain=oauth", public_chat("oauth"));
+  parse_internal_link("tg:oauth?token=12345", nullptr);
+  parse_internal_link("tg:oauth?token=", unknown_deep_link("tg://oauth?token="));
+
   parse_internal_link("tg:contact?token=1", user_token("1"));
   parse_internal_link("tg:contact?token=123456", user_token("123456"));
   parse_internal_link("tg:contact?token=123456&startattach", user_token("123456"));

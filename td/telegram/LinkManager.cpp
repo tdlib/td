@@ -1994,6 +1994,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
             PSTRING() << "tg://resolve" << copy_arg("domain") << copy_arg("post") << copy_arg("single")
                       << copy_arg("thread") << copy_arg("comment") << copy_arg("t"));
       }
+      if (username == "oauth" && has_arg("startapp")) {
+        return nullptr;
+      }
       for (auto &arg : url_query.args_) {
         if ((arg.first == "voicechat" || arg.first == "videochat" || arg.first == "livestream") &&
             is_valid_video_chat_invite_hash(arg.second)) {
@@ -2159,6 +2162,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 2 && path[0] == "new" && path[1] == "group") {
     // new/group
     return td::make_unique<InternalLinkNewGroupChat>();
+  } else if (path.size() == 1 && path[0] == "oauth" && has_arg("token")) {
+    // oauth?token=...
+    return nullptr;
   } else if (path.size() <= 2 && path[0] == "post") {
     // post[/content-type]
     return td::make_unique<InternalLinkPostStory>(path.size() == 2 ? path[1] : string());
