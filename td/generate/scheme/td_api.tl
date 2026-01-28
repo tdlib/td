@@ -7367,7 +7367,7 @@ premiumSourceBusinessFeature feature:BusinessFeature = PremiumSource;
 //@description A user tried to use a Premium story feature @feature The used feature
 premiumSourceStoryFeature feature:PremiumStoryFeature = PremiumSource;
 
-//@description A user opened an internal link of the type internalLinkTypePremiumFeatures @referrer The referrer from the link
+//@description A user opened an internal link of the type internalLinkTypePremiumFeaturesPage @referrer The referrer from the link
 premiumSourceLink referrer:string = PremiumSource;
 
 //@description A user opened the Premium features screen from settings

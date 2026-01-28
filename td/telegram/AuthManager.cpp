@@ -11,6 +11,7 @@
 #include "td/telegram/AuthManager.hpp"
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/DialogFilterManager.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"

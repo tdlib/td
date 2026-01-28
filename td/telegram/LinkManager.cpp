@@ -1278,7 +1278,7 @@ class LinkManager::InternalLinkSettings final : public InternalLink {
   }
 
  public:
-  InternalLinkSettings(vector<string> &&path) : path_(std::move(path)) {
+  explicit InternalLinkSettings(vector<string> &&path) : path_(std::move(path)) {
   }
 };
 
