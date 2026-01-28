@@ -14795,9 +14795,6 @@ removeProxy proxy_id:int32 = Ok;
 //@description Returns the list of proxies that are currently set up. Can be called before authorization
 getProxies = AddedProxies;
 
-//@description Returns an HTTPS link, which can be used to add a proxy. Available only for SOCKS5 and MTProto proxies. Can be called before authorization @proxy_id Proxy identifier
-getProxyLink proxy_id:int32 = HttpUrl;
-
 //@description Computes time needed to receive a response from a Telegram server through a proxy. Can be called before authorization
 //@proxy The proxy to test; pass null to ping a Telegram server without a proxy
 pingProxy proxy:proxy = Seconds;

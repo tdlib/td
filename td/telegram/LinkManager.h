@@ -110,8 +110,6 @@ class LinkManager final : public Actor {
 
   static string get_public_dialog_link(Slice username, Slice draft_text, bool open_profile, bool is_internal);
 
-  static Result<string> get_proxy_link(const Proxy &proxy, bool is_internal);
-
   static UserId get_link_user_id(Slice url);
 
   static string get_t_me_url();
@@ -203,6 +201,8 @@ class LinkManager final : public Actor {
   static Result<string> get_internal_link_impl(const td_api::InternalLinkType *type_ptr, bool is_internal);
 
   static Result<string> check_link_impl(Slice link, bool http_only, bool https_only);
+
+  static Result<string> get_proxy_link(const Proxy &proxy, bool is_internal);
 
   Td *td_;
   ActorShared<> parent_;

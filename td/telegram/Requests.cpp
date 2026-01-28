@@ -8808,11 +8808,6 @@ void Requests::on_request(uint64 id, const td_api::getProxies &request) {
   send_closure(G()->connection_creator(), &ConnectionCreator::get_proxies, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::getProxyLink &request) {
-  CREATE_HTTP_URL_REQUEST_PROMISE();
-  send_closure(G()->connection_creator(), &ConnectionCreator::get_proxy_link, request.proxy_id_, std::move(promise));
-}
-
 void Requests::on_request(uint64 id, td_api::pingProxy &request) {
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<double> result) mutable {

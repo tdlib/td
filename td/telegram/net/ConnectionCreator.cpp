@@ -8,7 +8,6 @@
 
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/LinkManager.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
@@ -237,15 +236,6 @@ void ConnectionCreator::remove_proxy(int32 proxy_id, Promise<Unit> promise) {
 void ConnectionCreator::get_proxies(Promise<td_api::object_ptr<td_api::addedProxies>> promise) {
   promise.set_value(td_api::make_object<td_api::addedProxies>(transform(
       proxies_, [this](const std::pair<int32, Proxy> &proxy) { return get_added_proxy_object(proxy.first); })));
-}
-
-void ConnectionCreator::get_proxy_link(int32 proxy_id, Promise<string> promise) {
-  auto it = proxies_.find(proxy_id);
-  if (it == proxies_.end()) {
-    return promise.set_error(400, "Unknown proxy identifier");
-  }
-
-  promise.set_result(LinkManager::get_proxy_link(it->second, false));
 }
 
 ActorId<GetHostByNameActor> ConnectionCreator::get_dns_resolver() {

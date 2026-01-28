@@ -82,8 +82,6 @@ class ConnectionCreator final : public NetQueryCallback {
 
   void get_proxies(Promise<td_api::object_ptr<td_api::addedProxies>> promise);
 
-  void get_proxy_link(int32 proxy_id, Promise<string> promise);
-
   void ping_proxy(td_api::object_ptr<td_api::proxy> input_proxy, Promise<double> promise);
 
   void test_proxy(Proxy &&proxy, int32 dc_id, double timeout, Promise<Unit> &&promise);

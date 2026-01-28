@@ -235,7 +235,6 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::disableProxy::ID:
     case td_api::removeProxy::ID:
     case td_api::getProxies::ID:
-    case td_api::getProxyLink::ID:
     case td_api::pingProxy::ID:
     case td_api::testNetwork::ID:
       return true;
@@ -1037,7 +1036,6 @@ void Td::init_options_and_network() {
       case td_api::disableProxy::ID:
       case td_api::removeProxy::ID:
       case td_api::getProxies::ID:
-      case td_api::getProxyLink::ID:
         return true;
       default:
         return false;

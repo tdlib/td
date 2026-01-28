@@ -8338,8 +8338,6 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::pingProxy>());
     } else if (op == "gproxy" || op == "gproxies") {
       send_request(td_api::make_object<td_api::getProxies>());
-    } else if (op == "gproxyl" || op == "gpl") {
-      send_request(td_api::make_object<td_api::getProxyLink>(as_proxy_id(args)));
     } else if (op == "gusi") {
       UserId user_id;
       get_args(args, user_id);
