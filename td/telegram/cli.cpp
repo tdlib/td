@@ -2023,7 +2023,7 @@ class CliClient final : public Actor {
           td_api::make_object<td_api::proxy>("1.1.1.1", 1111, td_api::make_object<td_api::proxyTypeSocks5>()), true));
       send_request(td_api::make_object<td_api::addProxy>(
           td_api::make_object<td_api::proxy>("1.1.1.1", 1112, td_api::make_object<td_api::proxyTypeSocks5>()), false));
-      send_request(td_api::make_object<td_api::pingProxy>(0));
+      send_request(td_api::make_object<td_api::pingProxy>(nullptr));
 
       auto bad_request = td_api::make_object<td_api::setTdlibParameters>();
       bad_request->database_directory_ = "/..";
@@ -8303,7 +8303,7 @@ class CliClient final : public Actor {
     } else if (op == "rproxy") {
       send_request(td_api::make_object<td_api::removeProxy>(as_proxy_id(args)));
     } else if (op == "aproxy" || op == "aeproxy" || op == "aeproxytcp" || op == "editproxy" || op == "editeproxy" ||
-               op == "editeproxytcp" || op == "tproxy") {
+               op == "editeproxytcp" || op == "tproxy" || op == "pproxy" || op == "pproxyp") {
       string proxy_id;
       string server;
       int32 port;
@@ -8327,17 +8327,19 @@ class CliClient final : public Actor {
       auto proxy = td_api::make_object<td_api::proxy>(server, port, std::move(type));
       if (op[0] == 'e') {
         send_request(td_api::make_object<td_api::editProxy>(as_proxy_id(proxy_id), std::move(proxy), enable));
+      } else if (op == "pproxy" || op == "pproxyp") {
+        send_request(td_api::make_object<td_api::pingProxy>(std::move(proxy)));
       } else if (op == "tproxy") {
         send_request(td_api::make_object<td_api::testProxy>(std::move(proxy), 2, 10.0));
       } else {
         send_request(td_api::make_object<td_api::addProxy>(std::move(proxy), enable));
       }
+    } else if (op == "ping") {
+      send_request(td_api::make_object<td_api::pingProxy>());
     } else if (op == "gproxy" || op == "gproxies") {
       send_request(td_api::make_object<td_api::getProxies>());
     } else if (op == "gproxyl" || op == "gpl") {
       send_request(td_api::make_object<td_api::getProxyLink>(as_proxy_id(args)));
-    } else if (op == "pproxy") {
-      send_request(td_api::make_object<td_api::pingProxy>(as_proxy_id(args)));
     } else if (op == "gusi") {
       UserId user_id;
       get_args(args, user_id);

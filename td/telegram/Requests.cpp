@@ -8813,7 +8813,7 @@ void Requests::on_request(uint64 id, const td_api::getProxyLink &request) {
   send_closure(G()->connection_creator(), &ConnectionCreator::get_proxy_link, request.proxy_id_, std::move(promise));
 }
 
-void Requests::on_request(uint64 id, const td_api::pingProxy &request) {
+void Requests::on_request(uint64 id, td_api::pingProxy &request) {
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<double> result) mutable {
     if (result.is_error()) {
@@ -8822,7 +8822,8 @@ void Requests::on_request(uint64 id, const td_api::pingProxy &request) {
       promise.set_value(td_api::make_object<td_api::seconds>(result.move_as_ok()));
     }
   });
-  send_closure(G()->connection_creator(), &ConnectionCreator::ping_proxy, request.proxy_id_, std::move(query_promise));
+  send_closure(G()->connection_creator(), &ConnectionCreator::ping_proxy, std::move(request.proxy_),
+               std::move(query_promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getUserSupportInfo &request) {

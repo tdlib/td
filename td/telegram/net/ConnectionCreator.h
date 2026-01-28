@@ -73,12 +73,18 @@ class ConnectionCreator final : public NetQueryCallback {
 
   void add_proxy(int32 old_proxy_id, td_api::object_ptr<td_api::proxy> proxy, bool enable,
                  Promise<td_api::object_ptr<td_api::addedProxy>> promise);
+
   void enable_proxy(int32 proxy_id, Promise<Unit> promise);
+
   void disable_proxy(Promise<Unit> promise);
+
   void remove_proxy(int32 proxy_id, Promise<Unit> promise);
+
   void get_proxies(Promise<td_api::object_ptr<td_api::addedProxies>> promise);
+
   void get_proxy_link(int32 proxy_id, Promise<string> promise);
-  void ping_proxy(int32 proxy_id, Promise<double> promise);
+
+  void ping_proxy(td_api::object_ptr<td_api::proxy> input_proxy, Promise<double> promise);
 
   void test_proxy(Proxy &&proxy, int32 dc_id, double timeout, Promise<Unit> &&promise);
 
@@ -261,7 +267,7 @@ class ConnectionCreator final : public NetQueryCallback {
 
   ActorId<GetHostByNameActor> get_dns_resolver();
 
-  void ping_proxy_resolved(int32 proxy_id, IPAddress ip_address, Promise<double> promise);
+  void ping_proxy_resolved(Proxy &&proxy, IPAddress ip_address, Promise<double> promise);
 
   void ping_proxy_buffered_socket_fd(IPAddress ip_address, BufferedFd<SocketFd> buffered_socket_fd,
                                      mtproto::TransportType transport_type, string debug_str, Promise<double> promise);

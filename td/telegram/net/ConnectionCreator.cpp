@@ -273,9 +273,9 @@ ActorId<GetHostByNameActor> ConnectionCreator::get_dns_resolver() {
   }
 }
 
-void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
+void ConnectionCreator::ping_proxy(td_api::object_ptr<td_api::proxy> input_proxy, Promise<double> promise) {
   CHECK(!close_flag_);
-  if (proxy_id == 0) {
+  if (input_proxy == nullptr) {
     auto main_dc_id = G()->net_query_dispatcher().get_main_dc_id();
     bool prefer_ipv6 = G()->get_option_boolean("prefer_ipv6");
     auto infos = dc_options_set_.find_all_connections(main_dc_id, false, false, prefer_ipv6, false);
@@ -319,29 +319,20 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
     return;
   }
 
-  auto it = proxies_.find(proxy_id);
-  if (it == proxies_.end()) {
-    return promise.set_error(400, "Unknown proxy identifier");
-  }
-  const Proxy &proxy = it->second;
+  TRY_RESULT_PROMISE(promise, proxy, Proxy::create_proxy(input_proxy.get()));
   bool prefer_ipv6 = G()->get_option_boolean("prefer_ipv6");
   send_closure(get_dns_resolver(), &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
-               PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
-                                       proxy_id](Result<IPAddress> result) mutable {
-                 if (result.is_error()) {
-                   return promise.set_error(400, result.error().public_message());
-                 }
-                 send_closure(actor_id, &ConnectionCreator::ping_proxy_resolved, proxy_id, result.move_as_ok(),
-                              std::move(promise));
-               }));
+               PromiseCreator::lambda(
+                   [actor_id = actor_id(this), promise = std::move(promise), proxy](Result<IPAddress> result) mutable {
+                     if (result.is_error()) {
+                       return promise.set_error(400, result.error().public_message());
+                     }
+                     send_closure(actor_id, &ConnectionCreator::ping_proxy_resolved, std::move(proxy),
+                                  result.move_as_ok(), std::move(promise));
+                   }));
 }
 
-void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address, Promise<double> promise) {
-  auto it = proxies_.find(proxy_id);
-  if (it == proxies_.end()) {
-    return promise.set_error(400, "Unknown proxy identifier");
-  }
-  const Proxy &proxy = it->second;
+void ConnectionCreator::ping_proxy_resolved(Proxy &&proxy, IPAddress ip_address, Promise<double> promise) {
   auto main_dc_id = G()->net_query_dispatcher().get_main_dc_id();
   FindConnectionExtra extra;
   auto r_socket_fd = find_connection(proxy, ip_address, main_dc_id, false, extra);
