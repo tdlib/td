@@ -1623,7 +1623,8 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
         td_->user_manager_->on_get_user(std::move(request->bot_), "RequestUrlAuthQuery");
         promise_.set_value(td_api::make_object<td_api::loginUrlInfoRequestConfirmation>(
             url_, request->domain_, td_->user_manager_->get_user_id_object(bot_user_id, "RequestUrlAuthQuery"),
-            request->request_write_access_));
+            request->request_write_access_, request->request_phone_number_, request->browser_, request->platform_,
+            request->ip_, request->region_));
         break;
       }
       case telegram_api::urlAuthResultAccepted::ID: {
