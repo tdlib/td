@@ -7564,8 +7564,7 @@ void UserManager::save_contacts_to_database() {
   }
 
   LOG(INFO) << "Schedule save contacts to database";
-  vector<UserId> user_ids =
-      transform(contacts_hints_.search_empty(100000).second, [](int64 key) { return UserId(key); });
+  auto user_ids = UserId::get_user_ids(contacts_hints_.search_empty(100000).second);
 
   G()->td_db()->get_binlog_pmc()->set("saved_contact_count", to_string(saved_contact_count_));
   G()->td_db()->get_binlog()->force_sync(
