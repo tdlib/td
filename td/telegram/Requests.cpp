@@ -6683,7 +6683,6 @@ void Requests::on_request(uint64 id, const td_api::setProfilePhoto &request) {
 }
 
 void Requests::on_request(uint64 id, const td_api::deleteProfilePhoto &request) {
-  CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   td_->user_manager_->delete_profile_photo(request.profile_photo_id_, false, std::move(promise));
 }

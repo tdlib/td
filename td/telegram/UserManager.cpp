@@ -6143,6 +6143,9 @@ void UserManager::delete_profile_photo(int64 profile_photo_id, bool is_recursive
     reload_user_full(get_my_id(), std::move(reload_promise), "delete_profile_photo");
     return;
   }
+  if (td_->auth_manager_->is_bot()) {
+    profile_photo_id = user_full->photo.id.get();
+  }
   if (user_full->photo.id.get() == profile_photo_id || user_full->fallback_photo.id.get() == profile_photo_id) {
     td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
         ->send(get_my_id(), FileId(), profile_photo_id, user_full->fallback_photo.id.get() == profile_photo_id,
