@@ -5042,7 +5042,7 @@ std::pair<int32, vector<StickerSetId>> StickersManager::search_installed_sticker
 
   std::pair<size_t, vector<int64>> result = installed_sticker_sets_hints_[type].search(query, limit);
   promise.set_value(Unit());
-  return {narrow_cast<int32>(result.first), convert_sticker_set_ids(result.second)};
+  return {narrow_cast<int32>(result.first), StickerSetId::get_sticker_set_ids(result.second)};
 }
 
 vector<StickerSetId> StickersManager::search_sticker_sets(StickerType sticker_type, const string &query,
@@ -8868,10 +8868,6 @@ int64 StickersManager::get_featured_sticker_sets_hash(StickerType sticker_type) 
 
 vector<int64> StickersManager::convert_sticker_set_ids(const vector<StickerSetId> &sticker_set_ids) {
   return transform(sticker_set_ids, [](StickerSetId sticker_set_id) { return sticker_set_id.get(); });
-}
-
-vector<StickerSetId> StickersManager::convert_sticker_set_ids(const vector<int64> &sticker_set_ids) {
-  return transform(sticker_set_ids, [](int64 sticker_set_id) { return StickerSetId(sticker_set_id); });
 }
 
 td_api::object_ptr<td_api::updateInstalledStickerSets> StickersManager::get_update_installed_sticker_sets_object(

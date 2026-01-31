@@ -4500,8 +4500,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSets> up
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStickerSetsOrder> update, Promise<Unit> &&promise) {
   auto sticker_type = get_sticker_type(update->masks_, update->emojis_);
-  td_->stickers_manager_->on_update_sticker_sets_order(sticker_type,
-                                                       StickersManager::convert_sticker_set_ids(update->order_));
+  td_->stickers_manager_->on_update_sticker_sets_order(sticker_type, StickerSetId::get_sticker_set_ids(update->order_));
   promise.set_value(Unit());
 }
 

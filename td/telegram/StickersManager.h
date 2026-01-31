@@ -59,7 +59,6 @@ class StickersManager final : public Actor {
  public:
   static constexpr int64 GREAT_MINDS_SET_ID = 1842540969984001;
 
-  static vector<StickerSetId> convert_sticker_set_ids(const vector<int64> &sticker_set_ids);
   static vector<int64> convert_sticker_set_ids(const vector<StickerSetId> &sticker_set_ids);
 
   StickersManager(Td *td, ActorShared<> parent);

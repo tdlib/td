@@ -10,7 +10,13 @@
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
 
+#include "td/utils/algorithm.h"
+
 namespace td {
+
+vector<StickerSetId> StickerSetId::get_sticker_set_ids(const vector<int64> &sticker_set_ids) {
+  return transform(sticker_set_ids, [](int64 sticker_set_id) { return StickerSetId(sticker_set_id); });
+}
 
 void StickerSetId::store(LogEventStorerCalcLength &storer) const {
   storer.context()->td().get_actor_unsafe()->stickers_manager_->store_sticker_set_id(*this, storer);
