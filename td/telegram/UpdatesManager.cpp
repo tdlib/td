@@ -679,7 +679,8 @@ void UpdatesManager::set_date(int32 date, bool from_update, string date_source) 
     }
     auto now = G()->unix_time();
     if (date_ > now + 1) {
-      LOG(ERROR) << "Receive wrong by " << (date_ - now) << " date = " << date_ << " from " << date_source;
+      LOG(ERROR) << "Receive wrong by " << (date_ - now) << " date = " << date_ << ", now = " << G()->server_time()
+                 << ", is_server_time_reliable = " << G()->is_server_time_reliable() << " from " << date_source;
       date_ = now;
       if (date_ <= date) {
         return;
@@ -699,7 +700,7 @@ void UpdatesManager::set_date(int32 date, bool from_update, string date_source) 
         return;
       }
     }
-    LOG(ERROR) << "Receive wrong by " << (date_ - date) << " date = " << date << " from " << date_source
+    LOG(ERROR) << "Receive wrong by " << (date - date_) << " date = " << date << " from " << date_source
                << ". Current date = " << date_ << " from " << date_source_;
   }
 }
