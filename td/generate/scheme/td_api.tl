@@ -3306,6 +3306,21 @@ chatActionBarSharePhoneNumber = ChatActionBar;
 chatActionBarJoinRequest title:string is_channel:Bool request_date:int32 = ChatActionBar;
 
 
+//@class ButtonStyle @description Describes style of a button
+
+//@description The button has default style
+buttonStyleDefault = ButtonStyle;
+
+//@description The button is a primary button
+buttonStylePrimary = ButtonStyle;
+
+//@description The button has "danger" style
+buttonStyleDanger = ButtonStyle;
+
+//@description The button has "success" style
+buttonStyleSuccess = ButtonStyle;
+
+
 //@class KeyboardButtonType @description Describes a keyboard button type
 
 //@description A simple button, with text that must be sent when the button is pressed

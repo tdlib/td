@@ -370,6 +370,7 @@ function split_file($file, $chunks, $undo) {
             'inline_queries_manager[_(-](?![.]get[(][)])|InlineQueriesManager' => 'InlineQueriesManager',
             'InputBusinessChatLink' => 'InputBusinessChatLink',
             'InputGroupCall' => 'InputGroupCall',
+            'KeyboardButtonStyle' => 'KeyboardButtonStyle',
             'language_pack_manager[_(-]|LanguagePackManager' => 'LanguagePackManager',
             'link_manager[_(-](?![.]get[(][)])|LinkManager' => 'LinkManager',
             'LogeventIdWithGeneration|add_log_event|delete_log_event|get_erase_log_event_promise|parse_time|store_time' => 'logevent/LogEventHelper',
