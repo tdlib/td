@@ -1581,13 +1581,18 @@ receivedGift received_gift_id:string sender_id:MessageSender text:formattedText 
 //@next_offset The offset for the next request. If empty, then there are no more results
 receivedGifts total_count:int32 gifts:vector<receivedGift> are_notifications_enabled:Bool next_offset:string = ReceivedGifts;
 
+//@description Describes chance of the crafted gift to have the backdrop or symbol of one of the original gifts
+//@persistence_chance_per_mille The 4 numbers that describe probability of the craft result to have the same attribute as one of the original gifts
+//-if 1, 2, 3, or 4 gifts with the attribute are used in the craft. Each number represents the number of crafted gifts with the original attribute per 1000 successful craftings
+attributeCraftPersistenceProbability persistence_chance_per_mille:vector<int32> = AttributeCraftPersistenceProbability;
+
 //@description Represents a list of gifts received by a user or a chat
 //@total_count The total number of received gifts
 //@gifts The list of gifts
-//@attribute_persistence_per_mille The 4 numbers that describe probability of the crafted gift to have the backdrop or symbol of one of the original gifts
-//-if there are 1, 2, 3, or 4 gifts with the same attribute. Each number represents the number of crafted gifts with the original attribute per 1000 successful craftings
+//@attribute_persistence_probabilities The 4 objects that describe probabilities of the crafted gift to have the backdrop or symbol of one of the original gifts
+//-for the cases when 1, 2, 3 or 4 gifts are used in the craft correspondingly
 //@next_offset The offset for the next request. If empty, then there are no more results
-giftsForCrafting total_count:int32 gifts:vector<receivedGift> attribute_persistence_per_mille:vector<int32> next_offset:string = GiftsForCrafting;
+giftsForCrafting total_count:int32 gifts:vector<receivedGift> attribute_persistence_probabilities:vector<attributeCraftPersistenceProbability> next_offset:string = GiftsForCrafting;
 
 //@description Contains examples of possible upgraded gifts for the given regular gift
 //@models Examples of possible models that can be chosen for the gift after upgrade

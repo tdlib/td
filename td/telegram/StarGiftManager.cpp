@@ -1787,12 +1787,23 @@ class GetCraftStarGiftsQuery final : public Td::ResultHandler {
       }
       gifts.push_back(user_gift.get_received_gift_object(td_));
     }
-    auto attribute_persistence_per_mille = transform(
-        full_split(td_->option_manager_->get_option_string("stargifts_craft_attribute_permilles", "60,180,450,1000"),
-                   ','),
-        to_integer<int32>);
-    promise_.set_value(td_api::make_object<td_api::giftsForCrafting>(
-        total_count, std::move(gifts), std::move(attribute_persistence_per_mille), ptr->next_offset_));
+    auto attribute_persistence_per_mille =
+        transform(full_split(td_->option_manager_->get_option_string("stargifts_craft_attribute_permilles",
+                                                                     "100,80,400,70,350,700,60,300,600,1000"),
+                             ','),
+                  to_integer<int32>);
+    CHECK(attribute_persistence_per_mille.size() == 10u);
+    vector<td_api::object_ptr<td_api::attributeCraftPersistenceProbability>> probabilities;
+    for (size_t num = 1; num <= 4; num++) {
+      vector<int32> numbers;
+      for (size_t i = 1; i <= 4; i++) {
+        numbers.push_back(i <= num ? attribute_persistence_per_mille[num * (num - 1) / 2 + i - 1] : 0);
+      }
+      probabilities.push_back(td_api::make_object<td_api::attributeCraftPersistenceProbability>(std::move(numbers)));
+    }
+    LOG(ERROR) << to_string(probabilities);
+    promise_.set_value(td_api::make_object<td_api::giftsForCrafting>(total_count, std::move(gifts),
+                                                                     std::move(probabilities), ptr->next_offset_));
   }
 
   void on_error(Status status) final {
