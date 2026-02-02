@@ -541,7 +541,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 54;
+  static constexpr int32 CURRENT_VERSION = 55;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1675,6 +1675,19 @@ class MessageNewCreatorPending final : public MessageContent {
   }
 };
 
+class MessageChangeCreator final : public MessageContent {
+ public:
+  UserId new_creator_user_id;
+
+  MessageChangeCreator() = default;
+  explicit MessageChangeCreator(UserId new_creator_user_id) : new_creator_user_id(new_creator_user_id) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::ChangeCreator;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -2743,6 +2756,13 @@ static void store(const MessageContent *content, StorerT &storer) {
       if (has_new_creator_user_id) {
         store(m->new_creator_user_id, storer);
       }
+      break;
+    }
+    case MessageContentType::ChangeCreator: {
+      const auto *m = static_cast<const MessageChangeCreator *>(content);
+      BEGIN_STORE_FLAGS();
+      END_STORE_FLAGS();
+      store(m->new_creator_user_id, storer);
       break;
     }
     default:
@@ -4087,6 +4107,18 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::ChangeCreator: {
+      auto m = make_unique<MessageChangeCreator>();
+      BEGIN_PARSE_FLAGS();
+      END_PARSE_FLAGS();
+      parse(m->new_creator_user_id, parser);
+      if (!m->new_creator_user_id.is_valid()) {
+        is_bad = true;
+        break;
+      }
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -4913,6 +4945,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::StarGiftPurchaseOffer:
     case MessageContentType::StarGiftPurchaseOfferDeclined:
     case MessageContentType::NewCreatorPending:
+    case MessageContentType::ChangeCreator:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -5076,6 +5109,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::StarGiftPurchaseOffer:
     case MessageContentType::StarGiftPurchaseOfferDeclined:
     case MessageContentType::NewCreatorPending:
+    case MessageContentType::ChangeCreator:
       break;
     default:
       UNREACHABLE();
@@ -5272,6 +5306,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::StarGiftPurchaseOffer:
     case MessageContentType::StarGiftPurchaseOfferDeclined:
     case MessageContentType::NewCreatorPending:
+    case MessageContentType::ChangeCreator:
       break;
     default:
       UNREACHABLE();
@@ -5501,6 +5536,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
     case MessageContentType::StarGiftPurchaseOffer:
     case MessageContentType::StarGiftPurchaseOfferDeclined:
     case MessageContentType::NewCreatorPending:
+    case MessageContentType::ChangeCreator:
       break;
     default:
       UNREACHABLE();
@@ -5763,6 +5799,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::StarGiftPurchaseOffer:
     case MessageContentType::StarGiftPurchaseOfferDeclined:
     case MessageContentType::NewCreatorPending:
+    case MessageContentType::ChangeCreator:
       UNREACHABLE();
   }
   return Status::OK();
@@ -5948,6 +5985,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::StarGiftPurchaseOffer:
     case MessageContentType::StarGiftPurchaseOfferDeclined:
     case MessageContentType::NewCreatorPending:
+    case MessageContentType::ChangeCreator:
       return 0;
     default:
       UNREACHABLE();
@@ -6349,6 +6387,10 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
         return {content->new_creator_user_id};
       }
       break;
+    }
+    case MessageContentType::ChangeCreator: {
+      const auto *content = static_cast<const MessageChangeCreator *>(message_content);
+      return {content->new_creator_user_id};
     }
     default:
       UNREACHABLE();
@@ -6822,6 +6864,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::StarGiftPurchaseOffer:
     case MessageContentType::StarGiftPurchaseOfferDeclined:
     case MessageContentType::NewCreatorPending:
+    case MessageContentType::ChangeCreator:
       break;
     default:
       UNREACHABLE();
@@ -6993,6 +7036,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::StarGiftPurchaseOffer:
     case MessageContentType::StarGiftPurchaseOfferDeclined:
     case MessageContentType::NewCreatorPending:
+    case MessageContentType::ChangeCreator:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -7755,6 +7799,14 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::NewCreatorPending: {
       const auto *lhs = static_cast<const MessageNewCreatorPending *>(old_content);
       const auto *rhs = static_cast<const MessageNewCreatorPending *>(new_content);
+      if (lhs->new_creator_user_id != rhs->new_creator_user_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChangeCreator: {
+      const auto *lhs = static_cast<const MessageChangeCreator *>(old_content);
+      const auto *rhs = static_cast<const MessageChangeCreator *>(new_content);
       if (lhs->new_creator_user_id != rhs->new_creator_user_id) {
         need_update = true;
       }
@@ -9134,6 +9186,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::StarGiftPurchaseOffer:
     case MessageContentType::StarGiftPurchaseOfferDeclined:
     case MessageContentType::NewCreatorPending:
+    case MessageContentType::ChangeCreator:
       return nullptr;
     default:
       UNREACHABLE();
@@ -9921,8 +9974,15 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return td::make_unique<MessageNewCreatorPending>(new_creator_user_id);
     }
-    case telegram_api::messageActionChangeCreator::ID:
-      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionChangeCreator::ID: {
+      auto action = telegram_api::move_object_as<telegram_api::messageActionChangeCreator>(action_ptr);
+      auto new_creator_user_id = UserId(action->new_creator_id_);
+      if (!new_creator_user_id.is_valid()) {
+        LOG(ERROR) << "Receive " << new_creator_user_id;
+        break;
+      }
+      return td::make_unique<MessageChangeCreator>(new_creator_user_id);
+    }
     default:
       UNREACHABLE();
   }
@@ -10647,6 +10707,11 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       return td_api::make_object<td_api::messageChatOwnerLeft>(
           td->user_manager_->get_user_id_object(m->new_creator_user_id, "messageChatOwnerLeft"));
     }
+    case MessageContentType::ChangeCreator: {
+      const auto *m = static_cast<const MessageChangeCreator *>(content);
+      return td_api::make_object<td_api::messageChatOwnerChanged>(
+          td->user_manager_->get_user_id_object(m->new_creator_user_id, "messageChatOwnerChanged"));
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -11350,6 +11415,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::StarGiftPurchaseOffer:
     case MessageContentType::StarGiftPurchaseOfferDeclined:
     case MessageContentType::NewCreatorPending:
+    case MessageContentType::ChangeCreator:
       return string();
     default:
       UNREACHABLE();
@@ -11878,6 +11944,11 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     }
     case MessageContentType::NewCreatorPending: {
       const auto *content = static_cast<const MessageNewCreatorPending *>(message_content);
+      dependencies.add(content->new_creator_user_id);
+      break;
+    }
+    case MessageContentType::ChangeCreator: {
+      const auto *content = static_cast<const MessageChangeCreator *>(message_content);
       dependencies.add(content->new_creator_user_id);
       break;
     }

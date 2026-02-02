@@ -4791,8 +4791,11 @@ messageChatChangePhoto photo:chatPhoto = MessageContent;
 //@description A deleted chat photo
 messageChatDeletePhoto = MessageContent;
 
-//@description The owner of the chat has left @new_owner_user_id Identifier of the user who will become the new owner of the chat if the previous owner will not return; 0 if none
+//@description The owner of the chat has left @new_owner_user_id Identifier of the user who will become the new owner of the chat if the previous owner isn't return; 0 if none
 messageChatOwnerLeft new_owner_user_id:int53 = MessageContent;
+
+//@description The owner of the chat has changed @new_owner_user_id Identifier of the user who is the new owner of the chat
+messageChatOwnerChanged new_owner_user_id:int53 = MessageContent;
 
 //@description New chat members were added @member_user_ids User identifiers of the new members
 messageChatAddMembers member_user_ids:vector<int53> = MessageContent;
