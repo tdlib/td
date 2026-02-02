@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/KeyboardButtonStyle.hpp"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/RequestedDialogType.hpp"
 #include "td/telegram/Version.h"
@@ -18,9 +19,11 @@ template <class StorerT>
 void store(const KeyboardButton &button, StorerT &storer) {
   bool has_url = !button.url.empty();
   bool has_requested_dialog_type = button.requested_dialog_type != nullptr;
+  bool has_style = !button.style.is_default();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_url);
   STORE_FLAG(has_requested_dialog_type);
+  STORE_FLAG(has_style);
   END_STORE_FLAGS();
   store(button.type, storer);
   store(button.text, storer);
@@ -30,20 +33,26 @@ void store(const KeyboardButton &button, StorerT &storer) {
   if (has_requested_dialog_type) {
     store(button.requested_dialog_type, storer);
   }
+  if (has_style) {
+    store(button.style, storer);
+  }
 }
 
 template <class ParserT>
 void parse(KeyboardButton &button, ParserT &parser) {
   bool has_url;
   bool has_requested_dialog_type;
+  bool has_style;
   if (parser.version() >= static_cast<int32>(Version::AddKeyboardButtonFlags)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_url);
     PARSE_FLAG(has_requested_dialog_type);
+    PARSE_FLAG(has_style);
     END_PARSE_FLAGS();
   } else {
     has_url = false;
     has_requested_dialog_type = false;
+    has_style = false;
   }
   parse(button.type, parser);
   parse(button.text, parser);
@@ -53,6 +62,9 @@ void parse(KeyboardButton &button, ParserT &parser) {
   if (has_requested_dialog_type) {
     parse(button.requested_dialog_type, parser);
   }
+  if (has_style) {
+    parse(button.style, parser);
+  }
 }
 
 template <class StorerT>
@@ -61,11 +73,13 @@ void store(const InlineKeyboardButton &button, StorerT &storer) {
   bool has_user_id = button.user_id.is_valid();
   bool has_forward_text = !button.forward_text.empty();
   bool has_data = !button.data.empty();
+  bool has_style = !button.style.is_default();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_id);
   STORE_FLAG(has_user_id);
   STORE_FLAG(has_forward_text);
   STORE_FLAG(has_data);
+  STORE_FLAG(has_style);
   END_STORE_FLAGS();
   store(button.type, storer);
   if (has_id) {
@@ -81,6 +95,9 @@ void store(const InlineKeyboardButton &button, StorerT &storer) {
   if (has_data) {
     store(button.data, storer);
   }
+  if (has_style) {
+    store(button.style, storer);
+  }
 }
 
 template <class ParserT>
@@ -90,11 +107,13 @@ void parse(InlineKeyboardButton &button, ParserT &parser) {
     bool has_user_id;
     bool has_forward_text;
     bool has_data;
+    bool has_style;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_id);
     PARSE_FLAG(has_user_id);
     PARSE_FLAG(has_forward_text);
     PARSE_FLAG(has_data);
+    PARSE_FLAG(has_style);
     END_PARSE_FLAGS();
     parse(button.type, parser);
     if (has_id) {
@@ -109,6 +128,9 @@ void parse(InlineKeyboardButton &button, ParserT &parser) {
     }
     if (has_data) {
       parse(button.data, parser);
+    }
+    if (has_style) {
+      parse(button.style, parser);
     }
   } else {
     parse(button.type, parser);

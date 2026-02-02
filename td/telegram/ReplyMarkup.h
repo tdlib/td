@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/KeyboardButtonStyle.h"
 #include "td/telegram/RequestedDialogType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -34,6 +35,7 @@ struct KeyboardButton {
     RequestDialog
   };
   Type type;
+  KeyboardButtonStyle style;
   string text;
   string url;                                             // WebView only
   unique_ptr<RequestedDialogType> requested_dialog_type;  // RequestDialog only
@@ -59,6 +61,7 @@ struct InlineKeyboardButton {
   int64 id = 0;    // UrlAuth: button_id or (2 * request_write_access - 1) * bot_user_id
                    // SwitchInline: mask of allowed target chats; 0 if any
   UserId user_id;  // User only
+  KeyboardButtonStyle style;
   string text;
   string forward_text;  // UrlAuth only
   string data;

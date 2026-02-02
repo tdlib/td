@@ -3367,8 +3367,12 @@ keyboardButtonTypeRequestChat id:int32 chat_is_channel:Bool restrict_chat_is_for
 keyboardButtonTypeWebApp url:string = KeyboardButtonType;
 
 
-//@description Represents a single button in a bot keyboard @text Text of the button @type Type of the button
-keyboardButton text:string type:KeyboardButtonType = KeyboardButton;
+//@description Represents a single button in a bot keyboard
+//@text Text of the button
+//@icon_custom_emoji_id Identifier of the custom emoji that must be shown on the button; 0 if none
+//@style Style of the button
+//@type Type of the button
+keyboardButton text:string icon_custom_emoji_id:int64 style:ButtonStyle type:KeyboardButtonType = KeyboardButton;
 
 
 //@class InlineKeyboardButtonType @description Describes the type of inline keyboard button
@@ -3404,8 +3408,12 @@ inlineKeyboardButtonTypeUser user_id:int53 = InlineKeyboardButtonType;
 inlineKeyboardButtonTypeCopyText text:string = InlineKeyboardButtonType;
 
 
-//@description Represents a single button in an inline keyboard @text Text of the button @type Type of the button
-inlineKeyboardButton text:string type:InlineKeyboardButtonType = InlineKeyboardButton;
+//@description Represents a single button in an inline keyboard
+//@text Text of the button
+//@icon_custom_emoji_id Identifier of the custom emoji that must be shown on the button; 0 if none
+//@style Style of the button
+//@type Type of the button
+inlineKeyboardButton text:string icon_custom_emoji_id:int64 style:ButtonStyle type:InlineKeyboardButtonType = InlineKeyboardButton;
 
 
 //@class ReplyMarkup @description Contains a description of a custom keyboard and actions that can be done with it to quickly reply to bots
