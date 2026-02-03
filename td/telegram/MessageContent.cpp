@@ -8976,10 +8976,10 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
             UNREACHABLE();
             break;
           case MessageContentDupType::Forward:
+          case MessageContentDupType::ServerCopy:
             return td::make_unique<MessageDice>(old_content->emoji, old_content->dice_value, true, old_content->seed,
                                                 old_content->state_hash, old_content->stake_ton_count,
                                                 old_content->prize_ton_count);
-          case MessageContentDupType::ServerCopy:
           case MessageContentDupType::Copy:
             // copy as a regular dice
             break;

@@ -26075,7 +26075,7 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
     td_->star_manager_->add_pending_owned_star_count(m->paid_message_star_count, true);
   }
   auto stake_ton_count = get_message_content_stake_ton_count(m->content.get());
-  if (stake_ton_count > 0) {
+  if (stake_ton_count > 0 && !m->is_quick_reply_message) {
     auto prize_ton_count = get_message_content_prize_ton_count(m->content.get());
     td_->star_manager_->add_pending_owned_ton_count(prize_ton_count, false);
     td_->star_manager_->add_pending_owned_ton_count(stake_ton_count - prize_ton_count, true);
@@ -27391,7 +27391,7 @@ void MessagesManager::fail_send_message(MessageFullId message_full_id, int32 err
     td_->star_manager_->add_pending_owned_star_count(message->paid_message_star_count, false);
   }
   auto stake_ton_count = get_message_content_stake_ton_count(message->content.get());
-  if (stake_ton_count > 0) {
+  if (stake_ton_count > 0 && !message->is_quick_reply_message) {
     td_->star_manager_->add_pending_owned_ton_count(stake_ton_count, false);
   }
 
@@ -30629,7 +30629,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         td_->star_manager_->add_pending_owned_star_count(-m->paid_message_star_count, false);
       }
       auto stake_ton_count = get_message_content_stake_ton_count(m->content.get());
-      if (stake_ton_count > 0) {
+      if (stake_ton_count > 0 && !m->is_quick_reply_message) {
         td_->star_manager_->add_pending_owned_ton_count(-stake_ton_count, false);
       }
     }
