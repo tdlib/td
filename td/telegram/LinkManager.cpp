@@ -1643,6 +1643,9 @@ class RequestUrlAuthQuery final : public Td::ResultHandler {
         !td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "RequestUrlAuthQuery")) {
       LOG(INFO) << "Receive error for RequestUrlAuthQuery: " << status;
     }
+    if (status.message() == "URL_EXPIRED" || status.message() == "URL_INVALID") {
+      return promise_.set_error(std::move(status));
+    }
     promise_.set_value(td_api::make_object<td_api::loginUrlInfoOpen>(url_, false));
   }
 };

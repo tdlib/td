@@ -932,7 +932,7 @@ void Session::on_message_result_error(mtproto::MessageId message_id, int error_c
   }
 
   // UNAUTHORIZED
-  if (error_code == 401 && message != "SESSION_PASSWORD_NEEDED" && message != "URL_EXPIRED") {
+  if (error_code == 401 && message != "SESSION_PASSWORD_NEEDED") {
     if (auth_data_.use_pfs() && message == CSlice("AUTH_KEY_PERM_EMPTY")) {
       LOG(INFO) << "Receive AUTH_KEY_PERM_EMPTY in session " << auth_data_.get_session_id() << " for auth key "
                 << auth_data_.get_tmp_auth_key().id();
