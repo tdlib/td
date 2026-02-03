@@ -1455,12 +1455,15 @@ upgradeGiftResult gift:upgradedGift received_gift_id:string is_saved:Bool can_be
 
 //@class CraftGiftResult @description Contains result of gift crafting
 
-//@description Craft was successful
+//@description Crafting was successful
 //@gift The created gift
 //@received_gift_id Unique identifier of the received gift for the current user
 craftGiftResultSuccess gift:upgradedGift received_gift_id:string = CraftGiftResult;
 
-//@description Craft has failed
+//@description Crafting isn't possible because one of the gifts can't be used for crafting yet @retry_after Time left before the gift can be used for crafting
+craftGiftResultTooEarly retry_after:int32 = CraftGiftResult;
+
+//@description Crafting has failed
 craftGiftResultFail = CraftGiftResult;
 
 

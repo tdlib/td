@@ -1147,6 +1147,11 @@ class CraftStarGiftQuery final : public Td::ResultHandler {
   }
 
   void on_error(Status status) final {
+    Slice too_early_prefix = "STARGIFT_CRAFT_TOO_EARLY_";
+    if (begins_with(status.message(), too_early_prefix)) {
+      return promise_.set_value(td_api::make_object<td_api::craftGiftResultTooEarly>(
+          to_integer<int32>(status.message().substr(too_early_prefix.size()))));
+    }
     promise_.set_error(std::move(status));
   }
 };
