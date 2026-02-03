@@ -1463,6 +1463,9 @@ craftGiftResultSuccess gift:upgradedGift received_gift_id:string = CraftGiftResu
 //@description Crafting isn't possible because one of the gifts can't be used for crafting yet @retry_after Time left before the gift can be used for crafting
 craftGiftResultTooEarly retry_after:int32 = CraftGiftResult;
 
+//@description Crafting isn't possible because one of the gifts isn't suitable for crafting
+craftGiftResultInvalidGift = CraftGiftResult;
+
 //@description Crafting has failed
 craftGiftResultFail = CraftGiftResult;
 

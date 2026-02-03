@@ -1152,6 +1152,9 @@ class CraftStarGiftQuery final : public Td::ResultHandler {
       return promise_.set_value(td_api::make_object<td_api::craftGiftResultTooEarly>(
           to_integer<int32>(status.message().substr(too_early_prefix.size()))));
     }
+    if (status.message() == "STARGIFT_CRAFT_UNAVAILABLE") {
+      return promise_.set_value(td_api::make_object<td_api::craftGiftResultInvalidGift>());
+    }
     promise_.set_error(std::move(status));
   }
 };
