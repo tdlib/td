@@ -1130,6 +1130,7 @@ class MessagesManager final : public Actor {
     bool clear_draft = false;               // for send_message
     bool in_game_share = false;             // for send_message
     bool initial_is_topic_message = false;  // for send_message
+    bool is_quick_reply_message = false;    // for send_message
     bool hide_via_bot = false;              // for resend_message
     bool is_bot_start_message = false;      // for resend_message
 

@@ -2418,6 +2418,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     STORE_FLAG(initial_is_topic_message);
     STORE_FLAG(has_schedule_repeat_period);
     STORE_FLAG(has_summary_from_language);
+    STORE_FLAG(is_quick_reply_message);
     END_STORE_FLAGS();
   }
   // update MessageDb::get_message_info when flags5 is added
@@ -2742,6 +2743,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     PARSE_FLAG(initial_is_topic_message);
     PARSE_FLAG(has_schedule_repeat_period);
     PARSE_FLAG(has_summary_from_language);
+    PARSE_FLAG(is_quick_reply_message);
     END_PARSE_FLAGS();
   }
 
@@ -22541,7 +22543,7 @@ bool MessagesManager::can_resend_message(const Message *m) const {
       !begins_with(m->send_error_message, "ALLOW_PAYMENT_REQUIRED_")) {
     return false;
   }
-  if (m->is_bot_start_message) {
+  if (m->is_bot_start_message || m->is_quick_reply_message) {
     return false;
   }
   if (m->forward_info != nullptr || m->real_forward_from_dialog_id.is_valid()) {
@@ -24230,6 +24232,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
     m->reply_markup = std::move(content.reply_markup_);
     m->disable_web_page_preview = content.disable_web_page_preview_;
     m->media_album_id = content.media_album_id_;
+    m->is_quick_reply_message = true;
     original_message_id_to_new_message_id.emplace(content.original_message_id_, m->message_id);
 
     if (!td_->auth_manager_->is_bot()) {
