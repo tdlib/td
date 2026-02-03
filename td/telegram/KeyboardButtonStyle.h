@@ -15,8 +15,6 @@
 
 namespace td {
 
-class Td;
-
 class KeyboardButtonStyle {
   enum class Type : int32 { Default, Primary, Danger, Success };
   Type type_ = Type::Default;
