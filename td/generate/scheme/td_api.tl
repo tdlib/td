@@ -3316,13 +3316,13 @@ chatActionBarJoinRequest title:string is_channel:Bool request_date:int32 = ChatA
 //@description The button has default style
 buttonStyleDefault = ButtonStyle;
 
-//@description The button is a primary button
+//@description The button has dark blue color
 buttonStylePrimary = ButtonStyle;
 
-//@description The button has "danger" style
+//@description The button has red color
 buttonStyleDanger = ButtonStyle;
 
-//@description The button has "success" style
+//@description The button has green color
 buttonStyleSuccess = ButtonStyle;
 
 
