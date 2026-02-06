@@ -346,6 +346,14 @@ void CallActor::discard_call(bool is_disconnected, const string &invite_link, in
   loop();
 }
 
+void CallActor::get_input_phone_call_to_promise(
+    Promise<telegram_api::object_ptr<telegram_api::inputPhoneCall>> &&promise) {
+  if (!is_call_id_inited_) {
+    return promise.set_error(400, "Call not found");
+  }
+  promise.set_value(get_input_phone_call("get_input_phone_call_to_promise"));
+}
+
 void CallActor::rate_call(int32 rating, string comment, vector<td_api::object_ptr<td_api::CallProblem>> &&problems,
                           Promise<Unit> promise) {
   if (!call_state_.need_rating) {

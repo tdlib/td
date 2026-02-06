@@ -114,6 +114,8 @@ class CallActor final : public NetQueryCallback {
   void discard_call(bool is_disconnected, const string &invite_link, int32 duration, bool is_video, int64 connection_id,
                     Promise<Unit> promise);
 
+  void get_input_phone_call_to_promise(Promise<telegram_api::object_ptr<telegram_api::inputPhoneCall>> &&promise);
+
   void rate_call(int32 rating, string comment, vector<td_api::object_ptr<td_api::CallProblem>> &&problems,
                  Promise<Unit> promise);
 
