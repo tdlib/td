@@ -156,6 +156,7 @@ class CallActor final : public NetQueryCallback {
   CallId local_call_id_;
   int64 call_id_{0};
   bool is_call_id_inited_{false};
+  bool is_call_id_saved_{false};
   bool has_notification_{false};
   int64 call_access_hash_{0};
   UserId call_admin_user_id_;

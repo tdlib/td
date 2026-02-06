@@ -12,11 +12,13 @@
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/LinkManager.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
@@ -33,6 +35,38 @@
 #include <tuple>
 
 namespace td {
+
+struct CallFullId {
+  int64 call_id_ = 0;
+  int64 access_hash_ = 0;
+
+  CallFullId() = default;
+  CallFullId(int64 call_id, int64 access_hash) : call_id_(call_id), access_hash_(access_hash) {
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    storer.store_long(call_id_);
+    storer.store_long(access_hash_);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    call_id_ = parser.fetch_long();
+    access_hash_ = parser.fetch_long();
+  }
+};
+
+static vector<CallFullId> load_recent_call_ids() {
+  auto log_event_string = G()->td_db()->get_binlog_pmc()->get("recent_call_ids");
+  vector<CallFullId> recent_call_ids;
+  log_event_parse(recent_call_ids, log_event_string).ensure();
+  return recent_call_ids;
+}
+
+static void save_recent_call_ids(const vector<CallFullId> &recent_call_ids) {
+  G()->td_db()->get_binlog_pmc()->set("recent_call_ids", log_event_store(recent_call_ids).as_slice().str());
+}
 
 CallProtocol::CallProtocol(const telegram_api::phoneCallProtocol &protocol)
     : udp_p2p(protocol.udp_p2p_)
@@ -703,6 +737,23 @@ void CallActor::on_get_call_id() {
     int64 call_id = call_id_;
     call_id_promise_.set_value(std::move(call_id));
     call_id_promise_ = {};
+  }
+  if (!is_call_id_saved_) {
+    auto recent_call_ids = load_recent_call_ids();
+    bool is_found = false;
+    for (auto call_full_id : recent_call_ids) {
+      if (call_full_id.call_id_ == call_id_) {
+        is_found = true;
+      }
+    }
+    if (!is_found) {
+      recent_call_ids.emplace_back(call_id_, call_access_hash_);
+      if (recent_call_ids.size() > 10u) {
+        recent_call_ids.erase(recent_call_ids.begin());
+      }
+      save_recent_call_ids(recent_call_ids);
+    }
+    is_call_id_saved_ = true;
   }
 }
 
