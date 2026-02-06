@@ -46,6 +46,10 @@ class InputGroupCallId {
     return Hash<int64>()(group_call_id);
   }
 
+  int64 get_group_call_id() const {
+    return group_call_id;
+  }
+
   telegram_api::object_ptr<telegram_api::inputGroupCall> get_input_group_call() const;
 
   template <class StorerT>

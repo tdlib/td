@@ -1813,6 +1813,7 @@ class GroupCallManager::GroupCallMessages {
 };
 
 struct GroupCallManager::GroupCall {
+  InputGroupCallId input_group_call_id;
   GroupCallId group_call_id;
   DialogId dialog_id;
   string title;
@@ -2304,6 +2305,7 @@ GroupCallManager::GroupCall *GroupCallManager::add_group_call(InputGroupCallId i
   auto &group_call = group_calls_[input_group_call_id];
   if (group_call == nullptr) {
     group_call = make_unique<GroupCall>();
+    group_call->input_group_call_id = input_group_call_id;
     group_call->group_call_id = get_next_group_call_id(input_group_call_id);
     LOG(INFO) << "Add " << input_group_call_id << " from " << dialog_id << " as " << group_call->group_call_id;
   }
@@ -8229,9 +8231,9 @@ td_api::object_ptr<td_api::groupCall> GroupCallManager::get_group_call_object(
     message_sender_id = get_message_sender_object(td, group_call->message_sender_dialog_id, "groupCall");
   }
   return td_api::make_object<td_api::groupCall>(
-      group_call->group_call_id.get(), get_group_call_title(group_call), group_call->invite_link,
-      paid_message_star_count, scheduled_start_date, start_subscribed, is_active,
-      !group_call->is_conference && !group_call->is_live_story, group_call->is_live_story,
+      group_call->group_call_id.get(), group_call->input_group_call_id.get_group_call_id(),
+      get_group_call_title(group_call), group_call->invite_link, paid_message_star_count, scheduled_start_date,
+      start_subscribed, is_active, !group_call->is_conference && !group_call->is_live_story, group_call->is_live_story,
       !group_call->is_conference && group_call->is_rtmp_stream, is_joined, group_call->need_rejoin,
       group_call->is_creator && !group_call->is_live_story, group_call->can_be_managed, group_call->participant_count,
       group_call->has_hidden_listeners || group_call->is_live_story,
