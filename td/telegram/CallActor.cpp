@@ -224,6 +224,16 @@ CallActor::CallActor(Td *td, CallId call_id, ActorShared<> parent, Promise<int64
     : td_(td), parent_(std::move(parent)), call_id_promise_(std::move(promise)), local_call_id_(call_id) {
 }
 
+int64 CallActor::get_recent_call_access_hash(int64 call_id) {
+  auto recent_call_ids = load_recent_call_ids();
+  for (auto call_full_id : recent_call_ids) {
+    if (call_full_id.call_id_ == call_id) {
+      return call_full_id.access_hash_;
+    }
+  }
+  return 0;
+}
+
 void CallActor::create_call(UserId user_id, CallProtocol &&protocol, bool is_video, Promise<CallId> &&promise) {
   CHECK(state_ == State::Empty);
   state_ = State::SendRequestQuery;

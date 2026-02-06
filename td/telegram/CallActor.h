@@ -101,6 +101,8 @@ class CallActor final : public NetQueryCallback {
  public:
   CallActor(Td *td, CallId call_id, ActorShared<> parent, Promise<int64> promise);
 
+  static int64 get_recent_call_access_hash(int64 call_id);
+
   void create_call(UserId user_id, CallProtocol &&protocol, bool is_video, Promise<CallId> &&promise);
 
   void accept_call(CallProtocol &&protocol, Promise<Unit> promise);

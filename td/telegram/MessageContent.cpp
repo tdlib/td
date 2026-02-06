@@ -15,6 +15,7 @@
 #include "td/telegram/BackgroundInfo.hpp"
 #include "td/telegram/Birthdate.h"
 #include "td/telegram/Birthdate.hpp"
+#include "td/telegram/CallActor.h"
 #include "td/telegram/CallDiscardReason.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChannelType.h"
@@ -556,13 +557,18 @@ class MessageUnsupported final : public MessageContent {
 class MessageCall final : public MessageContent {
  public:
   int64 call_id = 0;
+  int64 call_access_hash = 0;
   int32 duration = 0;
   CallDiscardReason discard_reason;
   bool is_video = false;
 
   MessageCall() = default;
-  MessageCall(int64 call_id, int32 duration, CallDiscardReason discard_reason, bool is_video)
-      : call_id(call_id), duration(duration), discard_reason(discard_reason), is_video(is_video) {
+  MessageCall(int64 call_id, int64 call_access_hash, int32 duration, CallDiscardReason discard_reason, bool is_video)
+      : call_id(call_id)
+      , call_access_hash(call_access_hash)
+      , duration(duration)
+      , discard_reason(discard_reason)
+      , is_video(is_video) {
   }
 
   MessageContentType get_type() const final {
@@ -1941,12 +1947,17 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::Call: {
       const auto *m = static_cast<const MessageCall *>(content);
+      bool has_call_access_hash = m->call_access_hash != 0;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->is_video);
+      STORE_FLAG(has_call_access_hash);
       END_STORE_FLAGS();
       store(m->call_id, storer);
       store(m->duration, storer);
       store(m->discard_reason.type_, storer);
+      if (has_call_access_hash) {
+        store(m->call_access_hash, storer);
+      }
       break;
     }
     case MessageContentType::PaymentSuccessful: {
@@ -3134,9 +3145,11 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::Call: {
       auto m = make_unique<MessageCall>();
+      bool has_call_access_hash = false;
       if (parser.version() >= static_cast<int32>(Version::AddVideoCallsSupport)) {
         BEGIN_PARSE_FLAGS();
         PARSE_FLAG(m->is_video);
+        PARSE_FLAG(has_call_access_hash);
         END_PARSE_FLAGS();
       } else {
         m->is_video = false;
@@ -3144,6 +3157,9 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       parse(m->call_id, parser);
       parse(m->duration, parser);
       parse(m->discard_reason.type_, parser);
+      if (has_call_access_hash) {
+        parse(m->call_access_hash, parser);
+      }
       content = std::move(m);
       break;
     }
@@ -7309,10 +7325,9 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *lhs = static_cast<const MessageCall *>(old_content);
       const auto *rhs = static_cast<const MessageCall *>(new_content);
       if (lhs->duration != rhs->duration || lhs->discard_reason != rhs->discard_reason ||
-          lhs->is_video != rhs->is_video) {
+          lhs->is_video != rhs->is_video || lhs->call_id != rhs->call_id ||
+          lhs->call_access_hash != rhs->call_access_hash) {
         need_update = true;
-      } else if (lhs->call_id != rhs->call_id) {
-        is_content_changed = true;
       }
       break;
     }
@@ -9412,8 +9427,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive invalid " << oneline(to_string(action));
         break;
       }
-      return make_unique<MessageCall>(action->call_id_, duration, get_call_discard_reason(action->reason_),
-                                      action->video_);
+      auto call_access_hash = CallActor::get_recent_call_access_hash(action->call_id_);
+      return make_unique<MessageCall>(action->call_id_, call_access_hash, duration,
+                                      get_call_discard_reason(action->reason_), action->video_);
     }
     case telegram_api::messageActionPaymentSent::ID: {
       if (!is_business_message && td->auth_manager_->is_bot()) {
