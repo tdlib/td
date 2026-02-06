@@ -10602,8 +10602,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       for (auto participant_dialog_id : m->other_participant_dialog_ids) {
         other_participant_ids.push_back(get_message_sender_object(td, participant_dialog_id, "messageGroupCall"));
       }
-      return td_api::make_object<td_api::messageGroupCall>(m->is_active, m->was_missed, m->is_video, m->duration,
-                                                           std::move(other_participant_ids));
+      return td_api::make_object<td_api::messageGroupCall>(m->call_id, m->is_active, m->was_missed, m->is_video,
+                                                           m->duration, std::move(other_participant_ids));
     }
     case MessageContentType::ToDoList: {
       const auto *m = static_cast<const MessageToDoList *>(content);

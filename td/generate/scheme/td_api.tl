@@ -4763,12 +4763,13 @@ messageCall is_video:Bool discard_reason:CallDiscardReason duration:int32 = Mess
 //@description A message with information about a group call not bound to a chat. If the message is incoming, the call isn't active, isn't missed, and has no duration,
 //-and getOption("can_accept_calls") is true, then incoming call screen must be shown to the user. Use getGroupCallParticipants to show current group call participants on the screen.
 //-Use joinGroupCall to accept the call or declineGroupCallInvitation to decline it. If the call become active or missed, then the call screen must be hidden
+//@unique_id Persistent unique group call identifier
 //@is_active True, if the call is active, i.e. the called user joined the call
 //@was_missed True, if the called user missed or declined the call
 //@is_video True, if the call is a video call
 //@duration Call duration, in seconds; for left calls only
 //@other_participant_ids Identifiers of some other call participants
-messageGroupCall is_active:Bool was_missed:Bool is_video:Bool duration:int32 other_participant_ids:vector<MessageSender> = MessageContent;
+messageGroupCall unique_id:int64 is_active:Bool was_missed:Bool is_video:Bool duration:int32 other_participant_ids:vector<MessageSender> = MessageContent;
 
 //@description A new video chat was scheduled @group_call_id Identifier of the video chat. The video chat can be received through the method getGroupCall @start_date Point in time (Unix timestamp) when the group call is expected to be started by an administrator
 messageVideoChatScheduled group_call_id:int32 start_date:int32 = MessageContent;
