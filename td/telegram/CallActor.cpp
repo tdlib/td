@@ -27,7 +27,6 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
-#include "td/utils/FlatHashSet.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
@@ -228,7 +227,7 @@ CallActor::CallActor(Td *td, CallId call_id, ActorShared<> parent, Promise<int64
 
 int64 CallActor::get_recent_call_access_hash(int64 call_id) {
   auto recent_call_ids = load_recent_call_ids();
-  for (auto call_full_id : recent_call_ids) {
+  for (const auto &call_full_id : recent_call_ids) {
     if (call_full_id.call_id_ == call_id) {
       return call_full_id.access_hash_;
     }
@@ -694,7 +693,7 @@ void CallActor::on_get_call_id() {
   if (!is_call_id_saved_) {
     auto recent_call_ids = load_recent_call_ids();
     bool is_found = false;
-    for (auto call_full_id : recent_call_ids) {
+    for (const auto &call_full_id : recent_call_ids) {
       if (call_full_id.call_id_ == call_id_) {
         is_found = true;
       }
