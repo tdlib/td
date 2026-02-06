@@ -575,7 +575,10 @@ Status CallActor::do_update_call(const telegram_api::phoneCallWaiting &call) {
     }
   }
 
-  call_id_ = call.id_;
+  if (call_id_ != call.id_) {
+    call_id_ = call.id_;
+    call_state_need_flush_ = true;
+  }
   call_access_hash_ = call.access_hash_;
   is_call_id_inited_ = true;
   call_admin_user_id_ = UserId(call.admin_id_);
@@ -984,7 +987,7 @@ void CallActor::flush_call_state() {
 
     auto peer_id = is_outgoing_ ? user_id_ : call_admin_user_id_;
     auto update = td_api::make_object<td_api::updateCall>(td_api::make_object<td_api::call>(
-        local_call_id_.get(), 0, is_outgoing_, is_video_, call_state_.get_call_state_object()));
+        local_call_id_.get(), call_id_, 0, is_outgoing_, is_video_, call_state_.get_call_state_object()));
     send_closure(G()->user_manager(), &UserManager::get_user_id_object_async, peer_id,
                  [td_actor = G()->td(), update = std::move(update)](Result<int64> r_user_id) mutable {
                    if (r_user_id.is_ok()) {
