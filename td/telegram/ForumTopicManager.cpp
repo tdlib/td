@@ -827,9 +827,13 @@ void ForumTopicManager::get_forum_topic(DialogId dialog_id, ForumTopicId forum_t
   TRY_STATUS_PROMISE(promise, can_be_forum_topic_id(forum_topic_id));
 
   if (td_->auth_manager_->is_bot()) {
-    auto forum_topic = get_forum_topic_object(dialog_id, forum_topic_id);
-    if (forum_topic != nullptr) {
-      return promise.set_value(std::move(forum_topic));
+    auto topic = get_topic(dialog_id, forum_topic_id);
+    if (topic != nullptr && topic->topic_ != nullptr && topic->receive_date_ > G()->unix_time() - 60) {
+      CHECK(topic->info_ != nullptr);
+      auto forum_topic = topic->topic_->get_forum_topic_object(td_, dialog_id, *topic->info_);
+      if (forum_topic != nullptr) {
+        return promise.set_value(std::move(forum_topic));
+      }
     }
   }
 
@@ -1154,6 +1158,7 @@ ForumTopicId ForumTopicManager::on_get_forum_topic_impl(DialogId dialog_id,
         topic->topic_ = std::move(forum_topic_full);
         topic->need_save_to_database_ = true;  // TODO temporary
       }
+      topic->receive_date_ = G()->unix_time();
       set_topic_info(dialog_id, topic, std::move(forum_topic_info));
       send_update_forum_topic(dialog_id, topic);
       save_topic_to_database(dialog_id, topic);

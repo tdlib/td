@@ -142,6 +142,7 @@ class ForumTopicManager final : public Actor {
   struct Topic {
     unique_ptr<ForumTopicInfo> info_;
     unique_ptr<ForumTopic> topic_;
+    int32 receive_date_ = 0;
     int32 message_count_ = 0;
     mutable bool need_save_to_database_ = true;
 
