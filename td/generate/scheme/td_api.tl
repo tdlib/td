@@ -1539,7 +1539,8 @@ giftsForResale total_count:int32 gifts:vector<giftForResale> models:vector<upgra
 //@class GiftResaleResult @description Describes result of sending a resold gift
 
 //@description Operation was successfully completed
-giftResaleResultOk = GiftResaleResult;
+//@received_gift_id Unique identifier of the received gift; only for the gifts sent to the current user
+giftResaleResultOk received_gift_id:string = GiftResaleResult;
 
 //@description Operation has failed, because price has increased. If the price has decreased, then the buying will succeed anyway @price New price for the gift
 giftResaleResultPriceIncreased price:GiftResalePrice = GiftResaleResult;
