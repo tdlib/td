@@ -45,6 +45,8 @@ class CallManager final : public Actor {
   void rate_call(CallId call_id, int32 rating, string comment,
                  vector<td_api::object_ptr<td_api::CallProblem>> &&problems, Promise<Unit> promise);
 
+  void on_set_call_rating(CallId call_id);
+
   void send_call_debug_information(CallId call_id, string data, Promise<Unit> promise);
 
   void send_call_log(CallId call_id, td_api::object_ptr<td_api::InputFile> log_file, Promise<Unit> promise);
@@ -64,11 +66,23 @@ class CallManager final : public Actor {
   FlatHashMap<CallId, ActorOwn<CallActor>, CallIdHash> id_to_actor_;
 
   ActorId<CallActor> get_call_actor(CallId call_id);
+
   CallId create_call_actor();
+
   void set_call_id(CallId call_id, Result<int64> r_server_call_id);
 
   void hangup() final;
+
   void hangup_shared() final;
+
   void tear_down() final;
+
+  void fetch_input_phone_call(CallId call_id,
+                              Promise<telegram_api::object_ptr<telegram_api::inputPhoneCall>> &&promise);
+
+  void do_rate_call(CallId call_id, telegram_api::object_ptr<telegram_api::inputPhoneCall> input_phone_call,
+                    int32 rating, string comment, vector<td_api::object_ptr<td_api::CallProblem>> &&problems,
+                    Promise<Unit> promise);
 };
+
 }  // namespace td

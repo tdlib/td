@@ -60,7 +60,9 @@ struct CallFullId {
 static vector<CallFullId> load_recent_call_ids() {
   auto log_event_string = G()->td_db()->get_binlog_pmc()->get("recent_call_ids");
   vector<CallFullId> recent_call_ids;
-  log_event_parse(recent_call_ids, log_event_string).ensure();
+  if (!log_event_string.empty()) {
+    log_event_parse(recent_call_ids, log_event_string).ensure();
+  }
   return recent_call_ids;
 }
 
@@ -354,79 +356,12 @@ void CallActor::get_input_phone_call_to_promise(
   promise.set_value(get_input_phone_call("get_input_phone_call_to_promise"));
 }
 
-void CallActor::rate_call(int32 rating, string comment, vector<td_api::object_ptr<td_api::CallProblem>> &&problems,
-                          Promise<Unit> promise) {
-  if (!call_state_.need_rating) {
-    return promise.set_error(400, "Unexpected sendCallRating");
-  }
-  promise.set_value(Unit());
-
-  if (rating == 5) {
-    comment.clear();
-  }
-
-  FlatHashSet<string> tags;
-  for (auto &problem : problems) {
-    if (problem == nullptr) {
-      continue;
-    }
-
-    const char *tag = [problem_id = problem->get_id()] {
-      switch (problem_id) {
-        case td_api::callProblemEcho::ID:
-          return "echo";
-        case td_api::callProblemNoise::ID:
-          return "noise";
-        case td_api::callProblemInterruptions::ID:
-          return "interruptions";
-        case td_api::callProblemDistortedSpeech::ID:
-          return "distorted_speech";
-        case td_api::callProblemSilentLocal::ID:
-          return "silent_local";
-        case td_api::callProblemSilentRemote::ID:
-          return "silent_remote";
-        case td_api::callProblemDropped::ID:
-          return "dropped";
-        case td_api::callProblemDistortedVideo::ID:
-          return "distorted_video";
-        case td_api::callProblemPixelatedVideo::ID:
-          return "pixelated_video";
-        default:
-          UNREACHABLE();
-          return "";
-      }
-    }();
-    if (tags.insert(tag).second) {
-      if (!comment.empty()) {
-        comment += ' ';
-      }
-      comment += '#';
-      comment += tag;
-    }
-  }
-
-  bool user_initiative = false;
-  auto tl_query = telegram_api::phone_setCallRating(0, user_initiative, get_input_phone_call("rate_call"), rating,
-                                                    std::move(comment));
-  auto query = G()->net_query_creator().create(tl_query);
-  send_with_promise(std::move(query),
-                    PromiseCreator::lambda([actor_id = actor_id(this)](Result<NetQueryPtr> r_net_query) {
-                      send_closure(actor_id, &CallActor::on_set_rating_query_result, std::move(r_net_query));
-                    }));
-  loop();
-}
-
-void CallActor::on_set_rating_query_result(Result<NetQueryPtr> r_net_query) {
-  auto res = fetch_result<telegram_api::phone_setCallRating>(std::move(r_net_query));
-  if (res.is_error()) {
-    return on_error(res.move_as_error());
-  }
+void CallActor::on_set_call_rating() {
   if (call_state_.need_rating) {
     call_state_.need_rating = false;
     call_state_need_flush_ = true;
     loop();
   }
-  send_closure(G()->updates_manager(), &UpdatesManager::on_get_updates, res.move_as_ok(), Promise<Unit>());
 }
 
 void CallActor::send_call_debug_information(string data, Promise<Unit> promise) {

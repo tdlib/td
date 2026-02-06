@@ -6,10 +6,13 @@
 //
 #include "td/telegram/CallManager.h"
 
+#include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UpdatesManager.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -18,6 +21,39 @@
 #include <limits>
 
 namespace td {
+
+class SetCallRatingQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  CallId call_id_;
+
+ public:
+  explicit SetCallRatingQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(CallId call_id, telegram_api::object_ptr<telegram_api::inputPhoneCall> input_phone_call, int32 rating,
+            const string &comment) {
+    call_id_ = std::move(call_id);
+    bool user_initiative = false;
+    send_query(G()->net_query_creator().create(
+        telegram_api::phone_setCallRating(0, user_initiative, std::move(input_phone_call), rating, comment)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::phone_setCallRating>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SetCallRatingQuery: " << to_string(ptr);
+    send_closure(G()->call_manager(), &CallManager::on_set_call_rating, std::move(call_id_));
+    td_->updates_manager_->on_get_updates(std::move(ptr), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
 
 CallManager::CallManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
@@ -121,14 +157,91 @@ void CallManager::discard_call(CallId call_id, bool is_disconnected, const strin
                std::move(safe_promise));
 }
 
-void CallManager::rate_call(CallId call_id, int32 rating, string comment,
-                            vector<td_api::object_ptr<td_api::CallProblem>> &&problems, Promise<Unit> promise) {
+void CallManager::fetch_input_phone_call(CallId call_id,
+                                         Promise<telegram_api::object_ptr<telegram_api::inputPhoneCall>> &&promise) {
   auto actor = get_call_actor(call_id);
   if (actor.empty()) {
     return promise.set_error(400, "Call not found");
   }
-  auto safe_promise = SafePromise<Unit>(std::move(promise), Status::Error(400, "Call not found"));
-  send_closure(actor, &CallActor::rate_call, rating, std::move(comment), std::move(problems), std::move(safe_promise));
+  auto safe_promise = SafePromise<telegram_api::object_ptr<telegram_api::inputPhoneCall>>(
+      std::move(promise), Status::Error(400, "Call not found"));
+  send_closure(actor, &CallActor::get_input_phone_call_to_promise, std::move(safe_promise));
+}
+
+void CallManager::rate_call(CallId call_id, int32 rating, string comment,
+                            vector<td_api::object_ptr<td_api::CallProblem>> &&problems, Promise<Unit> promise) {
+  if (rating < 1 || rating > 5) {
+    return promise.set_error(400, "Invalid rating specified");
+  }
+  fetch_input_phone_call(
+      call_id, [actor_id = actor_id(this), call_id, rating, comment = std::move(comment),
+                problems = std::move(problems), promise = std::move(promise)](
+                   Result<telegram_api::object_ptr<telegram_api::inputPhoneCall>> r_input_phone_call) mutable {
+        if (r_input_phone_call.is_error()) {
+          return promise.set_error(r_input_phone_call.move_as_error());
+        }
+        send_closure(actor_id, &CallManager::do_rate_call, std::move(call_id), r_input_phone_call.move_as_ok(), rating,
+                     std::move(comment), std::move(problems), std::move(promise));
+      });
+}
+
+void CallManager::do_rate_call(CallId call_id, telegram_api::object_ptr<telegram_api::inputPhoneCall> input_phone_call,
+                               int32 rating, string comment, vector<td_api::object_ptr<td_api::CallProblem>> &&problems,
+                               Promise<Unit> promise) {
+  TRY_STATUS_PROMISE(promise, G()->close_status());
+  if (rating == 5) {
+    comment.clear();
+  }
+
+  FlatHashSet<string> tags;
+  for (auto &problem : problems) {
+    if (problem == nullptr) {
+      continue;
+    }
+
+    const char *tag = [problem_id = problem->get_id()] {
+      switch (problem_id) {
+        case td_api::callProblemEcho::ID:
+          return "echo";
+        case td_api::callProblemNoise::ID:
+          return "noise";
+        case td_api::callProblemInterruptions::ID:
+          return "interruptions";
+        case td_api::callProblemDistortedSpeech::ID:
+          return "distorted_speech";
+        case td_api::callProblemSilentLocal::ID:
+          return "silent_local";
+        case td_api::callProblemSilentRemote::ID:
+          return "silent_remote";
+        case td_api::callProblemDropped::ID:
+          return "dropped";
+        case td_api::callProblemDistortedVideo::ID:
+          return "distorted_video";
+        case td_api::callProblemPixelatedVideo::ID:
+          return "pixelated_video";
+        default:
+          UNREACHABLE();
+          return "";
+      }
+    }();
+    if (tags.insert(tag).second) {
+      if (!comment.empty()) {
+        comment += ' ';
+      }
+      comment += '#';
+      comment += tag;
+    }
+  }
+
+  td_->create_handler<SetCallRatingQuery>(std::move(promise))
+      ->send(call_id, std::move(input_phone_call), rating, comment);
+}
+
+void CallManager::on_set_call_rating(CallId call_id) {
+  auto actor = get_call_actor(call_id);
+  if (!actor.empty()) {
+    send_closure(actor, &CallActor::on_set_call_rating);
+  }
 }
 
 void CallManager::send_call_debug_information(CallId call_id, string data, Promise<Unit> promise) {

@@ -116,8 +116,7 @@ class CallActor final : public NetQueryCallback {
 
   void get_input_phone_call_to_promise(Promise<telegram_api::object_ptr<telegram_api::inputPhoneCall>> &&promise);
 
-  void rate_call(int32 rating, string comment, vector<td_api::object_ptr<td_api::CallProblem>> &&problems,
-                 Promise<Unit> promise);
+  void on_set_call_rating();
 
   void send_call_debug_information(string data, Promise<Unit> promise);
 
@@ -205,8 +204,6 @@ class CallActor final : public NetQueryCallback {
   void on_begin_exchanging_key();
 
   void on_call_discarded(CallDiscardReason reason, bool need_rating, bool need_debug, bool is_video);
-
-  void on_set_rating_query_result(Result<NetQueryPtr> r_net_query);
 
   void on_save_debug_query_result(Result<NetQueryPtr> r_net_query);
 
