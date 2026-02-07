@@ -968,7 +968,7 @@ class GetTonTransactionsQuery final : public Td::ResultHandler {
               }
               return nullptr;
             }
-            if (dialog_id == DialogId(UserId(G()->is_test_dc() ? 5001167034 : 8353936423))) {
+            if (dialog_id == DialogId(UserId(static_cast<int64>(G()->is_test_dc() ? 5001167034 : 8353936423)))) {
               transaction->title_.clear();
               if (is_purchase) {
                 return td_api::make_object<td_api::tonTransactionTypeStakeDiceStake>();
