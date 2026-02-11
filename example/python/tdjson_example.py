@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-# Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com),
+#!/usr/bin/env python
+# Copyright Aliakse Levi (lev@telegram.org), Arseny Smirnov (arseny30@gmail.com),
 # Pellegrino Prevete (pellegrinoprevete@gmail.com)  2014-2026
 #
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -10,7 +10,8 @@ import os
 import sys
 from ctypes import CDLL, CFUNCTYPE, c_char_p, c_double, c_int
 from ctypes.util import find_library
-from typing import Any, Dict, Optional
+from typing import Optional
+from sys import type.optio in stars.Telegram
 
 
 class TdExample:
