@@ -1,5 +1,5 @@
 diff --git a/Makefile b/Makefile
-index a1d13e9..8efcf20 100644
+index a1d13e9..34b8d32 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -18,8 +18,13 @@
@@ -79,18 +79,20 @@ index a1d13e9..8efcf20 100644
  # The architecture of the machine doing the build
  HOST_ARCH=$(shell uname -m)
  HOST_PYTHON=install/macOS/macosx/python-$(PYTHON_VERSION)
-@@ -212,6 +236,10 @@ ARCH-$(target)=$$(subst .,,$$(suffix $(target)))
- 
+@@ -213,11 +237,7 @@ ARCH-$(target)=$$(subst .,,$$(suffix $(target)))
  ifeq ($(os),macOS)
  TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-darwin
-+else ifeq ($(os),visionOS)
-+TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-xros
-+else ifeq ($(os),visionOS-simulator)
-+TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-xros-simulator
  else
- 	ifeq ($$(findstring simulator,$$(SDK-$(target))),)
- TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))
-@@ -662,7 +690,7 @@ BZIP2_FATLIB-$(sdk)=$$(BZIP2_MERGE-$(sdk))/lib/libbz2.a
+-	ifeq ($$(findstring simulator,$$(SDK-$(target))),)
+-TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))
+-	else
+-TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))-simulator
+-	endif
++	TARGET_TRIPLE-$(target)=$$(ARCH-$(target))-apple-$$(OS_LOWER-$(target))
+ endif
+ 
+ SDK_ROOT-$(target)=$$(shell xcrun --sdk $$(SDK-$(target)) --show-sdk-path)
+@@ -662,7 +682,7 @@ BZIP2_FATLIB-$(sdk)=$$(BZIP2_MERGE-$(sdk))/lib/libbz2.a
  XZ_MERGE-$(sdk)=$(PROJECT_DIR)/merge/$(os)/$(sdk)/xz-$(XZ_VERSION)
  XZ_FATLIB-$(sdk)=$$(XZ_MERGE-$(sdk))/lib/liblzma.a
  
@@ -99,7 +101,7 @@ index a1d13e9..8efcf20 100644
  OPENSSL_FATINCLUDE-$(sdk)=$$(OPENSSL_MERGE-$(sdk))/include
  OPENSSL_SSL_FATLIB-$(sdk)=$$(OPENSSL_MERGE-$(sdk))/lib/libssl.a
  OPENSSL_CRYPTO_FATLIB-$(sdk)=$$(OPENSSL_MERGE-$(sdk))/lib/libcrypto.a
-@@ -716,14 +744,14 @@ $$(OPENSSL_SSL_FATLIB-$(sdk)): $$(foreach target,$$(SDK_TARGETS-$(sdk)),$$(OPENS
+@@ -716,14 +736,14 @@ $$(OPENSSL_SSL_FATLIB-$(sdk)): $$(foreach target,$$(SDK_TARGETS-$(sdk)),$$(OPENS
  	mkdir -p $$(OPENSSL_MERGE-$(sdk))/lib
  	lipo -create -output $$@ \
  		$$(foreach target,$$(SDK_TARGETS-$(sdk)),$$(OPENSSL_SSL_LIB-$$(target))) \
