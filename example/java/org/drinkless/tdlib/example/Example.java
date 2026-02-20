@@ -289,7 +289,7 @@ public final class Example {
 
     private static void sendMessage(long chatId, String message) {
         // initialize reply markup just for testing
-        TdApi.InlineKeyboardButton[] row = {new TdApi.InlineKeyboardButton("https://telegram.org?1", new TdApi.InlineKeyboardButtonTypeUrl()), new TdApi.InlineKeyboardButton("https://telegram.org?2", new TdApi.InlineKeyboardButtonTypeUrl()), new TdApi.InlineKeyboardButton("https://telegram.org?3", new TdApi.InlineKeyboardButtonTypeUrl())};
+        TdApi.InlineKeyboardButton[] row = {new TdApi.InlineKeyboardButton("https://telegram.org?1", 0, null, new TdApi.InlineKeyboardButtonTypeUrl("https://telegram.org?1")), new TdApi.InlineKeyboardButton("https://telegram.org?2", 0, null, new TdApi.InlineKeyboardButtonTypeUrl("https://telegram.org?2")), new TdApi.InlineKeyboardButton("https://telegram.org?3", 0, null, new TdApi.InlineKeyboardButtonTypeUrl("https://telegram.org?3"))};
         TdApi.ReplyMarkup replyMarkup = new TdApi.ReplyMarkupInlineKeyboard(new TdApi.InlineKeyboardButton[][]{row, row, row});
 
         TdApi.InputMessageContent content = new TdApi.InputMessageText(new TdApi.FormattedText(message, null), null, true);
