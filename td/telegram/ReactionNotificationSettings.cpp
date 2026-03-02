@@ -50,7 +50,7 @@ ReactionNotificationSettings::get_input_reactions_notify_settings() const {
     flags |= telegram_api::reactionsNotifySettings::STORIES_NOTIFY_FROM_MASK;
   }
   return telegram_api::make_object<telegram_api::reactionsNotifySettings>(
-      flags, std::move(messages_notify_from), std::move(stories_notify_from),
+      flags, std::move(messages_notify_from), std::move(stories_notify_from), nullptr,
       get_input_notification_sound(sound_, true), show_preview_);
 }
 

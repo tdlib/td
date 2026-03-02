@@ -8782,6 +8782,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       return td::make_unique<MessageText>(std::move(message), WebPageId(), false, false, false, string());
     case telegram_api::messageMediaPhoto::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media_ptr);
+      if (media->live_photo_) {
+        return make_unique<MessageUnsupported>();
+      }
       if (media->photo_ == nullptr) {
         if (media->ttl_seconds_ == 0) {
           LOG(ERROR) << "Receive messageMediaPhoto without photo and self-destruct timer from " << source << ": "
@@ -9418,6 +9421,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionSuggestedPostRefund::ID:
       case telegram_api::messageActionNewCreatorPending::ID:
       case telegram_api::messageActionChangeCreator::ID:
+      case telegram_api::messageActionManagedBotCreated::ID:
         LOG(ERROR) << "Receive business " << to_string(action_ptr);
         break;
       case telegram_api::messageActionHistoryClear::ID:
@@ -9452,6 +9456,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       case telegram_api::messageActionStarGiftPurchaseOfferDeclined::ID:
       case telegram_api::messageActionNoForwardsToggle::ID:
       case telegram_api::messageActionNoForwardsRequest::ID:
+      case telegram_api::messageActionPollAppendAnswer::ID:
+      case telegram_api::messageActionPollDeleteAnswer::ID:
         // ok
         break;
       default:
@@ -9477,6 +9483,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionSuggestedPostRefund::ID:
     case telegram_api::messageActionStarGiftPurchaseOfferDeclined::ID:
     case telegram_api::messageActionNoForwardsToggle::ID:
+    case telegram_api::messageActionPollAppendAnswer::ID:
+    case telegram_api::messageActionPollDeleteAnswer::ID:
       // ok
       break;
     default:
@@ -10188,6 +10196,12 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return td::make_unique<MessageNoForwardsRequest>(action->expired_, action->prev_value_, action->new_value_);
     }
+    case telegram_api::messageActionManagedBotCreated::ID:
+      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionPollAppendAnswer::ID:
+      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionPollDeleteAnswer::ID:
+      return td::make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }

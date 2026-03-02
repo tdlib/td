@@ -72,7 +72,7 @@ class GetPollResultsQuery final : public Td::ResultHandler {
 
     auto message_id = message_id_.get_server_message_id().get();
     send_query(
-        G()->net_query_creator().create(telegram_api::messages_getPollResults(std::move(input_peer), message_id)));
+        G()->net_query_creator().create(telegram_api::messages_getPollResults(std::move(input_peer), message_id, 0)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -206,10 +206,10 @@ class StopPollQuery final : public Td::ResultHandler {
 
     auto message_id = message_full_id.get_message_id().get_server_message_id().get();
     auto poll = telegram_api::make_object<telegram_api::poll>(
-        poll_id.get(), 0, true, false, false, false,
-        telegram_api::make_object<telegram_api::textWithEntities>(string(), Auto()), Auto(), 0, 0);
-    auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(0, std::move(poll),
-                                                                               vector<BufferSlice>(), string(), Auto());
+        poll_id.get(), 0, true, false, false, false, false, false, false, false, true,
+        telegram_api::make_object<telegram_api::textWithEntities>(string(), Auto()), Auto(), 0, 0, 0);
+    auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(0, std::move(poll), vector<int32>(),
+                                                                               nullptr, string(), Auto(), nullptr);
     send_query(G()->net_query_creator().create(
         telegram_api::messages_editMessage(flags, false, false, std::move(input_peer), message_id, string(),
                                            std::move(input_media), std::move(input_reply_markup),
@@ -641,10 +641,9 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
                                            poll->is_closed_);
 }
 
-telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
-  return telegram_api::make_object<telegram_api::pollAnswer>(
-      get_input_text_with_entities(nullptr, poll_option.text_, "get_input_poll_option"),
-      BufferSlice(poll_option.data_));
+telegram_api::object_ptr<telegram_api::PollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
+  return telegram_api::make_object<telegram_api::inputPollAnswer>(
+      0, get_input_text_with_entities(nullptr, poll_option.text_, "get_input_poll_option"), nullptr);
 }
 
 PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> &&options, bool is_anonymous,
@@ -1544,12 +1543,12 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
   }
 
   int32 flags = 0;
-  vector<BufferSlice> correct_answers;
+  vector<int32> correct_answers;
   if (poll->is_quiz_) {
     flags |= telegram_api::inputMediaPoll::CORRECT_ANSWERS_MASK;
     CHECK(poll->correct_option_id_ >= 0);
     CHECK(static_cast<size_t>(poll->correct_option_id_) < poll->options_.size());
-    correct_answers.push_back(BufferSlice(poll->options_[poll->correct_option_id_].data_));
+    correct_answers.push_back(poll->correct_option_id_);
 
     if (!poll->explanation_.text.empty()) {
       flags |= telegram_api::inputMediaPoll::SOLUTION_MASK;
@@ -1558,20 +1557,24 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
   return telegram_api::make_object<telegram_api::inputMediaPoll>(
       flags,
       telegram_api::make_object<telegram_api::poll>(
-          0, poll_flags, poll->is_closed_, !poll->is_anonymous_, poll->allow_multiple_answers_, poll->is_quiz_,
-          get_input_text_with_entities(nullptr, poll->question_, "get_input_media_poll"),
-          transform(poll->options_, get_input_poll_option), poll->open_period_, poll->close_date_),
-      std::move(correct_answers), poll->explanation_.text,
-      get_input_message_entities(td_->user_manager_.get(), poll->explanation_.entities, "get_input_media_poll"));
+          0, poll_flags, poll->is_closed_, !poll->is_anonymous_, poll->allow_multiple_answers_, poll->is_quiz_, false,
+          false, false, false, true, get_input_text_with_entities(nullptr, poll->question_, "get_input_media_poll"),
+          transform(poll->options_, get_input_poll_option), poll->open_period_, poll->close_date_, 0),
+      std::move(correct_answers), nullptr, poll->explanation_.text,
+      get_input_message_entities(td_->user_manager_.get(), poll->explanation_.entities, "get_input_media_poll"),
+      nullptr);
 }
 
 vector<PollManager::PollOption> PollManager::get_poll_options(
-    vector<telegram_api::object_ptr<telegram_api::pollAnswer>> &&poll_options) {
-  return transform(std::move(poll_options), [](telegram_api::object_ptr<telegram_api::pollAnswer> &&poll_option) {
+    vector<telegram_api::object_ptr<telegram_api::PollAnswer>> &&poll_options) {
+  return transform(std::move(poll_options), [](telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_option_ptr) {
     PollOption option;
-    option.text_ = get_formatted_text(nullptr, std::move(poll_option->text_), true, true, "get_poll_options");
-    keep_only_custom_emoji(option.text_);
-    option.data_ = poll_option->option_.as_slice().str();
+    if (poll_option_ptr->get_id() == telegram_api::pollAnswer::ID) {
+      auto poll_option = telegram_api::move_object_as<telegram_api::pollAnswer>(poll_option_ptr);
+      option.text_ = get_formatted_text(nullptr, std::move(poll_option->text_), true, true, "get_poll_options");
+      keep_only_custom_emoji(option.text_);
+      option.data_ = poll_option->option_.as_slice().str();
+    }
     return option;
   });
 }
@@ -1602,7 +1605,12 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   }
   if (poll_server != nullptr) {
     FlatHashSet<Slice, SliceHash> option_data;
-    for (auto &answer : poll_server->answers_) {
+    for (auto &answer_ptr : poll_server->answers_) {
+      if (answer_ptr->get_id() != telegram_api::pollAnswer::ID) {
+        LOG(ERROR) << "Receive " << poll_id << " from " << source << " with invalid answer: " << to_string(poll_server);
+        return PollId();
+      }
+      const auto *answer = static_cast<const telegram_api::pollAnswer *>(answer_ptr.get());
       if (answer->option_.empty()) {
         LOG(ERROR) << "Receive " << poll_id << " from " << source
                    << " with an empty option data: " << to_string(poll_server);

@@ -141,7 +141,7 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   }
   auto result = telegram_api::make_object<telegram_api::inputReplyToMessage>(
       flags, reply_to_message_id.get_server_message_id().get(), top_msg_id, std::move(input_peer), string(), Auto(), 0,
-      std::move(saved_input_peer), todo_item_id_);
+      std::move(saved_input_peer), todo_item_id_, BufferSlice());
   quote_.update_input_reply_to_message(td, result.get());
   return std::move(result);
 }

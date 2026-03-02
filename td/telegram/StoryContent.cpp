@@ -228,7 +228,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
   switch (media_ptr->get_id()) {
     case telegram_api::messageMediaPhoto::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media_ptr);
-      if (media->photo_ == nullptr || media->ttl_seconds_ != 0 || media->spoiler_) {
+      if (media->photo_ == nullptr || media->ttl_seconds_ != 0 || media->spoiler_ || media->live_photo_) {
         LOG(ERROR) << "Receive a story with content " << to_string(media);
         break;
       }

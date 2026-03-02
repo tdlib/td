@@ -1025,6 +1025,9 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionStarGiftPurchaseOfferDeclined::ID:
         case telegram_api::messageActionNoForwardsToggle::ID:
         case telegram_api::messageActionNoForwardsRequest::ID:
+        case telegram_api::messageActionPollAppendAnswer::ID:
+        case telegram_api::messageActionManagedBotCreated::ID:
+        case telegram_api::messageActionPollDeleteAnswer::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto action = static_cast<const telegram_api::messageActionChatCreate *>(action_ptr);
@@ -4951,6 +4954,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateStarsRevenueSta
 // unsupported updates
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNewStoryReaction> update, Promise<Unit> &&promise) {
+  promise.set_value(Unit());
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateManagedBot> update, Promise<Unit> &&promise) {
   promise.set_value(Unit());
 }
 

@@ -2158,12 +2158,13 @@ class SendScreenshotNotificationQuery final : public Td::ResultHandler {
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
 
-    send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendScreenshotNotification(std::move(input_peer),
-                                                          telegram_api::make_object<telegram_api::inputReplyToMessage>(
-                                                              0, 0, 0, nullptr, string(), Auto(), 0, nullptr, 0),
-                                                          random_id),
-        {{dialog_id, MessageContentType::Text}}));
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_sendScreenshotNotification(
+                                            std::move(input_peer),
+                                            telegram_api::make_object<telegram_api::inputReplyToMessage>(
+                                                0, 0, 0, nullptr, string(), Auto(), 0, nullptr, 0, BufferSlice()),
+                                            random_id),
+                                        {{dialog_id, MessageContentType::Text}}));
   }
 
   void on_result(BufferSlice packet) final {

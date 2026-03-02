@@ -562,10 +562,10 @@ class EditStoryCoverQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::stories_editStory(telegram_api::stories_editStory::MEDIA_MASK, std::move(input_peer),
-                                        story_id.get(), std::move(input_media),
-                                        vector<telegram_api::object_ptr<telegram_api::MediaArea>>(), string(),
-                                        vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), Auto()),
+        telegram_api::stories_editStory(
+            telegram_api::stories_editStory::MEDIA_MASK, std::move(input_peer), story_id.get(), std::move(input_media),
+            vector<telegram_api::object_ptr<telegram_api::MediaArea>>(), string(),
+            vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(), Auto(), nullptr),
         {{StoryFullId{dialog_id_, story_id}}}));
   }
 
@@ -626,7 +626,7 @@ class EditStoryPrivacyQuery final : public Td::ResultHandler {
         telegram_api::stories_editStory(flags, std::move(input_peer), story_id.get(), nullptr,
                                         vector<telegram_api::object_ptr<telegram_api::MediaArea>>(), string(),
                                         vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(),
-                                        privacy_rules.get_input_privacy_rules(td_)),
+                                        privacy_rules.get_input_privacy_rules(td_), nullptr),
         {{StoryFullId{dialog_id, story_id}}}));
   }
 
@@ -1393,11 +1393,12 @@ class StoryManager::SendStoryQuery final : public Td::ResultHandler {
     }
 
     send_query(G()->net_query_creator().create(
-        telegram_api::stories_sendStory(
-            flags, pending_story_->story_->is_pinned_, story->noforwards_, story->forward_info_ != nullptr,
-            std::move(input_peer), std::move(input_media), std::move(input_media_areas), caption.text,
-            std::move(entities), std::move(privacy_rules), pending_story_->random_id_, period,
-            std::move(fwd_input_peer), fwd_story_id, StoryAlbumId::get_input_story_album_ids(story->album_ids_)),
+        telegram_api::stories_sendStory(flags, pending_story_->story_->is_pinned_, story->noforwards_,
+                                        story->forward_info_ != nullptr, std::move(input_peer), std::move(input_media),
+                                        std::move(input_media_areas), caption.text, std::move(entities),
+                                        std::move(privacy_rules), pending_story_->random_id_, period,
+                                        std::move(fwd_input_peer), fwd_story_id,
+                                        StoryAlbumId::get_input_story_album_ids(story->album_ids_), nullptr),
         {{pending_story_->dialog_id_}}));
   }
 
@@ -1470,7 +1471,7 @@ class StoryManager::RepostBusinessStoryQuery final : public Td::ResultHandler {
                                         vector<telegram_api::object_ptr<telegram_api::MediaArea>>(), string(),
                                         vector<telegram_api::object_ptr<telegram_api::MessageEntity>>(),
                                         std::move(privacy_rules), Random::secure_int64(), active_period,
-                                        std::move(fwd_input_peer), from_story_id.get(), vector<int>()),
+                                        std::move(fwd_input_peer), from_story_id.get(), vector<int>(), nullptr),
         {{dialog_id_}}));
   }
 
@@ -1610,7 +1611,7 @@ class StoryManager::EditStoryQuery final : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(
         telegram_api::stories_editStory(flags, std::move(input_peer), pending_story_->story_id_.get(),
                                         std::move(input_media), std::move(input_media_areas),
-                                        edited_story->caption_.text, std::move(entities), Auto()),
+                                        edited_story->caption_.text, std::move(entities), Auto(), nullptr),
         {{StoryFullId{pending_story_->dialog_id_, pending_story_->story_id_}}}));
   }
 
@@ -1683,7 +1684,7 @@ class StoryManager::EditBusinessStoryQuery final : public Td::ResultHandler {
         telegram_api::stories_editStory(flags, std::move(input_peer), pending_story_->story_id_.get(),
                                         std::move(input_media), std::move(input_media_areas),
                                         edited_story->caption_.text, std::move(entities),
-                                        std::move(input_privacy_rules)),
+                                        std::move(input_privacy_rules), nullptr),
         {{StoryFullId{pending_story_->dialog_id_, pending_story_->story_id_}}}));
   }
 

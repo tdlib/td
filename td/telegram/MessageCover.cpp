@@ -54,7 +54,7 @@ Status MessageCover::merge_with_media(Td *td, DialogId owner_dialog_id,
         return Status::Error(500, "Receive invalid response");
       }
       auto media = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media_ptr);
-      if (media->photo_ == nullptr || media->ttl_seconds_ != 0) {
+      if (media->photo_ == nullptr || media->ttl_seconds_ != 0 || media->live_photo_) {
         return Status::Error(500, "Receive invalid response without photo");
       }
       auto new_photo = get_photo(td, std::move(media->photo_), owner_dialog_id, FileType::Photo);

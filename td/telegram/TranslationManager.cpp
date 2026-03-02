@@ -37,14 +37,14 @@ class TranslateTextQuery final : public Td::ResultHandler {
       CHECK(input_peer != nullptr);
       auto message_ids = {message_full_id.get_message_id().get_server_message_id().get()};
       send_query(G()->net_query_creator().create(telegram_api::messages_translateText(
-          flags, std::move(input_peer), std::move(message_ids), Auto(), to_language_code)));
+          flags, std::move(input_peer), std::move(message_ids), Auto(), to_language_code, string())));
     } else {
       flags |= telegram_api::messages_translateText::TEXT_MASK;
       auto input_texts = transform(std::move(texts), [user_manager = td_->user_manager_.get()](FormattedText &&text) {
         return get_input_text_with_entities(user_manager, std::move(text), "TranslateTextQuery");
       });
       send_query(G()->net_query_creator().create(telegram_api::messages_translateText(
-          flags, nullptr, vector<int32>{}, std::move(input_texts), to_language_code)));
+          flags, nullptr, vector<int32>{}, std::move(input_texts), to_language_code, string())));
     }
   }
 

@@ -969,8 +969,8 @@ telegram_api::object_ptr<telegram_api::InputMedia> BotInfoManager::get_fake_inpu
       return telegram_api::make_object<telegram_api::inputMediaDocument>(
           0, false, full_remote_location->as_input_document(), nullptr, 0, 0, string());
     case FileType::PhotoStory:
-      return telegram_api::make_object<telegram_api::inputMediaPhoto>(0, false, full_remote_location->as_input_photo(),
-                                                                      0);
+      return telegram_api::make_object<telegram_api::inputMediaPhoto>(
+          0, false, false, full_remote_location->as_input_photo(), 0, nullptr);
     default:
       return nullptr;
   }

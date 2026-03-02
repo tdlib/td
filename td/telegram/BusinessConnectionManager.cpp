@@ -500,10 +500,10 @@ class BusinessConnectionManager::StopBusinessPollQuery final : public Td::Result
     }
 
     auto poll = telegram_api::make_object<telegram_api::poll>(
-        0, 0, true, false, false, false, telegram_api::make_object<telegram_api::textWithEntities>(string(), Auto()),
-        Auto(), 0, 0);
-    auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(0, std::move(poll),
-                                                                               vector<BufferSlice>(), string(), Auto());
+        0, 0, true, false, false, false, false, false, false, false, true,
+        telegram_api::make_object<telegram_api::textWithEntities>(string(), Auto()), Auto(), 0, 0, 0);
+    auto input_media = telegram_api::make_object<telegram_api::inputMediaPoll>(0, std::move(poll), vector<int32>(),
+                                                                               nullptr, string(), Auto(), nullptr);
     int32 server_message_id = message_id.get_server_message_id().get();
     send_query(G()->net_query_creator().create_with_prefix(
         business_connection_id.get_invoke_prefix(),

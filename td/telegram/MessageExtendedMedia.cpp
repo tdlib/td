@@ -69,6 +69,9 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
   switch (media->get_id()) {
     case telegram_api::messageMediaPhoto::ID: {
       auto photo = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media);
+      if (photo->live_photo_) {
+        break;
+      }
       if (photo->photo_ == nullptr) {
         LOG(ERROR) << "Receive invalid paid media " << to_string(photo);
         break;

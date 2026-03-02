@@ -315,8 +315,8 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
       if (ttl != 0) {
         flags |= telegram_api::inputMediaPhoto::TTL_SECONDS_MASK;
       }
-      return make_tl_object<telegram_api::inputMediaPhoto>(flags, has_spoiler, main_remote_location->as_input_photo(),
-                                                           ttl);
+      return make_tl_object<telegram_api::inputMediaPhoto>(flags, has_spoiler, false,
+                                                           main_remote_location->as_input_photo(), ttl, nullptr);
     }
     const auto *url = file_view.get_url();
     if (url != nullptr) {
@@ -343,8 +343,8 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
     }
 
     CHECK(!photo.photos.empty());
-    return make_tl_object<telegram_api::inputMediaUploadedPhoto>(flags, has_spoiler, std::move(input_file),
-                                                                 std::move(added_stickers), ttl);
+    return make_tl_object<telegram_api::inputMediaUploadedPhoto>(flags, has_spoiler, false, std::move(input_file),
+                                                                 std::move(added_stickers), ttl, nullptr);
   }
   return nullptr;
 }

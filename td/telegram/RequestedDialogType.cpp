@@ -89,6 +89,13 @@ RequestedDialogType::RequestedDialogType(telegram_api::object_ptr<telegram_api::
       bot_administrator_rights_ = AdministratorRights(type->bot_admin_rights_, ChannelType::Broadcast);
       break;
     }
+    case telegram_api::requestPeerTypeCreateBot::ID: {
+      auto type = telegram_api::move_object_as<telegram_api::requestPeerTypeCreateBot>(peer_type);
+      type_ = Type::User;
+      restrict_is_bot_ = true;
+      is_bot_ = true;
+      break;
+    }
     default:
       UNREACHABLE();
   }

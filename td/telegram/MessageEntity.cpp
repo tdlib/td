@@ -4062,6 +4062,12 @@ vector<MessageEntity> get_message_entities(const UserManager *user_manager,
                               date_flags);
         break;
       }
+      case telegram_api::messageEntityDiffInsert::ID:
+        continue;
+      case telegram_api::messageEntityDiffReplace::ID:
+        continue;
+      case telegram_api::messageEntityDiffDelete::ID:
+        continue;
       default:
         UNREACHABLE();
     }

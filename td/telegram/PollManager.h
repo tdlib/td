@@ -161,9 +161,9 @@ class PollManager final : public Actor {
 
   static td_api::object_ptr<td_api::pollOption> get_poll_option_object(const PollOption &poll_option);
 
-  static telegram_api::object_ptr<telegram_api::pollAnswer> get_input_poll_option(const PollOption &poll_option);
+  static telegram_api::object_ptr<telegram_api::PollAnswer> get_input_poll_option(const PollOption &poll_option);
 
-  static vector<PollOption> get_poll_options(vector<tl_object_ptr<telegram_api::pollAnswer>> &&poll_options);
+  static vector<PollOption> get_poll_options(vector<tl_object_ptr<telegram_api::PollAnswer>> &&poll_options);
 
   bool have_poll(PollId poll_id) const;
 

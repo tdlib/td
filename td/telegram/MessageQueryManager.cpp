@@ -187,10 +187,11 @@ class SendBotRequestedPeerQuery final : public Td::ResultHandler {
       requested_peers.push_back(std::move(requested_peer));
     }
 
+    int32 flags = telegram_api::messages_sendBotRequestedPeer::MSG_ID_MASK;
     send_query(G()->net_query_creator().create(
-        telegram_api::messages_sendBotRequestedPeer(std::move(input_peer),
+        telegram_api::messages_sendBotRequestedPeer(flags, std::move(input_peer),
                                                     message_full_id.get_message_id().get_server_message_id().get(),
-                                                    button_id, std::move(requested_peers)),
+                                                    string(), button_id, std::move(requested_peers)),
         {{dialog_id, MessageContentType::Text}}));
   }
 
@@ -1039,7 +1040,7 @@ class SummarizeTextQuery final : public Td::ResultHandler {
       return promise_.set_error(400, "Chat is not accessible");
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_summarizeText(
-        flags, std::move(input_peer), message_id.get_server_message_id().get(), to_language_code)));
+        flags, std::move(input_peer), message_id.get_server_message_id().get(), to_language_code, string())));
   }
 
   void on_result(BufferSlice packet) final {
