@@ -89,7 +89,9 @@ int32 PhotoSizeSource::get_compare_type(const char *source) const {
       break;
     case Type::Thumbnail: {
       auto type = thumbnail().thumbnail_type.type;
-      CHECK(0 <= type && type <= 127);
+      if (!(0 <= type && type <= 127)) {
+        LOG(FATAL) << source << ' ' << *this;
+      }
       if (type == 'a') {
         return 0;
       }
@@ -103,6 +105,7 @@ int32 PhotoSizeSource::get_compare_type(const char *source) const {
     case Type::DialogPhotoBig:
       return 1;
     case Type::StickerSetThumbnail:
+      LOG(FATAL) << source << ' ' << *this;
       break;
     case Type::FullLegacy:
     case Type::DialogPhotoSmallLegacy:
