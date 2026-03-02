@@ -1683,7 +1683,7 @@ void QuickReplyManager::on_external_update_message_content(QuickReplyMessageFull
   if (expect_no_message && m == nullptr) {
     return;
   }
-  CHECK(m != nullptr);
+  LOG_CHECK(m != nullptr) << message_full_id << ' ' << source;
   if (s->messages_[0]->message_id == message_id) {
     send_update_quick_reply_shortcut(s, "on_external_update_message_content");
   }
