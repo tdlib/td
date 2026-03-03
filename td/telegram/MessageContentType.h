@@ -103,7 +103,8 @@ enum class MessageContentType : int32 {
   NewCreatorPending,
   ChangeCreator,
   NoForwardsToggle,
-  NoForwardsRequest
+  NoForwardsRequest,
+  LivePhoto
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 
