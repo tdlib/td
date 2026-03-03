@@ -8081,6 +8081,7 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
       }
       return;
     }
+    // don't forget to update reregister_message_content
     default:
       return;
   }
@@ -8151,6 +8152,8 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
           return;
         }
         break;
+      case MessageContentType::SuggestProfilePhoto:
+        break;
       case MessageContentType::Story:
         if (static_cast<const MessageStory *>(old_content)->story_full_id ==
             static_cast<const MessageStory *>(new_content)->story_full_id) {
@@ -8169,11 +8172,22 @@ void reregister_message_content(Td *td, const MessageContent *old_content, const
           return;
         }
         break;
+      case MessageContentType::StarGift:
+        break;
+      case MessageContentType::StarGiftUnique:
+        break;
+      case MessageContentType::ConferenceCall:
+        // no need to reregister
+        return;
       case MessageContentType::GiftTon:
         if (static_cast<const MessageGiftTon *>(old_content)->crypto_amount ==
             static_cast<const MessageGiftTon *>(new_content)->crypto_amount) {
           return;
         }
+        break;
+      case MessageContentType::StarGiftPurchaseOffer:
+        break;
+      case MessageContentType::StarGiftPurchaseOfferDeclined:
         break;
       case MessageContentType::NoForwardsRequest:
         // always need to reregister the message because it depends on the current date
