@@ -4620,7 +4620,8 @@ static Result<InputMessageContent> create_input_message_content(
 
       TRY_RESULT(photo, create_photo(td->file_manager_.get(), file_id, std::move(thumbnail), input_live_photo->width_,
                                      input_live_photo->height_, std::move(sticker_file_ids)));
-      TRY_RESULT(video_file_id, td->file_manager_->get_input_file_id(FileType::Video, input_live_photo->video_,
+      auto video_file_type = self_destruct_type != nullptr ? FileType::SelfDestructingLivePhoto : FileType::LivePhoto;
+      TRY_RESULT(video_file_id, td->file_manager_->get_input_file_id(video_file_type, input_live_photo->video_,
                                                                      dialog_id, false, is_secret));
       td->videos_manager_->create_video(video_file_id, string(), PhotoSize(), AnimationSize(), false, vector<FileId>(),
                                         string(), "video/mp4", 0, 0,

@@ -1371,6 +1371,8 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
     case FileType::VideoNote:
     case FileType::SelfDestructingVideo:
     case FileType::SelfDestructingVideoNote:
+    case FileType::LivePhoto:
+    case FileType::SelfDestructingLivePhoto:
       if (extension != "mov" && extension != "3gp" && extension != "mpeg4" && extension != "mp4" &&
           extension != "mkv") {
         return fix_file_extension(file_name, "video", "mp4");

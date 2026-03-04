@@ -8955,6 +8955,9 @@ fileTypeAudio = FileType;
 //@description The file is a document
 fileTypeDocument = FileType;
 
+//@description The file is a video for a live photo
+fileTypeLivePhotoVideo = FileType;
+
 //@description The file is a notification sound
 fileTypeNotificationSound = FileType;
 
@@ -8975,6 +8978,9 @@ fileTypeSecretThumbnail = FileType;
 
 //@description The file is a file from Secure storage used for storing Telegram Passport files
 fileTypeSecure = FileType;
+
+//@description The file is a seld-destructing video for a live photo in a private chat
+fileTypeSelfDestructingLivePhotoVideo = FileType;
 
 //@description The file is a self-destructing photo in a private chat
 fileTypeSelfDestructingPhoto = FileType;
