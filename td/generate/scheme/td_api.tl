@@ -2199,8 +2199,12 @@ users total_count:int32 user_ids:vector<int53> = Users;
 foundUsers user_ids:vector<int53> next_offset:string = FoundUsers;
 
 
-//@description Contains information about a chat administrator @user_id User identifier of the administrator @custom_title Custom title of the administrator @is_owner True, if the user is the owner of the chat
-chatAdministrator user_id:int53 custom_title:string is_owner:Bool = ChatAdministrator;
+//@description Contains information about a chat administrator
+//@user_id User identifier of the administrator
+//@custom_title Custom title of the administrator
+//@is_owner True, if the user is the owner of the chat
+//@can_be_edited True, if the current user can edit the administrator privileges for the administrator
+chatAdministrator user_id:int53 custom_title:string is_owner:Bool can_be_edited:Bool = ChatAdministrator;
 
 //@description Represents a list of chat administrators @administrators A list of chat administrators
 chatAdministrators administrators:vector<chatAdministrator> = ChatAdministrators;

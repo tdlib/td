@@ -21,14 +21,15 @@ class DialogAdministrator {
   UserId user_id_;
   string rank_;
   bool is_creator_ = false;
+  bool can_be_edited_ = false;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const DialogAdministrator &administrator);
 
  public:
   DialogAdministrator() = default;
 
-  DialogAdministrator(UserId user_id, const string &rank, bool is_creator)
-      : user_id_(user_id), rank_(rank), is_creator_(is_creator) {
+  DialogAdministrator(UserId user_id, const string &rank, bool is_creator, bool can_be_edited)
+      : user_id_(user_id), rank_(rank), is_creator_(is_creator), can_be_edited_(can_be_edited) {
   }
 
   td_api::object_ptr<td_api::chatAdministrator> get_chat_administrator_object(const UserManager *user_manager) const;
@@ -49,6 +50,10 @@ class DialogAdministrator {
     return is_creator_;
   }
 
+  bool can_be_edited() const {
+    return can_be_edited_;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
@@ -56,6 +61,7 @@ class DialogAdministrator {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_rank);
     STORE_FLAG(is_creator_);
+    STORE_FLAG(can_be_edited_);
     END_STORE_FLAGS();
     store(user_id_, storer);
     if (has_rank) {
@@ -70,6 +76,7 @@ class DialogAdministrator {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_rank);
     PARSE_FLAG(is_creator_);
+    PARSE_FLAG(can_be_edited_);
     END_PARSE_FLAGS();
     parse(user_id_, parser);
     if (has_rank) {
@@ -80,7 +87,7 @@ class DialogAdministrator {
 
 inline bool operator==(const DialogAdministrator &lhs, const DialogAdministrator &rhs) {
   return lhs.get_user_id() == rhs.get_user_id() && lhs.get_rank() == rhs.get_rank() &&
-         lhs.is_creator() == rhs.is_creator();
+         lhs.is_creator() == rhs.is_creator() && lhs.can_be_edited() == rhs.can_be_edited();
 }
 
 inline bool operator!=(const DialogAdministrator &lhs, const DialogAdministrator &rhs) {
