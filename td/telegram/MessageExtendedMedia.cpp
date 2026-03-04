@@ -102,7 +102,7 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
 
       auto parsed_document =
           td->documents_manager_->on_get_document(telegram_api::move_object_as<telegram_api::document>(document_ptr),
-                                                  owner_dialog_id, false, nullptr, Document::Type::Video);
+                                                  owner_dialog_id, false, false, nullptr, Document::Type::Video);
       if (parsed_document.empty() || parsed_document.type != Document::Type::Video) {
         LOG(ERROR) << "Receive invalid paid media " << parsed_document;
         break;

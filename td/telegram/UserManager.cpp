@@ -1657,7 +1657,7 @@ class GetUserSavedMusicByIdQuery final : public Td::ResultHandler {
     for (auto &document : saved_music->documents_) {
       if (document->get_id() == telegram_api::document::ID) {
         auto parsed_document = td_->documents_manager_->on_get_document(
-            telegram_api::move_object_as<telegram_api::document>(document), DialogId(user_id_), false);
+            telegram_api::move_object_as<telegram_api::document>(document), DialogId(user_id_), false, false);
         if (parsed_document.type != Document::Type::Audio) {
           LOG(ERROR) << "Receive " << parsed_document;
         }
@@ -7309,7 +7309,7 @@ void UserManager::on_get_user_saved_music(UserId user_id, int32 offset, int32 li
       continue;
     }
     auto parsed_document = td_->documents_manager_->on_get_document(
-        telegram_api::move_object_as<telegram_api::document>(document), DialogId(user_id), false);
+        telegram_api::move_object_as<telegram_api::document>(document), DialogId(user_id), false, false);
     if (parsed_document.type != Document::Type::Audio) {
       LOG(ERROR) << "Receive " << parsed_document;
       user_saved_music->count--;
@@ -8843,7 +8843,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
         int32 document_id = document->get_id();
         if (document_id == telegram_api::document::ID) {
           auto parsed_document = td_->documents_manager_->on_get_document(
-              move_tl_object_as<telegram_api::document>(document), DialogId(user_id), false);
+              move_tl_object_as<telegram_api::document>(document), DialogId(user_id), false, false);
           if (parsed_document.type == Document::Type::Animation) {
             description_animation_file_id = parsed_document.file_id;
           } else {
@@ -8969,7 +8969,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   FileId first_saved_music_file_id;
   if (user->saved_music_ != nullptr && user->saved_music_->get_id() == telegram_api::document::ID) {
     auto document = td_->documents_manager_->on_get_document(
-        telegram_api::move_object_as<telegram_api::document>(user->saved_music_), DialogId(user_id), false);
+        telegram_api::move_object_as<telegram_api::document>(user->saved_music_), DialogId(user_id), false, false);
     if (document.type != Document::Type::Audio) {
       LOG(ERROR) << "Receive " << document;
     } else {

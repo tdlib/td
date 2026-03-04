@@ -8670,7 +8670,7 @@ static unique_ptr<MessageContent> get_document_message_content(
     vector<FileId> &&hls_file_ids, vector<FileId> &&storyboard_file_ids, vector<FileId> &&storyboard_map_file_ids,
     Photo &&video_cover, int32 start_timestamp, MultiPromiseActor *load_data_multipromise_ptr) {
   return get_document_message_content(
-      td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, is_self_destructing,
+      td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, is_self_destructing, false,
                                               load_data_multipromise_ptr),
       std::move(caption), is_opened, is_premium, has_spoiler, std::move(alternative_file_ids), std::move(hls_file_ids),
       std::move(storyboard_file_ids), std::move(storyboard_map_file_ids), std::move(video_cover), start_timestamp);
@@ -8880,7 +8880,7 @@ unique_ptr<MessageContent> get_secret_message_content(
 
       media->attributes_.clear();
       auto document = td->documents_manager_->on_get_document(
-          {std::move(file), std::move(media), std::move(attributes)}, owner_dialog_id, false);
+          {std::move(file), std::move(media), std::move(attributes)}, owner_dialog_id, false, false);
       return get_document_message_content(std::move(document), {std::move(message_text), std::move(entities)}, false,
                                           false, false, {}, {}, {}, {}, Photo(), 0);
     }
@@ -8943,8 +8943,9 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         } else {
           CHECK(video_id == telegram_api::document::ID);
           auto video = telegram_api::move_object_as<telegram_api::document>(media->video_);
-          auto parsed_file = td->documents_manager_->on_get_document(
-              std::move(video), owner_dialog_id, is_self_destructing, nullptr, Document::Type::Video);
+          auto parsed_file =
+              td->documents_manager_->on_get_document(std::move(video), owner_dialog_id, is_self_destructing,
+                                                      media->live_photo_, nullptr, Document::Type::Video);
           if (parsed_file.empty() || parsed_file.type != Document::Type::Video) {
             LOG(ERROR) << "Receive invalid live photo video " << parsed_file;
           } else {
@@ -9064,7 +9065,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           CHECK(alt_document_id == telegram_api::document::ID);
           auto document = telegram_api::move_object_as<telegram_api::document>(alt_document_ptr);
           if (document->mime_type_ == "application/x-mpegurl") {
-            auto parsed_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false);
+            auto parsed_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id,
+                                                                       is_self_destructing, false);
             if (parsed_file.empty() || parsed_file.type != Document::Type::General) {
               LOG(ERROR) << "Receive invalid HLS file " << parsed_file;
             } else {
@@ -9073,7 +9075,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
             continue;
           }
           if (document->mime_type_ == "application/x-tgstoryboard") {
-            auto parsed_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false);
+            auto parsed_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id,
+                                                                       is_self_destructing, false);
             if (parsed_file.empty() || parsed_file.type != Document::Type::General) {
               LOG(ERROR) << "Receive invalid storyboard file " << parsed_file;
             } else {
@@ -9082,7 +9085,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
             continue;
           }
           if (document->mime_type_ == "application/x-tgstoryboardmap") {
-            auto parsed_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false);
+            auto parsed_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id,
+                                                                       is_self_destructing, false);
             if (parsed_file.empty() || parsed_file.type != Document::Type::General) {
               LOG(ERROR) << "Receive invalid storyboard map file " << parsed_file;
             } else {
@@ -9090,8 +9094,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
             }
             continue;
           }
-          auto parsed_alt_document = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id,
-                                                                             false, nullptr, Document::Type::Video);
+          auto parsed_alt_document = td->documents_manager_->on_get_document(
+              std::move(document), owner_dialog_id, is_self_destructing, false, nullptr, Document::Type::Video);
           if (parsed_alt_document.empty() || parsed_alt_document.type != Document::Type::Video) {
             LOG(ERROR) << "Receive invalid alternative video " << parsed_alt_document;
           } else {

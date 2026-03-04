@@ -2370,7 +2370,7 @@ class GetStarGiftPromoAnimationQuery final : public Td::ResultHandler {
 
       auto parsed_document =
           td_->documents_manager_->on_get_document(telegram_api::move_object_as<telegram_api::document>(video),
-                                                   DialogId(), false, nullptr, Document::Type::Animation);
+                                                   DialogId(), false, false, nullptr, Document::Type::Animation);
 
       if (parsed_document.type != Document::Type::Animation) {
         LOG(ERROR) << "Receive " << parsed_document.type << " for " << promo->video_sections_[i];

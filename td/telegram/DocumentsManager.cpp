@@ -94,7 +94,8 @@ td_api::object_ptr<td_api::videoStoryboard> DocumentsManager::get_video_storyboa
 }
 
 Document DocumentsManager::on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
-                                           bool is_self_destructing, MultiPromiseActor *load_data_multipromise_ptr,
+                                           bool is_self_destructing, bool is_live_photo,
+                                           MultiPromiseActor *load_data_multipromise_ptr,
                                            Document::Type default_document_type, Subtype document_subtype) {
   telegram_api::object_ptr<telegram_api::documentAttributeAnimated> animated;
   telegram_api::object_ptr<telegram_api::documentAttributeVideo> video;
@@ -266,7 +267,11 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
         file_name.clear();
       } else {
         document_type = Document::Type::Video;
-        file_type = is_self_destructing ? FileType::SelfDestructingVideo : FileType::Video;
+        if (is_live_photo) {
+          file_type = is_self_destructing ? FileType::SelfDestructingLivePhoto : FileType::LivePhoto;
+        } else {
+          file_type = is_self_destructing ? FileType::SelfDestructingVideo : FileType::Video;
+        }
       }
       default_extension = Slice("mp4");
     }

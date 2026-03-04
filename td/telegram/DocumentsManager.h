@@ -90,7 +90,7 @@ class DocumentsManager {
   enum class Subtype : int32 { Background, Pattern, Ringtone, Story, Other };
 
   Document on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id, bool is_self_destructing,
-                           MultiPromiseActor *load_data_multipromise_ptr = nullptr,
+                           bool is_live_photo, MultiPromiseActor *load_data_multipromise_ptr = nullptr,
                            Document::Type default_document_type = Document::Type::General,
                            Subtype document_subtype = Subtype::Other);
 
