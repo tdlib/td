@@ -184,8 +184,8 @@ class SecretChatActor final : public NetQueryCallback {
   };
 
   struct ConfigState {
-    int32 his_layer = 8;
-    int32 my_layer = 8;
+    int32 his_layer = 23;
+    int32 my_layer = 23;
     int32 ttl = 0;
 
     static Slice key() {

@@ -841,8 +841,7 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<log_event::Inbou
     parser.fetch_end();
     if (!parser.get_error()) {
       auto layer = message_with_layer->layer_;
-      if (layer < static_cast<int32>(SecretChatLayer::Default) &&
-          false /* old Android app could send such messages */) {
+      if (layer < static_cast<int32>(SecretChatLayer::Default) && false /* Android app can send such messages */) {
         LOG(ERROR) << "Layer " << layer << " is not supported, drop message " << to_string(message_with_layer);
         return Status::OK();
       }
@@ -871,19 +870,6 @@ Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<log_event::Inbou
   send_action(secret_api::make_object<secret_api::decryptedMessageActionNotifyLayer>(
                   static_cast<int32>(SecretChatLayer::Current)),
               SendFlag::None, Promise<>());
-
-  if (config_state_.his_layer == 8) {
-    TlBufferParser new_parser(&data_buffer);
-    auto message_without_layer = secret_api::DecryptedMessage::fetch(new_parser);
-    parser.fetch_end();
-    if (!new_parser.get_error()) {
-      message->decrypted_message_layer = secret_api::make_object<secret_api::decryptedMessageLayer>(
-          BufferSlice(), config_state_.his_layer, -1, -1, std::move(message_without_layer));
-      return do_inbound_message_decrypted_unchecked(std::move(message), mtproto_version);
-    }
-    LOG(ERROR) << "Failed to fetch update (DecryptedMessage): " << new_parser.get_error()
-               << format::as_hex_dump<4>(data_buffer.as_slice());
-  }
 
   return status;
 }
