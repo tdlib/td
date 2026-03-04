@@ -4453,6 +4453,10 @@ td_api::object_ptr<td_api::formattedText> extract_input_caption(
       auto input_document = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
       return std::move(input_document->caption_);
     }
+    case td_api::inputMessageLivePhoto::ID: {
+      auto input_live_photo = static_cast<td_api::inputMessageLivePhoto *>(input_message_content.get());
+      return std::move(input_live_photo->caption_);
+    }
     case td_api::inputMessagePaidMedia::ID: {
       auto input_paid_media = static_cast<td_api::inputMessagePaidMedia *>(input_message_content.get());
       return std::move(input_paid_media->caption_);
@@ -4479,6 +4483,10 @@ bool extract_input_invert_media(const td_api::object_ptr<td_api::InputMessageCon
     case td_api::inputMessageAnimation::ID: {
       auto input_animation = static_cast<const td_api::inputMessageAnimation *>(input_message_content.get());
       return input_animation->show_caption_above_media_;
+    }
+    case td_api::inputMessageLivePhoto::ID: {
+      auto input_live_photo = static_cast<const td_api::inputMessageLivePhoto *>(input_message_content.get());
+      return input_live_photo->show_caption_above_media_;
     }
     case td_api::inputMessagePaidMedia::ID: {
       auto input_paid_media = static_cast<const td_api::inputMessagePaidMedia *>(input_message_content.get());
@@ -4604,6 +4612,24 @@ static Result<InputMessageContent> create_input_message_content(
 
       content = make_unique<MessageDocument>(file_id, std::move(caption));
       break;
+    case td_api::inputMessageLivePhoto::ID: {
+      auto input_live_photo = static_cast<td_api::inputMessageLivePhoto *>(input_message_content.get());
+
+      invert_media = input_live_photo->show_caption_above_media_ && !is_secret;
+      self_destruct_type = std::move(input_live_photo->self_destruct_type_);
+
+      TRY_RESULT(photo, create_photo(td->file_manager_.get(), file_id, std::move(thumbnail), input_live_photo->width_,
+                                     input_live_photo->height_, std::move(sticker_file_ids)));
+      TRY_RESULT(video_file_id, td->file_manager_->get_input_file_id(FileType::Video, input_live_photo->video_,
+                                                                     dialog_id, false, is_secret));
+      td->videos_manager_->create_video(video_file_id, string(), PhotoSize(), AnimationSize(), false, vector<FileId>(),
+                                        string(), "video/mp4", 0, 0,
+                                        get_dimensions(input_live_photo->width_, input_live_photo->height_, nullptr),
+                                        false, false, 0, 0.0, string(), false);
+      content = make_unique<MessageLivePhoto>(std::move(photo), video_file_id, std::move(caption),
+                                              input_live_photo->has_spoiler_ && !is_secret);
+      break;
+    }
     case td_api::inputMessagePaidMedia::ID: {
       auto input_paid_media = static_cast<td_api::inputMessagePaidMedia *>(input_message_content.get());
 
@@ -4900,6 +4926,15 @@ Result<InputMessageContent> get_input_message_content(
       input_file = std::move(input_message->document_);
       allow_get_by_hash = true;
       input_thumbnail = std::move(input_message->thumbnail_);
+      break;
+    }
+    case td_api::inputMessageLivePhoto::ID: {
+      auto input_message = static_cast<td_api::inputMessageLivePhoto *>(input_message_content.get());
+      file_type = input_message->self_destruct_type_ != nullptr ? FileType::SelfDestructingPhoto : FileType::Photo;
+      input_file = std::move(input_message->photo_);
+      if (!input_message->added_sticker_file_ids_.empty()) {
+        sticker_file_ids = td->stickers_manager_->get_attached_sticker_file_ids(input_message->added_sticker_file_ids_);
+      }
       break;
     }
     case td_api::inputMessagePhoto::ID: {
@@ -8912,7 +8947,8 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           if (parsed_file.empty() || parsed_file.type != Document::Type::Video) {
             LOG(ERROR) << "Receive invalid live photo video " << parsed_file;
           } else {
-            return make_unique<MessageLivePhoto>(std::move(photo), parsed_file.file_id, std::move(message), media->spoiler_);
+            return make_unique<MessageLivePhoto>(std::move(photo), parsed_file.file_id, std::move(message),
+                                                 media->spoiler_);
           }
         }
       }

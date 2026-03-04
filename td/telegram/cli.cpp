@@ -6717,6 +6717,15 @@ class CliClient final : public Actor {
       InputChecklist checklist;
       get_args(args, chat_id, checklist);
       send_message(chat_id, td_api::make_object<td_api::inputMessageChecklist>(checklist));
+    } else if (op == "slp") {
+      ChatId chat_id;
+      string photo;
+      string video;
+      get_args(args, chat_id, photo, video);
+      send_message(chat_id,
+                   td_api::make_object<td_api::inputMessageLivePhoto>(
+                       as_input_file(photo), as_input_file(video), get_added_sticker_file_ids(), 0, 0, get_caption(),
+                       show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_));
     } else if (op == "sp") {
       ChatId chat_id;
       string photo;

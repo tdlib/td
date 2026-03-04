@@ -5398,6 +5398,18 @@ inputMessageAudio audio:InputFile album_cover_thumbnail:inputThumbnail duration:
 //@caption Document caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content_type_detection:Bool caption:formattedText = InputMessageContent;
 
+//@description A live photo message; not supported in secret chats
+//@photo The photo to be sent
+//@video Video of the live photo. The video is expected to be re-encoded to MPEG4 format with H.264 codec by the sender
+//@added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable
+//@width Photo width
+//@height Photo height
+//@caption Photo caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
+//@show_caption_above_media True, if the caption must be shown above the live photo; otherwise, the caption must be shown below the live photo
+//@self_destruct_type Live photo self-destruct type; pass null if none; private chats only
+//@has_spoiler True, if the live photo preview must be covered by a spoiler animation
+inputMessageLivePhoto photo:InputFile video:InputFile added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText show_caption_above_media:Bool self_destruct_type:MessageSelfDestructType has_spoiler:Bool = InputMessageContent;
+
 //@description A message with paid media; can be used only in channel chats with supergroupFullInfo.has_paid_media_allowed
 //@star_count The number of Telegram Stars that must be paid to see the media; 1-getOption("paid_media_message_star_count_max")
 //@paid_media The content of the paid media
