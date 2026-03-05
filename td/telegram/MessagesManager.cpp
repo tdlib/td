@@ -1341,7 +1341,7 @@ class SendInlineBotResultQuery final : public Td::ResultHandler {
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
 
-    auto reply_to = input_reply_to.get_input_reply_to(td_, message_topic);
+    auto reply_to = input_reply_to.get_input_reply_to(td_, message_topic, dialog_id, flags);
 
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendInlineBotResult::REPLY_TO_MASK;
@@ -1413,7 +1413,7 @@ class SendMultiMediaQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Have no write access to the chat"));
     }
 
-    auto reply_to = input_reply_to.get_input_reply_to(td_, message_topic);
+    auto reply_to = input_reply_to.get_input_reply_to(td_, message_topic, dialog_id, flags);
 
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMultiMedia::REPLY_TO_MASK;
@@ -1555,7 +1555,7 @@ class SendMediaQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Have no write access to the chat"));
     }
 
-    auto reply_to = input_reply_to.get_input_reply_to(td_, message_topic);
+    auto reply_to = input_reply_to.get_input_reply_to(td_, message_topic, dialog_id, flags);
 
     if (reply_to != nullptr) {
       flags |= telegram_api::messages_sendMedia::REPLY_TO_MASK;
@@ -1938,7 +1938,7 @@ class ForwardMessagesQuery final : public Td::ResultHandler {
       return on_error(Status::Error(400, "Can't access the chat to forward messages from"));
     }
 
-    auto input_reply_to = message_input_reply_to.get_input_reply_to(td_, message_topic);
+    auto input_reply_to = message_input_reply_to.get_input_reply_to(td_, message_topic, to_dialog_id, flags);
     if (input_reply_to != nullptr) {
       flags |= telegram_api::messages_forwardMessages::REPLY_TO_MASK;
     }
