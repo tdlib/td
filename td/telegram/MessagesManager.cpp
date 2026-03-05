@@ -20402,6 +20402,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
       !have_message_force(d, implicit_reply_to_message_id, "create_message_input_reply_to 1")) {
     LOG(INFO) << "Have implicit reply to unknown " << implicit_reply_to_message_id;
   }
+  CHECK(implicit_reply_to_message_id == MessageId() || implicit_reply_to_message_id.is_server());
   if (reply_to == nullptr) {
     if (!for_draft && implicit_reply_to_message_id.is_valid()) {
       return MessageInputReplyTo{implicit_reply_to_message_id, DialogId(), MessageQuote(), 0};
@@ -20626,6 +20627,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
 
         auto implicit_reply_to_message_id =
             get_message_topic(reply_d->dialog_id, replied_m).get_implicit_reply_to_message_id(td_);
+        CHECK(implicit_reply_to_message_id == MessageId() || implicit_reply_to_message_id.is_server());
         set_message_reply(reply_d, replied_m,
                           MessageInputReplyTo{implicit_reply_to_message_id, DialogId(), MessageQuote(), 0}, true);
       }
@@ -34886,10 +34888,11 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
       << replied_message_full_id << ' ' << m->replied_message_info << ' ' << *input_reply_to;
 
   auto message_id = get_message_id_by_random_id(d, m->reply_to_random_id, "restore_message_reply_to_message_id");
-  if (message_id.is_valid() || message_id.is_valid_scheduled()) {
+  if ((message_id.is_valid() || message_id.is_valid_scheduled()) && !message_id.is_local()) {
     update_message_reply_to_message_id(d, m, message_id, false);
   } else {
     auto implicit_reply_to_message_id = get_message_topic(d->dialog_id, m).get_implicit_reply_to_message_id(td_);
+    CHECK(implicit_reply_to_message_id == MessageId() || implicit_reply_to_message_id.is_server());
     set_message_reply(d, m, MessageInputReplyTo{implicit_reply_to_message_id, DialogId(), MessageQuote(), 0}, false);
   }
 }
