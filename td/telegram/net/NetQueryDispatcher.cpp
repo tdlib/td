@@ -243,7 +243,7 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     int32 slow_net_scheduler_id = G()->get_slow_net_scheduler_id();
 
     auto raw_dc_id = dc_id.get_raw_id();
-    bool is_premium = G()->get_option_boolean("is_premium");
+    bool is_premium = G()->get_option_boolean("is_premium") || session_count > 1;
     int32 upload_session_count = (raw_dc_id != 2 && raw_dc_id != 4) || is_premium ? 8 : 4;
     int32 download_session_count = is_premium ? 8 : 2;
     int32 download_small_session_count = is_premium ? 8 : 2;

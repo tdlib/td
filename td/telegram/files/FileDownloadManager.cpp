@@ -22,7 +22,7 @@ FileDownloadManager::FileDownloadManager(unique_ptr<Callback> callback, ActorSha
 }
 
 void FileDownloadManager::start_up() {
-  if (G()->get_option_boolean("is_premium")) {
+  if (G()->get_option_boolean("is_premium") || G()->get_option_integer("session_count") > 1) {
     max_download_resource_limit_ *= 8;
   }
 }
