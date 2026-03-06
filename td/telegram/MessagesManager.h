@@ -612,7 +612,7 @@ class MessagesManager final : public Actor {
   void get_message_read_date(MessageFullId message_full_id,
                              Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise);
 
-  void translate_message_text(MessageFullId message_full_id, const string &to_language_code,
+  void translate_message_text(MessageFullId message_full_id, const string &to_language_code, const string &tone,
                               Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   bool is_message_edited_recently(MessageFullId message_full_id, int32 seconds);

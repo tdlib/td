@@ -25,10 +25,10 @@ class TranslationManager final : public Actor {
   TranslationManager(Td *td, ActorShared<> parent);
 
   void translate_text(td_api::object_ptr<td_api::formattedText> &&text, const string &to_language_code,
-                      Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+                      const string &tone, Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   void translate_text(FormattedText text, bool skip_bot_commands, int32 max_media_timestamp,
-                      MessageFullId message_full_id, const string &to_language_code,
+                      MessageFullId message_full_id, const string &to_language_code, const string &tone,
                       Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
  private:

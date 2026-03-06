@@ -2782,16 +2782,19 @@ void Requests::on_request(uint64 id, td_api::getMessageLinkInfo &request) {
 void Requests::on_request(uint64 id, td_api::translateText &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.to_language_code_);
+  CLEAN_INPUT_STRING(request.tone_);
   CREATE_REQUEST_PROMISE();
-  td_->translation_manager_->translate_text(std::move(request.text_), request.to_language_code_, std::move(promise));
+  td_->translation_manager_->translate_text(std::move(request.text_), request.to_language_code_, request.tone_,
+                                            std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::translateMessageText &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.to_language_code_);
+  CLEAN_INPUT_STRING(request.tone_);
   CREATE_REQUEST_PROMISE();
   td_->messages_manager_->translate_message_text({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                                 request.to_language_code_, std::move(promise));
+                                                 request.to_language_code_, request.tone_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::summarizeMessage &request) {

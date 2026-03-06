@@ -14576,6 +14576,7 @@ Status MessagesManager::can_get_message_viewers(DialogId dialog_id, const Messag
 }
 
 void MessagesManager::translate_message_text(MessageFullId message_full_id, const string &to_language_code,
+                                             const string &tone,
                                              Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
   auto m = get_message_force(message_full_id, "translate_message_text");
   if (m == nullptr) {
@@ -14596,7 +14597,7 @@ void MessagesManager::translate_message_text(MessageFullId message_full_id, cons
                              td_->chat_manager_->get_channel_autotranslation(dialog_id.get_channel_id());
   td_->translation_manager_->translate_text(*text, skip_bot_commands, max_media_timestamp,
                                             has_autotranslation ? message_full_id : MessageFullId(), to_language_code,
-                                            std::move(promise));
+                                            tone, std::move(promise));
 }
 
 void MessagesManager::reload_dialog_notification_settings(DialogId dialog_id, Promise<Unit> &&promise,

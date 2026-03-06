@@ -28,8 +28,14 @@ class TranslateTextQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(vector<FormattedText> &&texts, MessageFullId message_full_id, const string &to_language_code) {
+  void send(vector<FormattedText> &&texts, MessageFullId message_full_id, const string &to_language_code, string tone) {
     int32 flags = 0;
+    if (tone == "neutral") {
+      tone.clear();
+    }
+    if (!tone.empty()) {
+      flags |= telegram_api::messages_translateText::TONE_MASK;
+    }
     if (message_full_id.get_message_id().is_valid()) {
       CHECK(texts.size() == 1u);
       flags |= telegram_api::messages_translateText::PEER_MASK;
@@ -37,14 +43,14 @@ class TranslateTextQuery final : public Td::ResultHandler {
       CHECK(input_peer != nullptr);
       auto message_ids = {message_full_id.get_message_id().get_server_message_id().get()};
       send_query(G()->net_query_creator().create(telegram_api::messages_translateText(
-          flags, std::move(input_peer), std::move(message_ids), Auto(), to_language_code, string())));
+          flags, std::move(input_peer), std::move(message_ids), Auto(), to_language_code, tone)));
     } else {
       flags |= telegram_api::messages_translateText::TEXT_MASK;
       auto input_texts = transform(std::move(texts), [user_manager = td_->user_manager_.get()](FormattedText &&text) {
         return get_input_text_with_entities(user_manager, std::move(text), "TranslateTextQuery");
       });
       send_query(G()->net_query_creator().create(telegram_api::messages_translateText(
-          flags, nullptr, vector<int32>{}, std::move(input_texts), to_language_code, string())));
+          flags, nullptr, vector<int32>{}, std::move(input_texts), to_language_code, tone)));
     }
   }
 
@@ -77,7 +83,7 @@ void TranslationManager::tear_down() {
 }
 
 void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText> &&text,
-                                        const string &to_language_code,
+                                        const string &to_language_code, const string &tone,
                                         Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
   if (text == nullptr) {
     return promise.set_error(400, "Text must be non-empty");
@@ -108,14 +114,19 @@ void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText
   TRY_STATUS_PROMISE(promise, fix_formatted_text(text->text_, entities, true, true, true, true, true, true));
 
   translate_text(FormattedText{std::move(text->text_), std::move(entities)}, skip_bot_commands, max_media_timestamp,
-                 MessageFullId(), to_language_code, std::move(promise));
+                 MessageFullId(), to_language_code, tone, std::move(promise));
 }
 
 void TranslationManager::translate_text(FormattedText text, bool skip_bot_commands, int32 max_media_timestamp,
                                         MessageFullId message_full_id, const string &to_language_code,
+                                        const string &tone,
                                         Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
   vector<FormattedText> texts;
   texts.push_back(std::move(text));
+
+  if (tone != string() && tone != "formal" && tone != "neutral" && tone != "casual") {
+    return promise.set_error(400, "Invalid tone specified");
+  }
 
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), skip_bot_commands, max_media_timestamp, promise = std::move(promise)](
@@ -128,7 +139,7 @@ void TranslationManager::translate_text(FormattedText text, bool skip_bot_comman
       });
 
   td_->create_handler<TranslateTextQuery>(std::move(query_promise))
-      ->send(std::move(texts), message_full_id, to_language_code);
+      ->send(std::move(texts), message_full_id, to_language_code, tone);
 }
 
 void TranslationManager::on_get_translated_texts(vector<telegram_api::object_ptr<telegram_api::textWithEntities>> texts,

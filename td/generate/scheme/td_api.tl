@@ -11179,13 +11179,15 @@ getMessageLinkInfo url:string = MessageLinkInfo;
 //-"fi", "fr", "fy", "gl", "ka", "de", "el", "gu", "ht", "ha", "haw", "he", "iw", "hi", "hmn", "hu", "is", "ig", "id", "in", "ga", "it", "ja", "jv", "kn", "kk", "km", "rw", "ko",
 //-"ku", "ky", "lo", "la", "lv", "lt", "lb", "mk", "mg", "ms", "ml", "mt", "mi", "mr", "mn", "my", "ne", "no", "ny", "or", "ps", "fa", "pl", "pt", "pa", "ro", "ru", "sm", "gd", "sr",
 //-"st", "sn", "sd", "si", "sk", "sl", "so", "es", "su", "sw", "sv", "tl", "tg", "ta", "tt", "te", "th", "tr", "tk", "uk", "ur", "ug", "uz", "vi", "cy", "xh", "yi", "ji", "yo", "zu"
-translateText text:formattedText to_language_code:string = FormattedText;
+//@tone Tone of the translation; must be one of "", "formal", "neutral", "casual"; defaults to "neutral"
+translateText text:formattedText to_language_code:string tone:string = FormattedText;
 
 //@description Extracts text or caption of the given message and translates it to the given language. If the current user is a Telegram Premium user, then text formatting is preserved
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@to_language_code Language code of the language to which the message is translated. See translateText.to_language_code for the list of supported values
-translateMessageText chat_id:int53 message_id:int53 to_language_code:string = FormattedText;
+//@tone See translateText.tone for the list of supported values
+translateMessageText chat_id:int53 message_id:int53 to_language_code:string tone:string = FormattedText;
 
 //@description Summarizes content of the message with non-empty summary_language_code
 //@chat_id Identifier of the chat to which the message belongs

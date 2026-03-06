@@ -936,6 +936,22 @@ class CliClient final : public Actor {
     return td_api::make_object<td_api::reactionTypeEmoji>(type.str());
   }
 
+  static string as_tone(Slice tone) {
+    if (tone.empty()) {
+      return "";
+    }
+    if (tone.back() == 'f') {
+      return "formal";
+    }
+    if (tone.back() == 'n') {
+      return "neutral";
+    }
+    if (tone.back() == 'c') {
+      return "casual";
+    }
+    return "";
+  }
+
   static bool as_bool(string str) {
     str = to_lower(trim(str));
     return str == "true" || str == "1";
@@ -4920,17 +4936,18 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getMessageEmbeddingCode>(chat_id, message_id, for_album));
     } else if (op == "gmli") {
       send_request(td_api::make_object<td_api::getMessageLinkInfo>(args));
-    } else if (op == "tt") {
+    } else if (op == "tt" || op == "ttf" || op == "ttc" || op == "ttn") {
       string text;
       string to_language_code;
       get_args(args, to_language_code, text);
-      send_request(td_api::make_object<td_api::translateText>(as_formatted_text(text), to_language_code));
-    } else if (op == "tmt") {
+      send_request(td_api::make_object<td_api::translateText>(as_formatted_text(text), to_language_code, as_tone(op)));
+    } else if (op == "tmt" || op == "tmtf" || op == "tmtc" || op == "tmtn") {
       ChatId chat_id;
       MessageId message_id;
       string to_language_code;
       get_args(args, chat_id, message_id, to_language_code);
-      send_request(td_api::make_object<td_api::translateMessageText>(chat_id, message_id, to_language_code));
+      send_request(
+          td_api::make_object<td_api::translateMessageText>(chat_id, message_id, to_language_code, as_tone(op)));
     } else if (op == "sum") {
       ChatId chat_id;
       MessageId message_id;
