@@ -389,6 +389,16 @@ NetQueryDispatcher::~NetQueryDispatcher() = default;
 
 void NetQueryDispatcher::try_fix_migrate(NetQueryPtr &net_query) {
   auto error_message = net_query->error().message();
+  static constexpr CSlice file_migrate_prefix = "FILE_MIGRATE_";
+  if (begins_with(error_message, file_migrate_prefix)) {
+    auto new_dc_id = to_integer<int32>(error_message.substr(file_migrate_prefix.size()));
+    if (!DcId::is_valid(new_dc_id)) {
+      LOG(ERROR) << "Receive invalid DC ID in " << error_message;
+      return;
+    }
+    net_query->resend(DcId::internal(new_dc_id));
+    return;
+  }
   static constexpr CSlice prefixes[] = {"PHONE_MIGRATE_", "NETWORK_MIGRATE_", "USER_MIGRATE_"};
   for (auto &prefix : prefixes) {
     if (error_message.substr(0, prefix.size()) == prefix) {
