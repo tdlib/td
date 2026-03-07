@@ -11164,17 +11164,17 @@ int32 get_message_content_media_duration(const MessageContent *content, const Td
   }
 }
 
-const Photo *get_message_content_cover(const MessageContent *content) {
+bool has_message_content_cover(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Video: {
       const auto *cover = &static_cast<const MessageVideo *>(content)->cover;
       if (cover->is_empty()) {
-        return nullptr;
+        return false;
       }
-      return cover;
+      return true;
     }
     default:
-      return nullptr;
+      return false;
   }
 }
 

@@ -302,7 +302,7 @@ int32 get_message_content_duration(const MessageContent *content, const Td *td);
 
 int32 get_message_content_media_duration(const MessageContent *content, const Td *td);
 
-const Photo *get_message_content_cover(const MessageContent *content);
+bool has_message_content_cover(const MessageContent *content);
 
 vector<const Photo *> get_message_content_need_to_upload_covers(Td *td, const MessageContent *content);
 

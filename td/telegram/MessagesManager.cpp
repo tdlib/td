@@ -28944,7 +28944,7 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
 
   auto file_upload_id = get_message_send_file_upload_id(dialog_id, m, 0);
   if (!file_upload_id.is_valid()) {
-    if (get_message_content_cover(m->content.get()) == nullptr) {
+    if (!has_message_content_cover(m->content.get())) {
       LOG(ERROR) << "Have no being uploaded file in " << to_string(get_message_message_content_object(dialog_id, m));
     }
     return;
