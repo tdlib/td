@@ -11178,18 +11178,18 @@ bool has_message_content_cover(const MessageContent *content) {
   }
 }
 
-vector<const Photo *> get_message_content_need_to_upload_covers(Td *td, const MessageContent *content) {
+vector<MessageCover> get_message_content_need_to_upload_covers(Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Video: {
-      const auto *cover = &static_cast<const MessageVideo *>(content)->cover;
-      if (cover->is_empty() ||
-          photo_get_cover_input_media(td->file_manager_.get(), *cover, td->auth_manager_->is_bot(), false) != nullptr) {
+      const auto &cover = static_cast<const MessageVideo *>(content)->cover;
+      if (cover.is_empty() ||
+          photo_get_cover_input_media(td->file_manager_.get(), cover, td->auth_manager_->is_bot(), false) != nullptr) {
         break;
       }
-      return {cover};
+      return {MessageCover(cover)};
     }
     case MessageContentType::PaidMedia: {
-      vector<const Photo *> result;
+      vector<MessageCover> result;
       for (const auto &media : static_cast<const MessagePaidMedia *>(content)->media) {
         const auto *cover = media.get_video_cover();
         if (cover == nullptr || cover->is_empty() ||
@@ -11197,7 +11197,7 @@ vector<const Photo *> get_message_content_need_to_upload_covers(Td *td, const Me
                 nullptr) {
           continue;
         }
-        result.push_back(cover);
+        result.emplace_back(*cover);
       }
       return result;
     }

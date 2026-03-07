@@ -18,6 +18,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
+#include "td/telegram/MessageCover.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
@@ -304,7 +305,7 @@ int32 get_message_content_media_duration(const MessageContent *content, const Td
 
 bool has_message_content_cover(const MessageContent *content);
 
-vector<const Photo *> get_message_content_need_to_upload_covers(Td *td, const MessageContent *content);
+vector<MessageCover> get_message_content_need_to_upload_covers(Td *td, const MessageContent *content);
 
 FileId get_message_content_any_file_id(const MessageContent *content);
 

@@ -19,6 +19,7 @@
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageContentType.h"
 #include "td/telegram/MessageCopyOptions.h"
+#include "td/telegram/MessageCover.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageQueryManager.h"
@@ -1541,7 +1542,7 @@ void BusinessConnectionManager::do_send_message_album(int64 request_id, Business
                                                       bool disable_notification, bool protect_content,
                                                       MessageEffectId effect_id,
                                                       vector<InputMessageContent> &&message_contents) {
-  vector<const Photo *> covers;
+  vector<MessageCover> covers;
   for (auto &content : message_contents) {
     append(covers, get_message_content_need_to_upload_covers(td_, content.content.get()));
   }

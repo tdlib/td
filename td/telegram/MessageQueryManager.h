@@ -14,6 +14,7 @@
 #include "td/telegram/EmojiGameInfo.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/ForumTopicId.h"
+#include "td/telegram/MessageCover.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
@@ -53,13 +54,13 @@ class MessageQueryManager final : public Actor {
                                                  bool get_affected_messages, Promise<Unit> &&promise);
 
   void upload_message_covers(BusinessConnectionId business_connection_id, DialogId dialog_id,
-                             vector<const Photo *> covers, Promise<Unit> &&promise);
+                             vector<MessageCover> covers, Promise<Unit> &&promise);
 
-  void upload_message_cover(BusinessConnectionId business_connection_id, DialogId dialog_id, Photo photo,
+  void upload_message_cover(BusinessConnectionId business_connection_id, DialogId dialog_id, MessageCover message_cover,
                             FileUploadId file_upload_id, Promise<Unit> &&promise, vector<int> bad_parts = {});
 
-  void complete_upload_message_cover(BusinessConnectionId business_connection_id, DialogId dialog_id, Photo photo,
-                                     FileUploadId file_upload_id,
+  void complete_upload_message_cover(BusinessConnectionId business_connection_id, DialogId dialog_id,
+                                     MessageCover cover, FileUploadId file_upload_id,
                                      telegram_api::object_ptr<telegram_api::MessageMedia> &&media_ptr,
                                      Promise<Unit> &&promise);
 
@@ -241,7 +242,7 @@ class MessageQueryManager final : public Actor {
   struct BeingUploadedCover {
     BusinessConnectionId business_connection_id_;
     DialogId dialog_id_;
-    Photo photo_;
+    MessageCover cover_;
     telegram_api::object_ptr<telegram_api::InputFile> input_file_;
     Promise<Unit> promise_;
   };
