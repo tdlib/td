@@ -4941,6 +4941,20 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
   return {};
 }
 
+bool is_allowed_quote_entity_type(MessageEntity::Type type) {
+  switch (type) {
+    case MessageEntity::Type::Bold:
+    case MessageEntity::Type::Italic:
+    case MessageEntity::Type::Underline:
+    case MessageEntity::Type::Strikethrough:
+    case MessageEntity::Type::Spoiler:
+    case MessageEntity::Type::CustomEmoji:
+      return true;
+    default:
+      return false;
+  }
+}
+
 bool keep_only_custom_emoji(FormattedText &text) {
   return td::remove_if(text.entities,
                        [&](const MessageEntity &entity) { return entity.type != MessageEntity::Type::CustomEmoji; });

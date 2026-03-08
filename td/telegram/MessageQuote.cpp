@@ -159,21 +159,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageQuote &quo
 }
 
 void MessageQuote::remove_unallowed_quote_entities(FormattedText &text) {
-  auto is_allowed_quote_entity = [](const MessageEntity &entity) {
-    switch (entity.type) {
-      case MessageEntity::Type::Bold:
-      case MessageEntity::Type::Italic:
-      case MessageEntity::Type::Underline:
-      case MessageEntity::Type::Strikethrough:
-      case MessageEntity::Type::Spoiler:
-      case MessageEntity::Type::CustomEmoji:
-        return true;
-      default:
-        return false;
-    }
-  };
-
-  td::remove_if(text.entities, [&](const auto &entity) { return !is_allowed_quote_entity(entity); });
+  td::remove_if(text.entities, [&](const auto &entity) { return !is_allowed_quote_entity_type(entity.type); });
 }
 
 int32 MessageQuote::search_quote(FormattedText &&text, FormattedText &&quote, int32 quote_position) {

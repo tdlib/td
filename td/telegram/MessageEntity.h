@@ -176,6 +176,8 @@ td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const UserMa
                                                                     const FormattedText &text, bool skip_bot_commands,
                                                                     int32 max_media_timestamp);
 
+bool is_allowed_quote_entity_type(MessageEntity::Type type);
+
 bool keep_only_custom_emoji(FormattedText &text);
 
 void remove_premium_custom_emoji_entities(const Td *td, vector<MessageEntity> &entities, bool remove_unknown);
