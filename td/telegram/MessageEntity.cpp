@@ -1775,6 +1775,25 @@ static void fix_entity_offsets(Slice text, vector<MessageEntity> &entities) {
   }
 }
 
+bool is_found_entity_type(MessageEntity::Type type, bool skip_bot_commands, bool skip_media_timestamps) {
+  switch (type) {
+    case MessageEntity::Type::Mention:
+    case MessageEntity::Type::Hashtag:
+    case MessageEntity::Type::Cashtag:
+    case MessageEntity::Type::PhoneNumber:
+    case MessageEntity::Type::BankCardNumber:
+    case MessageEntity::Type::Url:
+    case MessageEntity::Type::EmailAddress:
+      return true;
+    case MessageEntity::Type::BotCommand:
+      return !skip_bot_commands;
+    case MessageEntity::Type::MediaTimestamp:
+      return !skip_media_timestamps;
+    default:
+      return false;
+  }
+}
+
 vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool skip_media_timestamps) {
   vector<MessageEntity> entities;
 
