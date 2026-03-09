@@ -56,23 +56,7 @@ telegram_api::object_ptr<telegram_api::todoItem> ToDoItem::get_input_todo_item(c
 
 bool ToDoItem::remove_unsupported_entities(FormattedText &text) {
   return td::remove_if(text.entities, [&](const MessageEntity &entity) {
-    switch (entity.type) {
-      case MessageEntity::Type::Bold:
-      case MessageEntity::Type::Italic:
-      case MessageEntity::Type::Underline:
-      case MessageEntity::Type::Strikethrough:
-      case MessageEntity::Type::Spoiler:
-      case MessageEntity::Type::CustomEmoji:
-      case MessageEntity::Type::Url:
-      case MessageEntity::Type::EmailAddress:
-      case MessageEntity::Type::Mention:
-      case MessageEntity::Type::Hashtag:
-      case MessageEntity::Type::Cashtag:
-      case MessageEntity::Type::PhoneNumber:
-        return false;
-      default:
-        return true;
-    }
+    return !is_allowed_quote_entity_type(entity.type) && !is_found_entity_type(entity.type, false, false);
   });
 }
 

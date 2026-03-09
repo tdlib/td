@@ -94,19 +94,8 @@ telegram_api::object_ptr<telegram_api::inputMediaTodo> ToDoList::get_input_media
 }
 
 bool ToDoList::remove_unsupported_entities(FormattedText &text) {
-  return td::remove_if(text.entities, [&](const MessageEntity &entity) {
-    switch (entity.type) {
-      case MessageEntity::Type::Bold:
-      case MessageEntity::Type::Italic:
-      case MessageEntity::Type::Underline:
-      case MessageEntity::Type::Strikethrough:
-      case MessageEntity::Type::Spoiler:
-      case MessageEntity::Type::CustomEmoji:
-        return false;
-      default:
-        return true;
-    }
-  });
+  return td::remove_if(text.entities,
+                       [&](const MessageEntity &entity) { return !is_allowed_quote_entity_type(entity.type); });
 }
 
 void ToDoList::validate(const char *source) {
