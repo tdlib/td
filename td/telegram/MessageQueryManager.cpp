@@ -842,6 +842,32 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
   }
 };
 
+class ReportMusicListenQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ReportMusicListenQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::inputDocument> input_document, int32 duration) {
+    send_query(
+        G()->net_query_creator().create(telegram_api::messages_reportMusicListen(std::move(input_document), duration)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_reportMusicListen>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetOutboxReadDateQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::MessageReadDate>> promise_;
   DialogId dialog_id_;
@@ -2351,6 +2377,25 @@ void MessageQueryManager::get_dialog_message_position_from_server(DialogId dialo
   }
 
   td_->create_handler<GetMessagePositionQuery>(std::move(promise))->send(dialog_id, message_id, filter, message_topic);
+}
+
+void MessageQueryManager::report_music_listen(FileId file_id, int32 duration, Promise<Unit> &&promise) {
+  if (duration < 0) {
+    return promise.set_error(400, "Invalid duration specified");
+  }
+  if (!file_id.is_valid()) {
+    return promise.set_error(400, "Invalid file identifier specified");
+  }
+  auto file_view = td_->file_manager_->get_file_view(file_id);
+  if (file_view.is_encrypted()) {
+    return promise.set_value(Unit());
+  }
+  const auto *main_remote_location = file_view.get_main_remote_location();
+  if (main_remote_location == nullptr || main_remote_location->is_web() || !main_remote_location->is_document()) {
+    return promise.set_value(Unit());
+  }
+  td_->create_handler<ReportMusicListenQuery>(std::move(promise))
+      ->send(main_remote_location->as_input_document(), duration);
 }
 
 void MessageQueryManager::get_message_read_date_from_server(

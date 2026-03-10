@@ -12111,6 +12111,11 @@ openMessageContent chat_id:int53 message_id:int53 = Ok;
 //@description Informs TDLib that a message with an animated emoji was clicked by the user. Returns a big animated sticker to be played or a 404 error if usual animation needs to be played @chat_id Chat identifier of the message @message_id Identifier of the clicked message
 clickAnimatedEmojiMessage chat_id:int53 message_id:int53 = Sticker;
 
+//@description Informs TDLib that an audio was listened by the user
+//@audio_file_id Identifier of the file with an audio
+//@duration Duration of the listening to the audio
+listenToAudio audio_file_id:int32 duration:int32 = Ok;
+
 //@description Returns an HTTPS or a tg: link with the given type. Can be called before authorization @type Expected type of the link @is_http Pass true to create an HTTPS link (only available for some link types); pass false to create a tg: link
 getInternalLink type:InternalLinkType is_http:Bool = HttpUrl;
 

@@ -8074,6 +8074,11 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::clickAnimatedEmojiMessage>(chat_id, message_id));
+    } else if (op == "lta") {
+      FileId file_id;
+      int32 duration;
+      get_args(args, file_id, duration);
+      send_request(td_api::make_object<td_api::listenToAudio>(file_id, duration));
     } else if (op == "gilt") {
       const string &link = args;
       send_request(td_api::make_object<td_api::getInternalLinkType>(link));

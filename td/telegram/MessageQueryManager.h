@@ -130,6 +130,8 @@ class MessageQueryManager final : public Actor {
                                                MessageSearchFilter filter, MessageId message_id,
                                                Promise<int32> &&promise);
 
+  void report_music_listen(FileId file_id, int32 duration, Promise<Unit> &&promise);
+
   void get_message_read_date_from_server(MessageFullId message_full_id,
                                          Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise);
 

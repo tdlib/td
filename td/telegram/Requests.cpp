@@ -3381,6 +3381,13 @@ void Requests::on_request(uint64 id, const td_api::clickAnimatedEmojiMessage &re
                                                        std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::listenToAudio &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->message_query_manager_->report_music_listen(FileId(request.audio_file_id_, 0), request.duration_,
+                                                   std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getInternalLink &request) {
   auto r_link = LinkManager::get_internal_link(request.type_, !request.is_http_);
   if (r_link.is_error()) {

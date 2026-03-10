@@ -456,6 +456,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::clickAnimatedEmojiMessage &request);
 
+  void on_request(uint64 id, const td_api::listenToAudio &request);
+
   void on_request(uint64 id, const td_api::getInternalLink &request);
 
   void on_request(uint64 id, const td_api::getInternalLinkType &request);
