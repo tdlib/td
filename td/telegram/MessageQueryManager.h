@@ -27,6 +27,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -131,6 +132,10 @@ class MessageQueryManager final : public Actor {
                                                Promise<int32> &&promise);
 
   void report_music_listen(FileId file_id, int32 duration, Promise<Unit> &&promise);
+
+  void send_message_view_metrics(DialogId dialog_id, MessageId message_id, int32 time_in_view_ms,
+                                 int32 active_time_in_view_ms, int32 height_to_viewport_ratio_per_mille,
+                                 int32 seen_range_ratio_per_mille, Promise<Unit> &&promise);
 
   void get_message_read_date_from_server(MessageFullId message_full_id,
                                          Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise);
@@ -251,6 +256,10 @@ class MessageQueryManager final : public Actor {
 
   void tear_down() final;
 
+  static void on_send_message_view_metrics_timeout_callback(void *message_query_manager_ptr, int64 dialog_id_int);
+
+  void send_message_view_metrics_timeout(DialogId dialog_id);
+
   void on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query, bool get_affected_messages,
                                AffectedHistory affected_history, Promise<Unit> &&promise);
 
@@ -341,11 +350,22 @@ class MessageQueryManager final : public Actor {
 
   FlatHashMap<MessageFullId, int32, MessageFullIdHash> pending_read_reactions_;
 
+  struct MessageViewMetrics {
+    MessageId message_id_;
+    int32 time_in_view_ms_ = 0;
+    int32 active_time_in_view_ms_ = 0;
+    int32 height_to_viewport_ratio_per_mille_ = 0;
+    int32 seen_range_ratio_per_mille_ = 0;
+  };
+  FlatHashMap<DialogId, vector<MessageViewMetrics>, DialogIdHash> pending_message_view_metrics_;
+
   std::shared_ptr<UploadCoverCallback> upload_cover_callback_;
 
   bool is_emoji_game_info_inited_ = false;
   double emoji_game_info_receive_time_ = 0.0;
   EmojiGameInfo emoji_game_info_;
+
+  MultiTimeout send_message_view_metrics_timeout_{"SendMessageViewMetricsTimeout"};
 
   Td *td_;
   ActorShared<> parent_;

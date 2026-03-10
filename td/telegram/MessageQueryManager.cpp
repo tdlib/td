@@ -55,6 +55,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Random.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
@@ -865,6 +866,29 @@ class ReportMusicListenQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     promise_.set_error(std::move(status));
+  }
+};
+
+class ReportReadMetricsQuery final : public Td::ResultHandler {
+ public:
+  void send(DialogId dialog_id,
+            vector<telegram_api::object_ptr<telegram_api::inputMessageReadMetric>> &&input_metrics) {
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return;
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_reportReadMetrics(std::move(input_peer), std::move(input_metrics))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_reportReadMetrics>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+  }
+
+  void on_error(Status status) final {
   }
 };
 
@@ -1853,6 +1877,9 @@ class MessageQueryManager::UploadCoverCallback final : public FileManager::Uploa
 
 MessageQueryManager::MessageQueryManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_cover_callback_ = std::make_shared<UploadCoverCallback>();
+
+  send_message_view_metrics_timeout_.set_callback(on_send_message_view_metrics_timeout_callback);
+  send_message_view_metrics_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 void MessageQueryManager::tear_down() {
@@ -2396,6 +2423,78 @@ void MessageQueryManager::report_music_listen(FileId file_id, int32 duration, Pr
   }
   td_->create_handler<ReportMusicListenQuery>(std::move(promise))
       ->send(main_remote_location->as_input_document(), duration);
+}
+
+void MessageQueryManager::send_message_view_metrics(DialogId dialog_id, MessageId message_id, int32 time_in_view_ms,
+                                                    int32 active_time_in_view_ms,
+                                                    int32 height_to_viewport_ratio_per_mille,
+                                                    int32 seen_range_ratio_per_mille, Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, true, AccessRights::Read,
+                                                                        "send_message_view_metrics"));
+  if (time_in_view_ms < 0 || time_in_view_ms > 1000000000 || active_time_in_view_ms < 0 ||
+      active_time_in_view_ms > 1000000000 || height_to_viewport_ratio_per_mille < 0 || seen_range_ratio_per_mille < 0 ||
+      seen_range_ratio_per_mille > 1000) {
+    return promise.set_error(400, "Invalid metrics specified");
+  }
+  if (dialog_id.get_type() == DialogType::SecretChat || !message_id.is_server() || time_in_view_ms < 300 ||
+      !td_->messages_manager_->have_message_force({dialog_id, message_id}, "send_message_view_metrics")) {
+    return promise.set_value(Unit());
+  }
+  MessageViewMetrics metrics;
+  metrics.message_id_ = message_id;
+  metrics.time_in_view_ms_ = time_in_view_ms;
+  metrics.active_time_in_view_ms_ = active_time_in_view_ms;
+  metrics.height_to_viewport_ratio_per_mille_ = height_to_viewport_ratio_per_mille;
+  metrics.seen_range_ratio_per_mille_ = seen_range_ratio_per_mille;
+
+  pending_message_view_metrics_[dialog_id].push_back(std::move(metrics));
+  send_message_view_metrics_timeout_.add_timeout_in(dialog_id.get(), 5.0);
+
+  promise.set_value(Unit());
+}
+
+void MessageQueryManager::on_send_message_view_metrics_timeout_callback(void *message_query_manager_ptr,
+                                                                        int64 dialog_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto message_query_manager = static_cast<MessageQueryManager *>(message_query_manager_ptr);
+  send_closure_later(message_query_manager->actor_id(message_query_manager),
+                     &MessageQueryManager::send_message_view_metrics_timeout, DialogId(dialog_id_int));
+}
+
+void MessageQueryManager::send_message_view_metrics_timeout(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto it = pending_message_view_metrics_.find(dialog_id);
+  if (it == pending_message_view_metrics_.end()) {
+    return;
+  }
+  FlatHashMap<MessageId, MessageViewMetrics, MessageIdHash> metrics;
+  for (const auto &input_metric : it->second) {
+    auto &metric = metrics[input_metric.message_id_];
+    metric.message_id_ = input_metric.message_id_;
+    metric.time_in_view_ms_ += input_metric.time_in_view_ms_;
+    metric.active_time_in_view_ms_ += input_metric.active_time_in_view_ms_;
+    metric.height_to_viewport_ratio_per_mille_ =
+        max(metric.height_to_viewport_ratio_per_mille_, input_metric.height_to_viewport_ratio_per_mille_);
+    metric.seen_range_ratio_per_mille_ =
+        max(metric.seen_range_ratio_per_mille_, input_metric.seen_range_ratio_per_mille_);
+  }
+  pending_message_view_metrics_.erase(it);
+
+  vector<telegram_api::object_ptr<telegram_api::inputMessageReadMetric>> input_metrics;
+  for (const auto &metric_it : metrics) {
+    const auto &metric = metric_it.second;
+    input_metrics.push_back(telegram_api::make_object<telegram_api::inputMessageReadMetric>(
+        metric.message_id_.get_server_message_id().get(), Random::secure_int64(), metric.time_in_view_ms_,
+        metric.active_time_in_view_ms_, metric.height_to_viewport_ratio_per_mille_,
+        metric.seen_range_ratio_per_mille_));
+  }
+  td_->create_handler<ReportReadMetricsQuery>()->send(dialog_id, std::move(input_metrics));
 }
 
 void MessageQueryManager::get_message_read_date_from_server(

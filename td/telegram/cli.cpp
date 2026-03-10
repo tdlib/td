@@ -8079,6 +8079,18 @@ class CliClient final : public Actor {
       int32 duration;
       get_args(args, file_id, duration);
       send_request(td_api::make_object<td_api::listenToAudio>(file_id, duration));
+    } else if (op == "smvm") {
+      ChatId chat_id;
+      MessageId message_id;
+      int32 time_in_view_ms;
+      int32 active_time_in_view_ms;
+      int32 height_to_viewport_ratio_per_mille;
+      int32 seen_range_ratio_per_mille;
+      get_args(args, chat_id, message_id, time_in_view_ms, active_time_in_view_ms, height_to_viewport_ratio_per_mille,
+               seen_range_ratio_per_mille);
+      send_request(td_api::make_object<td_api::sendMessageViewMetrics>(
+          chat_id, message_id, time_in_view_ms, active_time_in_view_ms, height_to_viewport_ratio_per_mille,
+          seen_range_ratio_per_mille));
     } else if (op == "gilt") {
       const string &link = args;
       send_request(td_api::make_object<td_api::getInternalLinkType>(link));

@@ -12116,6 +12116,16 @@ clickAnimatedEmojiMessage chat_id:int53 message_id:int53 = Sticker;
 //@duration Duration of the listening to the audio
 listenToAudio audio_file_id:int32 duration:int32 = Ok;
 
+//@description Informs TDLib about details of a message view by the user from a chat, a message thread or a forum topic history. The method must be called if
+//-the message wasn't seen for more than 300 milliseconds, the viewport was destroyed, or the total view duration exceeded 5 minutes
+//@chat_id Chat identifier
+//@message_id The identifier of the message being viewed
+//@time_in_view_ms The amount of time the message was seen by at least 1 pixel; in milliseconds
+//@active_time_in_view_ms The amount of time the message was seen by at least 1 pixel within 15 seconds after any action from the user; in milliseconds
+//@height_to_viewport_ratio_per_mille The ratio of the post height to the viewport height in 1/1000 fractions
+//@seen_range_ratio_per_mille The ratio of the viewed post height to the full post height in 1/1000 fractions; 0-1000
+sendMessageViewMetrics chat_id:int53 message_id:int53 time_in_view_ms:int32 active_time_in_view_ms:int32 height_to_viewport_ratio_per_mille:int32 seen_range_ratio_per_mille:int32 = Ok;
+
 //@description Returns an HTTPS or a tg: link with the given type. Can be called before authorization @type Expected type of the link @is_http Pass true to create an HTTPS link (only available for some link types); pass false to create a tg: link
 getInternalLink type:InternalLinkType is_http:Bool = HttpUrl;
 

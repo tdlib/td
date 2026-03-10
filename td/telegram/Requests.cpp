@@ -3388,6 +3388,15 @@ void Requests::on_request(uint64 id, const td_api::listenToAudio &request) {
                                                    std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::sendMessageViewMetrics &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->message_query_manager_->send_message_view_metrics(DialogId(request.chat_id_), MessageId(request.message_id_),
+                                                         request.time_in_view_ms_, request.active_time_in_view_ms_,
+                                                         request.height_to_viewport_ratio_per_mille_,
+                                                         request.seen_range_ratio_per_mille_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getInternalLink &request) {
   auto r_link = LinkManager::get_internal_link(request.type_, !request.is_http_);
   if (r_link.is_error()) {
