@@ -3356,7 +3356,8 @@ class CliClient final : public Actor {
       int64 gift_id;
       string limit;
       string offset;
-      get_args(args, gift_id, limit, offset);
+      bool for_stars;
+      get_args(args, gift_id, limit, offset, for_stars);
       td_api::object_ptr<td_api::GiftForResaleOrder> order;
       if (op == "sgfrd") {
         order = td_api::make_object<td_api::giftForResaleOrderPriceChangeDate>();
@@ -3365,8 +3366,9 @@ class CliClient final : public Actor {
       } else {
         order = td_api::make_object<td_api::giftForResaleOrderPrice>();
       }
-      send_request(td_api::make_object<td_api::searchGiftsForResale>(
-          gift_id, std::move(order), op == "spfrc", get_upgraded_gift_attribute_ids(), offset, as_limit(limit)));
+      send_request(td_api::make_object<td_api::searchGiftsForResale>(gift_id, std::move(order), op == "spfrc",
+                                                                     for_stars, get_upgraded_gift_attribute_ids(),
+                                                                     offset, as_limit(limit)));
     } else if (op == "ggic") {
       string owner_id;
       get_args(args, owner_id);

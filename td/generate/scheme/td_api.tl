@@ -14279,11 +14279,12 @@ setGiftResalePrice received_gift_id:string price:GiftResalePrice = Ok;
 //@gift_id Identifier of the regular gift that was upgraded to a unique gift
 //@order Order in which the results will be sorted
 //@for_crafting Pass true to get only gifts suitable for crafting
+//@for_stars Pass true to get only gifts that can be bought using Telegram Stars
 //@attributes Attributes used to filter received gifts. If multiple attributes of the same type are specified, then all of them are allowed.
 //-If none attributes of specific type are specified, then all values for this attribute type are allowed
 //@offset Offset of the first entry to return as received from the previous request with the same order and attributes; use empty string to get the first chunk of results
 //@limit The maximum number of gifts to return
-searchGiftsForResale gift_id:int64 order:GiftForResaleOrder for_crafting:Bool attributes:vector<UpgradedGiftAttributeId> offset:string limit:int32 = GiftsForResale;
+searchGiftsForResale gift_id:int64 order:GiftForResaleOrder for_crafting:Bool for_stars:Bool attributes:vector<UpgradedGiftAttributeId> offset:string limit:int32 = GiftsForResale;
 
 
 //@description Returns collections of gifts owned by the given user or chat
