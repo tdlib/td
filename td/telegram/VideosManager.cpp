@@ -400,6 +400,22 @@ telegram_api::object_ptr<telegram_api::InputMedia> VideosManager::get_story_docu
       nullptr, mime_type, std::move(attributes), std::move(added_stickers), nullptr, 0, 0);
 }
 
+telegram_api::object_ptr<telegram_api::InputMedia> VideosManager::get_video_cover_input_media(
+    FileId file_id, bool force, bool allow_external) const {
+  auto input_media = get_input_media(file_id, nullptr, nullptr, Photo(), 0, 0, false);
+  if (input_media == nullptr || (!allow_external && input_media->get_id() != telegram_api::inputMediaDocument::ID)) {
+    return nullptr;
+  }
+  auto file_reference = FileManager::extract_file_reference(input_media);
+  if (file_reference == FileReferenceView::invalid_file_reference()) {
+    if (!force) {
+      LOG(INFO) << "Have invalid file reference for video cover " << file_id;
+      return nullptr;
+    }
+  }
+  return input_media;
+}
+
 string VideosManager::get_video_search_text(FileId file_id) const {
   auto *video = get_video(file_id);
   CHECK(video != nullptr);

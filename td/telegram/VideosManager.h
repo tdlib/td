@@ -59,6 +59,9 @@ class VideosManager {
                                           telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
                                           const string &caption, BufferSlice thumbnail, int32 layer) const;
 
+  telegram_api::object_ptr<telegram_api::InputMedia> get_video_cover_input_media(FileId file_id, bool force,
+                                                                                 bool allow_external) const;
+
   FileId get_video_thumbnail_file_id(FileId file_id) const;
 
   FileId get_video_animated_thumbnail_file_id(FileId file_id) const;

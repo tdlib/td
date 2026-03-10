@@ -6,7 +6,10 @@
 //
 #include "td/telegram/MessageCover.h"
 
+#include "td/telegram/Document.h"
+#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/VideosManager.h"
 
 namespace td {
 
@@ -16,6 +19,8 @@ FileId MessageCover::get_any_file_id() const {
       return FileId();
     case Type::Photo:
       return get_photo_any_file_id(photo_);
+    case Type::Video:
+      return video_file_id_;
     default:
       UNREACHABLE();
       return FileId();
@@ -27,6 +32,8 @@ telegram_api::object_ptr<telegram_api::InputMedia> MessageCover::get_cover_input
   switch (type_) {
     case Type::Photo:
       return photo_get_cover_input_media(td->file_manager_.get(), photo_, force, allow_external);
+    case Type::Video:
+      return td->videos_manager_->get_video_cover_input_media(video_file_id_, force, allow_external);
     case Type::Empty:
     default:
       UNREACHABLE();
@@ -39,6 +46,8 @@ telegram_api::object_ptr<telegram_api::InputMedia> MessageCover::get_input_media
   switch (type_) {
     case Type::Photo:
       return photo_get_input_media(td->file_manager_.get(), photo_, std::move(input_file), 0, false);
+    case Type::Video:
+      return td->videos_manager_->get_input_media(video_file_id_, std::move(input_file), nullptr, Photo(), 0, 0, false);
     case Type::Empty:
     default:
       UNREACHABLE();
@@ -64,6 +73,26 @@ Status MessageCover::merge_with_media(Td *td, DialogId owner_dialog_id,
       bool is_content_changed = false;
       bool need_update = false;
       merge_photos(td, &photo_, &new_photo, owner_dialog_id, true, is_content_changed, need_update);
+      break;
+    }
+    case Type::Video: {
+      if (media_ptr->get_id() != telegram_api::messageMediaDocument::ID) {
+        return Status::Error(500, "Receive invalid response");
+      }
+      auto media = telegram_api::move_object_as<telegram_api::messageMediaDocument>(media_ptr);
+      if (media->document_ == nullptr || media->ttl_seconds_ != 0 ||
+          media->document_->get_id() != telegram_api::document::ID) {
+        return Status::Error(500, "Receive invalid response without photo");
+      }
+      auto document = telegram_api::move_object_as<telegram_api::document>(media->document_);
+      auto parsed_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false, true,
+                                                                 nullptr, Document::Type::Video);
+      if (parsed_file.empty() || parsed_file.type != Document::Type::Video) {
+         return Status::Error(500, "Receive invalid live photo video");
+      }
+      if (video_file_id_ != parsed_file.file_id) {
+         td->videos_manager_->merge_videos(parsed_file.file_id, video_file_id_);
+      }
       break;
     }
     case Type::Empty:

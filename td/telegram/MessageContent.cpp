@@ -5361,7 +5361,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::LivePhoto: {
       const auto *m = static_cast<const MessageLivePhoto *>(content);
       return photo_get_input_media(td->file_manager_.get(), m->photo, std::move(input_file), ttl.get_input_ttl(),
-                                   m->has_spoiler);
+                                   m->has_spoiler, m->video_file_id);
     }
     case MessageContentType::Location: {
       const auto *m = static_cast<const MessageLocation *>(content);
@@ -11376,9 +11376,11 @@ bool has_message_content_cover(const MessageContent *content) {
 vector<MessageCover> get_message_content_need_to_upload_covers(Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::LivePhoto: {
-      // auto video_file_id = &static_cast<const MessageLivePhoto *>(content)->video_file_id;
-      // TODO
-      break;
+      auto file_id = static_cast<const MessageLivePhoto *>(content)->video_file_id;
+      if (td->videos_manager_->get_video_cover_input_media(file_id, td->auth_manager_->is_bot(), false) != nullptr) {
+        break;
+      }
+      return {MessageCover(file_id)};
     }
     case MessageContentType::Video: {
       const auto &cover = static_cast<const MessageVideo *>(content)->cover;

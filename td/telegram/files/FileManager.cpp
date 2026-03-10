@@ -4487,6 +4487,9 @@ string FileManager::extract_cover_file_reference(
     case telegram_api::inputMediaUploadedDocument::ID:
       return extract_file_reference(
           static_cast<const telegram_api::inputMediaUploadedDocument *>(input_media.get())->video_cover_);
+    case telegram_api::inputMediaUploadedPhoto::ID:
+      return extract_file_reference(
+          static_cast<const telegram_api::inputMediaUploadedPhoto *>(input_media.get())->video_);
     case telegram_api::inputMediaPaidMedia::ID:
       UNREACHABLE();
       return string();
@@ -4504,6 +4507,7 @@ vector<string> FileManager::extract_cover_file_references(
     case telegram_api::inputMediaDocument::ID:
     case telegram_api::inputMediaDocumentExternal::ID:
     case telegram_api::inputMediaUploadedDocument::ID:
+    case telegram_api::inputMediaUploadedPhoto::ID:
       return {extract_cover_file_reference(input_media)};
     case telegram_api::inputMediaPaidMedia::ID:
       return transform(static_cast<const telegram_api::inputMediaPaidMedia *>(input_media.get())->extended_media_,
