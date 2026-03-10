@@ -17,6 +17,7 @@
 #include "td/telegram/UserManager.h"
 #include "td/telegram/Version.h"
 
+#include "td/utils/algorithm.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
@@ -38,7 +39,7 @@ static Result<MessageEntity> parse_message_entity(JsonValue &value) {
   if (type == "messageEntityUnknown" || type == "messageEntityMention" || type == "messageEntityHashtag" ||
       type == "messageEntityCashtag" || type == "messageEntityPhone" || type == "messageEntityBotCommand" ||
       type == "messageEntityBankCard" || type == "messageEntityUrl" || type == "messageEntityEmail" ||
-      type == "messageEntityMentionName" || min_layer > MTPROTO_LAYER) {
+      type == "messageEntityMentionName" || type == "messageEntityFormattedDate" || min_layer > MTPROTO_LAYER) {
     return Status::Error("Skip");
   }
   if (type == "messageEntityPre") {
@@ -202,6 +203,7 @@ GroupCallMessage::GroupCallMessage(DialogId sender_dialog_id, FormattedText text
     , paid_message_star_count_(paid_message_star_count)
     , from_admin_(from_admin)
     , is_local_(true) {
+  td::remove_if(text.entities, [](auto &entity) { return entity.type == MessageEntity::Type::FormattedDate; });
 }
 
 string GroupCallMessage::encode_to_json() const {
