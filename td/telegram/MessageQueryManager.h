@@ -151,7 +151,7 @@ class MessageQueryManager final : public Actor {
   void get_paid_message_reaction_senders(DialogId dialog_id,
                                          Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
-  void summarize_message_text(MessageFullId message_full_id, const string &to_language_code,
+  void summarize_message_text(MessageFullId message_full_id, const string &to_language_code, const string &tone,
                               Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   void add_to_do_list_tasks(MessageFullId message_full_id,

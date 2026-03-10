@@ -2802,7 +2802,8 @@ void Requests::on_request(uint64 id, td_api::summarizeMessage &request) {
   CLEAN_INPUT_STRING(request.translate_to_language_code_);
   CREATE_REQUEST_PROMISE();
   td_->message_query_manager_->summarize_message_text({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                                      request.translate_to_language_code_, std::move(promise));
+                                                      request.translate_to_language_code_, request.tone_,
+                                                      std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::recognizeSpeech &request) {

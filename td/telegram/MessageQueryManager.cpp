@@ -1030,17 +1030,23 @@ class SummarizeTextQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageId message_id, const string &to_language_code) {
+  void send(DialogId dialog_id, MessageId message_id, const string &to_language_code, string tone) {
     int32 flags = 0;
     if (!to_language_code.empty()) {
       flags |= telegram_api::messages_summarizeText::TO_LANG_MASK;
+    }
+    if (tone == "neutral") {
+      tone.clear();
+    }
+    if (!tone.empty()) {
+      flags |= telegram_api::messages_summarizeText::TONE_MASK;
     }
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return promise_.set_error(400, "Chat is not accessible");
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_summarizeText(
-        flags, std::move(input_peer), message_id.get_server_message_id().get(), to_language_code, string())));
+        flags, std::move(input_peer), message_id.get_server_message_id().get(), to_language_code, tone)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -2563,6 +2569,7 @@ void MessageQueryManager::do_get_paid_message_reaction_senders(
 }
 
 void MessageQueryManager::summarize_message_text(MessageFullId message_full_id, const string &to_language_code,
+                                                 const string &tone,
                                                  Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
   auto dialog_id = message_full_id.get_dialog_id();
   TRY_STATUS_PROMISE(promise, td_->dialog_manager_->check_dialog_access(dialog_id, false, AccessRights::Read,
@@ -2570,11 +2577,14 @@ void MessageQueryManager::summarize_message_text(MessageFullId message_full_id, 
   if (!td_->messages_manager_->have_message_force(message_full_id, "summarize_message_text")) {
     return promise.set_error(400, "Message not found");
   }
+  if (tone != string() && tone != "formal" && tone != "neutral" && tone != "casual") {
+    return promise.set_error(400, "Invalid tone specified");
+  }
   auto message_id = message_full_id.get_message_id();
   if (!message_id.is_server()) {
     return promise.set_error(400, "Message can't be summarized");
   }
-  td_->create_handler<SummarizeTextQuery>(std::move(promise))->send(dialog_id, message_id, to_language_code);
+  td_->create_handler<SummarizeTextQuery>(std::move(promise))->send(dialog_id, message_id, to_language_code, tone);
 }
 
 void MessageQueryManager::add_to_do_list_tasks(MessageFullId message_full_id,

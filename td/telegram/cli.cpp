@@ -4954,8 +4954,9 @@ class CliClient final : public Actor {
       ChatId chat_id;
       MessageId message_id;
       string to_language_code;
-      get_args(args, chat_id, message_id, to_language_code);
-      send_request(td_api::make_object<td_api::summarizeMessage>(chat_id, message_id, to_language_code));
+      string tone;
+      get_args(args, chat_id, message_id, to_language_code, tone);
+      send_request(td_api::make_object<td_api::summarizeMessage>(chat_id, message_id, to_language_code, tone));
     } else if (op == "rs") {
       ChatId chat_id;
       MessageId message_id;

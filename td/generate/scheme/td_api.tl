@@ -11186,14 +11186,15 @@ translateText text:formattedText to_language_code:string tone:string = Formatted
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@to_language_code Language code of the language to which the message is translated. See translateText.to_language_code for the list of supported values
-//@tone See translateText.tone for the list of supported values
+//@tone Tone of the translation; see translateText.tone for the list of supported values
 translateMessageText chat_id:int53 message_id:int53 to_language_code:string tone:string = FormattedText;
 
 //@description Summarizes content of the message with non-empty summary_language_code
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
 //@translate_to_language_code Pass a language code to which the summary will be translated; may be empty if translation isn't needed. See translateText.to_language_code for the list of supported values
-summarizeMessage chat_id:int53 message_id:int53 translate_to_language_code:string = FormattedText;
+//@tone Tone of the summarization; see translateText.tone for the list of supported values
+summarizeMessage chat_id:int53 message_id:int53 translate_to_language_code:string tone:string = FormattedText;
 
 //@description Recognizes speech in a video note or a voice note message
 //@chat_id Identifier of the chat to which the message belongs
