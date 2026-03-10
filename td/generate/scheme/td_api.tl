@@ -392,10 +392,10 @@ pollOption text:formattedText voter_count:int32 vote_percentage:int32 is_chosen:
 
 //@class PollType @description Describes the type of poll
 
-//@description A regular poll @allow_multiple_answers True, if multiple answer options can be chosen simultaneously
-pollTypeRegular allow_multiple_answers:Bool = PollType;
+//@description A regular poll
+pollTypeRegular = PollType;
 
-//@description A poll in quiz mode, which has exactly one correct answer option and can be answered only once
+//@description A poll in quiz mode, which has predefined correct answers
 //@correct_option_id 0-based identifier of the correct answer option; -1 for a yet unanswered poll
 //@explanation Text that is shown when the user chooses an incorrect answer or taps on the lamp icon; 0-200 characters with at most 2 line feeds; empty for a yet unanswered poll
 pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
@@ -579,11 +579,12 @@ webApp short_name:string title:string description:string photo:photo animation:a
 //@total_voter_count Total number of voters, participating in the poll
 //@recent_voter_ids Identifiers of recent voters, if the poll is non-anonymous
 //@is_anonymous True, if the poll is anonymous
+//@allows_multiple_answers True, if multiple answer options can be chosen simultaneously
 //@type Type of the poll
 //@open_period Amount of time the poll will be active after creation, in seconds
 //@close_date Point in time (Unix timestamp) when the poll will automatically be closed
 //@is_closed True, if the poll is closed
-poll id:int64 question:formattedText options:vector<pollOption> total_voter_count:int32 recent_voter_ids:vector<MessageSender> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
+poll id:int64 question:formattedText options:vector<pollOption> total_voter_count:int32 recent_voter_ids:vector<MessageSender> is_anonymous:Bool allows_multiple_answers:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
 
 
 //@description Describes an alternative re-encoded quality of a video file
@@ -5513,11 +5514,12 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@question Poll question; 1-255 characters (up to 300 characters for bots). Only custom emoji entities are allowed to be added and only by Premium users
 //@options List of poll answer options, 2-getOption("poll_answer_count_max") strings 1-100 characters each. Only custom emoji entities are allowed to be added and only by Premium users
 //@is_anonymous True, if the poll voters are anonymous. Non-anonymous polls can't be sent or forwarded to channels
+//@allows_multiple_answers True, if multiple answer options can be chosen simultaneously
 //@type Type of the poll
 //@open_period Amount of time the poll will be active after creation, in seconds; for bots only
 //@close_date Point in time (Unix timestamp) when the poll will automatically be closed; for bots only
 //@is_closed True, if the poll needs to be sent already closed; for bots only
-inputMessagePoll question:formattedText options:vector<formattedText> is_anonymous:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
+inputMessagePoll question:formattedText options:vector<formattedText> is_anonymous:Bool allows_multiple_answers:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
 
 //@description A stake dice message
 //@state_hash Hash of the stake dice state. The state hash can be used only if it was received recently enough. Otherwise, a new state must be requested using getStakeDiceState

@@ -6717,21 +6717,21 @@ class CliClient final : public Actor {
       get_args(args, chat_id, period, latitude, longitude, accuracy, heading, proximity_alert_radius);
       send_message(chat_id, td_api::make_object<td_api::inputMessageLocation>(
                                 as_location(latitude, longitude, accuracy), period, heading, proximity_alert_radius));
-    } else if (op == "spoll" || op == "spollm" || op == "spollp" || op == "squiz") {
+    } else if (op == "spoll" || op == "spollm" || op == "spollp" || op == "squiz" || op == "squizm") {
       ChatId chat_id;
       string question;
       get_args(args, chat_id, question, args);
       auto options = transform(autosplit_str(args), [](const string &option) { return as_formatted_text(option); });
       td_api::object_ptr<td_api::PollType> poll_type;
-      if (op == "squiz") {
+      if (op == "squiz" || op == "squizm") {
         poll_type = td_api::make_object<td_api::pollTypeQuiz>(narrow_cast<int32>(options.size() - 1),
                                                               as_formatted_text("_te*st*_"));
       } else {
-        poll_type = td_api::make_object<td_api::pollTypeRegular>(op == "spollm");
+        poll_type = td_api::make_object<td_api::pollTypeRegular>();
       }
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessagePoll>(as_formatted_text(question), std::move(options),
-                                                                 op != "spollp", std::move(poll_type), 0, 0, false));
+      send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(
+                                as_formatted_text(question), std::move(options), op != "spollp", op.back() == 'm',
+                                std::move(poll_type), 0, 0, false));
     } else if (op == "schl") {
       ChatId chat_id;
       InputChecklist checklist;

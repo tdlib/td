@@ -607,7 +607,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
         correct_option_id,
         get_formatted_text_object(nullptr, is_local_poll_id(poll_id) ? FormattedText() : poll->explanation_, true, -1));
   } else {
-    poll_type = td_api::make_object<td_api::pollTypeRegular>(poll->allow_multiple_answers_);
+    poll_type = td_api::make_object<td_api::pollTypeRegular>();
   }
 
   auto open_period = poll->open_period_;
@@ -637,8 +637,8 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   }
   return td_api::make_object<td_api::poll>(poll_id.get(), get_formatted_text_object(nullptr, poll->question_, true, -1),
                                            std::move(poll_options), total_voter_count, std::move(recent_voters),
-                                           poll->is_anonymous_, std::move(poll_type), open_period, close_date,
-                                           poll->is_closed_);
+                                           poll->is_anonymous_, poll->allow_multiple_answers_, std::move(poll_type),
+                                           open_period, close_date, poll->is_closed_);
 }
 
 telegram_api::object_ptr<telegram_api::PollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
@@ -1742,10 +1742,6 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
     bool allow_multiple_answers = poll_server->multiple_choice_;
     bool is_quiz = poll_server->quiz_;
-    if (is_quiz && allow_multiple_answers) {
-      LOG(ERROR) << "Receive quiz " << poll_id << " from " << source << " allowing multiple answers";
-      allow_multiple_answers = false;
-    }
     if (allow_multiple_answers != poll->allow_multiple_answers_) {
       poll->allow_multiple_answers_ = allow_multiple_answers;
       is_changed = true;
