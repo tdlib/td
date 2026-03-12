@@ -90,6 +90,7 @@ class MessageInputReplyTo {
   void add_dependencies(Dependencies &dependencies) const;
 
   telegram_api::object_ptr<telegram_api::InputReplyTo> get_input_reply_to(Td *td, const MessageTopic &message_topic,
+                                                                          bool for_draft = false,
                                                                           DialogId for_dialog_id = DialogId(),
                                                                           int32 with_flags = 0) const;
 

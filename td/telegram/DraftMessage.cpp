@@ -51,7 +51,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
     bool invert_media = false;
     if (draft_message != nullptr) {
       CHECK(!draft_message->is_local());
-      input_reply_to = draft_message->message_input_reply_to_.get_input_reply_to(td_, message_topic);
+      input_reply_to = draft_message->message_input_reply_to_.get_input_reply_to(td_, message_topic, true);
       if (draft_message->input_message_text_.disable_web_page_preview) {
         disable_web_page_preview = true;
       } else if (draft_message->input_message_text_.show_above_text) {
@@ -75,7 +75,7 @@ class SaveDraftMessageQuery final : public Td::ResultHandler {
         suggested_post = draft_message->suggested_post_->get_input_suggested_post();
       }
     } else {
-      input_reply_to = MessageInputReplyTo().get_input_reply_to(td_, message_topic);
+      input_reply_to = MessageInputReplyTo().get_input_reply_to(td_, message_topic, true);
     }
     if (input_reply_to != nullptr) {
       flags |= telegram_api::messages_saveDraft::REPLY_TO_MASK;

@@ -77,9 +77,12 @@ void MessageInputReplyTo::add_dependencies(Dependencies &dependencies) const {
 }
 
 telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_input_reply_to(
-    Td *td, const MessageTopic &message_topic, DialogId for_dialog_id, int32 with_flags) const {
+    Td *td, const MessageTopic &message_topic, bool for_draft, DialogId for_dialog_id, int32 with_flags) const {
   if (story_full_id_.is_valid()) {
     CHECK(message_topic.is_empty());
+    if (for_draft) {
+      return nullptr;
+    }
     auto dialog_id = story_full_id_.get_dialog_id();
     auto input_peer = td->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
@@ -102,7 +105,9 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
     if (message_topic.is_empty()) {
       return nullptr;
     }
-    reply_to_message_id = message_topic.get_implicit_reply_to_message_id(td);
+    if (!for_draft) {
+      reply_to_message_id = message_topic.get_implicit_reply_to_message_id(td);
+    }
   }
   int32 flags = 0;
   auto top_msg_id = message_topic.get_input_top_msg_id();
