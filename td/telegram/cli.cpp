@@ -6724,8 +6724,13 @@ class CliClient final : public Actor {
       auto options = transform(autosplit_str(args), [](const string &option) { return as_formatted_text(option); });
       td_api::object_ptr<td_api::PollType> poll_type;
       if (op == "squiz" || op == "squizm") {
-        poll_type = td_api::make_object<td_api::pollTypeQuiz>(narrow_cast<int32>(options.size() - 1),
-                                                              as_formatted_text("_te*st*_"));
+        vector<int32> correct_option_ids;
+        correct_option_ids.push_back(0);
+        if (options.size() > 1u) {
+          correct_option_ids.push_back(narrow_cast<int32>(options.size() - 1));
+        }
+        poll_type =
+            td_api::make_object<td_api::pollTypeQuiz>(std::move(correct_option_ids), as_formatted_text("_te*st*_"));
       } else {
         poll_type = td_api::make_object<td_api::pollTypeRegular>();
       }

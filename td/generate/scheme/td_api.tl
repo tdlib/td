@@ -396,9 +396,9 @@ pollOption text:formattedText voter_count:int32 vote_percentage:int32 is_chosen:
 pollTypeRegular = PollType;
 
 //@description A poll in quiz mode, which has predefined correct answers
-//@correct_option_id 0-based identifier of the correct answer option; -1 for a yet unanswered poll
+//@correct_option_ids Increasing list of 0-based identifiers of the correct answer options; empty for a yet unanswered poll
 //@explanation Text that is shown when the user chooses an incorrect answer or taps on the lamp icon; 0-200 characters with at most 2 line feeds; empty for a yet unanswered poll
-pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
+pollTypeQuiz correct_option_ids:vector<int32> explanation:formattedText = PollType;
 
 
 //@description Describes a task in a checklist

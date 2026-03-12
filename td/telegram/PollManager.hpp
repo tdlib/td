@@ -62,6 +62,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   bool has_recent_voter_dialog_ids = !recent_voter_dialog_ids_.empty();
   bool has_recent_voter_min_channels = !recent_voter_min_channels_.empty();
   bool has_question_entities = !question_.entities.empty();
+  bool has_multiple_correct_option_ids = correct_option_ids_.size() > 1u;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_closed_);
   STORE_FLAG(is_public);
@@ -75,13 +76,18 @@ void PollManager::Poll::store(StorerT &storer) const {
   STORE_FLAG(has_recent_voter_dialog_ids);
   STORE_FLAG(has_recent_voter_min_channels);
   STORE_FLAG(has_question_entities);
+  STORE_FLAG(has_multiple_correct_option_ids);
   END_STORE_FLAGS();
 
   store(question_.text, storer);
   store(options_, storer);
   store(total_voter_count_, storer);
   if (is_quiz_) {
-    store(correct_option_id_, storer);
+    if (has_multiple_correct_option_ids) {
+      store(correct_option_ids_, storer);
+    } else {
+      store(correct_option_ids_.empty() ? -1 : correct_option_ids_[0], storer);
+    }
   }
   if (has_open_period) {
     store(open_period_, storer);
@@ -114,6 +120,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   bool has_recent_voter_dialog_ids;
   bool has_recent_voter_min_channels;
   bool has_question_entities;
+  bool has_multiple_correct_option_ids;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_closed_);
   PARSE_FLAG(is_public);
@@ -127,6 +134,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   PARSE_FLAG(has_recent_voter_dialog_ids);
   PARSE_FLAG(has_recent_voter_min_channels);
   PARSE_FLAG(has_question_entities);
+  PARSE_FLAG(has_multiple_correct_option_ids);
   END_PARSE_FLAGS();
   is_anonymous_ = !is_public;
 
@@ -134,9 +142,26 @@ void PollManager::Poll::parse(ParserT &parser) {
   parse(options_, parser);
   parse(total_voter_count_, parser);
   if (is_quiz_) {
-    parse(correct_option_id_, parser);
-    if (correct_option_id_ < -1 || correct_option_id_ >= static_cast<int32>(options_.size())) {
-      parser.set_error("Wrong quiz correct_option_id");
+    if (has_multiple_correct_option_ids) {
+      parse(correct_option_ids_, parser);
+      for (size_t i = 0; i + 1 < correct_option_ids_.size(); i++) {
+        if (correct_option_ids_[i] >= correct_option_ids_[i + 1]) {
+          parser.set_error("Correct option list must be increasing");
+          return;
+        }
+      }
+    } else {
+      int32 correct_option_id;
+      parse(correct_option_id, parser);
+      if (correct_option_id != -1) {
+        correct_option_ids_.push_back(correct_option_id);
+      }
+    }
+    for (auto correct_option_id : correct_option_ids_) {
+      if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(options_.size())) {
+        parser.set_error("Wrong quiz correct_option_id");
+        return;
+      }
     }
   }
   if (has_recent_voter_user_ids) {
@@ -176,6 +201,7 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     bool has_question_entities = !poll->question_.entities.empty();
     bool has_option_entities =
         any_of(poll->options_, [](const auto &option) { return !option.text_.entities.empty(); });
+    bool has_multiple_correct_option_ids = poll->correct_option_ids_.size() > 1u;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(poll->is_closed_);
     STORE_FLAG(poll->is_anonymous_);
@@ -186,12 +212,17 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     STORE_FLAG(has_explanation);
     STORE_FLAG(has_question_entities);
     STORE_FLAG(has_option_entities);
+    STORE_FLAG(has_multiple_correct_option_ids);
     END_STORE_FLAGS();
     store(poll->question_.text, storer);
     vector<string> options = transform(poll->options_, [](const PollOption &option) { return option.text_.text; });
     store(options, storer);
     if (poll->is_quiz_) {
-      store(poll->correct_option_id_, storer);
+      if (has_multiple_correct_option_ids) {
+        store(poll->correct_option_ids_, storer);
+      } else {
+        store(poll->correct_option_ids_.empty() ? -1 : poll->correct_option_ids_[0], storer);
+      }
     }
     if (has_open_period) {
       store(poll->open_period_, storer);
@@ -231,7 +262,8 @@ PollId PollManager::parse_poll(ParserT &parser) {
     bool has_explanation = false;
     bool has_question_entities = false;
     bool has_option_entities = false;
-    int32 correct_option_id = -1;
+    bool has_multiple_correct_option_ids = false;
+    vector<int32> correct_option_ids;
 
     if (parser.version() >= static_cast<int32>(Version::SupportPolls2_0)) {
       BEGIN_PARSE_FLAGS();
@@ -244,15 +276,33 @@ PollId PollManager::parse_poll(ParserT &parser) {
       PARSE_FLAG(has_explanation);
       PARSE_FLAG(has_question_entities);
       PARSE_FLAG(has_option_entities);
+      PARSE_FLAG(has_multiple_correct_option_ids);
       END_PARSE_FLAGS();
     }
     parse(question.text, parser);
     vector<string> option_texts;
     parse(option_texts, parser);
     if (is_quiz) {
-      parse(correct_option_id, parser);
-      if (correct_option_id < -1 || correct_option_id >= static_cast<int32>(option_texts.size())) {
-        parser.set_error("Wrong local quiz correct_option_id");
+      if (has_multiple_correct_option_ids) {
+        parse(correct_option_ids, parser);
+        for (size_t i = 0; i + 1 < correct_option_ids.size(); i++) {
+          if (correct_option_ids[i] >= correct_option_ids[i + 1]) {
+            parser.set_error("Correct local quiz option list must be increasing");
+            return PollId();
+          }
+        }
+      } else {
+        int32 correct_option_id;
+        parse(correct_option_id, parser);
+        if (correct_option_id != -1) {
+          correct_option_ids.push_back(correct_option_id);
+        }
+      }
+      for (auto correct_option_id : correct_option_ids) {
+        if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(option_texts.size())) {
+          parser.set_error("Wrong quiz correct_option_id");
+          return PollId();
+        }
       }
     }
     if (has_open_period) {
@@ -283,7 +333,7 @@ PollId PollManager::parse_poll(ParserT &parser) {
       return PollId();
     }
     return create_poll(std::move(question), std::move(options), is_anonymous, allow_multiple_answers, is_quiz,
-                       correct_option_id, std::move(explanation), open_period, close_date, is_closed);
+                       std::move(correct_option_ids), std::move(explanation), open_period, close_date, is_closed);
   }
 
   auto poll = get_poll_force(poll_id);

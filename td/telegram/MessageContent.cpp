@@ -4817,7 +4817,7 @@ static Result<InputMessageContent> create_input_message_content(
       }
 
       bool is_quiz = false;
-      int32 correct_option_id = -1;
+      vector<int32> correct_option_ids;
       FormattedText explanation;
       if (input_poll->type_ == nullptr) {
         return Status::Error(400, "Poll type must be non-empty");
@@ -4828,9 +4828,19 @@ static Result<InputMessageContent> create_input_message_content(
         case td_api::pollTypeQuiz::ID: {
           auto type = td_api::move_object_as<td_api::pollTypeQuiz>(input_poll->type_);
           is_quiz = true;
-          correct_option_id = type->correct_option_id_;
-          if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(input_poll->options_.size())) {
-            return Status::Error(400, "Wrong correct option ID specified");
+          correct_option_ids = std::move(type->correct_option_ids_);
+          if (correct_option_ids.empty()) {
+            return Status::Error(400, "Correct option list must be non-empty");
+          }
+          for (auto correct_option_id : correct_option_ids) {
+            if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(input_poll->options_.size())) {
+              return Status::Error(400, "Wrong correct option identifier specified");
+            }
+          }
+          for (size_t i = 0; i + 1 < correct_option_ids.size(); i++) {
+            if (correct_option_ids[i] >= correct_option_ids[i + 1]) {
+              return Status::Error(400, "Correct option list must be increasing");
+            }
           }
           TRY_RESULT_ASSIGN(
               explanation, get_formatted_text(td, dialog_id, std::move(type->explanation_), is_bot, true, true, false));
@@ -4848,7 +4858,7 @@ static Result<InputMessageContent> create_input_message_content(
       bool is_closed = is_bot ? input_poll->is_closed_ : false;
       content = make_unique<MessagePoll>(td->poll_manager_->create_poll(
           std::move(question), std::move(options), input_poll->is_anonymous_, input_poll->allows_multiple_answers_,
-          is_quiz, correct_option_id, std::move(explanation), open_period, close_date, is_closed));
+          is_quiz, std::move(correct_option_ids), std::move(explanation), open_period, close_date, is_closed));
       break;
     }
     case td_api::inputMessageStory::ID: {
