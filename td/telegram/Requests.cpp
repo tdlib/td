@@ -6636,7 +6636,6 @@ void Requests::on_request(uint64 id, const td_api::deleteBotMediaPreviews &reque
 }
 
 void Requests::on_request(uint64 id, td_api::checkBotUsername &request) {
-  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda(

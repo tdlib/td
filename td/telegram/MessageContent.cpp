@@ -542,7 +542,7 @@ class MessageChatSetTtl final : public MessageContent {
 
 class MessageUnsupported final : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 58;
+  static constexpr int32 CURRENT_VERSION = 59;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -1744,6 +1744,19 @@ class MessageLivePhoto final : public MessageContent {
   }
 };
 
+class MessageManagedBotCreated final : public MessageContent {
+ public:
+  UserId bot_user_id;
+
+  MessageManagedBotCreated() = default;
+  explicit MessageManagedBotCreated(UserId bot_user_id) : bot_user_id(bot_user_id) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::ManagedBotCreated;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -2860,6 +2873,13 @@ static void store(const MessageContent *content, StorerT &storer) {
       if (has_caption) {
         store(m->caption, storer);
       }
+      break;
+    }
+    case MessageContentType::ManagedBotCreated: {
+      const auto *m = static_cast<const MessageManagedBotCreated *>(content);
+      BEGIN_STORE_FLAGS();
+      END_STORE_FLAGS();
+      store(m->bot_user_id, storer);
       break;
     }
     default:
@@ -4263,6 +4283,18 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::ManagedBotCreated: {
+      auto m = make_unique<MessageManagedBotCreated>();
+      BEGIN_PARSE_FLAGS();
+      END_PARSE_FLAGS();
+      parse(m->bot_user_id, parser);
+      if (!m->bot_user_id.is_valid()) {
+        is_bad = true;
+        break;
+      }
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -5134,6 +5166,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -5302,6 +5335,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
       break;
     default:
       UNREACHABLE();
@@ -5506,6 +5540,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
       break;
     default:
       UNREACHABLE();
@@ -5742,6 +5777,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
       break;
     default:
       UNREACHABLE();
@@ -6012,6 +6048,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
       UNREACHABLE();
   }
   return Status::OK();
@@ -6201,6 +6238,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
       return 0;
     default:
       UNREACHABLE();
@@ -6621,6 +6659,10 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       break;
     case MessageContentType::NoForwardsRequest:
       break;
+    case MessageContentType::ManagedBotCreated: {
+      const auto *content = static_cast<const MessageManagedBotCreated *>(message_content);
+      return {content->bot_user_id};
+    }
     default:
       UNREACHABLE();
       break;
@@ -7112,6 +7154,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
       break;
     default:
       UNREACHABLE();
@@ -7299,6 +7342,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -8098,6 +8142,14 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
         need_update = true;
       } else if (lhs->prev_value != rhs->prev_value || lhs->new_value != rhs->new_value) {
         is_content_changed = true;
+      }
+      break;
+    }
+    case MessageContentType::ManagedBotCreated: {
+      const auto *lhs = static_cast<const MessageManagedBotCreated *>(old_content);
+      const auto *rhs = static_cast<const MessageManagedBotCreated *>(new_content);
+      if (lhs->bot_user_id != rhs->bot_user_id) {
+        need_update = true;
       }
       break;
     }
@@ -9546,6 +9598,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
       return nullptr;
     default:
       UNREACHABLE();
@@ -10368,8 +10421,15 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return td::make_unique<MessageNoForwardsRequest>(action->expired_, action->prev_value_, action->new_value_);
     }
-    case telegram_api::messageActionManagedBotCreated::ID:
-      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionManagedBotCreated::ID: {
+      auto action = telegram_api::move_object_as<telegram_api::messageActionManagedBotCreated>(action_ptr);
+      auto bot_user_id = UserId(action->bot_id_);
+      if (!bot_user_id.is_valid()) {
+        LOG(ERROR) << "Receive " << bot_user_id;
+        break;
+      }
+      return td::make_unique<MessageManagedBotCreated>(bot_user_id);
+    }
     case telegram_api::messageActionPollAppendAnswer::ID:
       return td::make_unique<MessageUnsupported>();
     case telegram_api::messageActionPollDeleteAnswer::ID:
@@ -11121,6 +11181,11 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       bool is_expired = m->is_expired || G()->unix_time() >= message_date + duration;
       return td_api::make_object<td_api::messageChatHasProtectedContentDisableRequested>(is_expired);
     }
+    case MessageContentType::ManagedBotCreated: {
+      const auto *m = static_cast<const MessageManagedBotCreated *>(content);
+      return td_api::make_object<td_api::messageManagedBotCreated>(
+          td->user_manager_->get_user_id_object(m->bot_user_id, "messageManagedBotCreated"));
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -11861,6 +11926,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::ChangeCreator:
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
+    case MessageContentType::ManagedBotCreated:
       return string();
     default:
       UNREACHABLE();
@@ -12402,6 +12468,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::NoForwardsToggle:
       break;
     case MessageContentType::NoForwardsRequest:
+      break;
+    case MessageContentType::ManagedBotCreated:
       break;
     default:
       UNREACHABLE();
