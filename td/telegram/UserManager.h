@@ -696,6 +696,7 @@ class UserManager final : public Actor {
     AdministratorRights broadcast_administrator_rights;
     ReferralProgramInfo referral_program_info;
     unique_ptr<BotVerifierSettings> verifier_settings;
+    UserId manager_bot_user_id;
 
     string placeholder_path;
     int32 background_color = -1;

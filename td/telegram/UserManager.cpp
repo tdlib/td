@@ -2155,6 +2155,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_main_profile_tab = main_profile_tab != ProfileTab::Default;
   bool has_first_saved_music_file_id = first_saved_music_file_id != FileId();
   bool has_note = !note.text.empty();
+  bool has_manager_bot_user_id = bot_info != nullptr && bot_info->manager_bot_user_id != UserId();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -2194,24 +2195,25 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_gift_count);
     STORE_FLAG(can_view_revenue);
     STORE_FLAG(can_manage_emoji_status);
-    STORE_FLAG(has_placeholder_path);
+    STORE_FLAG(has_placeholder_path);  // 5
     STORE_FLAG(has_background_color);
     STORE_FLAG(has_background_dark_color);
     STORE_FLAG(has_header_color);
     STORE_FLAG(has_header_dark_color);
-    STORE_FLAG(has_referral_program_info);
+    STORE_FLAG(has_referral_program_info);  // 10
     STORE_FLAG(has_verifier_settings);
     STORE_FLAG(has_bot_verification);
     STORE_FLAG(has_charge_paid_message_stars);
     STORE_FLAG(has_send_paid_message_stars);
-    STORE_FLAG(has_gift_settings);
+    STORE_FLAG(has_gift_settings);  // 15
     STORE_FLAG(has_star_rating);
     STORE_FLAG(has_pending_star_rating);
     STORE_FLAG(has_main_profile_tab);
     STORE_FLAG(has_first_saved_music_file_id);
-    STORE_FLAG(has_note);
+    STORE_FLAG(has_note);  // 20
     STORE_FLAG(noforwards_my_enabled);
     STORE_FLAG(noforwards_peer_enabled);
+    STORE_FLAG(has_manager_bot_user_id);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -2317,6 +2319,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_note) {
     store(note, storer);
   }
+  if (has_manager_bot_user_id) {
+    store(bot_info->manager_bot_user_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -2359,6 +2364,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_main_profile_tab = false;
   bool has_first_saved_music_file_id = false;
   bool has_note = false;
+  bool has_manager_bot_user_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -2416,6 +2422,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_note);
     PARSE_FLAG(noforwards_my_enabled);
     PARSE_FLAG(noforwards_peer_enabled);
+    PARSE_FLAG(has_manager_bot_user_id);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -2524,6 +2531,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_note) {
     parse(note, parser);
+  }
+  if (has_manager_bot_user_id) {
+    parse(add_bot_info()->manager_bot_user_id, parser);
   }
 }
 
@@ -8825,6 +8835,15 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
 
       user_full->is_changed = true;
     }
+    UserId manager_bot_user_id(user->bot_manager_id_);
+    if (manager_bot_user_id != UserId() && !manager_bot_user_id.is_valid()) {
+      LOG(ERROR) << "Receive manager " << manager_bot_user_id;
+      manager_bot_user_id = UserId();
+    }
+    if (bot_info->manager_bot_user_id != manager_bot_user_id) {
+      bot_info->manager_bot_user_id = manager_bot_user_id;
+      user_full->is_changed = true;
+    }
 
     string description;
     Photo description_photo;
@@ -9066,6 +9085,9 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
   }
   if (user_full->bot_verification != nullptr) {
     user_full->bot_verification->add_dependencies(dependencies);
+  }
+  if (user_full->bot_info != nullptr) {
+    dependencies.add(user_full->bot_info->manager_bot_user_id);
   }
   dependencies.add(user_full->personal_channel_id);
   add_formatted_text_dependencies(dependencies, &user_full->note);
@@ -10039,7 +10061,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
   if (is_bot) {
     if (user_full->bot_info == nullptr) {
       bot_info = td_api::make_object<td_api::botInfo>(
-          user_full->about, string(), nullptr, nullptr, nullptr, Auto(), string(), nullptr, nullptr, nullptr, -1, -1,
+          user_full->about, string(), nullptr, nullptr, 0, nullptr, Auto(), string(), nullptr, nullptr, nullptr, -1, -1,
           -1, -1, nullptr, user_full->can_view_revenue, user_full->can_manage_emoji_status,
           user_full->has_preview_medias, nullptr, nullptr, nullptr, nullptr);
     } else {
@@ -10051,7 +10073,8 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
           user_full->about, user_bot_info->description,
           get_photo_object(td_->file_manager_.get(), user_bot_info->description_photo),
           td_->animations_manager_->get_animation_object(user_bot_info->description_animation_file_id),
-          std::move(menu_button), std::move(commands), user_bot_info->privacy_policy_url,
+          get_user_id_object(user_bot_info->manager_bot_user_id, "botInfo"), std::move(menu_button),
+          std::move(commands), user_bot_info->privacy_policy_url,
           user_bot_info->group_administrator_rights == AdministratorRights()
               ? nullptr
               : user_bot_info->group_administrator_rights.get_chat_administrator_rights_object(),
