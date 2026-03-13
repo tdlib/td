@@ -7968,6 +7968,12 @@ class CliClient final : public Actor {
       string username;
       get_args(args, username);
       send_request(td_api::make_object<td_api::checkBotUsername>(username));
+    } else if (op == "cb" || op == "cbl") {
+      UserId manager_bot_user_id;
+      string name;
+      string username;
+      get_args(args, manager_bot_user_id, name, username);
+      send_request(td_api::make_object<td_api::createBot>(manager_bot_user_id, name, username, op == "cbl"));
     } else if (op == "gbi") {
       UserId bot_user_id;
       string language_code;

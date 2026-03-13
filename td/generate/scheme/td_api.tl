@@ -13884,6 +13884,13 @@ deleteBotMediaPreviews bot_user_id:int53 language_code:string file_ids:vector<in
 //@username Username to be checked
 checkBotUsername username:string = CheckChatUsernameResult;
 
+//@description Creates a bot which will be managed by another bot. Returns the created bot
+//@manager_bot_user_id Identifier of the bot that will manage the created bot
+//@name Name of the bot; 1-64 characters
+//@username Username of the bot. The username must end with "bot". Use checkBotUsername to find whether the name is suitable
+//@via_link Pass true if the bot is created from an internalLinkTypeRequestManagedBot link
+createBot manager_bot_user_id:int53 name:string username:string via_link:Bool = User;
+
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot
 //@language_code A two-letter ISO 639-1 language code. If empty, the name will be shown to all users for whose languages there is no dedicated name

@@ -32,6 +32,40 @@
 
 namespace td {
 
+class CreateBotQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::user>> promise_;
+
+ public:
+  explicit CreateBotQuery(Promise<td_api::object_ptr<td_api::user>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId manager_bot_user_id, const string &name, const string &username, bool via_deeplink) {
+    auto r_input_user = td_->user_manager_->get_input_user(manager_bot_user_id);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_createBot(0, via_deeplink, name, username, r_input_user.move_as_ok())));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_createBot>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for CreateBotQuery: " << to_string(ptr);
+    auto user_id = UserManager::get_user_id(ptr);
+    td_->user_manager_->on_get_user(std::move(ptr), "CreateBotQuery");
+    promise_.set_value(td_->user_manager_->get_user_object(user_id));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetAdminedBotsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::users>> promise_;
   UserId bot_user_id_;
@@ -716,6 +750,12 @@ void BotInfoManager::timeout_expired() {
         ->send(get_queries[i].bot_user_id_, get_queries[i].language_code_);
     i = j;
   }
+}
+
+void BotInfoManager::create_bot(UserId manager_bot_user_id, const string &name, const string &username,
+                                bool via_deeplink, Promise<td_api::object_ptr<td_api::user>> &&promise) {
+  TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(manager_bot_user_id));
+  td_->create_handler<CreateBotQuery>(std::move(promise))->send(manager_bot_user_id, name, username, via_deeplink);
 }
 
 void BotInfoManager::get_owned_bots(Promise<td_api::object_ptr<td_api::users>> &&promise) {
