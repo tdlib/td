@@ -75,6 +75,56 @@ class TranslateTextQuery final : public Td::ResultHandler {
   }
 };
 
+class ComposeMessageWithAiQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::formattedText>> promise_;
+  bool skip_bot_commands_;
+  int32 max_media_timestamp_;
+
+ public:
+  explicit ComposeMessageWithAiQuery(Promise<td_api::object_ptr<td_api::formattedText>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(FormattedText &&text, const string &translate_to_language_code, string tone, bool proofread, bool emojify,
+            bool skip_bot_commands, int32 max_media_timestamp) {
+    skip_bot_commands_ = skip_bot_commands;
+    max_media_timestamp_ = max_media_timestamp;
+
+    int32 flags = 0;
+    if (tone == "neutral") {
+      tone.clear();
+    }
+    if (!translate_to_language_code.empty()) {
+      flags |= telegram_api::messages_composeMessageWithAI::TRANSLATE_TO_LANG_MASK;
+    }
+    if (!tone.empty()) {
+      flags |= telegram_api::messages_composeMessageWithAI::CHANGE_TONE_MASK;
+    }
+    send_query(G()->net_query_creator().create(telegram_api::messages_composeMessageWithAI(
+        flags, proofread, emojify,
+        get_input_text_with_entities(td_->user_manager_.get(), std::move(text), "ComposeMessageWithAiQuery"),
+        translate_to_language_code, tone)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_composeMessageWithAI>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ComposeMessageWithAiQuery: " << to_string(ptr);
+    auto formatted_text = get_formatted_text(td_->user_manager_.get(), std::move(ptr->result_text_),
+                                             max_media_timestamp_ == -1, true, "ComposeMessageWithAiQuery");
+    promise_.set_value(
+        get_formatted_text_object(td_->user_manager_.get(), formatted_text, skip_bot_commands_, max_media_timestamp_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 TranslationManager::TranslationManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
 
@@ -156,6 +206,46 @@ void TranslationManager::on_get_translated_texts(vector<telegram_api::object_ptr
                                            true, "on_get_translated_texts");
   promise.set_value(
       get_formatted_text_object(td_->user_manager_.get(), formatted_text, skip_bot_commands, max_media_timestamp));
+}
+
+void TranslationManager::compose_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
+                                                 const string &translate_to_language_code, const string &tone,
+                                                 bool proofread, bool emojify,
+                                                 Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
+  if (text == nullptr) {
+    return promise.set_error(400, "Text must be non-empty");
+  }
+  if (tone != string() && tone != "formal" && tone != "neutral" && tone != "casual") {
+    return promise.set_error(400, "Invalid tone specified");
+  }
+
+  bool skip_bot_commands = true;
+  int32 max_media_timestamp = -1;
+  for (const auto &entity : text->entities_) {
+    if (entity == nullptr || entity->type_ == nullptr) {
+      continue;
+    }
+
+    switch (entity->type_->get_id()) {
+      case td_api::textEntityTypeBotCommand::ID:
+        skip_bot_commands = false;
+        break;
+      case td_api::textEntityTypeMediaTimestamp::ID:
+        max_media_timestamp =
+            td::max(max_media_timestamp,
+                    static_cast<const td_api::textEntityTypeMediaTimestamp *>(entity->type_.get())->media_timestamp_);
+        break;
+      default:
+        // nothing to do
+        break;
+    }
+  }
+
+  TRY_RESULT_PROMISE(promise, entities, get_message_entities(td_->user_manager_.get(), std::move(text->entities_)));
+  TRY_STATUS_PROMISE(promise, fix_formatted_text(text->text_, entities, true, true, true, true, true, true));
+  td_->create_handler<ComposeMessageWithAiQuery>(std::move(promise))
+      ->send(FormattedText{std::move(text->text_), std::move(entities)}, translate_to_language_code, tone, proofread,
+             emojify, skip_bot_commands, max_media_timestamp);
 }
 
 }  // namespace td

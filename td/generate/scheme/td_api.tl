@@ -11209,9 +11209,17 @@ translateMessageText chat_id:int53 message_id:int53 to_language_code:string tone
 //@description Summarizes content of the message with non-empty summary_language_code
 //@chat_id Identifier of the chat to which the message belongs
 //@message_id Identifier of the message
-//@translate_to_language_code Pass a language code to which the summary will be translated; may be empty if translation isn't needed. See translateText.to_language_code for the list of supported values
+//@translate_to_language_code Pass a language code to which the summary will be translated; pass an empty string if translation isn't needed. See translateText.to_language_code for the list of supported values
 //@tone Tone of the summarization; see translateText.tone for the list of supported values
 summarizeMessage chat_id:int53 message_id:int53 translate_to_language_code:string tone:string = FormattedText;
+
+//@description Changes text using an AI model
+//@text The original text
+//@translate_to_language_code Pass a language code to which the text will be translated; pass an empty string if translation isn't needed. See translateText.to_language_code for the list of supported values
+//@tone Tone of the resulted text; must be one of "", "formal", "neutral", "casual"; defaults to "neutral"
+//@proofread Pass true to proofread the text
+//@add_emojis Pass true to add emoji to the text
+composeTextWithAi text:formattedText translate_to_language_code:string tone:string proofread:Bool add_emojis:Bool = FormattedText;
 
 //@description Recognizes speech in a video note or a voice note message
 //@chat_id Identifier of the chat to which the message belongs

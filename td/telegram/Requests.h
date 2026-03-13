@@ -322,6 +322,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::summarizeMessage &request);
 
+  void on_request(uint64 id, td_api::composeTextWithAi &request);
+
   void on_request(uint64 id, const td_api::recognizeSpeech &request);
 
   void on_request(uint64 id, const td_api::rateSpeechRecognition &request);

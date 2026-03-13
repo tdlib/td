@@ -4957,6 +4957,14 @@ class CliClient final : public Actor {
       string tone;
       get_args(args, chat_id, message_id, to_language_code, tone);
       send_request(td_api::make_object<td_api::summarizeMessage>(chat_id, message_id, to_language_code, tone));
+    } else if (op == "ctwa" || op == "ctwaf" || op == "ctwac" || op == "ctwan") {
+      string to_language_code;
+      bool proofread;
+      bool emojify;
+      string text;
+      get_args(args, to_language_code, proofread, emojify, text);
+      send_request(td_api::make_object<td_api::composeTextWithAi>(as_formatted_text(text), to_language_code,
+                                                                  as_tone(op), proofread, emojify));
     } else if (op == "rs") {
       ChatId chat_id;
       MessageId message_id;

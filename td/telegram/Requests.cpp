@@ -2806,6 +2806,16 @@ void Requests::on_request(uint64 id, td_api::summarizeMessage &request) {
                                                       std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::composeTextWithAi &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.translate_to_language_code_);
+  CLEAN_INPUT_STRING(request.tone_);
+  CREATE_REQUEST_PROMISE();
+  td_->translation_manager_->compose_message_with_ai(std::move(request.text_), request.translate_to_language_code_,
+                                                     request.tone_, request.proofread_, request.add_emojis_,
+                                                     std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::recognizeSpeech &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
