@@ -1330,6 +1330,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::createBot &request);
 
+  void on_request(uint64 id, const td_api::getBotToken &request);
+
   void on_request(uint64 id, td_api::setBotName &request);
 
   void on_request(uint64 id, const td_api::getBotName &request);

@@ -6636,6 +6636,7 @@ void Requests::on_request(uint64 id, const td_api::deleteBotMediaPreviews &reque
 }
 
 void Requests::on_request(uint64 id, td_api::checkBotUsername &request) {
+  CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);
   CREATE_REQUEST_PROMISE();
   auto query_promise = PromiseCreator::lambda(
@@ -6656,6 +6657,11 @@ void Requests::on_request(uint64 id, td_api::createBot &request) {
   CREATE_REQUEST_PROMISE();
   td_->bot_info_manager_->create_bot(UserId(request.manager_bot_user_id_), request.name_, request.username_,
                                      request.via_link_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, const td_api::getBotToken &request) {
+  CREATE_TEXT_REQUEST_PROMISE();
+  td_->bot_info_manager_->get_bot_token(UserId(request.bot_user_id_), request.revoke_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setBotName &request) {

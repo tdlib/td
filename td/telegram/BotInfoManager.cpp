@@ -66,6 +66,37 @@ class CreateBotQuery final : public Td::ResultHandler {
   }
 };
 
+class ExportBotTokenQuery final : public Td::ResultHandler {
+  Promise<string> promise_;
+
+ public:
+  explicit ExportBotTokenQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id, bool revoke) {
+    auto r_input_user = td_->user_manager_->get_input_user(bot_user_id);
+    if (r_input_user.is_error()) {
+      return on_error(r_input_user.move_as_error());
+    }
+    send_query(G()->net_query_creator().create(telegram_api::bots_exportBotToken(r_input_user.move_as_ok(), revoke)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_exportBotToken>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for ExportBotTokenQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr->token_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class GetAdminedBotsQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::users>> promise_;
   UserId bot_user_id_;
@@ -756,6 +787,11 @@ void BotInfoManager::create_bot(UserId manager_bot_user_id, const string &name, 
                                 bool via_deeplink, Promise<td_api::object_ptr<td_api::user>> &&promise) {
   TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(manager_bot_user_id));
   td_->create_handler<CreateBotQuery>(std::move(promise))->send(manager_bot_user_id, name, username, via_deeplink);
+}
+
+void BotInfoManager::get_bot_token(UserId bot_user_id, bool revoke, Promise<string> &&promise) {
+  TRY_RESULT_PROMISE(promise, bot_data, td_->user_manager_->get_bot_data(bot_user_id));
+  td_->create_handler<ExportBotTokenQuery>(std::move(promise))->send(bot_user_id, revoke);
 }
 
 void BotInfoManager::get_owned_bots(Promise<td_api::object_ptr<td_api::users>> &&promise) {
