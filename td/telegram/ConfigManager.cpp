@@ -1361,6 +1361,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string whitelisted_bots;
   string ton_stakedice_stake_suggested_amounts;
   string gift_craft_probabilities;
+  string music_search_username;
 
   // {"stories_all_hidden", "archive_all_stories"}
   static const FlatHashMap<Slice, Slice, SliceHash> bool_keys = {
@@ -2034,6 +2035,10 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         }
         continue;
       }
+      if (key == "music_search_username") {
+        music_search_username = get_json_value_string(std::move(key_value->value_), key);
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2079,6 +2084,12 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
     options.set_option_string("restriction_add_platforms", restriction_add_platforms);
   }
   options.set_option_string("whitelisted_bots", whitelisted_bots);
+
+  if (music_search_username.empty()) {
+    options.set_option_empty("audio_search_bot_username");
+  } else {
+    G()->set_option_string("audio_search_bot_username", music_search_username);
+  }
 
   if (!dice_emojis.empty()) {
     vector<string> dice_success_values(dice_emojis.size());
