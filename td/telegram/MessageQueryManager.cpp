@@ -2421,6 +2421,9 @@ void MessageQueryManager::report_music_listen(FileId file_id, int32 duration, Pr
   if (main_remote_location == nullptr || main_remote_location->is_web() || !main_remote_location->is_document()) {
     return promise.set_value(Unit());
   }
+  if (duration < 3) {
+    return promise.set_value(Unit());
+  }
   td_->create_handler<ReportMusicListenQuery>(std::move(promise))
       ->send(main_remote_location->as_input_document(), duration);
 }
