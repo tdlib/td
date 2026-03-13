@@ -783,6 +783,8 @@ class GetMessagePositionQuery final : public Td::ResultHandler {
   }
 
   void on_result(BufferSlice packet) final {
+    static_assert(std::is_same<telegram_api::messages_getSavedHistory::ReturnType,
+                               telegram_api::messages_search::ReturnType>::value);
     auto result_ptr = fetch_result<telegram_api::messages_search>(packet);
     if (result_ptr.is_error()) {
       return on_error(result_ptr.move_as_error());
