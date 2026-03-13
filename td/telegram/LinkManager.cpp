@@ -1111,6 +1111,24 @@ class LinkManager::InternalLinkQrCodeAuthentication final : public InternalLink 
   }
 };
 
+class LinkManager::InternalLinkRequestManagedBot final : public InternalLink {
+  string manager_bot_username_;
+  string bot_username_;
+  string bot_name_;
+
+  td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
+    return td_api::make_object<td_api::internalLinkTypeRequestManagedBot>(manager_bot_username_, bot_username_,
+                                                                          bot_name_);
+  }
+
+ public:
+  InternalLinkRequestManagedBot(string &&manager_bot_username, string &&bot_username, string &&bot_name)
+      : manager_bot_username_(std::move(manager_bot_username))
+      , bot_username_(std::move(bot_username))
+      , bot_name_(std::move(bot_name)) {
+  }
+};
+
 class LinkManager::InternalLinkRestorePurchases final : public InternalLink {
   td_api::object_ptr<td_api::InternalLinkType> get_internal_link_type_object() const final {
     return td_api::make_object<td_api::internalLinkTypeRestorePurchases>();
@@ -2505,6 +2523,14 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
       // stargift_auction?slug=<slug>
       return td::make_unique<InternalLinkGiftAuction>(slug);
     }
+  } else if (path.size() == 1 && path[0] == "newbot") {
+    // newbot?manager=<manager_bot_username>&username=<new_bot_username>&name=<new_bot_name>
+    auto manager_bot_username = get_arg("manager");
+    auto new_bot_username = get_arg("username");
+    if (is_valid_username(manager_bot_username) && is_valid_username(new_bot_username)) {
+      return td::make_unique<InternalLinkRequestManagedBot>(std::move(manager_bot_username),
+                                                            std::move(new_bot_username), get_arg("name"));
+    }
   }
   if (!path.empty() && !path[0].empty()) {
     return td::make_unique<InternalLinkUnknownDeepLink>(PSTRING() << "tg://" << query);
@@ -2714,6 +2740,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       return td::make_unique<InternalLinkInstantView>(
           PSTRING() << get_t_me_url() << "iv" << copy_arg("url") << copy_arg("rhash"), get_arg("url"));
     }
+  } else if (path.size() >= 3u && path[0] == "newbot" && is_valid_username(path[1]) && is_valid_username(path[2])) {
+    // /newbot/<manager_bot_username>/<new_bot_username>?name=<new_bot_name>
+    return td::make_unique<InternalLinkRequestManagedBot>(string(path[1]), string(path[2]), get_arg("name"));
   } else if (is_valid_username(path[0]) && path[0] != "i") {
     if (path.size() >= 2 && to_integer<int64>(path[1]) > 0) {
       // /<username>/12345?single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
@@ -3535,6 +3564,26 @@ Result<string> LinkManager::get_internal_link_impl(const td_api::InternalLinkTyp
     }
     case td_api::internalLinkTypeQrCodeAuthentication::ID:
       return Status::Error("The link must never be generated client-side");
+    case td_api::internalLinkTypeRequestManagedBot::ID: {
+      auto link = static_cast<const td_api::internalLinkTypeRequestManagedBot *>(type_ptr);
+      if (!is_valid_username(link->manager_bot_username_)) {
+        return Status::Error(400, "Invalid manager bot username specified");
+      }
+      if (!is_valid_username(link->suggested_bot_username_)) {
+        return Status::Error(400, "Invalid suggested bot username specified");
+      }
+      if (!check_utf8(link->suggested_bot_name_)) {
+        return Status::Error(400, "Suggested bot name must be encoded in UTF-8");
+      }
+      if (is_internal) {
+        return PSTRING() << "tg://newbot?manager=" << link->manager_bot_username_
+                         << "&username=" << link->suggested_bot_username_
+                         << "&name=" << url_encode(link->suggested_bot_name_);
+      } else {
+        return PSTRING() << get_t_me_url() << "newbot/" << link->manager_bot_username_ << '/'
+                         << link->suggested_bot_username_ << "?name=" << url_encode(link->suggested_bot_name_);
+      }
+    }
     case td_api::internalLinkTypeRestorePurchases::ID:
       if (!is_internal) {
         return Status::Error("HTTP link is unavailable for the link type");

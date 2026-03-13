@@ -3395,8 +3395,8 @@ keyboardButtonTypeRequestChat id:int32 chat_is_channel:Bool restrict_chat_is_for
 
 //@description A button that requests creation of a managed bot by the current user; available only in private chats. Use the method createManagedBot to complete the request
 //@id Unique button identifier
-//@suggested_name Suggested name for the bot; empty if not specified
-//@suggested_username Suggested username for the bot; empty if not specified
+//@suggested_name Suggested name for the bot; may be empty if not specified
+//@suggested_username Suggested username for the bot; may be empty if not specified
 keyboardButtonTypeRequestManagedBot id:int32 suggested_name:string suggested_username:string = KeyboardButtonType;
 
 //@description A button that opens a Web App by calling getWebAppUrl @url An HTTP URL to pass to getWebAppUrl
@@ -8848,6 +8848,14 @@ internalLinkTypePublicChat chat_username:string draft_text:string open_profile:B
 //@description The link can be used to login the current user on another device, but it must be scanned from QR-code using in-app camera. An alert similar to
 //-"This code can be used to allow someone to log in to your Telegram account. To confirm Telegram login, please go to Settings > Devices > Scan QR and scan the code" needs to be shown
 internalLinkTypeQrCodeAuthentication = InternalLinkType;
+
+//@description The link is a link for creation of a managed bot. Call searchPublicChat with the given manager bot username.
+//-If the chat is found and it is a bot, then show bot creation confirmation dialog with the given suggested_bot_username and suggested_bot_name.
+//-If user agrees, call createBot with via_link == true to create the bot
+//@manager_bot_username Username of the bot which will manage the new bot
+//@suggested_bot_username Suggested username for the bot
+//@suggested_bot_name Suggested name for the bot; may be empty if not specified
+internalLinkTypeRequestManagedBot manager_bot_username:string suggested_bot_username:string suggested_bot_name:string = InternalLinkType;
 
 //@description The link forces restore of App Store purchases when opened. For official iOS application only
 internalLinkTypeRestorePurchases = InternalLinkType;

@@ -180,6 +180,7 @@ class LinkManager final : public Actor {
   class InternalLinkProxy;
   class InternalLinkPublicDialog;
   class InternalLinkQrCodeAuthentication;
+  class InternalLinkRequestManagedBot;
   class InternalLinkRestorePurchases;
   class InternalLinkSavedMessages;
   class InternalLinkSearch;
