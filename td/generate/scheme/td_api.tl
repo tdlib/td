@@ -10345,6 +10345,11 @@ updatePoll poll:poll = Update;
 //@option_ids 0-based identifiers of answer options, chosen by the user
 updatePollAnswer poll_id:int64 voter_id:MessageSender option_ids:vector<int32> = Update;
 
+//@description A bot was created to be managed by the current bot; for bots only
+//@user_id Identifier of the user that created the bot
+//@bot_user_id Identifier of the created managed bot
+updateNewManagedBot user_id:int53 bot_user_id:int53 = Update;
+
 //@description User rights changed in a chat; for bots only
 //@chat_id Chat identifier
 //@actor_user_id Identifier of the user, changing the rights
