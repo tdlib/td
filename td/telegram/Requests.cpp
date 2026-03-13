@@ -3293,7 +3293,8 @@ void Requests::on_request(uint64 id, td_api::checkChatUsername &request) {
           promise.set_value(DialogManager::get_check_chat_username_result_object(result.ok()));
         }
       });
-  td_->dialog_manager_->check_dialog_username(DialogId(request.chat_id_), request.username_, std::move(query_promise));
+  td_->dialog_manager_->check_dialog_username(DialogId(request.chat_id_), request.username_, false,
+                                              std::move(query_promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getCreatedPublicChats &request) {
@@ -6632,6 +6633,21 @@ void Requests::on_request(uint64 id, const td_api::deleteBotMediaPreviews &reque
   CREATE_OK_REQUEST_PROMISE();
   td_->bot_info_manager_->delete_bot_media_previews(UserId(request.bot_user_id_), request.language_code_,
                                                     request.file_ids_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, td_api::checkBotUsername &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.username_);
+  CREATE_REQUEST_PROMISE();
+  auto query_promise = PromiseCreator::lambda(
+      [promise = std::move(promise)](Result<DialogManager::CheckDialogUsernameResult> result) mutable {
+        if (result.is_error()) {
+          promise.set_error(result.move_as_error());
+        } else {
+          promise.set_value(DialogManager::get_check_chat_username_result_object(result.ok()));
+        }
+      });
+  td_->dialog_manager_->check_dialog_username(DialogId(), request.username_, true, std::move(query_promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setBotName &request) {

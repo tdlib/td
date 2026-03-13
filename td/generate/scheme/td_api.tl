@@ -13880,6 +13880,10 @@ reorderBotMediaPreviews bot_user_id:int53 language_code:string file_ids:vector<i
 deleteBotMediaPreviews bot_user_id:int53 language_code:string file_ids:vector<int32> = Ok;
 
 
+//@description Checks whether a username can be set for a new bot. Use checkChatUsername to check username for other chat types
+//@username Username to be checked
+checkBotUsername username:string = CheckChatUsernameResult;
+
 //@description Sets the name of a bot. Can be called only if userTypeBot.can_be_edited == true
 //@bot_user_id Identifier of the target bot
 //@language_code A two-letter ISO 639-1 language code. If empty, the name will be shown to all users for whose languages there is no dedicated name
