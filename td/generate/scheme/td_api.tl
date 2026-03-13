@@ -3392,6 +3392,12 @@ keyboardButtonTypeRequestUsers id:int32 restrict_user_is_bot:Bool user_is_bot:Bo
 //@request_photo Pass true to request photo of the chat; bots only
 keyboardButtonTypeRequestChat id:int32 chat_is_channel:Bool restrict_chat_is_forum:Bool chat_is_forum:Bool restrict_chat_has_username:Bool chat_has_username:Bool chat_is_created:Bool user_administrator_rights:chatAdministratorRights bot_administrator_rights:chatAdministratorRights bot_is_member:Bool request_title:Bool request_username:Bool request_photo:Bool = KeyboardButtonType;
 
+//@description A button that requests creation of a managed bot by the current user; available only in private chats. Use the method createManagedBot to complete the request
+//@id Unique button identifier
+//@suggested_name Suggested name for the bot; empty if not specified
+//@suggested_username Suggested username for the bot; empty if not specified
+keyboardButtonTypeRequestManagedBot id:int32 suggested_name:string suggested_username:string = KeyboardButtonType;
+
 //@description A button that opens a Web App by calling getWebAppUrl @url An HTTP URL to pass to getWebAppUrl
 keyboardButtonTypeWebApp url:string = KeyboardButtonType;
 

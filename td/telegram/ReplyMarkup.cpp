@@ -545,6 +545,15 @@ static Result<KeyboardButton> get_keyboard_button(td_api::object_ptr<td_api::key
       current_button.requested_dialog_type = td::make_unique<RequestedDialogType>(std::move(button_type));
       break;
     }
+    case td_api::keyboardButtonTypeRequestManagedBot::ID: {
+      if (!request_buttons_allowed) {
+        return Status::Error(400, "Managed bots can be requested in private chats only");
+      }
+      auto button_type = move_tl_object_as<td_api::keyboardButtonTypeRequestManagedBot>(button->type_);
+      current_button.type = KeyboardButton::Type::RequestDialog;
+      current_button.requested_dialog_type = td::make_unique<RequestedDialogType>(std::move(button_type));
+      break;
+    }
     default:
       UNREACHABLE();
   }
