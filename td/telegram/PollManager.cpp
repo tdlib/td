@@ -431,10 +431,6 @@ PollManager::Poll *PollManager::get_poll_force(PollId poll_id) {
   return get_poll_editable(poll_id);
 }
 
-void PollManager::remove_unallowed_entities(FormattedText &text) {
-  td::remove_if(text.entities, [](MessageEntity &entity) { return entity.type != MessageEntity::Type::CustomEmoji; });
-}
-
 td_api::object_ptr<td_api::pollOption> PollManager::get_poll_option_object(const PollOption &poll_option) {
   return td_api::make_object<td_api::pollOption>(get_formatted_text_object(nullptr, poll_option.text_, true, -1),
                                                  poll_option.voter_count_, 0, poll_option.is_chosen_, false);
@@ -654,9 +650,9 @@ telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_o
 PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> &&options, bool is_anonymous,
                                 bool allow_multiple_answers, bool is_quiz, int32 correct_option_id,
                                 FormattedText &&explanation, int32 open_period, int32 close_date, bool is_closed) {
-  remove_unallowed_entities(question);
+  keep_only_custom_emoji(question);
   for (auto &option : options) {
-    remove_unallowed_entities(option);
+    keep_only_custom_emoji(option);
   }
   auto poll = make_unique<Poll>();
   poll->question_ = std::move(question);
@@ -1517,13 +1513,13 @@ PollId PollManager::dup_poll(DialogId dialog_id, PollId poll_id) {
   CHECK(poll != nullptr);
 
   auto question = poll->question_;
-  ::td::remove_unallowed_entities(td_, question, dialog_id);
+  remove_unallowed_entities(td_, question, dialog_id);
   auto options = transform(poll->options_, [](auto &option) { return option.text_; });
   for (auto &option : options) {
-    ::td::remove_unallowed_entities(td_, option, dialog_id);
+    remove_unallowed_entities(td_, option, dialog_id);
   }
   auto explanation = poll->explanation_;
-  ::td::remove_unallowed_entities(td_, explanation, dialog_id);
+  remove_unallowed_entities(td_, explanation, dialog_id);
   return create_poll(std::move(question), std::move(options), poll->is_anonymous_, poll->allow_multiple_answers_,
                      poll->is_quiz_, poll->correct_option_id_, std::move(explanation), poll->open_period_,
                      poll->open_period_ == 0 ? 0 : G()->unix_time(), false);
@@ -1574,7 +1570,7 @@ vector<PollManager::PollOption> PollManager::get_poll_options(
   return transform(std::move(poll_options), [](telegram_api::object_ptr<telegram_api::pollAnswer> &&poll_option) {
     PollOption option;
     option.text_ = get_formatted_text(nullptr, std::move(poll_option->text_), true, true, "get_poll_options");
-    remove_unallowed_entities(option.text_);
+    keep_only_custom_emoji(option.text_);
     option.data_ = poll_option->option_.as_slice().str();
     return option;
   });
@@ -1686,7 +1682,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       is_changed = true;
     }
     auto question = get_formatted_text(nullptr, std::move(poll_server->question_), true, true, "on_get_poll");
-    remove_unallowed_entities(question);
+    keep_only_custom_emoji(question);
     if (poll->question_ != question) {
       poll->question_ = std::move(question);
       is_changed = true;

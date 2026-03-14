@@ -159,8 +159,6 @@ class PollManager final : public Actor {
 
   static void on_unload_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
 
-  static void remove_unallowed_entities(FormattedText &text);
-
   static td_api::object_ptr<td_api::pollOption> get_poll_option_object(const PollOption &poll_option);
 
   static telegram_api::object_ptr<telegram_api::pollAnswer> get_input_poll_option(const PollOption &poll_option);
