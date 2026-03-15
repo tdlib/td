@@ -185,7 +185,7 @@ Block Block::from_tl(const e2e::e2e_chain_block &block) {
   }
   result.signature_ = Signature::from_u512(block.signature_);
   result.prev_block_hash_ = block.prev_block_hash_;
-  auto change_from_tl = [&](auto &obj) {
+  auto change_from_tl = [](auto &obj) {
     return Change::from_tl(*obj);
   };
   result.changes_ = td::transform(block.changes_, change_from_tl);

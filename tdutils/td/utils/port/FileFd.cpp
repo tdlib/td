@@ -168,7 +168,7 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
     if (native_fd < MINIMUM_FILE_DESCRIPTOR) {
       ::close(native_fd);
       LOG(ERROR) << "Receive " << native_fd << " as a file descriptor";
-      int dummy_fd = detail::skip_eintr([&] { return ::open("/dev/null", O_RDONLY, 0); });
+      int dummy_fd = detail::skip_eintr([] { return ::open("/dev/null", O_RDONLY, 0); });
       if (dummy_fd < 0) {
         return OS_ERROR("Can't open /dev/null");
       }

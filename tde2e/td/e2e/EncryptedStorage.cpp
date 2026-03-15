@@ -225,7 +225,7 @@ td::Result<EncryptedStorage::KeyValueUpdates> EncryptedStorage::apply_block(td::
   for (auto &change : changes) {
     bool skip = false;
     td::Result<std::pair<Key, std::optional<Value>>> r_p;
-    std::visit(td::overloaded([&](ChangeNoop &noop) {},
+    std::visit(td::overloaded([](ChangeNoop &noop) {},
                               [&](ChangeSetValue &set_value) { r_p = parse(set_value.key, set_value.value); },
                               [&](ChangeSetGroupState &) { skip = true; }, [&](ChangeSetSharedKey &) { skip = true; }),
                change.value);

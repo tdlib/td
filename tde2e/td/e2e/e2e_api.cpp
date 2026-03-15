@@ -68,7 +68,7 @@ class KeyChain {
 
   td::Result<api::PrivateKeyId> generate_dummy_key() {
     auto hash = to_hash("dummy key", "...");
-    return container_.try_build<Key>(hash, [&]() -> td::Result<PrivateKeyWithMnemonic> {
+    return container_.try_build<Key>(hash, []() -> td::Result<PrivateKeyWithMnemonic> {
       td::SecureString key(32, 1);
       return PrivateKeyWithMnemonic::from_private_key(PrivateKey::from_slice(key).move_as_ok(), {});
     });
@@ -295,7 +295,7 @@ class KeyChain {
 
   td::Result<api::SymmetricKeyId> handshake_get_shared_key_id(api::HandshakeId handshake_id) {
     TRY_RESULT(handshake, container_.get_unique<Handshake>(handshake_id));
-    TRY_RESULT(shared_secret, std::visit([&](auto &&v) { return v.shared_secret(); }, *handshake));
+    TRY_RESULT(shared_secret, std::visit([](auto &&v) { return v.shared_secret(); }, *handshake));
     auto hash = to_hash("handshake shared_secret", shared_secret.as_slice());
     return container_.try_build<Key>(hash, [&]() -> td::Result<td::SecureString> { return std::move(shared_secret); });
   }
@@ -559,8 +559,8 @@ class KeyChain {
   td::Result<PublicKey> to_public_key(api::AnyKeyId key_id) const {
     TRY_RESULT(key, container_.get_shared<Key>(key_id));
     return std::visit(
-        td::overloaded([&](const PrivateKeyWithMnemonic &pk) -> td::Result<PublicKey> { return pk.to_public_key(); },
-                       [&](const PublicKey &pk) -> td::Result<PublicKey> { return pk; },
+        td::overloaded([](const PrivateKeyWithMnemonic &pk) -> td::Result<PublicKey> { return pk.to_public_key(); },
+                       [](const PublicKey &pk) -> td::Result<PublicKey> { return pk; },
                        [](const auto &) -> td::Result<PublicKey> {
                          return td::Status::Error(static_cast<int>(api::ErrorCode::InvalidInput),
                                                   "key_id doesn't contain public key");
