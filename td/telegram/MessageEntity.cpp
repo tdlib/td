@@ -4976,7 +4976,7 @@ bool is_allowed_quote_entity_type(MessageEntity::Type type) {
 
 bool keep_only_custom_emoji(FormattedText &text) {
   return td::remove_if(text.entities,
-                       [&](const MessageEntity &entity) { return entity.type != MessageEntity::Type::CustomEmoji; });
+                       [](const MessageEntity &entity) { return entity.type != MessageEntity::Type::CustomEmoji; });
 }
 
 void remove_premium_custom_emoji_entities(const Td *td, vector<MessageEntity> &entities, bool remove_unknown) {

@@ -95,7 +95,7 @@ telegram_api::object_ptr<telegram_api::inputMediaTodo> ToDoList::get_input_media
 
 bool ToDoList::remove_unsupported_entities(FormattedText &text) {
   return td::remove_if(text.entities,
-                       [&](const MessageEntity &entity) { return !is_allowed_quote_entity_type(entity.type); });
+                       [](const MessageEntity &entity) { return !is_allowed_quote_entity_type(entity.type); });
 }
 
 void ToDoList::validate(const char *source) {

@@ -159,7 +159,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageQuote &quo
 }
 
 void MessageQuote::remove_unallowed_quote_entities(FormattedText &text) {
-  td::remove_if(text.entities, [&](const auto &entity) { return !is_allowed_quote_entity_type(entity.type); });
+  td::remove_if(text.entities, [](const auto &entity) { return !is_allowed_quote_entity_type(entity.type); });
 }
 
 int32 MessageQuote::search_quote(FormattedText &&text, FormattedText &&quote, int32 quote_position) {
