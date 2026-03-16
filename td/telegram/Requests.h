@@ -1678,6 +1678,8 @@ class Requests {
 
   void on_request(uint64 id, td_api::savePreparedKeyboardButton &request);
 
+  void on_request(uint64 id, td_api::getPreparedKeyboardButton &request);
+
   void on_request(uint64 id, td_api::getGrossingWebAppBots &request);
 
   void on_request(uint64 id, td_api::searchWebApp &request);

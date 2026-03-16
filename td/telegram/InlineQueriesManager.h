@@ -55,6 +55,9 @@ class InlineQueriesManager final : public Actor {
   void save_prepared_keyboard_button(UserId user_id, td_api::object_ptr<td_api::keyboardButton> &&button,
                                      Promise<string> &&promise);
 
+  void get_prepared_keyboard_button(UserId bot_user_id, const string &prepared_button_id,
+                                    Promise<td_api::object_ptr<td_api::keyboardButton>> &&promise);
+
   void get_simple_web_view_url(UserId bot_user_id, string &&url, const WebAppOpenParameters &parameters,
                                Promise<string> &&promise);
 

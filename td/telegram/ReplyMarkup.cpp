@@ -189,7 +189,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ReplyMarkup &repl
   return reply_markup.print(string_builder);
 }
 
-static KeyboardButton get_keyboard_button(tl_object_ptr<telegram_api::KeyboardButton> &&keyboard_button_ptr) {
+KeyboardButton get_keyboard_button(tl_object_ptr<telegram_api::KeyboardButton> &&keyboard_button_ptr) {
   CHECK(keyboard_button_ptr != nullptr);
 
   KeyboardButton button;
@@ -1034,7 +1034,7 @@ tl_object_ptr<telegram_api::ReplyMarkup> ReplyMarkup::get_input_reply_markup(Use
   }
 }
 
-static tl_object_ptr<td_api::keyboardButton> get_keyboard_button_object(const KeyboardButton &keyboard_button) {
+td_api::object_ptr<td_api::keyboardButton> get_keyboard_button_object(const KeyboardButton &keyboard_button) {
   td_api::object_ptr<td_api::KeyboardButtonType> type;
   switch (keyboard_button.type) {
     case KeyboardButton::Type::Text:

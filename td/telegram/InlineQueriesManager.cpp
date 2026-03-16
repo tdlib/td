@@ -262,6 +262,43 @@ class SavePreparedKeyboardButtonQuery final : public Td::ResultHandler {
   }
 };
 
+class GetRequestedWebViewButtonQuery final : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::keyboardButton>> promise_;
+  UserId bot_user_id_;
+
+ public:
+  explicit GetRequestedWebViewButtonQuery(Promise<td_api::object_ptr<td_api::keyboardButton>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(UserId bot_user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
+            const string &prepared_button_id) {
+    bot_user_id_ = bot_user_id;
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_getRequestedWebViewButton(std::move(input_user), prepared_button_id)));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_getRequestedWebViewButton>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for GetRequestedWebViewButtonQuery: " << to_string(ptr);
+    if (ptr->get_id() != telegram_api::keyboardButtonRequestPeer::ID) {
+      LOG(ERROR) << to_string(ptr);
+      return on_error(Status::Error(500, "Receive invalid button type"));
+    }
+    auto keyboard_button = get_keyboard_button(std::move(ptr));
+    promise_.set_value(get_keyboard_button_object(keyboard_button));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class RequestSimpleWebViewQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
@@ -712,6 +749,13 @@ void InlineQueriesManager::save_prepared_keyboard_button(UserId user_id,
 
   td_->create_handler<SavePreparedKeyboardButtonQuery>(std::move(promise))
       ->send(std::move(input_user), keyboard_button);
+}
+
+void InlineQueriesManager::get_prepared_keyboard_button(UserId bot_user_id, const string &prepared_button_id,
+                                                        Promise<td_api::object_ptr<td_api::keyboardButton>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
+  td_->create_handler<GetRequestedWebViewButtonQuery>(std::move(promise))
+      ->send(bot_user_id, std::move(input_user), prepared_button_id);
 }
 
 void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&url,

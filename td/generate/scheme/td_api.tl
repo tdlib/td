@@ -11987,10 +11987,15 @@ savePreparedInlineMessage user_id:int53 result:InputInlineQueryResult chat_types
 //@prepared_message_id Identifier of the prepared message
 getPreparedInlineMessage bot_user_id:int53 prepared_message_id:string = PreparedInlineMessage;
 
-//@description Saves a keyborad button to be shown to the given user; for bots only
+//@description Saves a keyboard button to be shown to the given user; for bots only
 //@user_id Identifier of the user
 //@button The button; must be of the type keyboardButtonTypeRequestUsers, keyboardButtonTypeRequestChat, or keyboardButtonTypeRequestManagedBot
 savePreparedKeyboardButton user_id:int53 button:keyboardButton = Text;
+
+//@description Returns a keyboard button prepared by the bot for the user. The button will be of the type keyboardButtonTypeRequestUsers, keyboardButtonTypeRequestChat, or keyboardButtonTypeRequestManagedBot
+//@bot_user_id Identifier of the bot that created the button
+//@prepared_button_id Identifier of the prepared button
+getPreparedKeyboardButton bot_user_id:int53 prepared_button_id:string = KeyboardButton;
 
 
 //@description Returns the most grossing Web App bots

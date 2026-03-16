@@ -7875,6 +7875,14 @@ void Requests::on_request(uint64 id, td_api::savePreparedKeyboardButton &request
                                                               std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::getPreparedKeyboardButton &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.prepared_button_id_);
+  CREATE_REQUEST_PROMISE();
+  td_->inline_queries_manager_->get_prepared_keyboard_button(UserId(request.bot_user_id_), request.prepared_button_id_,
+                                                             std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getGrossingWebAppBots &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);

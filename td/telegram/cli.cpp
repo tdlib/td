@@ -6587,6 +6587,11 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::addQuickReplyShortcutInlineQueryResultMessage>(
             quick_reply_shortcut_name_, reply_message_id_, query_id, result_id, op == "siqrh"));
       }
+    } else if (op == "gpkb") {
+      UserId bot_user_id;
+      string prepared_button_id;
+      get_args(args, bot_user_id, prepared_button_id);
+      send_request(td_api::make_object<td_api::getPreparedKeyboardButton>(bot_user_id, prepared_button_id));
     } else if (op == "gcqa") {
       ChatId chat_id;
       MessageId message_id;
