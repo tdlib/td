@@ -461,8 +461,8 @@ unique_ptr<ReplyMarkup> get_reply_markup(tl_object_ptr<telegram_api::ReplyMarkup
   return reply_markup;
 }
 
-static Result<KeyboardButton> get_keyboard_button(td_api::object_ptr<td_api::keyboardButton> &&button,
-                                                  bool request_buttons_allowed) {
+Result<KeyboardButton> get_keyboard_button(td_api::object_ptr<td_api::keyboardButton> &&button,
+                                           bool request_buttons_allowed) {
   CHECK(button != nullptr);
 
   if (!clean_input_string(button->text_)) {
@@ -873,7 +873,8 @@ unique_ptr<ReplyMarkup> dup_reply_markup(const unique_ptr<ReplyMarkup> &reply_ma
   return result;
 }
 
-static tl_object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(const KeyboardButton &keyboard_button) {
+telegram_api::object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(
+    const KeyboardButton &keyboard_button) {
   int32 flags = 0;
   auto style = keyboard_button.style.get_input_keyboard_button_style();
   if (style != nullptr) {

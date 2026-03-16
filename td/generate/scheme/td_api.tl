@@ -11987,6 +11987,11 @@ savePreparedInlineMessage user_id:int53 result:InputInlineQueryResult chat_types
 //@prepared_message_id Identifier of the prepared message
 getPreparedInlineMessage bot_user_id:int53 prepared_message_id:string = PreparedInlineMessage;
 
+//@description Saves a keyborad button to be shown to the given user; for bots only
+//@user_id Identifier of the user
+//@button The button; must be of the type keyboardButtonTypeRequestUsers, keyboardButtonTypeRequestChat, or keyboardButtonTypeRequestManagedBot
+savePreparedKeyboardButton user_id:int53 button:keyboardButton = Text;
+
 
 //@description Returns the most grossing Web App bots
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results

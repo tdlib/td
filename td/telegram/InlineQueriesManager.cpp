@@ -234,6 +234,34 @@ class GetPreparedInlineMessageQuery final : public Td::ResultHandler {
   }
 };
 
+class SavePreparedKeyboardButtonQuery final : public Td::ResultHandler {
+  Promise<string> promise_;
+
+ public:
+  explicit SavePreparedKeyboardButtonQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(telegram_api::object_ptr<telegram_api::InputUser> &&input_user, const KeyboardButton &keyboard_button) {
+    send_query(G()->net_query_creator().create(
+        telegram_api::bots_requestWebViewButton(std::move(input_user), get_input_keyboard_button(keyboard_button))));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::bots_requestWebViewButton>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for SavePreparedKeyboardButtonQuery: " << to_string(ptr);
+    promise_.set_value(std::move(ptr->webapp_req_id_));
+  }
+
+  void on_error(Status status) final {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class RequestSimpleWebViewQuery final : public Td::ResultHandler {
   Promise<string> promise_;
 
@@ -674,6 +702,16 @@ void InlineQueriesManager::get_prepared_inline_message(
 
   td_->create_handler<GetPreparedInlineMessageQuery>(std::move(promise))
       ->send(bot_user_id, std::move(input_user), prepared_message_id, query_hash);
+}
+
+void InlineQueriesManager::save_prepared_keyboard_button(UserId user_id,
+                                                         td_api::object_ptr<td_api::keyboardButton> &&button,
+                                                         Promise<string> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(user_id));
+  TRY_RESULT_PROMISE(promise, keyboard_button, get_keyboard_button(std::move(button), true));
+
+  td_->create_handler<SavePreparedKeyboardButtonQuery>(std::move(promise))
+      ->send(std::move(input_user), keyboard_button);
 }
 
 void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&url,

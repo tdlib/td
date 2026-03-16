@@ -98,6 +98,11 @@ bool operator!=(const ReplyMarkup &lhs, const ReplyMarkup &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ReplyMarkup &reply_markup);
 
+Result<KeyboardButton> get_keyboard_button(td_api::object_ptr<td_api::keyboardButton> &&button,
+                                           bool request_buttons_allowed);
+
+telegram_api::object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(const KeyboardButton &keyboard_button);
+
 unique_ptr<ReplyMarkup> get_reply_markup(tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup_ptr, bool is_bot,
                                          bool only_inline_keyboard, bool message_contains_mention);
 

@@ -7868,6 +7868,13 @@ void Requests::on_request(uint64 id, td_api::getPreparedInlineMessage &request) 
                                                             std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::savePreparedKeyboardButton &request) {
+  CHECK_IS_BOT();
+  CREATE_TEXT_REQUEST_PROMISE();
+  td_->inline_queries_manager_->save_prepared_keyboard_button(UserId(request.user_id_), std::move(request.button_),
+                                                              std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::getGrossingWebAppBots &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.offset_);
