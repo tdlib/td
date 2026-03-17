@@ -265,6 +265,7 @@ class SavePreparedKeyboardButtonQuery final : public Td::ResultHandler {
 class GetRequestedWebViewButtonQuery final : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::keyboardButton>> promise_;
   UserId bot_user_id_;
+  string prepared_button_id_;
 
  public:
   explicit GetRequestedWebViewButtonQuery(Promise<td_api::object_ptr<td_api::keyboardButton>> &&promise)
@@ -274,6 +275,7 @@ class GetRequestedWebViewButtonQuery final : public Td::ResultHandler {
   void send(UserId bot_user_id, telegram_api::object_ptr<telegram_api::InputUser> &&input_user,
             const string &prepared_button_id) {
     bot_user_id_ = bot_user_id;
+    prepared_button_id_ = prepared_button_id;
     send_query(G()->net_query_creator().create(
         telegram_api::bots_getRequestedWebViewButton(std::move(input_user), prepared_button_id)));
   }
@@ -291,6 +293,8 @@ class GetRequestedWebViewButtonQuery final : public Td::ResultHandler {
       return on_error(Status::Error(500, "Receive invalid button type"));
     }
     auto keyboard_button = get_keyboard_button(std::move(ptr));
+    td_->inline_queries_manager_->on_get_requested_web_view_button(bot_user_id_, prepared_button_id_,
+                                                                   keyboard_button.requested_dialog_type.get());
     promise_.set_value(get_keyboard_button_object(keyboard_button));
   }
 
@@ -756,6 +760,23 @@ void InlineQueriesManager::get_prepared_keyboard_button(UserId bot_user_id, cons
   TRY_RESULT_PROMISE(promise, input_user, td_->user_manager_->get_input_user(bot_user_id));
   td_->create_handler<GetRequestedWebViewButtonQuery>(std::move(promise))
       ->send(bot_user_id, std::move(input_user), prepared_button_id);
+}
+
+void InlineQueriesManager::on_get_requested_web_view_button(UserId bot_user_id, const string &prepared_button_id,
+                                                            const RequestedDialogType *requested_dialog_type) {
+  CHECK(requested_dialog_type != nullptr);
+  last_requested_web_view_button_bot_user_id_ = bot_user_id;
+  last_requested_web_view_button_prepared_button_id_ = prepared_button_id;
+  last_requested_web_view_button_requested_dialog_type_ = make_unique<RequestedDialogType>(*requested_dialog_type);
+}
+
+const RequestedDialogType *InlineQueriesManager::get_requested_dialog_type(UserId bot_user_id,
+                                                                           const string &prepared_button_id) {
+  if (bot_user_id == last_requested_web_view_button_bot_user_id_ &&
+      prepared_button_id == last_requested_web_view_button_prepared_button_id_ && !prepared_button_id.empty()) {
+    return last_requested_web_view_button_requested_dialog_type_.get();
+  }
+  return nullptr;
 }
 
 void InlineQueriesManager::get_simple_web_view_url(UserId bot_user_id, string &&url,
