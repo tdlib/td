@@ -1167,22 +1167,11 @@ tl_object_ptr<td_api::ReplyMarkup> ReplyMarkup::get_reply_markup_object(UserMana
   }
 }
 
-Status ReplyMarkup::check_shared_dialog(Td *td, int32 button_id, DialogId dialog_id) const {
+Result<const RequestedDialogType *> ReplyMarkup::get_requested_dialog_type(int32 button_id) const {
   for (auto &row : keyboard) {
     for (auto &button : row) {
       if (button.requested_dialog_type != nullptr && button.requested_dialog_type->get_button_id() == button_id) {
-        return button.requested_dialog_type->check_shared_dialog(td, dialog_id);
-      }
-    }
-  }
-  return Status::Error(400, "Button not found");
-}
-
-Status ReplyMarkup::check_shared_dialog_count(int32 button_id, size_t count) const {
-  for (auto &row : keyboard) {
-    for (auto &button : row) {
-      if (button.requested_dialog_type != nullptr && button.requested_dialog_type->get_button_id() == button_id) {
-        return button.requested_dialog_type->check_shared_dialog_count(count);
+        return button.requested_dialog_type.get();
       }
     }
   }

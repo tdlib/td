@@ -88,9 +88,7 @@ struct ReplyMarkup {
 
   tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object(UserManager *user_manager) const;
 
-  Status check_shared_dialog(Td *td, int32 button_id, DialogId dialog_id) const;
-
-  Status check_shared_dialog_count(int32 button_id, size_t count) const;
+  Result<const RequestedDialogType *> get_requested_dialog_type(int32 button_id) const;
 };
 
 bool operator==(const ReplyMarkup &lhs, const ReplyMarkup &rhs);

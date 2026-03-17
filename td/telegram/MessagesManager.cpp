@@ -24582,7 +24582,9 @@ void MessagesManager::share_dialogs_with_bot(MessageFullId message_full_id, int3
     return promise.set_error(400, "Message has no buttons");
   }
   CHECK(m->message_id.is_server());
-  TRY_STATUS_PROMISE(promise, m->reply_markup->check_shared_dialog_count(button_id, shared_dialog_ids.size()));
+  TRY_RESULT_PROMISE(promise, requested_dialog_type, m->reply_markup->get_requested_dialog_type(button_id));
+  TRY_STATUS_PROMISE(promise, requested_dialog_type->check_shared_dialog_count(shared_dialog_ids.size()));
+
   for (auto shared_dialog_id : shared_dialog_ids) {
     if (shared_dialog_id.get_type() != DialogType::User) {
       if (!have_dialog_force(shared_dialog_id, "share_dialogs_with_bot")) {
@@ -24596,7 +24598,7 @@ void MessagesManager::share_dialogs_with_bot(MessageFullId message_full_id, int3
         return promise.set_error(400, "Shared user not found");
       }
     }
-    TRY_STATUS_PROMISE(promise, m->reply_markup->check_shared_dialog(td_, button_id, shared_dialog_id));
+    TRY_STATUS_PROMISE(promise, requested_dialog_type->check_shared_dialog(td_, shared_dialog_id));
   }
 
   if (only_check) {
