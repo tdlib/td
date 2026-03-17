@@ -60,6 +60,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/NetStatsManager.h"
 #include "td/telegram/net/Proxy.h"
+#include "td/telegram/net/ProxyChecker.h"
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettingsManager.h"
@@ -446,6 +447,7 @@ void Td::start_up() {
   inc_actor_refcnt();          // guard
 
   alarm_manager_ = create_actor<AlarmManager>("AlarmManager", create_reference());
+  proxy_checker_ = create_actor<ProxyChecker>("ProxyChecker", create_reference());
 
   CHECK(state_ == State::WaitParameters);
   for (auto &update : get_fake_current_state()) {
@@ -671,6 +673,7 @@ void Td::clear() {
   reset_actor(ActorOwn<Actor>(std::move(language_pack_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(net_stats_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(password_manager_)));
+  reset_actor(ActorOwn<Actor>(std::move(proxy_checker_)));
   reset_actor(ActorOwn<Actor>(std::move(secure_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(secret_chats_manager_)));
   reset_actor(ActorOwn<Actor>(std::move(storage_manager_)));
@@ -770,6 +773,7 @@ void Td::close_impl(bool destroy_flag) {
     G()->set_close_flag();
     clear_requests();
     alarm_manager_.reset();
+    proxy_checker_.reset();
     send_update(td_api::make_object<td_api::updateAuthorizationState>(
         td_api::make_object<td_api::authorizationStateClosing>()));
 

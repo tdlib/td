@@ -84,6 +84,7 @@ class PhoneNumberManager;
 class PollManager;
 class PrivacyManager;
 class PromoDataManager;
+class ProxyChecker;
 class QuickReplyManager;
 class ReactionManager;
 class ReferralProgramManager;
@@ -300,6 +301,7 @@ class Td final : public Actor {
   ActorOwn<LanguagePackManager> language_pack_manager_;
   ActorOwn<NetStatsManager> net_stats_manager_;
   ActorOwn<PasswordManager> password_manager_;
+  ActorOwn<ProxyChecker> proxy_checker_;
   ActorOwn<SecretChatsManager> secret_chats_manager_;
   ActorOwn<SecureManager> secure_manager_;
   ActorOwn<StateManager> state_manager_;

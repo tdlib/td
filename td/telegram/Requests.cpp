@@ -109,6 +109,7 @@
 #include "td/telegram/net/NetStatsManager.h"
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/net/Proxy.h"
+#include "td/telegram/net/ProxyChecker.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationManager.h"
@@ -9003,8 +9004,8 @@ void Requests::on_request(uint64 id, const td_api::testProxy &request) {
     return send_closure(td_actor_, &Td::send_error, id, r_proxy.move_as_error());
   }
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(G()->connection_creator(), &ConnectionCreator::test_proxy, r_proxy.move_as_ok(), request.dc_id_,
-               request.timeout_, std::move(promise));
+  send_closure(td_->proxy_checker_, &ProxyChecker::test_proxy, r_proxy.move_as_ok(), request.dc_id_, request.timeout_,
+               std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::testGetDifference &request) {

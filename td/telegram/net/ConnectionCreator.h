@@ -84,9 +84,9 @@ class ConnectionCreator final : public NetQueryCallback {
 
   void ping_proxy(td_api::object_ptr<td_api::proxy> input_proxy, Promise<double> promise);
 
-  void test_proxy(Proxy &&proxy, int32 dc_id, double timeout, Promise<Unit> &&promise);
-
  private:
+  friend class ProxyChecker;
+
   ActorShared<> parent_;
   DcOptionsSet dc_options_set_;
   bool network_flag_ = false;
@@ -182,19 +182,6 @@ class ConnectionCreator final : public NetQueryCallback {
     unique_ptr<mtproto::RawConnection::StatsCallback> stats_callback;
   };
 
-  struct TestProxyRequest {
-    Proxy proxy_;
-    int16 dc_id_ = -1;
-    ActorOwn<> child_;
-    Promise<Unit> promise_;
-
-    mtproto::TransportType get_transport() const {
-      return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, dc_id_, proxy_.secret()};
-    }
-  };
-  uint64 test_proxy_request_id_ = 0;
-  FlatHashMap<uint64, unique_ptr<TestProxyRequest>> test_proxy_requests_;
-
   uint64 next_token() {
     return ++current_token_;
   }
@@ -271,15 +258,6 @@ class ConnectionCreator final : public NetQueryCallback {
                                      mtproto::TransportType transport_type, string debug_str, Promise<double> promise);
 
   void on_ping_main_dc_result(uint64 token, Result<double> result);
-
-  void on_test_proxy_connection_data(uint64 request_id, Result<ConnectionData> r_data);
-
-  void on_test_proxy_handshake_connection(uint64 request_id,
-                                          Result<unique_ptr<mtproto::RawConnection>> r_raw_connection);
-
-  void on_test_proxy_handshake(uint64 request_id, Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake);
-
-  void on_test_proxy_timeout(uint64 request_id);
 };
 
 }  // namespace td
