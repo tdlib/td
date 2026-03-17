@@ -1659,6 +1659,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
           << "Receive wrong document for " << web_page->url_;
       return td_api::make_object<td_api::linkPreviewTypeMessage>();
     }
+    if (type == "newbot") {
+      return td_api::make_object<td_api::linkPreviewTypeRequestManagedBot>();
+    }
     if (type == "nft") {
       if (web_page->star_gifts_.size() == 1) {
         return td_api::make_object<td_api::linkPreviewTypeUpgradedGift>(

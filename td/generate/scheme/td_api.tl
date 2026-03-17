@@ -4086,6 +4086,9 @@ linkPreviewTypePhoto photo:photo = LinkPreviewType;
 //@description The link is a link to a Telegram Premium gift code
 linkPreviewTypePremiumGiftCode = LinkPreviewType;
 
+//@description The link is a link to a dialog for creating of a managed bot
+linkPreviewTypeRequestManagedBot = LinkPreviewType;
+
 //@description The link is a link to a shareable chat folder
 linkPreviewTypeShareableChatFolder = LinkPreviewType;
 
@@ -8865,7 +8868,7 @@ internalLinkTypePublicChat chat_username:string draft_text:string open_profile:B
 //-"This code can be used to allow someone to log in to your Telegram account. To confirm Telegram login, please go to Settings > Devices > Scan QR and scan the code" needs to be shown
 internalLinkTypeQrCodeAuthentication = InternalLinkType;
 
-//@description The link is a link for creation of a managed bot. Call searchPublicChat with the given manager bot username.
+//@description The link is a link to a dialog for creating of a managed bot. Call searchPublicChat with the given manager bot username.
 //-If the chat is found and it is a bot, then show bot creation confirmation dialog with the given suggested_bot_username and suggested_bot_name.
 //-If user agrees, call createBot with via_link == true to create the bot
 //@manager_bot_username Username of the bot which will manage the new bot
