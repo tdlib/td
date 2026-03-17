@@ -88,7 +88,7 @@ struct ReplyMarkup {
 
   tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object(UserManager *user_manager) const;
 
-  Result<const RequestedDialogType *> get_requested_dialog_type(int32 button_id) const;
+  const RequestedDialogType *get_requested_dialog_type(int32 button_id) const;
 };
 
 bool operator==(const ReplyMarkup &lhs, const ReplyMarkup &rhs);

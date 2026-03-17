@@ -173,9 +173,18 @@ class SendBotRequestedPeerQuery final : public Td::ResultHandler {
   explicit SendBotRequestedPeerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(MessageFullId message_full_id, int32 button_id, vector<DialogId> &&requested_dialog_ids) {
+  void send(MessageFullId message_full_id, UserId bot_user_id, const string &request_id, int32 button_id,
+            vector<DialogId> &&requested_dialog_ids) {
     auto dialog_id = message_full_id.get_dialog_id();
-    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    int32 flags = 0;
+    telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
+    if (bot_user_id == UserId() && request_id.empty()) {
+      input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
+      flags = telegram_api::messages_sendBotRequestedPeer::MSG_ID_MASK;
+    } else {
+      input_peer = td_->dialog_manager_->get_input_peer(DialogId(bot_user_id), AccessRights::Write);
+      flags = telegram_api::messages_sendBotRequestedPeer::WEBAPP_REQ_ID_MASK;
+    }
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));
     }
@@ -188,11 +197,10 @@ class SendBotRequestedPeerQuery final : public Td::ResultHandler {
       requested_peers.push_back(std::move(requested_peer));
     }
 
-    int32 flags = telegram_api::messages_sendBotRequestedPeer::MSG_ID_MASK;
     send_query(G()->net_query_creator().create(
         telegram_api::messages_sendBotRequestedPeer(flags, std::move(input_peer),
                                                     message_full_id.get_message_id().get_server_message_id().get(),
-                                                    string(), button_id, std::move(requested_peers)),
+                                                    request_id, button_id, std::move(requested_peers)),
         {{dialog_id, MessageContentType::Text}}));
   }
 
@@ -2030,10 +2038,11 @@ void MessageQueryManager::report_message_delivery(MessageFullId message_full_id,
   td_->create_handler<ReportMessageDeliveryQuery>()->send(message_full_id, from_push);
 }
 
-void MessageQueryManager::send_bot_requested_peer(MessageFullId message_full_id, int32 button_id,
+void MessageQueryManager::send_bot_requested_peer(MessageFullId message_full_id, UserId user_id,
+                                                  const string &request_id, int32 button_id,
                                                   vector<DialogId> shared_dialog_ids, Promise<Unit> &&promise) {
   td_->create_handler<SendBotRequestedPeerQuery>(std::move(promise))
-      ->send(message_full_id, button_id, std::move(shared_dialog_ids));
+      ->send(message_full_id, user_id, request_id, button_id, std::move(shared_dialog_ids));
 }
 
 void MessageQueryManager::reload_message_extended_media(DialogId dialog_id, vector<MessageId> message_ids) {

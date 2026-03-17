@@ -1326,6 +1326,36 @@ class CliClient final : public Actor {
     }
   }
 
+  struct KeyboardButtonSource {
+    int64 chat_id = 0;
+    int64 message_id = 0;
+    int64 bot_user_id = 0;
+    string prepared_button_id;
+
+    operator td_api::object_ptr<td_api::KeyboardButtonSource>() const {
+      if (bot_user_id == 0 && prepared_button_id.empty()) {
+        return td_api::make_object<td_api::keyboardButtonSourceMessage>(chat_id, message_id);
+      } else {
+        return td_api::make_object<td_api::keyboardButtonSourceWebApp>(bot_user_id, prepared_button_id);
+      }
+    }
+  };
+
+  void get_args(string &args, KeyboardButtonSource &arg) const {
+    if (begins_with(args, "p")) {
+      string bot_user_id;
+      string message_id;
+      std::tie(bot_user_id, arg.prepared_button_id) = split(args, get_delimiter(args));
+      arg.bot_user_id = as_user_id(bot_user_id);
+    } else {
+      string chat_id;
+      string message_id;
+      std::tie(chat_id, message_id) = split(args, get_delimiter(args));
+      arg.chat_id = as_chat_id(chat_id);
+      arg.message_id = as_message_id(message_id);
+    }
+  }
+
   struct ChatPhotoSticker {
     int64 sticker_set_id = 0;
     int64 sticker_id = 0;
@@ -8400,21 +8430,18 @@ class CliClient final : public Actor {
         send_request(td_api::make_object<td_api::getLoginUrl>(chat_id, message_id, button_id, op == "glua"));
       }
     } else if (op == "suwb" || op == "suwbc") {
-      ChatId chat_id;
-      MessageId message_id;
+      KeyboardButtonSource source;
       int32 button_id;
       string shared_user_ids;
-      get_args(args, chat_id, message_id, button_id, shared_user_ids);
-      send_request(td_api::make_object<td_api::shareUsersWithBot>(chat_id, message_id, button_id,
-                                                                  as_user_ids(shared_user_ids), op == "suwbc"));
+      get_args(args, source, button_id, shared_user_ids);
+      send_request(td_api::make_object<td_api::shareUsersWithBot>(source, button_id, as_user_ids(shared_user_ids),
+                                                                  op == "suwbc"));
     } else if (op == "scwb" || op == "scwbc") {
-      ChatId chat_id;
-      MessageId message_id;
+      KeyboardButtonSource source;
       int32 button_id;
       ChatId shared_chat_id;
-      get_args(args, chat_id, message_id, button_id, shared_chat_id);
-      send_request(
-          td_api::make_object<td_api::shareChatWithBot>(chat_id, message_id, button_id, shared_chat_id, op == "scwbc"));
+      get_args(args, source, button_id, shared_chat_id);
+      send_request(td_api::make_object<td_api::shareChatWithBot>(source, button_id, shared_chat_id, op == "scwbc"));
     } else if (op == "rsgs") {
       string supergroup_id;
       string message_ids;

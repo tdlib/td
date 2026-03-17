@@ -1167,7 +1167,7 @@ tl_object_ptr<td_api::ReplyMarkup> ReplyMarkup::get_reply_markup_object(UserMana
   }
 }
 
-Result<const RequestedDialogType *> ReplyMarkup::get_requested_dialog_type(int32 button_id) const {
+const RequestedDialogType *ReplyMarkup::get_requested_dialog_type(int32 button_id) const {
   for (auto &row : keyboard) {
     for (auto &button : row) {
       if (button.requested_dialog_type != nullptr && button.requested_dialog_type->get_button_id() == button_id) {
@@ -1175,7 +1175,7 @@ Result<const RequestedDialogType *> ReplyMarkup::get_requested_dialog_type(int32
       }
     }
   }
-  return Status::Error(400, "Button not found");
+  return nullptr;
 }
 
 tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(UserManager *user_manager,

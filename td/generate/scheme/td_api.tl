@@ -3393,7 +3393,7 @@ keyboardButtonTypeRequestUsers id:int32 restrict_user_is_bot:Bool user_is_bot:Bo
 //@request_photo Pass true to request photo of the chat; bots only
 keyboardButtonTypeRequestChat id:int32 chat_is_channel:Bool restrict_chat_is_forum:Bool chat_is_forum:Bool restrict_chat_has_username:Bool chat_has_username:Bool chat_is_created:Bool user_administrator_rights:chatAdministratorRights bot_administrator_rights:chatAdministratorRights bot_is_member:Bool request_title:Bool request_username:Bool request_photo:Bool = KeyboardButtonType;
 
-//@description A button that requests creation of a managed bot by the current user; available only in private chats. Use the method createManagedBot to complete the request
+//@description A button that requests creation of a managed bot by the current user; available only in private chats. Use the method createBot to complete the request
 //@id Unique button identifier
 //@suggested_name Suggested name for the bot; may be empty if not specified
 //@suggested_username Suggested username for the bot; may be empty if not specified
@@ -3442,6 +3442,19 @@ inlineKeyboardButtonTypeUser user_id:int53 = InlineKeyboardButtonType;
 
 //@description A button that copies specified text to clipboard @text The text to copy to clipboard
 inlineKeyboardButtonTypeCopyText text:string = InlineKeyboardButtonType;
+
+
+//@class KeyboardButtonSource @description Describes source of a keyboard button
+
+//@description The button is from a bot's message
+//@chat_id Identifier of the chat with the message
+//@message_id Identifier of the message with the button
+keyboardButtonSourceMessage chat_id:int53 message_id:int53 = KeyboardButtonSource;
+
+//@description The button is a prepared keyboard button from a Mini App received via getPreparedKeyboardButton
+//@bot_user_id Identifier of the bot that created the button
+//@prepared_button_id Identifier of the prepared button
+keyboardButtonSourceWebApp bot_user_id:int53 prepared_button_id:string = KeyboardButtonSource;
 
 
 //@description Represents a single button in an inline keyboard
@@ -11941,22 +11954,20 @@ getLoginUrl chat_id:int53 message_id:int53 button_id:int53 allow_write_access:Bo
 
 
 //@description Shares users after pressing a keyboardButtonTypeRequestUsers button with the bot
-//@chat_id Identifier of the chat with the bot
-//@message_id Identifier of the message with the button
+//@source Source of the button
 //@button_id Identifier of the button
 //@shared_user_ids Identifiers of the shared users
 //@only_check Pass true to check that the users can be shared by the button instead of actually sharing them
-shareUsersWithBot chat_id:int53 message_id:int53 button_id:int32 shared_user_ids:vector<int53> only_check:Bool = Ok;
+shareUsersWithBot source:KeyboardButtonSource button_id:int32 shared_user_ids:vector<int53> only_check:Bool = Ok;
 
 //@description Shares a chat after pressing a keyboardButtonTypeRequestChat button with the bot
-//@chat_id Identifier of the chat with the bot
-//@message_id Identifier of the message with the button
+//@source Source of the button
 //@button_id Identifier of the button
 //@shared_chat_id Identifier of the shared chat
 //@only_check Pass true to check that the chat can be shared by the button instead of actually sharing it. Doesn't check bot_is_member and bot_administrator_rights restrictions.
 //-If the bot must be a member, then all chats from getGroupsInCommon and all chats, where the user can add the bot, are suitable. In the latter case the bot will be automatically added to the chat.
 //-If the bot must be an administrator, then all chats, where the bot already has requested rights or can be added to administrators by the user, are suitable. In the latter case the bot will be automatically granted requested rights
-shareChatWithBot chat_id:int53 message_id:int53 button_id:int32 shared_chat_id:int53 only_check:Bool = Ok;
+shareChatWithBot source:KeyboardButtonSource button_id:int32 shared_chat_id:int53 only_check:Bool = Ok;
 
 
 //@description Sends an inline query to a bot and returns its results. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires

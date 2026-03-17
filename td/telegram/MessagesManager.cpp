@@ -24571,18 +24571,44 @@ void MessagesManager::do_send_screenshot_taken_notification_message(DialogId dia
       ->send(dialog_id, random_id);
 }
 
-void MessagesManager::share_dialogs_with_bot(MessageFullId message_full_id, int32 button_id,
-                                             vector<DialogId> shared_dialog_ids, bool expect_user, bool only_check,
-                                             Promise<Unit> &&promise) {
-  const Message *m = get_message_force(message_full_id, "share_dialog_with_bot");
-  if (m == nullptr) {
-    return promise.set_error(400, "Message not found");
+void MessagesManager::share_dialogs_with_bot(const td_api::object_ptr<td_api::KeyboardButtonSource> &source_ptr,
+                                             int32 button_id, vector<DialogId> shared_dialog_ids, bool expect_user,
+                                             bool only_check, Promise<Unit> &&promise) {
+  if (source_ptr == nullptr) {
+    return promise.set_error(400, "Source must be non-empty");
   }
-  if (m->reply_markup == nullptr) {
-    return promise.set_error(400, "Message has no buttons");
+  const RequestedDialogType *requested_dialog_type = nullptr;
+  MessageFullId message_full_id;
+  UserId bot_user_id;
+  string request_id;
+  switch (source_ptr->get_id()) {
+    case td_api::keyboardButtonSourceMessage::ID: {
+      const auto *source = static_cast<const td_api::keyboardButtonSourceMessage *>(source_ptr.get());
+      message_full_id = {DialogId(source->chat_id_), MessageId(source->message_id_)};
+      const Message *m = get_message_force(message_full_id, "share_dialog_with_bot");
+      if (m == nullptr) {
+        return promise.set_error(400, "Message not found");
+      }
+      if (m->reply_markup == nullptr) {
+        return promise.set_error(400, "Message has no buttons");
+      }
+      CHECK(m->message_id.is_server());
+      requested_dialog_type = m->reply_markup->get_requested_dialog_type(button_id);
+      break;
+    }
+    case td_api::keyboardButtonSourceWebApp::ID: {
+      const auto *source = static_cast<const td_api::keyboardButtonSourceWebApp *>(source_ptr.get());
+      bot_user_id = UserId(source->bot_user_id_);
+      request_id = source->prepared_button_id_;
+      requested_dialog_type = td_->inline_queries_manager_->get_requested_dialog_type(bot_user_id, request_id);
+      break;
+    }
+    default:
+      UNREACHABLE();
   }
-  CHECK(m->message_id.is_server());
-  TRY_RESULT_PROMISE(promise, requested_dialog_type, m->reply_markup->get_requested_dialog_type(button_id));
+  if (requested_dialog_type == nullptr) {
+    return promise.set_error(400, "Button not found");
+  }
   TRY_STATUS_PROMISE(promise, requested_dialog_type->check_shared_dialog_count(shared_dialog_ids.size()));
 
   for (auto shared_dialog_id : shared_dialog_ids) {
@@ -24605,8 +24631,8 @@ void MessagesManager::share_dialogs_with_bot(MessageFullId message_full_id, int3
     return promise.set_value(Unit());
   }
 
-  td_->message_query_manager_->send_bot_requested_peer(message_full_id, button_id, std::move(shared_dialog_ids),
-                                                       std::move(promise));
+  td_->message_query_manager_->send_bot_requested_peer(message_full_id, bot_user_id, request_id, button_id,
+                                                       std::move(shared_dialog_ids), std::move(promise));
 }
 
 void MessagesManager::process_suggested_post(MessageFullId message_full_id, bool is_rejected, int32 schedule_date,
