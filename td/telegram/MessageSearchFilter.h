@@ -35,6 +35,7 @@ enum class MessageSearchFilter : int32 {
   FailedToSend,
   Pinned,
   UnreadReaction,
+  Poll,
   Size
 };
 

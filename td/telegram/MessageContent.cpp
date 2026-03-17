@@ -6158,6 +6158,8 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
       }
       return index_mask;
     }
+    case MessageContentType::Poll:
+      return message_search_filter_index_mask(MessageSearchFilter::Poll);
     case MessageContentType::Text:
     case MessageContentType::Contact:
     case MessageContentType::Game:
@@ -6190,7 +6192,6 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
-    case MessageContentType::Poll:
     case MessageContentType::Dice:
     case MessageContentType::ProximityAlertTriggered:
     case MessageContentType::GroupCall:

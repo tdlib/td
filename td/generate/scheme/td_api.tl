@@ -5629,6 +5629,9 @@ searchMessagesFilterDocument = SearchMessagesFilter;
 //@description Returns only photo messages
 searchMessagesFilterPhoto = SearchMessagesFilter;
 
+//@description Returns only poll messages
+searchMessagesFilterPoll = SearchMessagesFilter;
+
 //@description Returns only video messages
 searchMessagesFilterVideo = SearchMessagesFilter;
 
