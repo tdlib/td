@@ -167,15 +167,6 @@ string rand_string(int from, int to, size_t len);
 
 vector<string> rand_split(Slice str);
 
-template <class T, class R>
-void rand_shuffle(MutableSpan<T> v, R &rnd) {
-  for (size_t i = 1; i < v.size(); i++) {
-    auto pos = static_cast<size_t>(rnd()) % (i + 1);
-    using std::swap;
-    swap(v[i], v[pos]);
-  }
-}
-
 template <class T1, class T2>
 void assert_eq_impl(const T1 &expected, const T2 &received, const char *file, int line) {
   LOG_CHECK(expected == received) << tag("expected", expected) << tag("received", received) << " in " << file

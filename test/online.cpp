@@ -436,7 +436,7 @@ class TestDownloadFile : public Task {
       begin = end;
     }
 
-    rand_shuffle(as_mutable_span(ranges_), rnd);
+    td::Random::shuffle(as_mutable_span(ranges_), rnd);
     start_chunk();
   }
 
