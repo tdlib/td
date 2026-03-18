@@ -50,9 +50,9 @@ class PollManager final : public Actor {
   static bool is_local_poll_id(PollId poll_id);
 
   PollId create_poll(FormattedText &&question, vector<FormattedText> &&options, bool is_anonymous,
-                     bool allow_multiple_answers, bool has_open_answers, bool has_revoting_disabled, bool is_quiz,
-                     vector<int32> correct_option_ids, FormattedText &&explanation, int32 open_period, int32 close_date,
-                     bool is_closed);
+                     bool allow_multiple_answers, bool has_open_answers, bool has_revoting_disabled,
+                     bool shuffle_answers, bool is_quiz, vector<int32> correct_option_ids, FormattedText &&explanation,
+                     int32 open_period, int32 close_date, bool is_closed);
 
   void register_poll(PollId poll_id, MessageFullId message_full_id, const char *source);
 
@@ -129,6 +129,7 @@ class PollManager final : public Actor {
     bool allow_multiple_answers_ = false;
     bool has_open_answers_ = false;
     bool has_revoting_disabled_ = false;
+    bool shuffle_answers_ = false;
     bool is_quiz_ = false;
     bool is_closed_ = false;
     bool is_updated_after_close_ = false;

@@ -635,10 +635,11 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
       recent_voters.push_back(std::move(recent_voter));
     }
   }
-  return td_api::make_object<td_api::poll>(
-      poll_id.get(), get_formatted_text_object(nullptr, poll->question_, true, -1), std::move(poll_options),
-      total_voter_count, std::move(recent_voters), poll->is_anonymous_, poll->allow_multiple_answers_,
-      !poll->has_revoting_disabled_, std::move(poll_type), open_period, close_date, poll->is_closed_);
+  return td_api::make_object<td_api::poll>(poll_id.get(), get_formatted_text_object(nullptr, poll->question_, true, -1),
+                                           std::move(poll_options), total_voter_count, std::move(recent_voters),
+                                           poll->is_anonymous_, poll->allow_multiple_answers_,
+                                           !poll->has_revoting_disabled_, poll->shuffle_answers_, std::move(poll_type),
+                                           open_period, close_date, poll->is_closed_);
 }
 
 telegram_api::object_ptr<telegram_api::PollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
@@ -648,8 +649,8 @@ telegram_api::object_ptr<telegram_api::PollAnswer> PollManager::get_input_poll_o
 
 PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> &&options, bool is_anonymous,
                                 bool allow_multiple_answers, bool has_open_answers, bool has_revoting_disabled,
-                                bool is_quiz, vector<int32> correct_option_ids, FormattedText &&explanation,
-                                int32 open_period, int32 close_date, bool is_closed) {
+                                bool shuffle_answers, bool is_quiz, vector<int32> correct_option_ids,
+                                FormattedText &&explanation, int32 open_period, int32 close_date, bool is_closed) {
   if (is_quiz && has_open_answers) {
     LOG(ERROR) << "Receive quiz with open answers";
     has_open_answers = false;
@@ -671,6 +672,7 @@ PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> 
   poll->allow_multiple_answers_ = allow_multiple_answers;
   poll->has_open_answers_ = has_open_answers;
   poll->has_revoting_disabled_ = has_revoting_disabled;
+  poll->shuffle_answers_ = shuffle_answers;
   poll->is_quiz_ = is_quiz;
   poll->correct_option_ids_ = std::move(correct_option_ids);
   poll->explanation_ = std::move(explanation);
@@ -1527,8 +1529,9 @@ PollId PollManager::dup_poll(DialogId dialog_id, PollId poll_id) {
   auto explanation = poll->explanation_;
   remove_unallowed_entities(td_, explanation, dialog_id);
   return create_poll(std::move(question), std::move(options), poll->is_anonymous_, poll->allow_multiple_answers_,
-                     poll->has_open_answers_, poll->has_revoting_disabled_, poll->is_quiz_, poll->correct_option_ids_,
-                     std::move(explanation), poll->open_period_, poll->open_period_ == 0 ? 0 : G()->unix_time(), false);
+                     poll->has_open_answers_, poll->has_revoting_disabled_, poll->shuffle_answers_, poll->is_quiz_,
+                     poll->correct_option_ids_, std::move(explanation), poll->open_period_,
+                     poll->open_period_ == 0 ? 0 : G()->unix_time(), false);
 }
 
 bool PollManager::has_input_media(PollId poll_id) const {
@@ -1567,7 +1570,7 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
       flags,
       telegram_api::make_object<telegram_api::poll>(
           0, poll_flags, poll->is_closed_, !poll->is_anonymous_, poll->allow_multiple_answers_, poll->is_quiz_,
-          poll->has_open_answers_, poll->has_revoting_disabled_, false, false, true,
+          poll->has_open_answers_, poll->has_revoting_disabled_, poll->shuffle_answers_, false, true,
           get_input_text_with_entities(nullptr, poll->question_, "get_input_media_poll"),
           transform(poll->options_, get_input_poll_option), poll->open_period_, poll->close_date_, 0),
       std::move(correct_answers), nullptr, poll->explanation_.text,
@@ -1752,6 +1755,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     bool allow_multiple_answers = poll_server->multiple_choice_;
     bool has_open_answers = poll_server->open_answers_;
     bool has_revoting_disabled = poll_server->revoting_disabled_;
+    bool shuffle_answers = poll_server->shuffle_answers_;
     bool is_quiz = poll_server->quiz_;
     if (is_quiz && has_open_answers) {
       LOG(ERROR) << "Receive quiz with open answers";
@@ -1767,6 +1771,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
     if (has_revoting_disabled != poll->has_revoting_disabled_) {
       poll->has_revoting_disabled_ = has_revoting_disabled;
+      is_changed = true;
+    }
+    if (shuffle_answers != poll->shuffle_answers_) {
+      poll->shuffle_answers_ = shuffle_answers;
       is_changed = true;
     }
     if (is_quiz != poll->is_quiz_) {

@@ -392,7 +392,7 @@ pollOption text:formattedText voter_count:int32 vote_percentage:int32 is_chosen:
 
 //@class PollType @description Describes the type of poll
 
-//@description A regular poll @allows_adding_options True, if answer options can be added to the poll after creation using the method addPollOption
+//@description A regular poll @allows_adding_options True, if answer options can be added to the poll after creation using the method addPollOption; not supported in channel chats
 pollTypeRegular allows_adding_options:Bool = PollType;
 
 //@description A poll in quiz mode, which has predefined correct answers
@@ -581,11 +581,12 @@ webApp short_name:string title:string description:string photo:photo animation:a
 //@is_anonymous True, if the poll is anonymous
 //@allows_multiple_answers True, if multiple answer options can be chosen simultaneously
 //@allows_revoting True, if the poll can be answered multiple times
+//@has_random_option_order True, if poll options must be shown in a fixed random order
 //@type Type of the poll
 //@open_period Amount of time the poll will be active after creation, in seconds
 //@close_date Point in time (Unix timestamp) when the poll will automatically be closed
 //@is_closed True, if the poll is closed
-poll id:int64 question:formattedText options:vector<pollOption> total_voter_count:int32 recent_voter_ids:vector<MessageSender> is_anonymous:Bool allows_multiple_answers:Bool allows_revoting:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
+poll id:int64 question:formattedText options:vector<pollOption> total_voter_count:int32 recent_voter_ids:vector<MessageSender> is_anonymous:Bool allows_multiple_answers:Bool allows_revoting:Bool has_random_option_order:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
 
 
 //@description Describes an alternative re-encoded quality of a video file
@@ -5543,11 +5544,12 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@is_anonymous True, if the poll voters are anonymous. Non-anonymous polls can't be sent or forwarded to channels
 //@allows_multiple_answers True, if multiple answer options can be chosen simultaneously
 //@allows_revoting True, if the poll can be answered multiple times
+//@has_random_option_order True, if poll options must be shown in a fixed random order
 //@type Type of the poll
 //@open_period Amount of time the poll will be active after creation, in seconds; for bots only
 //@close_date Point in time (Unix timestamp) when the poll will automatically be closed; for bots only
 //@is_closed True, if the poll needs to be sent already closed; for bots only
-inputMessagePoll question:formattedText options:vector<formattedText> is_anonymous:Bool allows_multiple_answers:Bool allows_revoting:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
+inputMessagePoll question:formattedText options:vector<formattedText> is_anonymous:Bool allows_multiple_answers:Bool allows_revoting:Bool has_random_option_order:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
 
 //@description A stake dice message
 //@state_hash Hash of the stake dice state. The state hash can be used only if it was received recently enough. Otherwise, a new state must be requested using getStakeDiceState

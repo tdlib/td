@@ -81,6 +81,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   STORE_FLAG(has_open_answers_);
   STORE_FLAG(know_revoting_disabled);
   STORE_FLAG(has_revoting_disabled_);
+  STORE_FLAG(shuffle_answers_);
   END_STORE_FLAGS();
 
   store(question_.text, storer);
@@ -143,6 +144,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   PARSE_FLAG(has_open_answers_);
   PARSE_FLAG(know_revoting_disabled);
   PARSE_FLAG(has_revoting_disabled_);
+  PARSE_FLAG(shuffle_answers_);
   END_PARSE_FLAGS();
   is_anonymous_ = !is_public;
 
@@ -228,6 +230,7 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     STORE_FLAG(poll->has_open_answers_);
     STORE_FLAG(know_revoting_disabled);
     STORE_FLAG(poll->has_revoting_disabled_);
+    STORE_FLAG(poll->shuffle_answers_);
     END_STORE_FLAGS();
     store(poll->question_.text, storer);
     vector<string> options = transform(poll->options_, [](const PollOption &option) { return option.text_.text; });
@@ -282,6 +285,7 @@ PollId PollManager::parse_poll(ParserT &parser) {
     bool has_open_answers = false;
     bool know_revoting_disabled = false;
     bool has_revoting_disabled = false;
+    bool shuffle_answers = false;
 
     if (parser.version() >= static_cast<int32>(Version::SupportPolls2_0)) {
       BEGIN_PARSE_FLAGS();
@@ -298,6 +302,7 @@ PollId PollManager::parse_poll(ParserT &parser) {
       PARSE_FLAG(has_open_answers);
       PARSE_FLAG(know_revoting_disabled);
       PARSE_FLAG(has_revoting_disabled);
+      PARSE_FLAG(shuffle_answers);
       END_PARSE_FLAGS();
     }
     parse(question.text, parser);
@@ -357,8 +362,8 @@ PollId PollManager::parse_poll(ParserT &parser) {
       return PollId();
     }
     return create_poll(std::move(question), std::move(options), is_anonymous, allow_multiple_answers, has_open_answers,
-                       has_revoting_disabled, is_quiz, std::move(correct_option_ids), std::move(explanation),
-                       open_period, close_date, is_closed);
+                       has_revoting_disabled, shuffle_answers, is_quiz, std::move(correct_option_ids),
+                       std::move(explanation), open_period, close_date, is_closed);
   }
 
   auto poll = get_poll_force(poll_id);
