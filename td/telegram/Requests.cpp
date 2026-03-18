@@ -3401,7 +3401,7 @@ void Requests::on_request(uint64 id, td_api::getExternalLinkInfo &request) {
 void Requests::on_request(uint64 id, td_api::getExternalLink &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.link_);
-  CREATE_REQUEST_PROMISE();
+  CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->link_manager_->get_link_login_url(request.link_, request.allow_write_access_, std::move(promise));
 }
 
@@ -3425,7 +3425,7 @@ void Requests::on_request(uint64 id, td_api::acceptOauthRequest &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
   CLEAN_INPUT_STRING(request.match_code_);
-  CREATE_REQUEST_PROMISE();
+  CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->link_manager_->accept_oauth_request(request.url_, request.match_code_, request.allow_write_access_,
                                            request.allow_phone_number_access_, std::move(promise));
 }
@@ -7753,7 +7753,7 @@ void Requests::on_request(uint64 id, const td_api::getLoginUrlInfo &request) {
 
 void Requests::on_request(uint64 id, const td_api::getLoginUrl &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
+  CREATE_HTTP_URL_REQUEST_PROMISE();
   td_->link_manager_->get_login_url({DialogId(request.chat_id_), MessageId(request.message_id_)}, request.button_id_,
                                     request.allow_write_access_, std::move(promise));
 }

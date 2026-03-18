@@ -1762,12 +1762,12 @@ class CheckUrlAuthMatchCodeQuery final : public Td::ResultHandler {
 };
 
 class AcceptUrlAuthQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::httpUrl>> promise_;
+  Promise<string> promise_;
   string url_;
   DialogId dialog_id_;
 
  public:
-  explicit AcceptUrlAuthQuery(Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) : promise_(std::move(promise)) {
+  explicit AcceptUrlAuthQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(string url, MessageFullId message_full_id, int32 button_id, bool allow_write_access,
@@ -1802,11 +1802,11 @@ class AcceptUrlAuthQuery final : public Td::ResultHandler {
         return on_error(Status::Error(500, "Receive unexpected urlAuthResultRequest"));
       case telegram_api::urlAuthResultAccepted::ID: {
         auto accepted = telegram_api::move_object_as<telegram_api::urlAuthResultAccepted>(result);
-        promise_.set_value(td_api::make_object<td_api::httpUrl>(accepted->url_));
+        promise_.set_value(std::move(accepted->url_));
         break;
       }
       case telegram_api::urlAuthResultDefault::ID:
-        promise_.set_value(td_api::make_object<td_api::httpUrl>(url_));
+        promise_.set_value(std::move(url_));
         break;
     }
   }
@@ -4029,14 +4029,13 @@ void LinkManager::get_login_url_info(MessageFullId message_full_id, int64 button
 }
 
 void LinkManager::get_login_url(MessageFullId message_full_id, int64 button_id, bool allow_write_access,
-                                Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) {
+                                Promise<string> &&promise) {
   TRY_RESULT_PROMISE(promise, url, td_->messages_manager_->get_login_button_url(message_full_id, button_id));
   td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
       ->send(std::move(url), message_full_id, narrow_cast<int32>(button_id), allow_write_access, false, string());
 }
 
-void LinkManager::get_link_login_url(const string &url, bool allow_write_access,
-                                     Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) {
+void LinkManager::get_link_login_url(const string &url, bool allow_write_access, Promise<string> &&promise) {
   td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
       ->send(url, MessageFullId(), 0, allow_write_access, false, string());
 }
@@ -4046,8 +4045,7 @@ void LinkManager::check_oauth_request_match_code(const string &url, const string
 }
 
 void LinkManager::accept_oauth_request(const string &url, const string &match_code, bool allow_write_access,
-                                       bool allow_phone_number_access,
-                                       Promise<td_api::object_ptr<td_api::httpUrl>> &&promise) {
+                                       bool allow_phone_number_access, Promise<string> &&promise) {
   td_->create_handler<AcceptUrlAuthQuery>(std::move(promise))
       ->send(url, MessageFullId(), 0, allow_write_access, allow_phone_number_access, match_code);
 }
