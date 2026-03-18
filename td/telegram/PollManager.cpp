@@ -635,10 +635,19 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
       recent_voters.push_back(std::move(recent_voter));
     }
   }
+  vector<int32> option_order;
+  if (poll->shuffle_answers_) {
+    for (int32 i = 0; i < static_cast<int32>(poll_options.size()); i++) {
+      option_order.push_back(i);
+    }
+    Random::Xorshift128plus rnd(td_->user_manager_->get_my_id().get() ^ poll_id.get());
+    Random::shuffle(as_mutable_span(option_order), rnd);
+  }
+
   return td_api::make_object<td_api::poll>(
       poll_id.get(), get_formatted_text_object(nullptr, poll->question_, true, -1), std::move(poll_options),
       total_voter_count, std::move(recent_voters), poll->is_anonymous_, poll->allow_multiple_answers_,
-      !poll->has_revoting_disabled_, poll->shuffle_answers_, poll->hide_results_until_close_, std::move(poll_type),
+      !poll->has_revoting_disabled_, std::move(option_order), poll->hide_results_until_close_, std::move(poll_type),
       open_period, close_date, poll->is_closed_);
 }
 
