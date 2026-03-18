@@ -392,8 +392,8 @@ pollOption text:formattedText voter_count:int32 vote_percentage:int32 is_chosen:
 
 //@class PollType @description Describes the type of poll
 
-//@description A regular poll
-pollTypeRegular = PollType;
+//@description A regular poll @allows_adding_options True, if answer options can be added to the poll after creation using the method addPollOption
+pollTypeRegular allows_adding_options:Bool = PollType;
 
 //@description A poll in quiz mode, which has predefined correct answers
 //@correct_option_ids Increasing list of 0-based identifiers of the correct answer options; empty for a yet unanswered poll

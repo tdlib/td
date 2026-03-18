@@ -77,6 +77,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   STORE_FLAG(has_recent_voter_min_channels);
   STORE_FLAG(has_question_entities);
   STORE_FLAG(has_multiple_correct_option_ids);
+  STORE_FLAG(has_open_answers_);
   END_STORE_FLAGS();
 
   store(question_.text, storer);
@@ -135,6 +136,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   PARSE_FLAG(has_recent_voter_min_channels);
   PARSE_FLAG(has_question_entities);
   PARSE_FLAG(has_multiple_correct_option_ids);
+  PARSE_FLAG(has_open_answers_);
   END_PARSE_FLAGS();
   is_anonymous_ = !is_public;
 
@@ -213,6 +215,7 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     STORE_FLAG(has_question_entities);
     STORE_FLAG(has_option_entities);
     STORE_FLAG(has_multiple_correct_option_ids);
+    STORE_FLAG(poll->has_open_answers_);
     END_STORE_FLAGS();
     store(poll->question_.text, storer);
     vector<string> options = transform(poll->options_, [](const PollOption &option) { return option.text_.text; });
@@ -264,6 +267,7 @@ PollId PollManager::parse_poll(ParserT &parser) {
     bool has_option_entities = false;
     bool has_multiple_correct_option_ids = false;
     vector<int32> correct_option_ids;
+    bool has_open_answers = false;
 
     if (parser.version() >= static_cast<int32>(Version::SupportPolls2_0)) {
       BEGIN_PARSE_FLAGS();
@@ -277,6 +281,7 @@ PollId PollManager::parse_poll(ParserT &parser) {
       PARSE_FLAG(has_question_entities);
       PARSE_FLAG(has_option_entities);
       PARSE_FLAG(has_multiple_correct_option_ids);
+      PARSE_FLAG(has_open_answers);
       END_PARSE_FLAGS();
     }
     parse(question.text, parser);
@@ -332,8 +337,9 @@ PollId PollManager::parse_poll(ParserT &parser) {
     if (parser.get_error() != nullptr) {
       return PollId();
     }
-    return create_poll(std::move(question), std::move(options), is_anonymous, allow_multiple_answers, is_quiz,
-                       std::move(correct_option_ids), std::move(explanation), open_period, close_date, is_closed);
+    return create_poll(std::move(question), std::move(options), is_anonymous, allow_multiple_answers, has_open_answers,
+                       is_quiz, std::move(correct_option_ids), std::move(explanation), open_period, close_date,
+                       is_closed);
   }
 
   auto poll = get_poll_force(poll_id);

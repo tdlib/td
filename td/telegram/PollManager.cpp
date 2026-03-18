@@ -607,7 +607,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
         std::move(correct_option_ids),
         get_formatted_text_object(nullptr, is_local_poll_id(poll_id) ? FormattedText() : poll->explanation_, true, -1));
   } else {
-    poll_type = td_api::make_object<td_api::pollTypeRegular>();
+    poll_type = td_api::make_object<td_api::pollTypeRegular>(poll->has_open_answers_);
   }
 
   auto open_period = poll->open_period_;
@@ -647,8 +647,13 @@ telegram_api::object_ptr<telegram_api::PollAnswer> PollManager::get_input_poll_o
 }
 
 PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> &&options, bool is_anonymous,
-                                bool allow_multiple_answers, bool is_quiz, vector<int32> correct_option_ids,
-                                FormattedText &&explanation, int32 open_period, int32 close_date, bool is_closed) {
+                                bool allow_multiple_answers, bool has_open_answers, bool is_quiz,
+                                vector<int32> correct_option_ids, FormattedText &&explanation, int32 open_period,
+                                int32 close_date, bool is_closed) {
+  if (is_quiz && has_open_answers) {
+    LOG(ERROR) << "Receive quiz with open answers";
+    has_open_answers = false;
+  }
   keep_only_custom_emoji(question);
   for (auto &option : options) {
     keep_only_custom_emoji(option);
@@ -664,6 +669,7 @@ PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> 
   }
   poll->is_anonymous_ = is_anonymous;
   poll->allow_multiple_answers_ = allow_multiple_answers;
+  poll->has_open_answers_ = has_open_answers;
   poll->is_quiz_ = is_quiz;
   poll->correct_option_ids_ = std::move(correct_option_ids);
   poll->explanation_ = std::move(explanation);
@@ -1520,8 +1526,8 @@ PollId PollManager::dup_poll(DialogId dialog_id, PollId poll_id) {
   auto explanation = poll->explanation_;
   remove_unallowed_entities(td_, explanation, dialog_id);
   return create_poll(std::move(question), std::move(options), poll->is_anonymous_, poll->allow_multiple_answers_,
-                     poll->is_quiz_, poll->correct_option_ids_, std::move(explanation), poll->open_period_,
-                     poll->open_period_ == 0 ? 0 : G()->unix_time(), false);
+                     poll->has_open_answers_, poll->is_quiz_, poll->correct_option_ids_, std::move(explanation),
+                     poll->open_period_, poll->open_period_ == 0 ? 0 : G()->unix_time(), false);
 }
 
 bool PollManager::has_input_media(PollId poll_id) const {
@@ -1559,8 +1565,9 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
   return telegram_api::make_object<telegram_api::inputMediaPoll>(
       flags,
       telegram_api::make_object<telegram_api::poll>(
-          0, poll_flags, poll->is_closed_, !poll->is_anonymous_, poll->allow_multiple_answers_, poll->is_quiz_, false,
-          false, false, false, true, get_input_text_with_entities(nullptr, poll->question_, "get_input_media_poll"),
+          0, poll_flags, poll->is_closed_, !poll->is_anonymous_, poll->allow_multiple_answers_, poll->is_quiz_,
+          poll->has_open_answers_, false, false, false, true,
+          get_input_text_with_entities(nullptr, poll->question_, "get_input_media_poll"),
           transform(poll->options_, get_input_poll_option), poll->open_period_, poll->close_date_, 0),
       std::move(correct_answers), nullptr, poll->explanation_.text,
       get_input_message_entities(td_->user_manager_.get(), poll->explanation_.entities, "get_input_media_poll"),
@@ -1742,9 +1749,18 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       is_changed = true;
     }
     bool allow_multiple_answers = poll_server->multiple_choice_;
+    bool has_open_answers = poll_server->open_answers_;
     bool is_quiz = poll_server->quiz_;
+    if (is_quiz && has_open_answers) {
+      LOG(ERROR) << "Receive quiz with open answers";
+      has_open_answers = false;
+    }
     if (allow_multiple_answers != poll->allow_multiple_answers_) {
       poll->allow_multiple_answers_ = allow_multiple_answers;
+      is_changed = true;
+    }
+    if (has_open_answers != poll->has_open_answers_) {
+      poll->has_open_answers_ = has_open_answers;
       is_changed = true;
     }
     if (is_quiz != poll->is_quiz_) {

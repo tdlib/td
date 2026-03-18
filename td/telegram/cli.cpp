@@ -6775,7 +6775,7 @@ class CliClient final : public Actor {
         poll_type =
             td_api::make_object<td_api::pollTypeQuiz>(std::move(correct_option_ids), as_formatted_text("_te*st*_"));
       } else {
-        poll_type = td_api::make_object<td_api::pollTypeRegular>();
+        poll_type = td_api::make_object<td_api::pollTypeRegular>(rand_bool());
       }
       send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(
                                 as_formatted_text(question), std::move(options), op != "spollp", op.back() == 'm',

@@ -4849,14 +4849,18 @@ static Result<InputMessageContent> create_input_message_content(
       }
 
       bool is_quiz = false;
+      bool has_open_answers = false;
       vector<int32> correct_option_ids;
       FormattedText explanation;
       if (input_poll->type_ == nullptr) {
         return Status::Error(400, "Poll type must be non-empty");
       }
       switch (input_poll->type_->get_id()) {
-        case td_api::pollTypeRegular::ID:
+        case td_api::pollTypeRegular::ID: {
+          auto type = td_api::move_object_as<td_api::pollTypeRegular>(input_poll->type_);
+          has_open_answers = type->allows_adding_options_;
           break;
+        }
         case td_api::pollTypeQuiz::ID: {
           auto type = td_api::move_object_as<td_api::pollTypeQuiz>(input_poll->type_);
           is_quiz = true;
@@ -4890,7 +4894,8 @@ static Result<InputMessageContent> create_input_message_content(
       bool is_closed = is_bot ? input_poll->is_closed_ : false;
       content = make_unique<MessagePoll>(td->poll_manager_->create_poll(
           std::move(question), std::move(options), input_poll->is_anonymous_, input_poll->allows_multiple_answers_,
-          is_quiz, std::move(correct_option_ids), std::move(explanation), open_period, close_date, is_closed));
+          has_open_answers, is_quiz, std::move(correct_option_ids), std::move(explanation), open_period, close_date,
+          is_closed));
       break;
     }
     case td_api::inputMessageStory::ID: {
