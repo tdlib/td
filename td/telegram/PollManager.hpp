@@ -63,6 +63,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   bool has_recent_voter_min_channels = !recent_voter_min_channels_.empty();
   bool has_question_entities = !question_.entities.empty();
   bool has_multiple_correct_option_ids = correct_option_ids_.size() > 1u;
+  bool know_revoting_disabled = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_closed_);
   STORE_FLAG(is_public);
@@ -78,6 +79,8 @@ void PollManager::Poll::store(StorerT &storer) const {
   STORE_FLAG(has_question_entities);
   STORE_FLAG(has_multiple_correct_option_ids);
   STORE_FLAG(has_open_answers_);
+  STORE_FLAG(know_revoting_disabled);
+  STORE_FLAG(has_revoting_disabled_);
   END_STORE_FLAGS();
 
   store(question_.text, storer);
@@ -122,6 +125,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   bool has_recent_voter_min_channels;
   bool has_question_entities;
   bool has_multiple_correct_option_ids;
+  bool know_revoting_disabled;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_closed_);
   PARSE_FLAG(is_public);
@@ -137,6 +141,8 @@ void PollManager::Poll::parse(ParserT &parser) {
   PARSE_FLAG(has_question_entities);
   PARSE_FLAG(has_multiple_correct_option_ids);
   PARSE_FLAG(has_open_answers_);
+  PARSE_FLAG(know_revoting_disabled);
+  PARSE_FLAG(has_revoting_disabled_);
   END_PARSE_FLAGS();
   is_anonymous_ = !is_public;
 
@@ -189,6 +195,9 @@ void PollManager::Poll::parse(ParserT &parser) {
   if (has_question_entities) {
     parse(question_.entities, parser);
   }
+  if (!know_revoting_disabled) {
+    has_revoting_disabled_ = is_quiz_;
+  }
 }
 
 template <class StorerT>
@@ -204,6 +213,7 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     bool has_option_entities =
         any_of(poll->options_, [](const auto &option) { return !option.text_.entities.empty(); });
     bool has_multiple_correct_option_ids = poll->correct_option_ids_.size() > 1u;
+    bool know_revoting_disabled = true;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(poll->is_closed_);
     STORE_FLAG(poll->is_anonymous_);
@@ -216,6 +226,8 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     STORE_FLAG(has_option_entities);
     STORE_FLAG(has_multiple_correct_option_ids);
     STORE_FLAG(poll->has_open_answers_);
+    STORE_FLAG(know_revoting_disabled);
+    STORE_FLAG(poll->has_revoting_disabled_);
     END_STORE_FLAGS();
     store(poll->question_.text, storer);
     vector<string> options = transform(poll->options_, [](const PollOption &option) { return option.text_.text; });
@@ -268,6 +280,8 @@ PollId PollManager::parse_poll(ParserT &parser) {
     bool has_multiple_correct_option_ids = false;
     vector<int32> correct_option_ids;
     bool has_open_answers = false;
+    bool know_revoting_disabled = false;
+    bool has_revoting_disabled = false;
 
     if (parser.version() >= static_cast<int32>(Version::SupportPolls2_0)) {
       BEGIN_PARSE_FLAGS();
@@ -282,6 +296,8 @@ PollId PollManager::parse_poll(ParserT &parser) {
       PARSE_FLAG(has_option_entities);
       PARSE_FLAG(has_multiple_correct_option_ids);
       PARSE_FLAG(has_open_answers);
+      PARSE_FLAG(know_revoting_disabled);
+      PARSE_FLAG(has_revoting_disabled);
       END_PARSE_FLAGS();
     }
     parse(question.text, parser);
@@ -333,13 +349,16 @@ PollId PollManager::parse_poll(ParserT &parser) {
     for (size_t i = 0; i < option_texts.size(); i++) {
       options.push_back({std::move(option_texts[i]), std::move(option_entities[i])});
     }
+    if (!know_revoting_disabled) {
+      has_revoting_disabled = is_quiz;
+    }
 
     if (parser.get_error() != nullptr) {
       return PollId();
     }
     return create_poll(std::move(question), std::move(options), is_anonymous, allow_multiple_answers, has_open_answers,
-                       is_quiz, std::move(correct_option_ids), std::move(explanation), open_period, close_date,
-                       is_closed);
+                       has_revoting_disabled, is_quiz, std::move(correct_option_ids), std::move(explanation),
+                       open_period, close_date, is_closed);
   }
 
   auto poll = get_poll_force(poll_id);
