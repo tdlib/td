@@ -4841,7 +4841,11 @@ static Result<InputMessageContent> create_input_message_content(
       }
       vector<FormattedText> options;
       for (auto &input_option : input_poll->options_) {
-        TRY_RESULT(option, get_formatted_text(td, dialog_id, std::move(input_option), is_bot, false, true, false));
+        if (input_option == nullptr) {
+          return Status::Error(400, "Poll option must be non-empty");
+        }
+        TRY_RESULT(option,
+                   get_formatted_text(td, dialog_id, std::move(input_option->text_), is_bot, false, true, false));
         if (utf8_length(option.text) > MAX_POLL_OPTION_LENGTH) {
           return Status::Error(400, PSLICE() << "Poll options length must not exceed " << MAX_POLL_OPTION_LENGTH);
         }

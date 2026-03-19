@@ -6764,7 +6764,9 @@ class CliClient final : public Actor {
       ChatId chat_id;
       string question;
       get_args(args, chat_id, question, args);
-      auto options = transform(autosplit_str(args), [](const string &option) { return as_formatted_text(option); });
+      auto options = transform(autosplit_str(args), [](const string &option) {
+        return td_api::make_object<td_api::inputPollOption>(as_formatted_text(option));
+      });
       td_api::object_ptr<td_api::PollType> poll_type;
       if (op == "squiz") {
         vector<int32> correct_option_ids;
