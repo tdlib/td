@@ -129,6 +129,9 @@ static td_api::object_ptr<td_api::PremiumFeature> get_premium_feature_object(Sli
   if (premium_feature == "pm_noforwards") {
     return td_api::make_object<td_api::premiumFeatureProtectPrivateChatContent>();
   }
+  if (premium_feature == "ai_compose") {
+    return td_api::make_object<td_api::premiumFeatureTextComposition>();
+  }
   if (G()->is_test_dc()) {
     LOG(ERROR) << "Receive unsupported premium feature " << premium_feature;
   }
@@ -1061,6 +1064,8 @@ static string get_premium_source(const td_api::PremiumFeature *feature) {
       return "paid_messages";
     case td_api::premiumFeatureProtectPrivateChatContent::ID:
       return "pm_noforwards";
+    case td_api::premiumFeatureTextComposition::ID:
+      return "ai_compose";
     default:
       UNREACHABLE();
   }
@@ -1249,7 +1254,7 @@ void get_premium_features(Td *td, const td_api::object_ptr<td_api::PremiumSource
                              "stories,more_upload,double_limits,business,last_seen,voice_to_text,faster_download,"
                              "translations,animated_emoji,emoji_status,saved_tags,peer_colors,wallpapers,profile_badge,"
                              "message_privacy,advanced_chat_management,no_ads,app_icons,infinite_reactions,animated_"
-                             "userpics,premium_stickers,effects,todo,paid_messages,pm_noforwards"),
+                             "userpics,premium_stickers,effects,todo,paid_messages,pm_noforwards,ai_compose"),
       ',');
   vector<td_api::object_ptr<td_api::PremiumFeature>> features;
   for (const auto &premium_feature : premium_features) {

@@ -7488,6 +7488,9 @@ premiumFeaturePaidMessages = PremiumFeature;
 //@description The ability to enable content protection in private chats
 premiumFeatureProtectPrivateChatContent = PremiumFeature;
 
+//@description The ability to compose text with AI
+premiumFeatureTextComposition = PremiumFeature;
+
 
 //@class BusinessFeature @description Describes a feature available to Business user accounts
 
