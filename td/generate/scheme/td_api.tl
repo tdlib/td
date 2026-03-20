@@ -5557,8 +5557,8 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@shuffle_options True, if poll options must be shown in a fixed random order
 //@hide_results_until_closes True, if the poll results will appear only after the poll closes
 //@type Type of the poll
-//@open_period Amount of time the poll will be active after creation, in seconds
-//@close_date Point in time (Unix timestamp) when the poll will automatically be closed
+//@open_period Amount of time the poll will be active after creation, in seconds; 0-getOption("poll_open_period_max"); pass 0 if not specified
+//@close_date Point in time (Unix timestamp) when the poll will automatically be closed; must be 0-getOption("poll_open_period_max") seconds in the future; pass 0 if not specified
 //@is_closed True, if the poll needs to be sent already closed; for bots only
 inputMessagePoll question:formattedText options:vector<inputPollOption> is_anonymous:Bool allows_multiple_answers:Bool allows_revoting:Bool shuffle_options:Bool hide_results_until_closes:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
 

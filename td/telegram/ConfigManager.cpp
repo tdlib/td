@@ -1418,6 +1418,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"passkeys_account_passkeys_max", "login_passkey_count_max"},
       {"pm_read_date_expire_period", ""},
       {"poll_answers_max", "poll_answer_count_max"},
+      {"poll_close_period_max", "poll_open_period_max"},
       {"quick_replies_limit", "quick_reply_shortcut_count_max"},
       {"quick_reply_messages_limit", "quick_reply_shortcut_message_count_max"},
       {"quote_length_max", "message_reply_quote_length_max"},
