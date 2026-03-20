@@ -1612,7 +1612,7 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
           poll->has_open_answers_, poll->has_revoting_disabled_, poll->shuffle_answers_,
           poll->hide_results_until_close_, true,
           get_input_text_with_entities(nullptr, poll->question_, "get_input_media_poll"),
-          transform(poll->options_, [](const PollOption &poll_option) { return poll_option.get_input_poll_option(); }),
+          transform(poll->options_, [](const PollOption &poll_option) { return poll_option.get_input_poll_answer(); }),
           poll->open_period_, poll->close_date_, 0),
       std::move(correct_answers), nullptr, poll->explanation_.text,
       get_input_message_entities(td_->user_manager_.get(), poll->explanation_.entities, "get_input_media_poll"),

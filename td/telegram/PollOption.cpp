@@ -9,6 +9,7 @@
 #include "td/telegram/MessageSender.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/logging.h"
 
 namespace td {
 
@@ -21,6 +22,26 @@ PollOption::PollOption(FormattedText &&text, int32 pos) : text_(std::move(text))
   }
 }
 
+PollOption::PollOption(telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr) {
+  if (poll_answer_ptr->get_id() != telegram_api::pollAnswer::ID) {
+    LOG(ERROR) << "Receive " << to_string(poll_answer_ptr);
+    return;
+  }
+  auto poll_answer = telegram_api::move_object_as<telegram_api::pollAnswer>(poll_answer_ptr);
+  text_ = get_formatted_text(nullptr, std::move(poll_answer->text_), true, true, "get_poll_answers");
+  keep_only_custom_emoji(text_);
+  data_ = poll_answer->option_.as_slice().str();
+  if (poll_answer->added_by_ != nullptr) {
+    added_by_dialog_id_ = DialogId(poll_answer->added_by_);
+    added_date_ = poll_answer->date_;
+    if (!added_by_dialog_id_.is_valid() || added_date_ <= 0) {
+      LOG(ERROR) << "Receive " << to_string(poll_answer);
+      added_by_dialog_id_ = DialogId();
+      added_date_ = 0;
+    }
+  }
+}
+
 td_api::object_ptr<td_api::pollOption> PollOption::get_poll_option_object(Td *td) const {
   return td_api::make_object<td_api::pollOption>(
       get_formatted_text_object(nullptr, text_, true, -1), voter_count_, 0, is_chosen_, false,
@@ -28,31 +49,15 @@ td_api::object_ptr<td_api::pollOption> PollOption::get_poll_option_object(Td *td
       added_date_);
 }
 
-telegram_api::object_ptr<telegram_api::PollAnswer> PollOption::get_input_poll_option() const {
+telegram_api::object_ptr<telegram_api::PollAnswer> PollOption::get_input_poll_answer() const {
   return telegram_api::make_object<telegram_api::inputPollAnswer>(
-      0, get_input_text_with_entities(nullptr, text_, "get_input_poll_option"), nullptr);
+      0, get_input_text_with_entities(nullptr, text_, "get_input_poll_answer"), nullptr);
 }
 
 vector<PollOption> PollOption::get_poll_options(
-    vector<telegram_api::object_ptr<telegram_api::PollAnswer>> &&poll_options) {
-  return transform(std::move(poll_options), [](telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_option_ptr) {
-    PollOption option;
-    if (poll_option_ptr->get_id() == telegram_api::pollAnswer::ID) {
-      auto poll_option = telegram_api::move_object_as<telegram_api::pollAnswer>(poll_option_ptr);
-      option.text_ = get_formatted_text(nullptr, std::move(poll_option->text_), true, true, "get_poll_options");
-      keep_only_custom_emoji(option.text_);
-      option.data_ = poll_option->option_.as_slice().str();
-      if (poll_option->added_by_ != nullptr) {
-        option.added_by_dialog_id_ = DialogId(poll_option->added_by_);
-        option.added_date_ = poll_option->date_;
-        if (!option.added_by_dialog_id_.is_valid() || option.added_date_ <= 0) {
-          LOG(ERROR) << "Receive " << to_string(poll_option);
-          option.added_by_dialog_id_ = DialogId();
-          option.added_date_ = 0;
-        }
-      }
-    }
-    return option;
+    vector<telegram_api::object_ptr<telegram_api::PollAnswer>> &&poll_answers) {
+  return transform(std::move(poll_answers), [](telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr) {
+    return PollOption(std::move(poll_answer_ptr));
   });
 }
 
