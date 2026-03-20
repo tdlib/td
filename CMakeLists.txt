@@ -573,6 +573,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/PhotoSize.cpp
   td/telegram/PhotoSizeSource.cpp
   td/telegram/PollManager.cpp
+  td/telegram/PollOption.cpp
   td/telegram/Premium.cpp
   td/telegram/PremiumGiftOption.cpp
   td/telegram/PrivacyManager.cpp
@@ -978,6 +979,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/PhotoSizeType.h
   td/telegram/PollId.h
   td/telegram/PollManager.h
+  td/telegram/PollOption.h
   td/telegram/Premium.h
   td/telegram/PremiumGiftOption.h
   td/telegram/PrivacyManager.h
@@ -1190,6 +1192,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/PhotoSizeType.hpp
   td/telegram/PollId.hpp
   td/telegram/PollManager.hpp
+  td/telegram/PollOption.hpp
   td/telegram/PremiumGiftOption.hpp
   td/telegram/ReactionManager.hpp
   td/telegram/ReactionNotificationSettings.hpp

@@ -13,6 +13,7 @@
 #include "td/telegram/MinChannel.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/PollId.h"
+#include "td/telegram/PollOption.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -107,20 +108,6 @@ class PollManager final : public Actor {
   PollId parse_poll(ParserT &parser);
 
  private:
-  struct PollOption {
-    FormattedText text_;
-    string data_;
-    DialogId added_by_dialog_id_;
-    int32 added_date_ = 0;
-    int32 voter_count_ = 0;
-    bool is_chosen_ = false;
-
-    template <class StorerT>
-    void store(StorerT &storer) const;
-    template <class ParserT>
-    void parse(ParserT &parser);
-  };
-
   struct Poll {
     FormattedText question_;
     vector<PollOption> options_;
@@ -156,9 +143,6 @@ class PollManager final : public Actor {
     bool was_invalidated_ = false;  // the list needs to be invalidated when voters are changed
   };
 
-  friend bool operator==(const PollOption &lhs, const PollOption &rhs);
-  friend bool operator!=(const PollOption &lhs, const PollOption &rhs);
-
   static constexpr int32 MAX_GET_POLL_VOTERS = 50;  // server-side limit
   static constexpr int32 UNLOAD_POLL_DELAY = 600;   // some reasonable value
 
@@ -173,12 +157,6 @@ class PollManager final : public Actor {
   static void on_close_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
 
   static void on_unload_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
-
-  td_api::object_ptr<td_api::pollOption> get_poll_option_object(const PollOption &poll_option) const;
-
-  static telegram_api::object_ptr<telegram_api::PollAnswer> get_input_poll_option(const PollOption &poll_option);
-
-  static vector<PollOption> get_poll_options(vector<tl_object_ptr<telegram_api::PollAnswer>> &&poll_options);
 
   bool have_poll(PollId poll_id) const;
 
@@ -281,9 +259,5 @@ class PollManager final : public Actor {
   Td *td_;
   ActorShared<> parent_;
 };
-
-bool operator==(const PollManager::PollOption &lhs, const PollManager::PollOption &rhs);
-
-bool operator!=(const PollManager::PollOption &lhs, const PollManager::PollOption &rhs);
 
 }  // namespace td

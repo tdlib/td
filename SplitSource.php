@@ -407,6 +407,7 @@ function split_file($file, $chunks, $undo) {
             'phone_number_manager[_(-](?![.]get[(][)])|PhoneNumberManager' => 'PhoneNumberManager',
             'PhotoSizeSource' => 'PhotoSizeSource',
             'poll_manager[_(-](?![.]get[(][)])|PollManager' => 'PollManager',
+            'PollOption[^A-Z]' => 'PollOption',
             'privacy_manager[_(-](?![.]get[(][)])|PrivacyManager' => 'PrivacyManager',
             'ProfileTab' => 'ProfileTab',
             'promo_data_manager[_(-](?![.]get[(][)])|PromoDataManager' => 'PromoDataManager',
