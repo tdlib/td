@@ -239,7 +239,8 @@ class StopPollQuery final : public Td::ResultHandler {
 
 bool operator==(const PollManager::PollOption &lhs, const PollManager::PollOption &rhs) {
   // don't compare voter_count_ and is_chosen_
-  return lhs.text_ == rhs.text_ && lhs.data_ == rhs.data_;
+  return lhs.text_ == rhs.text_ && lhs.data_ == rhs.data_ && lhs.added_by_dialog_id_ == rhs.added_by_dialog_id_ &&
+         lhs.added_date_ == rhs.added_date_;
 }
 
 bool operator!=(const PollManager::PollOption &lhs, const PollManager::PollOption &rhs) {
@@ -419,7 +420,17 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
     for (auto dialog_id : poll->recent_voter_dialog_ids_) {
       dependencies.add_message_sender_dependencies(dialog_id);
     }
+    bool has_added_by_users = false;
+    for (auto option : poll->options_) {
+      if (option.added_by_dialog_id_ != DialogId()) {
+        dependencies.add_message_sender_dependencies(option.added_by_dialog_id_);
+        has_added_by_users = true;
+      }
+    }
     if (!dependencies.resolve_force(td_, "on_load_poll_from_database")) {
+      if (has_added_by_users) {
+        return;
+      }
       poll->recent_voter_dialog_ids_.clear();
       poll->recent_voter_min_channels_.clear();
     }
@@ -458,9 +469,14 @@ PollManager::Poll *PollManager::get_poll_force(PollId poll_id) {
   return get_poll_editable(poll_id);
 }
 
-td_api::object_ptr<td_api::pollOption> PollManager::get_poll_option_object(const PollOption &poll_option) {
-  return td_api::make_object<td_api::pollOption>(get_formatted_text_object(nullptr, poll_option.text_, true, -1),
-                                                 poll_option.voter_count_, 0, poll_option.is_chosen_, false);
+td_api::object_ptr<td_api::pollOption> PollManager::get_poll_option_object(const PollOption &poll_option) const {
+  return td_api::make_object<td_api::pollOption>(
+      get_formatted_text_object(nullptr, poll_option.text_, true, -1), poll_option.voter_count_, 0,
+      poll_option.is_chosen_, false,
+      poll_option.added_by_dialog_id_ == DialogId()
+          ? nullptr
+          : get_message_sender_object(td_, poll_option.added_by_dialog_id_, "pollOption"),
+      poll_option.added_date_);
 }
 
 vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts, int32 total_voter_count) {
@@ -578,7 +594,8 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   auto it = pending_answers_.find(poll_id);
   int32 voter_count_diff = 0;
   if (it == pending_answers_.end() || (it->second.is_finished_ && poll->was_saved_)) {
-    poll_options = transform(poll->options_, get_poll_option_object);
+    poll_options = transform(poll->options_,
+                             [this](const PollOption &poll_option) { return get_poll_option_object(poll_option); });
   } else {
     const auto &chosen_options = it->second.options_;
     LOG(INFO) << "Have pending chosen options " << chosen_options << " in " << poll_id;
@@ -589,7 +606,11 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
       }
       poll_options.push_back(td_api::make_object<td_api::pollOption>(
           get_formatted_text_object(nullptr, poll_option.text_, true, -1),
-          poll_option.voter_count_ - static_cast<int32>(poll_option.is_chosen_), 0, false, is_being_chosen));
+          poll_option.voter_count_ - static_cast<int32>(poll_option.is_chosen_), 0, false, is_being_chosen,
+          poll_option.added_by_dialog_id_ == DialogId()
+              ? nullptr
+              : get_message_sender_object(td_, poll_option.added_by_dialog_id_, "pollOption"),
+          poll_option.added_date_));
     }
   }
 
@@ -699,7 +720,13 @@ PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> 
   for (auto &option_text : options) {
     PollOption option;
     option.text_ = std::move(option_text);
-    option.data_ = string(1, narrow_cast<char>(pos++));
+    if (pos < 10) {
+      option.data_ = string(1, narrow_cast<char>(pos));
+    } else {
+      option.data_ = string(2, narrow_cast<char>(pos - 10));
+      option.data_[0] = 1;
+    }
+    pos++;
     poll->options_.push_back(std::move(option));
   }
   poll->is_anonymous_ = is_anonymous;
@@ -883,7 +910,7 @@ void PollManager::set_poll_answer(PollId poll_id, MessageFullId message_full_id,
   for (auto &option_id : option_ids) {
     auto index = static_cast<size_t>(option_id);
     if (index >= poll->options_.size()) {
-      return promise.set_error(400, "Invalid option ID specified");
+      return promise.set_error(400, "Invalid option identifier specified");
     }
     options.push_back(poll->options_[index].data_);
 
@@ -1634,6 +1661,15 @@ vector<PollManager::PollOption> PollManager::get_poll_options(
       option.text_ = get_formatted_text(nullptr, std::move(poll_option->text_), true, true, "get_poll_options");
       keep_only_custom_emoji(option.text_);
       option.data_ = poll_option->option_.as_slice().str();
+      if (poll_option->added_by_ != nullptr) {
+        option.added_by_dialog_id_ = DialogId(poll_option->added_by_);
+        option.added_date_ = poll_option->date_;
+        if (!option.added_by_dialog_id_.is_valid() || option.added_date_ <= 0) {
+          LOG(ERROR) << "Receive " << to_string(poll_option);
+          option.added_by_dialog_id_ = DialogId();
+          option.added_date_ = 0;
+        }
+      }
     }
     return option;
   });

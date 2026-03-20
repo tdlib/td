@@ -110,6 +110,8 @@ class PollManager final : public Actor {
   struct PollOption {
     FormattedText text_;
     string data_;
+    DialogId added_by_dialog_id_;
+    int32 added_date_ = 0;
     int32 voter_count_ = 0;
     bool is_chosen_ = false;
 
@@ -172,7 +174,7 @@ class PollManager final : public Actor {
 
   static void on_unload_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
 
-  static td_api::object_ptr<td_api::pollOption> get_poll_option_object(const PollOption &poll_option);
+  td_api::object_ptr<td_api::pollOption> get_poll_option_object(const PollOption &poll_option) const;
 
   static telegram_api::object_ptr<telegram_api::PollAnswer> get_input_poll_option(const PollOption &poll_option);
 

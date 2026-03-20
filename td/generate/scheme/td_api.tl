@@ -392,7 +392,9 @@ outline paths:vector<closedVectorPath> = Outline;
 //@vote_percentage The percentage of votes for this option; 0-100
 //@is_chosen True, if the option was chosen by the user
 //@is_being_chosen True, if the option is being chosen by a pending setPollAnswer request
-pollOption text:formattedText voter_count:int32 vote_percentage:int32 is_chosen:Bool is_being_chosen:Bool = PollOption;
+//@author Identifier of the user or chat who added the option; may be null if the option existed from creation of the poll
+//@addition_date Point in time (Unix timestamp) when the option was added; 0 if the option existed from creation of the poll
+pollOption text:formattedText voter_count:int32 vote_percentage:int32 is_chosen:Bool is_being_chosen:Bool author:MessageSender addition_date:int32 = PollOption;
 
 //@description Describes one answer option of a poll to be created
 //@text Option text; 1-100 characters. Only custom emoji entities are allowed to be added and only by Premium users
