@@ -6,10 +6,12 @@
 //
 #pragma once
 
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 
@@ -39,6 +41,10 @@ struct PollOption {
   static vector<PollOption> get_poll_options(vector<telegram_api::object_ptr<telegram_api::PollAnswer>> &&poll_answers);
 
   void add_dependencies(Dependencies &dependencies) const;
+
+  vector<UserId> get_min_user_ids() const;
+
+  vector<ChannelId> get_min_channel_ids() const;
 
   template <class StorerT>
   void store(StorerT &storer) const;
