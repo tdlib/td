@@ -291,4 +291,12 @@ void TranslationManager::send_update_text_composition_styles() const {
   send_closure(G()->td(), &Td::send_update, get_update_text_composition_styles());
 }
 
+void TranslationManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (!td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  updates.push_back(get_update_text_composition_styles());
+}
+
 }  // namespace td
