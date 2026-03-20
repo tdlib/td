@@ -237,6 +237,15 @@ class StopPollQuery final : public Td::ResultHandler {
   }
 };
 
+bool operator==(const PollManager::PollOption &lhs, const PollManager::PollOption &rhs) {
+  // don't compare voter_count_ and is_chosen_
+  return lhs.text_ == rhs.text_ && lhs.data_ == rhs.data_;
+}
+
+bool operator!=(const PollManager::PollOption &lhs, const PollManager::PollOption &rhs) {
+  return !(lhs == rhs);
+}
+
 PollManager::PollManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   update_poll_timeout_.set_callback(on_update_poll_timeout_callback);
   update_poll_timeout_.set_callback_data(static_cast<void *>(this));
@@ -1697,32 +1706,15 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
 
   bool poll_server_is_closed = false;
   if (poll_server != nullptr) {
-    vector<string> correct_option_datas;
-    for (auto correct_option_id : poll->correct_option_ids_) {
-      CHECK(0 <= correct_option_id && correct_option_id < static_cast<int32>(poll->options_.size()));
-      correct_option_datas.push_back(poll->options_[correct_option_id].data_);
-    }
-    bool are_options_changed = false;
-    if (poll->options_.size() != poll_server->answers_.size()) {
-      poll->options_ = get_poll_options(std::move(poll_server->answers_));
-      are_options_changed = true;
-    } else {
-      auto options = get_poll_options(std::move(poll_server->answers_));
-      for (size_t i = 0; i < options.size(); i++) {
-        if (poll->options_[i].text_ != options[i].text_) {
-          poll->options_[i].text_ = std::move(options[i].text_);
-          is_changed = true;
-        }
-        if (poll->options_[i].data_ != options[i].data_) {
-          poll->options_[i].data_ = std::move(options[i].data_);
-          poll->options_[i].voter_count_ = 0;
-          poll->options_[i].is_chosen_ = false;
-          are_options_changed = true;
-        }
+    auto options = get_poll_options(std::move(poll_server->answers_));
+    if (poll->options_ != options) {
+      vector<string> correct_option_datas;
+      for (auto correct_option_id : poll->correct_option_ids_) {
+        CHECK(0 <= correct_option_id && correct_option_id < static_cast<int32>(poll->options_.size()));
+        correct_option_datas.push_back(poll->options_[correct_option_id].data_);
       }
-    }
-    if (are_options_changed) {
-      if (!correct_option_datas.empty()) {
+      poll->options_ = std::move(options);
+      if (!correct_option_datas.empty()) {  // repair correct_option_ids just in case
         poll->correct_option_ids_.clear();
         for (size_t i = 0; i < poll->options_.size(); i++) {
           if (td::contains(correct_option_datas, poll->options_[i].data_)) {
