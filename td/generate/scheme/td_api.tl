@@ -117,8 +117,13 @@ textEntities entities:vector<textEntity> = TextEntities;
 formattedText text:string entities:vector<textEntity> = FormattedText;
 
 
+//@description Describes a style that can be used to compose a text @emoji Emoji corresponding to the style @name Name of the style
+textCompositionStyle emoji:string name:string = TextCompositionStyle;
+
+
 //@description Contains Telegram terms of service @text Text of the terms of service @min_user_age The minimum age of a user to be able to accept the terms; 0 if age isn't restricted @show_popup True, if a blocking popup with terms of service must be shown to the user
 termsOfService text:formattedText min_user_age:int32 show_popup:Bool = TermsOfService;
+
 
 //@description Describes a passkey
 //@id Unique identifier of the passkey
@@ -10281,6 +10286,9 @@ updateAnimatedEmojiMessageClicked chat_id:int53 message_id:int53 sticker:sticker
 //@description The parameters of animation search through getOption("animation_search_bot_username") bot has changed @provider Name of the animation search provider @emojis The new list of emojis suggested for searching
 updateAnimationSearchParameters provider:string emojis:vector<string> = Update;
 
+//@description The styles supported for text composition have changed @styles The new list of supported styles
+updateTextCompositionStyles styles:vector<textCompositionStyle> = Update;
+
 //@description The list of suggested to the user actions has changed @added_actions Added suggested actions @removed_actions Removed suggested actions
 updateSuggestedActions added_actions:vector<SuggestedAction> removed_actions:vector<SuggestedAction> = Update;
 
@@ -11253,10 +11261,10 @@ summarizeMessage chat_id:int53 message_id:int53 translate_to_language_code:strin
 //@description Changes text using an AI model
 //@text The original text
 //@translate_to_language_code Pass a language code to which the text will be translated; pass an empty string if translation isn't needed. See translateText.to_language_code for the list of supported values
-//@tone Tone of the resulted text; must be one of "", "formal", "neutral", "casual"; defaults to "neutral"
+//@style_name Name of the style of the resulted text; handle updateTextCompositionStyles to get the list of supported styles; pass an empty string to keep the current style of the text
 //@proofread Pass true to proofread the text
 //@add_emojis Pass true to add emoji to the text
-composeTextWithAi text:formattedText translate_to_language_code:string tone:string proofread:Bool add_emojis:Bool = FormattedText;
+composeTextWithAi text:formattedText translate_to_language_code:string style_name:string proofread:Bool add_emojis:Bool = FormattedText;
 
 //@description Recognizes speech in a video note or a voice note message
 //@chat_id Identifier of the chat to which the message belongs

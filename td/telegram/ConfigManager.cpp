@@ -33,6 +33,7 @@
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/TranscriptionManager.h"
+#include "td/telegram/TranslationManager.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/UserManager.h"
 
@@ -1362,6 +1363,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   string ton_stakedice_stake_suggested_amounts;
   string gift_craft_probabilities;
   string music_search_username;
+  vector<string> ai_compose_styles;
 
   // {"stories_all_hidden", "archive_all_stories"}
   static const FlatHashMap<Slice, Slice, SliceHash> bool_keys = {
@@ -2039,6 +2041,29 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
         music_search_username = get_json_value_string(std::move(key_value->value_), key);
         continue;
       }
+      if (key == "ai_compose_styles") {
+        if (value->get_id() == telegram_api::jsonArray::ID) {
+          auto styles = std::move(static_cast<telegram_api::jsonArray *>(value)->value_);
+          for (auto &style : styles) {
+            if (style->get_id() == telegram_api::jsonArray::ID) {
+              auto style_value = std::move(static_cast<telegram_api::jsonArray *>(style.get())->value_);
+              if (style_value.size() != 2u || style_value[0]->get_id() != telegram_api::jsonString::ID ||
+                  style_value[1]->get_id() != telegram_api::jsonString::ID) {
+                LOG(ERROR) << "Receive invalid style " << to_string(style_value);
+              } else {
+                ai_compose_styles.push_back(get_json_value_string(std::move(style_value[0]), Slice()));
+                ai_compose_styles.push_back(get_json_value_string(std::move(style_value[1]), Slice()));
+              }
+            } else {
+              LOG(ERROR) << "Receive unexpected style " << to_string(style);
+              break;
+            }
+          }
+        } else {
+          LOG(ERROR) << "Receive unexpected ai_compose_styles " << to_string(*value);
+        }
+        continue;
+      }
 
       new_values.push_back(std::move(key_value));
     }
@@ -2053,6 +2078,9 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
   send_closure(G()->transcription_manager(), &TranscriptionManager::on_update_trial_parameters,
                transcribe_audio_trial_weekly_number, transcribe_audio_trial_duration_max,
                transcribe_audio_trial_cooldown_until);
+
+  send_closure(G()->translation_manager(), &TranslationManager::on_update_ai_compose_styles,
+               std::move(ai_compose_styles));
 
   send_closure(G()->user_manager(), &UserManager::on_update_freeze_state, freeze_since_date, freeze_until_date,
                std::move(freeze_appeal_url));

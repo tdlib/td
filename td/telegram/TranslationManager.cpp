@@ -13,6 +13,8 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/telegram/logevent/LogEvent.h"
+
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
@@ -91,9 +93,6 @@ class ComposeMessageWithAiQuery final : public Td::ResultHandler {
     max_media_timestamp_ = max_media_timestamp;
 
     int32 flags = 0;
-    if (tone == "neutral") {
-      tone.clear();
-    }
     if (!translate_to_language_code.empty()) {
       flags |= telegram_api::messages_composeMessageWithAI::TRANSLATE_TO_LANG_MASK;
     }
@@ -126,6 +125,14 @@ class ComposeMessageWithAiQuery final : public Td::ResultHandler {
 };
 
 TranslationManager::TranslationManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
+}
+
+void TranslationManager::start_up() {
+  auto ai_compose_styles_log_event_string = G()->td_db()->get_binlog_pmc()->get(get_ai_compose_styles_key());
+  if (!ai_compose_styles_log_event_string.empty()) {
+    log_event_parse(ai_compose_styles_, ai_compose_styles_log_event_string).ensure();
+  }
+  send_update_text_composition_styles();
 }
 
 void TranslationManager::tear_down() {
@@ -215,9 +222,6 @@ void TranslationManager::compose_message_with_ai(td_api::object_ptr<td_api::form
   if (text == nullptr) {
     return promise.set_error(400, "Text must be non-empty");
   }
-  if (tone != string() && tone != "formal" && tone != "neutral" && tone != "casual") {
-    return promise.set_error(400, "Invalid tone specified");
-  }
 
   bool skip_bot_commands = true;
   int32 max_media_timestamp = -1;
@@ -246,6 +250,34 @@ void TranslationManager::compose_message_with_ai(td_api::object_ptr<td_api::form
   td_->create_handler<ComposeMessageWithAiQuery>(std::move(promise))
       ->send(FormattedText{std::move(text->text_), std::move(entities)}, translate_to_language_code, tone, proofread,
              emojify, skip_bot_commands, max_media_timestamp);
+}
+
+string TranslationManager::get_ai_compose_styles_key() {
+  return "ai_compose_styles";
+}
+
+void TranslationManager::on_update_ai_compose_styles(vector<string> &&ai_compose_styles) {
+  if (ai_compose_styles == ai_compose_styles_) {
+    return;
+  }
+  ai_compose_styles_ = std::move(ai_compose_styles);
+  G()->td_db()->get_binlog_pmc()->set(get_ai_compose_styles_key(),
+                                      log_event_store(ai_compose_styles_).as_slice().str());
+  send_update_text_composition_styles();
+}
+
+td_api::object_ptr<td_api::updateTextCompositionStyles> TranslationManager::get_update_text_composition_styles() const {
+  CHECK(ai_compose_styles_.size() % 2 == 0);
+  auto result = td_api::make_object<td_api::updateTextCompositionStyles>();
+  for (size_t i = 0; i < ai_compose_styles_.size(); i += 2) {
+    result->styles_.push_back(
+        td_api::make_object<td_api::textCompositionStyle>(ai_compose_styles_[i], ai_compose_styles_[i + 1]));
+  }
+  return result;
+}
+
+void TranslationManager::send_update_text_composition_styles() const {
+  send_closure(G()->td(), &Td::send_update, get_update_text_composition_styles());
 }
 
 }  // namespace td

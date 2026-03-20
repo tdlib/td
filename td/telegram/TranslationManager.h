@@ -35,15 +35,27 @@ class TranslationManager final : public Actor {
                                const string &translate_to_language_code, const string &tone, bool proofread,
                                bool emojify, Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
+  void on_update_ai_compose_styles(vector<string> &&ai_compose_styles);
+
  private:
+  void start_up() final;
+
   void tear_down() final;
 
   void on_get_translated_texts(vector<telegram_api::object_ptr<telegram_api::textWithEntities>> texts,
                                bool skip_bot_commands, int32 max_media_timestamp,
                                Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
+  static string get_ai_compose_styles_key();
+
+  td_api::object_ptr<td_api::updateTextCompositionStyles> get_update_text_composition_styles() const;
+
+  void send_update_text_composition_styles() const;
+
   Td *td_;
   ActorShared<> parent_;
+
+  vector<string> ai_compose_styles_;
 };
 
 }  // namespace td

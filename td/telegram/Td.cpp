@@ -1289,6 +1289,7 @@ void Td::init_managers() {
   G()->set_transcription_manager(transcription_manager_actor_.get());
   translation_manager_ = make_unique<TranslationManager>(this, create_reference());
   translation_manager_actor_ = register_actor("TranslationManager", translation_manager_.get());
+  G()->set_translation_manager(translation_manager_actor_.get());
   updates_manager_ = make_unique<UpdatesManager>(this, create_reference());
   updates_manager_actor_ = register_actor("UpdatesManager", updates_manager_.get());
   G()->set_updates_manager(updates_manager_actor_.get());
