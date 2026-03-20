@@ -7,6 +7,7 @@
 #include "td/telegram/TranslationManager.h"
 
 #include "td/telegram/AccessRights.h"
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
@@ -128,15 +129,23 @@ TranslationManager::TranslationManager(Td *td, ActorShared<> parent) : td_(td), 
 }
 
 void TranslationManager::start_up() {
-  auto ai_compose_styles_log_event_string = G()->td_db()->get_binlog_pmc()->get(get_ai_compose_styles_key());
-  if (!ai_compose_styles_log_event_string.empty()) {
-    log_event_parse(ai_compose_styles_, ai_compose_styles_log_event_string).ensure();
+  if (td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot()) {
+    auto ai_compose_styles_log_event_string = G()->td_db()->get_binlog_pmc()->get(get_ai_compose_styles_key());
+    if (!ai_compose_styles_log_event_string.empty()) {
+      log_event_parse(ai_compose_styles_, ai_compose_styles_log_event_string).ensure();
+    }
+    send_update_text_composition_styles();
   }
-  send_update_text_composition_styles();
 }
 
 void TranslationManager::tear_down() {
   parent_.reset();
+}
+
+void TranslationManager::on_authorization_success() {
+  if (!td_->auth_manager_->is_bot()) {
+    send_update_text_composition_styles();
+  }
 }
 
 void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText> &&text,
@@ -263,7 +272,9 @@ void TranslationManager::on_update_ai_compose_styles(vector<string> &&ai_compose
   ai_compose_styles_ = std::move(ai_compose_styles);
   G()->td_db()->get_binlog_pmc()->set(get_ai_compose_styles_key(),
                                       log_event_store(ai_compose_styles_).as_slice().str());
-  send_update_text_composition_styles();
+  if (td_->auth_manager_->is_authorized()) {
+    send_update_text_composition_styles();
+  }
 }
 
 td_api::object_ptr<td_api::updateTextCompositionStyles> TranslationManager::get_update_text_composition_styles() const {

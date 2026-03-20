@@ -24,6 +24,8 @@ class TranslationManager final : public Actor {
  public:
   TranslationManager(Td *td, ActorShared<> parent);
 
+  void on_authorization_success();
+
   void translate_text(td_api::object_ptr<td_api::formattedText> &&text, const string &to_language_code,
                       const string &tone, Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
