@@ -113,7 +113,7 @@ textEntity offset:int32 length:int32 type:TextEntityType = TextEntity;
 textEntities entities:vector<textEntity> = TextEntities;
 
 //@description A text with some entities @text The text @entities Entities contained in the text. Entities can be nested, but must not mutually intersect with each other.
-//-Pre, Code and PreCode entities can't contain other entities. BlockQuote entities can't contain other BlockQuote entities. Bold, Italic, Underline, Strikethrough, and Spoiler entities can contain and can be part of any other entities. All other entities can't contain each other
+//-Pre, Code, PreCode, and DateTime entities can't contain other entities. BlockQuote entities can't contain other BlockQuote entities. Bold, Italic, Underline, Strikethrough, and Spoiler entities can contain and can be part of any other entities. All other entities can't contain each other
 formattedText text:string entities:vector<textEntity> = FormattedText;
 
 
@@ -403,7 +403,7 @@ pollTypeQuiz correct_option_id:int32 explanation:formattedText = PollType;
 
 //@description Describes a task in a checklist
 //@id Unique identifier of the task
-//@text Text of the task; may contain only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, Url, EmailAddress, Mention, Hashtag, Cashtag and PhoneNumber entities
+//@text Text of the task; may contain only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji and automatically found entities
 //@completed_by Identifier of the user or chat that completed the task; may be null if the task isn't completed yet
 //@completion_date Point in time (Unix timestamp) when the task was completed; 0 if the task isn't completed
 checklistTask id:int32 text:formattedText completed_by:MessageSender completion_date:int32 = ChecklistTask;
@@ -5355,7 +5355,7 @@ messageCopyOptions send_copy:Bool replace_caption:Bool new_caption:formattedText
 
 //@description A text message
 //@text Formatted text to be sent; 0-getOption("message_text_length_max") characters. Only Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, BlockQuote, ExpandableBlockQuote,
-//-Code, Pre, PreCode, TextUrl and MentionName entities are allowed to be specified manually
+//-Code, Pre, PreCode, TextUrl, MentionName, and DateTime entities are allowed to be specified manually
 //@link_preview_options Options to be used for generation of a link preview; may be null if none; pass null to use default link preview options
 //@clear_draft True, if the chat message draft must be deleted
 inputMessageText text:formattedText link_preview_options:linkPreviewOptions clear_draft:Bool = InputMessageContent;
@@ -11769,8 +11769,8 @@ searchQuote text:formattedText quote:formattedText quote_position:int32 = FoundP
 //@description Returns all entities (mentions, hashtags, cashtags, bot commands, bank card numbers, URLs, and email addresses) found in the text. Can be called synchronously @text The text in which to look for entities
 getTextEntities text:string = TextEntities;
 
-//@description Parses Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, BlockQuote, ExpandableBlockQuote, Code, Pre, PreCode, TextUrl
-//-and MentionName entities from a marked-up text. Can be called synchronously
+//@description Parses Bold, Italic, Underline, Strikethrough, Spoiler, CustomEmoji, BlockQuote, ExpandableBlockQuote, Code, Pre, PreCode, TextUrl,
+//-MentionName, and DateTime entities from a marked-up text. Can be called synchronously
 //@text The text to parse
 //@parse_mode Text parse mode
 parseTextEntities text:string parse_mode:TextParseMode = FormattedText;
