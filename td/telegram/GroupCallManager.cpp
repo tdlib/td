@@ -5951,6 +5951,8 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
     if (static_cast<int64>(utf8_length(message.text)) > G()->get_option_integer("group_call_message_text_length_max")) {
       return promise.set_error(400, "Message is too long");
     }
+    td::remove_if(message.entities,
+                  [](const MessageEntity &entity) { return entity.type == MessageEntity::Type::FormattedDate; });
   }
 
   auto as_dialog_id =

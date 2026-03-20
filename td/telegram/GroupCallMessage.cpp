@@ -203,7 +203,6 @@ GroupCallMessage::GroupCallMessage(DialogId sender_dialog_id, FormattedText text
     , paid_message_star_count_(paid_message_star_count)
     , from_admin_(from_admin)
     , is_local_(true) {
-  td::remove_if(text.entities, [](auto &entity) { return entity.type == MessageEntity::Type::FormattedDate; });
 }
 
 string GroupCallMessage::encode_to_json() const {
