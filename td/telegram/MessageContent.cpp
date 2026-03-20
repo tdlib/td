@@ -4890,8 +4890,8 @@ static Result<InputMessageContent> create_input_message_content(
           UNREACHABLE();
       }
 
-      int32 open_period = is_bot ? input_poll->open_period_ : 0;
-      int32 close_date = is_bot ? input_poll->close_date_ : 0;
+      int32 open_period = input_poll->open_period_;
+      int32 close_date = input_poll->close_date_;
       if (open_period != 0) {
         close_date = 0;
       }
