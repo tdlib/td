@@ -571,7 +571,8 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   for (auto &poll_option : poll_options) {
     is_voted |= poll_option->is_chosen_;
   }
-  if (!is_voted && !poll->is_closed_ && !poll->is_creator_ && !td_->auth_manager_->is_bot()) {
+  if ((!is_voted || poll->hide_results_until_close_) && !poll->is_closed_ && !poll->is_creator_ &&
+      !td_->auth_manager_->is_bot()) {
     // hide the voter counts
     for (auto &poll_option : poll_options) {
       poll_option->voter_count_ = 0;
@@ -644,11 +645,11 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     Random::shuffle(as_mutable_span(option_order), rnd);
   }
 
-  return td_api::make_object<td_api::poll>(
-      poll_id.get(), get_formatted_text_object(nullptr, poll->question_, true, -1), std::move(poll_options),
-      total_voter_count, std::move(recent_voters), poll->is_anonymous_, poll->allow_multiple_answers_,
-      !poll->has_revoting_disabled_, std::move(option_order), poll->hide_results_until_close_, std::move(poll_type),
-      open_period, close_date, poll->is_closed_);
+  return td_api::make_object<td_api::poll>(poll_id.get(), get_formatted_text_object(nullptr, poll->question_, true, -1),
+                                           std::move(poll_options), total_voter_count, std::move(recent_voters),
+                                           poll->is_anonymous_, poll->allow_multiple_answers_,
+                                           !poll->has_revoting_disabled_, std::move(option_order), std::move(poll_type),
+                                           open_period, close_date, poll->is_closed_);
 }
 
 telegram_api::object_ptr<telegram_api::PollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
