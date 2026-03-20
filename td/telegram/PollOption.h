@@ -25,6 +25,10 @@ struct PollOption {
   int32 voter_count_ = 0;
   bool is_chosen_ = false;
 
+  PollOption() = default;
+
+  PollOption(FormattedText &&text, int32 pos);
+
   td_api::object_ptr<td_api::pollOption> get_poll_option_object(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::PollAnswer> get_input_poll_option() const;

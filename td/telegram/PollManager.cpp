@@ -691,18 +691,9 @@ PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> 
   }
   auto poll = make_unique<Poll>();
   poll->question_ = std::move(question);
-  int pos = '0';
+  int pos = 0;
   for (auto &option_text : options) {
-    PollOption option;
-    option.text_ = std::move(option_text);
-    if (pos < 10) {
-      option.data_ = string(1, narrow_cast<char>(pos));
-    } else {
-      option.data_ = string(2, narrow_cast<char>(pos - 10));
-      option.data_[0] = 1;
-    }
-    pos++;
-    poll->options_.push_back(std::move(option));
+    poll->options_.emplace_back(std::move(option_text), pos++);
   }
   poll->is_anonymous_ = is_anonymous;
   poll->allow_multiple_answers_ = allow_multiple_answers;

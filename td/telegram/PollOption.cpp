@@ -12,6 +12,15 @@
 
 namespace td {
 
+PollOption::PollOption(FormattedText &&text, int32 pos) : text_(std::move(text)) {
+  if (pos < 10) {
+    data_ = string(1, static_cast<char>(pos + '0'));
+  } else {
+    data_ = string(2, static_cast<char>(pos - 10 + '0'));
+    data_[0] = static_cast<char>('0' + pos / 10);
+  }
+}
+
 td_api::object_ptr<td_api::pollOption> PollOption::get_poll_option_object(Td *td) const {
   return td_api::make_object<td_api::pollOption>(
       get_formatted_text_object(nullptr, text_, true, -1), voter_count_, 0, is_chosen_, false,
