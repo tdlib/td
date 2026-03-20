@@ -237,6 +237,8 @@ class PollManager final : public Actor {
 
   void forget_local_poll(PollId poll_id);
 
+  bool can_get_poll_voters(PollId poll_id, const Poll *poll) const;
+
   MultiTimeout update_poll_timeout_{"UpdatePollTimeout"};
   MultiTimeout close_poll_timeout_{"ClosePollTimeout"};
   MultiTimeout unload_poll_timeout_{"UnloadPollTimeout"};

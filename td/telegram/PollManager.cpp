@@ -567,12 +567,8 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   }
 
   auto total_voter_count = poll->total_voter_count_ + voter_count_diff;
-  bool is_voted = false;
-  for (auto &poll_option : poll_options) {
-    is_voted |= poll_option->is_chosen_;
-  }
-  if ((!is_voted || poll->hide_results_until_close_) && !poll->is_closed_ && !poll->is_creator_ &&
-      !td_->auth_manager_->is_bot()) {
+  auto can_get_voters = can_get_poll_voters(poll_id, poll);
+  if (!can_get_voters && !td_->auth_manager_->is_bot()) {
     // hide the voter counts
     for (auto &poll_option : poll_options) {
       poll_option->voter_count_ = 0;
@@ -645,11 +641,11 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     Random::shuffle(as_mutable_span(option_order), rnd);
   }
 
-  return td_api::make_object<td_api::poll>(poll_id.get(), get_formatted_text_object(nullptr, poll->question_, true, -1),
-                                           std::move(poll_options), total_voter_count, std::move(recent_voters),
-                                           poll->is_anonymous_, poll->allow_multiple_answers_,
-                                           !poll->has_revoting_disabled_, std::move(option_order), std::move(poll_type),
-                                           open_period, close_date, poll->is_closed_);
+  return td_api::make_object<td_api::poll>(
+      poll_id.get(), get_formatted_text_object(nullptr, poll->question_, true, -1), std::move(poll_options),
+      total_voter_count, std::move(recent_voters), can_get_voters && !poll->is_anonymous_, poll->is_anonymous_,
+      poll->allow_multiple_answers_, !poll->has_revoting_disabled_, std::move(option_order), std::move(poll_type),
+      open_period, close_date, poll->is_closed_);
 }
 
 telegram_api::object_ptr<telegram_api::PollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
@@ -1119,11 +1115,23 @@ td_api::object_ptr<td_api::pollVoters> PollManager::get_poll_voters_object(
   return result;
 }
 
+bool PollManager::can_get_poll_voters(PollId poll_id, const Poll *poll) const {
+  CHECK(poll != nullptr);
+  if (is_local_poll_id(poll_id)) {
+    return false;
+  }
+  bool is_voted = false;
+  auto it = pending_answers_.find(poll_id);
+  if (it == pending_answers_.end() || (it->second.is_finished_ && poll->was_saved_)) {
+    for (auto &poll_option : poll->options_) {
+      is_voted |= poll_option.is_chosen_;
+    }
+  }
+  return (is_voted && !poll->hide_results_until_close_) || poll->is_closed_ || poll->is_creator_;
+}
+
 void PollManager::get_poll_voters(PollId poll_id, MessageFullId message_full_id, int32 option_id, int32 offset,
                                   int32 limit, Promise<td_api::object_ptr<td_api::pollVoters>> &&promise) {
-  if (is_local_poll_id(poll_id)) {
-    return promise.set_error(400, "Poll results can't be received");
-  }
   if (offset < 0) {
     return promise.set_error(400, "Invalid offset specified");
   }
@@ -1135,12 +1143,11 @@ void PollManager::get_poll_voters(PollId poll_id, MessageFullId message_full_id,
   }
 
   auto poll = get_poll(poll_id);
-  CHECK(poll != nullptr);
+  if (!can_get_poll_voters(poll_id, poll) || poll->is_anonymous_) {
+    return promise.set_error(400, "Poll results can't be received");
+  }
   if (option_id < 0 || static_cast<size_t>(option_id) >= poll->options_.size()) {
     return promise.set_error(400, "Invalid option ID specified");
-  }
-  if (poll->is_anonymous_) {
-    return promise.set_error(400, "Poll is anonymous");
   }
 
   auto &voters = get_poll_option_voters(poll, poll_id, option_id);

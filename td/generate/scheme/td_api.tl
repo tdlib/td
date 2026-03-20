@@ -587,6 +587,7 @@ webApp short_name:string title:string description:string photo:photo animation:a
 //@options List of poll answer options
 //@total_voter_count Total number of voters, participating in the poll
 //@recent_voter_ids Identifiers of recent voters, if the poll is non-anonymous
+//@can_get_voters True, if the current user can get voters in the poll
 //@is_anonymous True, if the poll is anonymous
 //@allows_multiple_answers True, if multiple answer options can be chosen simultaneously
 //@allows_revoting True, if the poll can be answered multiple times
@@ -595,7 +596,7 @@ webApp short_name:string title:string description:string photo:photo animation:a
 //@open_period Amount of time the poll will be active after creation, in seconds
 //@close_date Point in time (Unix timestamp) when the poll will automatically be closed
 //@is_closed True, if the poll is closed
-poll id:int64 question:formattedText options:vector<pollOption> total_voter_count:int32 recent_voter_ids:vector<MessageSender> is_anonymous:Bool allows_multiple_answers:Bool allows_revoting:Bool option_order:vector<int32> type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
+poll id:int64 question:formattedText options:vector<pollOption> total_voter_count:int32 recent_voter_ids:vector<MessageSender> can_get_voters:Bool is_anonymous:Bool allows_multiple_answers:Bool allows_revoting:Bool option_order:vector<int32> type:PollType open_period:int32 close_date:int32 is_closed:Bool = Poll;
 
 
 //@description Describes an alternative re-encoded quality of a video file
@@ -11921,7 +11922,8 @@ getThemeParametersJsonString theme:themeParameters = Text;
 //@option_ids 0-based identifiers of answer options, chosen by the user. User can choose more than 1 answer option only is the poll allows multiple answers
 setPollAnswer chat_id:int53 message_id:int53 option_ids:vector<int32> = Ok;
 
-//@description Returns message senders voted for the specified option in a non-anonymous polls. For optimal performance, the number of returned users is chosen by TDLib
+//@description Returns message senders voted for the specified option in a poll; use poll.can_get_voters to check whether the method can be used.
+//-For optimal performance, the number of returned users is chosen by TDLib
 //@chat_id Identifier of the chat to which the poll belongs
 //@message_id Identifier of the message containing the poll
 //@option_id 0-based identifier of the answer option
