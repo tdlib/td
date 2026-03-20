@@ -105,7 +105,8 @@ enum class MessageContentType : int32 {
   NoForwardsToggle,
   NoForwardsRequest,
   LivePhoto,
-  ManagedBotCreated
+  ManagedBotCreated,
+  PollAppendAnswer
 };
 // increase MessageUnsupported::CURRENT_VERSION each time a new message content type is added
 

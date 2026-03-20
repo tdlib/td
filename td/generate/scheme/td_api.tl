@@ -4866,6 +4866,11 @@ messageVideoChatEnded duration:int32 = MessageContent;
 //@description A message with information about an invitation to a video chat @group_call_id Identifier of the video chat. The video chat can be received through the method getGroupCall @user_ids Invited user identifiers
 messageInviteVideoChatParticipants group_call_id:int32 user_ids:vector<int53> = MessageContent;
 
+//@description A message with information about an added poll option
+//@poll_message_id Identifier of the message with the poll; can be an identifier of a deleted message or 0
+//@option The added option
+messagePollOptionAdded poll_message_id:int53 option:pollOption = MessageContent;
+
 //@description A newly created basic group @title Title of the basic group @member_user_ids User identifiers of members in the basic group
 messageBasicGroupChatCreate title:string member_user_ids:vector<int53> = MessageContent;
 
@@ -10736,6 +10741,7 @@ getMessageLocally chat_id:int53 message_id:int53 = Message;
 //-the message with the regular gift that was upgraded for messageUpgradedGift with origin of the type upgradedGiftOriginUpgrade,
 //-the message with gift purchase offer for messageUpgradedGiftPurchaseOfferRejected,
 //-the message with the request to disable content protection for messageChatHasProtectedContentToggled,
+//-the message with the poll for messagePollOptionAdded,
 //-and the topic creation message for topic messages without non-bundled replied message. Returns a 404 error if the message doesn't exist
 //@chat_id Identifier of the chat the message belongs to
 //@message_id Identifier of the reply message

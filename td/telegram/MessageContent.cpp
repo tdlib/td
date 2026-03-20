@@ -73,6 +73,8 @@
 #include "td/telegram/PollId.h"
 #include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.h"
+#include "td/telegram/PollOption.h"
+#include "td/telegram/PollOption.hpp"
 #include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/secret_api.hpp"
 #include "td/telegram/SecureValue.h"
@@ -1757,6 +1759,21 @@ class MessageManagedBotCreated final : public MessageContent {
   }
 };
 
+class MessagePollAppendAnswer final : public MessageContent {
+ public:
+  MessageId poll_message_id;
+  PollOption poll_option;
+
+  MessagePollAppendAnswer() = default;
+  explicit MessagePollAppendAnswer(MessageId poll_message_id, PollOption &&poll_option)
+      : poll_message_id(poll_message_id), poll_option(std::move(poll_option)) {
+  }
+
+  MessageContentType get_type() const final {
+    return MessageContentType::PollAppendAnswer;
+  }
+};
+
 template <class StorerT>
 static void store(const MessageContent *content, StorerT &storer) {
   CHECK(content != nullptr);
@@ -2880,6 +2897,18 @@ static void store(const MessageContent *content, StorerT &storer) {
       BEGIN_STORE_FLAGS();
       END_STORE_FLAGS();
       store(m->bot_user_id, storer);
+      break;
+    }
+    case MessageContentType::PollAppendAnswer: {
+      const auto *m = static_cast<const MessagePollAppendAnswer *>(content);
+      bool has_poll_message_id = m->poll_message_id.is_valid();
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_poll_message_id);
+      END_STORE_FLAGS();
+      if (has_poll_message_id) {
+        store(m->poll_message_id, storer);
+      }
+      store(m->poll_option, storer);
       break;
     }
     default:
@@ -4295,6 +4324,19 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
+    case MessageContentType::PollAppendAnswer: {
+      auto m = make_unique<MessagePollAppendAnswer>();
+      bool has_poll_message_id;
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_poll_message_id);
+      END_PARSE_FLAGS();
+      if (has_poll_message_id) {
+        parse(m->poll_message_id, parser);
+      }
+      parse(m->poll_option, parser);
+      content = std::move(m);
+      break;
+    }
 
     default:
       is_bad = true;
@@ -5165,6 +5207,7 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
     case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
       return false;
     case MessageContentType::Animation:
     case MessageContentType::Audio:
@@ -5334,6 +5377,7 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
     case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
       break;
     default:
       UNREACHABLE();
@@ -5539,6 +5583,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
     case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
       break;
     default:
       UNREACHABLE();
@@ -5776,6 +5821,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
     case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
       break;
     default:
       UNREACHABLE();
@@ -6047,6 +6093,7 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
     case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
       UNREACHABLE();
   }
   return Status::OK();
@@ -6238,6 +6285,7 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
     case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
       return 0;
     default:
       UNREACHABLE();
@@ -6388,6 +6436,14 @@ MessageFullId get_message_content_replied_message_id(DialogId dialog_id, const M
       }
 
       return {dialog_id, m->request_message_id};
+    }
+    case MessageContentType::PollAppendAnswer: {
+      auto *m = static_cast<const MessagePollAppendAnswer *>(content);
+      if (!m->poll_message_id.is_valid()) {
+        return MessageFullId();
+      }
+
+      return {dialog_id, m->poll_message_id};
     }
     // update getRepliedMessage documentation
     default:
@@ -6662,6 +6718,10 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       const auto *content = static_cast<const MessageManagedBotCreated *>(message_content);
       return {content->bot_user_id};
     }
+    case MessageContentType::PollAppendAnswer: {
+      const auto *content = static_cast<const MessagePollAppendAnswer *>(message_content);
+      return content->poll_option.get_min_user_ids();
+    }
     default:
       UNREACHABLE();
       break;
@@ -6705,6 +6765,10 @@ vector<ChannelId> get_message_content_min_channel_ids(const Td *td, const Messag
     case MessageContentType::GiveawayWinners: {
       const auto *content = static_cast<const MessageGiveawayWinners *>(message_content);
       return {content->boosted_channel_id};
+    }
+    case MessageContentType::PollAppendAnswer: {
+      const auto *content = static_cast<const MessagePollAppendAnswer *>(message_content);
+      return content->poll_option.get_min_channel_ids();
     }
     default:
       break;
@@ -7154,6 +7218,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
     case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
       break;
     default:
       UNREACHABLE();
@@ -7342,6 +7407,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
     case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -8148,6 +8214,14 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       const auto *lhs = static_cast<const MessageManagedBotCreated *>(old_content);
       const auto *rhs = static_cast<const MessageManagedBotCreated *>(new_content);
       if (lhs->bot_user_id != rhs->bot_user_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::PollAppendAnswer: {
+      const auto *lhs = static_cast<const MessagePollAppendAnswer *>(old_content);
+      const auto *rhs = static_cast<const MessagePollAppendAnswer *>(new_content);
+      if (lhs->poll_message_id != rhs->poll_message_id || lhs->poll_option != rhs->poll_option) {
         need_update = true;
       }
       break;
@@ -9598,6 +9672,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
     case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
       return nullptr;
     default:
       UNREACHABLE();
@@ -10429,11 +10504,18 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       }
       return td::make_unique<MessageManagedBotCreated>(bot_user_id);
     }
-    case telegram_api::messageActionPollAppendAnswer::ID:
-      return td::make_unique<MessageUnsupported>();
+    case telegram_api::messageActionPollAppendAnswer::ID: {
+      auto action = telegram_api::move_object_as<telegram_api::messageActionPollAppendAnswer>(action_ptr);
+      auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
+      if (!reply_to_message_id.is_valid() && reply_to_message_id != MessageId()) {
+        LOG(ERROR) << "Receive poll option addition with " << reply_to_message_id << " in " << owner_dialog_id;
+        reply_to_message_id = MessageId();
+      }
+      return td::make_unique<MessagePollAppendAnswer>(reply_to_message_id, PollOption(std::move(action->answer_)));
+    }
     case telegram_api::messageActionPollDeleteAnswer::ID:
       return td::make_unique<MessageUnsupported>();
-    default:
+   default:
       UNREACHABLE();
   }
   // explicit empty or wrong action
@@ -11185,6 +11267,11 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       return td_api::make_object<td_api::messageManagedBotCreated>(
           td->user_manager_->get_user_id_object(m->bot_user_id, "messageManagedBotCreated"));
     }
+    case MessageContentType::PollAppendAnswer: {
+      const auto *m = static_cast<const MessagePollAppendAnswer *>(content);
+      return td_api::make_object<td_api::messagePollOptionAdded>(m->poll_message_id.get(),
+                                                                 m->poll_option.get_poll_option_object(td));
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -11926,6 +12013,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
     case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
       return string();
     default:
       UNREACHABLE();
@@ -12470,6 +12558,11 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::ManagedBotCreated:
       break;
+    case MessageContentType::PollAppendAnswer: {
+      const auto *content = static_cast<const MessagePollAppendAnswer *>(message_content);
+      content->poll_option.add_dependencies(dependencies);
+      break;
+    }
     default:
       UNREACHABLE();
       break;

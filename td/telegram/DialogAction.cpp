@@ -467,6 +467,7 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::NoForwardsToggle:
     case MessageContentType::NoForwardsRequest:
     case MessageContentType::ManagedBotCreated:
+    case MessageContentType::PollAppendAnswer:
       return false;
     default:
       UNREACHABLE();
