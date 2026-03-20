@@ -311,6 +311,24 @@ bool PollManager::is_local_poll_id(PollId poll_id) {
   return poll_id.get() < 0 && poll_id.get() > std::numeric_limits<int32>::min();
 }
 
+Status PollManager::check_quiz_correct_option_ids(const vector<int32> &correct_option_ids, size_t option_count,
+                                                  bool allow_empty) {
+  if (!allow_empty && correct_option_ids.empty()) {
+    return Status::Error(400, "Correct quiz option list must be non-empty");
+  }
+  for (size_t i = 0; i + 1 < correct_option_ids.size(); i++) {
+    if (correct_option_ids[i] >= correct_option_ids[i + 1]) {
+      return Status::Error(400, "Correct quiz option list must be increasing");
+    }
+  }
+  for (auto correct_option_id : correct_option_ids) {
+    if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(option_count)) {
+      return Status::Error("Wrong quiz correct_option_id");
+    }
+  }
+  return Status::OK();
+}
+
 const PollManager::Poll *PollManager::get_poll(PollId poll_id) const {
   return polls_.get_pointer(poll_id);
 }

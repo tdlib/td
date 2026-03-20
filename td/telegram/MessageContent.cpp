@@ -4869,19 +4869,7 @@ static Result<InputMessageContent> create_input_message_content(
           auto type = td_api::move_object_as<td_api::pollTypeQuiz>(input_poll->type_);
           is_quiz = true;
           correct_option_ids = std::move(type->correct_option_ids_);
-          if (correct_option_ids.empty()) {
-            return Status::Error(400, "Correct option list must be non-empty");
-          }
-          for (auto correct_option_id : correct_option_ids) {
-            if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(input_poll->options_.size())) {
-              return Status::Error(400, "Wrong correct option identifier specified");
-            }
-          }
-          for (size_t i = 0; i + 1 < correct_option_ids.size(); i++) {
-            if (correct_option_ids[i] >= correct_option_ids[i + 1]) {
-              return Status::Error(400, "Correct option list must be increasing");
-            }
-          }
+          TRY_STATUS(PollManager::check_quiz_correct_option_ids(correct_option_ids, options.size(), false));
           TRY_RESULT_ASSIGN(
               explanation, get_formatted_text(td, dialog_id, std::move(type->explanation_), is_bot, true, true, false));
           break;

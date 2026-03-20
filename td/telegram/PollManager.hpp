@@ -156,12 +156,6 @@ void PollManager::Poll::parse(ParserT &parser) {
   if (is_quiz_) {
     if (has_multiple_correct_option_ids) {
       parse(correct_option_ids_, parser);
-      for (size_t i = 0; i + 1 < correct_option_ids_.size(); i++) {
-        if (correct_option_ids_[i] >= correct_option_ids_[i + 1]) {
-          parser.set_error("Correct option list must be increasing");
-          return;
-        }
-      }
     } else {
       int32 correct_option_id;
       parse(correct_option_id, parser);
@@ -169,11 +163,10 @@ void PollManager::Poll::parse(ParserT &parser) {
         correct_option_ids_.push_back(correct_option_id);
       }
     }
-    for (auto correct_option_id : correct_option_ids_) {
-      if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(options_.size())) {
-        parser.set_error("Wrong quiz correct_option_id");
-        return;
-      }
+    auto status = check_quiz_correct_option_ids(correct_option_ids_, options_.size(), true);
+    if (status.is_error()) {
+      parser.set_error(status.error().message().str());
+      return;
     }
   }
   if (has_recent_voter_user_ids) {
@@ -316,12 +309,6 @@ PollId PollManager::parse_poll(ParserT &parser) {
     if (is_quiz) {
       if (has_multiple_correct_option_ids) {
         parse(correct_option_ids, parser);
-        for (size_t i = 0; i + 1 < correct_option_ids.size(); i++) {
-          if (correct_option_ids[i] >= correct_option_ids[i + 1]) {
-            parser.set_error("Correct local quiz option list must be increasing");
-            return PollId();
-          }
-        }
       } else {
         int32 correct_option_id;
         parse(correct_option_id, parser);
@@ -329,11 +316,10 @@ PollId PollManager::parse_poll(ParserT &parser) {
           correct_option_ids.push_back(correct_option_id);
         }
       }
-      for (auto correct_option_id : correct_option_ids) {
-        if (correct_option_id < 0 || correct_option_id >= static_cast<int32>(option_texts.size())) {
-          parser.set_error("Wrong quiz correct_option_id");
-          return PollId();
-        }
+      auto status = check_quiz_correct_option_ids(correct_option_ids, option_texts.size(), false);
+      if (status.is_error()) {
+        parser.set_error(status.error().message().str());
+        return PollId();
       }
     }
     if (has_open_period) {

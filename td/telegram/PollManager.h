@@ -49,6 +49,9 @@ class PollManager final : public Actor {
 
   static bool is_local_poll_id(PollId poll_id);
 
+  static Status check_quiz_correct_option_ids(const vector<int32> &correct_option_ids, size_t option_count,
+                                              bool allow_empty);
+
   PollId create_poll(FormattedText &&question, vector<FormattedText> &&options, bool is_anonymous,
                      bool allow_multiple_answers, bool has_open_answers, bool has_revoting_disabled,
                      bool shuffle_answers, bool hide_results_until_close, bool is_quiz,
