@@ -11266,7 +11266,7 @@ translateMessageText chat_id:int53 message_id:int53 to_language_code:string tone
 //@tone Tone of the summarization; see translateText.tone for the list of supported values
 summarizeMessage chat_id:int53 message_id:int53 translate_to_language_code:string tone:string = FormattedText;
 
-//@description Changes text using an AI model
+//@description Changes text using an AI model. May return an error with a message "AICOMPOSE_FLOOD_PREMIUM" if Telegram Premium is required to send further requests
 //@text The original text
 //@translate_to_language_code Pass a language code to which the text will be translated; pass an empty string if translation isn't needed. See translateText.to_language_code for the list of supported values
 //@style_name Name of the style of the resulted text; handle updateTextCompositionStyles to get the list of supported styles; pass an empty string to keep the current style of the text
