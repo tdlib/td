@@ -571,7 +571,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   for (auto &poll_option : poll_options) {
     is_voted |= poll_option->is_chosen_;
   }
-  if (!is_voted && !poll->is_closed_ && !td_->auth_manager_->is_bot()) {
+  if (!is_voted && !poll->is_closed_ && !poll->is_creator_ && !td_->auth_manager_->is_bot()) {
     // hide the voter counts
     for (auto &poll_option : poll_options) {
       poll_option->voter_count_ = 0;
@@ -1873,21 +1873,23 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   auto explanation = get_formatted_text(td_->user_manager_.get(), std::move(poll_results->solution_),
                                         std::move(poll_results->solution_entities_), true, false, source);
   if (poll->is_quiz_) {
-    if ((!is_min || poll_server_is_closed) && poll->correct_option_ids_ != correct_option_ids) {
-      if (correct_option_ids.empty() && !poll->correct_option_ids_.empty()) {
-        LOG(ERROR) << "Can't change correct options of " << poll_id << " from " << poll->correct_option_ids_ << " to "
-                   << correct_option_ids << " from " << source;
-      } else {
-        poll->correct_option_ids_ = std::move(correct_option_ids);
-        is_changed = true;
+    if (!is_min || poll_server_is_closed) {
+      if (poll->correct_option_ids_ != correct_option_ids) {
+        if (correct_option_ids.empty() && !poll->correct_option_ids_.empty()) {
+          LOG(ERROR) << "Can't change correct options of " << poll_id << " from " << poll->correct_option_ids_ << " to "
+                     << correct_option_ids << " from " << source;
+        } else {
+          poll->correct_option_ids_ = std::move(correct_option_ids);
+          is_changed = true;
+        }
       }
-    }
-    if (poll->explanation_ != explanation && (!is_min || poll_server_is_closed)) {
-      if (explanation.text.empty() && !poll->explanation_.text.empty()) {
-        LOG(ERROR) << "Can't change known " << poll_id << " explanation to empty from " << source;
-      } else {
-        poll->explanation_ = std::move(explanation);
-        is_changed = true;
+      if (poll->explanation_ != explanation) {
+        if (explanation.text.empty() && !poll->explanation_.text.empty()) {
+          LOG(ERROR) << "Can't change known " << poll_id << " explanation to empty from " << source;
+        } else {
+          poll->explanation_ = std::move(explanation);
+          is_changed = true;
+        }
       }
     }
   } else {

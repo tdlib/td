@@ -388,7 +388,7 @@ outline paths:vector<closedVectorPath> = Outline;
 
 //@description Describes one answer option of a poll
 //@text Option text; 1-100 characters. Only custom emoji entities are allowed
-//@voter_count Number of voters for this option, available only for closed or voted polls
+//@voter_count Number of voters for this option, available only for closed or voted polls, or if the current user is the creator of the poll
 //@vote_percentage The percentage of votes for this option; 0-100
 //@is_chosen True, if the option was chosen by the user
 //@is_being_chosen True, if the option is being chosen by a pending setPollAnswer request
