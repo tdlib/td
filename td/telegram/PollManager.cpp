@@ -410,19 +410,11 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
     for (auto dialog_id : poll->recent_voter_dialog_ids_) {
       dependencies.add_message_sender_dependencies(dialog_id);
     }
-    bool has_added_by_users = false;
     for (auto option : poll->options_) {
-      if (option.added_by_dialog_id_ != DialogId()) {
-        dependencies.add_message_sender_dependencies(option.added_by_dialog_id_);
-        has_added_by_users = true;
-      }
+      option.add_dependencies(dependencies);
     }
     if (!dependencies.resolve_force(td_, "on_load_poll_from_database")) {
-      if (has_added_by_users) {
-        return;
-      }
-      poll->recent_voter_dialog_ids_.clear();
-      poll->recent_voter_min_channels_.clear();
+      return;
     }
     if (!poll->is_closed_ && poll->close_date_ != 0) {
       if (poll->close_date_ <= G()->server_time()) {

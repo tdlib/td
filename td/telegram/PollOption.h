@@ -15,6 +15,7 @@
 
 namespace td {
 
+class Dependencies;
 class Td;
 
 struct PollOption {
@@ -36,6 +37,8 @@ struct PollOption {
   telegram_api::object_ptr<telegram_api::PollAnswer> get_input_poll_answer() const;
 
   static vector<PollOption> get_poll_options(vector<telegram_api::object_ptr<telegram_api::PollAnswer>> &&poll_answers);
+
+  void add_dependencies(Dependencies &dependencies) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

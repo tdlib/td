@@ -6,6 +6,7 @@
 //
 #include "td/telegram/PollOption.h"
 
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageSender.h"
 
 #include "td/utils/algorithm.h"
@@ -59,6 +60,10 @@ vector<PollOption> PollOption::get_poll_options(
   return transform(std::move(poll_answers), [](telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr) {
     return PollOption(std::move(poll_answer_ptr));
   });
+}
+
+void PollOption::add_dependencies(Dependencies &dependencies) const {
+  dependencies.add_message_sender_dependencies(added_by_dialog_id_);
 }
 
 bool operator==(const PollOption &lhs, const PollOption &rhs) {
