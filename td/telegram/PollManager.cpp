@@ -856,11 +856,11 @@ void PollManager::set_poll_answer(PollId poll_id, MessageFullId message_full_id,
   if (!poll->allow_multiple_answers_ && option_ids.size() > 1) {
     return promise.set_error(400, "Can't choose more than 1 option in the poll");
   }
-  if (poll->is_quiz_ && option_ids.empty()) {
-    return promise.set_error(400, "Can't retract vote in a quiz");
+  if (poll->has_revoting_disabled_ && option_ids.empty()) {
+    return promise.set_error(400, "Can't retract vote in the poll");
   }
-  if (poll->is_quiz_ && pending_answers_.count(poll_id) != 0) {
-    return promise.set_error(400, "Can't revote in a quiz");
+  if (poll->has_revoting_disabled_ && pending_answers_.count(poll_id) != 0) {
+    return promise.set_error(400, "Can't revote in the poll");
   }
 
   FlatHashMap<uint64, int> affected_option_ids;

@@ -11927,7 +11927,7 @@ getJsonString json_value:JsonValue = Text;
 getThemeParametersJsonString theme:themeParameters = Text;
 
 
-//@description Changes the user answer to a poll. A poll in quiz mode can be answered only once
+//@description Changes the user answer to a poll
 //@chat_id Identifier of the chat to which the poll belongs
 //@message_id Identifier of the message containing the poll
 //@option_ids 0-based identifiers of answer options, chosen by the user. User can choose more than 1 answer option only is the poll allows multiple answers
