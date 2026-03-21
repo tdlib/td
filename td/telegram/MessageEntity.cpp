@@ -4968,6 +4968,7 @@ bool is_allowed_quote_entity_type(MessageEntity::Type type) {
     case MessageEntity::Type::Strikethrough:
     case MessageEntity::Type::Spoiler:
     case MessageEntity::Type::CustomEmoji:
+    case MessageEntity::Type::FormattedDate:
       return true;
     default:
       return false;
