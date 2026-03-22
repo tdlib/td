@@ -699,6 +699,7 @@ PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> 
   poll->open_period_ = open_period;
   poll->close_date_ = close_date;
   poll->is_closed_ = is_closed;
+  poll->is_creator_ = true;
 
   PollId poll_id(--current_local_poll_id_);
   CHECK(is_local_poll_id(poll_id));
@@ -876,7 +877,7 @@ void PollManager::set_poll_answer(PollId poll_id, MessageFullId message_full_id,
   }
   for (size_t option_index = 0; option_index < poll->options_.size(); option_index++) {
     if (poll->options_[option_index].is_chosen_) {
-      if (poll->is_quiz_) {
+      if (poll->has_revoting_disabled_) {
         return promise.set_error(400, "Can't revote in a quiz");
       }
       affected_option_ids[option_index + 1]++;
@@ -1568,7 +1569,10 @@ PollId PollManager::dup_poll(DialogId dialog_id, PollId poll_id) {
 bool PollManager::has_input_media(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
-  return !poll->is_quiz_ || !poll->correct_option_ids_.empty();
+  if (poll->is_quiz_ && poll->correct_option_ids_.empty()) {
+    return false;
+  }
+  return true;
 }
 
 tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll_id) const {
@@ -1786,6 +1790,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
     if (is_quiz != poll->is_quiz_) {
       poll->is_quiz_ = is_quiz;
+      is_changed = true;
+    }
+    if (poll_server->creator_ && !poll->is_creator_) {
+      poll->is_creator_ = true;
       is_changed = true;
     }
   }

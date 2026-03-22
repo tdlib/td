@@ -50,6 +50,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   STORE_FLAG(has_revoting_disabled_);
   STORE_FLAG(shuffle_answers_);
   STORE_FLAG(hide_results_until_close_);
+  STORE_FLAG(is_creator_);
   END_STORE_FLAGS();
 
   store(question_.text, storer);
@@ -114,6 +115,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   PARSE_FLAG(has_revoting_disabled_);
   PARSE_FLAG(shuffle_answers_);
   PARSE_FLAG(hide_results_until_close_);
+  PARSE_FLAG(is_creator_);
   END_PARSE_FLAGS();
   is_anonymous_ = !is_public;
 
