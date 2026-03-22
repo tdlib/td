@@ -47,6 +47,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <utility>
 
 namespace td {
 
@@ -653,12 +654,16 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     }
   }
   vector<int32> option_order;
-  if (poll->shuffle_answers_) {
+  if (poll->shuffle_answers_ && !poll->is_creator_) {
+    auto my_user_id = td_->user_manager_->get_my_id().get();
+    vector<std::pair<uint32, int32>> sort_pairs;
     for (int32 i = 0; i < static_cast<int32>(poll_options.size()); i++) {
-      option_order.push_back(i);
+      sort_pairs.emplace_back(crc32(PSLICE() << my_user_id << poll->options_[i].data_ << poll_id.get()), i);
     }
-    Random::Xorshift128plus rnd(td_->user_manager_->get_my_id().get() ^ poll_id.get());
-    Random::shuffle(as_mutable_span(option_order), rnd);
+    std::sort(sort_pairs.begin(), sort_pairs.end());
+    for (auto &sort_pair : sort_pairs) {
+      option_order.push_back(sort_pair.second);
+    }
   }
 
   return td_api::make_object<td_api::poll>(
