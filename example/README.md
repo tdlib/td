@@ -11,6 +11,7 @@ Choose your preferred programming language to see examples of usage and a detail
 
 - [Python](#python)
 - [JavaScript](#javascript)
+- [TypeScript](#typescript)
 - [Go](#go)
 - [Java](#java)
 - [Kotlin](#kotlin)
@@ -81,6 +82,11 @@ See also the source code of [DIBgram](https://github.com/DIBgram/DIBgram) - an u
 
 TDLib can be used also from NativeScript through the [JSON](https://github.com/tdlib/td#using-json) interface.
 See [nativescript-tglib](https://github.com/arpit2438735/nativescript-tglib) as an example of a NativeScript library for building Telegram clients.
+
+<a name="typescript"></a>
+## Using TDLib in TypeScript projects
+
+TDLib can be used from the TypeScript programming language through the [LevlamClaw](https://github.com/isopen/ton-ai-core/tree/master/agents/levlamclaw).
 
 <a name="go"></a>
 ## Using TDLib in Go projects
