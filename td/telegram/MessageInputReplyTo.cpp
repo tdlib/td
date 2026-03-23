@@ -70,6 +70,12 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
   }
 }
 
+MessageInputReplyTo MessageInputReplyTo::regular(MessageId message_id) {
+  MessageInputReplyTo result;
+  result.message_id_ = message_id;
+  return result;
+}
+
 void MessageInputReplyTo::add_dependencies(Dependencies &dependencies) const {
   dependencies.add_dialog_and_dependencies(dialog_id_);
   quote_.add_dependencies(dependencies);

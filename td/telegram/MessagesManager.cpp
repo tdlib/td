@@ -2921,7 +2921,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     if (reply_to_story_full_id.is_valid()) {
       input_reply_to = MessageInputReplyTo(reply_to_story_full_id);
     } else if (legacy_reply_to_message_id.is_valid()) {
-      input_reply_to = MessageInputReplyTo{legacy_reply_to_message_id, DialogId(), MessageQuote(), 0};
+      input_reply_to = MessageInputReplyTo::regular(legacy_reply_to_message_id);
     }
   }
   if (has_replied_message_info) {
@@ -20405,7 +20405,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
   CHECK(implicit_reply_to_message_id == MessageId() || implicit_reply_to_message_id.is_server());
   if (reply_to == nullptr) {
     if (!for_draft && implicit_reply_to_message_id.is_valid()) {
-      return MessageInputReplyTo{implicit_reply_to_message_id, DialogId(), MessageQuote(), 0};
+      return MessageInputReplyTo::regular(implicit_reply_to_message_id);
     }
     return {};
   }
@@ -20436,7 +20436,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
       auto message_id = MessageId(reply_to_message->message_id_);
       if (!message_id.is_valid()) {
         if (message_id == MessageId() && !for_draft && implicit_reply_to_message_id.is_valid()) {
-          return MessageInputReplyTo{implicit_reply_to_message_id, DialogId(), MessageQuote(), 0};
+          return MessageInputReplyTo::regular(implicit_reply_to_message_id);
         }
         return {};
       }
@@ -20456,7 +20456,7 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
                                      checklist_task_id};
         }
         if (!for_draft && implicit_reply_to_message_id.is_valid()) {
-          return MessageInputReplyTo{implicit_reply_to_message_id, DialogId(), MessageQuote(), 0};
+          return MessageInputReplyTo::regular(implicit_reply_to_message_id);
         }
         LOG(INFO) << "Can't find " << message_id << " in " << d->dialog_id;
 
@@ -20628,8 +20628,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, Message *m) 
         auto implicit_reply_to_message_id =
             get_message_topic(reply_d->dialog_id, replied_m).get_implicit_reply_to_message_id(td_);
         CHECK(implicit_reply_to_message_id == MessageId() || implicit_reply_to_message_id.is_server());
-        set_message_reply(reply_d, replied_m,
-                          MessageInputReplyTo{implicit_reply_to_message_id, DialogId(), MessageQuote(), 0}, true);
+        set_message_reply(reply_d, replied_m, MessageInputReplyTo::regular(implicit_reply_to_message_id), true);
       }
       replied_yet_unsent_messages_.erase(it);
     }
@@ -24087,7 +24086,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     }
     if (add_offer) {
       CHECK(input_reply_to == MessageInputReplyTo());
-      input_reply_to = MessageInputReplyTo{suggested_post_reply_to_message_id, DialogId(), MessageQuote(), 0};
+      input_reply_to = MessageInputReplyTo::regular(suggested_post_reply_to_message_id);
     }
 
     unique_ptr<Message> message;
@@ -24153,12 +24152,12 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
     if (!input_reply_to.is_valid() && copied_message.original_reply_to_message_id.is_valid() && is_secret) {
       auto it = forwarded_message_id_to_new_message_id.find(copied_message.original_reply_to_message_id);
       if (it != forwarded_message_id_to_new_message_id.end()) {
-        input_reply_to = MessageInputReplyTo{it->second, DialogId(), MessageQuote(), 0};
+        input_reply_to = MessageInputReplyTo::regular(it->second);
       }
     }
     if (add_offer) {
       CHECK(input_reply_to == MessageInputReplyTo());
-      input_reply_to = MessageInputReplyTo{suggested_post_reply_to_message_id, DialogId(), MessageQuote(), 0};
+      input_reply_to = MessageInputReplyTo::regular(suggested_post_reply_to_message_id);
     }
 
     unique_ptr<Message> message;
@@ -24250,7 +24249,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::send_quick_reply_s
     if (content.original_reply_to_message_id_.is_valid()) {
       auto it = original_message_id_to_new_message_id.find(content.original_reply_to_message_id_);
       if (it != original_message_id_to_new_message_id.end()) {
-        input_reply_to = MessageInputReplyTo{it->second, DialogId(), MessageQuote(), 0};
+        input_reply_to = MessageInputReplyTo::regular(it->second);
       }
     }
 
@@ -34893,7 +34892,7 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
   } else {
     auto implicit_reply_to_message_id = get_message_topic(d->dialog_id, m).get_implicit_reply_to_message_id(td_);
     CHECK(implicit_reply_to_message_id == MessageId() || implicit_reply_to_message_id.is_server());
-    set_message_reply(d, m, MessageInputReplyTo{implicit_reply_to_message_id, DialogId(), MessageQuote(), 0}, false);
+    set_message_reply(d, m, MessageInputReplyTo::regular(implicit_reply_to_message_id), false);
   }
 }
 

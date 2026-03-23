@@ -53,6 +53,8 @@ class MessageInputReplyTo {
   explicit MessageInputReplyTo(StoryFullId story_full_id) : story_full_id_(story_full_id) {
   }
 
+  static MessageInputReplyTo regular(MessageId message_id);
+
   // only for draft messages
   MessageInputReplyTo(Td *td, telegram_api::object_ptr<telegram_api::InputReplyTo> &&input_reply_to);
 
