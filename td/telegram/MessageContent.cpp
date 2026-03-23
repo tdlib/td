@@ -128,6 +128,7 @@
 #include "td/actor/MultiPromise.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/base64.h"
 #include "td/utils/emoji.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
@@ -11269,6 +11270,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     case MessageContentType::PollAppendAnswer: {
       const auto *m = static_cast<const MessagePollAppendAnswer *>(content);
       return td_api::make_object<td_api::messagePollOptionAdded>(m->poll_message_id.get(),
+                                                                 check_utf8(m->data) ? m->data : base64_encode(m->data),
                                                                  get_formatted_text_object(nullptr, m->text, true, -1));
     }
     default:

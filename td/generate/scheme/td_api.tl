@@ -387,7 +387,7 @@ outline paths:vector<closedVectorPath> = Outline;
 
 
 //@description Describes one answer option of a poll
-//@unique_id Unique identifier of the option
+//@unique_id Unique identifier of the option in the poll
 //@text Option text; 1-100 characters; may contain only custom emoji entities
 //@voter_count Number of voters for this option, available only for closed or voted polls, or if the current user is the creator of the poll
 //@vote_percentage The percentage of votes for this option; 0-100
@@ -4869,8 +4869,9 @@ messageInviteVideoChatParticipants group_call_id:int32 user_ids:vector<int53> = 
 
 //@description A message with information about an added poll option
 //@poll_message_id Identifier of the message with the poll; can be an identifier of a deleted message or 0
+//@option_unique_id Unique identifier of the added option in the poll
 //@text Text of the option; 1-100 characters; may contain only custom emoji entities
-messagePollOptionAdded poll_message_id:int53 text:formattedText = MessageContent;
+messagePollOptionAdded poll_message_id:int53 option_unique_id:string text:formattedText = MessageContent;
 
 //@description A newly created basic group @title Title of the basic group @member_user_ids User identifiers of members in the basic group
 messageBasicGroupChatCreate title:string member_user_ids:vector<int53> = MessageContent;
