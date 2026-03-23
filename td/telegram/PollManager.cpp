@@ -35,6 +35,7 @@
 #include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -44,6 +45,7 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/tl_helpers.h"
+#include "td/utils/utf8.h"
 
 #include <algorithm>
 #include <limits>
@@ -570,13 +572,21 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   if (it != pending_answers_.end() && !(it->second.is_finished_ && poll->was_saved_)) {
     const auto &chosen_options = it->second.options_;
     LOG(INFO) << "Have pending chosen options " << chosen_options << " in " << poll_id;
-    for (size_t i = 0; i < poll_options.size(); i++) {
-      poll_options[i]->is_being_chosen_ = td::contains(chosen_options, poll->options_[i].data_);
-      if (poll_options[i]->is_chosen_) {
+    for (auto &poll_option : poll_options) {
+      poll_option->is_being_chosen_ = td::contains(chosen_options, poll_option->unique_id_);
+      if (poll_option->is_chosen_) {
         voter_count_diff = -1;
-        poll_options[i]->voter_count_--;
-        poll_options[i]->is_chosen_ = false;
+        poll_option->voter_count_--;
+        poll_option->is_chosen_ = false;
       }
+    }
+  }
+  for (const auto &const_poll_option : poll_options) {
+    if (!check_utf8(const_poll_option->unique_id_)) {
+      for (auto &poll_option : poll_options) {
+        poll_option->unique_id_ = base64_encode(poll_option->unique_id_);
+      }
+      break;
     }
   }
 
