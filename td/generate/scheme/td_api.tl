@@ -387,7 +387,7 @@ outline paths:vector<closedVectorPath> = Outline;
 
 
 //@description Describes one answer option of a poll
-//@unique_id Unique identifier of the option in the poll
+//@id Unique identifier of the option in the poll
 //@text Option text; 1-100 characters; may contain only custom emoji entities
 //@voter_count Number of voters for this option, available only for closed or voted polls, or if the current user is the creator of the poll
 //@vote_percentage The percentage of votes for this option; 0-100
@@ -395,7 +395,7 @@ outline paths:vector<closedVectorPath> = Outline;
 //@is_being_chosen True, if the option is being chosen by a pending setPollAnswer request
 //@author Identifier of the user or chat who added the option; may be null if the option existed from creation of the poll
 //@addition_date Point in time (Unix timestamp) when the option was added; 0 if the option existed from creation of the poll
-pollOption unique_id:string text:formattedText voter_count:int32 vote_percentage:int32 is_chosen:Bool is_being_chosen:Bool author:MessageSender addition_date:int32 = PollOption;
+pollOption id:string text:formattedText voter_count:int32 vote_percentage:int32 is_chosen:Bool is_being_chosen:Bool author:MessageSender addition_date:int32 = PollOption;
 
 //@description Describes one answer option of a poll to be created
 //@text Option text; 1-100 characters. Only custom emoji entities are allowed to be added and only by Premium users
@@ -4869,9 +4869,9 @@ messageInviteVideoChatParticipants group_call_id:int32 user_ids:vector<int53> = 
 
 //@description A message with information about an added poll option
 //@poll_message_id Identifier of the message with the poll; can be an identifier of a deleted message or 0
-//@option_unique_id Unique identifier of the added option in the poll
+//@option_id Identifier of the added option in the poll
 //@text Text of the option; 1-100 characters; may contain only custom emoji entities
-messagePollOptionAdded poll_message_id:int53 option_unique_id:string text:formattedText = MessageContent;
+messagePollOptionAdded poll_message_id:int53 option_id:string text:formattedText = MessageContent;
 
 //@description A newly created basic group @title Title of the basic group @member_user_ids User identifiers of members in the basic group
 messageBasicGroupChatCreate title:string member_user_ids:vector<int53> = MessageContent;

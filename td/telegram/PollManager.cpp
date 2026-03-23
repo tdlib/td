@@ -573,7 +573,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     const auto &chosen_options = it->second.options_;
     LOG(INFO) << "Have pending chosen options " << chosen_options << " in " << poll_id;
     for (auto &poll_option : poll_options) {
-      poll_option->is_being_chosen_ = td::contains(chosen_options, poll_option->unique_id_);
+      poll_option->is_being_chosen_ = td::contains(chosen_options, poll_option->id_);
       if (poll_option->is_chosen_) {
         voter_count_diff = -1;
         poll_option->voter_count_--;
@@ -582,9 +582,9 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     }
   }
   for (const auto &const_poll_option : poll_options) {
-    if (!check_utf8(const_poll_option->unique_id_)) {
+    if (!check_utf8(const_poll_option->id_)) {
       for (auto &poll_option : poll_options) {
-        poll_option->unique_id_ = base64_encode(poll_option->unique_id_);
+        poll_option->id_ = base64_encode(poll_option->id_);
       }
       break;
     }
@@ -661,7 +661,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     auto my_user_id = td_->user_manager_->get_my_id().get();
     vector<std::pair<uint32, int32>> sort_pairs;
     for (int32 i = 0; i < static_cast<int32>(poll_options.size()); i++) {
-      sort_pairs.emplace_back(crc32(PSLICE() << my_user_id << poll->options_[i].data_ << poll_id.get()), i);
+      sort_pairs.emplace_back(crc32(PSLICE() << my_user_id << poll_options[i]->id_ << poll_id.get()), i);
     }
     std::sort(sort_pairs.begin(), sort_pairs.end());
     for (auto &sort_pair : sort_pairs) {
