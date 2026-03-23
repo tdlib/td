@@ -563,27 +563,20 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) co
 }
 
 td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, const Poll *poll) const {
-  vector<td_api::object_ptr<td_api::pollOption>> poll_options;
-  auto it = pending_answers_.find(poll_id);
+  auto poll_options = transform(
+      poll->options_, [td = td_](const PollOption &poll_option) { return poll_option.get_poll_option_object(td); });
   int32 voter_count_diff = 0;
-  if (it == pending_answers_.end() || (it->second.is_finished_ && poll->was_saved_)) {
-    poll_options = transform(
-        poll->options_, [td = td_](const PollOption &poll_option) { return poll_option.get_poll_option_object(td); });
-  } else {
+  auto it = pending_answers_.find(poll_id);
+  if (it != pending_answers_.end() && !(it->second.is_finished_ && poll->was_saved_)) {
     const auto &chosen_options = it->second.options_;
     LOG(INFO) << "Have pending chosen options " << chosen_options << " in " << poll_id;
-    for (auto &poll_option : poll->options_) {
-      auto is_being_chosen = td::contains(chosen_options, poll_option.data_);
-      if (poll_option.is_chosen_) {
+    for (size_t i = 0; i < poll_options.size(); i++) {
+      poll_options[i]->is_being_chosen_ = td::contains(chosen_options, poll->options_[i].data_);
+      if (poll_options[i]->is_chosen_) {
         voter_count_diff = -1;
+        poll_options[i]->voter_count_--;
+        poll_options[i]->is_chosen_ = false;
       }
-      poll_options.push_back(td_api::make_object<td_api::pollOption>(
-          get_formatted_text_object(nullptr, poll_option.text_, true, -1),
-          poll_option.voter_count_ - static_cast<int32>(poll_option.is_chosen_), 0, false, is_being_chosen,
-          poll_option.added_by_dialog_id_ == DialogId()
-              ? nullptr
-              : get_message_sender_object(td_, poll_option.added_by_dialog_id_, "pollOption"),
-          poll_option.added_date_));
     }
   }
 
