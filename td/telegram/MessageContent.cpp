@@ -1762,11 +1762,12 @@ class MessageManagedBotCreated final : public MessageContent {
 class MessagePollAppendAnswer final : public MessageContent {
  public:
   MessageId poll_message_id;
-  PollOption poll_option;
+  FormattedText text;
+  string data;
 
   MessagePollAppendAnswer() = default;
-  explicit MessagePollAppendAnswer(MessageId poll_message_id, PollOption &&poll_option)
-      : poll_message_id(poll_message_id), poll_option(std::move(poll_option)) {
+  explicit MessagePollAppendAnswer(MessageId poll_message_id, FormattedText &&text, string &&data)
+      : poll_message_id(poll_message_id), text(std::move(text)), data(std::move(data)) {
   }
 
   MessageContentType get_type() const final {
@@ -2908,7 +2909,8 @@ static void store(const MessageContent *content, StorerT &storer) {
       if (has_poll_message_id) {
         store(m->poll_message_id, storer);
       }
-      store(m->poll_option, storer);
+      store(m->text, storer);
+      store(m->data, storer);
       break;
     }
     default:
@@ -4333,7 +4335,8 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       if (has_poll_message_id) {
         parse(m->poll_message_id, parser);
       }
-      parse(m->poll_option, parser);
+      parse(m->text, parser);
+      parse(m->data, parser);
       content = std::move(m);
       break;
     }
@@ -6718,10 +6721,8 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
       const auto *content = static_cast<const MessageManagedBotCreated *>(message_content);
       return {content->bot_user_id};
     }
-    case MessageContentType::PollAppendAnswer: {
-      const auto *content = static_cast<const MessagePollAppendAnswer *>(message_content);
-      return content->poll_option.get_min_user_ids();
-    }
+    case MessageContentType::PollAppendAnswer:
+      break;
     default:
       UNREACHABLE();
       break;
@@ -6765,10 +6766,6 @@ vector<ChannelId> get_message_content_min_channel_ids(const Td *td, const Messag
     case MessageContentType::GiveawayWinners: {
       const auto *content = static_cast<const MessageGiveawayWinners *>(message_content);
       return {content->boosted_channel_id};
-    }
-    case MessageContentType::PollAppendAnswer: {
-      const auto *content = static_cast<const MessagePollAppendAnswer *>(message_content);
-      return content->poll_option.get_min_channel_ids();
     }
     default:
       break;
@@ -8221,7 +8218,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::PollAppendAnswer: {
       const auto *lhs = static_cast<const MessagePollAppendAnswer *>(old_content);
       const auto *rhs = static_cast<const MessagePollAppendAnswer *>(new_content);
-      if (lhs->poll_message_id != rhs->poll_message_id || lhs->poll_option != rhs->poll_option) {
+      if (lhs->poll_message_id != rhs->poll_message_id || lhs->text != rhs->text || lhs->data != rhs->data) {
         need_update = true;
       }
       break;
@@ -10511,7 +10508,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive poll option addition with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
-      return td::make_unique<MessagePollAppendAnswer>(reply_to_message_id, PollOption(std::move(action->answer_)));
+      PollOption option(std::move(action->answer_));
+      return td::make_unique<MessagePollAppendAnswer>(reply_to_message_id, std::move(option.text_),
+                                                      std::move(option.data_));
     }
     case telegram_api::messageActionPollDeleteAnswer::ID:
       return td::make_unique<MessageUnsupported>();
@@ -11270,7 +11269,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     case MessageContentType::PollAppendAnswer: {
       const auto *m = static_cast<const MessagePollAppendAnswer *>(content);
       return td_api::make_object<td_api::messagePollOptionAdded>(m->poll_message_id.get(),
-                                                                 m->poll_option.get_poll_option_object(td));
+                                                                 get_formatted_text_object(nullptr, m->text, true, -1));
     }
     default:
       UNREACHABLE();
@@ -12558,11 +12557,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
       break;
     case MessageContentType::ManagedBotCreated:
       break;
-    case MessageContentType::PollAppendAnswer: {
-      const auto *content = static_cast<const MessagePollAppendAnswer *>(message_content);
-      content->poll_option.add_dependencies(dependencies);
+    case MessageContentType::PollAppendAnswer:
       break;
-    }
     default:
       UNREACHABLE();
       break;

@@ -387,7 +387,7 @@ outline paths:vector<closedVectorPath> = Outline;
 
 
 //@description Describes one answer option of a poll
-//@text Option text; 1-100 characters. Only custom emoji entities are allowed
+//@text Option text; 1-100 characters; may contain only custom emoji entities
 //@voter_count Number of voters for this option, available only for closed or voted polls, or if the current user is the creator of the poll
 //@vote_percentage The percentage of votes for this option; 0-100
 //@is_chosen True, if the option was chosen by the user
@@ -585,7 +585,7 @@ webApp short_name:string title:string description:string photo:photo animation:a
 
 //@description Describes a poll
 //@id Unique poll identifier
-//@question Poll question; 1-300 characters. Only custom emoji entities are allowed
+//@question Poll question; 1-300 characters; may contain only custom emoji entities
 //@options List of poll answer options
 //@total_voter_count Total number of voters, participating in the poll
 //@recent_voter_ids Identifiers of recent voters, if the poll is non-anonymous
@@ -4868,8 +4868,8 @@ messageInviteVideoChatParticipants group_call_id:int32 user_ids:vector<int53> = 
 
 //@description A message with information about an added poll option
 //@poll_message_id Identifier of the message with the poll; can be an identifier of a deleted message or 0
-//@option The added option
-messagePollOptionAdded poll_message_id:int53 option:pollOption = MessageContent;
+//@text Text of the option; 1-100 characters; may contain only custom emoji entities
+messagePollOptionAdded poll_message_id:int53 text:formattedText = MessageContent;
 
 //@description A newly created basic group @title Title of the basic group @member_user_ids User identifiers of members in the basic group
 messageBasicGroupChatCreate title:string member_user_ids:vector<int53> = MessageContent;

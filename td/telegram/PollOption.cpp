@@ -66,22 +66,6 @@ void PollOption::add_dependencies(Dependencies &dependencies) const {
   dependencies.add_message_sender_dependencies(added_by_dialog_id_);
 }
 
-vector<UserId> PollOption::get_min_user_ids() const {
-  vector<UserId> result;
-  if (added_by_dialog_id_.get_type() == DialogType::User) {
-    result.push_back(added_by_dialog_id_.get_user_id());
-  }
-  return result;
-}
-
-vector<ChannelId> PollOption::get_min_channel_ids() const {
-  vector<ChannelId> result;
-  if (added_by_dialog_id_.get_type() == DialogType::Channel) {
-    result.push_back(added_by_dialog_id_.get_channel_id());
-  }
-  return result;
-}
-
 bool operator==(const PollOption &lhs, const PollOption &rhs) {
   // don't compare voter_count_ and is_chosen_
   return lhs.text_ == rhs.text_ && lhs.data_ == rhs.data_ && lhs.added_by_dialog_id_ == rhs.added_by_dialog_id_ &&

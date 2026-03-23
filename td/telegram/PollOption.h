@@ -42,10 +42,6 @@ struct PollOption {
 
   void add_dependencies(Dependencies &dependencies) const;
 
-  vector<UserId> get_min_user_ids() const;
-
-  vector<ChannelId> get_min_channel_ids() const;
-
   template <class StorerT>
   void store(StorerT &storer) const;
 
