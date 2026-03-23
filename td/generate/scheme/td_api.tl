@@ -403,7 +403,7 @@ inputPollOption text:formattedText = InputPollOption;
 
 //@class PollType @description Describes the type of poll
 
-//@description A regular poll @allows_adding_options True, if answer options can be added to the poll after creation using the method addPollOption; not supported in channel chats
+//@description A regular poll @allows_adding_options True, if answer options can be added to the poll after creation using the method addPollOption; not supported in channel chats and for anonymous polls
 pollTypeRegular allows_adding_options:Bool = PollType;
 
 //@description A poll in quiz mode, which has predefined correct answers
