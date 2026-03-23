@@ -38,6 +38,7 @@ class RepliedMessageInfo {
   unique_ptr<MessageContent> content_;  // for replies in other chats
   MessageQuote quote_;
   int32 todo_item_id_ = 0;
+  string poll_option_id_;
 
   friend bool operator==(const RepliedMessageInfo &lhs, const RepliedMessageInfo &rhs);
 

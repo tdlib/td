@@ -23,6 +23,7 @@ void MessageInputReplyTo::store(StorerT &storer) const {
   bool has_dialog_id = dialog_id_.is_valid();
   bool has_quote = !quote_.is_empty();
   bool has_todo_item_id = todo_item_id_ != 0;
+  bool has_poll_option_id = !poll_option_id_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_message_id);
   STORE_FLAG(has_story_full_id);
@@ -31,6 +32,7 @@ void MessageInputReplyTo::store(StorerT &storer) const {
   STORE_FLAG(false);
   STORE_FLAG(has_quote);
   STORE_FLAG(has_todo_item_id);
+  STORE_FLAG(has_poll_option_id);
   END_STORE_FLAGS();
   if (has_message_id) {
     td::store(message_id_, storer);
@@ -47,6 +49,9 @@ void MessageInputReplyTo::store(StorerT &storer) const {
   if (has_todo_item_id) {
     td::store(todo_item_id_, storer);
   }
+  if (has_poll_option_id) {
+    td::store(poll_option_id_, storer);
+  }
 }
 
 template <class ParserT>
@@ -58,6 +63,7 @@ void MessageInputReplyTo::parse(ParserT &parser) {
   bool has_quote_position_legacy;
   bool has_quote;
   bool has_todo_item_id;
+  bool has_poll_option_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_message_id);
   PARSE_FLAG(has_story_full_id);
@@ -66,6 +72,7 @@ void MessageInputReplyTo::parse(ParserT &parser) {
   PARSE_FLAG(has_quote_position_legacy);
   PARSE_FLAG(has_quote);
   PARSE_FLAG(has_todo_item_id);
+  PARSE_FLAG(has_poll_option_id);
   END_PARSE_FLAGS();
   if (has_message_id) {
     td::parse(message_id_, parser);
@@ -91,6 +98,9 @@ void MessageInputReplyTo::parse(ParserT &parser) {
   }
   if (has_todo_item_id) {
     td::parse(todo_item_id_, parser);
+  }
+  if (has_poll_option_id) {
+    td::parse(poll_option_id_, parser);
   }
 }
 
