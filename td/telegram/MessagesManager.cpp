@@ -4745,7 +4745,7 @@ bool MessagesManager::has_unread_poll_votes(DialogId dialog_id, const Message *m
     return false;
   }
   CHECK(m != nullptr);
-  if (m->content->get_type() != MessageContentType::Poll) {
+  if (m->forward_info != nullptr || m->had_forward_info || m->content->get_type() != MessageContentType::Poll) {
     return false;
   }
   return true;  // has_message_content_unread_poll_votes(m->content.get());
