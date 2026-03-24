@@ -36,6 +36,7 @@ enum class MessageSearchFilter : int32 {
   Pinned,
   UnreadReaction,
   Poll,
+  UnreadPollVote,
   Size
 };
 

@@ -2278,6 +2278,9 @@ class CliClient final : public Actor {
     if (filter == "ur" || filter == "ureaction") {
       return td_api::make_object<td_api::searchMessagesFilterUnreadReaction>();
     }
+    if (filter == "upv" || filter == "uvote") {
+      return td_api::make_object<td_api::searchMessagesFilterUnreadPollVote>();
+    }
     if (filter == "f" || filter == "failed") {
       return td_api::make_object<td_api::searchMessagesFilterFailedToSend>();
     }

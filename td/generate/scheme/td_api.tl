@@ -3276,6 +3276,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@last_read_outbox_message_id Identifier of the last read outgoing message
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
 //@unread_reaction_count Number of messages with unread reactions in the chat
+//@unread_poll_vote_count Number of messages with unread poll votes in the chat
 //@notification_settings Notification settings for the chat
 //@available_reactions Types of reaction, available in the chat
 //@message_auto_delete_time Current message auto-delete or self-destruct timer setting for the chat, in seconds; 0 if disabled. Self-destruct timer in secret chats starts after the message or its content is viewed. Auto-delete timer in other chats starts from the send date
@@ -3289,7 +3290,7 @@ videoChat group_call_id:int32 has_participants:Bool default_participant_id:Messa
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null if none
 //@client_data Application-specific data associated with the chat. (For example, the chat scroll position or local chat notification settings can be stored here.) Persistent if the message database is used
-chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int32 background_custom_emoji_id:int64 upgraded_gift_colors:upgradedGiftColors profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> chat_lists:vector<ChatList> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool view_as_topics:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 emoji_status:emojiStatus background:chatBackground theme:ChatTheme action_bar:ChatActionBar business_bot_manage_bar:businessBotManageBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhotoInfo accent_color_id:int32 background_custom_emoji_id:int64 upgraded_gift_colors:upgradedGiftColors profile_accent_color_id:int32 profile_background_custom_emoji_id:int64 permissions:chatPermissions last_message:message positions:vector<chatPosition> chat_lists:vector<ChatList> message_sender_id:MessageSender block_list:BlockList has_protected_content:Bool is_translatable:Bool is_marked_as_unread:Bool view_as_topics:Bool has_scheduled_messages:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 unread_reaction_count:int32 unread_poll_vote_count:int32 notification_settings:chatNotificationSettings available_reactions:ChatAvailableReactions message_auto_delete_time:int32 emoji_status:emojiStatus background:chatBackground theme:ChatTheme action_bar:ChatActionBar business_bot_manage_bar:businessBotManageBar video_chat:videoChat pending_join_requests:chatJoinRequestsInfo reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @total_count Approximate total number of chats found @chat_ids List of chat identifiers
 chats total_count:int32 chat_ids:vector<int53> = Chats;
@@ -5692,6 +5693,9 @@ searchMessagesFilterUnreadMention = SearchMessagesFilter;
 
 //@description Returns only messages with unread reactions for the current user. When using this filter the results can't be additionally filtered by a query or by the sending user
 searchMessagesFilterUnreadReaction = SearchMessagesFilter;
+
+//@description Returns only messages with unread poll votes for the current user. When using this filter the results can't be additionally filtered by a query or by the sending user
+searchMessagesFilterUnreadPollVote = SearchMessagesFilter;
 
 //@description Returns only failed to send messages. This filter can be used only if the message database is used
 searchMessagesFilterFailedToSend = SearchMessagesFilter;
@@ -9843,6 +9847,9 @@ updateChatUnreadMentionCount chat_id:int53 unread_mention_count:int32 = Update;
 //@description The chat unread_reaction_count has changed @chat_id Chat identifier @unread_reaction_count The number of messages with unread reactions left in the chat
 updateChatUnreadReactionCount chat_id:int53 unread_reaction_count:int32 = Update;
 
+//@description The chat unread_poll_vote_count has changed @chat_id Chat identifier @unread_poll_vote_count The number of messages with unread poll votes left in the chat
+updateChatUnreadPollVoteCount chat_id:int53 unread_poll_vote_count:int32 = Update;
+
 //@description A chat video chat state has changed @chat_id Chat identifier @video_chat New value of video_chat
 updateChatVideoChat chat_id:int53 video_chat:videoChat = Update;
 
@@ -11053,7 +11060,8 @@ searchChatMessages chat_id:int53 topic_id:MessageTopic query:string sender_id:Me
 //@query Query to search for
 //@offset Offset of the first entry to return as received from the previous request; use empty string to get the first chunk of results
 //@limit The maximum number of messages to be returned; up to 100. For optimal performance, the number of returned messages is chosen by TDLib and can be smaller than the specified limit
-//@filter Additional filter for messages to search; pass null to search for all messages. Filters searchMessagesFilterMention, searchMessagesFilterUnreadMention, searchMessagesFilterUnreadReaction, searchMessagesFilterFailedToSend, and searchMessagesFilterPinned are unsupported in this function
+//@filter Additional filter for messages to search; pass null to search for all messages. Filters searchMessagesFilterMention, searchMessagesFilterUnreadMention, searchMessagesFilterUnreadReaction,
+//-searchMessagesFilterUnreadPollVote, searchMessagesFilterFailedToSend, and searchMessagesFilterPinned are unsupported in this function
 //@chat_type_filter Additional filter for type of the chat of the searched messages; pass null to search for messages in all chats
 //@min_date If not 0, the minimum date of the messages to return
 //@max_date If not 0, the maximum date of the messages to return
@@ -11149,7 +11157,8 @@ getChatMessageByDate chat_id:int53 date:int32 = Message;
 //@description Returns sparse positions of messages of the specified type in the chat to be used for shared media scroll implementation. Returns the results in reverse chronological order (i.e., in order of decreasing message_id).
 //-Cannot be used in secret chats or with searchMessagesFilterFailedToSend filter without an enabled message database
 //@chat_id Identifier of the chat in which to return information about message positions
-//@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterMention, searchMessagesFilterUnreadMention, and searchMessagesFilterUnreadReaction are unsupported in this function
+//@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterMention, searchMessagesFilterUnreadMention, searchMessagesFilterUnreadReaction,
+//-and searchMessagesFilterUnreadPollVote are unsupported in this function
 //@from_message_id The message identifier from which to return information about message positions
 //@limit The expected number of message positions to be returned; 50-2000. A smaller number of positions can be returned, if there are not enough appropriate messages
 //@saved_messages_topic_id If not 0, only messages in the specified Saved Messages topic will be considered; pass 0 to consider all messages, or for chats other than Saved Messages
@@ -11158,7 +11167,8 @@ getChatSparseMessagePositions chat_id:int53 filter:SearchMessagesFilter from_mes
 //@description Returns information about the next messages of the specified type in the chat split by days. Returns the results in reverse chronological order. Can return partial result for the last returned day. Behavior of this method depends on the value of the option "utc_time_offset"
 //@chat_id Identifier of the chat in which to return information about messages
 //@topic_id Pass topic identifier to get the result only in specific topic; pass null to get the result in all topics; forum topics and message threads aren't supported
-//@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterMention, searchMessagesFilterUnreadMention, and searchMessagesFilterUnreadReaction are unsupported in this function
+//@filter Filter for message content. Filters searchMessagesFilterEmpty, searchMessagesFilterMention, searchMessagesFilterUnreadMention, searchMessagesFilterUnreadReaction,
+//-and searchMessagesFilterUnreadPollVote are unsupported in this function
 //@from_message_id The message identifier from which to return information about messages; use 0 to get results from the last message
 getChatMessageCalendar chat_id:int53 topic_id:MessageTopic filter:SearchMessagesFilter from_message_id:int53 = MessageCalendar;
 
@@ -11172,7 +11182,8 @@ getChatMessageCount chat_id:int53 topic_id:MessageTopic filter:SearchMessagesFil
 //@description Returns approximate 1-based position of a message among messages, which can be found by the specified filter in the chat and topic. Cannot be used in secret chats
 //@chat_id Identifier of the chat in which to find message position
 //@topic_id Pass topic identifier to get position among messages only in specific topic; pass null to get position among all chat messages; message threads aren't supported
-//@filter Filter for message content; searchMessagesFilterEmpty, searchMessagesFilterUnreadMention, searchMessagesFilterUnreadReaction, and searchMessagesFilterFailedToSend are unsupported in this function
+//@filter Filter for message content; searchMessagesFilterEmpty, searchMessagesFilterUnreadMention, searchMessagesFilterUnreadReaction, searchMessagesFilterUnreadPollVote,
+//-and searchMessagesFilterFailedToSend are unsupported in this function
 //@message_id Message identifier
 getChatMessagePosition chat_id:int53 topic_id:MessageTopic filter:SearchMessagesFilter message_id:int53 = Count;
 

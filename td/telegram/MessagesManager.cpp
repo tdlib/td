@@ -889,6 +889,15 @@ class SearchMessagesQuery final : public Td::ResultHandler {
       send_query(G()->net_query_creator().create(telegram_api::messages_getUnreadReactions(
           flags, std::move(input_peer), top_msg_id, std::move(saved_input_peer), offset_id, offset, limit,
           std::numeric_limits<int32>::max(), 0)));
+    } else if (filter == MessageSearchFilter::UnreadPollVote) {
+      CHECK(saved_input_peer == nullptr);
+      CHECK(tag_.is_empty());
+      int32 flags = 0;
+      if (top_msg_id != 0) {
+        flags |= telegram_api::messages_getUnreadPollVotes::TOP_MSG_ID_MASK;
+      }
+      send_query(G()->net_query_creator().create(telegram_api::messages_getUnreadPollVotes(
+          flags, std::move(input_peer), top_msg_id, offset_id, offset, limit, std::numeric_limits<int32>::max(), 0)));
     } else if (top_msg_id != 0 && query.empty() && !sender_dialog_id.is_valid() &&
                filter == MessageSearchFilter::Empty) {
       CHECK(saved_input_peer == nullptr);
@@ -929,6 +938,9 @@ class SearchMessagesQuery final : public Td::ResultHandler {
                                telegram_api::messages_search::ReturnType>::value,
                   "");
     static_assert(std::is_same<telegram_api::messages_getUnreadReactions::ReturnType,
+                               telegram_api::messages_search::ReturnType>::value,
+                  "");
+    static_assert(std::is_same<telegram_api::messages_getUnreadPollVotes::ReturnType,
                                telegram_api::messages_search::ReturnType>::value,
                   "");
     static_assert(
@@ -1092,6 +1104,7 @@ class GetSearchCountersQuery final : public Td::ResultHandler {
     CHECK(filter != MessageSearchFilter::UnreadMention);
     CHECK(filter != MessageSearchFilter::FailedToSend);
     CHECK(filter != MessageSearchFilter::UnreadReaction);
+    CHECK(filter != MessageSearchFilter::UnreadPollVote);
     vector<telegram_api::object_ptr<telegram_api::MessagesFilter>> filters;
     filters.push_back(get_input_messages_filter(filter));
 
@@ -3130,6 +3143,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
     STORE_FLAG(is_saved_messages_view_as_messages_inited);
     STORE_FLAG(has_business_bot_manage_bar);
     STORE_FLAG(is_forum_tabs);
+    STORE_FLAG(need_repair_unread_poll_vote_count);
     END_STORE_FLAGS();
   }
 
@@ -3413,6 +3427,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     PARSE_FLAG(is_saved_messages_view_as_messages_inited);
     PARSE_FLAG(has_business_bot_manage_bar);
     PARSE_FLAG(is_forum_tabs);
+    PARSE_FLAG(need_repair_unread_poll_vote_count);
     END_PARSE_FLAGS();
   } else {
     need_repair_action_bar = false;
@@ -3501,6 +3516,11 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   LOG(INFO) << "Set unread reaction count in " << dialog_id << " to " << unread_reaction_count;
   if (unread_reaction_count < 0) {
     unread_reaction_count = 0;
+  }
+  unread_poll_vote_count = message_count_by_index[message_search_filter_index(MessageSearchFilter::UnreadPollVote)];
+  LOG(INFO) << "Set unread poll vote count in " << dialog_id << " to " << unread_poll_vote_count;
+  if (unread_poll_vote_count < 0) {
+    unread_poll_vote_count = 0;
   }
   if (has_client_data) {
     parse(client_data, parser);
@@ -3964,6 +3984,8 @@ void MessagesManager::update_message_count_by_index(Dialog *d, int diff, const M
       MessageSearchFilter::UnreadMention);  // unread mention count has been already manually updated
   index_mask &= ~message_search_filter_index_mask(
       MessageSearchFilter::UnreadReaction);  // unread reaction count has been already manually updated
+  index_mask &= ~message_search_filter_index_mask(
+      MessageSearchFilter::UnreadPollVote);  // unread poll vote count has been already manually updated
 
   update_message_count_by_index(d, diff, index_mask);
 }
@@ -4038,6 +4060,9 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
   }
   if (has_unread_message_reactions(dialog_id, m)) {
     index_mask |= message_search_filter_index_mask(MessageSearchFilter::UnreadReaction);
+  }
+  if (has_unread_poll_votes(dialog_id, m)) {
+    index_mask |= message_search_filter_index_mask(MessageSearchFilter::UnreadPollVote);
   }
   LOG(INFO) << "Have index mask " << index_mask << " for " << m->message_id << " in " << dialog_id;
   return index_mask;
@@ -4713,6 +4738,17 @@ bool MessagesManager::has_unread_message_reactions(DialogId dialog_id, const Mes
   CHECK(m != nullptr);
   return m->reactions != nullptr && !m->reactions->unread_reactions_.empty() &&
          is_visible_message_reactions(dialog_id, m);
+}
+
+bool MessagesManager::has_unread_poll_votes(DialogId dialog_id, const Message *m) const {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+  CHECK(m != nullptr);
+  if (m->content->get_type() != MessageContentType::Poll) {
+    return false;
+  }
+  return true;  // has_message_content_unread_poll_votes(m->content.get());
 }
 
 void MessagesManager::on_message_reply_info_changed(DialogId dialog_id, const Message *m) const {
@@ -5626,11 +5662,17 @@ void MessagesManager::on_message_edited(MessageFullId message_full_id, int32 pts
   }
   update_used_hashtags(dialog_id, m);
 
-  if (!had_message &&
-      ((m->reactions != nullptr && !m->reactions->unread_reactions_.empty()) || d->unread_reaction_count > 0)) {
-    // if new message with unread reactions was added or the chat has unread reactions,
-    // then number of unread reactions could have been changed, so reload the number of unread reactions
-    repair_dialog_unread_reaction_count(d, Promise<Unit>(), "on_message_edited");
+  if (!had_message && !td_->auth_manager_->is_bot()) {
+    if ((m->reactions != nullptr && !m->reactions->unread_reactions_.empty()) || d->unread_reaction_count > 0) {
+      // if new message with unread reactions was added or the chat has unread reactions,
+      // then number of unread reactions could have been changed, so reload the number of unread reactions
+      repair_dialog_unread_reaction_count(d, Promise<Unit>(), "on_message_edited");
+    }
+    if (has_unread_poll_votes(dialog_id, m) || d->unread_poll_vote_count > 0) {
+      // if new message with unread poll votes was added or the chat has unread poll votes,
+      // then number of unread poll votes could have been changed, so reload the number of unread poll votes
+      repair_dialog_unread_poll_vote_count(d, Promise<Unit>(), "on_message_edited");
+    }
   }
 }
 
@@ -7490,6 +7532,11 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
         // update_dialog_reaction_notification_count(d);
         send_update_chat_unread_reaction_count(d, "on_get_dialog_messages_search_result");
       }
+      if (filter == MessageSearchFilter::UnreadPollVote) {
+        d->unread_poll_vote_count = old_message_count;
+        // update_dialog_poll_vote_notification_count(d);
+        send_update_chat_unread_poll_vote_count(d, "on_get_dialog_messages_search_result");
+      }
       update_dialog = true;
     }
 
@@ -7539,6 +7586,7 @@ void MessagesManager::on_get_dialog_message_count(DialogId dialog_id, MessageTop
   CHECK(filter != MessageSearchFilter::Empty);
   CHECK(filter != MessageSearchFilter::UnreadMention);
   CHECK(filter != MessageSearchFilter::UnreadReaction);
+  CHECK(filter != MessageSearchFilter::UnreadPollVote);
   CHECK(filter != MessageSearchFilter::FailedToSend);
 
   auto &old_message_count = d->message_count_by_index[message_search_filter_index(filter)];
@@ -8563,6 +8611,10 @@ void MessagesManager::clear_dialog_message_list(Dialog *d, bool remove_from_dial
     set_dialog_unread_reaction_count(d, 0);
     send_update_chat_unread_reaction_count(d, "delete_all_dialog_messages");
   }
+  if (d->unread_poll_vote_count > 0) {
+    set_dialog_unread_poll_vote_count(d, 0);
+    send_update_chat_unread_poll_vote_count(d, "delete_all_dialog_messages");
+  }
 
   bool has_last_message_id = d->last_message_id != MessageId();
   MessageId last_clear_history_message_id;
@@ -8955,6 +9007,20 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
   td_->dialog_manager_->get_dialog_info_full(d->dialog_id, Auto(), "repair_channel_server_unread_count");
 }
 
+void MessagesManager::repair_dialog_unread_mention_count(Dialog *d, const char *source) {
+  CHECK(d != nullptr);
+
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (!d->need_repair_unread_mention_count) {
+    d->need_repair_unread_mention_count = true;
+    on_dialog_updated(d->dialog_id, "repair_dialog_unread_mention_count");
+  }
+
+  send_get_dialog_query(d->dialog_id, Promise<Unit>(), 0, source);
+}
+
 void MessagesManager::repair_dialog_unread_reaction_count(Dialog *d, Promise<Unit> &&promise, const char *source) {
   CHECK(d != nullptr);
 
@@ -8969,18 +9035,18 @@ void MessagesManager::repair_dialog_unread_reaction_count(Dialog *d, Promise<Uni
   send_get_dialog_query(d->dialog_id, std::move(promise), 0, source);
 }
 
-void MessagesManager::repair_dialog_unread_mention_count(Dialog *d, const char *source) {
+void MessagesManager::repair_dialog_unread_poll_vote_count(Dialog *d, Promise<Unit> &&promise, const char *source) {
   CHECK(d != nullptr);
 
   if (td_->auth_manager_->is_bot()) {
     return;
   }
-  if (!d->need_repair_unread_mention_count) {
-    d->need_repair_unread_mention_count = true;
-    on_dialog_updated(d->dialog_id, "repair_dialog_unread_mention_count");
+  if (!d->need_repair_unread_poll_vote_count) {
+    d->need_repair_unread_poll_vote_count = true;
+    on_dialog_updated(d->dialog_id, "repair_dialog_unread_poll_vote_count");
   }
 
-  send_get_dialog_query(d->dialog_id, Promise<Unit>(), 0, source);
+  send_get_dialog_query(d->dialog_id, std::move(promise), 0, source);
 }
 
 void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count,
@@ -11735,6 +11801,14 @@ void MessagesManager::set_dialog_unread_reaction_count(Dialog *d, int32 unread_r
   d->message_count_by_index[message_search_filter_index(MessageSearchFilter::UnreadReaction)] = unread_reaction_count;
 }
 
+void MessagesManager::set_dialog_unread_poll_vote_count(Dialog *d, int32 unread_poll_vote_count) {
+  CHECK(d->unread_poll_vote_count != unread_poll_vote_count);
+  CHECK(unread_poll_vote_count >= 0);
+
+  d->unread_poll_vote_count = unread_poll_vote_count;
+  d->message_count_by_index[message_search_filter_index(MessageSearchFilter::UnreadPollVote)] = unread_poll_vote_count;
+}
+
 void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
   CHECK(!td_->auth_manager_->is_bot());
   LOG(INFO) << "Set " << d->dialog_id << " is_empty to true from " << source;
@@ -11761,6 +11835,10 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
   if (d->unread_reaction_count > 0) {
     set_dialog_unread_reaction_count(d, 0);
     send_update_chat_unread_reaction_count(d, "set_dialog_is_empty");
+  }
+  if (d->unread_poll_vote_count > 0) {
+    set_dialog_unread_poll_vote_count(d, 0);
+    send_update_chat_unread_poll_vote_count(d, "set_dialog_is_empty");
   }
   if (d->reply_markup_message_id != MessageId()) {
     set_dialog_reply_markup(d, MessageId(), nullptr);
@@ -12348,6 +12426,11 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
                  << dialog_id;
       dialog->unread_reactions_count_ = 0;
     }
+    if (dialog->unread_poll_votes_count_ < 0) {
+      LOG(ERROR) << "Receive " << dialog->unread_poll_votes_count_
+                 << " as number of messages with unread poll votes in " << dialog_id;
+      dialog->unread_poll_votes_count_ = 0;
+    }
     if (dialog->ttl_period_ < 0) {
       LOG(ERROR) << "Receive " << dialog->ttl_period_ << " as message auto-delete time in " << dialog_id;
       dialog->ttl_period_ = 0;
@@ -12514,6 +12597,21 @@ void MessagesManager::on_get_dialogs(FolderId folder_id, vector<tl_object_ptr<te
         set_dialog_unread_reaction_count(d, dialog->unread_reactions_count_);
         // update_dialog_reaction_notification_count(d);
         send_update_chat_unread_reaction_count(d, source);
+      }
+    }
+    if (!G()->use_message_database() || is_new || d->need_repair_unread_poll_vote_count) {
+      if (d->need_repair_unread_poll_vote_count) {
+        if (d->unread_poll_vote_count != dialog->unread_poll_votes_count_) {
+          LOG(INFO) << "Repaired unread poll vote count in " << dialog_id << " from " << d->unread_poll_vote_count
+                    << " to " << dialog->unread_poll_votes_count_;
+        }
+        d->need_repair_unread_poll_vote_count = false;
+        on_dialog_updated(dialog_id, "repaired dialog unread poll vote count");
+      }
+      if (d->unread_poll_vote_count != dialog->unread_poll_votes_count_ && !td_->auth_manager_->is_bot()) {
+        set_dialog_unread_poll_vote_count(d, dialog->unread_poll_votes_count_);
+        // update_dialog_poll_vote_notification_count(d);
+        send_update_chat_unread_poll_vote_count(d, source);
       }
     }
 
@@ -13071,6 +13169,9 @@ void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message 
   }
   if (has_unread_message_reactions(d->dialog_id, m)) {
     on_unread_message_reaction_removed(d, m, source);
+  }
+  if (has_unread_poll_votes(d->dialog_id, m)) {
+    // on_unread_poll_vote_removed(d, m, source);
   }
 
   update_message_count_by_index(d, -1, m);
@@ -16765,8 +16866,9 @@ td_api::object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *
       can_delete.for_all_users_, td_->dialog_manager_->can_report_dialog(d->dialog_id),
       d->notification_settings.silent_send_message, d->server_unread_count + d->local_unread_count,
       d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
-      d->unread_reaction_count, get_chat_notification_settings_object(&d->notification_settings),
-      std::move(available_reactions), d->message_ttl.get_message_auto_delete_time_object(),
+      d->unread_reaction_count, d->unread_poll_vote_count,
+      get_chat_notification_settings_object(&d->notification_settings), std::move(available_reactions),
+      d->message_ttl.get_message_auto_delete_time_object(),
       td_->dialog_manager_->get_dialog_emoji_status_object(d->dialog_id), get_chat_background_object(d),
       get_dialog_chat_theme_object(d), get_chat_action_bar_object(d), get_business_bot_manage_bar_object(d),
       get_video_chat_object(d), get_chat_join_requests_info_object(d), d->reply_markup_message_id.get(),
@@ -17547,7 +17649,8 @@ void MessagesManager::get_dialog_message_calendar(DialogId dialog_id,
 
   CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
   if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Mention ||
-      filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction) {
+      filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
+      filter == MessageSearchFilter::UnreadPollVote) {
     if (filter != MessageSearchFilter::Empty && message_topic.is_saved_messages()) {
       return promise.set_value(td_api::make_object<td_api::messageCalendar>());
     }
@@ -17745,7 +17848,8 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
     return result;
   }
 
-  if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction) {
+  if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
+      filter == MessageSearchFilter::UnreadPollVote) {
     if (!query.empty()) {
       promise.set_error(400, "Non-empty query is unsupported with the specified filter");
       return result;
@@ -17823,7 +17927,7 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
       break;
     case DialogType::SecretChat:
       if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::Pinned ||
-          filter == MessageSearchFilter::UnreadReaction) {
+          filter == MessageSearchFilter::UnreadReaction || filter == MessageSearchFilter::UnreadPollVote) {
         promise.set_value(Unit());
       } else {
         promise.set_error(500, "Message search is not supported in secret chats");
@@ -18324,8 +18428,13 @@ void MessagesManager::on_search_dialog_message_db_result(int64 random_id, Dialog
     }
     if (filter == MessageSearchFilter::UnreadReaction) {
       d->unread_reaction_count = message_count;
-      // update_dialog_mention_notification_count(d);
+      // update_dialog_reaction_notification_count(d);
       send_update_chat_unread_reaction_count(d, "on_search_dialog_message_db_result");
+    }
+    if (filter == MessageSearchFilter::UnreadPollVote) {
+      d->unread_poll_vote_count = message_count;
+      // update_dialog_poll_vote_notification_count(d);
+      send_update_chat_unread_poll_vote_count(d, "on_search_dialog_message_db_result");
     }
     on_dialog_updated(dialog_id, "on_search_dialog_message_db_result");
   }
@@ -18611,7 +18720,7 @@ void MessagesManager::get_dialog_sparse_message_positions(
   CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
   if (filter == MessageSearchFilter::Empty || filter == MessageSearchFilter::Mention ||
       filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
-      filter == MessageSearchFilter::Pinned) {
+      filter == MessageSearchFilter::UnreadPollVote || filter == MessageSearchFilter::Pinned) {
     return promise.set_error(400, "The filter is not supported");
   }
 
@@ -18702,7 +18811,7 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id,
 
   if (message_topic.is_saved_messages()) {
     if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
-        filter == MessageSearchFilter::FailedToSend) {
+        filter == MessageSearchFilter::UnreadPollVote || filter == MessageSearchFilter::FailedToSend) {
       return promise.set_value(0);
     }
     if (return_local) {
@@ -18730,6 +18839,9 @@ void MessagesManager::get_dialog_message_count(DialogId dialog_id,
     }
     if (message_count == -1 && filter == MessageSearchFilter::UnreadReaction) {
       message_count = d->unread_reaction_count;
+    }
+    if (message_count == -1 && filter == MessageSearchFilter::UnreadPollVote) {
+      message_count = d->unread_poll_vote_count;
     }
     if (message_count != -1 || return_local || dialog_type == DialogType::SecretChat ||
         filter == MessageSearchFilter::FailedToSend) {
@@ -25099,7 +25211,8 @@ NotificationGroupFromDatabase MessagesManager::get_message_notification_group_fo
   NotificationGroupFromDatabase result;
   VLOG(notifications) << "Found " << (from_mentions ? "Mentions " : "Messages ") << group_info.get_group_id() << '/'
                       << d->dialog_id << " by " << group_id << " with " << d->unread_mention_count
-                      << " unread mentions, " << d->unread_reaction_count << " unread reactions, pinned "
+                      << " unread mentions, " << d->unread_reaction_count << " unread reactions, "
+                      << d->unread_poll_vote_count << " unread poll votes, pinned "
                       << d->notification_info->pinned_message_notification_message_id_ << ", new secret chat "
                       << d->notification_info->new_secret_chat_notification_id_ << " and "
                       << d->server_unread_count + d->local_unread_count << " unread messages";
@@ -26590,6 +26703,22 @@ void MessagesManager::send_update_chat_unread_reaction_count(const Dialog *d, co
   send_closure(G()->td(), &Td::send_update,
                td_api::make_object<td_api::updateChatUnreadReactionCount>(
                    get_chat_id_object(d->dialog_id, "updateChatUnreadReactionCount"), d->unread_reaction_count));
+}
+
+void MessagesManager::send_update_chat_unread_poll_vote_count(const Dialog *d, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  CHECK(d != nullptr);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id
+                                        << " in send_update_chat_unread_poll_vote_count from " << source;
+  LOG(INFO) << "Update unread poll vote message count in " << d->dialog_id << " to " << d->unread_poll_vote_count
+            << " from " << source;
+  on_dialog_updated(d->dialog_id, "send_update_chat_unread_poll_vote_count");
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updateChatUnreadPollVoteCount>(
+                   get_chat_id_object(d->dialog_id, "updateChatUnreadPollVoteCount"), d->unread_poll_vote_count));
 }
 
 void MessagesManager::send_update_chat_position(DialogListId dialog_list_id, const Dialog *d,
@@ -30103,6 +30232,10 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
     on_unread_message_reaction_added(d, m, "add_message_to_dialog_message_list");
     send_update_chat_unread_reaction_count(d, "add_message_to_dialog_message_list");
   }
+  if (need_update && has_unread_poll_votes(dialog_id, m)) {
+    // on_unread_poll_vote_added(d, m, "add_message_to_dialog_message_list");
+    // send_update_chat_unread_poll_vote_count(d, "add_message_to_dialog_message_list");
+  }
   if (need_update) {
     update_message_count_by_index(d, +1, m);
   }
@@ -30329,7 +30462,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
       if (!from_database && (from_update || message->edit_date >= m->edit_date)) {
         const int32 INDEX_MASK_MASK = ~(message_search_filter_index_mask(MessageSearchFilter::UnreadMention) |
-                                        message_search_filter_index_mask(MessageSearchFilter::UnreadReaction));
+                                        message_search_filter_index_mask(MessageSearchFilter::UnreadReaction) |
+                                        message_search_filter_index_mask(MessageSearchFilter::UnreadPollVote));
         auto old_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location({dialog_id, m->message_id});
         auto old_file_ids = get_message_file_ids(m);
@@ -32745,11 +32879,14 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<DraftMessage> &&draft
   if (d->need_repair_channel_server_unread_count) {
     repair_channel_server_unread_count(d);
   }
-  if (d->need_repair_unread_reaction_count) {
-    repair_dialog_unread_reaction_count(d, Promise<Unit>(), "fix_new_dialog 17");
-  }
   if (d->need_repair_unread_mention_count) {
-    repair_dialog_unread_mention_count(d, "fix_new_dialog 18");
+    repair_dialog_unread_mention_count(d, "fix_new_dialog 17");
+  }
+  if (d->need_repair_unread_reaction_count) {
+    repair_dialog_unread_reaction_count(d, Promise<Unit>(), "fix_new_dialog 18");
+  }
+  if (d->need_repair_unread_poll_vote_count) {
+    repair_dialog_unread_poll_vote_count(d, Promise<Unit>(), "fix_new_dialog 19");
   }
 }
 
@@ -33447,12 +33584,14 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   }
 
   if (td_->auth_manager_->is_bot()) {
+    // remove legacy values
     if (d->unread_mention_count > 0) {
       set_dialog_unread_mention_count(d, 0);
     }
     if (d->unread_reaction_count > 0) {
       set_dialog_unread_reaction_count(d, 0);
     }
+    // unread_poll_vote_count is always 0 for bots
   }
 
   auto dialog_type = d->dialog_id.get_type();
@@ -34162,7 +34301,7 @@ void MessagesManager::process_get_channel_difference_updates(
 void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_message_id,
                                             MessageId read_inbox_max_message_id, int32 server_unread_count,
                                             int32 unread_mention_count, int32 unread_reaction_count,
-                                            MessageId read_outbox_max_message_id,
+                                            int32 unread_poll_vote_count, MessageId read_outbox_max_message_id,
                                             vector<tl_object_ptr<telegram_api::Message>> &&messages) {
   FlatHashMap<MessageFullId, tl_object_ptr<telegram_api::Message>, MessageFullIdHash> message_full_id_to_message;
   for (auto &message : messages) {
@@ -34268,15 +34407,22 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     set_dialog_last_read_inbox_message_id(d, read_inbox_max_message_id, server_unread_count, d->local_unread_count,
                                           false, "on_get_channel_dialog 50");
   }
-  if (d->unread_mention_count != unread_mention_count && !td_->auth_manager_->is_bot()) {
-    set_dialog_unread_mention_count(d, unread_mention_count);
-    update_dialog_mention_notification_count(d);
-    send_update_chat_unread_mention_count(d);
-  }
-  if (d->unread_reaction_count != unread_reaction_count && !td_->auth_manager_->is_bot()) {
-    set_dialog_unread_reaction_count(d, unread_reaction_count);
-    // update_dialog_mention_notification_count(d);
-    send_update_chat_unread_reaction_count(d, "on_get_channel_dialog 60");
+  if (!td_->auth_manager_->is_bot()) {
+    if (d->unread_mention_count != unread_mention_count) {
+      set_dialog_unread_mention_count(d, unread_mention_count);
+      update_dialog_mention_notification_count(d);
+      send_update_chat_unread_mention_count(d);
+    }
+    if (d->unread_reaction_count != unread_reaction_count) {
+      set_dialog_unread_reaction_count(d, unread_reaction_count);
+      // update_dialog_mention_notification_count(d);
+      send_update_chat_unread_reaction_count(d, "on_get_channel_dialog 60");
+    }
+    if (d->unread_poll_vote_count != unread_poll_vote_count) {
+      set_dialog_unread_poll_vote_count(d, unread_poll_vote_count);
+      // update_dialog_poll_vote_notification_count(d);
+      send_update_chat_unread_poll_vote_count(d, "on_get_channel_dialog 70");
+    }
   }
 
   if (d->last_read_outbox_message_id != read_outbox_max_message_id) {
@@ -34487,7 +34633,8 @@ void MessagesManager::on_get_channel_difference(DialogId dialog_id, int32 reques
       on_get_channel_dialog(dialog_id, MessageId(ServerMessageId(dialog->top_message_)),
                             MessageId(ServerMessageId(dialog->read_inbox_max_id_)), dialog->unread_count_,
                             dialog->unread_mentions_count_, dialog->unread_reactions_count_,
-                            MessageId(ServerMessageId(dialog->read_outbox_max_id_)), std::move(difference->messages_));
+                            dialog->unread_poll_votes_count_, MessageId(ServerMessageId(dialog->read_outbox_max_id_)),
+                            std::move(difference->messages_));
       update_dialog_pos(d, "updates.channelDifferenceTooLong");
 
       if (!td_->auth_manager_->is_bot()) {

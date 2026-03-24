@@ -1260,6 +1260,7 @@ class MessagesManager final : public Actor {
     int32 local_unread_count = 0;
     int32 unread_mention_count = 0;
     int32 unread_reaction_count = 0;
+    int32 unread_poll_vote_count = 0;
     int32 last_read_inbox_message_date = 0;  // secret chats only
     MessageId last_read_inbox_message_id;
     MessageId last_read_outbox_message_id;
@@ -1365,8 +1366,9 @@ class MessagesManager final : public Actor {
     bool is_chat_theme_inited = false;
     bool is_available_reactions_inited = false;
     bool had_yet_unsent_message_id_overflow = false;
-    bool need_repair_unread_reaction_count = false;
     bool need_repair_unread_mention_count = false;
+    bool need_repair_unread_reaction_count = false;
+    bool need_repair_unread_poll_vote_count = false;
     bool is_translatable = false;
     bool last_need_hide_dialog_draft_message = false;
     bool last_need_hide_reactions = false;
@@ -2023,6 +2025,8 @@ class MessagesManager final : public Actor {
 
   bool has_unread_message_reactions(DialogId dialog_id, const Message *m) const;
 
+  bool has_unread_poll_votes(DialogId dialog_id, const Message *m) const;
+
   void on_message_reply_info_changed(DialogId dialog_id, const Message *m) const;
 
   Result<MessageFullId> get_top_thread_message_full_id(const Dialog *d, const Message *m, bool allow_non_root) const;
@@ -2075,9 +2079,11 @@ class MessagesManager final : public Actor {
 
   void repair_channel_server_unread_count(Dialog *d);
 
+  void repair_dialog_unread_mention_count(Dialog *d, const char *source);
+
   void repair_dialog_unread_reaction_count(Dialog *d, Promise<Unit> &&promise, const char *source);
 
-  void repair_dialog_unread_mention_count(Dialog *d, const char *source);
+  void repair_dialog_unread_poll_vote_count(Dialog *d, Promise<Unit> &&promise, const char *source);
 
   void read_history_on_server(Dialog *d, MessageId max_message_id);
 
@@ -2393,6 +2399,8 @@ class MessagesManager final : public Actor {
 
   void send_update_chat_unread_reaction_count(const Dialog *d, const char *source);
 
+  void send_update_chat_unread_poll_vote_count(const Dialog *d, const char *source);
+
   void send_update_chat_position(DialogListId dialog_list_id, const Dialog *d, const char *source) const;
 
   void send_update_secret_chats_with_user_action_bar(const Dialog *d) const;
@@ -2492,6 +2500,8 @@ class MessagesManager final : public Actor {
   static void set_dialog_unread_mention_count(Dialog *d, int32 unread_mention_count);
 
   static void set_dialog_unread_reaction_count(Dialog *d, int32 unread_reaction_count);
+
+  static void set_dialog_unread_poll_vote_count(Dialog *d, int32 unread_poll_vote_count);
 
   void set_dialog_is_empty(Dialog *d, const char *source);
 
@@ -2990,7 +3000,7 @@ class MessagesManager final : public Actor {
 
   void on_get_channel_dialog(DialogId dialog_id, MessageId last_message_id, MessageId read_inbox_max_message_id,
                              int32 server_unread_count, int32 unread_mention_count, int32 unread_reaction_count,
-                             MessageId read_outbox_max_message_id,
+                             int32 unread_poll_vote_count, MessageId read_outbox_max_message_id,
                              vector<tl_object_ptr<telegram_api::Message>> &&messages);
 
   void after_get_channel_difference(DialogId dialog_id, bool success);

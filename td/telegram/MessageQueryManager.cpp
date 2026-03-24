@@ -2135,8 +2135,8 @@ void MessageQueryManager::search_messages(DialogListId dialog_list_id, bool igno
 
   CHECK(filter != MessageSearchFilter::Call && filter != MessageSearchFilter::MissedCall);
   if (filter == MessageSearchFilter::Mention || filter == MessageSearchFilter::UnreadMention ||
-      filter == MessageSearchFilter::UnreadReaction || filter == MessageSearchFilter::FailedToSend ||
-      filter == MessageSearchFilter::Pinned) {
+      filter == MessageSearchFilter::UnreadReaction || filter == MessageSearchFilter::UnreadPollVote ||
+      filter == MessageSearchFilter::FailedToSend || filter == MessageSearchFilter::Pinned) {
     return promise.set_error(400, "The filter is not supported");
   }
 
@@ -2408,7 +2408,7 @@ void MessageQueryManager::get_dialog_message_position_from_server(DialogId dialo
                                                                   MessageSearchFilter filter, MessageId message_id,
                                                                   Promise<int32> &&promise) {
   if (filter == MessageSearchFilter::UnreadMention || filter == MessageSearchFilter::UnreadReaction ||
-      filter == MessageSearchFilter::FailedToSend) {
+      filter == MessageSearchFilter::UnreadPollVote || filter == MessageSearchFilter::FailedToSend) {
     return promise.set_error(400, "The filter is not supported");
   }
 
