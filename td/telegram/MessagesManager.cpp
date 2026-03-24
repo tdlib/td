@@ -7487,7 +7487,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, M
       }
       if (filter == MessageSearchFilter::UnreadReaction) {
         d->unread_reaction_count = old_message_count;
-        // update_dialog_mention_notification_count(d);
+        // update_dialog_reaction_notification_count(d);
         send_update_chat_unread_reaction_count(d, "on_get_dialog_messages_search_result");
       }
       update_dialog = true;
