@@ -2761,8 +2761,8 @@ void Requests::on_request(uint64 id, const td_api::getMessageAuthor &request) {
 
 void Requests::on_request(uint64 id, const td_api::getMessageLink &request) {
   auto r_message_link = td_->messages_manager_->get_message_link(
-      {DialogId(request.chat_id_), MessageId(request.message_id_)}, request.media_timestamp_, request.for_album_,
-      request.in_message_thread_);
+      {DialogId(request.chat_id_), MessageId(request.message_id_)}, request.media_timestamp_,
+      request.checklist_task_id_, request.for_album_, request.in_message_thread_);
   if (r_message_link.is_error()) {
     send_closure(td_actor_, &Td::send_error, id, r_message_link.move_as_error());
   } else {

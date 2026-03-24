@@ -4562,11 +4562,12 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
   Slice comment_message_id_slice = "0";
   Slice top_thread_message_id_slice;
   Slice media_timestamp_slice;
+  Slice todo_item_id_slice;
   bool is_single = false;
   bool for_comment = false;
   if (link_info.type_ == LinkType::Tg) {
-    // resolve?domain=username&post=12345&single&t=123&comment=12&thread=21
-    // privatepost?channel=123456789&post=12345&single&t=123&comment=12&thread=21
+    // resolve?domain=username&post=12345&single&t=123&comment=12&thread=21&task=23
+    // privatepost?channel=123456789&post=12345&single&t=123&comment=12&thread=21&task=23
 
     bool is_resolve = false;
     if (begins_with(url, "resolve")) {
@@ -4614,6 +4615,9 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
         for_comment = true;
         top_thread_message_id_slice = key_value.second;
       }
+      if (key_value.first == "task") {
+        todo_item_id_slice = key_value.second;
+      }
     }
   } else {
     // /c/123456789/12345
@@ -4658,6 +4662,9 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
           for_comment = true;
           top_thread_message_id_slice = key_value.second;
         }
+        if (key_value.first == "task") {
+          todo_item_id_slice = key_value.second;
+        }
       }
     }
     auto slash_pos = message_id_slice.find('/');
@@ -4678,25 +4685,25 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
 
   auto r_message_id = to_integer_safe<int32>(message_id_slice);
   if (r_message_id.is_error() || !ServerMessageId(r_message_id.ok()).is_valid()) {
-    return Status::Error("Wrong message ID");
+    return Status::Error("Wrong message identifier");
   }
 
   int32 top_thread_message_id = 0;
   if (!top_thread_message_id_slice.empty()) {
     auto r_top_thread_message_id = to_integer_safe<int32>(top_thread_message_id_slice);
     if (r_top_thread_message_id.is_error()) {
-      return Status::Error("Wrong message thread ID");
+      return Status::Error("Wrong message topic identifier");
     }
     top_thread_message_id = r_top_thread_message_id.ok();
     if (!ServerMessageId(top_thread_message_id).is_valid()) {
-      return Status::Error("Invalid message thread ID");
+      return Status::Error("Invalid message topic identifier");
     }
   }
 
   auto r_comment_message_id = to_integer_safe<int32>(comment_message_id_slice);
   if (r_comment_message_id.is_error() ||
       !(r_comment_message_id.ok() == 0 || ServerMessageId(r_comment_message_id.ok()).is_valid())) {
-    return Status::Error("Wrong comment message ID");
+    return Status::Error("Wrong comment message identifier");
   }
 
   bool is_media_timestamp_invalid = false;
@@ -4736,6 +4743,15 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
     }
   }
 
+  int32 todo_item_id = 0;
+  if (!todo_item_id_slice.empty()) {
+    auto r_todo_item_id = to_integer_safe<int32>(todo_item_id_slice);
+    if (r_todo_item_id.is_error() || r_todo_item_id.ok() <= 0) {
+      return Status::Error("Wrong checklist task identifier");
+    }
+    todo_item_id = r_todo_item_id.ok();
+  }
+
   MessageLinkInfo info;
   info.username = username.str();
   info.channel_id = channel_id;
@@ -4743,6 +4759,7 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
   info.comment_message_id = MessageId(ServerMessageId(r_comment_message_id.ok()));
   info.top_thread_message_id = MessageId(ServerMessageId(top_thread_message_id));
   info.media_timestamp = is_media_timestamp_invalid ? 0 : media_timestamp;
+  info.todo_item_id = todo_item_id;
   info.is_single = is_single;
   info.for_comment = for_comment;
   LOG(INFO) << "Have link to " << info.message_id << " in chat @" << info.username << '/' << channel_id.get();
