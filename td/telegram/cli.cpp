@@ -8283,12 +8283,13 @@ class CliClient final : public Actor {
     } else if (op == "srns") {
       ReactionNotificationSource message_reactions;
       ReactionNotificationSource story_reactions;
+      ReactionNotificationSource poll_votes;
       int64 sound_id;
       bool show_preview;
       get_args(args, message_reactions, story_reactions, sound_id, show_preview);
       send_request(td_api::make_object<td_api::setReactionNotificationSettings>(
-          td_api::make_object<td_api::reactionNotificationSettings>(message_reactions, story_reactions, sound_id,
-                                                                    show_preview)));
+          td_api::make_object<td_api::reactionNotificationSettings>(message_reactions, story_reactions, poll_votes,
+                                                                    sound_id, show_preview)));
     } else if (op == "rans") {
       send_request(td_api::make_object<td_api::resetAllNotificationSettings>());
     } else if (op == "rn") {

@@ -3082,12 +3082,13 @@ reactionNotificationSourceContacts = ReactionNotificationSource;
 reactionNotificationSourceAll = ReactionNotificationSource;
 
 
-//@description Contains information about notification settings for reactions
+//@description Contains information about notification settings for reactions and poll votes
 //@message_reaction_source Source of message reactions for which notifications are shown
 //@story_reaction_source Source of story reactions for which notifications are shown
+//@poll_vote_source Source of poll votes for which notifications are shown
 //@sound_id Identifier of the notification sound to be played; 0 if sound is disabled
 //@show_preview True, if reaction sender and emoji must be displayed in notifications
-reactionNotificationSettings message_reaction_source:ReactionNotificationSource story_reaction_source:ReactionNotificationSource sound_id:int64 show_preview:Bool = ReactionNotificationSettings;
+reactionNotificationSettings message_reaction_source:ReactionNotificationSource story_reaction_source:ReactionNotificationSource poll_vote_source:ReactionNotificationSource sound_id:int64 show_preview:Bool = ReactionNotificationSettings;
 
 
 //@description Contains information about a message draft
