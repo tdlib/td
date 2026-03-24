@@ -4012,6 +4012,16 @@ void Requests::on_request(uint64 id, const td_api::readAllChatPollVotes &request
   td_->messages_manager_->read_all_dialog_poll_votes(DialogId(request.chat_id_), ForumTopicId(), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::readAllForumTopicPollVotes &request) {
+  CHECK_IS_USER();
+  if (request.forum_topic_id_ == 0) {
+    return send_error_raw(id, 400, "Invalid forum topic identifier specified");
+  }
+  CREATE_OK_REQUEST_PROMISE();
+  td_->messages_manager_->read_all_dialog_poll_votes(DialogId(request.chat_id_), ForumTopicId(request.forum_topic_id_),
+                                                     std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getChatAvailableMessageSenders &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

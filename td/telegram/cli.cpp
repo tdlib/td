@@ -8209,6 +8209,11 @@ class CliClient final : public Actor {
       ForumTopicId forum_topic_id;
       get_args(args, chat_id, forum_topic_id);
       send_request(td_api::make_object<td_api::readAllForumTopicReactions>(chat_id, forum_topic_id));
+    } else if (op == "raftpv") {
+      ChatId chat_id;
+      ForumTopicId forum_topic_id;
+      get_args(args, chat_id, forum_topic_id);
+      send_request(td_api::make_object<td_api::readAllForumTopicPollVotes>(chat_id, forum_topic_id));
     } else if (op == "tre") {
       send_request(td_api::make_object<td_api::testReturnError>(
           args.empty() ? nullptr : td_api::make_object<td_api::error>(-1, args)));

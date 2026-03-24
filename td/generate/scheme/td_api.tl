@@ -11792,6 +11792,11 @@ readAllForumTopicMentions chat_id:int53 forum_topic_id:int32 = Ok;
 //@forum_topic_id Forum topic identifier in which reactions are marked as read
 readAllForumTopicReactions chat_id:int53 forum_topic_id:int32 = Ok;
 
+//@description Marks all poll votes in a topic in a forum supergroup chat as read
+//@chat_id Chat identifier
+//@forum_topic_id Forum topic identifier in which poll votes are marked as read
+readAllForumTopicPollVotes chat_id:int53 forum_topic_id:int32 = Ok;
+
 //@description Removes all pinned messages from a topic in a forum supergroup chat or a chat with a bot with topics; requires can_pin_messages member right in the supergroup
 //@chat_id Identifier of the chat
 //@forum_topic_id Forum topic identifier in which messages will be unpinned
