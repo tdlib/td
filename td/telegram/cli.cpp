@@ -4959,11 +4959,12 @@ class CliClient final : public Actor {
       MessageId message_id;
       int32 media_timestamp;
       int32 checklist_task_id;
+      string poll_option_id;
       bool for_album;
       bool for_comment;
-      get_args(args, chat_id, message_id, media_timestamp, checklist_task_id, for_album, for_comment);
+      get_args(args, chat_id, message_id, media_timestamp, checklist_task_id, poll_option_id, for_album, for_comment);
       send_request(td_api::make_object<td_api::getMessageLink>(chat_id, message_id, media_timestamp, checklist_task_id,
-                                                               for_album, for_comment));
+                                                               poll_option_id, for_album, for_comment));
     } else if (op == "gmec") {
       ChatId chat_id;
       MessageId message_id;

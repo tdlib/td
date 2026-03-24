@@ -15197,8 +15197,8 @@ bool MessagesManager::can_set_message_fact_check(DialogId dialog_id, const Messa
 }
 
 Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId message_full_id, int32 media_timestamp,
-                                                                  int32 todo_item_id, bool for_group,
-                                                                  bool in_message_thread) {
+                                                                  int32 todo_item_id, const string &poll_option_id,
+                                                                  bool for_group, bool in_message_thread) {
   auto dialog_id = message_full_id.get_dialog_id();
   TRY_RESULT(d, check_dialog_access(dialog_id, true, AccessRights::Read, "get_message_link"));
 
@@ -15210,6 +15210,12 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
   }
   if (todo_item_id < 0) {
     return Status::Error(400, "Invalid checklist task identifier specified");
+  }
+  if (!poll_option_id.empty() && m->content->get_type() != MessageContentType::Poll) {
+    return Status::Error(400, "Message isn't a poll");
+  }
+  if (!check_utf8(poll_option_id)) {
+    return Status::Error(400, "Invalid poll option identifier specified");
   }
 
   auto message_id = m->message_id;
@@ -15299,6 +15305,12 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
         if (todo_item_id != 0) {
           sb << "&task=" << todo_item_id;
         }
+        if (todo_item_id != 0) {
+          sb << "&task=" << todo_item_id;
+        }
+        if (!poll_option_id.empty()) {
+          sb << "&option=" << base64url_encode(poll_option_id);
+        }
         return std::make_pair(sb.as_cslice().str(), true);
       }
     }
@@ -15336,6 +15348,10 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
   }
   if (todo_item_id != 0) {
     sb << separator << "task=" << todo_item_id;
+    separator = '&';
+  }
+  if (!poll_option_id.empty()) {
+    sb << separator << "option=" << base64url_encode(poll_option_id);
     separator = '&';
   }
   CHECK(separator == '?' || separator == '&');
@@ -15505,6 +15521,7 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
   td_api::object_ptr<td_api::message> message;
   int32 media_timestamp = 0;
   int32 todo_item_id = 0;
+  string poll_option_id;
   bool for_album = false;
 
   const Dialog *d = get_dialog(dialog_id);
@@ -15526,8 +15543,11 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
           media_timestamp = info.media_timestamp;
         }
       }
-      if (m->content->get_type() == MessageContentType::ToDoList && info.todo_item_id > 0) {
+      if (info.todo_item_id > 0 && m->content->get_type() == MessageContentType::ToDoList) {
         todo_item_id = info.todo_item_id;
+      }
+      if (!info.poll_option_id.empty() && m->content->get_type() == MessageContentType::Poll) {
+        poll_option_id = info.poll_option_id;
       }
       if ((m->content->get_type() == MessageContentType::TopicCreate ||
            m->message_id == MessageId(ServerMessageId(1))) &&
@@ -15544,7 +15564,7 @@ td_api::object_ptr<td_api::messageLinkInfo> MessagesManager::get_message_link_in
 
   return td_api::make_object<td_api::messageLinkInfo>(is_public, get_chat_id_object(dialog_id, "messageLinkInfo"),
                                                       message_topic.get_message_topic_object(td_), std::move(message),
-                                                      media_timestamp, todo_item_id, for_album);
+                                                      media_timestamp, todo_item_id, poll_option_id, for_album);
 }
 
 Status MessagesManager::can_add_dialog_to_filter(DialogId dialog_id) {

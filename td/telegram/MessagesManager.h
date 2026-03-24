@@ -632,7 +632,8 @@ class MessagesManager final : public Actor {
   bool is_deleted_secret_chat(DialogId dialog_id) const;
 
   Result<std::pair<string, bool>> get_message_link(MessageFullId message_full_id, int32 media_timestamp,
-                                                   int32 todo_item_id, bool for_group, bool in_message_thread);
+                                                   int32 todo_item_id, const string &poll_option_id, bool for_group,
+                                                   bool in_message_thread);
 
   string get_message_embedding_code(MessageFullId message_full_id, bool for_group, Promise<Unit> &&promise);
 

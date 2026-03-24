@@ -4563,11 +4563,12 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
   Slice top_thread_message_id_slice;
   Slice media_timestamp_slice;
   Slice todo_item_id_slice;
+  Slice poll_option_id_slice;
   bool is_single = false;
   bool for_comment = false;
   if (link_info.type_ == LinkType::Tg) {
-    // resolve?domain=username&post=12345&single&t=123&comment=12&thread=21&task=23
-    // privatepost?channel=123456789&post=12345&single&t=123&comment=12&thread=21&task=23
+    // resolve?domain=username&post=12345&single&t=123&comment=12&thread=21&task=23&option=MA
+    // privatepost?channel=123456789&post=12345&single&t=123&comment=12&thread=21&task=23&option=MA
 
     bool is_resolve = false;
     if (begins_with(url, "resolve")) {
@@ -4618,6 +4619,9 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
       if (key_value.first == "task") {
         todo_item_id_slice = key_value.second;
       }
+      if (key_value.first == "option") {
+        poll_option_id_slice = key_value.second;
+      }
     }
   } else {
     // /c/123456789/12345
@@ -4664,6 +4668,9 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
         }
         if (key_value.first == "task") {
           todo_item_id_slice = key_value.second;
+        }
+        if (key_value.first == "option") {
+          poll_option_id_slice = key_value.second;
         }
       }
     }
@@ -4752,6 +4759,15 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
     todo_item_id = r_todo_item_id.ok();
   }
 
+  auto r_poll_option_id = base64url_decode(poll_option_id_slice);
+  if (r_poll_option_id.is_error()) {
+    return Status::Error("Invalid poll option identifier");
+  }
+  auto poll_option_id = r_poll_option_id.move_as_ok();
+  if (!check_utf8(poll_option_id)) {
+    poll_option_id.clear();
+  }
+
   MessageLinkInfo info;
   info.username = username.str();
   info.channel_id = channel_id;
@@ -4760,6 +4776,7 @@ Result<MessageLinkInfo> LinkManager::get_message_link_info(Slice url) {
   info.top_thread_message_id = MessageId(ServerMessageId(top_thread_message_id));
   info.media_timestamp = is_media_timestamp_invalid ? 0 : media_timestamp;
   info.todo_item_id = todo_item_id;
+  info.poll_option_id = std::move(poll_option_id);
   info.is_single = is_single;
   info.for_comment = for_comment;
   LOG(INFO) << "Have link to " << info.message_id << " in chat @" << info.username << '/' << channel_id.get();
