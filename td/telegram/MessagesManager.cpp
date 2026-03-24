@@ -8872,6 +8872,69 @@ void MessagesManager::read_all_dialog_reactions(DialogId dialog_id, ForumTopicId
   td_->message_query_manager_->read_all_dialog_reactions_on_server(dialog_id, 0, std::move(promise));
 }
 
+bool MessagesManager::read_all_local_dialog_poll_votes(DialogId dialog_id, ForumTopicId forum_topic_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return false;
+  }
+  auto *d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    return false;
+  }
+  auto message_ids = find_dialog_messages(d, [this, dialog_id, forum_topic_id](const Message *m) {
+    return has_unread_poll_votes(dialog_id, m) &&
+           (!forum_topic_id.is_valid() || get_message_forum_topic_id(dialog_id, m) == forum_topic_id);
+  });
+
+  LOG(INFO) << "Found " << message_ids.size() << " messages with unread poll votes in memory";
+  for (auto message_id : message_ids) {
+    auto m = get_message(d, message_id);
+    CHECK(m != nullptr);
+    CHECK(has_unread_poll_votes(dialog_id, m));
+    CHECK(m->message_id == message_id);
+    CHECK(m->message_id.is_valid());
+    // remove_message_notification_id(d, m, true, false);  // must be called while has_unread_poll_votes
+    // remove_message_content_has_unread_poll_votes(m->content.get());
+    // must call on_external_update_message_content
+  }
+  return !message_ids.empty();
+}
+
+void MessagesManager::read_all_dialog_poll_votes(DialogId dialog_id, ForumTopicId forum_topic_id,
+                                                 Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, d,
+                     check_dialog_access(dialog_id, true, AccessRights::Read, "read_all_dialog_poll_votes"));
+  TRY_STATUS_PROMISE(promise, can_use_forum_topic_id(d, forum_topic_id));
+
+  auto is_update_sent = read_all_local_dialog_poll_votes(dialog_id, forum_topic_id);
+  if (forum_topic_id.is_valid()) {
+    LOG(INFO) << "Receive readAllChatPollVotes request in " << forum_topic_id << " in " << dialog_id;
+    // td_->forum_topic_manager_->on_topic_poll_vote_count_changed(dialog_id, forum_topic_id, 0, false);
+    return td_->message_query_manager_->read_all_dialog_poll_votes_on_server(dialog_id, forum_topic_id, 0,
+                                                                             std::move(promise));
+  }
+
+  LOG(INFO) << "Receive readAllChatPollVotes request in " << dialog_id << " with " << d->unread_poll_vote_count
+            << " unread poll votes";
+
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    CHECK(d->unread_poll_vote_count == 0);
+    return promise.set_value(Unit());
+  }
+
+  if (d->unread_poll_vote_count != 0) {
+    set_dialog_unread_poll_vote_count(d, 0);
+    if (!is_update_sent) {
+      send_update_chat_unread_poll_vote_count(d, "read_all_dialog_poll_votes");
+    } else {
+      LOG(INFO) << "Update unread poll vote message count in " << dialog_id << " to " << d->unread_poll_vote_count;
+      on_dialog_updated(dialog_id, "read_all_dialog_poll_votes");
+    }
+  }
+  // remove_message_dialog_notifications(d, MessageId::max(), true, "read_all_dialog_poll_votes");
+
+  td_->message_query_manager_->read_all_dialog_poll_votes_on_server(dialog_id, ForumTopicId(), 0, std::move(promise));
+}
+
 void MessagesManager::read_message_content_from_updates(MessageId message_id, int32 read_date) {
   if (!message_id.is_server()) {
     LOG(ERROR) << "Incoming update tries to read content of " << message_id;

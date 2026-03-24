@@ -12278,6 +12278,9 @@ readAllChatMentions chat_id:int53 = Ok;
 //@description Marks all reactions in a chat as read @chat_id Chat identifier
 readAllChatReactions chat_id:int53 = Ok;
 
+//@description Marks all poll votes in a chat as read @chat_id Chat identifier
+readAllChatPollVotes chat_id:int53 = Ok;
+
 
 //@description Returns an existing chat corresponding to a given user @user_id User identifier @force Pass true to create the chat without a network request. In this case all information about the chat except its type, title and photo can be incorrect
 createPrivateChat user_id:int53 force:Bool = Chat;

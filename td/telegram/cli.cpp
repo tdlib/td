@@ -8200,6 +8200,10 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id);
       send_request(td_api::make_object<td_api::readAllChatReactions>(chat_id));
+    } else if (op == "racpv") {
+      ChatId chat_id;
+      get_args(args, chat_id);
+      send_request(td_api::make_object<td_api::readAllChatPollVotes>(chat_id));
     } else if (op == "raftr") {
       ChatId chat_id;
       ForumTopicId forum_topic_id;

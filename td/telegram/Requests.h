@@ -614,6 +614,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::readAllForumTopicReactions &request);
 
+  void on_request(uint64 id, const td_api::readAllChatPollVotes &request);
+
   void on_request(uint64 id, const td_api::getChatAvailableMessageSenders &request);
 
   void on_request(uint64 id, const td_api::setChatMessageSender &request);

@@ -211,6 +211,9 @@ class MessageQueryManager final : public Actor {
                                           SavedMessagesTopicId saved_messages_topic_id, uint64 log_event_id,
                                           Promise<Unit> &&promise);
 
+  void read_all_dialog_poll_votes_on_server(DialogId dialog_id, ForumTopicId forum_topic_id, uint64 log_event_id,
+                                            Promise<Unit> &&promise);
+
   void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
                                        Promise<Unit> &&promise, bool skip_log_event = false);
 
@@ -239,6 +242,7 @@ class MessageQueryManager final : public Actor {
   class DeleteTopicHistoryOnServerLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
   class ReadAllDialogReactionsOnServerLogEvent;
+  class ReadAllPollVotesOnServerLogEvent;
   class ReadMessageContentsOnServerLogEvent;
   class UnpinAllDialogMessagesOnServerLogEvent;
 
@@ -327,6 +331,8 @@ class MessageQueryManager final : public Actor {
   static uint64 save_read_all_dialog_mentions_on_server_log_event(DialogId dialog_id);
 
   static uint64 save_read_all_dialog_reactions_on_server_log_event(DialogId dialog_id);
+
+  static uint64 save_read_all_dialog_poll_votes_on_server_log_event(DialogId dialog_id, ForumTopicId forum_topic_id);
 
   static uint64 save_read_message_contents_on_server_log_event(DialogId dialog_id,
                                                                const vector<MessageId> &message_ids);
