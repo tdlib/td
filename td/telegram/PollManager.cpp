@@ -63,7 +63,7 @@ class GetPollResultsQuery final : public Td::ResultHandler {
   explicit GetPollResultsQuery(Promise<tl_object_ptr<telegram_api::Updates>> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(PollId poll_id, MessageFullId message_full_id) {
+  void send(PollId poll_id, MessageFullId message_full_id, int64 hash) {
     poll_id_ = poll_id;
     dialog_id_ = message_full_id.get_dialog_id();
     message_id_ = message_full_id.get_message_id();
@@ -74,8 +74,8 @@ class GetPollResultsQuery final : public Td::ResultHandler {
     }
 
     auto message_id = message_id_.get_server_message_id().get();
-    send_query(
-        G()->net_query_creator().create(telegram_api::messages_getPollResults(std::move(input_peer), message_id, 0)));
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_getPollResults(std::move(input_peer), message_id, hash)));
   }
 
   void on_result(BufferSlice packet) final {
@@ -1439,7 +1439,7 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
                                                   Result<tl_object_ptr<telegram_api::Updates>> &&result) {
     send_closure(actor_id, &PollManager::on_get_poll_results, poll_id, generation, std::move(result));
   });
-  td_->create_handler<GetPollResultsQuery>(std::move(query_promise))->send(poll_id, message_full_id);
+  td_->create_handler<GetPollResultsQuery>(std::move(query_promise))->send(poll_id, message_full_id, poll->hash_);
 }
 
 void PollManager::on_close_poll_timeout(PollId poll_id) {
@@ -1802,6 +1802,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
     if (poll_server->creator_ && !poll->is_creator_) {
       poll->is_creator_ = true;
+      is_changed = true;
+    }
+    if (poll_server->hash_ != poll->hash_) {
+      poll->hash_ = poll_server->hash_;
       is_changed = true;
     }
   }

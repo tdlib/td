@@ -31,6 +31,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   bool has_question_entities = !question_.entities.empty();
   bool has_multiple_correct_option_ids = correct_option_ids_.size() > 1u;
   bool know_revoting_disabled = true;
+  bool has_hash = hash_ != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_closed_);
   STORE_FLAG(is_public);
@@ -51,6 +52,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   STORE_FLAG(shuffle_answers_);
   STORE_FLAG(hide_results_until_close_);
   STORE_FLAG(is_creator_);
+  STORE_FLAG(has_hash);
   END_STORE_FLAGS();
 
   store(question_.text, storer);
@@ -81,6 +83,9 @@ void PollManager::Poll::store(StorerT &storer) const {
   if (has_question_entities) {
     store(question_.entities, storer);
   }
+  if (has_hash) {
+    store(hash_, storer);
+  }
 }
 
 template <class ParserT>
@@ -96,6 +101,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   bool has_question_entities;
   bool has_multiple_correct_option_ids;
   bool know_revoting_disabled;
+  bool has_hash;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_closed_);
   PARSE_FLAG(is_public);
@@ -116,6 +122,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   PARSE_FLAG(shuffle_answers_);
   PARSE_FLAG(hide_results_until_close_);
   PARSE_FLAG(is_creator_);
+  PARSE_FLAG(has_hash);
   END_PARSE_FLAGS();
   is_anonymous_ = !is_public;
 
@@ -163,6 +170,9 @@ void PollManager::Poll::parse(ParserT &parser) {
   }
   if (!know_revoting_disabled) {
     has_revoting_disabled_ = is_quiz_;
+  }
+  if (has_hash) {
+    parse(hash_, parser);
   }
 }
 

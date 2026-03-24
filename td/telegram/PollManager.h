@@ -118,6 +118,7 @@ class PollManager final : public Actor {
     int32 total_voter_count_ = 0;
     int32 open_period_ = 0;
     int32 close_date_ = 0;
+    int64 hash_ = 0;
     bool is_anonymous_ = true;
     bool allow_multiple_answers_ = false;
     bool has_open_answers_ = false;
