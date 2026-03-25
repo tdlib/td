@@ -34,8 +34,11 @@ class TranslationManager final : public Actor {
                       Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   void compose_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
-                               const string &translate_to_language_code, const string &tone, bool proofread,
-                               bool emojify, Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+                               const string &translate_to_language_code, const string &tone, bool emojify,
+                               Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+
+  void proofread_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
+                                 Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   void on_update_ai_compose_styles(vector<string> &&ai_compose_styles);
 

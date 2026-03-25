@@ -2814,8 +2814,13 @@ void Requests::on_request(uint64 id, td_api::composeTextWithAi &request) {
   CLEAN_INPUT_STRING(request.style_name_);
   CREATE_REQUEST_PROMISE();
   td_->translation_manager_->compose_message_with_ai(std::move(request.text_), request.translate_to_language_code_,
-                                                     request.style_name_, request.proofread_, request.add_emojis_,
-                                                     std::move(promise));
+                                                     request.style_name_, request.add_emojis_, std::move(promise));
+}
+
+void Requests::on_request(uint64 id, td_api::fixTextWithAi &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  td_->translation_manager_->proofread_message_with_ai(std::move(request.text_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::recognizeSpeech &request) {

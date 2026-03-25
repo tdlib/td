@@ -11294,9 +11294,12 @@ summarizeMessage chat_id:int53 message_id:int53 translate_to_language_code:strin
 //@text The original text
 //@translate_to_language_code Pass a language code to which the text will be translated; pass an empty string if translation isn't needed. See translateText.to_language_code for the list of supported values
 //@style_name Name of the style of the resulted text; handle updateTextCompositionStyles to get the list of supported styles; pass an empty string to keep the current style of the text
-//@proofread Pass true to proofread the text
 //@add_emojis Pass true to add emoji to the text
-composeTextWithAi text:formattedText translate_to_language_code:string style_name:string proofread:Bool add_emojis:Bool = FormattedText;
+composeTextWithAi text:formattedText translate_to_language_code:string style_name:string add_emojis:Bool = FormattedText;
+
+//@description Fixes text using an AI model. May return an error with a message "AICOMPOSE_FLOOD_PREMIUM" if Telegram Premium is required to send further requests
+//@text The original text
+fixTextWithAi text:formattedText = FormattedText;
 
 //@description Recognizes speech in a video note or a voice note message
 //@chat_id Identifier of the chat to which the message belongs
