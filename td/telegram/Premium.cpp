@@ -19,7 +19,6 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -205,7 +204,7 @@ Result<telegram_api::object_ptr<telegram_api::textWithEntities>> get_premium_gif
     Td *td, td_api::object_ptr<td_api::formattedText> &&text) {
   TRY_RESULT(message, get_formatted_text(td, td->dialog_manager_->get_my_dialog_id(), std::move(text), false, true,
                                          true, false));
-  MessageQuote::remove_unallowed_quote_entities(message);
+  remove_unallowed_quote_entities(message);
   if (!message.text.empty()) {
     return get_input_text_with_entities(td->user_manager_.get(), message, "get_premium_gift_text");
   }

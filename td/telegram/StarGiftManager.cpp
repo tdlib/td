@@ -19,7 +19,6 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/OnlineManager.h"
@@ -2468,7 +2467,7 @@ void StarGiftManager::send_gift(int64 gift_id, DialogId dialog_id, td_api::objec
   TRY_RESULT_PROMISE(
       promise, message,
       get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(text), false, true, true, false));
-  MessageQuote::remove_unallowed_quote_entities(message);
+  remove_unallowed_quote_entities(message);
 
   auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGift>(
       0, is_private, pay_for_upgrade, std::move(input_peer), gift_id, nullptr);
@@ -2802,7 +2801,7 @@ void StarGiftManager::do_place_gift_auction_bid(int64 gift_id, int64 star_count,
   TRY_RESULT_PROMISE(
       promise, message,
       get_formatted_text(td_, td_->dialog_manager_->get_my_dialog_id(), std::move(text), false, true, true, false));
-  MessageQuote::remove_unallowed_quote_entities(message);
+  remove_unallowed_quote_entities(message);
 
   int32 flags = telegram_api::inputInvoiceStarGiftAuctionBid::PEER_MASK;
   auto input_invoice = telegram_api::make_object<telegram_api::inputInvoiceStarGiftAuctionBid>(

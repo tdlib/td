@@ -5021,4 +5021,8 @@ void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialo
   }
 }
 
+void remove_unallowed_quote_entities(FormattedText &text) {
+  td::remove_if(text.entities, [](const auto &entity) { return !is_allowed_quote_entity_type(entity.type); });
+}
+
 }  // namespace td

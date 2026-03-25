@@ -48,7 +48,6 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTtl.h"
 #include "td/telegram/misc.h"
@@ -6277,7 +6276,7 @@ void UserManager::set_user_note(UserId user_id, td_api::object_ptr<td_api::forma
 
   TRY_RESULT_PROMISE(promise, note_text,
                      get_formatted_text(td_, DialogId(), std::move(note), false, true, true, false));
-  MessageQuote::remove_unallowed_quote_entities(note_text);
+  remove_unallowed_quote_entities(note_text);
 
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), user_id, note_text, promise = std::move(promise)](Result<Unit> result) mutable {
