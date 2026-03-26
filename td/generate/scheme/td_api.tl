@@ -2789,7 +2789,7 @@ inputTextQuote text:formattedText position:int32 = InputTextQuote;
 //@origin_send_date Point in time (Unix timestamp) when the message was sent if the message was from another chat or topic; 0 for messages from the same chat
 //@content Media content of the message if the message was from another chat or topic; may be null for messages from the same chat and messages without media.
 //-Can be only one of the following types: messageAnimation, messageAudio, messageChecklist, messageContact, messageDice, messageDocument, messageGame,
-//-messageGiveaway, messageGiveawayWinners, messageInvoice, messageLivePhoto, messageLocation, messagePaidMedia, messagePhoto, messagePoll, messageStakeDice,
+//-messageGiveaway, messageGiveawayWinners, messageInvoice, messageLocation, messagePaidMedia, messagePhoto, messagePoll, messageStakeDice,
 //-messageSticker, messageStory, messageText (for link preview), messageVenue, messageVideo, messageVideoNote, or messageVoiceNote
 messageReplyToMessage chat_id:int53 message_id:int53 quote:textQuote checklist_task_id:int32 poll_option_id:string origin:MessageOrigin origin_send_date:int32 content:MessageContent = MessageReplyTo;
 
@@ -4734,15 +4734,6 @@ messageAudio audio:audio caption:formattedText = MessageContent;
 //@description A document message (general file) @document The document description @caption Document caption
 messageDocument document:document caption:formattedText = MessageContent;
 
-//@description A live photo message
-//@photo The photo
-//@video The video representing the live photo
-//@caption Live photo caption
-//@show_caption_above_media True, if the caption must be shown above the live photo; otherwise, the caption must be shown below the live photo
-//@has_spoiler True, if the live photo preview must be covered by a spoiler animation
-//@is_secret True, if the live photo thumbnail must be blurred and the live photo must be shown only while tapped
-messageLivePhoto photo:photo video:video caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
-
 //@description A message with paid media
 //@star_count Number of Telegram Stars needed to buy access to the media in the message
 //@media Information about the media
@@ -4752,11 +4743,12 @@ messagePaidMedia star_count:int53 media:vector<PaidMedia> caption:formattedText 
 
 //@description A photo message
 //@photo The photo
+//@video The video representing the live photo; may be null if the photo is static
 //@caption Photo caption
 //@show_caption_above_media True, if the caption must be shown above the photo; otherwise, the caption must be shown below the photo
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation
 //@is_secret True, if the photo must be blurred and must be shown only while tapped
-messagePhoto photo:photo caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
+messagePhoto photo:photo video:video caption:formattedText show_caption_above_media:Bool has_spoiler:Bool is_secret:Bool = MessageContent;
 
 //@description A sticker message @sticker The sticker description @is_premium True, if premium animation of the sticker must be played
 messageSticker sticker:sticker is_premium:Bool = MessageContent;

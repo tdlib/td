@@ -10547,9 +10547,14 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::LivePhoto: {
       const auto *m = static_cast<const MessageLivePhoto *>(content);
-      return make_tl_object<td_api::messageLivePhoto>(
-          get_photo_object(td->file_manager_.get(), m->photo), td->videos_manager_->get_video_object(m->video_file_id),
-          get_text_object(m->caption), invert_media, m->has_spoiler, is_content_secret);
+      auto photo = get_photo_object(td->file_manager_.get(), m->photo);
+      if (photo == nullptr) {
+        LOG(ERROR) << "Have empty " << m->photo;
+        return td_api::make_object<td_api::messageExpiredPhoto>();
+      }
+      return td_api::make_object<td_api::messagePhoto>(
+          std::move(photo), td->videos_manager_->get_video_object(m->video_file_id), get_text_object(m->caption),
+          invert_media, m->has_spoiler, is_content_secret);
     }
     case MessageContentType::Location: {
       const auto *m = static_cast<const MessageLocation *>(content);
@@ -10562,7 +10567,7 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
         LOG(ERROR) << "Have empty " << m->photo;
         return make_tl_object<td_api::messageExpiredPhoto>();
       }
-      return make_tl_object<td_api::messagePhoto>(std::move(photo), get_text_object(m->caption), invert_media,
+      return make_tl_object<td_api::messagePhoto>(std::move(photo), nullptr, get_text_object(m->caption), invert_media,
                                                   m->has_spoiler, is_content_secret);
     }
     case MessageContentType::Sticker: {
