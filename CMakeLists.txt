@@ -422,6 +422,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/DialogParticipantManager.cpp
   td/telegram/DialogPhoto.cpp
   td/telegram/DialogSource.cpp
+  td/telegram/DiffText.cpp
   td/telegram/Dimensions.cpp
   td/telegram/DisallowedGiftsSettings.cpp
   td/telegram/Document.cpp
@@ -792,6 +793,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/DialogParticipantManager.h
   td/telegram/DialogPhoto.h
   td/telegram/DialogSource.h
+  td/telegram/DiffText.h
   td/telegram/Dimensions.h
   td/telegram/DisallowedGiftsSettings.h
   td/telegram/Document.h

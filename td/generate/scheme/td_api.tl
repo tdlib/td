@@ -116,6 +116,12 @@ textEntities entities:vector<textEntity> = TextEntities;
 //-Pre, Code, PreCode, and DateTime entities can't contain other entities. BlockQuote entities can't contain other BlockQuote entities. Bold, Italic, Underline, Strikethrough, and Spoiler entities can contain and can be part of any other entities. All other entities can't contain each other
 formattedText text:string entities:vector<textEntity> = FormattedText;
 
+//@description Represents a change of a text @offset Offset of the entity, in UTF-16 code units @length Length of the entity, in UTF-16 code units @type Type of the entity
+diffEntity offset:int32 length:int32 type:DiffEntityType = DiffEntity;
+
+//@description A text with some changes highlighted @text The text @entities Entities describing changes in the text. Entities doesn't mutually intersect with each other
+diffText text:string entities:vector<diffEntity> = DiffText;
+
 
 //@description Describes a style that can be used to compose a text @emoji Emoji corresponding to the style @name Name of the style
 textCompositionStyle emoji:string name:string = TextCompositionStyle;
@@ -5337,6 +5343,18 @@ textEntityTypeMediaTimestamp media_timestamp:int32 = TextEntityType;
 
 //@description A date and time @unix_time Point in time (Unix timestamp) representing the date and time @formatting_type Date and time formatting type; may be null if none and the original text must not be changed
 textEntityTypeDateTime unix_time:int32 formatting_type:DateTimeFormattingType = TextEntityType;
+
+
+//@class DiffEntityType @description Represents a change of a text
+
+//@description Addition of some text
+diffEntityTypeInsert = DiffEntityType;
+
+//@description Change of some text @old_text The old text
+diffEntityTypeReplace old_text:string = DiffEntityType;
+
+//@description Removal of some text
+diffEntityTypeDelete = DiffEntityType;
 
 
 //@description A thumbnail to be sent along with a file; must be in JPEG or WEBP format for stickers, and less than 200 KB in size
