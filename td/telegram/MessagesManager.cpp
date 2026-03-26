@@ -15184,7 +15184,6 @@ bool MessagesManager::can_set_message_fact_check(DialogId dialog_id, const Messa
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
-    case MessageContentType::LivePhoto:
     case MessageContentType::Photo:
     case MessageContentType::Text:
     case MessageContentType::Video:
@@ -22748,7 +22747,6 @@ bool MessagesManager::can_edit_message_media(DialogId dialog_id, const Message *
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
-    case MessageContentType::LivePhoto:
     case MessageContentType::Photo:
     case MessageContentType::Video:
       break;
@@ -23089,10 +23087,8 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     LOG(INFO) << "Successfully edited " << message_id << " in " << dialog_id << " with PTS = " << pts
               << " and last edit PTS = " << m->last_edit_pts;
     std::swap(m->content, edited_message->content_);
-    bool need_send_update_message_content = (edited_message->content_->get_type() == MessageContentType::Photo &&
-                                             m->content->get_type() == MessageContentType::Photo) ||
-                                            (edited_message->content_->get_type() == MessageContentType::LivePhoto &&
-                                             m->content->get_type() == MessageContentType::LivePhoto);
+    bool need_send_update_message_content = edited_message->content_->get_type() == MessageContentType::Photo &&
+                                            m->content->get_type() == MessageContentType::Photo;
     bool need_merge_files = pts != 0 && pts == m->last_edit_pts;
     bool is_content_changed = false;
     bool need_update = update_message_content(dialog_id, m, std::move(edited_message->content_), need_merge_files, true,

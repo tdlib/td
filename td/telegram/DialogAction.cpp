@@ -372,7 +372,6 @@ bool DialogAction::is_canceled_by_message_of_type(MessageContentType message_con
     case MessageContentType::Document:
       return type_ == Type::UploadingDocument;
     case MessageContentType::ExpiredPhoto:
-    case MessageContentType::LivePhoto:
     case MessageContentType::Photo:
       return type_ == Type::UploadingPhoto;
     case MessageContentType::ExpiredVideo:
@@ -482,7 +481,6 @@ DialogAction DialogAction::get_uploading_action(MessageContentType message_conte
     case MessageContentType::Document:
     case MessageContentType::PaidMedia:
       return DialogAction(Type::UploadingDocument, progress);
-    case MessageContentType::LivePhoto:
     case MessageContentType::Photo:
       return DialogAction(Type::UploadingPhoto, progress);
     case MessageContentType::Video:

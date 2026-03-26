@@ -104,7 +104,6 @@ enum class MessageContentType : int32 {
   ChangeCreator,
   NoForwardsToggle,
   NoForwardsRequest,
-  LivePhoto,
   ManagedBotCreated,
   PollAppendAnswer
 };

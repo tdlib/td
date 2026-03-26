@@ -192,8 +192,6 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "NoForwardsToggle";
     case MessageContentType::NoForwardsRequest:
       return string_builder << "NoForwardsRequest";
-    case MessageContentType::LivePhoto:
-      return string_builder << "LivePhoto";
     case MessageContentType::ManagedBotCreated:
       return string_builder << "ManagedBotCreated";
     case MessageContentType::PollAppendAnswer:
@@ -206,7 +204,6 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
 bool is_allowed_invert_caption_message_content(MessageContentType content_type) {
   switch (content_type) {
     case MessageContentType::Animation:
-    case MessageContentType::LivePhoto:
     case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
     case MessageContentType::Video:
@@ -220,7 +217,6 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
   switch (content_type) {
     case MessageContentType::Audio:
     case MessageContentType::Document:
-    case MessageContentType::LivePhoto:
     case MessageContentType::Photo:
     case MessageContentType::Video:
     case MessageContentType::ExpiredPhoto:
@@ -327,7 +323,6 @@ bool can_be_secret_message_content(MessageContentType content_type) {
   switch (content_type) {
     case MessageContentType::Animation:
     case MessageContentType::Audio:
-    case MessageContentType::LivePhoto:
     case MessageContentType::Photo:
     case MessageContentType::Video:
     case MessageContentType::VideoNote:
@@ -432,7 +427,6 @@ bool can_be_local_message_content(MessageContentType content_type) {
     case MessageContentType::Audio:
     case MessageContentType::Contact:
     case MessageContentType::Document:
-    case MessageContentType::LivePhoto:
     case MessageContentType::Location:
     case MessageContentType::Photo:
     case MessageContentType::Sticker:
@@ -545,7 +539,6 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::GiveawayWinners:
     case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
-    case MessageContentType::LivePhoto:
     case MessageContentType::Location:
     case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
@@ -638,7 +631,6 @@ bool is_editable_message_content(MessageContentType content_type) {
     case MessageContentType::Audio:
     case MessageContentType::Document:
     case MessageContentType::Game:
-    case MessageContentType::LivePhoto:
     case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
     case MessageContentType::Text:
@@ -746,7 +738,6 @@ bool is_supported_reply_message_content(MessageContentType content_type) {
     case MessageContentType::Giveaway:
     case MessageContentType::GiveawayWinners:
     case MessageContentType::Invoice:
-    case MessageContentType::LivePhoto:
     case MessageContentType::Location:
     case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
@@ -806,7 +797,6 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
-    case MessageContentType::LivePhoto:
     case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
     case MessageContentType::Video:
@@ -925,7 +915,6 @@ bool can_send_message_content_to_secret_chat(MessageContentType content_type) {
     case MessageContentType::Giveaway:
     case MessageContentType::GiveawayWinners:
     case MessageContentType::Invoice:
-    case MessageContentType::LivePhoto:
     case MessageContentType::PaidMedia:
     case MessageContentType::Poll:
     case MessageContentType::Story:
@@ -1014,7 +1003,6 @@ uint64 get_message_content_chain_id(MessageContentType content_type) {
     case MessageContentType::Audio:
     case MessageContentType::Document:
     case MessageContentType::Invoice:
-    case MessageContentType::LivePhoto:
     case MessageContentType::PaidMedia:
     case MessageContentType::Photo:
     case MessageContentType::Sticker:
@@ -1043,7 +1031,6 @@ bool get_default_service_message_content_reactions_are_possible(MessageContentTy
     case MessageContentType::GiveawayWinners:
     case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
-    case MessageContentType::LivePhoto:
     case MessageContentType::Location:
     case MessageContentType::PaidMedia:
     case MessageContentType::Photo:

@@ -228,13 +228,14 @@ class MessageDocument final : public MessageContent {
 class MessagePhoto final : public MessageContent {
  public:
   Photo photo;
+  FileId video_file_id;
 
   FormattedText caption;
   bool has_spoiler = false;
 
   MessagePhoto() = default;
-  MessagePhoto(Photo &&photo, FormattedText &&caption, bool has_spoiler)
-      : photo(std::move(photo)), caption(std::move(caption)), has_spoiler(has_spoiler) {
+  MessagePhoto(Photo &&photo, FileId video_file_id, FormattedText &&caption, bool has_spoiler)
+      : photo(std::move(photo)), video_file_id(video_file_id), caption(std::move(caption)), has_spoiler(has_spoiler) {
   }
 
   MessageContentType get_type() const final {
@@ -1729,24 +1730,6 @@ class MessageNoForwardsRequest final : public MessageContent {
   }
 };
 
-class MessageLivePhoto final : public MessageContent {
- public:
-  Photo photo;
-  FileId video_file_id;
-
-  FormattedText caption;
-  bool has_spoiler = false;
-
-  MessageLivePhoto() = default;
-  MessageLivePhoto(Photo &&photo, FileId video_file_id, FormattedText &&caption, bool has_spoiler)
-      : photo(std::move(photo)), video_file_id(video_file_id), caption(std::move(caption)), has_spoiler(has_spoiler) {
-  }
-
-  MessageContentType get_type() const final {
-    return MessageContentType::LivePhoto;
-  }
-};
-
 class MessageManagedBotCreated final : public MessageContent {
  public:
   UserId bot_user_id;
@@ -1839,11 +1822,16 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::Photo: {
       const auto *m = static_cast<const MessagePhoto *>(content);
+      bool has_video_file_id = m->video_file_id != FileId();
       store(m->photo, storer);
       BEGIN_STORE_FLAGS();
       STORE_FLAG(m->has_spoiler);
+      STORE_FLAG(has_video_file_id);
       END_STORE_FLAGS();
       store(m->caption, storer);
+      if (has_video_file_id) {
+        td->videos_manager_->store_video(m->video_file_id, storer);
+      }
       break;
     }
     case MessageContentType::Sticker: {
@@ -2880,20 +2868,6 @@ static void store(const MessageContent *content, StorerT &storer) {
       END_STORE_FLAGS();
       break;
     }
-    case MessageContentType::LivePhoto: {
-      const auto *m = static_cast<const MessageLivePhoto *>(content);
-      bool has_caption = !m->caption.text.empty();
-      BEGIN_STORE_FLAGS();
-      STORE_FLAG(m->has_spoiler);
-      STORE_FLAG(has_caption);
-      END_STORE_FLAGS();
-      td->videos_manager_->store_video(m->video_file_id, storer);
-      store(m->photo, storer);
-      if (has_caption) {
-        store(m->caption, storer);
-      }
-      break;
-    }
     case MessageContentType::ManagedBotCreated: {
       const auto *m = static_cast<const MessageManagedBotCreated *>(content);
       BEGIN_STORE_FLAGS();
@@ -3017,14 +2991,19 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::Photo: {
       auto m = make_unique<MessagePhoto>();
+      bool has_video_file_id = false;
       parse(m->photo, parser);
       is_bad |= m->photo.is_bad();
       if (parser.version() >= static_cast<int32>(Version::AddMessageMediaSpoiler)) {
         BEGIN_PARSE_FLAGS();
         PARSE_FLAG(m->has_spoiler);
+        PARSE_FLAG(has_video_file_id);
         END_PARSE_FLAGS();
       }
       parse_caption(m->caption, parser);
+      if (has_video_file_id) {
+        m->video_file_id = td->videos_manager_->parse_video(parser);
+      }
       content = std::move(m);
       break;
     }
@@ -4297,24 +4276,6 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
-    case MessageContentType::LivePhoto: {
-      auto m = make_unique<MessageLivePhoto>();
-      bool has_caption;
-      BEGIN_PARSE_FLAGS();
-      PARSE_FLAG(m->has_spoiler);
-      PARSE_FLAG(has_caption);
-      END_PARSE_FLAGS();
-      m->video_file_id = td->videos_manager_->parse_video(parser);
-      parse(m->photo, parser);
-      if (has_caption) {
-        parse(m->caption, parser);
-      }
-      if (!m->video_file_id.is_valid() || m->photo.is_empty()) {
-        is_bad = true;
-      }
-      content = std::move(m);
-      break;
-    }
     case MessageContentType::ManagedBotCreated: {
       auto m = make_unique<MessageManagedBotCreated>();
       BEGIN_PARSE_FLAGS();
@@ -4463,7 +4424,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
         // TODO game->set_short_name(std::move(caption));
         result.message_content = make_unique<MessageGame>(std::move(*game));
       } else if (allowed_media_content_id == td_api::inputMessagePhoto::ID) {
-        result.message_content = make_unique<MessagePhoto>(std::move(*photo), std::move(caption), false);
+        result.message_content = make_unique<MessagePhoto>(std::move(*photo), FileId(), std::move(caption), false);
       } else if (allowed_media_content_id == td_api::inputMessageSticker::ID) {
         result.message_content = make_unique<MessageSticker>(file_id, false);
       } else if (allowed_media_content_id == td_api::inputMessageVideo::ID) {
@@ -4496,7 +4457,7 @@ unique_ptr<MessageContent> create_text_message_content(string text, vector<Messa
 }
 
 unique_ptr<MessageContent> create_photo_message_content(Photo photo) {
-  return make_unique<MessagePhoto>(std::move(photo), FormattedText(), false);
+  return make_unique<MessagePhoto>(std::move(photo), FileId(), FormattedText(), false);
 }
 
 unique_ptr<MessageContent> create_video_message_content(FileId file_id, Photo cover, int32 start_timestamp) {
@@ -4719,17 +4680,16 @@ static Result<InputMessageContent> create_input_message_content(
       TRY_RESULT(photo, create_photo(td->file_manager_.get(), file_id, std::move(thumbnail), input_photo->width_,
                                      input_photo->height_, std::move(sticker_file_ids)));
 
+      FileId video_file_id;
       if (input_photo->video_ != nullptr) {
         auto video_file_type = self_destruct_type != nullptr ? FileType::SelfDestructingLivePhoto : FileType::LivePhoto;
-        TRY_RESULT(video_file_id, td->file_manager_->get_input_file_id(video_file_type, input_photo->video_, dialog_id,
-                                                                       false, is_secret));
+        TRY_RESULT_ASSIGN(video_file_id, td->file_manager_->get_input_file_id(video_file_type, input_photo->video_,
+                                                                              dialog_id, false, is_secret));
         td->videos_manager_->create_video(
             video_file_id, string(), PhotoSize(), AnimationSize(), false, vector<FileId>(), string(), "video/mp4", 0, 0,
             get_dimensions(input_photo->width_, input_photo->height_, nullptr), false, false, 0, 0.0, string(), false);
-        content = make_unique<MessageLivePhoto>(std::move(photo), video_file_id, std::move(caption), has_spoiler);
-      } else {
-        content = make_unique<MessagePhoto>(std::move(photo), std::move(caption), has_spoiler);
       }
+      content = make_unique<MessagePhoto>(std::move(photo), video_file_id, std::move(caption), has_spoiler);
       break;
     }
     case td_api::inputMessageStakeDice::ID: {
@@ -5194,7 +5154,6 @@ bool can_message_content_have_input_media(const Td *td, const MessageContent *co
     case MessageContentType::Document:
     case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
-    case MessageContentType::LivePhoto:
     case MessageContentType::Location:
     case MessageContentType::Photo:
     case MessageContentType::Sticker:
@@ -5239,6 +5198,7 @@ SecretInputMedia get_message_content_secret_input_media(
     }
     case MessageContentType::Photo: {
       const auto *m = static_cast<const MessagePhoto *>(content);
+      // ignore m->video_file_id in secret chats
       return photo_get_secret_input_media(td->file_manager_.get(), m->photo, std::move(input_file), m->caption.text,
                                           std::move(thumbnail));
     }
@@ -5280,7 +5240,6 @@ SecretInputMedia get_message_content_secret_input_media(
     case MessageContentType::Game:
     case MessageContentType::Invoice:
     case MessageContentType::LiveLocation:
-    case MessageContentType::LivePhoto:
     case MessageContentType::Poll:
     case MessageContentType::Story:
     case MessageContentType::ToDoList:
@@ -5418,11 +5377,6 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
       return make_tl_object<telegram_api::inputMediaGeoLive>(flags, false, m->location.get_input_geo_point(),
                                                              m->heading, m->period, m->proximity_alert_radius);
     }
-    case MessageContentType::LivePhoto: {
-      const auto *m = static_cast<const MessageLivePhoto *>(content);
-      return photo_get_input_media(td->file_manager_.get(), m->photo, std::move(input_file), ttl.get_input_ttl(),
-                                   m->has_spoiler, m->video_file_id);
-    }
     case MessageContentType::Location: {
       const auto *m = static_cast<const MessageLocation *>(content);
       return m->location.get_input_media_geo_point();
@@ -5452,7 +5406,7 @@ static telegram_api::object_ptr<telegram_api::InputMedia> get_message_content_in
     case MessageContentType::Photo: {
       const auto *m = static_cast<const MessagePhoto *>(content);
       return photo_get_input_media(td->file_manager_.get(), m->photo, std::move(input_file), ttl.get_input_ttl(),
-                                   m->has_spoiler);
+                                   m->has_spoiler, m->video_file_id);
     }
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
@@ -5686,10 +5640,6 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td, int32 med
       auto *m = static_cast<MessageInvoice *>(content);
       return m->input_invoice.delete_thumbnail(td);
     }
-    case MessageContentType::LivePhoto: {
-      auto *m = static_cast<MessageLivePhoto *>(content);
-      return photo_delete_thumbnail(m->photo);
-    }
     case MessageContentType::PaidMedia: {
       auto *m = static_cast<MessagePaidMedia *>(content);
       if (media_pos == -1) {
@@ -5892,11 +5842,6 @@ Status can_send_message_content(DialogId dialog_id, const MessageContent *conten
     case MessageContentType::LiveLocation:
       if (!permissions.can_send_messages()) {
         return Status::Error(400, "Not enough rights to send live locations to the chat");
-      }
-      break;
-    case MessageContentType::LivePhoto:
-      if (!permissions.can_send_photos()) {
-        return Status::Error(400, "Not enough rights to send live photos to the chat");
       }
       break;
     case MessageContentType::Location:
@@ -6149,7 +6094,6 @@ static int32 get_message_content_media_index_mask(const MessageContent *content,
       return message_search_filter_index_mask(MessageSearchFilter::Audio);
     case MessageContentType::Document:
       return message_search_filter_index_mask(MessageSearchFilter::Document);
-    case MessageContentType::LivePhoto:
     case MessageContentType::Photo:
       return message_search_filter_index_mask(MessageSearchFilter::Photo) |
              message_search_filter_index_mask(MessageSearchFilter::PhotoAndVideo);
@@ -6483,8 +6427,6 @@ vector<UserId> get_message_content_min_user_ids(const Td *td, const MessageConte
     case MessageContentType::Invoice:
       break;
     case MessageContentType::LiveLocation:
-      break;
-    case MessageContentType::LivePhoto:
       break;
     case MessageContentType::Location:
       break;
@@ -7035,12 +6977,6 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       }
       break;
     }
-    case MessageContentType::LivePhoto: {
-      const auto *old_ = static_cast<const MessageLivePhoto *>(old_content);
-      auto *new_ = static_cast<MessageLivePhoto *>(new_content);
-      merge_photos(td, &old_->photo, &new_->photo, dialog_id, need_merge_files, is_content_changed, need_update);
-      break;
-    }
     case MessageContentType::Location: {
       const auto *old_ = static_cast<const MessageLocation *>(old_content);
       const auto *new_ = static_cast<const MessageLocation *>(new_content);
@@ -7231,19 +7167,6 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
         td->documents_manager_->merge_documents(new_file_id, content->file_id);
         content->file_id = new_file_id;
         return true;
-      }
-      break;
-    }
-    case MessageContentType::LivePhoto: {
-      auto content = static_cast<MessageLivePhoto *>(message_content);
-      Photo *photo = &content->photo;
-      if (!photo->photos.empty() && photo->photos.back().type == 'i') {
-        FileId &old_file_id = photo->photos.back().file_id;
-        if (old_file_id != new_file_id) {
-          LOG_STATUS(td->file_manager_->merge(new_file_id, old_file_id));
-          old_file_id = new_file_id;
-          return true;
-        }
       }
       break;
     }
@@ -7482,15 +7405,6 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       }
       break;
     }
-    case MessageContentType::LivePhoto: {
-      const auto *lhs = static_cast<const MessageLivePhoto *>(old_content);
-      const auto *rhs = static_cast<const MessageLivePhoto *>(new_content);
-      if (lhs->photo != rhs->photo || lhs->video_file_id != rhs->video_file_id || lhs->caption != rhs->caption ||
-          lhs->has_spoiler != rhs->has_spoiler) {
-        need_update = true;
-      }
-      break;
-    }
     case MessageContentType::Location: {
       const auto *lhs = static_cast<const MessageLocation *>(old_content);
       const auto *rhs = static_cast<const MessageLocation *>(new_content);
@@ -7504,7 +7418,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::Photo: {
       const auto *lhs = static_cast<const MessagePhoto *>(old_content);
       const auto *rhs = static_cast<const MessagePhoto *>(new_content);
-      if (lhs->caption != rhs->caption || lhs->has_spoiler != rhs->has_spoiler) {
+      if (lhs->video_file_id != rhs->video_file_id || lhs->caption != rhs->caption ||
+          lhs->has_spoiler != rhs->has_spoiler) {
         need_update = true;
       }
       break;
@@ -8962,7 +8877,7 @@ unique_ptr<MessageContent> get_secret_message_content(
       auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaPhoto>(media_ptr);
       return make_unique<MessagePhoto>(
           get_encrypted_file_photo(td->file_manager_.get(), std::move(file), std::move(media), owner_dialog_id),
-          FormattedText{std::move(message_text), std::move(entities)}, false);
+          FileId(), FormattedText{std::move(message_text), std::move(entities)}, false);
     }
     case secret_api::decryptedMessageMediaDocument::ID: {
       auto media = secret_api::move_object_as<secret_api::decryptedMessageMediaDocument>(media_ptr);
@@ -9052,12 +8967,12 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
           if (parsed_file.empty() || parsed_file.type != Document::Type::Video) {
             LOG(ERROR) << "Receive invalid live photo video " << parsed_file;
           } else {
-            return make_unique<MessageLivePhoto>(std::move(photo), parsed_file.file_id, std::move(message),
-                                                 media->spoiler_);
+            return make_unique<MessagePhoto>(std::move(photo), parsed_file.file_id, std::move(message),
+                                             media->spoiler_);
           }
         }
       }
-      return make_unique<MessagePhoto>(std::move(photo), std::move(message), media->spoiler_);
+      return make_unique<MessagePhoto>(std::move(photo), FileId(), std::move(message), media->spoiler_);
     }
     case telegram_api::messageMediaDice::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaDice>(media_ptr);
@@ -9465,20 +9380,6 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       } else {
         return make_unique<MessageLocation>(Location(static_cast<const MessageLiveLocation *>(content)->location));
       }
-    case MessageContentType::LivePhoto: {
-      auto result = make_unique<MessageLivePhoto>(*static_cast<const MessageLivePhoto *>(content));
-      if (replace_caption) {
-        result->caption = std::move(copy_options.new_caption);
-      }
-      CHECK(!result->photo.photos.empty());
-      if (!to_secret) {
-        return std::move(result);
-      }
-
-      result->photo = dup_photo(result->photo);
-      result->photo.photos.back().file_id = fix_file_id(result->photo.photos.back().file_id);
-      return std::move(result);
-    }
     case MessageContentType::Location:
       return make_unique<MessageLocation>(*static_cast<const MessageLocation *>(content));
     case MessageContentType::PaidMedia: {
@@ -9505,6 +9406,7 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
 
       result->photo = dup_photo(result->photo);
       result->photo.photos.back().file_id = fix_file_id(result->photo.photos.back().file_id);
+      result->video_file_id = FileId();
       return std::move(result);
     }
     case MessageContentType::Poll:
@@ -10545,17 +10447,6 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
       return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), m->period, expires_in, heading,
                                                      proximity_alert_radius);
     }
-    case MessageContentType::LivePhoto: {
-      const auto *m = static_cast<const MessageLivePhoto *>(content);
-      auto photo = get_photo_object(td->file_manager_.get(), m->photo);
-      if (photo == nullptr) {
-        LOG(ERROR) << "Have empty " << m->photo;
-        return td_api::make_object<td_api::messageExpiredPhoto>();
-      }
-      return td_api::make_object<td_api::messagePhoto>(
-          std::move(photo), td->videos_manager_->get_video_object(m->video_file_id), get_text_object(m->caption),
-          invert_media, m->has_spoiler, is_content_secret);
-    }
     case MessageContentType::Location: {
       const auto *m = static_cast<const MessageLocation *>(content);
       return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), 0, 0, 0, 0);
@@ -10567,8 +10458,9 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
         LOG(ERROR) << "Have empty " << m->photo;
         return make_tl_object<td_api::messageExpiredPhoto>();
       }
-      return make_tl_object<td_api::messagePhoto>(std::move(photo), nullptr, get_text_object(m->caption), invert_media,
-                                                  m->has_spoiler, is_content_secret);
+      return make_tl_object<td_api::messagePhoto>(
+          std::move(photo), td->videos_manager_->get_video_object(m->video_file_id), get_text_object(m->caption),
+          invert_media, m->has_spoiler, is_content_secret);
     }
     case MessageContentType::Sticker: {
       const auto *m = static_cast<const MessageSticker *>(content);
@@ -11328,8 +11220,6 @@ const FormattedText *get_message_content_caption(const MessageContent *content) 
       return &static_cast<const MessageDocument *>(content)->caption;
     case MessageContentType::Invoice:
       return static_cast<const MessageInvoice *>(content)->input_invoice.get_caption();
-    case MessageContentType::LivePhoto:
-      return &static_cast<const MessageLivePhoto *>(content)->caption;
     case MessageContentType::PaidMedia:
       return &static_cast<const MessagePaidMedia *>(content)->caption;
     case MessageContentType::Photo:
@@ -11347,8 +11237,6 @@ static bool get_message_content_has_spoiler(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
       return static_cast<const MessageAnimation *>(content)->has_spoiler;
-    case MessageContentType::LivePhoto:
-      return static_cast<const MessageLivePhoto *>(content)->has_spoiler;
     case MessageContentType::Photo:
       return static_cast<const MessagePhoto *>(content)->has_spoiler;
     case MessageContentType::Video:
@@ -11362,9 +11250,6 @@ static void set_message_content_has_spoiler(MessageContent *content, bool has_sp
   switch (content->get_type()) {
     case MessageContentType::Animation:
       static_cast<MessageAnimation *>(content)->has_spoiler = has_spoiler;
-      break;
-    case MessageContentType::LivePhoto:
-      static_cast<MessageLivePhoto *>(content)->has_spoiler = has_spoiler;
       break;
     case MessageContentType::Photo:
       static_cast<MessagePhoto *>(content)->has_spoiler = has_spoiler;
@@ -11496,8 +11381,8 @@ int32 get_message_content_media_duration(const MessageContent *content, const Td
 
 bool has_message_content_cover(const MessageContent *content) {
   switch (content->get_type()) {
-    case MessageContentType::LivePhoto:
-      return true;
+    case MessageContentType::Photo:
+      return static_cast<const MessagePhoto *>(content)->video_file_id.is_valid();
     case MessageContentType::Video: {
       const auto *cover = &static_cast<const MessageVideo *>(content)->cover;
       if (cover->is_empty()) {
@@ -11512,12 +11397,13 @@ bool has_message_content_cover(const MessageContent *content) {
 
 vector<MessageCover> get_message_content_need_to_upload_covers(Td *td, const MessageContent *content) {
   switch (content->get_type()) {
-    case MessageContentType::LivePhoto: {
-      auto file_id = static_cast<const MessageLivePhoto *>(content)->video_file_id;
-      if (td->videos_manager_->get_video_cover_input_media(file_id, td->auth_manager_->is_bot(), false) != nullptr) {
+    case MessageContentType::Photo: {
+      auto video_file_id = static_cast<const MessagePhoto *>(content)->video_file_id;
+      if (!video_file_id.is_valid() || td->videos_manager_->get_video_cover_input_media(
+                                           video_file_id, td->auth_manager_->is_bot(), false) != nullptr) {
         break;
       }
-      return {MessageCover(file_id)};
+      return {MessageCover(video_file_id)};
     }
     case MessageContentType::Video: {
       const auto &cover = static_cast<const MessageVideo *>(content)->cover;
@@ -11556,8 +11442,6 @@ FileId get_message_content_any_file_id(const MessageContent *content) {
       return static_cast<const MessageDocument *>(content)->file_id;
     case MessageContentType::Invoice:
       return static_cast<const MessageInvoice *>(content)->input_invoice.get_any_file_id();
-    case MessageContentType::LivePhoto:
-      return get_photo_any_file_id(static_cast<const MessageLivePhoto *>(content)->photo);
     case MessageContentType::Photo:
       return get_photo_any_file_id(static_cast<const MessagePhoto *>(content)->photo);
     case MessageContentType::Sticker:
@@ -11592,8 +11476,8 @@ vector<FileId> get_message_content_any_file_ids(const MessageContent *content) {
 FileId get_message_content_cover_any_file_id(const MessageContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
-    case MessageContentType::LivePhoto:
-      return static_cast<const MessageLivePhoto *>(content)->video_file_id;
+    case MessageContentType::Photo:
+      return static_cast<const MessagePhoto *>(content)->video_file_id;
     case MessageContentType::Video: {
       auto video = static_cast<const MessageVideo *>(content);
       if (!video->cover.is_empty()) {
@@ -11613,8 +11497,13 @@ FileId get_message_content_cover_any_file_id(const MessageContent *content) {
 vector<FileId> get_message_content_cover_any_file_ids(const MessageContent *content) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
-    case MessageContentType::LivePhoto:
-      return {static_cast<const MessageLivePhoto *>(content)->video_file_id};
+    case MessageContentType::Photo: {
+      auto video_file_id = static_cast<const MessagePhoto *>(content)->video_file_id;
+      if (!video_file_id.is_valid()) {
+        break;
+      }
+      return {video_file_id};
+    }
     case MessageContentType::Video: {
       auto video = static_cast<const MessageVideo *>(content);
       if (!video->cover.is_empty()) {
@@ -11693,8 +11582,6 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
           static_cast<const MessageDocument *>(content)->file_id);
     case MessageContentType::Invoice:
       return static_cast<const MessageInvoice *>(content)->input_invoice.get_thumbnail_file_id(td);
-    case MessageContentType::LivePhoto:
-      return get_photo_thumbnail_file_id(static_cast<const MessageLivePhoto *>(content)->photo);
     case MessageContentType::Photo:
       return get_photo_thumbnail_file_id(static_cast<const MessagePhoto *>(content)->photo);
     case MessageContentType::Sticker:
@@ -11731,8 +11618,14 @@ vector<FileId> get_message_content_thumbnail_file_ids(const MessageContent *cont
 vector<FileId> get_message_content_file_ids(const MessageContent *content, const Td *td) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
-    case MessageContentType::Photo:
-      return photo_get_file_ids(static_cast<const MessagePhoto *>(content)->photo);
+    case MessageContentType::Photo: {
+      const auto *photo = static_cast<const MessagePhoto *>(content);
+      auto file_ids = photo_get_file_ids(photo->photo);
+      if (photo->video_file_id.is_valid()) {
+        append(file_ids, Document(Document::Type::Video, photo->video_file_id).get_file_ids(td));
+      }
+      return file_ids;
+    }
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
@@ -11759,12 +11652,6 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
         }
       }();
       return Document(document_type, get_message_content_any_file_id(content)).get_file_ids(td);
-    }
-    case MessageContentType::LivePhoto: {
-      auto live_photo = static_cast<const MessageLivePhoto *>(content);
-      auto file_ids = Document(Document::Type::Video, live_photo->video_file_id).get_file_ids(td);
-      append(file_ids, photo_get_file_ids(live_photo->photo));
-      return file_ids;
     }
     case MessageContentType::Video: {
       auto video = static_cast<const MessageVideo *>(content);
@@ -11872,10 +11759,6 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::Invoice: {
       const auto *invoice = static_cast<const MessageInvoice *>(content);
       return invoice->input_invoice.get_caption()->text;
-    }
-    case MessageContentType::LivePhoto: {
-      const auto *live_photo = static_cast<const MessageLivePhoto *>(content);
-      return live_photo->caption.text;
     }
     case MessageContentType::PaidMedia: {
       const auto *paid_media = static_cast<const MessagePaidMedia *>(content);
@@ -12256,8 +12139,6 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::Invoice:
       break;
     case MessageContentType::LiveLocation:
-      break;
-    case MessageContentType::LivePhoto:
       break;
     case MessageContentType::Location:
       break;

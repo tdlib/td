@@ -516,7 +516,6 @@ void SponsoredMessageManager::on_get_dialog_sponsored_messages(
         bool is_allowed_content_type = [&] {
           switch (content->get_type()) {
             case MessageContentType::Animation:
-            case MessageContentType::LivePhoto:
             case MessageContentType::Photo:
             case MessageContentType::Text:
             case MessageContentType::Video:
