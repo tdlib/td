@@ -184,7 +184,7 @@ void remove_premium_custom_emoji_entities(const Td *td, vector<MessageEntity> &e
 
 void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialog_id);
 
-void remove_unallowed_quote_entities(FormattedText &text);
+bool remove_unallowed_quote_entities(FormattedText &text);
 
 bool is_found_entity_type(MessageEntity::Type type, bool skip_bot_commands, bool skip_media_timestamps);
 

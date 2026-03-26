@@ -41,7 +41,7 @@ Result<ToDoList> ToDoList::get_to_do_list(const Td *td, DialogId dialog_id,
   if (static_cast<int64>(utf8_length(title.text)) > max_length) {
     return Status::Error(400, PSLICE() << "Checklist title length must not exceed " << max_length);
   }
-  remove_unsupported_entities(title);
+  remove_unallowed_quote_entities(title);
 
   ToDoList result;
   result.title_ = std::move(title);
@@ -93,13 +93,8 @@ telegram_api::object_ptr<telegram_api::inputMediaTodo> ToDoList::get_input_media
   return telegram_api::make_object<telegram_api::inputMediaTodo>(get_input_todo_list(user_manager));
 }
 
-bool ToDoList::remove_unsupported_entities(FormattedText &text) {
-  return td::remove_if(text.entities,
-                       [](const MessageEntity &entity) { return !is_allowed_quote_entity_type(entity.type); });
-}
-
 void ToDoList::validate(const char *source) {
-  if (remove_unsupported_entities(title_)) {
+  if (remove_unallowed_quote_entities(title_)) {
     LOG(ERROR) << "Receive unexpected checklist title entities from " << source;
   }
   for (auto &item : items_) {
