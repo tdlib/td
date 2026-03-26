@@ -23179,7 +23179,6 @@ void MessagesManager::edit_message_media(MessageFullId message_full_id,
   if (new_message_content_type != td_api::inputMessageAnimation::ID &&
       new_message_content_type != td_api::inputMessageAudio::ID &&
       new_message_content_type != td_api::inputMessageDocument::ID &&
-      new_message_content_type != td_api::inputMessageLivePhoto::ID &&
       new_message_content_type != td_api::inputMessagePhoto::ID &&
       new_message_content_type != td_api::inputMessageVideo::ID) {
     return promise.set_error(400, "Unsupported input message content type");

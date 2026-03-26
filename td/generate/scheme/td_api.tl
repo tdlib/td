@@ -5476,18 +5476,6 @@ inputMessageAudio audio:InputFile album_cover_thumbnail:inputThumbnail duration:
 //@caption Document caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
 inputMessageDocument document:InputFile thumbnail:inputThumbnail disable_content_type_detection:Bool caption:formattedText = InputMessageContent;
 
-//@description A live photo message; not supported in secret chats
-//@photo The photo to be sent
-//@video Video of the live photo. The video is expected to be re-encoded to MPEG4 format with H.264 codec by the sender
-//@added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable
-//@width Photo width
-//@height Photo height
-//@caption Photo caption; pass null to use an empty caption; 0-getOption("message_caption_length_max") characters
-//@show_caption_above_media True, if the caption must be shown above the live photo; otherwise, the caption must be shown below the live photo
-//@self_destruct_type Live photo self-destruct type; pass null if none; private chats only
-//@has_spoiler True, if the live photo preview must be covered by a spoiler animation
-inputMessageLivePhoto photo:InputFile video:InputFile added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText show_caption_above_media:Bool self_destruct_type:MessageSelfDestructType has_spoiler:Bool = InputMessageContent;
-
 //@description A message with paid media; can be used only in channel chats with supergroupFullInfo.has_paid_media_allowed
 //@star_count The number of Telegram Stars that must be paid to see the media; 1-getOption("paid_media_message_star_count_max")
 //@paid_media The content of the paid media
@@ -5499,6 +5487,7 @@ inputMessagePaidMedia star_count:int53 paid_media:vector<inputPaidMedia> caption
 //@description A photo message
 //@photo Photo to send. The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20
 //@thumbnail Photo thumbnail to be sent; pass null to skip thumbnail uploading. The thumbnail is sent to the other party only in secret chats
+//@video Video of the live photo; not supported in secret chats; pass null if the photo isn't a live photo
 //@added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable
 //@width Photo width
 //@height Photo height
@@ -5506,7 +5495,7 @@ inputMessagePaidMedia star_count:int53 paid_media:vector<inputPaidMedia> caption
 //@show_caption_above_media True, if the caption must be shown above the photo; otherwise, the caption must be shown below the photo; not supported in secret chats
 //@self_destruct_type Photo self-destruct type; pass null if none; private chats only
 //@has_spoiler True, if the photo preview must be covered by a spoiler animation; not supported in secret chats
-inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText show_caption_above_media:Bool self_destruct_type:MessageSelfDestructType has_spoiler:Bool = InputMessageContent;
+inputMessagePhoto photo:InputFile thumbnail:inputThumbnail video:InputFile added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText show_caption_above_media:Bool self_destruct_type:MessageSelfDestructType has_spoiler:Bool = InputMessageContent;
 
 //@description A sticker message
 //@sticker Sticker to be sent
@@ -11453,7 +11442,7 @@ editMessageChecklist chat_id:int53 message_id:int53 reply_markup:ReplyMarkup che
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message. Use messageProperties.can_edit_media to check whether the message can be edited
 //@reply_markup The new message reply markup; pass null if none; for bots only
-//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessageLivePhoto, inputMessagePhoto or inputMessageVideo
+//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
 editMessageMedia chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
 //@description Edits the message content caption. Returns the edited message after the edit is completed on the server side
@@ -11489,7 +11478,7 @@ editInlineMessageLiveLocation inline_message_id:string reply_markup:ReplyMarkup 
 //@description Edits the media content of a message with a text, an animation, an audio, a document, a photo or a video in an inline message sent via a bot; for bots only
 //@inline_message_id Inline message identifier
 //@reply_markup The new message reply markup; pass null if none; for bots only
-//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessageLivePhoto, inputMessagePhoto or inputMessageVideo
+//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
 editInlineMessageMedia inline_message_id:string reply_markup:ReplyMarkup input_message_content:InputMessageContent = Ok;
 
 //@description Edits the caption of an inline message sent via a bot; for bots only
@@ -11573,7 +11562,7 @@ editBusinessMessageChecklist business_connection_id:string chat_id:int53 message
 //@chat_id The chat the message belongs to
 //@message_id Identifier of the message
 //@reply_markup The new message reply markup; pass null if none; for bots only
-//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessageLivePhoto, inputMessagePhoto or inputMessageVideo
+//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageDocument, inputMessagePhoto or inputMessageVideo
 editBusinessMessageMedia business_connection_id:string chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = BusinessMessage;
 
 //@description Edits the caption of a message sent on behalf of a business account; for bots only
@@ -11725,7 +11714,7 @@ readdQuickReplyShortcutMessages shortcut_name:string message_ids:vector<int53> =
 //-The type of message content in an album can't be changed with exception of replacing a photo with a video or vice versa
 //@shortcut_id Unique identifier of the quick reply shortcut with the message
 //@message_id Identifier of the message
-//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageChecklist, inputMessageDocument, inputMessageLivePhoto, inputMessagePhoto, inputMessageText, or inputMessageVideo
+//@input_message_content New content of the message. Must be one of the following types: inputMessageAnimation, inputMessageAudio, inputMessageChecklist, inputMessageDocument, inputMessagePhoto, inputMessageText, or inputMessageVideo
 editQuickReplyMessage shortcut_id:int32 message_id:int53 input_message_content:InputMessageContent = Ok;
 
 
