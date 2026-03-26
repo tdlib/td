@@ -38,7 +38,7 @@ class TranslationManager final : public Actor {
                                Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   void proofread_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
-                                 Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+                                 Promise<td_api::object_ptr<td_api::fixedText>> &&promise);
 
   void on_update_ai_compose_styles(vector<string> &&ai_compose_styles);
 

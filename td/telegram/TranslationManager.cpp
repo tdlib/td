@@ -9,8 +9,8 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/DiffText.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/MessageEntity.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
@@ -126,12 +126,12 @@ class ComposeMessageWithAiQuery final : public Td::ResultHandler {
 };
 
 class ProofreadMessageWithAiQuery final : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::formattedText>> promise_;
+  Promise<td_api::object_ptr<td_api::fixedText>> promise_;
   bool skip_bot_commands_;
   int32 max_media_timestamp_;
 
  public:
-  explicit ProofreadMessageWithAiQuery(Promise<td_api::object_ptr<td_api::formattedText>> &&promise)
+  explicit ProofreadMessageWithAiQuery(Promise<td_api::object_ptr<td_api::fixedText>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -155,8 +155,10 @@ class ProofreadMessageWithAiQuery final : public Td::ResultHandler {
     LOG(INFO) << "Receive result for ProofreadMessageWithAiQuery: " << to_string(ptr);
     auto formatted_text = get_formatted_text(td_->user_manager_.get(), std::move(ptr->result_text_),
                                              max_media_timestamp_ == -1, true, "ProofreadMessageWithAiQuery");
-    promise_.set_value(
-        get_formatted_text_object(td_->user_manager_.get(), formatted_text, skip_bot_commands_, max_media_timestamp_));
+    auto diff_text = DiffText(std::move(ptr->diff_text_));
+    promise_.set_value(td_api::make_object<td_api::fixedText>(
+        get_formatted_text_object(td_->user_manager_.get(), formatted_text, skip_bot_commands_, max_media_timestamp_),
+        diff_text.get_diff_text_object()));
   }
 
   void on_error(Status status) final {
@@ -301,7 +303,7 @@ void TranslationManager::compose_message_with_ai(td_api::object_ptr<td_api::form
 }
 
 void TranslationManager::proofread_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
-                                                   Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
+                                                   Promise<td_api::object_ptr<td_api::fixedText>> &&promise) {
   if (text == nullptr) {
     return promise.set_error(400, "Text must be non-empty");
   }

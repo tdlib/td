@@ -122,6 +122,9 @@ diffEntity offset:int32 length:int32 type:DiffEntityType = DiffEntity;
 //@description A text with some changes highlighted @text The text @entities Entities describing changes in the text. Entities doesn't mutually intersect with each other
 diffText text:string entities:vector<diffEntity> = DiffText;
 
+//@description A text fixed using fixTextWithAi @text The resulting text @diff_text Changes made to the original text
+fixedText text:formattedText diff_text:diffText = FixedText;
+
 
 //@description Describes a style that can be used to compose a text @emoji Emoji corresponding to the style @name Name of the style
 textCompositionStyle emoji:string name:string = TextCompositionStyle;
@@ -11317,7 +11320,7 @@ composeTextWithAi text:formattedText translate_to_language_code:string style_nam
 
 //@description Fixes text using an AI model. May return an error with a message "AICOMPOSE_FLOOD_PREMIUM" if Telegram Premium is required to send further requests
 //@text The original text
-fixTextWithAi text:formattedText = FormattedText;
+fixTextWithAi text:formattedText = FixedText;
 
 //@description Recognizes speech in a video note or a voice note message
 //@chat_id Identifier of the chat to which the message belongs
