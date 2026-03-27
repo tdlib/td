@@ -4407,8 +4407,10 @@ inputInvoiceTelegram purpose:TelegramPaymentPurpose = InputInvoice;
 //@minithumbnail Media minithumbnail; may be null
 paidMediaPreview width:int32 height:int32 duration:int32 minithumbnail:minithumbnail = PaidMedia;
 
-//@description The media is a photo @photo The photo
-paidMediaPhoto photo:photo = PaidMedia;
+//@description The media is a photo
+//@photo The photo
+//@video The video representing the live photo; may be null if the photo is static
+paidMediaPhoto photo:photo video:video = PaidMedia;
 
 //@description The media is a video
 //@video The video

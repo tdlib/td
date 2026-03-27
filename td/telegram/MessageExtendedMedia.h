@@ -40,8 +40,10 @@ class MessageExtendedMedia {
   // for Photo and Video cover
   Photo photo_;
 
-  // for Video
+  // for Video and Live Photo
   FileId video_file_id_;
+
+  // for Video
   int32 start_timestamp_ = 0;
 
   friend bool operator==(const MessageExtendedMedia &lhs, const MessageExtendedMedia &rhs);

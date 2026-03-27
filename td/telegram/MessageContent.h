@@ -109,7 +109,7 @@ unique_ptr<MessageContent> create_text_message_content(string text, vector<Messa
                                                        bool force_large_media, bool skip_confitmation,
                                                        string &&web_page_url);
 
-unique_ptr<MessageContent> create_photo_message_content(Photo photo);
+unique_ptr<MessageContent> create_photo_message_content(Photo photo, FileId video_file_id);
 
 unique_ptr<MessageContent> create_video_message_content(FileId file_id, Photo cover, int32 start_timestamp);
 

@@ -70,9 +70,6 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
   switch (media->get_id()) {
     case telegram_api::messageMediaPhoto::ID: {
       auto photo = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media);
-      if (photo->live_photo_) {
-        break;
-      }
       if (photo->photo_ == nullptr) {
         LOG(ERROR) << "Receive invalid paid media " << to_string(photo);
         break;
@@ -82,6 +79,10 @@ void MessageExtendedMedia::init_from_media(Td *td, telegram_api::object_ptr<tele
       if (photo_.is_empty()) {
         LOG(ERROR) << "Receive invalid paid media photo";
         break;
+      }
+      if (photo->live_photo_) {
+        video_file_id_ =
+            td->videos_manager_->get_live_photo_video_file_id(std::move(photo->video_), owner_dialog_id, false);
       }
       type_ = Type::Photo;
       break;
@@ -239,7 +240,8 @@ td_api::object_ptr<td_api::PaidMedia> MessageExtendedMedia::get_paid_media_objec
     case Type::Photo: {
       auto photo = get_photo_object(td->file_manager_.get(), photo_);
       CHECK(photo != nullptr);
-      return td_api::make_object<td_api::paidMediaPhoto>(std::move(photo));
+      return td_api::make_object<td_api::paidMediaPhoto>(std::move(photo),
+                                                         td->videos_manager_->get_video_object(video_file_id_));
     }
     case Type::Video:
       return td_api::make_object<td_api::paidMediaVideo>(td->videos_manager_->get_video_object(video_file_id_),
@@ -258,10 +260,10 @@ void MessageExtendedMedia::append_file_ids(const Td *td, vector<FileId> &file_id
     case Type::Preview:
       break;
     case Type::Photo:
-      append(file_ids, photo_get_file_ids(photo_));
-      break;
     case Type::Video:
-      Document(Document::Type::Video, video_file_id_).append_file_ids(td, file_ids);
+      if (video_file_id_.is_valid()) {
+        Document(Document::Type::Video, video_file_id_).append_file_ids(td, file_ids);
+      }
       if (!photo_.is_empty()) {
         append(file_ids, photo_get_file_ids(photo_));
       }
@@ -293,7 +295,7 @@ void MessageExtendedMedia::delete_thumbnail(Td *td) {
 unique_ptr<MessageContent> MessageExtendedMedia::get_message_content() const {
   switch (type_) {
     case Type::Photo:
-      return create_photo_message_content(photo_);
+      return create_photo_message_content(photo_, video_file_id_);
     case Type::Video:
       return create_video_message_content(video_file_id_, photo_, start_timestamp_);
     case Type::Empty:
@@ -351,8 +353,9 @@ FileId MessageExtendedMedia::get_cover_any_file_id() const {
     case Type::Empty:
     case Type::Unsupported:
     case Type::Preview:
-    case Type::Photo:
       break;
+    case Type::Photo:
+      return video_file_id_;
     case Type::Video:
       return get_photo_any_file_id(photo_);
     default:
@@ -376,8 +379,13 @@ MessageCover MessageExtendedMedia::get_need_to_upload_cover(const Td *td) const 
     case Type::Empty:
     case Type::Unsupported:
     case Type::Preview:
-    case Type::Photo:
       break;
+    case Type::Photo:
+      if (!video_file_id_.is_valid() || td->videos_manager_->get_video_cover_input_media(
+                                            video_file_id_, td->auth_manager_->is_bot(), false) != nullptr) {
+        break;
+      }
+      return {MessageCover(video_file_id_)};
     case Type::Video:
       if (photo_.is_empty() ||
           photo_get_cover_input_media(td->file_manager_.get(), photo_, td->auth_manager_->is_bot(), false) != nullptr) {
@@ -400,7 +408,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> MessageExtendedMedia::get_inp
     case Type::Preview:
       break;
     case Type::Photo:
-      return photo_get_input_media(td->file_manager_.get(), photo_, std::move(input_file), 0, false);
+      return photo_get_input_media(td->file_manager_.get(), photo_, std::move(input_file), 0, false, video_file_id_);
     case Type::Video:
       return td->videos_manager_->get_input_media(video_file_id_, std::move(input_file), std::move(input_thumbnail),
                                                   photo_, start_timestamp_, 0, false);
@@ -457,7 +465,7 @@ bool operator==(const MessageExtendedMedia &lhs, const MessageExtendedMedia &rhs
       return lhs.duration_ == rhs.duration_ && lhs.dimensions_ == rhs.dimensions_ &&
              lhs.minithumbnail_ == rhs.minithumbnail_;
     case MessageExtendedMedia::Type::Photo:
-      return lhs.photo_ == rhs.photo_;
+      return lhs.photo_ == rhs.photo_ && lhs.video_file_id_ == rhs.video_file_id_;
     case MessageExtendedMedia::Type::Video:
       return lhs.video_file_id_ == rhs.video_file_id_ && lhs.photo_ == rhs.photo_ &&
              lhs.start_timestamp_ == rhs.start_timestamp_;

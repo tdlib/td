@@ -4500,8 +4500,8 @@ unique_ptr<MessageContent> create_text_message_content(string text, vector<Messa
                                       force_small_media, force_large_media, skip_confirmation, std::move(web_page_url));
 }
 
-unique_ptr<MessageContent> create_photo_message_content(Photo photo) {
-  return make_unique<MessagePhoto>(std::move(photo), FileId(), FormattedText(), false);
+unique_ptr<MessageContent> create_photo_message_content(Photo photo, FileId video_file_id) {
+  return make_unique<MessagePhoto>(std::move(photo), video_file_id, FormattedText(), false);
 }
 
 unique_ptr<MessageContent> create_video_message_content(FileId file_id, Photo cover, int32 start_timestamp) {

@@ -45,7 +45,7 @@ telegram_api::object_ptr<telegram_api::InputMedia> MessageCover::get_input_media
     Td *td, telegram_api::object_ptr<telegram_api::InputFile> &&input_file) {
   switch (type_) {
     case Type::Photo:
-      return photo_get_input_media(td->file_manager_.get(), photo_, std::move(input_file), 0, false);
+      return photo_get_input_media(td->file_manager_.get(), photo_, std::move(input_file), 0, false, FileId());
     case Type::Video:
       return td->videos_manager_->get_input_media(video_file_id_, std::move(input_file), nullptr, Photo(), 0, 0, false);
     case Type::Empty:
@@ -88,10 +88,10 @@ Status MessageCover::merge_with_media(Td *td, DialogId owner_dialog_id,
       auto parsed_file = td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false, true,
                                                                  nullptr, Document::Type::Video);
       if (parsed_file.empty() || parsed_file.type != Document::Type::Video) {
-         return Status::Error(500, "Receive invalid live photo video");
+        return Status::Error(500, "Receive invalid live photo video");
       }
       if (video_file_id_ != parsed_file.file_id) {
-         td->videos_manager_->merge_videos(parsed_file.file_id, video_file_id_);
+        td->videos_manager_->merge_videos(parsed_file.file_id, video_file_id_);
       }
       break;
     }

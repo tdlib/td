@@ -353,7 +353,8 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_story_content_input_media
   switch (content->get_type()) {
     case StoryContentType::Photo: {
       const auto *story_content = static_cast<const StoryContentPhoto *>(content);
-      return photo_get_input_media(td->file_manager_.get(), story_content->photo_, std::move(input_file), 0, false);
+      return photo_get_input_media(td->file_manager_.get(), story_content->photo_, std::move(input_file), 0, false,
+                                   FileId());
     }
     case StoryContentType::Video: {
       const auto *story_content = static_cast<const StoryContentVideo *>(content);

@@ -93,7 +93,7 @@ SecretInputMedia photo_get_secret_input_media(const FileManager *file_manager, c
 
 tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
     const FileManager *file_manager, const Photo &photo, telegram_api::object_ptr<telegram_api::InputFile> input_file,
-    int32 ttl, bool has_spoiler, FileId video_file_id = FileId());
+    int32 ttl, bool has_spoiler, FileId video_file_id);
 
 telegram_api::object_ptr<telegram_api::InputMedia> photo_get_cover_input_media(const FileManager *file_manager,
                                                                                const Photo &photo, bool force,
