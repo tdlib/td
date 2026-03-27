@@ -2063,6 +2063,12 @@ class MessagesManager final : public Actor {
 
   bool remove_message_unread_reactions(Dialog *d, Message *m, const char *source);
 
+  void on_unread_poll_vote_added(Dialog *d, const Message *m, const char *source);
+
+  void on_unread_poll_vote_removed(Dialog *d, const Message *m, const char *source);
+
+  bool remove_message_unread_poll_votes(Dialog *d, Message *m, const char *source);
+
   void read_message_content_from_updates(MessageId message_id, int32 read_date);
 
   void read_channel_message_content_from_updates(Dialog *d, MessageId message_id, ForumTopicId forum_topic_id,

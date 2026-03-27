@@ -5207,6 +5207,55 @@ bool MessagesManager::remove_message_unread_reactions(Dialog *d, Message *m, con
   return true;
 }
 
+void MessagesManager::on_unread_poll_vote_added(Dialog *d, const Message *m, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (d->is_forum) {
+    td_->forum_topic_manager_->on_topic_poll_vote_count_changed(d->dialog_id,
+                                                                get_message_forum_topic_id(d->dialog_id, m), +1, true);
+  }
+  set_dialog_unread_poll_vote_count(d, d->unread_poll_vote_count + 1);
+  on_dialog_updated(d->dialog_id, source);
+}
+
+void MessagesManager::on_unread_poll_vote_removed(Dialog *d, const Message *m, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  if (d->is_forum) {
+    td_->forum_topic_manager_->on_topic_poll_vote_count_changed(d->dialog_id,
+                                                                get_message_forum_topic_id(d->dialog_id, m), -1, true);
+  }
+  if (d->unread_poll_vote_count == 0) {
+    if (is_dialog_inited(d)) {
+      // can happen after local read of all poll votes in the topic or chat
+      LOG(INFO) << "Unread poll vote count of " << d->dialog_id << " became negative from " << source;
+    }
+  } else {
+    set_dialog_unread_poll_vote_count(d, d->unread_poll_vote_count - 1);
+    on_dialog_updated(d->dialog_id, "on_unread_poll_vote_removed");
+  }
+}
+
+bool MessagesManager::remove_message_unread_poll_votes(Dialog *d, Message *m, const char *source) {
+  CHECK(m != nullptr);
+  CHECK(!m->message_id.is_scheduled());
+  if (!has_unread_poll_votes(d->dialog_id, m)) {
+    return false;
+  }
+  // remove_message_notification_id(d, m, true, true);
+
+  remove_message_content_poll_has_unread_votes(td_, m->content.get());
+
+  LOG(INFO) << "Update unread poll vote count in " << d->dialog_id << " to " << d->unread_poll_vote_count
+            << " by reading " << m->message_id << " from " << source;
+
+  on_unread_poll_vote_removed(d, m, source);
+
+  return true;
+}
+
 void MessagesManager::on_read_channel_inbox(ChannelId channel_id, MessageId max_message_id, int32 server_unread_count,
                                             int32 pts, const char *source) {
   if (td_->auth_manager_->is_bot()) {
@@ -8893,7 +8942,7 @@ bool MessagesManager::read_all_local_dialog_poll_votes(DialogId dialog_id, Forum
     CHECK(m->message_id == message_id);
     CHECK(m->message_id.is_valid());
     // remove_message_notification_id(d, m, true, false);  // must be called while has_unread_poll_votes
-    // remove_message_content_has_unread_poll_votes(m->content.get());
+    remove_message_content_poll_has_unread_votes(td_, m->content.get());
     // must call on_external_update_message_content
   }
   return !message_ids.empty();
@@ -8905,7 +8954,7 @@ void MessagesManager::read_all_dialog_poll_votes(DialogId dialog_id, ForumTopicI
                      check_dialog_access(dialog_id, true, AccessRights::Read, "read_all_dialog_poll_votes"));
   TRY_STATUS_PROMISE(promise, can_use_forum_topic_id(d, forum_topic_id));
 
-  auto is_update_sent = read_all_local_dialog_poll_votes(dialog_id, forum_topic_id);
+  read_all_local_dialog_poll_votes(dialog_id, forum_topic_id);
   if (forum_topic_id.is_valid()) {
     LOG(INFO) << "Receive readAllChatPollVotes request in " << forum_topic_id << " in " << dialog_id;
     td_->forum_topic_manager_->on_topic_poll_vote_count_changed(dialog_id, forum_topic_id, 0, false);
@@ -8923,12 +8972,7 @@ void MessagesManager::read_all_dialog_poll_votes(DialogId dialog_id, ForumTopicI
 
   if (d->unread_poll_vote_count != 0) {
     set_dialog_unread_poll_vote_count(d, 0);
-    if (!is_update_sent) {
-      send_update_chat_unread_poll_vote_count(d, "read_all_dialog_poll_votes");
-    } else {
-      LOG(INFO) << "Update unread poll vote message count in " << dialog_id << " to " << d->unread_poll_vote_count;
-      on_dialog_updated(dialog_id, "read_all_dialog_poll_votes");
-    }
+    send_update_chat_unread_poll_vote_count(d, "read_all_dialog_poll_votes");
   }
   // remove_message_dialog_notifications(d, MessageId::max(), true, "read_all_dialog_poll_votes");
 
@@ -10040,6 +10084,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *m, bool is
   remove_message_notification_id(d, m, true, true);
   update_message_contains_unread_mention(d, m, false, "on_message_ttl_expired_impl");
   remove_message_unread_reactions(d, m, "on_message_ttl_expired_impl");
+  remove_message_unread_poll_votes(d, m, "on_message_ttl_expired_impl");
   set_message_reply(d, m, MessageInputReplyTo(), is_message_in_dialog);
   m->noforwards = false;
   m->contains_mention = false;
@@ -13234,7 +13279,7 @@ void MessagesManager::on_message_deleted_from_database(Dialog *d, const Message 
     on_unread_message_reaction_removed(d, m, source);
   }
   if (has_unread_poll_votes(d->dialog_id, m)) {
-    // on_unread_poll_vote_removed(d, m, source);
+    on_unread_poll_vote_removed(d, m, source);
   }
 
   update_message_count_by_index(d, -1, m);
@@ -30330,8 +30375,8 @@ void MessagesManager::add_message_to_dialog_message_list(const Message *m, Dialo
     send_update_chat_unread_reaction_count(d, "add_message_to_dialog_message_list");
   }
   if (need_update && has_unread_poll_votes(dialog_id, m)) {
-    // on_unread_poll_vote_added(d, m, "add_message_to_dialog_message_list");
-    // send_update_chat_unread_poll_vote_count(d, "add_message_to_dialog_message_list");
+    on_unread_poll_vote_added(d, m, "add_message_to_dialog_message_list");
+    send_update_chat_unread_poll_vote_count(d, "add_message_to_dialog_message_list");
   }
   if (need_update) {
     update_message_count_by_index(d, +1, m);
