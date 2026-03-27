@@ -4465,8 +4465,9 @@ void MessagesManager::on_update_message_forward_count(MessageFullId message_full
   update_message_interaction_info(message_full_id, -1, forward_count, false, nullptr, false, nullptr);
 }
 
-void MessagesManager::on_update_message_reactions(MessageFullId message_full_id,
-                                                  tl_object_ptr<telegram_api::messageReactions> &&reactions,
+void MessagesManager::on_update_message_reactions(MessageFullId message_full_id, ForumTopicId forum_topic_id,
+                                                  SavedMessagesTopicId saved_messages_topic_id,
+                                                  telegram_api::object_ptr<telegram_api::messageReactions> &&reactions,
                                                   Promise<Unit> &&promise) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
@@ -4489,6 +4490,9 @@ void MessagesManager::on_update_message_reactions(MessageFullId message_full_id,
     if ((new_reactions != nullptr && !new_reactions->unread_reactions_.empty()) || d->unread_reaction_count > 0) {
       // but if there are unread reactions or the chat has unread reactions,
       // then number of unread reactions could have been changed, so reload the number of unread reactions
+      if (forum_topic_id.is_valid()) {
+        td_->forum_topic_manager_->repair_topic_unread_mention_count(dialog_id, forum_topic_id);
+      }
       repair_dialog_unread_reaction_count(d, std::move(promise), "on_update_message_reactions");
     } else {
       promise.set_value(Unit());

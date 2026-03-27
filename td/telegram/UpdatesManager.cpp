@@ -3999,8 +3999,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelWebPage>
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageReactions> update, Promise<Unit> &&promise) {
   td_->messages_manager_->on_update_message_reactions(
-      {DialogId(update->peer_), MessageId(ServerMessageId(update->msg_id_))}, std::move(update->reactions_),
-      std::move(promise));
+      {DialogId(update->peer_), MessageId(ServerMessageId(update->msg_id_))}, ForumTopicId(update->top_msg_id_),
+      SavedMessagesTopicId(update->saved_peer_id_ == nullptr ? DialogId() : DialogId(update->saved_peer_id_)),
+      std::move(update->reactions_), std::move(promise));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateRecentReactions> update, Promise<Unit> &&promise) {

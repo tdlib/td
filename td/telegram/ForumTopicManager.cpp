@@ -1472,4 +1472,13 @@ void ForumTopicManager::repair_topic_unread_mention_count(DialogId dialog_id, Fo
       ->send(dialog_id, forum_topic_id);
 }
 
+void ForumTopicManager::repair_topic_unread_reaction_count(DialogId dialog_id, ForumTopicId forum_topic_id) {
+  if (is_forum(dialog_id, true).is_error() || can_be_forum_topic_id(forum_topic_id).is_error()) {
+    return;
+  }
+
+  td_->create_handler<GetForumTopicQuery>(Promise<td_api::object_ptr<td_api::forumTopic>>())
+      ->send(dialog_id, forum_topic_id);
+}
+
 }  // namespace td
