@@ -301,7 +301,7 @@ void photo_delete_thumbnail(Photo &photo) {
 }
 
 tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
-    FileManager *file_manager, const Photo &photo, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    const FileManager *file_manager, const Photo &photo, telegram_api::object_ptr<telegram_api::InputFile> input_file,
     int32 ttl, bool has_spoiler, FileId video_file_id) {
   bool is_live_photo = false;
   telegram_api::object_ptr<telegram_api::InputDocument> input_video;
@@ -362,7 +362,7 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
   return nullptr;
 }
 
-SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const Photo &photo,
+SecretInputMedia photo_get_secret_input_media(const FileManager *file_manager, const Photo &photo,
                                               telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
                                               const string &caption, BufferSlice thumbnail) {
   FileId file_id;
@@ -416,7 +416,7 @@ SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const P
           BufferSlice(encryption_key.key_slice()), BufferSlice(encryption_key.iv_slice()), caption)};
 }
 
-telegram_api::object_ptr<telegram_api::InputMedia> photo_get_cover_input_media(FileManager *file_manager,
+telegram_api::object_ptr<telegram_api::InputMedia> photo_get_cover_input_media(const FileManager *file_manager,
                                                                                const Photo &photo, bool force,
                                                                                bool allow_external) {
   auto input_media = photo_get_input_media(file_manager, photo, nullptr, 0, false);
