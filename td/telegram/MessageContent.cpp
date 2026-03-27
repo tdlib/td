@@ -62,6 +62,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageSender.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/OrderInfo.h"
@@ -12533,6 +12534,11 @@ void apply_updates_from_service_message_content(Td *td, const MessageContent *co
                                                             new_value, sender_dialog_id == dialog_id, new_value);
       }
       return;
+    case MessageContentType::PollAppendAnswer:
+    case MessageContentType::PollDeleteAnswer:
+      return td->messages_manager_->get_message_from_server(get_message_content_replied_message_id(dialog_id, content),
+                                                            Promise<Unit>(),
+                                                            "apply_updates_from_service_message_content");
     default:
       // nothing to do
       return;
