@@ -837,6 +837,12 @@ bool PollManager::get_poll_is_anonymous(PollId poll_id) const {
   return poll->is_anonymous_;
 }
 
+bool PollManager::get_poll_has_unread_votes(PollId poll_id) const {
+  auto poll = get_poll(poll_id);
+  CHECK(poll != nullptr);
+  return poll->has_unread_votes_;
+}
+
 string PollManager::get_poll_search_text(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
