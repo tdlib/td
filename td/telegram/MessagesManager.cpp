@@ -16407,6 +16407,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   MessageId max_message_id;  // max server or local viewed message_id
   vector<MessageId> read_content_message_ids;
   vector<MessageId> read_reaction_message_ids;
+  vector<MessageId> read_poll_vote_message_ids;
   vector<MessageId> new_viewed_message_ids;
   vector<MessageId> viewed_fact_check_message_ids;
   vector<string> authentication_codes;
@@ -16439,6 +16440,11 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
         CHECK(m->message_id.is_server());
         read_reaction_message_ids.push_back(m->message_id);
         on_message_changed(d, m, true, "view_messages 8");
+      }
+
+      if (need_read && remove_message_unread_poll_votes(d, m, "view_messages 8")) {
+        CHECK(m->message_id.is_server());
+        read_poll_vote_message_ids.push_back(m->message_id);
       }
 
       auto file_source_id = message_full_id_to_file_source_id_.get({dialog_id, m->message_id});
@@ -16505,6 +16511,9 @@ Status MessagesManager::view_messages(DialogId dialog_id, vector<MessageId> mess
   }
   if (!read_reaction_message_ids.empty()) {
     td_->message_query_manager_->read_message_reactions_on_server(dialog_id, std::move(read_reaction_message_ids));
+  }
+  if (!read_poll_vote_message_ids.empty()) {
+    td_->message_query_manager_->read_message_poll_votes_on_server(dialog_id, std::move(read_poll_vote_message_ids));
   }
   if (!new_viewed_message_ids.empty()) {
     LOG(INFO) << "Have new viewed " << new_viewed_message_ids;

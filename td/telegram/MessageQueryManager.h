@@ -155,6 +155,8 @@ class MessageQueryManager final : public Actor {
 
   bool has_message_pending_read_reactions(MessageFullId message_full_id) const;
 
+  bool has_message_pending_read_poll_votes(MessageFullId message_full_id) const;
+
   void get_paid_message_reaction_senders(DialogId dialog_id,
                                          Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
@@ -219,6 +221,8 @@ class MessageQueryManager final : public Actor {
 
   void read_message_reactions_on_server(DialogId dialog_id, vector<MessageId> message_ids);
 
+  void read_message_poll_votes_on_server(DialogId dialog_id, vector<MessageId> message_ids);
+
   void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
   void unpin_all_topic_messages_on_server(DialogId dialog_id, ForumTopicId forum_topic_id,
@@ -280,6 +284,8 @@ class MessageQueryManager final : public Actor {
                               Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
   void on_read_message_reactions(DialogId dialog_id, vector<MessageId> &&message_ids, Result<Unit> &&result);
+
+  void on_read_message_poll_votes(DialogId dialog_id, vector<MessageId> &&message_ids, Result<Unit> &&result);
 
   void do_get_paid_message_reaction_senders(DialogId dialog_id,
                                             Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
@@ -355,6 +361,8 @@ class MessageQueryManager final : public Actor {
   FlatHashMap<DialogId, ReactionsToReload, DialogIdHash> being_reloaded_reactions_;
 
   FlatHashMap<MessageFullId, int32, MessageFullIdHash> pending_read_reactions_;
+
+  FlatHashMap<MessageFullId, int32, MessageFullIdHash> pending_read_poll_votes_;
 
   struct MessageViewMetrics {
     MessageId message_id_;

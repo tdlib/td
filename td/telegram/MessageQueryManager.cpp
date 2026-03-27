@@ -3699,6 +3699,46 @@ void MessageQueryManager::on_read_message_reactions(DialogId dialog_id, vector<M
   }
 }
 
+bool MessageQueryManager::has_message_pending_read_poll_votes(MessageFullId message_full_id) const {
+  return pending_read_poll_votes_.count(message_full_id) > 0;
+}
+
+void MessageQueryManager::read_message_poll_votes_on_server(DialogId dialog_id, vector<MessageId> message_ids) {
+  for (auto message_id : message_ids) {
+    pending_read_poll_votes_[{dialog_id, message_id}]++;
+  }
+  auto promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_ids](Result<Unit> &&result) mutable {
+        send_closure(actor_id, &MessageQueryManager::on_read_message_poll_votes, dialog_id, std::move(message_ids),
+                     std::move(result));
+      });
+  read_message_contents_on_server(dialog_id, std::move(message_ids), 0, std::move(promise));
+}
+
+void MessageQueryManager::on_read_message_poll_votes(DialogId dialog_id, vector<MessageId> &&message_ids,
+                                                     Result<Unit> &&result) {
+  vector<MessageFullId> message_full_ids;
+  for (auto message_id : message_ids) {
+    MessageFullId message_full_id{dialog_id, message_id};
+    auto it = pending_read_poll_votes_.find(message_full_id);
+    CHECK(it != pending_read_poll_votes_.end());
+    if (--it->second == 0) {
+      pending_read_poll_votes_.erase(it);
+    }
+
+    if (!td_->messages_manager_->have_message_force(message_full_id, "on_read_message_poll_votes")) {
+      continue;
+    }
+    if (result.is_error()) {
+      message_full_ids.push_back(message_full_id);
+    }
+  }
+  if (!message_full_ids.empty()) {
+    td_->messages_manager_->get_messages_from_server(std::move(message_full_ids), Promise<Unit>(),
+                                                     "on_read_message_poll_votes");
+  }
+}
+
 class MessageQueryManager::UnpinAllDialogMessagesOnServerLogEvent {
  public:
   DialogId dialog_id_;
