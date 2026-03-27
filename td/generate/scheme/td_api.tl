@@ -14015,7 +14015,8 @@ deleteBotMediaPreviews bot_user_id:int53 language_code:string file_ids:vector<in
 //@username Username to be checked
 checkBotUsername username:string = CheckChatUsernameResult;
 
-//@description Creates a bot which will be managed by another bot. Returns the created bot
+//@description Creates a bot which will be managed by another bot. Returns the created bot. May return an error with a message "BOT_CREATE_LIMIT_EXCEEDED"
+//-if the user already owns the maximum allowed number of bots as per premiumLimitTypeOwnedBotCount
 //@manager_bot_user_id Identifier of the bot that will manage the created bot
 //@name Name of the bot; 1-64 characters
 //@username Username of the bot. The username must end with "bot". Use checkBotUsername to find whether the name is suitable
