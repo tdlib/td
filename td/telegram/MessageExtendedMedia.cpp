@@ -6,6 +6,7 @@
 //
 #include "td/telegram/MessageExtendedMedia.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/Document.h"
 #include "td/telegram/DocumentsManager.h"
@@ -370,7 +371,7 @@ void MessageExtendedMedia::update_file_id_remote(FileId file_id) {
   }
 }
 
-const Photo *MessageExtendedMedia::get_video_cover() const {
+MessageCover MessageExtendedMedia::get_need_to_upload_cover(const Td *td) const {
   switch (type_) {
     case Type::Empty:
     case Type::Unsupported:
@@ -378,12 +379,16 @@ const Photo *MessageExtendedMedia::get_video_cover() const {
     case Type::Photo:
       break;
     case Type::Video:
-      return &photo_;
+      if (photo_.is_empty() ||
+          photo_get_cover_input_media(td->file_manager_.get(), photo_, td->auth_manager_->is_bot(), false) != nullptr) {
+        break;
+      }
+      return MessageCover(photo_);
     default:
       UNREACHABLE();
       break;
   }
-  return nullptr;
+  return MessageCover();
 }
 
 telegram_api::object_ptr<telegram_api::InputMedia> MessageExtendedMedia::get_input_media(

@@ -11488,13 +11488,10 @@ vector<MessageCover> get_message_content_need_to_upload_covers(Td *td, const Mes
     case MessageContentType::PaidMedia: {
       vector<MessageCover> result;
       for (const auto &media : static_cast<const MessagePaidMedia *>(content)->media) {
-        const auto *cover = media.get_video_cover();
-        if (cover == nullptr || cover->is_empty() ||
-            photo_get_cover_input_media(td->file_manager_.get(), *cover, td->auth_manager_->is_bot(), false) !=
-                nullptr) {
-          continue;
+        auto cover = media.get_need_to_upload_cover(td);
+        if (!cover.is_empty()) {
+          result.push_back(std::move(cover));
         }
-        result.emplace_back(*cover);
       }
       return result;
     }
