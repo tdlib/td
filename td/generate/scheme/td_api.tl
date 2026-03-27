@@ -5371,7 +5371,8 @@ inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
 //@class InputPaidMediaType @description Describes type of paid media to sent
 
 //@description The media is a photo. The photo must be at most 10 MB in size. The photo's width and height must not exceed 10000 in total. Width and height ratio must be at most 20
-inputPaidMediaTypePhoto = InputPaidMediaType;
+//@video Video of the live photo; pass null if the photo isn't a live photo
+inputPaidMediaTypePhoto video:InputFile = InputPaidMediaType;
 
 //@description The media is a video
 //@cover Cover of the video; pass null to skip cover uploading

@@ -6260,9 +6260,9 @@ class CliClient final : public Actor {
       ChatId chat_id;
       get_args(args, chat_id, args);
       auto paid_media = transform(full_split(args), [&](const string &photo) {
-        return td_api::make_object<td_api::inputPaidMedia>(td_api::make_object<td_api::inputPaidMediaTypePhoto>(),
-                                                           as_input_file(photo), get_input_thumbnail(),
-                                                           get_added_sticker_file_ids(), 0, 0);
+        return td_api::make_object<td_api::inputPaidMedia>(
+            td_api::make_object<td_api::inputPaidMediaTypePhoto>(get_input_cover()), as_input_file(photo),
+            get_input_thumbnail(), get_added_sticker_file_ids(), 0, 0);
       });
       send_message(chat_id, td_api::make_object<td_api::inputMessagePaidMedia>(11, std::move(paid_media), get_caption(),
                                                                                rand_bool(), "photo"));

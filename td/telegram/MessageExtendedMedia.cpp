@@ -167,9 +167,19 @@ Result<MessageExtendedMedia> MessageExtendedMedia::get_message_extended_media(
 
   switch (result.type_) {
     case Type::Photo: {
+      auto type = static_cast<td_api::inputPaidMediaTypePhoto *>(paid_media->type_.get());
+
       TRY_RESULT(photo, create_photo(td->file_manager_.get(), file_id, std::move(thumbnail), paid_media->width_,
                                      paid_media->height_, std::move(sticker_file_ids)));
       result.photo_ = std::move(photo);
+      if (type->video_ != nullptr) {
+        TRY_RESULT(video_file_id, td->file_manager_->get_input_file_id(FileType::LivePhoto, type->video_,
+                                                                       owner_dialog_id, false, false));
+        td->videos_manager_->create_video(
+            video_file_id, string(), PhotoSize(), AnimationSize(), false, vector<FileId>(), string(), "video/mp4", 0, 0,
+            get_dimensions(paid_media->width_, paid_media->height_, nullptr), false, false, 0, 0.0, string(), false);
+        result.video_file_id_ = video_file_id;
+      }
       break;
     }
     case Type::Video: {
