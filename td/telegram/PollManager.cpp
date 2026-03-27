@@ -1879,6 +1879,14 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       poll->total_voter_count_ = max_total_voter_count;
     }
   }
+  if (!is_min && poll_results->has_unread_votes_ != poll->has_unread_votes_) {
+    if (!poll->is_creator_) {
+      LOG(ERROR) << "Have unread votes for a non-created " << poll_id;
+    } else {
+      poll->has_unread_votes_ = poll_results->has_unread_votes_;
+      is_changed = true;
+    }
+  }
 
   auto explanation = get_formatted_text(td_->user_manager_.get(), std::move(poll_results->solution_),
                                         std::move(poll_results->solution_entities_), true, false, source);
