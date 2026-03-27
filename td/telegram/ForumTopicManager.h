@@ -134,6 +134,8 @@ class ForumTopicManager final : public Actor {
 
   void on_topic_reaction_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count, bool is_relative);
 
+  void on_topic_poll_vote_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count, bool is_relative);
+
   void repair_topic_unread_mention_count(DialogId dialog_id, ForumTopicId forum_topic_id);
 
  private:

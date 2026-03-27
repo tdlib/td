@@ -8908,7 +8908,7 @@ void MessagesManager::read_all_dialog_poll_votes(DialogId dialog_id, ForumTopicI
   auto is_update_sent = read_all_local_dialog_poll_votes(dialog_id, forum_topic_id);
   if (forum_topic_id.is_valid()) {
     LOG(INFO) << "Receive readAllChatPollVotes request in " << forum_topic_id << " in " << dialog_id;
-    // td_->forum_topic_manager_->on_topic_poll_vote_count_changed(dialog_id, forum_topic_id, 0, false);
+    td_->forum_topic_manager_->on_topic_poll_vote_count_changed(dialog_id, forum_topic_id, 0, false);
     return td_->message_query_manager_->read_all_dialog_poll_votes_on_server(dialog_id, forum_topic_id, 0,
                                                                              std::move(promise));
   }

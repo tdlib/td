@@ -1445,6 +1445,23 @@ void ForumTopicManager::on_topic_reaction_count_changed(DialogId dialog_id, Foru
   }
 }
 
+void ForumTopicManager::on_topic_poll_vote_count_changed(DialogId dialog_id, ForumTopicId forum_topic_id, int32 count,
+                                                         bool is_relative) {
+  LOG(INFO) << "Change " << (is_relative ? "by" : "to") << ' ' << count << " number of poll votes in thread of "
+            << forum_topic_id << " in " << dialog_id;
+  auto dialog_topics = get_dialog_topics(dialog_id);
+  if (dialog_topics == nullptr) {
+    return;
+  }
+  auto topic = get_topic(dialog_topics, forum_topic_id);
+  if (topic == nullptr || topic->topic_ == nullptr) {
+    return;
+  }
+  if (topic->topic_->update_unread_poll_vote_count(count, is_relative)) {
+    on_forum_topic_changed(dialog_id, topic);
+  }
+}
+
 void ForumTopicManager::repair_topic_unread_mention_count(DialogId dialog_id, ForumTopicId forum_topic_id) {
   // no need to repair mention count in private chats with bots
   if (is_forum(dialog_id, false).is_error() || can_be_forum_topic_id(forum_topic_id).is_error()) {
