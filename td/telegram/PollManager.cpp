@@ -1952,7 +1952,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   return poll_id;
 }
 
-void PollManager::on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<BufferSlice> &&options) {
+void PollManager::on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<BufferSlice> &&options,
+                                   vector<int32> positions) {
   if (!poll_id.is_valid()) {
     LOG(ERROR) << "Receive updateMessagePollVote about invalid " << poll_id;
     return;
@@ -1961,22 +1962,37 @@ void PollManager::on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<Bu
     LOG(ERROR) << "Receive updateMessagePollVote from invalid " << dialog_id;
     return;
   }
+  if (options.size() != positions.size()) {
+    LOG(ERROR) << "Receive updateMessagePollVote from " << dialog_id << " in " << poll_id
+               << " with mistmatch option size";
+    return;
+  }
   CHECK(td_->auth_manager_->is_bot());
 
-  vector<int32> option_ids;
+  vector<string> option_ids;
   for (auto &option : options) {
-    auto slice = option.as_slice();
-    if (slice.size() != 1 || slice[0] < '0' || slice[0] > '9') {
-      LOG(INFO) << "Receive updateMessagePollVote with unexpected option \"" << format::escaped(slice) << '"';
+    auto option_id = option.as_slice().str();
+    if (!check_utf8(option_id)) {
+      LOG(INFO) << "Receive updateMessagePollVote with unexpected option \"" << format::escaped(option_id) << '"';
       return;
     }
-    option_ids.push_back(static_cast<int32>(slice[0] - '0'));
+    if (option_id.empty()) {
+      LOG(INFO) << "Receive updateMessagePollVote with empty option";
+      return;
+    }
+    option_ids.push_back(std::move(option_id));
+  }
+  for (auto &position : positions) {
+    if (position < 0 || position > 100) {
+      LOG(ERROR) << "Receive updateMessagePollVote with unexpected position " << position;
+      return;
+    }
   }
 
-  send_closure(
-      G()->td(), &Td::send_update,
-      td_api::make_object<td_api::updatePollAnswer>(
-          poll_id.get(), get_message_sender_object(td_, dialog_id, "on_get_poll_vote"), std::move(option_ids)));
+  send_closure(G()->td(), &Td::send_update,
+               td_api::make_object<td_api::updatePollAnswer>(
+                   poll_id.get(), get_message_sender_object(td_, dialog_id, "on_get_poll_vote"), std::move(option_ids),
+                   std::move(positions)));
 }
 
 void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {

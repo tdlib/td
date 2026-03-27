@@ -93,7 +93,7 @@ class PollManager final : public Actor {
   PollId on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll> &&poll_server,
                      tl_object_ptr<telegram_api::pollResults> &&poll_results, const char *source);
 
-  void on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<BufferSlice> &&options);
+  void on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<BufferSlice> &&options, vector<int32> positions);
 
   td_api::object_ptr<td_api::poll> get_poll_object(PollId poll_id) const;
 

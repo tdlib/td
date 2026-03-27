@@ -10423,8 +10423,9 @@ updatePoll poll:poll = Update;
 //@description A user changed the answer to a poll; for bots only
 //@poll_id Unique poll identifier
 //@voter_id Identifier of the message sender that changed the answer to the poll
-//@option_ids 0-based identifiers of answer options, chosen by the user
-updatePollAnswer poll_id:int64 voter_id:MessageSender option_ids:vector<int32> = Update;
+//@option_ids Unique identifiers of answer options, that were chosen by the user
+//@option_positions 0-based identifiers of answer options, that were chosen by the user
+updatePollAnswer poll_id:int64 voter_id:MessageSender option_ids:vector<string> option_positions:vector<int32> = Update;
 
 //@description A bot was created to be managed by the current bot; for bots only
 //@user_id Identifier of the user that created the bot

@@ -3193,7 +3193,7 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
       case telegram_api::updateMessagePollVote::ID: {
         auto update = move_tl_object_as<telegram_api::updateMessagePollVote>(update_ptr);
         td_->poll_manager_->on_get_poll_vote(PollId(update->poll_id_), DialogId(update->peer_),
-                                             std::move(update->options_));
+                                             std::move(update->options_), std::move(update->positions_));
         break;
       }
       case telegram_api::updateManagedBot::ID: {
