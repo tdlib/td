@@ -945,7 +945,8 @@ const vector<Slice> &get_premium_limit_keys() {
                                         "stories_sent_monthly",
                                         "stories_suggested_reactions",
                                         "recommended_channels",
-                                        "saved_dialogs_pinned"};
+                                        "saved_dialogs_pinned",
+                                        "bots_create"};
   return limit_keys;
 }
 
@@ -990,6 +991,8 @@ static Slice get_limit_type_key(const td_api::PremiumLimitType *limit_type) {
       return Slice("stories_suggested_reactions");
     case td_api::premiumLimitTypeSimilarChatCount::ID:
       return Slice("recommended_channels");
+    case td_api::premiumLimitTypeOwnedBotCount::ID:
+      return Slice("bots_create");
     default:
       UNREACHABLE();
       return Slice();
@@ -1231,6 +1234,9 @@ static td_api::object_ptr<td_api::premiumLimit> get_premium_limit_object(Slice k
     }
     if (key == "recommended_channels") {
       return td_api::make_object<td_api::premiumLimitTypeSimilarChatCount>();
+    }
+    if (key == "bots_create") {
+      return td_api::make_object<td_api::premiumLimitTypeOwnedBotCount>();
     }
     UNREACHABLE();
     return nullptr;

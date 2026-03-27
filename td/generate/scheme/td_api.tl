@@ -7425,6 +7425,9 @@ premiumLimitTypeStorySuggestedReactionAreaCount = PremiumLimitType;
 //@description The maximum number of received similar chats
 premiumLimitTypeSimilarChatCount = PremiumLimitType;
 
+//@description The maximum number of owned bots
+premiumLimitTypeOwnedBotCount = PremiumLimitType;
+
 
 //@class PremiumFeature @description Describes a feature available to Premium users
 
