@@ -6138,7 +6138,7 @@ class CliClient final : public Actor {
         }
         if (op[3] == 'p') {
           send_message(chat_id, td_api::make_object<td_api::inputMessagePhoto>(
-                                    as_local_file("rgb.jpg"), get_input_thumbnail(), nullptr,
+                                    as_local_file("rgb.jpg"), get_input_thumbnail(), get_input_cover(),
                                     get_added_sticker_file_ids(), 0, 0, as_caption(message), show_caption_above_media_,
                                     get_message_self_destruct_type(), has_spoiler_));
         } else {
@@ -6283,8 +6283,8 @@ class CliClient final : public Actor {
         td_api::object_ptr<td_api::InputMessageContent> content;
         if (op == "smap") {
           content = td_api::make_object<td_api::inputMessagePhoto>(
-              as_input_file(file), get_input_thumbnail(), nullptr, get_added_sticker_file_ids(), 0, 0, get_caption(),
-              show_caption_above_media_, rand_bool() ? get_message_self_destruct_type() : nullptr,
+              as_input_file(file), get_input_thumbnail(), get_input_cover(), get_added_sticker_file_ids(), 0, 0,
+              get_caption(), show_caption_above_media_, rand_bool() ? get_message_self_destruct_type() : nullptr,
               has_spoiler_ && rand_bool());
         } else if (op == "smad") {
           content = td_api::make_object<td_api::inputMessageDocument>(as_input_file(file), get_input_thumbnail(), true,
@@ -6404,8 +6404,8 @@ class CliClient final : public Actor {
       string photo;
       get_args(args, chat_id, message_id, photo);
       auto input_photo = td_api::make_object<td_api::inputMessagePhoto>(
-          as_input_file(photo), get_input_thumbnail(), nullptr, get_added_sticker_file_ids(), 0, 0, get_caption(),
-          show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_);
+          as_input_file(photo), get_input_thumbnail(), get_input_cover(), get_added_sticker_file_ids(), 0, 0,
+          get_caption(), show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_);
       if (!business_connection_id_.empty()) {
         send_request(td_api::make_object<td_api::editBusinessMessageMedia>(business_connection_id_, chat_id, message_id,
                                                                            nullptr, std::move(input_photo)));
@@ -6420,7 +6420,7 @@ class CliClient final : public Actor {
       get_args(args, shortcut_id, message_id, photo);
       send_request(td_api::make_object<td_api::editQuickReplyMessage>(
           shortcut_id, message_id,
-          td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), get_input_thumbnail(), nullptr,
+          td_api::make_object<td_api::inputMessagePhoto>(as_input_file(photo), get_input_thumbnail(), get_input_cover(),
                                                          get_added_sticker_file_ids(), 0, 0, get_caption(),
                                                          show_caption_above_media_, nullptr, has_spoiler_)));
     } else if (op == "eqrmv") {
@@ -6798,23 +6798,14 @@ class CliClient final : public Actor {
       InputChecklist checklist;
       get_args(args, chat_id, checklist);
       send_message(chat_id, td_api::make_object<td_api::inputMessageChecklist>(checklist));
-    } else if (op == "slp") {
-      ChatId chat_id;
-      string photo;
-      string video;
-      get_args(args, chat_id, photo, video);
-      send_message(chat_id,
-                   td_api::make_object<td_api::inputMessagePhoto>(
-                       as_input_file(photo), nullptr, as_input_file(video), get_added_sticker_file_ids(), 0, 0,
-                       get_caption(), show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_));
     } else if (op == "sp") {
       ChatId chat_id;
       string photo;
       get_args(args, chat_id, photo);
       send_message(chat_id,
                    td_api::make_object<td_api::inputMessagePhoto>(
-                       as_input_file(photo), get_input_thumbnail(), nullptr, get_added_sticker_file_ids(), 0, 0,
-                       get_caption(), show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_));
+                       as_input_file(photo), get_input_thumbnail(), get_input_cover(), get_added_sticker_file_ids(), 0,
+                       0, get_caption(), show_caption_above_media_, get_message_self_destruct_type(), has_spoiler_));
     } else if (op == "ss") {
       ChatId chat_id;
       string sticker;
