@@ -416,6 +416,25 @@ telegram_api::object_ptr<telegram_api::InputMedia> VideosManager::get_video_cove
   return input_media;
 }
 
+FileId VideosManager::get_live_photo_video_file_id(telegram_api::object_ptr<telegram_api::Document> document,
+                                                   DialogId owner_dialog_id, bool is_self_destructing) const {
+  CHECK(document != nullptr);
+  int32 video_id = document->get_id();
+  if (video_id == telegram_api::documentEmpty::ID) {
+    LOG(ERROR) << "Receive empty video document in a live photo";
+    return FileId();
+  }
+  CHECK(video_id == telegram_api::document::ID);
+  auto video = telegram_api::move_object_as<telegram_api::document>(document);
+  auto parsed_file = td_->documents_manager_->on_get_document(std::move(video), owner_dialog_id, is_self_destructing,
+                                                              true, nullptr, Document::Type::Video);
+  if (parsed_file.empty() || parsed_file.type != Document::Type::Video) {
+    LOG(ERROR) << "Receive invalid live photo video " << parsed_file;
+    return FileId();
+  }
+  return parsed_file.file_id;
+}
+
 string VideosManager::get_video_search_text(FileId file_id) const {
   auto *video = get_video(file_id);
   CHECK(video != nullptr);

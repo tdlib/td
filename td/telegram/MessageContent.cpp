@@ -9023,26 +9023,12 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
         *ttl = MessageSelfDestructType(media->ttl_seconds_, true);
       }
 
+      FileId video_file_id;
       if (media->live_photo_) {
-        CHECK(media->video_ != nullptr);
-        int32 video_id = media->video_->get_id();
-        if (video_id == telegram_api::documentEmpty::ID) {
-          LOG(ERROR) << "Receive empty video document in " << to_string(media);
-        } else {
-          CHECK(video_id == telegram_api::document::ID);
-          auto video = telegram_api::move_object_as<telegram_api::document>(media->video_);
-          auto parsed_file =
-              td->documents_manager_->on_get_document(std::move(video), owner_dialog_id, is_self_destructing,
-                                                      media->live_photo_, nullptr, Document::Type::Video);
-          if (parsed_file.empty() || parsed_file.type != Document::Type::Video) {
-            LOG(ERROR) << "Receive invalid live photo video " << parsed_file;
-          } else {
-            return make_unique<MessagePhoto>(std::move(photo), parsed_file.file_id, std::move(message),
-                                             media->spoiler_);
-          }
-        }
+        video_file_id = td->videos_manager_->get_live_photo_video_file_id(std::move(media->video_), owner_dialog_id,
+                                                                          is_self_destructing);
       }
-      return make_unique<MessagePhoto>(std::move(photo), FileId(), std::move(message), media->spoiler_);
+      return make_unique<MessagePhoto>(std::move(photo), video_file_id, std::move(message), media->spoiler_);
     }
     case telegram_api::messageMediaDice::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaDice>(media_ptr);

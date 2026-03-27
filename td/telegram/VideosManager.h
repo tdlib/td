@@ -62,6 +62,9 @@ class VideosManager {
   telegram_api::object_ptr<telegram_api::InputMedia> get_video_cover_input_media(FileId file_id, bool force,
                                                                                  bool allow_external) const;
 
+  FileId get_live_photo_video_file_id(telegram_api::object_ptr<telegram_api::Document> document,
+                                      DialogId owner_dialog_id, bool is_self_destructing) const;
+
   FileId get_video_thumbnail_file_id(FileId file_id) const;
 
   FileId get_video_animated_thumbnail_file_id(FileId file_id) const;
