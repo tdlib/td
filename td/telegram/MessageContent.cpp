@@ -6806,7 +6806,16 @@ bool get_message_content_poll_has_unread_votes(const Td *td, const MessageConten
     case MessageContentType::Poll:
       return td->poll_manager_->get_poll_has_unread_votes(static_cast<const MessagePoll *>(content)->poll_id);
     default:
-      return true;
+      return false;
+  }
+}
+
+void remove_message_content_poll_has_unread_votes(Td *td, const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Poll:
+      return td->poll_manager_->remove_poll_has_unread_votes(static_cast<const MessagePoll *>(content)->poll_id);
+    default:
+      return;
   }
 }
 

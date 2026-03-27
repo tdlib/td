@@ -843,6 +843,18 @@ bool PollManager::get_poll_has_unread_votes(PollId poll_id) const {
   return poll->has_unread_votes_;
 }
 
+void PollManager::remove_poll_has_unread_votes(PollId poll_id) {
+  auto poll = get_poll_editable(poll_id);
+  CHECK(poll != nullptr);
+  if (!poll->has_unread_votes_) {
+    return;
+  }
+  poll->has_unread_votes_ = false;
+  save_poll(poll, poll_id);
+  // no need to notify about update of the poll
+  // notify_on_poll_update(poll_id);
+}
+
 string PollManager::get_poll_search_text(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);

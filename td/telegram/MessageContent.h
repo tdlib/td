@@ -195,6 +195,8 @@ bool get_message_content_poll_is_closed(const Td *td, const MessageContent *cont
 
 bool get_message_content_poll_has_unread_votes(const Td *td, const MessageContent *content);
 
+void remove_message_content_poll_has_unread_votes(Td *td, const MessageContent *content);
+
 bool get_message_content_to_do_list_others_can_append(const MessageContent *content);
 
 bool get_message_content_to_do_list_can_append_items(const Td *td, const MessageContent *content, int32 item_count);

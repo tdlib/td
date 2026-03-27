@@ -73,6 +73,8 @@ class PollManager final : public Actor {
 
   bool get_poll_has_unread_votes(PollId poll_id) const;
 
+  void remove_poll_has_unread_votes(PollId poll_id);
+
   string get_poll_search_text(PollId poll_id) const;
 
   void set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<int32> &&option_ids,
