@@ -186,6 +186,8 @@ void remove_unallowed_entities(const Td *td, FormattedText &text, DialogId dialo
 
 bool remove_unallowed_quote_entities(FormattedText &text);
 
+bool remove_unallowed_quote_user_entities(FormattedText &text, bool skip_bot_commands, bool skip_media_timestamps);
+
 bool is_found_entity_type(MessageEntity::Type type, bool skip_bot_commands, bool skip_media_timestamps);
 
 vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool skip_media_timestamps);

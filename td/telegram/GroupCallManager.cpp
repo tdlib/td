@@ -5938,9 +5938,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
         c = ' ';
       }
     }
-    td::remove_if(message.entities, [](const MessageEntity &entity) {
-      return !is_allowed_quote_entity_type(entity.type) && !is_found_entity_type(entity.type, false, false);
-    });
+    remove_unallowed_quote_user_entities(message, true, true);
   } else {
     if (paid_message_star_count != 0) {
       if (is_reaction) {

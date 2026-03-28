@@ -55,9 +55,7 @@ telegram_api::object_ptr<telegram_api::todoItem> ToDoItem::get_input_todo_item(c
 }
 
 bool ToDoItem::remove_unsupported_entities(FormattedText &text) {
-  return td::remove_if(text.entities, [](const MessageEntity &entity) {
-    return !is_allowed_quote_entity_type(entity.type) && !is_found_entity_type(entity.type, false, false);
-  });
+  return remove_unallowed_quote_user_entities(text, true, true);
 }
 
 void ToDoItem::validate(const char *source) {

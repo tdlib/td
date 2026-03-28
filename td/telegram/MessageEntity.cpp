@@ -5025,4 +5025,11 @@ bool remove_unallowed_quote_entities(FormattedText &text) {
   return td::remove_if(text.entities, [](const auto &entity) { return !is_allowed_quote_entity_type(entity.type); });
 }
 
+bool remove_unallowed_quote_user_entities(FormattedText &text, bool skip_bot_commands, bool skip_media_timestamps) {
+  return td::remove_if(text.entities, [skip_bot_commands, skip_media_timestamps](const MessageEntity &entity) {
+    return !is_allowed_quote_entity_type(entity.type) &&
+           !is_found_entity_type(entity.type, skip_bot_commands, skip_media_timestamps);
+  });
+}
+
 }  // namespace td
