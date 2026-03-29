@@ -2048,12 +2048,14 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
           for (auto &style : styles) {
             if (style->get_id() == telegram_api::jsonArray::ID) {
               auto style_value = std::move(static_cast<telegram_api::jsonArray *>(style.get())->value_);
-              if (style_value.size() != 2u || style_value[0]->get_id() != telegram_api::jsonString::ID ||
-                  style_value[1]->get_id() != telegram_api::jsonString::ID) {
+              if (style_value.size() != 3u || style_value[0]->get_id() != telegram_api::jsonString::ID ||
+                  style_value[1]->get_id() != telegram_api::jsonString::ID ||
+                  style_value[2]->get_id() != telegram_api::jsonString::ID) {
                 LOG(ERROR) << "Receive invalid style " << to_string(style_value);
               } else {
                 ai_compose_styles.push_back(get_json_value_string(std::move(style_value[0]), Slice()));
                 ai_compose_styles.push_back(get_json_value_string(std::move(style_value[1]), Slice()));
+                ai_compose_styles.push_back(get_json_value_string(std::move(style_value[2]), Slice()));
               }
             } else {
               LOG(ERROR) << "Receive unexpected style " << to_string(style);

@@ -353,11 +353,11 @@ void TranslationManager::on_update_ai_compose_styles(vector<string> &&ai_compose
 }
 
 td_api::object_ptr<td_api::updateTextCompositionStyles> TranslationManager::get_update_text_composition_styles() const {
-  CHECK(ai_compose_styles_.size() % 2 == 0);
+  CHECK(ai_compose_styles_.size() % 3 == 0);
   auto result = td_api::make_object<td_api::updateTextCompositionStyles>();
-  for (size_t i = 0; i < ai_compose_styles_.size(); i += 2) {
-    result->styles_.push_back(
-        td_api::make_object<td_api::textCompositionStyle>(ai_compose_styles_[i], ai_compose_styles_[i + 1]));
+  for (size_t i = 0; i < ai_compose_styles_.size(); i += 3) {
+    result->styles_.push_back(td_api::make_object<td_api::textCompositionStyle>(
+        ai_compose_styles_[i], to_integer<int64>(ai_compose_styles_[i + 1]), ai_compose_styles_[i + 2]));
   }
   return result;
 }

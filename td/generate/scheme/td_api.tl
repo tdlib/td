@@ -126,8 +126,11 @@ diffText text:string entities:vector<diffEntity> = DiffText;
 fixedText text:formattedText diff_text:diffText = FixedText;
 
 
-//@description Describes a style that can be used to compose a text @emoji Emoji corresponding to the style @name Name of the style
-textCompositionStyle emoji:string name:string = TextCompositionStyle;
+//@description Describes a style that can be used to compose a text
+//@name Name of the style
+//@custom_emoji_id Identifier of the custom emoji corresponding to the style
+//@title Title of the style in the user application's language
+textCompositionStyle name:string custom_emoji_id:int64 title:string = TextCompositionStyle;
 
 
 //@description Contains Telegram terms of service @text Text of the terms of service @min_user_age The minimum age of a user to be able to accept the terms; 0 if age isn't restricted @show_popup True, if a blocking popup with terms of service must be shown to the user
