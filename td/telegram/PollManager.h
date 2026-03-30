@@ -75,6 +75,10 @@ class PollManager final : public Actor {
 
   void remove_poll_has_unread_votes(PollId poll_id);
 
+  void get_poll_option_properties(PollId poll_id, const string &option_id, MessageId message_id, int32 message_date,
+                                  bool is_forward, bool is_outgoing,
+                                  Promise<td_api::object_ptr<td_api::pollOptionProperties>> &&promise);
+
   string get_poll_search_text(PollId poll_id) const;
 
   void set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<int32> &&option_ids,
@@ -198,6 +202,9 @@ class PollManager final : public Actor {
   void on_online();
 
   Poll *get_poll_force(PollId poll_id);
+
+  bool can_delete_poll_option(const Poll *poll, const PollOption *option, MessageId message_id, int32 message_date,
+                              bool is_forward, bool is_outgoing);
 
   td_api::object_ptr<td_api::poll> get_poll_object(PollId poll_id, const Poll *poll) const;
 

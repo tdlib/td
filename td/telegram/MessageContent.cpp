@@ -6819,6 +6819,15 @@ void remove_message_content_poll_has_unread_votes(Td *td, const MessageContent *
   }
 }
 
+void get_message_content_poll_option_properties(Td *td, const MessageContent *content, const string &option_id,
+                                                MessageId message_id, int32 message_date, bool is_forward,
+                                                bool is_outgoing,
+                                                Promise<td_api::object_ptr<td_api::pollOptionProperties>> &&promise) {
+  CHECK(content->get_type() == MessageContentType::Poll);
+  td->poll_manager_->get_poll_option_properties(static_cast<const MessagePoll *>(content)->poll_id, option_id,
+                                                message_id, message_date, is_forward, is_outgoing, std::move(promise));
+}
+
 bool get_message_content_to_do_list_others_can_append(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::ToDoList:

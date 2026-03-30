@@ -288,6 +288,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getMessageProperties &request);
 
+  void on_request(uint64 id, const td_api::getPollOptionProperties &request);
+
   void on_request(uint64 id, const td_api::getChatSponsoredMessages &request);
 
   void on_request(uint64 id, const td_api::clickChatSponsoredMessage &request);

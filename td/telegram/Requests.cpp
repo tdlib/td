@@ -2660,6 +2660,12 @@ void Requests::on_request(uint64 id, const td_api::getMessageProperties &request
                                                  std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::getPollOptionProperties &request) {
+  CREATE_REQUEST_PROMISE();
+  td_->messages_manager_->get_poll_option_properties(DialogId(request.chat_id_), MessageId(request.message_id_),
+                                                     request.poll_option_id_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, const td_api::getChatSponsoredMessages &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

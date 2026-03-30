@@ -5658,6 +5658,10 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 //@need_show_statistics True, if message statistics must be available from context menu of the message
 messageProperties can_add_offer:Bool can_add_tasks:Bool can_be_approved:Bool can_be_copied:Bool can_be_copied_to_secret_chat:Bool can_be_declined:Bool can_be_deleted_only_for_self:Bool can_be_deleted_for_all_users:Bool can_be_edited:Bool can_be_forwarded:Bool can_be_paid:Bool can_be_pinned:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_be_saved:Bool can_be_shared_in_story:Bool can_edit_media:Bool can_edit_scheduling_state:Bool can_edit_suggested_post_info:Bool can_get_author:Bool can_get_embedding_code:Bool can_get_link:Bool can_get_media_timestamp_links:Bool can_get_message_thread:Bool can_get_read_date:Bool can_get_statistics:Bool can_get_video_advertisements:Bool can_get_viewers:Bool can_mark_tasks_as_done:Bool can_recognize_speech:Bool can_report_chat:Bool can_report_reactions:Bool can_report_supergroup_spam:Bool can_set_fact_check:Bool has_protected_content_by_current_user:Bool has_protected_content_by_other_user:Bool need_show_statistics:Bool = MessageProperties;
 
+//@description Contains properties of a poll option and describes actions that can be done with the option right now
+//@can_be_deleted True, if the option can be deleted
+pollOptionProperties can_be_deleted:Bool = PollOptionProperties;
+
 
 //@class SearchMessagesFilter @description Represents a filter for message search results
 
@@ -10796,6 +10800,12 @@ getMessages chat_id:int53 message_ids:vector<int53> = Messages;
 
 //@description Returns properties of a message. This is an offline method @chat_id Chat identifier @message_id Identifier of the message
 getMessageProperties chat_id:int53 message_id:int53 = MessageProperties;
+
+//@description Returns properties of a poll option. This is an offline method
+//@chat_id Chat identifier
+//@message_id Identifier of the message
+//@poll_option_id Unique identifier of the answer option, which properties will be returned
+getPollOptionProperties chat_id:int53 message_id:int53 poll_option_id:string = PollOptionProperties;
 
 //@description Returns information about a message thread. Can be used only if messageProperties.can_get_message_thread == true @chat_id Chat identifier @message_id Identifier of the message
 getMessageThread chat_id:int53 message_id:int53 = MessageThreadInfo;

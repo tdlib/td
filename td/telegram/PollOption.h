@@ -38,6 +38,18 @@ struct PollOption {
   PollOption(Td *td, telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr,
              vector<std::pair<ChannelId, MinChannel>> &min_channels);
 
+  const string &get_data() const {
+    return data_;
+  }
+
+  DialogId get_added_by_dialog_id() const {
+    return added_by_dialog_id_;
+  }
+
+  int32 get_added_date() const {
+    return added_date_;
+  }
+
   td_api::object_ptr<td_api::pollOption> get_poll_option_object(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::PollAnswer> get_input_poll_answer() const;

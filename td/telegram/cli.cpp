@@ -4913,6 +4913,12 @@ class CliClient final : public Actor {
       MessageId message_id;
       get_args(args, chat_id, message_id);
       send_request(td_api::make_object<td_api::getMessageProperties>(chat_id, message_id));
+    } else if (op == "gpop") {
+      ChatId chat_id;
+      MessageId message_id;
+      string option_id;
+      get_args(args, chat_id, message_id, option_id);
+      send_request(td_api::make_object<td_api::getPollOptionProperties>(chat_id, message_id, option_id));
     } else if (op == "gcspm") {
       ChatId chat_id;
       get_args(args, chat_id);

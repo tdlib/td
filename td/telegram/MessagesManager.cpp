@@ -15090,6 +15090,17 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
       has_protected_content_by_other_user, need_show_statistics));
 }
 
+void MessagesManager::get_poll_option_properties(DialogId dialog_id, MessageId message_id, const string &option_id,
+                                                 Promise<td_api::object_ptr<td_api::pollOptionProperties>> &&promise) {
+  const Message *m = get_message_force(MessageFullId{dialog_id, message_id}, "get_message_properties");
+  if (m == nullptr || m->content->get_type() != MessageContentType::Poll) {
+    return promise.set_error(400, "Poll not found");
+  }
+  get_message_content_poll_option_properties(
+      td_, m->content.get(), option_id, message_id, m->date, m->forward_info != nullptr || m->had_forward_info,
+      m->is_outgoing || dialog_id == td_->dialog_manager_->get_my_dialog_id(), std::move(promise));
+}
+
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
   if (seconds < 0) {
     return false;

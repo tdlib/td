@@ -859,8 +859,52 @@ void PollManager::remove_poll_has_unread_votes(PollId poll_id) {
   // notify_on_poll_update(poll_id);
 }
 
+bool PollManager::can_delete_poll_option(const Poll *poll, const PollOption *option, MessageId message_id,
+                                         int32 message_date, bool is_forward, bool is_outgoing) {
+  CHECK(poll != nullptr);
+  CHECK(option != nullptr);
+  if (poll->is_closed_ || !poll->has_open_answers_) {
+    return false;
+  }
+  if (!message_id.is_server() || is_forward) {
+    return false;
+  }
+  auto added_by_dialog_id = option->get_added_by_dialog_id();
+  if (!added_by_dialog_id.is_valid()) {
+    return false;
+  }
+  if (is_outgoing) {
+    return true;
+  }
+  // TODO option->is_creator
+  if (added_by_dialog_id == td_->dialog_manager_->get_my_dialog_id() &&
+      G()->unix_time() <
+          option->get_added_date() + td_->option_manager_->get_option_integer("poll_answer_delete_period")) {
+    return true;
+  }
+  return false;
+}
+
+void PollManager::get_poll_option_properties(PollId poll_id, const string &option_id, MessageId message_id,
+                                             int32 message_date, bool is_forward, bool is_outgoing,
+                                             Promise<td_api::object_ptr<td_api::pollOptionProperties>> &&promise) {
+  const auto *poll = get_poll(poll_id);
+  CHECK(poll != nullptr);
+  const PollOption *option = nullptr;
+  for (const auto &poll_option : poll->options_) {
+    if (poll_option.get_data() == option_id) {
+      option = &poll_option;
+    }
+  }
+  if (option == nullptr) {
+    return promise.set_error(400, "Poll option not found");
+  }
+  bool can_be_deleted = can_delete_poll_option(poll, option, message_id, message_date, is_forward, is_outgoing);
+  promise.set_value(td_api::make_object<td_api::pollOptionProperties>(can_be_deleted));
+}
+
 string PollManager::get_poll_search_text(PollId poll_id) const {
-  auto poll = get_poll(poll_id);
+  const auto *poll = get_poll(poll_id);
   CHECK(poll != nullptr);
 
   string result = poll->question_.text;

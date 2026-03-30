@@ -611,6 +611,9 @@ class MessagesManager final : public Actor {
   void get_message_properties(DialogId dialog_id, MessageId message_id,
                               Promise<td_api::object_ptr<td_api::messageProperties>> &&promise);
 
+  void get_poll_option_properties(DialogId dialog_id, MessageId message_id, const string &option_id,
+                                  Promise<td_api::object_ptr<td_api::pollOptionProperties>> &&promise);
+
   void get_message_thread(DialogId dialog_id, MessageId message_id, Promise<MessageThreadInfo> &&promise,
                           bool is_recursive = false);
 
