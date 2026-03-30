@@ -15098,12 +15098,16 @@ void MessagesManager::get_poll_option_properties(DialogId dialog_id, MessageId m
   if (m == nullptr || m->content->get_type() != MessageContentType::Poll) {
     return promise.set_error(400, "Poll not found");
   }
+
+  auto dialog_type = dialog_id.get_type();
   auto can_be_forwarded = can_forward_message(dialog_id, m, false);
   auto can_be_replied = can_reply_to_message(d, message_id, m);
   auto can_be_replied_in_another_chat = can_reply_to_message_in_another_dialog(dialog_id, message_id, can_be_forwarded);
+  auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
+  auto can_get_link = can_get_media_timestamp_links && dialog_type == DialogType::Channel;
   get_message_content_poll_option_properties(
       td_, m->content.get(), option_id, dialog_id, message_id, can_be_replied, can_be_replied_in_another_chat,
-      m->forward_info != nullptr || m->had_forward_info,
+      can_get_link, m->forward_info != nullptr || m->had_forward_info,
       m->is_outgoing || dialog_id == td_->dialog_manager_->get_my_dialog_id(), std::move(promise));
 }
 

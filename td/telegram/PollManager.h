@@ -76,8 +76,8 @@ class PollManager final : public Actor {
   void remove_poll_has_unread_votes(PollId poll_id);
 
   void get_poll_option_properties(PollId poll_id, const string &option_id, DialogId dialog_id, MessageId message_id,
-                                  bool can_be_replied, bool can_be_replied_in_another_chat, bool is_forward,
-                                  bool is_outgoing,
+                                  bool can_be_replied, bool can_be_replied_in_another_chat, bool can_get_link,
+                                  bool is_forward, bool is_outgoing,
                                   Promise<td_api::object_ptr<td_api::pollOptionProperties>> &&promise);
 
   string get_poll_search_text(PollId poll_id) const;

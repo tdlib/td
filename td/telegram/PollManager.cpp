@@ -887,7 +887,8 @@ bool PollManager::can_delete_poll_option(const Poll *poll, const PollOption *opt
 
 void PollManager::get_poll_option_properties(PollId poll_id, const string &option_id, DialogId dialog_id,
                                              MessageId message_id, bool can_be_replied,
-                                             bool can_be_replied_in_another_chat, bool is_forward, bool is_outgoing,
+                                             bool can_be_replied_in_another_chat, bool can_get_link, bool is_forward,
+                                             bool is_outgoing,
                                              Promise<td_api::object_ptr<td_api::pollOptionProperties>> &&promise) {
   const auto *poll = get_poll(poll_id);
   CHECK(poll != nullptr);
@@ -904,9 +905,10 @@ void PollManager::get_poll_option_properties(PollId poll_id, const string &optio
   if (dialog_id.get_type() == DialogType::SecretChat || !message_id.is_server()) {
     can_be_replied = false;
     can_be_replied_in_another_chat = false;
+    can_get_link = false;
   }
   promise.set_value(td_api::make_object<td_api::pollOptionProperties>(can_be_deleted, can_be_replied,
-                                                                      can_be_replied_in_another_chat));
+                                                                      can_be_replied_in_another_chat, can_get_link));
 }
 
 string PollManager::get_poll_search_text(PollId poll_id) const {

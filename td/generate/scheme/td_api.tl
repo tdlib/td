@@ -5662,7 +5662,8 @@ messageProperties can_add_offer:Bool can_add_tasks:Bool can_be_approved:Bool can
 //@can_be_deleted True, if the option can be deleted using deletePollOption
 //@can_be_replied True, if the poll option can be replied in the same chat and forum topic using inputMessageReplyToMessage
 //@can_be_replied_in_another_chat True, if the poll option can be replied in another chat or forum topic using inputMessageReplyToExternalMessage
-pollOptionProperties can_be_deleted:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool = PollOptionProperties;
+//@can_get_link True, if a link can be generated for the poll option using getMessageLink
+pollOptionProperties can_be_deleted:Bool can_be_replied:Bool can_be_replied_in_another_chat:Bool can_get_link:Bool = PollOptionProperties;
 
 
 //@class SearchMessagesFilter @description Represents a filter for message search results

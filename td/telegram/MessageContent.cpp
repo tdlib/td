@@ -6821,12 +6821,13 @@ void remove_message_content_poll_has_unread_votes(Td *td, const MessageContent *
 
 void get_message_content_poll_option_properties(Td *td, const MessageContent *content, const string &option_id,
                                                 DialogId dialog_id, MessageId message_id, bool can_be_replied,
-                                                bool can_be_replied_in_another_chat, bool is_forward, bool is_outgoing,
+                                                bool can_be_replied_in_another_chat, bool can_get_link, bool is_forward,
+                                                bool is_outgoing,
                                                 Promise<td_api::object_ptr<td_api::pollOptionProperties>> &&promise) {
   CHECK(content->get_type() == MessageContentType::Poll);
   td->poll_manager_->get_poll_option_properties(static_cast<const MessagePoll *>(content)->poll_id, option_id,
                                                 dialog_id, message_id, can_be_replied, can_be_replied_in_another_chat,
-                                                is_forward, is_outgoing, std::move(promise));
+                                                can_get_link, is_forward, is_outgoing, std::move(promise));
 }
 
 bool get_message_content_to_do_list_others_can_append(const MessageContent *content) {
