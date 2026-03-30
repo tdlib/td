@@ -6,13 +6,17 @@
 //
 #pragma once
 
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MinChannel.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
+
+#include <utility>
 
 namespace td {
 
@@ -30,6 +34,8 @@ td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, User
 td_api::object_ptr<td_api::MessageSender> get_message_sender_object(Td *td, DialogId dialog_id, const char *source);
 
 td_api::object_ptr<td_api::MessageSender> get_min_message_sender_object(Td *td, DialogId dialog_id, const char *source);
+
+bool check_min_message_sender(Td *td, DialogId dialog_id, vector<std::pair<ChannelId, MinChannel>> &min_channels);
 
 vector<DialogId> get_message_sender_dialog_ids(Td *td,
                                                const vector<telegram_api::object_ptr<telegram_api::Peer>> &peers);
