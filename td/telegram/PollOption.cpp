@@ -44,10 +44,13 @@ PollOption::PollOption(telegram_api::object_ptr<telegram_api::PollAnswer> &&poll
 }
 
 td_api::object_ptr<td_api::pollOption> PollOption::get_poll_option_object(Td *td) const {
-  return td_api::make_object<td_api::pollOption>(
-      data_, get_formatted_text_object(nullptr, text_, true, -1), voter_count_, 0, is_chosen_, false,
-      added_by_dialog_id_ == DialogId() ? nullptr : get_message_sender_object(td, added_by_dialog_id_, "pollOption"),
-      added_date_);
+  auto author = added_by_dialog_id_ == DialogId()
+                    ? nullptr
+                    : get_min_message_sender_object(td, added_by_dialog_id_, "pollOption");
+  bool is_added = author != nullptr;
+  return td_api::make_object<td_api::pollOption>(data_, get_formatted_text_object(nullptr, text_, true, -1),
+                                                 voter_count_, 0, is_chosen_, false, std::move(author),
+                                                 is_added ? added_date_ : 0);
 }
 
 telegram_api::object_ptr<telegram_api::PollAnswer> PollOption::get_input_poll_answer() const {
