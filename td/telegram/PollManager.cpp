@@ -405,6 +405,10 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
     if (log_event_parse(*poll, value).is_error()) {
       return;
     }
+    for (const auto &option_min_channel : poll->option_min_channels_) {
+      LOG(INFO) << "Add min option " << option_min_channel.first;
+      td_->chat_manager_->add_min_channel(option_min_channel.first, option_min_channel.second);
+    }
     for (const auto &recent_voter_min_channel : poll->recent_voter_min_channels_) {
       LOG(INFO) << "Add min voted " << recent_voter_min_channel.first;
       td_->chat_manager_->add_min_channel(recent_voter_min_channel.first, recent_voter_min_channel.second);
@@ -1708,7 +1712,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
 
   bool poll_server_is_closed = false;
   if (poll_server != nullptr) {
-    auto options = PollOption::get_poll_options(std::move(poll_server->answers_));
+    vector<std::pair<ChannelId, MinChannel>> option_min_channels;
+    auto options = PollOption::get_poll_options(td_, std::move(poll_server->answers_), option_min_channels);
     if (poll->options_ != options) {
       vector<string> correct_option_datas;
       for (auto correct_option_id : poll->correct_option_ids_) {
@@ -1716,6 +1721,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         correct_option_datas.push_back(poll->options_[correct_option_id].data_);
       }
       poll->options_ = std::move(options);
+      poll->option_min_channels_ = std::move(option_min_channels);
       if (!correct_option_datas.empty()) {  // repair correct_option_ids just in case
         poll->correct_option_ids_.clear();
         for (size_t i = 0; i < poll->options_.size(); i++) {

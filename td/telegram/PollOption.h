@@ -9,11 +9,14 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageEntity.h"
+#include "td/telegram/MinChannel.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
+
+#include <utility>
 
 namespace td {
 
@@ -32,13 +35,16 @@ struct PollOption {
 
   PollOption(FormattedText &&text, int32 pos);
 
-  explicit PollOption(telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr);
+  PollOption(Td *td, telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr,
+             vector<std::pair<ChannelId, MinChannel>> &min_channels);
 
   td_api::object_ptr<td_api::pollOption> get_poll_option_object(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::PollAnswer> get_input_poll_answer() const;
 
-  static vector<PollOption> get_poll_options(vector<telegram_api::object_ptr<telegram_api::PollAnswer>> &&poll_answers);
+  static vector<PollOption> get_poll_options(Td *td,
+                                             vector<telegram_api::object_ptr<telegram_api::PollAnswer>> &&poll_answers,
+                                             vector<std::pair<ChannelId, MinChannel>> &min_channels);
 
   void add_dependencies(Dependencies &dependencies) const;
 

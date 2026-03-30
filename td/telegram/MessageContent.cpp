@@ -10460,7 +10460,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive poll option addition with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
-      PollOption option(std::move(action->answer_));
+      vector<std::pair<ChannelId, MinChannel>> min_channels;
+      PollOption option(td, std::move(action->answer_), min_channels);
       return td::make_unique<MessagePollAppendAnswer>(reply_to_message_id, std::move(option.text_),
                                                       std::move(option.data_));
     }
@@ -10471,7 +10472,8 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
         LOG(ERROR) << "Receive poll option addition with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
-      PollOption option(std::move(action->answer_));
+      vector<std::pair<ChannelId, MinChannel>> min_channels;
+      PollOption option(td, std::move(action->answer_), min_channels);
       return td::make_unique<MessagePollDeleteAnswer>(reply_to_message_id, std::move(option.text_),
                                                       std::move(option.data_));
     }

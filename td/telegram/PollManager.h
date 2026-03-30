@@ -115,6 +115,7 @@ class PollManager final : public Actor {
   struct Poll {
     FormattedText question_;
     vector<PollOption> options_;
+    vector<std::pair<ChannelId, MinChannel>> option_min_channels_;
     vector<DialogId> recent_voter_dialog_ids_;
     vector<std::pair<ChannelId, MinChannel>> recent_voter_min_channels_;
     FormattedText explanation_;

@@ -23,7 +23,8 @@ PollOption::PollOption(FormattedText &&text, int32 pos) : text_(std::move(text))
   }
 }
 
-PollOption::PollOption(telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr) {
+PollOption::PollOption(Td *td, telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr,
+                       vector<std::pair<ChannelId, MinChannel>> &min_channels) {
   if (poll_answer_ptr->get_id() != telegram_api::pollAnswer::ID) {
     LOG(ERROR) << "Receive " << to_string(poll_answer_ptr);
     return;
@@ -35,7 +36,7 @@ PollOption::PollOption(telegram_api::object_ptr<telegram_api::PollAnswer> &&poll
   if (poll_answer->added_by_ != nullptr) {
     added_by_dialog_id_ = DialogId(poll_answer->added_by_);
     added_date_ = poll_answer->date_;
-    if (!added_by_dialog_id_.is_valid() || added_date_ <= 0) {
+    if (!check_min_message_sender(td, added_by_dialog_id_, min_channels) || added_date_ <= 0) {
       LOG(ERROR) << "Receive " << to_string(poll_answer);
       added_by_dialog_id_ = DialogId();
       added_date_ = 0;
@@ -59,10 +60,12 @@ telegram_api::object_ptr<telegram_api::PollAnswer> PollOption::get_input_poll_an
 }
 
 vector<PollOption> PollOption::get_poll_options(
-    vector<telegram_api::object_ptr<telegram_api::PollAnswer>> &&poll_answers) {
-  return transform(std::move(poll_answers), [](telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr) {
-    return PollOption(std::move(poll_answer_ptr));
-  });
+    Td *td, vector<telegram_api::object_ptr<telegram_api::PollAnswer>> &&poll_answers,
+    vector<std::pair<ChannelId, MinChannel>> &min_channels) {
+  return transform(std::move(poll_answers),
+                   [td, &min_channels](telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr) {
+                     return PollOption(td, std::move(poll_answer_ptr), min_channels);
+                   });
 }
 
 void PollOption::add_dependencies(Dependencies &dependencies) const {
