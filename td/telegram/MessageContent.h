@@ -198,8 +198,8 @@ bool get_message_content_poll_has_unread_votes(const Td *td, const MessageConten
 void remove_message_content_poll_has_unread_votes(Td *td, const MessageContent *content);
 
 void get_message_content_poll_option_properties(Td *td, const MessageContent *content, const string &option_id,
-                                                MessageId message_id, int32 message_date, bool is_forward,
-                                                bool is_outgoing,
+                                                DialogId dialog_id, MessageId message_id, bool can_be_replied,
+                                                bool can_be_replied_in_another_chat, bool is_forward, bool is_outgoing,
                                                 Promise<td_api::object_ptr<td_api::pollOptionProperties>> &&promise);
 
 bool get_message_content_to_do_list_others_can_append(const MessageContent *content);

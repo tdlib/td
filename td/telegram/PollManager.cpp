@@ -860,7 +860,7 @@ void PollManager::remove_poll_has_unread_votes(PollId poll_id) {
 }
 
 bool PollManager::can_delete_poll_option(const Poll *poll, const PollOption *option, MessageId message_id,
-                                         int32 message_date, bool is_forward, bool is_outgoing) {
+                                         bool is_forward, bool is_outgoing) {
   CHECK(poll != nullptr);
   CHECK(option != nullptr);
   if (poll->is_closed_ || !poll->has_open_answers_) {
@@ -885,8 +885,9 @@ bool PollManager::can_delete_poll_option(const Poll *poll, const PollOption *opt
   return false;
 }
 
-void PollManager::get_poll_option_properties(PollId poll_id, const string &option_id, MessageId message_id,
-                                             int32 message_date, bool is_forward, bool is_outgoing,
+void PollManager::get_poll_option_properties(PollId poll_id, const string &option_id, DialogId dialog_id,
+                                             MessageId message_id, bool can_be_replied,
+                                             bool can_be_replied_in_another_chat, bool is_forward, bool is_outgoing,
                                              Promise<td_api::object_ptr<td_api::pollOptionProperties>> &&promise) {
   const auto *poll = get_poll(poll_id);
   CHECK(poll != nullptr);
@@ -899,8 +900,13 @@ void PollManager::get_poll_option_properties(PollId poll_id, const string &optio
   if (option == nullptr) {
     return promise.set_error(400, "Poll option not found");
   }
-  bool can_be_deleted = can_delete_poll_option(poll, option, message_id, message_date, is_forward, is_outgoing);
-  promise.set_value(td_api::make_object<td_api::pollOptionProperties>(can_be_deleted));
+  bool can_be_deleted = can_delete_poll_option(poll, option, message_id, is_forward, is_outgoing);
+  if (dialog_id.get_type() == DialogType::SecretChat || !message_id.is_server()) {
+    can_be_replied = false;
+    can_be_replied_in_another_chat = false;
+  }
+  promise.set_value(td_api::make_object<td_api::pollOptionProperties>(can_be_deleted, can_be_replied,
+                                                                      can_be_replied_in_another_chat));
 }
 
 string PollManager::get_poll_search_text(PollId poll_id) const {

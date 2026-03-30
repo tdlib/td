@@ -15092,12 +15092,18 @@ void MessagesManager::get_message_properties(DialogId dialog_id, MessageId messa
 
 void MessagesManager::get_poll_option_properties(DialogId dialog_id, MessageId message_id, const string &option_id,
                                                  Promise<td_api::object_ptr<td_api::pollOptionProperties>> &&promise) {
-  const Message *m = get_message_force(MessageFullId{dialog_id, message_id}, "get_message_properties");
+  TRY_RESULT_PROMISE(promise, d,
+                     check_dialog_access(dialog_id, true, AccessRights::Read, "get_poll_option_properties"));
+  const Message *m = get_message_force(d, message_id, "get_poll_option_properties");
   if (m == nullptr || m->content->get_type() != MessageContentType::Poll) {
     return promise.set_error(400, "Poll not found");
   }
+  auto can_be_forwarded = can_forward_message(dialog_id, m, false);
+  auto can_be_replied = can_reply_to_message(d, message_id, m);
+  auto can_be_replied_in_another_chat = can_reply_to_message_in_another_dialog(dialog_id, message_id, can_be_forwarded);
   get_message_content_poll_option_properties(
-      td_, m->content.get(), option_id, message_id, m->date, m->forward_info != nullptr || m->had_forward_info,
+      td_, m->content.get(), option_id, dialog_id, message_id, can_be_replied, can_be_replied_in_another_chat,
+      m->forward_info != nullptr || m->had_forward_info,
       m->is_outgoing || dialog_id == td_->dialog_manager_->get_my_dialog_id(), std::move(promise));
 }
 
