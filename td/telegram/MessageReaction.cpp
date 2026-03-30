@@ -571,10 +571,6 @@ unique_ptr<MessageReactions> MessageReactions::get_message_reactions(
       auto peer_reaction_type = ReactionType(peer_reaction->reaction_);
       if (peer_reaction_type == reaction_type) {
         DialogId dialog_id(peer_reaction->peer_id_);
-        if (!dialog_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << dialog_id << " as a recent chooser for " << reaction_type;
-          continue;
-        }
         if (!recent_choosers.insert(dialog_id).second) {
           LOG(ERROR) << "Receive duplicate " << dialog_id << " as a recent chooser for " << reaction_type;
           continue;

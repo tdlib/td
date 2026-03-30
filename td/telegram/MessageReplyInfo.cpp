@@ -48,10 +48,6 @@ MessageReplyInfo::MessageReplyInfo(Td *td, tl_object_ptr<telegram_api::messageRe
   if (is_comment_) {
     for (const auto &peer : reply_info->recent_repliers_) {
       DialogId dialog_id(peer);
-      if (!dialog_id.is_valid()) {
-        LOG(ERROR) << "Receive " << dialog_id << " as a recent replier";
-        continue;
-      }
       if (td::contains(recent_replier_dialog_ids_, dialog_id)) {
         LOG(ERROR) << "Receive duplicate " << dialog_id << " as a recent replier";
         continue;
@@ -59,6 +55,7 @@ MessageReplyInfo::MessageReplyInfo(Td *td, tl_object_ptr<telegram_api::messageRe
       if (!check_min_message_sender(td, dialog_id, replier_min_channels_)) {
         continue;
       }
+
       recent_replier_dialog_ids_.push_back(dialog_id);
       if (recent_replier_dialog_ids_.size() == MAX_RECENT_REPLIERS) {
         break;
