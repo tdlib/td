@@ -487,6 +487,7 @@ bool OptionManager::is_internal_option(Slice name) {
                                                               "online_update_period_ms",
                                                               "otherwise_relogin_days",
                                                               "pm_read_date_expire_period",
+                                                              "poll_answer_delete_period",
                                                               "premium_bot_username",
                                                               "premium_features",
                                                               "premium_invoice_slug",

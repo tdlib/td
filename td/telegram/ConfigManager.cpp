@@ -1417,6 +1417,7 @@ void ConfigManager::process_app_config(tl_object_ptr<telegram_api::JSONValue> &c
       {"no_forwards_request_expire_period", "has_protected_content_disable_request_duration"},
       {"passkeys_account_passkeys_max", "login_passkey_count_max"},
       {"pm_read_date_expire_period", ""},
+      {"poll_answer_delete_period", ""},
       {"poll_answers_max", "poll_answer_count_max"},
       {"poll_close_period_max", "poll_open_period_max"},
       {"quick_replies_limit", "quick_reply_shortcut_count_max"},
