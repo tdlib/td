@@ -1938,13 +1938,16 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   }
 
   vector<DialogId> recent_voter_dialog_ids;
+  vector<std::pair<ChannelId, MinChannel>> recent_voter_min_channels;
   if (!is_bot) {
     for (auto &peer_id : poll_results->recent_voters_) {
       DialogId dialog_id(peer_id);
-      if (dialog_id.is_valid()) {
+      if (td::contains(recent_voter_dialog_ids, dialog_id)) {
+        LOG(ERROR) << "Receive duplicate " << dialog_id << " as recent voter in " << poll_id << " from " << source;
+        continue;
+      }
+      if (check_min_message_sender(td_, dialog_id, recent_voter_min_channels)) {
         recent_voter_dialog_ids.push_back(dialog_id);
-      } else {
-        LOG(ERROR) << "Receive " << dialog_id << " as recent voter in " << poll_id << " from " << source;
       }
     }
   }
@@ -1952,9 +1955,11 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     LOG(ERROR) << "Receive anonymous " << poll_id << " with recent voters " << recent_voter_dialog_ids << " from "
                << source;
     recent_voter_dialog_ids.clear();
+    recent_voter_min_channels.clear();
   }
   if (recent_voter_dialog_ids != poll->recent_voter_dialog_ids_) {
     poll->recent_voter_dialog_ids_ = std::move(recent_voter_dialog_ids);
+    poll->recent_voter_min_channels_ = std::move(recent_voter_min_channels);
     invalidate_poll_voters(poll, poll_id);
     is_changed = true;
   }
