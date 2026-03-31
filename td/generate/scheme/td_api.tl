@@ -3537,9 +3537,11 @@ loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 reque
 
 //@description Information about the OAuth authorization
 //@user_id Identifier of the user for which the link was generated; may be 0 if unknown. The corresponding user may be unknown.
-//-If the user is logged in the app, then they must be chosen for authorization by default
+//-If the user is logged in the application, then they must be chosen for authorization by default
 //@url An HTTP URL where the user authorizes
 //@domain A domain of the URL
+//@from_app True, if the authorization originates from an application
+//@verified_app_name Verified name of the application; if empty, then "Unverified App" must be shown instead
 //@bot_user_id User identifier of a bot linked with the website
 //@request_write_access True, if the user must be asked for the permission to the bot to send them messages
 //@request_phone_number_access True, if the user must be asked for the permission to share their phone number
@@ -3549,7 +3551,7 @@ loginUrlInfoRequestConfirmation url:string domain:string bot_user_id:int53 reque
 //@location Human-readable description of a country and a region from which the authorization is performed, based on the IP address
 //@match_code_first True, if code matching dialog must be shown first and checkOauthRequestMatchCode must be called before acceptOauthRequest. Otherwise, checkOauthRequestMatchCode must not be called
 //@match_codes The list of codes to match; may be empty if irrelevant
-oauthLinkInfo user_id:int53 url:string domain:string bot_user_id:int53 request_write_access:Bool request_phone_number_access:Bool browser:string platform:string ip_address:string location:string match_code_first:Bool match_codes:vector<string> = OauthLinkInfo;
+oauthLinkInfo user_id:int53 url:string domain:string from_app:Bool verified_app_name:string bot_user_id:int53 request_write_access:Bool request_phone_number_access:Bool browser:string platform:string ip_address:string location:string match_code_first:Bool match_codes:vector<string> = OauthLinkInfo;
 
 
 //@description Contains parameters of the application theme
@@ -3716,7 +3718,7 @@ sharedUser user_id:int53 first_name:string last_name:string username:string phot
 sharedChat chat_id:int53 title:string username:string photo:photo = SharedChat;
 
 
-//@class BuiltInTheme @description Describes a built-in theme of an official app
+//@class BuiltInTheme @description Describes a built-in theme of an official application
 
 //@description Classic light theme
 builtInThemeClassic = BuiltInTheme;
@@ -9378,7 +9380,7 @@ suggestedActionExtendStarSubscriptions = SuggestedAction;
 suggestedActionCustom name:string title:formattedText description:formattedText url:string = SuggestedAction;
 
 //@description Suggests the user to add login email address. Call isLoginEmailAddressRequired, and then setLoginEmailAddress or checkLoginEmailAddressCode to change the login email address
-//@can_be_hidden True, if the suggested action can be hidden using hideSuggestedAction. Otherwise, the user must not be able to use the app without setting up the email address
+//@can_be_hidden True, if the suggested action can be hidden using hideSuggestedAction. Otherwise, the user must not be able to use the application without setting up the email address
 suggestedActionSetLoginEmailAddress can_be_hidden:Bool = SuggestedAction;
 
 //@description Suggests the user to add a passkey for login using addLoginPasskey
@@ -10232,7 +10234,7 @@ updateEmojiChatThemes chat_themes:vector<emojiChatTheme> = Update;
 
 //@description The list of supported accent colors has changed
 //@colors Information about supported colors; colors with identifiers 0 (red), 1 (orange), 2 (purple/violet), 3 (green), 4 (cyan), 5 (blue), 6 (pink) must always be supported
-//-and aren't included in the list. The exact colors for the accent colors with identifiers 0-6 must be taken from the app theme
+//-and aren't included in the list. The exact colors for the accent colors with identifiers 0-6 must be taken from the application theme
 //@available_accent_color_ids The list of accent color identifiers, which can be set through setAccentColor and setChatAccentColor. The colors must be shown in the specified order
 updateAccentColors colors:vector<accentColor> available_accent_color_ids:vector<int32> = Update;
 
@@ -13098,7 +13100,7 @@ getMessageFileType message_file_head:string = MessageFileType;
 //@chat_id Identifier of a chat to which the messages will be imported. It must be an identifier of a private chat with a mutual contact or an identifier of a supergroup chat with can_change_info member right
 getMessageImportConfirmationText chat_id:int53 = Text;
 
-//@description Imports messages exported from another app
+//@description Imports messages exported from another application
 //@chat_id Identifier of a chat to which the messages will be imported. It must be an identifier of a private chat with a mutual contact or an identifier of a supergroup chat with can_change_info member right
 //@message_file File with messages to import. Only inputFileLocal and inputFileGenerated are supported. The file must not be previously uploaded
 //@attached_files Files used in the imported messages. Only inputFileLocal and inputFileGenerated are supported. The files must not be previously uploaded
