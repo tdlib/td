@@ -260,6 +260,7 @@ class UserManager final : public Actor {
     bool has_main_app = false;
     bool has_bot_forum_view = false;
     bool can_bot_create_topics = false;
+    bool can_manage_bots = false;
     bool is_inline = false;
     bool is_business = false;
     bool need_location = false;
@@ -630,6 +631,7 @@ class UserManager final : public Actor {
     bool has_main_app = false;
     bool has_bot_forum_view = false;
     bool can_bot_create_topics = false;
+    bool can_manage_bots = false;
     bool is_inline_bot = false;
     bool is_business_bot = false;
     bool need_location_bot = false;
