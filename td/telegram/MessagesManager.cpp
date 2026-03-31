@@ -4491,7 +4491,9 @@ void MessagesManager::on_update_message_reactions(MessageFullId message_full_id,
       // but if there are unread reactions or the chat has unread reactions,
       // then number of unread reactions could have been changed, so reload the number of unread reactions
       if (forum_topic_id.is_valid()) {
-        td_->forum_topic_manager_->repair_topic_unread_mention_count(dialog_id, forum_topic_id);
+        td_->forum_topic_manager_->repair_topic_unread_reaction_count(dialog_id, forum_topic_id);
+      } else if (saved_messages_topic_id.is_valid()) {
+        td_->saved_messages_manager_->repair_topic_unread_reaction_count(dialog_id, saved_messages_topic_id);
       }
       repair_dialog_unread_reaction_count(d, std::move(promise), "on_update_message_reactions");
     } else {

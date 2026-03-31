@@ -87,6 +87,8 @@ class SavedMessagesManager final : public Actor {
   void on_topic_reaction_count_changed(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id, int32 count,
                                        bool is_relative);
 
+  void repair_topic_unread_reaction_count(DialogId dialog_id, SavedMessagesTopicId saved_messages_topic_id);
+
   void load_saved_messages_topics(int32 limit, Promise<Unit> &&promise);
 
   void load_monoforum_topics(DialogId dialog_id, int32 limit, Promise<Unit> &&promise);
