@@ -90,10 +90,13 @@ vector<PollOption> PollOption::get_poll_options(
                    });
 }
 
-void PollOption::add_dependencies(Dependencies &dependencies) const {
+void PollOption::add_dependencies(Dependencies &dependencies, UserId my_user_id, bool is_bot) const {
   dependencies.add_message_sender_dependencies(added_by_dialog_id_);
   for (auto dialog_id : recent_voter_dialog_ids_) {
     dependencies.add_message_sender_dependencies(dialog_id);
+  }
+  if (media_ != nullptr) {
+    add_message_content_dependencies(dependencies, media_.get(), my_user_id, is_bot);
   }
 }
 

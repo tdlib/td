@@ -61,7 +61,7 @@ struct PollOption {
                                              vector<telegram_api::object_ptr<telegram_api::PollAnswer>> &&poll_answers,
                                              vector<std::pair<ChannelId, MinChannel>> &min_channels);
 
-  void add_dependencies(Dependencies &dependencies) const;
+  void add_dependencies(Dependencies &dependencies, UserId my_user_id, bool is_bot) const;
 
   template <class StorerT>
   void store(StorerT &storer) const;

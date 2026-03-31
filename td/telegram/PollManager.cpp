@@ -430,12 +430,18 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
       LOG(INFO) << "Add min voted " << min_channel.first;
       td_->chat_manager_->add_min_channel(min_channel.first, min_channel.second);
     }
+
+    auto my_user_id = td_->user_manager_->get_my_id();
+    bool is_bot = td_->auth_manager_->is_bot();
     Dependencies dependencies;
     for (auto dialog_id : poll->recent_voter_dialog_ids_) {
       dependencies.add_message_sender_dependencies(dialog_id);
     }
     for (const auto &option : poll->options_) {
-      option.add_dependencies(dependencies);
+      option.add_dependencies(dependencies, my_user_id, is_bot);
+    }
+    if (poll->explanation_media_ != nullptr) {
+      add_message_content_dependencies(dependencies, poll->explanation_media_.get(), my_user_id, is_bot);
     }
     if (!dependencies.resolve_force(td_, "on_load_poll_from_database")) {
       return;
