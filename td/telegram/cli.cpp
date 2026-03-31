@@ -6797,8 +6797,8 @@ class CliClient final : public Actor {
         poll_type = td_api::make_object<td_api::pollTypeRegular>(rand_bool());
       }
       send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(
-                                as_formatted_text(question), std::move(options), op != "spollp", rand_bool(),
-                                rand_bool(), rand_bool(), rand_bool(), std::move(poll_type), 0, 0, false));
+                                as_formatted_text(question), std::move(options), get_caption(), op != "spollp",
+                                rand_bool(), rand_bool(), rand_bool(), rand_bool(), std::move(poll_type), 0, 0, false));
     } else if (op == "schl") {
       ChatId chat_id;
       InputChecklist checklist;

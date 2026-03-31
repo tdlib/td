@@ -4562,6 +4562,10 @@ td_api::object_ptr<td_api::formattedText> extract_input_caption(
       auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
       return std::move(input_photo->caption_);
     }
+    case td_api::inputMessagePoll::ID: {
+      auto input_photo = static_cast<td_api::inputMessagePoll *>(input_message_content.get());
+      return std::move(input_photo->description_);
+    }
     case td_api::inputMessageVideo::ID: {
       auto input_video = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
       return std::move(input_video->caption_);
