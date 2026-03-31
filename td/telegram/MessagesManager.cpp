@@ -5111,6 +5111,22 @@ void MessagesManager::on_external_update_message_content(MessageFullId message_f
   }
 }
 
+void MessagesManager::on_update_poll_has_unread_votes(MessageFullId message_full_id, bool has_unread_votes) {
+  Dialog *d = get_dialog(message_full_id.get_dialog_id());
+  CHECK(d != nullptr);
+  Message *m = get_message(d, message_full_id.get_message_id());
+  CHECK(m != nullptr);
+  CHECK(!td_->auth_manager_->is_bot());
+  if (m->forward_info != nullptr || m->had_forward_info || m->content->get_type() != MessageContentType::Poll) {
+    return;
+  }
+  if (!has_unread_votes) {
+    on_unread_poll_vote_removed(d, m, "on_update_poll_has_unread_votes");
+  } else {
+    on_unread_poll_vote_added(d, m, "on_update_poll_has_unread_votes");
+  }
+}
+
 void MessagesManager::on_update_message_content(MessageFullId message_full_id) {
   Dialog *d = get_dialog(message_full_id.get_dialog_id());
   CHECK(d != nullptr);
@@ -8958,7 +8974,7 @@ bool MessagesManager::read_all_local_dialog_poll_votes(DialogId dialog_id, Forum
     CHECK(m->message_id.is_valid());
     // remove_message_notification_id(d, m, true, false);  // must be called while has_unread_poll_votes
     remove_message_content_poll_has_unread_votes(td_, m->content.get());
-    // must call on_external_update_message_content
+    on_unread_poll_vote_removed(d, m, "read_all_local_dialog_poll_votes");
   }
   return !message_ids.empty();
 }

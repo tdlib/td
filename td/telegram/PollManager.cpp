@@ -374,6 +374,18 @@ void PollManager::notify_on_poll_update(PollId poll_id) {
   }
 }
 
+void PollManager::notify_on_poll_has_unread_votes_update(PollId poll_id, bool has_unread_votes) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  if (server_poll_messages_.count(poll_id) > 0) {
+    server_poll_messages_[poll_id].foreach([&](const MessageFullId &message_full_id) {
+      td_->messages_manager_->on_update_poll_has_unread_votes(message_full_id, has_unread_votes);
+    });
+  }
+}
+
 string PollManager::get_poll_database_key(PollId poll_id) {
   return PSTRING() << "poll" << poll_id.get();
 }
@@ -867,7 +879,7 @@ void PollManager::remove_poll_has_unread_votes(PollId poll_id) {
   poll->has_unread_votes_ = false;
   save_poll(poll, poll_id);
   // no need to notify about update of the poll
-  // notify_on_poll_update(poll_id);
+  // notify_on_poll_has_unread_votes_update(poll_id, false);
 }
 
 bool PollManager::can_delete_poll_option(const Poll *poll, const PollOption *option, MessageId message_id,
@@ -2000,7 +2012,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       LOG(ERROR) << "Have unread votes for a non-created " << poll_id;
     } else {
       poll->has_unread_votes_ = poll_results->has_unread_votes_;
-      is_changed = true;
+      need_save_to_database = true;
+      notify_on_poll_has_unread_votes_update(poll_id, poll->has_unread_votes_);
     }
   }
 

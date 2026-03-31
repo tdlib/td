@@ -189,6 +189,8 @@ class PollManager final : public Actor {
 
   void notify_on_poll_update(PollId poll_id);
 
+  void notify_on_poll_has_unread_votes_update(PollId poll_id, bool has_unread_votes);
+
   static string get_poll_database_key(PollId poll_id);
 
   static void save_poll(const Poll *poll, PollId poll_id);

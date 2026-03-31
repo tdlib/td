@@ -359,6 +359,8 @@ class MessagesManager final : public Actor {
   void on_external_update_message_content(MessageFullId message_full_id, const char *source,
                                           bool expect_no_message = false, bool need_reregister = false);
 
+  void on_update_poll_has_unread_votes(MessageFullId message_full_id, bool has_unread_votes);
+
   void on_update_message_content(MessageFullId message_full_id);
 
   void on_read_channel_inbox(ChannelId channel_id, MessageId max_message_id, int32 server_unread_count, int32 pts,
