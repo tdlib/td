@@ -13,6 +13,7 @@
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogManager.h"
+#include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageId.h"
@@ -2103,6 +2104,9 @@ void PollManager::on_update_poll(PollId poll_id, telegram_api::object_ptr<telegr
     if (td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) &&
         td_->messages_manager_->have_dialog(dialog_id)) {
       // the counters of unread poll votes could have been changed
+      if (forum_topic_id.is_valid()) {
+        td_->forum_topic_manager_->repair_topic_unread_poll_vote_count(dialog_id, forum_topic_id);
+      }
       td_->messages_manager_->repair_dialog_unread_poll_vote_count(dialog_id, "on_update_poll");
     }
   }
