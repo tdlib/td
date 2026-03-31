@@ -8934,8 +8934,8 @@ internalLinkTypePublicChat chat_username:string draft_text:string open_profile:B
 internalLinkTypeQrCodeAuthentication = InternalLinkType;
 
 //@description The link is a link to a dialog for creating of a managed bot. Call searchPublicChat with the given manager bot username.
-//-If the chat is found and it is a bot, then show bot creation confirmation dialog with the given suggested_bot_username and suggested_bot_name.
-//-If user agrees, call createBot with via_link == true to create the bot
+//-If the chat is found, the chat is a chat with a bot and the bot has can_manage_bots == true, then show bot creation confirmation dialog
+//-with the given suggested_bot_username and suggested_bot_name. If user agrees, call createBot with via_link == true to create the bot
 //@manager_bot_username Username of the bot which will manage the new bot
 //@suggested_bot_username Suggested username for the bot
 //@suggested_bot_name Suggested name for the bot; may be empty if not specified
