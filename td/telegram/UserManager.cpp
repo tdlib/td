@@ -2214,6 +2214,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(noforwards_my_enabled);
     STORE_FLAG(noforwards_peer_enabled);
     STORE_FLAG(has_manager_bot_user_id);
+    STORE_FLAG(unofficial_security_risk);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -2423,6 +2424,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(noforwards_my_enabled);
     PARSE_FLAG(noforwards_peer_enabled);
     PARSE_FLAG(has_manager_bot_user_id);
+    PARSE_FLAG(unofficial_security_risk);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -8739,6 +8741,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   bool has_private_calls = user->phone_calls_private_;
   bool voice_messages_forbidden = u->is_premium ? user->voice_messages_forbidden_ : false;
   bool has_pinned_stories = user->stories_pinned_available_;
+  bool unofficial_security_risk = user->unofficial_security_risk_;
   auto birthdate = Birthdate(std::move(user->birthday_));
   auto personal_channel_id = ChannelId(user->personal_channel_id_);
   auto sponsored_enabled = user->sponsored_enabled_;
@@ -8763,7 +8766,8 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
       user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories ||
       user_full->sponsored_enabled != sponsored_enabled || user_full->can_view_revenue != can_view_revenue ||
       user_full->bot_verification != bot_verification || user_full->gift_settings != gift_settings ||
-      user_full->star_rating != star_rating || user_full->main_profile_tab != main_profile_tab) {
+      user_full->star_rating != star_rating || user_full->main_profile_tab != main_profile_tab ||
+      user_full->unofficial_security_risk != unofficial_security_risk) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
@@ -8776,6 +8780,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     user_full->gift_settings = std::move(gift_settings);
     user_full->star_rating = std::move(star_rating);
     user_full->main_profile_tab = main_profile_tab;
+    user_full->unofficial_security_risk = unofficial_security_risk;
 
     user_full->is_changed = true;
   }
@@ -9280,6 +9285,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->pending_star_rating_date = 0;
   user_full->private_forward_name.clear();
   user_full->voice_messages_forbidden = false;
+  user_full->unofficial_security_risk = false;
   user_full->has_pinned_stories = false;
   user_full->read_dates_private = false;
   user_full->contact_require_premium = false;
@@ -10149,10 +10155,10 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->sponsored_enabled, user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden,
-      std::move(bio_object), user_full->birthdate.get_birthdate_object(), personal_chat_id, user_full->gift_count,
-      user_full->common_chat_count, user_full->charge_paid_message_stars, user_full->send_paid_message_stars,
-      user_full->gift_settings.get_gift_settings_object(), std::move(bot_verification),
-      get_profile_tab_object(user_full->main_profile_tab),
+      user_full->unofficial_security_risk, std::move(bio_object), user_full->birthdate.get_birthdate_object(),
+      personal_chat_id, user_full->gift_count, user_full->common_chat_count, user_full->charge_paid_message_stars,
+      user_full->send_paid_message_stars, user_full->gift_settings.get_gift_settings_object(),
+      std::move(bot_verification), get_profile_tab_object(user_full->main_profile_tab),
       td_->audios_manager_->get_audio_object(user_full->first_saved_music_file_id), std::move(user_rating),
       std::move(pending_user_rating), user_full->pending_star_rating_date, std::move(note), std::move(business_info),
       std::move(bot_info));

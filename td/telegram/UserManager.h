@@ -756,6 +756,7 @@ class UserManager final : public Actor {
     bool has_preview_medias = false;
     bool can_view_revenue = false;
     bool can_manage_emoji_status = false;
+    bool unofficial_security_risk = false;
 
     bool is_common_chat_count_changed = true;
     bool is_pending_star_rating_changed = true;
