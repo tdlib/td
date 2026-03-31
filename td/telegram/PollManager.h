@@ -36,7 +36,7 @@
 namespace td {
 
 struct BinlogEvent;
-
+class MessageContent;
 class Td;
 
 class PollManager final : public Actor {
@@ -57,7 +57,8 @@ class PollManager final : public Actor {
   PollId create_poll(FormattedText &&question, vector<FormattedText> &&options, bool is_anonymous,
                      bool allow_multiple_answers, bool has_open_answers, bool has_revoting_disabled,
                      bool shuffle_answers, bool hide_results_until_close, bool is_quiz,
-                     vector<int32> correct_option_ids, FormattedText &&explanation, int32 open_period, int32 close_date,
+                     vector<int32> correct_option_ids, FormattedText &&explanation,
+                     unique_ptr<MessageContent> &&explanation_media, int32 open_period, int32 close_date,
                      bool is_closed);
 
   void register_poll(PollId poll_id, MessageFullId message_full_id, const char *source);
@@ -132,6 +133,7 @@ class PollManager final : public Actor {
     vector<DialogId> recent_voter_dialog_ids_;
     vector<std::pair<ChannelId, MinChannel>> recent_voter_min_channels_;
     FormattedText explanation_;
+    unique_ptr<MessageContent> explanation_media_;
     vector<int32> correct_option_ids_;
     int32 total_voter_count_ = 0;
     int32 open_period_ = 0;

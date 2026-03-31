@@ -4956,7 +4956,7 @@ static Result<InputMessageContent> create_input_message_content(
                                          input_poll->allows_multiple_answers_, has_open_answers,
                                          !input_poll->allows_revoting_, input_poll->shuffle_options_,
                                          input_poll->hide_results_until_closes_, is_quiz, std::move(correct_option_ids),
-                                         std::move(explanation), open_period, close_date, is_closed),
+                                         std::move(explanation), nullptr, open_period, close_date, is_closed),
           std::move(caption), nullptr);
       break;
     }

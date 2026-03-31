@@ -644,10 +644,20 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   }
   td_api::object_ptr<td_api::PollType> poll_type;
   if (poll->is_quiz_) {
-    auto correct_option_ids = is_local_poll_id(poll_id) ? vector<int32>() : poll->correct_option_ids_;
-    poll_type = td_api::make_object<td_api::pollTypeQuiz>(
-        std::move(correct_option_ids),
-        get_formatted_text_object(nullptr, is_local_poll_id(poll_id) ? FormattedText() : poll->explanation_, true, -1));
+    if (is_local_poll_id(poll_id)) {
+      poll_type = td_api::make_object<td_api::pollTypeQuiz>(
+          vector<int32>(), get_formatted_text_object(nullptr, FormattedText(), true, -1), nullptr);
+    } else {
+      auto correct_option_ids = poll->correct_option_ids_;
+      td_api::object_ptr<td_api::MessageContent> explanation_media;
+      if (poll->explanation_media_ != nullptr) {
+        explanation_media = get_message_content_object(poll->explanation_media_.get(), td_, DialogId(), MessageId(),
+                                                       false, false, DialogId(), 0, false, true, -1, false, true);
+      }
+      poll_type = td_api::make_object<td_api::pollTypeQuiz>(
+          std::move(correct_option_ids), get_formatted_text_object(nullptr, poll->explanation_, true, -1),
+          std::move(explanation_media));
+    }
   } else {
     poll_type = td_api::make_object<td_api::pollTypeRegular>(poll->has_open_answers_);
   }
@@ -700,8 +710,9 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
 PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> &&options, bool is_anonymous,
                                 bool allow_multiple_answers, bool has_open_answers, bool has_revoting_disabled,
                                 bool shuffle_answers, bool hide_results_until_close, bool is_quiz,
-                                vector<int32> correct_option_ids, FormattedText &&explanation, int32 open_period,
-                                int32 close_date, bool is_closed) {
+                                vector<int32> correct_option_ids, FormattedText &&explanation,
+                                unique_ptr<MessageContent> &&explanation_media, int32 open_period, int32 close_date,
+                                bool is_closed) {
   if (is_quiz && has_open_answers) {
     LOG(ERROR) << "Receive quiz with open answers";
     has_open_answers = false;
@@ -725,6 +736,7 @@ PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> 
   poll->is_quiz_ = is_quiz;
   poll->correct_option_ids_ = std::move(correct_option_ids);
   poll->explanation_ = std::move(explanation);
+  poll->explanation_media_ = std::move(explanation_media);
   poll->open_period_ = open_period;
   poll->close_date_ = close_date;
   poll->is_closed_ = is_closed;
@@ -1666,10 +1678,16 @@ PollId PollManager::dup_poll(DialogId dialog_id, PollId poll_id) {
   }
   auto explanation = poll->explanation_;
   remove_unallowed_entities(td_, explanation, dialog_id);
+  unique_ptr<MessageContent> explanation_media;
+  if (poll->explanation_media_ != nullptr) {
+    explanation_media = dup_message_content(td_, dialog_id, poll->explanation_media_.get(), MessageContentDupType::Copy,
+                                            MessageCopyOptions(true, false));
+  }
   return create_poll(std::move(question), std::move(options), poll->is_anonymous_, poll->allow_multiple_answers_,
                      poll->has_open_answers_, poll->has_revoting_disabled_, poll->shuffle_answers_,
                      poll->hide_results_until_close_, poll->is_quiz_, poll->correct_option_ids_, std::move(explanation),
-                     poll->open_period_, poll->open_period_ == 0 ? 0 : G()->unix_time(), false);
+                     std::move(explanation_media), poll->open_period_, poll->open_period_ == 0 ? 0 : G()->unix_time(),
+                     false);
 }
 
 bool PollManager::has_input_media(PollId poll_id) const {
@@ -1706,6 +1724,7 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
     if (!poll->explanation_.text.empty()) {
       flags |= telegram_api::inputMediaPoll::SOLUTION_MASK;
     }
+    // TODO poll->explanation_media
   }
   return telegram_api::make_object<telegram_api::inputMediaPoll>(
       flags,
@@ -2039,12 +2058,35 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
           is_changed = true;
         }
       }
+      unique_ptr<MessageContent> explanation_media;
+      if (poll_results->solution_media_ != nullptr) {
+        explanation_media =
+            get_message_content(td_, FormattedText(), std::move(poll_results->solution_media_), DialogId(), 0, false,
+                                UserId(), nullptr, nullptr, "pollResults solution");
+        if (!is_allowed_poll_content(explanation_media->get_type())) {
+          LOG(ERROR) << "Receive " << explanation_media->get_type() << " in a poll explanation";
+          explanation_media = nullptr;
+        }
+      }
+      bool is_content_changed = false;
+      bool need_update = false;
+      compare_message_contents(td_, poll->explanation_media_.get(), explanation_media.get(), is_content_changed,
+                               need_update);
+      if (is_content_changed || need_update) {
+        poll->explanation_media_ = std::move(explanation_media);
+        if (is_content_changed) {
+          need_save_to_database = true;
+        }
+        if (need_update) {
+          is_changed = true;
+        }
+      }
     }
   } else {
     if (!correct_option_ids.empty()) {
       LOG(ERROR) << "Receive correct option " << correct_option_ids << " in non-quiz " << poll_id << " from " << source;
     }
-    if (!explanation.text.empty()) {
+    if (!explanation.text.empty() || poll_results->solution_media_ != nullptr) {
       LOG(ERROR) << "Receive explanation " << explanation << " in non-quiz " << poll_id << " from " << source;
     }
   }

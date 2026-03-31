@@ -6791,8 +6791,8 @@ class CliClient final : public Actor {
         if (options.size() > 1u) {
           correct_option_ids.push_back(narrow_cast<int32>(options.size() - 1));
         }
-        poll_type =
-            td_api::make_object<td_api::pollTypeQuiz>(std::move(correct_option_ids), as_formatted_text("_te*st*_"));
+        poll_type = td_api::make_object<td_api::pollTypeQuiz>(std::move(correct_option_ids),
+                                                              as_formatted_text("_te*st*_"), nullptr);
       } else {
         poll_type = td_api::make_object<td_api::pollTypeRegular>(rand_bool());
       }

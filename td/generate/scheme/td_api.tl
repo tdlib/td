@@ -423,7 +423,9 @@ pollTypeRegular allows_adding_options:Bool = PollType;
 //@description A poll in quiz mode, which has predefined correct answers
 //@correct_option_ids Increasing list of 0-based identifiers of the correct answer options; empty for a yet unanswered poll
 //@explanation Text that is shown when the user chooses an incorrect answer or taps on the lamp icon; 0-200 characters with at most 2 line feeds; empty for a yet unanswered poll
-pollTypeQuiz correct_option_ids:vector<int32> explanation:formattedText = PollType;
+//@explanation_media Media that is shown when the user chooses an incorrect answer or taps on the lamp icon; may be null if none or the poll is unanswered yet.
+//-Currently, can be only of the types messageAnimation, messageAudio, messageDocument, messageLocation, messagePhoto, messageVenue, or messageVideo without caption
+pollTypeQuiz correct_option_ids:vector<int32> explanation:formattedText explanation_media:MessageContent = PollType;
 
 
 //@description Describes a task in a checklist
