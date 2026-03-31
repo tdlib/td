@@ -4927,13 +4927,13 @@ static Result<InputMessageContent> create_input_message_content(
         return Status::Error(400, "Poll type must be non-empty");
       }
       switch (input_poll->type_->get_id()) {
-        case td_api::pollTypeRegular::ID: {
-          auto type = td_api::move_object_as<td_api::pollTypeRegular>(input_poll->type_);
-          has_open_answers = type->allows_adding_options_;
+        case td_api::inputPollTypeRegular::ID: {
+          auto type = td_api::move_object_as<td_api::inputPollTypeRegular>(input_poll->type_);
+          has_open_answers = type->allow_adding_options_;
           break;
         }
-        case td_api::pollTypeQuiz::ID: {
-          auto type = td_api::move_object_as<td_api::pollTypeQuiz>(input_poll->type_);
+        case td_api::inputPollTypeQuiz::ID: {
+          auto type = td_api::move_object_as<td_api::inputPollTypeQuiz>(input_poll->type_);
           is_quiz = true;
           correct_option_ids = std::move(type->correct_option_ids_);
           TRY_STATUS(PollManager::check_quiz_correct_option_ids(correct_option_ids, options.size(), false));

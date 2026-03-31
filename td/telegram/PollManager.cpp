@@ -659,7 +659,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
           std::move(explanation_media));
     }
   } else {
-    poll_type = td_api::make_object<td_api::pollTypeRegular>(poll->has_open_answers_);
+    poll_type = td_api::make_object<td_api::pollTypeRegular>();
   }
 
   auto open_period = poll->open_period_;

@@ -6784,17 +6784,17 @@ class CliClient final : public Actor {
       auto options = transform(autosplit_str(args), [](const string &option) {
         return td_api::make_object<td_api::inputPollOption>(as_formatted_text(option));
       });
-      td_api::object_ptr<td_api::PollType> poll_type;
+      td_api::object_ptr<td_api::InputPollType> poll_type;
       if (op == "squiz") {
         vector<int32> correct_option_ids;
         correct_option_ids.push_back(0);
         if (options.size() > 1u) {
           correct_option_ids.push_back(narrow_cast<int32>(options.size() - 1));
         }
-        poll_type = td_api::make_object<td_api::pollTypeQuiz>(std::move(correct_option_ids),
-                                                              as_formatted_text("_te*st*_"), nullptr);
+        poll_type = td_api::make_object<td_api::inputPollTypeQuiz>(std::move(correct_option_ids),
+                                                                   as_formatted_text("_te*st*_"));
       } else {
-        poll_type = td_api::make_object<td_api::pollTypeRegular>(rand_bool());
+        poll_type = td_api::make_object<td_api::inputPollTypeRegular>(rand_bool());
       }
       send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(
                                 as_formatted_text(question), std::move(options), get_caption(), op != "spollp",

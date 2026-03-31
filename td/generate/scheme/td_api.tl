@@ -417,15 +417,26 @@ inputPollOption text:formattedText = InputPollOption;
 
 //@class PollType @description Describes the type of poll
 
-//@description A regular poll @allows_adding_options True, if answer options can be added to the poll after creation using the method addPollOption; not supported in channel chats and for anonymous polls
-pollTypeRegular allows_adding_options:Bool = PollType;
+//@description A regular poll
+pollTypeRegular = PollType;
 
 //@description A poll in quiz mode, which has predefined correct answers
 //@correct_option_ids Increasing list of 0-based identifiers of the correct answer options; empty for a yet unanswered poll
-//@explanation Text that is shown when the user chooses an incorrect answer or taps on the lamp icon; 0-200 characters with at most 2 line feeds; empty for a yet unanswered poll
-//@explanation_media Media that is shown when the user chooses an incorrect answer or taps on the lamp icon; may be null if none or the poll is unanswered yet.
+//@explanation Text that is shown when the user chooses an incorrect answer or taps on the lamp icon; empty for a yet unanswered poll
+//@explanation_media Media that is shown when the user chooses an incorrect answer or taps on the lamp icon; may be null if none or the poll is unanswered yet
 //-Currently, can be only of the types messageAnimation, messageAudio, messageDocument, messageLocation, messagePhoto, messageVenue, or messageVideo without caption
 pollTypeQuiz correct_option_ids:vector<int32> explanation:formattedText explanation_media:MessageContent = PollType;
+
+
+//@class InputPollType @description Describes the type of poll to send
+
+//@description A regular poll @allow_adding_options True, if answer options can be added to the poll after creation; not supported in channel chats and for anonymous polls
+inputPollTypeRegular allow_adding_options:Bool = InputPollType;
+
+//@description A poll in quiz mode, which has predefined correct answers
+//@correct_option_ids Increasing list of 0-based identifiers of the correct answer options; must be non-empty
+//@explanation Text that is shown when the user chooses an incorrect answer or taps on the lamp icon; 0-200 characters with at most 2 line feeds
+inputPollTypeQuiz correct_option_ids:vector<int32> explanation:formattedText = InputPollType;
 
 
 //@description Describes a task in a checklist
@@ -5600,7 +5611,7 @@ inputMessageInvoice invoice:invoice title:string description:string photo_url:st
 //@open_period Amount of time the poll will be active after creation, in seconds; 0-getOption("poll_open_period_max"); pass 0 if not specified
 //@close_date Point in time (Unix timestamp) when the poll will automatically be closed; must be 0-getOption("poll_open_period_max") seconds in the future; pass 0 if not specified
 //@is_closed True, if the poll needs to be sent already closed; for bots only
-inputMessagePoll question:formattedText options:vector<inputPollOption> description:formattedText is_anonymous:Bool allows_multiple_answers:Bool allows_revoting:Bool shuffle_options:Bool hide_results_until_closes:Bool type:PollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
+inputMessagePoll question:formattedText options:vector<inputPollOption> description:formattedText is_anonymous:Bool allows_multiple_answers:Bool allows_revoting:Bool shuffle_options:Bool hide_results_until_closes:Bool type:InputPollType open_period:int32 close_date:int32 is_closed:Bool = InputMessageContent;
 
 //@description A stake dice message
 //@state_hash Hash of the stake dice state. The state hash can be used only if it was received recently enough. Otherwise, a new state must be requested using getStakeDiceState
