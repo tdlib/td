@@ -337,6 +337,20 @@ bool is_allowed_poll_content(MessageContentType content_type) {
   }
 }
 
+bool is_allowed_poll_option_content(MessageContentType content_type) {
+  switch (content_type) {
+    case MessageContentType::Animation:
+    case MessageContentType::Location:
+    case MessageContentType::Photo:
+    case MessageContentType::Sticker:
+    case MessageContentType::Venue:
+    case MessageContentType::Video:
+      return true;
+    default:
+      return false;
+  }
+}
+
 bool can_be_secret_message_content(MessageContentType content_type) {
   switch (content_type) {
     case MessageContentType::Animation:

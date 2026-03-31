@@ -434,7 +434,7 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
     for (auto dialog_id : poll->recent_voter_dialog_ids_) {
       dependencies.add_message_sender_dependencies(dialog_id);
     }
-    for (auto option : poll->options_) {
+    for (const auto &option : poll->options_) {
       option.add_dependencies(dependencies);
     }
     if (!dependencies.resolve_force(td_, "on_load_poll_from_database")) {
@@ -725,7 +725,7 @@ PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> 
   poll->question_ = std::move(question);
   int pos = 0;
   for (auto &option_text : options) {
-    poll->options_.emplace_back(std::move(option_text), pos++);
+    poll->options_.emplace_back(std::move(option_text), nullptr, pos++);
   }
   poll->is_anonymous_ = is_anonymous;
   poll->allow_multiple_answers_ = allow_multiple_answers;
@@ -952,7 +952,7 @@ string PollManager::get_poll_search_text(PollId poll_id) const {
   CHECK(poll != nullptr);
 
   string result = poll->question_.text;
-  for (auto &option : poll->options_) {
+  for (const auto &option : poll->options_) {
     result += ' ';
     result += option.text_.text;
   }
@@ -1254,7 +1254,7 @@ bool PollManager::can_get_poll_voters(PollId poll_id, const Poll *poll) const {
   bool is_voted = false;
   auto it = pending_answers_.find(poll_id);
   if (it == pending_answers_.end() || (it->second.is_finished_ && poll->was_saved_)) {
-    for (auto &poll_option : poll->options_) {
+    for (const auto &poll_option : poll->options_) {
       is_voted |= poll_option.is_chosen_;
     }
   }
@@ -2018,7 +2018,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   }
   if (!poll_results->results_.empty() && has_total_voters) {
     int32 max_total_voter_count = 0;
-    for (auto &option : poll->options_) {
+    for (const auto &option : poll->options_) {
       max_total_voter_count += option.voter_count_;
     }
     if (poll->total_voter_count_ > max_total_voter_count && max_total_voter_count != 0) {

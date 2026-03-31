@@ -21,10 +21,12 @@
 namespace td {
 
 class Dependencies;
+class MessageContent;
 class Td;
 
 struct PollOption {
   FormattedText text_;
+  unique_ptr<MessageContent> media_;
   string data_;
   DialogId added_by_dialog_id_;
   vector<DialogId> recent_voter_dialog_ids_;
@@ -34,7 +36,7 @@ struct PollOption {
 
   PollOption() = default;
 
-  PollOption(FormattedText &&text, int32 pos);
+  PollOption(FormattedText &&text, unique_ptr<MessageContent> &&media, int32 pos);
 
   PollOption(Td *td, telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr,
              vector<std::pair<ChannelId, MinChannel>> &min_channels);

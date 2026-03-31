@@ -7,6 +7,7 @@
 #include "td/telegram/PollOption.h"
 
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageSender.h"
 
 #include "td/utils/algorithm.h"
@@ -14,7 +15,8 @@
 
 namespace td {
 
-PollOption::PollOption(FormattedText &&text, int32 pos) : text_(std::move(text)) {
+PollOption::PollOption(FormattedText &&text, unique_ptr<MessageContent> &&media, int32 pos)
+    : text_(std::move(text)), media_(std::move(media)) {
   if (pos < 10) {
     data_ = string(1, static_cast<char>(pos + '0'));
   } else {
@@ -32,6 +34,14 @@ PollOption::PollOption(Td *td, telegram_api::object_ptr<telegram_api::PollAnswer
   auto poll_answer = telegram_api::move_object_as<telegram_api::pollAnswer>(poll_answer_ptr);
   text_ = get_formatted_text(nullptr, std::move(poll_answer->text_), true, true, "get_poll_answers");
   keep_only_custom_emoji(text_);
+  if (poll_answer->media_ != nullptr) {
+    media_ = get_message_content(td, FormattedText(), std::move(poll_answer->media_), DialogId(), 0, false, UserId(),
+                                 nullptr, nullptr, "pollAnswer");
+    if (!is_allowed_poll_option_content(media_->get_type())) {
+      LOG(ERROR) << "Receive " << media_->get_type() << " in a poll option";
+      media_ = nullptr;
+    }
+  }
   data_ = poll_answer->option_.as_slice().str();
   if (poll_answer->added_by_ != nullptr) {
     added_by_dialog_id_ = DialogId(poll_answer->added_by_);
@@ -56,9 +66,14 @@ td_api::object_ptr<td_api::pollOption> PollOption::get_poll_option_object(Td *td
       recent_voter_ids.push_back(std::move(recent_voter_id));
     }
   }
+  td_api::object_ptr<td_api::MessageContent> media;
+  if (media_ != nullptr) {
+    media = get_message_content_object(media_.get(), td, DialogId(), MessageId(), false, false, DialogId(), 0, false,
+                                       true, -1, false, true);
+  }
   return td_api::make_object<td_api::pollOption>(data_, get_formatted_text_object(nullptr, text_, true, -1),
-                                                 voter_count_, 0, std::move(recent_voter_ids), is_chosen_, false,
-                                                 std::move(author), is_added ? added_date_ : 0);
+                                                 std::move(media), voter_count_, 0, std::move(recent_voter_ids),
+                                                 is_chosen_, false, std::move(author), is_added ? added_date_ : 0);
 }
 
 telegram_api::object_ptr<telegram_api::PollAnswer> PollOption::get_input_poll_answer() const {
@@ -77,10 +92,14 @@ vector<PollOption> PollOption::get_poll_options(
 
 void PollOption::add_dependencies(Dependencies &dependencies) const {
   dependencies.add_message_sender_dependencies(added_by_dialog_id_);
+  for (auto dialog_id : recent_voter_dialog_ids_) {
+    dependencies.add_message_sender_dependencies(dialog_id);
+  }
 }
 
 bool operator==(const PollOption &lhs, const PollOption &rhs) {
   // don't compare voter_count_, recent_voter_dialog_ids_, and is_chosen_
+  // don't need to compare media_, because it can't change without data_ change
   return lhs.text_ == rhs.text_ && lhs.data_ == rhs.data_ && lhs.added_by_dialog_id_ == rhs.added_by_dialog_id_ &&
          lhs.added_date_ == rhs.added_date_;
 }
