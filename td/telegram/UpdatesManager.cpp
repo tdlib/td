@@ -4709,8 +4709,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessageExtended
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> update, Promise<Unit> &&promise) {
-  td_->poll_manager_->on_get_poll(PollId(update->poll_id_), std::move(update->poll_), std::move(update->results_),
-                                  "updateMessagePoll");
+  MessageFullId message_full_id;
+  if (update->peer_ != nullptr) {
+    message_full_id = {DialogId(update->peer_), MessageId(ServerMessageId(update->msg_id_))};
+  }
+  td_->poll_manager_->on_update_poll(PollId(update->poll_id_), std::move(update->poll_), std::move(update->results_),
+                                     message_full_id, ForumTopicId(update->top_msg_id_), "updateMessagePoll");
   promise.set_value(Unit());
 }
 

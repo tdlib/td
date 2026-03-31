@@ -9173,6 +9173,10 @@ void MessagesManager::repair_dialog_unread_reaction_count(Dialog *d, Promise<Uni
   send_get_dialog_query(d->dialog_id, std::move(promise), 0, source);
 }
 
+void MessagesManager::repair_dialog_unread_poll_vote_count(DialogId dialog_id, const char *source) {
+  repair_dialog_unread_poll_vote_count(get_dialog(dialog_id), Promise<Unit>(), source);
+}
+
 void MessagesManager::repair_dialog_unread_poll_vote_count(Dialog *d, Promise<Unit> &&promise, const char *source) {
   CHECK(d != nullptr);
 

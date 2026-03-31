@@ -8,6 +8,7 @@
 
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/ForumTopicId.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageFullId.h"
 #include "td/telegram/MinChannel.h"
@@ -103,6 +104,10 @@ class PollManager final : public Actor {
 
   PollId on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll> &&poll_server,
                      tl_object_ptr<telegram_api::pollResults> &&poll_results, const char *source);
+
+  void on_update_poll(PollId poll_id, telegram_api::object_ptr<telegram_api::poll> &&poll_server,
+                      telegram_api::object_ptr<telegram_api::pollResults> &&poll_results, MessageFullId message_full_id,
+                      ForumTopicId forum_topic_id, const char *source);
 
   void on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<BufferSlice> &&options, vector<int32> positions);
 

@@ -361,6 +361,8 @@ class MessagesManager final : public Actor {
 
   void on_update_poll_has_unread_votes(MessageFullId message_full_id, bool has_unread_votes);
 
+  void repair_dialog_unread_poll_vote_count(DialogId dialog_id, const char *source);
+
   void on_update_message_content(MessageFullId message_full_id);
 
   void on_read_channel_inbox(ChannelId channel_id, MessageId max_message_id, int32 server_unread_count, int32 pts,

@@ -2094,6 +2094,21 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   return poll_id;
 }
 
+void PollManager::on_update_poll(PollId poll_id, telegram_api::object_ptr<telegram_api::poll> &&poll_server,
+                                 telegram_api::object_ptr<telegram_api::pollResults> &&poll_results,
+                                 MessageFullId message_full_id, ForumTopicId forum_topic_id, const char *source) {
+  if (message_full_id.get_message_id().is_valid() &&
+      !td_->messages_manager_->have_message_force(message_full_id, "on_update_poll")) {
+    auto dialog_id = message_full_id.get_dialog_id();
+    if (td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read) &&
+        td_->messages_manager_->have_dialog(dialog_id)) {
+      // the counters of unread poll votes could have been changed
+      td_->messages_manager_->repair_dialog_unread_poll_vote_count(dialog_id, "on_update_poll");
+    }
+  }
+  on_get_poll(poll_id, std::move(poll_server), std::move(poll_results), source);
+}
+
 void PollManager::on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<BufferSlice> &&options,
                                    vector<int32> positions) {
   if (!poll_id.is_valid()) {
