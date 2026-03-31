@@ -72,6 +72,7 @@ enum class Version : int32 {
   SupportBotTopics,
   AddDiceFlags,
   AddStarGiftAttributeRarity,
+  AddPollCaption,
   Next
 };
 

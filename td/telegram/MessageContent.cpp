@@ -758,8 +758,10 @@ class MessagePoll final : public MessageContent {
  public:
   PollId poll_id;
 
+  FormattedText caption;
+
   MessagePoll() = default;
-  explicit MessagePoll(PollId poll_id) : poll_id(poll_id) {
+  MessagePoll(PollId poll_id, FormattedText &&caption) : poll_id(poll_id), caption(std::move(caption)) {
   }
 
   MessageContentType get_type() const final {
@@ -2128,7 +2130,14 @@ static void store(const MessageContent *content, StorerT &storer) {
     }
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
+      auto has_caption = !m->caption.text.empty();
+      BEGIN_STORE_FLAGS();
+      STORE_FLAG(has_caption);
+      END_STORE_FLAGS();
       store(m->poll_id, storer);
+      if (has_caption) {
+        store(m->caption, storer);
+      }
       break;
     }
     case MessageContentType::Dice: {
@@ -3412,7 +3421,16 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     }
     case MessageContentType::Poll: {
       auto m = make_unique<MessagePoll>();
+      bool has_caption = false;
+      if (parser.version() >= static_cast<int32>(Version::AddPollCaption)) {
+        BEGIN_PARSE_FLAGS();
+        PARSE_FLAG(has_caption);
+        END_PARSE_FLAGS();
+      }
       parse(m->poll_id, parser);
+      if (has_caption) {
+        parse(m->caption, parser);
+      }
       is_bad = !m->poll_id.is_valid();
       content = std::move(m);
       break;
@@ -4917,11 +4935,13 @@ static Result<InputMessageContent> create_input_message_content(
         close_date = 0;
       }
       bool is_closed = is_bot ? input_poll->is_closed_ : false;
-      content = make_unique<MessagePoll>(td->poll_manager_->create_poll(
-          std::move(question), std::move(options), input_poll->is_anonymous_, input_poll->allows_multiple_answers_,
-          has_open_answers, !input_poll->allows_revoting_, input_poll->shuffle_options_,
-          input_poll->hide_results_until_closes_, is_quiz, std::move(correct_option_ids), std::move(explanation),
-          open_period, close_date, is_closed));
+      content = make_unique<MessagePoll>(
+          td->poll_manager_->create_poll(std::move(question), std::move(options), input_poll->is_anonymous_,
+                                         input_poll->allows_multiple_answers_, has_open_answers,
+                                         !input_poll->allows_revoting_, input_poll->shuffle_options_,
+                                         input_poll->hide_results_until_closes_, is_quiz, std::move(correct_option_ids),
+                                         std::move(explanation), open_period, close_date, is_closed),
+          std::move(caption));
       break;
     }
     case td_api::inputMessageStory::ID: {
@@ -7739,7 +7759,7 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
     case MessageContentType::Poll: {
       const auto *lhs = static_cast<const MessagePoll *>(old_content);
       const auto *rhs = static_cast<const MessagePoll *>(new_content);
-      if (lhs->poll_id != rhs->poll_id) {
+      if (lhs->poll_id != rhs->poll_id || lhs->caption != rhs->caption) {
         need_update = true;
       }
       break;
@@ -8340,7 +8360,7 @@ void register_message_content(Td *td, const MessageContent *content, MessageFull
       }
       return;
     }
-    // don't forget to update reregister_message_content
+    // don't forget to update reregister_message_content, register_reply_message_content, register_quick_reply_message_content
     default:
       return;
   }
@@ -9263,7 +9283,7 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       if (!poll_id.is_valid()) {
         break;
       }
-      return make_unique<MessagePoll>(poll_id);
+      return make_unique<MessagePoll>(poll_id, std::move(message));
     }
     case telegram_api::messageMediaStory::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaStory>(media_ptr);
@@ -9503,13 +9523,15 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       result->video_file_id = FileId();
       return std::move(result);
     }
-    case MessageContentType::Poll:
+    case MessageContentType::Poll: {
+      auto message_poll = static_cast<const MessagePoll *>(content);
       if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
-        return make_unique<MessagePoll>(
-            td->poll_manager_->dup_poll(dialog_id, static_cast<const MessagePoll *>(content)->poll_id));
+        return make_unique<MessagePoll>(td->poll_manager_->dup_poll(dialog_id, message_poll->poll_id),
+                                        FormattedText(message_poll->caption));
       } else {
-        return make_unique<MessagePoll>(*static_cast<const MessagePoll *>(content));
+        return make_unique<MessagePoll>(*message_poll);
       }
+    }
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
       result->is_premium = td->option_manager_->get_option_boolean("is_premium");
@@ -10761,7 +10783,8 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
-      return make_tl_object<td_api::messagePoll>(td->poll_manager_->get_poll_object(m->poll_id));
+      return make_tl_object<td_api::messagePoll>(td->poll_manager_->get_poll_object(m->poll_id),
+                                                 get_text_object(m->caption));
     }
     case MessageContentType::Dice: {
       const auto *m = static_cast<const MessageDice *>(content);
@@ -11315,6 +11338,8 @@ const FormattedText *get_message_content_text(const MessageContent *content) {
       return &static_cast<const MessageGiftPremium *>(content)->text;
     case MessageContentType::GiftCode:
       return &static_cast<const MessageGiftCode *>(content)->text;
+    case MessageContentType::Poll:
+      return &static_cast<const MessagePoll *>(content)->caption;
     case MessageContentType::StarGift:
       return &static_cast<const MessageStarGift *>(content)->text;
     default:
@@ -11879,11 +11904,11 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     }
     case MessageContentType::Video: {
       const auto *video = static_cast<const MessageVideo *>(content);
-      return PSTRING() << td->videos_manager_->get_video_search_text(video->file_id) << " " << video->caption.text;
+      return PSTRING() << td->videos_manager_->get_video_search_text(video->file_id) << ' ' << video->caption.text;
     }
     case MessageContentType::Poll: {
       const auto *poll = static_cast<const MessagePoll *>(content);
-      return td->poll_manager_->get_poll_search_text(poll->poll_id);
+      return PSTRING() << td->poll_manager_->get_poll_search_text(poll->poll_id) << ' ' << poll->caption.text;
     }
     case MessageContentType::TopicCreate: {
       const auto *topic_create = static_cast<const MessageTopicCreate *>(content);

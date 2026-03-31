@@ -21804,7 +21804,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, const Messag
                              CHECK(m != nullptr);
                              CHECK(input_media != nullptr);
 
-                             const FormattedText *caption = get_message_content_caption(m->content.get());
+                             const FormattedText *caption = get_message_content_text(m->content.get());
                              LOG(INFO) << "Send media from " << m->message_id << " in " << dialog_id;
                              int64 random_id = begin_send_message(dialog_id, m);
                              td_->create_handler<SendMediaQuery>()->send(
@@ -22289,7 +22289,7 @@ void MessagesManager::do_send_paid_media_group(DialogId dialog_id, MessageId mes
 
   LOG(INFO) << "Begin to send paid media group " << message_id << " to " << dialog_id;
 
-  const FormattedText *caption = get_message_content_caption(m->content.get());
+  const FormattedText *caption = get_message_content_text(m->content.get());
   td_->create_handler<SendMediaQuery>()->send(
       m->file_upload_ids, m->thumbnail_file_upload_ids, get_message_content_cover_any_file_ids(m->content.get()),
       get_message_flags(m), dialog_id, get_send_message_as_input_peer(m), *get_message_input_reply_to(m),
