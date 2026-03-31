@@ -403,11 +403,12 @@ outline paths:vector<closedVectorPath> = Outline;
 //@text Option text; 1-100 characters; may contain only custom emoji entities
 //@voter_count Number of voters for this option, available only for closed or voted polls, or if the current user is the creator of the poll
 //@vote_percentage The percentage of votes for this option; 0-100
+//@recent_voter_ids Identifiers of recent voters for the option, if the poll is non-anonymous and poll results are available
 //@is_chosen True, if the option was chosen by the user
 //@is_being_chosen True, if the option is being chosen by a pending setPollAnswer request
 //@author Identifier of the user or chat who added the option; may be null if the option existed from creation of the poll
 //@addition_date Point in time (Unix timestamp) when the option was added; 0 if the option existed from creation of the poll
-pollOption id:string text:formattedText voter_count:int32 vote_percentage:int32 is_chosen:Bool is_being_chosen:Bool author:MessageSender addition_date:int32 = PollOption;
+pollOption id:string text:formattedText voter_count:int32 vote_percentage:int32 recent_voter_ids:vector<MessageSender> is_chosen:Bool is_being_chosen:Bool author:MessageSender addition_date:int32 = PollOption;
 
 //@description Describes one answer option of a poll to be created
 //@text Option text; 1-100 characters. Only custom emoji entities are allowed to be added and only by Premium users
@@ -601,7 +602,7 @@ webApp short_name:string title:string description:string photo:photo animation:a
 //@question Poll question; 1-300 characters; may contain only custom emoji entities
 //@options List of poll answer options
 //@total_voter_count Total number of voters, participating in the poll
-//@recent_voter_ids Identifiers of recent voters, if the poll is non-anonymous
+//@recent_voter_ids Identifiers of recent voters, if the poll is non-anonymous and poll results are available
 //@can_get_voters True, if the current user can get voters in the poll
 //@is_anonymous True, if the poll is anonymous
 //@allows_multiple_answers True, if multiple answer options can be chosen simultaneously

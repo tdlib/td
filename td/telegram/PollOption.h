@@ -27,6 +27,7 @@ struct PollOption {
   FormattedText text_;
   string data_;
   DialogId added_by_dialog_id_;
+  vector<DialogId> recent_voter_dialog_ids_;
   int32 added_date_ = 0;
   int32 voter_count_ = 0;
   bool is_chosen_ = false;

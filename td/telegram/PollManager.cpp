@@ -405,13 +405,17 @@ void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
     if (log_event_parse(*poll, value).is_error()) {
       return;
     }
-    for (const auto &option_min_channel : poll->option_min_channels_) {
-      LOG(INFO) << "Add min option " << option_min_channel.first;
-      td_->chat_manager_->add_min_channel(option_min_channel.first, option_min_channel.second);
+    for (const auto &min_channel : poll->option_min_channels_) {
+      LOG(INFO) << "Add min option " << min_channel.first;
+      td_->chat_manager_->add_min_channel(min_channel.first, min_channel.second);
     }
-    for (const auto &recent_voter_min_channel : poll->recent_voter_min_channels_) {
-      LOG(INFO) << "Add min voted " << recent_voter_min_channel.first;
-      td_->chat_manager_->add_min_channel(recent_voter_min_channel.first, recent_voter_min_channel.second);
+    for (const auto &min_channel : poll->recent_option_voter_min_channels_) {
+      LOG(INFO) << "Add min recent option voter " << min_channel.first;
+      td_->chat_manager_->add_min_channel(min_channel.first, min_channel.second);
+    }
+    for (const auto &min_channel : poll->recent_voter_min_channels_) {
+      LOG(INFO) << "Add min voted " << min_channel.first;
+      td_->chat_manager_->add_min_channel(min_channel.first, min_channel.second);
     }
     Dependencies dependencies;
     for (auto dialog_id : poll->recent_voter_dialog_ids_) {
@@ -1903,6 +1907,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     }
     is_changed = true;
   }
+  vector<std::pair<ChannelId, MinChannel>> recent_option_voter_min_channels;
+  bool need_update_recent_option_voter_min_channels = false;
   vector<int32> correct_option_ids;
   for (auto &poll_result : poll_results->results_) {
     Slice data = poll_result->option_.as_slice();
@@ -1948,7 +1954,34 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         option.voter_count_ = poll_result->voters_;
         is_changed = true;
       }
+      if (!(is_min && poll->is_creator_ && poll->hide_results_until_close_)) {
+        vector<DialogId> recent_option_voter_dialog_ids;
+        for (const auto &recent_voter : poll_result->recent_voters_) {
+          DialogId dialog_id(recent_voter);
+          if (td::contains(recent_option_voter_dialog_ids, dialog_id)) {
+            LOG(ERROR) << "Receive duplicate " << dialog_id << " as recent option voter in " << poll_id << " from "
+                       << source;
+            continue;
+          }
+          if (check_min_message_sender(td_, dialog_id, recent_option_voter_min_channels)) {
+            recent_option_voter_dialog_ids.push_back(dialog_id);
+          }
+        }
+        if (recent_option_voter_dialog_ids.size() > static_cast<size_t>(option.voter_count_)) {
+          LOG(ERROR) << "Receive option with " << option.voter_count_ << " votes and "
+                     << recent_option_voter_dialog_ids.size() << " recent voters";
+          recent_option_voter_dialog_ids.resize(static_cast<size_t>(option.voter_count_));
+        }
+        if (recent_option_voter_dialog_ids != option.recent_voter_dialog_ids_) {
+          option.recent_voter_dialog_ids_ = std::move(recent_option_voter_dialog_ids);
+          is_changed = true;
+          need_update_recent_option_voter_min_channels = true;
+        }
+      }
     }
+  }
+  if (need_update_recent_option_voter_min_channels) {
+    poll->recent_option_voter_min_channels_ = std::move(recent_option_voter_min_channels);
   }
   if (!poll_results->results_.empty() && has_total_voters) {
     int32 max_total_voter_count = 0;

@@ -19,11 +19,13 @@ void PollOption::store(StorerT &storer) const {
   bool has_entities = !text_.entities.empty();
   bool has_added_by_dialog_id = added_by_dialog_id_ != DialogId();
   bool has_added_date = added_date_ != 0;
+  bool has_recent_voter_dialog_ids = !recent_voter_dialog_ids_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_chosen_);
   STORE_FLAG(has_entities);
   STORE_FLAG(has_added_by_dialog_id);
   STORE_FLAG(has_added_date);
+  STORE_FLAG(has_recent_voter_dialog_ids);
   END_STORE_FLAGS();
 
   store(text_.text, storer);
@@ -38,6 +40,9 @@ void PollOption::store(StorerT &storer) const {
   if (has_added_date) {
     store(added_date_, storer);
   }
+  if (has_recent_voter_dialog_ids) {
+    store(recent_voter_dialog_ids_, storer);
+  }
 }
 
 template <class ParserT>
@@ -46,11 +51,13 @@ void PollOption::parse(ParserT &parser) {
   bool has_entities;
   bool has_added_by_dialog_id;
   bool has_added_date;
+  bool has_recent_voter_dialog_ids;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_chosen_);
   PARSE_FLAG(has_entities);
   PARSE_FLAG(has_added_by_dialog_id);
   PARSE_FLAG(has_added_date);
+  PARSE_FLAG(has_recent_voter_dialog_ids);
   END_PARSE_FLAGS();
 
   parse(text_.text, parser);
@@ -64,6 +71,9 @@ void PollOption::parse(ParserT &parser) {
   }
   if (has_added_date) {
     parse(added_date_, parser);
+  }
+  if (has_recent_voter_dialog_ids) {
+    parse(recent_voter_dialog_ids_, parser);
   }
 }
 

@@ -49,9 +49,16 @@ td_api::object_ptr<td_api::pollOption> PollOption::get_poll_option_object(Td *td
                     ? nullptr
                     : get_min_message_sender_object(td, added_by_dialog_id_, "pollOption");
   bool is_added = author != nullptr;
+  vector<td_api::object_ptr<td_api::MessageSender>> recent_voter_ids;
+  for (auto dialog_id : recent_voter_dialog_ids_) {
+    auto recent_voter_id = get_min_message_sender_object(td, dialog_id, "pollOption recent voter");
+    if (recent_voter_id != nullptr) {
+      recent_voter_ids.push_back(std::move(recent_voter_id));
+    }
+  }
   return td_api::make_object<td_api::pollOption>(data_, get_formatted_text_object(nullptr, text_, true, -1),
-                                                 voter_count_, 0, is_chosen_, false, std::move(author),
-                                                 is_added ? added_date_ : 0);
+                                                 voter_count_, 0, std::move(recent_voter_ids), is_chosen_, false,
+                                                 std::move(author), is_added ? added_date_ : 0);
 }
 
 telegram_api::object_ptr<telegram_api::PollAnswer> PollOption::get_input_poll_answer() const {
@@ -73,7 +80,7 @@ void PollOption::add_dependencies(Dependencies &dependencies) const {
 }
 
 bool operator==(const PollOption &lhs, const PollOption &rhs) {
-  // don't compare voter_count_ and is_chosen_
+  // don't compare voter_count_, recent_voter_dialog_ids_, and is_chosen_
   return lhs.text_ == rhs.text_ && lhs.data_ == rhs.data_ && lhs.added_by_dialog_id_ == rhs.added_by_dialog_id_ &&
          lhs.added_date_ == rhs.added_date_;
 }
