@@ -6801,10 +6801,10 @@ bool get_message_content_poll_is_closed(const Td *td, const MessageContent *cont
   }
 }
 
-bool get_message_content_poll_has_open_answers(const Td *td, const MessageContent *content) {
+bool get_message_content_poll_can_add_option(const Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Poll:
-      return td->poll_manager_->get_poll_has_open_answers(static_cast<const MessagePoll *>(content)->poll_id);
+      return td->poll_manager_->get_poll_can_add_option(static_cast<const MessagePoll *>(content)->poll_id);
     default:
       return false;
   }

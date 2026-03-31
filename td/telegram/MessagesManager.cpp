@@ -7890,12 +7890,12 @@ bool MessagesManager::can_add_message_offer(DialogId dialog_id, const Message *m
 }
 
 bool MessagesManager::can_add_message_poll_option(DialogId dialog_id, const Message *m) const {
-  if (m == nullptr || !m->message_id.is_server() || m->content->get_type() != MessageContentType::Poll ||
-      m->forward_info != nullptr || m->had_forward_info ||
+  if (td_->auth_manager_->is_bot() || m == nullptr || !m->message_id.is_server() ||
+      m->content->get_type() != MessageContentType::Poll || m->forward_info != nullptr || m->had_forward_info ||
       !td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return false;
   }
-  return get_message_content_poll_has_open_answers(td_, m->content.get());
+  return get_message_content_poll_can_add_option(td_, m->content.get());
 }
 
 bool MessagesManager::can_add_message_tasks(MessageFullId message_full_id, int32 task_count) {

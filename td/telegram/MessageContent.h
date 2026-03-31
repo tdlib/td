@@ -193,7 +193,7 @@ bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *c
 
 bool get_message_content_poll_is_closed(const Td *td, const MessageContent *content);
 
-bool get_message_content_poll_has_open_answers(const Td *td, const MessageContent *content);
+bool get_message_content_poll_can_add_option(const Td *td, const MessageContent *content);
 
 bool get_message_content_poll_has_unread_votes(const Td *td, const MessageContent *content);
 

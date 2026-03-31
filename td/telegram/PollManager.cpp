@@ -845,10 +845,11 @@ bool PollManager::get_poll_is_anonymous(PollId poll_id) const {
   return poll->is_anonymous_;
 }
 
-bool PollManager::get_poll_has_open_answers(PollId poll_id) const {
+bool PollManager::get_poll_can_add_option(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
-  return poll->has_open_answers_;
+  return poll->has_open_answers_ && !poll->is_closed_ &&
+         static_cast<int64>(poll->options_.size()) < td_->option_manager_->get_option_integer("poll_answer_count_max");
 }
 
 bool PollManager::get_poll_has_unread_votes(PollId poll_id) const {

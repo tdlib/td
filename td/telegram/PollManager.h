@@ -71,7 +71,7 @@ class PollManager final : public Actor {
 
   bool get_poll_is_anonymous(PollId poll_id) const;
 
-  bool get_poll_has_open_answers(PollId poll_id) const;
+  bool get_poll_can_add_option(PollId poll_id) const;
 
   bool get_poll_has_unread_votes(PollId poll_id) const;
 
