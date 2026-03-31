@@ -759,9 +759,11 @@ class MessagePoll final : public MessageContent {
   PollId poll_id;
 
   FormattedText caption;
+  unique_ptr<MessageContent> attached_media;
 
   MessagePoll() = default;
-  MessagePoll(PollId poll_id, FormattedText &&caption) : poll_id(poll_id), caption(std::move(caption)) {
+  MessagePoll(PollId poll_id, FormattedText &&caption, unique_ptr<MessageContent> &&attached_media)
+      : poll_id(poll_id), caption(std::move(caption)), attached_media(std::move(attached_media)) {
   }
 
   MessageContentType get_type() const final {
@@ -2131,12 +2133,17 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
       auto has_caption = !m->caption.text.empty();
+      bool has_attached_media = m->attached_media != nullptr;
       BEGIN_STORE_FLAGS();
       STORE_FLAG(has_caption);
+      STORE_FLAG(has_attached_media);
       END_STORE_FLAGS();
       store(m->poll_id, storer);
       if (has_caption) {
         store(m->caption, storer);
+      }
+      if (has_attached_media) {
+        store(m->attached_media.get(), storer);
       }
       break;
     }
@@ -3422,14 +3429,19 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageContentType::Poll: {
       auto m = make_unique<MessagePoll>();
       bool has_caption = false;
+      bool has_attached_media = false;
       if (parser.version() >= static_cast<int32>(Version::AddPollCaption)) {
         BEGIN_PARSE_FLAGS();
         PARSE_FLAG(has_caption);
+        PARSE_FLAG(has_attached_media);
         END_PARSE_FLAGS();
       }
       parse(m->poll_id, parser);
       if (has_caption) {
         parse(m->caption, parser);
+      }
+      if (has_attached_media) {
+        parse(m->attached_media, parser);
       }
       is_bad = !m->poll_id.is_valid();
       content = std::move(m);
@@ -4945,7 +4957,7 @@ static Result<InputMessageContent> create_input_message_content(
                                          !input_poll->allows_revoting_, input_poll->shuffle_options_,
                                          input_poll->hide_results_until_closes_, is_quiz, std::move(correct_option_ids),
                                          std::move(explanation), open_period, close_date, is_closed),
-          std::move(caption));
+          std::move(caption), nullptr);
       break;
     }
     case td_api::inputMessageStory::ID: {
@@ -7766,6 +7778,8 @@ void compare_message_contents(Td *td, const MessageContent *old_content, const M
       if (lhs->poll_id != rhs->poll_id || lhs->caption != rhs->caption) {
         need_update = true;
       }
+      compare_message_contents(td, lhs->attached_media.get(), rhs->attached_media.get(), is_content_changed,
+                               need_update);
       break;
     }
     case MessageContentType::Dice: {
@@ -9287,7 +9301,17 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       if (!poll_id.is_valid()) {
         break;
       }
-      return make_unique<MessagePoll>(poll_id, std::move(message));
+      unique_ptr<MessageContent> attached_media;
+      if (media->attached_media_ != nullptr) {
+        attached_media =
+            get_message_content(td, FormattedText(), std::move(media->attached_media_), owner_dialog_id, message_date,
+                                is_content_read, via_bot_user_id, nullptr, nullptr, "messageMediaPoll");
+        if (!is_allowed_poll_content(attached_media->get_type())) {
+          LOG(ERROR) << "Receive " << attached_media->get_type() << " in a poll";
+          attached_media = nullptr;
+        }
+      }
+      return make_unique<MessagePoll>(poll_id, std::move(message), std::move(attached_media));
     }
     case telegram_api::messageMediaStory::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaStory>(media_ptr);
@@ -9529,12 +9553,16 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
     }
     case MessageContentType::Poll: {
       auto message_poll = static_cast<const MessagePoll *>(content);
+      auto poll_id = message_poll->poll_id;
       if (type == MessageContentDupType::Copy || type == MessageContentDupType::ServerCopy) {
-        return make_unique<MessagePoll>(td->poll_manager_->dup_poll(dialog_id, message_poll->poll_id),
-                                        FormattedText(message_poll->caption));
-      } else {
-        return make_unique<MessagePoll>(*message_poll);
+        poll_id = td->poll_manager_->dup_poll(dialog_id, poll_id);
       }
+      unique_ptr<MessageContent> attached_media;
+      if (message_poll->attached_media != nullptr) {
+        attached_media = dup_message_content(td, dialog_id, message_poll->attached_media.get(), type,
+                                             MessageCopyOptions(copy_options.send_copy, false));
+      }
+      return make_unique<MessagePoll>(poll_id, FormattedText(message_poll->caption), std::move(attached_media));
     }
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
@@ -10787,8 +10815,13 @@ td_api::object_ptr<td_api::MessageContent> get_message_content_object(
     }
     case MessageContentType::Poll: {
       const auto *m = static_cast<const MessagePoll *>(content);
+      td_api::object_ptr<td_api::MessageContent> media;
+      if (m->attached_media != nullptr) {
+        media = get_message_content_object(m->attached_media.get(), td, dialog_id, message_id, is_outgoing, is_forward,
+                                           sender_dialog_id, message_date, false, true, -1, false, true);
+      }
       return make_tl_object<td_api::messagePoll>(td->poll_manager_->get_poll_object(m->poll_id),
-                                                 get_text_object(m->caption));
+                                                 get_text_object(m->caption), std::move(media));
     }
     case MessageContentType::Dice: {
       const auto *m = static_cast<const MessageDice *>(content);

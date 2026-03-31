@@ -322,6 +322,21 @@ bool is_homogenous_media_group_content(MessageContentType content_type) {
   return content_type == MessageContentType::Audio || content_type == MessageContentType::Document;
 }
 
+bool is_allowed_poll_content(MessageContentType content_type) {
+  switch (content_type) {
+    case MessageContentType::Animation:
+    case MessageContentType::Audio:
+    case MessageContentType::Document:
+    case MessageContentType::Location:
+    case MessageContentType::Photo:
+    case MessageContentType::Venue:
+    case MessageContentType::Video:
+      return true;
+    default:
+      return false;
+  }
+}
+
 bool can_be_secret_message_content(MessageContentType content_type) {
   switch (content_type) {
     case MessageContentType::Animation:

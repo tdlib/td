@@ -118,6 +118,8 @@ bool is_allowed_media_group_content(MessageContentType content_type);
 
 bool is_homogenous_media_group_content(MessageContentType content_type);
 
+bool is_allowed_poll_content(MessageContentType content_type);
+
 bool can_be_secret_message_content(MessageContentType content_type);
 
 bool can_be_local_message_content(MessageContentType content_type);
