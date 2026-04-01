@@ -6953,6 +6953,13 @@ void add_message_content_poll_option(Td *td, const MessageContent *content, Mess
                                      std::move(option), std::move(promise));
 }
 
+void delete_message_content_poll_option(Td *td, const MessageContent *content, MessageFullId message_full_id,
+                                        const string &option_id, Promise<Unit> &&promise) {
+  CHECK(content->get_type() == MessageContentType::Poll);
+  td->poll_manager_->delete_poll_option(static_cast<const MessagePoll *>(content)->poll_id, message_full_id, option_id,
+                                        std::move(promise));
+}
+
 void set_message_content_poll_answer(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                      vector<int32> &&option_ids, Promise<Unit> &&promise) {
   CHECK(content->get_type() == MessageContentType::Poll);

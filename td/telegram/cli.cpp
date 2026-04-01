@@ -7218,6 +7218,12 @@ class CliClient final : public Actor {
       get_args(args, chat_id, message_id, text);
       send_request(td_api::make_object<td_api::addPollOption>(
           chat_id, message_id, td_api::make_object<td_api::inputPollOption>(as_formatted_text(text))));
+    } else if (op == "dpo") {
+      ChatId chat_id;
+      MessageId message_id;
+      string option_id;
+      get_args(args, chat_id, message_id, option_id);
+      send_request(td_api::make_object<td_api::deletePollOption>(chat_id, message_id, option_id));
     } else if (op == "spolla") {
       ChatId chat_id;
       MessageId message_id;

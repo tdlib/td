@@ -35975,11 +35975,17 @@ void MessagesManager::suffix_load_till_message_id(Dialog *d, MessageId message_i
 
 void MessagesManager::add_poll_option(MessageFullId message_full_id,
                                       td_api::object_ptr<td_api::inputPollOption> &&option, Promise<Unit> &&promise) {
-  auto m = get_message_force(message_full_id, "set_poll_answer");
+  auto m = get_message_force(message_full_id, "add_poll_option");
   if (!can_add_message_poll_option(message_full_id.get_dialog_id(), m)) {
     return promise.set_error(400, "Invalid message specified");
   }
   add_message_content_poll_option(td_, m->content.get(), message_full_id, std::move(option), std::move(promise));
+}
+
+void MessagesManager::delete_poll_option(MessageFullId message_full_id, const string &option_id,
+                                         Promise<Unit> &&promise) {
+  auto m = get_message_force(message_full_id, "delete_poll_option");
+  delete_message_content_poll_option(td_, m->content.get(), message_full_id, option_id, std::move(promise));
 }
 
 void MessagesManager::set_poll_answer(MessageFullId message_full_id, vector<int32> &&option_ids,

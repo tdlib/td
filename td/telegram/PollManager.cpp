@@ -171,11 +171,50 @@ class AddPollAnswerQuery final : public Td::ResultHandler {
       return on_error(result_ptr.move_as_error());
     }
 
-    promise_.set_value(Unit());
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for AddPollAnswerQuery: " << to_string(result);
+    td_->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
   }
 
   void on_error(Status status) final {
     td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "AddPollAnswerQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class DeletePollAnswerQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit DeletePollAnswerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(MessageFullId message_full_id, const string &option_id) {
+    dialog_id_ = message_full_id.get_dialog_id();
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(Status::Error(400, "Can't access the chat"));
+    }
+    auto message_id = message_full_id.get_message_id().get_server_message_id().get();
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_deletePollAnswer(std::move(input_peer), message_id, BufferSlice(option_id)),
+        {{dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_deletePollAnswer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for DeletePollAnswerQuery: " << to_string(result);
+    td_->updates_manager_->on_get_updates(std::move(result), std::move(promise_));
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "DeletePollAnswerQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -1031,6 +1070,14 @@ void PollManager::add_poll_option(PollId poll_id, MessageFullId message_full_id,
     return promise.set_error(400, PSLICE() << "Poll options length must not exceed " << MAX_POLL_OPTION_LENGTH);
   }
   td_->create_handler<AddPollAnswerQuery>(std::move(promise))->send(message_full_id, poll_option);
+}
+
+void PollManager::delete_poll_option(PollId poll_id, MessageFullId message_full_id, const string &option_id,
+                                     Promise<Unit> &&promise) {
+  if (!message_full_id.get_message_id().is_server()) {
+    return promise.set_error(400, "Invalid message specified");
+  }
+  td_->create_handler<DeletePollAnswerQuery>(std::move(promise))->send(message_full_id, option_id);
 }
 
 void PollManager::set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<int32> &&option_ids,

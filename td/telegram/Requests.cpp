@@ -7783,6 +7783,13 @@ void Requests::on_request(uint64 id, td_api::addPollOption &request) {
                                           std::move(request.option_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, const td_api::deletePollOption &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->messages_manager_->delete_poll_option({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                             request.option_id_, std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setPollAnswer &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
