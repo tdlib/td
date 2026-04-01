@@ -63,6 +63,7 @@
 #include "td/telegram/MessageSearchFilter.h"
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/MinChannel.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/OrderInfo.h"
@@ -1755,7 +1756,7 @@ class MessagePollAppendAnswer final : public MessageContent {
   string data;
 
   MessagePollAppendAnswer() = default;
-  explicit MessagePollAppendAnswer(MessageId poll_message_id, FormattedText &&text, string &&data)
+  MessagePollAppendAnswer(MessageId poll_message_id, FormattedText &&text, string &&data)
       : poll_message_id(poll_message_id), text(std::move(text)), data(std::move(data)) {
   }
 
@@ -1771,7 +1772,7 @@ class MessagePollDeleteAnswer final : public MessageContent {
   string data;
 
   MessagePollDeleteAnswer() = default;
-  explicit MessagePollDeleteAnswer(MessageId poll_message_id, FormattedText &&text, string &&data)
+  MessagePollDeleteAnswer(MessageId poll_message_id, FormattedText &&text, string &&data)
       : poll_message_id(poll_message_id), text(std::move(text)), data(std::move(data)) {
   }
 

@@ -12,6 +12,8 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UserManager.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 RequestedDialogType::RequestedDialogType(td_api::object_ptr<td_api::keyboardButtonTypeRequestUsers> &&request_users) {

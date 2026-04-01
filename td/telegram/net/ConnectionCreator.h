@@ -15,7 +15,6 @@
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/ConnectionManager.h"
-#include "td/mtproto/Handshake.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/TransportType.h"
 

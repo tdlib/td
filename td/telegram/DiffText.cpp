@@ -33,7 +33,7 @@ td_api::object_ptr<td_api::diffEntity> DiffText::DiffEntity::get_diff_entity_obj
 
 bool DiffText::check_entities() const {
   // entities must not intersect and must not begin and end in the middle of characters
-  int32 text_len = narrow_cast<int32>(utf8_utf16_length(text_));
+  auto text_len = narrow_cast<int32>(utf8_utf16_length(text_));
   int32 cur_pos = 0;
   for (auto &entity : entities_) {
     if (entity.offset_ < cur_pos) {

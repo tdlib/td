@@ -11,7 +11,6 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/ServerMessageId.h"
 #include "td/telegram/Td.h"
-#include "td/telegram/UserManager.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/logging.h"

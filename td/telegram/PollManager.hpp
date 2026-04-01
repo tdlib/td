@@ -151,7 +151,7 @@ void PollManager::Poll::parse(ParserT &parser) {
     }
     auto status = check_quiz_correct_option_ids(correct_option_ids_, options_.size(), true);
     if (status.is_error()) {
-      parser.set_error(status.error().message().str());
+      parser.set_error(status.message().str());
       return;
     }
   }
@@ -318,7 +318,7 @@ PollId PollManager::parse_poll(ParserT &parser) {
       }
       auto status = check_quiz_correct_option_ids(correct_option_ids, option_texts.size(), false);
       if (status.is_error()) {
-        parser.set_error(status.error().message().str());
+        parser.set_error(status.message().str());
         return PollId();
       }
     }

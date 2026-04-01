@@ -12,7 +12,6 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Td.h"
 
-#include "td/utils/algorithm.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/SliceBuilder.h"

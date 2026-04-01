@@ -8,6 +8,7 @@
 
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/MessageContent.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSender.h"
 
 #include "td/utils/algorithm.h"

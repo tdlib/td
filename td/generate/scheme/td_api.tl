@@ -424,7 +424,7 @@ pollTypeRegular = PollType;
 //@description A poll in quiz mode, which has predefined correct answers
 //@correct_option_ids Increasing list of 0-based identifiers of the correct answer options; empty for a yet unanswered poll
 //@explanation Text that is shown when the user chooses an incorrect answer or taps on the lamp icon; empty for a yet unanswered poll
-//@explanation_media Media that is shown when the user chooses an incorrect answer or taps on the lamp icon; may be null if none or the poll is unanswered yet
+//@explanation_media Media that is shown when the user chooses an incorrect answer or taps on the lamp icon; may be null if none or the poll is unanswered yet.
 //-Currently, can be only of the types messageAnimation, messageAudio, messageDocument, messageLocation, messagePhoto, messageVenue, or messageVideo without caption
 pollTypeQuiz correct_option_ids:vector<int32> explanation:formattedText explanation_media:MessageContent = PollType;
 
@@ -10470,7 +10470,7 @@ updatePoll poll:poll = Update;
 updatePollAnswer poll_id:int64 voter_id:MessageSender option_ids:vector<string> option_positions:vector<int32> = Update;
 
 //@description A bot was created to be managed by the current bot; for bots only
-//@user_id Identifier of the user that created the bot
+//@user_id Identifier of the user who created the bot
 //@bot_user_id Identifier of the created managed bot
 updateNewManagedBot user_id:int53 bot_user_id:int53 = Update;
 
@@ -12301,7 +12301,7 @@ clickAnimatedEmojiMessage chat_id:int53 message_id:int53 = Sticker;
 
 //@description Informs TDLib that an audio was listened by the user
 //@audio_file_id Identifier of the file with an audio
-//@duration Duration of the listening to the audio
+//@duration Duration of the listening to the audio, in seconds
 listenToAudio audio_file_id:int32 duration:int32 = Ok;
 
 //@description Informs TDLib about details of a message view by the user from a chat, a message thread or a forum topic history. The method must be called if

@@ -12,7 +12,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/port/sleep.h"
 #include "td/utils/Slice.h"
-#include "td/utils/Span.h"
 #include "td/utils/Status.h"
 
 #include <atomic>

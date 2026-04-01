@@ -11,14 +11,15 @@
 #include "td/telegram/DialogManager.h"
 #include "td/telegram/DiffText.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/Td.h"
-#include "td/telegram/telegram_api.h"
-
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
 namespace td {

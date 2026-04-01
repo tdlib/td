@@ -17,7 +17,6 @@
 #include "td/telegram/DialogParticipantManager.h"
 #include "td/telegram/FactCheck.h"
 #include "td/telegram/files/FileManager.h"
-#include "td/telegram/files/FileType.h"
 #include "td/telegram/FolderId.h"
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
@@ -180,10 +179,10 @@ class SendBotRequestedPeerQuery final : public Td::ResultHandler {
     telegram_api::object_ptr<telegram_api::InputPeer> input_peer;
     if (bot_user_id == UserId() && request_id.empty()) {
       input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Write);
-      flags = telegram_api::messages_sendBotRequestedPeer::MSG_ID_MASK;
+      flags |= telegram_api::messages_sendBotRequestedPeer::MSG_ID_MASK;
     } else {
       input_peer = td_->dialog_manager_->get_input_peer(DialogId(bot_user_id), AccessRights::Write);
-      flags = telegram_api::messages_sendBotRequestedPeer::WEBAPP_REQ_ID_MASK;
+      flags |= telegram_api::messages_sendBotRequestedPeer::WEBAPP_REQ_ID_MASK;
     }
     if (input_peer == nullptr) {
       return on_error(Status::Error(400, "Can't access the chat"));

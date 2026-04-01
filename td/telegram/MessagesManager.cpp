@@ -82,6 +82,7 @@
 #include "td/telegram/RepliedMessageInfo.hpp"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
+#include "td/telegram/RequestedDialogType.h"
 #include "td/telegram/SavedMessagesManager.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SponsoredMessageManager.h"
@@ -112,6 +113,7 @@
 #include "td/actor/SleepActor.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/base64.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -120,6 +122,7 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
+#include "td/utils/utf8.h"
 
 #include <algorithm>
 #include <limits>

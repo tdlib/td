@@ -24,7 +24,6 @@
 #include "td/telegram/MessageCopyOptions.h"
 #include "td/telegram/MessageInputReplyTo.h"
 #include "td/telegram/MessageQueryManager.h"
-#include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessageReplyHeader.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/MessageTopic.h"

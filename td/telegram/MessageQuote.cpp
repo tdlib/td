@@ -14,6 +14,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/algorithm.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/utf8.h"

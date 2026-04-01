@@ -17,7 +17,6 @@
 #include "td/telegram/UserManager.h"
 #include "td/telegram/Version.h"
 
-#include "td/utils/algorithm.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
