@@ -14075,7 +14075,7 @@ checkBotUsername username:string = CheckChatUsernameResult;
 //@via_link Pass true if the bot is created from an internalLinkTypeRequestManagedBot link
 createBot manager_bot_user_id:int53 name:string username:string via_link:Bool = User;
 
-//@description Returns token of a created bot
+//@description Returns token of a created bot; for bots only
 //@bot_user_id Identifier of the created bot
 //@revoke Pass true to revoke the current token and create a new one
 getBotToken bot_user_id:int53 revoke:Bool = Text;
