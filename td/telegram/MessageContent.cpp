@@ -11490,7 +11490,7 @@ int32 get_message_content_duration(const MessageContent *content, const Td *td) 
       return static_cast<const MessageInvoice *>(content)->input_invoice.get_duration(td);
     case MessageContentType::PaidMedia: {
       int32 result = -1;
-      for (auto &media : static_cast<const MessagePaidMedia *>(content)->media) {
+      for (const auto &media : static_cast<const MessagePaidMedia *>(content)->media) {
         result = max(result, media.get_duration(td));
       }
       return result;
@@ -11685,7 +11685,6 @@ vector<FileId> get_message_content_cover_any_file_ids(const MessageContent *cont
     case MessageContentType::PaidMedia:
       return transform(static_cast<const MessagePaidMedia *>(content)->media,
                        [](const MessageExtendedMedia &media) { return media.get_cover_any_file_id(); });
-      break;
     default:
       break;
   }
@@ -11884,6 +11883,14 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
       vector<FileId> result;
       for (const auto &media : static_cast<const MessagePaidMedia *>(content)->media) {
         media.append_file_ids(td, result);
+      }
+      return result;
+    }
+    case MessageContentType::Poll: {
+      auto poll = static_cast<const MessagePoll *>(content);
+      auto result = td->poll_manager_->get_poll_file_ids(poll->poll_id);
+      if (poll->attached_media != nullptr) {
+        append(result, get_message_content_file_ids(poll->attached_media.get(), td));
       }
       return result;
     }

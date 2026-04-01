@@ -54,6 +54,12 @@ PollOption::PollOption(Td *td, telegram_api::object_ptr<telegram_api::PollAnswer
   }
 }
 
+void PollOption::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
+  if (media_ != nullptr) {
+    append(file_ids, get_message_content_file_ids(media_.get(), td));
+  }
+}
+
 td_api::object_ptr<td_api::pollOption> PollOption::get_poll_option_object(Td *td) const {
   auto author = added_by_dialog_id_ == DialogId()
                     ? nullptr

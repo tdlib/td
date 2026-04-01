@@ -53,6 +53,8 @@ struct PollOption {
     return added_date_;
   }
 
+  void append_file_ids(const Td *td, vector<FileId> &file_ids) const;
+
   td_api::object_ptr<td_api::pollOption> get_poll_option_object(Td *td) const;
 
   telegram_api::object_ptr<telegram_api::PollAnswer> get_input_poll_answer() const;

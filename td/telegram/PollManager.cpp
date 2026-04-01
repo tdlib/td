@@ -965,6 +965,20 @@ string PollManager::get_poll_search_text(PollId poll_id) const {
   return result;
 }
 
+vector<FileId> PollManager::get_poll_file_ids(PollId poll_id) const {
+  const auto *poll = get_poll(poll_id);
+  CHECK(poll != nullptr);
+
+  vector<FileId> result;
+  if (poll->explanation_media_ != nullptr) {
+    result = get_message_content_file_ids(poll->explanation_media_.get(), td_);
+  }
+  for (const auto &poll_option : poll->options_) {
+    poll_option.append_file_ids(td_, result);
+  }
+  return result;
+}
+
 void PollManager::set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<int32> &&option_ids,
                                   Promise<Unit> &&promise) {
   td::unique(option_ids);

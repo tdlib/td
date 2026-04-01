@@ -86,6 +86,8 @@ class PollManager final : public Actor {
 
   string get_poll_search_text(PollId poll_id) const;
 
+  vector<FileId> get_poll_file_ids(PollId poll_id) const;
+
   void set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<int32> &&option_ids,
                        Promise<Unit> &&promise);
 
