@@ -2287,6 +2287,9 @@ class CliClient final : public Actor {
     if (filter == "pi" || filter == "pinned") {
       return td_api::make_object<td_api::searchMessagesFilterPinned>();
     }
+    if (filter == "poll") {
+      return td_api::make_object<td_api::searchMessagesFilterPoll>();
+    }
     if (!filter.empty()) {
       LOG(ERROR) << "Unsupported message filter " << filter;
     }
