@@ -7211,6 +7211,13 @@ class CliClient final : public Actor {
       get_args(args, chat_id, member_id, banned_until_date, revoke_messages);
       send_request(td_api::make_object<td_api::banChatMember>(chat_id, as_message_sender(member_id), banned_until_date,
                                                               revoke_messages));
+    } else if (op == "apo") {
+      ChatId chat_id;
+      MessageId message_id;
+      string text;
+      get_args(args, chat_id, message_id, text);
+      send_request(td_api::make_object<td_api::addPollOption>(
+          chat_id, message_id, td_api::make_object<td_api::inputPollOption>(as_formatted_text(text))));
     } else if (op == "spolla") {
       ChatId chat_id;
       MessageId message_id;

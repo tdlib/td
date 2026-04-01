@@ -144,6 +144,42 @@ class GetPollVotersQuery final : public Td::ResultHandler {
   }
 };
 
+class AddPollAnswerQuery final : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit AddPollAnswerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(MessageFullId message_full_id, const FormattedText &text) {
+    dialog_id_ = message_full_id.get_dialog_id();
+    auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    auto message_id = message_full_id.get_message_id().get_server_message_id().get();
+    send_query(G()->net_query_creator().create(
+        telegram_api::messages_addPollAnswer(
+            std::move(input_peer), message_id,
+            telegram_api::make_object<telegram_api::inputPollAnswer>(
+                0, get_input_text_with_entities(nullptr, text, "AddPollAnswerQuery"), nullptr)),
+        {{dialog_id_}}));
+  }
+
+  void on_result(BufferSlice packet) final {
+    auto result_ptr = fetch_result<telegram_api::messages_addPollAnswer>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(Status status) final {
+    td_->dialog_manager_->on_get_dialog_error(dialog_id_, status, "AddPollAnswerQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SendVoteQuery final : public Td::ResultHandler {
   Promise<tl_object_ptr<telegram_api::Updates>> promise_;
   DialogId dialog_id_;
@@ -877,6 +913,9 @@ bool PollManager::get_poll_is_anonymous(PollId poll_id) const {
 }
 
 bool PollManager::get_poll_can_add_option(PollId poll_id) const {
+  if (is_local_poll_id(poll_id)) {
+    return false;
+  }
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
   return poll->has_open_answers_ && !poll->is_closed_ &&
@@ -977,6 +1016,21 @@ vector<FileId> PollManager::get_poll_file_ids(PollId poll_id) const {
     poll_option.append_file_ids(td_, result);
   }
   return result;
+}
+
+void PollManager::add_poll_option(PollId poll_id, MessageFullId message_full_id,
+                                  td_api::object_ptr<td_api::inputPollOption> &&option, Promise<Unit> &&promise) {
+  if (option == nullptr) {
+    return promise.set_error(400, "Poll option must be non-empty");
+  }
+  TRY_RESULT_PROMISE(promise, poll_option,
+                     get_formatted_text(td_, message_full_id.get_dialog_id(), std::move(option->text_),
+                                        td_->auth_manager_->is_bot(), false, true, false));
+  constexpr size_t MAX_POLL_OPTION_LENGTH = 100;  // server-side limit
+  if (utf8_length(poll_option.text) > MAX_POLL_OPTION_LENGTH) {
+    return promise.set_error(400, PSLICE() << "Poll options length must not exceed " << MAX_POLL_OPTION_LENGTH);
+  }
+  td_->create_handler<AddPollAnswerQuery>(std::move(promise))->send(message_full_id, poll_option);
 }
 
 void PollManager::set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<int32> &&option_ids,

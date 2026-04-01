@@ -7776,6 +7776,13 @@ void Requests::on_request(uint64 id, td_api::setOption &request) {
   td_->option_manager_->set_option(request.name_, std::move(request.value_), std::move(promise));
 }
 
+void Requests::on_request(uint64 id, td_api::addPollOption &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  td_->messages_manager_->add_poll_option({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                          std::move(request.option_), std::move(promise));
+}
+
 void Requests::on_request(uint64 id, td_api::setPollAnswer &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

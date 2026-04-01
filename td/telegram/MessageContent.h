@@ -219,6 +219,9 @@ void remove_message_content_web_page(MessageContent *content);
 
 bool can_message_content_have_media_timestamp(const MessageContent *content);
 
+void add_message_content_poll_option(Td *td, const MessageContent *content, MessageFullId message_full_id,
+                                     td_api::object_ptr<td_api::inputPollOption> &&option, Promise<Unit> &&promise);
+
 void set_message_content_poll_answer(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                      vector<int32> &&option_ids, Promise<Unit> &&promise);
 

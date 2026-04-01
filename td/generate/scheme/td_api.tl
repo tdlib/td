@@ -12013,6 +12013,12 @@ getJsonString json_value:JsonValue = Text;
 getThemeParametersJsonString theme:themeParameters = Text;
 
 
+//@description Adds an option to a poll
+//@chat_id Identifier of the chat to which the poll belongs
+//@message_id Identifier of the message containing the poll. Use messageProperties.can_add_poll_option to check whether an option can be added
+//@option The new option
+addPollOption chat_id:int53 message_id:int53 option:inputPollOption = Ok;
+
 //@description Changes the user answer to a poll
 //@chat_id Identifier of the chat to which the poll belongs
 //@message_id Identifier of the message containing the poll
