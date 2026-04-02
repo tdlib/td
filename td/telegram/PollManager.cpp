@@ -773,7 +773,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     }
   }
   vector<int32> option_order;
-  if (poll->shuffle_answers_ && !poll->is_creator_) {
+  if (poll->shuffle_answers_ && !poll->is_creator_ && !td_->auth_manager_->is_bot()) {
     auto my_user_id = td_->user_manager_->get_my_id().get();
     vector<std::pair<uint32, int32>> sort_pairs;
     for (int32 i = 0; i < static_cast<int32>(poll_options.size()); i++) {
