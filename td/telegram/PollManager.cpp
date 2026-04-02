@@ -2091,7 +2091,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
                    << source;
         poll_result->voters_ = 0;
       }
-      if (option.is_chosen_ && poll_result->voters_ == 0) {
+      if (option.is_chosen_ && poll_result->voters_ == 0 && !poll->hide_results_until_close_) {
         LOG(ERROR) << "Receive 0 voters for the chosen option " << option_index << " in " << poll_id << " from "
                    << source;
         poll_result->voters_ = 1;
