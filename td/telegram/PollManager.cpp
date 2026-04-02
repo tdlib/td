@@ -2112,7 +2112,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
         option.voter_count_ = poll_result->voters_;
         is_changed = true;
       }
-      if (!(is_min && poll->is_creator_ && poll->hide_results_until_close_)) {
+      if (!(is_min && poll->is_creator_ && poll->hide_results_until_close_) && !is_bot) {
         vector<DialogId> recent_option_voter_dialog_ids;
         for (const auto &recent_voter : poll_result->recent_voters_) {
           DialogId dialog_id(recent_voter);
