@@ -1373,7 +1373,7 @@ td_api::object_ptr<td_api::pollVoters> PollManager::get_poll_voters_object(
 
 bool PollManager::can_get_poll_voters(PollId poll_id, const Poll *poll) const {
   CHECK(poll != nullptr);
-  if (is_local_poll_id(poll_id)) {
+  if (td_->auth_manager_->is_bot() || is_local_poll_id(poll_id)) {
     return false;
   }
   bool is_voted = false;
