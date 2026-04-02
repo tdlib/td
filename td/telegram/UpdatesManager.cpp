@@ -3200,7 +3200,7 @@ void UpdatesManager::process_qts_update(tl_object_ptr<telegram_api::Update> &&up
         auto update = move_tl_object_as<telegram_api::updateManagedBot>(update_ptr);
         send_closure(
             G()->td(), &Td::send_update,
-            td_api::make_object<td_api::updateNewManagedBot>(
+            td_api::make_object<td_api::updateManagedBot>(
                 td_->user_manager_->get_user_id_object(UserId(update->user_id_), "updateManagedBotCreated user"),
                 td_->user_manager_->get_user_id_object(UserId(update->bot_id_), "updateManagedBotCreated bot")));
         break;
