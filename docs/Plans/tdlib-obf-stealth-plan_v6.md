@@ -1889,9 +1889,17 @@ void StealthTransportDecorator::pre_flush_write(double now) {
     });
 
     size_t written = 0;
-    for (auto &item : batch.items()) {
-      written += item.message.size();
-      inner_->write(std::move(item.message), item.quick_ack);
+    if (batch.can_coalesce()) {
+      auto merged = batch.take_coalesced_message();
+      written = merged.size();
+      inner_->write(std::move(merged), /*quick_ack=*/false);
+    } else {
+      // quick_ack or incompatible items must be flushed individually
+      // to preserve packet-level semantics.
+      for (auto &item : batch.items()) {
+        written += item.message.size();
+        inner_->write(std::move(item.message), item.quick_ack);
+      }
     }
     drs_.notify_bytes_written(written);
     return true;
@@ -1904,6 +1912,7 @@ void StealthTransportDecorator::pre_flush_write(double now) {
 ```
 
 Важно: `BatchBuilder` не должен нарушать порядок пакетов и quick-ack semantics.
+Коалесцирование допустимо только для безопасного подмножества (`quick_ack=false`, совместимые дедлайны/hint), иначе запись должна остаться packet-by-packet.
 
 Минимальный контракт `BatchBuilder` (чтобы не было несовместимых ad-hoc реализаций):
 
@@ -1914,6 +1923,8 @@ class BatchBuilder {
   void push(StealthTransportDecorator::PendingWrite &&first);
   bool can_append(const StealthTransportDecorator::PendingWrite &pw) const;
   void append(StealthTransportDecorator::PendingWrite &&pw);
+  bool can_coalesce() const;
+  BufferWriter take_coalesced_message();
   vector<StealthTransportDecorator::PendingWrite> &items();
 
  private:
@@ -1962,7 +1973,14 @@ TEST(DecoratorDrs, CoalescingMakesCapObservableOnWire) {
   auto [dec, inner] = make_test_decorator_with_drs();
   enqueue_small_burst(*dec, /*count=*/8, /*payload=*/300);
   dec->pre_flush_write(mock_now());
-  EXPECT_TRUE(inner->saw_multi_message_flush_batch());
+  EXPECT_TRUE(inner->saw_coalesced_write_call());
+}
+
+TEST(DecoratorDrs, EveryProducedChunkHasTlsAppDataRecordHeader) {
+  auto [dec, inner] = make_test_decorator_with_drs();
+  enqueue_large_burst(*dec, /*payload=*/20000);
+  dec->pre_flush_write(mock_now());
+  EXPECT_TRUE(inner->all_tls_chunks_prefixed_with_170303());
 }
 
 TEST(DecoratorDrs, FirstTlsWriteOverheadCompensationApplied) {
