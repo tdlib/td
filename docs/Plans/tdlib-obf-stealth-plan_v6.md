@@ -20,6 +20,8 @@
 > 6. **S9/S10:** 3DES присутствует только в Darwin-профиле.
 > 7. Обновлены smoke-tests и чеклист: разделение Global/RU режимов для ECH, profile-registry для PQ codepoint, проверка ECH wire-структуры.
 
+Примечание по внешним артефактам: в текущем workspace отсутствует файл `0001-TLS-test.patch.txt`, поэтому ссылки на него трактуются как внешняя справка (out-of-repo), а не как единственный source of truth для implementation-пунктов.
+
 ### Аудит внешнего ревью (4 спорных тезиса)
 
 Ниже — верификация 4 тезисов из внешнего security-ревью по реальному коду репозитория и материалам в `docs/Samples`.
@@ -42,12 +44,12 @@
 3. Граф зависимостей PR
 4. PR-A: Test Infrastructure (TDD foundation)
 5. PR-1: TLS ClientHello — Context + Per-Connection Entropy
-6. PR-2: Browser Profile Registry (Chrome 131/120, Firefox 128, Safari iOS 17)
+6. PR-2: Browser Profile Registry (Chrome 131/120, Firefox 148, Safari 26.3 snapshot)
 7. PR-3: IStreamTransport extensions + Activation Gate
 8. PR-4: StealthTransportDecorator (скелет + activation)
 9. PR-5: IPT — Inter-Packet Timing (Log-normal + Markov + Keepalive bypass)
-10. PR-6: DRS — Dynamic Record Sizing с jitter
-11. PR-7: TrafficClassifier + SessionConnection hints
+10. PR-6: DRS — Capture-Driven Dynamic Record Sizing
+11. PR-7: TrafficClassifier + Correct Wiring (Session/Raw/Handshake)
 12. PR-8: Runtime Params Loader (hot-reload)
 13. PR-9: Integration Smoke Tests
 14. Таблица изменяемых файлов
@@ -88,9 +90,9 @@ TCP-слой контролируется ОС, не приложением. А�
 | S11 | 🟠 HIGH | Darwin | `#if TD_DARWIN` использует специальный TLS-профиль эпохи 1.2 — тривиально детектируем | Исправить |
 | S12 | 🟠 HIGH | IPT | Равномерное распределение межпакетных интервалов (нет jitter) | Исправить |
 | S13 | 🟡 MEDIUM | DRS | Фиксированные record size (1380/4096/16384) без ±jitter — механистично | Исправить |
-| S14 | 🟡 MEDIUM | Keepalive | MTProto ping задерживается IPT-шейпером → disconnect при 28с таймауте | Исправить |
+| S14 | 🟡 MEDIUM | Keepalive | Keepalive/PING не должен проходить через искусственные IPT-задержки: для online main-сессии `ping_disconnect_delay() = rtt()*2.5` (обычно десятки-сотни ms), для offline/non-main — `135 + random_delay_` секунд. | Исправить |
 | S15 | 🟡 MEDIUM | Session | Hint для первых auth-пакетов не выставляется → лишние задержки при handshake | Исправить |
-| S16 | 🟡 MEDIUM | ClientHello | Отсутствует фрагментация ClientHello по нескольким TCP-сегментам. DPI часто инспектирует только первый TCP payload; нужна контролируемая фрагментация на клиенте. | Backlog |
+| S16 | 🟡 MEDIUM | ClientHello | Отсутствует фрагментация ClientHello по нескольким TCP-сегментам. Это может усложнить детект только для слабых middlebox без TCP reassembly; против ТСПУ/NGFW с reassembly эффективность низкая. | Backlog |
 | S17 | 🟡 MEDIUM | TLS Response | Server response pattern (`\x16\x03\x03` + CCS + Application Data) фиксирован и уникален для MTProto-proxy — потенциально детектируем на стороне сервера. | Backlog |
 | S18 | 🟡 MEDIUM | Connection | Один TCP connection per DC — необычно для реального HTTPS, где браузер открывает 6+ параллельных соединений. Поведенческий фингерпринт на уровне потока. | Backlog |
 | S19 | 🟡 MEDIUM | SNI | Один и тот же SNI domain для всех соединений данного пользователя. Реальный браузер обращается к десяткам доменов. | Backlog |
@@ -134,7 +136,7 @@ TCP-слой контролируется ОС, не приложением. А�
 | **Decorator** | `StealthTransportDecorator` реализует `IStreamTransport`, держит inner. Вся логика маскировки здесь. |
 | **Factory** | `create_transport()` — единственная точка принятия решения о враппинге. |
 | **Pre-sampled Context** | Все случайные длины (padding, ECH, record jitter) вычисляются **один раз** в `TlsHelloContext` при его создании. CalcLength и Store только читают. |
-| **Consume-once Hint** | `TrafficHint` потребляется один раз в `write()`, авто-сбрасывается в `Interactive`. Это защита от hint-drift; data race между акторами здесь не ожидается из-за actor-confinement. |
+| **Consume-once Hint** | `TrafficHint` потребляется один раз в `write()`, авто-сбрасывается в `Unknown`; до PR-7 действует нормализация `Unknown -> Interactive`. Это защита от hint-drift; data race между акторами здесь не ожидается из-за actor-confinement. |
 | **Bounded Ring + Hard Backpressure** | `write()` никогда не пишет в `inner_` в обход IPT/DRS. При достижении high watermark `can_write()` возвращает `false`, отправка откладывается до drain ring. |
 | **Hot Path: Zero Alloc** | После init нет аллокаций на пакет. Нет `dynamic_cast`. Все через virtual. |
 | **TDD: Red First** | Каждый PR начинается с красных тестов, которые падают на текущем коде по правильной причине. |
@@ -151,8 +153,9 @@ SessionConnection::flush_packet()
     ▼
 StealthTransportDecorator::write(message, quick_ack)
     │
-    ├─ [1] Consume hint (auto-reset to Interactive)
-    ├─ [2] Size-based fallback classification
+    ├─ [1] Consume hint (auto-reset to Unknown)
+    ├─ [2] Unknown fallback (PR-5): Unknown -> Interactive
+    │       (capture-driven bytes->hint classifier появляется в PR-7)
     ├─ [3] IptController::next_delay_us(has_pending, hint)
     │       ├─ Keepalive / BulkData / AuthHandshake → delay = 0
     │       └─ Interactive → log-normal sample + Markov transition
@@ -161,8 +164,8 @@ StealthTransportDecorator::write(message, quick_ack)
     │
 StealthTransportDecorator::pre_flush_write(now)
     │
-    ├─ [5] Detect idle gap → DrsEngine::notify_idle() if gap > 500ms
-    ├─ [6] DrsEngine::next_record_size(hint) + ±jitter
+    ├─ [5] Detect idle gap → DrsEngine::notify_idle() if gap > sampled threshold
+    ├─ [6] DrsEngine::next_payload_cap(hint) from profile/capture bins
     ├─ [7] inner_->set_max_tls_record_size(jittered_size)
     ├─ [8] ring_.drain_ready(now, write_to_inner)
     └─ [9] if pending < low watermark: снять backpressure
@@ -176,146 +179,166 @@ RawConnection::flush_write()
 # 3. Граф зависимостей PR
 
 ```
-PR-A  (Test Infrastructure: MockRng, MockClock, RecordingTransport)
+PR-A  (Test Foundation: wire/parser tests + narrow seams)
   │
   ├─► PR-1  (TlsHelloContext pre-sampling + ECH per-connection + GREASE fix)
-  │     └─► PR-2  (Browser Profile Registry: Chrome131/120, Firefox128, Safari17)
+  │     └─► PR-2  (Browser Profile Registry: Chrome131/120, Firefox148, Safari26_3)
   │           └─► PR-3  (IStreamTransport extensions + Activation Gate + StealthConfig)
   │                 └─► PR-4  (StealthTransportDecorator: skeleton + consume-once hint)
   │                       ├─► PR-5  (IPT: log-normal + Markov + Keepalive bypass)
-  │                       ├─► PR-6  (DRS: phases + jitter + idle-reset)
-  │                       └─► PR-7  (TrafficClassifier + SessionConnection wiring)
+  │                       ├─► PR-6  (DRS: capture-driven bins + coalescing + idle-reset)
+  │                       └─► PR-7  (TrafficClassifier + Correct Wiring)
   │                             └─► PR-8  (Runtime Params Loader, JSON hot-reload)
   │
   └─► PR-9  (Integration Smoke Tests: Python scripts vs local telemt)
 ```
 
 **Параллелизация:**
-- PR-A и PR-1 независимы → стартуют одновременно (красные тесты для PR-1 пишутся в PR-A)
-- PR-5, PR-6, PR-7 независимы между собой после PR-4
-- PR-8 независим от PR-5/6/7, зависит только от PR-3
+- PR-A и PR-1 можно начинать параллельно только в части discovery/красных тестов; merge-order остаётся `PR-A -> PR-1`, потому что PR-A вводит минимальные test seams для deterministic/capture-driven проверок
+- PR-5 и PR-6 можно разрабатывать параллельно после PR-4; PR-7 можно готовить параллельно, но merge-order для bypass-логики должен быть `PR-5 -> PR-7`, потому что до PR-7 действует контракт `Unknown -> Interactive`
+- PR-8 независим от PR-5/6/7, зависит от PR-3 и PR-2 (типы профилей/ECH mode)
 
 ---
 
 # 4. PR-A: Test Infrastructure
 
-**Цель:** создать тестовые примитивы без изменения production кода.  
-**Gate:** `cmake --build . --target tdmtproto_tests && ctest` — всё зелёное.
+**Цель:** построить детерминированный и capture-driven test foundation для ClientHello/profile work, не вводя фиктивных интерфейсов раньше времени.  
+**Реальные поправки по итогам аудита кода:**
 
-## 4.1 Файловая структура
+1. В репозитории **нет** target `tdmtproto_tests`. Сейчас mtproto-код собирается в `tdmtproto`, а интеграция тестов идёт через `test/CMakeLists.txt` и target `run_all_tests`.
+2. В репозитории **нет** `td/mtproto/CMakeLists.txt`. Новые production sources нужно подключать в корневом `CMakeLists.txt`, а тестовые файлы — в `test/CMakeLists.txt`.
+3. Текущий `IStreamTransport` не содержит `pre_flush_write`, `get_shaping_wakeup`, `set_traffic_hint`, `set_max_tls_record_size`. Следовательно, `RecordingTransport` с такими override'ами в PR-A — ложная предпосылка. Этот fake переносится в PR-3, когда интерфейс реально расширен.
+4. `TlsHelloContext` и генерация synthetic ClientHello сейчас скрыты внутри `td/mtproto/TlsInit.cpp`. Значит формулировка «без изменения production кода» нереалистична. PR-A должен разрешать **узкий, behaviour-preserving seam**: вынести builder в внутренний helper, не меняя wire-format текущего production пути.
+
+**Gate:** `cmake --build . --target run_all_tests && ctest --output-on-failure -R run_all_tests`  
+**Отдельный smoke-stage:** offline Python/pcap-проверки из раздела 13. Это не merge-gate для PR-A, а дополнительный дифференциальный контроль против `docs/Samples`.
+
+## 4.1 Что именно входит в PR-A
+
+PR-A не должен пытаться тестировать будущий shaper/decorator раньше появления транспортных seam'ов. Его задача уже на старте закрыть две вещи:
+
+- **wire-структурную корректность** synthetic ClientHello/ECH/extension blocks;
+- **differential-проверку против референсов**: bundled uTLS, `docs/Samples/Traffic dumps/*.pcap*`, RFC 8446.
+
+Минимально допустимые изменения в production для этого этапа:
+
+- вынести serializer/builder ClientHello из `td/mtproto/TlsInit.cpp` в внутренний helper (`TlsHelloBuilder` или эквивалентный internal API), чтобы тесты использовали **тот же** код сериализации, а не копию;
+- ввести узкие абстракции `IRng`/`IClock` и policy-типы, которые реально понадобятся уже в PR-1/PR-5, но **не** расширять `IStreamTransport` раньше PR-3;
+- не дублировать wire-логику в test helper'ах: тест должен проверять production serializer, а не вторую независимую реализацию.
+
+## 4.2 Файловая структура
 
 ```
-td/mtproto/test/
-  stealth/
-    MockRng.h            xoshiro256** ГПСЧ, детерминированный
-    MockClock.h          ручное продвижение времени
-    RecordingTransport.h fake IStreamTransport с записью вызовов
-    TestHelpers.h        утилиты: make_test_buffer, extract_cipher_suites, etc.
+td/mtproto/stealth/
+  Interfaces.h             IRng, IClock, PaddingPolicy (без transport virtuals)   PR-A
+  TlsHelloBuilder.h        внутренний builder/test seam                            PR-A
+  TlsHelloBuilder.cpp      вынесенная из TlsInit.cpp сериализация                  PR-A
+
+test/stealth/
+  MockRng.h                детерминированный xoshiro256** для unit-тестов         PR-A
+  MockClock.h              ручное время для будущих controller tests               PR-A
+  TlsHelloParsers.h        parse helpers: extensions, groups, key_share, ECH       PR-A
+  FingerprintFixtures.h    approved fingerprints / expected invariants             PR-A
+  RecordingTransport.h     fake IStreamTransport (заглушка)                        PR-3 (не PR-A)
+  test_tls_hello_wire.cpp  RFC8446/ECH structural checks                           PR-A
+  test_tls_profiles.cpp    differential checks vs uTLS/pcap baselines              PR-A
 ```
 
-## 4.2 MockRng
+Подключение в сборку:
+
+- `CMakeLists.txt` — добавить production sources `td/mtproto/stealth/*.cpp` в `TD_MTPROTO_SOURCE`;
+- `test/CMakeLists.txt` — добавить `test/stealth/*.cpp` в `TD_TEST_SOURCE`/`run_all_tests`.
+
+## 4.3 Что PR-A обязан проверять
+
+### A. Structural / parser-level invariants
+
+- синтезированный ClientHello парсится как валидный TLS 1.3 handshake по RFC 8446;
+- все scope lengths совпадают с реально записанными длинами;
+- для ECH-block declared lengths совпадают с фактическим количеством байт;
+- `supported_groups` и `key_share` согласованы по group id;
+- padding policy не создаёт фиксированный target по умолчанию.
+
+### B. Differential checks against real references
+
+- сравнение extension set/order и codepoint policy с bundled uTLS (`docs/Samples/utls-code/u_parrots.go`, `u_tls_extensions.go`, `u_ech.go`);
+- проверка против approved capture fixtures из `docs/Samples/Traffic dumps/*.pcap*`;
+- rule: «JA3 не совпадает с известным Telegram» необходима, но **недостаточна**. Нужны также проверки ALPS/ECH/PQ-policy, иначе можно получить другой, но столь же synthetic fingerprint.
+
+### C. Red tests, которые должны падать на текущем коде
+
+- fixed padding target `513 -> ClientHello 517`;
+- per-process ECH payload length из static `ech_payload()`;
+- ECH encapsulated key length `0x0020` при фактических `20` байтах;
+- ALPS `0x44CD` вместо `0x4469` для Chrome-профиля;
+- ECH `0xFE02` вместо route-aware policy (`RU = disabled`, `non-RU = validated profile only`).
+
+## 4.4 Что явно НЕ входит в PR-A
+
+- `RecordingTransport` с `set_traffic_hint` / `set_max_tls_record_size`: переносится в PR-3 вместе с реальным расширением `IStreamTransport`;
+- IPT/DRS timing assertions: до появления decorator/shaper это будет тестирование заглушек, а не поведения;
+- live network smoke как обязательный gate: pcap/python инструменты остаются отдельным этапом в разделе 13;
+- отдельная директория `td/mtproto/test/` и отдельный mtproto-only test target: текущая структура репозитория этого не имеет, и план не должен выдумывать несуществующий build path.
+
+## 4.5 Эталонные примитивы для unit-тестов
 
 ```cpp
-// td/mtproto/test/stealth/MockRng.h
-// Deterministic xoshiro256** PRNG implementing IRng interface.
-// Used exclusively in tests; never in production paths.
+// test/stealth/MockRng.h
+// Deterministic xoshiro256** PRNG implementing stealth::IRng.
+// Used only in tests and differential fixtures.
 class MockRng final : public stealth::IRng {
  public:
-  explicit MockRng(uint64_t seed) {
-    // SplitMix64 initialization of xoshiro256** state.
-    for (auto &s : state_) {
-      seed ^= seed >> 30;
-      seed *= 0xBF58476D1CE4E5B9ULL;
-      seed ^= seed >> 27;
-      seed *= 0x94D049BB133111EBULL;
-      s = seed ^= seed >> 31;
-    }
-  }
+  explicit MockRng(uint64_t seed);
 
-  uint32_t next_u32() override {
-    return static_cast<uint32_t>(next_u64() >> 32);
-  }
-
-  uint32_t bounded(uint32_t n) override {
-    // Lemire's nearly-divisionless method.
-    if (n == 0) return 0;
-    uint64_t m = static_cast<uint64_t>(next_u32()) * static_cast<uint64_t>(n);
-    if (static_cast<uint32_t>(m) < n) {
-      uint32_t t = static_cast<uint32_t>(-static_cast<int32_t>(n) % n);
-      while (static_cast<uint32_t>(m) < t) {
-        m = static_cast<uint64_t>(next_u32()) * static_cast<uint64_t>(n);
-      }
-    }
-    return static_cast<uint32_t>(m >> 32);
-  }
+  uint32_t next_u32() override;
+  uint32_t bounded(uint32_t n) override;
 
  private:
   uint64_t state_[4]{};
-
-  uint64_t next_u64() {
-    const uint64_t r = rotl(state_[1] * 5, 7) * 9;
-    const uint64_t t = state_[1] << 17;
-    state_[2] ^= state_[0];
-    state_[3] ^= state_[1];
-    state_[1] ^= state_[2];
-    state_[0] ^= state_[3];
-    state_[2] ^= t;
-    state_[3] = rotl(state_[3], 45);
-    return r;
-  }
-
-  static uint64_t rotl(uint64_t x, int k) {
-    return (x << k) | (x >> (64 - k));
-  }
 };
 ```
 
-## 4.3 MockClock
-
 ```cpp
-// td/mtproto/test/stealth/MockClock.h
+// test/stealth/MockClock.h
 class MockClock final : public stealth::IClock {
  public:
   double now() const override { return time_; }
   void advance(double seconds) { time_ += seconds; }
 
  private:
-  double time_{1000.0};  // Start at non-zero to catch zero-init bugs.
+  double time_{1000.0};
 };
 ```
 
-## 4.4 RecordingTransport
-
 ```cpp
-// td/mtproto/test/stealth/RecordingTransport.h
-struct WriteRecord {
-  size_t size;
-  bool quick_ack;
-  double timestamp;
+// test/stealth/TlsHelloParsers.h
+// Parse helpers only. No duplicated serializer logic.
+// Tests must consume bytes produced by the production TlsHello builder.
+struct ParsedExtension {
+  uint16_t type;
+  Slice body;
 };
 
-class RecordingTransport final : public IStreamTransport {
- public:
-  std::vector<WriteRecord> writes;
-  std::vector<int32> set_max_tls_record_size_calls;
-  std::vector<stealth::TrafficHint> received_hints;
-  int32 current_max_record_size{1380};
+vector<ParsedExtension> parse_extensions(Slice client_hello);
+uint16_t find_supported_group(Slice client_hello, size_t index);
+uint16_t find_key_share_group(Slice client_hello, size_t index);
+bool ech_declared_lengths_match(Slice client_hello);
 
-  void write(BufferWriter &&message, bool quick_ack) override {
-    writes.push_back({message.size(), quick_ack, recorded_now_});
-  }
-  void set_max_tls_record_size(int32 size) override {
-    set_max_tls_record_size_calls.push_back(size);
-    current_max_record_size = size;
-  }
-  void set_traffic_hint(stealth::TrafficHint hint) override {
-    received_hints.push_back(hint);
-  }
-  void set_now(double t) { recorded_now_ = t; }
-
- private:
-  double recorded_now_{0.0};
-};
+// test/stealth/TestHelpers.h
+// Helper must use binary TLS parsing (RFC 8446), not regex/string scanning.
+string generate_header_test(BrowserProfile profile,
+                            EchMode ech_mode = EchMode::Disabled,
+                            IRng &rng = default_test_rng());
+vector<uint16_t> extract_supported_groups(Slice client_hello);
+vector<uint16_t> extract_key_share_groups(Slice client_hello);
+vector<uint16_t> extract_cipher_suites(Slice client_hello);
+bool has_extension(Slice client_hello, uint16_t type);
+size_t find_extension_position(Slice client_hello, uint16_t type);
+Slice extract_extension_body(Slice client_hello, uint16_t type);
+string compute_ja3(Slice client_hello);
+bool check_pq_group_consistency(Slice client_hello);
+bool contains_any_pq_group(const vector<uint16_t> &groups);
+size_t extract_session_id_length(Slice client_hello);
 ```
 
 ---
@@ -323,7 +346,7 @@ class RecordingTransport final : public IStreamTransport {
 # 5. PR-1: TLS ClientHello — Context + Per-Connection Entropy
 
 **Зависит от:** PR-A (тестовая инфра)  
-**Исправляет:** S1 (static padding), S2 (ECH singleton), S3 (PQ group codepoint mismatch)
+**Исправляет:** S1 (static padding), S2 (ECH singleton), S8 (ECH declared-vs-actual key length mismatch), структурную часть S3 (убрать hardcoded dual-use literals из serializer; profile registry как источник значения остаётся в PR-2)
 
 ## 5.1 Проблемы (детально)
 
@@ -357,7 +380,10 @@ Op::str("\x00\x01\x00\x11\xec\x04\xc0"), Op::ml_kem_768_key()
 //
 // ⚠ 0x11EC — валидная именованная группа, не GREASE.
 // Реальная проблема: отсутствие capture-driven profile registry.
-// При рассинхроне с реальным snapshot'ом браузера JA3/JA4 расходится.
+// При этом текущий код СТРУКТУРНО согласован: 0x11EC уже присутствует и в
+// supported_groups, и в key_share. Ошибка здесь не в текущем mismatch, а в том,
+// что значение зашито literal'ом и будущая смена snapshot/profile должна будет
+// менять ОБА места синхронно.
 //
 // GREASE в supported_groups обрабатывается отдельно через grease(4) — он КОРРЕКТЕН.
 //
@@ -405,8 +431,10 @@ Padding не должен быть «произвольным jitter в диап
 
 Это устраняет старую сигнатуру fixed 517, но не создаёт новую искусственную сигнатуру «рандомный padding всегда есть».
 
+Ключевая правка по дизайну: в PR-1 нельзя хранить в context «padding_target» как финальную длину ClientHello. Это двусмысленно и ломает расчёт, потому что BoringPaddingStyle возвращает **длину содержимого padding extension**, а не финальную длину всего hello. В `TlsHelloContext` должен храниться либо `padding_content_len`, либо `std::optional<size_t>` с длиной содержимого extension.
+
 ```cpp
-// td/mtproto/TlsInit.h — изменения в существующем классе
+// td/mtproto/stealth/TlsHelloBuilder.h — внутренний builder seam
 
 class TlsHelloContext {
  public:
@@ -414,15 +442,27 @@ class TlsHelloContext {
   // CalcLength and Store must read from context, never sample independently.
   TlsHelloContext(size_t grease_size,
                   string domain,
-                  size_t padding_target,   // computed by profile padding policy (Boring-style), not arbitrary range
-                  size_t ech_length,       // pre-sampled: 144 + n*32, n in [0,3]
-                  uint16_t pq_group_id)    // PQ named group из profile registry (capture-driven)
+                  size_t padding_content_len,  // BoringPaddingStyle content length; 0 => no padding extension
+                  size_t ech_payload_len,      // pre-sampled: 144 + n*32, n in [0,3]
+                  uint16_t pq_group_id,        // explicit serializer input; profile registry arrives in PR-2
+                  uint16_t ech_enc_key_len)    // explicit length-prefixed ECH encapsulated key length
       : grease_(grease_size, '\0'),
         domain_(std::move(domain)),
-        padding_target_(padding_target),
-        ech_length_(ech_length),
-        pq_group_id_(pq_group_id) {
+        padding_content_len_(padding_content_len),
+        ech_payload_len_(ech_payload_len),
+        pq_group_id_(pq_group_id),
+        ech_enc_key_len_(ech_enc_key_len) {
     Grease::init(grease_);
+  }
+
+  // Backward-compatible constructor for non-stealth call sites.
+  // Keeps old behavior where optional stealth fields are disabled.
+  TlsHelloContext(size_t grease_size, string domain)
+      : TlsHelloContext(grease_size, std::move(domain),
+                        /*padding_content_len=*/0,
+                        /*ech_payload_len=*/0,
+                        /*pq_group_id=*/0,
+                        /*ech_enc_key_len=*/0) {
   }
 
   // Existing accessors preserved:
@@ -431,32 +471,36 @@ class TlsHelloContext {
   Slice get_domain() const;
 
   // New accessors:
-  size_t get_padding_target() const noexcept { return padding_target_; }
-  size_t get_ech_length() const noexcept { return ech_length_; }
+  size_t get_padding_content_len() const noexcept { return padding_content_len_; }
+  size_t get_ech_payload_len() const noexcept { return ech_payload_len_; }
 
-  // Returns the PQ hybrid named group codepoint for this profile.
-  // Важно: значение берётся из capture-validated profile registry, не hardcoded по легенде версий.
+  // Returns the PQ hybrid named group codepoint for this serializer instance.
   // Used in both supported_groups and key_share extensions — MUST match.
   uint16_t get_pq_group_id() const noexcept { return pq_group_id_; }
 
   // Returns the key_exchange_length for the PQ key share.
-  // Both 0x6399 and 0x11EC use 1216 bytes (1184 ML-KEM + 32 X25519).
+  // Current implementation uses 1184 ML-KEM bytes + 32 X25519 bytes = 1216.
   uint16_t get_pq_key_share_length() const noexcept { return 0x04C0; }
+
+  // Declared ECH encapsulated-key length must equal the number of bytes written.
+  uint16_t get_ech_enc_key_len() const noexcept { return ech_enc_key_len_; }
 
  private:
   string grease_;
   string domain_;
-  size_t padding_target_;
-  size_t ech_length_;
+  size_t padding_content_len_;
+  size_t ech_payload_len_;
   uint16_t pq_group_id_;
+  uint16_t ech_enc_key_len_;
 };
 ```
 
-## 5.3 Новый Op::Type::EchPayload + Op::Type::PqGroupId
+## 5.3 Новые Op::Type для ECH/PQ (EchPayload, EchEncKey, PqGroupId, PqKeyShare)
 
 ```cpp
 // В TlsHello::Op::Type enum добавить:
 EchPayload,   // per-connection ECH length из context
+EchEncKey,    // length-prefixed ECH encapsulated key из context
 PqGroupId,    // per-connection PQ named group codepoint из context (0x6399 или 0x11EC)
 PqKeyShare,   // PQ key share header: group_id (2 bytes) + key_exchange_length (2 bytes)
 
@@ -464,6 +508,12 @@ PqKeyShare,   // PQ key share header: group_id (2 bytes) + key_exchange_length (
 static Op ech_payload_dynamic() {
   Op res;
   res.type = Type::EchPayload;
+  return res;
+}
+
+static Op ech_enc_key() {
+  Op res;
+  res.type = Type::EchEncKey;
   return res;
 }
 
@@ -483,43 +533,82 @@ static Op pq_key_share() {
 // static Op ech_payload() { ... Random::fast(0,3)*32+144 ... }
 ```
 
-## 5.4 Конфигурация PQ-группы по профилю
+ECH wire-инварианты для serializer (обязательны):
+
+1. Внешний type-byte `outer=0x00` является частью wire-формата и не должен теряться при рефакторинге (`\x00\x00\x01\x00\x01` = outer + kdf + aead).
+2. Поле `enc` должно быть length-prefixed через scope, а не через ручной literal `\x00\x20`, чтобы declared length всегда совпадала с фактическим числом байт.
+
+```cpp
+// ECH block concept: preserve outer+suite prefix and scope variable fields.
+vector<Op>{
+    Op::str("\xfe\x0d"),
+    Op::begin_scope(),
+    Op::str("\x00\x00\x01\x00\x01"),  // outer + kdf + aead
+    Op::random(1),                         // config_id
+    Op::begin_scope(),
+      Op::ech_enc_key(),
+    Op::end_scope(),
+    Op::begin_scope(),
+      Op::ech_payload_dynamic(),
+    Op::end_scope(),
+    Op::end_scope(),
+};
+```
+
+## 5.4 Граница PR-1: ещё без profile registry
 
 ```cpp
 // td/mtproto/stealth/Interfaces.h
 
-// PQ hybrid named group codepoints.
-// 0x11EC = X25519MLKEM768 (IANA final, RFC 9580)
-// 0x6399 = X25519Kyber768Draft00 (legacy draft snapshot)
-// Safari iOS 17: нет PQ группы
-//
-// ⚠ ВАЖНО: codepoint ДОЛЖЕН совпадать в supported_groups И key_share.
-// Если кодпоинт не совпадает со снимком реального Chrome на ту же версию,
-// JA3/JA4 хеш расходится и ТСПУ классификатор его ловит.
-constexpr uint16_t kPqGroupMlKemFinal = 0x11EC;
-constexpr uint16_t kPqGroupLegacyDraft = 0x6399;
+struct NetworkRouteHints {
+  // True when egress path is routed via RU ISP where ECH is actively blocked.
+  bool is_ru_egress = false;
+};
 
-// Returns the PQ group codepoint for a given browser profile.
-inline uint16_t pq_group_for_profile(BrowserProfile profile) noexcept {
-  switch (profile) {
-    // По умолчанию используем snapshot из bundled uTLS (Chrome131 -> 0x11EC).
-    // В production переопределяется profile-registry из capture/telemetry.
-    case BrowserProfile::Chrome131:   return kPqGroupMlKemFinal;
-    case BrowserProfile::Chrome120:   return kPqGroupMlKemFinal;
-    case BrowserProfile::Firefox128:  return kPqGroupMlKemFinal;
-    case BrowserProfile::SafariIos17: return 0;              // Safari: no PQ key exchange
-    default: return kPqGroupMlKemFinal;
+struct PaddingPolicy {
+  // Boring-style behavior: add padding only in (255, 512) unpadded window.
+  bool enabled = true;
+
+  size_t compute_padding_content_len(size_t unpadded_len) const noexcept {
+    if (!enabled) {
+      return 0;
+    }
+    if (unpadded_len > 0xFF && unpadded_len < 0x200) {
+      // Match BoringPaddingStyle: target 0x200 before extension framing.
+      auto padding_len = 0x200 - unpadded_len;
+      if (padding_len >= 5) {
+        return padding_len - 4;  // ext type + ext len
+      }
+      return 1;
+    }
+    return 0;
   }
+};
+
+inline PaddingPolicy no_padding_policy() {
+  PaddingPolicy p;
+  p.enabled = false;
+  return p;
 }
 
-// GREASE helper — still needed for grease(N) slots, but NOT for the PQ group slot.
-// Grease::init() already handles this correctly. This helper is for tests only.
-inline uint16_t sample_grease_value(IRng &rng) noexcept {
-  uint32_t k = rng.bounded(16);
-  uint8_t byte = static_cast<uint8_t>(0x0A + 0x10 * k);
-  return static_cast<uint16_t>((static_cast<uint16_t>(byte) << 8) | byte);
-}
+// Per-connection CSPRNG factory used by production paths.
+// Нельзя использовать process-wide singleton RNG для stealth shape decisions.
+unique_ptr<IRng> make_connection_rng();
+
+// PR-1 only removes hardcoded literals from the serializer.
+// BrowserProfile -> PQ codepoint mapping is introduced in PR-2.
+constexpr uint16_t kLegacyDefaultPqGroupId = 0x11EC;
+constexpr uint16_t kCorrectEchEncKeyLen = 32;  // Current bug writes 20 bytes; correct X25519 enc len is 32.
+
+// Current serializer writes 1184 ML-KEM bytes + 32 X25519 bytes.
+static_assert(1184 + 32 == 0x04C0, "PQ key share size must remain 1216 bytes");
 ```
+
+Здесь важно разделить обязанности:
+
+- PR-1 делает serializer parameter-driven и убирает singleton/length mismatch.
+- PR-2 вводит `BrowserProfile`, snapshot-backed profile registry, `EchMode` и route-aware политику.
+- GREASE test helper типа `sample_grease_value(IRng&)` должен жить в `test/stealth/TestHelpers.h`, а не в production `Interfaces.h`.
 
 ## 5.5 Изменения в CalcLength и Store
 
@@ -528,7 +617,12 @@ inline uint16_t sample_grease_value(IRng &rng) noexcept {
 
 case Type::EchPayload:
   CHECK(context);
-  size_ += context->get_ech_length();
+  size_ += context->get_ech_payload_len();
+  break;
+
+case Type::EchEncKey:
+  CHECK(context);
+  size_ += context->get_ech_enc_key_len();
   break;
 
 case Type::PqGroupId:
@@ -543,12 +637,10 @@ case Type::PqKeyShare:
 
 case Type::Padding: {
   CHECK(context);
-  auto target = context->get_padding_target();
-  if (target == 0) break;  // Safari: no padding extension
-  auto current = static_cast<int>(size_);
-  auto pad_content = static_cast<int>(target) - current;
-  if (pad_content > 0) {
-    size_ = target + 4;  // 2 (type \x00\x15) + 2 (length) + N zeros
+  auto pad_content_len = context->get_padding_content_len();
+  if (pad_content_len == 0) break;
+  if (pad_content_len > 0) {
+    size_ += 4 + pad_content_len;  // ext type + ext len + zero-filled content
   }
   break;
 }
@@ -557,8 +649,19 @@ case Type::Padding: {
 
 case Type::EchPayload:
   CHECK(context);
-  Random::secure_bytes(dest_.substr(0, context->get_ech_length()));
-  dest_.remove_prefix(context->get_ech_length());
+  Random::secure_bytes(dest_.substr(0, context->get_ech_payload_len()));
+  dest_.remove_prefix(context->get_ech_payload_len());
+  break;
+
+case Type::EchEncKey:
+  CHECK(context);
+  if (context->get_ech_enc_key_len() == 32) {
+    // Reuse X25519-style key generation path instead of raw random bytes.
+    do_op(TlsHello::Op::key(), context);
+  } else {
+    Random::secure_bytes(dest_.substr(0, context->get_ech_enc_key_len()));
+    dest_.remove_prefix(context->get_ech_enc_key_len());
+  }
   break;
 
 case Type::PqGroupId: {
@@ -584,14 +687,12 @@ case Type::PqKeyShare: {
 
 case Type::Padding: {
   CHECK(context);
-  auto target = context->get_padding_target();
-  if (target == 0) break;
-  auto current = static_cast<int>(get_offset());
-  auto size = static_cast<int>(target) - current;
-  if (size > 0) {
+  auto pad_content_len = context->get_padding_content_len();
+  if (pad_content_len == 0) break;
+  if (pad_content_len > 0) {
     do_op(TlsHello::Op::str("\x00\x15"), nullptr);
     do_op(TlsHello::Op::begin_scope(), nullptr);
-    do_op(TlsHello::Op::zero(size), nullptr);
+    do_op(TlsHello::Op::zero(pad_content_len), nullptr);
     do_op(TlsHello::Op::end_scope(), nullptr);
   }
   break;
@@ -601,30 +702,39 @@ case Type::Padding: {
 ## 5.6 Обновлённый generate_header
 
 ```cpp
-// TlsInit.h — новая перегрузка (старая сохраняется для совместимости)
-string generate_header(string domain, Slice secret, int32 unix_time,
-                        const stealth::PaddingPolicy &padding_policy,
-                        stealth::IRng &rng,
-                        stealth::BrowserProfile profile);
+// td/mtproto/stealth/TlsHelloBuilder.h
+// PR-1 keeps the public API narrow and profile-agnostic.
+string generate_header_with_context(string domain, Slice secret, int32 unix_time,
+                                   const TlsHelloContext &context);
 
-// Старая перегрузка: делегирует на profile policy, а не на fixed {513,513}.
+// Existing production call path stays compatible and builds a context internally
+// from the current single template:
+// - padding_content_len = BoringPaddingStyle(unpadded_len) or 0
+// - ech_payload_len = 144 + n*32 sampled per connection
+// - pq_group_id = kLegacyDefaultPqGroupId (0x11EC)
+// - ech_enc_key_len = kCorrectEchEncKeyLen (32)
+string generate_header(string domain, Slice secret, int32 unix_time, stealth::IRng &rng);
+
+// BrowserProfile-aware overload is introduced in PR-2, not here.
+// TlsHello::get_default() remains only for non-stealth compatibility path
+// and should be marked [[deprecated("use get_hello_for_profile for stealth")]].
 ```
 
 ## 5.7 TDD (красные тесты ДО кода)
 
 ```cpp
-// td/mtproto/test/stealth/test_context_entropy.cpp
+// test/stealth/test_context_entropy.cpp
 
 TEST(ContextEntropy, PaddingAndEchSampledOnce) {
   MockRng rng(42);
-  auto p = padding_policy_for_profile(BrowserProfile::Chrome131)
-               .compute_target(/*unpadded_len=*/640);
+  auto p = boring_padding_content_len(/*unpadded_len=*/300);
   size_t e = rng.bounded(4) * 32 + 144;
-  uint16_t pq = pq_group_for_profile(BrowserProfile::Chrome131);
-  TlsHelloContext ctx(7, "google.com", p, e, pq);
-  EXPECT_EQ(ctx.get_padding_target(), p);
-  EXPECT_EQ(ctx.get_ech_length(), e);
-  EXPECT_EQ(ctx.get_pq_group_id(), pq_group_for_profile(BrowserProfile::Chrome131));
+  TlsHelloContext ctx(7, "google.com", p, e, kLegacyDefaultPqGroupId,
+                      kCorrectEchEncKeyLen);
+  EXPECT_EQ(ctx.get_padding_content_len(), p);
+  EXPECT_EQ(ctx.get_ech_payload_len(), e);
+  EXPECT_EQ(ctx.get_pq_group_id(), kLegacyDefaultPqGroupId);
+  EXPECT_EQ(ctx.get_ech_enc_key_len(), kCorrectEchEncKeyLen);
 }
 
 TEST(ContextEntropy, EchLengthVariesPerConnection) {
@@ -641,19 +751,19 @@ TEST(ContextEntropy, EchLengthVariesPerConnection) {
 TEST(ContextEntropy, CalcLengthAndStoreAreConsistent) {
   MockRng rng(1);
   for (int i = 0; i < 200; i++) {
-    auto policy = padding_policy_for_profile(BrowserProfile::Chrome131);
     TlsHelloContext ctx(7, "google.com",
-                        policy.compute_target(/*unpadded_len=*/640),
+                        boring_padding_content_len(/*unpadded_len=*/300),
                         rng.bounded(4) * 32 + 144,
-                        pq_group_for_profile(BrowserProfile::Chrome131));
+                        kLegacyDefaultPqGroupId,
+                        kCorrectEchEncKeyLen);
     TlsHelloCalcLength calc;
-    for (auto &op : get_hello_for_profile(BrowserProfile::Chrome131).get_ops())
+    for (auto &op : get_current_hello_template().get_ops())
       calc.do_op(op, &ctx);
     auto length = calc.finish().move_as_ok();
 
     string buf(length, '\0');
     TlsHelloStore store(buf);
-    for (auto &op : get_hello_for_profile(BrowserProfile::Chrome131).get_ops())
+    for (auto &op : get_current_hello_template().get_ops())
       store.do_op(op, &ctx);
 
     // Buffer must be exactly filled — no overflow, no underrun.
@@ -661,22 +771,46 @@ TEST(ContextEntropy, CalcLengthAndStoreAreConsistent) {
   }
 }
 
-TEST(ContextEntropy, PqGroupCodepointMatchesProfile) {
-  // Значения берутся из profile registry; тест не должен фиксировать конкретный codepoint.
-  EXPECT_NE(pq_group_for_profile(BrowserProfile::Chrome131), 0u);
-  EXPECT_NE(pq_group_for_profile(BrowserProfile::Chrome120), 0u);
-  // Safari doesn't use PQ at all.
-  EXPECT_EQ(pq_group_for_profile(BrowserProfile::SafariIos17), 0u);
+TEST(ContextEntropy, AllOpTypesHandledWithoutUnreachable) {
+  MockRng rng(77);
+  TlsHelloContext ctx(7, "google.com",
+                      /*padding_content_len=*/0,
+                      /*ech_payload_len=*/176,
+                      kLegacyDefaultPqGroupId,
+                      kCorrectEchEncKeyLen);
+
+  // Build an op list that touches newly introduced op types.
+  vector<TlsHello::Op> ops = {
+      TlsHello::Op::pq_group_id(),
+      TlsHello::Op::pq_key_share(),
+      TlsHello::Op::ech_enc_key(),
+      TlsHello::Op::ech_payload_dynamic(),
+      TlsHello::Op::padding()};
+
+  TlsHelloCalcLength calc;
+  for (auto &op : ops) {
+    calc.do_op(op, &ctx);
+  }
+  auto len = calc.finish().move_as_ok();
+
+  string buf(len, '\0');
+  TlsHelloStore store(buf);
+  for (auto &op : ops) {
+    store.do_op(op, &ctx);
+  }
+  EXPECT_EQ(store.get_offset(), len);
 }
 
 TEST(ContextEntropy, PqGroupAppearsInBothGroupsAndKeyShare) {
-  // Regression: 0x11EC must appear in BOTH supported_groups and key_share,
-  // or in NEITHER. Mismatch → invalid ClientHello detectable by DPI.
+  // Regression: explicit pq_group_id must land in BOTH supported_groups and key_share.
   MockRng rng(42);
-  auto h = generate_header_test(BrowserProfile::Chrome131, rng);
+  TlsHelloContext ctx(7, "google.com", /*padding_content_len=*/0,
+                      /*ech_payload_len=*/176, kLegacyDefaultPqGroupId,
+                      kCorrectEchEncKeyLen);
+  auto h = generate_header_with_context("google.com", test_secret, unix_now, ctx);
   auto groups = extract_supported_groups(h);
   auto key_shares = extract_key_share_groups(h);
-  uint16_t pq_codepoint = pq_group_for_profile(BrowserProfile::Chrome131);
+  uint16_t pq_codepoint = kLegacyDefaultPqGroupId;
   bool in_groups = std::find(groups.begin(), groups.end(), pq_codepoint) != groups.end();
   bool in_keyshare = std::find(key_shares.begin(), key_shares.end(), pq_codepoint) != key_shares.end();
   EXPECT_EQ(in_groups, in_keyshare) << "PQ group must be in both or neither";
@@ -699,9 +833,7 @@ TEST(ContextEntropy, NoForcedPadding517Regression) {
   MockRng rng(7);
   size_t count_517 = 0;
   for (int i = 0; i < 200; i++) {
-    auto h = generate_header("google.com", test_secret, unix_now,
-                              padding_policy_for_profile(BrowserProfile::Chrome131),
-                              rng, BrowserProfile::Chrome131);
+    auto h = generate_header("google.com", test_secret, unix_now, rng);
     if (h.size() == 517u) {
       count_517++;
     }
@@ -710,564 +842,475 @@ TEST(ContextEntropy, NoForcedPadding517Regression) {
   EXPECT_LT(count_517, 200u);
 }
 
-TEST(ProfileTest, Chrome131PaddingExtensionAbsentWithPq) {
-  auto h = generate_header_test(BrowserProfile::Chrome131);
+TEST(ContextEntropy, CurrentTemplatePaddingExtensionAbsentOutsideBoringWindow) {
+  MockRng rng(11);
+  auto h = generate_header("google.com", test_secret, unix_now, rng);
   EXPECT_FALSE(has_extension(h, 0x0015))
-      << "Chrome131+PQ should not force padding extension when ClientHello > 512";
+      << "Current template should not force padding when unpadded ClientHello is outside Boring window";
 }
 ```
+
+Профильно-зависимые тесты (`BrowserProfile`, `0xFE0D`, `0x4469`, RU/non-RU policy, Safari/Firefox-specific assertions) должны оставаться в PR-2. PR-1 тестирует только serializer/context invariants и red-regressions текущего шаблона.
 
 ---
 
 # 6. PR-2: Browser Profile Registry
 
 **Зависит от:** PR-1  
-**Исправляет:** S3 (PQ group registry), S4 (ECH type), S7 (ALPS 0x44CD→0x4469), S8 (ECH wire format), S9 (Darwin 3DES), S10 (Firefox 3DES prevention), S11 (Darwin special profile), S20 (RU ECH policy)
+**Исправляет:** S3, S4, S7, S9, S10, S11, S20, S21
 
-## 6.1 Файлы
+## 6.1 Аудит PR-2 (что было не так)
+
+Критические проблемы исходного текста PR-2:
+
+1. Профили были partially hand-crafted, а не snapshot-driven. Это создаёт drift между ciphers/extensions/order и резко повышает детектируемость.
+2. Были внутренние противоречия: в Safari-блоке одновременно заявлено "без padding", но указан `Op::padding()`.
+3. Версии профилей (`Firefox128`, `Safari iOS 17`) не подтверждаются bundled uTLS snapshot в `docs/Samples/utls-code` (там есть `HelloFirefox_148`, `HelloSafari_26_3`).
+4. `pick_random_profile()` не имел sticky-семантики и мог менять "браузер" на каждом новом TCP-соединении, что аномально для реального клиента.
+5. Route-policy для ECH была слишком грубой (`is_ru_egress` bool) без circuit breaker и без fallback-поведения при ошибочной классификации маршрута.
+6. В примере `build_chrome131_hello()` использовался `ech_mode`, но параметр функции не был объявлен (псевдокод несогласован).
+7. Тесты содержали потенциально ложные hard-assert инварианты (например, blanket "SafariHasNo3Des"), которые должны быть fixture-driven, а не предположениями.
+
+## 6.2 Принцип PR-2: только snapshot-driven registry
+
+PR-2 должен строить ClientHello не из "набора вручную написанных кусочков", а из **реестра профилей** с source-of-truth:
+
+- bundled uTLS snapshots: `docs/Samples/utls-code/u_parrots.go`, `u_ech.go`, `u_tls_extensions.go`;
+- capture fixtures из `docs/Samples/Traffic dumps/*.pcap*`;
+- текущий production wire-формат в `td/mtproto/TlsInit.cpp` (для regressions).
+
+Rule: если конкретный инвариант не подтверждён snapshot/capture, он не фиксируется как обязательный.
+
+## 6.3 Файлы
 
 ```
 td/mtproto/stealth/
-  TlsHelloProfile.h         enum BrowserProfile + pick_random_profile()
-  TlsHelloProfiles.cpp      build_chrome131/120, firefox128, safari_ios17
+  TlsHelloProfile.h             enum BrowserProfile + ProfileSpec API
+  TlsHelloProfileRegistry.cpp   snapshot-backed registry + sticky selection
+  TlsHelloProfileRegistry.h     lookup/profile selection contracts
+
+test/stealth/
+  test_browser_profiles.cpp     fixture-driven profile tests
+  ProfileFixtures.h             source snapshot metadata + expected invariants
 ```
 
-## 6.2 BrowserProfile enum
+## 6.4 BrowserProfile (исправленный)
 
 ```cpp
 // td/mtproto/stealth/TlsHelloProfile.h
 namespace td::mtproto::stealth {
 
-enum class BrowserProfile {
-  Chrome131,         // Default: most common in Russia (65%+ market share)
-  Chrome120,         // Older Chrome (Android, corporate deployments)
-  Firefox128,        // Without 3DES (Firefox removed it 2021)
-  Firefox128Legacy,  // With 3DES: NOT in pick_random_profile(), exists for testing only
-  SafariIos17,       // Safari on iOS 17: no session_id, no padding, no ECH
+// IMPORTANT: enum values must map to verified snapshot fixtures.
+enum class BrowserProfile : uint8_t {
+  Chrome131,
+  Chrome120,
+  Firefox148,
+  Safari26_3,
 };
 
 enum class EchMode : uint8_t {
-  Disabled = 0,       // mandatory default for RU egress
-  GreaseDraft17 = 1,  // 0xFE0D GREASE ECH
+  Disabled = 0,      // default for RU egress and for blocked routes
+  GreaseDraft17 = 1  // 0xFE0D; name kept for compatibility with existing config keys and uTLS draft-17 terminology
 };
 
-// Selects a profile based on Russia/CIS Q1 2026 device distribution.
-// Called once per connection; uses pre-seeded rng from StealthConfig.
-BrowserProfile pick_random_profile(IRng &rng);
+struct ProfileSpec {
+  BrowserProfile id;
+  Slice name;
+  uint16_t alps_type;
+  bool allows_ech;
+  bool allows_padding;
+  bool has_session_id;
+};
 
-const TlsHello &get_hello_for_profile(BrowserProfile profile);
+const ProfileSpec &profile_spec(BrowserProfile profile);
 
-// Returns the appropriate PaddingPolicy for a profile.
-// Safari: disabled policy (no padding extension).
-PaddingPolicy padding_policy_for_profile(BrowserProfile profile);
-EchMode ech_mode_for_route(const NetworkRouteHints &route_hints) noexcept;
+// Sticky profile selection: stable for (secret, destination, day-bucket),
+// not randomized independently for every TCP connection.
+BrowserProfile pick_profile_sticky(const ProfileWeights &weights,
+                                   const SelectionKey &key,
+                                   IRng &rng);
+
+EchMode ech_mode_for_route(const NetworkRouteHints &route,
+                           const RouteFailureState &state) noexcept;
 
 }  // namespace td::mtproto::stealth
 ```
 
-## 6.3 Веса профилей
+Явное соответствие snapshot IDs (обязательно для drift-free реализации):
+
+- `BrowserProfile::Chrome131` -> `HelloChrome_131`
+- `BrowserProfile::Chrome120` -> `HelloChrome_120`
+- `BrowserProfile::Firefox148` -> `HelloFirefox_148`
+- `BrowserProfile::Safari26_3` -> `HelloSafari_26_3`
+
+ALPS codepoint задаётся fixture-значением профиля, а не глобальным правилом. Для текущего runtime-set в V6:
+
+- Chrome131/Chrome120: `0x4469`
+- Firefox148/Safari26_3: fixture-driven (может отсутствовать)
+- `0x44CD` разрешён только если профиль fixture явно этого требует; для Chrome131 запрещён.
+
+## 6.5 Выбор профиля: sticky + weighted + platform-coherent
 
 ```cpp
-BrowserProfile pick_random_profile(IRng &rng) {
-  // Russia/CIS Q1 2026 (StatCounter + Telegram mobile breakdown):
-  // Base weights:
-  // Chrome 131: 48, Chrome 120: 17, Safari iOS 17: 20, Firefox 128: 8.
-  // Sum = 93; remainder (7%) is intentionally routed to Chrome 131 to keep
-  // a conservative Chromium-majority mix and avoid abrupt tail-profile growth.
-  // Effective distribution: Chrome131=55%, Chrome120=17%, Safari=20%, Firefox=8%.
-  auto roll = rng.bounded(100);
-  if (roll < 48) return BrowserProfile::Chrome131;
-  if (roll < 65) return BrowserProfile::Chrome120;
-  if (roll < 85) return BrowserProfile::SafariIos17;
-  if (roll < 93) return BrowserProfile::Firefox128;
-  return BrowserProfile::Chrome131;
-}
+// Weights must always sum to 100. No implicit remainder routing.
+// Default mix is conservative and can be overridden in PR-8 runtime params.
+// Example baseline (adjusted by platform):
+// Chrome131=52, Chrome120=18, Safari26_3=20, Firefox148=10.
 
-EchMode ech_mode_for_route(const NetworkRouteHints &route_hints) noexcept {
-  // Operational rule: for RU egress ECH is disabled by default due to active blocking.
-  if (route_hints.is_ru_egress) {
+BrowserProfile pick_profile_sticky(const ProfileWeights &w,
+                                   const SelectionKey &key,
+                                   IRng &rng) {
+  // selection hash must be stable for key to avoid profile flapping
+  uint32_t h = stable_hash32(key);
+  uint32_t roll = h % 100;
+  if (roll < w.chrome131) return BrowserProfile::Chrome131;
+  if (roll < w.chrome131 + w.chrome120) return BrowserProfile::Chrome120;
+  if (roll < w.chrome131 + w.chrome120 + w.safari26_3) return BrowserProfile::Safari26_3;
+  return BrowserProfile::Firefox148;
+}
+```
+
+Требования к sticky-key:
+
+- ключ включает destination/SNI и time-bucket (например, сутки), чтобы не было "прыжков" профиля между соседними соединениями;
+- ключ не содержит сырых секретов в логах и метриках;
+- одинаковый ключ => одинаковый профиль в пределах bucket.
+
+## 6.6 Route-aware ECH policy с circuit breaker
+
+```cpp
+EchMode ech_mode_for_route(const NetworkRouteHints &route,
+                           const RouteFailureState &state) noexcept {
+  // Hard rule: RU egress -> ECH disabled by default.
+  if (route.is_ru_egress) {
     return EchMode::Disabled;
   }
+
+  // Circuit breaker: if recent failures indicate ECH-related breakage,
+  // temporarily disable ECH even on non-RU routes.
+  if (state.ech_block_suspected || state.recent_ech_failures >= 3) {
+    return EchMode::Disabled;
+  }
+
   return EchMode::GreaseDraft17;
 }
-
-// Darwin (iOS/macOS): higher Safari probability.
-#if TD_DARWIN
-BrowserProfile pick_random_profile_platform(IRng &rng) {
-  auto roll = rng.bounded(100);
-  if (roll < 30) return BrowserProfile::Chrome131;
-  if (roll < 40) return BrowserProfile::Chrome120;
-  if (roll < 88) return BrowserProfile::SafariIos17;
-  return BrowserProfile::Firefox128;
-}
-#endif
 ```
 
-## 6.4 Chrome 131 профиль (non-RU: с 0xFE0D и ALPS)
+Источник `NetworkRouteHints` в V6 должен быть зафиксирован явно:
 
-Ключевые изменения относительно текущего кода:
+- базовый источник: `active_policy` из PR-8 (`unknown|ru_egress|non_ru_egress`), управляется оператором;
+- опциональный источник: внешний trusted route-hint провайдер (out-of-process), если подключён;
+- при отсутствии trusted hint по умолчанию используется `unknown` (fail-safe, ECH disabled).
+
+`RouteFailureState` должен быть персистентен между соединениями (TTL-based cache), а не жить только в рамках одного соединения. Минимальный ключ: `(destination/SNI, policy_bucket)`. Без этого circuit breaker не работает в реальной эксплуатации.
+
+Операционные требования:
+
+- QUIC/HTTP3 в PR-2 не имитируется и не включается (TCP+TLS only);
+- ECH-политика должна иметь telemetry counters (enabled/disabled/fallback), без логирования секретов.
+
+## 6.7 Build API (исправленный, без псевдо-багов)
 
 ```cpp
-static TlsHello build_chrome131_hello() {
-  TlsHello res;
-  res.grease_size_ = 7;
-
-  // ECH (encrypted_client_hello) extension block.
-  // Type 0xFE0D = 65037 (IANA draft-ietf-tls-esni-17, replaces 0xFE02).
-  // Inner structure starts with 5-byte prefix:
-  // [OuterClientHello=0x00][KDF=0x0001][AEAD=0x0001].
-  auto ech_block = [] {
-    return Op::permutation_element({
-      Op::str("\xfe\x0d"_q),       // type: 0xFE0D (encrypted_client_hello)
-      Op::begin_scope(),
-      Op::str("\x00\x00\x01\x00\x01"_q), // 5-byte prefix (outer + kdf + aead)
-      Op::random(1),
-      Op::str("\x00\x20"_q),      // encapsulated key length = 32
-      Op::random(32),               // encapsulated key bytes
-      Op::begin_scope(),
-      Op::extension(),             // extensions
-      Op::end_scope(),
-      Op::end_scope(),
-    });
-  };
-
-  // ALPS extension block.
-  // Application Layer Protocol Settings.
-  // Chrome 91–114: 0x44CD (alps-01 draft). Chrome 115+: 0x4469 (application_settings).
-  // Current code has 0x44CD — must update to 0x4469 for Chrome 131 profile.
-  // Structure: extension type (2) + length scope + supported ALPN protocol ids.
-  auto alps_block = [] {
-    return Op::permutation_element({
-      Op::str("\x44\x69"_q),       // type: ALPS (0x4469, application_settings, Chrome 115+)
-      Op::begin_scope(),
-      Op::str("\x00\x03\x02\x68\x32"_q),  // length=3, protocol="h2"
-      Op::end_scope(),
-    });
-  };
-
-  // supported_groups extension with per-profile PQ named group.
-  // GREASE slot is already handled by grease(4) — correct and unchanged.
-  // The PQ group codepoint comes from profile registry/context.
-  auto groups_block = [] {
-    return Op::permutation_element({
-      Op::str("\x00\x0a"_q),       // type: supported_groups
-      Op::begin_scope(),
-      Op::begin_scope(),
-      Op::grease(4),               // GREASE value from Grease::init() — correct as-is
-      Op::pq_group_id(),           // PQ named group from context/profile registry
-      Op::str(
-        "\x00\x1d"                 // X25519 (29)
-        "\x00\x17"                 // P-256 (23)
-        "\x00\x18"_q               // P-384 (24)
-      ),
-      Op::end_scope(),
-      Op::end_scope(),
-    });
-  };
-
-  res.ops_ = {
-    Op::str("\x16\x03\x01"_q),     // TLS record: Content-Type Handshake, version TLS 1.0
-    Op::begin_scope(),
-    Op::str("\x01\x00"_q),         // Handshake Type: ClientHello
-    Op::begin_scope(),
-    Op::str("\x03\x03"_q),         // ClientHello version: TLS 1.2 (compat mode)
-    Op::zero(32),                  // ClientHello.random (overwritten with HMAC later)
-    Op::str("\x20"_q),             // session_id_length = 32
-    Op::random(32),                // session_id: 32 random bytes (compat mode)
-    Op::begin_scope(),             // cipher suites list
-    Op::grease(0),                 // GREASE cipher suite
-    Op::str(
-      "\x13\x01\x13\x02\x13\x03"  // TLS 1.3: AES-128-GCM, AES-256-GCM, CHACHA20
-      "\xc0\x2b\xc0\x2f\xc0\x2c\xc0\x30"  // ECDHE-ECDSA/RSA with AES-128/256-GCM
-      "\xcc\xa9\xcc\xa8"           // ECDHE-ECDSA/RSA with CHACHA20
-      "\xc0\x13\xc0\x14"          // ECDHE-RSA with AES-128/256-CBC-SHA
-      "\x00\x9c\x00\x9d"          // RSA with AES-128/256-GCM
-      "\x00\x2f\x00\x35"_q        // RSA with AES-128/256-CBC-SHA
-    ),
-    Op::end_scope(),
-    Op::str("\x01\x00"_q),         // compression methods: 1 method, null
-    Op::begin_scope(),             // extensions list
-    // SNI is always first (after GREASE extension):
-    Op::grease_extension(1),       // GREASE extension (len=0)
-    Op::str("\x00\x00"_q),         // server_name type
-    Op::begin_scope(),
-    Op::begin_scope(),
-    Op::str("\x00"_q),             // name_type: host_name
-    Op::begin_scope(),
-    Op::domain(),                  // SNI value
-    Op::end_scope(),
-    Op::end_scope(),
-    Op::end_scope(),
-    // Permuted extensions (order random per-connection):
-    Op::permutation({
-      // status_request (type 0x0005):
-      Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00"_q),
-      // extended_master_secret (type 0x0017, len=0):
-      Op::str("\x00\x17\x00\x00"_q),
-      // renegotiation_info (type 0xFF01):
-      Op::str("\xff\x01\x00\x01\x00"_q),
-      // supported_groups (with valid GREASE):
-      groups_block(),
-      // ec_point_formats (type 0x000B):
-      Op::str("\x00\x0b\x00\x02\x01\x00"_q),
-      // session_ticket (type 0x0023, len=0):
-      Op::str("\x00\x23\x00\x00"_q),
-      // ALPN (type 0x0010): h2 + http/1.1:
-      Op::str("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31"_q),
-      // signature_algorithms (type 0x000D) — Chrome 131 list:
-      Op::str("\x00\x0d\x00\x12\x00\x10"
-              "\x04\x03\x08\x04\x04\x01\x05\x03"
-              "\x08\x05\x05\x01\x08\x06\x06\x01"_q),
-      // signed_certificate_timestamp (type 0x0012, len=0):
-      Op::str("\x00\x12\x00\x00"_q),
-      // key_share (type 0x0033) — with PQ hybrid key:
-      // Structure: grease key share (1 byte) + PQ key share + X25519 key share
-      // PQ group_id and key_exchange_length come from context (profile-dependent).
-      Op::str("\x00\x33"_q),
-      Op::begin_scope(),
-      Op::begin_scope(),
-      Op::grease(2),               // GREASE key share
-      Op::str("\x00\x01\x00"_q),   // key_exchange_length=1, key_exchange=0x00
-      Op::pq_key_share(),          // PQ: group_id (2B) + key_exchange_length (2B) from context
-      Op::ml_kem_768_key(),        // 1184 bytes ML-KEM-768 public key
-      Op::key(),                   // 32 bytes X25519 encapsulated key
-      Op::str("\x00\x1d\x00\x20"_q), // X25519 group_id + key_exchange_length=32
-      Op::key(),                   // 32 bytes X25519 public key
-      Op::end_scope(),
-      Op::end_scope(),
-      // psk_key_exchange_modes (type 0x002D): psk_dhe_ke:
-      Op::str("\x00\x2d\x00\x02\x01\x01"_q),
-      // supported_versions (type 0x002B): TLS 1.3, TLS 1.2:
-      Op::str("\x00\x2b\x00\x05\x04\x03\x04\x03\x03"_q),
-      // compress_certificate (type 0x001B): brotli:
-      Op::str("\x00\x1b\x00\x03\x02\x00\x02"_q),
-      // ALPS (type 0x4469, application_settings) — ОБНОВЛЕНО с 0x44CD:
-      alps_block(),
-      // ECH (type 0xFE0D) — добавляется только в non-RU режиме:
-      // if (ech_mode == EchMode::GreaseDraft17) parts.push_back(ech_block());
-    }),
-    // Padding extension (type 0x0015) — last, after permutation, per-connection size:
-    Op::padding(),
-    Op::end_scope(),
-    Op::end_scope(),
-    Op::end_scope(),
-  };
-  return res;
+// Function signature explicitly carries mode/spec/context.
+static TlsHello build_hello_for_profile(const ProfileSpec &spec,
+                                        EchMode ech_mode,
+                                        const TlsHelloContext &ctx) {
+  // 1) start from snapshot-backed extension/cipher ordering
+  // 2) patch only dynamic fields: GREASE, keys, domain, ECH payload lengths
+  // 3) if ech_mode == Disabled: remove ECH extension entirely
+  // 4) padding only if spec.allows_padding and profile policy says so
 }
 ```
 
-## 6.5 Safari iOS 17 профиль (исправленный)
+Обязательные инварианты при сборке:
+
+- `supported_groups` и `key_share` используют один и тот же PQ group из registry;
+- ECH type только `0xFE0D` когда ECH включён;
+- ECH encapsulated-key declared length == фактически записанные байты;
+- ALPS type берётся из profile fixture (`0x4469`/`0x44CD` строго по snapshot), не из глобального if-правила;
+- отсутствие "магических" literal-ов, дублирующих один и тот же codepoint в нескольких местах.
+
+## 6.8 Safari/Firefox policy (исправленная)
+
+1. Не фиксировать blanket-утверждения вроде "Safari всегда без PQ" или "Safari всегда без 3DES" без capture-подтверждения.
+2. Для профилей Safari/Firefox инварианты должны быть fixture-driven и версионно-явными:
+   - `Safari26_3` (из bundled uTLS snapshot) проверяется по его fixture;
+   - если нужен отдельный `SafariIos17`, сначала добавить pcap fixture и только потом включать в weighted selection.
+3. Исключить "legacy" профиль из runtime enum (никаких `FirefoxLegacy`), чтобы нельзя было случайно активировать его на проде.
+
+## 6.9 TDD для PR-2 (обновлённый)
 
 ```cpp
-static TlsHello build_safari_ios17_hello() {
-  TlsHello res;
-  res.grease_size_ = 5;
+// test/stealth/test_browser_profiles.cpp
 
-  res.ops_ = {
-    Op::str("\x16\x03\x01"_q),
-    Op::begin_scope(),
-    Op::str("\x01\x00"_q),
-    Op::begin_scope(),
-    Op::str("\x03\x03"_q),          // TLS 1.2 compat
-    Op::zero(32),
-    // Safari: session_id_length = 0 (no session ticket in iOS TLS stack).
-    // Chrome/Firefox use 32 bytes; Safari uses 0. This is a per-platform invariant.
-    Op::str("\x00"_q),               // session_id_length = 0
-    // No Op::random(32) here — critical Safari distinction.
-    Op::begin_scope(),               // cipher suites
-    // Safari 17 cipher suites (3DES removed in iOS 15 / macOS Monterey):
-    Op::str(
-      "\x13\x01\x13\x02\x13\x03"    // TLS 1.3 suites
-      "\xc0\x2c\xc0\x2b\xcc\xa9"    // ECDSA (Safari orders ECDSA before RSA)
-      "\xc0\x30\xc0\x2f\xcc\xa8"    // RSA equivalents
-      "\xc0\x0a\xc0\x09"            // ECDHE-ECDSA-AES256/128-CBC-SHA
-      "\xc0\x14\xc0\x13"            // ECDHE-RSA-AES256/128-CBC-SHA
-      "\x00\x9d\x00\x9c"            // RSA-AES256/128-GCM
-      "\x00\x35\x00\x2f"_q          // RSA-AES256/128-CBC-SHA
-      // NOT included: 0xC012 (ECDHE-RSA-3DES), 0x000A (RSA-3DES)
-    ),
-    Op::end_scope(),
-    Op::str("\x01\x00"_q),           // compression: null
-    Op::begin_scope(),               // extensions
-    Op::grease_extension(1),
-    // SNI:
-    Op::str("\x00\x00"_q),
-    Op::begin_scope(),
-    Op::begin_scope(),
-    Op::str("\x00"_q),
-    Op::begin_scope(), Op::domain(), Op::end_scope(),
-    Op::end_scope(), Op::end_scope(),
-    // Safari-specific extension permutation (no ECH, no ALPS, no MlKem768):
-    Op::permutation({
-      Op::str("\x00\x17\x00\x00"_q),  // extended_master_secret
-      Op::str("\xff\x01\x00\x01\x00"_q),  // renegotiation_info
-      // supported_groups — Safari has NO PQ group, only classical curves:
-      Op::str("\x00\x0a\x00\x08\x00\x06"_q),
-      Op::begin_scope(),
-      Op::grease(4),                  // GREASE from Grease::init() — correct
-      Op::str("\x00\x1d\x00\x17\x00\x18"_q),  // X25519, P-256, P-384 (no PQ)
-      Op::end_scope(),
-      Op::str("\x00\x0b\x00\x02\x01\x00"_q),  // ec_point_formats
-      Op::str("\x00\x23\x00\x00"_q),  // session_ticket
-      // ALPN: h2 + http/1.1
-      Op::str("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31"_q),
-      Op::str("\x00\x0d\x00\x12\x00\x10"
-              "\x04\x03\x08\x04\x04\x01\x05\x03"
-              "\x08\x05\x05\x01\x08\x06\x06\x01"_q),  // sig algs
-      Op::str("\x00\x2b\x00\x03\x02\x03\x04"_q),  // supported_versions: TLS 1.3 only
-      Op::str("\x00\x2d\x00\x02\x01\x01"_q),      // psk_key_exchange_modes
-      // key_share: X25519 only (no PQ for Safari):
-      Op::str("\x00\x33\x00\x26\x00\x24\x00\x1d\x00\x20"_q),
-      Op::random(32),
-    }),
-    // Safari: NO padding extension (padding_target = 0 in context).
-    Op::padding(),   // no-op when context.get_padding_target() == 0
-    Op::end_scope(),
-    Op::end_scope(),
-    Op::end_scope(),
-  };
-  return res;
+TEST(ProfileRegistry, SourceOfTruthIsSnapshotBacked) {
+  // Registry must expose metadata with source id (utls/capture), not ad-hoc structs.
+  for (auto p : all_profiles()) {
+    auto m = fixture_metadata(p);
+    EXPECT_FALSE(m.source_id.empty());
+    EXPECT_TRUE(m.is_verified);
+  }
 }
-```
 
-## 6.6 TDD для профилей
+TEST(ProfileRegistry, ProfileSelectionIsSticky) {
+  SelectionKey k{/*same destination + same day bucket*/};
+  MockRng rng(42);
+  auto p1 = pick_profile_sticky(default_weights(), k, rng);
+  auto p2 = pick_profile_sticky(default_weights(), k, rng);
+  EXPECT_EQ(p1, p2);
+}
 
-```cpp
-// test_browser_profiles.cpp
+TEST(ProfilePolicy, RuRouteDisablesEch) {
+  NetworkRouteHints route;
+  route.is_ru_egress = true;
+  RouteFailureState st;
+  EXPECT_EQ(ech_mode_for_route(route, st), EchMode::Disabled);
+}
 
-TEST(ProfileTest, Chrome131EchTypeIs0xFE0D) {
+TEST(ProfilePolicy, CircuitBreakerDisablesEchAfterFailures) {
+  NetworkRouteHints route;
+  route.is_ru_egress = false;
+  RouteFailureState st;
+  st.recent_ech_failures = 3;
+  EXPECT_EQ(ech_mode_for_route(route, st), EchMode::Disabled);
+}
+
+TEST(ProfileWire, Chrome131UsesFe0dNotFe02) {
   auto h = generate_header_test(BrowserProfile::Chrome131, EchMode::GreaseDraft17);
-  EXPECT_TRUE(has_extension(h, 0xFE0D)) << "ECH must use 0xFE0D (IANA correct type)";
-  EXPECT_FALSE(has_extension(h, 0xFE02)) << "Old ECH type 0xFE02 must be absent";
-}
-
-TEST(ProfileTest, RuRouteDisablesEch) {
-  auto h = generate_header_test(BrowserProfile::Chrome131, EchMode::Disabled);
-  EXPECT_FALSE(has_extension(h, 0xFE0D));
+  EXPECT_TRUE(has_extension(h, 0xFE0D));
   EXPECT_FALSE(has_extension(h, 0xFE02));
 }
 
-TEST(ProfileTest, Chrome131HasAlpsExtension) {
-  auto h = generate_header_test(BrowserProfile::Chrome131);
-  EXPECT_TRUE(has_extension(h, 0x4469)) << "ALPS must use 0x4469 (application_settings)";
-  EXPECT_FALSE(has_extension(h, 0x44CD)) << "Old ALPS code 0x44CD must be absent in Chrome131";
-}
-
-TEST(ProfileTest, Chrome131EchInnerPrefixIs5Bytes) {
-  auto h = generate_header_test(BrowserProfile::Chrome131, EchMode::GreaseDraft17);
-  auto body = extract_extension_body(h, 0xFE0D);
-  ASSERT_GE(body.size(), 5u);
-  // Prefix bytes: \x00\x00\x01\x00\x01 (outer + kdf + aead).
-  EXPECT_EQ(static_cast<uint8_t>(body[0]), 0x00u);
-  EXPECT_EQ(static_cast<uint8_t>(body[1]), 0x00u);
-  EXPECT_EQ(static_cast<uint8_t>(body[2]), 0x01u);
-  EXPECT_EQ(static_cast<uint8_t>(body[3]), 0x00u);
-  EXPECT_EQ(static_cast<uint8_t>(body[4]), 0x01u);
-}
-
-TEST(ProfileTest, Chrome131PqGroupMatchesProfileRegistry) {
-  // Проверяем согласованность с registry, а не hardcoded codepoint.
-  auto h = generate_header_test(BrowserProfile::Chrome131);
-  auto groups = extract_supported_groups(h);
-  auto expected = pq_group_for_profile(BrowserProfile::Chrome131);
-  EXPECT_TRUE(std::find(groups.begin(), groups.end(), expected) != groups.end())
-      << "Chrome131 must include PQ group from profile registry";
-  auto key_shares = extract_key_share_groups(h);
-  EXPECT_TRUE(std::find(key_shares.begin(), key_shares.end(), expected) != key_shares.end())
-      << "Chrome131 key_share must use registry PQ group";
-}
-
-TEST(ProfileTest, AllProfilesGreaseIsValidRfc8701) {
-  // GREASE values (from Grease::init) must follow RFC 8701.
-  // PQ named group (0x6399 or 0x11EC) is NOT GREASE — it must not be confused.
-  for (auto profile : {BrowserProfile::Chrome131, BrowserProfile::Chrome120,
-                        BrowserProfile::Firefox128, BrowserProfile::SafariIos17}) {
-    MockRng rng(42);
-    for (int i = 0; i < 50; i++) {
-      auto h = generate_header_test(profile, rng);
-      auto groups = extract_supported_groups(h);
-      ASSERT_FALSE(groups.empty()) << "Profile " << (int)profile << " has no groups";
-      for (auto group : groups) {
-        bool looks_grease = ((group >> 8) == (group & 0xFF));
-        if (looks_grease) {
-          uint8_t byte = group & 0xFF;
-          EXPECT_EQ((byte - 0x0A) % 0x10, 0u)
-              << "Non-standard GREASE-like value 0x" << std::hex << group
-              << " at profile " << (int)profile << " i=" << i;
-        }
-      }
-    }
+TEST(ProfileWire, PqGroupIsConsistentBetweenGroupsAndKeyShare) {
+  for (auto p : all_profiles()) {
+    auto h = generate_header_test(p);
+    EXPECT_TRUE(check_pq_group_consistency(h));
   }
 }
 
-TEST(ProfileTest, SafariHasNoPqGroup) {
-  auto h = generate_header_test(BrowserProfile::SafariIos17);
-  auto groups = extract_supported_groups(h);
-  EXPECT_FALSE(contains_any_pq_group(groups));
+TEST(ProfileWire, FixtureDrivenAssertionsNoGuesswork) {
+  for (auto p : all_profiles()) {
+    auto h = generate_header_test(p);
+    auto f = fixture_for_profile(p);
+    EXPECT_EQ(canonical_fingerprint_struct(h), f.expected_struct);
+  }
 }
 
-TEST(ProfileTest, SafariHasNoSessionIdBytes) {
-  auto h = generate_header_test(BrowserProfile::SafariIos17);
-  EXPECT_EQ(extract_session_id_length(h), 0u);
-}
-
-TEST(ProfileTest, SafariHasNo3Des) {
-  auto suites = extract_cipher_suites(generate_header_test(BrowserProfile::SafariIos17));
-  EXPECT_FALSE(contains(suites, uint16_t{0x000A}));  // RSA-3DES
-  EXPECT_FALSE(contains(suites, uint16_t{0xC012}));  // ECDHE-RSA-3DES
-}
-
-TEST(ProfileTest, FirefoxHasNo3Des) {
-  auto suites = extract_cipher_suites(generate_header_test(BrowserProfile::Firefox128));
-  EXPECT_FALSE(contains(suites, uint16_t{0x000A}));
-}
-
-TEST(ProfileTest, FirefoxTls13OrderDiffersFromChrome) {
-  // Firefox: 1301, 1303, 1302. Chrome: 1301, 1302, 1303.
-  auto ff = extract_cipher_suites(generate_header_test(BrowserProfile::Firefox128));
-  auto ch = extract_cipher_suites(generate_header_test(BrowserProfile::Chrome131));
-  auto ff_1303_pos = std::find(ff.begin(), ff.end(), uint16_t{0x1303}) - ff.begin();
-  auto ch_1303_pos = std::find(ch.begin(), ch.end(), uint16_t{0x1303}) - ch.begin();
-  EXPECT_LT(ff_1303_pos, ch_1303_pos);
-}
-
-TEST(ProfileTest, Ja3DoesNotMatchKnownTelegramHash) {
-  // Known Telegram JA3 from the captured pcap.
+TEST(ProfileWire, Ja3IsNotKnownTelegramFingerprint) {
   const string known_tg_ja3 = "e0e58235789a753608b12649376e91ec";
-  for (auto profile : {BrowserProfile::Chrome131, BrowserProfile::Chrome120,
-                        BrowserProfile::Firefox128, BrowserProfile::SafariIos17}) {
-    MockRng rng(42);
-    auto h = generate_header_test(profile, rng);
-    auto ja3 = compute_ja3(h);
-    EXPECT_NE(ja3, known_tg_ja3) << "Profile " << (int)profile
-                                  << " still matches known Telegram JA3";
+  for (auto p : all_profiles()) {
+    auto h = generate_header_test(p);
+    EXPECT_NE(compute_ja3(h), known_tg_ja3);
   }
 }
 ```
 
+## 6.10 Definition of Done для PR-2
+
+PR-2 считается готовым только если:
+
+1. Все profile-структуры строятся из snapshot-backed registry, не из ad-hoc block assembly.
+2. Profile selection sticky и platform-coherent.
+3. ECH route policy имеет RU-default-off + circuit breaker для non-RU.
+4. Все PR-2 тесты зелёные, включая fixture-driven regression checks.
+5. Нет ложных hard-assert инвариантов, не подтверждённых fixtures/captures.
+
 ---
 
-# 7. PR-3: IStreamTransport Extensions + Activation Gate + StealthConfig
+# 7. PR-3: Transport Seam + Activation Gate + StealthConfig (аудит-фикс)
 
 **Зависит от:** PR-2  
-**Исправляет:** Activation Gate (единственный if в create_transport)
+**Исправляет:** Activation Gate + минимальные transport-seams, без которых PR-4/5/6 будут некорректны в runtime
 
-## 7.1 IStreamTransport — новые virtual методы
+## 7.0 Что исправлено по аудиту PR-3
+
+1. Нельзя менять сигнатуру `create_transport` на `(int16, ProxySecret)`: в реальном коде используется `create_transport(TransportType)` и это часть текущего wiring через `RawConnection`.
+2. Нельзя «упростить» `create_transport` до always-`ObfuscatedTransport`: это сломает ветки `Tcp`/`Http`.
+3. Фиксированный `kInitialRecordSize = 1380` в PR-3 создаёт новую статическую сигнатуру; initial size должен быть sampled per-connection из policy.
+4. `StealthConfig::from_secret(..., global_rng())` — нежелательно: глобальный RNG вносит cross-connection coupling и lock contention на hot-path.
+5. `pre_flush_write/get_shaping_wakeup` как prerequisite нельзя откладывать до PR-7: без этого delayed writes могут «зависать» до внешнего socket event.
+6. Конфиг PR-3 обязан иметь валидацию границ (ring/watermarks/IPT/DRS), иначе runtime override может превратиться в DoS на клиенте.
+
+## 7.1 IStreamTransport — минимальное расширение интерфейса
 
 ```cpp
 // td/mtproto/IStreamTransport.h — добавить:
 class IStreamTransport {
  public:
   // Called by RawConnection before each flush cycle.
-  // Allows the decorator to drain the ring buffer and set record size.
   virtual void pre_flush_write(double now) {}
 
-  // Returns the next time (double seconds since epoch) at which the decorator
-  // has a pending write to deliver. 0.0 = no pending work.
+  // Next wakeup timestamp for delayed shaping writes. 0.0 = no wakeup.
   virtual double get_shaping_wakeup() const { return 0.0; }
 
-  // Sets the traffic type hint for the next write() call.
-  // Consumed once (auto-reset to Interactive after write).
+  // Consume-once hint for the next write() call.
   virtual void set_traffic_hint(stealth::TrafficHint hint) {}
 
-  // Sets the maximum TLS record payload size for the next record.
-  // Used by DrsEngine to control record sizes through the virtual interface
-  // without requiring dynamic_cast to ObfuscatedTransport.
+  // Runtime control of TLS record cap.
+  // Implemented by ObfuscatedTransport; default no-op for Tcp/Http.
   virtual void set_max_tls_record_size(int32 size) {}
+
+  // Capability guard to avoid silent no-op misuse in decorator.
+  virtual bool supports_tls_record_sizing() const { return false; }
 };
 ```
 
-## 7.2 ObfuscatedTransport — set_max_tls_record_size override
+## 7.2 ObfuscatedTransport — без изменения legacy-поведения по умолчанию
 
 ```cpp
 // td/mtproto/TcpTransport.h
 class ObfuscatedTransport final : public IStreamTransport {
  public:
-  // Primary constructor (backward-compatible).
   ObfuscatedTransport(int16 dc_id, ProxySecret secret)
-      : ObfuscatedTransport(dc_id, std::move(secret), kDefaultMaxTlsPacketLength) {}
-
-  // Extended constructor: allows DRS to set initial record size.
-  ObfuscatedTransport(int16 dc_id, ProxySecret secret, int32 max_tls_packet_length)
-      : dc_id_(dc_id), secret_(std::move(secret)),
-        impl_(secret_.use_random_padding()),
-        max_tls_packet_length_(max_tls_packet_length) {}
+      : dc_id_(dc_id), secret_(std::move(secret)), impl_(secret_.use_random_padding()) {
+  }
 
   void set_max_tls_record_size(int32 size) override {
-    // HOT PATH: no allocation. Clamped to valid TLS record payload range.
-    max_tls_packet_length_ = td::clamp(size, 512, 16384);
+    // HOT PATH: no allocation.
+    // Upper bound is TLS payload limit; lower bound avoids pathological tiny records.
+    max_tls_packet_length_ = td::clamp(size, 256, 16384);
+  }
+
+  bool supports_tls_record_sizing() const override {
+    return secret_.emulate_tls();
   }
 
  private:
-  // Default used only by the backward-compat 2-arg constructor (call sites that
-  // do not go through create_transport).  The production stealth path in
-  // create_transport() always passes kInitialRecordSize explicitly, so this
-  // default does NOT affect stealth connections.
-  // Value 1380 (≈1 MTU payload) chosen over historic 2878 so that any legacy
-  // call site starts with a sane slow-start size rather than the well-known
-  // Telegram record length.
-  static constexpr int32 kDefaultMaxTlsPacketLength = 1380;
-  int32 max_tls_packet_length_;
+  // Keep legacy default to avoid behavior regression when shaping is off.
+  static constexpr int32 MAX_TLS_PACKET_LENGTH = 2878;
+  int32 max_tls_packet_length_{MAX_TLS_PACKET_LENGTH};
 };
+
+// td/mtproto/TcpTransport.cpp
+// Обязательное условие: в do_write_tls() все обращения к MAX_TLS_PACKET_LENGTH
+// должны быть заменены на max_tls_packet_length_, иначе runtime setter будет no-op.
+// Пример: CHECK(header_.size() <= max_tls_packet_length_);
+//         slice.substr(0, max_tls_packet_length_ - header_.size());
 ```
 
-## 7.3 Activation Gate: единственный if в create_transport()
+Критично: PR-3 не должен менять дефолтную длину TLS record на фиксированный `1380` для всех соединений.
+
+## 7.3 Activation Gate — строго в существующем create_transport(TransportType)
 
 ```cpp
 // td/mtproto/IStreamTransport.cpp
 
-unique_ptr<IStreamTransport> create_transport(int16 dc_id, ProxySecret secret) {
-  auto inner = make_unique<ObfuscatedTransport>(dc_id, secret,
-                                                stealth::kInitialRecordSize);
+unique_ptr<IStreamTransport> create_transport(TransportType type) {
+  switch (type.type) {
+    case TransportType::ObfuscatedTcp: {
+      auto secret_copy = type.secret;  // keep gate decision independent from move
+      auto inner = td::make_unique<tcp::ObfuscatedTransport>(type.dc_id, std::move(type.secret));
 
-  // Stealth shaping is active ONLY when the proxy secret has the 0xEE prefix.
-  // This is the single, unconditional activation gate for all masking logic.
-  // Without emulate_tls(), Telegram works normally with no masking overhead.
 #if TDLIB_STEALTH_SHAPING
-  if (secret.emulate_tls()) {
-    auto config = stealth::StealthConfig::from_secret(secret, stealth::global_rng());
-    return make_unique<stealth::StealthTransportDecorator>(std::move(inner), config);
-  }
+      if (secret_copy.emulate_tls()) {
+        auto rng = stealth::make_connection_rng();  // per-connection RNG, not global singleton
+        auto config = stealth::StealthConfig::from_secret(secret_copy, *rng);
+        return td::make_unique<stealth::StealthTransportDecorator>(
+            std::move(inner), config, std::move(rng), stealth::make_clock());
+      }
 #endif
 
-  return inner;
+      return inner;
+    }
+    case TransportType::Tcp:
+      return td::make_unique<tcp::OldTransport>();
+    case TransportType::Http:
+      return td::make_unique<http::Transport>(type.secret.get_raw_secret().str());
+  }
+  UNREACHABLE();
 }
 ```
 
-## 7.4 StealthConfig
+Итог: «единственный activation if» остаётся, но только внутри `ObfuscatedTcp` ветки, без регрессии остальных transport type.
+
+## 7.4 PR-3 prerequisite wiring: RawConnection + SessionConnection wakeup merge
+
+Это нужно подтянуть из будущего PR-7 в PR-3 как prerequisite для PR-4/5/6.
+
+```cpp
+// td/mtproto/RawConnection.cpp
+Status flush_write() {
+  transport_->pre_flush_write(Time::now_cached());
+  TRY_RESULT(size, socket_fd_.flush_write());
+  // ...
+}
+
+double shaping_wakeup_at() const {
+  return transport_->get_shaping_wakeup();
+}
+
+// td/mtproto/SessionConnection.cpp
+double SessionConnection::flush(Callback *callback) {
+  // ...
+  relax_timeout_at(&wakeup_at, raw_connection_->shaping_wakeup_at());
+  return wakeup_at;
+}
+```
+
+Без этого `get_shaping_wakeup()` остаётся «висячим API», а отложенные записи зависят от случайных внешних wakeup-событий.
+
+## 7.5 StealthConfig — policy-driven initial size + обязательная валидация
 
 ```cpp
 // td/mtproto/stealth/StealthConfig.h
+struct RecordSizePolicy {
+  int32 slow_start_min{1200};
+  int32 slow_start_max{1460};
+};
+
 struct StealthConfig {
   BrowserProfile profile;
   PaddingPolicy padding_policy;
-  IptParams ipt_params;      // from shared submodule or runtime JSON
-  DrsWeights drs_weights;    // from shared submodule or runtime JSON
+  IptParams ipt_params;
+  DrsPolicy drs_policy;
+  RecordSizePolicy record_size_policy;
+  size_t ring_capacity{32};
+  size_t high_watermark{24};
+  size_t low_watermark{8};
 
   static StealthConfig from_secret(const ProxySecret &secret, IRng &rng);
   static StealthConfig default_config(IRng &rng);
-
-  // Override defaults from a runtime-loaded params file.
-  // Returns modified config; original is unchanged (immutable update).
   StealthConfig with_overrides(const StealthParamsOverride &overrides) const;
-};
 
-// Initial TLS record size for DRS SlowStart phase.
-// Chosen to be within 1 IP MTU (1500 bytes) minus TCP/IP/TLS headers.
-// This mimics real browser behavior at TCP slow-start.
-constexpr int32 kInitialRecordSize = 1380;
+  // Must clamp/validate every runtime-controlled field.
+  Status validate() const;
+
+  // Sampled once per connection (not constant, not per-packet).
+  int32 sample_initial_record_size(IRng &rng) const;
+};
 ```
+
+Требование по маскировке: initial record size должен быть sampled per-connection из policy/capture-backed диапазона, а не фиксирован literal-значением.
+
+## 7.6 PR-3 TDD (обязательный минимум)
+
+1. `create_transport(TransportType::Tcp|Http)` даёт те же типы транспорта, что и до PR-3.
+2. `ObfuscatedTcp + secret.emulate_tls()==false` не оборачивается в decorator.
+3. `ObfuscatedTcp + secret.emulate_tls()==true` оборачивается в decorator только при `TDLIB_STEALTH_SHAPING=ON`.
+4. `RawConnection::flush_write()` вызывает `pre_flush_write()` перед `socket_fd_.flush_write()`.
+5. `SessionConnection::flush()` включает `raw_connection_->shaping_wakeup_at()` в `wakeup_at`.
+6. `StealthConfig::validate()` отклоняет невалидные watermarks/ring bounds/DRS-IPT ranges.
 
 ---
 
 # 8. PR-4: StealthTransportDecorator
 
 **Зависит от:** PR-3  
-**Реализует:** Activation Gate, consume-once hint, ring buffer + hard backpressure
+**Реализует:** bounded ring queue, hard backpressure, consume-once hint, wakeup plumbing  
+**Не реализует:** PR-5 (реальный IPT sampler), PR-6 (DRS phases/jitter), PR-7 (TrafficClassifier wiring)
+
+## 8.0 Что исправлено в PR-4 по аудиту
+
+1. PR-4 не должен повторно «реализовывать Activation Gate»: gate уже закреплён в PR-3 внутри `create_transport(TransportType)`.
+2. Декоратор обязан полностью реализовать pure-virtual контракт `IStreamTransport` и прозрачно делегировать read-path в `inner_`.
+3. PR-4 не должен тянуть логику будущих фаз: `IptController` (PR-5) и `DrsEngine` (PR-6) заменяются на deterministic stubs в этом PR.
+4. Переполнение ring нельзя оставлять как «тихий drop». Это invariant violation: fail-closed + метрика, и НИКОГДА без обходного sync-write в `inner_`.
+5. `get_shaping_wakeup()` обязан возвращать earliest deadline очереди, иначе actor-loop не проснётся для delayed send.
 
 ## 8.1 Заголовочный файл
 
-> **⚠ Заметка о ring buffer capacity:** `ShaperRingBuffer::kDefaultCapacity` должен быть достаточным для типичного burst'а в chat-сценарии (5-10 сообщений подряд), но не слишком большим, чтобы не копить stale данные. Рекомендуется **32** (покрывает burst из ~10 MTProto-пакетов при IPT ~30ms). Слишком маленькая ёмкость (2-4) вызывает частый вход в backpressure (снижение throughput), но не должна приводить к bypass shaping. Значение конфигурируемо через `StealthConfig`.
+> **⚠ Capacity и watermark policy:** `ring_capacity/high_watermark/low_watermark` задаются из `StealthConfig` и валидируются в PR-3 (`low <= high < capacity`). Числа должны быть capture-driven (см. `docs/Samples/Traffic dumps`), а не «магией» в коде.
 
 ```cpp
 // td/mtproto/stealth/StealthTransportDecorator.h
@@ -1276,50 +1319,58 @@ namespace td::mtproto::stealth {
 class StealthTransportDecorator final : public IStreamTransport {
  public:
   StealthTransportDecorator(unique_ptr<IStreamTransport> inner,
-                             const StealthConfig &config,
-                             unique_ptr<IRng> rng,
-                             unique_ptr<IClock> clock,
-                             size_t ring_capacity = ShaperRingBuffer::kDefaultCapacity);
+                            const StealthConfig &config,
+                            unique_ptr<IRng> rng,
+                            unique_ptr<IClock> clock,
+                            size_t ring_capacity = ShaperRingBuffer::kDefaultCapacity);
   ~StealthTransportDecorator() override;
 
-  // IStreamTransport interface:
+  // Full IStreamTransport delegation contract:
+  Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override;
+  bool support_quick_ack() const override;
+  bool can_read() const override;
+  void init(ChainBufferReader *input, ChainBufferWriter *output) override;
+  size_t max_prepend_size() const override;
+  size_t max_append_size() const override;
+  TransportType get_type() const override;
+  bool use_random_padding() const override;
+
+  // Shaping hooks introduced in PR-3:
   bool can_write() const override;
   void write(BufferWriter &&message, bool quick_ack) override;
   void pre_flush_write(double now) override;
   double get_shaping_wakeup() const override;
   void set_traffic_hint(TrafficHint hint) override;
   void set_max_tls_record_size(int32 size) override;
-
-  // Test-only accessors (exposed via friend or #ifdef TDLIB_TEST):
-  DrsEngine::Phase drs_phase() const { return drs_.current_phase(); }
+  bool supports_tls_record_sizing() const override;
 
  private:
+  struct PendingWrite {
+    BufferWriter message;
+    bool quick_ack{false};
+    double send_at{0.0};
+    TrafficHint hint{TrafficHint::Unknown};
+  };
+
   unique_ptr<IStreamTransport> inner_;
   unique_ptr<IRng> rng_;
   unique_ptr<IClock> clock_;
-  IptController ipt_;
-  DrsEngine drs_;
   ShaperRingBuffer ring_;
-  double last_write_time_{0.0};
 
-  struct PendingWrite {
-    BufferWriter message;
-    bool quick_ack;
-    double send_at;
-    TrafficHint hint;
-  };
+  // PR-4 stub: constant per-connection delay = 0.
+  // Replaced by IptController in PR-5.
+  uint64 next_delay_us_stub(TrafficHint hint) const;
 
-  // Hint is consumed-once: set by set_traffic_hint(), read and reset in write().
-  // Default: Interactive. Auto-resets after each write() to prevent hint-drift.
-  TrafficHint pending_hint_{TrafficHint::Interactive};
-
-  static constexpr double kDrsIdleThresholdSec = 0.5;
   size_t high_watermark_;
   size_t low_watermark_;
+  bool backpressure_latched_{false};
+  uint64 overflow_invariant_hits_{0};
 
-  // Classifies a write by message size when no explicit hint is set.
-  // This is a fallback; explicit hints from SessionConnection take priority.
-  static TrafficHint classify_by_size(size_t bytes) noexcept;
+  // Sampled once per connection in PR-3 config path; no DRS phases yet.
+  int32 initial_record_size_;
+
+  // Consume-once semantics: reset after every write().
+  TrafficHint pending_hint_{TrafficHint::Unknown};
 };
 
 }  // namespace td::mtproto::stealth
@@ -1328,139 +1379,184 @@ class StealthTransportDecorator final : public IStreamTransport {
 ## 8.2 Реализация
 
 ```cpp
+// td/mtproto/stealth/ShaperRingBuffer.h
+class ShaperRingBuffer {
+ public:
+  static constexpr size_t kDefaultCapacity = 32;
+
+  explicit ShaperRingBuffer(size_t capacity = kDefaultCapacity);
+  bool try_enqueue(StealthTransportDecorator::PendingWrite &&item);
+
+  // Callback returns true => continue, false => stop immediately.
+  // All not-yet-drained items stay queued in original order.
+  template <class F>
+  void drain_ready(double now, F &&cb);
+
+  size_t size() const noexcept;
+  bool empty() const noexcept;
+  double earliest_deadline() const noexcept;
+};
+```
+
+```cpp
 // td/mtproto/stealth/StealthTransportDecorator.cpp
+
+Result<size_t> StealthTransportDecorator::read_next(BufferSlice *message, uint32 *quick_ack) {
+  return inner_->read_next(message, quick_ack);
+}
+
+bool StealthTransportDecorator::support_quick_ack() const {
+  return inner_->support_quick_ack();
+}
+
+bool StealthTransportDecorator::can_read() const {
+  return inner_->can_read();
+}
+
+void StealthTransportDecorator::init(ChainBufferReader *input, ChainBufferWriter *output) {
+  inner_->init(input, output);
+}
+
+size_t StealthTransportDecorator::max_prepend_size() const {
+  return inner_->max_prepend_size();
+}
+
+size_t StealthTransportDecorator::max_append_size() const {
+  return inner_->max_append_size();
+}
+
+TransportType StealthTransportDecorator::get_type() const {
+  return inner_->get_type();
+}
+
+bool StealthTransportDecorator::use_random_padding() const {
+  return inner_->use_random_padding();
+}
 
 void StealthTransportDecorator::set_traffic_hint(TrafficHint hint) {
   pending_hint_ = hint;
 }
 
 bool StealthTransportDecorator::can_write() const {
-  // Hard backpressure: never bypass shaping path on overload.
   if (!inner_->can_write()) {
     return false;
   }
-  return ring_.size() < high_watermark_;
+  return !backpressure_latched_;
+}
+
+uint64 StealthTransportDecorator::next_delay_us_stub(TrafficHint hint) const {
+  // PR-4 phase scope: do not implement IPT yet.
+  // Keepalive/Bulk/Auth are still explicit to lock the future contract.
+  switch (hint) {
+    case TrafficHint::Keepalive:
+    case TrafficHint::BulkData:
+    case TrafficHint::AuthHandshake:
+    case TrafficHint::Interactive:
+    case TrafficHint::Unknown:
+    default:
+      return 0;
+  }
 }
 
 void StealthTransportDecorator::write(BufferWriter &&message, bool quick_ack) {
-  // Consume hint once; auto-reset prevents drift across consecutive writes.
-  // If the hint was not explicitly set (Interactive default), apply size heuristic.
   auto hint = pending_hint_;
-  pending_hint_ = TrafficHint::Interactive;
+  pending_hint_ = TrafficHint::Unknown;
 
-  // Size-based fallback: overrides Interactive with Keepalive for tiny packets.
-  // Explicit BulkData hint always takes priority over size classification.
-  if (hint == TrafficHint::Interactive || hint == TrafficHint::Unknown) {
-    auto size_hint = classify_by_size(message.size());
-    if (size_hint == TrafficHint::Keepalive) hint = TrafficHint::Keepalive;
-  }
-
-  auto delay_us = ipt_.next_delay_us(!ring_.empty(), hint);
-  auto send_at = clock_->now() + static_cast<double>(delay_us) / 1e6;
+  const auto delay_us = next_delay_us_stub(hint);
+  const auto send_at = clock_->now() + static_cast<double>(delay_us) / 1e6;
   PendingWrite pw{std::move(message), quick_ack, send_at, hint};
 
-  if (ring_.try_enqueue(std::move(pw))) {
-    return;
+  if (!ring_.try_enqueue(std::move(pw))) {
+    // Invariant violation: caller ignored can_write() contract or config is invalid.
+    // Never bypass queue with direct inner_->write().
+    overflow_invariant_hits_++;
+    LOG(FATAL) << "Stealth ring overflow invariant broken";
   }
 
-  // Overload path: still NO direct write to inner_.
-  // Caller must observe can_write()==false and retry later via actor loop wakeup.
-  // This preserves both DRS and IPT invariants under burst.
-  // Optional: record a metric counter here.
+  if (ring_.size() >= high_watermark_) {
+    backpressure_latched_ = true;
+  }
+}
+
+double StealthTransportDecorator::get_shaping_wakeup() const {
+  if (ring_.empty()) {
+    return 0.0;
+  }
+  return ring_.earliest_deadline();
 }
 
 void StealthTransportDecorator::pre_flush_write(double now) {
-  // Detect idle gap: if the connection has been silent for > kDrsIdleThresholdSec,
-  // reset DRS to SlowStart. This mimics real browser behavior: a new request
-  // after a pause starts a new slow-start ramp, making record sizes consistent
-  // with observed HTTPS patterns.
-  if (last_write_time_ > 0.0 &&
-      (now - last_write_time_) > kDrsIdleThresholdSec) {
-    drs_.notify_idle();
-  }
+  ring_.drain_ready(now, [this](PendingWrite &&pw) -> bool {
+    if (!inner_->can_write()) {
+      return false;
+    }
 
-  ring_.drain_ready(now, [this, now](PendingWrite &&pw) {
-    const int32 rec_size = drs_.next_record_size(pw.hint);
-    inner_->set_max_tls_record_size(rec_size);
-    const size_t bytes = pw.message.size();
+    if (inner_->supports_tls_record_sizing()) {
+      inner_->set_max_tls_record_size(initial_record_size_);
+    }
     inner_->write(std::move(pw.message), pw.quick_ack);
-    drs_.notify_bytes_written(bytes);
-    last_write_time_ = now;
+    return true;
   });
 
-  // Hysteresis: backpressure is naturally lifted when queue drained below low watermark.
-}
-
-TrafficHint StealthTransportDecorator::classify_by_size(size_t bytes) noexcept {
-  // Keepalive/ping MTProto packets are typically very small.
-  // This catches cases where SessionConnection does not set an explicit hint.
-  if (bytes <= 64)   return TrafficHint::Keepalive;
-  if (bytes >= 4096) return TrafficHint::BulkData;
-  return TrafficHint::Interactive;
+  if (backpressure_latched_ && ring_.size() <= low_watermark_) {
+    backpressure_latched_ = false;
+  }
 }
 ```
 
-## 8.3 TDD
+## 8.3 TDD (обновлено)
 
 ```cpp
-// test_decorator.cpp
+// test/stealth/test_decorator.cpp
 
-TEST(DecoratorActivation, PassthroughWhenStealthDisabled) {
-  // Without emulate_tls(), create_transport() must return ObfuscatedTransport directly.
-  auto secret = ProxySecret::from_link("abc123");  // no 0xEE prefix
-  EXPECT_FALSE(secret.emulate_tls());
-  auto transport = create_transport(1, secret);
-  // No StealthTransportDecorator layer:
-  EXPECT_EQ(nullptr, dynamic_cast<StealthTransportDecorator*>(transport.get()));
+TEST(DecoratorContract, DelegatesReadPathToInnerTransport) {
+  auto [dec, inner] = make_test_decorator();
+  EXPECT_EQ(dec->support_quick_ack(), inner->support_quick_ack());
+  EXPECT_EQ(dec->max_prepend_size(), inner->max_prepend_size());
 }
 
-TEST(DecoratorActivation, DecoratorActiveWhenEmulatesTls) {
-  auto secret = ProxySecret::from_link("ee" + string(64, '0'));
-  EXPECT_TRUE(secret.emulate_tls());
-  auto transport = create_transport(1, secret);
-  EXPECT_NE(nullptr, dynamic_cast<StealthTransportDecorator*>(transport.get()));
-}
-
-TEST(DecoratorHint, ConsumeOnceHintAutoResets) {
-  auto [dec, inner_ptr] = make_test_decorator();
+TEST(DecoratorHint, ConsumeOnceHintResetsToUnknown) {
+  auto [dec, inner] = make_test_decorator();
   dec->set_traffic_hint(TrafficHint::Keepalive);
-  dec->write(make_test_buffer(20), false);   // consumes Keepalive
-  dec->write(make_test_buffer(500), false);  // must be Interactive (auto-reset)
+  dec->write(make_test_buffer(64), false);
+  dec->write(make_test_buffer(64), false);
 
-  // First write: delay = 0 (Keepalive bypass).
-  // Second write: delay > 0 (Interactive, not leaked Keepalive).
-  // Verify via ring buffer: second write's send_at > clock.now():
-  EXPECT_GT(inner_ptr->writes[1].scheduled_delay_us, 0u);
+  ASSERT_EQ(inner->queued_hints.size(), 2u);
+  EXPECT_EQ(inner->queued_hints[0], TrafficHint::Keepalive);
+  EXPECT_EQ(inner->queued_hints[1], TrafficHint::Unknown);
 }
 
-TEST(DecoratorBackpressure, CanWriteTurnsFalseAtHighWatermark) {
-  auto [dec, inner_ptr] = make_test_decorator(/*ring_capacity=*/2);
-  dec->write(make_test_buffer(100), false);  // fills ring[0]
-  dec->write(make_test_buffer(100), false);  // fills ring[1]
+TEST(DecoratorBackpressure, LatchesAtHighAndReleasesAtLow) {
+  auto [dec, _] = make_test_decorator(/*capacity=*/8, /*high=*/6, /*low=*/2);
+  enqueue_n(*dec, 6);
   EXPECT_FALSE(dec->can_write());
+
+  drain_until_size(*dec, 2);
+  EXPECT_TRUE(dec->can_write());
 }
 
-TEST(DecoratorBackpressure, OverflowNeverWritesInnerSynchronously) {
-  auto [dec, inner_ptr] = make_test_decorator(/*ring_capacity=*/2);
-  dec->write(make_test_buffer(100), false);
-  dec->write(make_test_buffer(100), false);
-  dec->write(make_test_buffer(100), false);  // overload path
-
-  // No direct write bypass is allowed.
-  EXPECT_TRUE(inner_ptr->writes.empty());
+TEST(DecoratorWakeup, ReturnsEarliestDeadlineFromRing) {
+  auto [dec, _] = make_test_decorator_with_clock();
+  dec->set_traffic_hint(TrafficHint::Interactive);
+  dec->write(make_test_buffer(256), false);
+  EXPECT_GT(dec->get_shaping_wakeup(), 0.0);
 }
 
-TEST(DecoratorDrsIdle, ResetsToSlowStartAfterIdleGap) {
-  MockClock clock;
-  auto [dec, _] = make_test_decorator_with_clock(clock);
-  drive_drs_to_steady_state(*dec, clock);
-  EXPECT_EQ(dec->drs_phase(), DrsEngine::Phase::SteadyState);
-
-  clock.advance(kDrsIdleThresholdSec + 0.01);
-  dec->pre_flush_write(clock.now());
-  EXPECT_EQ(dec->drs_phase(), DrsEngine::Phase::SlowStart);
+TEST(DecoratorSafety, OverflowNeverBypassesInnerWrite) {
+  auto [dec, inner] = make_test_decorator(/*capacity=*/2, /*high=*/2, /*low=*/1);
+  enqueue_n(*dec, 2);
+  EXPECT_FALSE(dec->can_write());
+  EXPECT_TRUE(inner->sync_bypass_write_happened == false);
 }
 ```
+
+## 8.4 Scope guard между PR-4/5/6/7
+
+1. Activation tests остаются в PR-3 (там же проверяется реальный `create_transport(TransportType)` и `ProxySecret::emulate_tls()` gate).
+2. IPT-distribution тесты (`log-normal`, `Markov`, keepalive bypass по delay) остаются в PR-5.
+3. DRS phase/reset/jitter тесты остаются в PR-6.
+4. Полноценный classifier (`bytes -> hint`) переносится в PR-7 и должен быть capture-driven, а не фиксированными порогами из головы. В PR-5 fallback ограничен правилом `Unknown -> Interactive`.
+5. В PR-4 допускаются только deterministic stubs, чтобы собрать безопасный skeleton без phase leakage.
 
 ---
 
@@ -1468,6 +1564,13 @@ TEST(DecoratorDrsIdle, ResetsToSlowStartAfterIdleGap) {
 
 **Зависит от:** PR-4  
 **Исправляет:** S12 (равномерный IPT), S14 (keepalive delay)
+
+## 9.0 Границы PR-5 (важно для anti-fingerprint)
+
+- PR-5 реализует только sampling/scheduling inter-packet delay для уже готового decorator-path.
+- PR-5 не меняет TLS handshake-профили (ECH/ALPS/PQ) и не вводит QUIC/UDP поведение.
+- PR-5 не должен блокировать event-loop: никаких `sleep`/busy-wait в hot path, только расчёт deadline и wakeup через существующий plumbing.
+- До PR-7 действует консервативное правило: `TrafficHint::Unknown -> Interactive`.
 
 ## 9.1 TrafficHint
 
@@ -1477,7 +1580,7 @@ enum class TrafficHint : uint8_t {
   Unknown      = 0,
   Interactive  = 1,  // Chat messages, API calls — log-normal delay
   BulkData     = 2,  // File/media transfer — drain immediately
-  Keepalive    = 3,  // MTProto PING — bypass IPT (critical: avoid 28s disconnect)
+  Keepalive    = 3,  // MTProto PING — bypass IPT (must not be delayed by shaper)
   AuthHandshake= 4,  // First ~3 packets after connect — drain immediately
 };
 ```
@@ -1487,19 +1590,18 @@ enum class TrafficHint : uint8_t {
 ```cpp
 // telemt-stealth-params/params.h (синхронизирован с telemt)
 struct IptParams {
-  // Log-normal parameters for Burst state: μ=3.5 → median ~33ms, realistic HTTP think time.
+  // Log-normal parameters for Burst state: μ=3.5 -> median ~33ms.
+  // Значения обязаны быть capture-driven и переопределяемыми через PR-8.
   double burst_mu_ms    = 3.5;
   double burst_sigma    = 0.8;
-  double burst_max_ms   = 200.0;  // hard cap: never exceed ping_disconnect_delay / 140
+  double burst_max_ms   = 200.0;  // safety cap for Interactive traffic only
 
-  // Pareto parameters for Idle state inter-request delays.
-  // ⚠ Выбор Pareto: heavy tail создаёт реалистичные длинные паузы между запросами.
-  // Альтернативы: exponential (слишком "ровный"), Weibull (хорош для modeling browse time).
-  // Pareto с alpha=1.5 даёт P(X > 3s) ≈ 6%, что соответствует наблюдениям за real user idle.
-  // При необходимости (если ML-модель ТСПУ настроена на Pareto-тесты) — заменяемо через PR-8 JSON.
+  // Truncated Pareto parameters for Idle state inter-request delays.
+  // Важно: используем именно Truncated Pareto sampling, а не clamp после sample,
+  // чтобы не создавать искусственный пик на idle_max_ms.
   double idle_alpha     = 1.5;
-  double idle_scale_ms  = 500.0;
-  double idle_max_ms    = 3000.0;  // hard cap: 99.9th percentile << 28s disconnect
+  double idle_scale_ms  = 500.0;   // xm (minimum of Pareto support)
+  double idle_max_ms    = 3000.0;  // upper bound of truncated support
 
   // Markov transition probabilities.
   double p_burst_stay    = 0.95;
@@ -1530,17 +1632,18 @@ class IptController {
   IRng &rng_;
   MarkovState state_{Idle{}};
 
-  // Box-Muller log-normal sampler (no std::lognormal_distribution dependency).
+  // Samplers are deterministic under IRng in tests.
   double sample_lognormal(double mu, double sigma);
+  double sample_truncated_pareto(double u, double alpha, double xm, double xmax);
+  static bool is_bypass_hint(TrafficHint hint);
+  static TrafficHint normalize_hint(TrafficHint hint);
   MarkovState transition(bool has_pending);
 };
 
 uint64_t IptController::next_delay_us(bool has_pending_data, TrafficHint hint) {
-  // Bypass path: must be first check, minimal latency for keepalive packets.
-  // Critical: if keepalive is delayed, MTProto session disconnects at 28s.
-  if (hint == TrafficHint::Keepalive    ||
-      hint == TrafficHint::BulkData     ||
-      hint == TrafficHint::AuthHandshake) {
+  // Bypass path must run first.
+  hint = normalize_hint(hint);
+  if (is_bypass_hint(hint)) {
     return 0;
   }
 
@@ -1554,15 +1657,36 @@ uint64_t IptController::next_delay_us(bool has_pending_data, TrafficHint hint) {
       return static_cast<uint64_t>(delay_ms * 1000.0);
     } else {
       if (!has_pending_data) return 0;
-      // Pareto-distributed idle delay via inverse CDF.
+      // Truncated Pareto via inverse CDF on bounded support [xm, xmax].
+      // This avoids a detector-visible spike at xmax (unlike post-sample clamp).
       double u = static_cast<double>(rng_.next_u32()) / 4294967296.0;
-      u = std::max(u, 1e-9);  // Avoid zero-probability edge in inverse CDF.
-      double delay_ms = params_.idle_scale_ms *
-                        std::pow(u, -1.0 / params_.idle_alpha);
-      delay_ms = std::min(delay_ms, params_.idle_max_ms);
+      u = td::clamp(u, 1e-9, 1.0 - 1e-9);
+      double delay_ms = sample_truncated_pareto(u,
+                                                params_.idle_alpha,
+                                                params_.idle_scale_ms,
+                                                params_.idle_max_ms);
       return static_cast<uint64_t>(delay_ms * 1000.0);
     }
   }, state_);
+}
+
+bool IptController::is_bypass_hint(TrafficHint hint) {
+  return hint == TrafficHint::Keepalive ||
+         hint == TrafficHint::BulkData ||
+         hint == TrafficHint::AuthHandshake;
+}
+
+TrafficHint IptController::normalize_hint(TrafficHint hint) {
+  // До появления classifier wiring (PR-7) не выделяем Unknown в отдельный класс.
+  return hint == TrafficHint::Unknown ? TrafficHint::Interactive : hint;
+}
+
+double IptController::sample_truncated_pareto(double u, double alpha, double xm, double xmax) {
+  // Inverse CDF on bounded support [xm, xmax], without post-sample hard clamp.
+  const double f_xmax = 1.0 - std::pow(xm / xmax, alpha);
+  const double u_scaled = u * f_xmax;
+  const double u_safe = td::clamp(u_scaled, 0.0, 1.0 - 1e-9);
+  return xm / std::pow(1.0 - u_safe, 1.0 / alpha);
 }
 ```
 
@@ -1578,13 +1702,22 @@ TEST(IptController, KeepaliveBypassesDelayInBurstState) {
   EXPECT_EQ(ipt.next_delay_us(true, TrafficHint::Keepalive), 0u);
 }
 
-TEST(IptController, NoDelayExceeds28SecondDisconnectTimeout) {
+TEST(IptController, UnknownFallsBackToInteractiveBeforePr7Classifier) {
+  MockRng rng(123);
+  IptController ipt(IptParams{}, rng);
+  // Unknown не должен автоматически bypass-иться.
+  auto d = ipt.next_delay_us(true, TrafficHint::Unknown);
+  EXPECT_GT(d, 0u);
+}
+
+TEST(IptController, InteractiveDelayAlwaysRespectsConfiguredUpperBounds) {
   MockRng rng(0);
+  IptParams p;
   IptController ipt(IptParams{}, rng);
   for (int i = 0; i < 100000; i++) {
     auto delay = ipt.next_delay_us(true, TrafficHint::Interactive);
-    EXPECT_LT(delay, 28'000'000u)
-        << "Delay " << delay << "us at i=" << i << " would cause disconnect";
+    const auto upper_us = static_cast<uint64_t>(std::max(p.burst_max_ms, p.idle_max_ms) * 1000.0);
+    EXPECT_LE(delay, upper_us) << "Configured delay upper bound violated at i=" << i;
   }
 }
 
@@ -1603,302 +1736,442 @@ TEST(IptController, DelayDistributionIsLogNormal) {
   // K-S test against log-normal: p-value must be > 0.01.
   EXPECT_GT(kolmogorov_smirnov_lognormal_pvalue(samples, 3.5, 0.8), 0.01);
 }
+
+TEST(IptController, TruncatedParetoHasNoHardCapSpike) {
+  MockRng rng(9);
+  IptParams p;
+  IptController ipt(p, rng);
+
+  std::vector<uint64_t> idle;
+  for (int i = 0; i < 20000; i++) {
+    auto d = ipt.next_delay_us(true, TrafficHint::Interactive);
+    if (d > 0) {
+      idle.push_back(d);
+    }
+  }
+
+  // Quality gate: no detector-visible pile-up exactly at idle_max.
+  const uint64_t hard_cap_us = static_cast<uint64_t>(p.idle_max_ms * 1000.0);
+  const size_t at_cap = std::count(idle.begin(), idle.end(), hard_cap_us);
+  EXPECT_LT(at_cap, idle.size() / 100);
+}
 ```
 
 ---
 
-# 10. PR-6: DRS — Dynamic Record Sizing с Jitter
+# 10. PR-6: DRS — Capture-Driven Dynamic Record Sizing
 
-**Зависит от:** PR-4  
-**Исправляет:** S5 (статическое 2878), S13 (механистичные размеры без jitter)
+**Зависит от:** PR-3 (runtime record cap seam), PR-4 (decorator/ring), совместим с PR-5 hint-контрактом  
+**Исправляет:** S5 (static 2878), S13 (механистичный sizing), плюс снижает риск новых DRS-сигнатур
 
-## 10.1 DrsWeights (shared submodule)
+## 10.1 Аудит PR-6 V6: что было рискованно
+
+1. Модель `3 фиксированных target + uniform ±10%` сама становится ML-сигнатурой.
+2. DRS через один только `set_max_tls_record_size()` не может «вырастить» записи, если очереди не коалесцируются в более крупные write-batch.
+3. Не учитывался current-wire overhead первого TLS write (`header_` + first TLS marker), поэтому target/реальный on-wire size расходятся.
+4. Жёсткий инвариант «2878 никогда» слишком хрупкий: детект идёт по доминанте/сериям, а не по одному значению.
+5. Fixed idle-reset threshold `500ms` даёт sawtooth-паттерн; threshold должен быть profile/capture-driven.
+
+## 10.2 Принцип PR-6: profile-driven distribution, а не uniform jitter
+
+Источник параметров для DRS:
+
+- baseline captures из `docs/Samples/Traffic dumps/*.pcap*`;
+- совместимые snapshot-профили из `docs/Samples/utls-code`;
+- ограничения wire-слоя текущего `ObfuscatedTransport` (`MAX_TLS_PACKET_LENGTH`, first-record behavior).
+
+DRS policy хранит не «один target на фазу», а эмпирические бины размеров с весами.
 
 ```cpp
 // telemt-stealth-params/params.h
-struct DrsWeights {
-  // Phase target sizes (before jitter).
-  int32 slow_start_size    = 1380;   // ~1 MTU payload
-  int32 congestion_size    = 4096;   // ~3 MTU payloads
-  int32 steady_state_size  = 16384;  // max TLS record
+struct RecordSizeBin {
+  int32 lo;      // inclusive
+  int32 hi;      // inclusive
+  uint16 weight; // >0
+};
 
-  // Phase transition thresholds.
-  int32 slow_start_records = 4;      // records before → CongestionOpen
-  int32 congestion_bytes   = 32768;  // bytes before → SteadyState
+struct DrsPhaseModel {
+  vector<RecordSizeBin> bins;   // capture-driven histogram buckets
+  int32 max_repeat_run = 4;     // anti-mechanical run cap
+  int32 local_jitter = 24;      // fine jitter inside bin (bytes)
+};
 
-  // Jitter factor (±fraction). 0.10 = ±10%.
-  // Makes record sizes non-mechanical; harder for ML classifiers.
-  double jitter_fraction = 0.10;
+struct DrsPolicy {
+  DrsPhaseModel slow_start;
+  DrsPhaseModel congestion_open;
+  DrsPhaseModel steady_state;
+
+  int32 slow_start_records = 4;
+  int32 congestion_bytes = 32768;
+
+  // Idle reset is sampled per connection from this range (not fixed 500ms).
+  int32 idle_reset_ms_min = 250;
+  int32 idle_reset_ms_max = 1200;
+
+  // Hard bounds for payload cap in current transport implementation.
+  int32 min_payload_cap = 900;
+  int32 max_payload_cap = 16384;
 };
 ```
 
-## 10.2 DrsEngine с jitter
+Критичные правила:
+
+- выбор размера идёт из weighted bins + локальный jitter, но с anti-repeat guard;
+- `BulkData` может форсировать steady-state фазу, но не bypass-ит bounds/validation;
+- если профиль в handshake объявляет `record_size_limit`, DRS обязан уважать этот верхний предел;
+- policy валидируется в PR-3 `StealthConfig::validate()` (границы, суммы весов, пустые bins, min<=max).
+
+## 10.3 DrsEngine (исправленный контракт)
 
 ```cpp
 // td/mtproto/stealth/DrsEngine.h
-
 class DrsEngine {
  public:
   enum class Phase { SlowStart, CongestionOpen, SteadyState };
 
-  explicit DrsEngine(const DrsWeights &weights, IRng &rng);
+  DrsEngine(const DrsPolicy &policy, IRng &rng);
 
-  // Returns next record size with ±jitter applied.
-  // BulkData hint → SteadyState size immediately.
-  int32 next_record_size(TrafficHint hint);
+  // Returns payload cap for next flush-batch.
+  int32 next_payload_cap(TrafficHint hint);
 
+  // Called with ACTUAL bytes written to inner transport in this flush batch.
   void notify_bytes_written(size_t bytes);
 
-  // Called when idle gap detected (> kDrsIdleThresholdSec).
-  // Resets to SlowStart; next connection-burst ramps up again.
+  // Called when elapsed idle exceeds sampled threshold for this connection.
   void notify_idle();
 
   Phase current_phase() const noexcept { return phase_; }
 
  private:
-  DrsWeights weights_;
+  const DrsPolicy policy_;
   IRng &rng_;
+
   Phase phase_{Phase::SlowStart};
   size_t records_in_phase_{0};
   size_t bytes_in_phase_{0};
 
-  // Applies ±jitter_fraction to a target size.
-  // Result is clamped to [512, 16384] (valid TLS record payload range).
-  int32 apply_jitter(int32 target) noexcept;
+  int32 sampled_idle_reset_ms_{0};
+  int32 last_cap_{-1};
+  int32 last_cap_run_{0};
+
+  int32 sample_from_phase(const DrsPhaseModel &m) noexcept;
   void maybe_advance_phase();
 };
+```
 
-int32 DrsEngine::next_record_size(TrafficHint hint) {
-  if (hint == TrafficHint::BulkData) {
-    return apply_jitter(weights_.steady_state_size);
-  }
-  int32 target;
-  switch (phase_) {
-    case Phase::SlowStart:     target = weights_.slow_start_size;   break;
-    case Phase::CongestionOpen:target = weights_.congestion_size;   break;
-    case Phase::SteadyState:   target = weights_.steady_state_size; break;
-    default: UNREACHABLE();
-  }
-  return apply_jitter(target);
-}
+## 10.4 Интеграция в decorator: обязательно с flush-batch coalescing
 
-int32 DrsEngine::apply_jitter(int32 target) noexcept {
-  // Uniform jitter in [-jitter_fraction, +jitter_fraction].
-  // jitter_fraction = 0.10 → ±10% of target.
-  auto max_delta = static_cast<int32>(target * weights_.jitter_fraction);
-  if (max_delta == 0) return target;
-  auto range = static_cast<uint32_t>(2 * max_delta + 1);
-  int32 delta = static_cast<int32>(rng_.bounded(range)) - max_delta;
-  return td::clamp(target + delta, 512, 16384);
-}
+Без batching DRS почти не влияет на короткие MTProto сообщения. Поэтому PR-6 обязан расширить drain-путь:
 
-void DrsEngine::notify_bytes_written(size_t bytes) {
-  records_in_phase_++;
-  bytes_in_phase_ += bytes;
-  maybe_advance_phase();
-}
+```cpp
+void StealthTransportDecorator::pre_flush_write(double now) {
+  maybe_reset_drs_on_idle(now);  // uses sampled per-connection threshold
 
-void DrsEngine::notify_idle() {
-  phase_ = Phase::SlowStart;
-  records_in_phase_ = 0;
-  bytes_in_phase_ = 0;
-}
+  ring_.drain_ready(now, [this](PendingWrite &&first) -> bool {
+    if (!inner_->can_write()) {
+      return false;
+    }
 
-void DrsEngine::maybe_advance_phase() {
-  switch (phase_) {
-    case Phase::SlowStart:
-      if (records_in_phase_ >= static_cast<size_t>(weights_.slow_start_records)) {
-        phase_ = Phase::CongestionOpen;
-        records_in_phase_ = 0;
-        bytes_in_phase_ = 0;
-      }
-      break;
-    case Phase::CongestionOpen:
-      if (bytes_in_phase_ >= static_cast<size_t>(weights_.congestion_bytes)) {
-        phase_ = Phase::SteadyState;
-        records_in_phase_ = 0;
-        bytes_in_phase_ = 0;
-      }
-      break;
-    case Phase::SteadyState:
-      break;
+    const auto hint = normalize_hint(first.hint);
+    const int32 payload_cap = drs_.next_payload_cap(hint);
+
+    // Account for current transport overhead on the first TLS write.
+    const int32 effective_cap = adjust_cap_for_first_tls_write(payload_cap);
+    inner_->set_max_tls_record_size(effective_cap);
+
+    // Build one flush batch up to effective_cap or short deadline.
+    BatchBuilder batch(effective_cap);
+    batch.push(std::move(first));
+    ring_.pop_ready_while(now, [&batch](const PendingWrite &pw) {
+      return batch.can_append(pw);
+    }, [&batch](PendingWrite &&pw) {
+      batch.append(std::move(pw));
+    });
+
+    size_t written = 0;
+    for (auto &item : batch.items()) {
+      written += item.message.size();
+      inner_->write(std::move(item.message), item.quick_ack);
+    }
+    drs_.notify_bytes_written(written);
+    return true;
+  });
+
+  if (backpressure_latched_ && ring_.size() <= low_watermark_) {
+    backpressure_latched_ = false;
   }
 }
 ```
 
-## 10.3 TDD для DRS
+Важно: `BatchBuilder` не должен нарушать порядок пакетов и quick-ack semantics.
+
+Минимальный контракт `BatchBuilder` (чтобы не было несовместимых ad-hoc реализаций):
 
 ```cpp
-TEST(DrsEngine, PhasesProgressCorrectly) {
+class BatchBuilder {
+ public:
+  explicit BatchBuilder(int32 cap);
+  void push(StealthTransportDecorator::PendingWrite &&first);
+  bool can_append(const StealthTransportDecorator::PendingWrite &pw) const;
+  void append(StealthTransportDecorator::PendingWrite &&pw);
+  vector<StealthTransportDecorator::PendingWrite> &items();
+
+ private:
+  int32 remaining_cap_;
+  vector<StealthTransportDecorator::PendingWrite> items_;
+};
+```
+
+## 10.5 TDD для PR-6 (исправленный)
+
+```cpp
+TEST(DrsEngine, AdvancesPhaseByRealWrittenBytes) {
   MockRng rng(1);
-  DrsWeights w;
-  DrsEngine drs(w, rng);
-  EXPECT_EQ(drs.current_phase(), DrsEngine::Phase::SlowStart);
-  for (int i = 0; i < w.slow_start_records; i++) {
-    drs.next_record_size(TrafficHint::Interactive);
-    drs.notify_bytes_written(1380);
+  DrsPolicy p = make_test_policy();
+  DrsEngine drs(p, rng);
+
+  for (int i = 0; i < p.slow_start_records; i++) {
+    drs.next_payload_cap(TrafficHint::Interactive);
+    drs.notify_bytes_written(1300);
   }
   EXPECT_EQ(drs.current_phase(), DrsEngine::Phase::CongestionOpen);
-  drs.notify_bytes_written(w.congestion_bytes);
+
+  drs.notify_bytes_written(p.congestion_bytes);
   EXPECT_EQ(drs.current_phase(), DrsEngine::Phase::SteadyState);
 }
 
-TEST(DrsEngine, JitterMakesRecordSizesNonConstant) {
+TEST(DrsEngine, DistributionNotUniformAndNotSingleValue) {
   MockRng rng(42);
-  DrsWeights w;
-  DrsEngine drs(w, rng);
-  std::set<int32> sizes;
-  for (int i = 0; i < 100; i++) {
-    sizes.insert(drs.next_record_size(TrafficHint::Interactive));
-  }
-  // With 10% jitter on 1380 target: range [1242, 1518].
-  // Must see ≥3 different sizes in 100 draws.
-  EXPECT_GE(sizes.size(), 3u);
+  DrsPolicy p = make_test_policy();
+  DrsEngine drs(p, rng);
+
+  auto series = sample_caps(drs, 2000);
+  EXPECT_TRUE(has_multiple_modes(series));
+  EXPECT_LT(max_repeat_run(series), 6);
 }
 
-TEST(DrsEngine, JitterBoundsAreRespected) {
-  MockRng rng(7);
-  DrsWeights w;
-  DrsEngine drs(w, rng);
-  for (int i = 0; i < 1000; i++) {
-    int32 sz = drs.next_record_size(TrafficHint::Interactive);
-    EXPECT_GE(sz, 512);
-    EXPECT_LE(sz, 16384);
-  }
+TEST(DrsEngine, IdleResetThresholdIsSampledPerConnection) {
+  MockRng rngA(7), rngB(8);
+  DrsPolicy p = make_test_policy();
+  DrsEngine a(p, rngA), b(p, rngB);
+
+  EXPECT_NE(a.debug_idle_reset_ms(), b.debug_idle_reset_ms());
 }
 
-TEST(DrsEngine, IdleResetsToSlowStart) {
-  MockRng rng(1);
-  DrsWeights w;
-  DrsEngine drs(w, rng);
-  // Drive to SteadyState:
-  for (int i = 0; i < w.slow_start_records; i++) drs.notify_bytes_written(1380);
-  drs.notify_bytes_written(w.congestion_bytes);
-  ASSERT_EQ(drs.current_phase(), DrsEngine::Phase::SteadyState);
-  // Idle reset:
-  drs.notify_idle();
-  EXPECT_EQ(drs.current_phase(), DrsEngine::Phase::SlowStart);
+TEST(DecoratorDrs, CoalescingMakesCapObservableOnWire) {
+  auto [dec, inner] = make_test_decorator_with_drs();
+  enqueue_small_burst(*dec, /*count=*/8, /*payload=*/300);
+  dec->pre_flush_write(mock_now());
+  EXPECT_TRUE(inner->saw_multi_message_flush_batch());
 }
 
-TEST(DrsEngine, RecordSizeNotFixedTo2878Signature) {
-  MockRng rng(42);
-  DrsWeights w;
-  DrsEngine drs(w, rng);
-  std::set<int32> seen;
-  for (int i = 0; i < 500; i++) {
-    int32 sz = drs.next_record_size(TrafficHint::Interactive);
-    drs.notify_bytes_written(sz);
-    seen.insert(sz);
-    // Strict invariant: 2878 is the known Telegram signature and must never
-    // appear.  With default DrsWeights, jitter ranges are [1242,1518],
-    // [3687,4505], and [14746,16384] — none overlap 2878.  If this fires,
-    // DRS weights were changed to a range that accidentally re-introduces the
-    // Telegram fingerprint.
-    EXPECT_NE(sz, 2878) << "Telegram-signature record size 2878 at i=" << i;
-  }
-  // Distribution invariant: DRS must produce variety, not a fixed size.
-  EXPECT_GT(seen.size(), 3u);
+TEST(DecoratorDrs, FirstTlsWriteOverheadCompensationApplied) {
+  auto [dec, inner] = make_test_decorator_with_drs();
+  dec->write(make_test_buffer(1200), false);
+  dec->pre_flush_write(mock_now());
+  EXPECT_TRUE(inner->last_cap_was_adjusted_for_tls_preamble());
+}
+
+TEST(DrsRegression, Legacy2878IsNotDominantMode) {
+  MockRng rng(9);
+  DrsPolicy p = make_test_policy();
+  DrsEngine drs(p, rng);
+  auto series = sample_caps(drs, 5000);
+
+  // Detector-relevant invariant: 2878 must not dominate distribution.
+  EXPECT_LT(mode_share(series, 2878), 0.05);
 }
 ```
+
+## 10.6 Definition of Done для PR-6
+
+PR-6 готов только если:
+
+1. DRS policy capture-driven и profile-aware, без fixed uniform-jitter-only модели.
+2. Decorator реализует batching/coalescing, иначе DRS не является наблюдаемым на wire.
+3. Учтён first TLS write overhead при вычислении effective payload cap.
+4. Idle reset threshold sampled per-connection (в пределах policy), не fixed 500ms.
+5. Smoke/diff проверки подтверждают отсутствие доминирующей сигнатуры 2878 и отсутствие длинных константных run.
+6. Конфиг проходит валидацию границ/весов и не позволяет DoS-параметры.
+
+Операционная заметка: для RU-направлений стратегия остаётся TCP+TLS only; PR-6 не должен добавлять QUIC-имитацию.
 
 ---
 
-# 11. PR-7: TrafficClassifier + SessionConnection Wiring
+# 11. PR-7: TrafficClassifier + Correct Wiring (Session/Raw/Handshake)
 
-**Зависит от:** PR-4  
+**Зависит от:** PR-3, PR-5  
 **Исправляет:** S14 (keepalive), S15 (auth handshake delay)
 
-## 11.1 SessionConnection изменения
+## 11.0 Аудит PR-7 (исправления после сверки с реальным кодом)
+
+Текущий текст PR-7 в V6 имел несколько архитектурно неверных предпосылок:
+
+1. В `SessionConnection` нет `start_auth()`, `do_loop()` и поля `connection_`; это невалидные точки интеграции для hint wiring.
+2. `flush_packet()` в реальном коде не использует `flush_msg_id_` и не имеет `is_keepalive_message(...)`; keepalive-сигнал формируется через локальный `ping_id`.
+3. Начальный MTProto auth-key handshake (`req_pq -> req_DH_params -> set_client_DH_params`) идёт через `HandshakeConnection::send_no_crypto()`, а не через `SessionConnection`.
+4. Правило "первые 3 packet в SessionConnection = AuthHandshake" некорректно: это смешивает pre-auth и post-auth этапы.
+
+Следствие: PR-7 обязан делать wiring на реальных write-точках (`RawConnection::send_no_crypto` и `RawConnection::send_crypto`), а `SessionConnection` должен только классифицировать свой `flush_packet()` контекст.
+
+Отдельная guardrail-поправка из `docs/Samples/xray-core-code`: не переносить sudoku/finalmask byte-markers в MTProto ciphertext. Для TDLib-маскировки классификатор должен управлять **только timing/record policy**, без payload tampering.
+
+## 11.1 Корректные точки интеграции
 
 ```cpp
-// td/mtproto/SessionConnection.h — добавить:
-class SessionConnection {
-  // ...
- private:
-  int32 auth_packets_remaining_{0};  // drain auth packets immediately
-};
+// td/mtproto/RawConnection.h
+// PR-7: добавить hint в write-path API.
+virtual size_t send_crypto(const Storer &storer,
+                           uint64 session_id,
+                           int64 salt,
+                           const AuthKey &auth_key,
+                           uint64 quick_ack_token,
+                           stealth::TrafficHint hint = stealth::TrafficHint::Interactive) = 0;
 
+virtual void send_no_crypto(const Storer &storer,
+                            stealth::TrafficHint hint = stealth::TrafficHint::AuthHandshake) = 0;
+```
+
+```cpp
+// td/mtproto/RawConnection.cpp (RawConnectionDefault)
+size_t send_crypto(..., uint64 quick_ack_token, stealth::TrafficHint hint) final {
+  // ... packet build ...
+  transport_->set_traffic_hint(hint);
+  transport_->write(std::move(packet), use_quick_ack);
+  return packet_size;
+}
+
+void send_no_crypto(const Storer &storer,
+                    stealth::TrafficHint hint = stealth::TrafficHint::AuthHandshake) final {
+  // ... packet build ...
+  transport_->set_traffic_hint(hint);
+  transport_->write(std::move(packet), false);
+}
+```
+
+Комментарий:
+- Для `HandshakeConnection` и `PingConnectionReqPQ` дополнительных вызовов не нужно: они уже идут через `send_no_crypto(...)` и автоматически получают `AuthHandshake` hint.
+- Это убирает ложную зависимость от несуществующих методов `SessionConnection::start_auth/do_loop`.
+
+## 11.2 TrafficClassifier в SessionConnection (metadata-only)
+
+Классификатор должен работать только на локальной мета-информации `flush_packet()` и не читать payload:
+
+```cpp
 // td/mtproto/SessionConnection.cpp
-
-void SessionConnection::start_auth() {
-  // Signal decorator to drain the initial MTProto auth exchange immediately.
-  // If this is delayed by IPT, the auth round-trip time increases and the
-  // connection setup looks anomalous compared to real HTTPS.
-  if (connection_) {
-    connection_->set_traffic_hint(stealth::TrafficHint::AuthHandshake);
-    auth_packets_remaining_ = 3;
+static stealth::TrafficHint classify_hint(bool has_salt,
+                                          int64 ping_id,
+                                          size_t query_count,
+                                          size_t query_bytes,
+                                          size_t ack_count,
+                                          bool has_service_queries,
+                                          bool destroy_auth_key,
+                                          size_t bulk_threshold_bytes) noexcept {
+  // Bootstrap/control path before stable session state.
+  if (!has_salt) {
+    return stealth::TrafficHint::AuthHandshake;
   }
-}
 
-void SessionConnection::do_loop() {
-  // ... existing code ...
-
-  // Schedule wakeup for the shaper ring drain.
-  auto wakeup_at = connection_->get_shaping_wakeup();
-  if (wakeup_at > 0.0) {
-    relax_timeout_at(wakeup_at);
+  // Keepalive only for pure control packets.
+  const bool has_user_queries = query_count > 0;
+  const bool pure_control = !has_user_queries && !has_service_queries && !destroy_auth_key;
+  if (pure_control && (ping_id != 0 || ack_count > 0)) {
+    return stealth::TrafficHint::Keepalive;
   }
-}
 
-void SessionConnection::flush_packet() {
-  // Set traffic hint before each packet write.
-  // Explicit hints take priority over size-based classification in the decorator.
-  if (auth_packets_remaining_ > 0) {
-    connection_->set_traffic_hint(stealth::TrafficHint::AuthHandshake);
-    --auth_packets_remaining_;
-  } else if (is_keepalive_message(flush_msg_id_)) {
-    connection_->set_traffic_hint(stealth::TrafficHint::Keepalive);
+  // Prevent false bypass: mixed packet with ping + user data is not Keepalive.
+  if (has_user_queries && query_bytes >= bulk_threshold_bytes) {
+    return stealth::TrafficHint::BulkData;
   }
-  // No else: decorator's size heuristic handles the rest.
-  // (Large packets → BulkData, small packets → Keepalive, medium → Interactive)
 
-  // ... existing flush logic ...
+  return stealth::TrafficHint::Interactive;
 }
 ```
 
-## 11.2 RawConnection изменения
+Обязательные инварианты:
+
+1. `Unknown` не используется в явном wiring-path из `SessionConnection`; fallback `Unknown -> Interactive` остаётся только для внешних/неразмеченных callers.
+2. Пакет с `ping_id != 0` и пользовательскими query не помечается как `Keepalive`.
+3. Никаких фиксированных "магических" size-threshold из головы: `bulk_threshold_bytes` берётся из capture-driven defaults (PR-6/PR-8), валидируется диапазоном.
+4. Никакого parsing/decryption payload в classifier (security/perf guardrail).
+5. Наличие `future_salt_n > 0` само по себе не считается признаком bootstrap-handshake.
+
+## 11.3 Изменения в SessionConnection::flush_packet
+
+Внутри существующего `flush_packet()` hint вычисляется один раз перед отправкой:
 
 ```cpp
-// td/mtproto/RawConnection.cpp — в flush_write():
-void RawConnection::flush_write() {
-  // Notify decorator of flush cycle start. This is where the ring buffer
-  // is drained and DRS record sizes are applied.
-  if (transport_) {
-    transport_->pre_flush_write(Time::now());
-  }
-  // ... existing flush logic ...
-}
+auto hint = classify_hint(/* has_salt, ping_id, queries.size(), send_size,
+                            to_ack.size(), has_service_queries,
+                            destroy_auth_key, bulk_threshold */);
+
+send_crypto(storer, quick_ack_token, hint);
 ```
 
-## 11.3 TDD
+Где `has_service_queries = !to_resend_answer.empty() || !to_cancel_answer.empty() || !to_get_state_info.empty()`.
+
+Важно: wakeup plumbing (`pre_flush_write/get_shaping_wakeup`) остаётся в PR-3 и здесь не дублируется.
+
+## 11.4 TDD (переписано под реальные API)
 
 ```cpp
-TEST(SessionWiring, AuthHandshakeHintSetForFirstThreePackets) {
-  auto [session, transport_ptr] = make_test_session();
-  session->start_auth();
-  for (int i = 0; i < 3; i++) {
-    session->flush_packet();
-    EXPECT_EQ(transport_ptr->received_hints.back(), TrafficHint::AuthHandshake)
-        << "Packet " << i << " must have AuthHandshake hint";
-  }
-  // 4th packet: no explicit hint (decorator uses size heuristic):
-  session->flush_packet();
-  EXPECT_NE(transport_ptr->received_hints.back(), TrafficHint::AuthHandshake);
+TEST(TrafficClassifier, NoSaltIsAuthHandshake) {
+  EXPECT_EQ(classify_hint(/*has_salt=*/false, /*ping_id=*/0,
+                          /*query_count=*/0, /*query_bytes=*/0,
+                          /*ack_count=*/0, /*has_service=*/false,
+                          /*destroy=*/false, /*bulk_threshold=*/8192),
+            TrafficHint::AuthHandshake);
 }
 
-TEST(SessionWiring, KeepalivePacketGetsKeepaliveHint) {
-  auto [session, transport_ptr] = make_test_session();
-  session->send_keepalive();
-  session->flush_packet();
-  EXPECT_EQ(transport_ptr->received_hints.back(), TrafficHint::Keepalive);
+TEST(TrafficClassifier, HasSaltAloneIsNotAuthHandshake) {
+  EXPECT_NE(classify_hint(/*has_salt=*/true, /*ping_id=*/0,
+                          /*query_count=*/0, /*query_bytes=*/0,
+                          /*ack_count=*/0, /*has_service=*/false,
+                          /*destroy=*/false, /*bulk_threshold=*/8192),
+            TrafficHint::AuthHandshake);
+}
+
+TEST(TrafficClassifier, PurePingOrAckIsKeepalive) {
+  EXPECT_EQ(classify_hint(true, /*ping_id=*/1, 0, 0, 0, false, false, 8192),
+            TrafficHint::Keepalive);
+  EXPECT_EQ(classify_hint(true, /*ping_id=*/0, 0, 0, 1, false, false, 8192),
+            TrafficHint::Keepalive);
+}
+
+TEST(TrafficClassifier, MixedPingWithUserDataIsNotKeepalive) {
+  EXPECT_NE(classify_hint(true, /*ping_id=*/1, /*query_count=*/2,
+                          /*query_bytes=*/1200, /*ack_count=*/0,
+                          /*has_service=*/false, /*destroy=*/false, /*bulk_threshold=*/8192),
+            TrafficHint::Keepalive);
+}
+
+TEST(RawConnectionHints, SendNoCryptoDefaultsToAuthHandshake) {
+  // Fake transport captures last set_traffic_hint() and write() calls.
+  // send_no_crypto() must set AuthHandshake before write.
+}
+
+TEST(SessionFlushWiring, FlushPacketPassesClassifierHintToSendCrypto) {
+  // Fake RawConnection captures hint argument from send_crypto(..., hint).
+  // Drive SessionConnection via public API: send_query() + flush().
 }
 ```
+
+## 11.5 Definition of Done для PR-7
+
+PR-7 готов только если:
+
+1. Весь hint wiring проходит через реальные write-точки (`RawConnection::send_no_crypto/send_crypto`), без обращения к несуществующим API.
+2. Pre-auth handshake packets гарантированно получают `AuthHandshake` hint через default-path `send_no_crypto`.
+3. Keepalive bypass применяется только к pure-control packet и не срабатывает на mixed packet с user data.
+4. Classifier metadata-only, без payload tampering/parsing.
+5. Тесты покрывают false-bypass regression и hook correctness (`SessionConnection`, `HandshakeConnection`, `PingConnectionReqPQ`).
+6. В режиме `TDLIB_STEALTH_SHAPING=OFF` hint plumbing не меняет поведение upstream path.
 
 ---
 
 # 12. PR-8: Runtime Params Loader
 
-**Зависит от:** PR-3  
+**Зависит от:** PR-3, PR-2 (типы профилей/ECH mode)  
 **Исправляет:** ТСПУ адаптируется быстрее чем возможен rebuild
 
 ## 12.1 Формат файла `~/.config/tdlib-obf/stealth-params.json`
@@ -1906,6 +2179,7 @@ TEST(SessionWiring, KeepalivePacketGetsKeepaliveHint) {
 ```json
 {
   "version": 1,
+  "active_policy": "ru_egress",
   "ipt": {
     "burst_mu_ms": 3.5,
     "burst_sigma": 0.8,
@@ -1917,21 +2191,43 @@ TEST(SessionWiring, KeepalivePacketGetsKeepaliveHint) {
     "p_idle_to_burst": 0.30
   },
   "drs": {
-    "slow_start_size": 1380,
-    "congestion_size": 4096,
-    "steady_state_size": 16384,
+    "slow_start": {
+      "bins": [{"lo": 1200, "hi": 1460, "weight": 50}, {"lo": 1461, "hi": 2200, "weight": 50}],
+      "max_repeat_run": 4,
+      "local_jitter": 24
+    },
+    "congestion_open": {
+      "bins": [{"lo": 2200, "hi": 4800, "weight": 60}, {"lo": 4801, "hi": 7600, "weight": 40}],
+      "max_repeat_run": 5,
+      "local_jitter": 32
+    },
+    "steady_state": {
+      "bins": [{"lo": 4096, "hi": 8192, "weight": 45}, {"lo": 8193, "hi": 16384, "weight": 55}],
+      "max_repeat_run": 6,
+      "local_jitter": 48
+    },
     "slow_start_records": 4,
     "congestion_bytes": 32768,
-    "jitter_fraction": 0.10
+    "idle_reset_ms_min": 250,
+    "idle_reset_ms_max": 1200,
+    "min_payload_cap": 900,
+    "max_payload_cap": 16384
+  },
+  "route_failure": {
+    "ech_fail_open_threshold": 3,
+    "ech_disable_ttl_sec": 1800
   },
   "profile_weights": {
-    "Chrome131": 48,
-    "Chrome120": 17,
-    "SafariIos17": 20,
-    "Firefox128": 8,
-    "remainder_profile": "Chrome131"
+    "Chrome131": 52,
+    "Chrome120": 18,
+    "Safari26_3": 20,
+    "Firefox148": 10
   },
   "route_policy": {
+    "unknown": {
+      "ech_mode": "disabled",
+      "allow_quic": false
+    },
     "ru_egress": {
       "ech_mode": "disabled",
       "allow_quic": false
@@ -1944,6 +2240,13 @@ TEST(SessionWiring, KeepalivePacketGetsKeepaliveHint) {
 }
 ```
 
+Критическое уточнение по модели применения:
+
+- `active_policy` выбирается оператором/оркестратором (процесс-level), а не «магически» вычисляется внутри PR-8.
+- В PR-8 нет автоматического гео-route detection. Если источник route-hints отсутствует, используется `unknown` (fail-safe), где ECH выключен.
+- Для RU-deployment безопасный дефолт: `active_policy = ru_egress`.
+- QUIC/HTTP3 не часть этого transport-дизайна; `allow_quic` оставлен как policy guard и обязан оставаться `false`.
+
 ## 12.2 StealthParamsLoader
 
 ```cpp
@@ -1951,37 +2254,42 @@ TEST(SessionWiring, KeepalivePacketGetsKeepaliveHint) {
 
 class StealthParamsLoader {
  public:
-  // Returns nullptr if file not found or invalid — callers use compile-time defaults.
-  // Fail-closed: any parse error → nullptr (safe default).
-  static unique_ptr<StealthParamsOverride> try_load(Slice config_path) noexcept;
+  // One-shot strict load. Missing file is allowed (defaults), malformed file is rejected.
+  // Fail-closed: parse/validation/security error never produces partial params.
+  static Result<StealthParamsOverride> try_load_strict(Slice config_path) noexcept;
 
-  // Call periodically (e.g., every 60s) to detect file changes.
-  // Thread-safe: uses shared_mutex for concurrent reads.
-  // Returns true if params were reloaded.
+  // Periodic reload (e.g., every 60s with jitter from scheduler).
+  // On failure keeps last-known-good snapshot; never swaps to partially valid config.
   bool try_reload() noexcept;
 
-  // Get current params (hot path: shared_lock, no exclusive lock).
-  StealthParamsOverride get() const;
+  // Lock-free read path for shaper/profile selection.
+  shared_ptr<const StealthParamsOverride> get_snapshot() const noexcept;
 
  private:
   string config_path_;
-  std::atomic<int64> last_mtime_{0};
+  std::atomic<int64> last_mtime_ns_{0};
   static constexpr size_t kMaxConfigBytes = 64 * 1024;
-  mutable std::shared_mutex mu_;        // readers: shared_lock; writer: unique_lock
-  shared_ptr<StealthParamsOverride> current_;
+  shared_ptr<const StealthParamsOverride> current_;
+  mutable std::mutex reload_mu_;
 
-  // Validates all numeric fields are within safe ranges.
-  // Returns false if any field is out-of-range or missing.
+  // Schema + bounds + cross-field invariants.
+  // Unknown JSON keys are rejected (typo-safe config).
   static bool validate(const StealthParamsOverride &params) noexcept;
 
-  // Security checks before JSON parse:
-  // - file must be regular (no symlink/device)
-  // - owner must be current user
-  // - size must be <= kMaxConfigBytes
-  // - file mode must not be world-writable
-  static bool validate_file_security(const string &path) noexcept;
+  // Secure open/read sequence (TOCTOU-safe):
+  // - open(path, O_RDONLY|O_CLOEXEC|O_NOFOLLOW)
+  // - fstat(fd): regular file, owner == current uid, no world-writable bit
+  // - read exactly <= kMaxConfigBytes from fd (not by reopening path)
+  // - UTF-8 + strict JSON parse
+  static Result<string> read_file_secure(const string &path) noexcept;
 };
 ```
+
+Hot-reload swap rule (обязательно):
+
+- parse -> validate -> build immutable snapshot -> atomic publish;
+- при любой ошибке reload: сохранить предыдущий snapshot, вернуть `false`, увеличить failure counter;
+- после N подряд ошибок (например, 5) включать cooldown, чтобы не создавать parser-flood при битом файле.
 
 ## 12.3 Валидация (OWASP ASVS V5)
 
@@ -1995,168 +2303,352 @@ static bool StealthParamsLoader::validate(const StealthParamsOverride &p) noexce
   if (p.ipt.p_burst_stay < 0.0 || p.ipt.p_burst_stay > 1.0)  return false;
   if (p.ipt.p_idle_to_burst < 0.0 || p.ipt.p_idle_to_burst > 1.0) return false;
 
-  // DRS validation: must stay within valid TLS record bounds.
-  if (p.drs.slow_start_size < 512 || p.drs.slow_start_size > 2048)  return false;
-  if (p.drs.congestion_size < 1024 || p.drs.congestion_size > 8192) return false;
-  if (p.drs.steady_state_size < 8192 || p.drs.steady_state_size > 16384) return false;
-  if (p.drs.jitter_fraction < 0.0 || p.drs.jitter_fraction > 0.25) return false;
+  // DRS validation: phase models + bounds, no empty bins.
+  if (p.drs.min_payload_cap < 256 || p.drs.max_payload_cap > 16384) return false;
+  if (p.drs.min_payload_cap > p.drs.max_payload_cap) return false;
+  if (p.drs.idle_reset_ms_min < 50 || p.drs.idle_reset_ms_max > 5000) return false;
+  if (p.drs.idle_reset_ms_min > p.drs.idle_reset_ms_max) return false;
+  if (p.drs.slow_start_records < 1 || p.drs.slow_start_records > 16) return false;
+  if (p.drs.congestion_bytes < 1024) return false;
 
-  // Profile weights: explicit fields may sum to <=100.
-  // Remainder is assigned to weights.remainder_profile.
+  auto validate_phase = [&](const DrsPhaseModelOverride &m) {
+    if (m.bins.empty()) return false;
+    if (m.max_repeat_run < 1 || m.max_repeat_run > 32) return false;
+    if (m.local_jitter < 0 || m.local_jitter > 256) return false;
+    uint32_t sum = 0;
+    for (const auto &b : m.bins) {
+      if (b.lo > b.hi) return false;
+      if (b.lo < p.drs.min_payload_cap || b.hi > p.drs.max_payload_cap) return false;
+      if (b.weight == 0) return false;
+      sum += b.weight;
+    }
+    return sum > 0;
+  };
+  if (!validate_phase(p.drs.slow_start)) return false;
+  if (!validate_phase(p.drs.congestion_open)) return false;
+  if (!validate_phase(p.drs.steady_state)) return false;
+
+  // Profile weights: explicit fields must sum to exactly 100.
   int sum = p.weights.chrome131 + p.weights.chrome120 +
-            p.weights.safari17 + p.weights.firefox128;
-  if (sum < 0 || sum > 100) return false;
-  if (!is_valid_profile(p.weights.remainder_profile)) return false;
+            p.weights.safari26_3 + p.weights.firefox148;
+  if (sum != 100) return false;
 
   // Route policy validation.
+  if (p.active_policy != PolicyName::Unknown &&
+      p.active_policy != PolicyName::RuEgress &&
+      p.active_policy != PolicyName::NonRuEgress) return false;
+
+  if (p.route_policy.unknown.allow_quic) return false;
+  if (p.route_policy.unknown.ech_mode != EchMode::Disabled) return false;
+
   if (p.route_policy.ru_egress.allow_quic) return false;  // TCP+TLS only in this design.
   if (p.route_policy.ru_egress.ech_mode != EchMode::Disabled) return false;
+
   if (p.route_policy.non_ru_egress.ech_mode != EchMode::Disabled &&
       p.route_policy.non_ru_egress.ech_mode != EchMode::GreaseDraft17) return false;
+  if (p.route_policy.non_ru_egress.allow_quic) return false;
+
+  if (p.route_failure.ech_fail_open_threshold < 1 || p.route_failure.ech_fail_open_threshold > 10) return false;
+  if (p.route_failure.ech_disable_ttl_sec < 60 || p.route_failure.ech_disable_ttl_sec > 86400) return false;
+
+  // PR-8 has no built-in geo classifier: "auto" route selection is forbidden here.
+  // Runtime route-aware switching can be added later via explicit route hints input.
 
   return true;
 }
 ```
 
+## 12.4 Критические ограничения PR-8 (честно, без иллюзий)
+
+1. PR-8 не делает автоматическое определение `ru_egress/non_ru_egress`.
+2. До появления отдельного route-hint источника выбор policy делается только через `active_policy`.
+3. Если route-hint недоступен или сомнителен, применяется `unknown` (ECH disabled).
+4. Конфигурация не должна пытаться включить QUIC/HTTP3: это вне текущей архитектуры TCP+TLS и только увеличивает поверхность блока.
+5. Ошибочный JSON не должен приводить к переключению на «частично применённые» параметры; всегда last-known-good.
+6. Состояние `RouteFailureState` (ECH circuit breaker) хранится в TTL-кеше между соединениями; in-memory состояние одного соединения недостаточно.
+
 ---
 
 # 13. PR-9: Integration Smoke Tests
 
-**Зависит от:** PR-7 (все production PRs полностью реализованы)
+**Зависит от:** PR-8 (runtime params + route policy + profile registry уже в production пути)
 
-## 13.1 `check_fingerprint.py` — JA3/JA4 верификация
+PR-9 — это не «один скрипт на JA3», а fail-closed smoke-stage из 3 проверок: fingerprint, IPT, DRS.
+Цель PR-9: поймать регрессии, которые сразу поднимают стоимость детекта вниз (и блок вверх) для RU DPI.
+
+## 13.0 Обязательная матрица сценариев
+
+Проверки проводятся отдельно по 3 route-policy сценариям (не смешивать в одну выборку):
+
+| Сценарий | `active_policy` | Ожидание по ECH | Ожидание по QUIC |
+|---|---|---|---|
+| Unknown fallback | `unknown` | ECH отсутствует (`0xFE0D` и `0xFE02` отсутствуют) | disabled |
+| RU egress | `ru_egress` | ECH отсутствует (`0xFE0D` и `0xFE02` отсутствуют) | disabled |
+| non-RU egress | `non_ru_egress` | только `0xFE0D` по registry policy, `0xFE02` запрещен | disabled |
+
+Любой запуск, где режим маршрута не подтвержден метаданными, считается невалидным и должен завершаться FAIL.
+
+## 13.1 `check_fingerprint.py` — snapshot-driven JA3/JA4 и wire-инварианты
+
+Ключевой принцип: `profiles_validation.json` — единственный source-of-truth для profile-инвариантов.
+Никаких hardcoded «магических» значений в коде smoke-скрипта (включая `0x6399`, фиксированные Safari/Firefox предположения и т.д.).
+
+Минимальный schema-контур:
+
+```json
+{
+  "version": "2026-04-03",
+  "source": [
+    "docs/Samples/Traffic dumps/*.pcap*",
+    "docs/Samples/utls-code/*"
+  ],
+  "profiles": {
+    "Chrome131": {
+      "ja3_hashes": ["<capture-derived>"],
+      "ja4_hashes": ["<capture-derived>"],
+      "pq_group": 4588,
+      "alps_type": "0x4469",
+      "ech_type": "0xFE0D",
+      "supported_versions_requires_grease": true,
+      "edge_grease": {"first_empty": true, "last_body_len": 1}
+    },
+    "Chrome120": {
+      "ja3_hashes": ["<capture-derived>"],
+      "ja4_hashes": ["<capture-derived>"],
+      "pq_group": null,
+      "alps_type": "0x4469",
+      "ech_type": "0xFE0D",
+      "supported_versions_requires_grease": true,
+      "edge_grease": {"first_empty": true, "last_body_len": 1}
+    },
+    "Firefox148": {
+      "ja3_hashes": ["<capture-derived>"],
+      "ja4_hashes": ["<capture-derived>"]
+    },
+    "Safari26_3": {
+      "ja3_hashes": ["<capture-derived>"],
+      "ja4_hashes": ["<capture-derived>"]
+    }
+  }
+}
+```
 
 ```python
 #!/usr/bin/env python3
 """
-Captures 50 ClientHello packets from tdlib via local telemt proxy
-and verifies JA3/JA4 do NOT match known Telegram fingerprints.
+Collect ClientHello samples from tdlib->telemt local path and validate:
+1) anti-Telegram fingerprint guardrails,
+2) route-policy/ECH correctness,
+3) profile-registry invariants (ALPS/PQ/GREASE/cipher policy),
+4) ECH wire-structure consistency.
 
-Also compares timing and TLS record-size distributions with local baseline captures
-from docs/Samples/Traffic dumps/*.pcap* to detect synthetic drift.
-
-Usage: python check_fingerprint.py --interface lo --port 8888
+Usage:
+  python test/analysis/check_fingerprint.py --pcap out.pcapng --registry profiles_validation.json
 """
 
 KNOWN_TELEGRAM_JA3 = {
-    "e0e58235789a753608b12649376e91ec",  # Original Telegram client
+    "e0e58235789a753608b12649376e91ec",
 }
 
-# PQ group codepoints are loaded from profile registry snapshot
-# generated from validated captures for the target rollout wave.
-EXPECTED_PQ_GROUPS = load_profile_registry("profiles_validation.json")
+ROUTE_MODES = {"unknown", "ru_egress", "non_ru_egress"}
+REGISTRY = load_profile_registry("profiles_validation.json")
 
-def check_ech_policy(ch: ClientHello, mode: str) -> bool:
-    """ECH behavior must follow route policy mode."""
+def check_ech_policy(ch: ClientHello) -> bool:
+    mode = ch.metadata.route_mode
     has_old = any(ext.type == 0xFE02 for ext in ch.extensions)
     has_new = any(ext.type == 0xFE0D for ext in ch.extensions)
     if has_old:
         return False
-    if mode == "disabled":
+    if mode in ("unknown", "ru_egress"):
         return not has_new
-    if mode == "grease_draft17":
-        return has_new
+    if mode == "non_ru_egress":
+        return profile_requires_ech(ch.profile, REGISTRY) == has_new
     return False
 
-def check_ech_enc_key_len_consistent(ch: ClientHello) -> bool:
-    """For 0xFE0D extension, encapsulated key length must match payload bytes."""
+def check_pq_group_policy(ch: ClientHello) -> bool:
+    expected = expected_pq_group(ch.profile, REGISTRY)  # int | None
+    if expected is None:
+        return not has_known_pq_groups(ch.supported_groups + ch.key_share_groups)
+    return expected in ch.supported_groups and expected in ch.key_share_groups
+
+def check_alps_policy(ch: ClientHello) -> bool:
+    expected = expected_alps_type(ch.profile, REGISTRY)  # int | None
+    if expected is None:
+        return True
+    if expected == 0x4469:
+        return has_extension(ch, 0x4469) and not has_extension(ch, 0x44CD)
+    if expected == 0x44CD:
+        return has_extension(ch, 0x44CD) and not has_extension(ch, 0x4469)
+    return has_extension(ch, expected)
+
+def check_ech_outer_lengths(ch: ClientHello) -> bool:
     ext = extract_extension(ch, 0xFE0D)
     if ext is None:
         return True
-    return parse_ech_outer(ext).is_structurally_valid()
+    parsed = parse_ech_outer(ext)
+    return parsed.enc_key_len == parsed.actual_enc_key_len
 
-def contains_any_pq_group(groups: list[int]) -> bool:
-    return any(g in {0x11EC, 0x6399} for g in groups)
-
-def is_safari(ch: ClientHello) -> bool:
-    return detect_profile(ch) == "SafariIos17"
-
-def runtime_mode_for_sample(ch: ClientHello) -> str:
-    # Derived from test scenario: "disabled" for RU mode, "grease_draft17" for non-RU mode.
-    return ch.metadata.route_mode
-
-def check_no_old_ech_type(ch: ClientHello) -> bool:
-    for ext in ch.extensions:
-        if ext.type == 0xFE02:
+def check_not_forced_padding_517(samples: list[ClientHello]) -> bool:
+    # Evaluate per-profile to avoid false signal from mixed-profile runs.
+    for profile, group in group_by_profile(samples).items():
+        lengths = [len(ch.raw) for ch in group]
+        if len(lengths) >= 20 and all(x == 517 for x in lengths):
             return False
     return True
 
-def check_pq_group_codepoint(ch: ClientHello) -> bool:
-    """PQ group in supported_groups must match profile registry."""
-    profile = detect_profile(ch)
-    expected = EXPECTED_PQ_GROUPS.get(profile)
-    if expected is None:
-        return not contains_any_pq_group(ch.supported_groups)
-    return expected in ch.supported_groups
-
-def check_alps_present(ch: ClientHello) -> bool:
-    """Chrome profiles must include ALPS extension (0x4469, not old 0x44CD)."""
-    profile = detect_profile(ch)
-    if profile in ('Chrome131', 'Chrome120'):
-        has_new = any(ext.type == 0x4469 for ext in ch.extensions)
-        has_old = any(ext.type == 0x44CD for ext in ch.extensions)
-        return has_new and not has_old  # Must use new code only
-    return True  # Safari/Firefox don't have ALPS
-
-def check_ech_payload_variance(samples: list[ClientHello]) -> bool:
-    """
-    In non-RU grease mode, ECH payload length must vary across connections.
-    Expected buckets: {144, 176, 208, 240}. Require >=3 unique values in 50 samples.
-    """
-    lengths = set()
-    for ch in samples:
-        if ch.metadata.route_mode != "grease_draft17":
-            continue
-        ext = extract_extension(ch, 0xFE0D)
-        if ext is None:
-            continue
-        lengths.add(parse_ech_outer(ext).payload_len)
-    return len(lengths) >= 3
-
-CHECKS = [
+SAMPLE_CHECKS = [
     ("JA3 not Telegram", lambda ch: compute_ja3(ch) not in KNOWN_TELEGRAM_JA3),
-    ("ECH policy respected", lambda ch: check_ech_policy(ch, runtime_mode_for_sample(ch))),
-    ("No old ECH type 0xFE02", check_no_old_ech_type),
-    ("ECH wire structure valid", check_ech_enc_key_len_consistent),
-    ("PQ group codepoint correct", check_pq_group_codepoint),
-    ("ALPS 0x4469 for Chrome", check_alps_present),
-    ("No old ALPS 0x44CD", lambda ch: not any(e.type == 0x44CD for e in ch.extensions)),
-    ("No 3DES in Safari", lambda ch: 0x000A not in ch.cipher_suites if is_safari(ch) else True),
-    ("Padding not exactly 517 bytes", lambda ch: len(ch.raw) != 517),
-    ("ECH payload varies in grease mode", check_ech_payload_variance),
-    ("PQ in groups matches key_share", lambda ch: check_pq_group_consistency(ch)),
+    ("Route mode known", lambda ch: ch.metadata.route_mode in ROUTE_MODES),
+    ("ECH route policy", check_ech_policy),
+    ("No legacy ECH 0xFE02", lambda ch: not has_extension(ch, 0xFE02)),
+    ("ECH outer lengths consistent", check_ech_outer_lengths),
+    ("PQ group policy", check_pq_group_policy),
+    ("ALPS policy", check_alps_policy),
+    ("GREASE policy", lambda ch: check_grease_policy(ch, REGISTRY)),
+    ("Cipher policy", lambda ch: check_cipher_policy(ch, REGISTRY)),
+]
+
+BATCH_CHECKS = [
+    ("Min samples per scenario", check_min_samples_per_scenario),
+    ("ECH payload variance (non-RU, ECH-enabled profiles)", check_ech_payload_variance),
+    ("Padding not forced to 517", check_not_forced_padding_517),
 ]
 ```
 
-## 13.2 `check_ipt.py` — межпакетные интервалы
+### 13.1.1 Обязательные helper-контракты
+
+Минимальный набор структур/функций должен жить в `test/analysis/common_tls.py` и использоваться из `test/analysis/check_fingerprint.py`.
+Требование: full TLS parse. Regex/substring-parser запрещен.
 
 ```python
-def check_ipt(pcap_file: str) -> bool:
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class ParsedExtension:
+  type: int
+  body: bytes
+
+@dataclass(frozen=True)
+class SampleMeta:
+  route_mode: str      # unknown | ru_egress | non_ru_egress
+  scenario_id: str     # unique run/scenario identifier
+  ts_us: int
+
+@dataclass(frozen=True)
+class ClientHello:
+  raw: bytes
+  profile: str
+  extensions: list[ParsedExtension]
+  cipher_suites: list[int]
+  supported_groups: list[int]
+  key_share_groups: list[int]
+  metadata: SampleMeta
+
+@dataclass(frozen=True)
+class FingerprintStruct:
+  cipher_suites: tuple[int, ...]      # without GREASE placeholders
+  extensions_order: tuple[int, ...]   # extension IDs in wire order
+  supported_groups: tuple[int, ...]   # without GREASE
+  key_share_groups: tuple[int, ...]   # without GREASE
+  alps_type: int | None               # 0x4469 / 0x44CD / None
+  ech_type: int | None                # 0xFE0D / None
+  pq_group: int | None                # e.g. 0x11EC / None
+
+def load_profile_registry(path: str) -> dict: ...
+def parse_client_hello(raw: bytes, meta: SampleMeta) -> ClientHello: ...
+def parse_ech_outer(ext: ParsedExtension) -> ParsedEchOuter: ...
+def canonical_fingerprint_struct(ch: ClientHello) -> FingerprintStruct: ...
+def compute_ja3(ch: ClientHello) -> str: ...
+def compute_ja4(ch: ClientHello) -> str: ...
+```
+
+### 13.1.2 Порядок выполнения
+
+```python
+def run_all_checks(samples: list[ClientHello]) -> tuple[bool, list[str]]:
+  failures: list[str] = []
+
+  for idx, ch in enumerate(samples):
+    for name, fn in SAMPLE_CHECKS:
+      if not bool(fn(ch)):
+        failures.append(f"sample[{idx}]: {name}")
+
+  for name, fn in BATCH_CHECKS:
+    if not bool(fn(samples)):
+      failures.append(f"batch: {name}")
+
+  return (len(failures) == 0), failures
+```
+
+### 13.1.3 Fail-closed условия запуска
+
+```python
+# Hard requirements:
+# - >=50 ClientHello samples for each scenario (unknown, ru_egress, non_ru_egress)
+# - every sample parsed by full TLS parser (0 parse-fallbacks)
+# - registry schema is valid and version is pinned for this smoke run
+# - route_mode and scenario_id are present for every sample
+# - output report JSON + failing sample indices are written to artifacts/
+#
+# Any violation => immediate FAIL (exit code != 0)
+```
+
+## 13.2 `check_ipt.py` — межпакетные интервалы (реально исполнимый контракт)
+
+```python
+def check_ipt(pcap_file: str, baseline_files: list[str]) -> bool:
     """
-    K-S test of inter-packet intervals against log-normal distribution.
-    Plus distribution-distance check (EMD/KL) against baseline from
-    docs/Samples/Traffic dumps/test_logs.pcapng and docs/Samples/Traffic dumps/Fire.pcapng.
-    FAIL: p < 0.05 (uniform distribution → detected as non-browser).
-    FAIL: any interval > 5s (safety margin before 28s disconnect).
-    FAIL: keepalive delayed > 100ms.
-    PASS: keepalive < 10ms, interactive delays log-normal.
+    Scope:
+      - analyze only outbound TLS application records after handshake;
+      - drop pure ACKs/retransmits/out-of-order segments before interval statistics.
+
+    Statistics:
+      - goodness-of-fit: K-S against fitted log-normal on interactive slices;
+      - distance-to-baseline: EMD or Jensen-Shannon vs docs/Samples/Traffic dumps/*.pcap*.
+
+    FAIL:
+      - p_value < 0.05 on >=2 independent runs;
+      - keepalive bypass p99 > 10ms on local loopback scenario;
+      - detector-visible stalls: interval > 5s inside active flow (excluding idle windows).
+
+    PASS:
+      - log-normal fit not rejected on majority of runs;
+      - keepalive bypass meets local-loopback bound;
+      - baseline distance <= configured threshold from registry.
     """
 ```
 
-## 13.3 `check_drs.py` — размеры TLS записей
+## 13.3 `check_drs.py` — размеры TLS records (не TCP segment size)
 
 ```python
-def check_drs(pcap_file: str) -> bool:
+def check_drs(pcap_file: str, baseline_files: list[str]) -> bool:
     """
-    FAIL: dominant-mode record size is 2878 (legacy Telegram signature reappears).
-    FAIL: ≥10 consecutive records of identical size (no jitter).
-    FAIL: no records > 8192 after first 100KB (DRS not progressing).
-    FAIL: record-size histogram diverges from baseline HTTPS captures
-          (docs/Samples/Traffic dumps/*.pcap*) above configured threshold.
-    PASS: records show slow-start → congestion → steady-state ramp.
-    PASS: record sizes within [1200, 16384] with ±10% variance.
+    Parse TLS record layer and evaluate record payload sizes.
+
+    FAIL:
+      - dominant mode == 2878 (legacy signature resurfaced);
+      - >=10 consecutive records with identical payload size in active burst;
+      - no growth beyond 8192 in long-flow windows where total payload >= 100KB;
+      - histogram distance to HTTPS baselines exceeds configured threshold.
+
+    PASS:
+      - no 2878 dominant mode;
+      - no long constant-size runs;
+      - capture-driven slow_start -> congestion -> steady_state trend observed;
+      - histogram distance stays below threshold.
     """
 ```
+
+## 13.4 Артефакты и воспроизводимость
+
+Каждый smoke-run обязан сохранять:
+
+- `artifacts/fingerprint_report.json` (per-sample + batch verdicts)
+- `artifacts/ipt_report.json` (fit metrics + baseline distances)
+- `artifacts/drs_report.json` (histogram + run-length stats)
+- `artifacts/run_meta.json` (git SHA, registry version, scenario matrix, command line)
+
+Без этих артефактов прогон считается невалидным.
 
 ---
 
@@ -2166,46 +2658,57 @@ def check_drs(pcap_file: str) -> bool:
 
 | Файл | Что изменяется | PR |
 |---|---|---|
-| `td/mtproto/IStreamTransport.h` | +4 defaulted virtual (pre_flush_write, get_shaping_wakeup, set_traffic_hint, set_max_tls_record_size) | PR-3 |
+| `td/mtproto/IStreamTransport.h` | +5 defaulted virtual (pre_flush_write, get_shaping_wakeup, set_traffic_hint, set_max_tls_record_size, supports_tls_record_sizing) | PR-3 |
 | `td/mtproto/IStreamTransport.cpp` | `create_transport()`: ветка stealth (единственный activation if) | PR-3 |
-| `td/mtproto/TcpTransport.h` | `ObfuscatedTransport`: overload + `set_max_tls_record_size` override | PR-3 |
-| `td/mtproto/TcpTransport.cpp` | `do_write_tls`: использует `max_tls_packet_length_` (уже есть) | PR-3 |
-| `td/mtproto/TlsInit.h` | `TlsHelloContext` расширен (padding_target, ech_length, pq_group_id) | PR-1 |
-| `td/mtproto/TlsInit.cpp` | Новые `Type::EchPayload`, `Type::PqGroupId`, `Type::PqKeyShare`; удалить static `ech_payload()` | PR-1 |
-| `td/mtproto/RawConnection.cpp` | `flush_write()`: вызов `pre_flush_write` | PR-7 |
-| `td/mtproto/SessionConnection.cpp` | `start_auth()`, `do_loop()` wakeup scheduling, hint в `flush_packet()` | PR-7 |
-| `td/mtproto/SessionConnection.h` | `+auth_packets_remaining_` | PR-7 |
-| `td/mtproto/CMakeLists.txt` | `TDLIB_STEALTH_SHAPING` option + stealth/*.cpp sources | PR-3 |
+| `td/mtproto/TcpTransport.h` | `ObfuscatedTransport`: runtime TLS record cap (`set_max_tls_record_size`) + capability guard | PR-3 |
+| `td/mtproto/TcpTransport.cpp` | `do_write_tls`: использует runtime `max_tls_packet_length_` вместо fixed constant path | PR-3 |
+| `td/mtproto/TlsInit.cpp` | Клиентский hello-path переводится на internal builder/facade без изменения поведения текущего wire-format | PR-A |
+| `td/mtproto/stealth/TlsHelloBuilder.cpp` | Новые `Type::EchPayload`, `Type::EchEncKey`, `Type::PqGroupId`, `Type::PqKeyShare`; удалить static `ech_payload()` | PR-1 |
+| `td/mtproto/RawConnection.h` | `send_crypto/send_no_crypto` получают `TrafficHint` для реального write-path wiring | PR-7 |
+| `td/mtproto/RawConnection.cpp` | `flush_write()`: вызов `pre_flush_write` + проброс `get_shaping_wakeup` | PR-3 |
+| `td/mtproto/RawConnection.cpp` | проброс `TrafficHint` в `transport_->set_traffic_hint(...)` в `send_crypto/send_no_crypto` | PR-7 |
+| `td/mtproto/SessionConnection.cpp` | wakeup merge из `raw_connection_->shaping_wakeup_at()` (PR-3) + metadata-only classifier wiring (PR-7) | PR-3/PR-7 |
+| `td/mtproto/SessionConnection.h` | объявление helper classifier/config fields (без фиктивного `auth_packets_remaining_`) | PR-7 |
+| `CMakeLists.txt` | `TDLIB_STEALTH_SHAPING` option + `td/mtproto/stealth/*.cpp` sources | PR-3 |
+| `test/CMakeLists.txt` | Подключение `test/stealth/*.cpp` к `run_all_tests` | PR-A |
 
 ## Новые файлы
 
 ```
 td/mtproto/stealth/
-  Interfaces.h           IRng, IClock, PaddingPolicy, TrafficHint, kPqGroupDraft/Final   PR-3
-  TlsHelloProfile.h      enum BrowserProfile, pick_random_profile, pq_group_for_profile  PR-2
-  TlsHelloProfiles.cpp   build_chrome131/120, firefox128, safari17  PR-2
+  Interfaces.h           IRng, IClock, NetworkRouteHints, PaddingPolicy      PR-A
+  TlsHelloBuilder.h/cpp  internal ClientHello builder/test seam              PR-A/PR-1
+  TlsHelloProfile.h      enum BrowserProfile, ProfileSpec, EchMode            PR-2
+  TlsHelloProfileRegistry.h/cpp  snapshot-backed registry + sticky selection  PR-2
   StealthConfig.h/cpp    StealthConfig, from_secret()               PR-3
   ShaperState.h/cpp      IptController + MarkovChain                PR-5
   ShaperRingBuffer.h/cpp bounded ring buffer                        PR-4
-  DrsEngine.h/cpp        DRS + jitter                               PR-6
+  DrsEngine.h/cpp        DRS (capture-driven bins + anti-repeat)    PR-6
   StealthTransportDecorator.h/cpp                                   PR-4..7
   StealthParamsLoader.h/cpp JSON loader + hot-reload                PR-8
 
-td/mtproto/test/stealth/
+test/stealth/
   MockRng.h              xoshiro256** ГПСЧ                          PR-A
   MockClock.h            ручное время                               PR-A
-  RecordingTransport.h   fake IStreamTransport                      PR-A
-  TestHelpers.h          утилиты                                    PR-A
+  TlsHelloParsers.h      parse helpers (extensions/groups/ECH)      PR-A
+  FingerprintFixtures.h  approved fingerprints / invariants         PR-A
+  RecordingTransport.h   fake IStreamTransport                      PR-3
+  TestHelpers.h          общие утилиты                              PR-A
+  test_tls_hello_wire.cpp    PR-A coverage (wire structure, ECH lengths) PR-A
+  test_tls_profiles.cpp      PR-A coverage (uTLS/pcap differential) PR-A
   test_context_entropy.cpp   PR-1 coverage                          PR-1
   test_browser_profiles.cpp  PR-2 coverage (JA3, ALPS, 3DES, ECH)  PR-2
-  test_decorator.cpp         PR-4 coverage (activation, hint, overflow, DRS idle) PR-4
+  test_decorator.cpp         PR-4 coverage (delegation, hint consume-once, backpressure, wakeup) PR-4
   test_ipt_controller.cpp    PR-5 coverage (keepalive bypass, log-normal) PR-5
   test_drs_engine.cpp        PR-6 coverage (phases, jitter, idle-reset) PR-6
-  test_session_wiring.cpp    PR-7 coverage (auth hint, keepalive hint) PR-7
+  test_traffic_classifier.cpp  PR-7 coverage (pure-control keepalive, mixed-packet guard, bulk/interactive split) PR-7
+  test_raw_connection_hints.cpp PR-7 coverage (`send_no_crypto`/`send_crypto` hint wiring) PR-7
+  test_session_wiring.cpp      PR-7 coverage (public API -> flush -> classifier -> raw write hint) PR-7
   test_params_loader.cpp     PR-8 coverage (JSON, validation, fail-closed) PR-8
   test_stealth_disabled.cpp  TDLIB_STEALTH_SHAPING=OFF passthrough  ALL
 
-tests/analysis/
+test/analysis/
+  common_tls.py         TLS parser/model helpers shared by smoke checks
   check_fingerprint.py   JA3, JA4, ECH type, GREASE, ALPS
   check_ipt.py           межпакетные интервалы
   check_drs.py           размеры TLS записей
@@ -2213,7 +2716,7 @@ tests/analysis/
   check_keepalive.py     keepalive latency < 10ms
 
 telemt-stealth-params/   (git submodule, общий с telemt)
-  params.h               IptParams, DrsWeights с defaults
+  params.h               IptParams, DrsPolicy с defaults
   profiles_validation.json  JA3/JA4 хеши для Chrome/Firefox/Safari
 ```
 
@@ -2246,7 +2749,7 @@ telemt-stealth-params/   (git submodule, общий с telemt)
 | PR-1 (PQ group codepoint) | — | Telemt не парсит supported_groups / key_share из ClientHello |
 | PR-2 (ALPS 0x4469, 0xFE0D) | — | Сервер не парсит ALPS type / ECH extension type |
 | PR-2 (profile weights) | PR-F | JA3/JA4 хеши в profiles_validation.json — **синхронизировать** |
-| PR-3 (DRS kInitialRecordSize) | PR-C (DRS) | `DrsWeights` в shared submodule — **обязательно** |
+| PR-3 (StealthConfig record-size policy schema) | PR-C (DRS) | `DrsPolicy` и диапазоны initial-record policy в shared submodule — **обязательно** |
 | PR-5 (IptParams) | PR-G | `IptParams` в shared submodule — **обязательно** |
 | PR-8 (JSON format) | telemt config | Единый формат JSON для обоих — **синхронизировать** |
 
@@ -2260,27 +2763,29 @@ telemt-stealth-params/   (git submodule, общий с telemt)
 | Риск | P | S | Митигация |
 |---|---|---|---|
 | ECH singleton → фиксированная длина per-process | Высокая | Критическая | PR-1: per-connection sampling в Context |
-| PQ group не синхронизирован с profile registry snapshot | Высокая | Критическая | PR-1/PR-2: registry-driven `pq_group_for_profile()`, согласованность supported_groups и key_share |
+| PQ group не синхронизирован с profile registry snapshot | Высокая | Критическая | PR-1/PR-2: registry-driven mapping, согласованность supported_groups и key_share |
 | ECH type 0xFE02 → тривиальная детекция (при включенном ECH) | Высокая | Высокая | PR-2: только 0xFE0D |
 | ECH declared encapsulated key length != фактическому количеству байт | Высокая | Критическая | PR-2: фикс wire-format + тест структурного парсинга |
+| ECH enc генерируется как произвольные bytes вместо X25519-style key | Средняя | Высокая | PR-1: `EchEncKey` использует key-path (`Op::key()`), fallback random только для явно нестандартной длины |
 | ECH включён в RU egress, где он блокируется | Высокая | Критическая | PR-8: route-policy (`ru_egress.ech_mode=disabled`) |
 | QUIC/HTTP3 попытки в RU->non-RU маршрутах | Средняя | Высокая | PR-8: `allow_quic=false`, transport strategy TCP+TLS only |
 | ALPS code 0x44CD устарел для Chrome 131 (должен быть 0x4469) | Высокая | Высокая | PR-2: обновить на 0x4469 |
 | Отсутствует ALPS — Chrome JA3/JA4 не совпадает | Высокая | Высокая | PR-2: alps_block() в Chrome профилях |
 | Static padding target 513 → ClientHello всегда 517 | Высокая | Высокая | PR-1: profile-driven PaddingPolicy + Context pre-sampling |
 | 3DES в Safari/Firefox | Высокая | Высокая | PR-2: 3DES удалён |
-| `kClientPartSize = 2878` — известная сигнатура | Высокая | Высокая | PR-3+PR-6: DRS с jitter |
-| Keepalive задерживается → disconnect 28s | Средняя | Критическая | PR-5: TrafficHint::Keepalive bypass |
+| `kClientPartSize = 2878` — известная сигнатура | Высокая | Высокая | PR-3+PR-6: capture-driven DRS + coalescing |
+| Keepalive задерживается шейпером | Средняя | Критическая | PR-5: TrafficHint::Keepalive bypass + гарантированный bypass-priority |
+| `future_salt_n > 0` ошибочно классифицируется как AuthHandshake | Средняя | Высокая | PR-7: `AuthHandshake` только при `!has_salt`, future salts классифицируются как control-path |
 | Ring overflow → unmasked burst | Средняя | Высокая | PR-4: hard backpressure, без sync overflow write |
 | Hint drift → Keepalive hint утекает | Средняя | Средняя | PR-4: consume-once semantics |
-| DRS не сбрасывается на idle | Средняя | Средняя | PR-4: notify_idle при idle gap > 500ms |
+| DRS не сбрасывается на idle | Средняя | Средняя | PR-6: notify_idle при sampled idle threshold |
 | Auth-пакеты задерживаются IPT | Средняя | Средняя | PR-7: AuthHandshake hint |
-| Механистичные record sizes без jitter | Средняя | Средняя | PR-6: ±10% jitter |
+| Механистичные record sizes без jitter | Средняя | Средняя | PR-6: capture-driven bins + anti-repeat guard |
 | ТСПУ обновляет ML-модели | Высокая | Высокая | PR-8: runtime JSON hot-reload |
 | Merge-конфликт с upstream TlsInit | Высокая | Средняя | Только аддитивные изменения |
 | Safari ECH отсутствует — видно в 2027 | Низкая | Средняя | Будущий SafariIos18 профиль (backlog) |
 | Попытка «de-entropy padding» внутри TLS record | Средняя | Высокая | Запрещено: не менять payload ciphertext на transport-слое |
-| ClientHello не фрагментирован по TCP — DPI парсит первый пакет целиком (S16) | Средняя | Средняя | Backlog: controlled ClientHello fragmentation |
+| ClientHello не фрагментирован по TCP (S16) | Средняя | Средняя | Backlog: controlled ClientHello fragmentation; учитывать, что ТСПУ/NGFW обычно делают full TCP reassembly |
 | Server response pattern фиксирован — детектируем серверной стороной (S17) | Средняя | Средняя | Backlog: вариативность response (требуются изменения в telemt) |
 | Single TCP connection per DC — не похоже на реальный HTTPS (S18) | Средняя | Средняя | Backlog: dummy connections / connection multiplexing |
 | Один SNI domain для всех connections — статический фингерпринт (S19) | Средняя | Низкая | Backlog: domain rotation (требует изменений в конфигурации proxy) |
@@ -2292,15 +2797,14 @@ telemt-stealth-params/   (git submodule, общий с telemt)
 
 1. **Все тесты PR-A..PR-8 зелёные**, включая:
   - `test_ipt_controller: KeepaliveBypassesDelayInBurstState` ← критический
-  - `test_browser_profiles: Chrome131EchTypeIs0xFE0D` ← критический (для non-RU режима)
+  - `test_browser_profiles: Chrome131UsesFe0dNotFe02` ← критический (для non-RU режима)
   - `test_browser_profiles: RuRouteDisablesEch` ← критический (для RU режима)
-  - `test_browser_profiles: Chrome131EchInnerPrefixIs5Bytes` ← критический (НОВОЕ)
-  - `test_browser_profiles: Chrome131PqGroupMatchesProfileRegistry` ← критический (НОВОЕ)
-  - `test_browser_profiles: AllProfilesGreaseIsValidRfc8701` ← критический
-  - `test_browser_profiles: Chrome131HasAlpsExtension` ← критический (проверяет 0x4469, не 0x44CD)
+  - `test_browser_profiles: CircuitBreakerDisablesEchAfterFailures` ← критический
+  - `test_browser_profiles: PqGroupIsConsistentBetweenGroupsAndKeyShare` ← критический
+  - `test_browser_profiles: FixtureDrivenAssertionsNoGuesswork` ← критический
   - `test_context_entropy: NoForcedPadding517Regression` ← критический
   - `test_context_entropy: PqGroupAppearsInBothGroupsAndKeyShare` ← критический (НОВОЕ)
-  - `test_drs_engine: RecordSizeNotFixedTo2878Signature` ← критический
+  - `test_drs_engine: Legacy2878IsNotDominantMode` ← критический
 
 2. **Сборка с `TDLIB_STEALTH_SHAPING=OFF`** проходит все upstream tdlib тесты bit-for-bit.
 
@@ -2318,7 +2822,7 @@ telemt-stealth-params/   (git submodule, общий с telemt)
 
 4. **Shared submodule** тегирован и одновременно обновлён в tdlib-obf И telemt.
 
-5. **Верификация от резидента** (не VPS): один контрибьютор запускает smoke tests с российского ISP.
+5. **Верификация от резидента** (не VPS): минимум 3 полных прогона smoke-тестов на трёх разных RU провайдерах из capture-набора (`beget.com`, `web_max.ru_`, `ur66.ru`) и отдельный прогон через мобильный LTE.
 
 6. **`CHANGELOG-obf.md`** документирует: активируется только при `0xee`-секрете, список исправленных сигнатур, известные остаточные риски.
 
@@ -2340,8 +2844,8 @@ telemt-stealth-params/   (git submodule, общий с telemt)
 [ ] Нет global state для случайных значений (ECH — per-connection!)
 [ ] При ring overflow: НИКОГДА не обходить IPT/DRS-путь прямым write в `inner_`
 [ ] При ring overflow: НИКОГДА не писать в `inner_` синхронно (только backpressure)
-[ ] Hint consume-once: ВСЕГДА reset to Interactive после write()
-[ ] PQ group: ВСЕГДА из pq_group_for_profile(), синхронно в supported_groups И key_share
+[ ] Hint consume-once: ВСЕГДА reset to Unknown после write() (до PR-7: Unknown -> Interactive)
+[ ] PQ group: ВСЕГДА из snapshot-backed profile registry, синхронно в supported_groups И key_share
 [ ] PQ group: НЕТ hardcoded "Chrome131 == 0x6399"; только profile-registry/capture-driven
 [ ] GREASE: Grease::init() для GREASE-слотов — уже корректен
 [ ] ALPS: Chrome131 → 0x4469 (application_settings), НЕ 0x44CD (alps-01 draft)
