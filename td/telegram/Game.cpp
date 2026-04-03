@@ -45,7 +45,7 @@ Game::Game(Td *td, string title, string description, tl_object_ptr<telegram_api:
     int32 document_id = document->get_id();
     if (document_id == telegram_api::document::ID) {
       auto parsed_document = td->documents_manager_->on_get_document(
-          move_tl_object_as<telegram_api::document>(document), owner_dialog_id, false);
+          move_tl_object_as<telegram_api::document>(document), owner_dialog_id, false, false);
       if (parsed_document.type == Document::Type::Animation) {
         animation_file_id_ = parsed_document.file_id;
       } else {

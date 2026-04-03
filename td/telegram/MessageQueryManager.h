@@ -12,6 +12,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogListId.h"
 #include "td/telegram/EmojiGameInfo.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileUploadId.h"
 #include "td/telegram/ForumTopicId.h"
 #include "td/telegram/MessageCover.h"
@@ -21,12 +22,13 @@
 #include "td/telegram/MessageThreadInfo.h"
 #include "td/telegram/MessageTopic.h"
 #include "td/telegram/MessageViewer.h"
-#include "td/telegram/Photo.h"
 #include "td/telegram/SavedMessagesTopicId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/UserId.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/MultiTimeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/FlatHashMap.h"
@@ -66,8 +68,8 @@ class MessageQueryManager final : public Actor {
 
   void report_message_delivery(MessageFullId message_full_id, int32 until_date, bool from_push);
 
-  void send_bot_requested_peer(MessageFullId message_full_id, int32 button_id, vector<DialogId> shared_dialog_ids,
-                               Promise<Unit> &&promise);
+  void send_bot_requested_peer(MessageFullId message_full_id, UserId user_id, const string &request_id, int32 button_id,
+                               vector<DialogId> shared_dialog_ids, Promise<Unit> &&promise);
 
   void reload_message_extended_media(DialogId dialog_id, vector<MessageId> message_ids);
 
@@ -130,6 +132,12 @@ class MessageQueryManager final : public Actor {
                                                MessageSearchFilter filter, MessageId message_id,
                                                Promise<int32> &&promise);
 
+  void report_music_listen(FileId file_id, int32 duration, Promise<Unit> &&promise);
+
+  void send_message_view_metrics(DialogId dialog_id, MessageId message_id, int32 time_in_view_ms,
+                                 int32 active_time_in_view_ms, int32 height_to_viewport_ratio_per_mille,
+                                 int32 seen_range_ratio_per_mille, Promise<Unit> &&promise);
+
   void get_message_read_date_from_server(MessageFullId message_full_id,
                                          Promise<td_api::object_ptr<td_api::MessageReadDate>> &&promise);
 
@@ -148,10 +156,12 @@ class MessageQueryManager final : public Actor {
 
   bool has_message_pending_read_reactions(MessageFullId message_full_id) const;
 
+  bool has_message_pending_read_poll_votes(MessageFullId message_full_id) const;
+
   void get_paid_message_reaction_senders(DialogId dialog_id,
                                          Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
 
-  void summarize_message_text(MessageFullId message_full_id, const string &to_language_code,
+  void summarize_message_text(MessageFullId message_full_id, const string &to_language_code, const string &tone,
                               Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   void add_to_do_list_tasks(MessageFullId message_full_id,
@@ -204,10 +214,15 @@ class MessageQueryManager final : public Actor {
                                           SavedMessagesTopicId saved_messages_topic_id, uint64 log_event_id,
                                           Promise<Unit> &&promise);
 
+  void read_all_dialog_poll_votes_on_server(DialogId dialog_id, ForumTopicId forum_topic_id, uint64 log_event_id,
+                                            Promise<Unit> &&promise);
+
   void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 log_event_id,
                                        Promise<Unit> &&promise, bool skip_log_event = false);
 
   void read_message_reactions_on_server(DialogId dialog_id, vector<MessageId> message_ids);
+
+  void read_message_poll_votes_on_server(DialogId dialog_id, vector<MessageId> message_ids);
 
   void unpin_all_dialog_messages_on_server(DialogId dialog_id, uint64 log_event_id, Promise<Unit> &&promise);
 
@@ -232,6 +247,7 @@ class MessageQueryManager final : public Actor {
   class DeleteTopicHistoryOnServerLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
   class ReadAllDialogReactionsOnServerLogEvent;
+  class ReadAllPollVotesOnServerLogEvent;
   class ReadMessageContentsOnServerLogEvent;
   class UnpinAllDialogMessagesOnServerLogEvent;
 
@@ -249,6 +265,10 @@ class MessageQueryManager final : public Actor {
 
   void tear_down() final;
 
+  static void on_send_message_view_metrics_timeout_callback(void *message_query_manager_ptr, int64 dialog_id_int);
+
+  void send_message_view_metrics_timeout(DialogId dialog_id);
+
   void on_get_affected_history(DialogId dialog_id, AffectedHistoryQuery query, bool get_affected_messages,
                                AffectedHistory affected_history, Promise<Unit> &&promise);
 
@@ -265,6 +285,8 @@ class MessageQueryManager final : public Actor {
                               Promise<td_api::object_ptr<td_api::messageViewers>> &&promise);
 
   void on_read_message_reactions(DialogId dialog_id, vector<MessageId> &&message_ids, Result<Unit> &&result);
+
+  void on_read_message_poll_votes(DialogId dialog_id, vector<MessageId> &&message_ids, Result<Unit> &&result);
 
   void do_get_paid_message_reaction_senders(DialogId dialog_id,
                                             Promise<td_api::object_ptr<td_api::messageSenders>> &&promise);
@@ -317,6 +339,8 @@ class MessageQueryManager final : public Actor {
 
   static uint64 save_read_all_dialog_reactions_on_server_log_event(DialogId dialog_id);
 
+  static uint64 save_read_all_dialog_poll_votes_on_server_log_event(DialogId dialog_id, ForumTopicId forum_topic_id);
+
   static uint64 save_read_message_contents_on_server_log_event(DialogId dialog_id,
                                                                const vector<MessageId> &message_ids);
 
@@ -339,11 +363,24 @@ class MessageQueryManager final : public Actor {
 
   FlatHashMap<MessageFullId, int32, MessageFullIdHash> pending_read_reactions_;
 
+  FlatHashMap<MessageFullId, int32, MessageFullIdHash> pending_read_poll_votes_;
+
+  struct MessageViewMetrics {
+    MessageId message_id_;
+    int32 time_in_view_ms_ = 0;
+    int32 active_time_in_view_ms_ = 0;
+    int32 height_to_viewport_ratio_per_mille_ = 0;
+    int32 seen_range_ratio_per_mille_ = 0;
+  };
+  FlatHashMap<DialogId, vector<MessageViewMetrics>, DialogIdHash> pending_message_view_metrics_;
+
   std::shared_ptr<UploadCoverCallback> upload_cover_callback_;
 
   bool is_emoji_game_info_inited_ = false;
   double emoji_game_info_receive_time_ = 0.0;
   EmojiGameInfo emoji_game_info_;
+
+  MultiTimeout send_message_view_metrics_timeout_{"SendMessageViewMetricsTimeout"};
 
   Td *td_;
   ActorShared<> parent_;

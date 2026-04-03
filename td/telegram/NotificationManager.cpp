@@ -2860,6 +2860,7 @@ string NotificationManager::convert_loc_key(const string &loc_key) {
       {"MESSAGE_PHOTO_SECRET", "MESSAGE_SECRET_PHOTO"},
       {"MESSAGE_PLAYLIST", "MESSAGE_AUDIOS"},
       {"MESSAGE_POLL", "MESSAGE_POLL"},
+      {"MESSAGE_POLL_APPEND", "MESSAGE_POLL_APPEND"},
       {"MESSAGE_PROXIMITY", "MESSAGE_PROXIMITY"},
       {"MESSAGE_QUIZ", "MESSAGE_QUIZ"},
       {"MESSAGE_RECURRING_PAY", "MESSAGE_RECURRING_PAYMENT"},
@@ -2927,7 +2928,7 @@ void NotificationManager::add_push_notification_user(
   auto user_name = sender_user_id.get() == 136817688 ? "Channel" : sender_name;
   auto user = telegram_api::make_object<telegram_api::user>(
       flags, false, false, false, false, false, false, false, false, false, true /*min*/, false, false, false, false,
-      false, false, false, false, 0, false, false, false, false, false, false, false, false, false,
+      false, false, false, false, 0, false, false, false, false, false, false, false, false, false, false,
       sender_user_id.get(), sender_access_hash, user_name, string(), string(), string(), std::move(sender_photo),
       nullptr, 0, Auto(), string(), string(), nullptr, vector<telegram_api::object_ptr<telegram_api::username>>(),
       nullptr, nullptr, nullptr, 0, 0, 0);
@@ -2989,8 +2990,9 @@ Status NotificationManager::parse_push_notification_attach(DialogId dialog_id, s
           ends_with(loc_key, "MESSAGE_VIDEO") || ends_with(loc_key, "MESSAGE_VIDEO_NOTE") ||
           ends_with(loc_key, "MESSAGE_VOICE_NOTE") || ends_with(loc_key, "MESSAGE_TEXT")) {
         VLOG(notifications) << "Have attached document";
-        attached_document = td_->documents_manager_->on_get_document(
-            telegram_api::move_object_as<telegram_api::document>(result), dialog_id, false);
+        attached_document =
+            td_->documents_manager_->on_get_document(telegram_api::move_object_as<telegram_api::document>(result),
+                                                     dialog_id, false, ends_with(loc_key, "MESSAGE_LIVE_PHOTO"));
         if (!attached_document.empty()) {
           if (ends_with(loc_key, "_NOTE")) {
             loc_key.resize(loc_key.rfind('_'));

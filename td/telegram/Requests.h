@@ -288,6 +288,8 @@ class Requests {
 
   void on_request(uint64 id, const td_api::getMessageProperties &request);
 
+  void on_request(uint64 id, const td_api::getPollOptionProperties &request);
+
   void on_request(uint64 id, const td_api::getChatSponsoredMessages &request);
 
   void on_request(uint64 id, const td_api::clickChatSponsoredMessage &request);
@@ -321,6 +323,10 @@ class Requests {
   void on_request(uint64 id, td_api::translateMessageText &request);
 
   void on_request(uint64 id, td_api::summarizeMessage &request);
+
+  void on_request(uint64 id, td_api::composeTextWithAi &request);
+
+  void on_request(uint64 id, td_api::fixTextWithAi &request);
 
   void on_request(uint64 id, const td_api::recognizeSpeech &request);
 
@@ -455,6 +461,10 @@ class Requests {
   void on_request(uint64 id, const td_api::openMessageContent &request);
 
   void on_request(uint64 id, const td_api::clickAnimatedEmojiMessage &request);
+
+  void on_request(uint64 id, const td_api::listenToAudio &request);
+
+  void on_request(uint64 id, const td_api::sendMessageViewMetrics &request);
 
   void on_request(uint64 id, const td_api::getInternalLink &request);
 
@@ -607,6 +617,10 @@ class Requests {
   void on_request(uint64 id, const td_api::readAllChatReactions &request);
 
   void on_request(uint64 id, const td_api::readAllForumTopicReactions &request);
+
+  void on_request(uint64 id, const td_api::readAllChatPollVotes &request);
+
+  void on_request(uint64 id, const td_api::readAllForumTopicPollVotes &request);
 
   void on_request(uint64 id, const td_api::getChatAvailableMessageSenders &request);
 
@@ -1322,6 +1336,12 @@ class Requests {
 
   void on_request(uint64 id, const td_api::deleteBotMediaPreviews &request);
 
+  void on_request(uint64 id, td_api::checkBotUsername &request);
+
+  void on_request(uint64 id, td_api::createBot &request);
+
+  void on_request(uint64 id, const td_api::getBotToken &request);
+
   void on_request(uint64 id, td_api::setBotName &request);
 
   void on_request(uint64 id, const td_api::getBotName &request);
@@ -1632,6 +1652,10 @@ class Requests {
 
   void on_request(uint64 id, td_api::setOption &request);
 
+  void on_request(uint64 id, td_api::addPollOption &request);
+
+  void on_request(uint64 id, const td_api::deletePollOption &request);
+
   void on_request(uint64 id, td_api::setPollAnswer &request);
 
   void on_request(uint64 id, const td_api::getPollVoters &request);
@@ -1663,6 +1687,10 @@ class Requests {
   void on_request(uint64 id, td_api::savePreparedInlineMessage &request);
 
   void on_request(uint64 id, td_api::getPreparedInlineMessage &request);
+
+  void on_request(uint64 id, td_api::savePreparedKeyboardButton &request);
+
+  void on_request(uint64 id, td_api::getPreparedKeyboardButton &request);
 
   void on_request(uint64 id, td_api::getGrossingWebAppBots &request);
 

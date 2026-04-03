@@ -13,6 +13,7 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/RequestedDialogType.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
@@ -52,6 +53,12 @@ class InlineQueriesManager final : public Actor {
   void get_prepared_inline_message(UserId bot_user_id, const string &prepared_message_id,
                                    Promise<td_api::object_ptr<td_api::preparedInlineMessage>> &&promise);
 
+  void save_prepared_keyboard_button(UserId user_id, td_api::object_ptr<td_api::keyboardButton> &&button,
+                                     Promise<string> &&promise);
+
+  void get_prepared_keyboard_button(UserId bot_user_id, const string &prepared_button_id,
+                                    Promise<td_api::object_ptr<td_api::keyboardButton>> &&promise);
+
   void get_simple_web_view_url(UserId bot_user_id, string &&url, const WebAppOpenParameters &parameters,
                                Promise<string> &&promise);
 
@@ -82,6 +89,11 @@ class InlineQueriesManager final : public Actor {
       UserId bot_user_id, uint64 query_hash,
       telegram_api::object_ptr<telegram_api::messages_preparedInlineMessage> &&prepared_message,
       Promise<td_api::object_ptr<td_api::preparedInlineMessage>> promise);
+
+  const RequestedDialogType *get_requested_dialog_type(UserId bot_user_id, const string &prepared_button_id);
+
+  void on_get_requested_web_view_button(UserId bot_user_id, const string &prepared_button_id,
+                                        const RequestedDialogType *requested_dialog_type);
 
   void on_new_query(int64 query_id, UserId sender_user_id, Location user_location,
                     tl_object_ptr<telegram_api::InlineQueryPeerType> peer_type, const string &query,
@@ -184,6 +196,10 @@ class InlineQueriesManager final : public Actor {
       inline_message_contents_;  // query_id -> [result_id -> inline_message_content]
 
   FlatHashMap<int64, UserId> query_id_to_bot_user_id_;
+
+  UserId last_requested_web_view_button_bot_user_id_;
+  string last_requested_web_view_button_prepared_button_id_;
+  unique_ptr<RequestedDialogType> last_requested_web_view_button_requested_dialog_type_;
 
   Td *td_;
   ActorShared<> parent_;

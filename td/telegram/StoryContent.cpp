@@ -228,7 +228,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
   switch (media_ptr->get_id()) {
     case telegram_api::messageMediaPhoto::ID: {
       auto media = telegram_api::move_object_as<telegram_api::messageMediaPhoto>(media_ptr);
-      if (media->photo_ == nullptr || media->ttl_seconds_ != 0 || media->spoiler_) {
+      if (media->photo_ == nullptr || media->ttl_seconds_ != 0 || media->spoiler_ || media->live_photo_) {
         LOG(ERROR) << "Receive a story with content " << to_string(media);
         break;
       }
@@ -255,7 +255,7 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
       }
       CHECK(document_id == telegram_api::document::ID);
       auto parsed_document = td->documents_manager_->on_get_document(
-          telegram_api::move_object_as<telegram_api::document>(document_ptr), owner_dialog_id, false, nullptr,
+          telegram_api::move_object_as<telegram_api::document>(document_ptr), owner_dialog_id, false, false, nullptr,
           Document::Type::Video, DocumentsManager::Subtype::Story);
       if (parsed_document.empty() || parsed_document.type != Document::Type::Video) {
         LOG(ERROR) << "Receive a story with " << parsed_document;
@@ -272,8 +272,8 @@ unique_ptr<StoryContent> get_story_content(Td *td, tl_object_ptr<telegram_api::M
         } else {
           CHECK(alt_document_id == telegram_api::document::ID);
           auto parsed_alt_document = td->documents_manager_->on_get_document(
-              telegram_api::move_object_as<telegram_api::document>(alt_document_ptr), owner_dialog_id, false, nullptr,
-              Document::Type::Video, DocumentsManager::Subtype::Story);
+              telegram_api::move_object_as<telegram_api::document>(alt_document_ptr), owner_dialog_id, false, false,
+              nullptr, Document::Type::Video, DocumentsManager::Subtype::Story);
           if (parsed_alt_document.empty() || parsed_alt_document.type != Document::Type::Video) {
             LOG(ERROR) << "Receive invalid alternative document " << parsed_alt_document;
           } else {
@@ -353,7 +353,8 @@ telegram_api::object_ptr<telegram_api::InputMedia> get_story_content_input_media
   switch (content->get_type()) {
     case StoryContentType::Photo: {
       const auto *story_content = static_cast<const StoryContentPhoto *>(content);
-      return photo_get_input_media(td->file_manager_.get(), story_content->photo_, std::move(input_file), 0, false);
+      return photo_get_input_media(td->file_manager_.get(), story_content->photo_, std::move(input_file), 0, false,
+                                   FileId());
     }
     case StoryContentType::Video: {
       const auto *story_content = static_cast<const StoryContentVideo *>(content);

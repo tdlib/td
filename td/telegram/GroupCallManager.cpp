@@ -5938,6 +5938,7 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
         c = ' ';
       }
     }
+    remove_unallowed_quote_user_entities(message, true, true);
   } else {
     if (paid_message_star_count != 0) {
       if (is_reaction) {
@@ -5948,6 +5949,8 @@ void GroupCallManager::send_group_call_message(GroupCallId group_call_id,
     if (static_cast<int64>(utf8_length(message.text)) > G()->get_option_integer("group_call_message_text_length_max")) {
       return promise.set_error(400, "Message is too long");
     }
+    td::remove_if(message.entities,
+                  [](const MessageEntity &entity) { return entity.type == MessageEntity::Type::FormattedDate; });
   }
 
   auto as_dialog_id =

@@ -260,6 +260,7 @@ class UserManager final : public Actor {
     bool has_main_app = false;
     bool has_bot_forum_view = false;
     bool can_bot_create_topics = false;
+    bool can_manage_bots = false;
     bool is_inline = false;
     bool is_business = false;
     bool need_location = false;
@@ -630,6 +631,7 @@ class UserManager final : public Actor {
     bool has_main_app = false;
     bool has_bot_forum_view = false;
     bool can_bot_create_topics = false;
+    bool can_manage_bots = false;
     bool is_inline_bot = false;
     bool is_business_bot = false;
     bool need_location_bot = false;
@@ -696,6 +698,7 @@ class UserManager final : public Actor {
     AdministratorRights broadcast_administrator_rights;
     ReferralProgramInfo referral_program_info;
     unique_ptr<BotVerifierSettings> verifier_settings;
+    UserId manager_bot_user_id;
 
     string placeholder_path;
     int32 background_color = -1;
@@ -755,6 +758,7 @@ class UserManager final : public Actor {
     bool has_preview_medias = false;
     bool can_view_revenue = false;
     bool can_manage_emoji_status = false;
+    bool unofficial_security_risk = false;
 
     bool is_common_chat_count_changed = true;
     bool is_pending_star_rating_changed = true;

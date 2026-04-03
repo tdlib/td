@@ -78,10 +78,9 @@ class LinkManager final : public Actor {
                           Promise<td_api::object_ptr<td_api::LoginUrlInfo>> &&promise);
 
   void get_login_url(MessageFullId message_full_id, int64 button_id, bool allow_write_access,
-                     Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
+                     Promise<string> &&promise);
 
-  void get_link_login_url(const string &url, bool allow_write_access,
-                          Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
+  void get_link_login_url(const string &url, bool allow_write_access, Promise<string> &&promise);
 
   void get_oauth_link_info(string &&link, const string &in_app_origin,
                            Promise<td_api::object_ptr<td_api::oauthLinkInfo>> &&promise);
@@ -89,7 +88,7 @@ class LinkManager final : public Actor {
   void check_oauth_request_match_code(const string &url, const string &match_code, Promise<Unit> &&promise);
 
   void accept_oauth_request(const string &url, const string &match_code, bool allow_write_access,
-                            bool allow_phone_number_access, Promise<td_api::object_ptr<td_api::httpUrl>> &&promise);
+                            bool allow_phone_number_access, Promise<string> &&promise);
 
   void decline_oauth_request(const string &url, Promise<Unit> &&promise);
 
@@ -181,6 +180,7 @@ class LinkManager final : public Actor {
   class InternalLinkProxy;
   class InternalLinkPublicDialog;
   class InternalLinkQrCodeAuthentication;
+  class InternalLinkRequestManagedBot;
   class InternalLinkRestorePurchases;
   class InternalLinkSavedMessages;
   class InternalLinkSearch;

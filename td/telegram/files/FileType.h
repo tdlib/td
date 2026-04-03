@@ -41,6 +41,8 @@ enum class FileType : int32 {
   SelfDestructingVideo,
   SelfDestructingVideoNote,
   SelfDestructingVoiceNote,
+  LivePhoto,
+  SelfDestructingLivePhoto,
   Size,
   None
 };

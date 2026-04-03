@@ -17,7 +17,9 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 
@@ -59,6 +61,10 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
 
       quote_ = MessageQuote(td, reply_to);
       todo_item_id_ = reply_to->todo_item_id_;
+      poll_option_id_ = reply_to->poll_option_.as_slice().str();
+      if (!check_utf8(poll_option_id_)) {
+        poll_option_id_.clear();
+      }
       break;
     }
     case telegram_api::inputReplyToMonoForum::ID: {
@@ -68,6 +74,12 @@ MessageInputReplyTo::MessageInputReplyTo(Td *td,
     default:
       UNREACHABLE();
   }
+}
+
+MessageInputReplyTo MessageInputReplyTo::regular(MessageId message_id) {
+  MessageInputReplyTo result;
+  result.message_id_ = message_id;
+  return result;
 }
 
 void MessageInputReplyTo::add_dependencies(Dependencies &dependencies) const {
@@ -130,12 +142,15 @@ telegram_api::object_ptr<telegram_api::InputReplyTo> MessageInputReplyTo::get_in
   if (todo_item_id_ != 0) {
     flags |= telegram_api::inputReplyToMessage::TODO_ITEM_ID_MASK;
   }
+  if (!poll_option_id_.empty()) {
+    flags |= telegram_api::inputReplyToMessage::POLL_OPTION_MASK;
+  }
   if (reply_to_message_id != MessageId() && !reply_to_message_id.is_server()) {
     LOG(FATAL) << *this << " in " << message_topic << " in " << for_dialog_id << " with flags " << with_flags;
   }
   auto result = telegram_api::make_object<telegram_api::inputReplyToMessage>(
       flags, reply_to_message_id.get_server_message_id().get(), top_msg_id, std::move(input_peer), string(), Auto(), 0,
-      std::move(saved_input_peer), todo_item_id_);
+      std::move(saved_input_peer), todo_item_id_, BufferSlice(poll_option_id_));
   quote_.update_input_reply_to_message(td, result.get());
   return std::move(result);
 }
@@ -153,10 +168,10 @@ td_api::object_ptr<td_api::InputMessageReplyTo> MessageInputReplyTo::get_input_m
   if (dialog_id_ != DialogId()) {
     return td_api::make_object<td_api::inputMessageReplyToExternalMessage>(
         td->dialog_manager_->get_chat_id_object(dialog_id_, "inputMessageReplyToExternalMessage"), message_id_.get(),
-        quote_.get_input_text_quote_object(td->user_manager_.get()), todo_item_id_);
+        quote_.get_input_text_quote_object(td->user_manager_.get()), todo_item_id_, poll_option_id_);
   }
   return td_api::make_object<td_api::inputMessageReplyToMessage>(
-      message_id_.get(), quote_.get_input_text_quote_object(td->user_manager_.get()), todo_item_id_);
+      message_id_.get(), quote_.get_input_text_quote_object(td->user_manager_.get()), todo_item_id_, poll_option_id_);
 }
 
 MessageId MessageInputReplyTo::get_same_chat_reply_to_message_id() const {
@@ -173,7 +188,8 @@ MessageFullId MessageInputReplyTo::get_reply_message_full_id(DialogId owner_dial
 
 bool operator==(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
   return lhs.message_id_ == rhs.message_id_ && lhs.dialog_id_ == rhs.dialog_id_ &&
-         lhs.story_full_id_ == rhs.story_full_id_ && lhs.quote_ == rhs.quote_ && lhs.todo_item_id_ == rhs.todo_item_id_;
+         lhs.story_full_id_ == rhs.story_full_id_ && lhs.quote_ == rhs.quote_ &&
+         lhs.todo_item_id_ == rhs.todo_item_id_ && lhs.poll_option_id_ == rhs.poll_option_id_;
 }
 
 bool operator!=(const MessageInputReplyTo &lhs, const MessageInputReplyTo &rhs) {
@@ -188,6 +204,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageInputReply
     }
     if (input_reply_to.todo_item_id_ != 0) {
       string_builder << " to task " << input_reply_to.todo_item_id_;
+    }
+    if (!input_reply_to.poll_option_id_.empty()) {
+      string_builder << " to poll option " << input_reply_to.poll_option_id_;
     }
     if (!input_reply_to.quote_.is_empty()) {
       string_builder << input_reply_to.quote_;

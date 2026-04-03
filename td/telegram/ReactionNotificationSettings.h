@@ -19,6 +19,7 @@ namespace td {
 class ReactionNotificationSettings {
   ReactionNotificationsFrom message_reactions_;
   ReactionNotificationsFrom story_reactions_;
+  ReactionNotificationsFrom poll_votes_;
   unique_ptr<NotificationSound> sound_;
   bool show_preview_ = true;
 

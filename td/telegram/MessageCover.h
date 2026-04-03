@@ -19,14 +19,18 @@ namespace td {
 class Td;
 
 class MessageCover {
-  enum class Type : int32 { Empty, Photo };
+  enum class Type : int32 { Empty, Photo, Video };
   Type type_ = Type::Empty;
   Photo photo_;
+  FileId video_file_id_;
 
  public:
   MessageCover() = default;
 
   explicit MessageCover(const Photo &photo) : type_(Type::Photo), photo_(photo) {
+  }
+
+  explicit MessageCover(FileId video_file_id) : type_(Type::Video), video_file_id_(video_file_id) {
   }
 
   bool is_empty() const {

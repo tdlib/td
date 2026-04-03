@@ -34,8 +34,6 @@ class ToDoList {
 
   friend bool operator==(const ToDoList &lhs, const ToDoList &rhs);
 
-  static bool remove_unsupported_entities(FormattedText &text);
-
  public:
   ToDoList() = default;
 

@@ -48,7 +48,6 @@
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/MessageQuote.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/MessageTtl.h"
 #include "td/telegram/misc.h"
@@ -1658,7 +1657,7 @@ class GetUserSavedMusicByIdQuery final : public Td::ResultHandler {
     for (auto &document : saved_music->documents_) {
       if (document->get_id() == telegram_api::document::ID) {
         auto parsed_document = td_->documents_manager_->on_get_document(
-            telegram_api::move_object_as<telegram_api::document>(document), DialogId(user_id_), false);
+            telegram_api::move_object_as<telegram_api::document>(document), DialogId(user_id_), false, false);
         if (parsed_document.type != Document::Type::Audio) {
           LOG(ERROR) << "Receive " << parsed_document;
         }
@@ -1825,21 +1824,22 @@ void UserManager::User::store(StorerT &storer) const {
     STORE_FLAG(false);
     STORE_FLAG(has_max_active_story_id);
     STORE_FLAG(has_max_read_story_id);
-    STORE_FLAG(has_max_active_story_id_next_reload_time);
+    STORE_FLAG(has_max_active_story_id_next_reload_time);  // 5
     STORE_FLAG(has_accent_color_id);
     STORE_FLAG(has_background_custom_emoji_id);
     STORE_FLAG(has_profile_accent_color_id);
     STORE_FLAG(has_profile_background_custom_emoji_id);
-    STORE_FLAG(contact_require_premium);
+    STORE_FLAG(contact_require_premium);  // 10
     STORE_FLAG(is_business_bot);
     STORE_FLAG(has_bot_active_users);
     STORE_FLAG(has_main_app);
     STORE_FLAG(has_bot_verification_icon);
-    STORE_FLAG(has_paid_message_star_count);
+    STORE_FLAG(has_paid_message_star_count);  // 15
     STORE_FLAG(has_peer_color_collectible);
     STORE_FLAG(has_bot_forum_view);
     STORE_FLAG(has_live_story);
     STORE_FLAG(can_bot_create_topics);
+    STORE_FLAG(can_manage_bots);  // 20
     END_STORE_FLAGS();
   }
   store(first_name, storer);
@@ -1991,6 +1991,7 @@ void UserManager::User::parse(ParserT &parser) {
     PARSE_FLAG(has_bot_forum_view);
     PARSE_FLAG(has_live_story);
     PARSE_FLAG(can_bot_create_topics);
+    PARSE_FLAG(can_manage_bots);
     END_PARSE_FLAGS();
   }
   parse(first_name, parser);
@@ -2156,6 +2157,7 @@ void UserManager::UserFull::store(StorerT &storer) const {
   bool has_main_profile_tab = main_profile_tab != ProfileTab::Default;
   bool has_first_saved_music_file_id = first_saved_music_file_id != FileId();
   bool has_note = !note.text.empty();
+  bool has_manager_bot_user_id = bot_info != nullptr && bot_info->manager_bot_user_id != UserId();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_about);
   STORE_FLAG(is_blocked);
@@ -2195,24 +2197,26 @@ void UserManager::UserFull::store(StorerT &storer) const {
     STORE_FLAG(has_gift_count);
     STORE_FLAG(can_view_revenue);
     STORE_FLAG(can_manage_emoji_status);
-    STORE_FLAG(has_placeholder_path);
+    STORE_FLAG(has_placeholder_path);  // 5
     STORE_FLAG(has_background_color);
     STORE_FLAG(has_background_dark_color);
     STORE_FLAG(has_header_color);
     STORE_FLAG(has_header_dark_color);
-    STORE_FLAG(has_referral_program_info);
+    STORE_FLAG(has_referral_program_info);  // 10
     STORE_FLAG(has_verifier_settings);
     STORE_FLAG(has_bot_verification);
     STORE_FLAG(has_charge_paid_message_stars);
     STORE_FLAG(has_send_paid_message_stars);
-    STORE_FLAG(has_gift_settings);
+    STORE_FLAG(has_gift_settings);  // 15
     STORE_FLAG(has_star_rating);
     STORE_FLAG(has_pending_star_rating);
     STORE_FLAG(has_main_profile_tab);
     STORE_FLAG(has_first_saved_music_file_id);
-    STORE_FLAG(has_note);
+    STORE_FLAG(has_note);  // 20
     STORE_FLAG(noforwards_my_enabled);
     STORE_FLAG(noforwards_peer_enabled);
+    STORE_FLAG(has_manager_bot_user_id);
+    STORE_FLAG(unofficial_security_risk);
     END_STORE_FLAGS();
   }
   if (has_about) {
@@ -2318,6 +2322,9 @@ void UserManager::UserFull::store(StorerT &storer) const {
   if (has_note) {
     store(note, storer);
   }
+  if (has_manager_bot_user_id) {
+    store(bot_info->manager_bot_user_id, storer);
+  }
 }
 
 template <class ParserT>
@@ -2360,6 +2367,7 @@ void UserManager::UserFull::parse(ParserT &parser) {
   bool has_main_profile_tab = false;
   bool has_first_saved_music_file_id = false;
   bool has_note = false;
+  bool has_manager_bot_user_id = false;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_about);
   PARSE_FLAG(is_blocked);
@@ -2417,6 +2425,8 @@ void UserManager::UserFull::parse(ParserT &parser) {
     PARSE_FLAG(has_note);
     PARSE_FLAG(noforwards_my_enabled);
     PARSE_FLAG(noforwards_peer_enabled);
+    PARSE_FLAG(has_manager_bot_user_id);
+    PARSE_FLAG(unofficial_security_risk);
     END_PARSE_FLAGS();
   }
   if (has_about) {
@@ -2525,6 +2535,9 @@ void UserManager::UserFull::parse(ParserT &parser) {
   }
   if (has_note) {
     parse(note, parser);
+  }
+  if (has_manager_bot_user_id) {
+    parse(add_bot_info()->manager_bot_user_id, parser);
   }
 }
 
@@ -3131,6 +3144,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   bool has_main_app = user->bot_has_main_app_;
   bool has_bot_forum_view = user->bot_forum_view_;
   bool can_bot_create_topics = has_bot_forum_view && !user->bot_forum_can_manage_topics_;
+  bool can_manage_bots = user->bot_can_manage_bots_;
   bool attach_menu_enabled = user->attach_menu_enabled_;
   bool is_scam = user->scam_;
   bool can_be_edited_bot = user->bot_can_edit_;
@@ -3148,7 +3162,8 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
   auto paid_message_star_count = StarManager::get_star_count(user->send_paid_messages_stars_);
 
   if (!is_bot && (!can_join_groups || can_read_all_group_messages || can_be_added_to_attach_menu || can_be_edited_bot ||
-                  has_main_app || has_bot_forum_view || can_bot_create_topics || is_inline_bot || is_business_bot)) {
+                  has_main_app || has_bot_forum_view || can_bot_create_topics || can_manage_bots || is_inline_bot ||
+                  is_business_bot)) {
     LOG(ERROR) << "Receive not bot " << user_id << " with bot properties from " << source;
     can_join_groups = true;
     can_read_all_group_messages = false;
@@ -3157,6 +3172,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     has_main_app = false;
     has_bot_forum_view = false;
     can_bot_create_topics = false;
+    can_manage_bots = false;
     is_inline_bot = false;
     is_business_bot = false;
   }
@@ -3178,6 +3194,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     has_main_app = false;
     has_bot_forum_view = false;
     can_bot_create_topics = false;
+    can_manage_bots = false;
     is_inline_bot = false;
     is_business_bot = false;
     inline_query_placeholder = string();
@@ -3193,7 +3210,8 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
       is_scam != u->is_scam || is_fake != u->is_fake || is_inline_bot != u->is_inline_bot ||
       is_business_bot != u->is_business_bot || inline_query_placeholder != u->inline_query_placeholder ||
       need_location_bot != u->need_location_bot || can_be_added_to_attach_menu != u->can_be_added_to_attach_menu ||
-      has_main_app != u->has_main_app || can_bot_create_topics != u->can_bot_create_topics) {
+      has_main_app != u->has_main_app || can_bot_create_topics != u->can_bot_create_topics ||
+      can_manage_bots != u->can_manage_bots) {
     if (is_bot != u->is_bot) {
       LOG_IF(ERROR, !is_deleted && !u->is_deleted && u->is_received)
           << "User.is_bot has changed for " << user_id << "/" << u->usernames << " from " << source << " from "
@@ -3214,6 +3232,7 @@ void UserManager::on_get_user(telegram_api::object_ptr<telegram_api::User> &&use
     u->can_be_added_to_attach_menu = can_be_added_to_attach_menu;
     u->has_main_app = has_main_app;
     u->can_bot_create_topics = can_bot_create_topics;
+    u->can_manage_bots = can_manage_bots;
 
     LOG(DEBUG) << "Info has changed for " << user_id;
     u->is_changed = true;
@@ -4967,8 +4986,8 @@ UserManager::User *UserManager::get_user_force(UserId user_id, const char *sourc
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false, false, false, false, is_bot, false, is_private_bot, is_verified, false, false, false, is_support,
         false, need_apply_min_photo, false, false, false, false, 0, false, false, false, false, false, false, false,
-        false, false, user_id.get(), 1, first_name, string(), username, phone_number, std::move(profile_photo), nullptr,
-        bot_info_version, Auto(), string(), string(), nullptr,
+        false, false, false, user_id.get(), 1, first_name, string(), username, phone_number, std::move(profile_photo),
+        nullptr, bot_info_version, Auto(), string(), string(), nullptr,
         vector<telegram_api::object_ptr<telegram_api::username>>(), nullptr, nullptr, nullptr, 0, 0, 0);
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
@@ -5261,6 +5280,7 @@ Result<UserManager::BotData> UserManager::get_bot_data(UserId user_id) const {
   bot_data.has_main_app = u->has_main_app;
   bot_data.has_bot_forum_view = u->has_bot_forum_view;
   bot_data.can_bot_create_topics = u->can_bot_create_topics;
+  bot_data.can_manage_bots = u->can_manage_bots;
   bot_data.is_inline = u->is_inline_bot;
   bot_data.is_business = u->is_business_bot;
   bot_data.need_location = u->need_location_bot;
@@ -6277,7 +6297,7 @@ void UserManager::set_user_note(UserId user_id, td_api::object_ptr<td_api::forma
 
   TRY_RESULT_PROMISE(promise, note_text,
                      get_formatted_text(td_, DialogId(), std::move(note), false, true, true, false));
-  MessageQuote::remove_unallowed_quote_entities(note_text);
+  remove_unallowed_quote_entities(note_text);
 
   auto query_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), user_id, note_text, promise = std::move(promise)](Result<Unit> result) mutable {
@@ -7310,7 +7330,7 @@ void UserManager::on_get_user_saved_music(UserId user_id, int32 offset, int32 li
       continue;
     }
     auto parsed_document = td_->documents_manager_->on_get_document(
-        telegram_api::move_object_as<telegram_api::document>(document), DialogId(user_id), false);
+        telegram_api::move_object_as<telegram_api::document>(document), DialogId(user_id), false, false);
     if (parsed_document.type != Document::Type::Audio) {
       LOG(ERROR) << "Receive " << parsed_document;
       user_saved_music->count--;
@@ -8730,6 +8750,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   bool has_private_calls = user->phone_calls_private_;
   bool voice_messages_forbidden = u->is_premium ? user->voice_messages_forbidden_ : false;
   bool has_pinned_stories = user->stories_pinned_available_;
+  bool unofficial_security_risk = user->unofficial_security_risk_;
   auto birthdate = Birthdate(std::move(user->birthday_));
   auto personal_channel_id = ChannelId(user->personal_channel_id_);
   auto sponsored_enabled = user->sponsored_enabled_;
@@ -8754,7 +8775,8 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
       user_full->can_pin_messages != can_pin_messages || user_full->has_pinned_stories != has_pinned_stories ||
       user_full->sponsored_enabled != sponsored_enabled || user_full->can_view_revenue != can_view_revenue ||
       user_full->bot_verification != bot_verification || user_full->gift_settings != gift_settings ||
-      user_full->star_rating != star_rating || user_full->main_profile_tab != main_profile_tab) {
+      user_full->star_rating != star_rating || user_full->main_profile_tab != main_profile_tab ||
+      user_full->unofficial_security_risk != unofficial_security_risk) {
     user_full->can_be_called = can_be_called;
     user_full->supports_video_calls = supports_video_calls;
     user_full->has_private_calls = has_private_calls;
@@ -8767,6 +8789,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
     user_full->gift_settings = std::move(gift_settings);
     user_full->star_rating = std::move(star_rating);
     user_full->main_profile_tab = main_profile_tab;
+    user_full->unofficial_security_risk = unofficial_security_risk;
 
     user_full->is_changed = true;
   }
@@ -8826,6 +8849,15 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
 
       user_full->is_changed = true;
     }
+    UserId manager_bot_user_id(user->bot_manager_id_);
+    if (manager_bot_user_id != UserId() && !manager_bot_user_id.is_valid()) {
+      LOG(ERROR) << "Receive manager " << manager_bot_user_id;
+      manager_bot_user_id = UserId();
+    }
+    if (bot_info->manager_bot_user_id != manager_bot_user_id) {
+      bot_info->manager_bot_user_id = manager_bot_user_id;
+      user_full->is_changed = true;
+    }
 
     string description;
     Photo description_photo;
@@ -8844,7 +8876,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
         int32 document_id = document->get_id();
         if (document_id == telegram_api::document::ID) {
           auto parsed_document = td_->documents_manager_->on_get_document(
-              move_tl_object_as<telegram_api::document>(document), DialogId(user_id), false);
+              move_tl_object_as<telegram_api::document>(document), DialogId(user_id), false, false);
           if (parsed_document.type == Document::Type::Animation) {
             description_animation_file_id = parsed_document.file_id;
           } else {
@@ -8970,7 +9002,7 @@ void UserManager::on_get_user_full(telegram_api::object_ptr<telegram_api::userFu
   FileId first_saved_music_file_id;
   if (user->saved_music_ != nullptr && user->saved_music_->get_id() == telegram_api::document::ID) {
     auto document = td_->documents_manager_->on_get_document(
-        telegram_api::move_object_as<telegram_api::document>(user->saved_music_), DialogId(user_id), false);
+        telegram_api::move_object_as<telegram_api::document>(user->saved_music_), DialogId(user_id), false, false);
     if (document.type != Document::Type::Audio) {
       LOG(ERROR) << "Receive " << document;
     } else {
@@ -9067,6 +9099,9 @@ void UserManager::on_load_user_full_from_database(UserId user_id, string value) 
   }
   if (user_full->bot_verification != nullptr) {
     user_full->bot_verification->add_dependencies(dependencies);
+  }
+  if (user_full->bot_info != nullptr) {
+    dependencies.add(user_full->bot_info->manager_bot_user_id);
   }
   dependencies.add(user_full->personal_channel_id);
   add_formatted_text_dependencies(dependencies, &user_full->note);
@@ -9259,6 +9294,7 @@ void UserManager::drop_user_full(UserId user_id) {
   user_full->pending_star_rating_date = 0;
   user_full->private_forward_name.clear();
   user_full->voice_messages_forbidden = false;
+  user_full->unofficial_security_risk = false;
   user_full->has_pinned_stories = false;
   user_full->read_dates_private = false;
   user_full->contact_require_premium = false;
@@ -9985,7 +10021,7 @@ td_api::object_ptr<td_api::user> UserManager::get_user_object(UserId user_id, co
   } else if (u->is_bot) {
     type = td_api::make_object<td_api::userTypeBot>(
         u->can_be_edited_bot, u->can_join_groups, u->can_read_all_group_messages, u->has_main_app,
-        u->has_bot_forum_view, u->has_bot_forum_view && !u->can_bot_create_topics, u->is_inline_bot,
+        u->has_bot_forum_view, u->has_bot_forum_view && !u->can_bot_create_topics, u->can_manage_bots, u->is_inline_bot,
         u->inline_query_placeholder, u->need_location_bot, u->is_business_bot, u->can_be_added_to_attach_menu,
         u->bot_active_users);
   } else {
@@ -10040,7 +10076,7 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
   if (is_bot) {
     if (user_full->bot_info == nullptr) {
       bot_info = td_api::make_object<td_api::botInfo>(
-          user_full->about, string(), nullptr, nullptr, nullptr, Auto(), string(), nullptr, nullptr, nullptr, -1, -1,
+          user_full->about, string(), nullptr, nullptr, 0, nullptr, Auto(), string(), nullptr, nullptr, nullptr, -1, -1,
           -1, -1, nullptr, user_full->can_view_revenue, user_full->can_manage_emoji_status,
           user_full->has_preview_medias, nullptr, nullptr, nullptr, nullptr);
     } else {
@@ -10052,7 +10088,8 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
           user_full->about, user_bot_info->description,
           get_photo_object(td_->file_manager_.get(), user_bot_info->description_photo),
           td_->animations_manager_->get_animation_object(user_bot_info->description_animation_file_id),
-          std::move(menu_button), std::move(commands), user_bot_info->privacy_policy_url,
+          get_user_id_object(user_bot_info->manager_bot_user_id, "botInfo"), std::move(menu_button),
+          std::move(commands), user_bot_info->privacy_policy_url,
           user_bot_info->group_administrator_rights == AdministratorRights()
               ? nullptr
               : user_bot_info->group_administrator_rights.get_chat_administrator_rights_object(),
@@ -10127,10 +10164,10 @@ td_api::object_ptr<td_api::userFullInfo> UserManager::get_user_full_info_object(
       user_full->can_be_called, user_full->supports_video_calls, user_full->has_private_calls,
       !user_full->private_forward_name.empty(), voice_messages_forbidden, user_full->has_pinned_stories,
       user_full->sponsored_enabled, user_full->need_phone_number_privacy_exception, user_full->wallpaper_overridden,
-      std::move(bio_object), user_full->birthdate.get_birthdate_object(), personal_chat_id, user_full->gift_count,
-      user_full->common_chat_count, user_full->charge_paid_message_stars, user_full->send_paid_message_stars,
-      user_full->gift_settings.get_gift_settings_object(), std::move(bot_verification),
-      get_profile_tab_object(user_full->main_profile_tab),
+      user_full->unofficial_security_risk, std::move(bio_object), user_full->birthdate.get_birthdate_object(),
+      personal_chat_id, user_full->gift_count, user_full->common_chat_count, user_full->charge_paid_message_stars,
+      user_full->send_paid_message_stars, user_full->gift_settings.get_gift_settings_object(),
+      std::move(bot_verification), get_profile_tab_object(user_full->main_profile_tab),
       td_->audios_manager_->get_audio_object(user_full->first_saved_music_file_id), std::move(user_rating),
       std::move(pending_user_rating), user_full->pending_star_rating_date, std::move(note), std::move(business_info),
       std::move(bot_info));

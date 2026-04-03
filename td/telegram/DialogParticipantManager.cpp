@@ -281,7 +281,8 @@ class GetChannelAdministratorsQuery final : public Td::ResultHandler {
             continue;
           }
           administrators.emplace_back(dialog_participant.dialog_id_.get_user_id(),
-                                      dialog_participant.status_.get_rank(), dialog_participant.status_.is_creator());
+                                      dialog_participant.status_.get_rank(), dialog_participant.status_.is_creator(),
+                                      dialog_participant.status_.can_be_edited());
         }
 
         td_->chat_manager_->on_update_channel_administrator_count(channel_id_,
@@ -1249,14 +1250,14 @@ void DialogParticipantManager::speculative_update_dialog_administrators(DialogId
       if (administrator.get_user_id() == user_id) {
         is_found = true;
         if (administrator.is_creator() != new_status.is_creator()) {
-          administrator = DialogAdministrator(user_id, administrator.get_rank(), new_status.is_creator());
+          administrator = DialogAdministrator(user_id, administrator.get_rank(), new_status.is_creator(), true);
           on_update_dialog_administrators(dialog_id, std::move(administrators), true, false);
         }
         break;
       }
     }
     if (!is_found) {
-      administrators.emplace_back(user_id, string(), new_status.is_creator());
+      administrators.emplace_back(user_id, string(), new_status.is_creator(), true);
       on_update_dialog_administrators(dialog_id, std::move(administrators), true, false);
     }
   } else {
@@ -2003,7 +2004,7 @@ void DialogParticipantManager::on_get_channel_participants(
             auto participant_user_id = participant.dialog_id_.get_user_id();
             if (participant.status_.is_administrator()) {
               administrators.emplace_back(participant_user_id, participant.status_.get_rank(),
-                                          participant.status_.is_creator());
+                                          participant.status_.is_creator(), participant.status_.can_be_edited());
             }
             if (is_full_recent && td_->user_manager_->is_user_bot(participant_user_id)) {
               bot_user_ids.push_back(participant_user_id);
@@ -2020,7 +2021,7 @@ void DialogParticipantManager::on_get_channel_participants(
         for (const auto &participant : result) {
           if (participant.dialog_id_.get_type() == DialogType::User) {
             administrators.emplace_back(participant.dialog_id_.get_user_id(), participant.status_.get_rank(),
-                                        participant.status_.is_creator());
+                                        participant.status_.is_creator(), participant.status_.can_be_edited());
           }
         }
       } else if (filter.is_bots()) {

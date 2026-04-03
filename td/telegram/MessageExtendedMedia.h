@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Dimensions.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/MessageCover.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -39,8 +40,10 @@ class MessageExtendedMedia {
   // for Photo and Video cover
   Photo photo_;
 
-  // for Video
+  // for Video and Live Photo
   FileId video_file_id_;
+
+  // for Video
   int32 start_timestamp_ = 0;
 
   friend bool operator==(const MessageExtendedMedia &lhs, const MessageExtendedMedia &rhs);
@@ -111,7 +114,7 @@ class MessageExtendedMedia {
 
   void update_file_id_remote(FileId file_id);
 
-  const Photo *get_video_cover() const;
+  MessageCover get_need_to_upload_cover(const Td *td) const;
 
   telegram_api::object_ptr<telegram_api::InputMedia> get_input_media(
       Td *td, telegram_api::object_ptr<telegram_api::InputFile> input_file,

@@ -30,6 +30,7 @@ class ForumTopic {
   MessageId last_read_outbox_message_id_;
   int32 unread_mention_count_ = 0;
   int32 unread_reaction_count_ = 0;
+  int32 unread_poll_vote_count_ = 0;
   DialogNotificationSettings notification_settings_;
   unique_ptr<DraftMessage> draft_message_;
 
@@ -52,6 +53,8 @@ class ForumTopic {
   bool update_unread_mention_count(int32 count, bool is_relative);
 
   bool update_unread_reaction_count(int32 count, bool is_relative);
+
+  bool update_unread_poll_vote_count(int32 count, bool is_relative);
 
   bool set_is_pinned(bool is_pinned) {
     if (is_pinned_ == is_pinned) {

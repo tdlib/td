@@ -643,7 +643,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
         int32 document_id = web_page->document_->get_id();
         if (document_id == telegram_api::document::ID) {
           auto parsed_document = td_->documents_manager_->on_get_document(
-              move_tl_object_as<telegram_api::document>(web_page->document_), owner_dialog_id, false);
+              move_tl_object_as<telegram_api::document>(web_page->document_), owner_dialog_id, false, false);
           page->document_ = std::move(parsed_document);
         }
       }
@@ -656,7 +656,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
               int32 document_id = document->get_id();
               if (document_id == telegram_api::document::ID) {
                 auto parsed_document = td_->documents_manager_->on_get_document(
-                    move_tl_object_as<telegram_api::document>(document), owner_dialog_id, false);
+                    move_tl_object_as<telegram_api::document>(document), owner_dialog_id, false, false);
                 if (!parsed_document.empty()) {
                   page->documents_.push_back(std::move(parsed_document));
                 }
@@ -1659,6 +1659,9 @@ td_api::object_ptr<td_api::LinkPreviewType> WebPagesManager::get_link_preview_ty
           << "Receive wrong document for " << web_page->url_;
       return td_api::make_object<td_api::linkPreviewTypeMessage>();
     }
+    if (type == "newbot") {
+      return td_api::make_object<td_api::linkPreviewTypeRequestManagedBot>();
+    }
     if (type == "nft") {
       if (web_page->star_gifts_.size() == 1) {
         return td_api::make_object<td_api::linkPreviewTypeUpgradedGift>(
@@ -2285,7 +2288,8 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
     if (document_ptr->get_id() == telegram_api::document::ID) {
       auto document = move_tl_object_as<telegram_api::document>(document_ptr);
       auto document_id = document->id_;
-      auto parsed_document = td_->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false);
+      auto parsed_document =
+          td_->documents_manager_->on_get_document(std::move(document), owner_dialog_id, false, false);
       if (!parsed_document.empty() && document_id != 0) {
         get_map(parsed_document.type)->emplace(document_id, parsed_document.file_id);
       }

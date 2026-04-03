@@ -591,6 +591,14 @@ public final class Example {
                     }
                     break;
                 }
+                case TdApi.UpdateChatUnreadPollVoteCount.CONSTRUCTOR: {
+                    TdApi.UpdateChatUnreadPollVoteCount updateChat = (TdApi.UpdateChatUnreadPollVoteCount) object;
+                    TdApi.Chat chat = chats.get(updateChat.chatId);
+                    synchronized (chat) {
+                        chat.unreadPollVoteCount = updateChat.unreadPollVoteCount;
+                    }
+                    break;
+                }
                 case TdApi.UpdateChatVideoChat.CONSTRUCTOR: {
                     TdApi.UpdateChatVideoChat updateChat = (TdApi.UpdateChatVideoChat) object;
                     TdApi.Chat chat = chats.get(updateChat.chatId);

@@ -88,15 +88,22 @@ struct ReplyMarkup {
 
   tl_object_ptr<td_api::ReplyMarkup> get_reply_markup_object(UserManager *user_manager) const;
 
-  Status check_shared_dialog(Td *td, int32 button_id, DialogId dialog_id) const;
-
-  Status check_shared_dialog_count(int32 button_id, size_t count) const;
+  const RequestedDialogType *get_requested_dialog_type(int32 button_id) const;
 };
 
 bool operator==(const ReplyMarkup &lhs, const ReplyMarkup &rhs);
 bool operator!=(const ReplyMarkup &lhs, const ReplyMarkup &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const ReplyMarkup &reply_markup);
+
+KeyboardButton get_keyboard_button(tl_object_ptr<telegram_api::KeyboardButton> &&keyboard_button_ptr);
+
+Result<KeyboardButton> get_keyboard_button(td_api::object_ptr<td_api::keyboardButton> &&button,
+                                           bool request_buttons_allowed);
+
+td_api::object_ptr<td_api::keyboardButton> get_keyboard_button_object(const KeyboardButton &keyboard_button);
+
+telegram_api::object_ptr<telegram_api::KeyboardButton> get_input_keyboard_button(const KeyboardButton &keyboard_button);
 
 unique_ptr<ReplyMarkup> get_reply_markup(tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup_ptr, bool is_bot,
                                          bool only_inline_keyboard, bool message_contains_mention);

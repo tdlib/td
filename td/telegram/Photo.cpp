@@ -301,8 +301,20 @@ void photo_delete_thumbnail(Photo &photo) {
 }
 
 tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
-    FileManager *file_manager, const Photo &photo, telegram_api::object_ptr<telegram_api::InputFile> input_file,
-    int32 ttl, bool has_spoiler) {
+    const FileManager *file_manager, const Photo &photo, telegram_api::object_ptr<telegram_api::InputFile> input_file,
+    int32 ttl, bool has_spoiler, FileId video_file_id) {
+  bool is_live_photo = false;
+  telegram_api::object_ptr<telegram_api::InputDocument> input_video;
+  if (video_file_id != FileId()) {
+    auto video_file_view = file_manager->get_file_view(video_file_id);
+    if (!video_file_view.is_encrypted()) {
+      const auto *main_remote_location = video_file_view.get_main_remote_location();
+      if (main_remote_location != nullptr && !main_remote_location->is_web()) {
+        input_video = main_remote_location->as_input_document();
+        is_live_photo = true;
+      }
+    }
+  }
   if (!photo.photos.empty()) {
     auto file_id = photo.photos.back().file_id;
     auto file_view = file_manager->get_file_view(file_id);
@@ -315,8 +327,8 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
       if (ttl != 0) {
         flags |= telegram_api::inputMediaPhoto::TTL_SECONDS_MASK;
       }
-      return make_tl_object<telegram_api::inputMediaPhoto>(flags, has_spoiler, main_remote_location->as_input_photo(),
-                                                           ttl);
+      return make_tl_object<telegram_api::inputMediaPhoto>(
+          flags, has_spoiler, is_live_photo, main_remote_location->as_input_photo(), ttl, std::move(input_video));
     }
     const auto *url = file_view.get_url();
     if (url != nullptr) {
@@ -343,13 +355,14 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(
     }
 
     CHECK(!photo.photos.empty());
-    return make_tl_object<telegram_api::inputMediaUploadedPhoto>(flags, has_spoiler, std::move(input_file),
-                                                                 std::move(added_stickers), ttl);
+    return make_tl_object<telegram_api::inputMediaUploadedPhoto>(flags, has_spoiler, is_live_photo,
+                                                                 std::move(input_file), std::move(added_stickers), ttl,
+                                                                 std::move(input_video));
   }
   return nullptr;
 }
 
-SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const Photo &photo,
+SecretInputMedia photo_get_secret_input_media(const FileManager *file_manager, const Photo &photo,
                                               telegram_api::object_ptr<telegram_api::InputEncryptedFile> input_file,
                                               const string &caption, BufferSlice thumbnail) {
   FileId file_id;
@@ -403,10 +416,10 @@ SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const P
           BufferSlice(encryption_key.key_slice()), BufferSlice(encryption_key.iv_slice()), caption)};
 }
 
-telegram_api::object_ptr<telegram_api::InputMedia> photo_get_cover_input_media(FileManager *file_manager,
+telegram_api::object_ptr<telegram_api::InputMedia> photo_get_cover_input_media(const FileManager *file_manager,
                                                                                const Photo &photo, bool force,
                                                                                bool allow_external) {
-  auto input_media = photo_get_input_media(file_manager, photo, nullptr, 0, false);
+  auto input_media = photo_get_input_media(file_manager, photo, nullptr, 0, false, FileId());
   if (input_media == nullptr || (!allow_external && input_media->get_id() != telegram_api::inputMediaPhoto::ID)) {
     return nullptr;
   }
