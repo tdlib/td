@@ -76,7 +76,6 @@
 #include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.h"
 #include "td/telegram/PollOption.h"
-#include "td/telegram/PollOption.hpp"
 #include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/secret_api.hpp"
 #include "td/telegram/SecureValue.h"

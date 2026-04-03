@@ -34,6 +34,8 @@ void PollManager::Poll::store(StorerT &storer) const {
   bool know_revoting_disabled = true;
   bool has_hash = hash_ != 0;
   bool has_explanation_media = explanation_media_ != nullptr;
+  bool has_option_min_channels = !option_min_channels_.empty();
+  bool has_recent_option_voter_min_channels = !recent_option_voter_min_channels_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_closed_);
   STORE_FLAG(is_public);
@@ -57,6 +59,8 @@ void PollManager::Poll::store(StorerT &storer) const {
   STORE_FLAG(has_hash);
   STORE_FLAG(has_unread_votes_);
   STORE_FLAG(has_explanation_media);
+  STORE_FLAG(has_option_min_channels);
+  STORE_FLAG(has_recent_option_voter_min_channels);
   END_STORE_FLAGS();
 
   store(question_.text, storer);
@@ -93,6 +97,12 @@ void PollManager::Poll::store(StorerT &storer) const {
   if (has_explanation_media) {
     store_message_content(explanation_media_.get(), storer);
   }
+  if (has_option_min_channels) {
+    store(option_min_channels_, storer);
+  }
+  if (has_recent_option_voter_min_channels) {
+    store(recent_option_voter_min_channels_, storer);
+  }
 }
 
 template <class ParserT>
@@ -110,6 +120,8 @@ void PollManager::Poll::parse(ParserT &parser) {
   bool know_revoting_disabled;
   bool has_hash;
   bool has_explanation_media;
+  bool has_option_min_channels;
+  bool has_recent_option_voter_min_channels;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_closed_);
   PARSE_FLAG(is_public);
@@ -133,6 +145,8 @@ void PollManager::Poll::parse(ParserT &parser) {
   PARSE_FLAG(has_hash);
   PARSE_FLAG(has_unread_votes_);
   PARSE_FLAG(has_explanation_media);
+  PARSE_FLAG(has_option_min_channels);
+  PARSE_FLAG(has_recent_option_voter_min_channels);
   END_PARSE_FLAGS();
   is_anonymous_ = !is_public;
 
@@ -186,6 +200,12 @@ void PollManager::Poll::parse(ParserT &parser) {
   }
   if (has_explanation_media) {
     parse_message_content(explanation_media_, parser);
+  }
+  if (has_option_min_channels) {
+    parse(option_min_channels_, parser);
+  }
+  if (has_recent_option_voter_min_channels) {
+    parse(recent_option_voter_min_channels_, parser);
   }
 }
 
