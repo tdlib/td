@@ -9811,6 +9811,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionSetChatWallPaper::ID:
     case telegram_api::messageActionGiveawayResults::ID:
     case telegram_api::messageActionRequestedPeerSentMe::ID:
+    case telegram_api::messageActionRequestedPeer::ID:
     case telegram_api::messageActionStarGiftUnique::ID:
     case telegram_api::messageActionTodoCompletions::ID:
     case telegram_api::messageActionTodoAppendTasks::ID:
@@ -10153,6 +10154,7 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionRequestedPeer::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionRequestedPeer>(action_ptr);
+      // ignore replied_message_info
       vector<DialogId> shared_dialog_ids;
       for (const auto &peer : action->peers_) {
         DialogId dialog_id(peer);
