@@ -105,6 +105,11 @@ bool check_min_message_sender(Td *td, DialogId dialog_id, vector<std::pair<Chann
         LOG(ERROR) << "Receive unknown " << channel_id;
         return false;
       }
+      for (const auto &it : min_channels) {
+        if (it.first == channel_id) {
+          return true;
+        }
+      }
       min_channels.emplace_back(channel_id, *min_channel);
       return true;
     }
