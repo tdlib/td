@@ -2,7 +2,8 @@
 **/.*.swp
 **/.DS_Store
 **/auto/
-docs/
+docs/Samples/utls-code/*
+docs/Samples/xray-core-code/*
 /tdlib/
 vcpkg/
 .clang-tidy
