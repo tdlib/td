@@ -10544,9 +10544,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionPollAppendAnswer::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionPollAppendAnswer>(action_ptr);
       auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
-      if (!reply_to_message_id.is_valid() && reply_to_message_id != MessageId()) {
+      if (!reply_to_message_id.is_valid()) {
         LOG(ERROR) << "Receive poll option addition with " << reply_to_message_id << " in " << owner_dialog_id;
-        reply_to_message_id = MessageId();
+        return td::make_unique<MessageUnsupported>();
       }
       vector<std::pair<ChannelId, MinChannel>> min_channels;
       PollOption option(td, std::move(action->answer_), min_channels);
@@ -10556,9 +10556,9 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     case telegram_api::messageActionPollDeleteAnswer::ID: {
       auto action = telegram_api::move_object_as<telegram_api::messageActionPollDeleteAnswer>(action_ptr);
       auto reply_to_message_id = replied_message_info.get_same_chat_reply_to_message_id(true);
-      if (!reply_to_message_id.is_valid() && reply_to_message_id != MessageId()) {
-        LOG(ERROR) << "Receive poll option addition with " << reply_to_message_id << " in " << owner_dialog_id;
-        reply_to_message_id = MessageId();
+      if (!reply_to_message_id.is_valid()) {
+        LOG(ERROR) << "Receive poll option deletion with " << reply_to_message_id << " in " << owner_dialog_id;
+        return td::make_unique<MessageUnsupported>();
       }
       vector<std::pair<ChannelId, MinChannel>> min_channels;
       PollOption option(td, std::move(action->answer_), min_channels);
