@@ -8188,6 +8188,9 @@ pushMessageContentChecklistTasksAdded task_count:int32 = PushMessageContent;
 //@description Some tasks from a checklist were marked as done or not done @task_count Number of changed tasks
 pushMessageContentChecklistTasksDone task_count:int32 = PushMessageContent;
 
+//@description An option was added to a poll @text Text of the option
+pushMessageContentPollOptionAdded text:string = PushMessageContent;
+
 //@description A forwarded messages @total_count Number of forwarded messages
 pushMessageContentMessageForwards total_count:int32 = PushMessageContent;
 
