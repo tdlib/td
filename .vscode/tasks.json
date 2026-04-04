@@ -1,0 +1,53 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "cmake configure",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-S",
+                ".",
+                "-B",
+                "build",
+                "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+                "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+            ],
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "cmake build",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--parallel"
+            ],
+            "group": "build",
+            "dependsOn": [
+                "cmake configure"
+            ],
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "ctest",
+            "type": "shell",
+            "command": "ctest",
+            "args": [
+                "--test-dir",
+                "build",
+                "--output-on-failure"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}
