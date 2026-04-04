@@ -14935,30 +14935,29 @@ void MessagesManager::get_message_from_server(MessageFullId message_full_id, Pro
   get_messages_from_server({message_full_id}, std::move(promise), source, std::move(input_message));
 }
 
-void MessagesManager::get_messages_from_server(vector<MessageFullId> &&message_ids, Promise<Unit> &&promise,
+void MessagesManager::get_messages_from_server(vector<MessageFullId> &&message_full_ids, Promise<Unit> &&promise,
                                                const char *source,
                                                telegram_api::object_ptr<telegram_api::InputMessage> input_message) {
   TRY_STATUS_PROMISE(promise, G()->close_status());
 
-  if (message_ids.empty()) {
-    LOG(ERROR) << "Empty message_ids from " << source;
+  if (message_full_ids.empty()) {
+    LOG(ERROR) << "Empty message list from " << source;
     return promise.set_error(500, "There are no messages specified to fetch");
   }
 
   if (input_message != nullptr) {
-    CHECK(message_ids.size() == 1);
+    CHECK(message_full_ids.size() == 1);
   }
 
-  vector<telegram_api::object_ptr<telegram_api::InputMessage>> ordinary_message_ids;
-  FlatHashMap<ChannelId, vector<telegram_api::object_ptr<telegram_api::InputMessage>>, ChannelIdHash>
-      channel_message_ids;
-  FlatHashMap<DialogId, vector<int32>, DialogIdHash> scheduled_message_ids;
-  for (auto &message_full_id : message_ids) {
+  vector<telegram_api::object_ptr<telegram_api::InputMessage>> ordinary_messages;
+  FlatHashMap<ChannelId, vector<telegram_api::object_ptr<telegram_api::InputMessage>>, ChannelIdHash> channel_messages;
+  FlatHashMap<DialogId, vector<int32>, DialogIdHash> scheduled_messages;
+  for (auto &message_full_id : message_full_ids) {
     auto dialog_id = message_full_id.get_dialog_id();
     auto message_id = message_full_id.get_message_id();
     if (!message_id.is_server()) {
       if (message_id.is_valid_scheduled() && message_id.is_scheduled_server() && dialog_id.is_valid()) {
-        scheduled_message_ids[dialog_id].push_back(message_id.get_scheduled_server_message_id().get());
+        scheduled_messages[dialog_id].push_back(message_id.get_scheduled_server_message_id().get());
       }
       continue;
     }
@@ -14970,10 +14969,10 @@ void MessagesManager::get_messages_from_server(vector<MessageFullId> &&message_i
     switch (dialog_id.get_type()) {
       case DialogType::User:
       case DialogType::Chat:
-        ordinary_message_ids.push_back(std::move(input_message));
+        ordinary_messages.push_back(std::move(input_message));
         break;
       case DialogType::Channel:
-        channel_message_ids[dialog_id.get_channel_id()].push_back(std::move(input_message));
+        channel_messages[dialog_id.get_channel_id()].push_back(std::move(input_message));
         break;
       case DialogType::SecretChat:
         LOG(ERROR) << "Can't get " << message_full_id << " from server from " << source;
@@ -14990,11 +14989,11 @@ void MessagesManager::get_messages_from_server(vector<MessageFullId> &&message_i
   auto lock = mpas.get_promise();
 
   const size_t MAX_SLICE_SIZE = 200;  // server-side limit
-  for (auto &slice_ordinary_message_ids : vector_split(std::move(ordinary_message_ids), MAX_SLICE_SIZE)) {
-    td_->create_handler<GetMessagesQuery>(mpas.get_promise())->send(std::move(slice_ordinary_message_ids));
+  for (auto &slice_ordinary_messages : vector_split(std::move(ordinary_messages), MAX_SLICE_SIZE)) {
+    td_->create_handler<GetMessagesQuery>(mpas.get_promise())->send(std::move(slice_ordinary_messages));
   }
 
-  for (auto &it : scheduled_message_ids) {
+  for (auto &it : scheduled_messages) {
     auto dialog_id = it.first;
     have_dialog_force(dialog_id, "get_messages_from_server");
     auto input_peer = td_->dialog_manager_->get_input_peer(dialog_id, AccessRights::Read);
@@ -15007,7 +15006,7 @@ void MessagesManager::get_messages_from_server(vector<MessageFullId> &&message_i
         ->send(dialog_id, std::move(input_peer), std::move(it.second));
   }
 
-  for (auto &it : channel_message_ids) {
+  for (auto &it : channel_messages) {
     td_->chat_manager_->have_channel_force(it.first, "get_messages_from_server");
     auto input_channel = td_->chat_manager_->get_input_channel(it.first);
     if (input_channel == nullptr) {
@@ -15016,13 +15015,13 @@ void MessagesManager::get_messages_from_server(vector<MessageFullId> &&message_i
       continue;
     }
     const auto *d = get_dialog_force(DialogId(it.first));
-    for (auto &slice_message_ids : vector_split(std::move(it.second), MAX_SLICE_SIZE)) {
+    for (auto &slice_messages : vector_split(std::move(it.second), MAX_SLICE_SIZE)) {
       if (input_channel == nullptr) {
         input_channel = td_->chat_manager_->get_input_channel(it.first);
         CHECK(input_channel != nullptr);
       }
       td_->create_handler<GetChannelMessagesQuery>(mpas.get_promise())
-          ->send(it.first, std::move(input_channel), std::move(slice_message_ids),
+          ->send(it.first, std::move(input_channel), std::move(slice_messages),
                  d == nullptr ? MessageId() : d->last_new_message_id);
     }
   }

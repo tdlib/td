@@ -609,7 +609,7 @@ class MessagesManager final : public Actor {
   void get_message_from_server(MessageFullId message_full_id, Promise<Unit> &&promise, const char *source,
                                telegram_api::object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
-  void get_messages_from_server(vector<MessageFullId> &&message_ids, Promise<Unit> &&promise, const char *source,
+  void get_messages_from_server(vector<MessageFullId> &&message_full_ids, Promise<Unit> &&promise, const char *source,
                                 telegram_api::object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
   void get_message_properties(DialogId dialog_id, MessageId message_id,
