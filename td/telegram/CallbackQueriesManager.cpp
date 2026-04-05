@@ -156,11 +156,7 @@ tl_object_ptr<td_api::CallbackQueryPayload> CallbackQueriesManager::get_query_pa
   if (has_data) {
     return td_api::make_object<td_api::callbackQueryPayloadData>(data.as_slice().str());
   }
-  if (has_game) {
-    return td_api::make_object<td_api::callbackQueryPayloadGame>(game_short_name);
-  }
-  UNREACHABLE();
-  return nullptr;
+  return td_api::make_object<td_api::callbackQueryPayloadGame>(game_short_name);
 }
 
 void CallbackQueriesManager::on_new_query(int64 callback_query_id, UserId sender_user_id, DialogId dialog_id,
