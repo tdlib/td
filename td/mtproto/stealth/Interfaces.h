@@ -31,11 +31,41 @@ class IClock {
   virtual double now() const = 0;
 };
 
-enum class PaddingPolicy : uint8 {
-  LegacyFixedTarget,
-  ProfileDriven,
-  Adaptive,
+struct PaddingPolicy final {
+  bool enabled{true};
+
+  size_t compute_padding_content_len(size_t unpadded_len) const noexcept {
+    if (!enabled) {
+      return 0;
+    }
+    if (unpadded_len <= 0xFF || unpadded_len >= 0x200) {
+      return 0;
+    }
+    auto padding_len = 0x200 - unpadded_len;
+    if (padding_len >= 5) {
+      return padding_len - 4;
+    }
+    return 1;
+  }
 };
+
+inline PaddingPolicy no_padding_policy() {
+  PaddingPolicy policy;
+  policy.enabled = false;
+  return policy;
+}
+
+inline size_t resolve_padding_extension_payload_len(const PaddingPolicy &padding_policy, size_t unpadded_len,
+                                                    size_t padding_entropy_len) noexcept {
+  auto padding_content_len = padding_policy.compute_padding_content_len(unpadded_len);
+  if (padding_content_len > 0) {
+    return padding_content_len;
+  }
+  if (padding_entropy_len > 0) {
+    return 1 + padding_entropy_len;
+  }
+  return 0;
+}
 
 struct NetworkRouteHints final {
   bool is_known{false};

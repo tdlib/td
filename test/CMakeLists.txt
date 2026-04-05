@@ -25,7 +25,18 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_country_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_policy_stress.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_padding_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_extension_order_policy.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_key_share_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_pq_group_sync_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_context_entropy.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_builder_seam.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_ech_enc_key_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_differential.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_route_stress.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_stress.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profiles.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp

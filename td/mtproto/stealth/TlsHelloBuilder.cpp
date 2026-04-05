@@ -24,47 +24,37 @@ namespace mtproto {
 namespace stealth {
 namespace {
 
-constexpr uint16 kPqHybridGroupId = 0x11EC;
-constexpr uint16 kX25519GroupId = 0x001D;
-constexpr uint16 kPqHybridKeyExchangeLength = 0x04C0;
-constexpr uint16 kEchEncapsulatedKeyLength = 32;
+constexpr uint16 kPqHybridKeyExchangeLength = detail::kCurrentSingleLanePqKeyShareLength;
+constexpr uint16 kEchEncapsulatedKeyLength = detail::kCorrectEchEncKeyLen;
 
-void append_u16_be(string &out, uint16 value) {
-  out.push_back(static_cast<char>((value >> 8) & 0xFF));
-  out.push_back(static_cast<char>(value & 0xFF));
-}
+class SecureRng final : public IRng {
+ public:
+  void fill_secure_bytes(MutableSlice dest) final {
+    Random::secure_bytes(dest);
+  }
 
-string make_supported_groups_profile_tail() {
-  string result;
-  result.reserve(8);
-  append_u16_be(result, kPqHybridGroupId);
-  append_u16_be(result, kX25519GroupId);
-  append_u16_be(result, 0x0017);
-  append_u16_be(result, 0x0018);
-  return result;
-}
+  uint32 secure_uint32() final {
+    return Random::secure_uint32();
+  }
 
-string make_pq_key_share_prefix() {
-  string result;
-  result.reserve(7);
-  result.append("\x00\x01\x00", 3);
-  append_u16_be(result, kPqHybridGroupId);
-  append_u16_be(result, kPqHybridKeyExchangeLength);
-  return result;
-}
+  uint32 bounded(uint32 n) final {
+    CHECK(n > 0);
 
-string make_ech_enc_key_length_literal() {
-  string result;
-  result.reserve(2);
-  append_u16_be(result, kEchEncapsulatedKeyLength);
-  return result;
-}
+    auto threshold = static_cast<uint32>(-n) % n;
+    while (true) {
+      auto value = secure_uint32();
+      if (value >= threshold) {
+        return value % n;
+      }
+    }
+  }
+};
 
 static_assert(kPqHybridKeyExchangeLength == 1184 + 32,
               "PQ key share length must match ML-KEM-768 (1184) + X25519 (32)");
 
-void init_grease(MutableSlice res) {
-  Random::secure_bytes(res);
+void init_grease(MutableSlice res, IRng &rng) {
+  rng.fill_secure_bytes(res);
   for (auto &c : res) {
     c = static_cast<char>((c & 0xF0) + 0x0A);
   }
@@ -75,28 +65,16 @@ void init_grease(MutableSlice res) {
   }
 }
 
-size_t get_padding_extension_content_len(size_t unpadded_len) {
-  // RFC7685-style behavior: only pad when ClientHello falls into 256..511 range.
-  if (unpadded_len <= 0xFF || unpadded_len >= 0x200) {
-    return 0;
-  }
-  auto padding_len = 0x200 - unpadded_len;
-  if (padding_len >= 5) {
-    return padding_len - 4;
-  }
-  return 1;
+int sample_ech_payload_length(IRng &rng) {
+  return 144 + static_cast<int>(rng.bounded(4u) * 32u);
 }
 
-int sample_ech_payload_length() {
-  return 144 + static_cast<int>((Random::secure_uint32() % 4u) * 32u);
-}
-
-int sample_padding_entropy_length(bool enable_ech) {
+int sample_padding_entropy_length(bool enable_ech, IRng &rng) {
   if (enable_ech) {
     return 0;
   }
   // Keep ECH-disabled lanes from collapsing to a single deterministic length.
-  return static_cast<int>((Random::secure_uint32() & 0x7u) * 8u);
+  return static_cast<int>(rng.bounded(8u) * 8u);
 }
 
 bool should_enable_ech(const NetworkRouteHints &route_hints) {
@@ -104,13 +82,15 @@ bool should_enable_ech(const NetworkRouteHints &route_hints) {
   return route_hints.is_known && !route_hints.is_ru;
 }
 
-void shuffle_chrome_anchored_extensions(vector<string> &parts) {
+void shuffle_chrome_anchored_extensions(vector<string> &parts, IRng &rng) {
   // Match Chrome/uTLS ShuffleChromeTLSExtensions semantics for the subset of
   // extensions represented by this permutation: shuffle every non-anchor
   // extension as a single pool. GREASE and padding anchors stay outside of
   // the permutation block and retain their fixed positions.
-  if (parts.size() > 1) {
-    Random::shuffle(parts);
+  for (size_t i = parts.size(); i > 1; i--) {
+    auto index = static_cast<uint32>(i);
+    auto j = static_cast<size_t>(rng.bounded(index));
+    std::swap(parts[i - 1], parts[j]);
   }
 }
 
@@ -129,6 +109,9 @@ class TlsHello {
       EndScope,
       Permutation,
       EchPayload,
+      EchEncKey,
+      PqGroupId,
+      PqKeyShare,
       Padding
     };
     Type type;
@@ -197,6 +180,21 @@ class TlsHello {
       res.type = Type::EchPayload;
       return res;
     }
+    static Op ech_enc_key() {
+      Op res;
+      res.type = Type::EchEncKey;
+      return res;
+    }
+    static Op pq_group_id() {
+      Op res;
+      res.type = Type::PqGroupId;
+      return res;
+    }
+    static Op pq_key_share() {
+      Op res;
+      res.type = Type::PqKeyShare;
+      return res;
+    }
     static Op padding() {
       Op res;
       res.type = Type::Padding;
@@ -263,8 +261,8 @@ class TlsHello {
               {vector<Op>{Op::str("\x00\x00"), Op::begin_scope(), Op::begin_scope(), Op::str("\x00"), Op::begin_scope(),
                           Op::domain(), Op::end_scope(), Op::end_scope(), Op::end_scope()},
                vector<Op>{Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00")},
-               vector<Op>{Op::str("\x00\x0a\x00\x0c\x00\x0a"), Op::grease(4),
-                          Op::str(make_supported_groups_profile_tail())},
+               vector<Op>{Op::str("\x00\x0a\x00\x0c\x00\x0a"), Op::grease(4), Op::pq_group_id(),
+                          Op::str("\x00\x1d\x00\x17\x00\x18")},
                vector<Op>{Op::str("\x00\x0b\x00\x02\x01\x00")},
                vector<Op>{
                    Op::str("\x00\x0d\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01")},
@@ -273,12 +271,12 @@ class TlsHello {
                vector<Op>{Op::str("\x00\x1b\x00\x03\x02\x00\x02")}, vector<Op>{Op::str("\x00\x23\x00\x00")},
                vector<Op>{Op::str("\x00\x2b\x00\x07\x06"), Op::grease(6), Op::str("\x03\x04\x03\x03")},
                vector<Op>{Op::str("\x00\x2d\x00\x02\x01\x01")},
-               vector<Op>{Op::str("\x00\x33\x04\xef\x04\xed"), Op::grease(4), Op::str(make_pq_key_share_prefix()),
-                          Op::ml_kem_768_key(), Op::key(), Op::str("\x00\x1d\x00\x20"), Op::key()},
+               vector<Op>{Op::str("\x00\x33\x04\xef\x04\xed"), Op::grease(4), Op::str("\x00\x01\x00"),
+                          Op::pq_key_share(), Op::ml_kem_768_key(), Op::key(), Op::str("\x00\x1d\x00\x20"), Op::key()},
                vector<Op>{Op::str("\x44\xcd\x00\x05\x00\x03\x02\x68\x32")},
                vector<Op>{Op::str("\xfe\x0d"), Op::begin_scope(), Op::str("\x00\x00\x01\x00\x01"), Op::random(1),
-                          Op::str(make_ech_enc_key_length_literal()), Op::random(32), Op::begin_scope(),
-                          Op::ech_payload(), Op::end_scope(), Op::end_scope()},
+                          Op::begin_scope(), Op::ech_enc_key(), Op::end_scope(), Op::begin_scope(), Op::ech_payload(),
+                          Op::end_scope(), Op::end_scope()},
                vector<Op>{Op::str("\xff\x01\x00\x01\x00")}}),
           Op::grease(3),
           Op::str("\x00\x01\x00"),
@@ -335,12 +333,25 @@ class TlsHello {
 
 class TlsHelloContext {
  public:
-  TlsHelloContext(size_t grease_size, string domain, bool enable_ech)
+  TlsHelloContext(size_t grease_size, string domain, bool enable_ech, IRng &rng)
       : grease_(grease_size, '\0')
       , domain_(std::move(domain))
-      , ech_payload_length_(sample_ech_payload_length())
-      , padding_entropy_length_(sample_padding_entropy_length(enable_ech)) {
-    init_grease(grease_);
+      , ech_payload_length_(sample_ech_payload_length(rng))
+      , padding_entropy_length_(sample_padding_entropy_length(enable_ech, rng))
+      , pq_group_id_(detail::kCurrentSingleLanePqGroupId)
+      , ech_enc_key_length_(kEchEncapsulatedKeyLength) {
+    init_grease(grease_, rng);
+  }
+
+  TlsHelloContext(size_t grease_size, string domain, const detail::TlsHelloBuildOptions &options, IRng &rng)
+      : grease_(grease_size, '\0')
+      , domain_(std::move(domain))
+      , ech_payload_length_(options.ech_payload_length)
+      , padding_entropy_length_(0)
+      , padding_extension_payload_length_(options.padding_extension_payload_length)
+      , pq_group_id_(options.pq_group_id)
+      , ech_enc_key_length_(options.ech_enc_key_length) {
+    init_grease(grease_, rng);
   }
 
   char get_grease(size_t i) const {
@@ -361,11 +372,34 @@ class TlsHelloContext {
     return padding_entropy_length_;
   }
 
+  uint16 get_pq_group_id() const {
+    return pq_group_id_;
+  }
+
+  uint16 get_pq_key_share_length() const {
+    return kPqHybridKeyExchangeLength;
+  }
+
+  uint16 get_ech_enc_key_length() const {
+    return ech_enc_key_length_;
+  }
+
+  size_t get_padding_extension_payload_length() const {
+    return padding_extension_payload_length_;
+  }
+
+  void set_padding_extension_payload_length(size_t padding_extension_payload_length) {
+    padding_extension_payload_length_ = padding_extension_payload_length;
+  }
+
  private:
   string grease_;
   string domain_;
   int ech_payload_length_{0};
   int padding_entropy_length_{0};
+  size_t padding_extension_payload_length_{0};
+  uint16 pq_group_id_{0};
+  uint16 ech_enc_key_length_{0};
 };
 
 class TlsHelloCalcLength {
@@ -437,17 +471,23 @@ class TlsHelloCalcLength {
         CHECK(context);
         size_ += context->get_ech_payload_length();
         break;
+      case Type::EchEncKey:
+        CHECK(context);
+        size_ += context->get_ech_enc_key_length();
+        break;
+      case Type::PqGroupId:
+        CHECK(context);
+        size_ += 2;
+        break;
+      case Type::PqKeyShare:
+        CHECK(context);
+        size_ += 4;
+        break;
       case Type::Padding: {
         CHECK(context);
-        auto padding_content_len = get_padding_extension_content_len(size_);
-        auto padding_entropy_len = static_cast<size_t>(context->get_padding_entropy_length());
-        if (padding_content_len > 0) {
-          padding_content_len += padding_entropy_len;
-          size_ += 4 + padding_content_len;
-        } else if (padding_entropy_len > 0) {
-          // ECH-disabled lanes may sit outside the RFC7685 window; keep a small
-          // non-deterministic padding extension to avoid one-size fingerprints.
-          size_ += 4 + 1 + padding_entropy_len;
+        auto padding_extension_payload_length = context->get_padding_extension_payload_length();
+        if (padding_extension_payload_length > 0) {
+          size_ += 4 + padding_extension_payload_length;
         }
         break;
       }
@@ -487,7 +527,7 @@ class TlsHelloCalcLength {
 
 class TlsHelloStore {
  public:
-  explicit TlsHelloStore(MutableSlice dest) : data_(dest), dest_(dest) {
+  TlsHelloStore(MutableSlice dest, IRng &rng) : data_(dest), dest_(dest), rng_(rng) {
   }
   void do_op(const TlsHello::Op &op, const TlsHelloContext *context) {
     using Type = TlsHello::Op::Type;
@@ -497,7 +537,7 @@ class TlsHelloStore {
         dest_.remove_prefix(op.data.size());
         break;
       case Type::Random:
-        Random::secure_bytes(dest_.substr(0, op.length));
+        rng_.fill_secure_bytes(dest_.substr(0, op.length));
         dest_.remove_prefix(op.length);
         break;
       case Type::Zero:
@@ -524,7 +564,7 @@ class TlsHelloStore {
         BigNumContext big_num_context;
         auto key = dest_.substr(0, 32);
         while (true) {
-          Random::secure_bytes(key);
+          rng_.fill_secure_bytes(key);
           key[31] = static_cast<char>(key[31] & 127);
 
           BigNum x = BigNum::from_binary(key);
@@ -542,8 +582,8 @@ class TlsHelloStore {
       }
       case Type::MlKem768Key:
         for (size_t i = 0; i < 384; i++) {
-          auto a = Random::secure_uint32() % 3329;
-          auto b = Random::secure_uint32() % 3329;
+          auto a = rng_.bounded(3329);
+          auto b = rng_.bounded(3329);
           dest_[0] = static_cast<char>(a & 255);
           dest_[1] = static_cast<char>((a >> 8) + ((b & 15) << 4));
           dest_[2] = static_cast<char>(b >> 4);
@@ -575,14 +615,14 @@ class TlsHelloStore {
           }
           auto length = calc_length.get_length();
           string data(length, '\0');
-          TlsHelloStore storer(data);
+          TlsHelloStore storer(data, rng_);
           for (auto &nested_op : part) {
             storer.do_op(nested_op, context);
           }
           CHECK(storer.get_offset() == data.size());
           parts.push_back(std::move(data));
         }
-        shuffle_chrome_anchored_extensions(parts);
+        shuffle_chrome_anchored_extensions(parts, rng_);
         for (auto &part : parts) {
           dest_.copy_from(part);
           dest_.remove_prefix(part.size());
@@ -593,21 +633,40 @@ class TlsHelloStore {
         CHECK(context);
         do_op(TlsHello::Op::random(context->get_ech_payload_length()), nullptr);
         break;
+      case Type::EchEncKey:
+        CHECK(context);
+        if (context->get_ech_enc_key_length() == kEchEncapsulatedKeyLength) {
+          do_op(TlsHello::Op::key(), nullptr);
+        } else {
+          do_op(TlsHello::Op::random(context->get_ech_enc_key_length()), nullptr);
+        }
+        break;
+      case Type::PqGroupId: {
+        CHECK(context);
+        auto group_id = context->get_pq_group_id();
+        dest_[0] = static_cast<char>((group_id >> 8) & 0xFF);
+        dest_[1] = static_cast<char>(group_id & 0xFF);
+        dest_.remove_prefix(2);
+        break;
+      }
+      case Type::PqKeyShare: {
+        CHECK(context);
+        auto group_id = context->get_pq_group_id();
+        auto key_share_length = context->get_pq_key_share_length();
+        dest_[0] = static_cast<char>((group_id >> 8) & 0xFF);
+        dest_[1] = static_cast<char>(group_id & 0xFF);
+        dest_[2] = static_cast<char>((key_share_length >> 8) & 0xFF);
+        dest_[3] = static_cast<char>(key_share_length & 0xFF);
+        dest_.remove_prefix(4);
+        break;
+      }
       case Type::Padding: {
         CHECK(context);
-        auto padding_content_len = get_padding_extension_content_len(get_offset());
-        auto padding_entropy_len = static_cast<size_t>(context->get_padding_entropy_length());
-        if (padding_content_len > 0) {
-          padding_content_len += padding_entropy_len;
+        auto padding_extension_payload_length = context->get_padding_extension_payload_length();
+        if (padding_extension_payload_length > 0) {
           do_op(TlsHello::Op::str("\x00\x15"), nullptr);
           do_op(TlsHello::Op::begin_scope(), nullptr);
-          do_op(TlsHello::Op::zero(static_cast<int>(padding_content_len)), nullptr);
-          do_op(TlsHello::Op::end_scope(), nullptr);
-        } else if (padding_entropy_len > 0) {
-          auto entropy_only_padding_len = 1 + padding_entropy_len;
-          do_op(TlsHello::Op::str("\x00\x15"), nullptr);
-          do_op(TlsHello::Op::begin_scope(), nullptr);
-          do_op(TlsHello::Op::zero(static_cast<int>(entropy_only_padding_len)), nullptr);
+          do_op(TlsHello::Op::zero(static_cast<int>(padding_extension_payload_length)), nullptr);
           do_op(TlsHello::Op::end_scope(), nullptr);
         }
         break;
@@ -628,6 +687,7 @@ class TlsHelloStore {
  private:
   MutableSlice data_;
   MutableSlice dest_;
+  IRng &rng_;
   vector<size_t> scope_offset_;
 
   static BigNum get_y2(BigNum &x, const BigNum &mod, BigNumContext &big_num_context) {
@@ -684,26 +744,69 @@ class TlsHelloStore {
 
 }  // namespace
 
-string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,
-                                      const NetworkRouteHints &route_hints) {
+namespace detail {
+
+string build_default_tls_client_hello_with_options(string domain, Slice secret, int32 unix_time,
+                                                   const NetworkRouteHints &route_hints, IRng &rng,
+                                                   const TlsHelloBuildOptions &options) {
   CHECK(!domain.empty());
   CHECK(secret.size() == 16);
 
   auto enable_ech = should_enable_ech(route_hints);
   auto &hello = TlsHello::get_default(enable_ech);
-  TlsHelloContext context(hello.get_grease_size(), std::move(domain), enable_ech);
+  TlsHelloContext context(hello.get_grease_size(), std::move(domain), options, rng);
+
   TlsHelloCalcLength calc_length;
   for (auto &op : hello.get_ops()) {
     calc_length.do_op(op, &context);
   }
   auto length = calc_length.finish().move_as_ok();
   string data(length, '\0');
-  TlsHelloStore storer(data);
+  TlsHelloStore storer(data, rng);
   for (auto &op : hello.get_ops()) {
     storer.do_op(op, &context);
   }
   storer.finish(secret, unix_time);
   return data;
+}
+
+}  // namespace detail
+
+string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,
+                                      const NetworkRouteHints &route_hints, IRng &rng) {
+  CHECK(!domain.empty());
+  CHECK(secret.size() == 16);
+
+  auto enable_ech = should_enable_ech(route_hints);
+  auto padding_policy = PaddingPolicy{};
+  auto &hello = TlsHello::get_default(enable_ech);
+  TlsHelloContext context(hello.get_grease_size(), std::move(domain), enable_ech, rng);
+  TlsHelloCalcLength unpadded_calc_length;
+  for (auto &op : hello.get_ops()) {
+    unpadded_calc_length.do_op(op, &context);
+  }
+  auto unpadded_length = unpadded_calc_length.finish().move_as_ok();
+  context.set_padding_extension_payload_length(resolve_padding_extension_payload_len(
+      padding_policy, unpadded_length, static_cast<size_t>(context.get_padding_entropy_length())));
+
+  TlsHelloCalcLength calc_length;
+  for (auto &op : hello.get_ops()) {
+    calc_length.do_op(op, &context);
+  }
+  auto length = calc_length.finish().move_as_ok();
+  string data(length, '\0');
+  TlsHelloStore storer(data, rng);
+  for (auto &op : hello.get_ops()) {
+    storer.do_op(op, &context);
+  }
+  storer.finish(secret, unix_time);
+  return data;
+}
+
+string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,
+                                      const NetworkRouteHints &route_hints) {
+  SecureRng rng;
+  return build_default_tls_client_hello(std::move(domain), secret, unix_time, route_hints, rng);
 }
 
 string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time) {

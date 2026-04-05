@@ -5,9 +5,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "test/stealth/TlsHelloParsers.h"
+#include "test/stealth/TlsHelloWireMutator.h"
 
 #include "td/mtproto/stealth/Interfaces.h"
 #include "td/mtproto/stealth/TlsHelloBuilder.h"
+#include "test/stealth/FingerprintFixtures.h"
 
 #include "td/utils/common.h"
 #include "td/utils/tests.h"
@@ -18,12 +20,27 @@ namespace {
 
 using td::mtproto::stealth::build_default_tls_client_hello;
 using td::mtproto::stealth::NetworkRouteHints;
+using td::mtproto::test::corrupt_ech_enc_coordinate;
+using td::mtproto::test::corrupt_key_share_coordinate;
+using td::mtproto::test::duplicate_extension;
+using td::mtproto::test::duplicate_supported_group;
 using td::mtproto::test::parse_tls_client_hello;
+using td::mtproto::test::set_key_share_entry_length;
 
 td::string build_ech_enabled_client_hello(td::int32 unix_time) {
   NetworkRouteHints hints;
   hints.is_known = true;
   hints.is_ru = false;
+  return build_default_tls_client_hello("www.google.com", "0123456789secret", unix_time, hints);
+}
+
+td::string build_ech_disabled_client_hello(td::int32 unix_time, bool is_ru) {
+  NetworkRouteHints hints;
+  hints.is_known = !is_ru;
+  hints.is_ru = is_ru;
+  if (!is_ru) {
+    hints.is_known = false;
+  }
   return build_default_tls_client_hello("www.google.com", "0123456789secret", unix_time, hints);
 }
 
@@ -93,6 +110,58 @@ TEST(TlsHelloParserFuzz, MutationsMustNotBypassCoreInvariants) {
   }
 
   ASSERT_TRUE(rejected > 0u);
+}
+
+TEST(TlsHelloParserFuzz, MixedCriticalMutationsMustFailClosed) {
+  {
+    td::string wire = build_ech_enabled_client_hello(1712345678);
+    ASSERT_TRUE(corrupt_ech_enc_coordinate(wire));
+    ASSERT_TRUE(corrupt_key_share_coordinate(wire, td::mtproto::test::fixtures::kX25519Group,
+                                             /*mutate_tail_only=*/false));
+    ASSERT_TRUE(parse_tls_client_hello(wire).is_error());
+  }
+
+  {
+    td::string wire = build_ech_enabled_client_hello(1712345679);
+    ASSERT_TRUE(duplicate_extension(wire, td::mtproto::test::fixtures::kEchExtensionType));
+    ASSERT_TRUE(set_key_share_entry_length(wire, td::mtproto::test::fixtures::kX25519Group,
+                                           td::mtproto::test::fixtures::kX25519KeyShareLength - 1));
+    ASSERT_TRUE(parse_tls_client_hello(wire).is_error());
+  }
+
+  {
+    td::string wire = build_ech_enabled_client_hello(1712345680);
+    ASSERT_TRUE(corrupt_key_share_coordinate(wire, td::mtproto::test::fixtures::kPqHybridGroup,
+                                             /*mutate_tail_only=*/true));
+    ASSERT_TRUE(corrupt_ech_enc_coordinate(wire));
+    ASSERT_TRUE(parse_tls_client_hello(wire).is_error());
+  }
+}
+
+TEST(TlsHelloParserFuzz, MixedCriticalMutationsOnEchDisabledRoutesMustFailClosed) {
+  {
+    td::string wire = build_ech_disabled_client_hello(1712345681, false);
+    ASSERT_TRUE(duplicate_supported_group(wire));
+    ASSERT_TRUE(corrupt_key_share_coordinate(wire, td::mtproto::test::fixtures::kX25519Group,
+                                             /*mutate_tail_only=*/false));
+    ASSERT_TRUE(parse_tls_client_hello(wire).is_error());
+  }
+
+  {
+    td::string wire = build_ech_disabled_client_hello(1712345682, true);
+    ASSERT_TRUE(duplicate_extension(wire, 0x0033));
+    ASSERT_TRUE(set_key_share_entry_length(wire, td::mtproto::test::fixtures::kX25519Group,
+                                           td::mtproto::test::fixtures::kX25519KeyShareLength - 1));
+    ASSERT_TRUE(parse_tls_client_hello(wire).is_error());
+  }
+
+  {
+    td::string wire = build_ech_disabled_client_hello(1712345683, false);
+    ASSERT_TRUE(duplicate_extension(wire, 0x000A));
+    ASSERT_TRUE(corrupt_key_share_coordinate(wire, td::mtproto::test::fixtures::kPqHybridGroup,
+                                             /*mutate_tail_only=*/true));
+    ASSERT_TRUE(parse_tls_client_hello(wire).is_error());
+  }
 }
 
 }  // namespace

@@ -6,6 +6,9 @@
 //
 #pragma once
 
+#include "test/stealth/FingerprintFixtures.h"
+
+#include "td/utils/BigNum.h"
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
@@ -24,6 +27,7 @@ struct ParsedExtension final {
 struct ParsedKeyShareEntry final {
   uint16 group{0};
   uint16 key_length{0};
+  Slice key_data;
 };
 
 struct ParsedClientHello final {
@@ -40,6 +44,7 @@ struct ParsedClientHello final {
   vector<uint16> supported_groups;
   vector<uint16> key_share_groups;
   vector<ParsedKeyShareEntry> key_share_entries;
+  Slice ech_enc;
   uint16 ech_declared_enc_length{0};
   uint16 ech_actual_enc_length{0};
   uint16 ech_payload_length{0};
@@ -105,6 +110,39 @@ inline const ParsedExtension *find_extension(const ParsedClientHello &hello, uin
   return nullptr;
 }
 
+inline bool is_curve25519_quadratic_residue(const BigNum &value) {
+  BigNum mod = BigNum::from_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed").move_as_ok();
+  BigNum pow = BigNum::from_hex("3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff6").move_as_ok();
+
+  BigNumContext context;
+  BigNum result;
+  BigNum::mod_exp(result, value, pow, mod, context);
+  return result.to_decimal() == "1";
+}
+
+inline BigNum compute_curve25519_y2(BigNum x) {
+  BigNum mod = BigNum::from_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed").move_as_ok();
+  BigNumContext context;
+  BigNum result = x.clone();
+  BigNum coefficient = BigNum::from_decimal("486662").move_as_ok();
+  BigNum one = BigNum::from_decimal("1").move_as_ok();
+
+  BigNum::mod_add(result, result, coefficient, mod, context);
+  BigNum::mod_mul(result, result, x, mod, context);
+  BigNum::mod_add(result, result, one, mod, context);
+  BigNum::mod_mul(result, result, x, mod, context);
+  return result;
+}
+
+inline bool is_valid_curve25519_public_coordinate(Slice public_key) {
+  if (public_key.size() != fixtures::kX25519KeyShareLength) {
+    return false;
+  }
+
+  auto x = BigNum::from_le_binary(public_key);
+  return is_curve25519_quadratic_residue(compute_curve25519_y2(x));
+}
+
 inline Result<vector<uint16>> parse_supported_groups(Slice data) {
   TlsReader reader(data);
   TRY_RESULT(groups_len, reader.read_u16());
@@ -145,11 +183,43 @@ inline Result<vector<uint16>> parse_key_share_groups(Slice data, vector<ParsedKe
     if (key_len == 0) {
       return Status::Error("key_share entry key length must be non-zero");
     }
-    if (entries != nullptr) {
-      entries->push_back(ParsedKeyShareEntry{group, key_len});
+    switch (group) {
+      case fixtures::kX25519Group:
+        if (key_len != fixtures::kX25519KeyShareLength) {
+          return Status::Error("X25519 key_share length mismatch");
+        }
+        break;
+      case fixtures::kPqHybridGroup:
+      case fixtures::kPqHybridDraftGroup:
+        if (key_len != fixtures::kPqHybridKeyShareLength) {
+          return Status::Error("PQ hybrid key_share length mismatch");
+        }
+        break;
+      default:
+        break;
     }
-    TRY_RESULT(ignore_key, reader.read_slice(key_len));
-    (void)ignore_key;
+    TRY_RESULT(key_data, reader.read_slice(key_len));
+    switch (group) {
+      case fixtures::kX25519Group:
+        if (!is_valid_curve25519_public_coordinate(key_data)) {
+          return Status::Error("X25519 key_share coordinate is invalid");
+        }
+        break;
+      case fixtures::kPqHybridGroup:
+      case fixtures::kPqHybridDraftGroup: {
+        auto x25519_tail =
+            key_data.substr(key_data.size() - fixtures::kX25519KeyShareLength, fixtures::kX25519KeyShareLength);
+        if (!is_valid_curve25519_public_coordinate(x25519_tail)) {
+          return Status::Error("PQ hybrid key_share X25519 tail is invalid");
+        }
+        break;
+      }
+      default:
+        break;
+    }
+    if (entries != nullptr) {
+      entries->push_back(ParsedKeyShareEntry{group, key_len, key_data});
+    }
     if (!unique_groups.insert(group).second) {
       return Status::Error("key_share contains duplicate group id");
     }
@@ -294,6 +364,11 @@ inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
     }
     res.ech_declared_enc_length = ech_declared_enc_length;
     TRY_RESULT(ech_enc, ech_reader.read_slice(res.ech_declared_enc_length));
+    if (res.ech_declared_enc_length == fixtures::kX25519KeyShareLength &&
+        !is_valid_curve25519_public_coordinate(ech_enc)) {
+      return Status::Error("ECH encapsulated key coordinate is invalid");
+    }
+    res.ech_enc = ech_enc;
     res.ech_actual_enc_length = static_cast<uint16>(ech_enc.size());
 
     TRY_RESULT(ech_payload_length, ech_reader.read_u16());
