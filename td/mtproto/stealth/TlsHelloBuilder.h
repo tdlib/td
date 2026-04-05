@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/mtproto/stealth/Interfaces.h"
+
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
@@ -14,6 +16,8 @@ namespace mtproto {
 namespace stealth {
 
 string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time);
+string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,
+                                      const NetworkRouteHints &route_hints);
 
 }  // namespace stealth
 }  // namespace mtproto

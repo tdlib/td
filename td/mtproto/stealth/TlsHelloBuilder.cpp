@@ -16,12 +16,52 @@
 #include "td/utils/Random.h"
 #include "td/utils/Span.h"
 
+#include <algorithm>
 #include <cstring>
 
 namespace td {
 namespace mtproto {
 namespace stealth {
 namespace {
+
+constexpr uint16 kPqHybridGroupId = 0x11EC;
+constexpr uint16 kX25519GroupId = 0x001D;
+constexpr uint16 kPqHybridKeyExchangeLength = 0x04C0;
+constexpr uint16 kEchEncapsulatedKeyLength = 32;
+
+void append_u16_be(string &out, uint16 value) {
+  out.push_back(static_cast<char>((value >> 8) & 0xFF));
+  out.push_back(static_cast<char>(value & 0xFF));
+}
+
+string make_supported_groups_profile_tail() {
+  string result;
+  result.reserve(8);
+  append_u16_be(result, kPqHybridGroupId);
+  append_u16_be(result, kX25519GroupId);
+  append_u16_be(result, 0x0017);
+  append_u16_be(result, 0x0018);
+  return result;
+}
+
+string make_pq_key_share_prefix() {
+  string result;
+  result.reserve(7);
+  result.append("\x00\x01\x00", 3);
+  append_u16_be(result, kPqHybridGroupId);
+  append_u16_be(result, kPqHybridKeyExchangeLength);
+  return result;
+}
+
+string make_ech_enc_key_length_literal() {
+  string result;
+  result.reserve(2);
+  append_u16_be(result, kEchEncapsulatedKeyLength);
+  return result;
+}
+
+static_assert(kPqHybridKeyExchangeLength == 1184 + 32,
+              "PQ key share length must match ML-KEM-768 (1184) + X25519 (32)");
 
 void init_grease(MutableSlice res) {
   Random::secure_bytes(res);
@@ -32,6 +72,67 @@ void init_grease(MutableSlice res) {
     if (res[i] == res[i - 1]) {
       res[i] ^= 0x10;
     }
+  }
+}
+
+size_t get_padding_extension_content_len(size_t unpadded_len) {
+  // RFC7685-style behavior: only pad when ClientHello falls into 256..511 range.
+  if (unpadded_len <= 0xFF || unpadded_len >= 0x200) {
+    return 0;
+  }
+  auto padding_len = 0x200 - unpadded_len;
+  if (padding_len >= 5) {
+    return padding_len - 4;
+  }
+  return 1;
+}
+
+int sample_ech_payload_length() {
+  return 144 + static_cast<int>((Random::secure_uint32() % 4u) * 32u);
+}
+
+int sample_padding_entropy_length(bool enable_ech) {
+  if (enable_ech) {
+    return 0;
+  }
+  // Keep ECH-disabled lanes from collapsing to a single deterministic length.
+  return static_cast<int>((Random::secure_uint32() & 0x7u) * 8u);
+}
+
+bool should_enable_ech(const NetworkRouteHints &route_hints) {
+  // Fail closed: unknown and RU routes keep ECH disabled to avoid easy route-level blocking.
+  return route_hints.is_known && !route_hints.is_ru;
+}
+
+void shuffle_fixture_bounded_windows(vector<string> &parts) {
+  if (parts.size() < 6) {
+    Random::shuffle(parts);
+    return;
+  }
+
+  const size_t tail_anchor_index = parts.size() - 1;
+
+  auto shuffle_window = [&](size_t begin, size_t end) {
+    if (end <= begin + 1) {
+      return;
+    }
+    vector<string> window;
+    window.reserve(end - begin);
+    for (size_t i = begin; i < end; i++) {
+      window.push_back(std::move(parts[i]));
+    }
+    Random::shuffle(window);
+    for (size_t i = begin; i < end; i++) {
+      parts[i] = std::move(window[i - begin]);
+    }
+  };
+
+  shuffle_window(0, std::min<size_t>(4, tail_anchor_index));
+  shuffle_window(4, std::min<size_t>(8, tail_anchor_index));
+  shuffle_window(8, std::min<size_t>(12, tail_anchor_index));
+
+  if (tail_anchor_index > 12) {
+    shuffle_window(12, tail_anchor_index);
   }
 }
 
@@ -49,6 +150,7 @@ class TlsHello {
       BeginScope,
       EndScope,
       Permutation,
+      EchPayload,
       Padding
     };
     Type type;
@@ -114,8 +216,7 @@ class TlsHello {
     }
     static Op ech_payload() {
       Op res;
-      res.type = Type::Random;
-      res.length = Random::fast(0, 3) * 32 + 144;
+      res.type = Type::EchPayload;
       return res;
     }
     static Op padding() {
@@ -125,8 +226,8 @@ class TlsHello {
     }
   };
 
-  static const TlsHello &get_default() {
-    static TlsHello result = [] {
+  static const TlsHello &get_default(bool enable_ech) {
+    static TlsHello result_with_ech = [] {
       TlsHello res;
 #if TD_DARWIN
       res.ops_ = {
@@ -185,7 +286,7 @@ class TlsHello {
                           Op::domain(), Op::end_scope(), Op::end_scope(), Op::end_scope()},
                vector<Op>{Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00")},
                vector<Op>{Op::str("\x00\x0a\x00\x0c\x00\x0a"), Op::grease(4),
-                          Op::str("\x11\xec\x00\x1d\x00\x17\x00\x18")},
+                          Op::str(make_supported_groups_profile_tail())},
                vector<Op>{Op::str("\x00\x0b\x00\x02\x01\x00")},
                vector<Op>{
                    Op::str("\x00\x0d\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01")},
@@ -194,12 +295,12 @@ class TlsHello {
                vector<Op>{Op::str("\x00\x1b\x00\x03\x02\x00\x02")}, vector<Op>{Op::str("\x00\x23\x00\x00")},
                vector<Op>{Op::str("\x00\x2b\x00\x07\x06"), Op::grease(6), Op::str("\x03\x04\x03\x03")},
                vector<Op>{Op::str("\x00\x2d\x00\x02\x01\x01")},
-               vector<Op>{Op::str("\x00\x33\x04\xef\x04\xed"), Op::grease(4), Op::str("\x00\x01\x00\x11\xec\x04\xc0"),
+               vector<Op>{Op::str("\x00\x33\x04\xef\x04\xed"), Op::grease(4), Op::str(make_pq_key_share_prefix()),
                           Op::ml_kem_768_key(), Op::key(), Op::str("\x00\x1d\x00\x20"), Op::key()},
                vector<Op>{Op::str("\x44\xcd\x00\x05\x00\x03\x02\x68\x32")},
                vector<Op>{Op::str("\xfe\x0d"), Op::begin_scope(), Op::str("\x00\x00\x01\x00\x01"), Op::random(1),
-                          Op::str("\x00\x20"), Op::random(32), Op::begin_scope(), Op::ech_payload(), Op::end_scope(),
-                          Op::end_scope()},
+                          Op::str(make_ech_enc_key_length_literal()), Op::random(32), Op::begin_scope(),
+                          Op::ech_payload(), Op::end_scope(), Op::end_scope()},
                vector<Op>{Op::str("\xff\x01\x00\x01\x00")}}),
           Op::grease(3),
           Op::str("\x00\x01\x00"),
@@ -210,7 +311,35 @@ class TlsHello {
 #endif
       return res;
     }();
-    return result;
+
+#if TD_DARWIN
+    static TlsHello result_without_ech = result_with_ech;
+#else
+    static TlsHello result_without_ech = [] {
+      auto res = result_with_ech;
+      for (auto &op : res.ops_) {
+        if (op.type != Op::Type::Permutation) {
+          continue;
+        }
+        op.parts.erase(std::remove_if(op.parts.begin(), op.parts.end(),
+                                      [](const vector<Op> &part) {
+                                        if (part.empty()) {
+                                          return false;
+                                        }
+                                        const auto &first = part[0];
+                                        if (first.type != Op::Type::String || first.data.size() < 2) {
+                                          return false;
+                                        }
+                                        return static_cast<uint8>(first.data[0]) == 0xfe &&
+                                               static_cast<uint8>(first.data[1]) == 0x0d;
+                                      }),
+                       op.parts.end());
+      }
+      return res;
+    }();
+#endif
+
+    return enable_ech ? result_with_ech : result_without_ech;
   }
 
   Span<Op> get_ops() const {
@@ -228,7 +357,11 @@ class TlsHello {
 
 class TlsHelloContext {
  public:
-  TlsHelloContext(size_t grease_size, string domain) : grease_(grease_size, '\0'), domain_(std::move(domain)) {
+  TlsHelloContext(size_t grease_size, string domain, bool enable_ech)
+      : grease_(grease_size, '\0')
+      , domain_(std::move(domain))
+      , ech_payload_length_(sample_ech_payload_length())
+      , padding_entropy_length_(sample_padding_entropy_length(enable_ech)) {
     init_grease(grease_);
   }
 
@@ -242,10 +375,19 @@ class TlsHelloContext {
   Slice get_domain() const {
     return Slice(domain_).substr(0, ProxySecret::MAX_DOMAIN_LENGTH);
   }
+  int get_ech_payload_length() const {
+    return ech_payload_length_;
+  }
+
+  int get_padding_entropy_length() const {
+    return padding_entropy_length_;
+  }
 
  private:
   string grease_;
   string domain_;
+  int ech_payload_length_{0};
+  int padding_entropy_length_{0};
 };
 
 class TlsHelloCalcLength {
@@ -313,11 +455,24 @@ class TlsHelloCalcLength {
         }
         break;
       }
-      case Type::Padding:
-        if (size_ < 513) {
-          size_ = 517;
+      case Type::EchPayload:
+        CHECK(context);
+        size_ += context->get_ech_payload_length();
+        break;
+      case Type::Padding: {
+        CHECK(context);
+        auto padding_content_len = get_padding_extension_content_len(size_);
+        auto padding_entropy_len = static_cast<size_t>(context->get_padding_entropy_length());
+        if (padding_content_len > 0) {
+          padding_content_len += padding_entropy_len;
+          size_ += 4 + padding_content_len;
+        } else if (padding_entropy_len > 0) {
+          // ECH-disabled lanes may sit outside the RFC7685 window; keep a small
+          // non-deterministic padding extension to avoid one-size fingerprints.
+          size_ += 4 + 1 + padding_entropy_len;
         }
         break;
+      }
       default:
         UNREACHABLE();
     }
@@ -449,19 +604,32 @@ class TlsHelloStore {
           CHECK(storer.get_offset() == data.size());
           parts.push_back(std::move(data));
         }
-        Random::shuffle(parts);
+        shuffle_fixture_bounded_windows(parts);
         for (auto &part : parts) {
           dest_.copy_from(part);
           dest_.remove_prefix(part.size());
         }
         break;
       }
+      case Type::EchPayload:
+        CHECK(context);
+        do_op(TlsHello::Op::random(context->get_ech_payload_length()), nullptr);
+        break;
       case Type::Padding: {
-        auto size = 513 - static_cast<int>(get_offset());
-        if (size > 0) {
+        CHECK(context);
+        auto padding_content_len = get_padding_extension_content_len(get_offset());
+        auto padding_entropy_len = static_cast<size_t>(context->get_padding_entropy_length());
+        if (padding_content_len > 0) {
+          padding_content_len += padding_entropy_len;
           do_op(TlsHello::Op::str("\x00\x15"), nullptr);
           do_op(TlsHello::Op::begin_scope(), nullptr);
-          do_op(TlsHello::Op::zero(size), nullptr);
+          do_op(TlsHello::Op::zero(static_cast<int>(padding_content_len)), nullptr);
+          do_op(TlsHello::Op::end_scope(), nullptr);
+        } else if (padding_entropy_len > 0) {
+          auto entropy_only_padding_len = 1 + padding_entropy_len;
+          do_op(TlsHello::Op::str("\x00\x15"), nullptr);
+          do_op(TlsHello::Op::begin_scope(), nullptr);
+          do_op(TlsHello::Op::zero(static_cast<int>(entropy_only_padding_len)), nullptr);
           do_op(TlsHello::Op::end_scope(), nullptr);
         }
         break;
@@ -538,12 +706,14 @@ class TlsHelloStore {
 
 }  // namespace
 
-string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time) {
+string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,
+                                      const NetworkRouteHints &route_hints) {
   CHECK(!domain.empty());
   CHECK(secret.size() == 16);
 
-  auto &hello = TlsHello::get_default();
-  TlsHelloContext context(hello.get_grease_size(), std::move(domain));
+  auto enable_ech = should_enable_ech(route_hints);
+  auto &hello = TlsHello::get_default(enable_ech);
+  TlsHelloContext context(hello.get_grease_size(), std::move(domain), enable_ech);
   TlsHelloCalcLength calc_length;
   for (auto &op : hello.get_ops()) {
     calc_length.do_op(op, &context);
@@ -556,6 +726,13 @@ string build_default_tls_client_hello(string domain, Slice secret, int32 unix_ti
   }
   storer.finish(secret, unix_time);
   return data;
+}
+
+string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time) {
+  NetworkRouteHints default_route_hints;
+  default_route_hints.is_known = false;
+  default_route_hints.is_ru = false;
+  return build_default_tls_client_hello(std::move(domain), secret, unix_time, default_route_hints);
 }
 
 }  // namespace stealth

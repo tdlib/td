@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/mtproto/stealth/Interfaces.h"
+
 #include "td/net/TransparentProxy.h"
 
 #include "td/actor/actor.h"
@@ -27,14 +29,16 @@ class Grease {
 class TlsInit final : public TransparentProxy {
  public:
   TlsInit(SocketFd socket_fd, string domain, string secret, unique_ptr<Callback> callback, ActorShared<> parent,
-          double server_time_difference)
+          double server_time_difference, stealth::NetworkRouteHints route_hints = {})
       : TransparentProxy(std::move(socket_fd), IPAddress(), std::move(domain), std::move(secret), std::move(callback),
                          std::move(parent))
-      , server_time_difference_(server_time_difference) {
+      , server_time_difference_(server_time_difference)
+      , route_hints_(route_hints) {
   }
 
  private:
   double server_time_difference_{0};
+  stealth::NetworkRouteHints route_hints_;
   enum class State {
     SendHello,
     WaitHelloResponse,

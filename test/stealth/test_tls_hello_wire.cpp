@@ -7,6 +7,7 @@
 #include "test/stealth/FingerprintFixtures.h"
 #include "test/stealth/TlsHelloParsers.h"
 
+#include "td/mtproto/stealth/Interfaces.h"
 #include "td/mtproto/stealth/TlsHelloBuilder.h"
 
 #include "td/utils/common.h"
@@ -17,11 +18,19 @@
 namespace {
 
 using td::mtproto::stealth::build_default_tls_client_hello;
+using td::mtproto::stealth::NetworkRouteHints;
 using td::mtproto::test::find_extension;
 using td::mtproto::test::parse_tls_client_hello;
 
+td::string build_ech_enabled_client_hello(td::int32 unix_time) {
+  NetworkRouteHints hints;
+  hints.is_known = true;
+  hints.is_ru = false;
+  return build_default_tls_client_hello("www.google.com", "0123456789secret", unix_time, hints);
+}
+
 TEST(TlsHelloWire, StructuralInvariantsAndECHLengths) {
-  auto wire = build_default_tls_client_hello("www.google.com", "0123456789secret", 1712345678);
+  auto wire = build_ech_enabled_client_hello(1712345678);
 
   auto parsed = parse_tls_client_hello(wire);
   ASSERT_TRUE(parsed.is_ok());
@@ -44,7 +53,7 @@ TEST(TlsHelloWire, StructuralInvariantsAndECHLengths) {
 }
 
 TEST(TlsHelloWire, AdversarialLengthMismatchesMustBeRejected) {
-  auto wire = build_default_tls_client_hello("www.google.com", "0123456789secret", 1712345678);
+  auto wire = build_ech_enabled_client_hello(1712345678);
 
   td::string tampered = wire;
   ASSERT_TRUE(tampered.size() >= 5u);
@@ -57,7 +66,7 @@ TEST(TlsHelloWire, AdversarialLengthMismatchesMustBeRejected) {
 TEST(TlsHelloWire, PaddingMustNotCollapseToSingleFixedLength) {
   std::unordered_set<size_t> lengths;
   for (int i = 0; i < 64; i++) {
-    auto wire = build_default_tls_client_hello("www.google.com", "0123456789secret", 1712345678 + i);
+    auto wire = build_ech_enabled_client_hello(1712345678 + i);
     lengths.insert(wire.size());
   }
 
@@ -69,7 +78,7 @@ TEST(TlsHelloWire, EchPayloadLengthMustVaryPerConnection) {
   std::unordered_set<td::uint16> ech_payload_lengths;
 
   for (int i = 0; i < 64; i++) {
-    auto wire = build_default_tls_client_hello("www.google.com", "0123456789secret", 1712345678 + i);
+    auto wire = build_ech_enabled_client_hello(1712345678 + i);
     auto parsed = parse_tls_client_hello(wire);
     ASSERT_TRUE(parsed.is_ok());
     ech_payload_lengths.insert(parsed.ok().ech_payload_length);

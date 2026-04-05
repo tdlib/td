@@ -737,10 +737,12 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
                                                 mtproto_ip_address, proxy.user().str(), proxy.password().str(),
                                                 std::move(callback), std::move(parent)));
     } else if (transport_type.secret.emulate_tls()) {
+      auto route_hints =
+          mtproto::stealth::route_hints_from_country_code(G()->get_option_string("stealth_route_country_code"));
       return ActorOwn<>(create_actor<mtproto::TlsInit>(
           PSLICE() << actor_name_prefix << "TlsInit", std::move(socket_fd), transport_type.secret.get_domain(),
           transport_type.secret.get_proxy_secret().str(), std::move(callback), std::move(parent),
-          G()->get_dns_time_difference()));
+          G()->get_dns_time_difference(), route_hints));
     } else {
       UNREACHABLE();
     }

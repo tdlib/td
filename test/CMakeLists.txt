@@ -18,6 +18,14 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/tdclient.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/tqueue.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_wire.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_route_hints_from_country.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_entropy.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_parser_fuzz.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_parser_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_policy.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_country_policy.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_policy_stress.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_extension_order_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profiles.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp

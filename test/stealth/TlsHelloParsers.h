@@ -6,9 +6,11 @@
 //
 #pragma once
 
-#include "td/utils/Status.h"
-#include "td/utils/Slice.h"
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
+#include "td/utils/Status.h"
+
+#include <unordered_set>
 
 namespace td {
 namespace mtproto {
@@ -17,6 +19,11 @@ namespace test {
 struct ParsedExtension final {
   uint16 type{0};
   Slice value;
+};
+
+struct ParsedKeyShareEntry final {
+  uint16 group{0};
+  uint16 key_length{0};
 };
 
 struct ParsedClientHello final {
@@ -32,6 +39,7 @@ struct ParsedClientHello final {
   vector<ParsedExtension> extensions;
   vector<uint16> supported_groups;
   vector<uint16> key_share_groups;
+  vector<ParsedKeyShareEntry> key_share_entries;
   uint16 ech_declared_enc_length{0};
   uint16 ech_actual_enc_length{0};
   uint16 ech_payload_length{0};
@@ -107,15 +115,19 @@ inline Result<vector<uint16>> parse_supported_groups(Slice data) {
     return Status::Error("supported_groups length mismatch");
   }
   vector<uint16> groups;
+  std::unordered_set<uint16> unique_groups;
   groups.reserve(groups_len / 2);
   while (reader.left() > 0) {
     TRY_RESULT(group, reader.read_u16());
+    if (!unique_groups.insert(group).second) {
+      return Status::Error("supported_groups contains duplicate group id");
+    }
     groups.push_back(group);
   }
   return groups;
 }
 
-inline Result<vector<uint16>> parse_key_share_groups(Slice data) {
+inline Result<vector<uint16>> parse_key_share_groups(Slice data, vector<ParsedKeyShareEntry> *entries) {
   TlsReader reader(data);
   TRY_RESULT(shares_len, reader.read_u16());
   if (reader.left() != shares_len) {
@@ -123,11 +135,24 @@ inline Result<vector<uint16>> parse_key_share_groups(Slice data) {
   }
 
   vector<uint16> groups;
+  std::unordered_set<uint16> unique_groups;
   while (reader.left() > 0) {
+    if (reader.left() < 4) {
+      return Status::Error("Truncated key_share entry");
+    }
     TRY_RESULT(group, reader.read_u16());
     TRY_RESULT(key_len, reader.read_u16());
+    if (key_len == 0) {
+      return Status::Error("key_share entry key length must be non-zero");
+    }
+    if (entries != nullptr) {
+      entries->push_back(ParsedKeyShareEntry{group, key_len});
+    }
     TRY_RESULT(ignore_key, reader.read_slice(key_len));
     (void)ignore_key;
+    if (!unique_groups.insert(group).second) {
+      return Status::Error("key_share contains duplicate group id");
+    }
     groups.push_back(group);
   }
   return groups;
@@ -139,8 +164,14 @@ inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
 
   TRY_RESULT(record_type, reader.read_u8());
   res.record_type = record_type;
+  if (res.record_type != 0x16) {
+    return Status::Error("Unexpected TLS record type");
+  }
   TRY_RESULT(record_legacy_version, reader.read_u16());
   res.record_legacy_version = record_legacy_version;
+  if (res.record_legacy_version != 0x0301 && res.record_legacy_version != 0x0303) {
+    return Status::Error("Unexpected TLS record legacy version");
+  }
   TRY_RESULT(record_length, reader.read_u16());
   res.record_length = record_length;
   if (reader.left() != res.record_length) {
@@ -149,6 +180,9 @@ inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
 
   TRY_RESULT(handshake_type, reader.read_u8());
   res.handshake_type = handshake_type;
+  if (res.handshake_type != 0x01) {
+    return Status::Error("Unexpected TLS handshake type");
+  }
   TRY_RESULT(handshake_length, reader.read_u24());
   res.handshake_length = handshake_length;
   if (reader.left() != res.handshake_length) {
@@ -157,6 +191,9 @@ inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
 
   TRY_RESULT(client_legacy_version, reader.read_u16());
   res.client_legacy_version = client_legacy_version;
+  if (res.client_legacy_version != 0x0303) {
+    return Status::Error("Unexpected ClientHello legacy version");
+  }
   TRY_RESULT(ignore_random, reader.read_slice(32));
   (void)ignore_random;
 
@@ -174,6 +211,9 @@ inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
   TRY_RESULT(compression_methods_len, reader.read_u8());
   TRY_RESULT(compression_methods, reader.read_slice(compression_methods_len));
   res.compression_methods = compression_methods;
+  if (res.compression_methods.size() != 1 || static_cast<uint8>(res.compression_methods[0]) != 0) {
+    return Status::Error("Unexpected compression methods for TLS 1.3 ClientHello");
+  }
 
   TRY_RESULT(extensions_len, reader.read_u16());
   TRY_RESULT(extensions_raw, reader.read_slice(extensions_len));
@@ -182,12 +222,26 @@ inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
   }
 
   TlsReader ext_reader(extensions_raw);
+  std::unordered_set<uint16> extension_types;
   while (ext_reader.left() > 0) {
     ParsedExtension ext;
     TRY_RESULT(ext_type, ext_reader.read_u16());
     ext.type = ext_type;
+    if (ext.type == 0xFE02) {
+      return Status::Error("Legacy ECH extension type 0xFE02 is forbidden");
+    }
+    if (!extension_types.insert(ext.type).second) {
+      return Status::Error("Duplicate extension type in ClientHello");
+    }
     TRY_RESULT(ext_len, ext_reader.read_u16());
     TRY_RESULT(ext_value, ext_reader.read_slice(ext_len));
+    if (ext.type == 0x0015) {
+      for (auto c : ext_value) {
+        if (static_cast<uint8>(c) != 0) {
+          return Status::Error("padding extension must contain only zero bytes");
+        }
+      }
+    }
     ext.value = ext_value;
     res.extensions.push_back(ext);
   }
@@ -197,8 +251,20 @@ inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
     res.supported_groups = std::move(parsed_supported_groups);
   }
   if (auto *key_share = find_extension(res, 0x0033)) {
-    TRY_RESULT(parsed_key_share_groups, parse_key_share_groups(key_share->value));
+    TRY_RESULT(parsed_key_share_groups, parse_key_share_groups(key_share->value, &res.key_share_entries));
     res.key_share_groups = std::move(parsed_key_share_groups);
+  }
+
+  if (!res.key_share_groups.empty()) {
+    if (res.supported_groups.empty()) {
+      return Status::Error("key_share is present without supported_groups");
+    }
+    std::unordered_set<uint16> supported_groups(res.supported_groups.begin(), res.supported_groups.end());
+    for (auto group : res.key_share_groups) {
+      if (supported_groups.count(group) == 0) {
+        return Status::Error("key_share contains a group that is absent in supported_groups");
+      }
+    }
   }
 
   if (auto *ech = find_extension(res, 0xFE0D)) {
@@ -207,21 +273,33 @@ inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
     }
 
     TlsReader ech_reader(ech->value);
-    TRY_RESULT(ignore_cipher_suite, ech_reader.read_u16());
-    (void)ignore_cipher_suite;
+    TRY_RESULT(ech_outer_client_hello, ech_reader.read_u8());
+    if (ech_outer_client_hello != 0x00) {
+      return Status::Error("ECH outer ClientHello marker must be 0x00");
+    }
+    TRY_RESULT(ech_kdf_id, ech_reader.read_u16());
+    if (ech_kdf_id != 0x0001) {
+      return Status::Error("Unexpected ECH KDF identifier");
+    }
+    TRY_RESULT(ech_aead_id, ech_reader.read_u16());
+    if (ech_aead_id != 0x0001) {
+      return Status::Error("Unexpected ECH AEAD identifier");
+    }
     TRY_RESULT(ignore_config_id, ech_reader.read_u8());
     (void)ignore_config_id;
-    TRY_RESULT(ignore_kem_id, ech_reader.read_u16());
-    (void)ignore_kem_id;
-    TRY_RESULT(ignore_max_name_len, ech_reader.read_u8());
-    (void)ignore_max_name_len;
 
     TRY_RESULT(ech_declared_enc_length, ech_reader.read_u16());
+    if (ech_declared_enc_length == 0) {
+      return Status::Error("ECH encapsulated key length must be non-zero");
+    }
     res.ech_declared_enc_length = ech_declared_enc_length;
-    TRY_RESULT(ignore_ech_enc, ech_reader.read_slice(res.ech_declared_enc_length));
-    (void)ignore_ech_enc;
+    TRY_RESULT(ech_enc, ech_reader.read_slice(res.ech_declared_enc_length));
+    res.ech_actual_enc_length = static_cast<uint16>(ech_enc.size());
 
     TRY_RESULT(ech_payload_length, ech_reader.read_u16());
+    if (ech_payload_length == 0) {
+      return Status::Error("ECH payload length must be non-zero");
+    }
     res.ech_payload_length = ech_payload_length;
     TRY_RESULT(ignore_ech_payload, ech_reader.read_slice(res.ech_payload_length));
     (void)ignore_ech_payload;
@@ -229,7 +307,6 @@ inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
     if (ech_reader.left() != 0) {
       return Status::Error("ECH extension trailing bytes");
     }
-    res.ech_actual_enc_length = res.ech_declared_enc_length;
   }
 
   return res;

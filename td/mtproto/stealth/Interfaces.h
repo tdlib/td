@@ -9,6 +9,8 @@
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
+#include <cctype>
+
 namespace td {
 namespace mtproto {
 namespace stealth {
@@ -39,6 +41,26 @@ struct NetworkRouteHints final {
   bool is_known{false};
   bool is_ru{false};
 };
+
+inline NetworkRouteHints route_hints_from_country_code(Slice country_code) {
+  NetworkRouteHints hints;
+  if (country_code.size() != 2) {
+    return hints;
+  }
+
+  auto first = static_cast<unsigned char>(country_code[0]);
+  auto second = static_cast<unsigned char>(country_code[1]);
+  if (std::isalpha(first) == 0 || std::isalpha(second) == 0) {
+    return hints;
+  }
+
+  auto upper_first = static_cast<char>(std::toupper(first));
+  auto upper_second = static_cast<char>(std::toupper(second));
+
+  hints.is_known = true;
+  hints.is_ru = (upper_first == 'R' && upper_second == 'U');
+  return hints;
+}
 
 }  // namespace stealth
 }  // namespace mtproto

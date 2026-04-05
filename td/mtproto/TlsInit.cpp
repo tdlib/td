@@ -32,7 +32,7 @@ void Grease::init(MutableSlice res) {
 
 void TlsInit::send_hello() {
   auto hello = stealth::build_default_tls_client_hello(
-      username_, password_, static_cast<int32>(Time::now() + server_time_difference_));
+      username_, password_, static_cast<int32>(Time::now() + server_time_difference_), route_hints_);
   hello_rand_ = hello.substr(11, 32);
   fd_.output_buffer().append(hello);
   state_ = State::WaitHelloResponse;
