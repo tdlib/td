@@ -11,7 +11,27 @@
                 "-B",
                 "build",
                 "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
-                "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+                "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+                "-DTD_ENABLE_BENCHMARKS=OFF"
+            ],
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "cmake configure ninja",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-S",
+                ".",
+                "-B",
+                "build-ninja",
+                "-G",
+                "Ninja",
+                "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+                "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+                "-DTD_ENABLE_BENCHMARKS=OFF"
             ],
             "problemMatcher": [
                 "$gcc"
@@ -24,12 +44,87 @@
             "args": [
                 "--build",
                 "build",
-                "--parallel"
+                "--parallel",
+                "4"
             ],
             "group": "build",
             "dependsOn": [
                 "cmake configure"
             ],
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "cmake build tests",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--target",
+                "run_all_tests",
+                "--parallel",
+                "4"
+            ],
+            "group": "build",
+            "dependsOn": [
+                "cmake configure"
+            ],
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "cmake build tests fast",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build",
+                "--target",
+                "run_all_tests",
+                "--parallel",
+                "4"
+            ],
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "cmake build tests ninja",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build-ninja",
+                "--target",
+                "run_all_tests",
+                "--parallel",
+                "4"
+            ],
+            "group": "build",
+            "dependsOn": [
+                "cmake configure ninja"
+            ],
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "cmake build tests ninja fast",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build-ninja",
+                "--target",
+                "run_all_tests",
+                "--parallel",
+                "4"
+            ],
+            "group": "build",
             "problemMatcher": [
                 "$gcc"
             ]
@@ -45,7 +140,63 @@
             ],
             "group": "test",
             "dependsOn": [
-                "cmake build"
+                "cmake build tests"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run stealth tests",
+            "type": "shell",
+            "command": "./build/test/run_all_tests",
+            "args": [
+                "--filter",
+                "TlsHello"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run stealth tests fast",
+            "type": "shell",
+            "command": "./build/test/run_all_tests",
+            "args": [
+                "--filter",
+                "TlsHello"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run stealth tests ninja",
+            "type": "shell",
+            "command": "./build-ninja/test/run_all_tests",
+            "args": [
+                "--filter",
+                "TlsHello"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests ninja"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run stealth tests ninja fast",
+            "type": "shell",
+            "command": "./build-ninja/test/run_all_tests",
+            "args": [
+                "--filter",
+                "TlsHello"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests ninja fast"
             ],
             "problemMatcher": []
         }

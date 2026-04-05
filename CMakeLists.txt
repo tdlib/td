@@ -27,6 +27,7 @@ prevent_in_source_build()
 
 option(TD_INSTALL_STATIC_LIBRARIES "Enable installation of static libraries." ON)
 option(TD_INSTALL_SHARED_LIBRARIES "Enable installation of shared libraries." ON)
+option(TD_ENABLE_BENCHMARKS "Use \"ON\" to build benchmark targets." ON)
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" or \"CX\" to enable generation of C++/CLI or C++/CX TDLib API bindings respectively.")
 if (NOT CMAKE_CROSSCOMPILING)
@@ -230,7 +231,7 @@ if (BUILD_TESTING)
   add_subdirectory(test)
 endif()
 
-if (NOT CMAKE_CROSSCOMPILING)
+if (TD_ENABLE_BENCHMARKS AND NOT CMAKE_CROSSCOMPILING)
   add_subdirectory(benchmark)
 endif()
 
@@ -298,6 +299,7 @@ set(TD_MTPROTO_SOURCE
   td/mtproto/SessionConnection.cpp
   td/mtproto/TcpTransport.cpp
   td/mtproto/TlsInit.cpp
+  td/mtproto/stealth/TlsHelloBuilder.cpp
   td/mtproto/TlsReaderByteFlow.cpp
   td/mtproto/Transport.cpp
   td/mtproto/utils.cpp
@@ -327,6 +329,8 @@ set(TD_MTPROTO_SOURCE
   td/mtproto/SessionConnection.h
   td/mtproto/TcpTransport.h
   td/mtproto/TlsInit.h
+  td/mtproto/stealth/Interfaces.h
+  td/mtproto/stealth/TlsHelloBuilder.h
   td/mtproto/TlsReaderByteFlow.h
   td/mtproto/Transport.h
   td/mtproto/TransportType.h

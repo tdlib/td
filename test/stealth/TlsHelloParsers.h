@@ -1,0 +1,240 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#pragma once
+
+#include "td/utils/Status.h"
+#include "td/utils/Slice.h"
+#include "td/utils/common.h"
+
+namespace td {
+namespace mtproto {
+namespace test {
+
+struct ParsedExtension final {
+  uint16 type{0};
+  Slice value;
+};
+
+struct ParsedClientHello final {
+  uint8 record_type{0};
+  uint16 record_legacy_version{0};
+  uint16 record_length{0};
+  uint8 handshake_type{0};
+  uint32 handshake_length{0};
+  uint16 client_legacy_version{0};
+  Slice session_id;
+  Slice cipher_suites;
+  Slice compression_methods;
+  vector<ParsedExtension> extensions;
+  vector<uint16> supported_groups;
+  vector<uint16> key_share_groups;
+  uint16 ech_declared_enc_length{0};
+  uint16 ech_actual_enc_length{0};
+  uint16 ech_payload_length{0};
+};
+
+class TlsReader final {
+ public:
+  explicit TlsReader(Slice data) : data_(data) {
+  }
+
+  Result<uint8> read_u8() {
+    if (left() < 1) {
+      return Status::Error("Unexpected EOF (u8)");
+    }
+    return static_cast<uint8>(data_[offset_++]);
+  }
+
+  Result<uint16> read_u16() {
+    if (left() < 2) {
+      return Status::Error("Unexpected EOF (u16)");
+    }
+    uint16 hi = static_cast<uint8>(data_[offset_]);
+    uint16 lo = static_cast<uint8>(data_[offset_ + 1]);
+    offset_ += 2;
+    return static_cast<uint16>((hi << 8) | lo);
+  }
+
+  Result<uint32> read_u24() {
+    if (left() < 3) {
+      return Status::Error("Unexpected EOF (u24)");
+    }
+    uint32 b0 = static_cast<uint8>(data_[offset_]);
+    uint32 b1 = static_cast<uint8>(data_[offset_ + 1]);
+    uint32 b2 = static_cast<uint8>(data_[offset_ + 2]);
+    offset_ += 3;
+    return (b0 << 16) | (b1 << 8) | b2;
+  }
+
+  Result<Slice> read_slice(size_t length) {
+    if (left() < length) {
+      return Status::Error("Unexpected EOF (slice)");
+    }
+    auto res = data_.substr(offset_, length);
+    offset_ += length;
+    return res;
+  }
+
+  size_t left() const {
+    return data_.size() - offset_;
+  }
+
+ private:
+  Slice data_;
+  size_t offset_{0};
+};
+
+inline const ParsedExtension *find_extension(const ParsedClientHello &hello, uint16 type) {
+  for (const auto &ext : hello.extensions) {
+    if (ext.type == type) {
+      return &ext;
+    }
+  }
+  return nullptr;
+}
+
+inline Result<vector<uint16>> parse_supported_groups(Slice data) {
+  TlsReader reader(data);
+  TRY_RESULT(groups_len, reader.read_u16());
+  if ((groups_len % 2) != 0) {
+    return Status::Error("supported_groups vector length must be even");
+  }
+  if (reader.left() != groups_len) {
+    return Status::Error("supported_groups length mismatch");
+  }
+  vector<uint16> groups;
+  groups.reserve(groups_len / 2);
+  while (reader.left() > 0) {
+    TRY_RESULT(group, reader.read_u16());
+    groups.push_back(group);
+  }
+  return groups;
+}
+
+inline Result<vector<uint16>> parse_key_share_groups(Slice data) {
+  TlsReader reader(data);
+  TRY_RESULT(shares_len, reader.read_u16());
+  if (reader.left() != shares_len) {
+    return Status::Error("key_share length mismatch");
+  }
+
+  vector<uint16> groups;
+  while (reader.left() > 0) {
+    TRY_RESULT(group, reader.read_u16());
+    TRY_RESULT(key_len, reader.read_u16());
+    TRY_RESULT(ignore_key, reader.read_slice(key_len));
+    (void)ignore_key;
+    groups.push_back(group);
+  }
+  return groups;
+}
+
+inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
+  ParsedClientHello res;
+  TlsReader reader(wire);
+
+  TRY_RESULT(record_type, reader.read_u8());
+  res.record_type = record_type;
+  TRY_RESULT(record_legacy_version, reader.read_u16());
+  res.record_legacy_version = record_legacy_version;
+  TRY_RESULT(record_length, reader.read_u16());
+  res.record_length = record_length;
+  if (reader.left() != res.record_length) {
+    return Status::Error("TLS record length mismatch");
+  }
+
+  TRY_RESULT(handshake_type, reader.read_u8());
+  res.handshake_type = handshake_type;
+  TRY_RESULT(handshake_length, reader.read_u24());
+  res.handshake_length = handshake_length;
+  if (reader.left() != res.handshake_length) {
+    return Status::Error("Handshake length mismatch");
+  }
+
+  TRY_RESULT(client_legacy_version, reader.read_u16());
+  res.client_legacy_version = client_legacy_version;
+  TRY_RESULT(ignore_random, reader.read_slice(32));
+  (void)ignore_random;
+
+  TRY_RESULT(session_id_len, reader.read_u8());
+  TRY_RESULT(session_id, reader.read_slice(session_id_len));
+  res.session_id = session_id;
+
+  TRY_RESULT(cipher_suites_len, reader.read_u16());
+  if ((cipher_suites_len % 2) != 0) {
+    return Status::Error("Cipher suites length must be even");
+  }
+  TRY_RESULT(cipher_suites, reader.read_slice(cipher_suites_len));
+  res.cipher_suites = cipher_suites;
+
+  TRY_RESULT(compression_methods_len, reader.read_u8());
+  TRY_RESULT(compression_methods, reader.read_slice(compression_methods_len));
+  res.compression_methods = compression_methods;
+
+  TRY_RESULT(extensions_len, reader.read_u16());
+  TRY_RESULT(extensions_raw, reader.read_slice(extensions_len));
+  if (reader.left() != 0) {
+    return Status::Error("Trailing bytes after ClientHello");
+  }
+
+  TlsReader ext_reader(extensions_raw);
+  while (ext_reader.left() > 0) {
+    ParsedExtension ext;
+    TRY_RESULT(ext_type, ext_reader.read_u16());
+    ext.type = ext_type;
+    TRY_RESULT(ext_len, ext_reader.read_u16());
+    TRY_RESULT(ext_value, ext_reader.read_slice(ext_len));
+    ext.value = ext_value;
+    res.extensions.push_back(ext);
+  }
+
+  if (auto *supported_groups = find_extension(res, 0x000A)) {
+    TRY_RESULT(parsed_supported_groups, parse_supported_groups(supported_groups->value));
+    res.supported_groups = std::move(parsed_supported_groups);
+  }
+  if (auto *key_share = find_extension(res, 0x0033)) {
+    TRY_RESULT(parsed_key_share_groups, parse_key_share_groups(key_share->value));
+    res.key_share_groups = std::move(parsed_key_share_groups);
+  }
+
+  if (auto *ech = find_extension(res, 0xFE0D)) {
+    if (ech->value.size() < 10) {
+      return Status::Error("ECH extension too short");
+    }
+
+    TlsReader ech_reader(ech->value);
+    TRY_RESULT(ignore_cipher_suite, ech_reader.read_u16());
+    (void)ignore_cipher_suite;
+    TRY_RESULT(ignore_config_id, ech_reader.read_u8());
+    (void)ignore_config_id;
+    TRY_RESULT(ignore_kem_id, ech_reader.read_u16());
+    (void)ignore_kem_id;
+    TRY_RESULT(ignore_max_name_len, ech_reader.read_u8());
+    (void)ignore_max_name_len;
+
+    TRY_RESULT(ech_declared_enc_length, ech_reader.read_u16());
+    res.ech_declared_enc_length = ech_declared_enc_length;
+    TRY_RESULT(ignore_ech_enc, ech_reader.read_slice(res.ech_declared_enc_length));
+    (void)ignore_ech_enc;
+
+    TRY_RESULT(ech_payload_length, ech_reader.read_u16());
+    res.ech_payload_length = ech_payload_length;
+    TRY_RESULT(ignore_ech_payload, ech_reader.read_slice(res.ech_payload_length));
+    (void)ignore_ech_payload;
+
+    if (ech_reader.left() != 0) {
+      return Status::Error("ECH extension trailing bytes");
+    }
+    res.ech_actual_enc_length = res.ech_declared_enc_length;
+  }
+
+  return res;
+}
+
+}  // namespace test
+}  // namespace mtproto
+}  // namespace td
