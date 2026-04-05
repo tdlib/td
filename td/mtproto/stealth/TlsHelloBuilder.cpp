@@ -104,35 +104,13 @@ bool should_enable_ech(const NetworkRouteHints &route_hints) {
   return route_hints.is_known && !route_hints.is_ru;
 }
 
-void shuffle_fixture_bounded_windows(vector<string> &parts) {
-  if (parts.size() < 6) {
+void shuffle_chrome_anchored_extensions(vector<string> &parts) {
+  // Match Chrome/uTLS ShuffleChromeTLSExtensions semantics for the subset of
+  // extensions represented by this permutation: shuffle every non-anchor
+  // extension as a single pool. GREASE and padding anchors stay outside of
+  // the permutation block and retain their fixed positions.
+  if (parts.size() > 1) {
     Random::shuffle(parts);
-    return;
-  }
-
-  const size_t tail_anchor_index = parts.size() - 1;
-
-  auto shuffle_window = [&](size_t begin, size_t end) {
-    if (end <= begin + 1) {
-      return;
-    }
-    vector<string> window;
-    window.reserve(end - begin);
-    for (size_t i = begin; i < end; i++) {
-      window.push_back(std::move(parts[i]));
-    }
-    Random::shuffle(window);
-    for (size_t i = begin; i < end; i++) {
-      parts[i] = std::move(window[i - begin]);
-    }
-  };
-
-  shuffle_window(0, std::min<size_t>(4, tail_anchor_index));
-  shuffle_window(4, std::min<size_t>(8, tail_anchor_index));
-  shuffle_window(8, std::min<size_t>(12, tail_anchor_index));
-
-  if (tail_anchor_index > 12) {
-    shuffle_window(12, tail_anchor_index);
   }
 }
 
@@ -604,7 +582,7 @@ class TlsHelloStore {
           CHECK(storer.get_offset() == data.size());
           parts.push_back(std::move(data));
         }
-        shuffle_fixture_bounded_windows(parts);
+        shuffle_chrome_anchored_extensions(parts);
         for (auto &part : parts) {
           dest_.copy_from(part);
           dest_.remove_prefix(part.size());

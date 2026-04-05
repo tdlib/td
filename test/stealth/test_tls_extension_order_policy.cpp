@@ -12,7 +12,8 @@
 #include "td/utils/common.h"
 #include "td/utils/tests.h"
 
-#include <array>
+#include <algorithm>
+#include <set>
 #include <unordered_set>
 
 namespace {
@@ -56,70 +57,108 @@ std::vector<td::uint16> normalize_extensions(const td::mtproto::test::ParsedClie
   return result;
 }
 
-bool is_in_window(td::uint16 type, const std::unordered_set<td::uint16> &window) {
-  return window.count(type) != 0;
+std::vector<td::uint16> raw_extension_types(const td::mtproto::test::ParsedClientHello &hello) {
+  std::vector<td::uint16> result;
+  result.reserve(hello.extensions.size());
+  for (const auto &ext : hello.extensions) {
+    result.push_back(ext.type);
+  }
+  return result;
 }
 
-td::string window_signature(const std::vector<td::uint16> &ext, size_t begin, size_t end) {
+td::string order_signature(const std::vector<td::uint16> &ext) {
   td::string signature;
-  for (size_t idx = begin; idx < end; idx++) {
-    signature += td::to_string(ext[idx]);
+  for (auto type : ext) {
+    signature += td::to_string(type);
     signature += ",";
   }
   return signature;
 }
 
-TEST(TlsExtensionOrderPolicy, EchEnabledOrderMustStayWithinProfileWindows) {
-  const std::unordered_set<td::uint16> window1 = {0x0000, kStatusRequest, kSupportedGroups, kEcPointFormats};
-  const std::unordered_set<td::uint16> window2 = {kSignatureAlgorithms, kAlpn, kSct, kExtendedMasterSecret};
-  const std::unordered_set<td::uint16> window3 = {kCompressCertificate, kSessionTicket, kSupportedVersions, kPskModes};
-  const std::unordered_set<td::uint16> window4 = {kKeyShare, kAlps, kEch};
+std::multiset<td::uint16> to_multiset(const std::vector<td::uint16> &ext) {
+  return std::multiset<td::uint16>(ext.begin(), ext.end());
+}
 
-  std::unordered_set<td::string> observed_tail_orders;
+void assert_chrome_anchor_layout(const td::mtproto::test::ParsedClientHello &hello, bool padding_allowed) {
+  auto raw = raw_extension_types(hello);
+  ASSERT_TRUE(raw.size() >= 3u);
+  ASSERT_TRUE(is_grease_extension(raw.front()));
+
+  if (raw.back() == kPadding) {
+    ASSERT_TRUE(padding_allowed);
+    ASSERT_TRUE(is_grease_extension(raw[raw.size() - 2]));
+  } else {
+    ASSERT_TRUE(is_grease_extension(raw.back()));
+  }
+}
+
+TEST(TlsExtensionOrderPolicy, EchEnabledExtensionsMatchChromeShuffleModel) {
+  const std::multiset<td::uint16> expected = {0x0000,
+                                              kStatusRequest,
+                                              kSupportedGroups,
+                                              kEcPointFormats,
+                                              kSignatureAlgorithms,
+                                              kAlpn,
+                                              kSct,
+                                              kExtendedMasterSecret,
+                                              kCompressCertificate,
+                                              kSessionTicket,
+                                              kSupportedVersions,
+                                              kPskModes,
+                                              kKeyShare,
+                                              kAlps,
+                                              kEch,
+                                              kRenegotiationInfo};
+
+  std::unordered_set<td::string> observed_orders;
+  std::unordered_set<size_t> renegotiation_positions;
+
   td::Slice secret("0123456789secret");
 
   NetworkRouteHints hints;
   hints.is_known = true;
   hints.is_ru = false;
 
-  for (int i = 0; i < 128; i++) {
+  for (int i = 0; i < 256; i++) {
     auto wire = build_default_tls_client_hello("www.google.com", secret, 1712345678 + i, hints);
     auto parsed = parse_tls_client_hello(wire);
     ASSERT_TRUE(parsed.is_ok());
 
+    assert_chrome_anchor_layout(parsed.ok(), false);
+
     auto ext = normalize_extensions(parsed.ok());
     ASSERT_EQ(16u, ext.size());
+    ASSERT_TRUE(expected == to_multiset(ext));
 
-    for (size_t idx = 0; idx < 4; idx++) {
-      ASSERT_TRUE(is_in_window(ext[idx], window1));
-    }
-    for (size_t idx = 4; idx < 8; idx++) {
-      ASSERT_TRUE(is_in_window(ext[idx], window2));
-    }
-    for (size_t idx = 8; idx < 12; idx++) {
-      ASSERT_TRUE(is_in_window(ext[idx], window3));
-    }
-    for (size_t idx = 12; idx < 15; idx++) {
-      ASSERT_TRUE(is_in_window(ext[idx], window4));
-    }
-
-    ASSERT_EQ(kRenegotiationInfo, ext[15]);
-
-    td::string tail_order;
-    for (size_t idx = 12; idx < 15; idx++) {
-      tail_order += td::to_string(ext[idx]) + ",";
-    }
-    observed_tail_orders.insert(std::move(tail_order));
+    observed_orders.insert(order_signature(ext));
+    auto it = std::find(ext.begin(), ext.end(), kRenegotiationInfo);
+    ASSERT_TRUE(it != ext.end());
+    renegotiation_positions.insert(static_cast<size_t>(it - ext.begin()));
   }
 
-  ASSERT_TRUE(observed_tail_orders.size() > 1u);
+  ASSERT_TRUE(observed_orders.size() > 1u);
+  ASSERT_TRUE(renegotiation_positions.size() > 2u);
 }
 
-TEST(TlsExtensionOrderPolicy, EchDisabledOrderMustStayWithinProfileWindows) {
-  const std::unordered_set<td::uint16> window1 = {0x0000, kStatusRequest, kSupportedGroups, kEcPointFormats};
-  const std::unordered_set<td::uint16> window2 = {kSignatureAlgorithms, kAlpn, kSct, kExtendedMasterSecret};
-  const std::unordered_set<td::uint16> window3 = {kCompressCertificate, kSessionTicket, kSupportedVersions, kPskModes};
-  const std::unordered_set<td::uint16> window4 = {kKeyShare, kAlps};
+TEST(TlsExtensionOrderPolicy, EchDisabledExtensionsMatchChromeShuffleModel) {
+  const std::multiset<td::uint16> expected = {0x0000,
+                                              kStatusRequest,
+                                              kSupportedGroups,
+                                              kEcPointFormats,
+                                              kSignatureAlgorithms,
+                                              kAlpn,
+                                              kSct,
+                                              kExtendedMasterSecret,
+                                              kCompressCertificate,
+                                              kSessionTicket,
+                                              kSupportedVersions,
+                                              kPskModes,
+                                              kKeyShare,
+                                              kAlps,
+                                              kRenegotiationInfo};
+
+  std::unordered_set<td::string> observed_orders;
+  std::unordered_set<size_t> renegotiation_positions;
 
   td::Slice secret("0123456789secret");
 
@@ -127,36 +166,33 @@ TEST(TlsExtensionOrderPolicy, EchDisabledOrderMustStayWithinProfileWindows) {
   hints.is_known = false;
   hints.is_ru = false;
 
-  for (int i = 0; i < 128; i++) {
+  for (int i = 0; i < 256; i++) {
     auto wire = build_default_tls_client_hello("www.google.com", secret, 1712345678 + i, hints);
     auto parsed = parse_tls_client_hello(wire);
     ASSERT_TRUE(parsed.is_ok());
 
+    assert_chrome_anchor_layout(parsed.ok(), true);
+
     auto ext = normalize_extensions(parsed.ok());
     ASSERT_EQ(15u, ext.size());
+    ASSERT_TRUE(expected == to_multiset(ext));
 
-    for (size_t idx = 0; idx < 4; idx++) {
-      ASSERT_TRUE(is_in_window(ext[idx], window1));
-    }
-    for (size_t idx = 4; idx < 8; idx++) {
-      ASSERT_TRUE(is_in_window(ext[idx], window2));
-    }
-    for (size_t idx = 8; idx < 12; idx++) {
-      ASSERT_TRUE(is_in_window(ext[idx], window3));
-    }
-    for (size_t idx = 12; idx < 14; idx++) {
-      ASSERT_TRUE(is_in_window(ext[idx], window4));
-    }
-
-    ASSERT_EQ(kRenegotiationInfo, ext[14]);
+    observed_orders.insert(order_signature(ext));
+    auto it = std::find(ext.begin(), ext.end(), kRenegotiationInfo);
+    ASSERT_TRUE(it != ext.end());
+    renegotiation_positions.insert(static_cast<size_t>(it - ext.begin()));
   }
+
+  ASSERT_TRUE(observed_orders.size() > 1u);
+  ASSERT_TRUE(renegotiation_positions.size() > 2u);
 }
 
-TEST(TlsExtensionOrderPolicy, WindowPermutationEntropyMustRemainNonDeterministic) {
+TEST(TlsExtensionOrderPolicy, ChromeShuffleEntropyMustRemainNonDeterministic) {
+  std::unordered_set<td::string> observed_enabled_orders;
+  std::unordered_set<td::string> observed_disabled_orders;
   td::Slice secret("0123456789secret");
 
   {
-    std::array<std::unordered_set<td::string>, 4> observed_windows;
     NetworkRouteHints hints;
     hints.is_known = true;
     hints.is_ru = false;
@@ -168,19 +204,11 @@ TEST(TlsExtensionOrderPolicy, WindowPermutationEntropyMustRemainNonDeterministic
 
       auto ext = normalize_extensions(parsed.ok());
       ASSERT_EQ(16u, ext.size());
-      observed_windows[0].insert(window_signature(ext, 0, 4));
-      observed_windows[1].insert(window_signature(ext, 4, 8));
-      observed_windows[2].insert(window_signature(ext, 8, 12));
-      observed_windows[3].insert(window_signature(ext, 12, 15));
-    }
-
-    for (const auto &window_orders : observed_windows) {
-      ASSERT_TRUE(window_orders.size() > 1u);
+      observed_enabled_orders.insert(order_signature(ext));
     }
   }
 
   {
-    std::array<std::unordered_set<td::string>, 4> observed_windows;
     NetworkRouteHints hints;
     hints.is_known = false;
     hints.is_ru = false;
@@ -192,16 +220,12 @@ TEST(TlsExtensionOrderPolicy, WindowPermutationEntropyMustRemainNonDeterministic
 
       auto ext = normalize_extensions(parsed.ok());
       ASSERT_EQ(15u, ext.size());
-      observed_windows[0].insert(window_signature(ext, 0, 4));
-      observed_windows[1].insert(window_signature(ext, 4, 8));
-      observed_windows[2].insert(window_signature(ext, 8, 12));
-      observed_windows[3].insert(window_signature(ext, 12, 14));
-    }
-
-    for (const auto &window_orders : observed_windows) {
-      ASSERT_TRUE(window_orders.size() > 1u);
+      observed_disabled_orders.insert(order_signature(ext));
     }
   }
+
+  ASSERT_TRUE(observed_enabled_orders.size() > 1u);
+  ASSERT_TRUE(observed_disabled_orders.size() > 1u);
 }
 
 }  // namespace
