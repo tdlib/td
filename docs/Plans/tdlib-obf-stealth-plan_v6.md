@@ -322,6 +322,88 @@ PR-A  (Test Foundation: wire/parser tests + narrow seams)
 **Gate:** `cmake --build . --target run_all_tests && ctest --output-on-failure -R run_all_tests`  
 **Отдельный smoke-stage:** offline Python/pcap-проверки из раздела 13. Это не merge-gate для PR-A, а дополнительный дифференциальный контроль против `docs/Samples`.
 
+## 4.0 Компиляция и локальный build-loop (WSL/Linux)
+
+Цель: обеспечить быстрый и стабильный TDD-цикл без OOM/IDE freeze и без лишней пересборки нецелевых target.
+
+### 4.0.1 Обязательный режим для PR-A..PR-10
+
+1. Основной локальный backend сборки: **Ninja** (`-G Ninja`).
+2. Обязательный compile cache: **ccache** (CMake already detects it через `find_program(CCACHE_FOUND ccache)`).
+3. Для dev-итераций benchmarks должны быть выключены: `-DTD_ENABLE_BENCHMARKS=OFF`.
+4. Основной тестовый target в цикле разработки: `run_all_tests` (а не полный world-build).
+
+### 4.0.2 Рекомендованные команды (cold/warm path)
+
+Cold configure (один раз или после clean):
+
+```bash
+cmake -S . -B build-ninja -G Ninja \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+  -DTD_ENABLE_BENCHMARKS=OFF
+```
+
+Основная сборка тестового target:
+
+```bash
+cmake --build build-ninja --target run_all_tests --parallel 4
+```
+
+Таргетные stealth-тесты для внутреннего цикла PR-A:
+
+```bash
+./build-ninja/test/run_all_tests --filter TlsHello
+```
+
+Full gate перед merge:
+
+```bash
+ctest --test-dir build-ninja --output-on-failure -R run_all_tests
+```
+
+### 4.0.3 Операционные guardrails (анти-OOM)
+
+1. Если в логе есть `Command terminated by signal 9` и kernel `oom-kill ... task=cc1plus`, это memory pressure, а не «ошибка компилятора».
+2. В таком случае:
+   - временно понизить `--parallel` (4 -> 2);
+   - не запускать full build без необходимости;
+   - оставить `TD_ENABLE_BENCHMARKS=OFF` для dev.
+3. Не делать `cmake configure` перед каждым быстрым тест-прогоном: использовать fast build-task без reconfigure.
+
+### 4.0.4 ccache контроль
+
+Перед серией измерений:
+
+```bash
+ccache -z
+```
+
+После сборки:
+
+```bash
+ccache -s
+```
+
+Ожидание для warm path: рост direct/preprocessed hits на повторных пересборках изменённых `.cpp`.
+
+### 4.0.5 VS Code tasks (source of truth)
+
+Локальный workflow должен опираться на задачки workspace:
+
+- `cmake configure ninja`
+- `cmake build tests ninja`
+- `cmake build tests ninja fast`
+- `run stealth tests ninja`
+- `run stealth tests ninja fast`
+
+Их назначение:
+
+- `... ninja` — безопасный путь с configure dependency;
+- `... ninja fast` — внутренний TDD-loop без лишнего reconfigure.
+
+Этот operational блок считается частью acceptance criteria PR-A: изменения в тестовой инфраструктуре не должны ухудшать стабильность и latency compile-loop.
+
 ## 4.1 Что именно входит в PR-A
 
 PR-A не должен пытаться тестировать будущий shaper/decorator раньше появления транспортных seam'ов. Его задача уже на старте закрыть две вещи:
