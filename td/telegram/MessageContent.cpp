@@ -6350,7 +6350,7 @@ ChatTheme get_message_content_chat_theme(const MessageContent *content) {
   }
 }
 
-MessageFullId get_message_content_replied_message_id(DialogId dialog_id, const MessageContent *content) {
+MessageFullId get_message_content_replied_message_full_id(DialogId dialog_id, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::PinMessage:
       return {dialog_id, static_cast<const MessagePinMessage *>(content)->message_id};
@@ -12652,9 +12652,9 @@ void apply_updates_from_service_message_content(Td *td, const MessageContent *co
       return;
     case MessageContentType::PollAppendAnswer:
     case MessageContentType::PollDeleteAnswer:
-      return td->messages_manager_->get_message_from_server(get_message_content_replied_message_id(dialog_id, content),
-                                                            Promise<Unit>(),
-                                                            "apply_updates_from_service_message_content");
+      return td->messages_manager_->get_message_from_server(
+          get_message_content_replied_message_full_id(dialog_id, content), Promise<Unit>(),
+          "apply_updates_from_service_message_content");
     default:
       // nothing to do
       return;

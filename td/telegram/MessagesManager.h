@@ -1767,7 +1767,7 @@ class MessagesManager final : public Actor {
 
   MessageId get_persistent_message_id(const Dialog *d, MessageId message_id) const;
 
-  MessageFullId get_replied_message_id(DialogId dialog_id, const Message *m) const;
+  MessageFullId get_replied_message_full_id(DialogId dialog_id, const Message *m) const;
 
   MessageInputReplyTo create_message_input_reply_to(Dialog *d, const MessageTopic &message_topic,
                                                     td_api::object_ptr<td_api::InputMessageReplyTo> &&reply_to,
@@ -3498,7 +3498,7 @@ class MessagesManager final : public Actor {
   DialogId sponsored_dialog_id_;
   DialogSource sponsored_dialog_source_;
 
-  MessageFullId being_readded_message_id_;
+  MessageFullId being_readded_message_full_id_;
 
   DialogId being_added_dialog_id_;
   DialogId being_added_by_new_message_dialog_id_;

@@ -2856,8 +2856,8 @@ void UserManager::on_noforwards_request_timeout(int32 request_id) {
     return;
   }
 
-  auto it = noforwards_request_message_ids_.find(request_id);
-  if (it == noforwards_request_message_ids_.end()) {
+  auto it = noforwards_request_message_full_ids_.find(request_id);
+  if (it == noforwards_request_message_full_ids_.end()) {
     return;
   }
   auto message_full_id = it->second;
@@ -9152,7 +9152,7 @@ void UserManager::register_noforwards_request(MessageFullId message_full_id, int
     auto &request_id = noforwards_request_ids_[message_full_id];
     CHECK(request_id == 0);
     request_id = ++current_noforwards_request_id_;
-    noforwards_request_message_ids_[request_id] = message_full_id;
+    noforwards_request_message_full_ids_[request_id] = message_full_id;
     noforwards_request_timeout_.set_timeout_in(request_id, static_cast<double>(left_time) + 1);
   }
 }
@@ -9165,7 +9165,7 @@ void UserManager::unregister_noforwards_request(MessageFullId message_full_id) {
   auto request_id = it->second;
   CHECK(request_id != 0);
   noforwards_request_ids_.erase(it);
-  noforwards_request_message_ids_.erase(request_id);
+  noforwards_request_message_full_ids_.erase(request_id);
   noforwards_request_timeout_.cancel_timeout(request_id);
 }
 
