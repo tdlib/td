@@ -1338,7 +1338,7 @@ class UserManager final : public Actor {
   FlatHashMap<UserId, int64, UserIdHash> user_full_contact_price_;  // -1 - premium required
 
   FlatHashMap<MessageFullId, int32, MessageFullIdHash> noforwards_request_ids_;
-  FlatHashMap<int32, MessageFullId> noforwards_request_message_ids_;
+  FlatHashMap<int32, MessageFullId> noforwards_request_message_full_ids_;
 
   WaitFreeHashSet<UserId, UserIdHash> restricted_user_ids_;
 

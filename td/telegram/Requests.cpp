@@ -588,15 +588,15 @@ class GetRepliedMessageRequest final : public RequestOnceActor {
   DialogId dialog_id_;
   MessageId message_id_;
 
-  MessageFullId replied_message_id_;
+  MessageFullId replied_message_full_id_;
 
   void do_run(Promise<Unit> &&promise) final {
-    replied_message_id_ =
+    replied_message_full_id_ =
         td_->messages_manager_->get_replied_message(dialog_id_, message_id_, get_tries() < 3, std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_message_object(replied_message_id_, "GetRepliedMessageRequest"));
+    send_result(td_->messages_manager_->get_message_object(replied_message_full_id_, "GetRepliedMessageRequest"));
   }
 
  public:

@@ -172,7 +172,7 @@ BackgroundInfo get_message_content_my_background_info(const MessageContent *cont
 
 ChatTheme get_message_content_chat_theme(const MessageContent *content);
 
-MessageFullId get_message_content_replied_message_id(DialogId dialog_id, const MessageContent *content);
+MessageFullId get_message_content_replied_message_full_id(DialogId dialog_id, const MessageContent *content);
 
 std::pair<InputGroupCallId, bool> get_message_content_group_call_info(const MessageContent *content);
 
