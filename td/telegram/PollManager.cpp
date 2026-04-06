@@ -2292,7 +2292,7 @@ void PollManager::on_get_poll_vote(PollId poll_id, DialogId dialog_id, vector<Bu
   }
   if (options.size() != positions.size()) {
     LOG(ERROR) << "Receive updateMessagePollVote from " << dialog_id << " in " << poll_id
-               << " with mistmatch option size";
+               << " with mismatch option size";
     return;
   }
   CHECK(td_->auth_manager_->is_bot());

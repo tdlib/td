@@ -117,7 +117,7 @@ void MessageReactor::fix_message_reactors(vector<MessageReactor> &reactors, bool
     }
     if (reactor.is_me()) {
       if (was_me) {
-        LOG(ERROR) << "Receive self mutiple times";
+        LOG(ERROR) << "Receive self multiple times";
         return true;
       }
       was_me = true;
