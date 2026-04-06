@@ -112,6 +112,7 @@ class TlsHello {
       EchEncKey,
       PqGroupId,
       PqKeyShare,
+      AlpsType,
       Padding
     };
     Type type;
@@ -195,12 +196,221 @@ class TlsHello {
       res.type = Type::PqKeyShare;
       return res;
     }
+    static Op alps_type() {
+      Op res;
+      res.type = Type::AlpsType;
+      return res;
+    }
     static Op padding() {
       Op res;
       res.type = Type::Padding;
       return res;
     }
   };
+
+  static TlsHello create_chromium_profile(bool include_ech, bool include_pq) {
+    TlsHello res;
+#if TD_DARWIN
+    (void)include_ech;
+    (void)include_pq;
+    return get_default(true);
+#else
+    vector<vector<Op>> parts = {
+        vector<Op>{Op::str("\x00\x00"), Op::begin_scope(), Op::begin_scope(), Op::str("\x00"), Op::begin_scope(),
+                   Op::domain(), Op::end_scope(), Op::end_scope(), Op::end_scope()},
+        vector<Op>{Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00")},
+        include_pq
+            ? vector<Op>{Op::str("\x00\x0a\x00\x0c\x00\x0a"), Op::grease(4), Op::pq_group_id(),
+                         Op::str("\x00\x1d\x00\x17\x00\x18")}
+            : vector<Op>{Op::str("\x00\x0a\x00\x0a\x00\x08"), Op::grease(4), Op::str("\x00\x1d\x00\x17\x00\x18")},
+        vector<Op>{Op::str("\x00\x0b\x00\x02\x01\x00")},
+        vector<Op>{Op::str("\x00\x0d\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01"
+                           "\x08\x06\x06\x01")},
+        vector<Op>{Op::str("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31")},
+        vector<Op>{Op::str("\x00\x12\x00\x00")},
+        vector<Op>{Op::str("\x00\x17\x00\x00")},
+        vector<Op>{Op::str("\x00\x1b\x00\x03\x02\x00\x02")},
+        vector<Op>{Op::str("\x00\x23\x00\x00")},
+        vector<Op>{Op::str("\x00\x2b\x00\x07\x06"), Op::grease(6), Op::str("\x03\x04\x03\x03")},
+        vector<Op>{Op::str("\x00\x2d\x00\x02\x01\x01")},
+        include_pq
+            ? vector<Op>{Op::str("\x00\x33\x04\xef\x04\xed"), Op::grease(4), Op::str("\x00\x01\x00"),
+                         Op::pq_key_share(), Op::ml_kem_768_key(), Op::key(), Op::str("\x00\x1d\x00\x20"), Op::key()}
+            : vector<Op>{Op::str("\x00\x33\x00\x2b\x00\x29"), Op::grease(4),
+                         Op::str("\x00\x01\x00"
+                                 "\x00\x1d\x00\x20"),
+                         Op::key()},
+        vector<Op>{Op::alps_type(), Op::str("\x00\x05\x00\x03\x02\x68\x32")},
+        vector<Op>{Op::str("\xff\x01\x00\x01\x00")},
+    };
+
+    if (include_ech) {
+      parts.push_back(vector<Op>{Op::str("\xfe\x0d"), Op::begin_scope(), Op::str("\x00\x00\x01\x00\x01"), Op::random(1),
+                                 Op::begin_scope(), Op::ech_enc_key(), Op::end_scope(), Op::begin_scope(),
+                                 Op::ech_payload(), Op::end_scope(), Op::end_scope()});
+    }
+
+    res.ops_ = {
+        Op::str("\x16\x03\x01"),
+        Op::begin_scope(),
+        Op::str("\x01\x00"),
+        Op::begin_scope(),
+        Op::str("\x03\x03"),
+        Op::zero(32),
+        Op::str("\x20"),
+        Op::random(32),
+        Op::str("\x00\x20"),
+        Op::grease(0),
+        Op::str("\x13\x01\x13\x02\x13\x03\xc0\x2b\xc0\x2f\xc0\x2c\xc0\x30\xcc\xa9\xcc\xa8\xc0\x13\xc0\x14\x00\x9c\x00"
+                "\x9d\x00\x2f\x00\x35\x01\x00"),
+        Op::begin_scope(),
+        Op::grease(2),
+        Op::str("\x00\x00"),
+        Op::permutation(std::move(parts)),
+        Op::grease(3),
+        Op::str("\x00\x01\x00"),
+        Op::padding(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::end_scope(),
+    };
+    return res;
+#endif
+  }
+
+  static TlsHello create_fixed_profile_without_chromium_only_features() {
+    TlsHello res;
+    res.ops_ = {
+        Op::str("\x16\x03\x01"),
+        Op::begin_scope(),
+        Op::str("\x01\x00"),
+        Op::begin_scope(),
+        Op::str("\x03\x03"),
+        Op::zero(32),
+        Op::str("\x20"),
+        Op::random(32),
+        Op::str("\x00\x20"),
+        Op::grease(0),
+        Op::str("\x13\x01\x13\x02\x13\x03\xc0\x2b\xc0\x2f\xc0\x2c\xc0\x30\xcc\xa9\xcc\xa8\xc0\x13\xc0\x14\x00\x9c\x00"
+                "\x9d\x00\x2f\x00\x35\x01\x00"),
+        Op::begin_scope(),
+        Op::grease(2),
+        Op::str("\x00\x00"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::str("\x00"),
+        Op::begin_scope(),
+        Op::domain(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00"),
+        Op::str("\x00\x0a\x00\x0a\x00\x08"),
+        Op::grease(4),
+        Op::str("\x00\x1d\x00\x17\x00\x18"),
+        Op::str("\x00\x0b\x00\x02\x01\x00"),
+        Op::str("\x00\x0d\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01"
+                "\x08\x06\x06\x01"),
+        Op::str("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31"),
+        Op::str("\x00\x12\x00\x00"),
+        Op::str("\x00\x17\x00\x00"),
+        Op::str("\x00\x1b\x00\x03\x02\x00\x02"),
+        Op::str("\x00\x23\x00\x00"),
+        Op::str("\x00\x2b\x00\x07\x06"),
+        Op::grease(6),
+        Op::str("\x03\x04\x03\x03"),
+        Op::str("\x00\x2d\x00\x02\x01\x01"),
+        Op::str("\x00\x33\x00\x2b\x00\x29"),
+        Op::grease(4),
+        Op::str("\x00\x01\x00"
+                "\x00\x1d\x00\x20"),
+        Op::key(),
+        Op::str("\xff\x01\x00\x01\x00"),
+        Op::grease(3),
+        Op::str("\x00\x01\x00"),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::end_scope(),
+    };
+    return res;
+  }
+
+  static TlsHello create_firefox_148_profile(bool enable_ech) {
+    TlsHello res;
+    res.ops_ = {
+        Op::str("\x16\x03\x01"),
+        Op::begin_scope(),
+        Op::str("\x01\x00"),
+        Op::begin_scope(),
+        Op::str("\x03\x03"),
+        Op::zero(32),
+        Op::str("\x20"),
+        Op::random(32),
+        Op::str("\x00\x22"
+                "\x13\x01\x13\x03\x13\x02\xc0\x2b\xc0\x2f\xcc\xa9\xcc\xa8\xc0\x2c\xc0\x30\xc0\x0a\xc0\x09"
+                "\xc0\x13\xc0\x14\x00\x9c\x00\x9d\x00\x2f\x00\x35"
+                "\x01\x00"),
+        Op::begin_scope(),
+        Op::str("\x00\x00"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::str("\x00"),
+        Op::begin_scope(),
+        Op::domain(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::str("\x00\x17\x00\x00"),
+        Op::str("\xff\x01\x00\x01\x00"),
+        Op::str("\x00\x0a\x00\x10\x00\x0e"),
+        Op::pq_group_id(),
+        Op::str("\x00\x1d\x00\x17\x00\x18\x00\x19\x01\x00\x01\x01"),
+        Op::str("\x00\x0b\x00\x02\x01\x00"),
+        Op::str("\x00\x23\x00\x00"),
+        Op::str("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31"),
+        Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00"),
+        Op::str("\x00\x22\x00\x0a\x00\x08\x04\x03\x05\x03\x06\x03\x02\x03"),
+        Op::str("\x00\x12\x00\x00"),
+        Op::str("\x00\x33"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::pq_key_share(),
+        Op::ml_kem_768_key(),
+        Op::key(),
+        Op::str("\x00\x1d\x00\x20"),
+        Op::key(),
+        Op::str("\x00\x17\x00\x41"),
+        Op::random(65),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::str("\x00\x2b\x00\x05\x04\x03\x04\x03\x03"),
+        Op::str("\x00\x0d\x00\x18\x00\x16\x04\x03\x05\x03\x06\x03\x08\x04\x08\x05\x08\x06\x04\x01\x05\x01\x06\x01\x02"
+                "\x03\x02\x01"),
+        Op::str("\x00\x2d\x00\x02\x01\x01"),
+        Op::str("\x00\x1c\x00\x02\x40\x01"),
+        Op::str("\x00\x1b\x00\x07\x06\x00\x01\x00\x02\x00\x03"),
+        enable_ech ? Op::str("\xfe\x0d") : Op::str(""),
+        enable_ech ? Op::begin_scope() : Op::str(""),
+        enable_ech ? Op::str("\x00\x00\x01\x00\x01") : Op::str(""),
+        enable_ech ? Op::random(1) : Op::str(""),
+        enable_ech ? Op::begin_scope() : Op::str(""),
+        enable_ech ? Op::key() : Op::str(""),
+        enable_ech ? Op::end_scope() : Op::str(""),
+        enable_ech ? Op::begin_scope() : Op::str(""),
+        enable_ech ? Op::random(239) : Op::str(""),
+        enable_ech ? Op::end_scope() : Op::str(""),
+        enable_ech ? Op::end_scope() : Op::str(""),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::end_scope(),
+    };
+    if (!enable_ech) {
+      res.ops_.erase(std::remove_if(res.ops_.begin(), res.ops_.end(),
+                                    [](const Op &op) { return op.type == Op::Type::String && op.data.empty(); }),
+                     res.ops_.end());
+    }
+    return res;
+  }
 
   static const TlsHello &get_default(bool enable_ech) {
     static TlsHello result_with_ech = [] {
@@ -318,6 +528,41 @@ class TlsHello {
     return enable_ech ? result_with_ech : result_without_ech;
   }
 
+  static const TlsHello &get_profile(BrowserProfile profile, bool enable_ech) {
+#if TD_DARWIN
+    (void)profile;
+    return get_default(enable_ech);
+#else
+    switch (profile) {
+      case BrowserProfile::Chrome133:
+      case BrowserProfile::Chrome131: {
+        static const TlsHello hello_with_ech = create_chromium_profile(true, true);
+        static const TlsHello hello_without_ech = create_chromium_profile(false, true);
+        return enable_ech ? hello_with_ech : hello_without_ech;
+      }
+      case BrowserProfile::Chrome120: {
+        static const TlsHello hello_with_ech = create_chromium_profile(true, false);
+        static const TlsHello hello_without_ech = create_chromium_profile(false, false);
+        return enable_ech ? hello_with_ech : hello_without_ech;
+      }
+      case BrowserProfile::Firefox148: {
+        static const TlsHello hello_with_ech = create_firefox_148_profile(true);
+        static const TlsHello hello_without_ech = create_firefox_148_profile(false);
+        return enable_ech ? hello_with_ech : hello_without_ech;
+      }
+      case BrowserProfile::Safari26_3:
+      case BrowserProfile::IOS14:
+      case BrowserProfile::Android11_OkHttp: {
+        static const TlsHello hello = create_fixed_profile_without_chromium_only_features();
+        return hello;
+      }
+      default:
+        UNREACHABLE();
+        return get_default(enable_ech);
+    }
+#endif
+  }
+
   Span<Op> get_ops() const {
     return ops_;
   }
@@ -339,6 +584,7 @@ class TlsHelloContext {
       , ech_payload_length_(sample_ech_payload_length(rng))
       , padding_entropy_length_(sample_padding_entropy_length(enable_ech, rng))
       , pq_group_id_(detail::kCurrentSingleLanePqGroupId)
+      , alps_extension_type_(detail::kCurrentSingleLaneAlpsType)
       , ech_enc_key_length_(kEchEncapsulatedKeyLength) {
     init_grease(grease_, rng);
   }
@@ -350,6 +596,7 @@ class TlsHelloContext {
       , padding_entropy_length_(0)
       , padding_extension_payload_length_(options.padding_extension_payload_length)
       , pq_group_id_(options.pq_group_id)
+      , alps_extension_type_(options.alps_extension_type)
       , ech_enc_key_length_(options.ech_enc_key_length) {
     init_grease(grease_, rng);
   }
@@ -376,12 +623,24 @@ class TlsHelloContext {
     return pq_group_id_;
   }
 
+  void set_pq_group_id(uint16 pq_group_id) {
+    pq_group_id_ = pq_group_id;
+  }
+
   uint16 get_pq_key_share_length() const {
     return kPqHybridKeyExchangeLength;
   }
 
   uint16 get_ech_enc_key_length() const {
     return ech_enc_key_length_;
+  }
+
+  uint16 get_alps_extension_type() const {
+    return alps_extension_type_;
+  }
+
+  void set_alps_extension_type(uint16 alps_extension_type) {
+    alps_extension_type_ = alps_extension_type;
   }
 
   size_t get_padding_extension_payload_length() const {
@@ -399,6 +658,7 @@ class TlsHelloContext {
   int padding_entropy_length_{0};
   size_t padding_extension_payload_length_{0};
   uint16 pq_group_id_{0};
+  uint16 alps_extension_type_{0};
   uint16 ech_enc_key_length_{0};
 };
 
@@ -482,6 +742,10 @@ class TlsHelloCalcLength {
       case Type::PqKeyShare:
         CHECK(context);
         size_ += 4;
+        break;
+      case Type::AlpsType:
+        CHECK(context);
+        size_ += 2;
         break;
       case Type::Padding: {
         CHECK(context);
@@ -660,6 +924,14 @@ class TlsHelloStore {
         dest_.remove_prefix(4);
         break;
       }
+      case Type::AlpsType: {
+        CHECK(context);
+        auto alps_type = context->get_alps_extension_type();
+        dest_[0] = static_cast<char>((alps_type >> 8) & 0xFF);
+        dest_[1] = static_cast<char>(alps_type & 0xFF);
+        dest_.remove_prefix(2);
+        break;
+      }
       case Type::Padding: {
         CHECK(context);
         auto padding_extension_payload_length = context->get_padding_extension_payload_length();
@@ -801,6 +1073,70 @@ string build_default_tls_client_hello(string domain, Slice secret, int32 unix_ti
   }
   storer.finish(secret, unix_time);
   return data;
+}
+
+string build_runtime_tls_client_hello(string domain, Slice secret, int32 unix_time,
+                                      const NetworkRouteHints &route_hints, IRng &rng) {
+  CHECK(!domain.empty());
+  CHECK(secret.size() == 16);
+
+#if TD_DARWIN
+  return build_default_tls_client_hello(std::move(domain), secret, unix_time, route_hints, rng);
+#else
+  auto platform = default_runtime_platform_hints();
+  auto profile = pick_runtime_profile(domain, unix_time, platform);
+  auto ech_mode = get_runtime_ech_decision(domain, unix_time, route_hints).ech_mode;
+  return build_tls_client_hello_for_profile(std::move(domain), secret, unix_time, profile, ech_mode, rng);
+#endif
+}
+
+string build_runtime_tls_client_hello(string domain, Slice secret, int32 unix_time,
+                                      const NetworkRouteHints &route_hints) {
+  SecureRng rng;
+  return build_runtime_tls_client_hello(std::move(domain), secret, unix_time, route_hints, rng);
+}
+
+string build_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
+                                          EchMode ech_mode, IRng &rng) {
+  CHECK(!domain.empty());
+  CHECK(secret.size() == 16);
+
+  auto &spec = profile_spec(profile);
+  auto enable_ech = ech_mode == EchMode::Rfc9180Outer && spec.allows_ech;
+  auto &hello = TlsHello::get_profile(profile, enable_ech);
+  TlsHelloContext context(hello.get_grease_size(), std::move(domain), enable_ech, rng);
+  context.set_alps_extension_type(spec.alps_type);
+  if (spec.has_pq) {
+    context.set_pq_group_id(spec.pq_group_id);
+  }
+
+  auto padding_policy = spec.allows_padding ? PaddingPolicy{} : no_padding_policy();
+  TlsHelloCalcLength unpadded_calc_length;
+  for (auto &op : hello.get_ops()) {
+    unpadded_calc_length.do_op(op, &context);
+  }
+  auto unpadded_length = unpadded_calc_length.finish().move_as_ok();
+  context.set_padding_extension_payload_length(resolve_padding_extension_payload_len(
+      padding_policy, unpadded_length, static_cast<size_t>(context.get_padding_entropy_length())));
+
+  TlsHelloCalcLength calc_length;
+  for (auto &op : hello.get_ops()) {
+    calc_length.do_op(op, &context);
+  }
+  auto length = calc_length.finish().move_as_ok();
+  string data(length, '\0');
+  TlsHelloStore storer(data, rng);
+  for (auto &op : hello.get_ops()) {
+    storer.do_op(op, &context);
+  }
+  storer.finish(secret, unix_time);
+  return data;
+}
+
+string build_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
+                                          EchMode ech_mode) {
+  SecureRng rng;
+  return build_tls_client_hello_for_profile(std::move(domain), secret, unix_time, profile, ech_mode, rng);
 }
 
 string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,

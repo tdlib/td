@@ -39,6 +39,8 @@ class TlsInit final : public TransparentProxy {
  private:
   double server_time_difference_{0};
   stealth::NetworkRouteHints route_hints_;
+  int32 hello_unix_time_{0};
+  bool hello_uses_ech_{false};
   enum class State {
     SendHello,
     WaitHelloResponse,

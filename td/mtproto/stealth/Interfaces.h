@@ -8,6 +8,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
+#include "td/utils/StringBuilder.h"
 
 #include <cctype>
 
@@ -30,6 +31,30 @@ class IClock {
 
   virtual double now() const = 0;
 };
+
+enum class TrafficHint : uint8 {
+  Unknown = 0,
+  Interactive = 1,
+  Keepalive = 2,
+  BulkData = 3,
+  AuthHandshake = 4,
+};
+
+inline StringBuilder &operator<<(StringBuilder &sb, TrafficHint hint) {
+  switch (hint) {
+    case TrafficHint::Unknown:
+      return sb << "Unknown";
+    case TrafficHint::Interactive:
+      return sb << "Interactive";
+    case TrafficHint::Keepalive:
+      return sb << "Keepalive";
+    case TrafficHint::BulkData:
+      return sb << "BulkData";
+    case TrafficHint::AuthHandshake:
+      return sb << "AuthHandshake";
+  }
+  return sb << static_cast<int>(hint);
+}
 
 struct PaddingPolicy final {
   bool enabled{true};
@@ -91,6 +116,9 @@ inline NetworkRouteHints route_hints_from_country_code(Slice country_code) {
   hints.is_ru = (upper_first == 'R' && upper_second == 'U');
   return hints;
 }
+
+unique_ptr<IRng> make_connection_rng();
+unique_ptr<IClock> make_clock();
 
 }  // namespace stealth
 }  // namespace mtproto

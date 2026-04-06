@@ -21,6 +21,7 @@ constexpr uint16 kTlsRsaWith3DesEdeCbcSha = 0x000A;
 constexpr uint16 kTlsEcdheEcdsaWith3DesEdeCbcSha = 0xC008;
 constexpr uint16 kTlsEcdheRsaWith3DesEdeCbcSha = 0xC012;
 constexpr uint16 kX25519Group = 0x001D;
+// Reserved for future Chrome120_PQ fixture coverage. Current runtime Chrome120 stays non-PQ.
 constexpr uint16 kPqHybridDraftGroup = 0x6399;
 constexpr uint16 kPqHybridGroup = 0x11EC;
 constexpr uint16 kX25519KeyShareLength = 32;

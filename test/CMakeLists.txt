@@ -25,19 +25,35 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_country_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_policy_stress.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_fail_closed_equivalence.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_padding_policy.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_builder_route_seam.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_extension_order_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_key_share_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_pq_group_sync_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_single_lane_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_context_entropy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_builder_seam.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_ech_enc_key_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_differential.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_circuit_breaker.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_profile_runtime.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_route_stress.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_stress.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profiles.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_registry.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_wire.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_wakeup_seam.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_raw_connection_flush_order.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_fail_closed.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_hint_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_seam.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_record_sizing.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/data.h

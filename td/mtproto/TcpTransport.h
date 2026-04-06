@@ -148,6 +148,14 @@ class ObfuscatedTransport final : public IStreamTransport {
     return secret_.use_random_padding();
   }
 
+  void set_max_tls_record_size(int32 size) final {
+    max_tls_packet_length_ = std::max<int32>(256, std::min<int32>(size, 16384));
+  }
+
+  bool supports_tls_record_sizing() const final {
+    return secret_.emulate_tls();
+  }
+
  private:
   int16 dc_id_;
   bool is_first_tls_packet_{true};
@@ -160,6 +168,7 @@ class ObfuscatedTransport final : public IStreamTransport {
   ChainBufferReader *input_ = nullptr;
 
   static constexpr int32 MAX_TLS_PACKET_LENGTH = 2878;
+  int32 max_tls_packet_length_{MAX_TLS_PACKET_LENGTH};
 
   // TODO: use ByteFlow?
   // One problem is that BufferedFd owns output_buffer_

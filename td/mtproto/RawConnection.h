@@ -54,6 +54,7 @@ class RawConnection {
 
   virtual PollableFdInfo &get_poll_info() = 0;
   virtual StatsCallback *stats_callback() = 0;
+  virtual double shaping_wakeup_at() const = 0;
 
   class Callback {
    public:

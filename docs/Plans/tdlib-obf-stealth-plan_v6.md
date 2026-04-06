@@ -299,12 +299,23 @@ PR-A  (Test Foundation: wire/parser tests + narrow seams)
 
 # 4. PR-A: Test Infrastructure
 
+## 4.0 Реальный статус на текущей ветке (2026-04-06)
+
+PR-A по факту **реализован существенно больше, чем исходный минимальный план**. В репозитории уже присутствуют production seams и parser/test helpers, на которые опираются PR-1/PR-2 runtime и regression tests:
+
+- `td/mtproto/stealth/Interfaces.h` уже содержит `IRng`, `IClock`, `PaddingPolicy`, `NetworkRouteHints` и factory helpers `make_connection_rng()` / `make_clock()`.
+- `td/mtproto/stealth/TlsHelloBuilder.h/.cpp` уже являются production serializer/facade, а `td/mtproto/TlsInit.cpp` использует этот путь как orchestration layer для ClientHello runtime generation.
+- `test/stealth/MockRng.h`, `test/stealth/MockClock.h`, `test/stealth/TlsHelloParsers.h`, `test/stealth/FingerprintFixtures.h` уже существуют и используются в `run_all_tests`.
+- `test/CMakeLists.txt` уже подключает большой stealth test surface в `run_all_tests`; отдельного `tdmtproto_tests` target в репозитории по-прежнему нет.
+
+Следствие: PR-A надо считать **завершённым как foundation layer**, а не как только «черновой план». Дальнейшие правки в этой зоне должны трактоваться как regression/infrastructure maintenance, а не как незакрытая базовая работа.
+
 **Цель:** построить детерминированный и capture-driven test foundation для ClientHello/profile work, не вводя фиктивных интерфейсов раньше времени.  
 **Реальные поправки по итогам аудита кода:**
 
 1. В репозитории **нет** target `tdmtproto_tests`. Сейчас mtproto-код собирается в `tdmtproto`, а интеграция тестов идёт через `test/CMakeLists.txt` и target `run_all_tests`.
 2. В репозитории **нет** `td/mtproto/CMakeLists.txt`. Новые production sources нужно подключать в корневом `CMakeLists.txt`, а тестовые файлы — в `test/CMakeLists.txt`.
-3. Текущий `IStreamTransport` не содержит `pre_flush_write`, `get_shaping_wakeup`, `set_traffic_hint`, `set_max_tls_record_size`. Следовательно, `RecordingTransport` с такими override'ами в PR-A — ложная предпосылка. Этот fake переносится в PR-3, когда интерфейс реально расширен.
+3. `RecordingTransport` и transport-seam fakes не относятся к исходному scope PR-A; это корректно считать PR-3 work, потому что они опираются на уже расширенный `IStreamTransport`.
 4. `TlsHelloBuilder` уже существует в `td/mtproto/stealth/TlsHelloBuilder.cpp`, а `td/mtproto/TlsInit.cpp` сейчас играет роль orchestration wrapper. Значит PR-A больше не должен планировать «вынести builder из TlsInit.cpp»; он должен использовать уже существующий seam, расширять тесты вокруг него и не дублировать serializer в test helper'ах.
 
 **Gate:** `cmake --build . --target run_all_tests && ctest --output-on-failure -R run_all_tests`  
@@ -377,6 +388,18 @@ test/stealth/
 - live network smoke как обязательный gate: pcap/python инструменты остаются отдельным этапом в разделе 13;
 - отдельная директория `td/mtproto/test/` и отдельный mtproto-only test target: текущая структура репозитория этого не имеет, и план не должен выдумывать несуществующий build path.
 
+## 4.6 Что реально уже закрыто тестами
+
+На текущей ветке PR-A инфраструктура уже подтверждена конкретными тестами:
+
+- `test/stealth/test_tls_hello_wire.cpp`: structural parser checks, declared-vs-actual length checks, anti-fixed-length regressions.
+- `test/stealth/test_tls_hello_builder_seam.cpp`: deterministic seam with injected RNG, same-seed stability, anti-static-output regression.
+- `test/stealth/test_tls_context_entropy.cpp`: explicit serializer option seam для padding/ECH/PQ/ALPS invariants.
+- `test/stealth/test_tls_hello_parser_security.cpp` и `test/stealth/test_tls_hello_parser_fuzz.cpp`: parser hardening against malformed wire images.
+- `test/stealth/test_tls_hello_differential.cpp`, `test/stealth/test_tls_profiles.cpp`: differential/profile-policy checks against known structural families.
+
+Итог: PR-A больше не является «планируемым» этапом; это уже рабочая test foundation, на которую опираются runtime changes следующих PR.
+
 ## 4.5 Эталонные примитивы для unit-тестов
 
 ```cpp
@@ -444,6 +467,19 @@ size_t extract_session_id_length(Slice client_hello);
 
 **Зависит от:** PR-A (тестовая инфра)  
 **Исправляет:** S1 (static padding), S2 (ECH singleton), S8 (ECH declared-vs-actual key length mismatch), структурную часть S3 (убрать hardcoded dual-use literals из serializer; profile registry как источник значения остаётся в PR-2)
+
+## 5.0 Реальный статус на текущей ветке (2026-04-06)
+
+PR-1 по сути **реализован в production и закреплён regression-тестами**. На текущем `HEAD` уже есть:
+
+- `TlsHelloContext` с per-connection sampled state вместо process-wide singleton semantics.
+- context-driven ECH payload length sampling (`144/176/208/240`) через injected `IRng`.
+- fail-closed route-aware `ECH on/off` в default builder path: unknown/RU route disables ECH, known non-RU keeps it enabled.
+- RFC7685-style padding decision через `PaddingPolicy::compute_padding_content_len()` и `resolve_padding_extension_payload_len()`.
+- Chrome-like anchored extension shuffle вместо bounded-window permutation.
+- explicit serializer seam `detail::TlsHelloBuildOptions` / `build_default_tls_client_hello_with_options()` для direct wire regression tests.
+
+Остаток PR-1 сейчас не в том, чтобы «дописать механику», а в том, чтобы не допустить регрессию при дальнейших profile/runtime refactor'ах.
 
 **Актуализация на текущей ветке (2026-04-05):** значимая часть механики PR-1 уже приземлена в `td/mtproto/stealth/TlsHelloBuilder.cpp`: per-connection sampling длины ECH payload, route-aware `ECH on/off`, RFC7685-style padding decision и anchored extension shuffle. Поэтому red-case snippets ниже нужно читать как **исторические регрессии, которые нельзя вернуть**, а не как описание текущего `HEAD`. Оставшийся scope PR-1: зафиксировать эти инварианты тестами и не дать profile-registry refactor сломать уже исправленные свойства.
 
@@ -990,12 +1026,40 @@ TEST(ContextEntropy, LightweightProfileAddsPaddingInsideBoringWindow) {
 
 Профильно-зависимые тесты (`BrowserProfile`, `0xFE0D`, `0x4469/0x44CD` по fixture, RU/non-RU policy, Safari/Firefox-specific assertions) должны оставаться в PR-2. PR-1 тестирует только serializer/context invariants и red-regressions текущего шаблона.
 
+## 5.5 Что реально уже закрыто кодом и тестами
+
+На текущей ветке PR-1 фактически закрыт следующими файлами:
+
+- `td/mtproto/stealth/TlsHelloBuilder.cpp`: `sample_ech_payload_length()`, `sample_padding_entropy_length()`, `should_enable_ech()`, `TlsHelloContext`, context-driven `Type::EchPayload` / `Type::Padding` storage path.
+- `test/stealth/test_tls_hello_wire.cpp`: structural wire invariants и anti-fixed-length regressions.
+- `test/stealth/test_tls_route_policy.cpp` и `test/stealth/test_tls_route_policy_stress.cpp`: route-aware ECH fail-closed behavior и anti-collapse distribution checks.
+- `test/stealth/test_tls_builder_route_seam.cpp`: explicit options cannot force ECH on fail-closed routes.
+- `test/stealth/test_tls_context_entropy.cpp`: explicit PQ/ECH/padding serializer invariants.
+- `test/stealth/test_tls_extension_order_policy.cpp`: anchored shuffle regression checks and non-deterministic RenegotiationInfo placement.
+
+Что всё ещё не закрыто на уровне PR-1:
+
+- default single-lane builder path больше не является финальной browser-mimicry целью; verified multi-profile runtime теперь живёт в PR-2.
+- padding entropy fallback для ECH-disabled lane остаётся временной anti-collapse мерой, а не fixture-proven browser baseline.
+
 ---
 
 # 6. PR-2: Browser Profile Registry
 
 **Зависит от:** PR-1  
 **Исправляет:** S3, S4, S7, S9, S10, S11, S20, S21
+
+## 6.0 Реальный статус на текущей ветке (2026-04-06)
+
+PR-2 **реализован в основном production scope**, но не полностью завершён как release-grade capture program. В коде уже есть:
+
+- `BrowserProfile`, `ProfileSpec`, `ProfileFixtureMetadata`, `RuntimePlatformHints`, `EchMode`, `ExtensionOrderPolicy`.
+- snapshot-backed profile registry в `TlsHelloProfileRegistry.cpp` с verified Chromium lanes (`Chrome133`, `Chrome131`, `Chrome120`) и verified `Firefox148`, plus advisory `Safari26_3` / `IOS14` / `Android11_OkHttp`.
+- sticky runtime profile selection with platform filtering (`allowed_profiles_for_platform`, `pick_profile_sticky`, `pick_runtime_profile`).
+- RU/unknown default-off ECH route policy plus runtime circuit-breaker state and counters.
+- runtime wiring in `TlsInit.cpp`: actual production ClientHello path now uses selected runtime profile plus route-aware ECH decision.
+
+Ограничение остаётся тем же, что и в предыдущих аудиторских заметках: Safari/mobile profiles уже присутствуют в registry, но пока сохраняют advisory status из-за отсутствия independent network-derived fixture closure в самом repo state.
 
 ## 6.1 Аудит PR-2 (что было не так)
 
@@ -1535,6 +1599,30 @@ PR-2 считается готовым только если:
 8. **В fixture базе зафиксировано**, что `BrowserProfile::Chrome120` = non-PQ (без PQ key share); `Chrome120_PQ` с `0x6399` остаётся reserved/commented в ProfileFixtures.h.
 9. **curl_cffi capture workflow** `docs/Samples/scrapy-impersonate/capture_chrome131.py` pinned и встроен в provenance-checked fixture refresh process: capture без version/provenance metadata не может менять release registry; имя файла не трактуется как ограничение на один `chrome131`-lane, потому что сам инструмент уже parameterized через `--profile`.
 
+### 6.10.1 Текущий статус rollout (2026-04-06)
+
+- Дополнительный capture-сбор для `Safari26_3`, `IOS14` и `Android11_OkHttp` **идёт параллельно**; raw dumps и provenance notes собираются отдельно и ещё не считаются завершённой частью PR-2 release verdict.
+- На текущей ветке PR-2 уже достаточно продвинут, чтобы **начинать PR-3**: registry contracts, sticky profile selection, route-aware `EchMode`, verified Chromium lanes и capture-backed `Firefox148` lane уже существуют как production-facing зависимости для transport seam work.
+- Ограничение: старт PR-3 **не означает**, что PR-2 полностью закрыт по Safari/mobile. Эти lane'ы остаются advisory до прихода parser-grade network-derived fixtures.
+- Следствие для sequencing: PR-3 можно вести дальше по activation gate, `IStreamTransport` seam, wakeup plumbing и `StealthConfig::validate()`, но нельзя объявлять весь stealth rollout release-ready, пока capture-сбор для advisory lane'ов не завершён.
+- Отдельно: capture-driven defaults для PR-6/PR-8 не должны «выдумываться» из отсутствующих Safari/mobile baseline'ов; до их прихода используем только уже подтверждённые profile families и fail-closed policy.
+
+## 6.10.2 Что реально уже закрыто кодом и тестами
+
+На текущей ветке production и tests уже подтверждают следующие части PR-2:
+
+- `test/stealth/test_tls_profile_registry.cpp`: sticky selection, platform coherence, advisory vs verified fixture metadata, RU/unknown ECH disable, circuit-breaker route policy.
+- `test/stealth/test_tls_profile_wire.cpp`: profile-specific ALPS/PQ/ECH/padding behavior for Chromium, Firefox148 and fixed advisory profiles.
+- `test/stealth/test_tls_init_profile_runtime.cpp`: production `TlsInit` runtime path uses selected profile and respects route-aware ECH suppression.
+- `test/stealth/test_tls_init_circuit_breaker.cpp`: repeated ECH failures disable ECH for subsequent connections and counters/TTL re-enable path work.
+- `test/stealth/test_tls_extension_order_policy.cpp`: Chrome shuffle model is enforced for Chromium lanes.
+
+Что остаётся частичным в PR-2:
+
+- provenance-checked curl_cffi refresh workflow описан в плане, но в production registry state не существует как enforced loader/process.
+- Safari26_3, IOS14 и Android11_OkHttp остаются advisory fixture families; release verdict по ним ещё нельзя считать закрытым.
+- registry уже snapshot-backed, но не hot-reloadable: runtime params loader остаётся будущим PR-8 scope.
+
 ---
 
 # 7. PR-3: Transport Seam + Activation Gate + StealthConfig (аудит-фикс)
@@ -1542,7 +1630,20 @@ PR-2 считается готовым только если:
 **Зависит от:** PR-2  
 **Исправляет:** Activation Gate + минимальные transport-seams, без которых PR-4/5/6 будут некорректны в runtime
 
-## 7.0 Что исправлено по аудиту PR-3
+## 7.0 Реальный статус на текущей ветке (2026-04-06)
+
+PR-3 **реализован и уже включает часть decorator skeleton, который в первоначальном плане относился к PR-4**. На текущей ветке уже есть:
+
+- расширение `IStreamTransport` новыми virtual seams (`pre_flush_write`, `get_shaping_wakeup`, `set_traffic_hint`, `set_max_tls_record_size`, `supports_tls_record_sizing`);
+- activation gate inside existing `create_transport(TransportType)` with fail-closed config/decorator construction;
+- runtime TLS record cap in `tcp::ObfuscatedTransport` plus capability guard;
+- wakeup plumbing from `RawConnection::flush_write()` and `RawConnection::shaping_wakeup_at()` into `SessionConnection::flush()`;
+- validated `StealthConfig`, per-connection initial record-size sampling and test-only config factory override;
+- already-landed `ShaperRingBuffer` and `StealthTransportDecorator` skeleton with bounded queue, hard backpressure, consume-once hint semantics, runtime record-size propagation, and zero-delay stub scheduling.
+
+Это означает, что PR-3 в реальном коде уже перешёл границу «только seam + activation gate» и partially absorbed the safe skeleton from planned PR-4. При документировании дальнейших PR нужно считать этот skeleton уже существующей базой, а не будущей работой.
+
+## 7.1 Что исправлено по аудиту PR-3
 
 1. Нельзя менять сигнатуру `create_transport` на `(int16, ProxySecret)`: в реальном коде используется `create_transport(TransportType)` и это часть текущего wiring через `RawConnection`.
 2. Нельзя «упростить» `create_transport` до always-`ObfuscatedTransport`: это сломает ветки `Tcp`/`Http`.
@@ -1551,7 +1652,7 @@ PR-2 считается готовым только если:
 5. `pre_flush_write/get_shaping_wakeup` как prerequisite нельзя откладывать до PR-7: без этого delayed writes могут «зависать» до внешнего socket event.
 6. Конфиг PR-3 обязан иметь валидацию границ (ring/watermarks/IPT/DRS), иначе runtime override может превратиться в DoS на клиенте.
 
-## 7.1 IStreamTransport — минимальное расширение интерфейса
+## 7.2 IStreamTransport — минимальное расширение интерфейса
 
 ```cpp
 // td/mtproto/IStreamTransport.h — добавить:
@@ -1575,7 +1676,7 @@ class IStreamTransport {
 };
 ```
 
-## 7.2 ObfuscatedTransport — без изменения legacy-поведения по умолчанию
+## 7.3 ObfuscatedTransport — без изменения legacy-поведения по умолчанию
 
 ```cpp
 // td/mtproto/TcpTransport.h
@@ -1610,7 +1711,7 @@ class ObfuscatedTransport final : public IStreamTransport {
 
 Критично: PR-3 не должен менять дефолтную длину TLS record на фиксированный `1380` для всех соединений.
 
-## 7.3 Activation Gate — строго в существующем create_transport(TransportType)
+## 7.4 Activation Gate — строго в существующем create_transport(TransportType)
 
 ```cpp
 // td/mtproto/IStreamTransport.cpp
@@ -1643,7 +1744,7 @@ unique_ptr<IStreamTransport> create_transport(TransportType type) {
 
 Итог: «единственный activation if» остаётся, но только внутри `ObfuscatedTcp` ветки, без регрессии остальных transport type.
 
-## 7.4 PR-3 prerequisite wiring: RawConnection + SessionConnection wakeup merge
+## 7.5 PR-3 prerequisite wiring: RawConnection + SessionConnection wakeup merge
 
 Это нужно подтянуть из будущего PR-7 в PR-3 как prerequisite для PR-4/5/6.
 
@@ -1669,7 +1770,7 @@ double SessionConnection::flush(Callback *callback) {
 
 Без этого `get_shaping_wakeup()` остаётся «висячим API», а отложенные записи зависят от случайных внешних wakeup-событий.
 
-## 7.5 StealthConfig — policy-driven initial size + обязательная валидация
+## 7.6 StealthConfig — policy-driven initial size + обязательная валидация
 
 ```cpp
 // td/mtproto/stealth/StealthConfig.h
@@ -1702,7 +1803,7 @@ struct StealthConfig {
 
 Требование по маскировке: initial record size должен быть sampled per-connection из policy/capture-backed диапазона, а не фиксирован literal-значением.
 
-## 7.6 PR-3 TDD (обязательный минимум)
+## 7.7 PR-3 TDD (обязательный минимум)
 
 1. `create_transport(TransportType::Tcp|Http)` даёт те же типы транспорта, что и до PR-3.
 2. `ObfuscatedTcp + secret.emulate_tls()==false` не оборачивается в decorator.
@@ -1710,6 +1811,23 @@ struct StealthConfig {
 4. `RawConnection::flush_write()` вызывает `pre_flush_write()` перед `socket_fd_.flush_write()`.
 5. `SessionConnection::flush()` включает `raw_connection_->shaping_wakeup_at()` в `wakeup_at`.
 6. `StealthConfig::validate()` отклоняет невалидные watermarks/ring bounds/DRS-IPT ranges.
+
+## 7.8 Что реально уже закрыто кодом и тестами
+
+На текущей ветке PR-3 подтверждён следующими файлами:
+
+- `test/stealth/test_stream_transport_seam.cpp`: activation gate, legacy transport preservation, fail-closed invalid config path, no-op default seam methods.
+- `test/stealth/test_raw_connection_flush_order.cpp`: `pre_flush_write()` вызывается перед socket flush и делает queued bytes visible.
+- `test/stealth/test_session_wakeup_seam.cpp`: `SessionConnection::flush()` действительно включает `raw_connection_->shaping_wakeup_at()`.
+- `test/stealth/test_stealth_config.cpp` и `test/stealth/test_stealth_config_fail_closed.cpp`: validation bounds, fail-closed oversized ring, constructor dependency validation, per-connection initial record-size entropy.
+- `test/stealth/test_tls_record_sizing.cpp`: runtime TLS record-size setter works and clamps hostile extremes.
+- `test/stealth/test_decorator.cpp` и `test/stealth/test_decorator_hint_adversarial.cpp`: bounded queue contract, backpressure latching, wakeup monotonicity, consume-once hints, hint overwrite/bleed-through regression coverage, capability-safe record-size forwarding.
+
+Что остаётся вне PR-3 даже при наличии decorator skeleton:
+
+- реальный non-zero IPT sampler и keepalive/bulk bypass policy всё ещё не реализованы; `next_delay_us_stub()` возвращает `0` для всех hints.
+- capture-driven DRS phases, anti-repeat sizing model и flush-batch coalescing ещё не реализованы.
+- metadata-driven classifier wiring в `RawConnection::send_*` / `SessionConnection` остаётся будущим PR-7 scope.
 
 ---
 

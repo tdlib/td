@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/mtproto/stealth/Interfaces.h"
 #include "td/mtproto/TransportType.h"
 
 #include "td/utils/buffer.h"
@@ -32,9 +33,24 @@ class IStreamTransport {
   virtual size_t max_append_size() const = 0;
   virtual TransportType get_type() const = 0;
   virtual bool use_random_padding() const = 0;
+  virtual void pre_flush_write(double now) {
+  }
+  virtual double get_shaping_wakeup() const {
+    return 0.0;
+  }
+  virtual void set_traffic_hint(stealth::TrafficHint hint) {
+  }
+  virtual void set_max_tls_record_size(int32 size) {
+  }
+  virtual bool supports_tls_record_sizing() const {
+    return false;
+  }
 };
 
+using StreamTransportFactoryForTests = unique_ptr<IStreamTransport> (*)(TransportType type);
+
 unique_ptr<IStreamTransport> create_transport(TransportType type);
+StreamTransportFactoryForTests set_transport_factory_for_tests(StreamTransportFactoryForTests factory);
 
 }  // namespace mtproto
 }  // namespace td

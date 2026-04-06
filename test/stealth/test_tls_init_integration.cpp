@@ -6,6 +6,7 @@
 //
 #include "td/actor/actor.h"
 #include "td/mtproto/stealth/Interfaces.h"
+#include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 #include "td/utils/common.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/PollFlags.h"
@@ -28,6 +29,7 @@
 namespace {
 
 using td::mtproto::stealth::NetworkRouteHints;
+using td::mtproto::stealth::reset_runtime_ech_failure_state_for_tests;
 using td::mtproto::test::create_socket_pair;
 using td::mtproto::test::find_extension;
 using td::mtproto::test::parse_tls_client_hello;
@@ -55,6 +57,7 @@ td::string flush_client_hello(TlsInit &tls_init, td::SocketFd &peer_fd) {
 }
 
 TEST(TlsInitIntegration, KnownNonRuRouteSendsEchEnabledClientHello) {
+  reset_runtime_ech_failure_state_for_tests();
   auto socket_pair = create_socket_pair().move_as_ok();
 
   NetworkRouteHints route_hints;
@@ -73,6 +76,7 @@ TEST(TlsInitIntegration, KnownNonRuRouteSendsEchEnabledClientHello) {
 }
 
 TEST(TlsInitIntegration, RuRouteSendsEchDisabledClientHello) {
+  reset_runtime_ech_failure_state_for_tests();
   auto socket_pair = create_socket_pair().move_as_ok();
 
   NetworkRouteHints route_hints;
@@ -90,6 +94,7 @@ TEST(TlsInitIntegration, RuRouteSendsEchDisabledClientHello) {
 }
 
 TEST(TlsInitIntegration, UnknownRouteDefaultsToEchDisabledClientHello) {
+  reset_runtime_ech_failure_state_for_tests();
   auto socket_pair = create_socket_pair().move_as_ok();
 
   TlsInit tls_init(std::move(socket_pair.client), "www.google.com", "0123456789secret", td::make_unique<NoopCallback>(),

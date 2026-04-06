@@ -25,6 +25,7 @@
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"
+#include "td/utils/Time.h"
 
 #include <memory>
 #include <utility>
@@ -102,6 +103,10 @@ class RawConnectionDefault final : public RawConnection {
 
   StatsCallback *stats_callback() final {
     return stats_callback_.get();
+  }
+
+  double shaping_wakeup_at() const final {
+    return transport_->get_shaping_wakeup();
   }
 
   // NB: After first returned error, all subsequent calls will return error too.
@@ -249,6 +254,7 @@ class RawConnectionDefault final : public RawConnection {
   }
 
   Status flush_write() {
+    transport_->pre_flush_write(Time::now_cached());
     TRY_RESULT(size, socket_fd_.flush_write());
     if (size > 0 && stats_callback_) {
       stats_callback_->on_write(size);
@@ -329,6 +335,10 @@ class RawConnectionHttp final : public RawConnection {
 
   StatsCallback *stats_callback() final {
     return stats_callback_.get();
+  }
+
+  double shaping_wakeup_at() const final {
+    return transport_->get_shaping_wakeup();
   }
 
   // NB: After first returned error, all subsequent calls will return error too.
@@ -449,6 +459,7 @@ class RawConnectionHttp final : public RawConnection {
   }
 
   Status flush_write() {
+    transport_->pre_flush_write(Time::now_cached());
     for (auto &packet : to_send_) {
       TRY_STATUS(do_send(packet.as_slice()));
       if (packet.size() > 0 && stats_callback_) {

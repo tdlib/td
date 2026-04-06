@@ -18,6 +18,7 @@
 
 #include "td/mtproto/Ping.h"
 #include "td/mtproto/ProxySecret.h"
+#include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 #include "td/mtproto/TlsInit.h"
 
 #include "td/net/GetHostByNameActor.h"
@@ -739,6 +740,7 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
     } else if (transport_type.secret.emulate_tls()) {
       auto route_hints =
           mtproto::stealth::route_hints_from_country_code(G()->get_option_string("stealth_route_country_code"));
+      mtproto::stealth::set_runtime_ech_failure_store(G()->td_db()->get_config_pmc_shared());
       return ActorOwn<>(create_actor<mtproto::TlsInit>(
           PSLICE() << actor_name_prefix << "TlsInit", std::move(socket_fd), transport_type.secret.get_domain(),
           transport_type.secret.get_proxy_secret().str(), std::move(callback), std::move(parent),

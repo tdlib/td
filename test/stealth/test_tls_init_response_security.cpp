@@ -6,6 +6,7 @@
 //
 #include "td/actor/actor.h"
 #include "td/mtproto/stealth/Interfaces.h"
+#include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 #include "td/utils/common.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/PollFlags.h"
@@ -26,6 +27,7 @@
 namespace {
 
 using td::mtproto::stealth::NetworkRouteHints;
+using td::mtproto::stealth::reset_runtime_ech_failure_state_for_tests;
 using td::mtproto::test::create_socket_pair;
 using td::mtproto::test::make_tls_init_response;
 using td::mtproto::test::write_all;
@@ -44,6 +46,7 @@ constexpr td::Slice kFirstResponsePrefix("\x16\x03\x03");
 constexpr td::Slice kSecondResponsePrefix("\x14\x03\x03\x00\x01\x01\x17\x03\x03");
 
 TlsInit create_tls_init(td::SocketFd socket_fd) {
+  reset_runtime_ech_failure_state_for_tests();
   NetworkRouteHints route_hints;
   route_hints.is_known = true;
   route_hints.is_ru = false;

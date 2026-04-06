@@ -1146,6 +1146,7 @@ double SessionConnection::flush(SessionConnection::Callback *callback) {
   relax_timeout_at(&wakeup_at, last_pong_at_ + ping_disconnect_delay() + 0.002);
   relax_timeout_at(&wakeup_at, last_read_at_ + read_disconnect_delay() + 0.002);
   relax_timeout_at(&wakeup_at, flush_packet_at_);
+  relax_timeout_at(&wakeup_at, raw_connection_->shaping_wakeup_at());
 
   LOG(DEBUG) << "Last pong was " << get_elapsed_time(last_pong_at_) << '/' << get_elapsed_time(real_last_pong_at_)
              << ", last read was " << get_elapsed_time(last_read_at_) << '/' << get_elapsed_time(real_last_read_at_)

@@ -171,12 +171,12 @@ void ObfuscatedTransport::do_write_main(BufferWriter &&message) {
 }
 
 void ObfuscatedTransport::do_write_tls(BufferWriter &&message) {
-  CHECK(header_.size() <= MAX_TLS_PACKET_LENGTH);
-  if (message.size() + header_.size() > MAX_TLS_PACKET_LENGTH) {
+  CHECK(header_.size() <= static_cast<size_t>(max_tls_packet_length_));
+  if (message.size() + header_.size() > static_cast<size_t>(max_tls_packet_length_)) {
     auto buffer_slice = message.as_buffer_slice();
     auto slice = buffer_slice.as_slice();
     while (!slice.empty()) {
-      auto buf = buffer_slice.from_slice(slice.substr(0, MAX_TLS_PACKET_LENGTH - header_.size()));
+      auto buf = buffer_slice.from_slice(slice.substr(0, static_cast<size_t>(max_tls_packet_length_) - header_.size()));
       slice.remove_prefix(buf.size());
       BufferBuilder builder;
       builder.append(std::move(buf));
@@ -196,7 +196,7 @@ void ObfuscatedTransport::do_write_tls(BufferBuilder &&builder) {
   }
 
   size_t size = builder.size();
-  CHECK(size <= MAX_TLS_PACKET_LENGTH);
+  CHECK(size <= static_cast<size_t>(max_tls_packet_length_));
 
   char buf[] = "\x17\x03\x03\x00\x00";
   buf[3] = static_cast<char>((size >> 8) & 0xff);

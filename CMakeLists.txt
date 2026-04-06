@@ -28,6 +28,7 @@ prevent_in_source_build()
 option(TD_INSTALL_STATIC_LIBRARIES "Enable installation of static libraries." ON)
 option(TD_INSTALL_SHARED_LIBRARIES "Enable installation of shared libraries." ON)
 option(TD_ENABLE_BENCHMARKS "Use \"ON\" to build benchmark targets." ON)
+option(TDLIB_STEALTH_SHAPING "Use \"ON\" to enable stealth transport shaping seams." OFF)
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" or \"CX\" to enable generation of C++/CLI or C++/CX TDLib API bindings respectively.")
 if (NOT CMAKE_CROSSCOMPILING)
@@ -36,6 +37,12 @@ endif()
 option(TD_E2E_ONLY "Use \"ON\" to build and install tde2e instead of TDLib.")
 
 include(CTest)
+
+if (TDLIB_STEALTH_SHAPING)
+  add_definitions(-DTDLIB_STEALTH_SHAPING=1)
+else()
+  add_definitions(-DTDLIB_STEALTH_SHAPING=0)
+endif()
 
 option(TD_ENABLE_LTO "Use \"ON\" to enable Link Time Optimization.")
 
@@ -299,6 +306,10 @@ set(TD_MTPROTO_SOURCE
   td/mtproto/SessionConnection.cpp
   td/mtproto/TcpTransport.cpp
   td/mtproto/TlsInit.cpp
+  td/mtproto/stealth/StealthConfig.cpp
+  td/mtproto/stealth/ShaperRingBuffer.cpp
+  td/mtproto/stealth/StealthTransportDecorator.cpp
+  td/mtproto/stealth/TlsHelloProfileRegistry.cpp
   td/mtproto/stealth/TlsHelloBuilder.cpp
   td/mtproto/TlsReaderByteFlow.cpp
   td/mtproto/Transport.cpp
@@ -330,7 +341,11 @@ set(TD_MTPROTO_SOURCE
   td/mtproto/TcpTransport.h
   td/mtproto/TlsInit.h
   td/mtproto/stealth/Interfaces.h
+  td/mtproto/stealth/ShaperRingBuffer.h
+  td/mtproto/stealth/StealthConfig.h
+  td/mtproto/stealth/StealthTransportDecorator.h
   td/mtproto/stealth/TlsHelloBuilder.h
+  td/mtproto/stealth/TlsHelloProfileRegistry.h
   td/mtproto/TlsReaderByteFlow.h
   td/mtproto/Transport.h
   td/mtproto/TransportType.h
