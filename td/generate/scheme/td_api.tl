@@ -12022,7 +12022,7 @@ getThemeParametersJsonString theme:themeParameters = Text;
 //@option The new option
 addPollOption chat_id:int53 message_id:int53 option:inputPollOption = Ok;
 
-//@description Adds an option to a poll
+//@description Deletes an option from a poll
 //@chat_id Identifier of the chat to which the poll belongs
 //@message_id Identifier of the message containing the poll
 //@option_id Unique identifier of the option. Use pollOptionProperties.can_be_deleted to check whether the option can be deleted by the user
