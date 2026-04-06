@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
+if(CMAKE_GENERATOR MATCHES "NMake Makefiles|Ninja")
+  unset(CMAKE_GENERATOR_PLATFORM CACHE)
+  unset(CMAKE_GENERATOR_PLATFORM)
+endif()
+
 project(TDLib VERSION 1.8.63 LANGUAGES CXX C)
 
 if (NOT DEFINED CMAKE_MODULE_PATH)
@@ -297,6 +302,11 @@ set(TD_MTPROTO_SOURCE
   td/mtproto/RSA.cpp
   td/mtproto/SessionConnection.cpp
   td/mtproto/TcpTransport.cpp
+  td/mtproto/BrowserProfile.cpp
+  td/mtproto/BrowserProfileSelector.cpp
+  td/mtproto/ClientHelloExecutor.cpp
+  td/mtproto/ClientHelloFactory.cpp
+  td/mtproto/ClientHelloOpMapper.cpp
   td/mtproto/TlsInit.cpp
   td/mtproto/TlsReaderByteFlow.cpp
   td/mtproto/Transport.cpp
@@ -304,6 +314,12 @@ set(TD_MTPROTO_SOURCE
 
   td/mtproto/AuthData.h
   td/mtproto/AuthKey.h
+  td/mtproto/BrowserProfile.h
+  td/mtproto/BrowserProfileSelector.h
+  td/mtproto/ClientHelloExecutor.h
+  td/mtproto/ClientHelloFactory.h
+  td/mtproto/ClientHelloOp.h
+  td/mtproto/ClientHelloOpMapper.h
   td/mtproto/ConnectionManager.h
   td/mtproto/CryptoStorer.h
   td/mtproto/DhCallback.h

@@ -49,6 +49,14 @@ auto overloaded(F... f) {
 
 namespace td_api = td::td_api;
 
+namespace {
+
+constexpr const char *MT_PROTO_PROXY_HOST = "";
+constexpr std::int32_t MT_PROTO_PROXY_PORT = "";
+constexpr const char *MT_PROTO_PROXY_SECRET = "";
+
+}  // namespace
+
 class TdExample {
  public:
   TdExample() {
@@ -145,6 +153,7 @@ class TdExample {
   std::map<std::int64_t, td_api::object_ptr<td_api::user>> users_;
 
   std::map<std::int64_t, std::string> chat_title_;
+  bool is_proxy_added_{false};
 
   void restart() {
     client_manager_.reset();
@@ -255,6 +264,15 @@ class TdExample {
                                 std::cout << "Terminated" << std::endl;
                               },
                               [this](td_api::authorizationStateWaitPhoneNumber &) {
+                                if (!is_proxy_added_) {
+                                  is_proxy_added_ = true;
+                                  auto proxy = td_api::make_object<td_api::proxy>(
+                                      MT_PROTO_PROXY_HOST, MT_PROTO_PROXY_PORT,
+                                      td_api::make_object<td_api::proxyTypeMtproto>(MT_PROTO_PROXY_SECRET));
+                                  send_query(td_api::make_object<td_api::addProxy>(std::move(proxy), true), [](Object object) {
+                                    std::cout << "Proxy result: " << to_string(object) << std::endl;
+                                  });
+                                }
                                 std::cout << "Enter phone number: " << std::flush;
                                 std::string phone_number;
                                 std::cin >> phone_number;
