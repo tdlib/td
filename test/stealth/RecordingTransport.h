@@ -68,6 +68,15 @@ class RecordingTransport final : public IStreamTransport {
     return use_random_padding_result;
   }
 
+  void pre_flush_write(double now) final {
+    pre_flush_write_calls++;
+    last_pre_flush_now = now;
+  }
+
+  double get_shaping_wakeup() const final {
+    return shaping_wakeup_result;
+  }
+
   void set_traffic_hint(stealth::TrafficHint hint) final {
     last_hint = hint;
   }
@@ -85,6 +94,7 @@ class RecordingTransport final : public IStreamTransport {
   bool can_write_result{true};
   bool use_random_padding_result{false};
   bool supports_tls_record_sizing_result{true};
+  double shaping_wakeup_result{0.0};
   size_t max_prepend_size_result{17};
   size_t max_append_size_result{9};
   uint32 last_quick_ack{0};
@@ -95,6 +105,8 @@ class RecordingTransport final : public IStreamTransport {
   int read_next_calls{0};
   int init_calls{0};
   int write_calls{0};
+  int pre_flush_write_calls{0};
+  double last_pre_flush_now{0.0};
   stealth::TrafficHint last_hint{stealth::TrafficHint::Unknown};
   std::vector<stealth::TrafficHint> queued_hints;
   std::vector<bool> written_quick_acks;

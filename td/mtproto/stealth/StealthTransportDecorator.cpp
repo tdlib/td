@@ -10,6 +10,17 @@ namespace td {
 namespace mtproto {
 namespace stealth {
 
+namespace {
+
+constexpr int32 kMinTlsRecordSize = 256;
+constexpr int32 kMaxTlsRecordSize = 16384;
+
+int32 clamp_tls_record_size(int32 size) {
+  return std::max(kMinTlsRecordSize, std::min(size, kMaxTlsRecordSize));
+}
+
+}  // namespace
+
 Result<unique_ptr<StealthTransportDecorator>> StealthTransportDecorator::create(unique_ptr<IStreamTransport> inner,
                                                                                 StealthConfig config,
                                                                                 unique_ptr<IRng> rng,
@@ -115,16 +126,25 @@ void StealthTransportDecorator::pre_flush_write(double now) {
     return true;
   });
 
+  inner_->pre_flush_write(now);
+
   if (backpressure_latched_ && ring_.size() <= low_watermark_) {
     backpressure_latched_ = false;
   }
 }
 
 double StealthTransportDecorator::get_shaping_wakeup() const {
-  if (ring_.empty()) {
-    return 0.0;
+  auto has_ring_wakeup = !ring_.empty();
+  auto ring_wakeup = has_ring_wakeup ? ring_.earliest_deadline() : 0.0;
+  auto inner_wakeup = inner_->get_shaping_wakeup();
+
+  if (!has_ring_wakeup) {
+    return inner_wakeup;
   }
-  return ring_.earliest_deadline();
+  if (inner_wakeup == 0.0) {
+    return ring_wakeup;
+  }
+  return std::min(ring_wakeup, inner_wakeup);
 }
 
 void StealthTransportDecorator::set_traffic_hint(TrafficHint hint) {
@@ -132,9 +152,9 @@ void StealthTransportDecorator::set_traffic_hint(TrafficHint hint) {
 }
 
 void StealthTransportDecorator::set_max_tls_record_size(int32 size) {
-  current_record_size_ = size;
+  current_record_size_ = clamp_tls_record_size(size);
   if (inner_->supports_tls_record_sizing()) {
-    inner_->set_max_tls_record_size(size);
+    inner_->set_max_tls_record_size(current_record_size_);
   }
 }
 

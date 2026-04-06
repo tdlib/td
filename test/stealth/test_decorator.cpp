@@ -253,6 +253,38 @@ TEST(DecoratorWakeup, DeadlineProgressionIsMonotonicAcrossPartialDrains) {
   ASSERT_EQ(0.0, fixture.decorator->get_shaping_wakeup());
 }
 
+TEST(DecoratorContract, PreFlushDelegatesToInnerTransport) {
+  auto fixture = make_test_decorator();
+
+  fixture.decorator->pre_flush_write(1234.5);
+
+  ASSERT_EQ(1, fixture.inner->pre_flush_write_calls);
+  ASSERT_EQ(1234.5, fixture.inner->last_pre_flush_now);
+}
+
+TEST(DecoratorWakeup, EmptyQueueStillPropagatesInnerWakeup) {
+  auto fixture = make_test_decorator();
+  fixture.inner->shaping_wakeup_result = 77.25;
+
+  ASSERT_EQ(77.25, fixture.decorator->get_shaping_wakeup());
+}
+
+TEST(DecoratorWakeup, ReturnsEarliestOfQueueAndInnerWakeups) {
+  auto fixture = make_test_decorator();
+  fixture.inner->shaping_wakeup_result = fixture.clock->now() + 10.0;
+
+  fixture.decorator->write(make_test_buffer(64), false);
+  ASSERT_EQ(fixture.clock->now(), fixture.decorator->get_shaping_wakeup());
+
+  fixture.decorator->pre_flush_write(fixture.clock->now());
+  ASSERT_EQ(fixture.inner->shaping_wakeup_result, fixture.decorator->get_shaping_wakeup());
+
+  fixture.clock->advance(1.0);
+  fixture.decorator->write(make_test_buffer(96), false);
+  fixture.inner->shaping_wakeup_result = fixture.clock->now() - 0.25;
+  ASSERT_EQ(fixture.inner->shaping_wakeup_result, fixture.decorator->get_shaping_wakeup());
+}
+
 TEST(DecoratorRecordSizing, ExplicitRuntimeOverridePersistsAcrossFlushes) {
   auto fixture = make_test_decorator();
   ASSERT_FALSE(fixture.inner->max_tls_record_sizes.empty());
