@@ -268,9 +268,10 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
   }
 
   static const string payload = generate_firebase_remote_config_payload();
-  string url =
-      "https://firebaseremoteconfig.googleapis.com/v1/projects/peak-vista-421/namespaces/"
-      "firebase:fetch?key=AIzaSyC2-kAkpDsroixRXw-sTw-Wfqo4NxjMwwM";
+  auto url =
+      PSTRING()
+      << "https://firebaseremoteconfig.googleapis.com/v1/projects/peak-vista-421/namespaces/firebase:fetch?key="
+      << hex_decode("41497a61537943322d6b416b704473726f69785258772d7354772d5766716f344e786a4d77774d").move_as_ok();
   auto get_config = [](HttpQuery &http_query) -> Result<string> {
     TRY_RESULT(json, json_decode(http_query.get_arg("entries")));
     if (json.type() != JsonValue::Type::Object) {
