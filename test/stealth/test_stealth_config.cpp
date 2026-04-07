@@ -53,8 +53,15 @@ TEST(StealthConfig, RejectsInvalidIptAndRecordRanges) {
   MockRng rng(3);
   auto config = StealthConfig::default_config(rng);
 
-  config.ipt_params.interactive_delay_min_us = 200;
-  config.ipt_params.interactive_delay_max_us = 100;
+  config.ipt_params.idle_scale_ms = config.ipt_params.idle_max_ms + 1.0;
+  ASSERT_TRUE(config.validate().is_error());
+
+  config = StealthConfig::default_config(rng);
+  config.ipt_params.p_idle_to_burst = 1.5;
+  ASSERT_TRUE(config.validate().is_error());
+
+  config = StealthConfig::default_config(rng);
+  config.ipt_params.idle_alpha = 0.0;
   ASSERT_TRUE(config.validate().is_error());
 
   config = StealthConfig::default_config(rng);

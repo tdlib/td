@@ -8,6 +8,7 @@
 
 #include "td/mtproto/ProxySecret.h"
 #include "td/mtproto/stealth/Interfaces.h"
+#include "td/mtproto/stealth/IptController.h"
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
 #include "td/utils/Status.h"
@@ -17,11 +18,6 @@ namespace mtproto {
 namespace stealth {
 
 struct StealthConfig;
-
-struct IptParams final {
-  uint32 interactive_delay_min_us{0};
-  uint32 interactive_delay_max_us{0};
-};
 
 struct DrsPolicy final {
   int32 record_size_min{1200};

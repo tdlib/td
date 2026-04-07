@@ -92,20 +92,23 @@ TEST(DecoratorContractEdges, PendingHintQueuedDuringBlockedFlushDoesNotRebindOld
 
   fixture.inner->can_write_result = true;
   fixture.decorator->pre_flush_write(fixture.clock->now());
+  auto wakeup_at = fixture.decorator->get_shaping_wakeup();
+  ASSERT_TRUE(wakeup_at > fixture.clock->now());
+  fixture.decorator->pre_flush_write(wakeup_at);
 
   ASSERT_EQ(3, fixture.inner->write_calls);
   ASSERT_EQ(3u, fixture.inner->queued_hints.size());
   ASSERT_EQ(TrafficHint::Keepalive, fixture.inner->queued_hints[0]);
-  ASSERT_EQ(TrafficHint::Unknown, fixture.inner->queued_hints[1]);
-  ASSERT_EQ(TrafficHint::BulkData, fixture.inner->queued_hints[2]);
+  ASSERT_EQ(TrafficHint::BulkData, fixture.inner->queued_hints[1]);
+  ASSERT_EQ(TrafficHint::Unknown, fixture.inner->queued_hints[2]);
   ASSERT_EQ(3u, fixture.inner->written_payloads.size());
   ASSERT_EQ(td::string(17, 'x'), fixture.inner->written_payloads[0]);
-  ASSERT_EQ(td::string(19, 'x'), fixture.inner->written_payloads[1]);
-  ASSERT_EQ(td::string(23, 'x'), fixture.inner->written_payloads[2]);
+  ASSERT_EQ(td::string(23, 'x'), fixture.inner->written_payloads[1]);
+  ASSERT_EQ(td::string(19, 'x'), fixture.inner->written_payloads[2]);
   ASSERT_EQ(3u, fixture.inner->written_quick_acks.size());
   ASSERT_FALSE(fixture.inner->written_quick_acks[0]);
-  ASSERT_TRUE(fixture.inner->written_quick_acks[1]);
-  ASSERT_FALSE(fixture.inner->written_quick_acks[2]);
+  ASSERT_FALSE(fixture.inner->written_quick_acks[1]);
+  ASSERT_TRUE(fixture.inner->written_quick_acks[2]);
 }
 
 TEST(DecoratorContractEdges, SupportsTlsRecordSizingTracksInnerCapabilityWithoutCaching) {
@@ -119,6 +122,7 @@ TEST(DecoratorContractEdges, SupportsTlsRecordSizingTracksInnerCapabilityWithout
   ASSERT_TRUE(fixture.decorator->supports_tls_record_sizing());
 
   fixture.decorator->set_max_tls_record_size(2048);
+  fixture.decorator->set_traffic_hint(TrafficHint::BulkData);
   fixture.decorator->write(make_test_buffer(29), false);
   fixture.decorator->pre_flush_write(fixture.clock->now());
 

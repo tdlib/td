@@ -46,6 +46,8 @@ StealthTransportDecorator::StealthTransportDecorator(unique_ptr<IStreamTransport
     , config_(std::move(config))
     , rng_(std::move(rng))
     , clock_(std::move(clock))
+    , ipt_controller_(config_.ipt_params, *rng_)
+    , bypass_ring_(config_.ring_capacity)
     , ring_(config_.ring_capacity)
     , high_watermark_(config_.high_watermark)
     , low_watermark_(config_.low_watermark) {
@@ -72,15 +74,22 @@ void StealthTransportDecorator::write(BufferWriter &&message, bool quick_ack) {
   auto hint = pending_hint_;
   pending_hint_ = TrafficHint::Unknown;
 
-  auto delay_us = next_delay_us_stub(hint);
+  auto has_pending_data = queued_write_count() != 0;
+  auto delay_us = ipt_controller_.next_delay_us(has_pending_data, hint);
   auto send_at = clock_->now() + static_cast<double>(delay_us) / 1e6;
   ShaperPendingWrite pending_write{std::move(message), quick_ack, send_at, hint};
-  if (!ring_.try_enqueue(std::move(pending_write))) {
+  if (queued_write_count() >= config_.ring_capacity) {
     overflow_invariant_hits_++;
     LOG(FATAL) << "Stealth ring overflow invariant broken";
   }
 
-  if (ring_.size() >= high_watermark_) {
+  auto &target_ring = delay_us == 0 ? bypass_ring_ : ring_;
+  if (!target_ring.try_enqueue(std::move(pending_write))) {
+    overflow_invariant_hits_++;
+    LOG(FATAL) << "Stealth ring overflow invariant broken";
+  }
+
+  if (queued_write_count() >= high_watermark_) {
     backpressure_latched_ = true;
   }
 }
@@ -114,7 +123,7 @@ bool StealthTransportDecorator::use_random_padding() const {
 }
 
 void StealthTransportDecorator::pre_flush_write(double now) {
-  ring_.drain_ready(now, [this](ShaperPendingWrite &pending_write) {
+  auto write_pending = [this](ShaperPendingWrite &pending_write) {
     if (!inner_->can_write()) {
       return false;
     }
@@ -124,27 +133,76 @@ void StealthTransportDecorator::pre_flush_write(double now) {
     }
     inner_->write(std::move(pending_write.message), pending_write.quick_ack);
     return true;
-  });
+  };
+
+  auto drain_one_ready = [&](ShaperRingBuffer &ring) {
+    bool drained = false;
+    ring.drain_ready(now, [&](ShaperPendingWrite &pending_write) {
+      if (drained) {
+        return false;
+      }
+      if (!write_pending(pending_write)) {
+        return false;
+      }
+      drained = true;
+      return true;
+    });
+    return drained;
+  };
+
+  while (inner_->can_write() && !bypass_ring_.empty() && !ring_.empty() && ring_.earliest_deadline() <= now) {
+    auto *first_ring = favor_shaped_first_on_contention_ ? &ring_ : &bypass_ring_;
+    auto *second_ring = favor_shaped_first_on_contention_ ? &bypass_ring_ : &ring_;
+    bool drained_any = false;
+    drained_any = drain_one_ready(*first_ring) || drained_any;
+    if (!inner_->can_write()) {
+      if (drained_any) {
+        favor_shaped_first_on_contention_ = !favor_shaped_first_on_contention_;
+      }
+      break;
+    }
+    drained_any = drain_one_ready(*second_ring) || drained_any;
+    if (drained_any) {
+      favor_shaped_first_on_contention_ = !favor_shaped_first_on_contention_;
+    }
+    if (!drained_any) {
+      break;
+    }
+  }
+
+  bypass_ring_.drain_ready(now, write_pending);
+  ring_.drain_ready(now, write_pending);
 
   inner_->pre_flush_write(now);
 
-  if (backpressure_latched_ && ring_.size() <= low_watermark_) {
+  if (backpressure_latched_ && queued_write_count() <= low_watermark_) {
     backpressure_latched_ = false;
   }
 }
 
 double StealthTransportDecorator::get_shaping_wakeup() const {
-  auto has_ring_wakeup = !ring_.empty();
-  auto ring_wakeup = has_ring_wakeup ? ring_.earliest_deadline() : 0.0;
   auto inner_wakeup = inner_->get_shaping_wakeup();
 
-  if (!has_ring_wakeup) {
-    return inner_wakeup;
+  bool has_wakeup = false;
+  double wakeup = 0.0;
+  if (!bypass_ring_.empty()) {
+    wakeup = bypass_ring_.earliest_deadline();
+    has_wakeup = true;
   }
-  if (inner_wakeup == 0.0) {
-    return ring_wakeup;
+  if (!ring_.empty()) {
+    auto ring_wakeup = ring_.earliest_deadline();
+    if (!has_wakeup || ring_wakeup < wakeup) {
+      wakeup = ring_wakeup;
+      has_wakeup = true;
+    }
   }
-  return std::min(ring_wakeup, inner_wakeup);
+  if (inner_wakeup != 0.0) {
+    if (!has_wakeup || inner_wakeup < wakeup) {
+      wakeup = inner_wakeup;
+      has_wakeup = true;
+    }
+  }
+  return has_wakeup ? wakeup : 0.0;
 }
 
 void StealthTransportDecorator::set_traffic_hint(TrafficHint hint) {
@@ -162,16 +220,8 @@ bool StealthTransportDecorator::supports_tls_record_sizing() const {
   return inner_->supports_tls_record_sizing();
 }
 
-uint64 StealthTransportDecorator::next_delay_us_stub(TrafficHint hint) const {
-  switch (hint) {
-    case TrafficHint::Keepalive:
-    case TrafficHint::BulkData:
-    case TrafficHint::AuthHandshake:
-    case TrafficHint::Interactive:
-    case TrafficHint::Unknown:
-    default:
-      return 0;
-  }
+size_t StealthTransportDecorator::queued_write_count() const {
+  return bypass_ring_.size() + ring_.size();
 }
 
 }  // namespace stealth

@@ -306,6 +306,7 @@ set(TD_MTPROTO_SOURCE
   td/mtproto/SessionConnection.cpp
   td/mtproto/TcpTransport.cpp
   td/mtproto/TlsInit.cpp
+  td/mtproto/stealth/IptController.cpp
   td/mtproto/stealth/StealthConfig.cpp
   td/mtproto/stealth/ShaperRingBuffer.cpp
   td/mtproto/stealth/StealthTransportDecorator.cpp

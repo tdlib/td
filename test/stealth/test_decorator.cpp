@@ -54,12 +54,13 @@ DecoratorFixture make_test_decorator(size_t capacity = 8, size_t high = 6, size_
 
 void enqueue_n(StealthTransportDecorator &decorator, size_t count) {
   for (size_t i = 0; i < count; i++) {
+    decorator.set_traffic_hint(TrafficHint::BulkData);
     decorator.write(make_test_buffer(32 + i), false);
   }
 }
 
 void enqueue_with_clock_step(DecoratorFixture &fixture, size_t payload_size, double advance_seconds = 0.0,
-                             TrafficHint hint = TrafficHint::Unknown) {
+                             TrafficHint hint = TrafficHint::BulkData) {
   fixture.decorator->set_traffic_hint(hint);
   fixture.decorator->write(make_test_buffer(payload_size), false);
   if (advance_seconds > 0.0) {
@@ -87,6 +88,9 @@ TEST(DecoratorHint, ConsumeOnceHintResetsToUnknown) {
   fixture.decorator->write(make_test_buffer(64), false);
   fixture.decorator->write(make_test_buffer(64), false);
   fixture.decorator->pre_flush_write(fixture.clock->now());
+  auto wakeup_at = fixture.decorator->get_shaping_wakeup();
+  ASSERT_TRUE(wakeup_at > fixture.clock->now());
+  fixture.decorator->pre_flush_write(wakeup_at);
 
   ASSERT_EQ(2u, fixture.inner->queued_hints.size());
   ASSERT_EQ(TrafficHint::Keepalive, fixture.inner->queued_hints[0]);
@@ -140,7 +144,9 @@ TEST(DecoratorBackpressure, DeferredFlushPreservesQueuedPayloadsAndFlags) {
 TEST(DecoratorBackpressure, FailedFlushKeepsWakeupAndQueuedOrderStable) {
   auto fixture = make_test_decorator(8, 6, 2);
 
+  fixture.decorator->set_traffic_hint(TrafficHint::BulkData);
   fixture.decorator->write(make_test_buffer(19), false);
+  fixture.decorator->set_traffic_hint(TrafficHint::BulkData);
   fixture.decorator->write(make_test_buffer(23), false);
   auto wakeup_at = fixture.decorator->get_shaping_wakeup();
 
@@ -220,7 +226,6 @@ TEST(DecoratorWakeup, ReturnsEarliestDeadlineFromRing) {
   auto fixture = make_test_decorator();
   fixture.decorator->set_traffic_hint(TrafficHint::Interactive);
   fixture.decorator->write(make_test_buffer(256), false);
-  ASSERT_TRUE(fixture.decorator->get_shaping_wakeup() > 0.0);
   ASSERT_EQ(fixture.clock->now(), fixture.decorator->get_shaping_wakeup());
 }
 
@@ -273,6 +278,7 @@ TEST(DecoratorWakeup, ReturnsEarliestOfQueueAndInnerWakeups) {
   auto fixture = make_test_decorator();
   fixture.inner->shaping_wakeup_result = fixture.clock->now() + 10.0;
 
+  fixture.decorator->set_traffic_hint(TrafficHint::BulkData);
   fixture.decorator->write(make_test_buffer(64), false);
   ASSERT_EQ(fixture.clock->now(), fixture.decorator->get_shaping_wakeup());
 
@@ -280,6 +286,7 @@ TEST(DecoratorWakeup, ReturnsEarliestOfQueueAndInnerWakeups) {
   ASSERT_EQ(fixture.inner->shaping_wakeup_result, fixture.decorator->get_shaping_wakeup());
 
   fixture.clock->advance(1.0);
+  fixture.decorator->set_traffic_hint(TrafficHint::BulkData);
   fixture.decorator->write(make_test_buffer(96), false);
   fixture.inner->shaping_wakeup_result = fixture.clock->now() - 0.25;
   ASSERT_EQ(fixture.inner->shaping_wakeup_result, fixture.decorator->get_shaping_wakeup());
@@ -296,11 +303,13 @@ TEST(DecoratorRecordSizing, ExplicitRuntimeOverridePersistsAcrossFlushes) {
   fixture.decorator->set_max_tls_record_size(4096);
   ASSERT_EQ(4096, fixture.inner->max_tls_record_sizes.back());
 
+  fixture.decorator->set_traffic_hint(TrafficHint::BulkData);
   fixture.decorator->write(make_test_buffer(67), false);
   fixture.decorator->pre_flush_write(fixture.clock->now());
   ASSERT_EQ(1, fixture.inner->write_calls);
   ASSERT_EQ(4096, fixture.inner->max_tls_record_sizes.back());
 
+  fixture.decorator->set_traffic_hint(TrafficHint::BulkData);
   fixture.decorator->write(make_test_buffer(79), false);
   fixture.decorator->pre_flush_write(fixture.clock->now());
   ASSERT_EQ(2, fixture.inner->write_calls);
@@ -313,6 +322,7 @@ TEST(DecoratorRecordSizing, ExplicitRuntimeOverrideRespectsInnerCapabilityGuard)
   ASSERT_FALSE(fixture.decorator->supports_tls_record_sizing());
 
   fixture.decorator->set_max_tls_record_size(4096);
+  fixture.decorator->set_traffic_hint(TrafficHint::BulkData);
   fixture.decorator->write(make_test_buffer(67), false);
   fixture.decorator->pre_flush_write(fixture.clock->now());
 

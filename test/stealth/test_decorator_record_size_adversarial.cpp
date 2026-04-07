@@ -20,6 +20,7 @@ namespace {
 
 using td::mtproto::stealth::StealthConfig;
 using td::mtproto::stealth::StealthTransportDecorator;
+using td::mtproto::stealth::TrafficHint;
 using td::mtproto::test::MockClock;
 using td::mtproto::test::MockRng;
 using td::mtproto::test::RecordingTransport;
@@ -56,6 +57,7 @@ TEST(DecoratorRecordSizingAdversarial, ClampsHostileLowOverrideBeforeForwardingT
 
   ASSERT_EQ(256, fixture.inner->max_tls_record_sizes.back());
 
+  fixture.decorator->set_traffic_hint(TrafficHint::BulkData);
   fixture.decorator->write(make_test_buffer(67), false);
   fixture.decorator->pre_flush_write(fixture.clock->now());
 
@@ -71,6 +73,7 @@ TEST(DecoratorRecordSizingAdversarial, ClampsHostileHighOverrideBeforeForwarding
 
   ASSERT_EQ(16384, fixture.inner->max_tls_record_sizes.back());
 
+  fixture.decorator->set_traffic_hint(TrafficHint::BulkData);
   fixture.decorator->write(make_test_buffer(79), false);
   fixture.decorator->pre_flush_write(fixture.clock->now());
 

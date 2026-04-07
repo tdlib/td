@@ -63,6 +63,7 @@ TEST(DecoratorWakeupEdgeCases, ZeroDeadlineFromRingIsNotTreatedAsEmptyWakeupSent
   auto fixture = make_test_decorator();
   fixture.inner->shaping_wakeup_result = 42.0;
 
+  fixture.decorator->set_traffic_hint(td::mtproto::stealth::TrafficHint::BulkData);
   fixture.decorator->write(make_test_buffer(64), false);
 
   ASSERT_EQ(0.0, fixture.clock->now());

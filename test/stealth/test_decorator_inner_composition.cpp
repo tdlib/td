@@ -203,6 +203,7 @@ TEST(DecoratorInnerComposition, RuntimeRecordSizeOverrideAppliesToQueuedWriteAtD
   auto fixture = make_test_decorator();
   ASSERT_FALSE(fixture.inner->max_tls_record_sizes.empty());
 
+  fixture.decorator->set_traffic_hint(TrafficHint::BulkData);
   fixture.decorator->write(make_test_buffer(59), false);
   fixture.decorator->set_max_tls_record_size(4096);
   fixture.decorator->pre_flush_write(fixture.clock->now());

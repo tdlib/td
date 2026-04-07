@@ -47,8 +47,13 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_registry.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_wire.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_wakeup_seam.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_wakeup_overdue_shaping.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_raw_connection_flush_order.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_raw_connection_shaping_wakeup_seam.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_ipt_fail_closed.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_ipt_nonfinite_fail_closed.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_ipt_overflow_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_hint_adversarial.cpp
@@ -58,6 +63,22 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_wakeup_edge_cases.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_contract_edges.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_overflow_fail_closed.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ipt_controller.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ipt_controller_statistics.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ipt_controller_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ipt_controller_state_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ipt_controller_precision_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_idle_fast_path.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_fairness.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_auth_handshake_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_precision_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_storm_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_storm_randomized.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_storm_soak.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_storm_seed_matrix.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_arrival_matrix.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_cross_matrix.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_shaper_ring_buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_shaper_ring_buffer_stress.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_activation_fail_closed.cpp

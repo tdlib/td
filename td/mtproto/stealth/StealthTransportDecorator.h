@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/mtproto/IStreamTransport.h"
+#include "td/mtproto/stealth/IptController.h"
 #include "td/mtproto/stealth/ShaperRingBuffer.h"
 #include "td/mtproto/stealth/StealthConfig.h"
 
@@ -40,12 +41,12 @@ class StealthTransportDecorator final : public IStreamTransport {
   StealthTransportDecorator(unique_ptr<IStreamTransport> inner, StealthConfig config, unique_ptr<IRng> rng,
                             unique_ptr<IClock> clock);
 
-  uint64 next_delay_us_stub(TrafficHint hint) const;
-
   unique_ptr<IStreamTransport> inner_;
   StealthConfig config_;
   unique_ptr<IRng> rng_;
   unique_ptr<IClock> clock_;
+  IptController ipt_controller_;
+  ShaperRingBuffer bypass_ring_;
   ShaperRingBuffer ring_;
   size_t high_watermark_{0};
   size_t low_watermark_{0};
@@ -54,6 +55,9 @@ class StealthTransportDecorator final : public IStreamTransport {
   int32 initial_record_size_{0};
   int32 current_record_size_{0};
   TrafficHint pending_hint_{TrafficHint::Unknown};
+  bool favor_shaped_first_on_contention_{false};
+
+  size_t queued_write_count() const;
 };
 
 }  // namespace stealth

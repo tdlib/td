@@ -77,6 +77,9 @@ TEST(DecoratorHintAdversarial, HintDoesNotBleedIntoLaterUnknownWriteAfterBlocked
 
   fixture.inner->can_write_result = true;
   fixture.decorator->pre_flush_write(fixture.clock->now());
+  auto wakeup_at = fixture.decorator->get_shaping_wakeup();
+  ASSERT_TRUE(wakeup_at > fixture.clock->now());
+  fixture.decorator->pre_flush_write(wakeup_at);
 
   ASSERT_EQ(2, fixture.inner->write_calls);
   ASSERT_EQ(2u, fixture.inner->queued_hints.size());
@@ -102,7 +105,9 @@ TEST(DecoratorHintAdversarial, PendingHintSurvivesIdleFlushUntilConsumed) {
   ASSERT_EQ(TrafficHint::BulkData, fixture.inner->queued_hints[0]);
 
   fixture.decorator->write(make_test_buffer(43), false);
-  fixture.decorator->pre_flush_write(fixture.clock->now() + 1.0);
+  auto wakeup_at = fixture.decorator->get_shaping_wakeup();
+  ASSERT_EQ(fixture.clock->now(), wakeup_at);
+  fixture.decorator->pre_flush_write(wakeup_at);
 
   ASSERT_EQ(2, fixture.inner->write_calls);
   ASSERT_EQ(2u, fixture.inner->queued_hints.size());
