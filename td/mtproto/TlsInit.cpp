@@ -51,6 +51,7 @@ class TlsHello {
       BeginScope,
       EndScope,
       Permutation,
+      RandomValue,
       Padding
     };
     Type type;
@@ -58,6 +59,7 @@ class TlsHello {
     int seed;
     string data;
     vector<vector<Op>> parts;
+    vector<Op> value;
 
     static Op str(Slice str) {
       Op res;
@@ -112,6 +114,13 @@ class TlsHello {
       Op res;
       res.type = Type::Permutation;
       res.parts = std::move(parts);
+      return res;
+    }
+    static Op random_value(vector<vector<Op>> parts) {
+      CHECK(!parts.empty());
+      Op res;
+      res.type = Type::RandomValue;
+      res.value = parts[Random::fast(0, static_cast<int>(parts.size() - 1))];
       return res;
     }
     static Op ech_payload() {
@@ -307,14 +316,18 @@ class TlsHelloCalcLength {
         }
         break;
       }
-      case Type::Permutation: {
+      case Type::Permutation:
         for (const auto &part : op.parts) {
           for (auto &nested_op : part) {
             do_op(nested_op, context);
           }
         }
         break;
-      }
+      case Type::RandomValue:
+        for (auto &nested_op : op.value) {
+          do_op(nested_op, context);
+        }
+        break;
       case Type::Padding:
         if (size_ < 513) {
           size_ = 517;
@@ -458,6 +471,11 @@ class TlsHelloStore {
         }
         break;
       }
+      case Type::RandomValue:
+        for (auto &nested_op : op.value) {
+          do_op(nested_op, context);
+        }
+        break;
       case Type::Padding: {
         auto size = 513 - static_cast<int>(get_offset());
         if (size > 0) {
