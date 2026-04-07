@@ -10,7 +10,6 @@
 
 #include "td/utils/BigNum.h"
 #include "td/utils/common.h"
-#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 #include <unordered_set>
@@ -45,6 +44,9 @@ struct ParsedClientHello final {
   vector<uint16> key_share_groups;
   vector<ParsedKeyShareEntry> key_share_entries;
   Slice ech_enc;
+  uint8 ech_outer_type{0};
+  uint16 ech_kdf_id{0};
+  uint16 ech_aead_id{0};
   uint16 ech_declared_enc_length{0};
   uint16 ech_actual_enc_length{0};
   uint16 ech_payload_length{0};
@@ -344,15 +346,18 @@ inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
 
     TlsReader ech_reader(ech->value);
     TRY_RESULT(ech_outer_client_hello, ech_reader.read_u8());
-    if (ech_outer_client_hello != 0x00) {
+    res.ech_outer_type = ech_outer_client_hello;
+    if (res.ech_outer_type != 0x00) {
       return Status::Error("ECH outer ClientHello marker must be 0x00");
     }
     TRY_RESULT(ech_kdf_id, ech_reader.read_u16());
-    if (ech_kdf_id != 0x0001) {
+    res.ech_kdf_id = ech_kdf_id;
+    if (res.ech_kdf_id != 0x0001) {
       return Status::Error("Unexpected ECH KDF identifier");
     }
     TRY_RESULT(ech_aead_id, ech_reader.read_u16());
-    if (ech_aead_id != 0x0001) {
+    res.ech_aead_id = ech_aead_id;
+    if (res.ech_aead_id != 0x0001 && res.ech_aead_id != 0x0003) {
       return Status::Error("Unexpected ECH AEAD identifier");
     }
     TRY_RESULT(ignore_config_id, ech_reader.read_u8());

@@ -44,30 +44,46 @@ constexpr BrowserProfile MOBILE_PROFILES[] = {
     BrowserProfile::Android11_OkHttp,
 };
 
+constexpr BrowserProfile IOS_MOBILE_PROFILES[] = {
+    BrowserProfile::IOS14,
+};
+
+constexpr BrowserProfile ANDROID_MOBILE_PROFILES[] = {
+    BrowserProfile::Android11_OkHttp,
+};
+
 constexpr ProfileSpec PROFILE_SPECS[] = {
-    {BrowserProfile::Chrome133, Slice("chrome133"), 0x44CD, true, true, true, true, 0x11EC,
+  {BrowserProfile::Chrome133, Slice("chrome133"), 0x44CD, 0, true, true, true, true, 0x11EC,
      ExtensionOrderPolicy::ChromeShuffleAnchored},
-    {BrowserProfile::Chrome131, Slice("chrome131"), 0x4469, true, true, true, true, 0x11EC,
+  {BrowserProfile::Chrome131, Slice("chrome131"), 0x4469, 0, true, true, true, true, 0x11EC,
      ExtensionOrderPolicy::ChromeShuffleAnchored},
-    {BrowserProfile::Chrome120, Slice("chrome120"), 0x4469, true, true, true, false, 0,
+  {BrowserProfile::Chrome120, Slice("chrome120"), 0x4469, 0, true, true, true, false, 0,
      ExtensionOrderPolicy::ChromeShuffleAnchored},
-    {BrowserProfile::Firefox148, Slice("firefox148"), 0, true, false, true, true, 0x11EC,
+  {BrowserProfile::Firefox148, Slice("firefox148"), 0, 0x4001, true, false, true, true, 0x11EC,
      ExtensionOrderPolicy::FixedFromFixture},
-    {BrowserProfile::Safari26_3, Slice("safari26_3"), 0, false, false, true, false, 0,
+  {BrowserProfile::Safari26_3, Slice("safari26_3"), 0, 0, false, false, true, false, 0,
      ExtensionOrderPolicy::FixedFromFixture},
-    {BrowserProfile::IOS14, Slice("ios14"), 0, false, false, true, false, 0, ExtensionOrderPolicy::FixedFromFixture},
-    {BrowserProfile::Android11_OkHttp, Slice("android11_okhttp"), 0, false, false, true, false, 0,
+  {BrowserProfile::IOS14, Slice("ios14"), 0, 0, false, false, true, false, 0,
+   ExtensionOrderPolicy::FixedFromFixture},
+  {BrowserProfile::Android11_OkHttp, Slice("android11_okhttp"), 0, 0, false, false, true, false, 0,
      ExtensionOrderPolicy::FixedFromFixture},
 };
 
 constexpr ProfileFixtureMetadata PROFILE_FIXTURES[] = {
-    {Slice("utls:HelloChrome_133"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Verified, true},
-    {Slice("utls:HelloChrome_131"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Verified, true},
-    {Slice("utls:HelloChrome_120"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Verified, true},
-    {Slice("utls:HelloFirefox_148"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Verified, true},
-    {Slice("utls:HelloSafari_26_3"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Advisory, false},
-    {Slice("utls:HelloIOS_14"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Advisory, false},
-    {Slice("utls:HelloAndroid_11_OkHttp"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Advisory, false},
+    {Slice("curl_cffi:chrome133"), ProfileFixtureSourceKind::CurlCffiCapture, ProfileTrustTier::Verified, true, true,
+     true},
+    {Slice("curl_cffi:chrome131"), ProfileFixtureSourceKind::CurlCffiCapture, ProfileTrustTier::Verified, true, true,
+     true},
+    {Slice("browser_capture:chrome120_non_pq"), ProfileFixtureSourceKind::BrowserCapture, ProfileTrustTier::Verified,
+     true, true, true},
+    {Slice("browser_capture:firefox148"), ProfileFixtureSourceKind::BrowserCapture, ProfileTrustTier::Verified, true,
+     true, true},
+    {Slice("utls:HelloSafari_26_3"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Advisory, false, false,
+     false},
+    {Slice("utls:HelloIOS_14"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Advisory, false, false,
+     false},
+    {Slice("utls:HelloAndroid_11_OkHttp"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Advisory, false,
+     false, false},
 };
 
 constexpr uint32 kRuntimeEchFailureThreshold = 3;
@@ -104,6 +120,20 @@ std::shared_ptr<KeyValueSyncInterface> &route_failure_store() {
 RuntimeEchCounterStorage &runtime_ech_counters() {
   static RuntimeEchCounterStorage counters;
   return counters;
+}
+
+RouteFailureState fail_closed_route_failure_state() {
+  RouteFailureState state;
+  state.ech_block_suspected = true;
+  state.recent_ech_failures = kRuntimeEchFailureThreshold;
+  return state;
+}
+
+RouteFailureCacheEntry make_fail_closed_route_failure_cache_entry() {
+  RouteFailureCacheEntry entry;
+  entry.state = fail_closed_route_failure_state();
+  entry.disabled_until = Timestamp::in(kRuntimeEchDisableTtlSeconds);
+  return entry;
 }
 
 size_t profile_index(BrowserProfile profile) {
@@ -197,6 +227,9 @@ bool parse_route_failure_cache_entry(Slice serialized, RouteFailureCacheEntry &e
   if (!parse_int64_str(remaining_ms_str, stored_remaining_ms) || !parse_int64_str(system_ms_str, stored_system_ms)) {
     return false;
   }
+  if (stored_remaining_ms < 0 || stored_system_ms < 0) {
+    return false;
+  }
   auto elapsed_ms = max(static_cast<int64>(Clocks::system() * 1000.0) - stored_system_ms, int64{0});
   auto effective_remaining_ms = max(stored_remaining_ms - elapsed_ms, int64{0});
   if (effective_remaining_ms > 0) {
@@ -240,6 +273,12 @@ RouteFailureState get_runtime_route_failure_state_locked(Slice destination, int3
     }
     RouteFailureCacheEntry entry;
     if (!parse_route_failure_cache_entry(serialized, entry)) {
+      entry = make_fail_closed_route_failure_cache_entry();
+      auto inserted = cache.emplace(key, entry);
+      persist_route_failure_cache_entry_locked(destination, unix_time, inserted.first->second);
+      return inserted.first->second.state;
+    }
+    if (!entry.disabled_until) {
       store->erase(route_failure_store_key(destination, unix_time));
       return RouteFailureState{};
     }
@@ -297,6 +336,15 @@ uint32 stable_selection_hash(const SelectionKey &key, const RuntimePlatformHints
 
 RuntimePlatformHints default_runtime_platform_hints() noexcept {
   RuntimePlatformHints hints;
+#if TD_ANDROID
+  hints.device_class = DeviceClass::Mobile;
+  hints.mobile_os = MobileOs::Android;
+  hints.desktop_os = DesktopOs::Unknown;
+#elif TD_DARWIN_IOS || TD_DARWIN_TV_OS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS
+  hints.device_class = DeviceClass::Mobile;
+  hints.mobile_os = MobileOs::IOS;
+  hints.desktop_os = DesktopOs::Unknown;
+#else
   hints.device_class = DeviceClass::Desktop;
 #if TD_DARWIN
   hints.desktop_os = DesktopOs::Darwin;
@@ -304,6 +352,7 @@ RuntimePlatformHints default_runtime_platform_hints() noexcept {
   hints.desktop_os = DesktopOs::Windows;
 #else
   hints.desktop_os = DesktopOs::Linux;
+#endif
 #endif
   return hints;
 }
@@ -322,6 +371,7 @@ SelectionKey make_profile_selection_key(Slice destination, int32 unix_time) {
 void set_runtime_ech_failure_store(std::shared_ptr<KeyValueSyncInterface> store) {
   auto lock = std::lock_guard<std::mutex>(route_failure_cache_mutex());
   route_failure_store() = std::move(store);
+  route_failure_cache().clear();
 }
 
 void note_runtime_ech_decision(const RuntimeEchDecision &decision, bool ech_enabled) noexcept {
@@ -392,6 +442,12 @@ Span<BrowserProfile> all_profiles() {
 
 Span<BrowserProfile> allowed_profiles_for_platform(const RuntimePlatformHints &platform) {
   if (platform.device_class == DeviceClass::Mobile) {
+    if (platform.mobile_os == MobileOs::IOS) {
+      return Span<BrowserProfile>(IOS_MOBILE_PROFILES);
+    }
+    if (platform.mobile_os == MobileOs::Android) {
+      return Span<BrowserProfile>(ANDROID_MOBILE_PROFILES);
+    }
     return Span<BrowserProfile>(MOBILE_PROFILES);
   }
   if (platform.desktop_os == DesktopOs::Darwin) {

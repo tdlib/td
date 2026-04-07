@@ -117,4 +117,21 @@ TEST(TlsRecordSizing, CapabilityGuardTracksTlsEmulationOnly) {
   ASSERT_FALSE(plain_transport.supports_tls_record_sizing());
 }
 
+TEST(TlsRecordSizing, FirstTlsWriteOverheadIncludesPrimerAndThenDropsToZero) {
+  ObfuscatedTransport transport(2, ProxySecret::from_raw(make_tls_secret()));
+
+  td::ChainBufferWriter output_writer;
+  td::ChainBufferWriter input_writer;
+  auto input_reader = input_writer.extract_reader();
+  transport.init(&input_reader, &output_writer);
+
+  auto first_overhead = transport.tls_record_sizing_payload_overhead();
+  ASSERT_EQ(70, first_overhead);
+
+  td::BufferWriter writer(td::Slice("xxxx"), transport.max_prepend_size(), transport.max_append_size());
+  transport.write(std::move(writer), false);
+
+  ASSERT_EQ(0, transport.tls_record_sizing_payload_overhead());
+}
+
 }  // namespace

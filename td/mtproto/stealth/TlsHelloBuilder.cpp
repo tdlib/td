@@ -26,7 +26,6 @@ namespace {
 
 constexpr uint16 kPqHybridKeyExchangeLength = detail::kCurrentSingleLanePqKeyShareLength;
 constexpr uint16 kEchEncapsulatedKeyLength = detail::kCorrectEchEncKeyLen;
-
 class SecureRng final : public IRng {
  public:
   void fill_secure_bytes(MutableSlice dest) final {
@@ -337,6 +336,11 @@ class TlsHello {
 
   static TlsHello create_firefox_148_profile(bool enable_ech) {
     TlsHello res;
+    auto record_size_limit = profile_spec(BrowserProfile::Firefox148).record_size_limit;
+    CHECK(record_size_limit != 0);
+    string record_size_limit_extension("\x00\x1c\x00\x02", 4);
+    record_size_limit_extension += static_cast<char>((record_size_limit >> 8) & 0xff);
+    record_size_limit_extension += static_cast<char>(record_size_limit & 0xff);
     res.ops_ = {
         Op::str("\x16\x03\x01"),
         Op::begin_scope(),
@@ -387,11 +391,11 @@ class TlsHello {
         Op::str("\x00\x0d\x00\x18\x00\x16\x04\x03\x05\x03\x06\x03\x08\x04\x08\x05\x08\x06\x04\x01\x05\x01\x06\x01\x02"
                 "\x03\x02\x01"),
         Op::str("\x00\x2d\x00\x02\x01\x01"),
-        Op::str("\x00\x1c\x00\x02\x40\x01"),
+        Op::str(record_size_limit_extension),
         Op::str("\x00\x1b\x00\x07\x06\x00\x01\x00\x02\x00\x03"),
         enable_ech ? Op::str("\xfe\x0d") : Op::str(""),
         enable_ech ? Op::begin_scope() : Op::str(""),
-        enable_ech ? Op::str("\x00\x00\x01\x00\x01") : Op::str(""),
+        enable_ech ? Op::str("\x00\x00\x01\x00\x03") : Op::str(""),
         enable_ech ? Op::random(1) : Op::str(""),
         enable_ech ? Op::begin_scope() : Op::str(""),
         enable_ech ? Op::key() : Op::str(""),

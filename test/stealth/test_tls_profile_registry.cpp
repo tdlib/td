@@ -43,7 +43,7 @@ TEST(TlsProfileRegistry, FixtureMetadataExposesExplicitSourceKind) {
   for (auto profile : all_profiles()) {
     auto metadata = profile_fixture_metadata(profile);
     ASSERT_FALSE(metadata.source_id.empty());
-    ASSERT_TRUE(metadata.source_kind == ProfileFixtureSourceKind::UtlsSnapshot);
+    ASSERT_TRUE(metadata.source_kind != ProfileFixtureSourceKind::AdvisoryCodeSample);
   }
 }
 
@@ -52,7 +52,11 @@ TEST(TlsProfileRegistry, VerifiedProfilesCarryNetworkCorroboration) {
        {BrowserProfile::Chrome133, BrowserProfile::Chrome131, BrowserProfile::Chrome120, BrowserProfile::Firefox148}) {
     auto metadata = profile_fixture_metadata(profile);
     ASSERT_TRUE(metadata.trust_tier == ProfileTrustTier::Verified);
+    ASSERT_TRUE(metadata.source_kind == ProfileFixtureSourceKind::BrowserCapture ||
+                metadata.source_kind == ProfileFixtureSourceKind::CurlCffiCapture);
     ASSERT_TRUE(metadata.has_independent_network_provenance);
+    ASSERT_TRUE(metadata.has_utls_snapshot_corroboration);
+    ASSERT_TRUE(metadata.release_gating);
   }
 }
 
@@ -61,6 +65,8 @@ TEST(TlsProfileRegistry, SafariAndMobileProfilesRemainAdvisoryUntilNetworkFixtur
     auto metadata = profile_fixture_metadata(profile);
     ASSERT_TRUE(metadata.trust_tier == ProfileTrustTier::Advisory);
     ASSERT_FALSE(metadata.has_independent_network_provenance);
+    ASSERT_FALSE(metadata.has_utls_snapshot_corroboration);
+    ASSERT_FALSE(metadata.release_gating);
   }
 }
 

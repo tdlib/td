@@ -65,8 +65,12 @@ TEST(StealthConfig, RejectsInvalidIptAndRecordRanges) {
   ASSERT_TRUE(config.validate().is_error());
 
   config = StealthConfig::default_config(rng);
-  config.drs_policy.record_size_min = 2048;
-  config.drs_policy.record_size_max = 1024;
+  config.drs_policy.min_payload_cap = 2048;
+  config.drs_policy.max_payload_cap = 1024;
+  ASSERT_TRUE(config.validate().is_error());
+
+  config = StealthConfig::default_config(rng);
+  config.drs_policy.slow_start.bins.clear();
   ASSERT_TRUE(config.validate().is_error());
 
   config = StealthConfig::default_config(rng);

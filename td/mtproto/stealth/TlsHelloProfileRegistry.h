@@ -100,6 +100,7 @@ struct ProfileSpec final {
   BrowserProfile id{BrowserProfile::Chrome133};
   Slice name;
   uint16 alps_type{0};
+  uint16 record_size_limit{0};
   bool allows_ech{false};
   bool allows_padding{false};
   bool has_session_id{true};
@@ -113,6 +114,8 @@ struct ProfileFixtureMetadata final {
   ProfileFixtureSourceKind source_kind{ProfileFixtureSourceKind::UtlsSnapshot};
   ProfileTrustTier trust_tier{ProfileTrustTier::Advisory};
   bool has_independent_network_provenance{false};
+  bool has_utls_snapshot_corroboration{false};
+  bool release_gating{false};
 };
 
 struct RuntimeEchDecision final {

@@ -17,11 +17,30 @@ namespace td {
 namespace mtproto {
 namespace stealth {
 
+struct RecordSizeBin final {
+  int32 lo{0};
+  int32 hi{0};
+  uint16 weight{0};
+};
+
+struct DrsPhaseModel final {
+  vector<RecordSizeBin> bins;
+  int32 max_repeat_run{4};
+  int32 local_jitter{24};
+};
+
 struct StealthConfig;
 
 struct DrsPolicy final {
-  int32 record_size_min{1200};
-  int32 record_size_max{1460};
+  DrsPhaseModel slow_start;
+  DrsPhaseModel congestion_open;
+  DrsPhaseModel steady_state;
+  int32 slow_start_records{4};
+  int32 congestion_bytes{32768};
+  int32 idle_reset_ms_min{250};
+  int32 idle_reset_ms_max{1200};
+  int32 min_payload_cap{900};
+  int32 max_payload_cap{16384};
 };
 
 struct RecordSizePolicy final {
@@ -42,6 +61,8 @@ struct StealthConfig final {
   size_t low_watermark{8};
 
   static StealthConfig from_secret(const ProxySecret &secret, IRng &rng);
+  static StealthConfig from_secret(const ProxySecret &secret, IRng &rng, int32 unix_time,
+                                   const RuntimePlatformHints &platform);
   static StealthConfig default_config(IRng &rng);
 
   Status validate() const;

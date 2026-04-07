@@ -131,6 +131,7 @@ TEST(TlsProfileWire, Firefox148MatchesObservedModernFirefoxCaptureFamily) {
   ASSERT_FALSE(spec.allows_padding);
   ASSERT_TRUE(spec.has_pq);
   ASSERT_EQ(0x11ECu, spec.pq_group_id);
+  ASSERT_EQ(0x4001u, spec.record_size_limit);
 
   auto wire = build_profile(BrowserProfile::Firefox148, EchMode::Rfc9180Outer, 81);
   auto parsed = parse_tls_client_hello(wire);
@@ -183,6 +184,13 @@ TEST(TlsProfileWire, Firefox148MatchesObservedModernFirefoxCaptureFamily) {
             key_lengths[td::mtproto::test::fixtures::kPqHybridGroup]);
   ASSERT_EQ(td::mtproto::test::fixtures::kX25519KeyShareLength, key_lengths[td::mtproto::test::fixtures::kX25519Group]);
   ASSERT_EQ(65u, key_lengths[0x0017]);
+}
+
+TEST(TlsProfileWire, NonFirefoxProfilesDoNotAdvertiseRecordSizeLimitMetadata) {
+  for (auto profile : {BrowserProfile::Chrome133, BrowserProfile::Chrome131, BrowserProfile::Chrome120,
+                       BrowserProfile::Safari26_3, BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp}) {
+    ASSERT_EQ(0u, profile_spec(profile).record_size_limit);
+  }
 }
 
 TEST(TlsProfileWire, Firefox148DisablesFe0dOnFailClosedRoutes) {

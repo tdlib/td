@@ -45,12 +45,22 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_stress.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profiles.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_registry.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_registry_provenance.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_platform_coherence.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_platform_defaults.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_wire.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_chrome144_differential.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_firefox148_differential.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_firefox_batch1_ech.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_expiry.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_builder_equivalence.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_wakeup_seam.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_wakeup_overdue_shaping.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_raw_connection_flush_order.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_raw_connection_shaping_wakeup_seam.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_profile_record_limit.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_ipt_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_ipt_nonfinite_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_ipt_overflow_fail_closed.cpp
@@ -59,6 +69,17 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_hint_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_inner_composition.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_partial_drain_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_distribution.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_jitter_distribution.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_seed_matrix.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_soak.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_phase_overhead_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_overhead_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_first_write_overhead_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_partial_budget.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_zero_write_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_record_size_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_wakeup_edge_cases.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_contract_edges.cpp
@@ -79,10 +100,21 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_storm_seed_matrix.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_arrival_matrix.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_cross_matrix.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_drs_engine.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_drs_engine_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_drs_engine_bulkdata_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_drs_engine_zero_write_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_shaper_ring_buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_shaper_ring_buffer_stress.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_activation_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_seam.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_drs_wire.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_drs_primer_transition_wire.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_drs_distribution_wire.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_drs_jitter_distribution_wire.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_drs_soak_wire.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_drs_weight_overflow_fail_closed.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_drs_jitter_overflow_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_record_sizing.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp

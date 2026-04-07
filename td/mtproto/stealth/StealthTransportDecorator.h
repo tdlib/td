@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/mtproto/IStreamTransport.h"
+#include "td/mtproto/stealth/DrsEngine.h"
 #include "td/mtproto/stealth/IptController.h"
 #include "td/mtproto/stealth/ShaperRingBuffer.h"
 #include "td/mtproto/stealth/StealthConfig.h"
@@ -52,10 +53,14 @@ class StealthTransportDecorator final : public IStreamTransport {
   size_t low_watermark_{0};
   bool backpressure_latched_{false};
   uint64 overflow_invariant_hits_{0};
+  DrsEngine drs_;
   int32 initial_record_size_{0};
   int32 current_record_size_{0};
   TrafficHint pending_hint_{TrafficHint::Unknown};
   bool favor_shaped_first_on_contention_{false};
+  bool has_manual_record_size_override_{false};
+  bool has_drs_activity_{false};
+  double last_drs_activity_at_{0.0};
 
   size_t queued_write_count() const;
 };

@@ -1,0 +1,74 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#include "test/stealth/MockRng.h"
+
+#include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
+
+#include "td/utils/common.h"
+#include "td/utils/tests.h"
+
+namespace {
+
+using td::mtproto::stealth::allowed_profiles_for_platform;
+using td::mtproto::stealth::BrowserProfile;
+using td::mtproto::stealth::default_profile_weights;
+using td::mtproto::stealth::DesktopOs;
+using td::mtproto::stealth::DeviceClass;
+using td::mtproto::stealth::MobileOs;
+using td::mtproto::stealth::pick_profile_sticky;
+using td::mtproto::stealth::RuntimePlatformHints;
+using td::mtproto::stealth::SelectionKey;
+using td::mtproto::test::MockRng;
+
+SelectionKey make_selection_key(td::uint32 bucket) {
+  SelectionKey key;
+  key.destination = "mobile.example.com";
+  key.time_bucket = bucket;
+  return key;
+}
+
+TEST(TlsProfilePlatformCoherence, AndroidRuntimeSelectionNeverUsesIosProfile) {
+  MockRng rng(101);
+  RuntimePlatformHints platform;
+  platform.device_class = DeviceClass::Mobile;
+  platform.mobile_os = MobileOs::Android;
+
+  auto allowed = allowed_profiles_for_platform(platform);
+  for (td::uint32 bucket = 20000; bucket < 20256; bucket++) {
+    auto profile = pick_profile_sticky(default_profile_weights(), make_selection_key(bucket), platform, allowed, rng);
+    ASSERT_TRUE(BrowserProfile::Android11_OkHttp == profile);
+  }
+}
+
+TEST(TlsProfilePlatformCoherence, IosRuntimeSelectionNeverUsesAndroidProfile) {
+  MockRng rng(202);
+  RuntimePlatformHints platform;
+  platform.device_class = DeviceClass::Mobile;
+  platform.mobile_os = MobileOs::IOS;
+
+  auto allowed = allowed_profiles_for_platform(platform);
+  for (td::uint32 bucket = 20000; bucket < 20256; bucket++) {
+    auto profile = pick_profile_sticky(default_profile_weights(), make_selection_key(bucket), platform, allowed, rng);
+    ASSERT_TRUE(BrowserProfile::IOS14 == profile);
+  }
+}
+
+TEST(TlsProfilePlatformCoherence, DesktopSelectionNeverFallsIntoMobileProfilesEvenWithUnknownDesktopOs) {
+  MockRng rng(303);
+  RuntimePlatformHints platform;
+  platform.device_class = DeviceClass::Desktop;
+  platform.desktop_os = DesktopOs::Unknown;
+
+  auto allowed = allowed_profiles_for_platform(platform);
+  for (td::uint32 bucket = 20000; bucket < 20256; bucket++) {
+    auto profile = pick_profile_sticky(default_profile_weights(), make_selection_key(bucket), platform, allowed, rng);
+    ASSERT_TRUE(profile != BrowserProfile::IOS14);
+    ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp);
+  }
+}
+
+}  // namespace

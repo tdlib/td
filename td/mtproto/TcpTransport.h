@@ -156,6 +156,17 @@ class ObfuscatedTransport final : public IStreamTransport {
     return secret_.emulate_tls();
   }
 
+  int32 tls_record_sizing_payload_overhead() const final {
+    if (!secret_.emulate_tls()) {
+      return 0;
+    }
+    auto overhead = static_cast<int32>(header_.size());
+    if (is_first_tls_packet_) {
+      overhead += 6;
+    }
+    return overhead;
+  }
+
  private:
   int16 dc_id_;
   bool is_first_tls_packet_{true};

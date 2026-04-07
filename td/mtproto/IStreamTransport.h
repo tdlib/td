@@ -45,6 +45,9 @@ class IStreamTransport {
   virtual bool supports_tls_record_sizing() const {
     return false;
   }
+  virtual int32 tls_record_sizing_payload_overhead() const {
+    return 0;
+  }
 };
 
 using StreamTransportFactoryForTests = unique_ptr<IStreamTransport> (*)(TransportType type);
