@@ -12,6 +12,7 @@
 #include "td/mtproto/mtproto_api.h"
 #include "td/mtproto/mtproto_api.hpp"
 #include "td/mtproto/PacketStorer.h"
+#include "td/mtproto/stealth/TrafficClassifier.h"
 #include "td/mtproto/Transport.h"
 #include "td/mtproto/utils.h"
 
@@ -813,11 +814,11 @@ void SessionConnection::do_close(Status status) {
   callback_->on_closed(std::move(status));
 }
 
-void SessionConnection::send_crypto(const Storer &storer, uint64 quick_ack_token) {
+void SessionConnection::send_crypto(const Storer &storer, uint64 quick_ack_token, stealth::TrafficHint hint) {
   CHECK(state_ != Closed);
   last_write_size_ += raw_connection_->send_crypto(storer, auth_data_->get_session_id(),
                                                    auth_data_->get_server_salt(Time::now_cached()),
-                                                   auth_data_->get_auth_key(), quick_ack_token);
+                                                   auth_data_->get_auth_key(), quick_ack_token, hint);
 }
 
 MessageId SessionConnection::send_query(BufferSlice buffer, bool gzip_flag, MessageId message_id,
@@ -1013,6 +1014,7 @@ void SessionConnection::flush_packet() {
   };
 
   // no more than 8192 message identifiers per container..
+  auto pending_ack_count = to_ack_message_ids_.size();
   auto to_resend_answer = cut_tail(to_resend_answer_message_ids_, 8192, "resend_answer");
   MessageId resend_answer_message_id;
   CHECK(queries.size() <= MAX_QUERY_COUNT);
@@ -1023,6 +1025,10 @@ void SessionConnection::flush_packet() {
   MessageId ping_message_id;
 
   bool use_quick_ack = any_of(queries, [](const auto &query) { return query.use_quick_ack; });
+  auto hint = stealth::classify_session_traffic_hint(
+      has_salt, ping_id, queries.size(), send_size, pending_ack_count,
+      !to_resend_answer.empty() || !to_cancel_answer.empty() || !to_get_state_info.empty(), destroy_auth_key,
+      raw_connection_->traffic_bulk_threshold_bytes());
 
   {
     // LOG(ERROR) << (auth_data_->get_header().empty() ? '-' : '+');
@@ -1034,7 +1040,7 @@ void SessionConnection::flush_packet() {
         &ping_message_id, &parent_message_id);
 
     auto quick_ack_token = use_quick_ack ? parent_message_id.get() : 0;
-    send_crypto(storer, quick_ack_token);
+    send_crypto(storer, quick_ack_token, hint);
   }
 
   if (resend_answer_message_id != MessageId()) {

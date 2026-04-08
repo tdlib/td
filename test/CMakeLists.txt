@@ -59,6 +59,20 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_wakeup_overdue_shaping.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_raw_connection_flush_order.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_raw_connection_shaping_wakeup_seam.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_raw_connection_hints.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_handshake_bootstrap_hints.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_bulk_threshold_runtime.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_bulk_threshold_max_runtime_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_ack_threshold_runtime_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_ack_min_threshold_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_ack_truncation_runtime_drift_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_inbound_ack_container_drift_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_hint_wiring.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_hint_control_mix_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_hint_wiring_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_service_ack_mix_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_phase_hint_drift_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ping_connection_hint_wiring.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_profile_record_limit.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_ipt_fail_closed.cpp
@@ -90,8 +104,10 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ipt_controller_state_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ipt_controller_precision_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_bulkdata_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_idle_fast_path.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_fairness.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_wakeup_fairness_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_auth_handshake_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_precision_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_ipt_storm_adversarial.cpp
@@ -116,6 +132,13 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_drs_weight_overflow_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_drs_jitter_overflow_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_record_sizing.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_traffic_classifier.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_traffic_classifier_threshold_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_traffic_classifier_service_ack_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_traffic_classifier_ack_mix_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_traffic_classifier_ack_flood_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_traffic_classifier_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_ack_mix_adversarial.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/data.h

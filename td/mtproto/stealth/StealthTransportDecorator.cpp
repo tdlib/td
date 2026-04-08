@@ -361,6 +361,10 @@ bool StealthTransportDecorator::supports_tls_record_sizing() const {
   return inner_->supports_tls_record_sizing();
 }
 
+size_t StealthTransportDecorator::traffic_bulk_threshold_bytes() const {
+  return config_.bulk_threshold_bytes;
+}
+
 size_t StealthTransportDecorator::queued_write_count() const {
   return bypass_ring_.size() + ring_.size();
 }

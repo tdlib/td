@@ -49,6 +49,34 @@ TEST(StealthConfigFailClosed, DecoratorFactoryRejectsInvalidConfigWithoutAbort) 
   ASSERT_STREQ("ring_capacity exceeds fail-closed maximum", result.error().message().c_str());
 }
 
+TEST(StealthConfigFailClosed, RejectsTooSmallBulkThresholdBytes) {
+  auto config = make_valid_config();
+  config.bulk_threshold_bytes = 511;
+
+  auto status = config.validate();
+  ASSERT_TRUE(status.is_error());
+  ASSERT_STREQ("bulk_threshold_bytes is out of allowed bounds", status.message().c_str());
+}
+
+TEST(StealthConfigFailClosed, RejectsTooLargeBulkThresholdBytes) {
+  auto config = make_valid_config();
+  config.bulk_threshold_bytes = (static_cast<size_t>(1) << 20) + 1;
+
+  auto status = config.validate();
+  ASSERT_TRUE(status.is_error());
+  ASSERT_STREQ("bulk_threshold_bytes is out of allowed bounds", status.message().c_str());
+}
+
+TEST(StealthConfigFailClosed, DecoratorFactoryRejectsInvalidBulkThresholdWithoutAbort) {
+  auto config = make_valid_config();
+  config.bulk_threshold_bytes = 511;
+
+  auto result = StealthTransportDecorator::create(td::make_unique<RecordingTransport>(), config,
+                                                  td::make_unique<MockRng>(7), td::make_unique<MockClock>());
+  ASSERT_TRUE(result.is_error());
+  ASSERT_STREQ("bulk_threshold_bytes is out of allowed bounds", result.error().message().c_str());
+}
+
 TEST(StealthConfigFailClosed, DecoratorFactoryRejectsMissingDependencies) {
   auto config = make_valid_config();
 

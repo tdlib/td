@@ -56,6 +56,7 @@ struct StealthConfig final {
   IptParams ipt_params;
   DrsPolicy drs_policy;
   RecordSizePolicy record_size_policy;
+  size_t bulk_threshold_bytes{8192};
   size_t ring_capacity{32};
   size_t high_watermark{24};
   size_t low_watermark{8};

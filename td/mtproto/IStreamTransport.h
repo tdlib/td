@@ -48,6 +48,9 @@ class IStreamTransport {
   virtual int32 tls_record_sizing_payload_overhead() const {
     return 0;
   }
+  virtual size_t traffic_bulk_threshold_bytes() const {
+    return 8192;
+  }
 };
 
 using StreamTransportFactoryForTests = unique_ptr<IStreamTransport> (*)(TransportType type);

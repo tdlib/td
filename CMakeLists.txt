@@ -311,6 +311,7 @@ set(TD_MTPROTO_SOURCE
   td/mtproto/stealth/StealthConfig.cpp
   td/mtproto/stealth/ShaperRingBuffer.cpp
   td/mtproto/stealth/StealthTransportDecorator.cpp
+  td/mtproto/stealth/TrafficClassifier.cpp
   td/mtproto/stealth/TlsHelloProfileRegistry.cpp
   td/mtproto/stealth/TlsHelloBuilder.cpp
   td/mtproto/TlsReaderByteFlow.cpp
@@ -346,6 +347,7 @@ set(TD_MTPROTO_SOURCE
   td/mtproto/stealth/ShaperRingBuffer.h
   td/mtproto/stealth/StealthConfig.h
   td/mtproto/stealth/StealthTransportDecorator.h
+  td/mtproto/stealth/TrafficClassifier.h
   td/mtproto/stealth/TlsHelloBuilder.h
   td/mtproto/stealth/TlsHelloProfileRegistry.h
   td/mtproto/TlsReaderByteFlow.h

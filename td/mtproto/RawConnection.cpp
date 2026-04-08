@@ -61,7 +61,7 @@ class RawConnectionDefault final : public RawConnection {
   }
 
   size_t send_crypto(const Storer &storer, uint64 session_id, int64 salt, const AuthKey &auth_key,
-                     uint64 quick_ack_token) final {
+                     uint64 quick_ack_token, stealth::TrafficHint hint) final {
     PacketInfo packet_info;
     packet_info.version = 2;
     packet_info.no_crypto_flag = false;
@@ -83,17 +83,19 @@ class RawConnectionDefault final : public RawConnection {
     }
 
     auto packet_size = packet.size();
+    transport_->set_traffic_hint(hint);
     transport_->write(std::move(packet), use_quick_ack);
     return packet_size;
   }
 
-  void send_no_crypto(const Storer &storer) final {
+  void send_no_crypto(const Storer &storer, stealth::TrafficHint hint) final {
     PacketInfo packet_info;
     packet_info.no_crypto_flag = true;
     auto packet = Transport::write(storer, AuthKey(), &packet_info, transport_->max_prepend_size(),
                                    transport_->max_append_size());
 
     LOG(INFO) << "Send handshake packet: " << format::as_hex_dump<4>(packet.as_slice());
+    transport_->set_traffic_hint(hint);
     transport_->write(std::move(packet), false);
   }
 
@@ -107,6 +109,10 @@ class RawConnectionDefault final : public RawConnection {
 
   double shaping_wakeup_at() const final {
     return transport_->get_shaping_wakeup();
+  }
+
+  size_t traffic_bulk_threshold_bytes() const final {
+    return transport_->traffic_bulk_threshold_bytes();
   }
 
   // NB: After first returned error, all subsequent calls will return error too.
@@ -306,7 +312,7 @@ class RawConnectionHttp final : public RawConnection {
   }
 
   size_t send_crypto(const Storer &storer, uint64 session_id, int64 salt, const AuthKey &auth_key,
-                     uint64 quick_ack_token) final {
+                     uint64 quick_ack_token, stealth::TrafficHint hint) final {
     PacketInfo packet_info;
     packet_info.version = 2;
     packet_info.no_crypto_flag = false;
@@ -316,16 +322,18 @@ class RawConnectionHttp final : public RawConnection {
     auto packet = Transport::write(storer, auth_key, &packet_info);
 
     auto packet_size = packet.size();
+    transport_->set_traffic_hint(hint);
     send_packet(packet.as_buffer_slice());
     return packet_size;
   }
 
-  void send_no_crypto(const Storer &storer) final {
+  void send_no_crypto(const Storer &storer, stealth::TrafficHint hint) final {
     PacketInfo packet_info;
     packet_info.no_crypto_flag = true;
     auto packet = Transport::write(storer, AuthKey(), &packet_info);
 
     LOG(INFO) << "Send handshake packet: " << format::as_hex_dump<4>(packet.as_slice());
+    transport_->set_traffic_hint(hint);
     send_packet(packet.as_buffer_slice());
   }
 
@@ -339,6 +347,10 @@ class RawConnectionHttp final : public RawConnection {
 
   double shaping_wakeup_at() const final {
     return transport_->get_shaping_wakeup();
+  }
+
+  size_t traffic_bulk_threshold_bytes() const final {
+    return transport_->traffic_bulk_threshold_bytes();
   }
 
   // NB: After first returned error, all subsequent calls will return error too.

@@ -8,6 +8,7 @@
 
 #include "td/mtproto/ConnectionManager.h"
 #include "td/mtproto/PacketInfo.h"
+#include "td/mtproto/stealth/Interfaces.h"
 #include "td/mtproto/TransportType.h"
 
 #include "td/utils/buffer.h"
@@ -49,12 +50,16 @@ class RawConnection {
   virtual bool can_send() const = 0;
   virtual TransportType get_transport_type() const = 0;
   virtual size_t send_crypto(const Storer &storer, uint64 session_id, int64 salt, const AuthKey &auth_key,
-                             uint64 quick_ack_token) = 0;
-  virtual void send_no_crypto(const Storer &storer) = 0;
+                             uint64 quick_ack_token, stealth::TrafficHint hint = stealth::TrafficHint::Interactive) = 0;
+  virtual void send_no_crypto(const Storer &storer,
+                              stealth::TrafficHint hint = stealth::TrafficHint::AuthHandshake) = 0;
 
   virtual PollableFdInfo &get_poll_info() = 0;
   virtual StatsCallback *stats_callback() = 0;
   virtual double shaping_wakeup_at() const = 0;
+  virtual size_t traffic_bulk_threshold_bytes() const {
+    return 8192;
+  }
 
   class Callback {
    public:

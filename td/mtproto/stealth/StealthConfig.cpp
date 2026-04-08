@@ -96,6 +96,13 @@ Status validate_positive_range(const char *name, int32 min_value, int32 max_valu
   return Status::OK();
 }
 
+Status validate_size_t_range(const char *name, size_t value, size_t lower_bound, size_t upper_bound) {
+  if (value < lower_bound || value > upper_bound) {
+    return Status::Error(std::string(name) + " is out of allowed bounds");
+  }
+  return Status::OK();
+}
+
 Status validate_drs_phase_model(const char *name, const DrsPhaseModel &model, int32 min_payload_cap,
                                 int32 max_payload_cap) {
   constexpr int32 kMaxSafeLocalJitter = (std::numeric_limits<int32>::max() - 1) / 2;
@@ -189,6 +196,7 @@ StealthConfig StealthConfig::default_config(IRng &rng) {
   config.drs_policy.steady_state.bins = {{2400, 4096, 2}, {4097, 8192, 2}, {8193, 12288, 1}};
   config.drs_policy.steady_state.max_repeat_run = 4;
   config.drs_policy.steady_state.local_jitter = 24;
+  config.bulk_threshold_bytes = 8192;
   return config;
 }
 
@@ -247,6 +255,7 @@ Status StealthConfig::validate() const {
   TRY_STATUS(validate_microsecond_delay_cap("ipt_params.idle_max_ms", ipt_params.idle_max_ms));
   TRY_STATUS(validate_positive_range("drs_policy.payload_cap", drs_policy.min_payload_cap, drs_policy.max_payload_cap,
                                      256, 16384));
+  TRY_STATUS(validate_size_t_range("bulk_threshold_bytes", bulk_threshold_bytes, 512, static_cast<size_t>(1) << 20));
   if (drs_policy.slow_start_records <= 0) {
     return Status::Error("drs_policy.slow_start_records must be positive");
   }

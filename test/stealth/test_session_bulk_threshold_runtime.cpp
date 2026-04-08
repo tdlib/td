@@ -9,11 +9,12 @@
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/SessionConnection.h"
-#include "td/mtproto/stealth/Interfaces.h"
+#if TDLIB_STEALTH_SHAPING
+#include "td/mtproto/stealth/StealthConfig.h"
+#endif
 
 #include "td/utils/BufferedFd.h"
 #include "td/utils/tests.h"
-#include "td/utils/Time.h"
 
 namespace {
 
@@ -21,8 +22,24 @@ using td::mtproto::AuthData;
 using td::mtproto::AuthKey;
 using td::mtproto::RawConnection;
 using td::mtproto::SessionConnection;
+using td::mtproto::stealth::TrafficHint;
 using td::mtproto::test::create_socket_pair;
 using td::mtproto::TransportType;
+
+#if TDLIB_STEALTH_SHAPING
+using td::mtproto::create_transport;
+using td::mtproto::stealth::IRng;
+using td::mtproto::stealth::set_stealth_config_factory_for_tests;
+using td::mtproto::stealth::StealthConfig;
+
+td::string make_tls_secret() {
+  td::string secret;
+  secret.push_back(static_cast<char>(0xee));
+  secret += "0123456789secret";
+  secret += "www.google.com";
+  return secret;
+}
+#endif
 
 class NoopStatsCallback final : public RawConnection::StatsCallback {
  public:
@@ -38,10 +55,10 @@ class NoopStatsCallback final : public RawConnection::StatsCallback {
   }
 };
 
-class FakeRawConnection final : public RawConnection {
+class HintCapturingRawConnection final : public RawConnection {
  public:
-  FakeRawConnection(td::BufferedFd<td::SocketFd> fd, double shaping_wakeup)
-      : fd_(std::move(fd)), shaping_wakeup_(shaping_wakeup) {
+  HintCapturingRawConnection(td::BufferedFd<td::SocketFd> fd, size_t bulk_threshold_bytes)
+      : fd_(std::move(fd)), bulk_threshold_bytes_(bulk_threshold_bytes) {
   }
 
   void set_connection_token(td::mtproto::ConnectionManager::ConnectionToken connection_token) final {
@@ -56,11 +73,23 @@ class FakeRawConnection final : public RawConnection {
   }
 
   size_t send_crypto(const td::Storer &storer, td::uint64 session_id, td::int64 salt, const AuthKey &auth_key,
-                     td::uint64 quick_ack_token, td::mtproto::stealth::TrafficHint hint) final {
+                     td::uint64 quick_ack_token, TrafficHint hint) final {
+    (void)storer;
+    (void)session_id;
+    (void)salt;
+    (void)auth_key;
+    (void)quick_ack_token;
+    sent_hints.push_back(hint);
     return 0;
   }
 
-  void send_no_crypto(const td::Storer &storer, td::mtproto::stealth::TrafficHint hint) final {
+  void send_no_crypto(const td::Storer &storer, TrafficHint hint) final {
+    (void)storer;
+    sent_hints.push_back(hint);
+  }
+
+  size_t traffic_bulk_threshold_bytes() const {
+    return bulk_threshold_bytes_;
   }
 
   td::PollableFdInfo &get_poll_info() final {
@@ -72,14 +101,12 @@ class FakeRawConnection final : public RawConnection {
   }
 
   double shaping_wakeup_at() const final {
-    return shaping_wakeup_;
+    return 0.0;
   }
 
   td::Status flush(const AuthKey &auth_key, Callback &callback) final {
     (void)auth_key;
-    (void)callback;
-    flush_calls_++;
-    return td::Status::OK();
+    return callback.before_write();
   }
 
   bool has_error() const final {
@@ -97,14 +124,11 @@ class FakeRawConnection final : public RawConnection {
     return extra_;
   }
 
-  int flush_calls() const {
-    return flush_calls_;
-  }
+  td::vector<TrafficHint> sent_hints;
 
  private:
   td::BufferedFd<td::SocketFd> fd_;
-  double shaping_wakeup_{0.0};
-  int flush_calls_{0};
+  size_t bulk_threshold_bytes_{0};
   PublicFields extra_;
   NoopStatsCallback stats_callback_;
 };
@@ -150,26 +174,75 @@ class NoopSessionCallback final : public SessionConnection::Callback {
   }
 };
 
-TEST(SessionWakeupOverdueShaping, FlushReturnsOverdueRawConnectionShapingWakeupInsteadOfLaterTimeouts) {
+void init_auth_data_with_salt(AuthData *auth_data) {
+  auth_data->set_use_pfs(false);
+  auth_data->set_main_auth_key(AuthKey(1, td::string(256, 'a')));
+  auth_data->set_server_salt(1, td::Time::now_cached());
+  auth_data->set_future_salts({td::mtproto::ServerSalt{2, -1e9, 1e9}}, td::Time::now_cached());
+  auth_data->set_session_id(1);
+}
+
+#if TDLIB_STEALTH_SHAPING
+td::Result<StealthConfig> custom_bulk_threshold_config_factory(const td::mtproto::ProxySecret &secret, IRng &rng) {
+  auto config = StealthConfig::from_secret(secret, rng);
+  config.bulk_threshold_bytes = 1337;
+  auto status = config.validate();
+  if (status.is_error()) {
+    return status;
+  }
+  return config;
+}
+#endif
+
+TEST(SessionBulkThresholdRuntime, SessionUsesRawConnectionThresholdForBulkSplit) {
   auto socket_pair = create_socket_pair().move_as_ok();
-  auto shaping_wakeup = td::Time::now_cached() - 0.125;
   auto raw_connection =
-      td::make_unique<FakeRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)), shaping_wakeup);
+      td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)), 1024);
   auto *raw_ptr = raw_connection.get();
 
   AuthData auth_data;
-  auth_data.set_use_pfs(false);
-  auth_data.set_main_auth_key(AuthKey(1, td::string(256, 'a')));
-  auth_data.set_server_salt(1, td::Time::now_cached());
-  auth_data.set_session_id(1);
-
+  init_auth_data_with_salt(&auth_data);
   SessionConnection connection(SessionConnection::Mode::Tcp, std::move(raw_connection), &auth_data);
   NoopSessionCallback callback;
 
-  auto wakeup_at = connection.flush(&callback);
-  ASSERT_EQ(shaping_wakeup, wakeup_at);
-  ASSERT_TRUE(wakeup_at < td::Time::now_cached());
-  ASSERT_EQ(1, raw_ptr->flush_calls());
+  connection.send_query(td::BufferSlice(td::string(2048, 'q')), false, td::mtproto::MessageId(), {}, false);
+  connection.flush(&callback);
+
+  ASSERT_EQ(1u, raw_ptr->sent_hints.size());
+  ASSERT_EQ(TrafficHint::BulkData, raw_ptr->sent_hints[0]);
+}
+
+TEST(SessionBulkThresholdRuntime, SessionKeepsSamePayloadInteractiveAboveCustomThreshold) {
+  auto socket_pair = create_socket_pair().move_as_ok();
+  auto raw_connection =
+      td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)), 4096);
+  auto *raw_ptr = raw_connection.get();
+
+  AuthData auth_data;
+  init_auth_data_with_salt(&auth_data);
+  SessionConnection connection(SessionConnection::Mode::Tcp, std::move(raw_connection), &auth_data);
+  NoopSessionCallback callback;
+
+  connection.send_query(td::BufferSlice(td::string(2048, 'q')), false, td::mtproto::MessageId(), {}, false);
+  connection.flush(&callback);
+
+  ASSERT_EQ(1u, raw_ptr->sent_hints.size());
+  ASSERT_EQ(TrafficHint::Interactive, raw_ptr->sent_hints[0]);
+}
+
+TEST(SessionBulkThresholdRuntime, StreamTransportExposesRuntimeConfiguredBulkThreshold) {
+#if TDLIB_STEALTH_SHAPING
+  auto previous_factory = set_stealth_config_factory_for_tests(&custom_bulk_threshold_config_factory);
+  SCOPE_EXIT {
+    set_stealth_config_factory_for_tests(previous_factory);
+  };
+
+  auto transport = create_transport(
+      TransportType{TransportType::ObfuscatedTcp, 2, td::mtproto::ProxySecret::from_raw(make_tls_secret())});
+  ASSERT_EQ(1337u, transport->traffic_bulk_threshold_bytes());
+#else
+  ASSERT_TRUE(true);
+#endif
 }
 
 }  // namespace

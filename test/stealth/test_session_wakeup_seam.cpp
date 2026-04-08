@@ -9,6 +9,7 @@
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/SessionConnection.h"
+#include "td/mtproto/stealth/Interfaces.h"
 
 #include "td/utils/BufferedFd.h"
 #include "td/utils/common.h"
@@ -56,11 +57,11 @@ class FakeRawConnection final : public RawConnection {
   }
 
   size_t send_crypto(const td::Storer &storer, td::uint64 session_id, td::int64 salt, const AuthKey &auth_key,
-                     td::uint64 quick_ack_token) final {
+                     td::uint64 quick_ack_token, td::mtproto::stealth::TrafficHint hint) final {
     return 0;
   }
 
-  void send_no_crypto(const td::Storer &storer) final {
+  void send_no_crypto(const td::Storer &storer, td::mtproto::stealth::TrafficHint hint) final {
   }
 
   td::PollableFdInfo &get_poll_info() final {

@@ -270,7 +270,7 @@ class SessionConnection final
   void do_close(Status status);
 
   void send_ack(MessageId message_id);
-  void send_crypto(const Storer &storer, uint64 quick_ack_token);
+  void send_crypto(const Storer &storer, uint64 quick_ack_token, stealth::TrafficHint hint);
   void send_before(double tm);
   bool may_ping() const;
   bool must_ping() const;
