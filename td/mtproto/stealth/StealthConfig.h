@@ -48,6 +48,9 @@ struct RecordSizePolicy final {
   int32 slow_start_max{1460};
 };
 
+Status validate_ipt_params(const IptParams &params) noexcept;
+Status validate_drs_policy(const DrsPolicy &policy) noexcept;
+
 struct StealthConfig final {
   static constexpr size_t kMaxRingCapacity = 4096;
 

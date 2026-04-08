@@ -6,6 +6,8 @@
 //
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
+#include "td/mtproto/stealth/StealthRuntimeParams.h"
+
 #include "tddb/td/db/KeyValueSyncInterface.h"
 
 #include "td/utils/crypto.h"
@@ -86,9 +88,8 @@ constexpr ProfileFixtureMetadata PROFILE_FIXTURES[] = {
      false, false},
 };
 
-constexpr uint32 kRuntimeEchFailureThreshold = 3;
-constexpr double kRuntimeEchDisableTtlSeconds = 300.0;
 constexpr Slice kRuntimeEchStoreKeyPrefix("stealth_ech_cb#");
+constexpr uint32 kRouteFailureKeyBucketSeconds = 86400;
 
 struct RouteFailureCacheEntry final {
   RouteFailureState state;
@@ -112,6 +113,27 @@ std::unordered_map<string, RouteFailureCacheEntry> &route_failure_cache() {
   return cache;
 }
 
+RuntimeActivePolicy active_policy_for_route(const StealthRuntimeParams &runtime_params,
+                                            const NetworkRouteHints &route) noexcept {
+  if (route.is_known) {
+    return route.is_ru ? RuntimeActivePolicy::RuEgress : RuntimeActivePolicy::NonRuEgress;
+  }
+  return runtime_params.active_policy;
+}
+
+const RuntimeRoutePolicyEntry &route_policy_entry_for_active_policy(const StealthRuntimeParams &runtime_params,
+                                                                    RuntimeActivePolicy active_policy) noexcept {
+  switch (active_policy) {
+    case RuntimeActivePolicy::RuEgress:
+      return runtime_params.route_policy.ru;
+    case RuntimeActivePolicy::NonRuEgress:
+      return runtime_params.route_policy.non_ru;
+    case RuntimeActivePolicy::Unknown:
+    default:
+      return runtime_params.route_policy.unknown;
+  }
+}
+
 std::shared_ptr<KeyValueSyncInterface> &route_failure_store() {
   static std::shared_ptr<KeyValueSyncInterface> store;
   return store;
@@ -123,16 +145,18 @@ RuntimeEchCounterStorage &runtime_ech_counters() {
 }
 
 RouteFailureState fail_closed_route_failure_state() {
+  auto runtime_params = get_runtime_stealth_params_snapshot();
   RouteFailureState state;
   state.ech_block_suspected = true;
-  state.recent_ech_failures = kRuntimeEchFailureThreshold;
+  state.recent_ech_failures = runtime_params.route_failure.ech_failure_threshold;
   return state;
 }
 
 RouteFailureCacheEntry make_fail_closed_route_failure_cache_entry() {
+  auto runtime_params = get_runtime_stealth_params_snapshot();
   RouteFailureCacheEntry entry;
   entry.state = fail_closed_route_failure_state();
-  entry.disabled_until = Timestamp::in(kRuntimeEchDisableTtlSeconds);
+  entry.disabled_until = Timestamp::in(runtime_params.route_failure.ech_disable_ttl_seconds);
   return entry;
 }
 
@@ -141,10 +165,14 @@ size_t profile_index(BrowserProfile profile) {
 }
 
 string route_failure_cache_key(Slice destination, int32 unix_time) {
-  auto selection_key = make_profile_selection_key(destination, unix_time);
-  auto key = selection_key.destination;
+  auto unix_time64 = static_cast<int64>(unix_time);
+  if (unix_time64 < 0) {
+    unix_time64 = 0;
+  }
+
+  string key = destination.str();
   key += '|';
-  key += std::to_string(selection_key.time_bucket);
+  key += std::to_string(static_cast<uint32>(unix_time64 / kRouteFailureKeyBucketSeconds));
   return key;
 }
 
@@ -335,36 +363,24 @@ uint32 stable_selection_hash(const SelectionKey &key, const RuntimePlatformHints
 }  // namespace
 
 RuntimePlatformHints default_runtime_platform_hints() noexcept {
-  RuntimePlatformHints hints;
-#if TD_ANDROID
-  hints.device_class = DeviceClass::Mobile;
-  hints.mobile_os = MobileOs::Android;
-  hints.desktop_os = DesktopOs::Unknown;
-#elif TD_DARWIN_IOS || TD_DARWIN_TV_OS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS
-  hints.device_class = DeviceClass::Mobile;
-  hints.mobile_os = MobileOs::IOS;
-  hints.desktop_os = DesktopOs::Unknown;
-#else
-  hints.device_class = DeviceClass::Desktop;
-#if TD_DARWIN
-  hints.desktop_os = DesktopOs::Darwin;
-#elif TD_WINDOWS
-  hints.desktop_os = DesktopOs::Windows;
-#else
-  hints.desktop_os = DesktopOs::Linux;
-#endif
-#endif
-  return hints;
+  return get_runtime_stealth_params_snapshot().platform_hints;
 }
 
 SelectionKey make_profile_selection_key(Slice destination, int32 unix_time) {
   SelectionKey key;
   key.destination = destination.str();
+
   auto unix_time64 = static_cast<int64>(unix_time);
   if (unix_time64 < 0) {
     unix_time64 = 0;
   }
-  key.time_bucket = static_cast<uint32>(unix_time64 / 86400);
+
+  auto runtime_params = get_runtime_stealth_params_snapshot();
+  auto bucket_seconds = runtime_params.flow_behavior.sticky_domain_rotation_window_sec;
+  if (bucket_seconds == 0) {
+    bucket_seconds = 1;
+  }
+  key.time_bucket = static_cast<uint32>(unix_time64 / bucket_seconds);
   return key;
 }
 
@@ -393,16 +409,17 @@ void note_runtime_ech_decision(const RuntimeEchDecision &decision, bool ech_enab
 }
 
 void note_runtime_ech_failure(Slice destination, int32 unix_time) {
+  auto runtime_params = get_runtime_stealth_params_snapshot();
   auto lock = std::lock_guard<std::mutex>(route_failure_cache_mutex());
   auto &entry = route_failure_cache()[route_failure_cache_key(destination, unix_time)];
   if (entry.disabled_until && entry.disabled_until.is_in_past()) {
     entry = RouteFailureCacheEntry{};
   }
   entry.state.recent_ech_failures++;
-  entry.disabled_until = Timestamp::in(kRuntimeEchDisableTtlSeconds);
-  if (entry.state.recent_ech_failures >= kRuntimeEchFailureThreshold) {
+  entry.disabled_until = Timestamp::in(runtime_params.route_failure.ech_disable_ttl_seconds);
+  if (entry.state.recent_ech_failures >= runtime_params.route_failure.ech_failure_threshold) {
     entry.state.ech_block_suspected = true;
-    entry.disabled_until = Timestamp::in(kRuntimeEchDisableTtlSeconds);
+    entry.disabled_until = Timestamp::in(runtime_params.route_failure.ech_disable_ttl_seconds);
   }
   persist_route_failure_cache_entry_locked(destination, unix_time, entry);
 }
@@ -465,7 +482,7 @@ const ProfileFixtureMetadata &profile_fixture_metadata(BrowserProfile profile) {
 }
 
 ProfileWeights default_profile_weights() {
-  return ProfileWeights{};
+  return get_runtime_stealth_params_snapshot().profile_weights;
 }
 
 BrowserProfile pick_profile_sticky(const ProfileWeights &weights, const SelectionKey &key,
@@ -516,19 +533,35 @@ BrowserProfile pick_runtime_profile(Slice destination, int32 unix_time, const Ru
 }
 
 EchMode ech_mode_for_route(const NetworkRouteHints &route, const RouteFailureState &state) noexcept {
-  if (!route.is_known || route.is_ru) {
+  auto runtime_params = get_runtime_stealth_params_snapshot();
+  auto active_policy = active_policy_for_route(runtime_params, route);
+  auto &route_policy = route_policy_entry_for_active_policy(runtime_params, active_policy);
+  if (active_policy == RuntimeActivePolicy::Unknown || active_policy == RuntimeActivePolicy::RuEgress) {
+    return route_policy.ech_mode;
+  }
+  if (state.ech_block_suspected || state.recent_ech_failures >= runtime_params.route_failure.ech_failure_threshold) {
     return EchMode::Disabled;
   }
-  if (state.ech_block_suspected || state.recent_ech_failures >= 3) {
-    return EchMode::Disabled;
-  }
-  return EchMode::Rfc9180Outer;
+  return route_policy.ech_mode;
 }
 
 RuntimeEchDecision get_runtime_ech_decision(Slice destination, int32 unix_time,
                                             const NetworkRouteHints &route) noexcept {
+  auto runtime_params = get_runtime_stealth_params_snapshot();
+  auto active_policy = active_policy_for_route(runtime_params, route);
+  auto &route_policy = route_policy_entry_for_active_policy(runtime_params, active_policy);
   RuntimeEchDecision decision;
-  if (!route.is_known || route.is_ru) {
+  if (active_policy == RuntimeActivePolicy::Unknown) {
+    decision.ech_mode = route_policy.ech_mode;
+    decision.disabled_by_route = true;
+    return decision;
+  }
+  if (active_policy == RuntimeActivePolicy::RuEgress) {
+    decision.ech_mode = route_policy.ech_mode;
+    decision.disabled_by_route = true;
+    return decision;
+  }
+  if (route_policy.ech_mode == EchMode::Disabled) {
     decision.ech_mode = EchMode::Disabled;
     decision.disabled_by_route = true;
     return decision;
@@ -547,7 +580,7 @@ RuntimeEchDecision get_runtime_ech_decision(Slice destination, int32 unix_time,
   decision.ech_mode = ech_mode_for_route(route, state);
   decision.disabled_by_circuit_breaker =
       decision.ech_mode == EchMode::Disabled &&
-      (state.ech_block_suspected || state.recent_ech_failures >= kRuntimeEchFailureThreshold);
+      (state.ech_block_suspected || state.recent_ech_failures >= runtime_params.route_failure.ech_failure_threshold);
   return decision;
 }
 

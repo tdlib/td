@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/mtproto/stealth/StealthConfig.h"
+#include "td/mtproto/stealth/StealthRuntimeParams.h"
 
 #include "td/utils/Random.h"
 #include "td/utils/Time.h"
@@ -182,21 +183,61 @@ unique_ptr<IClock> make_clock() {
   return td::make_unique<SystemClock>();
 }
 
+Status validate_ipt_params(const IptParams &params) noexcept {
+  TRY_STATUS(validate_finite("ipt_params.burst_mu_ms", params.burst_mu_ms));
+  TRY_STATUS(validate_non_negative_finite("ipt_params.burst_sigma", params.burst_sigma));
+  TRY_STATUS(validate_non_negative_finite("ipt_params.burst_max_ms", params.burst_max_ms));
+  TRY_STATUS(validate_non_negative_finite("ipt_params.idle_alpha", params.idle_alpha));
+  TRY_STATUS(validate_non_negative_finite("ipt_params.idle_scale_ms", params.idle_scale_ms));
+  TRY_STATUS(validate_non_negative_finite("ipt_params.idle_max_ms", params.idle_max_ms));
+  TRY_STATUS(validate_probability("ipt_params.p_burst_stay", params.p_burst_stay));
+  TRY_STATUS(validate_probability("ipt_params.p_idle_to_burst", params.p_idle_to_burst));
+  if (params.burst_max_ms == 0.0) {
+    return Status::Error("ipt_params.burst_max_ms must be positive");
+  }
+  TRY_STATUS(validate_microsecond_delay_cap("ipt_params.burst_max_ms", params.burst_max_ms));
+  if (params.idle_alpha == 0.0) {
+    return Status::Error("ipt_params.idle_alpha must be positive");
+  }
+  if (params.idle_scale_ms == 0.0) {
+    return Status::Error("ipt_params.idle_scale_ms must be positive");
+  }
+  if (params.idle_scale_ms >= params.idle_max_ms) {
+    return Status::Error("ipt_params.idle_scale_ms must be below idle_max_ms");
+  }
+  TRY_STATUS(validate_microsecond_delay_cap("ipt_params.idle_max_ms", params.idle_max_ms));
+  return Status::OK();
+}
+
+Status validate_drs_policy(const DrsPolicy &policy) noexcept {
+  TRY_STATUS(validate_positive_range("drs_policy.payload_cap", policy.min_payload_cap, policy.max_payload_cap, 256,
+                                     16384));
+  if (policy.slow_start_records <= 0) {
+    return Status::Error("drs_policy.slow_start_records must be positive");
+  }
+  if (policy.congestion_bytes <= 0) {
+    return Status::Error("drs_policy.congestion_bytes must be positive");
+  }
+  TRY_STATUS(validate_positive_range("drs_policy.idle_reset_ms", policy.idle_reset_ms_min, policy.idle_reset_ms_max,
+                                     1, 60000));
+  TRY_STATUS(validate_drs_phase_model("drs_policy.slow_start", policy.slow_start, policy.min_payload_cap,
+                                      policy.max_payload_cap));
+  TRY_STATUS(validate_drs_phase_model("drs_policy.congestion_open", policy.congestion_open, policy.min_payload_cap,
+                                      policy.max_payload_cap));
+  TRY_STATUS(validate_drs_phase_model("drs_policy.steady_state", policy.steady_state, policy.min_payload_cap,
+                                      policy.max_payload_cap));
+  return Status::OK();
+}
+
 StealthConfig StealthConfig::default_config(IRng &rng) {
   (void)rng;
+  auto runtime_params = get_runtime_stealth_params_snapshot();
   StealthConfig config;
   config.profile = BrowserProfile::Chrome133;
   config.padding_policy = no_padding_policy();
-  config.drs_policy.slow_start.bins = {{1200, 1460, 1}, {1461, 1700, 1}};
-  config.drs_policy.slow_start.max_repeat_run = 4;
-  config.drs_policy.slow_start.local_jitter = 24;
-  config.drs_policy.congestion_open.bins = {{1400, 1900, 1}, {1901, 2600, 2}};
-  config.drs_policy.congestion_open.max_repeat_run = 4;
-  config.drs_policy.congestion_open.local_jitter = 24;
-  config.drs_policy.steady_state.bins = {{2400, 4096, 2}, {4097, 8192, 2}, {8193, 12288, 1}};
-  config.drs_policy.steady_state.max_repeat_run = 4;
-  config.drs_policy.steady_state.local_jitter = 24;
-  config.bulk_threshold_bytes = 8192;
+  config.ipt_params = runtime_params.ipt_params;
+  config.drs_policy = runtime_params.drs_policy;
+  config.bulk_threshold_bytes = runtime_params.bulk_threshold_bytes;
   return config;
 }
 
@@ -231,45 +272,9 @@ Status StealthConfig::validate() const {
   if (low_watermark > high_watermark) {
     return Status::Error("low_watermark must not exceed high_watermark");
   }
-  TRY_STATUS(validate_finite("ipt_params.burst_mu_ms", ipt_params.burst_mu_ms));
-  TRY_STATUS(validate_non_negative_finite("ipt_params.burst_sigma", ipt_params.burst_sigma));
-  TRY_STATUS(validate_non_negative_finite("ipt_params.burst_max_ms", ipt_params.burst_max_ms));
-  TRY_STATUS(validate_non_negative_finite("ipt_params.idle_alpha", ipt_params.idle_alpha));
-  TRY_STATUS(validate_non_negative_finite("ipt_params.idle_scale_ms", ipt_params.idle_scale_ms));
-  TRY_STATUS(validate_non_negative_finite("ipt_params.idle_max_ms", ipt_params.idle_max_ms));
-  TRY_STATUS(validate_probability("ipt_params.p_burst_stay", ipt_params.p_burst_stay));
-  TRY_STATUS(validate_probability("ipt_params.p_idle_to_burst", ipt_params.p_idle_to_burst));
-  if (ipt_params.burst_max_ms == 0.0) {
-    return Status::Error("ipt_params.burst_max_ms must be positive");
-  }
-  TRY_STATUS(validate_microsecond_delay_cap("ipt_params.burst_max_ms", ipt_params.burst_max_ms));
-  if (ipt_params.idle_alpha == 0.0) {
-    return Status::Error("ipt_params.idle_alpha must be positive");
-  }
-  if (ipt_params.idle_scale_ms == 0.0) {
-    return Status::Error("ipt_params.idle_scale_ms must be positive");
-  }
-  if (ipt_params.idle_scale_ms >= ipt_params.idle_max_ms) {
-    return Status::Error("ipt_params.idle_scale_ms must be below idle_max_ms");
-  }
-  TRY_STATUS(validate_microsecond_delay_cap("ipt_params.idle_max_ms", ipt_params.idle_max_ms));
-  TRY_STATUS(validate_positive_range("drs_policy.payload_cap", drs_policy.min_payload_cap, drs_policy.max_payload_cap,
-                                     256, 16384));
+  TRY_STATUS(validate_ipt_params(ipt_params));
+  TRY_STATUS(validate_drs_policy(drs_policy));
   TRY_STATUS(validate_size_t_range("bulk_threshold_bytes", bulk_threshold_bytes, 512, static_cast<size_t>(1) << 20));
-  if (drs_policy.slow_start_records <= 0) {
-    return Status::Error("drs_policy.slow_start_records must be positive");
-  }
-  if (drs_policy.congestion_bytes <= 0) {
-    return Status::Error("drs_policy.congestion_bytes must be positive");
-  }
-  TRY_STATUS(validate_positive_range("drs_policy.idle_reset_ms", drs_policy.idle_reset_ms_min,
-                                     drs_policy.idle_reset_ms_max, 1, 60000));
-  TRY_STATUS(validate_drs_phase_model("drs_policy.slow_start", drs_policy.slow_start, drs_policy.min_payload_cap,
-                                      drs_policy.max_payload_cap));
-  TRY_STATUS(validate_drs_phase_model("drs_policy.congestion_open", drs_policy.congestion_open,
-                                      drs_policy.min_payload_cap, drs_policy.max_payload_cap));
-  TRY_STATUS(validate_drs_phase_model("drs_policy.steady_state", drs_policy.steady_state, drs_policy.min_payload_cap,
-                                      drs_policy.max_payload_cap));
   TRY_STATUS(validate_range("record_size_policy", record_size_policy.slow_start_min, record_size_policy.slow_start_max,
                             256, 16384));
   return Status::OK();

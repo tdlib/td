@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/net/ConnectionDestinationBudgetController.h"
+#include "td/telegram/net/ConnectionFlowController.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/DcOptionsSet.h"
@@ -144,6 +146,7 @@ class ConnectionCreator final : public NetQueryCallback {
     size_t checking_connections{0};
     std::vector<std::pair<unique_ptr<mtproto::RawConnection>, double>> ready_connections;
     std::vector<Promise<unique_ptr<mtproto::RawConnection>>> queries;
+    ConnectionFlowController flow_controller;
 
     static constexpr double READY_CONNECTIONS_TIMEOUT = 10;
 
@@ -157,6 +160,7 @@ class ConnectionCreator final : public NetQueryCallback {
     uint64 auth_data_generation{0};
   };
   std::map<uint32, ClientInfo> clients_;
+  ConnectionDestinationBudgetController destination_budget_controller_;
 
   std::shared_ptr<NetStatsCallback> media_net_stats_callback_;
   std::shared_ptr<NetStatsCallback> common_net_stats_callback_;
@@ -216,6 +220,7 @@ class ConnectionCreator final : public NetQueryCallback {
 
   void client_wakeup(uint32 hash);
   void client_loop(ClientInfo &client);
+  ConnectionDestinationBudgetController::DestinationKey get_destination_key(const ClientInfo &client) const;
   void client_create_raw_connection(Result<ConnectionData> r_connection_data, bool check_mode,
                                     mtproto::TransportType transport_type, uint32 hash, string debug_str,
                                     uint32 network_generation);

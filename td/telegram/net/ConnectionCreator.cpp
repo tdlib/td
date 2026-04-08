@@ -6,6 +6,11 @@
 //
 #include "td/telegram/net/ConnectionCreator.h"
 
+#include "td/telegram/net/ConnectionDestinationBudgetController.h"
+#include "td/telegram/net/ConnectionPoolPolicy.h"
+
+#include "td/mtproto/stealth/StealthRuntimeParams.h"
+
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
@@ -780,13 +785,15 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
 
   VLOG(connections) << "In client_loop: " << tag("client", format::as_hex(client.hash));
 
+  auto runtime_params = mtproto::stealth::get_runtime_stealth_params_snapshot();
+
   // Remove expired ready connections
-  td::remove_if(client.ready_connections,
-                [&, expires_at = Time::now_cached() - ClientInfo::READY_CONNECTIONS_TIMEOUT](auto &v) {
-                  bool drop = v.second < expires_at;
-                  VLOG_IF(connections, drop) << "Drop expired " << tag("connection", v.first.get());
-                  return drop;
-                });
+  td::remove_if(client.ready_connections, [&, now = Time::now_cached()](auto &v) {
+    bool drop = ConnectionPoolPolicy::is_pooled_connection_expired(v.second, now, ClientInfo::READY_CONNECTIONS_TIMEOUT,
+                                                                   runtime_params.flow_behavior);
+    VLOG_IF(connections, drop) << "Drop expired " << tag("connection", v.first.get());
+    return drop;
+  });
 
   // Send ready connections into promises
   {
@@ -809,7 +816,13 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     // Check if we need new connections
     if (client.queries.empty()) {
       if (!client.ready_connections.empty()) {
-        client_set_timeout_at(client, Time::now() + ClientInfo::READY_CONNECTIONS_TIMEOUT);
+        auto oldest_ready_at = client.ready_connections.front().second;
+        for (size_t i = 1; i < client.ready_connections.size(); i++) {
+          oldest_ready_at = min(oldest_ready_at, client.ready_connections[i].second);
+        }
+        auto retention_seconds = ConnectionPoolPolicy::pooled_connection_retention_seconds(
+            ClientInfo::READY_CONNECTIONS_TIMEOUT, runtime_params.flow_behavior);
+        client_set_timeout_at(client, oldest_ready_at + retention_seconds);
       }
       return;
     }
@@ -832,6 +845,9 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     if (!act_as_if_online) {
       wakeup_at = max(wakeup_at, static_cast<double>(client.backoff.get_wakeup_at()));
     }
+    wakeup_at = max(wakeup_at, client.flow_controller.get_wakeup_at(Time::now(), runtime_params.flow_behavior));
+    wakeup_at = max(wakeup_at, destination_budget_controller_.get_wakeup_at(Time::now(), get_destination_key(client),
+                                                                            runtime_params.flow_behavior));
     if (wakeup_at > Time::now()) {
       return client_set_timeout_at(client, wakeup_at);
     }
@@ -855,6 +871,9 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
 
     // Events with failed socket creation are ignored
     flood_control.add_event(Time::now());
+    client.flow_controller.on_connect_started(Time::now(), runtime_params.flow_behavior);
+    destination_budget_controller_.on_connect_started(Time::now(), get_destination_key(client),
+                                                      runtime_params.flow_behavior);
 
     auto socket_fd = r_socket_fd.move_as_ok();
 #if !TD_DARWIN_WATCH_OS
@@ -894,6 +913,16 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       children_[token] = {true, std::move(ref)};
     }
   }
+}
+
+ConnectionDestinationBudgetController::DestinationKey ConnectionCreator::get_destination_key(
+    const ClientInfo &client) const {
+  ConnectionDestinationBudgetController::DestinationKey destination;
+  destination.dc_id = client.dc_id.get_raw_id();
+  destination.proxy_id = active_proxy_id_;
+  destination.allow_media_only = client.allow_media_only;
+  destination.is_media = client.is_media;
+  return destination;
 }
 
 void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_connection_data, bool check_mode,

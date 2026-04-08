@@ -6,6 +6,8 @@
 //
 #include "td/telegram/net/Session.h"
 
+#include "td/telegram/net/ConnectionPoolPolicy.h"
+
 #include "td/telegram/DhCache.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/DcAuthManager.h"
@@ -1506,8 +1508,10 @@ void Session::loop() {
     return;
   }
   auto now = Time::now();
+  auto runtime_params = mtproto::stealth::get_runtime_stealth_params_snapshot();
 
-  if (cached_connection_timestamp_ < now - 10) {
+  if (cached_connection_ && ConnectionPoolPolicy::is_pooled_connection_expired(cached_connection_timestamp_, now, 10.0,
+                                                                               runtime_params.flow_behavior)) {
     cached_connection_.reset();
   }
   if (!is_main_ && !has_queries() && !need_destroy_auth_key_ && last_activity_timestamp_ < now - ACTIVITY_TIMEOUT) {

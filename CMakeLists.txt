@@ -309,6 +309,8 @@ set(TD_MTPROTO_SOURCE
   td/mtproto/stealth/DrsEngine.cpp
   td/mtproto/stealth/IptController.cpp
   td/mtproto/stealth/StealthConfig.cpp
+  td/mtproto/stealth/StealthParamsLoader.cpp
+  td/mtproto/stealth/StealthRuntimeParams.cpp
   td/mtproto/stealth/ShaperRingBuffer.cpp
   td/mtproto/stealth/StealthTransportDecorator.cpp
   td/mtproto/stealth/TrafficClassifier.cpp
@@ -346,6 +348,7 @@ set(TD_MTPROTO_SOURCE
   td/mtproto/stealth/Interfaces.h
   td/mtproto/stealth/ShaperRingBuffer.h
   td/mtproto/stealth/StealthConfig.h
+  td/mtproto/stealth/StealthRuntimeParams.h
   td/mtproto/stealth/StealthTransportDecorator.h
   td/mtproto/stealth/TrafficClassifier.h
   td/mtproto/stealth/TlsHelloBuilder.h
@@ -552,6 +555,9 @@ set(TDLIB_SOURCE_PART1
 )
 set(TDLIB_SOURCE_PART2
   td/telegram/net/AuthDataShared.cpp
+  td/telegram/net/ConnectionDestinationBudgetController.cpp
+  td/telegram/net/ConnectionFlowController.cpp
+  td/telegram/net/ConnectionPoolPolicy.cpp
   td/telegram/net/ConnectionCreator.cpp
   td/telegram/net/DcAuthManager.cpp
   td/telegram/net/DcOptionsSet.cpp
