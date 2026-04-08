@@ -1,0 +1,292 @@
+{
+  "artifact_type": "tls_clienthello_fixtures",
+  "capture_date_utc": "2026-04-07T13:05:40Z",
+  "device_class": "mobile",
+  "display_filter": "tcp && tls.handshake.type == 1",
+  "extractor": {
+    "name": "extract_client_hello_fixtures.py",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "generated_at_utc": "2026-04-08T11:40:09Z",
+  "os_family": "android",
+  "parser_version": "tls-clienthello-parser-v1",
+  "profile_id": "samsung_internet29_android16_galaxy_s25plus",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "alpn_protocols": [
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0xCACA",
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "f4d9ddb01f58822771936ed56b3fcaf426abeb67319830d2021465b30f391f73",
+      "compress_certificate_algorithms": [
+        "0x0002"
+      ],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": {
+        "aead_id": "0x0001",
+        "config_id": "0x18",
+        "enc_length": 32,
+        "enc_sha256": "489eed06904a94c95fdeced41224c4e77c485a8163531d743046f43016f3a510",
+        "kdf_id": "0x0001",
+        "outer_type": "0x00",
+        "payload_length": 208,
+        "payload_sha256": "bf9b2bdf11e3d8baa26a67b5f5a7cbbd09d174053c6fe1aba28267da3086608d"
+      },
+      "extension_types": [
+        "0x7A7A",
+        "0x001B",
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x002B",
+        "0xFE0D",
+        "0x0023",
+        "0x0033",
+        "0x000B",
+        "0x000A",
+        "0x000D",
+        "0x0012",
+        "0x0010",
+        "0x002D",
+        "0x0005",
+        "0x6A6A"
+      ],
+      "extensions": [
+        {
+          "body_hex": "",
+          "is_grease": true,
+          "length": 0,
+          "type": "0x7A7A"
+        },
+        {
+          "body_hex": "020002",
+          "is_grease": false,
+          "length": 3,
+          "type": "0x001B"
+        },
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "06aaaa03040303",
+          "is_grease": false,
+          "length": 7,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "00000100011800203ccd952b29e2e53368003f23b179aa9fe2193f0727e10de71a13466a38f0610800d0a85ce10f64905b1518c75f6a1a4866413783d8470f464e5c960c5895ece505f0fae4a7181024d8fee7d1284c08fa7ab1cdec967f00164df404cc22526cca76d83fbffb32a82e24478a358e4b35884ac81a88f86238074f4abd168e24964cc4b0108a8f4ed2409ae0b150673a0aba3633c280f0c947a18a96a61cc2131fa85cdc811c7df01db1cba414ad67f53d9ab3aec6517037d829b4d8b2445c39b9d7f8d2e8dad3ec8317586fb9248c46d99326b5d2d1e522a37791d0f1941a5f9bca2f549047687af42be3d9d2ba29e5a377798d",
+          "is_grease": false,
+          "length": 250,
+          "type": "0xFE0D"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0023"
+        },
+        {
+          "body_hex": "04ed1a1a00010011ec04c0ff6c7fc5363a67968ddf2ccd7af47c5a67971844a273467eec1291e002623b26b2c64079ee6c0da47ba169cb202ce4b38ff0acc1522f2cd3961ebb6ff41739cb6325f43c7bcb6084ac5c60c8b6c644d5a083092cc2a848610649c3c8b50bb13981680d31b82346a78fd9634e0ca71829c8cd9c68806a39462702141b60892ef7695402326aa65ddb092c5d25449b588da3a31f98ebb79f5012ef892e08ab1f37272597c145ade99d8d7b955dc16e8a382862423fbba8310fc38d72ec83a63c7da82b5061d869e69582bba45027f209e402531e3009ceba078c67cd5e2235d6a086647b450a28ac19854b04f4043d0169c3e377464bcf5ff2008cd446d7047a1fc9b919b564733509f760b5cf6050e8e7763179337f367a73249aa176613487490866565f26432b65af4402a5b2e61904b4265cc25fd7ea6a8429c00db81b7cda50cc78b28d113fe62226dea6c60680891bc76ce91369ddd4cdaa594ad01bc26d8636f2397a86e322e3684424315f998b4302c6c186f542e91c5d00440ec9ab3edb609f89b77ee5963d696512ef100322e284dd8955fc9203d5b64275f716eee090f7b346b14c96a132aa7ca1a1a6cc4328313d65da90ac039769a7a618a28d824b0361c417ce26c881f16ce78abc59a8c5b9e4012cf38b570b2137b85797c010087b7df8015f76312aa4faa64bcb73f8b64d0fbba2c03713cdba185ea47a46f736a2d62ac3f475aa93a698e97a954a720d0953f9ca1c779173d1f14748ca49ee618578133c42fa2268731f1dfc6278039e08f2918862cedd923a6fd132aa06108298ad52220b42bbb5ea381f3b361aef4334ad73176e380ce6496e75922c6763332618c058ac2e2565cea44122503040a1031fa0054f74a49af1e935f07c3e2fc6a6ddacb3fe361b15630fcc6a0899636d8122531f66b852b7c744dcafda35946421746e97840df2b421ec175775780ce06a44286ad769bc6a09bb35a7aa88a0613a078a18e4a2e7acc7d6280f907aace4bc2a4e4c3b937744858b86192c2ae6672737814f977b85114b777912a75f0c1a9507818deb5374a3a34a65ce5605720387c461e0159985703dc94ca21c03f56baa1987c89fb27cb60a24bd3a6d39d2741309c7045521d58455dfb45096b91f199935fe29ad08fa42d60c9051bc6bfac79d3dda4f6ee360a6780dc958379b053e472bc91730a94fac3079c54f3c18915c45a1ceb7b3308913a9669062508108658319f3215918519676747b3b902e25436456053e813569d64095b7583fd75f81e54fb209473f279fdce1a4667566c432cf29798240858473bb15ba344ba76b18e0b11125b2942beb5f8af38606494765ec7d4a537f951b4a71f090d59077bae2229a1243b2f45d8c77bd010b5de7657144c85079ea7510789f29281d286665ba36275b0a0613101f309316d0751e11b5966f1c9ae5cb1a6ef8c50fc41f2eec35678a0fc8114d6fd488bbdc45e0aa77cb5b1b15a9c6faeab8b97389b170a393352a23a03826701589ec8272a849563451a1c36e1fe125cbb8c8c16162f0b95c27454e0880a7418b106237ab09ec0050b051f1761aab59a07e727f0748cad504c86a362c3b802b309a8234d322a9328c95fdb4c34b05372a8c9270f4fd7b9a015edf2efd5ad2f1dc3ba754a0770a655f96b95d0d7d72178466577e6fe7e724ca143d414735a4a5e3bf9c855eca56da1f001d00201bf37e3a7b90cd68341ab8d079ae0a1ec2bdc4cd8526a0fd0ea7ca7defd6665f",
+          "is_grease": false,
+          "length": 1263,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "000a1a1a11ec001d00170018",
+          "is_grease": false,
+          "length": 12,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "001004030804040105030805050108060601",
+          "is_grease": false,
+          "length": 18,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0012"
+        },
+        {
+          "body_hex": "000908687474702f312e31",
+          "is_grease": false,
+          "length": 11,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": true,
+          "length": 1,
+          "type": "0x6A6A"
+        }
+      ],
+      "fixture_id": "samsung_internet29_android16_galaxy_s25plus:frame133",
+      "frame_number": 133,
+      "frame_time_epoch": "1775567140.777557000",
+      "frame_time_utc": "2026-04-07T13:05:40Z",
+      "handshake_length": 1778,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": true,
+      "has_grease_extension": true,
+      "has_grease_supported_group": true,
+      "key_share_entries": [
+        {
+          "group": "0x1A1A",
+          "is_grease_group": true,
+          "key_exchange_length": 1,
+          "key_exchange_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "group": "0x11EC",
+          "is_grease_group": false,
+          "key_exchange_length": 1216,
+          "key_exchange_sha256": "8db6f8dbd9537e42793fd9abb28a47d0ce2d22412df1a5d410c9fc0815136a4c"
+        },
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "562e3540961c082ccbd699cc565b5c8ce01057f4d177d04c5d902fe003110541"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x001B",
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x002B",
+        "0xFE0D",
+        "0x0023",
+        "0x0033",
+        "0x000B",
+        "0x000A",
+        "0x000D",
+        "0x0012",
+        "0x0010",
+        "0x002D",
+        "0x0005"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x001B",
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x002B",
+        "0xFE0D",
+        "0x0023",
+        "0x0033",
+        "0x000B",
+        "0x000A",
+        "0x000D",
+        "0x0012",
+        "0x0010",
+        "0x002D",
+        "0x0005"
+      ],
+      "non_grease_supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "random_sha256": "afe9dd25f2d3966b792c3ce870f12a95844980d02a9b341037644d98ae71f45f",
+      "record_length": 1782,
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "663d2b9b007686956aa2e49226e27ab027f2620dc5cfb3ccb5acd6aa32d4deec",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 1782,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0x1A1A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tcp_stream": 1,
+      "tls_record_sha256": "62f5c55eef75ec6b9239ed3e1bf69e22c79b76f10a12e0011fa57b2c236e741e"
+    }
+  ],
+  "scenario_id": "android16_galaxy_s25plus_samsung_internet29_clienthello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Samsung Galaxy S25+, Android 16, Samsung Internet Browser 29.0.pcap",
+  "source_sha256": "ffe2edd54f38a29fb69f3ecf9a781a991e4d7677af3ac9a4f622b66390722779",
+  "tls_handshake_type": 1,
+  "transport": "tcp"
+}

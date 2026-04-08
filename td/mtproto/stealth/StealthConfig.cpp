@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
+
 #include "td/mtproto/stealth/StealthConfig.h"
 #include "td/mtproto/stealth/StealthRuntimeParams.h"
 
@@ -210,16 +210,16 @@ Status validate_ipt_params(const IptParams &params) noexcept {
 }
 
 Status validate_drs_policy(const DrsPolicy &policy) noexcept {
-  TRY_STATUS(validate_positive_range("drs_policy.payload_cap", policy.min_payload_cap, policy.max_payload_cap, 256,
-                                     16384));
+  TRY_STATUS(
+      validate_positive_range("drs_policy.payload_cap", policy.min_payload_cap, policy.max_payload_cap, 256, 16384));
   if (policy.slow_start_records <= 0) {
     return Status::Error("drs_policy.slow_start_records must be positive");
   }
   if (policy.congestion_bytes <= 0) {
     return Status::Error("drs_policy.congestion_bytes must be positive");
   }
-  TRY_STATUS(validate_positive_range("drs_policy.idle_reset_ms", policy.idle_reset_ms_min, policy.idle_reset_ms_max,
-                                     1, 60000));
+  TRY_STATUS(validate_positive_range("drs_policy.idle_reset_ms", policy.idle_reset_ms_min, policy.idle_reset_ms_max, 1,
+                                     60000));
   TRY_STATUS(validate_drs_phase_model("drs_policy.slow_start", policy.slow_start, policy.min_payload_cap,
                                       policy.max_payload_cap));
   TRY_STATUS(validate_drs_phase_model("drs_policy.congestion_open", policy.congestion_open, policy.min_payload_cap,

@@ -1,3 +1,9 @@
+# SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+# SPDX-FileCopyrightText: Copyright 2026 telemt community
+# SPDX-License-Identifier: BSL-1.0 AND MIT
+# telemt: https://github.com/telemt
+# telemt: https://t.me/telemtrs
+
 if ((CMAKE_MAJOR_VERSION LESS 3) OR (CMAKE_VERSION VERSION_LESS "3.10"))
   message(FATAL_ERROR "CMake >= 3.10 is required")
 endif()
@@ -54,7 +60,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_wire.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_chrome144_differential.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_firefox148_differential.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_firefox_batch1_ech.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_firefox_linux_desktop_ech.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_expiry.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_builder_equivalence.cpp

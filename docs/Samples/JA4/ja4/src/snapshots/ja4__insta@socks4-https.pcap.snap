@@ -1,0 +1,13 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: tcp
+  src: 10.0.0.1
+  dst: 10.0.0.2
+  src_port: 50606
+  dst_port: 9901
+  ja4l_c: 119349_126
+  ja4l_s: 40155_52
+

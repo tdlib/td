@@ -1,0 +1,54 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: tcp
+  src: 192.168.2.200
+  dst: 142.250.187.206
+  src_port: 58847
+  dst_port: 443
+  tls_server_name: youtube.com
+  ja4: t13d1516h2_8daaf6152771_e5627efa2ab1
+  ja4s: t130200_1301_234ea6891581
+  tls_certs:
+  - x509:
+    - ja4x: a373a9f83c6b_7022c563de38_2e3757343cb0
+      issuerCountryName: US
+      issuerOrganizationName: Google Trust Services LLC
+      issuerCommonName: GTS CA 1C3
+      subjectCommonName: '*.google.com'
+    - ja4x: a373a9f83c6b_a373a9f83c6b_5d71497f7704
+      issuerCountryName: US
+      issuerOrganizationName: Google Trust Services LLC
+      issuerCommonName: GTS Root R1
+      subjectCountryName: US
+      subjectOrganizationName: Google Trust Services LLC
+      subjectCommonName: GTS CA 1C3
+    - ja4x: 7d5dbb3783b4_a373a9f83c6b_2fbee3f04f3b
+      issuerCountryName: BE
+      issuerOrganizationName: GlobalSign nv-sa
+      issuerOrganizationalUnit: Root CA
+      issuerCommonName: GlobalSign Root CA
+      subjectCountryName: US
+      subjectOrganizationName: Google Trust Services LLC
+      subjectCommonName: GTS Root R1
+  ja4l_c: 47_128
+  ja4l_s: 44840_117
+  http:
+  - ja4h: ge20cn23enus_641f0b6ae3f0_c7713052b7e4_348cad68b6fb
+  - ja4h: ge20cn17enus_949f364da66f_e43af2e8abfe_015bb0ca5596
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+  - ja4h: ge20cr22enus_265608141a12_10ff48fdaa11_ac323afc21f7
+

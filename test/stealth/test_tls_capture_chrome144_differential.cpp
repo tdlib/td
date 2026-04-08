@@ -1,10 +1,11 @@
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
+
 // Differential tests against real Chrome 144 and Chrome 146 traffic captures
-// from Ubuntu 24.04 LTS (batch 1):
+// from the reviewed Linux desktop corpus:
 //   clienthello-chrome144.0.7559.109-ubuntu24.04.pcapng
 //   chrome146.0.7680.75-1.pcapng
 //   chrome146.0.7680.177-1.pcapng
@@ -19,18 +20,16 @@
 //   ECH: 0xFE0D; payload in {144,176,208,240}; enc_key=32 bytes X25519
 //   compress_certificate: brotli only (alg=0x0002, list_len_byte=2)
 //   No 3DES suites; no Firefox-specific extensions (0x0022, 0x001C)
-
-#include "test/stealth/FingerprintFixtures.h"
-#include "test/stealth/MockRng.h"
-#include "test/stealth/ReviewedClientHelloFixtures.h"
-#include "test/stealth/TestHelpers.h"
-#include "test/stealth/TlsHelloParsers.h"
-
 #include "td/mtproto/stealth/TlsHelloBuilder.h"
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
 #include "td/utils/common.h"
 #include "td/utils/tests.h"
+
+#include "test/stealth/FingerprintFixtures.h"
+#include "test/stealth/MockRng.h"
+#include "test/stealth/ReviewedClientHelloFixtures.h"
+#include "test/stealth/TestHelpers.h"
 
 #include <algorithm>
 #include <unordered_set>
@@ -58,9 +57,9 @@ std::unordered_set<uint16> as_extension_set_without_type(const vector<uint16> &v
 }
 
 // Extension type set for ECH-enabled Chrome hello (excludes GREASE and padding 0x0015).
-const auto kChromeEchExtensionSet = as_extension_set(kChromeBatch1ReferenceNonGreaseExtensionsWithoutPadding);
+const auto kChromeEchExtensionSet = as_extension_set(kChromeLinuxDesktopReferenceNonGreaseExtensionsWithoutPadding);
 const auto kChromeNoEchExtensionSet =
-    as_extension_set_without_type(kChromeBatch1ReferenceNonGreaseExtensionsWithoutPadding, kEchExtensionType);
+    as_extension_set_without_type(kChromeLinuxDesktopReferenceNonGreaseExtensionsWithoutPadding, kEchExtensionType);
 
 void assert_same_extension_set(const std::unordered_set<uint16> &expected, const std::unordered_set<uint16> &observed) {
   ASSERT_EQ(expected.size(), observed.size());
@@ -113,7 +112,7 @@ TEST(ChromeCaptureDifferential, CipherSuiteNonGreaseExactOrderMatchesCapture) {
       if (!is_grease_value(c))
         non_grease.push_back(c);
     }
-    ASSERT_EQ(kChromeBatch1ReferenceNonGreaseCipherSuites, non_grease);
+    ASSERT_EQ(kChromeLinuxDesktopReferenceNonGreaseCipherSuites, non_grease);
   }
 }
 
@@ -179,7 +178,7 @@ TEST(ChromeCaptureDifferential, SupportedGroupsNonGreaseExactOrderMatchesCapture
       if (!is_grease_value(g))
         non_grease.push_back(g);
     }
-    ASSERT_EQ(kChromeBatch1ReferenceNonGreaseSupportedGroups, non_grease);
+    ASSERT_EQ(kChromeLinuxDesktopReferenceNonGreaseSupportedGroups, non_grease);
   }
 }
 
@@ -502,7 +501,7 @@ TEST(ChromeCaptureDifferential, Chrome120CipherSuitesMatchChrome133) {
       if (!is_grease_value(c))
         ng120.push_back(c);
     }
-    ASSERT_EQ(kChromeBatch1ReferenceNonGreaseCipherSuites, ng120);
+    ASSERT_EQ(kChromeLinuxDesktopReferenceNonGreaseCipherSuites, ng120);
   }
 }
 

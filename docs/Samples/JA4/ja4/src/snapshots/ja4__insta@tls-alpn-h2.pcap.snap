@@ -1,0 +1,41 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: tcp
+  src: 2001:4998:ef83:14:8000::100d
+  dst: 2606:4700::6811:d209
+  src_port: 64034
+  dst_port: 443
+  tls_server_name: www.cloudflare.com
+  ja4: t12d4605h2_85626a9a5f7f_aaf95bb78ec9
+  ja4s: t1204h2_cca9_1428ce7b4018
+  tls_certs:
+  - x509:
+    - ja4x: 7d5dbb3783b4_ba7ce0880c07_7bf9a7bf7029
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerOrganizationalUnit: www.digicert.com
+      issuerCommonName: DigiCert ECC Extended Validation Server CA
+      subjectBusinessCategory: Private Organization
+      subjectMsJurisdictionCountry: US
+      subjectMsJurisdictionStateOrProvince: Delaware
+      subjectSerialNumber: '4710875'
+      subjectCountryName: US
+      subjectStateOrProvinceName: California
+      subjectLocalityName: San Francisco
+      subjectOrganizationName: Cloudflare, Inc.
+      subjectCommonName: cloudflare.com
+    - ja4x: 7d5dbb3783b4_7d5dbb3783b4_41a019652939
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerOrganizationalUnit: www.digicert.com
+      issuerCommonName: DigiCert High Assurance EV Root CA
+      subjectCountryName: US
+      subjectOrganizationName: DigiCert Inc
+      subjectOrganizationalUnit: www.digicert.com
+      subjectCommonName: DigiCert ECC Extended Validation Server CA
+  ja4l_c: 35_64
+  ja4l_s: 18861_59
+

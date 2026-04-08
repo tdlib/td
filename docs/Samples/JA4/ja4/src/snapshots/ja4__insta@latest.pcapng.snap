@@ -1,0 +1,146 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 1
+  transport: tcp
+  src: 172.16.225.48
+  dst: 34.212.93.65
+  src_port: 52936
+  dst_port: 443
+  tls_server_name: pdx-col.eum-appdynamics.com
+  ja4: t13d1516h2_8daaf6152771_e5627efa2ab1
+  ja4s: t1206h2_c02f_3603f09c43ba
+  tls_certs:
+  - x509:
+    - ja4x: a373a9f83c6b_2bab15409345_7bf9a7bf7029
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerCommonName: DigiCert Global G2 TLS RSA SHA256 2020 CA1
+      subjectCountryName: US
+      subjectStateOrProvinceName: California
+      subjectLocalityName: San Francisco
+      subjectOrganizationName: AppDynamics LLC
+      subjectCommonName: '*.eum-appdynamics.com'
+    - ja4x: 7d5dbb3783b4_a373a9f83c6b_a83ffcd6e6c2
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerOrganizationalUnit: www.digicert.com
+      issuerCommonName: DigiCert Global Root G2
+      subjectCountryName: US
+      subjectOrganizationName: DigiCert Inc
+      subjectCommonName: DigiCert Global G2 TLS RSA SHA256 2020 CA1
+  ja4l_c: 62_128
+  ja4l_s: 33804_227
+- stream: 3
+  transport: tcp
+  src: 172.16.225.48
+  dst: 13.33.165.101
+  src_port: 52937
+  dst_port: 443
+  tls_server_name: discovery.cem.cloud.us
+  ja4: t12d190800_d83cc789557e_7af1ed941c26
+  ja4s: t120600_c02f_51ad275821ba
+  tls_certs:
+  - x509:
+    - ja4x: a373a9f83c6b_2bab15409345_7bf9a7bf7029
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerCommonName: DigiCert TLS RSA SHA256 2020 CA1
+      subjectCountryName: US
+      subjectStateOrProvinceName: Florida
+      subjectLocalityName: Fort Lauderdale
+      subjectOrganizationName: Citrix Systems, Inc.
+      subjectCommonName: '*.cem.cloud.us'
+    - ja4x: 7d5dbb3783b4_a373a9f83c6b_a83ffcd6e6c2
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerOrganizationalUnit: www.digicert.com
+      issuerCommonName: DigiCert Global Root CA
+      subjectCountryName: US
+      subjectOrganizationName: DigiCert Inc
+      subjectCommonName: DigiCert TLS RSA SHA256 2020 CA1
+  ja4l_c: 57_128
+  ja4l_s: 7096_245
+- stream: 5
+  transport: tcp
+  src: 172.16.225.48
+  dst: 34.205.195.66
+  src_port: 52938
+  dst_port: 443
+  tls_server_name: app.slack.com
+  ja4: t13d1516h2_8daaf6152771_9b887d9acb53
+  ja4s: t130300_1301_6bbbaf601ed8
+  ja4l_c: 47_128
+  ja4l_s: 14207_43
+- stream: 6
+  transport: tcp
+  src: 172.16.225.48
+  dst: 23.43.242.57
+  src_port: 52939
+  dst_port: 80
+  ja4l_c: 32_128
+  ja4l_s: 3915_57
+  http:
+  - ja4h: ge11nn07enus_3e3b55d61660_000000000000_000000000000
+- stream: 9
+  transport: tcp
+  src: 172.16.225.48
+  dst: 52.249.29.248
+  src_port: 52940
+  dst_port: 443
+  tls_server_name: ping-edge.smartscreen.microsoft.com
+  ja4: t13d1516h2_8daaf6152771_e5627efa2ab1
+  ja4s: t120300_c030_09f674154ab3
+  tls_certs:
+  - x509:
+    - ja4x: a373a9f83c6b_2bab15409345_0f2217ba412e
+      issuerCountryName: US
+      issuerOrganizationName: Microsoft Corporation
+      issuerCommonName: Microsoft Azure TLS Issuing CA 05
+      subjectCountryName: US
+      subjectStateOrProvinceName: WA
+      subjectLocalityName: Redmond
+      subjectOrganizationName: Microsoft Corporation
+      subjectCommonName: smartscreen.microsoft.com
+    - ja4x: 7d5dbb3783b4_a373a9f83c6b_c34b04c10969
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerOrganizationalUnit: www.digicert.com
+      issuerCommonName: DigiCert Global Root G2
+      subjectCountryName: US
+      subjectOrganizationName: Microsoft Corporation
+      subjectCommonName: Microsoft Azure TLS Issuing CA 05
+  ja4l_c: 40_128
+  ja4l_s: 42103_109
+- stream: 10
+  transport: tcp
+  src: 172.16.225.48
+  dst: 52.249.29.248
+  src_port: 52941
+  dst_port: 443
+  tls_server_name: data-edge.smartscreen.microsoft.com
+  ja4: t13d1516h2_8daaf6152771_e5627efa2ab1
+  ja4s: t120300_c030_09f674154ab3
+  tls_certs:
+  - x509:
+    - ja4x: a373a9f83c6b_2bab15409345_0f2217ba412e
+      issuerCountryName: US
+      issuerOrganizationName: Microsoft Corporation
+      issuerCommonName: Microsoft Azure TLS Issuing CA 05
+      subjectCountryName: US
+      subjectStateOrProvinceName: WA
+      subjectLocalityName: Redmond
+      subjectOrganizationName: Microsoft Corporation
+      subjectCommonName: smartscreen.microsoft.com
+    - ja4x: 7d5dbb3783b4_a373a9f83c6b_c34b04c10969
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerOrganizationalUnit: www.digicert.com
+      issuerCommonName: DigiCert Global Root G2
+      subjectCountryName: US
+      subjectOrganizationName: Microsoft Corporation
+      subjectCommonName: Microsoft Azure TLS Issuing CA 05
+  ja4l_c: 61_128
+  ja4l_s: 53595_109
+

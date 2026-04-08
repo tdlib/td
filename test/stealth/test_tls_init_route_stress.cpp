@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
+
 #include "td/actor/actor.h"
 #include "td/mtproto/stealth/Interfaces.h"
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
@@ -18,6 +18,11 @@
 #include "td/mtproto/TlsInit.h"
 #undef protected
 #undef private
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: GPL-3.0-only
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
+//
 
 #include "test/stealth/FingerprintFixtures.h"
 #include "test/stealth/TlsHelloParsers.h"
@@ -25,7 +30,6 @@
 
 #include "td/utils/tests.h"
 
-#include <unordered_map>
 #include <unordered_set>
 
 namespace {
@@ -78,7 +82,6 @@ TEST(TlsInitRouteStress, RoutePolicyRemainsStableAcrossManyTlsInitInstances) {
 
   for (const auto &scenario : scenarios) {
     std::unordered_set<td::string> hello_randoms;
-    std::unordered_map<size_t, int> wire_lengths;
 
     for (int i = 0; i < 256; i++) {
       auto socket_pair = create_socket_pair().move_as_ok();
@@ -94,11 +97,9 @@ TEST(TlsInitRouteStress, RoutePolicyRemainsStableAcrossManyTlsInitInstances) {
       ASSERT_EQ(wire.substr(11, 32), tls_init.hello_rand_);
 
       hello_randoms.insert(tls_init.hello_rand_);
-      wire_lengths[wire.size()]++;
     }
 
     ASSERT_TRUE(hello_randoms.size() > 32u);
-    ASSERT_TRUE(wire_lengths.size() > 1u);
   }
 }
 

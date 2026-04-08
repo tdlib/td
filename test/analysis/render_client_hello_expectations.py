@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: Copyright 2026 telemt community
+# SPDX-License-Identifier: MIT
+# telemt: https://github.com/telemt
+# telemt: https://t.me/telemtrs
 
 import argparse
 import json

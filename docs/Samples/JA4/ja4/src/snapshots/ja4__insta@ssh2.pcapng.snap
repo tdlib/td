@@ -1,0 +1,223 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 5
+  transport: tcp
+  src: 172.16.225.48
+  dst: 146.112.255.155
+  src_port: 57368
+  dst_port: 443
+  tls_server_name: updates.opendns.com
+  ja4: t12d190800_d83cc789557e_7af1ed941c26
+  ja4s: t120400_c02f_4993ccf7354b
+  tls_certs:
+  - x509:
+    - ja4x: a373a9f83c6b_2bab15409345_7bf9a7bf7029
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerCommonName: DigiCert TLS RSA SHA256 2020 CA1
+      subjectCountryName: US
+      subjectStateOrProvinceName: California
+      subjectLocalityName: San Francisco
+      subjectOrganizationName: Cisco OpenDNS LLC
+      subjectCommonName: api.opendns.com
+    - ja4x: 7d5dbb3783b4_a373a9f83c6b_a83ffcd6e6c2
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerOrganizationalUnit: www.digicert.com
+      issuerCommonName: DigiCert Global Root CA
+      subjectCountryName: US
+      subjectOrganizationName: DigiCert Inc
+      subjectCommonName: DigiCert TLS RSA SHA256 2020 CA1
+  ja4l_c: 44_128
+  ja4l_s: 12517_53
+- stream: 8
+  transport: tcp
+  src: 172.16.225.48
+  dst: 34.248.242.11
+  src_port: 57371
+  dst_port: 443
+  tls_server_name: mcs2-cloudstation-eu-west-1.prod.hydra.sophos.com
+  ja4: t12d1909h2_d83cc789557e_7af1ed941c26
+  ja4s: t120500_c02f_6471ab80eb72
+  tls_certs:
+  - x509:
+    - ja4x: f7a0b866a27b_30b9c68c9fc8_8f2dd91f85ae
+      issuerCommonName: Sophos SHA256 MCS Root CA3
+      issuerStateOrProvinceName: Oxfordshire
+      issuerCountryName: UK
+      issuerOrganizationName: Sophos Ltd
+      subjectCommonName: mcs2-cloudstation-eu-west-1.prod.hydra.sophos.com
+      subjectStateOrProvinceName: Oxfordshire
+      subjectCountryName: GB
+      subjectOrganizationName: Sophos Ltd.
+      subjectOrganizationalUnit: SaaS
+    - ja4x: f7a0b866a27b_f7a0b866a27b_b189698ac141
+      issuerCommonName: Sophos SHA256 MCS Root CA3
+      issuerStateOrProvinceName: Oxfordshire
+      issuerCountryName: UK
+      issuerOrganizationName: Sophos Ltd
+      subjectCommonName: Sophos SHA256 MCS Root CA3
+      subjectStateOrProvinceName: Oxfordshire
+      subjectCountryName: UK
+      subjectOrganizationName: Sophos Ltd
+  ja4l_c: 56_128
+  ja4l_s: 55492_235
+- stream: 11
+  transport: tcp
+  src: 172.16.225.48
+  dst: 52.178.17.3
+  src_port: 57374
+  dst_port: 443
+  tls_server_name: self.events.data.microsoft.com
+  ja4: t12d190800_d83cc789557e_7af1ed941c26
+  ja4s: t120300_c030_09f674154ab3
+  tls_certs:
+  - x509:
+    - ja4x: a373a9f83c6b_2bab15409345_0f2217ba412e
+      issuerCountryName: US
+      issuerOrganizationName: Microsoft Corporation
+      issuerCommonName: Microsoft Azure TLS Issuing CA 05
+      subjectCountryName: US
+      subjectStateOrProvinceName: WA
+      subjectLocalityName: Redmond
+      subjectOrganizationName: Microsoft Corporation
+      subjectCommonName: '*.events.data.microsoft.com'
+    - ja4x: 7d5dbb3783b4_a373a9f83c6b_c34b04c10969
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerOrganizationalUnit: www.digicert.com
+      issuerCommonName: DigiCert Global Root G2
+      subjectCountryName: US
+      subjectOrganizationName: Microsoft Corporation
+      subjectCommonName: Microsoft Azure TLS Issuing CA 05
+  ja4l_c: 46_128
+  ja4l_s: 49308_110
+- stream: 12
+  transport: tcp
+  src: 172.16.225.48
+  dst: 204.79.197.220
+  src_port: 57375
+  dst_port: 443
+  tls_server_name: www.bing.com
+  ja4: t13d1516h2_8daaf6152771_e5627efa2ab1
+  ja4s: t1205h2_c030_015e35fdd027
+  tls_certs:
+  - x509:
+    - ja4x: a373a9f83c6b_7022c563de38_0ce9ea683d50
+      issuerCountryName: US
+      issuerOrganizationName: Microsoft Corporation
+      issuerCommonName: Microsoft RSA TLS CA 02
+      subjectCommonName: www.bing.com
+    - ja4x: 7d5dbb3783b4_a373a9f83c6b_44440d41940c
+      issuerCountryName: IE
+      issuerOrganizationName: Baltimore
+      issuerOrganizationalUnit: CyberTrust
+      issuerCommonName: Baltimore CyberTrust Root
+      subjectCountryName: US
+      subjectOrganizationName: Microsoft Corporation
+      subjectCommonName: Microsoft RSA TLS CA 02
+  ja4l_c: 55_128
+  ja4l_s: 3217_119
+- stream: 13
+  transport: tcp
+  src: 172.16.225.48
+  dst: 52.86.25.233
+  src_port: 57376
+  dst_port: 443
+  tls_server_name: 4.sophosxl.net
+  ja4: t12d1909h2_d83cc789557e_7af1ed941c26
+  ja4s: t120200_c02f_344b4dce5a52
+  tls_certs:
+  - x509:
+    - ja4x: a373a9f83c6b_7022c563de38_7bf9a7bf7029
+      issuerCountryName: US
+      issuerOrganizationName: Amazon
+      issuerCommonName: Amazon RSA 2048 M02
+      subjectCommonName: 4.sophosxl.net
+    - ja4x: a373a9f83c6b_a373a9f83c6b_3684c5172069
+      issuerCountryName: US
+      issuerOrganizationName: Amazon
+      issuerCommonName: Amazon Root CA 1
+      subjectCountryName: US
+      subjectOrganizationName: Amazon
+      subjectCommonName: Amazon RSA 2048 M02
+    - ja4x: 2bab15409345_a373a9f83c6b_44ce05048d28
+      issuerCountryName: US
+      issuerStateOrProvinceName: Arizona
+      issuerLocalityName: Scottsdale
+      issuerOrganizationName: Starfield Technologies, Inc.
+      issuerCommonName: Starfield Services Root Certificate Authority - G2
+      subjectCountryName: US
+      subjectOrganizationName: Amazon
+      subjectCommonName: Amazon Root CA 1
+    - ja4x: e7bc7ebc3d9e_2bab15409345_44ce05048d28
+      issuerCountryName: US
+      issuerOrganizationName: Starfield Technologies, Inc.
+      issuerOrganizationalUnit: Starfield Class 2 Certification Authority
+      subjectCountryName: US
+      subjectStateOrProvinceName: Arizona
+      subjectLocalityName: Scottsdale
+      subjectOrganizationName: Starfield Technologies, Inc.
+      subjectCommonName: Starfield Services Root Certificate Authority - G2
+  ja4l_c: 58_128
+  ja4l_s: 18693_241
+- stream: 14
+  transport: tcp
+  src: 172.16.225.48
+  dst: 54.160.114.75
+  src_port: 57377
+  dst_port: 22
+  ja4l_c: 77_128
+  ja4l_s: 12897_50
+  ja4ssh:
+  - c36s36_c76s124_c74s5
+  - c36s52_c42s76_c51s2
+  ssh_extras:
+    hassh: 06046964c022c6407d15a27b12a6a4fb
+    hassh_server: 699519fdcc30cbcd093d5cd01e4b1d56
+    ssh_protocol_client: SSH-2.0-OpenSSH_7.6p1 Ubuntu-4ubuntu0.5
+    ssh_protocol_server: SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.1
+    encryption_algorithm: chacha20-poly1305@openssh.com
+- stream: 15
+  transport: tcp
+  src: 172.16.225.48
+  dst: 184.150.157.177
+  src_port: 57380
+  dst_port: 80
+  ja4l_c: 45_128
+  ja4l_s: 6252_58
+  http:
+  - ja4h: ge11nn030000_9ab90a797ba7_000000000000_000000000000
+- stream: 22
+  transport: tcp
+  src: 172.16.225.48
+  dst: 184.150.157.177
+  src_port: 57396
+  dst_port: 80
+  ja4l_c: 50_128
+  ja4l_s: 4272_58
+  http:
+  - ja4h: ge11nn030000_9ab90a797ba7_000000000000_000000000000
+- stream: 33
+  transport: udp
+  src: 172.16.225.48
+  dst: 142.251.32.74
+  src_port: 51810
+  dst_port: 443
+  tls_server_name: signaler-pa.clients6.google.com
+  ja4: q13d0312h3_55b375c5d22e_73e2d9e6cde6
+  ja4s: q130300_1301_6bbbaf601ed8
+- stream: 36
+  transport: udp
+  src: 172.16.225.48
+  dst: 142.251.41.46
+  src_port: 61861
+  dst_port: 443
+  tls_server_name: meet.google.com
+  ja4: q13d0312h3_55b375c5d22e_73e2d9e6cde6
+  ja4s: q130200_1301_234ea6891581
+  ja4l_c: 169_128
+  ja4l_s: 5389_57
+

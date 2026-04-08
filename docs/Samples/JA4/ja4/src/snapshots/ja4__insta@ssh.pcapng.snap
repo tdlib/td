@@ -1,0 +1,20 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: tcp
+  src: 172.16.225.48
+  dst: 54.160.114.75
+  src_port: 57377
+  dst_port: 22
+  ja4ssh:
+  - c36s36_c76s124_c0s0
+  - c36s52_c42s76_c0s0
+  ssh_extras:
+    hassh: 06046964c022c6407d15a27b12a6a4fb
+    hassh_server: 699519fdcc30cbcd093d5cd01e4b1d56
+    ssh_protocol_client: SSH-2.0-OpenSSH_7.6p1 Ubuntu-4ubuntu0.5
+    ssh_protocol_server: SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.1
+    encryption_algorithm: chacha20-poly1305@openssh.com
+

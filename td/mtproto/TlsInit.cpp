@@ -1,9 +1,10 @@
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
+
 #include "td/mtproto/TlsInit.h"
 
 #include "td/mtproto/stealth/TlsHelloBuilder.h"
@@ -17,6 +18,65 @@
 
 namespace td {
 namespace mtproto {
+
+namespace {
+
+Status consume_tls_hello_response_records(ChainBufferReader *it, bool *is_complete) {
+  *is_complete = false;
+  bool seen_handshake = false;
+
+  while (true) {
+    if (it->size() < 5) {
+      return Status::OK();
+    }
+
+    uint8 header[5];
+    it->advance(5, MutableSlice(header, 5));
+    const auto record_type = header[0];
+    const auto record_version_major = header[1];
+    const auto record_version_minor = header[2];
+    const size_t record_length = (static_cast<size_t>(header[3]) << 8) + static_cast<size_t>(header[4]);
+
+    if (record_version_major != 0x03 || record_version_minor != 0x03) {
+      return Status::Error("First part of response to hello is invalid");
+    }
+
+    if (it->size() < record_length) {
+      return Status::OK();
+    }
+
+    if (!seen_handshake) {
+      if (record_type != 0x16) {
+        return Status::Error("First part of response to hello is invalid");
+      }
+      seen_handshake = true;
+      it->advance(record_length);
+      continue;
+    }
+
+    if (record_type == 0x14) {
+      if (record_length != 1) {
+        return Status::Error("First part of response to hello is invalid");
+      }
+      uint8 ccs_payload = 0;
+      it->advance(1, MutableSlice(&ccs_payload, 1));
+      if (ccs_payload != 0x01) {
+        return Status::Error("First part of response to hello is invalid");
+      }
+      continue;
+    }
+
+    if (record_type == 0x17) {
+      it->advance(record_length);
+      *is_complete = true;
+      return Status::OK();
+    }
+
+    return Status::Error("First part of response to hello is invalid");
+  }
+}
+
+}  // namespace
 
 void Grease::init(MutableSlice res) {
   Random::secure_bytes(res);
@@ -52,30 +112,25 @@ void TlsInit::send_hello() {
 
 Status TlsInit::wait_hello_response() {
   auto it = fd_.input_buffer().clone();
-  for (auto prefix : {Slice("\x16\x03\x03"), Slice("\x14\x03\x03\x00\x01\x01\x17\x03\x03")}) {
-    if (it.size() < prefix.size() + 2) {
-      return Status::OK();
+  bool is_complete = false;
+  auto status = consume_tls_hello_response_records(&it, &is_complete);
+  if (status.is_error()) {
+    if (hello_uses_ech_) {
+      stealth::note_runtime_ech_failure(username_, hello_unix_time_);
     }
-
-    string response_prefix(prefix.size(), '\0');
-    it.advance(prefix.size(), response_prefix);
-    if (prefix != response_prefix) {
-      if (hello_uses_ech_) {
-        stealth::note_runtime_ech_failure(username_, hello_unix_time_);
-      }
-      return Status::Error("First part of response to hello is invalid");
-    }
-
-    uint8 tmp[2];
-    it.advance(2, MutableSlice(tmp, 2));
-    size_t skip_size = (tmp[0] << 8) + tmp[1];
-    if (it.size() < skip_size) {
-      return Status::OK();
-    }
-    it.advance(skip_size);
+    return status;
+  }
+  if (!is_complete) {
+    return Status::OK();
   }
 
   auto response = fd_.input_buffer().cut_head(it.begin().clone()).move_as_buffer_slice();
+  if (response.size() < 43) {
+    if (hello_uses_ech_) {
+      stealth::note_runtime_ech_failure(username_, hello_unix_time_);
+    }
+    return Status::Error("First part of response to hello is invalid");
+  }
   auto response_rand_slice = response.as_mutable_slice().substr(11, 32);
   auto response_rand = response_rand_slice.str();
   std::fill(response_rand_slice.begin(), response_rand_slice.end(), '\0');
@@ -92,7 +147,9 @@ Status TlsInit::wait_hello_response() {
     stealth::note_runtime_ech_success(username_, hello_unix_time_);
   }
 
-  stop();
+  if (!empty()) {
+    stop();
+  }
   return Status::OK();
 }
 

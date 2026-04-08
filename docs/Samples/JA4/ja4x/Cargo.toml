@@ -1,0 +1,28 @@
+[package]
+name = "ja4x"
+description = "generate JA4X fingerprints for X.509 certificates"
+version.workspace = true
+edition.workspace = true
+authors = ["Valeriy V. Vorotyntsev <valery.vv@gmail.com>"]
+license.workspace = true
+repository.workspace = true
+keywords = ["ja4x", "ja4", "fingerprint", "x509", "der"]
+categories = ["command-line-utilities"]
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap.workspace = true
+color-eyre.workspace = true
+fs-err.workspace = true
+hex.workspace = true
+indexmap = { workspace = true, features = ["serde"] }
+itertools.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+sha2.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+x509-parser = "0.16"

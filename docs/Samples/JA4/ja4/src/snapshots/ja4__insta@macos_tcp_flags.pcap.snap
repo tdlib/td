@@ -1,0 +1,16 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: tcp
+  src: 172.16.5.16
+  dst: 172.67.24.71
+  src_port: 61311
+  dst_port: 443
+  tls_server_name: venarisecurity.com
+  ja4: t13d2613h2_2802a3db6c62_845d286b0d67
+  ja4s: t130200_1301_234ea6891581
+  ja4l_c: 62_64
+  ja4l_s: 17255_63
+

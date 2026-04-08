@@ -1,3 +1,10 @@
+<!--
+SPDX-FileCopyrightText: Copyright 2026 telemt community
+SPDX-License-Identifier: MIT
+telemt: https://github.com/telemt
+telemt: https://t.me/telemtrs
+-->
+
 ---
 description: C++ best practices and code style guidelines for consistent, high-quality code generation aligned with our conventions, stack, and best practices.
 applyTo: **/*.cpp, **/*.h, **/*.hpp

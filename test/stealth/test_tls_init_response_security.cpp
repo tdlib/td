@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
+
 #include "td/actor/actor.h"
 #include "td/mtproto/stealth/Interfaces.h"
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
@@ -11,7 +11,6 @@
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/SocketFd.h"
-#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 #define private public
@@ -99,13 +98,27 @@ TEST(TlsInitResponseSecurity, RejectsWrongSecondRecordPrefixBeforeHashValidation
   ASSERT_TRUE(tls_init.wait_hello_response().is_error());
 }
 
-TEST(TlsInitResponseSecurity, RejectsAlternativeSingleRecordLayoutEvenWhenHashMatches) {
+TEST(TlsInitResponseSecurity, AcceptsHandshakeThenApplicationDataWithoutChangeCipherSpec) {
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   tls_init.send_hello();
 
   auto response =
       make_tls_init_response("0123456789secret", tls_init.hello_rand_, kFirstResponsePrefix, "\x17\x03\x03");
+
+  ASSERT_TRUE(write_all(socket_pair.peer, response).is_ok());
+  tls_init.fd_.get_poll_info().add_flags(td::PollFlags::Read());
+  ASSERT_TRUE(tls_init.fd_.flush_read().is_ok());
+  ASSERT_TRUE(tls_init.wait_hello_response().is_ok());
+}
+
+TEST(TlsInitResponseSecurity, RejectsAlertRecordAfterHandshakeEvenWhenHashMatches) {
+  auto socket_pair = create_socket_pair().move_as_ok();
+  auto tls_init = create_tls_init(std::move(socket_pair.client));
+  tls_init.send_hello();
+
+  auto response =
+      make_tls_init_response("0123456789secret", tls_init.hello_rand_, kFirstResponsePrefix, "\x15\x03\x03");
 
   ASSERT_TRUE(write_all(socket_pair.peer, response).is_ok());
   tls_init.fd_.get_poll_info().add_flags(td::PollFlags::Read());

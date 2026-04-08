@@ -1,0 +1,21 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: tcp
+  src: 66.59.111.190
+  dst: 172.28.2.3
+  src_port: 40264
+  dst_port: 22
+  ja4l_c: 36_255
+  ja4l_s: 22952_236
+  ja4ssh:
+  - c24s23_c4s4_c6s4
+  ssh_extras:
+    hassh: 5ef6678a6b060094834599ca16581b05
+    hassh_server: 6e3242d64766f4154c11858bbd654415
+    ssh_protocol_client: SSH-2.0-OpenSSH_3.6.1p1
+    ssh_protocol_server: SSH-1.99-OpenSSH_3.1p1
+    encryption_algorithm: aes128-cbc
+

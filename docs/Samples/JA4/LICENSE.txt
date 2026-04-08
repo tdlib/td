@@ -1,0 +1,82 @@
+FoxIO License 1.1
+Licensor: FoxIO, LLC
+Software: JA4S, JA4H, JA4L, JA4LS, JA4X, JA4T, JA4TS, JA4TScan, JA4D, JA4D6, JA4SScan, JA4E, and JA4SSH (Collectively referred to as JA4+)
+
+This license was created by FoxIO, LLC. You may use the text of this license for your own 
+software as long as you change the name of the license, and change the licensor and software 
+above to refer to you and your software. You may state that your license is based on the FoxIO 
+License 1.1, as long as you clearly identify any other changes you make to the license.
+
+1. Acceptance
+In order to get any license under these terms, you must agree to them as both strict obligations 
+and conditions to all your licenses.
+
+2. Copyright License
+The licensor grants you a copyright license to use and modify the software, only for non-commercial 
+purposes. The licensor grants you a copyright license to distribute the software to others 
+only for non-commercial purposes. “Non-commercial purposes” include personal use by an individual, 
+academic research and development, and testing and evaluation of the software for your own 
+internal use, and excludes any use for which you charge fees or anything else of value, 
+directly or indirectly, for use of or access to the software. Using the software for your own 
+internal business purposes in a manner where you do not directly monetize the software is a 
+non-commercial purpose. Providing the software on a hosted or managed service basis to others 
+is not a non-commercial purpose. Providing maintenance, support or development services for 
+the software to others, or using the software to enable others to provide such services for 
+the software to you, is not a non-commercial purpose.
+
+You must ensure that anyone who gets a copy of any part of the software from you also gets a 
+copy of these license terms or the following URL https://github.com/FoxIO-LLC/ja4/blob/main/LICENSE, 
+and you must retain all copyright, patent or other intellectual property notices placed on 
+the software by licensor. 
+
+3. Patent License
+The licensor grants you a patent license for the software that covers patent claims the 
+licensor can license, or becomes able to license, that you would necessarily infringe by 
+using the software in the manner allowed under this license for non-commercial purposes. 
+This license does not grant you any right to practice any patent rights for any invention 
+not fully embodied in the software in the form provided by the licensor.
+
+4. No Other Rights
+These terms do not allow you to sublicense or transfer any of your licenses to anyone else, or 
+prevent the licensor from granting licenses to anyone else. These terms do not imply any other 
+licenses.
+
+5. Patent Defense
+If you make any written claim that the software infringes or contributes to infringement of any 
+patent, your patent license for the software granted under these terms ends immediately. If your 
+company makes such a claim, your patent license ends immediately for work on behalf of your company.
+
+6. Violations
+The first time you are notified in writing that you have violated any of these terms, or done 
+anything with the software not covered by your licenses, your licenses can nonetheless continue 
+if you come into full compliance with these terms, take practical steps to correct past violations, 
+and provide a written statement that all such past violations have been corrected within 30 days 
+after receiving notice. Otherwise, all your licenses end immediately.
+
+7. Duration
+Your licenses for a particular version of the software will continue until the end of life of 
+that version of the software, or earlier as described in the Violations section above. 
+
+8. No Liability
+As far as the law allows, the software comes as is, without any warranty or condition, and the 
+licensor will not be liable to you for any damages arising out of these terms or the use or nature 
+of the software, under any kind of legal claim.
+
+9. Definitions
+The “Licensor” is the individual or entity offering these terms, and the “Software” is the 
+software the licensor makes available under these terms.
+
+“You” refers to the individual or entity agreeing to these terms.
+
+“Your company” is any legal entity, sole proprietorship, or other kind of organization that you 
+work for, plus all organizations that have control over, are under the control of, or are under 
+common control with that organization. “Control” means ownership of substantially all the assets 
+of an entity, or the power to direct its management and policies by vote, contract, or otherwise. 
+Control can be direct or indirect.
+
+“Your licenses” are all the licenses granted to you for the software under these terms.
+
+“Use” means anything you do with the software requiring one of your licenses.
+
+“End of Life” for a version of the software is a date publicly announced by the licensor on which 
+the licensor intends to cease maintenance of that version of the software.

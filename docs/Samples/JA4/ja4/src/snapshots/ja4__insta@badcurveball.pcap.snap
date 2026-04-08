@@ -1,0 +1,35 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: tcp
+  src: 172.130.128.76
+  dst: 54.226.182.138
+  src_port: 55318
+  dst_port: 443
+  tls_server_name: bad.curveballtest.com
+  ja4: t13d1615h2_46e7e9700bed_45f260be83e2
+  ja4s: t1205h1_c02b_845f7282a956
+  tls_certs:
+  - x509:
+    - ja4x: 2e9214a636bc_a373a9f83c6b_0e17604154c5
+      issuerCountryName: HR
+      issuerStateOrProvinceName: Zagreb
+      issuerOrganizationName: INFIGO IS
+      issuerCommonName: INFIGO
+      subjectCountryName: US
+      subjectOrganizationName: SANS Internet Storm Center
+      subjectCommonName: SANS ISC DShield Test
+    - ja4x: 2e9214a636bc_2e9214a636bc_795797892f9c
+      issuerCountryName: HR
+      issuerStateOrProvinceName: Zagreb
+      issuerOrganizationName: INFIGO IS
+      issuerCommonName: INFIGO
+      subjectCountryName: HR
+      subjectStateOrProvinceName: Zagreb
+      subjectOrganizationName: INFIGO IS
+      subjectCommonName: INFIGO
+  ja4l_c: 2177_64
+  ja4l_s: 781_238
+

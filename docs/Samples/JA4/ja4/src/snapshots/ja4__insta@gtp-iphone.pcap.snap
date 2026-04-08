@@ -1,0 +1,37 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: tcp
+  src: fd00:183:1:1:1886:9040:8605:32b8
+  dst: fd01::183
+  src_port: 5060
+  dst_port: 5060
+  ja4l_c: 15922_64
+  ja4l_s: 53_64
+- stream: 1
+  transport: tcp
+  src: fd00:183:1:1:1886:9040:8605:32b8
+  dst: fd01::183
+  src_port: 5060
+  dst_port: 5060
+  ja4l_c: 16068_64
+  ja4l_s: 52_64
+- stream: 2
+  transport: tcp
+  src: fd00:183:1:1:1886:9040:8605:32b8
+  dst: fd01::183
+  src_port: 5060
+  dst_port: 5060
+  ja4l_c: 19889_64
+  ja4l_s: 174_64
+- stream: 3
+  transport: tcp
+  src: fd00:183:1:1:1886:9040:8605:32b8
+  dst: fd01::183
+  src_port: 5060
+  dst_port: 5060
+  ja4l_c: 19962_64
+  ja4l_s: 35_64
+

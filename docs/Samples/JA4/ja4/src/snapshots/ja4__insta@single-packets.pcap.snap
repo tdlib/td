@@ -1,0 +1,69 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: tcp
+  src: 192.168.25.150
+  dst: 74.125.24.149
+  src_port: 49677
+  dst_port: 80
+  http:
+  - ja4h: ge11cr06enus_8c2f9ef95269_2a79f5d9f8b3_7b4d78c057bc
+- stream: 1
+  transport: tcp
+  src: 192.168.25.150
+  dst: 118.215.80.242
+  src_port: 49654
+  dst_port: 80
+  http:
+  - ja4h: ge11cr07enus_45c71a3fb6ea_a25bf252eb59_43a9e3e95c85
+- stream: 2
+  transport: tcp
+  src: 192.168.25.150
+  dst: 13.115.50.210
+  src_port: 49683
+  dst_port: 80
+  http:
+  - ja4h: ge11nr06enus_8c2f9ef95269_000000000000_000000000000
+- stream: 3
+  transport: tcp
+  src: 192.168.25.150
+  dst: 104.89.119.175
+  src_port: 49708
+  dst_port: 80
+  http:
+  - ja4h: po11cr09enus_130d8cd1913c_f81c0e5c6793_90689f748de6
+- stream: 4
+  transport: tcp
+  src: 192.168.25.150
+  dst: 193.242.192.43
+  src_port: 49735
+  dst_port: 80
+  http:
+  - ja4h: ge11cr07enus_45c71a3fb6ea_9ee64e91aa30_109254663367
+- stream: 5
+  transport: tcp
+  src: 192.168.25.150
+  dst: 74.125.24.100
+  src_port: 49733
+  dst_port: 80
+  http:
+  - ja4h: ge11nr06enus_8c2f9ef95269_000000000000_000000000000
+- stream: 6
+  transport: tcp
+  src: 192.168.25.150
+  dst: 74.125.24.95
+  src_port: 49743
+  dst_port: 80
+  http:
+  - ja4h: ge11nr06enus_8c2f9ef95269_000000000000_000000000000
+- stream: 7
+  transport: tcp
+  src: 192.168.25.150
+  dst: 35.174.150.168
+  src_port: 49738
+  dst_port: 80
+  http:
+  - ja4h: ge11cr06enus_8c2f9ef95269_d23bf79698dc_69e42fa741fe
+

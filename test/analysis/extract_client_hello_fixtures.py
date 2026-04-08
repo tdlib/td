@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: Copyright 2026 telemt community
+# SPDX-License-Identifier: MIT
+# telemt: https://github.com/telemt
+# telemt: https://t.me/telemtrs
 
 import argparse
 import datetime as dt
@@ -8,6 +12,8 @@ import pathlib
 import subprocess
 import sys
 from typing import Any
+
+from common_tls import normalize_device_class, normalize_os_family, normalize_route_mode
 
 
 PARSER_VERSION = "tls-clienthello-parser-v1"
@@ -325,6 +331,8 @@ def collect_frames(pcap_path: pathlib.Path, display_filter: str) -> list[dict[st
             "tls.handshake.type",
             "-e",
             "tcp.reassembled.data",
+            "-e",
+            "tcp.payload",
         ]
     )
     frames: list[dict[str, str]] = []
@@ -332,7 +340,7 @@ def collect_frames(pcap_path: pathlib.Path, display_filter: str) -> list[dict[st
         if not line.strip():
             continue
         parts = line.split("|")
-        if len(parts) != 7:
+        if len(parts) != 8:
             raise RuntimeError(f"unexpected tshark field row: {line}")
         frames.append(
             {
@@ -343,9 +351,18 @@ def collect_frames(pcap_path: pathlib.Path, display_filter: str) -> list[dict[st
                 "tls_record_length": parts[4],
                 "tls_handshake_type": parts[5],
                 "tcp_reassembled_data": parts[6],
+                "tcp_payload": parts[7],
             }
         )
     return frames
+
+
+def select_record_hex(frame: dict[str, str]) -> str:
+    for field_name in ("tcp_reassembled_data", "tcp_payload"):
+        raw_hex = frame.get(field_name, "").strip()
+        if raw_hex:
+            return raw_hex
+    raise ValueError("missing TLS record bytes")
 
 
 def frame_time_utc(epoch_string: str) -> str:
@@ -388,7 +405,21 @@ def parse_args() -> argparse.Namespace:
                         help="Primary provenance source kind")
     parser.add_argument("--capture-date-utc", help="Capture date in UTC, for example 2026-04-07T11:33:00Z")
     parser.add_argument("--scenario-id", default="fixture_refresh", help="Scenario id stored in the artifact")
-    parser.add_argument("--route-mode", default="unknown", help="Route mode stored in the artifact")
+    parser.add_argument(
+        "--device-class",
+        default="desktop",
+        help="Platform class stored in the artifact; canonical values are desktop, mobile, tablet, unknown",
+    )
+    parser.add_argument(
+        "--os-family",
+        default="unknown",
+        help="OS family stored in the artifact; canonical values are android, ios, linux, macos, windows, unknown",
+    )
+    parser.add_argument(
+        "--route-mode",
+        default="unknown",
+        help="Route mode stored in the artifact; canonical values are unknown, ru_egress, non_ru_egress",
+    )
     parser.add_argument("--display-filter", default=DEFAULT_DISPLAY_FILTER,
                         help="tshark display filter used to select ClientHello frames")
     parser.add_argument("--frame-number", action="append",
@@ -407,6 +438,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     validate_source_kind(args)
+    route_mode = normalize_route_mode(args.route_mode)
+    device_class = normalize_device_class(args.device_class)
+    os_family = normalize_os_family(args.os_family)
 
     pcap_path = pathlib.Path(args.pcap).resolve()
     output_path = pathlib.Path(args.out).resolve()
@@ -424,11 +458,12 @@ def main() -> int:
 
     samples: list[dict[str, Any]] = []
     for frame in frames:
-        raw_hex = frame["tcp_reassembled_data"].strip()
-        if not raw_hex:
+        try:
+            raw_hex = select_record_hex(frame)
+        except ValueError as exc:
             raise SystemExit(
-                f"frame {frame['frame_number']} is missing tcp.reassembled.data; ensure TCP reassembly is available"
-            )
+                f"frame {frame['frame_number']} is missing tcp.reassembled.data and tcp.payload: {exc}"
+            ) from exc
         raw_record = bytes.fromhex(raw_hex)
         parsed = parse_client_hello(raw_record)
         parsed.update(
@@ -458,7 +493,9 @@ def main() -> int:
         "source_kind": args.source_kind,
         "capture_date_utc": capture_date_utc,
         "scenario_id": args.scenario_id,
-        "route_mode": args.route_mode,
+        "device_class": device_class,
+        "os_family": os_family,
+        "route_mode": route_mode,
         "display_filter": args.display_filter,
         "transport": "tcp",
         "tls_handshake_type": 1,

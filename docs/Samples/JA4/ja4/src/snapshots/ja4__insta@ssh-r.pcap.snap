@@ -1,0 +1,58 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: tcp
+  src: 192.168.1.169
+  dst: 192.168.1.197
+  src_port: 64980
+  dst_port: 22
+  ja4l_c: 94_128
+  ja4l_s: 32_64
+  ja4ssh:
+  - c64s64_c107s93_c74s10
+  - c64s64_c33s48_c42s2
+  ssh_extras:
+    hassh: e77c2db7432e8cfbc42a96909a84fc8e
+    hassh_server: 6832f1ce43d4397c2c0a3e2f8c94334e
+    ssh_protocol_client: SSH-2.0-PuTTY_Release_0.74
+    ssh_protocol_server: SSH-2.0-OpenSSH_7.4
+    encryption_algorithm: chacha20-poly1305@openssh.com
+- stream: 1
+  transport: tcp
+  src: 192.168.1.197
+  dst: 44.212.59.210
+  src_port: 46394
+  dst_port: 22
+  ja4l_c: 14_64
+  ja4l_s: 4171_116
+  ja4ssh:
+  - c48s21_c7s5_c5s5
+  ssh_extras:
+    hassh: ec9ea89c70f5fc71cf61061bff5e4740
+    hassh_server: 2307c390c7c9aba5b4c9519e72347f34
+    ssh_protocol_client: SSH-2.0-OpenSSH_7.4
+    ssh_protocol_server: SSH-2.0-OpenSSH_8.7
+    encryption_algorithm: aes256-gcm@openssh.com
+- stream: 2
+  transport: tcp
+  src: 192.168.1.197
+  dst: 44.212.59.210
+  src_port: 46396
+  dst_port: 22
+  ja4l_c: 12_64
+  ja4l_s: 3169_116
+  ja4ssh:
+  - c76s76_c104s96_c19s82
+  - c76s76_c108s92_c0s105
+  - c76s76_c106s94_c0s107
+  - c76s76_c111s89_c0s102
+  - c76s76_c67s65_c10s52
+  ssh_extras:
+    hassh: ec9ea89c70f5fc71cf61061bff5e4740
+    hassh_server: 2307c390c7c9aba5b4c9519e72347f34
+    ssh_protocol_client: SSH-2.0-OpenSSH_7.4
+    ssh_protocol_server: SSH-2.0-OpenSSH_8.7
+    encryption_algorithm: aes256-gcm@openssh.com
+

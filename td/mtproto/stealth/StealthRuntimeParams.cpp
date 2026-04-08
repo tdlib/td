@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
+
 #include "td/mtproto/stealth/StealthRuntimeParams.h"
 
 #include "td/mtproto/stealth/StealthConfig.h"
@@ -54,7 +54,7 @@ DrsPolicy default_runtime_drs_policy() {
 }
 
 ProfileWeights effective_profile_weights_for_platform(const RuntimeProfileSelectionPolicy &policy,
-                                                     const RuntimePlatformHints &platform) {
+                                                      const RuntimePlatformHints &platform) {
   ProfileWeights weights;
   const auto *desktop_weights = &policy.desktop_non_darwin;
   if (platform.device_class == DeviceClass::Desktop && platform.desktop_os == DesktopOs::Darwin) {
@@ -111,8 +111,7 @@ Status validate_flow_behavior(const RuntimeFlowBehaviorPolicy &flow_behavior) {
       flow_behavior.max_destination_share > 1.0) {
     return Status::Error("flow_behavior.max_destination_share must be within (0, 1]");
   }
-  if (flow_behavior.sticky_domain_rotation_window_sec < 60 ||
-      flow_behavior.sticky_domain_rotation_window_sec > 86400) {
+  if (flow_behavior.sticky_domain_rotation_window_sec < 60 || flow_behavior.sticky_domain_rotation_window_sec > 86400) {
     return Status::Error("flow_behavior.sticky_domain_rotation_window_sec must be within [60, 86400]");
   }
   if (flow_behavior.anti_churn_min_reconnect_interval_ms < 50 ||
@@ -174,10 +173,9 @@ Status validate_route_entry(Slice name, const RuntimeRoutePolicyEntry &entry, bo
 }
 
 Status validate_profile_weights(const ProfileWeights &weights) {
-  const uint32 darwin_total = weights.chrome133 + weights.chrome131 + weights.chrome120 + weights.firefox148 +
-                              weights.safari26_3;
-  const uint32 non_darwin_total =
-      weights.chrome133 + weights.chrome131 + weights.chrome120 + weights.firefox148;
+  const uint32 darwin_total =
+      weights.chrome133 + weights.chrome131 + weights.chrome120 + weights.firefox148 + weights.safari26_3;
+  const uint32 non_darwin_total = weights.chrome133 + weights.chrome131 + weights.chrome120 + weights.firefox148;
   const uint32 mobile_total = weights.ios14 + weights.android11_okhttp;
   if (darwin_total == 0) {
     return Status::Error("desktop darwin profile weights must not be empty");
@@ -219,8 +217,8 @@ Status validate_runtime_stealth_params(const StealthRuntimeParams &params) noexc
   if (params.route_failure.ech_failure_threshold < 1 || params.route_failure.ech_failure_threshold > 10) {
     return Status::Error("route_failure.ech_failure_threshold must be within [1, 10]");
   }
-  if (!std::isfinite(params.route_failure.ech_disable_ttl_seconds) || params.route_failure.ech_disable_ttl_seconds < 60.0 ||
-      params.route_failure.ech_disable_ttl_seconds > 86400.0) {
+  if (!std::isfinite(params.route_failure.ech_disable_ttl_seconds) ||
+      params.route_failure.ech_disable_ttl_seconds < 60.0 || params.route_failure.ech_disable_ttl_seconds > 86400.0) {
     return Status::Error("route_failure.ech_disable_ttl_seconds must be within [60, 86400]");
   }
   if (!params.route_failure.persist_across_restart) {

@@ -1,3 +1,10 @@
+<!--
+SPDX-FileCopyrightText: Copyright 2026 telemt community
+SPDX-License-Identifier: MIT
+telemt: https://github.com/telemt
+telemt: https://t.me/telemtrs
+-->
+
 ---
 description: Companion to `Agents.md`. These are **activation directives**, not tutorials. You already know these patterns — apply them. When making any structural or design decision, run the relevant section below as a checklist.
 

@@ -1,0 +1,1911 @@
+{
+  "version": "2026-04-08-platform-corpus-v1",
+  "parser_version": "tls-clienthello-parser-v1",
+  "contamination_guard": {
+    "fail_on_unknown_fixture_id": true,
+    "fail_on_unknown_tag": true,
+    "fail_on_missing_required_tag": true,
+    "fail_on_source_hash_mismatch": true,
+    "allow_mixed_source_kind_per_profile": false,
+    "allow_mixed_family_per_profile": false,
+    "allow_legacy_tls12_in_modern_profiles": false,
+    "allow_advisory_code_sample_per_profile": false,
+    "require_network_derived_fixture_for_release_profile": true,
+    "require_independent_corroborating_source": true
+  },
+  "source": [
+    "test/analysis/fixtures/clienthello/android/*.json",
+    "test/analysis/fixtures/clienthello/ios/*.json",
+    "test/analysis/fixtures/clienthello/linux_desktop/*.json",
+    "test/analysis/fixtures/clienthello/macos/*.json",
+    "docs/Samples/Traffic dumps/Android/*.pcap",
+    "docs/Samples/Traffic dumps/iOS/*.pcap",
+    "docs/Samples/Traffic dumps/Linux, desktop/*.pcapng",
+    "docs/Samples/Traffic dumps/macOS/*.pcap"
+  ],
+  "fixtures": {
+    "chrome144_linux_desktop:frame5": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/clienthello-chrome144.0.7559.109-ubuntu24.04.pcapng",
+      "source_sha256": "0b1f5304574735f6e3e87406d1f75f41d2b1823c898391c98da10d89a8008177",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T10:15:21Z",
+      "transport": "tcp",
+      "family": "chromium_44cd_mlkem_linux_desktop",
+      "platform_class": "desktop",
+      "os_family": "linux",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x000A",
+        "0x0000",
+        "0x002D",
+        "0x0023",
+        "0x000B",
+        "0x002B",
+        "0x0033",
+        "0xFF01",
+        "0xFE0D",
+        "0x0010",
+        "0x000D",
+        "0x0017",
+        "0x44CD",
+        "0x001B",
+        "0x0005",
+        "0x0012"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "chrome146_75_linux_desktop:frame5": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/chrome146.0.7680.75-1.pcapng",
+      "source_sha256": "cfab11484e648613605053a3b4cffb0d36fb22379c8ef60f198fb6d2a2e5787b",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T02:56:06Z",
+      "transport": "tcp",
+      "family": "chromium_44cd_mlkem_linux_desktop",
+      "platform_class": "desktop",
+      "os_family": "linux",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0xFF01",
+        "0x0010",
+        "0x0033",
+        "0xFE0D",
+        "0x0012",
+        "0x000A",
+        "0x0000",
+        "0x0023",
+        "0x0017",
+        "0x001B",
+        "0x000D",
+        "0x002B",
+        "0x000B",
+        "0x0005",
+        "0x002D",
+        "0x44CD"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "chrome146_177_linux_desktop:frame5": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/chrome146.0.7680.177-1.pcapng",
+      "source_sha256": "fca18c4290183273b647915300bd1e2ed353e29ff3acb0361c93153e03d95735",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T03:01:09Z",
+      "transport": "tcp",
+      "family": "chromium_44cd_mlkem_linux_desktop",
+      "platform_class": "desktop",
+      "os_family": "linux",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x001B",
+        "0x000A",
+        "0xFE0D",
+        "0x000B",
+        "0x0023",
+        "0x0010",
+        "0x0017",
+        "0xFF01",
+        "0x0005",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x0012",
+        "0x002D",
+        "0x0000",
+        "0x44CD",
+        "0x0029"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "tdesktop673_linux_desktop:frame5": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/clienthello-tdesktop6.7.3-ubuntu24.04.pcapng",
+      "source_sha256": "7713ff5b35fe02cbcc16350019da0fd21d68011c7fe1ccece801ae7323f72487",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T10:02:20Z",
+      "transport": "tcp",
+      "family": "tdesktop_chromium_44cd_mlkem_linux_desktop",
+      "platform_class": "desktop",
+      "os_family": "linux",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x002D",
+        "0xFE0D",
+        "0x002B",
+        "0x0012",
+        "0x44CD",
+        "0x000A",
+        "0x0023",
+        "0x000B",
+        "0x0005",
+        "0x0000",
+        "0x0010",
+        "0x0033",
+        "0x0017",
+        "0xFF01",
+        "0x000D",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "firefox148_linux_desktop:frame5": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/clienthello-firefox148.0.2-ubuntu24.04.pcapng",
+      "source_sha256": "c93bf5b06b764ad2f8162b79dfc5f96252c54f2b0de1d04f3fe37cb40b10c400",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T10:36:16Z",
+      "transport": "tcp",
+      "family": "firefox_fixed_order_linux_desktop",
+      "platform_class": "desktop",
+      "os_family": "linux",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0012",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "firefox149_linux_desktop:frame5": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/firefox149.0.pcapng",
+      "source_sha256": "f7e0c07cc15b25654cab26a29cafcc16fbdcec4304cacbe0ffc831fca93a2fea",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T03:50:15Z",
+      "transport": "tcp",
+      "family": "firefox_fixed_order_linux_desktop",
+      "platform_class": "desktop",
+      "os_family": "linux",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0012",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "brave188_138_android13:frame100": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/brave 1.88.138, android 13.pcap",
+      "source_sha256": "e7535149ea8f72cac723a3969505f067f6c7aa6cdd85ae6a275d336f17d2bf4c",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:06:51Z",
+      "transport": "tcp",
+      "family": "brave188_138_android13",
+      "platform_class": "mobile",
+      "os_family": "android",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0xFF01",
+        "0x0012",
+        "0xFE0D",
+        "0x0033",
+        "0x000D",
+        "0x0023",
+        "0x0005",
+        "0x001B",
+        "0x0000",
+        "0x002B",
+        "0x0010",
+        "0x000A",
+        "0x44CD",
+        "0x0017",
+        "0x002D",
+        "0x000B",
+        "0x0029"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "chrome146_177_android16:frame94": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android 16, Chrome 146.0.7680.177.pcap",
+      "source_sha256": "dcabbd5e1ee2c97f2e46c583c9e959746abdcc1a6b0785fa42a2a1db5bd896b0",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T14:01:50Z",
+      "transport": "tcp",
+      "family": "chrome146_177_android16",
+      "platform_class": "mobile",
+      "os_family": "android",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0023",
+        "0x0012",
+        "0x0010",
+        "0xFE0D",
+        "0x0017",
+        "0x000D",
+        "0x002B",
+        "0xFF01",
+        "0x000B",
+        "0x0033",
+        "0x0005",
+        "0x002D",
+        "0x0000",
+        "0x000A",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "chrome146_177_android16_pixel9proxl:frame129": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Chrome_146_0_7680_177_Android_16;_Pixel_9_Pro_XL_Build_CP1A_2603.pcap",
+      "source_sha256": "ea0a09b56edeba1eb2b94b0df133d346d452cc6b67fe97f8c08ce55c459142ad",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:07:21Z",
+      "transport": "tcp",
+      "family": "chrome146_177_android16_pixel9proxl",
+      "platform_class": "mobile",
+      "os_family": "android",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x002D",
+        "0x002B",
+        "0x000A",
+        "0x0005",
+        "0xFE0D",
+        "0x0023",
+        "0x0012",
+        "0x0010",
+        "0x0033",
+        "0x000D",
+        "0x0000",
+        "0x0017",
+        "0x000B",
+        "0x001B",
+        "0xFF01"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "chrome146_177_oxygenos16_oneplus13:frame102": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Chrome 146.0.7680.177,OxygenOS 16,OnePlus 13.pcap",
+      "source_sha256": "3be95fe6145904106908714f362de04bc497e9fa533d5bdf046c88f8e436d659",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:01:43Z",
+      "transport": "tcp",
+      "family": "chrome146_177_oxygenos16_oneplus13",
+      "platform_class": "mobile",
+      "os_family": "android",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0017",
+        "0x000A",
+        "0xFF01",
+        "0x000B",
+        "0x002D",
+        "0x0010",
+        "0x000D",
+        "0x002B",
+        "0x0000",
+        "0xFE0D",
+        "0x0023",
+        "0x0033",
+        "0x001B",
+        "0x0005",
+        "0x0012"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "samsung_internet29_android16_galaxy_s25plus:frame133": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Samsung Galaxy S25+, Android 16, Samsung Internet Browser 29.0.pcap",
+      "source_sha256": "ffe2edd54f38a29fb69f3ecf9a781a991e4d7677af3ac9a4f622b66390722779",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:05:40Z",
+      "transport": "tcp",
+      "family": "samsung_internet29_android16_galaxy_s25plus",
+      "platform_class": "mobile",
+      "os_family": "android",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x001B",
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x002B",
+        "0xFE0D",
+        "0x0023",
+        "0x0033",
+        "0x000B",
+        "0x000A",
+        "0x000D",
+        "0x0012",
+        "0x0010",
+        "0x002D",
+        "0x0005"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "yandex26_3_4_128_oxygenos16_oneplus13:frame76": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Яндекс.Браузер 26.3.4.128 (OxygenOS 16, аппарат Oneplus 13).pcap",
+      "source_sha256": "e28bf623f21453a9f0fd0c1a2bd01e737f8dccc4336fb977a07b55d93fa2c735",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T12:56:54Z",
+      "transport": "tcp",
+      "family": "yandex26_3_4_128_oxygenos16_oneplus13",
+      "platform_class": "mobile",
+      "os_family": "android",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0xFE0D",
+        "0x001B",
+        "0x0023",
+        "0x002B",
+        "0xFF01",
+        "0x0005",
+        "0x000A",
+        "0x0012",
+        "0x0010",
+        "0x002D",
+        "0x0033",
+        "0x0000",
+        "0x000B",
+        "0x0017",
+        "0x000D"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "yandex26_3_4_android16_samsung:frame174": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Андроид 16 (самсунг), Яндекс браузер 26.3.4.pcap",
+      "source_sha256": "dbc2251539cdc02565786dcd4dc736330665510324350069430ccd8c4002cfd2",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T14:05:31Z",
+      "transport": "tcp",
+      "family": "yandex26_3_4_android16_samsung",
+      "platform_class": "mobile",
+      "os_family": "android",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0017",
+        "0x000D",
+        "0x0000",
+        "0x000B",
+        "0x002D",
+        "0x001B",
+        "0x0010",
+        "0xFF01",
+        "0x0023",
+        "0x002B",
+        "0x0012",
+        "0x0005",
+        "0x44CD",
+        "0x000A",
+        "0xFE0D",
+        "0x0033",
+        "0x0029"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "brave188_ios26_4:frame38": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/Brave 1.88, iOS 26.4.pcap",
+      "source_sha256": "beba6d4de133035c6dd6bb86578a01e4b97432eda5ec0adc1b76056251b9646e",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:08:58Z",
+      "transport": "tcp",
+      "family": "brave188_ios26_4",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "chrome146_0_7680_151_ios26_1:frame40": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/IOS 26.1 Chrome 146.0.7680.151.pcap",
+      "source_sha256": "0ba1a10b1ef5c16e6cc1c96384664a48db0c8137c2e795dff36a09981f48fd58",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:17:50Z",
+      "transport": "tcp",
+      "family": "chrome146_0_7680_151_ios26_1",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0005",
+        "0x0033",
+        "0x002D",
+        "0x000D",
+        "0x000B",
+        "0x0017",
+        "0x002B",
+        "0xFE0D",
+        "0x0000",
+        "0x0023",
+        "0x000A",
+        "0x0012",
+        "0xFF01",
+        "0x001B",
+        "0x44CD",
+        "0x0010",
+        "0x0029"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "chrome147_0_7727_47_ios26_3:frame27": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS 26.3, Chrome 147.0.7727.47.pcap",
+      "source_sha256": "b7c3a12c9903066475ef4cbc5799e646f2740f41b77e2396f8b8cbea3cb4ecaa",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:17:02Z",
+      "transport": "tcp",
+      "family": "chrome147_0_7727_47_ios26_3",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0xFF01",
+        "0x0033",
+        "0x000B",
+        "0x0023",
+        "0x0005",
+        "0xFE0D",
+        "0x0010",
+        "0x0012",
+        "0x0017",
+        "0x44CD",
+        "0x002D",
+        "0x000D",
+        "0x0000",
+        "0x001B",
+        "0x002B",
+        "0x000A",
+        "0x0029"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "chrome147_0_7727_47_ios26_4_a:frame148": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS 26.4, Google Chrome 147.0.7727.47.pcap",
+      "source_sha256": "1cf4bb2f0c28ad96d260082687c900e8fcccaba845b411c2c819fd5760251259",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:14:16Z",
+      "transport": "tcp",
+      "family": "chrome147_0_7727_47_ios26_4_a",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "chrome147_0_7727_47_ios26_4_b:frame161": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/ios 26.4,Chrome 147.0.7727.47.pcap",
+      "source_sha256": "c36b11658ac5b5217efba304fcd00c8c97e7e4830b4ef61faa402a9f105714c5",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:05:18Z",
+      "transport": "tcp",
+      "family": "chrome147_0_7727_47_ios26_4_b",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "firefox149_2_ios26_4:frame126": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS 26.4 Firefox 149.2 (69775).pcap",
+      "source_sha256": "5bf18e72a6f38b8c314d1b62416d26bd8d8331c811526e23f3ebd8c3fdcc77ef",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:16:57Z",
+      "transport": "tcp",
+      "family": "firefox149_2_ios26_4",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "safari18_7_6_ios18_7_6:frame184": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS 18.7.6. Safari 18.7.6.pcap",
+      "source_sha256": "33e9c4d9299875bd07b22d41602e58c448fe5457e5e960fd113f337401ff5759",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T12:52:31Z",
+      "transport": "tcp",
+      "family": "safari18_7_6_ios18_7_6",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "safari26_2_ios26_2_a:frame24": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS 26.2, Safari 26.2.pcap",
+      "source_sha256": "bdc2edef5881b62869711a5c8b3cf7bf692a17060a434906f2e7db3e999d53b4",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:58:43Z",
+      "transport": "tcp",
+      "family": "safari26_2_ios26_2_a",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "safari26_2_ios26_2_b:frame18": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/ios 26.2, Safari 26.2 (2).pcap",
+      "source_sha256": "7512870f9776910b71f8eb30a7fd8b726724f22db22f5371fe36320a9a9c68a4",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T14:12:24Z",
+      "transport": "tcp",
+      "family": "safari26_2_ios26_2_b",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "safari26_3_1_ios26_3_1_a:frame76": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/Ios 26.3.1, Safari 26.3.1.pcap",
+      "source_sha256": "4d463a3c4a8fec67c184c536dedf063441a61c70303aba3ead72e7524e7e840f",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:42:45Z",
+      "transport": "tcp",
+      "family": "safari26_3_1_ios26_3_1_a",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "safari26_3_1_ios26_3_1_b:frame66": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/Ios 26.3.1, Safari  26.3.1 (2).pcap",
+      "source_sha256": "1f751d1226a2bbd706f50d35a61e8b5b8bcb857d8cbd1c8aa2a649367477198a",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:42:25Z",
+      "transport": "tcp",
+      "family": "safari26_3_1_ios26_3_1_b",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "safari26_4_ios26_4_a:frame18": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/Safari 26.4, iOS 26.4.pcap",
+      "source_sha256": "b07109df80dca8a8bdacf98572f057e00893fcc8ed73820c54922949dbed3cf9",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:01:45Z",
+      "transport": "tcp",
+      "family": "safari26_4_ios26_4_a",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "safari26_4_ios26_4_b:frame21": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS 26.4, Safari 26.4 (2).pcap",
+      "source_sha256": "a5d526c2112ba8ad4b372759114eabc3f9e6a3aba4e1115d8a0afcc9145f85a6",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:57:15Z",
+      "transport": "tcp",
+      "family": "safari26_4_ios26_4_b",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "safari26_4_ios26_4_c:frame18": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/ios 26.4, safari 26.4.pcap",
+      "source_sha256": "d679678896ab5d1055887d8a3d58f4fadc07ad0ddf84a8fd7c02e041cb37b710",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:42:28Z",
+      "transport": "tcp",
+      "family": "safari26_4_ios26_4_c",
+      "platform_class": "mobile",
+      "os_family": "ios",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    },
+    "firefox149_macos26_3:frame8": {
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/MacOS Tahoe 26.3, macbook m4 pro, firefox 149.0.pcap",
+      "source_sha256": "ce980035f103fc0dcae949cc3feaeeb478da9fc9709b4cd9688d0a235c694cb1",
+      "source_kind": "browser_capture",
+      "parser_version": "tls-clienthello-parser-v1",
+      "capture_date_utc": "2026-04-07T13:15:43Z",
+      "transport": "tcp",
+      "family": "firefox149_macos26_3",
+      "platform_class": "desktop",
+      "os_family": "macos",
+      "tls_gen": "tls13",
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0012",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "trust_tier": "verified",
+      "route_mode": "non_ru_egress"
+    }
+  },
+  "profiles": {
+    "chrome144_linux_desktop": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "chrome144_linux_desktop:frame5"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "chromium_44cd_mlkem_linux_desktop"
+        ],
+        "platform_class": [
+          "desktop"
+        ],
+        "os_family": [
+          "linux"
+        ],
+        "tls_gen": [
+          "tls13"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": "0x11EC",
+      "alps_type": "0x44CD",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "chrome146_75_linux_desktop": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "chrome146_75_linux_desktop:frame5"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "chromium_44cd_mlkem_linux_desktop"
+        ],
+        "platform_class": [
+          "desktop"
+        ],
+        "os_family": [
+          "linux"
+        ],
+        "tls_gen": [
+          "tls13"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": "0x11EC",
+      "alps_type": "0x44CD",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "chrome146_177_linux_desktop": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "chrome146_177_linux_desktop:frame5"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "chromium_44cd_mlkem_linux_desktop"
+        ],
+        "platform_class": [
+          "desktop"
+        ],
+        "os_family": [
+          "linux"
+        ],
+        "tls_gen": [
+          "tls13"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": "0x11EC",
+      "alps_type": "0x44CD",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "tdesktop673_linux_desktop": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "tdesktop673_linux_desktop:frame5"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "tdesktop_chromium_44cd_mlkem_linux_desktop"
+        ],
+        "platform_class": [
+          "desktop"
+        ],
+        "os_family": [
+          "linux"
+        ],
+        "tls_gen": [
+          "tls13"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": "0x11EC",
+      "alps_type": "0x44CD",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "firefox148_linux_desktop": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "firefox148_linux_desktop:frame5"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "firefox_fixed_order_linux_desktop"
+        ],
+        "platform_class": [
+          "desktop"
+        ],
+        "os_family": [
+          "linux"
+        ],
+        "tls_gen": [
+          "tls13"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": "0x11EC",
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "firefox149_linux_desktop": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "firefox149_linux_desktop:frame5"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "firefox_fixed_order_linux_desktop"
+        ],
+        "platform_class": [
+          "desktop"
+        ],
+        "os_family": [
+          "linux"
+        ],
+        "tls_gen": [
+          "tls13"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": "0x11EC",
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "brave188_138_android13": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "brave188_138_android13:frame100"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "brave188_138_android13"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": null,
+      "alps_type": "0x44CD",
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "chrome146_177_android16": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "chrome146_177_android16:frame94"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "chrome146_177_android16"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "chrome146_177_android16_pixel9proxl": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "chrome146_177_android16_pixel9proxl:frame129"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "chrome146_177_android16_pixel9proxl"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "chrome146_177_oxygenos16_oneplus13": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "chrome146_177_oxygenos16_oneplus13:frame102"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "chrome146_177_oxygenos16_oneplus13"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "samsung_internet29_android16_galaxy_s25plus": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "samsung_internet29_android16_galaxy_s25plus:frame133"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "samsung_internet29_android16_galaxy_s25plus"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "yandex26_3_4_128_oxygenos16_oneplus13": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "yandex26_3_4_128_oxygenos16_oneplus13:frame76"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "yandex26_3_4_128_oxygenos16_oneplus13"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "yandex26_3_4_android16_samsung": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "yandex26_3_4_android16_samsung:frame174"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "yandex26_3_4_android16_samsung"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": null,
+      "alps_type": "0x44CD",
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "brave188_ios26_4": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "brave188_ios26_4:frame38"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "brave188_ios26_4"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": null,
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "chrome146_0_7680_151_ios26_1": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "chrome146_0_7680_151_ios26_1:frame40"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "chrome146_0_7680_151_ios26_1"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": null,
+      "alps_type": "0x44CD",
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "chrome147_0_7727_47_ios26_3": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "chrome147_0_7727_47_ios26_3:frame27"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "chrome147_0_7727_47_ios26_3"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": null,
+      "alps_type": "0x44CD",
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "chrome147_0_7727_47_ios26_4_a": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "chrome147_0_7727_47_ios26_4_a:frame148"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "chrome147_0_7727_47_ios26_4_a"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": null,
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "chrome147_0_7727_47_ios26_4_b": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "chrome147_0_7727_47_ios26_4_b:frame161"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "chrome147_0_7727_47_ios26_4_b"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": null,
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "firefox149_2_ios26_4": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "firefox149_2_ios26_4:frame126"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "firefox149_2_ios26_4"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": null,
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "safari18_7_6_ios18_7_6": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "safari18_7_6_ios18_7_6:frame184"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "safari18_7_6_ios18_7_6"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": null,
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "safari26_2_ios26_2_a": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "safari26_2_ios26_2_a:frame24"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "safari26_2_ios26_2_a"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": null,
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "safari26_2_ios26_2_b": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "safari26_2_ios26_2_b:frame18"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "safari26_2_ios26_2_b"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": null,
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "safari26_3_1_ios26_3_1_a": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "safari26_3_1_ios26_3_1_a:frame76"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "safari26_3_1_ios26_3_1_a"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": null,
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "safari26_3_1_ios26_3_1_b": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "safari26_3_1_ios26_3_1_b:frame66"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "safari26_3_1_ios26_3_1_b"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": null,
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "safari26_4_ios26_4_a": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "safari26_4_ios26_4_a:frame18"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "safari26_4_ios26_4_a"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": null,
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "safari26_4_ios26_4_b": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "safari26_4_ios26_4_b:frame21"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "safari26_4_ios26_4_b"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": null,
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "safari26_4_ios26_4_c": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "safari26_4_ios26_4_c:frame18"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "safari26_4_ios26_4_c"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": null,
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    },
+    "firefox149_macos26_3": {
+      "release_gating": false,
+      "include_fixture_ids": [
+        "firefox149_macos26_3:frame8"
+      ],
+      "allowed_tags": {
+        "source_kind": [
+          "browser_capture"
+        ],
+        "family": [
+          "firefox149_macos26_3"
+        ],
+        "platform_class": [
+          "desktop"
+        ],
+        "os_family": [
+          "macos"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "pq_group": null,
+      "alps_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_structural_match": true,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false
+      }
+    }
+  }
+}

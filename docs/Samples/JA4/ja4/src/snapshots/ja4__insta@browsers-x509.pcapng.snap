@@ -1,0 +1,112 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: tcp
+  src: 172.27.7.31
+  dst: 13.107.21.239
+  src_port: 54524
+  dst_port: 443
+  tls_server_name: edge.microsoft.com
+  ja4: t13d1516h2_8daaf6152771_e5627efa2ab1
+  ja4s: t1206h2_c030_044dc9b3196d
+  tls_certs:
+  - x509:
+    - ja4x: a373a9f83c6b_2bab15409345_0f2217ba412e
+      issuerCountryName: US
+      issuerOrganizationName: Microsoft Corporation
+      issuerCommonName: Microsoft Azure TLS Issuing CA 05
+      subjectCountryName: US
+      subjectStateOrProvinceName: WA
+      subjectLocalityName: Redmond
+      subjectOrganizationName: Microsoft Corporation
+      subjectCommonName: edge.microsoft.com
+    - ja4x: 7d5dbb3783b4_a373a9f83c6b_c34b04c10969
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerOrganizationalUnit: www.digicert.com
+      issuerCommonName: DigiCert Global Root G2
+      subjectCountryName: US
+      subjectOrganizationName: Microsoft Corporation
+      subjectCommonName: Microsoft Azure TLS Issuing CA 05
+  ja4l_c: 56_128
+  ja4l_s: 1907_112
+- stream: 1
+  transport: tcp
+  src: 172.27.7.31
+  dst: 68.67.160.117
+  src_port: 54525
+  dst_port: 443
+  tls_server_name: nym1-ib.adnxs.com
+  ja4: t13d1516h2_8daaf6152771_e5627efa2ab1
+  ja4s: t1207h2_c02b_cf25e267ce22
+  tls_certs:
+  - x509:
+    - ja4x: 7d5dbb3783b4_2bab15409345_7bf9a7bf7029
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerOrganizationalUnit: www.digicert.com
+      issuerCommonName: GeoTrust ECC CA 2018
+      subjectCountryName: US
+      subjectStateOrProvinceName: New York
+      subjectLocalityName: New York
+      subjectOrganizationName: Xandr Inc.
+      subjectCommonName: '*.adnxs.com'
+    - ja4x: 7d5dbb3783b4_7d5dbb3783b4_44440d41940c
+      issuerCountryName: US
+      issuerOrganizationName: DigiCert Inc
+      issuerOrganizationalUnit: www.digicert.com
+      issuerCommonName: DigiCert Global Root CA
+      subjectCountryName: US
+      subjectOrganizationName: DigiCert Inc
+      subjectOrganizationalUnit: www.digicert.com
+      subjectCommonName: GeoTrust ECC CA 2018
+  ja4l_c: 73_128
+  ja4l_s: 7166_41
+- stream: 2
+  transport: tcp
+  src: 172.27.7.31
+  dst: 103.42.133.15
+  src_port: 54603
+  dst_port: 443
+  tls_server_name: lptag.liveperson.net
+  ja4: t13d1516h2_8daaf6152771_e5627efa2ab1
+  ja4s: t1205h2_c02f_845f7282a956
+  tls_certs:
+  - x509:
+    - ja4x: 2bab15409345_2e9214a636bc_b891c0ad6f32
+      issuerCountryName: GB
+      issuerStateOrProvinceName: Greater Manchester
+      issuerLocalityName: Salford
+      issuerOrganizationName: Sectigo Limited
+      issuerCommonName: Sectigo RSA Organization Validation Secure Server CA
+      subjectCountryName: US
+      subjectStateOrProvinceName: New York
+      subjectOrganizationName: LivePerson, Inc
+      subjectCommonName: '*.liveperson.net'
+    - ja4x: 2bab15409345_2bab15409345_2367ce7fbc5b
+      issuerCountryName: US
+      issuerStateOrProvinceName: New Jersey
+      issuerLocalityName: Jersey City
+      issuerOrganizationName: The USERTRUST Network
+      issuerCommonName: USERTrust RSA Certification Authority
+      subjectCountryName: GB
+      subjectStateOrProvinceName: Greater Manchester
+      subjectLocalityName: Salford
+      subjectOrganizationName: Sectigo Limited
+      subjectCommonName: Sectigo RSA Organization Validation Secure Server CA
+    - ja4x: 2bab15409345_2bab15409345_2030e37f3421
+      issuerCountryName: GB
+      issuerStateOrProvinceName: Greater Manchester
+      issuerLocalityName: Salford
+      issuerOrganizationName: Comodo CA Limited
+      issuerCommonName: AAA Certificate Services
+      subjectCountryName: US
+      subjectStateOrProvinceName: New Jersey
+      subjectLocalityName: Jersey City
+      subjectOrganizationName: The USERTRUST Network
+      subjectCommonName: USERTrust RSA Certification Authority
+  ja4l_c: 78_128
+  ja4l_s: 2948_229
+

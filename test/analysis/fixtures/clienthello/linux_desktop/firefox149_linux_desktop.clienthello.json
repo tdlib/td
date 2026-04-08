@@ -1,0 +1,307 @@
+{
+  "artifact_type": "tls_clienthello_fixtures",
+  "capture_date_utc": "2026-04-07T03:50:15Z",
+  "device_class": "desktop",
+  "display_filter": "tcp && tls.handshake.type == 1",
+  "extractor": {
+    "name": "extract_client_hello_fixtures.py",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "generated_at_utc": "2026-04-08T11:39:16Z",
+  "os_family": "linux",
+  "parser_version": "tls-clienthello-parser-v1",
+  "profile_id": "firefox149_linux_desktop",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "alpn_protocols": [
+        "h2",
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "2c36a905f94c69d20013c95d52e68a46233c706e14e81a7a0e9d5b2b4f1d05e9",
+      "compress_certificate_algorithms": [
+        "0x0001",
+        "0x0002",
+        "0x0003"
+      ],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": {
+        "aead_id": "0x0001",
+        "config_id": "0xF2",
+        "enc_length": 32,
+        "enc_sha256": "3fbc2be84e8ada541f31cae26a34c1d5b93351e11d10993b10ba1c6add1829eb",
+        "kdf_id": "0x0001",
+        "outer_type": "0x00",
+        "payload_length": 239,
+        "payload_sha256": "4253a7fc09e661e3b08c13394afdc5a640c82adb988e8019c379a87952883e00"
+      },
+      "extension_types": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0012",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D"
+      ],
+      "extensions": [
+        {
+          "body_hex": "000d00000a7669696974612e66756e",
+          "is_grease": false,
+          "length": 15,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "000e11ec001d00170018001901000101",
+          "is_grease": false,
+          "length": 16,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0023"
+        },
+        {
+          "body_hex": "000c02683208687474702f312e31",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "00080403050306030203",
+          "is_grease": false,
+          "length": 10,
+          "type": "0x0022"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0012"
+        },
+        {
+          "body_hex": "052d11ec04c004679dc5c633a58c1ad075064e92177408c9adcb2e56e8b11cb75e0f885c00c64e66e04d540a0fec46043d131aa06b13f15930f73832bbb0baffab88b542aa3c799ddad95a60c61b26b04b92e0ac8c75579ed75c3a85aa5c9734348a988e186efb64a97ba01bb0ab6c28826e23521ce8d6a003469a84b323df8ac551f50e2fec1a662b130be558434bb662f58756f338b7932a8d36ad529c0d91d48313525f8df3b84f3ccdf5605e50f687d6bcc96eec8d84f85859d11fced442923398ec607f7156248a45ce479a2e403078467a7288a275ec094abb3a4b556b349571bc34dc8eba361ebd253c212c65cb337471552995e7a77c3c57bc2a0dc23576d465989b972fdc28b74319108f04a9a6a3b975114ad4161ae4954562c6c2c6919d21e087f3b1bca03a569d85a16d86276426439d2ac140a7b3e0977472d2c64f3846e6017a45a2612f0a27b7f2b22ea60b02566a432a699f434abe19cc1aba085371047cf639408748188a07d7db118548467bfb60a7552e3083a063284d7a4c9919d2cd5b0303094444b498188cbb278d44a3c7779bab06a0f87cb2d4888e820716161303a6aab91091482680b04804cfc3201905bc5a9f408fb9c239a1207947392a8e74216bf7b9353b7da6081625bc3050552c7125b082304854646f8f7cca675c70b8502d82838fd3ea0d1bf36653cbbfe1687172c5698a287240510f5c239c2a386311aaadd07b4aef5b2a3b155cedb59f48960ff7a71ed7d6cde46c27d5f6c87df307b10bc2aad8a780f3c76dc70437246ff64203faf52071466d4e69967cb77c2de52d9fe18235fb75f230188ec6077e0a3ecbb39d15d1c0ae0990389199439052181b3fa4f5657d604bb20682ac00c6e9719e22a8921d433a674bb7e25313de5bce9900058cc656abfc1d214c1c422b42c3d895f3017682715cfeb52e508ca404906cc961c27c1c2a8067a97e5b38feab53d90bbe73c129bd107dd21baffca3c81c6827c9a18f1cccb27d2b86d793668811431aa6a6cf0c2df42153a745579a963afe126b32c4a859d37694a7804a9939b803b2fe249253b75d8b2a63f1555190587da1a463727b5120c32784a3c77d7b0df8e20589f1c8056b7fdedb4c48988debba300db69a8fbc19265ca3e7793061c18763fb02a5ec85c4c6424d6b3a7b545f0bc462a454c22eb11bc4e9157c524b6e328d0fcb6f64907510f63f0064a80ad53a52fa1dd65b4ae945c238b1c91aac2ab243293a114eb5f5626a291625c21de7dc39dd7cb5cb671952746634559154a464646c6632f77caa2b06fd0a5bf4c3b12132bfaba39105e54a7dc08f0438031eaa576d59b9fbc2c80c0abe0aeccc85385893529a0689b5e70725f8a356d7202d4128385d5489f0a1443be203ae222f1e41a40fa33473953f9e43ca7071033e1c4e27d01ad9574b75969bf8867c399b11ab972520b446b1ac4f4e683be198709518b64a5581febabeeeccc0c46103e4407d3f6c97e7c869ed8630c147a8920b6b85f917b6730e83ac492c191829730aa5f939b9cb9db4ecc17839934b76385d576bf066a79ebb35db8cb82f486244e73f5f75013489ae81c51971963b8ee14fd6c261d46219d275cd4fd5c442686308b73960a747df0b3a285bebf8e854b9469c6a7192a42d0f45b75e39b0e995a65ae335493eaf3fa2b15b65f4cd97cda3fc38a0d6092af2f2d910fd7554ad0a06001d00205ae335493eaf3fa2b15b65f4cd97cda3fc38a0d6092af2f2d910fd7554ad0a06001700410450cfa9eaed2ecb34953ae3b17d305bf4b37ea56952b7e20b3597ec4c02c4fb2d694bb4c267a76352f1fa2cf69a0f521671be0d666e834003159bcf9889b61b4e",
+          "is_grease": false,
+          "length": 1327,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "0403040303",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "001604030503060308040805080604010501060102030201",
+          "is_grease": false,
+          "length": 24,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "4001",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x001C"
+        },
+        {
+          "body_hex": "06000100020003",
+          "is_grease": false,
+          "length": 7,
+          "type": "0x001B"
+        },
+        {
+          "body_hex": "0000010001f20020138113b4af2f0d28cdd5c857717121192352e2c71663f449c12793b6d06ebce600ef049f7d731769226669f14202dd917bbeb66a2893b4e260b4206eabb21c589f03d2d3aca1e956d4a5b274449ea96bb6fd32fd322eabbc3a825715c6a60414b8e286da765f805e000269945bcc564e50190126689db36d8418f232a82177122a1c9af1d0ca20aa3cce06a284ba139d7e39ff57e0305c75fe7c955abe614acaafdb7315b24b1fd8a2bf5708d093e7210b00b4a727316ed3eda1763b09ec387597fe588eff60355a69592202367ea5cfd227656cefd27432fa3ecbdd9ac533cf62dafa4ddd26bc73779ffe5a3decb3e932ec458b549cd9fdd0abdd9ded30c9dd582ee3a9a6d34967c2160f13cccd631337",
+          "is_grease": false,
+          "length": 281,
+          "type": "0xFE0D"
+        }
+      ],
+      "fixture_id": "firefox149_linux_desktop:frame5",
+      "frame_number": 5,
+      "frame_time_epoch": "1775533815.231179933",
+      "frame_time_utc": "2026-04-07T03:50:15Z",
+      "handshake_length": 1886,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": false,
+      "has_grease_extension": false,
+      "has_grease_supported_group": false,
+      "key_share_entries": [
+        {
+          "group": "0x11EC",
+          "is_grease_group": false,
+          "key_exchange_length": 1216,
+          "key_exchange_sha256": "63589b0d33dce04405c5f0dd48c7a8a78e36ec5ad3b752c637aff9e02ce8dddd"
+        },
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "5c52eca51674305a2835ec10bc52d881dfbbafeb0a33107038bf8624187836ec"
+        },
+        {
+          "group": "0x0017",
+          "is_grease_group": false,
+          "key_exchange_length": 65,
+          "key_exchange_sha256": "653f9f81919680084fe8b25cc69fb6fc0d74fa5e6edcabedc69e7333f5579c67"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0012",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0012",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D"
+      ],
+      "non_grease_supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "random_sha256": "ec6296fa75b76679114801a578ff71d5123b6eae62204507836ed4f10e0a28e6",
+      "record_length": 1890,
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "61e8a73017720886fe998887347659a8ffbddedfce213b357f6c47a01bf83f01",
+      "sni": "viiita.fun",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 1890,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tcp_stream": 0,
+      "tls_record_sha256": "7b0c4f19974369fd1391a2240e96d7ed17d96e6621a0e568979b26eeb681e15e"
+    }
+  ],
+  "scenario_id": "linux_desktop_firefox149_clienthello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/firefox149.0.pcapng",
+  "source_sha256": "f7e0c07cc15b25654cab26a29cafcc16fbdcec4304cacbe0ffc831fca93a2fea",
+  "tls_handshake_type": 1,
+  "transport": "tcp"
+}

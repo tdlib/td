@@ -1,0 +1,21 @@
+## HTTP client fingerprinting -- JA4H-C
+[http]
+# enabled = true
+
+
+## SSH traffic fingerprinting -- JA4SSH
+[ssh]
+# enabled = true
+
+## New JA4SSH fingerprint is generated every `sample_size` SSH packets
+# sample_size = 200
+
+
+## Light distance (latency) fingerprinting -- JA4L-C (client), JA4L-S (server)
+[time]
+# enabled = true
+
+
+## TLS fingerprinting -- JA4 (TLS client), JA4S (TLS server), JA4X (X.509 certificates)
+[tls]
+# enabled = true

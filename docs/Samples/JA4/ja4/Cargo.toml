@@ -1,0 +1,38 @@
+[package]
+name = "ja4"
+description = "JA4 suite of passive network fingerprinting methods"
+version.workspace = true
+edition.workspace = true
+authors = ["Valeriy V. Vorotyntsev <valery.vv@gmail.com>"]
+license.workspace = true
+repository.workspace = true
+keywords = ["ja4", "fingerprint", "pcap"]
+categories = ["network-programming"]
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap.workspace = true
+color-eyre.workspace = true
+config = { version = "0.15", default-features = false, features = ["toml"] }
+duct = "0.13"
+fs-err.workspace = true
+hex.workspace = true
+indexmap.workspace = true
+itertools.workspace = true
+ja4x = { path = "../ja4x" }
+owo-colors = "3.5"
+rtshark = "=2.6.0"  # CAUTION: rtshark >= 2.7.0 breaks JA4 (TLS client) and JA4L-C/S fingerprints
+semver = "1.0"
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+sha2.workspace = true
+thiserror = "1.0"
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+expect-test = "1.5"
+insta = { version = "1.42", features = ["glob", "yaml"] }

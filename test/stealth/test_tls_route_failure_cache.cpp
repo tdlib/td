@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
+
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
 #include "tddb/td/db/KeyValueSyncInterface.h"
@@ -215,6 +215,74 @@ TEST(TlsRouteFailureCache, PersistentStoreReloadsCircuitBreakerStateAfterMemoryR
   reset_runtime_ech_failure_state_for_tests();
   ASSERT_EQ(1u, store->get_all().size());
   ASSERT_TRUE(EchMode::Disabled == runtime_ech_mode_for_route(destination, unix_time, route_hints));
+}
+
+TEST(TlsRouteFailureCache, DifferentDestinationMustNotInheritCircuitBreakerState) {
+  reset_runtime_ech_failure_state_for_tests();
+  reset_runtime_ech_counters_for_tests();
+
+  NetworkRouteHints route_hints;
+  route_hints.is_known = true;
+  route_hints.is_ru = false;
+
+  const td::Slice blocked_destination("blocked.example.com");
+  const td::Slice healthy_destination("healthy.example.com");
+  const td::int32 unix_time = 1712345678;
+
+  note_runtime_ech_failure(blocked_destination, unix_time);
+  note_runtime_ech_failure(blocked_destination, unix_time);
+  note_runtime_ech_failure(blocked_destination, unix_time);
+
+  ASSERT_TRUE(EchMode::Disabled == runtime_ech_mode_for_route(blocked_destination, unix_time, route_hints));
+  ASSERT_TRUE(EchMode::Rfc9180Outer == runtime_ech_mode_for_route(healthy_destination, unix_time, route_hints));
+}
+
+TEST(TlsRouteFailureCache, DifferentDayBucketMustNotInheritCircuitBreakerState) {
+  reset_runtime_ech_failure_state_for_tests();
+  reset_runtime_ech_counters_for_tests();
+
+  NetworkRouteHints route_hints;
+  route_hints.is_known = true;
+  route_hints.is_ru = false;
+
+  const td::Slice destination("bucketed.example.com");
+  const td::int32 first_day_unix_time = 1712345678;
+  const td::int32 second_day_unix_time = first_day_unix_time + 86400;
+
+  note_runtime_ech_failure(destination, first_day_unix_time);
+  note_runtime_ech_failure(destination, first_day_unix_time);
+  note_runtime_ech_failure(destination, first_day_unix_time);
+
+  ASSERT_TRUE(EchMode::Disabled == runtime_ech_mode_for_route(destination, first_day_unix_time, route_hints));
+  ASSERT_TRUE(EchMode::Rfc9180Outer == runtime_ech_mode_for_route(destination, second_day_unix_time, route_hints));
+}
+
+TEST(TlsRouteFailureCache, SuccessClearsOnlyMatchingDestinationAndBucket) {
+  reset_runtime_ech_failure_state_for_tests();
+  reset_runtime_ech_counters_for_tests();
+
+  NetworkRouteHints route_hints;
+  route_hints.is_known = true;
+  route_hints.is_ru = false;
+
+  const td::Slice destination("scoped-success.example.com");
+  const td::int32 blocked_unix_time = 1712345678;
+  const td::int32 next_bucket_unix_time = blocked_unix_time + 86400;
+
+  note_runtime_ech_failure(destination, blocked_unix_time);
+  note_runtime_ech_failure(destination, blocked_unix_time);
+  note_runtime_ech_failure(destination, blocked_unix_time);
+  note_runtime_ech_failure(destination, next_bucket_unix_time);
+  note_runtime_ech_failure(destination, next_bucket_unix_time);
+  note_runtime_ech_failure(destination, next_bucket_unix_time);
+
+  ASSERT_TRUE(EchMode::Disabled == runtime_ech_mode_for_route(destination, blocked_unix_time, route_hints));
+  ASSERT_TRUE(EchMode::Disabled == runtime_ech_mode_for_route(destination, next_bucket_unix_time, route_hints));
+
+  note_runtime_ech_success(destination, blocked_unix_time);
+
+  ASSERT_TRUE(EchMode::Rfc9180Outer == runtime_ech_mode_for_route(destination, blocked_unix_time, route_hints));
+  ASSERT_TRUE(EchMode::Disabled == runtime_ech_mode_for_route(destination, next_bucket_unix_time, route_hints));
 }
 
 }  // namespace

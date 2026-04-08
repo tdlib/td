@@ -1,9 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
+
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
 #include "td/mtproto/stealth/StealthRuntimeParams.h"
@@ -55,19 +55,18 @@ constexpr BrowserProfile ANDROID_MOBILE_PROFILES[] = {
 };
 
 constexpr ProfileSpec PROFILE_SPECS[] = {
-  {BrowserProfile::Chrome133, Slice("chrome133"), 0x44CD, 0, true, true, true, true, 0x11EC,
+    {BrowserProfile::Chrome133, Slice("chrome133"), 0x44CD, 0, true, true, true, true, 0x11EC,
      ExtensionOrderPolicy::ChromeShuffleAnchored},
-  {BrowserProfile::Chrome131, Slice("chrome131"), 0x4469, 0, true, true, true, true, 0x11EC,
+    {BrowserProfile::Chrome131, Slice("chrome131"), 0x4469, 0, true, true, true, true, 0x11EC,
      ExtensionOrderPolicy::ChromeShuffleAnchored},
-  {BrowserProfile::Chrome120, Slice("chrome120"), 0x4469, 0, true, true, true, false, 0,
+    {BrowserProfile::Chrome120, Slice("chrome120"), 0x4469, 0, true, true, true, false, 0,
      ExtensionOrderPolicy::ChromeShuffleAnchored},
-  {BrowserProfile::Firefox148, Slice("firefox148"), 0, 0x4001, true, false, true, true, 0x11EC,
+    {BrowserProfile::Firefox148, Slice("firefox148"), 0, 0x4001, true, false, true, true, 0x11EC,
      ExtensionOrderPolicy::FixedFromFixture},
-  {BrowserProfile::Safari26_3, Slice("safari26_3"), 0, 0, false, false, true, false, 0,
+    {BrowserProfile::Safari26_3, Slice("safari26_3"), 0, 0, false, false, true, false, 0,
      ExtensionOrderPolicy::FixedFromFixture},
-  {BrowserProfile::IOS14, Slice("ios14"), 0, 0, false, false, true, false, 0,
-   ExtensionOrderPolicy::FixedFromFixture},
-  {BrowserProfile::Android11_OkHttp, Slice("android11_okhttp"), 0, 0, false, false, true, false, 0,
+    {BrowserProfile::IOS14, Slice("ios14"), 0, 0, false, false, true, false, 0, ExtensionOrderPolicy::FixedFromFixture},
+    {BrowserProfile::Android11_OkHttp, Slice("android11_okhttp"), 0, 0, false, false, true, false, 0,
      ExtensionOrderPolicy::FixedFromFixture},
 };
 

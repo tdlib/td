@@ -1,0 +1,13 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: udp
+  src: 192.168.1.168
+  dst: 142.251.16.100
+  src_port: 55906
+  dst_port: 443
+  tls_server_name: ogs.google.com
+  ja4: q13d0310h3_55b375c5d22e_cd85d2d88918
+

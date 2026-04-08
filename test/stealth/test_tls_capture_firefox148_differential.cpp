@@ -1,10 +1,11 @@
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
+
 // Differential tests against real Firefox 148 and Firefox 149 traffic captures
-// from Ubuntu 24.04 LTS (batch 1):
+// from the reviewed Linux desktop corpus:
 //   clienthello-firefox148.0.2-ubuntu24.04.pcapng
 //   firefox149.0.pcapng
 //
@@ -25,18 +26,16 @@
 //   compress_certificate: zlib+brotli+zstd (alg list = 06 00 01 00 02 00 03).
 //   No ALPS extension (Chrome-exclusive).
 //   delegated_credentials (0x0022) and record_size_limit (0x001C): Firefox-specific.
-
-#include "test/stealth/FingerprintFixtures.h"
-#include "test/stealth/MockRng.h"
-#include "test/stealth/ReviewedClientHelloFixtures.h"
-#include "test/stealth/TestHelpers.h"
-#include "test/stealth/TlsHelloParsers.h"
-
 #include "td/mtproto/stealth/TlsHelloBuilder.h"
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
 #include "td/utils/common.h"
 #include "td/utils/tests.h"
+
+#include "test/stealth/FingerprintFixtures.h"
+#include "test/stealth/MockRng.h"
+#include "test/stealth/ReviewedClientHelloFixtures.h"
+#include "test/stealth/TestHelpers.h"
 
 #include <algorithm>
 #include <unordered_map>
@@ -86,7 +85,7 @@ TEST(FirefoxCaptureDifferential, CipherSuiteCountIsExactly17) {
 TEST(FirefoxCaptureDifferential, CipherSuiteExactOrderMatchesCapture) {
   // Both Firefox 148 and 149 captured the same cipher suite order.
   for (uint64 seed = 0; seed < 10; seed++) {
-    ASSERT_EQ(kFirefoxBatch1ReferenceCipherSuites, extract_cipher_suites(build_ff148_ech(seed)));
+    ASSERT_EQ(kFirefoxLinuxDesktopReferenceCipherSuites, extract_cipher_suites(build_ff148_ech(seed)));
   }
 }
 
@@ -131,7 +130,7 @@ TEST(FirefoxCaptureDifferential, ExtensionOrderExactlyMatchesCapture) {
     for (const auto &ext : parsed.ok().extensions) {
       observed.push_back(ext.type);
     }
-    ASSERT_EQ(kFirefoxBatch1ReferenceExtensionOrder, observed);
+    ASSERT_EQ(kFirefoxLinuxDesktopReferenceExtensionOrder, observed);
   }
 }
 
@@ -259,7 +258,7 @@ TEST(FirefoxCaptureDifferential, SupportedGroupsExactMatchCapture) {
   // Firefox 148/149: {11EC, 001D, 0017, 0018, 0019, 0100, 0101}
   for (uint64 seed = 0; seed < 10; seed++) {
     auto groups = extract_supported_groups(build_ff148_ech(seed));
-    ASSERT_EQ(kFirefoxBatch1ReferenceSupportedGroups, groups);
+    ASSERT_EQ(kFirefoxLinuxDesktopReferenceSupportedGroups, groups);
   }
 }
 
@@ -522,7 +521,7 @@ TEST(FirefoxCaptureDifferential, EchDisabledExtensionOrderPreservedExceptEch) {
     ASSERT_TRUE(parsed.is_ok());
 
     std::vector<uint16> expected_no_ech;
-    for (auto t : kFirefoxBatch1ReferenceExtensionOrder) {
+    for (auto t : kFirefoxLinuxDesktopReferenceExtensionOrder) {
       if (t != 0xFE0Du) {
         expected_no_ech.push_back(t);
       }

@@ -1,3 +1,9 @@
+# SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+# SPDX-FileCopyrightText: Copyright 2026 telemt community
+# SPDX-License-Identifier: BSL-1.0 AND MIT
+# telemt: https://github.com/telemt
+# telemt: https://t.me/telemtrs
+
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
 project(TDLib VERSION 1.8.63 LANGUAGES CXX C)

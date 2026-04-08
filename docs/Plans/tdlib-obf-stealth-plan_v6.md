@@ -1,3 +1,10 @@
+<!--
+SPDX-FileCopyrightText: Copyright 2026 telemt community
+SPDX-License-Identifier: MIT
+telemt: https://github.com/telemt
+telemt: https://t.me/telemtrs
+-->
+
 # tdlib-obf Stealth Plan — Полностью самостоятельный документ
 
 **Дата:** 2026-04-03  
@@ -16,7 +23,7 @@
 >
 > **RenegotiationInfo tail anchor (HIGH — НОВОЕ V7):** В предыдущем состоянии `TlsHelloBuilder.cpp` часть `\xff\x01` (RenegotiationInfo) была зафиксирована как «хвостовой якорь» permutation — она всегда оказывалась последней в перемешиваемом блоке. Но `ShuffleChromeTLSExtensions` перемешивает RenegotiationInfo наравне с другими расширениями (это не anchor). Детектор, который ожидает RenegotiationInfo в конце блока, может использовать это как сигнатуру. На текущей ветке это исправлено: RenegotiationInfo входит в общий shuffled pool.
 >
-> **scrapy-impersonate / curl_cffi (НОВОЕ V7 — источник эталонных ClientHello):** `docs/Samples/scrapy-impersonate/` использует библиотеку `curl_cffi`, которая реализует TLS-фингерпринты браузеров через BoringSSL с активными Chrome-профилями. `BrowserType` из curl_cffi включает `chrome131`, `chrome133`, `firefox135`, `safari18_0`, `edge131` и другие версии. Это **сильный программный источник** эталонных ClientHello и хороший способ автоматизировать fixture refresh, но не единственный source of truth: точность зависит от pinned версии `curl_cffi`/BoringSSL и корректности локального capture workflow. Поэтому policy для PR-2: использовать curl_cffi **вместе** с живыми pcap и bundled uTLS snapshot, а не вместо них. На текущей ветке это уже оформлено как reproducible workflow: parser-driven extractor `test/analysis/extract_client_hello_fixtures.py`, provenance-diff `test/analysis/diff_client_hello_fixtures.py`, frozen corpus `test/analysis/fixtures/clienthello/batch1/*.json` и merge-step `test/analysis/merge_client_hello_fixture_summary.py`, который генерирует `test/stealth/ReviewedClientHelloFixtures.h` для capture-driven PR-2 тестов.
+> **scrapy-impersonate / curl_cffi (НОВОЕ V7 — источник эталонных ClientHello):** `docs/Samples/scrapy-impersonate/` использует библиотеку `curl_cffi`, которая реализует TLS-фингерпринты браузеров через BoringSSL с активными Chrome-профилями. `BrowserType` из curl_cffi включает `chrome131`, `chrome133`, `firefox135`, `safari18_0`, `edge131` и другие версии. Это **сильный программный источник** эталонных ClientHello и хороший способ автоматизировать fixture refresh, но не единственный source of truth: точность зависит от pinned версии `curl_cffi`/BoringSSL и корректности локального capture workflow. Поэтому policy для PR-2: использовать curl_cffi **вместе** с живыми pcap и bundled uTLS snapshot, а не вместо них. На текущей ветке это уже оформлено как reproducible workflow: parser-driven extractor `test/analysis/extract_client_hello_fixtures.py`, provenance-diff `test/analysis/diff_client_hello_fixtures.py`, platform corpus `test/analysis/fixtures/clienthello/<platform>/*.json` и merge-step `test/analysis/merge_client_hello_fixture_summary.py`, который генерирует `test/stealth/ReviewedClientHelloFixtures.h` для capture-driven PR-2 тестов.
 >
 > **Chrome 120 PQ-variant использует 0x6399, не 0x11EC (НОВОЕ V7):** `HelloChrome_120_PQ` в bundled uTLS использует `X25519Kyber768Draft00 = 0x6399` (старый Kyber draft, не финальный ML-KEM стандарт). Только начиная с Chrome 131+ перешли на `X25519MLKEM768 = 0x11EC` (4588, финальный RFC 9180/IANA). Соответственно: `BrowserProfile::Chrome120` → `HelloChrome_120` (non-PQ, без PQ key share совсем) — это корректная цель. Если когда-либо будет добавлен `Chrome120_PQ`, он **обязан** использовать `0x6399`, а не `0x11EC`.
 >
@@ -1123,8 +1130,8 @@ V7 release-priority note по надёжности ClientHello:
   Парсит `pcap/pcapng` через `tshark` + repo-local ClientHello parser и создаёт immutable JSON artifact с pinned `parser_version`, `source_sha256`, `capture_date_utc`, `display_filter`, `transport`, `tls_handshake_type` и parser-level derived fields (`cipher_suites`, `supported_groups`, `key_share_entries`, `extension_types`, `compress_certificate_algorithms`, `ech`).
 2. `test/analysis/diff_client_hello_fixtures.py`
   Сравнивает regenerated artifact с frozen corpus и выводит provenance-delta report: changed top-level metadata, added/removed fixture ids, changed payload fields и `sha256` drift.
-3. `test/analysis/fixtures/clienthello/batch1/*.json`
-  Frozen browser-capture corpus для batch-1 (`chrome144`, `chrome146.75`, `chrome146.177`, `tdesktop6.7.3`, `firefox148`, `firefox149`). Каждый JSON = один immutable input capture.
+3. `test/analysis/fixtures/clienthello/linux_desktop/*.json`
+  Reviewed Linux desktop browser-capture corpus (`chrome144`, `chrome146.75`, `chrome146.177`, `tdesktop6.7.3`, `firefox148`, `firefox149`). Каждый JSON = один immutable input capture.
 4. `test/analysis/merge_client_hello_fixture_summary.py`
   Сводит frozen JSON corpus в единый reviewed summary header `test/stealth/ReviewedClientHelloFixtures.h`.
 5. PR-2 capture-driven tests
@@ -1134,19 +1141,21 @@ V7 release-priority note по надёжности ClientHello:
 
 ```bash
 python3 test/analysis/extract_client_hello_fixtures.py \
-  --pcap "docs/Samples/Traffic dumps/batch 1/clienthello-chrome144.0.7559.109-ubuntu24.04.pcapng" \
-  --profile-id chrome144_batch1 \
+  --pcap "docs/Samples/Traffic dumps/Linux, desktop/clienthello-chrome144.0.7559.109-ubuntu24.04.pcapng" \
+  --profile-id chrome144_linux_desktop \
   --source-kind browser_capture \
-  --scenario-id batch1_ubuntu24_clienthello \
-  --route-mode non_ru \
-  --out /tmp/chrome144_batch1.clienthello.json
+  --scenario-id linux_desktop_chrome144_clienthello \
+  --device-class desktop \
+  --os-family linux \
+  --route-mode non_ru_egress \
+  --out /tmp/chrome144_linux_desktop.clienthello.json
 
 python3 test/analysis/diff_client_hello_fixtures.py \
-  --old test/analysis/fixtures/clienthello/batch1/chrome144_batch1.clienthello.json \
-  --new /tmp/chrome144_batch1.clienthello.json
+  --old test/analysis/fixtures/clienthello/linux_desktop/chrome144_linux_desktop.clienthello.json \
+  --new /tmp/chrome144_linux_desktop.clienthello.json
 
 python3 test/analysis/merge_client_hello_fixture_summary.py \
-  --input-dir test/analysis/fixtures/clienthello/batch1 \
+  --input-dir test/analysis/fixtures/clienthello/linux_desktop \
   --out-header test/stealth/ReviewedClientHelloFixtures.h
 ```
 

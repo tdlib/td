@@ -1,0 +1,446 @@
+---
+source: ja4/src/lib.rs
+expression: output
+---
+- stream: 0
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48456
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 1
+  transport: tcp
+  src: 192.168.1.118
+  dst: 192.168.1.1
+  src_port: 45042
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 2
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48458
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 3
+  transport: tcp
+  src: 192.168.1.118
+  dst: 192.168.1.1
+  src_port: 45044
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 4
+  transport: tcp
+  src: 192.168.1.147
+  dst: 142.251.16.94
+  src_port: 56404
+  dst_port: 80
+  http:
+  - ja4h: he11nn05enus_6f8992deff94_000000000000_000000000000
+  - ja4h: he11nn05enus_6f8992deff94_000000000000_000000000000
+- stream: 5
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48460
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 6
+  transport: tcp
+  src: 192.168.1.118
+  dst: 192.168.1.1
+  src_port: 45046
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 7
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48462
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 8
+  transport: tcp
+  src: 192.168.1.118
+  dst: 192.168.1.1
+  src_port: 45048
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 9
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48464
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 10
+  transport: tcp
+  src: 192.168.1.118
+  dst: 192.168.1.1
+  src_port: 45050
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 11
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48466
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 12
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48468
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 13
+  transport: tcp
+  src: 192.168.1.118
+  dst: 192.168.1.1
+  src_port: 45052
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 14
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48470
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 15
+  transport: tcp
+  src: 192.168.1.118
+  dst: 192.168.1.1
+  src_port: 45054
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 16
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48472
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 18
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48476
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 19
+  transport: tcp
+  src: 192.168.1.118
+  dst: 192.168.1.1
+  src_port: 45056
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 20
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48478
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 21
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48480
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 22
+  transport: tcp
+  src: 192.168.1.188
+  dst: 52.85.151.11
+  src_port: 38660
+  dst_port: 80
+  http:
+  - ja4h: ge11nn040000_ad0fd3707af2_000000000000_000000000000
+- stream: 23
+  transport: tcp
+  src: 192.168.1.136
+  dst: 142.251.167.94
+  src_port: 41355
+  dst_port: 80
+  http:
+  - ja4h: ge11nn040000_4f6f4aad0c1e_000000000000_000000000000
+- stream: 24
+  transport: tcp
+  src: 192.168.1.136
+  dst: 104.86.99.193
+  src_port: 39698
+  dst_port: 80
+  http:
+  - ja4h: he11nn040000_4f6f4aad0c1e_000000000000_000000000000
+- stream: 25
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44238
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 26
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44239
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 27
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44240
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 28
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44241
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 29
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44242
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 30
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44243
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 31
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44244
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 32
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44245
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 33
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44250
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 34
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44251
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 35
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44252
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 36
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44253
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 37
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44254
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 38
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44255
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 39
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44256
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 40
+  transport: tcp
+  src: 192.168.1.136
+  dst: 192.168.1.1
+  src_port: 44257
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn050000_e1365771aae9_000000000000_000000000000
+- stream: 41
+  transport: tcp
+  src: 192.168.1.118
+  dst: 192.168.1.1
+  src_port: 45058
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 42
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48482
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 43
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48484
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 44
+  transport: tcp
+  src: 192.168.1.191
+  dst: 192.168.1.1
+  src_port: 48486
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 45
+  transport: tcp
+  src: 192.168.1.118
+  dst: 192.168.1.1
+  src_port: 45060
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 46
+  transport: tcp
+  src: 192.168.1.100
+  dst: 104.18.20.64
+  src_port: 40978
+  dst_port: 80
+  http:
+  - ja4h: ge11nn040000_532a1ee47909_000000000000_000000000000
+- stream: 47
+  transport: tcp
+  src: 192.168.1.100
+  dst: 192.168.1.1
+  src_port: 60164
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn030000_f8649f6808db_000000000000_000000000000
+- stream: 48
+  transport: tcp
+  src: 192.168.1.100
+  dst: 192.168.1.1
+  src_port: 60180
+  dst_port: 41547
+  http:
+  - ja4h: po11nn080000_6977d1188c03_000000000000_000000000000
+- stream: 49
+  transport: tcp
+  src: 192.168.1.100
+  dst: 192.168.1.1
+  src_port: 60186
+  dst_port: 41547
+  http:
+  - ja4h: po11nn080000_6977d1188c03_000000000000_000000000000
+- stream: 50
+  transport: tcp
+  src: 192.168.1.100
+  dst: 192.168.1.1
+  src_port: 60200
+  dst_port: 41547
+  http:
+  - ja4h: po11nn080000_6977d1188c03_000000000000_000000000000
+- stream: 51
+  transport: tcp
+  src: 192.168.1.118
+  dst: 192.168.1.1
+  src_port: 45062
+  dst_port: 8080
+  http:
+  - ja4h: po11nn050000_530ceba2075f_000000000000_000000000000
+- stream: 52
+  transport: tcp
+  src: 192.168.1.100
+  dst: 192.168.1.1
+  src_port: 60204
+  dst_port: 41547
+  http:
+  - ja4h: ge11nn030000_f8649f6808db_000000000000_000000000000
+- stream: 53
+  transport: tcp
+  src: 192.168.1.100
+  dst: 192.168.1.1
+  src_port: 60220
+  dst_port: 41547
+  http:
+  - ja4h: po11nn080000_6977d1188c03_000000000000_000000000000
+- stream: 54
+  transport: tcp
+  src: 192.168.1.100
+  dst: 192.168.1.1
+  src_port: 60222
+  dst_port: 41547
+  http:
+  - ja4h: po11nn080000_6977d1188c03_000000000000_000000000000
+- stream: 55
+  transport: tcp
+  src: 192.168.1.100
+  dst: 192.168.1.1
+  src_port: 60230
+  dst_port: 41547
+  http:
+  - ja4h: po11nn080000_6977d1188c03_000000000000_000000000000
+
