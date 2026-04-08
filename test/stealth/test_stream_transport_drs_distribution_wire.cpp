@@ -31,6 +31,7 @@ using td::mtproto::test::MockRng;
 
 constexpr size_t kSampleCount = 256;
 constexpr size_t kPayloadSize = 4096;
+constexpr size_t kTlsPrimerOverhead = 64 + 6;
 
 td::string make_tls_secret() {
   td::string secret;
@@ -112,13 +113,17 @@ TEST(StreamTransportDrsDistributionWire, BulkFirstRecordLengthsFollowWeightedCap
     counts[sample_first_bulk_record_length(static_cast<td::uint64>(seed))]++;
   }
 
+  constexpr size_t kSmallPrimerLength = 256 + kTlsPrimerOverhead;
+  constexpr size_t kDominantPrimerLength = 320 + kTlsPrimerOverhead;
+  constexpr size_t kLargePrimerLength = 448 + kTlsPrimerOverhead;
+
   ASSERT_EQ(3u, counts.size());
-  ASSERT_TRUE(counts[320] > 0u);
-  ASSERT_TRUE(counts[384] > 0u);
-  ASSERT_TRUE(counts[512] > 0u);
-  ASSERT_TRUE(counts[384] > counts[320] * 2u);
-  ASSERT_TRUE(counts[384] > counts[512] * 2u);
-  ASSERT_TRUE(counts[384] > kSampleCount / 2u);
+  ASSERT_TRUE(counts[kSmallPrimerLength] > 0u);
+  ASSERT_TRUE(counts[kDominantPrimerLength] > 0u);
+  ASSERT_TRUE(counts[kLargePrimerLength] > 0u);
+  ASSERT_TRUE(counts[kDominantPrimerLength] > counts[kSmallPrimerLength] * 2u);
+  ASSERT_TRUE(counts[kDominantPrimerLength] > counts[kLargePrimerLength] * 2u);
+  ASSERT_TRUE(counts[kDominantPrimerLength] > kSampleCount / 2u);
 }
 
 }  // namespace

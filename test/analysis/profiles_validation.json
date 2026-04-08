@@ -23,6 +23,323 @@
     "docs/Samples/Traffic dumps/Linux, desktop/*.pcapng",
     "docs/Samples/Traffic dumps/macOS/*.pcap"
   ],
+  "server_hello_matrix": {
+    "chromium_44cd_mlkem_linux_desktop": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        },
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033", "0x0029"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "firefox_fixed_order_linux_desktop": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "tdesktop_chromium_44cd_mlkem_linux_desktop": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x0033", "0x002B", "0x0010"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "brave188_138_android13": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        },
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033", "0x0029"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "chrome146_177_android16": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "chrome146_177_android16_pixel9proxl": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "chrome146_177_oxygenos16_oneplus13": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        },
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033", "0x0029"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "samsung_internet29_android16_galaxy_s25plus": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        },
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033", "0x0029"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "yandex26_3_4_128_oxygenos16_oneplus13": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        },
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033", "0x0029"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "yandex26_3_4_android16_samsung": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        },
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033", "0x0029"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "brave188_ios26_4": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "chrome146_0_7680_151_ios26_1": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        },
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033", "0x0029"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "chrome147_0_7727_47_ios26_3": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        },
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033", "0x0029"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "chrome147_0_7727_47_ios26_4_a": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "chrome147_0_7727_47_ios26_4_b": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "firefox149_2_ios26_4": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "safari18_7_6_ios18_7_6": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "safari26_2_ios26_2_a": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "safari26_2_ios26_2_b": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "safari26_3_1_ios26_3_1_a": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "safari26_3_1_ios26_3_1_b": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "safari26_4_ios26_4_a": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "safari26_4_ios26_4_b": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "safari26_4_ios26_4_c": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    },
+    "firefox149_macos26_3": {
+      "parser_version": "tls-serverhello-parser-v1",
+      "allowed_tuples": [
+        {
+          "selected_version": "0x0304",
+          "cipher_suite": "0x1301",
+          "extensions": ["0x002B", "0x0033", "0x0029"]
+        }
+      ],
+      "allowed_layout_signatures": [[22, 20]]
+    }
+  },
   "fixtures": {
     "chrome144_linux_desktop:frame5": {
       "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/clienthello-chrome144.0.7559.109-ubuntu24.04.pcapng",

@@ -1,0 +1,32 @@
+{
+  "capture_date_utc": "2026-04-08T20:39:17Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "chromium_44cd_mlkem_linux_desktop",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chromium_44cd_mlkem_linux_desktop",
+      "fixture_id": "chrome146_177_linux_desktop_serverhello:frame7",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "chrome146_177_linux_desktop_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/chrome146.0.7680.177-1.pcapng",
+  "source_sha256": "fca18c4290183273b647915300bd1e2ed353e29ff3acb0361c93153e03d95735",
+  "transport": "tcp"
+}

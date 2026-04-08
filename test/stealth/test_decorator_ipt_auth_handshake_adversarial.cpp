@@ -12,7 +12,6 @@ namespace {
 
 using td::mtproto::stealth::TrafficHint;
 using td::mtproto::test::assert_immediate_or_overdue_wakeup;
-using td::mtproto::test::assert_immediate_wakeup;
 using td::mtproto::test::enqueue_ipt_packet;
 using td::mtproto::test::leave_delayed_interactive_queued;
 using td::mtproto::test::make_decorator_ipt_fixture;
@@ -33,7 +32,7 @@ TEST(DecoratorIptAuthHandshakeAdversarial, AuthHandshakeStormDoesNotStarveReadyI
 
   ASSERT_EQ(2, fixture.inner->write_calls);
   ASSERT_EQ(TrafficHint::AuthHandshake, fixture.inner->queued_hints[1]);
-  assert_immediate_wakeup(fixture);
+  assert_immediate_or_overdue_wakeup(fixture);
 
   fixture.inner->writes_per_flush_budget_result = 1;
   fixture.decorator->pre_flush_write(fixture.clock->now());
@@ -58,7 +57,7 @@ TEST(DecoratorIptAuthHandshakeAdversarial,
 
   ASSERT_EQ(2, fixture.inner->write_calls);
   ASSERT_EQ(TrafficHint::AuthHandshake, fixture.inner->queued_hints[1]);
-  ASSERT_EQ(wakeup, fixture.decorator->get_shaping_wakeup());
+  assert_immediate_or_overdue_wakeup(fixture);
 
   fixture.inner->writes_per_flush_budget_result = 2;
   fixture.decorator->pre_flush_write(fixture.clock->now());

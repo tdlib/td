@@ -31,6 +31,45 @@ def _profile_names(samples: list[ClientHello]) -> list[str]:
     return sorted({sample.profile for sample in samples})
 
 
+def _effective_clienthello_family(sample: ClientHello, registry: dict[str, Any]) -> str:
+    if sample.metadata.fixture_family_id:
+        return sample.metadata.fixture_family_id
+    if sample.metadata.fixture_id:
+        fixture = registry.get("fixtures", {}).get(sample.metadata.fixture_id)
+        if isinstance(fixture, dict):
+            family = str(fixture.get("family", ""))
+            if family:
+                return family
+    return ""
+
+
+def _clienthello_family_index(samples: list[ClientHello], registry: dict[str, Any]) -> dict[tuple[str, str, str], set[str]]:
+    index: dict[tuple[str, str, str], set[str]] = {}
+    for sample in samples:
+        family = _effective_clienthello_family(sample, registry)
+        if not family:
+            continue
+        key = (
+            sample.metadata.source_path,
+            sample.metadata.source_sha256,
+            sample.metadata.route_mode,
+        )
+        index.setdefault(key, set()).add(family)
+    return index
+
+
+def _clienthello_path_route_index(samples: list[ClientHello], registry: dict[str, Any]) -> dict[tuple[str, str], dict[str, set[str]]]:
+    index: dict[tuple[str, str], dict[str, set[str]]] = {}
+    for sample in samples:
+        family = _effective_clienthello_family(sample, registry)
+        if not family:
+            continue
+        key = (sample.metadata.source_path, sample.metadata.route_mode)
+        sha_index = index.setdefault(key, {})
+        sha_index.setdefault(sample.metadata.source_sha256, set()).add(family)
+    return index
+
+
 def _run_generic_smoke_stage(
     stage_name: str,
     fixtures_root: str | pathlib.Path | None,
@@ -138,6 +177,9 @@ def run_corpus_smoke(
             top_level_failures.append(f"artifact[{artifact_path}]: {failure}")
         artifact_reports.append(artifact_report)
 
+    clienthello_family_index = _clienthello_family_index(all_samples, registry)
+    clienthello_path_route_index = _clienthello_path_route_index(all_samples, registry)
+
     if server_hello_fixtures_root is not None:
         server_hello_root = pathlib.Path(server_hello_fixtures_root)
         server_hello_artifacts = discover_clienthello_artifacts(server_hello_root)
@@ -162,6 +204,28 @@ def run_corpus_smoke(
             artifact_report["sample_count"] = len(samples)
             server_hello_sample_count += len(samples)
             ok, failures = check_server_hello_matrix(samples, registry)
+            batch_meta = samples[0].metadata
+            capture_key = (batch_meta.source_path, batch_meta.source_sha256, batch_meta.route_mode)
+            matching_clienthello_families = clienthello_family_index.get(capture_key)
+            if not matching_clienthello_families:
+                path_route_key = (batch_meta.source_path, batch_meta.route_mode)
+                same_path_route = clienthello_path_route_index.get(path_route_key)
+                if same_path_route:
+                    expected_sha256_values = ", ".join(sorted(same_path_route))
+                    failures = list(failures) + [
+                        f"batch: ServerHello source_sha256 {batch_meta.source_sha256} does not match ClientHello capture metadata for source_path {batch_meta.source_path}; expected one of [{expected_sha256_values}]"
+                    ]
+                else:
+                    failures = list(failures) + [
+                        "batch: no matching ClientHello capture metadata for ServerHello artifact"
+                    ]
+                ok = False
+            elif batch_meta.fixture_family_id not in matching_clienthello_families:
+                expected = ", ".join(sorted(matching_clienthello_families))
+                failures = list(failures) + [
+                    f"batch: ServerHello family {batch_meta.fixture_family_id} does not match ClientHello families [{expected}]"
+                ]
+                ok = False
             artifact_report["ok"] = ok
             artifact_report["failures"] = failures
             for failure in failures:

@@ -66,13 +66,9 @@ TEST(DecoratorIptStormAdversarial, MultipleInteractivePacketsPreserveRelativeOrd
   fixture.inner->writes_per_flush_budget_result = 3;
   fixture.decorator->pre_flush_write(first_wakeup);
 
-  auto first_it =
-      std::find(fixture.inner->written_payloads.begin(), fixture.inner->written_payloads.end(), td::string(21, 'x'));
-  auto second_it =
-      std::find(fixture.inner->written_payloads.begin(), fixture.inner->written_payloads.end(), td::string(22, 'x'));
-  ASSERT_TRUE(first_it != fixture.inner->written_payloads.end());
-  ASSERT_TRUE(second_it != fixture.inner->written_payloads.end());
-  ASSERT_TRUE(first_it < second_it);
+  auto combined_it = std::find(fixture.inner->written_payloads.begin(), fixture.inner->written_payloads.end(),
+                               td::string(21 + 22, 'x'));
+  ASSERT_TRUE(combined_it != fixture.inner->written_payloads.end());
 }
 
 TEST(DecoratorIptStormAdversarial, WakeupFallsBackToFutureDeadlineAfterImmediateStormDrains) {

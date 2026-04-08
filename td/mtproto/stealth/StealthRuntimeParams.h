@@ -68,6 +68,8 @@ struct RuntimeProfileSelectionPolicy final {
 };
 
 struct StealthRuntimeParams final {
+  StealthRuntimeParams() noexcept;
+
   RuntimeActivePolicy active_policy{RuntimeActivePolicy::Unknown};
   IptParams ipt_params;
   DrsPolicy drs_policy;

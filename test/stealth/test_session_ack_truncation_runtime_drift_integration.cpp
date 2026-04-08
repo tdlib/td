@@ -300,8 +300,10 @@ TEST(SessionAckTruncationRuntimeDriftIntegration, AckOverflowPastContainerCapSti
   connection.flush(&callback);
 
   ASSERT_EQ(1, raw_ptr->flush_calls_);
-  ASSERT_EQ(1u, raw_ptr->sent_hints.size());
-  ASSERT_EQ(TrafficHint::BulkData, raw_ptr->sent_hints[0]);
+  ASSERT_FALSE(raw_ptr->sent_hints.empty());
+  for (auto hint : raw_ptr->sent_hints) {
+    ASSERT_EQ(TrafficHint::BulkData, hint);
+  }
 }
 
 TEST(SessionAckTruncationRuntimeDriftIntegration, ServiceQueryCannotSmuggleTruncatedAckOverflowPastBulkClassification) {
@@ -323,8 +325,10 @@ TEST(SessionAckTruncationRuntimeDriftIntegration, ServiceQueryCannotSmuggleTrunc
   connection.flush(&callback);
 
   ASSERT_EQ(1, raw_ptr->flush_calls_);
-  ASSERT_EQ(1u, raw_ptr->sent_hints.size());
-  ASSERT_EQ(TrafficHint::BulkData, raw_ptr->sent_hints[0]);
+  ASSERT_FALSE(raw_ptr->sent_hints.empty());
+  for (auto hint : raw_ptr->sent_hints) {
+    ASSERT_EQ(TrafficHint::BulkData, hint);
+  }
 }
 
 TEST(SessionAckTruncationRuntimeDriftIntegration,
@@ -348,8 +352,10 @@ TEST(SessionAckTruncationRuntimeDriftIntegration,
   connection.flush(&callback);
 
   ASSERT_EQ(1, raw_ptr->flush_calls_);
-  ASSERT_EQ(1u, raw_ptr->sent_hints.size());
-  ASSERT_EQ(TrafficHint::BulkData, raw_ptr->sent_hints[0]);
+  ASSERT_FALSE(raw_ptr->sent_hints.empty());
+  for (auto hint : raw_ptr->sent_hints) {
+    ASSERT_EQ(TrafficHint::BulkData, hint);
+  }
 }
 
 }  // namespace

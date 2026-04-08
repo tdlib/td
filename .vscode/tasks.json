@@ -199,6 +199,57 @@
                 "cmake build tests ninja fast"
             ],
             "problemMatcher": []
+        },
+        {
+            "label": "refresh serverhello corpus",
+            "type": "shell",
+            "command": "python3",
+            "args": [
+                "test/analysis/generate_server_hello_fixture_corpus.py",
+                "--registry",
+                "test/analysis/profiles_validation.json",
+                "--input-root",
+                "test/analysis/fixtures/clienthello",
+                "--output-root",
+                "test/analysis/fixtures/serverhello"
+            ],
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "validate analysis corpus smoke",
+            "type": "shell",
+            "command": "python3",
+            "args": [
+                "test/analysis/run_corpus_smoke.py",
+                "--registry",
+                "test/analysis/profiles_validation.json",
+                "--fixtures-root",
+                "test/analysis/fixtures/clienthello",
+                "--server-hello-fixtures-root",
+                "test/analysis/fixtures/serverhello"
+            ],
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "refresh and validate serverhello corpus",
+            "type": "shell",
+            "command": "python3",
+            "args": [
+                "test/analysis/run_corpus_smoke.py",
+                "--registry",
+                "test/analysis/profiles_validation.json",
+                "--fixtures-root",
+                "test/analysis/fixtures/clienthello",
+                "--server-hello-fixtures-root",
+                "test/analysis/fixtures/serverhello"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "refresh serverhello corpus"
+            ],
+            "problemMatcher": []
         }
     ]
 }

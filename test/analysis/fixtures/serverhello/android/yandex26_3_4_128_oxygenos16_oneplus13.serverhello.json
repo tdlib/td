@@ -1,0 +1,106 @@
+{
+  "capture_date_utc": "2026-04-08T20:39:11Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "yandex26_3_4_128_oxygenos16_oneplus13",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "yandex26_3_4_128_oxygenos16_oneplus13",
+      "fixture_id": "yandex26_3_4_128_oxygenos16_oneplus13_serverhello:frame78",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "yandex26_3_4_128_oxygenos16_oneplus13",
+      "fixture_id": "yandex26_3_4_128_oxygenos16_oneplus13_serverhello:frame98",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "yandex26_3_4_128_oxygenos16_oneplus13",
+      "fixture_id": "yandex26_3_4_128_oxygenos16_oneplus13_serverhello:frame157",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "yandex26_3_4_128_oxygenos16_oneplus13",
+      "fixture_id": "yandex26_3_4_128_oxygenos16_oneplus13_serverhello:frame367",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "yandex26_3_4_128_oxygenos16_oneplus13",
+      "fixture_id": "yandex26_3_4_128_oxygenos16_oneplus13_serverhello:frame387",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "yandex26_3_4_128_oxygenos16_oneplus13",
+      "fixture_id": "yandex26_3_4_128_oxygenos16_oneplus13_serverhello:frame457",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "yandex26_3_4_128_oxygenos16_oneplus13_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/\u042f\u043d\u0434\u0435\u043a\u0441.\u0411\u0440\u0430\u0443\u0437\u0435\u0440 26.3.4.128 (OxygenOS 16, \u0430\u043f\u043f\u0430\u0440\u0430\u0442 Oneplus 13).pcap",
+  "source_sha256": "e28bf623f21453a9f0fd0c1a2bd01e737f8dccc4336fb977a07b55d93fa2c735",
+  "transport": "tcp"
+}

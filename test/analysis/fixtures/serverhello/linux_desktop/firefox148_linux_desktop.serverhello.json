@@ -1,0 +1,31 @@
+{
+  "capture_date_utc": "2026-04-08T20:39:18Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "firefox_fixed_order_linux_desktop",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "firefox_fixed_order_linux_desktop",
+      "fixture_id": "firefox148_linux_desktop_serverhello:frame7",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "firefox148_linux_desktop_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/clienthello-firefox148.0.2-ubuntu24.04.pcapng",
+  "source_sha256": "c93bf5b06b764ad2f8162b79dfc5f96252c54f2b0de1d04f3fe37cb40b10c400",
+  "transport": "tcp"
+}

@@ -4,7 +4,7 @@
 // telemt: https://t.me/telemtrs
 //
 
-#include "td/actor/actor.h"
+#include "td/actor/actor.h"  // IWYU pragma: keep
 #include "td/mtproto/stealth/Interfaces.h"
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 #include "td/utils/common.h"
@@ -43,6 +43,8 @@ class NoopCallback final : public td::TransparentProxy::Callback {
 
 constexpr td::Slice kFirstResponsePrefix("\x16\x03\x03");
 constexpr td::Slice kSecondResponsePrefix("\x14\x03\x03\x00\x01\x01\x17\x03\x03");
+constexpr td::uint16 kMaxAcceptedTlsRecordLength = 16640;
+constexpr td::uint16 kOversizedTlsRecordLength = 16641;
 
 TlsInit create_tls_init(td::SocketFd socket_fd) {
   reset_runtime_ech_failure_state_for_tests();
@@ -115,7 +117,7 @@ TEST(TlsInitResponseStress, NearMissSecondRecordPrefixesAlwaysFailClosed) {
   }
 }
 
-TEST(TlsInitResponseStress, OversizedLengthClaimsDoNotTriggerPrematureErrors) {
+TEST(TlsInitResponseStress, OversizedLengthClaimsFailClosedImmediately) {
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   tls_init.send_hello();
@@ -126,8 +128,66 @@ TEST(TlsInitResponseStress, OversizedLengthClaimsDoNotTriggerPrematureErrors) {
   response[4] = static_cast<char>(0xF0);
 
   ASSERT_TRUE(flush_response_into_tls_init(tls_init, socket_pair.peer, response).is_ok());
+  ASSERT_TRUE(tls_init.wait_hello_response().is_error());
+}
+
+TEST(TlsInitResponseStress, OversizedLengthHeaderFailsClosedAsSoonAsHeaderIsComplete) {
+  auto socket_pair = create_socket_pair().move_as_ok();
+  auto tls_init = create_tls_init(std::move(socket_pair.client));
+  tls_init.send_hello();
+
+  auto response =
+      make_tls_init_response("0123456789secret", tls_init.hello_rand_, kFirstResponsePrefix, kSecondResponsePrefix);
+  response[3] = static_cast<char>((kOversizedTlsRecordLength >> 8) & 0xFF);
+  response[4] = static_cast<char>(kOversizedTlsRecordLength & 0xFF);
+
+  for (size_t cut = 0; cut < 5; cut++) {
+    auto cut_socket_pair = create_socket_pair().move_as_ok();
+    auto cut_tls_init = create_tls_init(std::move(cut_socket_pair.client));
+    cut_tls_init.send_hello();
+
+    ASSERT_TRUE(
+        flush_response_into_tls_init(cut_tls_init, cut_socket_pair.peer, td::Slice(response).substr(0, cut)).is_ok());
+    ASSERT_TRUE(cut_tls_init.wait_hello_response().is_ok());
+  }
+
+  auto full_header_socket_pair = create_socket_pair().move_as_ok();
+  auto full_header_tls_init = create_tls_init(std::move(full_header_socket_pair.client));
+  full_header_tls_init.send_hello();
+
+  ASSERT_TRUE(
+      flush_response_into_tls_init(full_header_tls_init, full_header_socket_pair.peer, td::Slice(response).substr(0, 5))
+          .is_ok());
+  ASSERT_TRUE(full_header_tls_init.wait_hello_response().is_error());
+}
+
+TEST(TlsInitResponseStress, MaximumAcceptedLengthWaitsForBodyInsteadOfFailing) {
+  auto socket_pair = create_socket_pair().move_as_ok();
+  auto tls_init = create_tls_init(std::move(socket_pair.client));
+  tls_init.send_hello();
+
+  auto response =
+      make_tls_init_response("0123456789secret", tls_init.hello_rand_, kFirstResponsePrefix, kSecondResponsePrefix);
+  response[3] = static_cast<char>((kMaxAcceptedTlsRecordLength >> 8) & 0xFF);
+  response[4] = static_cast<char>(kMaxAcceptedTlsRecordLength & 0xFF);
+
+  ASSERT_TRUE(flush_response_into_tls_init(tls_init, socket_pair.peer, td::Slice(response).substr(0, 5)).is_ok());
   ASSERT_TRUE(tls_init.wait_hello_response().is_ok());
   ASSERT_FALSE(tls_init.fd_.input_buffer().empty());
+}
+
+TEST(TlsInitResponseStress, ZeroLengthApplicationDataFailsClosedAcrossHandshakeSizeMatrix) {
+  for (size_t first_payload_len : {32u, 40u, 48u, 64u}) {
+    auto socket_pair = create_socket_pair().move_as_ok();
+    auto tls_init = create_tls_init(std::move(socket_pair.client));
+    tls_init.send_hello();
+
+    auto response = make_tls_init_response("0123456789secret", tls_init.hello_rand_, kFirstResponsePrefix,
+                                           kSecondResponsePrefix, first_payload_len, 0);
+
+    ASSERT_TRUE(flush_response_into_tls_init(tls_init, socket_pair.peer, response).is_ok());
+    ASSERT_TRUE(tls_init.wait_hello_response().is_error());
+  }
 }
 
 }  // namespace

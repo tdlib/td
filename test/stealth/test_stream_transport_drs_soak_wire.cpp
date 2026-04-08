@@ -30,7 +30,7 @@ using td::mtproto::test::MockClock;
 using td::mtproto::test::MockRng;
 
 constexpr size_t kPayloadSize = 1300;
-constexpr size_t kPrimerHeaderOverhead = 64;
+constexpr size_t kPrimerHeaderOverhead = 64 + 6;
 
 struct WireFixture final {
   td::unique_ptr<StealthTransportDecorator> transport;

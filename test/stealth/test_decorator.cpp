@@ -109,7 +109,9 @@ TEST(DecoratorBackpressure, LatchesAtHighAndReleasesAtLow) {
   fixture.inner->can_write_result = true;
   fixture.decorator->pre_flush_write(fixture.clock->now());
   ASSERT_TRUE(fixture.decorator->can_write());
-  ASSERT_EQ(6, fixture.inner->write_calls);
+  ASSERT_EQ(1, fixture.inner->write_calls);
+  ASSERT_EQ(1u, fixture.inner->written_payloads.size());
+  ASSERT_EQ(td::string(32 + 33 + 34 + 35 + 36 + 37, 'x'), fixture.inner->written_payloads[0]);
 }
 
 TEST(DecoratorBackpressure, DeferredFlushPreservesQueuedPayloadsAndFlags) {
@@ -158,9 +160,8 @@ TEST(DecoratorBackpressure, FailedFlushKeepsWakeupAndQueuedOrderStable) {
   fixture.inner->can_write_result = true;
   fixture.decorator->pre_flush_write(fixture.clock->now());
 
-  ASSERT_EQ(2u, fixture.inner->written_payloads.size());
-  ASSERT_EQ(td::string(19, 'x'), fixture.inner->written_payloads[0]);
-  ASSERT_EQ(td::string(23, 'x'), fixture.inner->written_payloads[1]);
+  ASSERT_EQ(1u, fixture.inner->written_payloads.size());
+  ASSERT_EQ(td::string(19 + 23, 'x'), fixture.inner->written_payloads[0]);
 }
 
 TEST(DecoratorBackpressure, RepeatedCanWriteAbuseKeepsExactCapacityOrderingStable) {
@@ -188,13 +189,10 @@ TEST(DecoratorBackpressure, RepeatedCanWriteAbuseKeepsExactCapacityOrderingStabl
   fixture.inner->can_write_result = true;
   fixture.decorator->pre_flush_write(fixture.clock->now());
 
-  ASSERT_EQ(4, fixture.inner->write_calls);
+  ASSERT_EQ(1, fixture.inner->write_calls);
   ASSERT_TRUE(fixture.decorator->can_write());
-  ASSERT_EQ(4u, fixture.inner->written_payloads.size());
-  ASSERT_EQ(td::string(41, 'x'), fixture.inner->written_payloads[0]);
-  ASSERT_EQ(td::string(43, 'x'), fixture.inner->written_payloads[1]);
-  ASSERT_EQ(td::string(47, 'x'), fixture.inner->written_payloads[2]);
-  ASSERT_EQ(td::string(53, 'x'), fixture.inner->written_payloads[3]);
+  ASSERT_EQ(1u, fixture.inner->written_payloads.size());
+  ASSERT_EQ(td::string(41 + 43 + 47 + 53, 'x'), fixture.inner->written_payloads[0]);
 }
 
 TEST(DecoratorBackpressure, ExactCapacityDrainKeepsBackpressureLatchedAboveLowWatermark) {
@@ -208,18 +206,16 @@ TEST(DecoratorBackpressure, ExactCapacityDrainKeepsBackpressureLatchedAboveLowWa
   ASSERT_FALSE(fixture.decorator->can_write());
 
   fixture.decorator->pre_flush_write(1000.150);
-  ASSERT_EQ(2, fixture.inner->write_calls);
+  ASSERT_EQ(1, fixture.inner->write_calls);
   ASSERT_FALSE(fixture.decorator->can_write());
-  ASSERT_EQ(2u, fixture.inner->written_payloads.size());
-  ASSERT_EQ(td::string(37, 'x'), fixture.inner->written_payloads[0]);
-  ASSERT_EQ(td::string(39, 'x'), fixture.inner->written_payloads[1]);
+  ASSERT_EQ(1u, fixture.inner->written_payloads.size());
+  ASSERT_EQ(td::string(37 + 39, 'x'), fixture.inner->written_payloads[0]);
 
   fixture.decorator->pre_flush_write(1000.350);
-  ASSERT_EQ(4, fixture.inner->write_calls);
+  ASSERT_EQ(2, fixture.inner->write_calls);
   ASSERT_TRUE(fixture.decorator->can_write());
-  ASSERT_EQ(4u, fixture.inner->written_payloads.size());
-  ASSERT_EQ(td::string(41, 'x'), fixture.inner->written_payloads[2]);
-  ASSERT_EQ(td::string(43, 'x'), fixture.inner->written_payloads[3]);
+  ASSERT_EQ(2u, fixture.inner->written_payloads.size());
+  ASSERT_EQ(td::string(41 + 43, 'x'), fixture.inner->written_payloads[1]);
 }
 
 TEST(DecoratorWakeup, ReturnsEarliestDeadlineFromRing) {
@@ -338,7 +334,7 @@ TEST(DecoratorSafety, QueuedWritesNeverBypassInnerWritePathBeforeFlush) {
   ASSERT_FALSE(fixture.decorator->can_write());
 
   fixture.decorator->pre_flush_write(fixture.clock->now());
-  ASSERT_EQ(2, fixture.inner->write_calls);
+  ASSERT_EQ(1, fixture.inner->write_calls);
 }
 
 }  // namespace

@@ -33,8 +33,10 @@ using td::TlStorerUnsafe;
 
 constexpr td::int32 kMsgContainerId = 0x73f1f8dc;
 constexpr size_t kMinValidBulkThresholdBytes = 512;
-constexpr size_t kAckBoundaryBelowMinimumThreshold = 63;
-constexpr size_t kAckBoundaryAtMinimumThreshold = 64;
+// The enclosing odd-seqno msg_container is itself acknowledged before the nested
+// msgs_ack payload is classified, so the effective ack_count is nested_count + 1.
+constexpr size_t kAckBoundaryBelowMinimumThreshold = 62;
+constexpr size_t kAckBoundaryAtMinimumThreshold = 63;
 
 class NoopStatsCallback final : public RawConnection::StatsCallback {
  public:

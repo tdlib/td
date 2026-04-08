@@ -20,6 +20,8 @@ Files:
 - `check_drs.py`: PR-9 DRS smoke gate over TLS record payload size artifacts with fail-closed canonical route metadata, QUIC-off enforcement, anti-2878 regression checks, anti-repeat checks, histogram-distance thresholds, and non-finite metric rejection.
 - `check_flow_behavior.py`: PR-9 cadence/reuse smoke gate over connection-flow artifacts with fail-closed canonical route metadata, QUIC-off enforcement, anti-churn checks, destination-share checks, lifetime/reuse thresholds aligned with runtime flow policy, and non-finite policy rejection.
 - `check_fixture_registry_complete.py`: fail-closed registry gate for placeholder fixture ids, missing required fixture tags, advisory-code-sample contamination, and incomplete release-gating provenance.
+- `extract_server_hello_fixtures.py`: parser-driven extractor for authoritative ServerHello tuples and TLS record-layout signatures from real TCP TLS captures.
+- `generate_server_hello_fixture_corpus.py`: one-command corpus refresh that mirrors the checked-in ClientHello tree into ServerHello artifacts using registry-authoritative family ids and prunes stale outputs.
 - `run_corpus_smoke.py`: corpus-level PR-9 batch runner that executes registry completeness and per-artifact fingerprint checks across the checked-in ClientHello tree and emits one aggregate telemetry report.
 
 Checked-in corpus:
@@ -28,8 +30,9 @@ Checked-in corpus:
 - `fixtures/clienthello/android/*.json`: Android browser-capture corpus extracted from the real Android dump directory.
 - `fixtures/clienthello/ios/*.json`: iOS browser-capture corpus extracted from the real iOS dump directory.
 - `fixtures/clienthello/macos/*.json`: macOS browser-capture corpus extracted from the real macOS dump directory when the capture contains a TCP TLS ClientHello.
+- `fixtures/serverhello/**/*.json`: authoritative ServerHello corpus extracted from the same reviewed browser-capture sources and correlated back to the matching ClientHello capture metadata during smoke validation.
 - `../stealth/ReviewedClientHelloFixtures.h`: generated summary header consumed by PR-2 capture-driven tests.
-- `profiles_validation.json`: PR-9 registry for the reviewed Linux desktop corpus. Mobile/macOS artifacts are collected from the real dump directories but are not release-gated until their profile policies are reviewed.
+- `profiles_validation.json`: PR-9 registry for the reviewed multi-platform ClientHello and ServerHello corpus, including the release-gating `server_hello_matrix`.
 
 ## Requirements
 
@@ -121,6 +124,22 @@ python3 test/analysis/run_corpus_smoke.py \
 ```
 
 The corpus runner fails closed if the fixture tree is empty, if any artifact cannot be loaded, if the registry completeness gate fails, or if any artifact fails the structural fingerprint policy checks. The report includes per-artifact verdicts plus aggregate JA3/JA4 telemetry across all loaded samples.
+
+Regenerate the full checked-in ServerHello corpus from the current ClientHello tree and then re-run the integrated smoke gate:
+
+```bash
+python3 test/analysis/generate_server_hello_fixture_corpus.py \
+  --registry test/analysis/profiles_validation.json \
+  --input-root test/analysis/fixtures/clienthello \
+  --output-root test/analysis/fixtures/serverhello
+
+python3 test/analysis/run_corpus_smoke.py \
+  --registry test/analysis/profiles_validation.json \
+  --fixtures-root test/analysis/fixtures/clienthello \
+  --server-hello-fixtures-root test/analysis/fixtures/serverhello
+```
+
+The ServerHello smoke stage now fails closed if a response artifact cannot be matched back to the reviewed ClientHello capture by `(source_path, source_sha256, route_mode)`, if the response family does not match the ClientHello family for that same capture, or if the response tuple/layout is outside the reviewed `server_hello_matrix` allowlist.
 
 The registry completeness gate now treats `source_kind`, `family`, `trust_tier`, `transport`, `platform_class`, and `tls_gen` as required fixture tags when `contamination_guard.fail_on_missing_required_tag` is enabled. Those tags must also stay in canonical form: `transport` is currently limited to `tcp` or `udp_quic_tls`, `platform_class` must stay within the canonical device classes, and `tls_gen` must stay within `tls12` or `tls13`. For release-gating profiles, `advisory_code_sample` fixtures are rejected directly when `allow_advisory_code_sample_per_profile` is `false`, instead of relying on mixed-source or corroboration side effects to catch them.
 

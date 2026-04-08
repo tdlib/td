@@ -76,6 +76,15 @@ TEST(TlsRuntimeParams, ProfileWeightsOverrideRuntimeSelection) {
   }
 }
 
+TEST(TlsRuntimeParams, DefaultConstructedParamsRemainValidForSingleFieldOverrides) {
+  RuntimeParamsGuard guard;
+
+  StealthRuntimeParams params;
+  params.bulk_threshold_bytes = 16384;
+
+  ASSERT_TRUE(set_runtime_stealth_params_for_tests(params).is_ok());
+}
+
 TEST(TlsRuntimeParams, RoutePolicyOverrideCanDisableHealthyNonRuEch) {
   RuntimeParamsGuard guard;
 

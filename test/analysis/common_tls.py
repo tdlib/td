@@ -41,6 +41,7 @@ class SampleMeta:
     source_sha256: str
     scenario_id: str
     ts_us: int
+    fixture_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -194,6 +195,7 @@ def load_clienthello_artifact(path: str | pathlib.Path) -> list[ClientHello]:
     samples: list[ClientHello] = []
     for sample in raw_samples:
         ech = sample.get("ech") or {}
+        fixture_id = str(sample.get("fixture_id", ""))
         key_share_groups = [
             int(entry["group"], 16) for entry in sample.get("key_share_entries", []) if isinstance(entry, dict)
         ]
@@ -209,6 +211,7 @@ def load_clienthello_artifact(path: str | pathlib.Path) -> list[ClientHello]:
             source_sha256=source_sha256,
             scenario_id=scenario_id,
             ts_us=0,
+            fixture_id=fixture_id,
         )
         samples.append(
             ClientHello(

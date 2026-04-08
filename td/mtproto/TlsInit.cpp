@@ -21,6 +21,8 @@ namespace mtproto {
 
 namespace {
 
+constexpr size_t kMaxTlsRecordBodyLength = (1u << 14) + 256u;
+
 Status consume_tls_hello_response_records(ChainBufferReader *it, bool *is_complete) {
   *is_complete = false;
   bool seen_handshake = false;
@@ -41,12 +43,19 @@ Status consume_tls_hello_response_records(ChainBufferReader *it, bool *is_comple
       return Status::Error("First part of response to hello is invalid");
     }
 
+    if (record_length > kMaxTlsRecordBodyLength) {
+      return Status::Error("First part of response to hello is invalid");
+    }
+
     if (it->size() < record_length) {
       return Status::OK();
     }
 
     if (!seen_handshake) {
       if (record_type != 0x16) {
+        return Status::Error("First part of response to hello is invalid");
+      }
+      if (record_length == 0) {
         return Status::Error("First part of response to hello is invalid");
       }
       seen_handshake = true;
@@ -67,6 +76,9 @@ Status consume_tls_hello_response_records(ChainBufferReader *it, bool *is_comple
     }
 
     if (record_type == 0x17) {
+      if (record_length == 0) {
+        return Status::Error("First part of response to hello is invalid");
+      }
       it->advance(record_length);
       *is_complete = true;
       return Status::OK();

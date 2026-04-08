@@ -62,12 +62,14 @@ def write_serverhello_artifact(
     route_mode: str,
     cipher_suite: str = "0x1301",
     layout_signature=None,
+    source_path: str = "/captures/serverhello.pcapng",
+    source_sha256: str = "serverhello-sha256",
 ):
     artifact = {
         "route_mode": route_mode,
         "scenario_id": f"{family}-serverhello-scenario",
-        "source_path": "/captures/serverhello.pcapng",
-        "source_sha256": "serverhello-sha256",
+        "source_path": source_path,
+        "source_sha256": source_sha256,
         "parser_version": "tls-serverhello-parser-v1",
         "samples": [
             {
@@ -351,6 +353,8 @@ class RunCorpusSmokeTest(unittest.TestCase):
             family="ChromeGood_family",
             route_mode="non_ru_egress",
             cipher_suite="0x1302",
+            source_path=str(self.capture_path),
+            source_sha256=read_sha256(self.capture_path),
         )
 
         report = run_corpus_smoke(
@@ -386,8 +390,8 @@ class RunCorpusSmokeTest(unittest.TestCase):
         duplicate_artifact = {
             "route_mode": "non_ru_egress",
             "scenario_id": "ChromeGood_family-serverhello-scenario",
-            "source_path": "/captures/serverhello.pcapng",
-            "source_sha256": "serverhello-sha256",
+            "source_path": str(self.capture_path),
+            "source_sha256": read_sha256(self.capture_path),
             "parser_version": "tls-serverhello-parser-v1",
             "samples": [
                 {
@@ -425,6 +429,141 @@ class RunCorpusSmokeTest(unittest.TestCase):
         )
         self.assertIn(
             f"serverhello[{serverhello_artifact_path}]: sample[1]: duplicate fixture_id ChromeGood_family:frame8",
+            report["failures"],
+        )
+
+    def test_reports_server_hello_family_mismatch_against_matching_clienthello_capture(self) -> None:
+        registry = make_registry(self.capture_path)
+        registry["server_hello_matrix"]["Other_family"] = {
+            "parser_version": "tls-serverhello-parser-v1",
+            "allowed_tuples": [
+                {
+                    "selected_version": "0x0304",
+                    "cipher_suite": "0x1301",
+                    "extensions": ["0x002b", "0x0033"],
+                }
+            ],
+            "allowed_layout_signatures": [[22, 20]],
+        }
+        self.registry_path.write_text(json.dumps(registry), encoding="utf-8")
+
+        write_clienthello_artifact(
+            self.fixtures_root / "linux_desktop" / "chrome_good.clienthello.json",
+            profile_id="ChromeGood",
+            route_mode="non_ru_egress",
+            source_path=self.capture_path,
+            source_sha256=read_sha256(self.capture_path),
+        )
+        serverhello_artifact_path = self.serverhello_root / "chrome_wrong_family.serverhello.json"
+        write_serverhello_artifact(
+            serverhello_artifact_path,
+            family="Other_family",
+            route_mode="non_ru_egress",
+            source_path=str(self.capture_path),
+            source_sha256=read_sha256(self.capture_path),
+        )
+
+        report = run_corpus_smoke(
+            self.registry_path,
+            self.fixtures_root,
+            server_hello_fixtures_root=self.serverhello_root,
+        )
+
+        self.assertFalse(report["ok"])
+        self.assertEqual(
+            [
+                "batch: ServerHello family Other_family does not match ClientHello families [ChromeGood_family]"
+            ],
+            report["server_hello_artifacts"][0]["failures"],
+        )
+        self.assertIn(
+            f"serverhello[{serverhello_artifact_path}]: batch: ServerHello family Other_family does not match ClientHello families [ChromeGood_family]",
+            report["failures"],
+        )
+
+    def test_reports_server_hello_capture_without_matching_clienthello_metadata(self) -> None:
+        registry = make_registry(self.capture_path)
+        self.registry_path.write_text(json.dumps(registry), encoding="utf-8")
+
+        write_clienthello_artifact(
+            self.fixtures_root / "linux_desktop" / "chrome_good.clienthello.json",
+            profile_id="ChromeGood",
+            route_mode="non_ru_egress",
+            source_path=self.capture_path,
+            source_sha256=read_sha256(self.capture_path),
+        )
+        serverhello_artifact_path = self.serverhello_root / "chrome_missing_clienthello.serverhello.json"
+        artifact = {
+            "route_mode": "non_ru_egress",
+            "scenario_id": "ChromeGood_family-serverhello-scenario",
+            "source_path": "/captures/other-serverhello.pcapng",
+            "source_sha256": "other-serverhello-sha256",
+            "parser_version": "tls-serverhello-parser-v1",
+            "samples": [
+                {
+                    "fixture_id": "ChromeGood_family:frame8",
+                    "family": "ChromeGood_family",
+                    "selected_version": "0x0304",
+                    "cipher_suite": "0x1301",
+                    "extensions": ["0x002b", "0x0033"],
+                    "record_layout_signature": [22, 20],
+                }
+            ],
+        }
+        serverhello_artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+
+        report = run_corpus_smoke(
+            self.registry_path,
+            self.fixtures_root,
+            server_hello_fixtures_root=self.serverhello_root,
+        )
+
+        self.assertFalse(report["ok"])
+        self.assertEqual(
+            ["batch: no matching ClientHello capture metadata for ServerHello artifact"],
+            report["server_hello_artifacts"][0]["failures"],
+        )
+        self.assertIn(
+            f"serverhello[{serverhello_artifact_path}]: batch: no matching ClientHello capture metadata for ServerHello artifact",
+            report["failures"],
+        )
+
+    def test_reports_server_hello_source_sha256_mismatch_for_matching_source_path(self) -> None:
+        registry = make_registry(self.capture_path)
+        self.registry_path.write_text(json.dumps(registry), encoding="utf-8")
+
+        expected_sha256 = read_sha256(self.capture_path)
+        write_clienthello_artifact(
+            self.fixtures_root / "linux_desktop" / "chrome_good.clienthello.json",
+            profile_id="ChromeGood",
+            route_mode="non_ru_egress",
+            source_path=self.capture_path,
+            source_sha256=expected_sha256,
+        )
+        serverhello_artifact_path = self.serverhello_root / "chrome_wrong_sha.serverhello.json"
+        write_serverhello_artifact(
+            serverhello_artifact_path,
+            family="ChromeGood_family",
+            route_mode="non_ru_egress",
+            source_path=str(self.capture_path),
+            source_sha256="different-serverhello-sha256",
+        )
+
+        report = run_corpus_smoke(
+            self.registry_path,
+            self.fixtures_root,
+            server_hello_fixtures_root=self.serverhello_root,
+        )
+
+        self.assertFalse(report["ok"])
+        self.assertEqual(
+            [
+                f"batch: ServerHello source_sha256 different-serverhello-sha256 does not match ClientHello capture metadata for source_path {self.capture_path}; expected one of [{expected_sha256}]"
+            ],
+            report["server_hello_artifacts"][0]["failures"],
+        )
+        self.assertIn(
+            f"serverhello[{serverhello_artifact_path}]: batch: ServerHello source_sha256 different-serverhello-sha256 does not match ClientHello capture metadata for source_path {self.capture_path}; expected one of [{expected_sha256}]",
             report["failures"],
         )
 

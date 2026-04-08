@@ -191,16 +191,18 @@ Status validate_profile_weights(const ProfileWeights &weights) {
 
 }  // namespace
 
+StealthRuntimeParams::StealthRuntimeParams() noexcept {
+  drs_policy = default_runtime_drs_policy();
+  platform_hints = compiled_default_runtime_platform_hints();
+  profile_selection = RuntimeProfileSelectionPolicy{};
+  profile_weights = effective_profile_weights_for_platform(profile_selection, platform_hints);
+  route_policy.unknown.ech_mode = EchMode::Disabled;
+  route_policy.ru.ech_mode = EchMode::Disabled;
+  route_policy.non_ru.ech_mode = EchMode::Rfc9180Outer;
+}
+
 StealthRuntimeParams default_runtime_stealth_params() noexcept {
-  StealthRuntimeParams params;
-  params.drs_policy = default_runtime_drs_policy();
-  params.platform_hints = compiled_default_runtime_platform_hints();
-  params.profile_selection = RuntimeProfileSelectionPolicy{};
-  params.profile_weights = effective_profile_weights_for_platform(params.profile_selection, params.platform_hints);
-  params.route_policy.unknown.ech_mode = EchMode::Disabled;
-  params.route_policy.ru.ech_mode = EchMode::Disabled;
-  params.route_policy.non_ru.ech_mode = EchMode::Rfc9180Outer;
-  return params;
+  return StealthRuntimeParams{};
 }
 
 Status validate_runtime_stealth_params(const StealthRuntimeParams &params) noexcept {

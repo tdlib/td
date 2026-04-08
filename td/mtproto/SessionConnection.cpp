@@ -1014,15 +1014,23 @@ void SessionConnection::flush_packet() {
     return result;
   };
 
+  constexpr size_t kAckIdsPerContainerCap = 8192;
+
   // no more than 8192 message identifiers per container..
   auto pending_ack_count = to_ack_message_ids_.size();
+  if (pending_ack_count == 0) {
+    ack_overflow_bulk_latched_ = false;
+  } else if (pending_ack_count > kAckIdsPerContainerCap) {
+    ack_overflow_bulk_latched_ = true;
+  }
+
   auto to_resend_answer = cut_tail(to_resend_answer_message_ids_, 8192, "resend_answer");
   MessageId resend_answer_message_id;
   CHECK(queries.size() <= MAX_QUERY_COUNT);
   auto to_cancel_answer = cut_tail(to_cancel_answer_message_ids_, MAX_QUERY_COUNT - queries.size(), "cancel_answer");
   auto to_get_state_info = cut_tail(to_get_state_info_message_ids_, 8192, "get_state_info");
   MessageId get_state_info_message_id;
-  auto to_ack = cut_tail(to_ack_message_ids_, 8192, "ack");
+  auto to_ack = cut_tail(to_ack_message_ids_, kAckIdsPerContainerCap, "ack");
   MessageId ping_message_id;
 
   bool use_quick_ack = any_of(queries, [](const auto &query) { return query.use_quick_ack; });
@@ -1030,6 +1038,9 @@ void SessionConnection::flush_packet() {
       has_salt, ping_id, queries.size(), send_size, pending_ack_count,
       !to_resend_answer.empty() || !to_cancel_answer.empty() || !to_get_state_info.empty(), destroy_auth_key,
       raw_connection_->traffic_bulk_threshold_bytes());
+  if (ack_overflow_bulk_latched_ && !to_ack.empty()) {
+    hint = stealth::TrafficHint::BulkData;
+  }
 
   {
     // LOG(ERROR) << (auth_data_->get_header().empty() ? '-' : '+');
@@ -1042,6 +1053,10 @@ void SessionConnection::flush_packet() {
 
     auto quick_ack_token = use_quick_ack ? parent_message_id.get() : 0;
     send_crypto(storer, quick_ack_token, hint);
+  }
+
+  if (ack_overflow_bulk_latched_ && to_ack_message_ids_.empty()) {
+    ack_overflow_bulk_latched_ = false;
   }
 
   if (resend_answer_message_id != MessageId()) {

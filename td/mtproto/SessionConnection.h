@@ -203,6 +203,7 @@ class SessionConnection final
   double destroy_auth_key_send_time_ = 0.0;
 
   double flush_packet_at_ = 0;
+  bool ack_overflow_bulk_latched_ = false;
 
   double last_get_future_salt_at_ = 0;
   enum { Init, Run, Fail, Closed } state_;

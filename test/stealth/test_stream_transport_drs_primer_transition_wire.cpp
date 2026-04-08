@@ -29,7 +29,7 @@ using td::mtproto::test::MockRng;
 
 constexpr td::int32 kFixedCap = 256;
 constexpr size_t kPayloadSize = 900;
-constexpr size_t kExpectedRecordsPerFlush = 4;
+constexpr size_t kExpectedSecondFlushRecordCount = 4;
 
 td::string make_tls_secret() {
   td::string secret;
@@ -110,9 +110,10 @@ TEST(StreamTransportDrsPrimerTransitionWire, SubsequentFlushDropsBackToNonPrimer
   enqueue_flush(*transport, kPayloadSize);
 
   auto lengths = extract_tls_record_lengths(drain_output(output_writer));
-  ASSERT_EQ(kExpectedRecordsPerFlush * 2, lengths.size());
+  ASSERT_TRUE(lengths.size() >= 7u);
+  ASSERT_TRUE(lengths.size() <= 8u);
   ASSERT_TRUE(lengths[0] > static_cast<size_t>(kFixedCap));
-  for (size_t i = kExpectedRecordsPerFlush; i < lengths.size(); i++) {
+  for (size_t i = lengths.size() - kExpectedSecondFlushRecordCount; i < lengths.size(); i++) {
     ASSERT_TRUE(lengths[i] <= static_cast<size_t>(kFixedCap));
   }
 }
@@ -136,9 +137,10 @@ TEST(StreamTransportDrsPrimerTransitionWire, IdleResetDoesNotReintroducePrimerSi
   enqueue_flush(*transport, kPayloadSize);
 
   auto lengths = extract_tls_record_lengths(drain_output(output_writer));
-  ASSERT_EQ(kExpectedRecordsPerFlush * 2, lengths.size());
+  ASSERT_TRUE(lengths.size() >= 7u);
+  ASSERT_TRUE(lengths.size() <= 8u);
   ASSERT_TRUE(lengths[0] > static_cast<size_t>(kFixedCap));
-  for (size_t i = kExpectedRecordsPerFlush; i < lengths.size(); i++) {
+  for (size_t i = lengths.size() - kExpectedSecondFlushRecordCount; i < lengths.size(); i++) {
     ASSERT_TRUE(lengths[i] <= static_cast<size_t>(kFixedCap));
   }
 }

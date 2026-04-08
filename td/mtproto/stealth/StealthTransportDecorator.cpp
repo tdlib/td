@@ -8,6 +8,7 @@
 
 #include "td/utils/buffer.h"
 
+#include <cstdio>
 #include <limits>
 
 namespace td {
@@ -31,6 +32,14 @@ int32 adjust_tls_record_size_for_payload_overhead(int32 payload_cap, int32 paylo
 
 TrafficHint normalize_drs_hint(TrafficHint hint) {
   return hint == TrafficHint::Unknown ? TrafficHint::Interactive : hint;
+}
+
+void fail_closed_on_ring_overflow() {
+  // Emit a direct stderr marker before aborting so the death test remains
+  // deterministic even when the logging backend output is truncated.
+  std::fputs("Stealth ring overflow invariant broken\n", stderr);
+  std::fflush(stderr);
+  LOG(FATAL) << "Stealth ring overflow invariant broken";
 }
 
 size_t account_transport_payload_overhead(size_t written_bytes, int32 payload_overhead) {
@@ -176,13 +185,13 @@ void StealthTransportDecorator::write(BufferWriter &&message, bool quick_ack) {
   ShaperPendingWrite pending_write{std::move(message), quick_ack, send_at, hint};
   if (queued_write_count() >= config_.ring_capacity) {
     overflow_invariant_hits_++;
-    LOG(FATAL) << "Stealth ring overflow invariant broken";
+    fail_closed_on_ring_overflow();
   }
 
   auto &target_ring = delay_us == 0 ? bypass_ring_ : ring_;
   if (!target_ring.try_enqueue(std::move(pending_write))) {
     overflow_invariant_hits_++;
-    LOG(FATAL) << "Stealth ring overflow invariant broken";
+    fail_closed_on_ring_overflow();
   }
 
   if (queued_write_count() >= high_watermark_) {

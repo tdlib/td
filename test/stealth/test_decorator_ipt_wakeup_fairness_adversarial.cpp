@@ -11,6 +11,7 @@
 namespace {
 
 using td::mtproto::stealth::TrafficHint;
+using td::mtproto::test::assert_immediate_or_overdue_wakeup;
 using td::mtproto::test::assert_immediate_wakeup;
 using td::mtproto::test::enqueue_ipt_packet;
 using td::mtproto::test::leave_delayed_interactive_queued;
@@ -39,7 +40,7 @@ TEST(DecoratorIptWakeupFairnessAdversarial, EarlierInnerWakeupWinsAfterImmediate
   enqueue_ipt_packet(*fixture.decorator, 43, TrafficHint::BulkData, false);
   fixture.inner->shaping_wakeup_result = delayed_interactive_wakeup - 0.5;
 
-  assert_immediate_wakeup(fixture);
+  assert_immediate_or_overdue_wakeup(fixture);
 
   fixture.inner->writes_per_flush_budget_result = 1;
   fixture.decorator->pre_flush_write(fixture.clock->now());

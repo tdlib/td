@@ -169,17 +169,25 @@ inline void drain_ipt_until_future_wakeup(DecoratorIptFixture &fixture, int writ
 
 template <size_t N>
 inline void assert_payload_order(const std::vector<string> &payloads, const std::array<size_t, N> &payload_sizes) {
-  size_t previous_index = 0;
-  for (size_t i = 0; i < N; i++) {
-    auto payload = string(payload_sizes[i], 'x');
-    auto it = std::find(payloads.begin(), payloads.end(), payload);
-    ASSERT_TRUE(it != payloads.end());
-    auto index = static_cast<size_t>(it - payloads.begin());
-    if (i != 0) {
-      ASSERT_TRUE(previous_index < index);
+  size_t expected_index = 0;
+  for (const auto &payload : payloads) {
+    if (expected_index == N) {
+      break;
     }
-    previous_index = index;
+
+    size_t matched_length = 0;
+    size_t lookahead_index = expected_index;
+    while (lookahead_index < N && matched_length < payload.size()) {
+      matched_length += payload_sizes[lookahead_index];
+      lookahead_index++;
+    }
+
+    if (matched_length == payload.size()) {
+      expected_index = lookahead_index;
+    }
   }
+
+  ASSERT_EQ(N, expected_index);
 }
 
 template <size_t N>
