@@ -107,12 +107,12 @@ void TlsInit::send_hello() {
   auto decision = stealth::get_runtime_ech_decision(username_, hello_unix_time_, route_hints_);
 #if TD_DARWIN
   hello_uses_ech_ = decision.ech_mode == stealth::EchMode::Rfc9180Outer;
-  auto hello = stealth::build_default_tls_client_hello(username_, password_, hello_unix_time_, route_hints_);
+  auto hello = stealth::build_proxy_tls_client_hello(username_, password_, hello_unix_time_, route_hints_);
 #else
   auto platform = stealth::default_runtime_platform_hints();
   auto profile = stealth::pick_runtime_profile(username_, hello_unix_time_, platform);
   hello_uses_ech_ = profile_spec(profile).allows_ech && decision.ech_mode == stealth::EchMode::Rfc9180Outer;
-  auto hello = stealth::build_tls_client_hello_for_profile(
+  auto hello = stealth::build_proxy_tls_client_hello_for_profile(
       username_, password_, hello_unix_time_, profile,
       hello_uses_ech_ ? stealth::EchMode::Rfc9180Outer : stealth::EchMode::Disabled);
 #endif
@@ -148,7 +148,7 @@ Status TlsInit::wait_hello_response() {
   std::fill(response_rand_slice.begin(), response_rand_slice.end(), '\0');
   string hash_dest(32, '\0');
   hmac_sha256(password_, PSLICE() << hello_rand_ << response.as_slice(), hash_dest);
-  if (hash_dest != response_rand) {
+  if (!constant_time_equals(hash_dest, response_rand)) {
     if (hello_uses_ech_) {
       stealth::note_runtime_ech_failure(username_, hello_unix_time_);
     }

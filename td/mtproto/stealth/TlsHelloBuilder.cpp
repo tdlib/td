@@ -82,6 +82,26 @@ bool should_enable_ech(const NetworkRouteHints &route_hints) {
   return route_hints.is_known && !route_hints.is_ru;
 }
 
+enum class AlpnMode : uint8 {
+  BrowserDefault = 0,
+  Http11Only = 1,
+};
+
+Slice alpn_protocol_entries(AlpnMode alpn_mode) {
+  static const char kBrowserDefault[] = "\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31";
+  static const char kHttp11Only[] = "\x08\x68\x74\x74\x70\x2f\x31\x2e\x31";
+
+  switch (alpn_mode) {
+    case AlpnMode::BrowserDefault:
+      return Slice(kBrowserDefault, sizeof(kBrowserDefault) - 1);
+    case AlpnMode::Http11Only:
+      return Slice(kHttp11Only, sizeof(kHttp11Only) - 1);
+    default:
+      UNREACHABLE();
+      return Slice();
+  }
+}
+
 void shuffle_chrome_anchored_extensions(vector<string> &parts, IRng &rng) {
   // Match Chrome/uTLS ShuffleChromeTLSExtensions semantics for the subset of
   // extensions represented by this permutation: shuffle every non-anchor
@@ -108,6 +128,7 @@ class TlsHello {
       BeginScope,
       EndScope,
       Permutation,
+      AlpnProtocols,
       EchPayload,
       EchEncKey,
       PqGroupId,
@@ -176,6 +197,11 @@ class TlsHello {
       res.parts = std::move(parts);
       return res;
     }
+    static Op alpn_protocols() {
+      Op res;
+      res.type = Type::AlpnProtocols;
+      return res;
+    }
     static Op ech_payload() {
       Op res;
       res.type = Type::EchPayload;
@@ -226,7 +252,8 @@ class TlsHello {
         vector<Op>{Op::str("\x00\x0b\x00\x02\x01\x00")},
         vector<Op>{Op::str("\x00\x0d\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01"
                            "\x08\x06\x06\x01")},
-        vector<Op>{Op::str("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31")},
+        vector<Op>{Op::str("\x00\x10"), Op::begin_scope(), Op::begin_scope(), Op::alpn_protocols(), Op::end_scope(),
+                   Op::end_scope()},
         vector<Op>{Op::str("\x00\x12\x00\x00")},
         vector<Op>{Op::str("\x00\x17\x00\x00")},
         vector<Op>{Op::str("\x00\x1b\x00\x03\x02\x00\x02")},
@@ -311,7 +338,12 @@ class TlsHello {
         Op::str("\x00\x0b\x00\x02\x01\x00"),
         Op::str("\x00\x0d\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01"
                 "\x08\x06\x06\x01"),
-        Op::str("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31"),
+        Op::str("\x00\x10"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::alpn_protocols(),
+        Op::end_scope(),
+        Op::end_scope(),
         Op::str("\x00\x12\x00\x00"),
         Op::str("\x00\x17\x00\x00"),
         Op::str("\x00\x1b\x00\x03\x02\x00\x02"),
@@ -372,7 +404,12 @@ class TlsHello {
         Op::str("\x00\x1d\x00\x17\x00\x18\x00\x19\x01\x00\x01\x01"),
         Op::str("\x00\x0b\x00\x02\x01\x00"),
         Op::str("\x00\x23\x00\x00"),
-        Op::str("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31"),
+        Op::str("\x00\x10"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::alpn_protocols(),
+        Op::end_scope(),
+        Op::end_scope(),
         Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00"),
         Op::str("\x00\x22\x00\x0a\x00\x08\x04\x03\x05\x03\x06\x03\x02\x03"),
         Op::str("\x00\x12\x00\x00"),
@@ -442,9 +479,15 @@ class TlsHello {
           Op::end_scope(),
           Op::str("\x00\x17\x00\x00\xff\x01\x00\x01\x00\x00\x0a\x00\x0c\x00\x0a"),
           Op::grease(4),
+          Op::str("\x00\x1d\x00\x17\x00\x18\x00\x19\x00\x0b\x00\x02\x01\x00"),
+          Op::str("\x00\x10"),
+          Op::begin_scope(),
+          Op::begin_scope(),
+          Op::alpn_protocols(),
+          Op::end_scope(),
+          Op::end_scope(),
           Op::str(
-              "\x00\x1d\x00\x17\x00\x18\x00\x19\x00\x0b\x00\x02\x01\x00\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74"
-              "\x74\x70\x2f\x31\x2e\x31\x00\x05\x00\x05\x01\x00\x00\x00\x00\x00\x0d\x00\x16\x00\x14\x04\x03\x08\x04\x04"
+              "\x00\x05\x00\x05\x01\x00\x00\x00\x00\x00\x0d\x00\x16\x00\x14\x04\x03\x08\x04\x04"
               "\x01\x05\x03\x08\x05\x08\x05\x05\x01\x08\x06\x06\x01\x02\x01\x00\x12\x00\x00\x00\x33\x00\x2b\x00\x29"),
           Op::grease(4),
           Op::str("\x00\x01\x00\x00\x1d\x00\x20"),
@@ -481,7 +524,8 @@ class TlsHello {
                vector<Op>{Op::str("\x00\x0b\x00\x02\x01\x00")},
                vector<Op>{
                    Op::str("\x00\x0d\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01")},
-               vector<Op>{Op::str("\x00\x10\x00\x0e\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31")},
+               vector<Op>{Op::str("\x00\x10"), Op::begin_scope(), Op::begin_scope(), Op::alpn_protocols(),
+                          Op::end_scope(), Op::end_scope()},
                vector<Op>{Op::str("\x00\x12\x00\x00")}, vector<Op>{Op::str("\x00\x17\x00\x00")},
                vector<Op>{Op::str("\x00\x1b\x00\x03\x02\x00\x02")}, vector<Op>{Op::str("\x00\x23\x00\x00")},
                vector<Op>{Op::str("\x00\x2b\x00\x07\x06"), Op::grease(6), Op::str("\x03\x04\x03\x03")},
@@ -583,11 +627,12 @@ class TlsHello {
 
 class TlsHelloContext {
  public:
-  TlsHelloContext(size_t grease_size, string domain, bool enable_ech, IRng &rng)
+  TlsHelloContext(size_t grease_size, string domain, bool enable_ech, AlpnMode alpn_mode, IRng &rng)
       : grease_(grease_size, '\0')
       , domain_(std::move(domain))
       , ech_payload_length_(sample_ech_payload_length(rng))
       , padding_entropy_length_(sample_padding_entropy_length(enable_ech, rng))
+      , alpn_mode_(alpn_mode)
       , pq_group_id_(detail::kCurrentSingleLanePqGroupId)
       , alps_extension_type_(detail::kCurrentSingleLaneAlpsType)
       , ech_enc_key_length_(kEchEncapsulatedKeyLength) {
@@ -600,6 +645,7 @@ class TlsHelloContext {
       , ech_payload_length_(options.ech_payload_length)
       , padding_entropy_length_(0)
       , padding_extension_payload_length_(options.padding_extension_payload_length)
+      , alpn_mode_(AlpnMode::BrowserDefault)
       , pq_group_id_(options.pq_group_id)
       , alps_extension_type_(options.alps_extension_type)
       , ech_enc_key_length_(options.ech_enc_key_length) {
@@ -622,6 +668,10 @@ class TlsHelloContext {
 
   int get_padding_entropy_length() const {
     return padding_entropy_length_;
+  }
+
+  Slice get_alpn_protocol_entries() const {
+    return alpn_protocol_entries(alpn_mode_);
   }
 
   uint16 get_pq_group_id() const {
@@ -662,6 +712,7 @@ class TlsHelloContext {
   int ech_payload_length_{0};
   int padding_entropy_length_{0};
   size_t padding_extension_payload_length_{0};
+  AlpnMode alpn_mode_{AlpnMode::BrowserDefault};
   uint16 pq_group_id_{0};
   uint16 alps_extension_type_{0};
   uint16 ech_enc_key_length_{0};
@@ -732,6 +783,10 @@ class TlsHelloCalcLength {
         }
         break;
       }
+      case Type::AlpnProtocols:
+        CHECK(context);
+        size_ += context->get_alpn_protocol_entries().size();
+        break;
       case Type::EchPayload:
         CHECK(context);
         size_ += context->get_ech_payload_length();
@@ -898,6 +953,13 @@ class TlsHelloStore {
         }
         break;
       }
+      case Type::AlpnProtocols: {
+        CHECK(context);
+        auto entries = context->get_alpn_protocol_entries();
+        dest_.copy_from(entries);
+        dest_.remove_prefix(entries.size());
+        break;
+      }
       case Type::EchPayload:
         CHECK(context);
         do_op(TlsHello::Op::random(context->get_ech_payload_length()), nullptr);
@@ -1049,67 +1111,18 @@ string build_default_tls_client_hello_with_options(string domain, Slice secret, 
 
 }  // namespace detail
 
-string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,
-                                      const NetworkRouteHints &route_hints, IRng &rng) {
-  CHECK(!domain.empty());
-  CHECK(secret.size() == 16);
+namespace {
 
-  auto enable_ech = should_enable_ech(route_hints);
-  auto padding_policy = PaddingPolicy{};
-  auto &hello = TlsHello::get_default(enable_ech);
-  TlsHelloContext context(hello.get_grease_size(), std::move(domain), enable_ech, rng);
-  TlsHelloCalcLength unpadded_calc_length;
-  for (auto &op : hello.get_ops()) {
-    unpadded_calc_length.do_op(op, &context);
-  }
-  auto unpadded_length = unpadded_calc_length.finish().move_as_ok();
-  context.set_padding_extension_payload_length(resolve_padding_extension_payload_len(
-      padding_policy, unpadded_length, static_cast<size_t>(context.get_padding_entropy_length())));
-
-  TlsHelloCalcLength calc_length;
-  for (auto &op : hello.get_ops()) {
-    calc_length.do_op(op, &context);
-  }
-  auto length = calc_length.finish().move_as_ok();
-  string data(length, '\0');
-  TlsHelloStore storer(data, rng);
-  for (auto &op : hello.get_ops()) {
-    storer.do_op(op, &context);
-  }
-  storer.finish(secret, unix_time);
-  return data;
-}
-
-string build_runtime_tls_client_hello(string domain, Slice secret, int32 unix_time,
-                                      const NetworkRouteHints &route_hints, IRng &rng) {
-  CHECK(!domain.empty());
-  CHECK(secret.size() == 16);
-
-#if TD_DARWIN
-  return build_default_tls_client_hello(std::move(domain), secret, unix_time, route_hints, rng);
-#else
-  auto platform = default_runtime_platform_hints();
-  auto profile = pick_runtime_profile(domain, unix_time, platform);
-  auto ech_mode = get_runtime_ech_decision(domain, unix_time, route_hints).ech_mode;
-  return build_tls_client_hello_for_profile(std::move(domain), secret, unix_time, profile, ech_mode, rng);
-#endif
-}
-
-string build_runtime_tls_client_hello(string domain, Slice secret, int32 unix_time,
-                                      const NetworkRouteHints &route_hints) {
-  SecureRng rng;
-  return build_runtime_tls_client_hello(std::move(domain), secret, unix_time, route_hints, rng);
-}
-
-string build_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
-                                          EchMode ech_mode, IRng &rng) {
+string build_tls_client_hello_for_profile_with_alpn_mode(string domain, Slice secret, int32 unix_time,
+                                                         BrowserProfile profile, EchMode ech_mode, AlpnMode alpn_mode,
+                                                         IRng &rng) {
   CHECK(!domain.empty());
   CHECK(secret.size() == 16);
 
   auto &spec = profile_spec(profile);
   auto enable_ech = ech_mode == EchMode::Rfc9180Outer && spec.allows_ech;
   auto &hello = TlsHello::get_profile(profile, enable_ech);
-  TlsHelloContext context(hello.get_grease_size(), std::move(domain), enable_ech, rng);
+  TlsHelloContext context(hello.get_grease_size(), std::move(domain), enable_ech, alpn_mode, rng);
   context.set_alps_extension_type(spec.alps_type);
   if (spec.has_pq) {
     context.set_pq_group_id(spec.pq_group_id);
@@ -1138,16 +1151,107 @@ string build_tls_client_hello_for_profile(string domain, Slice secret, int32 uni
   return data;
 }
 
+string build_default_tls_client_hello_with_alpn_mode(string domain, Slice secret, int32 unix_time,
+                                                     const NetworkRouteHints &route_hints, AlpnMode alpn_mode,
+                                                     IRng &rng) {
+  CHECK(!domain.empty());
+  CHECK(secret.size() == 16);
+
+  auto enable_ech = should_enable_ech(route_hints);
+  auto padding_policy = PaddingPolicy{};
+  auto &hello = TlsHello::get_default(enable_ech);
+  TlsHelloContext context(hello.get_grease_size(), std::move(domain), enable_ech, alpn_mode, rng);
+  TlsHelloCalcLength unpadded_calc_length;
+  for (auto &op : hello.get_ops()) {
+    unpadded_calc_length.do_op(op, &context);
+  }
+  auto unpadded_length = unpadded_calc_length.finish().move_as_ok();
+  context.set_padding_extension_payload_length(resolve_padding_extension_payload_len(
+      padding_policy, unpadded_length, static_cast<size_t>(context.get_padding_entropy_length())));
+
+  TlsHelloCalcLength calc_length;
+  for (auto &op : hello.get_ops()) {
+    calc_length.do_op(op, &context);
+  }
+  auto length = calc_length.finish().move_as_ok();
+  string data(length, '\0');
+  TlsHelloStore storer(data, rng);
+  for (auto &op : hello.get_ops()) {
+    storer.do_op(op, &context);
+  }
+  storer.finish(secret, unix_time);
+  return data;
+}
+
+}  // namespace
+
+string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,
+                                      const NetworkRouteHints &route_hints, IRng &rng) {
+  return build_default_tls_client_hello_with_alpn_mode(std::move(domain), secret, unix_time, route_hints,
+                                                       AlpnMode::BrowserDefault, rng);
+}
+
+string build_proxy_tls_client_hello(string domain, Slice secret, int32 unix_time, const NetworkRouteHints &route_hints,
+                                    IRng &rng) {
+  return build_default_tls_client_hello_with_alpn_mode(std::move(domain), secret, unix_time, route_hints,
+                                                       AlpnMode::Http11Only, rng);
+}
+
+string build_runtime_tls_client_hello(string domain, Slice secret, int32 unix_time,
+                                      const NetworkRouteHints &route_hints, IRng &rng) {
+  CHECK(!domain.empty());
+  CHECK(secret.size() == 16);
+
+#if TD_DARWIN
+  return build_default_tls_client_hello(std::move(domain), secret, unix_time, route_hints, rng);
+#else
+  auto platform = default_runtime_platform_hints();
+  auto profile = pick_runtime_profile(domain, unix_time, platform);
+  auto ech_mode = get_runtime_ech_decision(domain, unix_time, route_hints).ech_mode;
+  return build_tls_client_hello_for_profile(std::move(domain), secret, unix_time, profile, ech_mode, rng);
+#endif
+}
+
+string build_runtime_tls_client_hello(string domain, Slice secret, int32 unix_time,
+                                      const NetworkRouteHints &route_hints) {
+  SecureRng rng;
+  return build_runtime_tls_client_hello(std::move(domain), secret, unix_time, route_hints, rng);
+}
+
+string build_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
+                                          EchMode ech_mode, IRng &rng) {
+  return build_tls_client_hello_for_profile_with_alpn_mode(std::move(domain), secret, unix_time, profile, ech_mode,
+                                                           AlpnMode::BrowserDefault, rng);
+}
+
+string build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
+                                                EchMode ech_mode, IRng &rng) {
+  return build_tls_client_hello_for_profile_with_alpn_mode(std::move(domain), secret, unix_time, profile, ech_mode,
+                                                           AlpnMode::Http11Only, rng);
+}
+
 string build_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
                                           EchMode ech_mode) {
   SecureRng rng;
   return build_tls_client_hello_for_profile(std::move(domain), secret, unix_time, profile, ech_mode, rng);
 }
 
+string build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
+                                                EchMode ech_mode) {
+  SecureRng rng;
+  return build_proxy_tls_client_hello_for_profile(std::move(domain), secret, unix_time, profile, ech_mode, rng);
+}
+
 string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,
                                       const NetworkRouteHints &route_hints) {
   SecureRng rng;
   return build_default_tls_client_hello(std::move(domain), secret, unix_time, route_hints, rng);
+}
+
+string build_proxy_tls_client_hello(string domain, Slice secret, int32 unix_time,
+                                    const NetworkRouteHints &route_hints) {
+  SecureRng rng;
+  return build_proxy_tls_client_hello(std::move(domain), secret, unix_time, route_hints, rng);
 }
 
 string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time) {

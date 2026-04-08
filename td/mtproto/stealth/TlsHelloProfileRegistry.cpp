@@ -247,6 +247,9 @@ bool parse_route_failure_cache_entry(Slice serialized, RouteFailureCacheEntry &e
   if (!parse_uint32_str(failures_str, entry.state.recent_ech_failures)) {
     return false;
   }
+  if (blocked_str[0] != '0' && blocked_str[0] != '1') {
+    return false;
+  }
   entry.state.ech_block_suspected = blocked_str[0] == '1';
 
   int64 stored_remaining_ms = 0;

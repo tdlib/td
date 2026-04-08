@@ -157,6 +157,11 @@ void pbkdf2_sha512(Slice password, Slice salt, int iteration_count, MutableSlice
 void hmac_sha256(Slice key, Slice message, MutableSlice dest);
 void hmac_sha512(Slice key, Slice message, MutableSlice dest);
 
+// Constant-time comparison of two byte strings.
+// Returns true iff both have the same length and identical contents.
+// Prevents timing side-channels when verifying HMAC digests.
+bool constant_time_equals(Slice a, Slice b);
+
 // Interface may be improved
 Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data);
 Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice private_key, Slice data);

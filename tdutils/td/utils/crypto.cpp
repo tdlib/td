@@ -1036,6 +1036,14 @@ void hmac_sha512(Slice key, Slice message, MutableSlice dest) {
 #endif
 }
 
+bool constant_time_equals(Slice a, Slice b) {
+  if (a.size() != b.size()) {
+    return false;
+  }
+  // Use CRYPTO_memcmp from OpenSSL for guaranteed constant-time behavior.
+  return CRYPTO_memcmp(a.data(), b.data(), a.size()) == 0;
+}
+
 static int get_evp_pkey_type(EVP_PKEY *pkey) {
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
   return EVP_PKEY_type(pkey->type);

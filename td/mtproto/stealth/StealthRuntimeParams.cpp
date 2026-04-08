@@ -189,6 +189,34 @@ Status validate_profile_weights(const ProfileWeights &weights) {
   return Status::OK();
 }
 
+Status validate_allowed_profile_weights_for_platform(const ProfileWeights &weights,
+                                                     const RuntimePlatformHints &platform) {
+  uint32 allowed_total = 0;
+  if (platform.device_class == DeviceClass::Mobile) {
+    switch (platform.mobile_os) {
+      case MobileOs::IOS:
+        allowed_total = weights.ios14;
+        break;
+      case MobileOs::Android:
+        allowed_total = weights.android11_okhttp;
+        break;
+      case MobileOs::None:
+      default:
+        allowed_total = weights.ios14 + weights.android11_okhttp;
+        break;
+    }
+  } else if (platform.desktop_os == DesktopOs::Darwin) {
+    allowed_total = weights.chrome133 + weights.chrome131 + weights.chrome120 + weights.firefox148 + weights.safari26_3;
+  } else {
+    allowed_total = weights.chrome133 + weights.chrome131 + weights.chrome120 + weights.firefox148;
+  }
+
+  if (allowed_total == 0) {
+    return Status::Error("platform_hints must keep at least one allowed profile weight enabled");
+  }
+  return Status::OK();
+}
+
 }  // namespace
 
 StealthRuntimeParams::StealthRuntimeParams() noexcept {
@@ -212,6 +240,7 @@ Status validate_runtime_stealth_params(const StealthRuntimeParams &params) noexc
   TRY_STATUS(validate_flow_behavior(params.flow_behavior));
   TRY_STATUS(validate_runtime_profile_selection_policy(params.profile_selection));
   TRY_STATUS(validate_profile_weights(params.profile_weights));
+  TRY_STATUS(validate_allowed_profile_weights_for_platform(params.profile_weights, params.platform_hints));
   TRY_STATUS(validate_route_entry("route_policy.unknown", params.route_policy.unknown, true));
   TRY_STATUS(validate_route_entry("route_policy.ru", params.route_policy.ru, true));
   TRY_STATUS(validate_route_entry("route_policy.non_ru", params.route_policy.non_ru, false));

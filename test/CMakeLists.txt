@@ -65,9 +65,12 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_expiry.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_builder_equivalence.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_runtime_profile_coverage_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_params.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_params_platform_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_active_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_sticky_rotation.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_proxy_alpn_semantics.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_params_loader.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_params_loader_plan.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_params_loader_platform_runtime.cpp
@@ -159,6 +162,17 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_traffic_classifier_ack_flood_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_traffic_classifier_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_ack_mix_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_grease_independence_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_mlkem_coefficient_distribution.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_extension_order_entropy_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_total_length_distribution_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_builder_length_agreement_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_cross_connection_fingerprint_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_hmac_timing_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_padding_boundary_edge_cases.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_builder_light_fuzz.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_structural_differential.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_ech_circuit_breaker_adversarial.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/data.h

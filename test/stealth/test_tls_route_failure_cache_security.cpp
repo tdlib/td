@@ -145,6 +145,23 @@ TEST(TlsRouteFailureCacheSecurity, NegativePersistentTimingFieldsFailClosedForKn
   ASSERT_TRUE(EchMode::Disabled == runtime_ech_mode_for_route("persist.example.com", 1712345678, route_hints));
 }
 
+TEST(TlsRouteFailureCacheSecurity, NonBinaryBlockedFlagFailsClosedForKnownNonRuRoute) {
+  auto store = std::make_shared<MemoryKeyValue>();
+  ScopedRuntimeEchStore scoped_store(store);
+
+  reset_runtime_ech_failure_state_for_tests();
+  reset_runtime_ech_counters_for_tests();
+
+  NetworkRouteHints route_hints;
+  route_hints.is_known = true;
+  route_hints.is_ru = false;
+
+  const td::string key = "stealth_ech_cb#persist.example.com|19818";
+  store->set(key, "1|2|300000|1234567");
+
+  ASSERT_TRUE(EchMode::Disabled == runtime_ech_mode_for_route("persist.example.com", 1712345678, route_hints));
+}
+
 TEST(TlsRouteFailureCacheSecurity, SwappingPersistentStoreClearsStaleInMemoryFailureState) {
   auto store_a = std::make_shared<MemoryKeyValue>();
   auto store_b = std::make_shared<MemoryKeyValue>();
