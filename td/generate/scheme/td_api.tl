@@ -9107,7 +9107,7 @@ fileTypeSecretThumbnail = FileType;
 //@description The file is a file from Secure storage used for storing Telegram Passport files
 fileTypeSecure = FileType;
 
-//@description The file is a seld-destructing video for a live photo in a private chat
+//@description The file is a self-destructing video for a live photo in a private chat
 fileTypeSelfDestructingLivePhotoVideo = FileType;
 
 //@description The file is a self-destructing photo in a private chat
