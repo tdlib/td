@@ -46,11 +46,14 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_builder_seam.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_ech_enc_key_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_differential.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_hmac_regression.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_circuit_breaker.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_profile_runtime.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_leftover_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_multi_record_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_route_stress.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_stress.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profiles.cpp
@@ -61,6 +64,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_wire.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_chrome144_differential.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_firefox148_differential.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_safari26_3_differential.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_firefox_linux_desktop_ech.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_expiry.cpp
@@ -173,6 +177,15 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_builder_light_fuzz.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_structural_differential.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_ech_circuit_breaker_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_ja4_fingerprint_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_cipher_suite_order_determinism.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_alpn_presence_all_profiles.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_chrome_extension_set_invariance.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_grease_structural_positions.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_dpi_evasion_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hmac_replay_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_ja4_segment_a_correctness.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_ja3_ja4_cross_validation.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/data.h

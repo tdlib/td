@@ -9,7 +9,6 @@
 
 #include "td/mtproto/ProxySecret.h"
 
-#include "td/utils/as.h"
 #include "td/utils/BigNum.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
@@ -27,6 +26,26 @@ namespace {
 
 constexpr uint16 kPqHybridKeyExchangeLength = detail::kCurrentSingleLanePqKeyShareLength;
 constexpr uint16 kEchEncapsulatedKeyLength = detail::kCorrectEchEncKeyLen;
+constexpr size_t kClientRandomOffset = 11;
+constexpr size_t kClientRandomLength = 32;
+constexpr size_t kClientRandomTimestampTailOffset = 28;
+constexpr size_t kClientRandomTimestampTailLength = 4;
+
+uint32 load_le_uint32(Slice bytes) {
+  CHECK(bytes.size() == kClientRandomTimestampTailLength);
+  return static_cast<uint32>(static_cast<uint8>(bytes[0])) | (static_cast<uint32>(static_cast<uint8>(bytes[1])) << 8) |
+         (static_cast<uint32>(static_cast<uint8>(bytes[2])) << 16) |
+         (static_cast<uint32>(static_cast<uint8>(bytes[3])) << 24);
+}
+
+void store_le_uint32(MutableSlice bytes, uint32 value) {
+  CHECK(bytes.size() == kClientRandomTimestampTailLength);
+  bytes[0] = static_cast<char>(value & 0xFFu);
+  bytes[1] = static_cast<char>((value >> 8) & 0xFFu);
+  bytes[2] = static_cast<char>((value >> 16) & 0xFFu);
+  bytes[3] = static_cast<char>((value >> 24) & 0xFFu);
+}
+
 class SecureRng final : public IRng {
  public:
   void fill_secure_bytes(MutableSlice dest) final {
@@ -117,7 +136,7 @@ void shuffle_chrome_anchored_extensions(vector<string> &parts, IRng &rng) {
 class TlsHello {
  public:
   struct Op {
-    enum class Type {
+    enum class Type : uint8 {
       String,
       Random,
       Zero,
@@ -303,6 +322,72 @@ class TlsHello {
     };
     return res;
 #endif
+  }
+
+  static TlsHello create_safari_26_3_profile() {
+    TlsHello res;
+    res.ops_ = {
+        Op::str("\x16\x03\x01"),
+        Op::begin_scope(),
+        Op::str("\x01\x00"),
+        Op::begin_scope(),
+        Op::str("\x03\x03"),
+        Op::zero(32),
+        Op::str("\x20"),
+        Op::random(32),
+        Op::str("\x00\x2a"),
+        Op::grease(0),
+        Op::str("\x13\x02\x13\x03\x13\x01\xc0\x2c\xc0\x2b\xcc\xa9\xc0\x30\xc0\x2f\xcc\xa8\xc0\x0a\xc0\x09"
+                "\xc0\x14\xc0\x13\x00\x9d\x00\x9c\x00\x35\x00\x2f\xc0\x08\xc0\x12\x00\x0a\x01\x00"),
+        Op::begin_scope(),
+        Op::grease(2),
+        Op::str("\x00\x00"),
+        Op::str("\x00\x00"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::str("\x00"),
+        Op::begin_scope(),
+        Op::domain(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::str("\x00\x17\x00\x00"),
+        Op::str("\xff\x01\x00\x01\x00"),
+        Op::str("\x00\x0a\x00\x0e\x00\x0c"),
+        Op::grease(4),
+        Op::pq_group_id(),
+        Op::str("\x00\x1d\x00\x17\x00\x18\x00\x19"),
+        Op::str("\x00\x0b\x00\x02\x01\x00"),
+        Op::str("\x00\x10"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::alpn_protocols(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00"),
+        Op::str("\x00\x0d\x00\x16\x00\x14\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x08\x05\x05\x01"
+                "\x08\x06\x06\x01\x02\x01"),
+        Op::str("\x00\x12\x00\x00"),
+        Op::str("\x00\x33\x04\xef\x04\xed"),
+        Op::grease(4),
+        Op::str("\x00\x01\x00"),
+        Op::pq_key_share(),
+        Op::ml_kem_768_key(),
+        Op::key(),
+        Op::str("\x00\x1d\x00\x20"),
+        Op::key(),
+        Op::str("\x00\x2d\x00\x02\x01\x01"),
+        Op::str("\x00\x2b\x00\x07\x06"),
+        Op::grease(6),
+        Op::str("\x03\x04\x03\x03"),
+        Op::str("\x00\x1b\x00\x03\x02\x00\x01"),
+        Op::grease(3),
+        Op::str("\x00\x01\x00"),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::end_scope(),
+    };
+    return res;
   }
 
   static TlsHello create_fixed_profile_without_chromium_only_features() {
@@ -599,7 +684,10 @@ class TlsHello {
         static const TlsHello hello_without_ech = create_firefox_148_profile(false);
         return enable_ech ? hello_with_ech : hello_without_ech;
       }
-      case BrowserProfile::Safari26_3:
+      case BrowserProfile::Safari26_3: {
+        static const TlsHello hello = create_safari_26_3_profile();
+        return hello;
+      }
       case BrowserProfile::IOS14:
       case BrowserProfile::Android11_OkHttp: {
         static const TlsHello hello = create_fixed_profile_without_chromium_only_features();
@@ -831,7 +919,7 @@ class TlsHelloCalcLength {
     if (!scope_offset_.empty()) {
       return Status::Error("Unbalanced scopes");
     }
-    if (size_ < 11 + 32) {
+    if (size_ < kClientRandomOffset + kClientRandomLength) {
       return Status::Error("Too small for hash");
     }
     return size_;
@@ -1016,10 +1104,13 @@ class TlsHelloStore {
   }
 
   void finish(Slice secret, int32 unix_time) {
-    auto hash_dest = data_.substr(11, 32);
+    auto hash_dest = data_.substr(kClientRandomOffset, kClientRandomLength);
     hmac_sha256(secret, data_, hash_dest);
-    int32 old = as<int32>(hash_dest.substr(28).data());
-    as<int32>(hash_dest.substr(28).data()) = old ^ unix_time;
+    // Apply the timestamp mask explicitly in little-endian to avoid
+    // architecture-dependent and potentially unaligned integer access.
+    auto hash_tail = hash_dest.substr(kClientRandomTimestampTailOffset, kClientRandomTimestampTailLength);
+    auto masked_tail = load_le_uint32(hash_tail) ^ static_cast<uint32>(unix_time);
+    store_le_uint32(hash_tail, masked_tail);
     CHECK(dest_.empty());
   }
 
@@ -1081,6 +1172,15 @@ class TlsHelloStore {
   }
 };
 
+size_t finish_length_or_fatal(TlsHelloCalcLength &calc_length) {
+  auto result = calc_length.finish();
+  if (result.is_error()) {
+    LOG(FATAL) << result.error();
+    return 0;
+  }
+  return result.move_as_ok();
+}
+
 }  // namespace
 
 namespace detail {
@@ -1099,7 +1199,7 @@ string build_default_tls_client_hello_with_options(string domain, Slice secret, 
   for (auto &op : hello.get_ops()) {
     calc_length.do_op(op, &context);
   }
-  auto length = calc_length.finish().move_as_ok();
+  auto length = finish_length_or_fatal(calc_length);
   string data(length, '\0');
   TlsHelloStore storer(data, rng);
   for (auto &op : hello.get_ops()) {
@@ -1133,7 +1233,7 @@ string build_tls_client_hello_for_profile_with_alpn_mode(string domain, Slice se
   for (auto &op : hello.get_ops()) {
     unpadded_calc_length.do_op(op, &context);
   }
-  auto unpadded_length = unpadded_calc_length.finish().move_as_ok();
+  auto unpadded_length = finish_length_or_fatal(unpadded_calc_length);
   context.set_padding_extension_payload_length(resolve_padding_extension_payload_len(
       padding_policy, unpadded_length, static_cast<size_t>(context.get_padding_entropy_length())));
 
@@ -1141,7 +1241,7 @@ string build_tls_client_hello_for_profile_with_alpn_mode(string domain, Slice se
   for (auto &op : hello.get_ops()) {
     calc_length.do_op(op, &context);
   }
-  auto length = calc_length.finish().move_as_ok();
+  auto length = finish_length_or_fatal(calc_length);
   string data(length, '\0');
   TlsHelloStore storer(data, rng);
   for (auto &op : hello.get_ops()) {
@@ -1165,7 +1265,7 @@ string build_default_tls_client_hello_with_alpn_mode(string domain, Slice secret
   for (auto &op : hello.get_ops()) {
     unpadded_calc_length.do_op(op, &context);
   }
-  auto unpadded_length = unpadded_calc_length.finish().move_as_ok();
+  auto unpadded_length = finish_length_or_fatal(unpadded_calc_length);
   context.set_padding_extension_payload_length(resolve_padding_extension_payload_len(
       padding_policy, unpadded_length, static_cast<size_t>(context.get_padding_entropy_length())));
 
@@ -1173,7 +1273,7 @@ string build_default_tls_client_hello_with_alpn_mode(string domain, Slice secret
   for (auto &op : hello.get_ops()) {
     calc_length.do_op(op, &context);
   }
-  auto length = calc_length.finish().move_as_ok();
+  auto length = finish_length_or_fatal(calc_length);
   string data(length, '\0');
   TlsHelloStore storer(data, rng);
   for (auto &op : hello.get_ops()) {

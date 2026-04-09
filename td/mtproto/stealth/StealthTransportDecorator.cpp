@@ -20,13 +20,23 @@ namespace {
 constexpr int32 kMinTlsRecordSize = 256;
 constexpr int32 kMaxTlsRecordSize = 16384;
 
+struct TransportPayloadOverhead final {
+  int32 bytes{0};
+};
+
+struct BatchLayout final {
+  int32 payload_cap_bytes{0};
+  size_t prepend_bytes{0};
+  size_t append_bytes{0};
+};
+
 int32 clamp_tls_record_size(int32 size) {
   return std::max(kMinTlsRecordSize, std::min(size, kMaxTlsRecordSize));
 }
 
-int32 adjust_tls_record_size_for_payload_overhead(int32 payload_cap, int32 payload_overhead) {
-  auto safe_overhead = std::max<int64>(0, payload_overhead);
-  auto adjusted = static_cast<int64>(payload_cap) + safe_overhead;
+int32 adjust_tls_record_size_for_payload_overhead(int32 payload_cap_bytes, TransportPayloadOverhead payload_overhead) {
+  auto safe_overhead = std::max<int64>(0, payload_overhead.bytes);
+  auto adjusted = static_cast<int64>(payload_cap_bytes) + safe_overhead;
   return static_cast<int32>(std::max<int64>(kMinTlsRecordSize, std::min<int64>(adjusted, kMaxTlsRecordSize)));
 }
 
@@ -37,16 +47,16 @@ TrafficHint normalize_drs_hint(TrafficHint hint) {
 void fail_closed_on_ring_overflow() {
   // Emit a direct stderr marker before aborting so the death test remains
   // deterministic even when the logging backend output is truncated.
-  std::fputs("Stealth ring overflow invariant broken\n", stderr);
-  std::fflush(stderr);
+  static_cast<void>(std::fputs("Stealth ring overflow invariant broken\n", stderr));
+  static_cast<void>(std::fflush(stderr));
   LOG(FATAL) << "Stealth ring overflow invariant broken";
 }
 
-size_t account_transport_payload_overhead(size_t written_bytes, int32 payload_overhead) {
-  if (payload_overhead <= 0) {
+size_t account_transport_payload_overhead(size_t written_bytes, TransportPayloadOverhead payload_overhead) {
+  if (payload_overhead.bytes <= 0) {
     return written_bytes;
   }
-  auto safe_overhead = static_cast<size_t>(payload_overhead);
+  auto safe_overhead = static_cast<size_t>(payload_overhead.bytes);
   auto max_size = std::numeric_limits<size_t>::max();
   if (written_bytes > max_size - safe_overhead) {
     return max_size;
@@ -56,8 +66,8 @@ size_t account_transport_payload_overhead(size_t written_bytes, int32 payload_ov
 
 class BatchBuilder final {
  public:
-  BatchBuilder(int32 cap, size_t prepend, size_t append, TrafficHint hint)
-      : cap_(cap), prepend_(prepend), append_(append), hint_(hint) {
+  BatchBuilder(BatchLayout layout, TrafficHint hint)
+      : cap_(layout.payload_cap_bytes), prepend_(layout.prepend_bytes), append_(layout.append_bytes), hint_(hint) {
   }
 
   void push(ShaperPendingWrite &&pending_write) {
@@ -240,23 +250,23 @@ void StealthTransportDecorator::pre_flush_write(double now) {
 
     BatchBuilder *batch_ptr = nullptr;
     std::optional<BatchBuilder> batch;
-    int32 batch_payload_overhead = 0;
+    TransportPayloadOverhead batch_payload_overhead;
     ring.drain_ready(now, [&](ShaperPendingWrite &pending_write) {
       auto hint = normalize_drs_hint(pending_write.hint);
       if (!batch.has_value()) {
         int32 payload_cap = current_record_size_;
         int32 effective_record_size = current_record_size_;
-        int32 payload_overhead = 0;
+        TransportPayloadOverhead payload_overhead;
         if (!has_manual_record_size_override_) {
           payload_cap = drs_.next_payload_cap(hint);
           current_record_size_ = clamp_tls_record_size(payload_cap);
-          payload_overhead = inner_->tls_record_sizing_payload_overhead();
+          payload_overhead.bytes = inner_->tls_record_sizing_payload_overhead();
           effective_record_size = adjust_tls_record_size_for_payload_overhead(current_record_size_, payload_overhead);
         }
         if (inner_->supports_tls_record_sizing()) {
           inner_->set_max_tls_record_size(effective_record_size);
         }
-        batch.emplace(current_record_size_, inner_->max_prepend_size(), inner_->max_append_size(), hint);
+        batch.emplace(BatchLayout{current_record_size_, inner_->max_prepend_size(), inner_->max_append_size()}, hint);
         batch_ptr = &batch.value();
         batch_ptr->push(std::move(pending_write));
         if (!has_manual_record_size_override_) {

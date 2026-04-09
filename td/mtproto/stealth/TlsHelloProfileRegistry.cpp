@@ -63,7 +63,7 @@ constexpr ProfileSpec PROFILE_SPECS[] = {
      ExtensionOrderPolicy::ChromeShuffleAnchored},
     {BrowserProfile::Firefox148, Slice("firefox148"), 0, 0x4001, true, false, true, true, 0x11EC,
      ExtensionOrderPolicy::FixedFromFixture},
-    {BrowserProfile::Safari26_3, Slice("safari26_3"), 0, 0, false, false, true, false, 0,
+    {BrowserProfile::Safari26_3, Slice("safari26_3"), 0, 0, false, false, true, true, 0x11EC,
      ExtensionOrderPolicy::FixedFromFixture},
     {BrowserProfile::IOS14, Slice("ios14"), 0, 0, false, false, true, false, 0, ExtensionOrderPolicy::FixedFromFixture},
     {BrowserProfile::Android11_OkHttp, Slice("android11_okhttp"), 0, 0, false, false, true, false, 0,
@@ -316,7 +316,7 @@ RouteFailureState get_runtime_route_failure_state_locked(Slice destination, int3
       store->erase(route_failure_store_key(destination, unix_time));
       return RouteFailureState{};
     }
-    auto inserted = cache.emplace(key, std::move(entry));
+    auto inserted = cache.emplace(key, entry);
     return inserted.first->second.state;
   }
   if (it->second.disabled_until && it->second.disabled_until.is_in_past()) {

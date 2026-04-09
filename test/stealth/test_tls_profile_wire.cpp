@@ -204,8 +204,34 @@ TEST(TlsProfileWire, Firefox148DisablesFe0dOnFailClosedRoutes) {
   ASSERT_TRUE(find_extension(parsed.ok(), 0x001b) != nullptr);
 }
 
-TEST(TlsProfileWire, FixedProfilesDoNotEmitChromiumOnlyExtensions) {
-  for (auto profile : {BrowserProfile::Safari26_3, BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp}) {
+TEST(TlsProfileWire, Safari26_3UsesFixedWebkitProfileWithoutEchOrAlps) {
+  auto spec = profile_spec(BrowserProfile::Safari26_3);
+  ASSERT_FALSE(spec.allows_ech);
+  ASSERT_FALSE(spec.allows_padding);
+  ASSERT_TRUE(spec.has_pq);
+  ASSERT_EQ(td::mtproto::test::fixtures::kPqHybridGroup, spec.pq_group_id);
+  ASSERT_EQ(0u, spec.alps_type);
+
+  auto wire = build_profile(BrowserProfile::Safari26_3, EchMode::Rfc9180Outer, 51);
+  auto parsed = parse_tls_client_hello(wire);
+  ASSERT_TRUE(parsed.is_ok());
+
+  ASSERT_TRUE(find_extension(parsed.ok(), td::mtproto::test::fixtures::kEchExtensionType) == nullptr);
+  ASSERT_TRUE(find_extension(parsed.ok(), 0xFE02) == nullptr);
+  ASSERT_TRUE(find_extension(parsed.ok(), td::mtproto::test::fixtures::kAlpsChrome131) == nullptr);
+  ASSERT_TRUE(find_extension(parsed.ok(), td::mtproto::test::fixtures::kAlpsChrome133Plus) == nullptr);
+  ASSERT_TRUE(find_extension(parsed.ok(), 0x0015) == nullptr);
+
+  std::unordered_set<td::uint16> supported_groups(parsed.ok().supported_groups.begin(),
+                                                  parsed.ok().supported_groups.end());
+  std::unordered_set<td::uint16> key_share_groups(parsed.ok().key_share_groups.begin(),
+                                                  parsed.ok().key_share_groups.end());
+  ASSERT_TRUE(supported_groups.count(td::mtproto::test::fixtures::kPqHybridGroup) != 0);
+  ASSERT_TRUE(key_share_groups.count(td::mtproto::test::fixtures::kPqHybridGroup) != 0);
+}
+
+TEST(TlsProfileWire, IosAndAndroidFixedProfilesDoNotEmitChromiumOnlyExtensions) {
+  for (auto profile : {BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp}) {
     auto spec = profile_spec(profile);
     ASSERT_FALSE(spec.allows_ech);
     ASSERT_FALSE(spec.allows_padding);
