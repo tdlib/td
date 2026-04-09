@@ -22,6 +22,29 @@
 
 namespace td {
 
+namespace {
+
+bool is_selected_test(const string &name, const vector<string> &substr_filters, Slice exact_filter,
+                      const string &offset, bool *skip_tests) {
+  if (!exact_filter.empty() && name != exact_filter) {
+    return false;
+  }
+  bool ok = true;
+  for (const auto &filter : substr_filters) {
+    bool is_match = name.find(filter.substr(1)) != string::npos;
+    if (is_match != (filter[0] == '+')) {
+      ok = false;
+      break;
+    }
+  }
+  if (name.find(offset) != string::npos) {
+    *skip_tests = false;
+  }
+  return ok && !*skip_tests;
+}
+
+}  // namespace
+
 string rand_string(int from, int to, size_t len) {
   string res(len, '\0');
   for (auto &c : res) {
@@ -182,6 +205,23 @@ void TestsRunner::add_substr_filter(string str) {
   substr_filters_.push_back(std::move(str));
 }
 
+void TestsRunner::set_exact_filter(string str) {
+  exact_filter_ = std::move(str);
+}
+
+void TestsRunner::list_tests() const {
+  bool skip_tests = true;
+  size_t selected_count = 0;
+  for (const auto &test : tests_) {
+    if (!is_selected_test(test.first, substr_filters_, exact_filter_, offset_, &skip_tests)) {
+      continue;
+    }
+    LOG(PLAIN) << test.first;
+    selected_count++;
+  }
+  LOG(PLAIN) << "Selected " << selected_count << " of " << tests_.size() << " registered tests";
+}
+
 void TestsRunner::set_offset(string str) {
   offset_ = std::move(str);
 }
@@ -204,6 +244,18 @@ bool TestsRunner::run_all_step() {
   if (state_.it == state_.end) {
     state_.end = tests_.size();
     state_.it = 0;
+    state_.selected_count = 0;
+    state_.passed_count = 0;
+    state_.total_time = 0;
+
+    bool selection_skip_tests = true;
+    for (const auto &test : tests_) {
+      if (is_selected_test(test.first, substr_filters_, exact_filter_, offset_, &selection_skip_tests)) {
+        state_.selected_count++;
+      }
+    }
+
+    LOG(ERROR) << "Selected " << state_.selected_count << " of " << tests_.size() << " registered tests";
   }
 
   bool skip_tests = true;
@@ -211,22 +263,12 @@ bool TestsRunner::run_all_step() {
     auto &name = tests_[state_.it].first;
     auto &test = tests_[state_.it].second.test;
     if (!state_.is_running) {
-      bool ok = true;
-      for (const auto &filter : substr_filters_) {
-        bool is_match = name.find(filter.substr(1)) != string::npos;
-        if (is_match != (filter[0] == '+')) {
-          ok = false;
-          break;
-        }
-      }
-      if (name.find(offset_) != string::npos) {
-        skip_tests = false;
-      }
-      if (!ok || skip_tests) {
+      if (!is_selected_test(name, substr_filters_, exact_filter_, offset_, &skip_tests)) {
         ++state_.it;
         continue;
       }
-      LOG(ERROR) << "Run test " << tag("name", name);
+      LOG(ERROR) << "[" << (state_.passed_count + 1) << "/" << state_.selected_count << "] Run test "
+                 << tag("name", name);
       state_.start = Time::now();
       state_.start_unadjusted = Time::now_unadjusted();
       state_.is_running = true;
@@ -242,6 +284,8 @@ bool TestsRunner::run_all_step() {
     test = {};
 
     auto passed = Time::now() - state_.start;
+    state_.passed_count++;
+    state_.total_time += passed;
     auto real_passed = Time::now_unadjusted() - state_.start_unadjusted;
     if (real_passed + 1e-1 > passed) {
       LOG(ERROR) << format::as_time(passed);
@@ -257,6 +301,8 @@ bool TestsRunner::run_all_step() {
 
   auto ret = state_.it != state_.end;
   if (!ret) {
+    LOG(ERROR) << "Summary: passed " << state_.passed_count << "/" << state_.selected_count << " selected tests from "
+               << tests_.size() << " registered in " << format::as_time(state_.total_time);
     state_ = State();
   }
   return ret || stress_flag_;

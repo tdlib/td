@@ -239,5 +239,42 @@ if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
 #    target_compile_options(fuzz_url PRIVATE "-fsanitize-coverage=trace-pc-guard")
   endif()
 
-  add_test(run_all_tests run_all_tests)
+  set(TD_RUN_ALL_TESTS_EXECUTABLE "${CMAKE_CURRENT_BINARY_DIR}/run_all_tests")
+  if (EXISTS "${TD_RUN_ALL_TESTS_EXECUTABLE}")
+    execute_process(
+      COMMAND "${TD_RUN_ALL_TESTS_EXECUTABLE}" --list
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+      RESULT_VARIABLE TD_RUN_ALL_TESTS_DISCOVERY_RESULT
+      OUTPUT_VARIABLE TD_RUN_ALL_TESTS_DISCOVERY_OUTPUT
+      ERROR_VARIABLE TD_RUN_ALL_TESTS_DISCOVERY_ERROR
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    if (TD_RUN_ALL_TESTS_DISCOVERY_RESULT EQUAL 0)
+      set(TD_RUN_ALL_TESTS_DISCOVERY_TEXT
+          "${TD_RUN_ALL_TESTS_DISCOVERY_OUTPUT}\n${TD_RUN_ALL_TESTS_DISCOVERY_ERROR}")
+      string(REPLACE "\r\n" "\n" TD_RUN_ALL_TESTS_DISCOVERY_TEXT "${TD_RUN_ALL_TESTS_DISCOVERY_TEXT}")
+      string(REPLACE "\n" ";" TD_RUN_ALL_TESTS_CASES "${TD_RUN_ALL_TESTS_DISCOVERY_TEXT}")
+      foreach(TD_RUN_ALL_TEST_NAME IN LISTS TD_RUN_ALL_TESTS_CASES)
+        if (TD_RUN_ALL_TEST_NAME STREQUAL "")
+          continue()
+        endif()
+        if (TD_RUN_ALL_TEST_NAME MATCHES "^Selected [0-9]+ of [0-9]+ registered tests$")
+          continue()
+        endif()
+        if (TD_RUN_ALL_TEST_NAME MATCHES "^libgcov profiling error:")
+          continue()
+        endif()
+
+        add_test(NAME "${TD_RUN_ALL_TEST_NAME}"
+                 COMMAND run_all_tests --exact "${TD_RUN_ALL_TEST_NAME}")
+      endforeach()
+    else()
+      message(WARNING "Failed to discover run_all_tests cases: ${TD_RUN_ALL_TESTS_DISCOVERY_ERROR}")
+      add_test(run_all_tests run_all_tests)
+    endif()
+  else()
+    message(STATUS "run_all_tests executable is not available during configure; registering umbrella CTest entry")
+    add_test(run_all_tests run_all_tests)
+  endif()
 endif()

@@ -4,14 +4,12 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/ExitGuard.h"
 #include "td/utils/logging.h"
 #include "td/utils/OptionParser.h"
 #include "td/utils/port/detail/ThreadIdGuard.h"
 #include "td/utils/port/stacktrace.h"
-#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/tests.h"
 
@@ -29,9 +27,13 @@ int main(int argc, char **argv) {
   td::TestsRunner &runner = td::TestsRunner::get_default();
 
   int default_verbosity_level = 1;
+  bool list_tests = false;
   td::OptionParser options;
+  options.add_option('e', "exact", "run exactly one test with the specified name",
+                     [&](td::Slice exact_name) { runner.set_exact_filter(exact_name.str()); });
   options.add_option('f', "filter", "run only specified tests",
                      [&](td::Slice filter) { runner.add_substr_filter(filter.str()); });
+  options.add_option('l', "list", "list selected tests without running them", [&] { list_tests = true; });
   options.add_option('o', "offset", "run tests from the specified test",
                      [&](td::Slice offset) { runner.set_offset(offset.str()); });
   options.add_option('s', "stress", "run tests infinitely", [&] { runner.set_stress_flag(true); });
@@ -50,6 +52,11 @@ int main(int argc, char **argv) {
     return 1;
   }
   SET_VERBOSITY_LEVEL(default_verbosity_level);
+
+  if (list_tests) {
+    runner.list_tests();
+    return 0;
+  }
 
 #if TD_EMSCRIPTEN
   emscripten_set_main_loop(

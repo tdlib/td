@@ -11,7 +11,6 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/sleep.h"
-#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 #include <atomic>
@@ -92,6 +91,8 @@ class TestsRunner final : public TestContext {
 
   void add_test(string name, std::function<unique_ptr<Test>()> test);
   void add_substr_filter(string str);
+  void set_exact_filter(string str);
+  void list_tests() const;
   void set_offset(string str);
   void set_stress_flag(bool flag);
   void run_all();
@@ -105,9 +106,13 @@ class TestsRunner final : public TestContext {
     double start{0};
     double start_unadjusted{0};
     size_t end{0};
+    size_t selected_count{0};
+    size_t passed_count{0};
+    double total_time{0};
   };
   bool stress_flag_{false};
   vector<string> substr_filters_;
+  string exact_filter_;
   string offset_;
   struct TestInfo {
     std::function<unique_ptr<Test>()> creator;
