@@ -1349,10 +1349,12 @@ TEST(Link, parse_internal_link_part3) {
       proxy_mtproto("google.com", 80, "7hI0VniQq83vEjRWeJCrze8BAQEBAQEBAQE"));
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7tAAAAAAAAAAAAAAAAAAAAAAAAcuZ29vZ2xlLmNvbQ",
                       proxy_mtproto("google.com", 80, "7tAAAAAAAAAAAAAAAAAAAAAAAAcuZ29vZ2xlLmNvbQ"));
-  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2BSj5pyZnaXRodWIuY29t",
-                      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t"));
-  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2FSj5pyZnaXRodWIuY29t",
-                      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J_Sj5pyZnaXRodWIuY29t"));
+  parse_internal_link(
+      "t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2BSj5pyZnaXRodWIuY29t",
+      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t"));  // invalid, but accepted
+  parse_internal_link(
+      "t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2FSj5pyZnaXRodWIuY29t",
+      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J_Sj5pyZnaXRodWIuY29t"));  // invalid, but accepted
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t",
                       proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t"));
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J_Sj5pyZnaXRodWIuY29t",
