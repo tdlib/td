@@ -26,12 +26,17 @@ class TranslationManager final : public Actor {
 
   void on_authorization_success();
 
+  struct InputText {
+    FormattedText text_;
+    bool skip_bot_commands_ = true;
+    int32 max_media_timestamp_ = -1;
+  };
+
   void translate_text(td_api::object_ptr<td_api::formattedText> &&text, const string &to_language_code,
                       const string &tone, Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
-  void translate_text(FormattedText text, bool skip_bot_commands, int32 max_media_timestamp,
-                      MessageFullId message_full_id, const string &to_language_code, const string &tone,
-                      Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
+  void translate_text(InputText &&text, MessageFullId message_full_id, const string &to_language_code,
+                      const string &tone, Promise<td_api::object_ptr<td_api::formattedText>> &&promise);
 
   void compose_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
                                const string &translate_to_language_code, const string &tone, bool emojify,
