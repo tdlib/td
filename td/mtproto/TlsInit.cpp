@@ -111,7 +111,7 @@ void TlsInit::send_hello() {
 #else
   auto platform = stealth::default_runtime_platform_hints();
   auto profile = stealth::pick_runtime_profile(username_, hello_unix_time_, platform);
-  hello_uses_ech_ = profile_spec(profile).allows_ech && decision.ech_mode == stealth::EchMode::Rfc9180Outer;
+  hello_uses_ech_ = stealth::profile_spec(profile).allows_ech && decision.ech_mode == stealth::EchMode::Rfc9180Outer;
   auto hello = stealth::build_proxy_tls_client_hello_for_profile(
       username_, password_, hello_unix_time_, profile,
       hello_uses_ech_ ? stealth::EchMode::Rfc9180Outer : stealth::EchMode::Disabled);

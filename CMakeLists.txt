@@ -6,7 +6,17 @@
 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
+if(CMAKE_GENERATOR MATCHES "NMake Makefiles|Ninja")
+  unset(CMAKE_GENERATOR_PLATFORM CACHE)
+  unset(CMAKE_GENERATOR_PLATFORM)
+endif()
+
 project(TDLib VERSION 1.8.63 LANGUAGES CXX C)
+
+if(MSVC AND CMAKE_GENERATOR MATCHES "NMake")
+  string(APPEND CMAKE_EXE_LINKER_FLAGS " /INCREMENTAL:NO")
+  string(APPEND CMAKE_SHARED_LINKER_FLAGS " /INCREMENTAL:NO")
+endif()
 
 if (NOT DEFINED CMAKE_MODULE_PATH)
   set(CMAKE_MODULE_PATH "")
@@ -297,6 +307,9 @@ set(TL_DOTNET_SCHEME_SOURCE
 
 set(TD_MTPROTO_SOURCE
   td/mtproto/AuthData.cpp
+  td/mtproto/BrowserProfile.cpp
+  td/mtproto/ClientHelloExecutor.cpp
+  td/mtproto/ClientHelloOpMapper.cpp
   td/mtproto/ConnectionManager.cpp
   td/mtproto/DhHandshake.cpp
   td/mtproto/Handshake.cpp
@@ -329,6 +342,10 @@ set(TD_MTPROTO_SOURCE
 
   td/mtproto/AuthData.h
   td/mtproto/AuthKey.h
+  td/mtproto/BrowserProfile.h
+  td/mtproto/ClientHelloExecutor.h
+  td/mtproto/ClientHelloOp.h
+  td/mtproto/ClientHelloOpMapper.h
   td/mtproto/ConnectionManager.h
   td/mtproto/CryptoStorer.h
   td/mtproto/DhCallback.h
@@ -1348,7 +1365,7 @@ endif()
 add_library(tdmtproto STATIC ${TD_MTPROTO_SOURCE})
 target_include_directories(tdmtproto PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
 target_include_directories(tdmtproto SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(tdmtproto PUBLIC tdactor tdnet tdutils PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
+target_link_libraries(tdmtproto PUBLIC tdutils tdnet tdactor PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
 if (WIN32)
   if (MINGW)
     target_link_libraries(tdmtproto PRIVATE ws2_32 mswsock crypt32)
@@ -1364,11 +1381,11 @@ endif()
 if (MSVC AND TD_ENABLE_LTO)
   add_library(tdcore_part1 STATIC ${TDLIB_SOURCE_PART1})
   target_include_directories(tdcore_part1 PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
-  target_link_libraries(tdcore_part1 PUBLIC tdapi tdnet tddb tdactor tde2e tdutils PRIVATE tdmtproto)
+  target_link_libraries(tdcore_part1 PUBLIC tdutils tdnet tddb tde2e tdapi tdactor PRIVATE tdmtproto)
 
   add_library(tdcore_part2 STATIC ${TDLIB_SOURCE_PART2})
   target_include_directories(tdcore_part2 PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
-  target_link_libraries(tdcore_part2 PUBLIC tdapi tdnet tddb tdactor tde2e tdutils PRIVATE tdmtproto)
+  target_link_libraries(tdcore_part2 PUBLIC tdutils tdnet tddb tde2e tdapi tdactor PRIVATE tdmtproto)
 
   add_library(tdcore INTERFACE)
   target_link_libraries(tdcore INTERFACE tdcore_part1 tdcore_part2)
@@ -1377,7 +1394,7 @@ if (MSVC AND TD_ENABLE_LTO)
 else()
   add_library(tdcore STATIC ${TDLIB_SOURCE})
   target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
-  target_link_libraries(tdcore PUBLIC tdapi tdnet tddb tdactor tde2e tdutils PRIVATE tdmtproto)
+  target_link_libraries(tdcore PUBLIC tdutils tdnet tddb tde2e tdapi tdactor PRIVATE tdmtproto)
 
   set(TD_CORE_PART_TARGETS)
 endif()

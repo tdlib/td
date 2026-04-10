@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "td/mtproto/BrowserProfile.h"
 #include "td/mtproto/stealth/Interfaces.h"
 
 #include "td/utils/common.h"
@@ -20,16 +21,7 @@ class KeyValueSyncInterface;
 namespace mtproto {
 namespace stealth {
 
-enum class BrowserProfile : uint8 {
-  Chrome133,
-  Chrome131,
-  Chrome120,
-  Firefox148,
-  Firefox149_MacOS26_3,
-  Safari26_3,
-  IOS14,
-  Android11_OkHttp_Advisory,
-};
+using BrowserProfile = mtproto::BrowserProfile;
 
 enum class DeviceClass : uint8 {
   Desktop,

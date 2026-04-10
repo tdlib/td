@@ -365,7 +365,7 @@ if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
   target_link_libraries(test-tdutils PRIVATE tdutils)
   target_link_libraries(run_session_record_size_sequence_hardening_adversarial_tests PRIVATE tdcore tdclient)
   target_link_libraries(run_record_size_sequence_hardening_tests PRIVATE tdcore tdclient)
-  target_link_libraries(run_all_tests PRIVATE tdclient tdcore tdclient tdcore)
+  target_link_libraries(run_all_tests PRIVATE tdutils tdactor tdclient tdcore tdmtproto tdnet)
   target_link_libraries(test-online PRIVATE tdcore tdjson_private tdclient tdutils tdactor)
 
   if (CLANG)

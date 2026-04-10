@@ -14,6 +14,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/tests.h"
 
+#include <algorithm>
 #include <array>
 #include <vector>
 

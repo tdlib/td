@@ -12,7 +12,10 @@
 #include "td/utils/tests.h"
 
 #include <sys/stat.h>
+
+#if !_WIN32
 #include <unistd.h>
+#endif
 
 namespace {
 
@@ -49,6 +52,8 @@ td::string join_path(td::Slice dir, td::Slice file_name) {
   result += file_name.str();
   return result;
 }
+
+#if !_WIN32
 
 TEST(StealthParamsLoaderSecurity, StrictLoadRejectsSymlinkedConfigPath) {
   ScopedTempDir temp_dir;
@@ -144,6 +149,8 @@ TEST(StealthParamsLoaderSecurity, StrictLoadRejectsGroupWritableParentDirectory)
   auto result = StealthParamsLoader::try_load_strict(path);
   ASSERT_TRUE(result.is_error());
 }
+
+#endif  // !_WIN32
 
 TEST(StealthParamsLoaderSecurity, StrictLoadRejectsDuplicateTopLevelFields) {
   ScopedTempDir temp_dir;
