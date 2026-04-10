@@ -15,6 +15,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -53,6 +54,8 @@ class TranslationManager final : public Actor {
   void start_up() final;
 
   void tear_down() final;
+
+  Result<InputText> get_input_text(td_api::object_ptr<td_api::formattedText> &&text) const;
 
   void on_get_translated_texts(vector<telegram_api::object_ptr<telegram_api::textWithEntities>> texts,
                                bool skip_bot_commands, int32 max_media_timestamp,
