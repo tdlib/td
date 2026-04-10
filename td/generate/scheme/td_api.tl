@@ -119,7 +119,7 @@ formattedText text:string entities:vector<textEntity> = FormattedText;
 //@description Represents a change of a text @offset Offset of the entity, in UTF-16 code units @length Length of the entity, in UTF-16 code units @type Type of the entity
 diffEntity offset:int32 length:int32 type:DiffEntityType = DiffEntity;
 
-//@description A text with some changes highlighted @text The text @entities Entities describing changes in the text. Entities doesn't mutually intersect with each other
+//@description A text with some changes highlighted @text The text @entities Entities describing changes in the text. Entities don't mutually intersect with each other
 diffText text:string entities:vector<diffEntity> = DiffText;
 
 //@description A text fixed using fixTextWithAi @text The resulting text @diff_text Changes made to the original text
@@ -182,7 +182,7 @@ authorizationStateWaitCode code_info:authenticationCodeInfo = AuthorizationState
 //@description The user needs to confirm authorization on another logged in device by scanning a QR code with the provided link @link A tg:// URL for the QR code. The link will be updated frequently
 authorizationStateWaitOtherDeviceConfirmation link:string = AuthorizationState;
 
-//@description The user is unregistered and need to accept terms of service and enter their first name and last name to finish registration. Call registerUser to accept the terms of service and provide the data @terms_of_service Telegram terms of service
+//@description The user is unregistered and needs to accept terms of service and enter their first name and last name to finish registration. Call registerUser to accept the terms of service and provide the data @terms_of_service Telegram terms of service
 authorizationStateWaitRegistration terms_of_service:termsOfService = AuthorizationState;
 
 //@description The user has been authorized, but needs to enter a 2-step verification password to start using the application.
@@ -1355,7 +1355,7 @@ upgradedGiftOriginCraft = UpgradedGiftOrigin;
 
 //@class UpgradedGiftAttributeRarity @description Describes rarity of an upgraded gift attribute
 
-//@description The rarity is represented as the numeric frequence of the model
+//@description The rarity is represented as the numeric frequency of the model
 //@per_mille The number of upgraded gifts that receive this attribute for each 1000 gifts upgraded; if 0, then it can be shown as "<0.1%"
 upgradedGiftAttributeRarityPerMille per_mille:int32 = UpgradedGiftAttributeRarity;
 
@@ -2994,7 +2994,7 @@ sponsoredChat unique_id:int53 chat_id:int53 sponsor_info:string additional_info:
 //@description Contains a list of sponsored chats @chats List of sponsored chats
 sponsoredChats chats:vector<sponsoredChat> = SponsoredChats;
 
-//@description Describes an advertisent to be shown while a video from a message is watched
+//@description Describes an advertisement to be shown while a video from a message is watched
 //@unique_id Unique identifier of this result
 //@text Text of the advertisement
 //@min_display_duration The minimum amount of time the advertisement must be displayed before it can be hidden by the user, in seconds
@@ -5669,7 +5669,7 @@ inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool rep
 //@can_get_message_thread True, if information about the message thread is available through getMessageThread and getMessageThreadHistory
 //@can_get_read_date True, if read date of the message can be received through getMessageReadDate
 //@can_get_statistics True, if message statistics are available through getMessageStatistics and message forwards can be received using getMessagePublicForwards
-//@can_get_video_advertisements True, if advertisements for video of the message can be received though getVideoMessageAdvertisements
+//@can_get_video_advertisements True, if advertisements for video of the message can be received through getVideoMessageAdvertisements
 //@can_get_viewers True, if chat members already viewed the message can be received through getMessageViewers
 //@can_mark_tasks_as_done True, if tasks can be marked as done or not done in the message's checklist using markChecklistTasksAsDone if the current user has Telegram Premium subscription
 //@can_recognize_speech True, if speech can be recognized for the message through recognizeSpeech
@@ -9107,7 +9107,7 @@ fileTypeSecretThumbnail = FileType;
 //@description The file is a file from Secure storage used for storing Telegram Passport files
 fileTypeSecure = FileType;
 
-//@description The file is a seld-destructing video for a live photo in a private chat
+//@description The file is a self-destructing video for a live photo in a private chat
 fileTypeSelfDestructingLivePhotoVideo = FileType;
 
 //@description The file is a self-destructing photo in a private chat
@@ -14492,7 +14492,7 @@ getUpgradedGiftValueInfo name:string = UpgradedGiftValueInfo;
 //@password The 2-step verification password of the current user
 getUpgradedGiftWithdrawalUrl received_gift_id:string password:string = HttpUrl;
 
-//@description Returns promotional anumation for upgraded gifts
+//@description Returns promotional animation for upgraded gifts
 getUpgradedGiftsPromotionalAnimation = Animation;
 
 //@description Changes resale price of a unique gift owned by the current user

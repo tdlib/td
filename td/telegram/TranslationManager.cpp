@@ -89,10 +89,10 @@ class ComposeMessageWithAiQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(FormattedText &&text, const string &translate_to_language_code, string tone, bool emojify,
-            bool skip_bot_commands, int32 max_media_timestamp) {
-    skip_bot_commands_ = skip_bot_commands;
-    max_media_timestamp_ = max_media_timestamp;
+  void send(const TranslationManager::InputText &text, const string &translate_to_language_code, string tone,
+            bool emojify) {
+    skip_bot_commands_ = text.skip_bot_commands_;
+    max_media_timestamp_ = text.max_media_timestamp_;
 
     int32 flags = 0;
     if (!translate_to_language_code.empty()) {
@@ -103,7 +103,7 @@ class ComposeMessageWithAiQuery final : public Td::ResultHandler {
     }
     send_query(G()->net_query_creator().create(telegram_api::messages_composeMessageWithAI(
         flags, false, emojify,
-        get_input_text_with_entities(td_->user_manager_.get(), std::move(text), "ComposeMessageWithAiQuery"),
+        get_input_text_with_entities(td_->user_manager_.get(), text.text_, "ComposeMessageWithAiQuery"),
         translate_to_language_code, tone)));
   }
 
@@ -136,14 +136,14 @@ class ProofreadMessageWithAiQuery final : public Td::ResultHandler {
       : promise_(std::move(promise)) {
   }
 
-  void send(FormattedText &&text, bool skip_bot_commands, int32 max_media_timestamp) {
-    skip_bot_commands_ = skip_bot_commands;
-    max_media_timestamp_ = max_media_timestamp;
+  void send(const TranslationManager::InputText &text) {
+    skip_bot_commands_ = text.skip_bot_commands_;
+    max_media_timestamp_ = text.max_media_timestamp_;
 
     send_query(G()->net_query_creator().create(telegram_api::messages_composeMessageWithAI(
         0, true, false,
-        get_input_text_with_entities(td_->user_manager_.get(), std::move(text), "ProofreadMessageWithAiQuery"),
-        string(), string())));
+        get_input_text_with_entities(td_->user_manager_.get(), text.text_, "ProofreadMessageWithAiQuery"), string(),
+        string())));
   }
 
   void on_result(BufferSlice packet) final {
@@ -196,8 +196,7 @@ void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText
   if (text == nullptr) {
     return promise.set_error(400, "Text must be non-empty");
   }
-  bool skip_bot_commands = true;
-  int32 max_media_timestamp = -1;
+  InputText input_text;
   for (const auto &entity : text->entities_) {
     if (entity == nullptr || entity->type_ == nullptr) {
       continue;
@@ -205,11 +204,11 @@ void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText
 
     switch (entity->type_->get_id()) {
       case td_api::textEntityTypeBotCommand::ID:
-        skip_bot_commands = false;
+        input_text.skip_bot_commands_ = false;
         break;
       case td_api::textEntityTypeMediaTimestamp::ID:
-        max_media_timestamp =
-            td::max(max_media_timestamp,
+        input_text.max_media_timestamp_ =
+            td::max(input_text.max_media_timestamp_,
                     static_cast<const td_api::textEntityTypeMediaTimestamp *>(entity->type_.get())->media_timestamp_);
         break;
       default:
@@ -220,24 +219,24 @@ void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText
 
   TRY_RESULT_PROMISE(promise, entities, get_message_entities(td_->user_manager_.get(), std::move(text->entities_)));
   TRY_STATUS_PROMISE(promise, fix_formatted_text(text->text_, entities, true, true, true, true, true, true));
+  input_text.text_ = FormattedText{std::move(text->text_), std::move(entities)};
 
-  translate_text(FormattedText{std::move(text->text_), std::move(entities)}, skip_bot_commands, max_media_timestamp,
-                 MessageFullId(), to_language_code, tone, std::move(promise));
+  translate_text(std::move(input_text), MessageFullId(), to_language_code, tone, std::move(promise));
 }
 
-void TranslationManager::translate_text(FormattedText text, bool skip_bot_commands, int32 max_media_timestamp,
-                                        MessageFullId message_full_id, const string &to_language_code,
+void TranslationManager::translate_text(InputText &&text, MessageFullId message_full_id, const string &to_language_code,
                                         const string &tone,
                                         Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
   vector<FormattedText> texts;
-  texts.push_back(std::move(text));
+  texts.push_back(std::move(text.text_));
 
   if (tone != string() && tone != "formal" && tone != "neutral" && tone != "casual") {
     return promise.set_error(400, "Invalid tone specified");
   }
 
   auto query_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), skip_bot_commands, max_media_timestamp, promise = std::move(promise)](
+      [actor_id = actor_id(this), skip_bot_commands = text.skip_bot_commands_,
+       max_media_timestamp = text.max_media_timestamp_, promise = std::move(promise)](
           Result<vector<telegram_api::object_ptr<telegram_api::textWithEntities>>> result) mutable {
         if (result.is_error()) {
           return promise.set_error(result.move_as_error());
@@ -274,8 +273,7 @@ void TranslationManager::compose_message_with_ai(td_api::object_ptr<td_api::form
     return promise.set_error(400, "Text must be non-empty");
   }
 
-  bool skip_bot_commands = true;
-  int32 max_media_timestamp = -1;
+  InputText input_text;
   for (const auto &entity : text->entities_) {
     if (entity == nullptr || entity->type_ == nullptr) {
       continue;
@@ -283,11 +281,11 @@ void TranslationManager::compose_message_with_ai(td_api::object_ptr<td_api::form
 
     switch (entity->type_->get_id()) {
       case td_api::textEntityTypeBotCommand::ID:
-        skip_bot_commands = false;
+        input_text.skip_bot_commands_ = false;
         break;
       case td_api::textEntityTypeMediaTimestamp::ID:
-        max_media_timestamp =
-            td::max(max_media_timestamp,
+        input_text.max_media_timestamp_ =
+            td::max(input_text.max_media_timestamp_,
                     static_cast<const td_api::textEntityTypeMediaTimestamp *>(entity->type_.get())->media_timestamp_);
         break;
       default:
@@ -298,9 +296,10 @@ void TranslationManager::compose_message_with_ai(td_api::object_ptr<td_api::form
 
   TRY_RESULT_PROMISE(promise, entities, get_message_entities(td_->user_manager_.get(), std::move(text->entities_)));
   TRY_STATUS_PROMISE(promise, fix_formatted_text(text->text_, entities, true, true, true, true, true, true));
+  input_text.text_ = FormattedText{std::move(text->text_), std::move(entities)};
+
   td_->create_handler<ComposeMessageWithAiQuery>(std::move(promise))
-      ->send(FormattedText{std::move(text->text_), std::move(entities)}, translate_to_language_code, tone, emojify,
-             skip_bot_commands, max_media_timestamp);
+      ->send(input_text, translate_to_language_code, tone, emojify);
 }
 
 void TranslationManager::proofread_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
@@ -309,8 +308,7 @@ void TranslationManager::proofread_message_with_ai(td_api::object_ptr<td_api::fo
     return promise.set_error(400, "Text must be non-empty");
   }
 
-  bool skip_bot_commands = true;
-  int32 max_media_timestamp = -1;
+  InputText input_text;
   for (const auto &entity : text->entities_) {
     if (entity == nullptr || entity->type_ == nullptr) {
       continue;
@@ -318,11 +316,11 @@ void TranslationManager::proofread_message_with_ai(td_api::object_ptr<td_api::fo
 
     switch (entity->type_->get_id()) {
       case td_api::textEntityTypeBotCommand::ID:
-        skip_bot_commands = false;
+        input_text.skip_bot_commands_ = false;
         break;
       case td_api::textEntityTypeMediaTimestamp::ID:
-        max_media_timestamp =
-            td::max(max_media_timestamp,
+        input_text.max_media_timestamp_ =
+            td::max(input_text.max_media_timestamp_,
                     static_cast<const td_api::textEntityTypeMediaTimestamp *>(entity->type_.get())->media_timestamp_);
         break;
       default:
@@ -333,8 +331,9 @@ void TranslationManager::proofread_message_with_ai(td_api::object_ptr<td_api::fo
 
   TRY_RESULT_PROMISE(promise, entities, get_message_entities(td_->user_manager_.get(), std::move(text->entities_)));
   TRY_STATUS_PROMISE(promise, fix_formatted_text(text->text_, entities, true, true, true, true, true, true));
-  td_->create_handler<ProofreadMessageWithAiQuery>(std::move(promise))
-      ->send(FormattedText{std::move(text->text_), std::move(entities)}, skip_bot_commands, max_media_timestamp);
+  input_text.text_ = FormattedText{std::move(text->text_), std::move(entities)};
+
+  td_->create_handler<ProofreadMessageWithAiQuery>(std::move(promise))->send(input_text);
 }
 
 string TranslationManager::get_ai_compose_styles_key() {

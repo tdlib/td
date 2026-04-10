@@ -3601,7 +3601,7 @@ void GroupCallManager::remove_group_call_spent_stars(InputGroupCallId input_grou
       send_update_live_story_top_donors(group_call->group_call_id, group_call_participants);
     }
   }
-  // don't neet to undo updateNewGroupCallPaidReaction
+  // don't need to undo updateNewGroupCallPaidReaction
 }
 
 int32 GroupCallManager::add_group_call_message(InputGroupCallId input_group_call_id, GroupCall *group_call,
