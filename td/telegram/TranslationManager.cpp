@@ -24,6 +24,38 @@
 
 namespace td {
 
+constexpr size_t AI_COMPOSE_STYLE_FIELD_COUNT = 3;
+
+vector<string> TranslationManager::sanitize_ai_compose_styles(vector<string> &&ai_compose_styles, Slice source) {
+  if (ai_compose_styles.empty()) {
+    return {};
+  }
+  if (ai_compose_styles.size() % AI_COMPOSE_STYLE_FIELD_COUNT != 0) {
+    LOG(ERROR) << "Ignore invalid ai_compose_styles from " << source << ": unexpected field count "
+               << ai_compose_styles.size();
+    return {};
+  }
+
+  vector<string> result;
+  result.reserve(ai_compose_styles.size());
+  for (size_t i = 0; i < ai_compose_styles.size(); i += AI_COMPOSE_STYLE_FIELD_COUNT) {
+    auto r_style_id = to_integer_safe<int64>(ai_compose_styles[i + 1]);
+    if (ai_compose_styles[i].empty() || ai_compose_styles[i + 2].empty() || r_style_id.is_error() ||
+        r_style_id.ok() <= 0) {
+      LOG(ERROR) << "Ignore invalid ai_compose_styles triple from " << source << " at index " << i;
+      continue;
+    }
+    result.push_back(std::move(ai_compose_styles[i]));
+    result.push_back(std::move(ai_compose_styles[i + 1]));
+    result.push_back(std::move(ai_compose_styles[i + 2]));
+  }
+
+  if (result.size() != ai_compose_styles.size()) {
+    LOG(ERROR) << "Drop malformed ai_compose_styles triples from " << source;
+  }
+  return result;
+}
+
 class TranslateTextQuery final : public Td::ResultHandler {
   Promise<vector<telegram_api::object_ptr<telegram_api::textWithEntities>>> promise_;
 
@@ -174,7 +206,14 @@ void TranslationManager::start_up() {
   if (td_->auth_manager_->is_authorized() && !td_->auth_manager_->is_bot()) {
     auto ai_compose_styles_log_event_string = G()->td_db()->get_binlog_pmc()->get(get_ai_compose_styles_key());
     if (!ai_compose_styles_log_event_string.empty()) {
-      log_event_parse(ai_compose_styles_, ai_compose_styles_log_event_string).ensure();
+      vector<string> ai_compose_styles;
+      auto status = log_event_parse(ai_compose_styles, ai_compose_styles_log_event_string);
+      if (status.is_ok()) {
+        ai_compose_styles_ = sanitize_ai_compose_styles(std::move(ai_compose_styles), "database");
+      } else {
+        LOG(ERROR) << "Ignore invalid ai_compose_styles from database: " << status;
+        G()->td_db()->get_binlog_pmc()->erase(get_ai_compose_styles_key());
+      }
     }
     send_update_text_composition_styles();
   }
@@ -341,23 +380,37 @@ string TranslationManager::get_ai_compose_styles_key() {
 }
 
 void TranslationManager::on_update_ai_compose_styles(vector<string> &&ai_compose_styles) {
+  ai_compose_styles = sanitize_ai_compose_styles(std::move(ai_compose_styles), "config");
   if (ai_compose_styles == ai_compose_styles_) {
     return;
   }
   ai_compose_styles_ = std::move(ai_compose_styles);
-  G()->td_db()->get_binlog_pmc()->set(get_ai_compose_styles_key(),
-                                      log_event_store(ai_compose_styles_).as_slice().str());
+  if (ai_compose_styles_.empty()) {
+    G()->td_db()->get_binlog_pmc()->erase(get_ai_compose_styles_key());
+  } else {
+    G()->td_db()->get_binlog_pmc()->set(get_ai_compose_styles_key(),
+                                        log_event_store(ai_compose_styles_).as_slice().str());
+  }
   if (td_->auth_manager_->is_authorized()) {
     send_update_text_composition_styles();
   }
 }
 
 td_api::object_ptr<td_api::updateTextCompositionStyles> TranslationManager::get_update_text_composition_styles() const {
-  CHECK(ai_compose_styles_.size() % 3 == 0);
   auto result = td_api::make_object<td_api::updateTextCompositionStyles>();
-  for (size_t i = 0; i < ai_compose_styles_.size(); i += 3) {
-    result->styles_.push_back(td_api::make_object<td_api::textCompositionStyle>(
-        ai_compose_styles_[i], to_integer<int64>(ai_compose_styles_[i + 1]), ai_compose_styles_[i + 2]));
+  if (ai_compose_styles_.size() % AI_COMPOSE_STYLE_FIELD_COUNT != 0) {
+    LOG(ERROR) << "Ignore malformed ai_compose_styles in memory: unexpected field count " << ai_compose_styles_.size();
+    return result;
+  }
+  for (size_t i = 0; i < ai_compose_styles_.size(); i += AI_COMPOSE_STYLE_FIELD_COUNT) {
+    auto r_style_id = to_integer_safe<int64>(ai_compose_styles_[i + 1]);
+    if (ai_compose_styles_[i].empty() || ai_compose_styles_[i + 2].empty() || r_style_id.is_error() ||
+        r_style_id.ok() <= 0) {
+      LOG(ERROR) << "Ignore malformed ai_compose_styles triple in memory at index " << i;
+      continue;
+    }
+    result->styles_.push_back(td_api::make_object<td_api::textCompositionStyle>(ai_compose_styles_[i], r_style_id.ok(),
+                                                                                ai_compose_styles_[i + 2]));
   }
   return result;
 }

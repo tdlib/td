@@ -47,6 +47,8 @@ class TranslationManager final : public Actor {
 
   void on_update_ai_compose_styles(vector<string> &&ai_compose_styles);
 
+  static vector<string> sanitize_ai_compose_styles(vector<string> &&ai_compose_styles, Slice source);
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

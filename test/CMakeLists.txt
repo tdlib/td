@@ -33,6 +33,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/string_cleaning.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/tdclient.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/tqueue.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/translation_manager.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_wire.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_route_hints_from_country.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hello_entropy.cpp
