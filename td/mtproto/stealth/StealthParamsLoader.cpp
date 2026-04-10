@@ -311,13 +311,13 @@ Result<RuntimeMobileProfileWeights> parse_mobile_profile_weights(Slice scope, Js
     return Status::Error(scope.str() + " must be an object");
   }
   auto &object = value.get_object();
-  TRY_STATUS(ensure_exact_object_shape(scope, object, {Slice("IOS14"), Slice("Android11_OkHttp")}));
+  TRY_STATUS(ensure_exact_object_shape(scope, object, {Slice("IOS14"), Slice("Android11_OkHttp_Advisory")}));
 
   RuntimeMobileProfileWeights weights;
   TRY_RESULT(ios14, parse_weight_field(object, "IOS14"));
-  TRY_RESULT(android11_okhttp, parse_weight_field(object, "Android11_OkHttp"));
+  TRY_RESULT(android11_okhttp_advisory, parse_weight_field(object, "Android11_OkHttp_Advisory"));
   weights.ios14 = ios14;
-  weights.android11_okhttp = android11_okhttp;
+  weights.android11_okhttp_advisory = android11_okhttp_advisory;
   return weights;
 }
 
@@ -334,7 +334,7 @@ ProfileWeights flatten_profile_selection(const RuntimeProfileSelectionPolicy &po
   weights.firefox148 = desktop_weights->firefox148;
   weights.safari26_3 = desktop_weights->safari26_3;
   weights.ios14 = policy.mobile.ios14;
-  weights.android11_okhttp = policy.mobile.android11_okhttp;
+  weights.android11_okhttp_advisory = policy.mobile.android11_okhttp_advisory;
   return weights;
 }
 
@@ -345,7 +345,7 @@ Result<ProfileWeights> parse_flat_profile_weights(JsonValue value) {
   auto &object = value.get_object();
   TRY_STATUS(ensure_exact_object_shape("profile_weights", object,
                                        {Slice("chrome133"), Slice("chrome131"), Slice("chrome120"), Slice("firefox148"),
-                                        Slice("safari26_3"), Slice("ios14"), Slice("android11_okhttp")}));
+                                        Slice("safari26_3"), Slice("ios14"), Slice("android11_okhttp_advisory")}));
 
   ProfileWeights weights;
   TRY_RESULT(chrome133, parse_weight_field(object, "chrome133"));
@@ -354,14 +354,14 @@ Result<ProfileWeights> parse_flat_profile_weights(JsonValue value) {
   TRY_RESULT(firefox148, parse_weight_field(object, "firefox148"));
   TRY_RESULT(safari26_3, parse_weight_field(object, "safari26_3"));
   TRY_RESULT(ios14, parse_weight_field(object, "ios14"));
-  TRY_RESULT(android11_okhttp, parse_weight_field(object, "android11_okhttp"));
+  TRY_RESULT(android11_okhttp_advisory, parse_weight_field(object, "android11_okhttp_advisory"));
   weights.chrome133 = chrome133;
   weights.chrome131 = chrome131;
   weights.chrome120 = chrome120;
   weights.firefox148 = firefox148;
   weights.safari26_3 = safari26_3;
   weights.ios14 = ios14;
-  weights.android11_okhttp = android11_okhttp;
+  weights.android11_okhttp_advisory = android11_okhttp_advisory;
   return weights;
 }
 

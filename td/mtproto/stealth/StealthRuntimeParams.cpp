@@ -67,7 +67,7 @@ ProfileWeights effective_profile_weights_for_platform(const RuntimeProfileSelect
   weights.firefox148 = desktop_weights->firefox148;
   weights.safari26_3 = desktop_weights->safari26_3;
   weights.ios14 = policy.mobile.ios14;
-  weights.android11_okhttp = policy.mobile.android11_okhttp;
+  weights.android11_okhttp_advisory = policy.mobile.android11_okhttp_advisory;
   return weights;
 }
 
@@ -143,7 +143,7 @@ Status validate_runtime_profile_selection_policy(const RuntimeProfileSelectionPo
     return Status::Error("profile_weights.desktop_non_darwin.safari26_3 must be 0");
   }
 
-  const uint32 mobile_total = policy.mobile.ios14 + policy.mobile.android11_okhttp;
+  const uint32 mobile_total = policy.mobile.ios14 + policy.mobile.android11_okhttp_advisory;
   if (mobile_total != 100) {
     return Status::Error("profile_weights.mobile must sum to 100");
   }
@@ -176,7 +176,7 @@ Status validate_profile_weights(const ProfileWeights &weights) {
   const uint32 darwin_total =
       weights.chrome133 + weights.chrome131 + weights.chrome120 + weights.firefox148 + weights.safari26_3;
   const uint32 non_darwin_total = weights.chrome133 + weights.chrome131 + weights.chrome120 + weights.firefox148;
-  const uint32 mobile_total = weights.ios14 + weights.android11_okhttp;
+  const uint32 mobile_total = weights.ios14 + weights.android11_okhttp_advisory;
   if (darwin_total == 0) {
     return Status::Error("desktop darwin profile weights must not be empty");
   }
@@ -198,11 +198,11 @@ Status validate_allowed_profile_weights_for_platform(const ProfileWeights &weigh
         allowed_total = weights.ios14;
         break;
       case MobileOs::Android:
-        allowed_total = weights.android11_okhttp;
+        allowed_total = weights.android11_okhttp_advisory;
         break;
       case MobileOs::None:
       default:
-        allowed_total = weights.ios14 + weights.android11_okhttp;
+        allowed_total = weights.ios14 + weights.android11_okhttp_advisory;
         break;
     }
   } else if (platform.desktop_os == DesktopOs::Darwin) {

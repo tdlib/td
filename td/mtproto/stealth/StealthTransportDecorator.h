@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/mtproto/IStreamTransport.h"
+#include "td/mtproto/stealth/ChaffScheduler.h"
 #include "td/mtproto/stealth/DrsEngine.h"
 #include "td/mtproto/stealth/IptController.h"
 #include "td/mtproto/stealth/ShaperRingBuffer.h"
@@ -32,6 +33,7 @@ class StealthTransportDecorator final : public IStreamTransport {
   size_t max_append_size() const final;
   TransportType get_type() const final;
   bool use_random_padding() const final;
+  void configure_packet_info(PacketInfo *packet_info) const final;
   void pre_flush_write(double now) final;
   double get_shaping_wakeup() const final;
   void set_traffic_hint(TrafficHint hint) final;
@@ -48,6 +50,7 @@ class StealthTransportDecorator final : public IStreamTransport {
   unique_ptr<IRng> rng_;
   unique_ptr<IClock> clock_;
   IptController ipt_controller_;
+  ChaffScheduler chaff_scheduler_;
   ShaperRingBuffer bypass_ring_;
   ShaperRingBuffer ring_;
   size_t high_watermark_{0};
@@ -62,7 +65,23 @@ class StealthTransportDecorator final : public IStreamTransport {
   bool has_manual_record_size_override_{false};
   bool has_drs_activity_{false};
   double last_drs_activity_at_{0.0};
+  uint8 greeting_records_sent_{0};
+  int32 last_greeting_record_size_{0};
+  int32 pending_response_floor_bytes_{0};
+  uint64 pending_post_response_jitter_us_{0};
+  vector<uint8> small_record_window_flags_;
+  size_t small_record_window_size_{0};
+  size_t small_record_window_samples_{0};
+  size_t small_record_window_index_{0};
+  size_t small_record_count_{0};
 
+  int32 apply_small_record_budget(int32 target_bytes) const;
+  int32 apply_bidirectional_response_floor(TrafficHint hint, int32 target_bytes);
+  bool is_greeting_phase_active() const;
+  void note_greeting_record_emitted();
+  void note_inbound_response(size_t bytes);
+  void note_record_target(int32 target_bytes);
+  void clear_stale_queued_response_jitter();
   size_t queued_write_count() const;
 };
 

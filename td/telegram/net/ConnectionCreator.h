@@ -9,6 +9,8 @@
 
 #include "td/telegram/net/ConnectionDestinationBudgetController.h"
 #include "td/telegram/net/ConnectionFlowController.h"
+#include "td/telegram/net/ConnectionLifecycleReport.h"
+#include "td/telegram/net/ConnectionRotationGateSnapshot.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/DcOptionsSet.h"
@@ -34,7 +36,6 @@
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Promise.h"
-#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
@@ -65,8 +66,9 @@ class ConnectionCreator final : public NetQueryCallback {
   void on_pong(uint32 hash);
   void on_mtproto_error(uint32 hash);
   void request_raw_connection(DcId dc_id, bool allow_media_only, bool is_media,
-                              Promise<unique_ptr<mtproto::RawConnection>> promise, uint32 hash = 0,
-                              unique_ptr<mtproto::AuthData> auth_data = {});
+                              Promise<unique_ptr<mtproto::RawConnection>> promise,
+                              std::shared_ptr<ConnectionRotationGateSnapshotHandle> rotation_gate_snapshot = nullptr,
+                              uint32 hash = 0, unique_ptr<mtproto::AuthData> auth_data = {});
   void request_raw_connection_by_ip(IPAddress ip_address, mtproto::TransportType transport_type,
                                     Promise<unique_ptr<mtproto::RawConnection>> promise);
 
@@ -85,6 +87,18 @@ class ConnectionCreator final : public NetQueryCallback {
   void get_proxies(Promise<td_api::object_ptr<td_api::addedProxies>> promise);
 
   void ping_proxy(td_api::object_ptr<td_api::proxy> input_proxy, Promise<double> promise);
+  string get_connection_lifecycle_report_json() const;
+
+  struct RawIpConnectionRoute {
+    IPAddress socket_ip_address;
+    IPAddress mtproto_ip_address;
+    string debug_str;
+  };
+
+  static Result<RawIpConnectionRoute> resolve_raw_ip_connection_route(const Proxy &proxy,
+                                                                      const IPAddress &proxy_ip_address,
+                                                                      const IPAddress &target_ip_address);
+  static Proxy resolve_effective_ping_proxy(const Proxy &active_proxy, const Proxy *requested_proxy);
 
  private:
   friend class ProxyChecker;
@@ -148,6 +162,7 @@ class ConnectionCreator final : public NetQueryCallback {
     std::vector<std::pair<unique_ptr<mtproto::RawConnection>, double>> ready_connections;
     std::vector<Promise<unique_ptr<mtproto::RawConnection>>> queries;
     ConnectionFlowController flow_controller;
+    std::shared_ptr<ConnectionRotationGateSnapshotHandle> rotation_gate_snapshot;
 
     static constexpr double READY_CONNECTIONS_TIMEOUT = 10;
 
@@ -165,6 +180,8 @@ class ConnectionCreator final : public NetQueryCallback {
 
   std::shared_ptr<NetStatsCallback> media_net_stats_callback_;
   std::shared_ptr<NetStatsCallback> common_net_stats_callback_;
+  std::shared_ptr<td::ConnectionLifecycleReportBuilder> connection_lifecycle_report_ =
+      std::make_shared<td::ConnectionLifecycleReportBuilder>();
 
   ActorShared<ConnectionCreator> ref_cnt_guard_;
   int ref_cnt_{0};
@@ -241,6 +258,9 @@ class ConnectionCreator final : public NetQueryCallback {
   };
   Result<SocketFd> find_connection(const Proxy &proxy, const IPAddress &proxy_ip_address, DcId dc_id,
                                    bool allow_media_only, FindConnectionExtra &extra);
+
+  void publish_rotation_gate_snapshot(ClientInfo &client, const mtproto::stealth::RuntimeFlowBehaviorPolicy &policy,
+                                      double now);
 
   static DcOptions get_default_dc_options(bool is_test);
 

@@ -81,6 +81,11 @@ namespace td {
 
 int VERBOSITY_NAME(config_recoverer) = VERBOSITY_NAME(INFO);
 
+FullConfigRecoveryConnectionAction get_full_config_recovery_connection_action(size_t request_raw_connection_count) {
+  return request_raw_connection_count <= 2 ? FullConfigRecoveryConnectionAction::Dispatch
+                                           : FullConfigRecoveryConnectionAction::DelayForever;
+}
+
 Result<SimpleConfig> decode_config(Slice input) {
   static auto rsa = mtproto::RSA::from_pem_public_key(
                         "-----BEGIN RSA PUBLIC KEY-----\n"
@@ -337,7 +342,8 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
       request_raw_connection_cnt_++;
       VLOG(config_recoverer) << "Request full config from " << option_.get_ip_address()
                              << ", try = " << request_raw_connection_cnt_;
-      if (request_raw_connection_cnt_ <= 2) {
+      if (get_full_config_recovery_connection_action(request_raw_connection_cnt_) ==
+          FullConfigRecoveryConnectionAction::Dispatch) {
         send_closure(G()->connection_creator(), &ConnectionCreator::request_raw_connection_by_ip,
                      option_.get_ip_address(),
                      mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp,
@@ -359,6 +365,9 @@ static ActorOwn<> get_full_config(DcOption option, Promise<tl_object_ptr<telegra
     }
     void on_result(NetQueryPtr net_query) final {
       G()->net_query_dispatcher().dispatch(std::move(net_query));
+    }
+    ConnectionRotationGateSnapshot get_rotation_gate_snapshot() const final {
+      return ConnectionRotationGateSnapshot{};
     }
 
    private:

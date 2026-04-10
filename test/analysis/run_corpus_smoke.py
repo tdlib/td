@@ -13,6 +13,7 @@ import sys
 from typing import Any
 
 from check_drs import check_drs
+from check_record_size_distribution import check_record_size_distribution
 from check_flow_behavior import DEFAULT_POLICY as DEFAULT_FLOW_POLICY, check_flow_behavior
 from check_ipt import check_ipt
 from check_server_hello_matrix import check_server_hello_matrix
@@ -110,6 +111,15 @@ def _run_generic_smoke_stage(
             )
         elif stage_name == "flow":
             artifact_report["sample_count"] = len(report.get("connections", [])) if isinstance(report.get("connections"), list) else 0
+        elif stage_name == "record_size":
+            if isinstance(report.get("record_payload_sizes"), list):
+                artifact_report["sample_count"] = len(report.get("record_payload_sizes", []))
+            elif isinstance(report.get("connections"), list):
+                artifact_report["sample_count"] = sum(
+                    len(connection.get("records", []))
+                    for connection in report.get("connections", [])
+                    if isinstance(connection, dict) and isinstance(connection.get("records"), list)
+                )
         sample_count += artifact_report["sample_count"]
 
         stage_failures = checker(report, checker_policy)
@@ -129,6 +139,7 @@ def run_corpus_smoke(
     ipt_fixtures_root: str | pathlib.Path | None = None,
     drs_fixtures_root: str | pathlib.Path | None = None,
     flow_fixtures_root: str | pathlib.Path | None = None,
+    record_size_fixtures_root: str | pathlib.Path | None = None,
 ) -> dict[str, Any]:
     registry = load_profile_registry(registry_path)
     registry_failures = validate_registry_completeness(registry)
@@ -256,6 +267,21 @@ def run_corpus_smoke(
     )
     top_level_failures.extend(flow_failures)
 
+    record_size_artifact_reports: list[dict[str, Any]] = []
+    record_size_sample_count = 0
+    if record_size_fixtures_root is not None:
+        record_size_policy = registry.get("record_size_baseline_policy")
+        if not isinstance(record_size_policy, dict):
+            top_level_failures.append("record_size: registry missing record_size_baseline_policy")
+        else:
+            record_size_artifact_reports, record_size_sample_count, record_size_failures = _run_generic_smoke_stage(
+                "record_size",
+                record_size_fixtures_root,
+                check_record_size_distribution,
+                dict(record_size_policy),
+            )
+            top_level_failures.extend(record_size_failures)
+
     report = {
         "ok": not top_level_failures,
         "registry_failures": registry_failures,
@@ -275,6 +301,9 @@ def run_corpus_smoke(
         "flow_artifacts": flow_artifact_reports,
         "flow_artifact_count": len(flow_artifact_reports),
         "flow_sample_count": flow_sample_count,
+        "record_size_artifacts": record_size_artifact_reports,
+        "record_size_artifact_count": len(record_size_artifact_reports),
+        "record_size_sample_count": record_size_sample_count,
         "failures": top_level_failures,
     }
     return report
@@ -304,6 +333,10 @@ def parse_args() -> argparse.Namespace:
         "--flow-fixtures-root",
         help="Optional root directory containing flow-behavior smoke artifact JSON files",
     )
+    parser.add_argument(
+        "--record-size-fixtures-root",
+        help="Optional root directory containing TLS record-size artifact JSON files",
+    )
     parser.add_argument("--report-out", help="Optional path to write a JSON report")
     return parser.parse_args()
 
@@ -317,6 +350,7 @@ def main() -> int:
         args.ipt_fixtures_root,
         args.drs_fixtures_root,
         args.flow_fixtures_root,
+        args.record_size_fixtures_root,
     )
     if args.report_out:
         pathlib.Path(args.report_out).write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

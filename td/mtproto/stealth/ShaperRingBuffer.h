@@ -22,6 +22,7 @@ struct ShaperPendingWrite final {
   bool quick_ack{false};
   double send_at{0.0};
   TrafficHint hint{TrafficHint::Unknown};
+  uint64 response_jitter_delay_us{0};
 };
 
 class ShaperRingBuffer final {
@@ -48,6 +49,16 @@ class ShaperRingBuffer final {
       front.reset();
       head_ = (head_ + 1) % items_.size();
       size_--;
+    }
+  }
+
+  template <class CallbackT>
+  void for_each(CallbackT &&callback) {
+    for (size_t offset = 0; offset < size_; offset++) {
+      auto index = (head_ + offset) % items_.size();
+      auto &item = items_[index];
+      CHECK(item.has_value());
+      callback(item.value());
     }
   }
 

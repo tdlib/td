@@ -89,6 +89,11 @@ class SessionConnection final
   Slice get_debug_str() const {
     return raw_connection_ == nullptr ? Slice() : raw_connection_->extra().debug_str;
   }
+  void annotate_lifecycle_role(Slice role);
+  void annotate_lifecycle_rotation_reason(Slice reason);
+  void annotate_lifecycle_successor_opened(int64 successor_opened_at_ms);
+  void annotate_lifecycle_overlap(uint64 overlap_ms);
+  void annotate_lifecycle_over_age_status(bool over_age_degraded, Slice exemption);
 
   class Callback {
    public:

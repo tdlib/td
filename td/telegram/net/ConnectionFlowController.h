@@ -15,6 +15,7 @@ namespace td {
 class ConnectionFlowController final {
  public:
   double get_wakeup_at(double now, const mtproto::stealth::RuntimeFlowBehaviorPolicy &policy);
+  bool allows_rotation_at(double now, const mtproto::stealth::RuntimeFlowBehaviorPolicy &policy);
   void on_connect_started(double now, const mtproto::stealth::RuntimeFlowBehaviorPolicy &policy);
 
  private:

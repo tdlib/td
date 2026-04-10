@@ -14,6 +14,9 @@ namespace mtproto {
 class TlsReaderByteFlow final : public ByteFlowBase {
  public:
   bool loop() final;
+
+ private:
+  bool first_change_cipher_spec_checked_{false};
 };
 
 }  // namespace mtproto

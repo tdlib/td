@@ -9,7 +9,6 @@
 
 #include "td/mtproto/AuthKey.h"
 #include "td/mtproto/IStreamTransport.h"
-#include "td/mtproto/ProxySecret.h"
 #include "td/mtproto/Transport.h"
 
 #if TD_DARWIN_WATCH_OS
@@ -20,19 +19,22 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
-#include "td/utils/MpscPollableQueue.h"
-#include "td/utils/port/EventFd.h"
-#include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/StorerBase.h"
 #include "td/utils/Time.h"
 
-#include <memory>
 #include <utility>
 
 namespace td {
 namespace mtproto {
+namespace {
+
+int64 lifecycle_now_ms() {
+  return static_cast<int64>(Time::now() * 1000.0);
+}
+
+}  // namespace
 
 RawConnection::~RawConnection() {
   LOG(DEBUG) << "Destroy raw connection " << this;
@@ -68,7 +70,7 @@ class RawConnectionDefault final : public RawConnection {
     packet_info.no_crypto_flag = false;
     packet_info.salt = salt;
     packet_info.session_id = session_id;
-    packet_info.use_random_padding = transport_->use_random_padding();
+    transport_->configure_packet_info(&packet_info);
     auto packet =
         Transport::write(storer, auth_key, &packet_info, transport_->max_prepend_size(), transport_->max_append_size());
 
@@ -134,6 +136,9 @@ class RawConnectionDefault final : public RawConnection {
 
   void close() final {
     LOG(DEBUG) << "Close raw connection " << this;
+    if (stats_callback_) {
+      stats_callback_->on_connection_closed(lifecycle_now_ms());
+    }
     transport_.reset();
     socket_fd_.close();
   }
@@ -372,6 +377,9 @@ class RawConnectionHttp final : public RawConnection {
 
   void close() final {
     LOG(DEBUG) << "Close raw connection " << this;
+    if (stats_callback_) {
+      stats_callback_->on_connection_closed(lifecycle_now_ms());
+    }
   }
 
   PublicFields &extra() final {

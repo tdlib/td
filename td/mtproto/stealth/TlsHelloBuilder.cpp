@@ -30,6 +30,7 @@ constexpr size_t kClientRandomOffset = 11;
 constexpr size_t kClientRandomLength = 32;
 constexpr size_t kClientRandomTimestampTailOffset = 28;
 constexpr size_t kClientRandomTimestampTailLength = 4;
+constexpr size_t kMaxKeyCoordinateAttempts = 256;
 
 uint32 load_le_uint32(Slice bytes) {
   CHECK(bytes.size() == kClientRandomTimestampTailLength);
@@ -408,6 +409,7 @@ class TlsHello {
         Op::begin_scope(),
         Op::grease(2),
         Op::str("\x00\x00"),
+        Op::str("\x00\x00"),
         Op::begin_scope(),
         Op::begin_scope(),
         Op::str("\x00"),
@@ -443,6 +445,75 @@ class TlsHello {
                 "\x00\x1d\x00\x20"),
         Op::key(),
         Op::str("\xff\x01\x00\x01\x00"),
+        Op::grease(3),
+        Op::str("\x00\x01\x00"),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::end_scope(),
+    };
+    return res;
+  }
+
+  static TlsHello create_ios_14_profile() {
+    TlsHello res;
+    res.ops_ = {
+        Op::str("\x16\x03\x01"),
+        Op::begin_scope(),
+        Op::str("\x01\x00"),
+        Op::begin_scope(),
+        Op::str("\x03\x03"),
+        Op::zero(32),
+        Op::str("\x20"),
+        Op::random(32),
+        Op::str("\x00\x2a"),
+        Op::grease(0),
+        Op::str("\x13\x02\x13\x03\x13\x01\xc0\x2c\xc0\x2b\xcc\xa9\xc0\x30\xc0\x2f\xcc\xa8\xc0\x0a\xc0\x09"
+                "\xc0\x14\xc0\x13\x00\x9d\x00\x9c\x00\x35\x00\x2f\xc0\x08\xc0\x12\x00\x0a\x01\x00"),
+        Op::begin_scope(),
+        Op::grease(2),
+        Op::str("\x00\x00"),
+        Op::str("\x00\x00"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::str("\x00"),
+        Op::begin_scope(),
+        Op::domain(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::str("\x00\x17\x00\x00"),
+        Op::str("\xff\x01\x00\x01\x00"),
+        Op::str("\x00\x0a\x00\x0e\x00\x0c"),
+        Op::grease(4),
+        Op::str("\x11\xec\x00\x1d\x00\x17\x00\x18\x00\x19"),
+        Op::str("\x00\x0b\x00\x02\x01\x00"),
+        Op::str("\x00\x10"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::alpn_protocols(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00"),
+        Op::str("\x00\x0d\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01"
+                "\x08\x06\x06\x01"),
+        Op::str("\x00\x12\x00\x00"),
+        Op::str("\x00\x33"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::grease(4),
+        Op::str("\x00\x01\x00"),
+        Op::pq_key_share(),
+        Op::ml_kem_768_key(),
+        Op::key(),
+        Op::str("\x00\x1d\x00\x20"),
+        Op::key(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::str("\x00\x2d\x00\x02\x01\x01"),
+        Op::str("\x00\x2b\x00\x07\x06"),
+        Op::grease(6),
+        Op::str("\x03\x04\x03\x03"),
+        Op::str("\x00\x1b\x00\x03\x02\x00\x01"),
         Op::grease(3),
         Op::str("\x00\x01\x00"),
         Op::end_scope(),
@@ -527,6 +598,94 @@ class TlsHello {
         enable_ech ? Op::random(239) : Op::str(""),
         enable_ech ? Op::end_scope() : Op::str(""),
         enable_ech ? Op::end_scope() : Op::str(""),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::end_scope(),
+    };
+    if (!enable_ech) {
+      res.ops_.erase(std::remove_if(res.ops_.begin(), res.ops_.end(),
+                                    [](const Op &op) { return op.type == Op::Type::String && op.data.empty(); }),
+                     res.ops_.end());
+    }
+    return res;
+  }
+
+  static TlsHello create_firefox_149_macos_26_3_profile(bool enable_ech) {
+    TlsHello res;
+    auto record_size_limit = profile_spec(BrowserProfile::Firefox149_MacOS26_3).record_size_limit;
+    CHECK(record_size_limit != 0);
+    string record_size_limit_extension("\x00\x1c\x00\x02", 4);
+    record_size_limit_extension += static_cast<char>((record_size_limit >> 8) & 0xff);
+    record_size_limit_extension += static_cast<char>(record_size_limit & 0xff);
+    res.ops_ = {
+        Op::str("\x16\x03\x01"),
+        Op::begin_scope(),
+        Op::str("\x01\x00"),
+        Op::begin_scope(),
+        Op::str("\x03\x03"),
+        Op::zero(32),
+        Op::str("\x20"),
+        Op::random(32),
+        Op::str("\x00\x22"
+                "\x13\x01\x13\x03\x13\x02\xc0\x2b\xc0\x2f\xcc\xa9\xcc\xa8\xc0\x2c\xc0\x30\xc0\x0a\xc0\x09"
+                "\xc0\x13\xc0\x14\x00\x9c\x00\x9d\x00\x2f\x00\x35"
+                "\x01\x00"),
+        Op::begin_scope(),
+        Op::str("\x00\x00"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::str("\x00"),
+        Op::begin_scope(),
+        Op::domain(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::str("\x00\x17\x00\x00"),
+        Op::str("\xff\x01\x00\x01\x00"),
+        Op::str("\x00\x0a\x00\x10\x00\x0e"),
+        Op::pq_group_id(),
+        Op::str("\x00\x1d\x00\x17\x00\x18\x00\x19\x01\x00\x01\x01"),
+        Op::str("\x00\x0b\x00\x02\x01\x00"),
+        Op::str("\x00\x10"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::alpn_protocols(),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::str("\x00\x05\x00\x05\x01\x00\x00\x00\x00"),
+        Op::str("\x00\x22\x00\x0a\x00\x08\x04\x03\x05\x03\x06\x03\x02\x03"),
+        Op::str("\x00\x12\x00\x00"),
+        Op::str("\x00\x33"),
+        Op::begin_scope(),
+        Op::begin_scope(),
+        Op::pq_key_share(),
+        Op::ml_kem_768_key(),
+        Op::key(),
+        Op::str("\x00\x1d\x00\x20"),
+        Op::key(),
+        Op::str("\x00\x17\x00\x41"),
+        Op::random(65),
+        Op::end_scope(),
+        Op::end_scope(),
+        Op::str("\x00\x2b\x00\x05\x04\x03\x04\x03\x03"),
+        Op::str("\x00\x0d\x00\x18\x00\x16\x04\x03\x05\x03\x06\x03\x08\x04\x08\x05\x08\x06\x04\x01\x05\x01\x06\x01\x02"
+                "\x03\x02\x01"),
+        Op::str("\x00\x2d\x00\x02\x01\x01"),
+        Op::str(record_size_limit_extension),
+        Op::str("\x00\x1b\x00\x07\x06\x00\x01\x00\x02\x00\x03"),
+        enable_ech ? Op::str("\xfe\x0d") : Op::str(""),
+        enable_ech ? Op::begin_scope() : Op::str(""),
+        enable_ech ? Op::str("\x00\x00\x01\x00\x01") : Op::str(""),
+        enable_ech ? Op::random(1) : Op::str(""),
+        enable_ech ? Op::begin_scope() : Op::str(""),
+        enable_ech ? Op::key() : Op::str(""),
+        enable_ech ? Op::end_scope() : Op::str(""),
+        enable_ech ? Op::begin_scope() : Op::str(""),
+        enable_ech ? Op::random(399) : Op::str(""),
+        enable_ech ? Op::end_scope() : Op::str(""),
+        enable_ech ? Op::end_scope() : Op::str(""),
+        Op::str("\x00\x29\x00\x94"),
+        Op::random(148),
         Op::end_scope(),
         Op::end_scope(),
         Op::end_scope(),
@@ -684,12 +843,20 @@ class TlsHello {
         static const TlsHello hello_without_ech = create_firefox_148_profile(false);
         return enable_ech ? hello_with_ech : hello_without_ech;
       }
+      case BrowserProfile::Firefox149_MacOS26_3: {
+        static const TlsHello hello_with_ech = create_firefox_149_macos_26_3_profile(true);
+        static const TlsHello hello_without_ech = create_firefox_149_macos_26_3_profile(false);
+        return enable_ech ? hello_with_ech : hello_without_ech;
+      }
       case BrowserProfile::Safari26_3: {
         static const TlsHello hello = create_safari_26_3_profile();
         return hello;
       }
-      case BrowserProfile::IOS14:
-      case BrowserProfile::Android11_OkHttp: {
+      case BrowserProfile::IOS14: {
+        static const TlsHello hello = create_ios_14_profile();
+        return hello;
+      }
+      case BrowserProfile::Android11_OkHttp_Advisory: {
         static const TlsHello hello = create_fixed_profile_without_chromium_only_features();
         return hello;
       }
@@ -975,20 +1142,36 @@ class TlsHelloStore {
         BigNum mod = BigNum::from_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed").move_as_ok();
         BigNumContext big_num_context;
         auto key = dest_.substr(0, 32);
-        while (true) {
+        bool found_valid_coordinate = false;
+        BigNum x;
+        for (size_t attempt = 0; attempt < kMaxKeyCoordinateAttempts; attempt++) {
           rng_.fill_secure_bytes(key);
           key[31] = static_cast<char>(key[31] & 127);
 
-          BigNum x = BigNum::from_binary(key);
+          if (attempt != 0) {
+            auto index = attempt % key.size();
+            key[index] = static_cast<char>(static_cast<uint8>(key[index]) + static_cast<uint8>(attempt));
+          }
+
+          x = BigNum::from_binary(key);
           BigNum y = get_y2(x, mod, big_num_context);
           if (is_quadratic_residue(y)) {
-            for (int i = 0; i < 3; i++) {
-              x = get_double_x(x, mod, big_num_context);
-            }
-            key.copy_from(x.to_le_binary(32));
+            found_valid_coordinate = true;
             break;
           }
         }
+
+        if (!found_valid_coordinate) {
+          // Fail closed on pathological IRng implementations: never spin forever.
+          // Basepoint u=9 is always valid and keeps the builder deterministic under
+          // adversarial fixed-value RNGs used by tests.
+          x = BigNum::from_decimal("9").move_as_ok();
+        }
+
+        for (int i = 0; i < 3; i++) {
+          x = get_double_x(x, mod, big_num_context);
+        }
+        key.copy_from(x.to_le_binary(32));
         dest_.remove_prefix(32);
         break;
       }

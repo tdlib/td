@@ -8,6 +8,7 @@
 
 #include "td/utils/buffer.h"
 
+#include <cmath>
 #include <cstdio>
 #include <limits>
 
@@ -19,6 +20,7 @@ namespace {
 
 constexpr int32 kMinTlsRecordSize = 256;
 constexpr int32 kMaxTlsRecordSize = 16384;
+constexpr int32 kMaxGreetingRecordSize = 1500;
 
 struct TransportPayloadOverhead final {
   int32 bytes{0};
@@ -34,10 +36,57 @@ int32 clamp_tls_record_size(int32 size) {
   return std::max(kMinTlsRecordSize, std::min(size, kMaxTlsRecordSize));
 }
 
+uint64 sample_delay_us(double min_delay_ms, double max_delay_ms, IRng &rng) {
+  if (!(max_delay_ms > 0.0)) {
+    return 0;
+  }
+  if (max_delay_ms <= min_delay_ms) {
+    return static_cast<uint64>(min_delay_ms * 1000.0);
+  }
+
+  auto min_delay_us = static_cast<uint64>(min_delay_ms * 1000.0);
+  auto max_delay_us = static_cast<uint64>(max_delay_ms * 1000.0);
+  if (max_delay_us <= min_delay_us) {
+    return min_delay_us;
+  }
+
+  auto width = max_delay_us - min_delay_us + 1;
+  if (width > static_cast<uint64>(std::numeric_limits<uint32>::max())) {
+    return min_delay_us + static_cast<uint64>(rng.secure_uint32());
+  }
+  return min_delay_us + static_cast<uint64>(rng.bounded(static_cast<uint32>(width)));
+}
+
+uint64 saturating_add(uint64 left, uint64 right) {
+  auto max_value = std::numeric_limits<uint64>::max();
+  if (left > max_value - right) {
+    return max_value;
+  }
+  return left + right;
+}
+
 int32 adjust_tls_record_size_for_payload_overhead(int32 payload_cap_bytes, TransportPayloadOverhead payload_overhead) {
   auto safe_overhead = std::max<int64>(0, payload_overhead.bytes);
   auto adjusted = static_cast<int64>(payload_cap_bytes) + safe_overhead;
   return static_cast<int32>(std::max<int64>(kMinTlsRecordSize, std::min<int64>(adjusted, kMaxTlsRecordSize)));
+}
+
+size_t required_record_padding_append_reserve(int32 target_bytes) {
+  auto clamped_target = clamp_tls_record_size(target_bytes);
+  return clamped_target > 4 ? static_cast<size_t>(clamped_target - 4) : 0;
+}
+
+BufferWriter ensure_write_capacity(BufferWriter &&message, size_t prepend_bytes, size_t append_bytes) {
+  if (message.prepare_prepend().size() >= prepend_bytes && message.prepare_append().size() >= append_bytes) {
+    return std::move(message);
+  }
+  return BufferWriter(message.as_slice(), prepend_bytes, append_bytes);
+}
+
+size_t max_small_records_in_window(const StealthConfig &config) {
+  auto raw_budget = std::floor(config.record_padding_policy.small_record_max_fraction *
+                               static_cast<double>(config.record_padding_policy.small_record_window_size));
+  return static_cast<size_t>(std::max<double>(0.0, raw_budget));
 }
 
 TrafficHint normalize_drs_hint(TrafficHint hint) {
@@ -149,6 +198,9 @@ Result<unique_ptr<StealthTransportDecorator>> StealthTransportDecorator::create(
     return Status::Error("clock must not be null");
   }
   TRY_STATUS(config.validate());
+  if (config.greeting_camouflage_policy.greeting_record_count != 0 && !inner->supports_tls_record_sizing()) {
+    return Status::Error("greeting camouflage requires TLS record sizing support");
+  }
 
   return unique_ptr<StealthTransportDecorator>(
       new StealthTransportDecorator(std::move(inner), std::move(config), std::move(rng), std::move(clock)));
@@ -161,11 +213,14 @@ StealthTransportDecorator::StealthTransportDecorator(unique_ptr<IStreamTransport
     , rng_(std::move(rng))
     , clock_(std::move(clock))
     , ipt_controller_(config_.ipt_params, *rng_)
+    , chaff_scheduler_(config_, ipt_controller_, *rng_, clock_->now())
     , bypass_ring_(config_.ring_capacity)
     , ring_(config_.ring_capacity)
     , high_watermark_(config_.high_watermark)
     , low_watermark_(config_.low_watermark)
-    , drs_(config_.drs_policy, *rng_) {
+    , drs_(config_.drs_policy, *rng_)
+    , small_record_window_flags_(static_cast<size_t>(config_.record_padding_policy.small_record_window_size), 0)
+    , small_record_window_size_(small_record_window_flags_.size()) {
   CHECK(inner_ != nullptr);
   CHECK(rng_ != nullptr);
   CHECK(clock_ != nullptr);
@@ -177,8 +232,107 @@ StealthTransportDecorator::StealthTransportDecorator(unique_ptr<IStreamTransport
   }
 }
 
+int32 StealthTransportDecorator::apply_small_record_budget(int32 target_bytes) const {
+  auto threshold = config_.record_padding_policy.small_record_threshold;
+  if (target_bytes >= threshold || small_record_window_size_ == 0) {
+    return target_bytes;
+  }
+  if (small_record_count_ < max_small_records_in_window(config_)) {
+    return target_bytes;
+  }
+  return threshold;
+}
+
+int32 StealthTransportDecorator::apply_bidirectional_response_floor(TrafficHint hint, int32 target_bytes) {
+  if (hint != TrafficHint::Interactive || pending_response_floor_bytes_ <= 0) {
+    return target_bytes;
+  }
+  auto adjusted = std::max(target_bytes, pending_response_floor_bytes_);
+  pending_response_floor_bytes_ = 0;
+  return adjusted;
+}
+
+void consume_bidirectional_response_floor_on_greeting(TrafficHint hint, int32 &pending_response_floor_bytes) {
+  if (normalize_drs_hint(hint) == TrafficHint::Interactive) {
+    pending_response_floor_bytes = 0;
+  }
+}
+
+void StealthTransportDecorator::note_record_target(int32 target_bytes) {
+  if (small_record_window_size_ == 0) {
+    return;
+  }
+  auto threshold = config_.record_padding_policy.small_record_threshold;
+  uint8 is_small_record = target_bytes < threshold ? 1 : 0;
+  if (small_record_window_samples_ < small_record_window_size_) {
+    small_record_window_flags_[small_record_window_samples_] = is_small_record;
+    small_record_window_samples_++;
+  } else {
+    small_record_count_ -= small_record_window_flags_[small_record_window_index_];
+    small_record_window_flags_[small_record_window_index_] = is_small_record;
+    small_record_window_index_ = (small_record_window_index_ + 1) % small_record_window_size_;
+  }
+  small_record_count_ += is_small_record;
+}
+
+bool StealthTransportDecorator::is_greeting_phase_active() const {
+  return !has_manual_record_size_override_ &&
+         greeting_records_sent_ < config_.greeting_camouflage_policy.greeting_record_count;
+}
+
+void StealthTransportDecorator::note_greeting_record_emitted() {
+  last_greeting_record_size_ = current_record_size_;
+  greeting_records_sent_++;
+  if (greeting_records_sent_ == config_.greeting_camouflage_policy.greeting_record_count) {
+    drs_.prime_with_payload_cap(last_greeting_record_size_);
+  }
+}
+
+void StealthTransportDecorator::note_inbound_response(size_t bytes) {
+  if (!config_.bidirectional_correlation_policy.enabled) {
+    pending_response_floor_bytes_ = 0;
+    pending_post_response_jitter_us_ = 0;
+    clear_stale_queued_response_jitter();
+    return;
+  }
+
+  if (bytes <= static_cast<size_t>(config_.bidirectional_correlation_policy.small_response_threshold_bytes)) {
+    pending_response_floor_bytes_ = config_.bidirectional_correlation_policy.next_request_min_payload_cap;
+    pending_post_response_jitter_us_ =
+        sample_delay_us(config_.bidirectional_correlation_policy.post_response_delay_jitter_ms_min,
+                        config_.bidirectional_correlation_policy.post_response_delay_jitter_ms_max, *rng_);
+    return;
+  }
+
+  pending_response_floor_bytes_ = 0;
+  pending_post_response_jitter_us_ = 0;
+  clear_stale_queued_response_jitter();
+}
+
+void StealthTransportDecorator::clear_stale_queued_response_jitter() {
+  auto now = clock_->now();
+  auto clear_pending_jitter = [now](ShaperPendingWrite &pending_write) {
+    if (pending_write.response_jitter_delay_us == 0) {
+      return;
+    }
+    auto jitter_seconds = static_cast<double>(pending_write.response_jitter_delay_us) / 1e6;
+    auto adjusted_send_at = pending_write.send_at - jitter_seconds;
+    pending_write.send_at = adjusted_send_at < now ? now : adjusted_send_at;
+    pending_write.response_jitter_delay_us = 0;
+  };
+  bypass_ring_.for_each(clear_pending_jitter);
+  ring_.for_each(clear_pending_jitter);
+}
+
 Result<size_t> StealthTransportDecorator::read_next(BufferSlice *message, uint32 *quick_ack) {
-  return inner_->read_next(message, quick_ack);
+  auto result = inner_->read_next(message, quick_ack);
+  if (result.is_ok()) {
+    if (message != nullptr && !message->empty()) {
+      note_inbound_response(message->size());
+    }
+    chaff_scheduler_.note_activity(clock_->now());
+  }
+  return result;
 }
 
 bool StealthTransportDecorator::support_quick_ack() const {
@@ -188,11 +342,18 @@ bool StealthTransportDecorator::support_quick_ack() const {
 void StealthTransportDecorator::write(BufferWriter &&message, bool quick_ack) {
   auto hint = pending_hint_;
   pending_hint_ = TrafficHint::Unknown;
+  auto effective_hint = normalize_drs_hint(hint);
 
   auto has_pending_data = queued_write_count() != 0;
   auto delay_us = ipt_controller_.next_delay_us(has_pending_data, hint);
+  uint64 response_jitter_delay_us = 0;
+  if (effective_hint == TrafficHint::Interactive && pending_post_response_jitter_us_ != 0) {
+    response_jitter_delay_us = pending_post_response_jitter_us_;
+    delay_us = saturating_add(delay_us, response_jitter_delay_us);
+    pending_post_response_jitter_us_ = 0;
+  }
   auto send_at = clock_->now() + static_cast<double>(delay_us) / 1e6;
-  ShaperPendingWrite pending_write{std::move(message), quick_ack, send_at, hint};
+  ShaperPendingWrite pending_write{std::move(message), quick_ack, send_at, hint, response_jitter_delay_us};
   if (queued_write_count() >= config_.ring_capacity) {
     overflow_invariant_hits_++;
     fail_closed_on_ring_overflow();
@@ -226,7 +387,11 @@ size_t StealthTransportDecorator::max_prepend_size() const {
 }
 
 size_t StealthTransportDecorator::max_append_size() const {
-  return inner_->max_append_size();
+  auto append_size = inner_->max_append_size();
+  if (!inner_->supports_tls_record_sizing() || !has_manual_record_size_override_) {
+    return append_size;
+  }
+  return std::max(append_size, required_record_padding_append_reserve(current_record_size_));
 }
 
 TransportType StealthTransportDecorator::get_type() const {
@@ -234,7 +399,19 @@ TransportType StealthTransportDecorator::get_type() const {
 }
 
 bool StealthTransportDecorator::use_random_padding() const {
-  return inner_->use_random_padding();
+  return config_.crypto_padding_policy.enabled || inner_->use_random_padding();
+}
+
+void StealthTransportDecorator::configure_packet_info(PacketInfo *packet_info) const {
+  CHECK(packet_info != nullptr);
+  inner_->configure_packet_info(packet_info);
+  if (!config_.crypto_padding_policy.enabled) {
+    return;
+  }
+  packet_info->use_random_padding = true;
+  packet_info->use_stealth_padding = true;
+  packet_info->stealth_padding_min_bytes = config_.crypto_padding_policy.min_padding_bytes;
+  packet_info->stealth_padding_max_bytes = config_.crypto_padding_policy.max_padding_bytes;
 }
 
 void StealthTransportDecorator::pre_flush_write(double now) {
@@ -251,25 +428,41 @@ void StealthTransportDecorator::pre_flush_write(double now) {
     BatchBuilder *batch_ptr = nullptr;
     std::optional<BatchBuilder> batch;
     TransportPayloadOverhead batch_payload_overhead;
+    bool batch_uses_greeting = false;
+    size_t required_append_reserve = inner_->max_append_size();
+    size_t required_prepend_reserve = inner_->max_prepend_size();
     ring.drain_ready(now, [&](ShaperPendingWrite &pending_write) {
       auto hint = normalize_drs_hint(pending_write.hint);
       if (!batch.has_value()) {
         int32 payload_cap = current_record_size_;
         int32 effective_record_size = current_record_size_;
         TransportPayloadOverhead payload_overhead;
-        if (!has_manual_record_size_override_) {
-          payload_cap = drs_.next_payload_cap(hint);
-          current_record_size_ = clamp_tls_record_size(payload_cap);
+        if (is_greeting_phase_active()) {
+          payload_cap = config_.sample_greeting_record_size(greeting_records_sent_, *rng_);
+          current_record_size_ = std::min(apply_small_record_budget(payload_cap), kMaxGreetingRecordSize);
           payload_overhead.bytes = inner_->tls_record_sizing_payload_overhead();
           effective_record_size = adjust_tls_record_size_for_payload_overhead(current_record_size_, payload_overhead);
+          batch_uses_greeting = true;
+        } else if (!has_manual_record_size_override_) {
+          payload_cap = drs_.next_payload_cap(hint);
+          current_record_size_ =
+              apply_small_record_budget(clamp_tls_record_size(apply_bidirectional_response_floor(hint, payload_cap)));
+          payload_overhead.bytes = inner_->tls_record_sizing_payload_overhead();
+          effective_record_size = adjust_tls_record_size_for_payload_overhead(current_record_size_, payload_overhead);
+        } else {
+          current_record_size_ = apply_small_record_budget(current_record_size_);
+          effective_record_size = current_record_size_;
         }
         if (inner_->supports_tls_record_sizing()) {
           inner_->set_max_tls_record_size(effective_record_size);
+          inner_->set_stealth_record_padding_target(current_record_size_);
+          required_append_reserve =
+              std::max(required_append_reserve, required_record_padding_append_reserve(current_record_size_));
         }
-        batch.emplace(BatchLayout{current_record_size_, inner_->max_prepend_size(), inner_->max_append_size()}, hint);
+        batch.emplace(BatchLayout{current_record_size_, required_prepend_reserve, required_append_reserve}, hint);
         batch_ptr = &batch.value();
         batch_ptr->push(std::move(pending_write));
-        if (!has_manual_record_size_override_) {
+        if (!has_manual_record_size_override_ && !batch_uses_greeting) {
           batch_payload_overhead = payload_overhead;
         }
         return true;
@@ -291,19 +484,62 @@ void StealthTransportDecorator::pre_flush_write(double now) {
       auto merged = batch->take_coalesced_message();
       written_bytes = merged.size();
       inner_->write(std::move(merged), false);
+      note_record_target(current_record_size_);
+      if (batch_uses_greeting) {
+        consume_bidirectional_response_floor_on_greeting(batch->items().front().hint, pending_response_floor_bytes_);
+        note_greeting_record_emitted();
+      }
     } else {
       for (auto &item : batch->items()) {
         inner_->set_traffic_hint(item.hint);
+        if (inner_->supports_tls_record_sizing()) {
+          inner_->set_stealth_record_padding_target(current_record_size_);
+        }
+        item.message =
+            ensure_write_capacity(std::move(item.message), required_prepend_reserve, required_append_reserve);
         written_bytes += item.message.size();
         inner_->write(std::move(item.message), item.quick_ack);
+        note_record_target(current_record_size_);
+        if (batch_uses_greeting) {
+          consume_bidirectional_response_floor_on_greeting(item.hint, pending_response_floor_bytes_);
+          note_greeting_record_emitted();
+        }
       }
     }
 
-    if (!has_manual_record_size_override_) {
+    if (!has_manual_record_size_override_ && !batch_uses_greeting) {
       drs_.notify_bytes_written(account_transport_payload_overhead(written_bytes, batch_payload_overhead));
       has_drs_activity_ = true;
       last_drs_activity_at_ = now;
     }
+    chaff_scheduler_.note_activity(now);
+    return true;
+  };
+
+  auto write_idle_chaff = [this, now]() {
+    if (!chaff_scheduler_.should_emit(now, queued_write_count() != 0, inner_->can_write())) {
+      return false;
+    }
+
+    auto target_bytes = apply_small_record_budget(clamp_tls_record_size(chaff_scheduler_.current_target_bytes()));
+    auto effective_record_size = target_bytes;
+    if (inner_->supports_tls_record_sizing()) {
+      TransportPayloadOverhead payload_overhead;
+      payload_overhead.bytes = inner_->tls_record_sizing_payload_overhead();
+      effective_record_size = adjust_tls_record_size_for_payload_overhead(target_bytes, payload_overhead);
+      inner_->set_max_tls_record_size(effective_record_size);
+      inner_->set_stealth_record_padding_target(target_bytes);
+    }
+
+    auto append_reserve = inner_->max_append_size();
+    if (inner_->supports_tls_record_sizing()) {
+      append_reserve = std::max(append_reserve, required_record_padding_append_reserve(target_bytes));
+    }
+    inner_->set_traffic_hint(TrafficHint::Keepalive);
+    BufferWriter chaff(Slice(), inner_->max_prepend_size(), append_reserve);
+    inner_->write(std::move(chaff), false);
+    note_record_target(target_bytes);
+    chaff_scheduler_.note_chaff_emitted(now, static_cast<size_t>(target_bytes));
     return true;
   };
 
@@ -331,6 +567,8 @@ void StealthTransportDecorator::pre_flush_write(double now) {
   }
   while (write_batch(ring_)) {
   }
+
+  static_cast<void>(write_idle_chaff());
 
   inner_->pre_flush_write(now);
 
@@ -361,6 +599,13 @@ double StealthTransportDecorator::get_shaping_wakeup() const {
       has_wakeup = true;
     }
   }
+  auto chaff_wakeup = chaff_scheduler_.get_wakeup(clock_->now(), queued_write_count() != 0, inner_->can_write());
+  if (chaff_wakeup != 0.0) {
+    if (!has_wakeup || chaff_wakeup < wakeup) {
+      wakeup = chaff_wakeup;
+      has_wakeup = true;
+    }
+  }
   return has_wakeup ? wakeup : 0.0;
 }
 
@@ -370,9 +615,10 @@ void StealthTransportDecorator::set_traffic_hint(TrafficHint hint) {
 
 void StealthTransportDecorator::set_max_tls_record_size(int32 size) {
   has_manual_record_size_override_ = true;
-  current_record_size_ = clamp_tls_record_size(size);
+  current_record_size_ = apply_small_record_budget(clamp_tls_record_size(size));
   if (inner_->supports_tls_record_sizing()) {
     inner_->set_max_tls_record_size(current_record_size_);
+    inner_->set_stealth_record_padding_target(current_record_size_);
   }
 }
 

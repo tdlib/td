@@ -22,6 +22,7 @@ class DrsEngine final {
   int32 next_payload_cap(TrafficHint hint);
   void notify_bytes_written(size_t bytes);
   void notify_idle();
+  void prime_with_payload_cap(int32 payload_cap) noexcept;
 
   Phase current_phase() const noexcept {
     return phase_;
@@ -41,13 +42,20 @@ class DrsEngine final {
   size_t records_in_phase_{0};
   size_t bytes_in_phase_{0};
   int32 sampled_idle_reset_ms_{0};
+  int32 transition_anchor_cap_{-1};
+  int32 previous_cap_{-1};
   int32 last_cap_{-1};
   int32 last_cap_run_{0};
+  int32 monotonic_run_{0};
+  int8 last_direction_{0};
 
   const DrsPhaseModel &phase_model() const noexcept;
   int32 sample_from_phase(const DrsPhaseModel &model);
   int32 sample_weighted_bin_value(const DrsPhaseModel &model);
+  int32 score_candidate(const DrsPhaseModel &model, int32 candidate) const noexcept;
+  int32 smooth_phase_transition_candidate(int32 candidate) noexcept;
   void maybe_advance_phase();
+  void note_selected_cap(int32 cap) noexcept;
   void reset_run_state() noexcept;
 };
 

@@ -1061,7 +1061,7 @@ TEST(ContextEntropy, LightweightProfileAddsPaddingInsideBoringWindow) {
 PR-2 **реализован в основном production scope**, но не полностью завершён как release-grade capture program. В коде уже есть:
 
 - `BrowserProfile`, `ProfileSpec`, `ProfileFixtureMetadata`, `RuntimePlatformHints`, `EchMode`, `ExtensionOrderPolicy`.
-- snapshot-backed profile registry в `TlsHelloProfileRegistry.cpp` с verified Chromium lanes (`Chrome133`, `Chrome131`, `Chrome120`) и verified `Firefox148`, plus advisory `Safari26_3` / `IOS14` / `Android11_OkHttp`.
+- snapshot-backed profile registry в `TlsHelloProfileRegistry.cpp` с verified Chromium lanes (`Chrome133`, `Chrome131`, `Chrome120`) и verified `Firefox148`, plus advisory `Safari26_3` / `IOS14` / `Android11_OkHttp_Advisory`.
 - sticky runtime profile selection with platform filtering (`allowed_profiles_for_platform`, `pick_profile_sticky`, `pick_runtime_profile`).
 - RU/unknown default-off ECH route policy plus runtime circuit-breaker state and counters.
 - runtime wiring in `TlsInit.cpp`: actual production ClientHello path now uses selected runtime profile plus route-aware ECH decision.
@@ -1095,7 +1095,7 @@ V7 release-priority note по надёжности ClientHello:
 
 - verified rollout должен идти **Chromium-first**: сначала `chrome133_like`, затем `chrome131_like`, затем `chrome120_like`;
 - причина не в «любви к Chrome», а в качестве локальной доказательной базы: bundled uTLS уже содержит `HelloChrome_133/131/120`, `capture_chrome131.py --profile` покрывает `chrome133/chrome131/edge131`, а текущий runtime single-lane builder структурно ближе именно к Chromium-family (`ChromeShuffleAnchored`, `PQ=0x11EC`, `ALPN=h2/http/1.1`, текущий literal `ALPS=0x44CD` ближе к `Chrome133` family, чем к Firefox/Safari);
-- `Firefox148`, `Safari26_3`, `IOS14`, `Android11_OkHttp` могут жить в registry, но до появления реальных network-derived fixture ids остаются advisory и не должны конкурировать с verified Chromium lane за release verdict;
+- `Firefox148`, `Safari26_3`, `IOS14`, `Android11_OkHttp_Advisory` могут жить в registry, но до появления реальных network-derived fixture ids остаются advisory и не должны конкурировать с verified Chromium lane за release verdict;
 - `edge131` из `curl_cffi` полезен как corroborating Chromium-family capture, но не должен автоматически становиться отдельным runtime-profile без независимого browser-capture/snapshot triage.
 
 ### 6.2.1 Source Precedence И Provenance Rules
@@ -1193,7 +1193,7 @@ enum class BrowserProfile : uint8_t {
   Firefox148,
   Safari26_3,
   IOS14,
-  Android11_OkHttp,
+  Android11_OkHttp_Advisory,
 };
 
 enum class DeviceClass : uint8_t {
@@ -1272,13 +1272,13 @@ EchMode ech_mode_for_route(const NetworkRouteHints &route,
 - `BrowserProfile::Firefox148` -> `HelloFirefox_148`
 - `BrowserProfile::Safari26_3` -> `HelloSafari_26_3`
 - `BrowserProfile::IOS14` -> `HelloIOS_14`
-- `BrowserProfile::Android11_OkHttp` -> `HelloAndroid_11_OkHttp`
+- `BrowserProfile::Android11_OkHttp_Advisory` -> `HelloAndroid_11_OkHttp`
 
 ALPS codepoint задаётся fixture-значением профиля, а не глобальным правилом. Для текущего runtime-set в V6:
 
 - Chrome133: fixture-driven (в текущем bundled uTLS snapshot — `0x44CD`, `ApplicationSettingsExtensionNew`)
 - Chrome131/Chrome120: fixture-driven (в текущем bundled uTLS snapshot — `0x4469`, `ApplicationSettingsExtension`)
-- Firefox148/Safari26_3/IOS14/Android11_OkHttp: fixture-driven (может отсутствовать)
+- Firefox148/Safari26_3/IOS14/Android11_OkHttp_Advisory: fixture-driven (может отсутствовать)
 - В одном ClientHello запрещено одновременно иметь и `0x4469`, и `0x44CD`.
 
 Требование к provenance для ALPS policy:
@@ -1314,7 +1314,7 @@ Extension-order policy (audit-fix для пунктов S6/S24/S25 — V7 исп
 // Darwin: Chrome133=35, Chrome131=25, Chrome120=10, Safari26_3=20, Firefox148=10.
 // Non-Darwin: Chrome133=50, Chrome131=20, Chrome120=15, Safari26_3=0, Firefox148=15.
 // Mobile baseline example:
-// IOS14=70, Android11_OkHttp=30.
+// IOS14=70, Android11_OkHttp_Advisory=30.
 
 BrowserProfile pick_profile_sticky(const ProfileWeights &w,
                                    const SelectionKey &key,
@@ -1328,7 +1328,7 @@ BrowserProfile pick_profile_sticky(const ProfileWeights &w,
   if (platform.device_class == DeviceClass::Mobile) {
     // Class guard: mobile runtime uses only mobile snapshot set.
     if (roll < w.ios14) return BrowserProfile::IOS14;
-    return BrowserProfile::Android11_OkHttp;
+    return BrowserProfile::Android11_OkHttp_Advisory;
   }
 
   // Class guard: desktop runtime uses only desktop snapshot set,
@@ -1459,7 +1459,7 @@ static TlsHello build_hello_for_profile(const ProfileSpec &spec,
 1. Не фиксировать blanket-утверждения вроде "Safari всегда без PQ" или "Safari всегда без 3DES" без capture-подтверждения.
 2. Для профилей Safari/Firefox/Mobile инварианты должны быть fixture-driven и версионно-явными:
    - `Safari26_3` (из bundled uTLS snapshot) проверяется по его fixture;
-  - `IOS14` и `Android11_OkHttp` используются только в mobile class и только при валидных capture-fixtures;
+  - `IOS14` и `Android11_OkHttp_Advisory` используются только в mobile class и только при валидных capture-fixtures;
    - если нужен отдельный `SafariIos17`, сначала добавить pcap fixture и только потом включать в weighted selection.
 3. Исключить "legacy" профиль из runtime enum (никаких `FirefoxLegacy`), чтобы нельзя было случайно активировать его на проде.
 
@@ -1493,7 +1493,7 @@ TEST(ProfileSelection, MobileClassUsesOnlyMobileProfiles) {
   platform.device_class = DeviceClass::Mobile;
   for (int i = 0; i < 100; i++) {
     auto p = pick_profile_sticky(default_weights(), k, platform, allowed_mobile_profiles(), rng);
-    EXPECT_TRUE(p == BrowserProfile::IOS14 || p == BrowserProfile::Android11_OkHttp);
+    EXPECT_TRUE(p == BrowserProfile::IOS14 || p == BrowserProfile::Android11_OkHttp_Advisory);
   }
 }
 
@@ -1505,7 +1505,7 @@ TEST(ProfileSelection, DesktopClassNeverUsesMobileProfiles) {
   platform.desktop_os = DesktopOs::Linux;
   for (int i = 0; i < 100; i++) {
     auto p = pick_profile_sticky(default_weights(), k, platform, allowed_desktop_profiles(), rng);
-    EXPECT_FALSE(p == BrowserProfile::IOS14 || p == BrowserProfile::Android11_OkHttp);
+    EXPECT_FALSE(p == BrowserProfile::IOS14 || p == BrowserProfile::Android11_OkHttp_Advisory);
   }
 }
 
@@ -1653,7 +1653,7 @@ PR-2 считается готовым только если:
 
 ### 6.10.1 Текущий статус rollout (2026-04-06)
 
-- Дополнительный capture-сбор для `Safari26_3`, `IOS14` и `Android11_OkHttp` **идёт параллельно**; raw dumps и provenance notes собираются отдельно и ещё не считаются завершённой частью PR-2 release verdict.
+- Дополнительный capture-сбор для `Safari26_3`, `IOS14` и `Android11_OkHttp_Advisory` **идёт параллельно**; raw dumps и provenance notes собираются отдельно и ещё не считаются завершённой частью PR-2 release verdict.
 - На текущей ветке PR-2 уже достаточно продвинут, чтобы **начинать PR-3**: registry contracts, sticky profile selection, route-aware `EchMode`, verified Chromium lanes и capture-backed `Firefox148` lane уже существуют как production-facing зависимости для transport seam work.
 - Для batch-1 browser captures reproducible fixture-refresh loop уже materialized в коде: extractor, diff, frozen corpus и reviewed summary header существуют и используются PR-2 differential tests. Это закрывает не всю PR-2 capture story, но снимает основной риск ручного drift между pcap triage и test literals.
 - Ограничение: старт PR-3 **не означает**, что PR-2 полностью закрыт по Safari/mobile. Эти lane'ы остаются advisory до прихода parser-grade network-derived fixtures.
@@ -1673,7 +1673,7 @@ PR-2 считается готовым только если:
 Что остаётся частичным в PR-2:
 
 - provenance-checked curl_cffi refresh workflow описан в плане, но в production registry state не существует как enforced loader/process.
-- Safari26_3, IOS14 и Android11_OkHttp остаются advisory fixture families; release verdict по ним ещё нельзя считать закрытым.
+- Safari26_3, IOS14 и Android11_OkHttp_Advisory остаются advisory fixture families; release verdict по ним ещё нельзя считать закрытым.
 - registry уже snapshot-backed, но не hot-reloadable: runtime params loader остаётся будущим PR-8 scope.
 
 ---
@@ -2899,7 +2899,7 @@ PR-7 готов только если:
     },
     "mobile": {
       "IOS14": 70,
-      "Android11_OkHttp": 30
+      "Android11_OkHttp_Advisory": 30
     }
   },
   "route_policy": {
@@ -3019,7 +3019,7 @@ static bool StealthParamsLoader::validate(const StealthParamsOverride &p) noexce
         if (desktop_non_darwin_sum != 100) return false;
         if (p.weights.desktop_non_darwin.safari26_3 != 0) return false;
 
-    int mobile_sum = p.weights.mobile.ios14 + p.weights.mobile.android11_okhttp;
+    int mobile_sum = p.weights.mobile.ios14 + p.weights.mobile.android11_okhttp_advisory;
     if (mobile_sum != 100) return false;
 
     // Cross-class drift must stay disabled by default.
@@ -3365,7 +3365,7 @@ PR-9 — это не «один скрипт на JA3», а fail-closed smoke-st
       },
       "device_class": "mobile"
     },
-    "Android11_OkHttp": {
+    "Android11_OkHttp_Advisory": {
       "include_fixture_ids": ["<explicit-fixture-id>"],
       "allowed_tags": {
         "source_kind": ["browser_capture", "curl_cffi_capture", "utls_snapshot"],
@@ -3408,7 +3408,7 @@ PR-9 — это не «один скрипт на JA3», а fail-closed smoke-st
 Текущий status в этом файле:
 
 - `Chrome131` использует реальный fixture id (`fx_ch131_0001`);
-- `Chrome133`, `Chrome120`, `Firefox148`, `Safari26_3`, `IOS14`, `Android11_OkHttp` пока содержат `"<explicit-fixture-id>"` placeholder.
+- `Chrome133`, `Chrome120`, `Firefox148`, `Safari26_3`, `IOS14`, `Android11_OkHttp_Advisory` пока содержат `"<explicit-fixture-id>"` placeholder.
 - следующий verified lane должен быть `chrome133_like`, а не произвольный non-Chromium placeholder: локальная доказательная база для него сильнее всего (`HelloChrome_133` в bundled uTLS, `capture_chrome131.py --profile chrome133`, текущий runtime lane уже ближе к `ALPS=0x44CD` Chromium-family).
 
 Нормативный release-контракт:
@@ -4211,7 +4211,7 @@ telemt-stealth-params/   (git submodule, общий с telemt)
   - `check_flow_behavior.py`: connect-rate/reuse/lifetime в пределах capture-threshold, без reconnect-storm к одному destination
   - `check_flow_behavior.py`: destination concentration в окне сессии не выходит за policy-budget
   - `check_flow_behavior.py`: anti-churn guard соблюдён (reconnect interval >= `anti_churn_min_reconnect_interval_ms`)
-  - `check_fingerprint.py`: desktop runtime не выбирает mobile-профили (`IOS14`, `Android11_OkHttp`)
+  - `check_fingerprint.py`: desktop runtime не выбирает mobile-профили (`IOS14`, `Android11_OkHttp_Advisory`)
   - `check_fingerprint.py`: mobile runtime не выбирает desktop-профили (Chrome/Firefox/Safari desktop set)
   - `check_fingerprint.py`: non-Darwin desktop runtime не выбирает `Safari26_3`
   - `check_fingerprint.py`: profile соответствует platform hints (`device_class` + `os_family`)

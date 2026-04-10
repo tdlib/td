@@ -7,12 +7,11 @@
 
 #pragma once
 
+#include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/stealth/Interfaces.h"
 #include "td/mtproto/TransportType.h"
 
 #include "td/utils/buffer.h"
-#include "td/utils/common.h"
-#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -34,6 +33,10 @@ class IStreamTransport {
   virtual size_t max_append_size() const = 0;
   virtual TransportType get_type() const = 0;
   virtual bool use_random_padding() const = 0;
+  virtual void configure_packet_info(PacketInfo *packet_info) const {
+    CHECK(packet_info != nullptr);
+    packet_info->use_random_padding = use_random_padding();
+  }
   virtual void pre_flush_write(double now) {
   }
   virtual double get_shaping_wakeup() const {
@@ -42,6 +45,8 @@ class IStreamTransport {
   virtual void set_traffic_hint(stealth::TrafficHint hint) {
   }
   virtual void set_max_tls_record_size(int32 size) {
+  }
+  virtual void set_stealth_record_padding_target(int32 target_bytes) {
   }
   virtual bool supports_tls_record_sizing() const {
     return false;

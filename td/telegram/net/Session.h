@@ -6,7 +6,9 @@
 //
 #pragma once
 
+#include "td/telegram/net/ActiveConnectionLifecycleStateMachine.h"
 #include "td/telegram/net/AuthDataShared.h"
+#include "td/telegram/net/ConnectionRotationGateSnapshot.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
 
@@ -64,6 +66,7 @@ class Session final
     virtual void on_server_salt_updated(vector<mtproto::ServerSalt> server_salts) = 0;
     virtual void on_update(BufferSlice &&update, uint64 auth_key_id) = 0;
     virtual void on_result(NetQueryPtr net_query) = 0;
+    virtual ConnectionRotationGateSnapshot get_rotation_gate_snapshot() const = 0;
   };
 
   Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 raw_dc_id, int32 dc_id,
@@ -85,13 +88,13 @@ class Session final
     bool is_acknowledged_ = false;
     bool is_unknown_ = false;
 
-    const int8 connection_id_;
+    const int8 socket_id_;
     const double sent_at_;
 
-    Query(mtproto::MessageId message_id, NetQueryPtr &&net_query, int8 connection_id, double sent_at)
+    Query(mtproto::MessageId message_id, NetQueryPtr &&net_query, int8 socket_id, double sent_at)
         : container_message_id_(message_id)
         , net_query_(std::move(net_query))
-        , connection_id_(connection_id)
+        , socket_id_(socket_id)
         , sent_at_(sent_at) {
     }
 
@@ -152,7 +155,8 @@ class Session final
   ListNode sent_query_list_;
 
   struct ConnectionInfo {
-    int8 connection_id_ = 0;
+    int8 socket_id_ = 0;
+    ActiveConnectionLifecycleRole role_ = ActiveConnectionLifecycleRole::Main;
     Mode mode_ = Mode::Tcp;
     enum class State : int8 { Empty, Connecting, Ready } state_ = State::Empty;
     CancellationTokenSource cancellation_token_source_;
@@ -160,11 +164,15 @@ class Session final
     bool ask_info_ = false;
     double wakeup_at_ = 0;
     double created_at_ = 0;
+    double retire_at_ = 0;
+    ActiveConnectionLifecycleStateMachine lifecycle_{ActiveConnectionLifecycleRole::Main, 0, 0};
   };
 
   ConnectionInfo *current_info_ = nullptr;
   ConnectionInfo main_connection_;
   ConnectionInfo long_poll_connection_;
+  ConnectionInfo main_handover_connection_;
+  ConnectionInfo long_poll_handover_connection_;
   mtproto::ConnectionManager::ConnectionToken connection_token_;
 
   double cached_connection_timestamp_ = 0;
@@ -257,11 +265,16 @@ class Session final
   void connection_open(ConnectionInfo *info, double now, bool ask_info = false);
   void connection_add(unique_ptr<mtproto::RawConnection> raw_connection);
   void connection_check_mode(ConnectionInfo *info);
+  bool connection_has_inflight_queries(const ConnectionInfo *info) const;
+  bool connection_should_retire(const ConnectionInfo *info, double now) const;
   void connection_open_finish(ConnectionInfo *info, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection);
 
   void connection_online_update(double now, bool force);
   void connection_close(ConnectionInfo *info);
   void connection_flush(ConnectionInfo *info);
+  void activate_connection_handover(ConnectionInfo *primary, ConnectionInfo *handover);
+  void maybe_prepare_connection_handover(ConnectionInfo *primary, ConnectionInfo *handover, double now);
+  void maybe_retire_draining_connection(ConnectionInfo *info, double now);
   void connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_query, mtproto::MessageId message_id = {});
   bool need_send_bind_key() const;
   bool need_send_query() const;

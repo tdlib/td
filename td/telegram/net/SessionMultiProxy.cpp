@@ -13,7 +13,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
-#include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 
 namespace td {
@@ -37,6 +36,7 @@ SessionMultiProxy::SessionMultiProxy(int32 session_count, std::shared_ptr<AuthDa
 }
 
 void SessionMultiProxy::send(NetQueryPtr query) {
+  CHECK(!sessions_.empty());
   size_t pos = 0;
   if (query->auth_flag() == NetQuery::AuthFlag::On) {
     size_t session_rand = query->session_rand();
@@ -92,7 +92,7 @@ void SessionMultiProxy::update_options(int32 session_count, bool use_pfs, bool n
 
   bool is_changed = false;
 
-  session_count = clamp(session_count, 1, 100);
+  session_count = clamp(session_count, is_main_ ? 1 : 0, 100);
   if (session_count != session_count_) {
     session_count_ = session_count;
     LOG(INFO) << "Update session_count to " << session_count_;

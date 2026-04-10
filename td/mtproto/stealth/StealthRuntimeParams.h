@@ -57,7 +57,7 @@ struct RuntimeDesktopProfileWeights final {
 
 struct RuntimeMobileProfileWeights final {
   uint8 ios14{70};
-  uint8 android11_okhttp{30};
+  uint8 android11_okhttp_advisory{30};
 };
 
 struct RuntimeProfileSelectionPolicy final {

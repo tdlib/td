@@ -51,10 +51,13 @@ using td::mtproto::test::parse_tls_client_hello;
 TEST(TlsDpiEvasionAdversarial, SessionIdLengthMustBe32ForAllProfiles) {
   // Real Chrome/Firefox/Safari all send 32-byte session IDs for TLS 1.3 compatibility.
   // Non-standard lengths (0, 16, etc.) are a trivial DPI signal.
-  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,
-                                   BrowserProfile::Chrome120,       BrowserProfile::Firefox148,
-                                   BrowserProfile::Safari26_3,      BrowserProfile::IOS14,
-                                   BrowserProfile::Android11_OkHttp};
+  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
+                                   BrowserProfile::Chrome131,
+                                   BrowserProfile::Chrome120,
+                                   BrowserProfile::Firefox148,
+                                   BrowserProfile::Safari26_3,
+                                   BrowserProfile::IOS14,
+                                   BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : all_profiles) {
     MockRng rng(42);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678, profile,
@@ -70,10 +73,13 @@ TEST(TlsDpiEvasionAdversarial, SessionIdLengthMustBe32ForAllProfiles) {
 TEST(TlsDpiEvasionAdversarial, CompressionMethodsMustBeNullForTls13) {
   // TLS 1.3 ClientHello must advertise exactly one compression method: null (0x00).
   // Any other value is a protocol violation and DPI red flag.
-  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,
-                                   BrowserProfile::Chrome120,       BrowserProfile::Firefox148,
-                                   BrowserProfile::Safari26_3,      BrowserProfile::IOS14,
-                                   BrowserProfile::Android11_OkHttp};
+  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
+                                   BrowserProfile::Chrome131,
+                                   BrowserProfile::Chrome120,
+                                   BrowserProfile::Firefox148,
+                                   BrowserProfile::Safari26_3,
+                                   BrowserProfile::IOS14,
+                                   BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : all_profiles) {
     MockRng rng(42);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678, profile,
@@ -90,10 +96,13 @@ TEST(TlsDpiEvasionAdversarial, CompressionMethodsMustBeNullForTls13) {
 TEST(TlsDpiEvasionAdversarial, RecordLayerVersionMustBe0x0301) {
   // Real browsers use TLS record version 0x0301 (TLS 1.0) for backward compat.
   // Using 0x0303 is allowed but less common in TLS 1.3.
-  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,
-                                   BrowserProfile::Chrome120,       BrowserProfile::Firefox148,
-                                   BrowserProfile::Safari26_3,      BrowserProfile::IOS14,
-                                   BrowserProfile::Android11_OkHttp};
+  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
+                                   BrowserProfile::Chrome131,
+                                   BrowserProfile::Chrome120,
+                                   BrowserProfile::Firefox148,
+                                   BrowserProfile::Safari26_3,
+                                   BrowserProfile::IOS14,
+                                   BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : all_profiles) {
     MockRng rng(42);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678, profile,
@@ -108,10 +117,13 @@ TEST(TlsDpiEvasionAdversarial, RecordLayerVersionMustBe0x0301) {
 
 TEST(TlsDpiEvasionAdversarial, ClientHelloLegacyVersionMustBe0x0303) {
   // TLS 1.3 spec requires legacy_version = 0x0303 (TLS 1.2)
-  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,
-                                   BrowserProfile::Chrome120,       BrowserProfile::Firefox148,
-                                   BrowserProfile::Safari26_3,      BrowserProfile::IOS14,
-                                   BrowserProfile::Android11_OkHttp};
+  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
+                                   BrowserProfile::Chrome131,
+                                   BrowserProfile::Chrome120,
+                                   BrowserProfile::Firefox148,
+                                   BrowserProfile::Safari26_3,
+                                   BrowserProfile::IOS14,
+                                   BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : all_profiles) {
     MockRng rng(42);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678, profile,
@@ -144,10 +156,13 @@ TEST(TlsDpiEvasionAdversarial, SniExtensionMustContainProvidedDomain) {
 // --- Adversarial DPI Attack Vector 6: supported_versions must include 0x0304 ---
 
 TEST(TlsDpiEvasionAdversarial, SupportedVersionsMustIncludeTls13) {
-  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,
-                                   BrowserProfile::Chrome120,       BrowserProfile::Firefox148,
-                                   BrowserProfile::Safari26_3,      BrowserProfile::IOS14,
-                                   BrowserProfile::Android11_OkHttp};
+  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
+                                   BrowserProfile::Chrome131,
+                                   BrowserProfile::Chrome120,
+                                   BrowserProfile::Firefox148,
+                                   BrowserProfile::Safari26_3,
+                                   BrowserProfile::IOS14,
+                                   BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : all_profiles) {
     MockRng rng(42);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678, profile,
@@ -389,10 +404,13 @@ TEST(TlsDpiEvasionAdversarial, ChromeProfilesMustNotHaveRecordSizeLimitExtension
 TEST(TlsDpiEvasionAdversarial, NoDuplicateExtensionTypesAllowed) {
   // RFC 8446 Section 4.2: "There MUST NOT be more than one extension of
   // the same type in a given extension block." DPI can flag duplicates.
-  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,
-                                   BrowserProfile::Chrome120,       BrowserProfile::Firefox148,
-                                   BrowserProfile::Safari26_3,      BrowserProfile::IOS14,
-                                   BrowserProfile::Android11_OkHttp};
+  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
+                                   BrowserProfile::Chrome131,
+                                   BrowserProfile::Chrome120,
+                                   BrowserProfile::Firefox148,
+                                   BrowserProfile::Safari26_3,
+                                   BrowserProfile::IOS14,
+                                   BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : all_profiles) {
     for (td::uint64 seed = 0; seed < 50; seed++) {
       MockRng rng(seed);

@@ -37,12 +37,14 @@ class RawConnection;
 
 class SessionCallback final : public Session::Callback {
  public:
-  SessionCallback(ActorShared<SessionProxy> parent, DcId dc_id, bool allow_media_only, bool is_media, uint32 hash)
+  SessionCallback(ActorShared<SessionProxy> parent, DcId dc_id, bool allow_media_only, bool is_media, uint32 hash,
+                  std::shared_ptr<ConnectionRotationGateSnapshotHandle> rotation_gate_snapshot)
       : parent_(std::move(parent))
       , dc_id_(dc_id)
       , allow_media_only_(allow_media_only)
       , is_media_(is_media)
-      , hash_(hash) {
+      , hash_(hash)
+      , rotation_gate_snapshot_(std::move(rotation_gate_snapshot)) {
   }
 
   void on_failed() final {
@@ -56,7 +58,7 @@ class SessionCallback final : public Session::Callback {
   void request_raw_connection(unique_ptr<mtproto::AuthData> auth_data,
                               Promise<unique_ptr<mtproto::RawConnection>> promise) final {
     send_closure(G()->connection_creator(), &ConnectionCreator::request_raw_connection, dc_id_, allow_media_only_,
-                 is_media_, std::move(promise), hash_, std::move(auth_data));
+                 is_media_, std::move(promise), rotation_gate_snapshot_, hash_, std::move(auth_data));
   }
 
   void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) final {
@@ -85,12 +87,20 @@ class SessionCallback final : public Session::Callback {
     G()->net_query_dispatcher().dispatch(std::move(query));
   }
 
+  ConnectionRotationGateSnapshot get_rotation_gate_snapshot() const final {
+    if (rotation_gate_snapshot_ == nullptr) {
+      return ConnectionRotationGateSnapshot{};
+    }
+    return rotation_gate_snapshot_->get();
+  }
+
  private:
   ActorShared<SessionProxy> parent_;
   DcId dc_id_;
   bool allow_media_only_ = false;
   bool is_media_ = false;
   uint32 hash_ = 0;
+  std::shared_ptr<ConnectionRotationGateSnapshotHandle> rotation_gate_snapshot_;
 };
 
 SessionProxy::SessionProxy(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data,
@@ -240,9 +250,11 @@ void SessionProxy::open_session(bool force) {
     send_closure_later(G()->td(), &Td::on_update, telegram_api::make_object<telegram_api::updates>(),
                        tmp_auth_key_.id());
   }
+  auto rotation_gate_snapshot = std::make_shared<ConnectionRotationGateSnapshotHandle>();
   session_ = create_actor<Session>(
       name,
-      make_unique<SessionCallback>(actor_shared(this, session_generation_), dc_id, allow_media_only_, is_media_, hash),
+      td::make_unique<SessionCallback>(actor_shared(this, session_generation_), dc_id, allow_media_only_, is_media_,
+                                       hash, rotation_gate_snapshot),
       auth_data_, raw_dc_id, int_dc_id, is_primary_, is_main_, use_pfs_, persist_tmp_auth_key_, is_cdn_,
       need_destroy_auth_key_, tmp_auth_key_, server_salts_);
 }

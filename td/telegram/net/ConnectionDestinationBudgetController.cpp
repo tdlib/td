@@ -81,6 +81,11 @@ double ConnectionDestinationBudgetController::get_wakeup_at(double now, const De
   return std::max(wakeup_at, first_destination_expiry);
 }
 
+bool ConnectionDestinationBudgetController::allows_overlap_at(
+    double now, const DestinationKey &destination, const mtproto::stealth::RuntimeFlowBehaviorPolicy &policy) {
+  return get_wakeup_at(now, destination, policy) <= now;
+}
+
 void ConnectionDestinationBudgetController::on_connect_started(
     double now, const DestinationKey &destination, const mtproto::stealth::RuntimeFlowBehaviorPolicy &policy) {
   prune_old_attempts(now);

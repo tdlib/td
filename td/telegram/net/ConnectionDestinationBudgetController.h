@@ -28,6 +28,8 @@ class ConnectionDestinationBudgetController final {
 
   double get_wakeup_at(double now, const DestinationKey &destination,
                        const mtproto::stealth::RuntimeFlowBehaviorPolicy &policy);
+  bool allows_overlap_at(double now, const DestinationKey &destination,
+                         const mtproto::stealth::RuntimeFlowBehaviorPolicy &policy);
   void on_connect_started(double now, const DestinationKey &destination,
                           const mtproto::stealth::RuntimeFlowBehaviorPolicy &policy);
 

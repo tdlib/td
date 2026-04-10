@@ -106,6 +106,10 @@ class RecordingTransport final : public IStreamTransport {
     max_tls_record_sizes.push_back(size);
   }
 
+  void set_stealth_record_padding_target(int32 target_bytes) override {
+    stealth_record_padding_targets.push_back(target_bytes);
+  }
+
   bool supports_tls_record_sizing() const final {
     return supports_tls_record_sizing_result;
   }
@@ -134,6 +138,7 @@ class RecordingTransport final : public IStreamTransport {
   std::vector<bool> written_quick_acks;
   std::vector<string> written_payloads;
   std::vector<int32> max_tls_record_sizes;
+  std::vector<int32> stealth_record_padding_targets;
 
  private:
   mutable int remaining_writes_in_cycle_{-1};

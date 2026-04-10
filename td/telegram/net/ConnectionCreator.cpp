@@ -49,6 +49,55 @@
 
 namespace td {
 
+namespace {
+
+int64 lifecycle_now_ms(double now_seconds = Time::now()) {
+  return static_cast<int64>(now_seconds * 1000.0);
+}
+
+string sanitize_lifecycle_label(Slice debug_str) {
+  string result = debug_str.str();
+  for (auto &c : result) {
+    if (c == '|') {
+      c = '/';
+    }
+  }
+  if (result.empty()) {
+    result = "unknown";
+  }
+  return result;
+}
+
+string make_lifecycle_destination(const IPAddress &ip_address, Slice debug_str) {
+  return PSTRING() << ip_address << '|' << sanitize_lifecycle_label(debug_str);
+}
+
+Slice active_policy_name(mtproto::stealth::RuntimeActivePolicy policy) {
+  switch (policy) {
+    case mtproto::stealth::RuntimeActivePolicy::RuEgress:
+      return Slice("ru_egress");
+    case mtproto::stealth::RuntimeActivePolicy::NonRuEgress:
+      return Slice("non_ru_egress");
+    case mtproto::stealth::RuntimeActivePolicy::Unknown:
+    default:
+      return Slice("unknown");
+  }
+}
+
+bool quic_enabled_for_active_policy(const mtproto::stealth::StealthRuntimeParams &params) {
+  switch (params.active_policy) {
+    case mtproto::stealth::RuntimeActivePolicy::RuEgress:
+      return params.route_policy.ru.allow_quic;
+    case mtproto::stealth::RuntimeActivePolicy::NonRuEgress:
+      return params.route_policy.non_ru.allow_quic;
+    case mtproto::stealth::RuntimeActivePolicy::Unknown:
+    default:
+      return params.route_policy.unknown.allow_quic;
+  }
+}
+
+}  // namespace
+
 int VERBOSITY_NAME(connections) = VERBOSITY_NAME(INFO);
 
 namespace detail {
@@ -56,21 +105,29 @@ namespace detail {
 class StatsCallback final : public mtproto::RawConnection::StatsCallback {
  public:
   StatsCallback(std::shared_ptr<NetStatsCallback> net_stats_callback, ActorId<ConnectionCreator> connection_creator,
-                uint32 hash, DcOptionsSet::Stat *option_stat)
+                uint32 hash, DcOptionsSet::Stat *option_stat,
+                std::shared_ptr<td::ConnectionLifecycleReportBuilder> connection_lifecycle_report)
       : net_stats_callback_(std::move(net_stats_callback))
       , connection_creator_(std::move(connection_creator))
       , hash_(hash)
-      , option_stat_(option_stat) {
+      , option_stat_(option_stat)
+      , connection_lifecycle_report_(std::move(connection_lifecycle_report)) {
   }
 
   void on_read(uint64 bytes) final {
     if (net_stats_callback_ != nullptr) {
       net_stats_callback_->on_read(bytes);
     }
+    if (connection_lifecycle_report_ && connection_id_ != 0) {
+      connection_lifecycle_report_->add_read(connection_id_, bytes);
+    }
   }
   void on_write(uint64 bytes) final {
     if (net_stats_callback_ != nullptr) {
       net_stats_callback_->on_write(bytes);
+    }
+    if (connection_lifecycle_report_ && connection_id_ != 0) {
+      connection_lifecycle_report_->add_write(connection_id_, bytes);
     }
   }
 
@@ -91,11 +148,62 @@ class StatsCallback final : public mtproto::RawConnection::StatsCallback {
     send_closure(connection_creator_, &ConnectionCreator::on_mtproto_error, hash_);
   }
 
+  void on_connection_open(uint64 connection_id, Slice destination, int64 started_at_ms) final {
+    connection_id_ = connection_id;
+    if (connection_lifecycle_report_) {
+      connection_lifecycle_report_->begin_connection(connection_id_, destination.str(), started_at_ms, false);
+    }
+  }
+
+  void on_connection_reused() final {
+    if (connection_lifecycle_report_ && connection_id_ != 0) {
+      connection_lifecycle_report_->mark_reused(connection_id_);
+    }
+  }
+
+  void on_connection_closed(int64 ended_at_ms) final {
+    if (connection_lifecycle_report_ && connection_id_ != 0) {
+      connection_lifecycle_report_->end_connection(connection_id_, ended_at_ms);
+    }
+  }
+
+  void on_connection_role(Slice role) final {
+    if (connection_lifecycle_report_ && connection_id_ != 0) {
+      connection_lifecycle_report_->set_role(connection_id_, role);
+    }
+  }
+
+  void on_connection_rotation_reason(Slice reason) final {
+    if (connection_lifecycle_report_ && connection_id_ != 0) {
+      connection_lifecycle_report_->set_rotation_reason(connection_id_, reason);
+    }
+  }
+
+  void on_connection_successor_opened(int64 successor_opened_at_ms) final {
+    if (connection_lifecycle_report_ && connection_id_ != 0) {
+      connection_lifecycle_report_->set_successor_opened_at(connection_id_, successor_opened_at_ms);
+    }
+  }
+
+  void on_connection_overlap(uint64 overlap_ms) final {
+    if (connection_lifecycle_report_ && connection_id_ != 0) {
+      connection_lifecycle_report_->set_overlap_ms(connection_id_, overlap_ms);
+    }
+  }
+
+  void on_connection_over_age_status(bool over_age_degraded, Slice exemption) final {
+    if (connection_lifecycle_report_ && connection_id_ != 0) {
+      connection_lifecycle_report_->set_over_age_status(connection_id_, over_age_degraded, exemption);
+    }
+  }
+
  private:
   std::shared_ptr<NetStatsCallback> net_stats_callback_;
   ActorId<ConnectionCreator> connection_creator_;
   uint32 hash_;
   DcOptionsSet::Stat *option_stat_;
+  std::shared_ptr<td::ConnectionLifecycleReportBuilder> connection_lifecycle_report_;
+  uint64 connection_id_{0};
 };
 
 }  // namespace detail
@@ -147,6 +255,12 @@ void ConnectionCreator::set_net_stats_callback(std::shared_ptr<NetStatsCallback>
                                                std::shared_ptr<NetStatsCallback> media_callback) {
   common_net_stats_callback_ = std::move(common_callback);
   media_net_stats_callback_ = std::move(media_callback);
+}
+
+string ConnectionCreator::get_connection_lifecycle_report_json() const {
+  auto runtime_params = mtproto::stealth::get_runtime_stealth_params_snapshot();
+  return connection_lifecycle_report_->to_json(active_policy_name(runtime_params.active_policy),
+                                               quic_enabled_for_active_policy(runtime_params));
 }
 
 void ConnectionCreator::add_proxy(int32 old_proxy_id, td_api::object_ptr<td_api::proxy> proxy, bool enable,
@@ -266,7 +380,16 @@ ActorId<GetHostByNameActor> ConnectionCreator::get_dns_resolver() {
 
 void ConnectionCreator::ping_proxy(td_api::object_ptr<td_api::proxy> input_proxy, Promise<double> promise) {
   CHECK(!close_flag_);
-  if (input_proxy == nullptr) {
+  Proxy active_proxy = active_proxy_id_ == 0 ? Proxy() : proxies_[active_proxy_id_];
+  Proxy requested_proxy;
+  Proxy *requested_proxy_ptr = nullptr;
+  if (input_proxy != nullptr) {
+    TRY_RESULT_PROMISE(promise, requested_proxy, Proxy::create_proxy(input_proxy.get()));
+    requested_proxy_ptr = &requested_proxy;
+  }
+  auto proxy = resolve_effective_ping_proxy(active_proxy, requested_proxy_ptr);
+
+  if (!proxy.use_proxy()) {
     auto main_dc_id = G()->net_query_dispatcher().get_main_dc_id();
     bool prefer_ipv6 = G()->get_option_boolean("prefer_ipv6");
     auto infos = dc_options_set_.find_all_connections(main_dc_id, false, false, prefer_ipv6, false);
@@ -310,7 +433,6 @@ void ConnectionCreator::ping_proxy(td_api::object_ptr<td_api::proxy> input_proxy
     return;
   }
 
-  TRY_RESULT_PROMISE(promise, proxy, Proxy::create_proxy(input_proxy.get()));
   bool prefer_ipv6 = G()->get_option_boolean("prefer_ipv6");
   send_closure(get_dns_resolver(), &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
                PromiseCreator::lambda(
@@ -558,9 +680,10 @@ void ConnectionCreator::on_mtproto_error(uint32 hash) {
   client.mtproto_error_flood_control.add_event(Time::now_cached());
 }
 
-void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only, bool is_media,
-                                               Promise<unique_ptr<mtproto::RawConnection>> promise, uint32 hash,
-                                               unique_ptr<mtproto::AuthData> auth_data) {
+void ConnectionCreator::request_raw_connection(
+    DcId dc_id, bool allow_media_only, bool is_media, Promise<unique_ptr<mtproto::RawConnection>> promise,
+    std::shared_ptr<ConnectionRotationGateSnapshotHandle> rotation_gate_snapshot, uint32 hash,
+    unique_ptr<mtproto::AuthData> auth_data) {
   auto &client = clients_[hash];
   if (!client.inited) {
     client.inited = true;
@@ -574,6 +697,9 @@ void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only
     CHECK(client.allow_media_only == allow_media_only);
     CHECK(client.is_media == is_media);
   }
+  if (rotation_gate_snapshot != nullptr) {
+    client.rotation_gate_snapshot = std::move(rotation_gate_snapshot);
+  }
   client.auth_data = std::move(auth_data);
   client.auth_data_generation++;
   VLOG(connections) << "Request connection for " << tag("client", format::as_hex(client.hash)) << " to " << dc_id << " "
@@ -583,9 +709,49 @@ void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only
   client_loop(client);
 }
 
+Result<ConnectionCreator::RawIpConnectionRoute> ConnectionCreator::resolve_raw_ip_connection_route(
+    const Proxy &proxy, const IPAddress &proxy_ip_address, const IPAddress &target_ip_address) {
+  if (proxy.use_proxy() && !proxy_ip_address.is_valid()) {
+    return Status::Error("Proxy IP address is invalid");
+  }
+
+  RawIpConnectionRoute route;
+  route.debug_str = PSTRING() << "to IP address " << target_ip_address;
+
+  if (!proxy.use_proxy()) {
+    route.socket_ip_address = target_ip_address;
+    return std::move(route);
+  }
+
+  if (proxy.use_mtproto_proxy()) {
+    route.socket_ip_address = proxy_ip_address;
+    route.debug_str = PSTRING() << "MTProto " << proxy_ip_address << ' ' << route.debug_str;
+    return std::move(route);
+  }
+
+  if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy()) {
+    route.socket_ip_address = proxy_ip_address;
+    route.mtproto_ip_address = target_ip_address;
+    route.debug_str = PSTRING() << (proxy.use_socks5_proxy() ? "Socks5" : "HTTP_TCP") << ' ' << proxy_ip_address
+                                << " --> " << target_ip_address << ' ' << route.debug_str;
+    return std::move(route);
+  }
+
+  return Status::Error("HTTP caching proxy is unsupported for explicit IP connection requests");
+}
+
+Proxy ConnectionCreator::resolve_effective_ping_proxy(const Proxy &active_proxy, const Proxy *requested_proxy) {
+  if (requested_proxy != nullptr) {
+    return *requested_proxy;
+  }
+  return active_proxy;
+}
+
 void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtproto::TransportType transport_type,
                                                      Promise<unique_ptr<mtproto::RawConnection>> promise) {
-  TRY_RESULT_PROMISE(promise, socket_fd, SocketFd::open(ip_address));
+  Proxy proxy = active_proxy_id_ == 0 ? Proxy() : proxies_[active_proxy_id_];
+  TRY_RESULT_PROMISE(promise, route, resolve_raw_ip_connection_route(proxy, proxy_ip_address_, ip_address));
+  TRY_RESULT_PROMISE(promise, socket_fd, SocketFd::open(route.socket_ip_address));
 
   auto connection_promise = PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
                                                     transport_type, network_generation = network_generation_,
@@ -601,8 +767,8 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtpro
   });
 
   auto token = next_token();
-  auto ref = prepare_connection(ip_address, std::move(socket_fd), Proxy(), IPAddress(), transport_type, "Raw",
-                                PSTRING() << "to IP address " << ip_address, nullptr, create_reference(token), false,
+  auto ref = prepare_connection(route.socket_ip_address, std::move(socket_fd), proxy, route.mtproto_ip_address,
+                                transport_type, "Raw", route.debug_str, nullptr, create_reference(token), false,
                                 std::move(connection_promise));
   if (!ref.empty()) {
     children_[token] = {false, std::move(ref)};
@@ -792,6 +958,9 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
   td::remove_if(client.ready_connections, [&, now = Time::now_cached()](auto &v) {
     bool drop = ConnectionPoolPolicy::is_pooled_connection_expired(v.second, now, ClientInfo::READY_CONNECTIONS_TIMEOUT,
                                                                    runtime_params.flow_behavior);
+    if (drop && v.first && v.first->stats_callback()) {
+      v.first->stats_callback()->on_connection_closed(lifecycle_now_ms(now));
+    }
     VLOG_IF(connections, drop) << "Drop expired " << tag("connection", v.first.get());
     return drop;
   });
@@ -837,6 +1006,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       }
     }
 
+    auto now = Time::now();
     bool act_as_if_online = online_flag_ || is_logging_out_;
     // Check flood
     auto &flood_control = act_as_if_online ? client.flood_control_online : client.flood_control;
@@ -846,15 +1016,16 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     if (!act_as_if_online) {
       wakeup_at = max(wakeup_at, static_cast<double>(client.backoff.get_wakeup_at()));
     }
-    wakeup_at = max(wakeup_at, client.flow_controller.get_wakeup_at(Time::now(), runtime_params.flow_behavior));
-    wakeup_at = max(wakeup_at, destination_budget_controller_.get_wakeup_at(Time::now(), get_destination_key(client),
+    wakeup_at = max(wakeup_at, client.flow_controller.get_wakeup_at(now, runtime_params.flow_behavior));
+    wakeup_at = max(wakeup_at, destination_budget_controller_.get_wakeup_at(now, get_destination_key(client),
                                                                             runtime_params.flow_behavior));
-    if (wakeup_at > Time::now()) {
+    publish_rotation_gate_snapshot(client, runtime_params.flow_behavior, now);
+    if (wakeup_at > now) {
       return client_set_timeout_at(client, wakeup_at);
     }
-    client.sanity_flood_control.add_event(Time::now());
+    client.sanity_flood_control.add_event(now);
     if (!act_as_if_online) {
-      client.backoff.add_event(static_cast<int32>(Time::now()));
+      client.backoff.add_event(static_cast<int32>(now));
     }
 
     // Create new RawConnection
@@ -871,10 +1042,10 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     }
 
     // Events with failed socket creation are ignored
-    flood_control.add_event(Time::now());
-    client.flow_controller.on_connect_started(Time::now(), runtime_params.flow_behavior);
-    destination_budget_controller_.on_connect_started(Time::now(), get_destination_key(client),
-                                                      runtime_params.flow_behavior);
+    flood_control.add_event(now);
+    client.flow_controller.on_connect_started(now, runtime_params.flow_behavior);
+    destination_budget_controller_.on_connect_started(now, get_destination_key(client), runtime_params.flow_behavior);
+    publish_rotation_gate_snapshot(client, runtime_params.flow_behavior, now);
 
     auto socket_fd = r_socket_fd.move_as_ok();
 #if !TD_DARWIN_WATCH_OS
@@ -905,7 +1076,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
 
     auto stats_callback =
         td::make_unique<detail::StatsCallback>(client.is_media ? media_net_stats_callback_ : common_net_stats_callback_,
-                                               actor_id(this), client.hash, extra.stat);
+                                               actor_id(this), client.hash, extra.stat, connection_lifecycle_report_);
     auto token = next_token();
     auto ref = prepare_connection(extra.ip_address, std::move(socket_fd), proxy, extra.mtproto_ip_address,
                                   extra.transport_type, Slice(), extra.debug_str, std::move(stats_callback),
@@ -924,6 +1095,20 @@ ConnectionDestinationBudgetController::DestinationKey ConnectionCreator::get_des
   destination.allow_media_only = client.allow_media_only;
   destination.is_media = client.is_media;
   return destination;
+}
+
+void ConnectionCreator::publish_rotation_gate_snapshot(ClientInfo &client,
+                                                       const mtproto::stealth::RuntimeFlowBehaviorPolicy &policy,
+                                                       double now) {
+  if (client.rotation_gate_snapshot == nullptr) {
+    return;
+  }
+
+  ConnectionRotationGateSnapshot snapshot;
+  snapshot.anti_churn_allows_rotation = client.flow_controller.allows_rotation_at(now, policy);
+  snapshot.destination_budget_allows_overlap =
+      destination_budget_controller_.allows_overlap_at(now, get_destination_key(client), policy);
+  client.rotation_gate_snapshot->set(snapshot);
 }
 
 void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_connection_data, bool check_mode,
@@ -965,6 +1150,11 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
       mtproto::RawConnection::create(connection_data.ip_address, std::move(connection_data.buffered_socket_fd),
                                      std::move(transport_type), std::move(connection_data.stats_callback));
   raw_connection->set_connection_token(std::move(connection_data.connection_token));
+  if (raw_connection->stats_callback()) {
+    raw_connection->stats_callback()->on_connection_open(
+        reinterpret_cast<uint64>(raw_connection.get()),
+        make_lifecycle_destination(connection_data.ip_address, debug_str), lifecycle_now_ms());
+  }
 
   raw_connection->extra().extra = network_generation;
   raw_connection->extra().debug_str = debug_str;

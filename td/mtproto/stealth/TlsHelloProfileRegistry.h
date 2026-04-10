@@ -25,9 +25,10 @@ enum class BrowserProfile : uint8 {
   Chrome131,
   Chrome120,
   Firefox148,
+  Firefox149_MacOS26_3,
   Safari26_3,
   IOS14,
-  Android11_OkHttp,
+  Android11_OkHttp_Advisory,
 };
 
 enum class DeviceClass : uint8 {
@@ -93,7 +94,7 @@ struct ProfileWeights final {
   uint8 firefox148{15};
   uint8 safari26_3{20};
   uint8 ios14{70};
-  uint8 android11_okhttp{30};
+  uint8 android11_okhttp_advisory{30};
 };
 
 struct ProfileSpec final {

@@ -19,6 +19,8 @@ Files:
 - `check_ipt.py`: PR-9 IPT smoke gate over deterministic JSON artifacts with fail-closed canonical route metadata, QUIC-off enforcement, log-normal fit thresholds, keepalive bypass checks, detector-visible stall checks, and non-finite metric rejection.
 - `check_drs.py`: PR-9 DRS smoke gate over TLS record payload size artifacts with fail-closed canonical route metadata, QUIC-off enforcement, anti-2878 regression checks, anti-repeat checks, histogram-distance thresholds, and non-finite metric rejection.
 - `check_flow_behavior.py`: PR-9 cadence/reuse smoke gate over connection-flow artifacts with fail-closed canonical route metadata, QUIC-off enforcement, anti-churn checks, destination-share checks, lifetime/reuse thresholds aligned with runtime flow policy, and non-finite policy rejection.
+- `extract_tls_connection_lifetime_baselines.py`: parser-driven extractor for TCP connection lifetime baseline artifacts with fail-closed SYN/close markers, overlap extraction, idle-gap percentiles, and per-destination concurrency envelopes.
+- `check_connection_lifetime_distribution.py`: lifecycle smoke gate that compares connection-flow artifacts against a reviewed lifetime baseline while reusing the existing anti-churn, destination-share, and pinned-socket checks.
 - `check_fixture_registry_complete.py`: fail-closed registry gate for placeholder fixture ids, missing required fixture tags, advisory-code-sample contamination, and incomplete release-gating provenance.
 - `extract_server_hello_fixtures.py`: parser-driven extractor for authoritative ServerHello tuples and TLS record-layout signatures from real TCP TLS captures.
 - `generate_server_hello_fixture_corpus.py`: one-command corpus refresh that mirrors the checked-in ClientHello tree into ServerHello artifacts using registry-authoritative family ids and prunes stale outputs.
@@ -160,9 +162,22 @@ python3 test/analysis/check_flow_behavior.py \
   --artifact artifacts/flow_behavior_smoke.json \
   --policy-json artifacts/flow_policy.json \
   --report-out artifacts/flow_behavior_report.json
+
+python3 test/analysis/extract_tls_connection_lifetime_baselines.py \
+  --pcap docs/Samples/Traffic\ dumps/example-lifetime-capture.pcapng \
+  --profile-family desktop_http1_proxy_like \
+  --out artifacts/connection_lifecycle_baseline.json
+
+python3 test/analysis/check_connection_lifetime_distribution.py \
+  --artifact artifacts/flow_behavior_smoke.json \
+  --baseline-json artifacts/connection_lifecycle_baseline.json \
+  --policy-json artifacts/flow_policy.json \
+  --report-out artifacts/connection_lifetime_report.json
 ```
 
 These three analyzers currently consume parser-agnostic JSON smoke artifacts rather than raw `pcap` input directly. That keeps the smoke verdict deterministic and testable while the dedicated capture/extraction steps for IPT, DRS, and flow telemetry are still being built out.
+
+The new lifetime extractor fails closed if a stream is missing an opening SYN, lacks an explicit close marker, or tries to mix incompatible cover-family labels like `http11` and `http2` inside one baseline family. The lifetime checker then layers baseline-envelope validation on top of `check_flow_behavior.py`, so pinned sockets, periodic reconnects, overlap spikes, and destination monopolies are rejected by one combined smoke report.
 
 Smoke artifact metadata is fail-closed: `active_policy` must already be one of the canonical PR-9 values (`unknown`, `ru_egress`, `non_ru_egress`) and `quic_enabled` must be exactly `false`. Numeric thresholds and measured telemetry must be finite numbers; `NaN` and `inf` inputs are rejected as schema/policy failures instead of being normalized or silently accepted.
 

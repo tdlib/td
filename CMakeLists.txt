@@ -312,6 +312,7 @@ set(TD_MTPROTO_SOURCE
   td/mtproto/SessionConnection.cpp
   td/mtproto/TcpTransport.cpp
   td/mtproto/TlsInit.cpp
+  td/mtproto/stealth/ChaffScheduler.cpp
   td/mtproto/stealth/DrsEngine.cpp
   td/mtproto/stealth/IptController.cpp
   td/mtproto/stealth/StealthConfig.cpp
@@ -561,6 +562,9 @@ set(TDLIB_SOURCE_PART1
 )
 set(TDLIB_SOURCE_PART2
   td/telegram/net/AuthDataShared.cpp
+  td/telegram/net/ActiveConnectionLifecycleStateMachine.cpp
+  td/telegram/net/ConnectionLifecyclePolicy.cpp
+  td/telegram/net/ConnectionLifecycleReport.cpp
   td/telegram/net/ConnectionDestinationBudgetController.cpp
   td/telegram/net/ConnectionFlowController.cpp
   td/telegram/net/ConnectionPoolPolicy.cpp
@@ -581,6 +585,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/net/PublicRsaKeySharedCdn.cpp
   td/telegram/net/PublicRsaKeySharedMain.cpp
   td/telegram/net/PublicRsaKeyWatchdog.cpp
+  td/telegram/net/StealthConnectionCountPolicy.cpp
   td/telegram/net/Session.cpp
   td/telegram/net/SessionMultiProxy.cpp
   td/telegram/net/SessionProxy.cpp
@@ -955,6 +960,8 @@ set(TDLIB_SOURCE_PART2
   td/telegram/MissingInvitee.h
   td/telegram/net/AuthDataShared.h
   td/telegram/net/AuthKeyState.h
+  td/telegram/net/ConnectionLifecyclePolicy.h
+  td/telegram/net/ConnectionLifecycleReport.h
   td/telegram/net/ConnectionCreator.h
   td/telegram/net/DcAuthManager.h
   td/telegram/net/DcId.h

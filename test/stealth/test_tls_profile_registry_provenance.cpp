@@ -23,7 +23,8 @@ bool is_network_derived(ProfileFixtureSourceKind source_kind) {
 
 TEST(TlsProfileRegistryProvenance, VerifiedProfilesRequireNetworkPrimarySourceAndSnapshotCorroboration) {
   for (auto profile :
-       {BrowserProfile::Chrome133, BrowserProfile::Chrome131, BrowserProfile::Chrome120, BrowserProfile::Firefox148}) {
+       {BrowserProfile::Chrome133, BrowserProfile::Chrome131, BrowserProfile::Chrome120, BrowserProfile::Firefox148,
+        BrowserProfile::Firefox149_MacOS26_3}) {
     auto metadata = profile_fixture_metadata(profile);
     ASSERT_TRUE(metadata.trust_tier == ProfileTrustTier::Verified);
     ASSERT_TRUE(is_network_derived(metadata.source_kind));
@@ -34,7 +35,7 @@ TEST(TlsProfileRegistryProvenance, VerifiedProfilesRequireNetworkPrimarySourceAn
 }
 
 TEST(TlsProfileRegistryProvenance, AdvisoryProfilesRemainOutOfReleaseVerdictWithoutNetworkClosure) {
-  for (auto profile : {BrowserProfile::Safari26_3, BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp}) {
+  for (auto profile : {BrowserProfile::Safari26_3, BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp_Advisory}) {
     auto metadata = profile_fixture_metadata(profile);
     ASSERT_TRUE(metadata.trust_tier == ProfileTrustTier::Advisory);
     ASSERT_FALSE(metadata.release_gating);

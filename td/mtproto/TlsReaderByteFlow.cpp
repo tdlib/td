@@ -12,7 +12,36 @@
 namespace td {
 namespace mtproto {
 
+namespace {
+
+const Slice kFakeChangeCipherSpec("\x14\x03\x03\x00\x01\x01", 6);
+
+}  // namespace
+
 bool TlsReaderByteFlow::loop() {
+  if (!first_change_cipher_spec_checked_) {
+    auto input_size = input_->size();
+    if (input_size != 0 && input_size < kFakeChangeCipherSpec.size()) {
+      auto it = input_->clone();
+      uint8 prefix[6] = {0};
+      it.advance(input_size, MutableSlice(prefix, input_size));
+      if (Slice(reinterpret_cast<const char *>(prefix), input_size) == kFakeChangeCipherSpec.substr(0, input_size)) {
+        set_need_size(kFakeChangeCipherSpec.size());
+        return false;
+      }
+    }
+
+    if (input_size >= kFakeChangeCipherSpec.size()) {
+      auto it = input_->clone();
+      uint8 prefix[6];
+      it.advance(kFakeChangeCipherSpec.size(), MutableSlice(prefix, kFakeChangeCipherSpec.size()));
+      if (Slice(reinterpret_cast<const char *>(prefix), kFakeChangeCipherSpec.size()) == kFakeChangeCipherSpec) {
+        *input_ = std::move(it);
+      }
+    }
+    first_change_cipher_spec_checked_ = true;
+  }
+
   if (input_->size() < 5) {
     set_need_size(5);
     return false;

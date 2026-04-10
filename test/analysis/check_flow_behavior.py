@@ -203,6 +203,41 @@ def _violates_anti_churn(connections: list[dict[str, Any]], anti_churn_min_recon
     return False
 
 
+def _violates_periodic_reconnect_pattern(
+    connections: list[dict[str, Any]], max_conn_lifetime_ms: int, anti_churn_min_reconnect_interval_ms: int
+) -> bool:
+    by_destination: dict[str, list[dict[str, Any]]] = {}
+    for connection in connections:
+        if connection["bytes_sent"] <= 0:
+            continue
+        by_destination.setdefault(connection["destination"], []).append(connection)
+
+    for destination_connections in by_destination.values():
+        if len(destination_connections) < 4:
+            continue
+
+        starts = [connection["started_at_ms"] for connection in destination_connections]
+        lifetimes = [connection["ended_at_ms"] - connection["started_at_ms"] for connection in destination_connections]
+        intervals = [current - previous for previous, current in zip(starts, starts[1:])]
+        if len(intervals) < 3:
+            continue
+
+        median_lifetime = statistics.median(lifetimes)
+        mean_interval = statistics.mean(intervals)
+        if median_lifetime < max_conn_lifetime_ms * 0.60:
+            continue
+
+        allowed_interval_spread = max(anti_churn_min_reconnect_interval_ms, int(mean_interval * 0.05))
+        allowed_lifetime_spread = max(anti_churn_min_reconnect_interval_ms, int(median_lifetime * 0.08))
+        interval_spread = max(intervals) - min(intervals)
+        lifetime_spread = max(lifetimes) - min(lifetimes)
+
+        if interval_spread <= allowed_interval_spread and lifetime_spread <= allowed_lifetime_spread:
+            return True
+
+    return False
+
+
 def check_flow_behavior(report: dict[str, Any], policy: dict[str, Any]) -> list[str]:
     failures = validate_smoke_scenario(report)
     failures.extend(validate_flow_policy(policy))
@@ -235,6 +270,9 @@ def check_flow_behavior(report: dict[str, Any], policy: dict[str, Any]) -> list[
 
     if any(lifetime > max_conn_lifetime_ms and connection["bytes_sent"] > 0 for lifetime, connection in zip(lifetimes, connections)):
         append_failure_once(failures, "pinned-socket-anomaly")
+
+    if _violates_periodic_reconnect_pattern(connections, max_conn_lifetime_ms, anti_churn_min_reconnect_interval_ms):
+        append_failure_once(failures, "periodic-reconnect-pattern")
 
     if _violates_destination_share(connections, max_destination_share):
         append_failure_once(failures, "destination-share")

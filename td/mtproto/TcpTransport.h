@@ -40,6 +40,10 @@ class IntermediateTransport {
   // Writes header inplace.
   void write_prepare_inplace(BufferWriter *message, bool quick_ack);
 
+  void set_stealth_target_frame_size(size_t target) {
+    stealth_target_frame_size_ = target;
+  }
+
   // Writes first several bytes into output stream.
   void init_output_stream(ChainBufferWriter *stream);
 
@@ -49,6 +53,7 @@ class IntermediateTransport {
 
  private:
   bool with_padding_;
+  size_t stealth_target_frame_size_{0};
 };
 
 class OldTransport final : public IStreamTransport {
@@ -138,7 +143,10 @@ class ObfuscatedTransport final : public IStreamTransport {
   }
 
   size_t max_append_size() const final {
-    return 15;
+    if (!secret_.emulate_tls() || stealth_record_padding_target_ <= 0) {
+      return 15;
+    }
+    return static_cast<size_t>(std::max<int32>(15, stealth_record_padding_target_ - 4));
   }
 
   TransportType get_type() const final {
@@ -151,6 +159,11 @@ class ObfuscatedTransport final : public IStreamTransport {
 
   void set_max_tls_record_size(int32 size) final {
     max_tls_packet_length_ = std::max<int32>(256, std::min<int32>(size, 16384));
+  }
+
+  void set_stealth_record_padding_target(int32 target_bytes) final {
+    stealth_record_padding_target_ = std::max<int32>(0, std::min<int32>(target_bytes, max_tls_packet_length_));
+    impl_.set_stealth_target_frame_size(static_cast<size_t>(stealth_record_padding_target_));
   }
 
   bool supports_tls_record_sizing() const final {
@@ -168,6 +181,14 @@ class ObfuscatedTransport final : public IStreamTransport {
     return overhead;
   }
 
+#if TD_HAVE_OPENSSL
+  AesCtrState clone_input_cipher_state_for_tests() const {
+    AesCtrState state;
+    state.init(as_slice(input_key_), as_slice(input_iv_));
+    return state;
+  }
+#endif
+
  private:
   int16 dc_id_;
   bool is_first_tls_packet_{true};
@@ -178,9 +199,12 @@ class ObfuscatedTransport final : public IStreamTransport {
   AesCtrByteFlow aes_ctr_byte_flow_;
   ByteFlowSink byte_flow_sink_;
   ChainBufferReader *input_ = nullptr;
+  UInt256 input_key_{};
+  UInt128 input_iv_{};
 
   static constexpr int32 MAX_TLS_PACKET_LENGTH = 2878;
   int32 max_tls_packet_length_{MAX_TLS_PACKET_LENGTH};
+  int32 stealth_record_padding_target_{0};
 
   // TODO: use ByteFlow?
   // One problem is that BufferedFd owns output_buffer_

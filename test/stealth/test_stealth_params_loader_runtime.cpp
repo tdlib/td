@@ -71,7 +71,7 @@ TEST(StealthParamsLoaderRuntime, ReloadPublishesLastKnownGoodSnapshotToRuntimeCo
              "\"version\":1,"
              "\"profile_weights\":{"
              "\"chrome133\":50,\"chrome131\":20,\"chrome120\":15,\"firefox148\":15,"
-             "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp\":30},"
+             "\"safari26_3\":20,\"ios14\":70,\"android11_okhttp_advisory\":30},"
              "\"route_policy\":{"
              "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
              "\"ru\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"

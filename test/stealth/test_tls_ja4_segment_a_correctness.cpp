@@ -244,9 +244,13 @@ TEST(TlsJa4SegmentACorrectness, CipherCountExcludesGreaseForAllProfiles) {
 
 TEST(TlsJa4SegmentACorrectness, TlsVersionIs13ForAllModernProfiles) {
   BrowserProfile profiles[] = {
-      BrowserProfile::Chrome133,        BrowserProfile::Chrome131,  BrowserProfile::Chrome120,
-      BrowserProfile::Firefox148,       BrowserProfile::Safari26_3, BrowserProfile::IOS14,
-      BrowserProfile::Android11_OkHttp,
+      BrowserProfile::Chrome133,
+      BrowserProfile::Chrome131,
+      BrowserProfile::Chrome120,
+      BrowserProfile::Firefox148,
+      BrowserProfile::Safari26_3,
+      BrowserProfile::IOS14,
+      BrowserProfile::Android11_OkHttp_Advisory,
   };
   for (auto profile : profiles) {
     MockRng rng(42);

@@ -30,6 +30,7 @@ class IptController final {
   explicit IptController(const IptParams &params, IRng &rng);
 
   uint64 next_delay_us(bool has_pending_data, TrafficHint hint);
+  uint64 sample_idle_delay_us();
 
  private:
   enum class State : uint8 { Idle = 0, Burst = 1 };

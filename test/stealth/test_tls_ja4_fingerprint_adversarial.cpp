@@ -281,10 +281,13 @@ TEST(TlsJa4FingerprintAdversarial, Ja4AlpnFieldMustBeH1ForProxyMode) {
 }
 
 TEST(TlsJa4FingerprintAdversarial, Ja4AlpnMustNeverBe00ForAnyProfile) {
-  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,
-                                   BrowserProfile::Chrome120,       BrowserProfile::Firefox148,
-                                   BrowserProfile::Safari26_3,      BrowserProfile::IOS14,
-                                   BrowserProfile::Android11_OkHttp};
+  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
+                                   BrowserProfile::Chrome131,
+                                   BrowserProfile::Chrome120,
+                                   BrowserProfile::Firefox148,
+                                   BrowserProfile::Safari26_3,
+                                   BrowserProfile::IOS14,
+                                   BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : all_profiles) {
     MockRng rng(42);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678, profile,
@@ -366,10 +369,13 @@ TEST(TlsJa4FingerprintAdversarial, SafariJa4MustBeFullyDeterministicAcrossConnec
 }
 
 TEST(TlsJa4FingerprintAdversarial, Ja4TlsVersionFieldMustBe13ForAllProfiles) {
-  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,
-                                   BrowserProfile::Chrome120,       BrowserProfile::Firefox148,
-                                   BrowserProfile::Safari26_3,      BrowserProfile::IOS14,
-                                   BrowserProfile::Android11_OkHttp};
+  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
+                                   BrowserProfile::Chrome131,
+                                   BrowserProfile::Chrome120,
+                                   BrowserProfile::Firefox148,
+                                   BrowserProfile::Safari26_3,
+                                   BrowserProfile::IOS14,
+                                   BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : all_profiles) {
     MockRng rng(42);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678, profile,

@@ -130,6 +130,19 @@ def write_flow_artifact(artifact_path: pathlib.Path, *, active_policy: str = "no
     artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
 
 
+def write_record_size_artifact(
+    artifact_path: pathlib.Path,
+    *,
+    record_payload_sizes,
+    first_flight=None,
+):
+    artifact = {
+        "record_payload_sizes": list(record_payload_sizes),
+        "first_flight_c2s_sizes": [list(first_flight or [])],
+    }
+    artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+
+
 def make_registry(capture_path: pathlib.Path) -> dict:
     return {
         "contamination_guard": {
@@ -185,6 +198,23 @@ def make_registry(capture_path: pathlib.Path) -> dict:
                 "ech_type": "0xFE0D",
             },
         },
+        "record_size_baseline_policy": {
+            "reference_sizes": [182, 205, 312, 380, 517, 640, 780, 1200, 1450, 16384, 15000, 14080],
+            "greeting_ranges": [[150, 260], [450, 700], [250, 400]],
+            "small_record_threshold": 200,
+            "small_record_max_fraction": 0.10,
+            "bulk_record_threshold": 12000,
+            "bulk_record_min_fraction": 0.15,
+            "bucket_boundaries": [64, 128, 192, 256, 384, 512, 768, 1024, 1280],
+            "bucket_overhead": 9,
+            "bucket_tolerance": 16,
+            "bucket_excess_ratio_threshold": 1.5,
+            "max_lag1_autocorrelation_abs": 0.4,
+            "max_adjacent_size_ratio": 3.0,
+            "ks_min_pvalue": 0.05,
+            "chi_squared_min_pvalue": 0.05,
+            "bin_width": 50,
+        },
     }
 
 
@@ -204,6 +234,8 @@ class RunCorpusSmokeTest(unittest.TestCase):
         self.drs_root.mkdir(parents=True)
         self.flow_root = self.base_dir / "fixtures" / "flow"
         self.flow_root.mkdir(parents=True)
+        self.record_size_root = self.base_dir / "fixtures" / "record_sizes"
+        self.record_size_root.mkdir(parents=True)
         self.registry_path = self.base_dir / "profiles_validation.json"
 
     def tearDown(self) -> None:
@@ -227,6 +259,85 @@ class RunCorpusSmokeTest(unittest.TestCase):
         self.assertEqual(1, report["artifact_count"])
         self.assertEqual(1, report["sample_count"])
         self.assertEqual(1, report["telemetry"]["profiles"]["ChromeGood"]["sample_count"])
+
+    def test_reports_record_size_distribution_failures_when_record_size_corpus_is_provided(self) -> None:
+        registry = make_registry(self.capture_path)
+        self.registry_path.write_text(json.dumps(registry), encoding="utf-8")
+        write_clienthello_artifact(
+            self.fixtures_root / "linux_desktop" / "chrome_good.clienthello.json",
+            profile_id="ChromeGood",
+            route_mode="non_ru_egress",
+            source_path=self.capture_path,
+            source_sha256=read_sha256(self.capture_path),
+        )
+        artifact_path = self.record_size_root / "bucketed.record_sizes.json"
+        write_record_size_artifact(
+            artifact_path,
+            record_payload_sizes=[73, 73, 73, 137, 137, 137, 265, 265, 265, 393, 393, 393, 521, 521, 521],
+            first_flight=[73, 265, 137],
+        )
+
+        report = run_corpus_smoke(
+            self.registry_path,
+            self.fixtures_root,
+            record_size_fixtures_root=self.record_size_root,
+        )
+
+        self.assertFalse(report["ok"])
+        self.assertEqual(1, report["record_size_artifact_count"])
+        self.assertEqual(15, report["record_size_sample_count"])
+        self.assertIn("bucket-quantization", report["record_size_artifacts"][0]["failures"])
+        self.assertIn(
+            f"record_size[{artifact_path}]: bucket-quantization",
+            report["failures"],
+        )
+
+    def test_accepts_extractor_style_record_size_artifact_in_smoke(self) -> None:
+        registry = make_registry(self.capture_path)
+        self.registry_path.write_text(json.dumps(registry), encoding="utf-8")
+        write_clienthello_artifact(
+            self.fixtures_root / "linux_desktop" / "chrome_good.clienthello.json",
+            profile_id="ChromeGood",
+            route_mode="non_ru_egress",
+            source_path=self.capture_path,
+            source_sha256=read_sha256(self.capture_path),
+        )
+        artifact_path = self.record_size_root / "extractor_style.record_sizes.json"
+        artifact = {
+            "connections": [
+                {
+                    "records": [
+                        {"direction": "c2s", "tls_record_size": 205},
+                        {"direction": "s2c", "tls_record_size": 380},
+                        {"direction": "c2s", "tls_record_size": 517},
+                        {"direction": "s2c", "tls_record_size": 900},
+                        {"direction": "c2s", "tls_record_size": 312},
+                        {"direction": "s2c", "tls_record_size": 800},
+                        {"direction": "c2s", "tls_record_size": 780},
+                        {"direction": "s2c", "tls_record_size": 2200},
+                        {"direction": "c2s", "tls_record_size": 1450},
+                        {"direction": "s2c", "tls_record_size": 4200},
+                        {"direction": "c2s", "tls_record_size": 3000},
+                        {"direction": "s2c", "tls_record_size": 9000},
+                        {"direction": "c2s", "tls_record_size": 5000},
+                        {"direction": "s2c", "tls_record_size": 14080},
+                        {"direction": "c2s", "tls_record_size": 6000},
+                        {"direction": "s2c", "tls_record_size": 15000},
+                        {"direction": "s2c", "tls_record_size": 16384},
+                    ]
+                }
+            ]
+        }
+        artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+
+        report = run_corpus_smoke(
+            self.registry_path,
+            self.fixtures_root,
+            record_size_fixtures_root=self.record_size_root,
+        )
+
+        self.assertTrue(report["record_size_artifacts"][0]["ok"])
+        self.assertEqual([], report["record_size_artifacts"][0]["failures"])
 
     def test_reports_artifact_scoped_fingerprint_failures(self) -> None:
         registry = make_registry(self.capture_path)

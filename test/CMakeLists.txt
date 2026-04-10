@@ -11,8 +11,15 @@ endif()
 set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/country_info.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/connection_destination_budget_controller.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/connection_destination_budget_controller_rotation.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/connection_lifecycle_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/connection_pool_policy.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/connection_rotation_gate_snapshot.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/connection_flow_controller.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/connection_flow_controller_rotation.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/connection_lifecycle_report.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/connection_lifecycle_report_rotation.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/active_connection_lifecycle_state_machine.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/db.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/http.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/link.cpp
@@ -84,6 +91,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_wakeup_seam.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_wakeup_overdue_shaping.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_raw_connection_flush_order.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_raw_connection_crypto_padding_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_raw_connection_shaping_wakeup_seam.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_raw_connection_hints.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_handshake_bootstrap_hints.cpp
@@ -93,18 +101,24 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_ack_min_threshold_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_ack_truncation_runtime_drift_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_inbound_ack_container_drift_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_record_size_sequence_hardening_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_record_size_sequence_hardening_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_hint_wiring.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_hint_control_mix_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_hint_wiring_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_service_ack_mix_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_phase_hint_drift_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ping_connection_hint_wiring.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_proxy_route_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_ping_proxy_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_config_manager_recovery_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_profile_record_limit.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_ipt_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_ipt_nonfinite_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_ipt_overflow_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_fail_closed.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_record_padding_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_runtime_params.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_hint_adversarial.cpp
@@ -121,7 +135,46 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_first_write_overhead_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_partial_budget.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_zero_write_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_camouflage.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_runtime_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_fail_closed.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_policy_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_drs_prime_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_repeated_prime_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_transition_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_contention_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_contention_soak.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_mixed_hint_contention_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_backlog_matrix_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_cap_boundary_matrix_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_post_handshake_greeting_override_cross_matrix_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_greeting_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bidirectional_size_correlation.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bidirectional_size_correlation_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bidirectional_size_correlation_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bidirectional_size_correlation_greeting_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bidirectional_size_correlation_wire_size_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bidirectional_size_correlation_unknown_hint.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bidirectional_size_correlation_unknown_hint_greeting.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bidirectional_size_correlation_chaff_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bidirectional_zero_length_chaff_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bidirectional_response_jitter.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bidirectional_response_jitter_queue_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bidirectional_response_jitter_zero_length_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_bidirectional_fail_closed.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_idle_chaff_traffic.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_idle_chaff_traffic_budget_boundaries.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_idle_chaff_traffic_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_idle_chaff_traffic_inbound_activity_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_idle_chaff_traffic_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_idle_chaff_traffic_seed_matrix.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_idle_chaff_traffic_wakeup_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_chaff_fail_closed.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_chaff_nonfinite_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_record_size_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_record_padding_budget.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_record_padding_budget_interactions.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_wakeup_edge_cases.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_contract_edges.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_overflow_fail_closed.cpp
@@ -147,11 +200,28 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_drs_engine_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_drs_engine_bulkdata_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_drs_engine_zero_write_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_plateau_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_state_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_prime_idle_skew.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_jitter_range_fuzz.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_weighted_skew.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_weighted_skew_stress.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_light_fuzz.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_seed_matrix.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_connection_count_cap.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_connection_count_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_connection_count_matrix.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_connection_count_hardening.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_connection_count_overflow_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_alpn_connection_coherence.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_shaper_ring_buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_shaper_ring_buffer_stress.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_activation_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_seam.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_drs_wire.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_record_size_sequence_hardening_wire.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_drs_primer_transition_wire.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_drs_distribution_wire.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_drs_jitter_distribution_wire.cpp
@@ -159,6 +229,16 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_drs_weight_overflow_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_drs_jitter_overflow_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_record_sizing.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_record_padding_target.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_record_padding_target_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_record_padding_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_record_padding_deep_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_record_padding_stress.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_record_padding_small_budget.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_record_padding_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_mtproto_crypto_padding_bucket_elimination.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_mtproto_crypto_padding_bucket_elimination_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_mtproto_crypto_padding_bucket_elimination_fuzz.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_traffic_classifier.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_traffic_classifier_threshold_edges.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_traffic_classifier_service_ack_adversarial.cpp
@@ -170,6 +250,29 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_mlkem_coefficient_distribution.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_extension_order_entropy_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_total_length_distribution_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_chrome_extension_set_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_chrome_grease_uniformity_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_chrome_ech_payload_uniformity_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_chrome_permutation_position_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_alps_type_consistency_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_grease_slot_independence_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_firefox_invariance_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_firefox_macos_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_ja3_ja4_stability_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_safari26_3_invariance_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_ios_apple_tls_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_ios_chromium_gap_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_android_chromium_alps_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_android_chromium_no_alps_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_wire_size_distribution_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_adversarial_dpi_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_fixed_mobile_profile_invariance_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_cross_platform_contamination_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_hmac_timestamp_adversarial_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_grease_autocorrelation_adversarial_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_cross_platform_contamination_extended_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_structural_key_material_stress_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_record_size_baselines.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_builder_length_agreement_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_cross_connection_fingerprint_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_hmac_timing_security.cpp
@@ -220,17 +323,48 @@ if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
 
   add_executable(test-tdutils EXCLUDE_FROM_ALL ${TESTS_MAIN} ${TDUTILS_TEST_SOURCE})
   add_executable(test-online EXCLUDE_FROM_ALL online.cpp)
+  add_executable(run_session_record_size_sequence_hardening_adversarial_tests EXCLUDE_FROM_ALL
+                 ${TESTS_MAIN}
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_record_size_sequence_hardening_adversarial.cpp)
+  add_executable(run_record_size_sequence_hardening_tests EXCLUDE_FROM_ALL
+                 ${TESTS_MAIN}
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_drs_distribution.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_drs_engine.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_drs_engine_adversarial.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_drs_engine_bulkdata_adversarial.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_drs_engine_zero_write_adversarial.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_adversarial.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_plateau_edges.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_state_edges.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_prime_idle_skew.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_jitter_range_fuzz.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_weighted_skew.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_weighted_skew_stress.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_record_size_sequence_hardening_integration.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_record_size_sequence_hardening_wire.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_light_fuzz.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_record_size_sequence_hardening_seed_matrix.cpp
+                 ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_drs_primer_transition_wire.cpp)
   add_executable(run_all_tests ${TESTS_MAIN} ${TD_TEST_SOURCE})
   if (CLANG AND NOT CYGWIN AND NOT EMSCRIPTEN AND NOT (CMAKE_SYSTEM_NAME MATCHES "OpenBSD") AND NOT (CMAKE_SIZEOF_VOID_P EQUAL 4))
     target_compile_options(test-tdutils PUBLIC -fsanitize=undefined -fno-sanitize=vptr)
+    target_compile_options(run_session_record_size_sequence_hardening_adversarial_tests PUBLIC -fsanitize=undefined -fno-sanitize=vptr)
+    target_compile_options(run_record_size_sequence_hardening_tests PUBLIC -fsanitize=undefined -fno-sanitize=vptr)
     target_compile_options(run_all_tests PUBLIC -fsanitize=undefined -fno-sanitize=vptr)
     target_compile_options(test-online PUBLIC -fsanitize=undefined -fno-sanitize=vptr)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined -fno-sanitize=vptr")
   endif()
+  target_include_directories(run_session_record_size_sequence_hardening_adversarial_tests
+                             PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+  target_include_directories(run_record_size_sequence_hardening_tests
+                             PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
   target_include_directories(run_all_tests PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
   target_include_directories(test-tdutils PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
   target_link_libraries(test-tdutils PRIVATE tdutils)
-  target_link_libraries(run_all_tests PRIVATE tdcore tdclient)
+  target_link_libraries(run_session_record_size_sequence_hardening_adversarial_tests PRIVATE tdcore tdclient)
+  target_link_libraries(run_record_size_sequence_hardening_tests PRIVATE tdcore tdclient)
+  target_link_libraries(run_all_tests PRIVATE tdclient tdcore tdclient tdcore)
   target_link_libraries(test-online PRIVATE tdcore tdjson_private tdclient tdutils tdactor)
 
   if (CLANG)

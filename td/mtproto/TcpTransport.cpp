@@ -63,12 +63,18 @@ void IntermediateTransport::write_prepare_inplace(BufferWriter *message, bool qu
 
   size_t append_size = 0;
   if (with_padding()) {
-    append_size = Random::secure_uint32() % 16;
+    if (stealth_target_frame_size_ > size + prepend_size) {
+      append_size = stealth_target_frame_size_ - (size + prepend_size);
+    } else {
+      append_size = Random::secure_uint32() % 16;
+    }
     MutableSlice append = message->prepare_append().substr(0, append_size);
     CHECK(append.size() == append_size);
     Random::secure_bytes(append);
     message->confirm_append(append.size());
   }
+
+  stealth_target_frame_size_ = 0;
 
   as<uint32>(message->as_mutable_slice().begin()) = static_cast<uint32>(size + append_size);
 }
@@ -126,7 +132,9 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
     }
   };
   fix_key(key);
-  aes_ctr_byte_flow_.init(key, as<UInt128>(rheader.data() + 8 + 32));
+  input_key_ = key;
+  input_iv_ = as<UInt128>(rheader.data() + 8 + 32);
+  aes_ctr_byte_flow_.init(input_key_, input_iv_);
   if (secret_.emulate_tls()) {
     tls_reader_byte_flow_.set_input(input_);
     tls_reader_byte_flow_ >> aes_ctr_byte_flow_;

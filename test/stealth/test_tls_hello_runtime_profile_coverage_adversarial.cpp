@@ -142,7 +142,7 @@ TEST(TlsHelloRuntimeProfileCoverageAdversarial, DefaultNonDarwinDesktopSelection
       auto profile = pick_runtime_profile(domain, unix_time, platform);
       ASSERT_TRUE(profile != BrowserProfile::Safari26_3);
       ASSERT_TRUE(profile != BrowserProfile::IOS14);
-      ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp);
+      ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
       seen_profiles.insert(static_cast<int>(profile));
       if (seen_profiles.size() == 4u) {
         done = true;

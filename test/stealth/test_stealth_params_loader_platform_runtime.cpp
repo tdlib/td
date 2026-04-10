@@ -94,7 +94,7 @@ TEST(StealthParamsLoaderPlatformRuntime, ReloadPublishesPlatformHintsToRuntimeCo
              "\"Chrome133\":35,\"Chrome131\":25,\"Chrome120\":10,\"Safari26_3\":20,\"Firefox148\":10},"
              "\"desktop_non_darwin\":{"
              "\"Chrome133\":50,\"Chrome131\":20,\"Chrome120\":15,\"Safari26_3\":0,\"Firefox148\":15},"
-             "\"mobile\":{\"IOS14\":0,\"Android11_OkHttp\":100}},"
+             "\"mobile\":{\"IOS14\":0,\"Android11_OkHttp_Advisory\":100}},"
              "\"route_policy\":{"
              "\"unknown\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
              "\"ru_egress\":{\"ech_mode\":\"disabled\",\"allow_quic\":false},"
@@ -116,7 +116,7 @@ TEST(StealthParamsLoaderPlatformRuntime, ReloadPublishesPlatformHintsToRuntimeCo
 
   for (td::int32 day = 0; day < 32; day++) {
     auto profile = pick_runtime_profile("runtime-platform.example.com", 1712345678 + day * 86400, platform);
-    ASSERT_TRUE(profile == BrowserProfile::Android11_OkHttp);
+    ASSERT_TRUE(profile == BrowserProfile::Android11_OkHttp_Advisory);
   }
 }
 

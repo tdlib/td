@@ -188,7 +188,7 @@ TEST(TlsProfileWire, Firefox148MatchesObservedModernFirefoxCaptureFamily) {
 
 TEST(TlsProfileWire, NonFirefoxProfilesDoNotAdvertiseRecordSizeLimitMetadata) {
   for (auto profile : {BrowserProfile::Chrome133, BrowserProfile::Chrome131, BrowserProfile::Chrome120,
-                       BrowserProfile::Safari26_3, BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp}) {
+                       BrowserProfile::Safari26_3, BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp_Advisory}) {
     ASSERT_EQ(0u, profile_spec(profile).record_size_limit);
   }
 }
@@ -231,7 +231,7 @@ TEST(TlsProfileWire, Safari26_3UsesFixedWebkitProfileWithoutEchOrAlps) {
 }
 
 TEST(TlsProfileWire, IosAndAndroidFixedProfilesDoNotEmitChromiumOnlyExtensions) {
-  for (auto profile : {BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp}) {
+  for (auto profile : {BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp_Advisory}) {
     auto spec = profile_spec(profile);
     ASSERT_FALSE(spec.allows_ech);
     ASSERT_FALSE(spec.allows_padding);
@@ -260,7 +260,7 @@ TEST(TlsProfileWire, IosAndAndroidFixedProfilesDoNotEmitChromiumOnlyExtensions) 
 }
 
 TEST(TlsProfileWire, FixedProfilesKeepStableExtensionOrderAcrossSeeds) {
-  for (auto profile : {BrowserProfile::Safari26_3, BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp}) {
+  for (auto profile : {BrowserProfile::Safari26_3, BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp_Advisory}) {
     auto spec = profile_spec(profile);
     ASSERT_TRUE(spec.extension_order_policy == td::mtproto::stealth::ExtensionOrderPolicy::FixedFromFixture);
 

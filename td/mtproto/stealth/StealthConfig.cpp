@@ -5,6 +5,7 @@
 //
 
 #include "td/mtproto/stealth/StealthConfig.h"
+#include "td/mtproto/stealth/StealthRecordSizeBaselines.h"
 #include "td/mtproto/stealth/StealthRuntimeParams.h"
 
 #include "td/utils/Random.h"
@@ -18,6 +19,8 @@ namespace stealth {
 namespace {
 
 constexpr int32 kMaxTlsPayloadCap = 16384;
+constexpr int32 kMinGreetingRecordSize = 80;
+constexpr int32 kMaxGreetingRecordSize = 1500;
 
 StealthConfigFactory transport_stealth_config_factory = nullptr;
 
@@ -137,6 +140,127 @@ Status validate_drs_phase_model(const char *name, const DrsPhaseModel &model, in
   return Status::OK();
 }
 
+int32 sample_phase_model_value(const DrsPhaseModel &model, int32 min_payload_cap, int32 max_payload_cap, IRng &rng) {
+  uint32 total_weight = 0;
+  for (const auto &bin : model.bins) {
+    total_weight += bin.weight;
+  }
+  CHECK(total_weight != 0);
+
+  uint32 selected = rng.bounded(total_weight);
+  const RecordSizeBin *chosen = &model.bins.back();
+  for (const auto &bin : model.bins) {
+    if (selected < bin.weight) {
+      chosen = &bin;
+      break;
+    }
+    selected -= bin.weight;
+  }
+
+  auto width = static_cast<uint32>(chosen->hi - chosen->lo + 1);
+  auto sampled = chosen->lo + static_cast<int32>(rng.bounded(width));
+  if (model.local_jitter > 0) {
+    auto jitter_width = static_cast<uint32>(model.local_jitter * 2 + 1);
+    sampled += static_cast<int32>(rng.bounded(jitter_width)) - model.local_jitter;
+  }
+  sampled = std::max(chosen->lo, std::min(sampled, chosen->hi));
+  sampled = std::max(min_payload_cap, std::min(sampled, max_payload_cap));
+  return sampled;
+}
+
+Status validate_greeting_camouflage_policy(const GreetingCamouflagePolicy &policy) noexcept {
+  if (policy.greeting_record_count > GreetingCamouflagePolicy::kMaxRecordModels) {
+    return Status::Error("greeting_camouflage_policy.greeting_record_count exceeds available templates");
+  }
+  for (size_t i = 0; i < policy.greeting_record_count; i++) {
+    auto name = std::string("greeting_camouflage_policy.record_models[") + std::to_string(i) + "]";
+    TRY_STATUS(validate_drs_phase_model(name.c_str(), policy.record_models[i], kMinGreetingRecordSize,
+                                        kMaxGreetingRecordSize));
+  }
+  return Status::OK();
+}
+
+Status validate_bidirectional_correlation_policy(const BidirectionalCorrelationPolicy &policy) noexcept {
+  TRY_STATUS(validate_range("bidirectional_correlation_policy.small_response_threshold_bytes",
+                            policy.small_response_threshold_bytes, policy.small_response_threshold_bytes, 1, 16384));
+  TRY_STATUS(validate_range("bidirectional_correlation_policy.next_request_min_payload_cap",
+                            policy.next_request_min_payload_cap, policy.next_request_min_payload_cap, 256, 16384));
+  TRY_STATUS(validate_non_negative_finite("bidirectional_correlation_policy.post_response_delay_jitter_ms_min",
+                                          policy.post_response_delay_jitter_ms_min));
+  TRY_STATUS(validate_non_negative_finite("bidirectional_correlation_policy.post_response_delay_jitter_ms_max",
+                                          policy.post_response_delay_jitter_ms_max));
+  if (policy.post_response_delay_jitter_ms_min > policy.post_response_delay_jitter_ms_max) {
+    return Status::Error("bidirectional_correlation_policy.post_response_delay_jitter_ms_min must not exceed max");
+  }
+  TRY_STATUS(validate_microsecond_delay_cap("bidirectional_correlation_policy.post_response_delay_jitter_ms_min",
+                                            policy.post_response_delay_jitter_ms_min));
+  TRY_STATUS(validate_microsecond_delay_cap("bidirectional_correlation_policy.post_response_delay_jitter_ms_max",
+                                            policy.post_response_delay_jitter_ms_max));
+  return Status::OK();
+}
+
+Status validate_chaff_policy(const ChaffPolicy &policy) noexcept {
+  if (!policy.enabled) {
+    return Status::OK();
+  }
+  TRY_STATUS(
+      validate_range("chaff_policy.idle_threshold_ms", policy.idle_threshold_ms, policy.idle_threshold_ms, 1, 600000));
+  TRY_STATUS(validate_non_negative_finite("chaff_policy.min_interval_ms", policy.min_interval_ms));
+  if (policy.min_interval_ms == 0.0) {
+    return Status::Error("chaff_policy.min_interval_ms must be positive");
+  }
+  TRY_STATUS(validate_microsecond_delay_cap("chaff_policy.min_interval_ms", policy.min_interval_ms));
+  TRY_STATUS(validate_size_t_range("chaff_policy.max_bytes_per_minute", policy.max_bytes_per_minute, 1,
+                                   static_cast<size_t>(1) << 20));
+  TRY_STATUS(validate_drs_phase_model("chaff_policy.record_model", policy.record_model, 1, kMaxTlsPayloadCap));
+  return Status::OK();
+}
+
+GreetingCamouflagePolicy make_default_greeting_camouflage_policy() {
+  auto sanitize_record_bins = [](const auto &source_bins) {
+    DrsPhaseModel model;
+    model.max_repeat_run = 4;
+    model.local_jitter = 0;
+    for (const auto &bin : source_bins) {
+      auto lo = std::max(bin.lo, kMinGreetingRecordSize);
+      auto hi = std::min(bin.hi, kMaxGreetingRecordSize);
+      if (lo > hi) {
+        continue;
+      }
+      if (!model.bins.empty() && lo <= model.bins.back().hi) {
+        lo = model.bins.back().hi + 1;
+      }
+      if (lo > hi) {
+        continue;
+      }
+      model.bins.push_back({lo, hi, bin.weight});
+    }
+    CHECK(!model.bins.empty());
+    return model;
+  };
+
+  GreetingCamouflagePolicy policy;
+  policy.greeting_record_count = static_cast<uint8>(GreetingCamouflagePolicy::kMaxRecordModels);
+  policy.record_models[0] = sanitize_record_bins(baselines::kGreetingRecord1);
+  policy.record_models[1] = sanitize_record_bins(baselines::kGreetingRecord2);
+  policy.record_models[2] = sanitize_record_bins(baselines::kGreetingRecord3);
+  policy.record_models[3] = sanitize_record_bins(baselines::kGreetingRecord4);
+  policy.record_models[4] = sanitize_record_bins(baselines::kGreetingRecord5);
+  return policy;
+}
+
+ChaffPolicy make_default_chaff_policy() {
+  ChaffPolicy policy;
+  policy.enabled = false;
+  policy.record_model.max_repeat_run = 4;
+  policy.record_model.local_jitter = 0;
+  for (const auto &bin : baselines::kIdleChaffBins) {
+    policy.record_model.bins.push_back({bin.lo, bin.hi, bin.weight});
+  }
+  CHECK(!policy.record_model.bins.empty());
+  return policy;
+}
+
 int32 payload_cap_from_record_size_limit(uint16 record_size_limit) {
   if (record_size_limit <= 1) {
     return 0;
@@ -229,12 +353,25 @@ Status validate_drs_policy(const DrsPolicy &policy) noexcept {
   return Status::OK();
 }
 
+Status validate_record_padding_policy(const RecordPaddingPolicy &policy) noexcept {
+  TRY_STATUS(validate_range("record_padding_policy.small_record_threshold", policy.small_record_threshold,
+                            policy.small_record_threshold, 200, 16384));
+  TRY_STATUS(validate_probability("record_padding_policy.small_record_max_fraction", policy.small_record_max_fraction));
+  TRY_STATUS(validate_range("record_padding_policy.small_record_window_size", policy.small_record_window_size,
+                            policy.small_record_window_size, 1, 4096));
+  TRY_STATUS(validate_range("record_padding_policy.target_tolerance", policy.target_tolerance, policy.target_tolerance,
+                            0, 1024));
+  return Status::OK();
+}
+
 StealthConfig StealthConfig::default_config(IRng &rng) {
   (void)rng;
   auto runtime_params = get_runtime_stealth_params_snapshot();
   StealthConfig config;
   config.profile = BrowserProfile::Chrome133;
   config.padding_policy = no_padding_policy();
+  config.crypto_padding_policy.enabled = true;
+  config.chaff_policy = make_default_chaff_policy();
   config.ipt_params = runtime_params.ipt_params;
   config.drs_policy = runtime_params.drs_policy;
   config.bulk_threshold_bytes = runtime_params.bulk_threshold_bytes;
@@ -255,6 +392,8 @@ StealthConfig StealthConfig::from_secret(const ProxySecret &secret, IRng &rng, i
     apply_profile_record_size_limit(config);
 #endif
     config.padding_policy.enabled = false;
+    config.greeting_camouflage_policy = make_default_greeting_camouflage_policy();
+    config.chaff_policy.enabled = true;
   }
   return config;
 }
@@ -274,7 +413,14 @@ Status StealthConfig::validate() const {
   }
   TRY_STATUS(validate_ipt_params(ipt_params));
   TRY_STATUS(validate_drs_policy(drs_policy));
+  TRY_STATUS(validate_record_padding_policy(record_padding_policy));
+  TRY_STATUS(validate_greeting_camouflage_policy(greeting_camouflage_policy));
+  TRY_STATUS(validate_bidirectional_correlation_policy(bidirectional_correlation_policy));
+  TRY_STATUS(validate_chaff_policy(chaff_policy));
   TRY_STATUS(validate_size_t_range("bulk_threshold_bytes", bulk_threshold_bytes, 512, static_cast<size_t>(1) << 20));
+  TRY_STATUS(validate_positive_range("crypto_padding_policy", crypto_padding_policy.min_padding_bytes,
+                                     crypto_padding_policy.max_padding_bytes, CryptoPaddingPolicy::kMinPaddingBytes,
+                                     CryptoPaddingPolicy::kMaxPaddingBytes));
   TRY_STATUS(validate_range("record_size_policy", record_size_policy.slow_start_min, record_size_policy.slow_start_max,
                             256, 16384));
   return Status::OK();
@@ -284,6 +430,19 @@ int32 StealthConfig::sample_initial_record_size(IRng &rng) const {
   CHECK(validate().is_ok());
   auto width = static_cast<uint32>(record_size_policy.slow_start_max - record_size_policy.slow_start_min + 1);
   return record_size_policy.slow_start_min + static_cast<int32>(rng.bounded(width));
+}
+
+int32 StealthConfig::sample_greeting_record_size(uint8 record_index, IRng &rng) const {
+  CHECK(validate().is_ok());
+  CHECK(record_index < greeting_camouflage_policy.greeting_record_count);
+  return sample_phase_model_value(greeting_camouflage_policy.record_models[record_index], kMinGreetingRecordSize,
+                                  kMaxGreetingRecordSize, rng);
+}
+
+int32 StealthConfig::sample_chaff_record_size(IRng &rng) const {
+  CHECK(validate().is_ok());
+  CHECK(chaff_policy.enabled);
+  return sample_phase_model_value(chaff_policy.record_model, 1, kMaxTlsPayloadCap, rng);
 }
 
 Result<StealthConfig> make_transport_stealth_config(const ProxySecret &secret, IRng &rng) {

@@ -40,7 +40,7 @@ TEST(TlsProfilePlatformCoherence, AndroidRuntimeSelectionNeverUsesIosProfile) {
   auto allowed = allowed_profiles_for_platform(platform);
   for (td::uint32 bucket = 20000; bucket < 20256; bucket++) {
     auto profile = pick_profile_sticky(default_profile_weights(), make_selection_key(bucket), platform, allowed, rng);
-    ASSERT_TRUE(BrowserProfile::Android11_OkHttp == profile);
+    ASSERT_TRUE(BrowserProfile::Android11_OkHttp_Advisory == profile);
   }
 }
 
@@ -67,8 +67,24 @@ TEST(TlsProfilePlatformCoherence, DesktopSelectionNeverFallsIntoMobileProfilesEv
   for (td::uint32 bucket = 20000; bucket < 20256; bucket++) {
     auto profile = pick_profile_sticky(default_profile_weights(), make_selection_key(bucket), platform, allowed, rng);
     ASSERT_TRUE(profile != BrowserProfile::IOS14);
-    ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp);
+    ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
   }
+}
+
+TEST(TlsProfilePlatformCoherence, DarwinAllowedProfilesUseMacosFirefoxInsteadOfLinuxFirefox) {
+  RuntimePlatformHints platform;
+  platform.device_class = DeviceClass::Desktop;
+  platform.desktop_os = DesktopOs::Darwin;
+
+  auto allowed = allowed_profiles_for_platform(platform);
+  bool saw_macos_firefox = false;
+  for (auto profile : allowed) {
+    ASSERT_TRUE(profile != BrowserProfile::Firefox148);
+    if (profile == BrowserProfile::Firefox149_MacOS26_3) {
+      saw_macos_firefox = true;
+    }
+  }
+  ASSERT_TRUE(saw_macos_firefox);
 }
 
 }  // namespace

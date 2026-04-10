@@ -182,6 +182,36 @@ unique_ptr<RawConnection> SessionConnection::move_as_raw_connection() {
   return std::move(raw_connection_);
 }
 
+void SessionConnection::annotate_lifecycle_role(Slice role) {
+  if (raw_connection_ != nullptr && raw_connection_->stats_callback() != nullptr) {
+    raw_connection_->stats_callback()->on_connection_role(role);
+  }
+}
+
+void SessionConnection::annotate_lifecycle_rotation_reason(Slice reason) {
+  if (raw_connection_ != nullptr && raw_connection_->stats_callback() != nullptr) {
+    raw_connection_->stats_callback()->on_connection_rotation_reason(reason);
+  }
+}
+
+void SessionConnection::annotate_lifecycle_successor_opened(int64 successor_opened_at_ms) {
+  if (raw_connection_ != nullptr && raw_connection_->stats_callback() != nullptr) {
+    raw_connection_->stats_callback()->on_connection_successor_opened(successor_opened_at_ms);
+  }
+}
+
+void SessionConnection::annotate_lifecycle_overlap(uint64 overlap_ms) {
+  if (raw_connection_ != nullptr && raw_connection_->stats_callback() != nullptr) {
+    raw_connection_->stats_callback()->on_connection_overlap(overlap_ms);
+  }
+}
+
+void SessionConnection::annotate_lifecycle_over_age_status(bool over_age_degraded, Slice exemption) {
+  if (raw_connection_ != nullptr && raw_connection_->stats_callback() != nullptr) {
+    raw_connection_->stats_callback()->on_connection_over_age_status(over_age_degraded, exemption);
+  }
+}
+
 BufferSlice SessionConnection::as_buffer_slice(Slice packet) {
   return current_buffer_slice_->from_slice(packet);
 }

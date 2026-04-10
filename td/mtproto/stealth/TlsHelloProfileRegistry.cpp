@@ -25,13 +25,19 @@ namespace stealth {
 namespace {
 
 constexpr BrowserProfile ALL_PROFILES[] = {
-    BrowserProfile::Chrome133,  BrowserProfile::Chrome131, BrowserProfile::Chrome120,        BrowserProfile::Firefox148,
-    BrowserProfile::Safari26_3, BrowserProfile::IOS14,     BrowserProfile::Android11_OkHttp,
+    BrowserProfile::Chrome133,
+    BrowserProfile::Chrome131,
+    BrowserProfile::Chrome120,
+    BrowserProfile::Firefox148,
+  BrowserProfile::Firefox149_MacOS26_3,
+    BrowserProfile::Safari26_3,
+    BrowserProfile::IOS14,
+    BrowserProfile::Android11_OkHttp_Advisory,
 };
 
 constexpr BrowserProfile DARWIN_DESKTOP_PROFILES[] = {
     BrowserProfile::Chrome133,  BrowserProfile::Chrome131,  BrowserProfile::Chrome120,
-    BrowserProfile::Safari26_3, BrowserProfile::Firefox148,
+  BrowserProfile::Safari26_3, BrowserProfile::Firefox149_MacOS26_3,
 };
 
 constexpr BrowserProfile NON_DARWIN_DESKTOP_PROFILES[] = {
@@ -43,7 +49,7 @@ constexpr BrowserProfile NON_DARWIN_DESKTOP_PROFILES[] = {
 
 constexpr BrowserProfile MOBILE_PROFILES[] = {
     BrowserProfile::IOS14,
-    BrowserProfile::Android11_OkHttp,
+    BrowserProfile::Android11_OkHttp_Advisory,
 };
 
 constexpr BrowserProfile IOS_MOBILE_PROFILES[] = {
@@ -51,7 +57,7 @@ constexpr BrowserProfile IOS_MOBILE_PROFILES[] = {
 };
 
 constexpr BrowserProfile ANDROID_MOBILE_PROFILES[] = {
-    BrowserProfile::Android11_OkHttp,
+    BrowserProfile::Android11_OkHttp_Advisory,
 };
 
 constexpr ProfileSpec PROFILE_SPECS[] = {
@@ -63,10 +69,13 @@ constexpr ProfileSpec PROFILE_SPECS[] = {
      ExtensionOrderPolicy::ChromeShuffleAnchored},
     {BrowserProfile::Firefox148, Slice("firefox148"), 0, 0x4001, true, false, true, true, 0x11EC,
      ExtensionOrderPolicy::FixedFromFixture},
+  {BrowserProfile::Firefox149_MacOS26_3, Slice("firefox149_macos26_3"), 0, 0x4001, true, false, true, true,
+   0x11EC, ExtensionOrderPolicy::FixedFromFixture},
     {BrowserProfile::Safari26_3, Slice("safari26_3"), 0, 0, false, false, true, true, 0x11EC,
      ExtensionOrderPolicy::FixedFromFixture},
-    {BrowserProfile::IOS14, Slice("ios14"), 0, 0, false, false, true, false, 0, ExtensionOrderPolicy::FixedFromFixture},
-    {BrowserProfile::Android11_OkHttp, Slice("android11_okhttp"), 0, 0, false, false, true, false, 0,
+    {BrowserProfile::IOS14, Slice("ios14"), 0, 0, false, false, true, true, 0x11EC,
+     ExtensionOrderPolicy::FixedFromFixture},
+    {BrowserProfile::Android11_OkHttp_Advisory, Slice("android11_okhttp_advisory"), 0, 0, false, false, true, false, 0,
      ExtensionOrderPolicy::FixedFromFixture},
 };
 
@@ -79,6 +88,8 @@ constexpr ProfileFixtureMetadata PROFILE_FIXTURES[] = {
      true, true, true},
     {Slice("browser_capture:firefox148"), ProfileFixtureSourceKind::BrowserCapture, ProfileTrustTier::Verified, true,
      true, true},
+  {Slice("browser_capture:firefox149_macos26_3"), ProfileFixtureSourceKind::BrowserCapture,
+   ProfileTrustTier::Verified, true, true, true},
     {Slice("utls:HelloSafari_26_3"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Advisory, false, false,
      false},
     {Slice("utls:HelloIOS_14"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Advisory, false, false,
@@ -336,13 +347,14 @@ uint8 profile_weight(const ProfileWeights &weights, BrowserProfile profile) {
     case BrowserProfile::Chrome120:
       return weights.chrome120;
     case BrowserProfile::Firefox148:
+    case BrowserProfile::Firefox149_MacOS26_3:
       return weights.firefox148;
     case BrowserProfile::Safari26_3:
       return weights.safari26_3;
     case BrowserProfile::IOS14:
       return weights.ios14;
-    case BrowserProfile::Android11_OkHttp:
-      return weights.android11_okhttp;
+    case BrowserProfile::Android11_OkHttp_Advisory:
+      return weights.android11_okhttp_advisory;
     default:
       UNREACHABLE();
       return 0;

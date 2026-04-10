@@ -34,6 +34,10 @@ struct SimpleConfigResult {
   Result<int32> r_http_date;
 };
 
+enum class FullConfigRecoveryConnectionAction : int32 { Dispatch, DelayForever };
+
+FullConfigRecoveryConnectionAction get_full_config_recovery_connection_action(size_t request_raw_connection_count);
+
 Result<SimpleConfig> decode_config(Slice input);
 
 ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,

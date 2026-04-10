@@ -16,6 +16,7 @@
 #include "td/telegram/net/PublicRsaKeySharedMain.h"
 #include "td/telegram/net/PublicRsaKeyWatchdog.h"
 #include "td/telegram/net/SessionMultiProxy.h"
+#include "td/telegram/net/StealthConnectionCountPolicy.h"
 #include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -175,7 +176,9 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
   if (check_stop_flag(net_query)) {
     return;
   }
-  switch (net_query->type()) {
+  auto query_type =
+      resolve_connection_count_routed_query_type(net_query->type(), get_connection_count_plan(dest_dc_id.get_raw_id()));
+  switch (query_type) {
     case NetQuery::Type::Common:
       net_query->debug(PSTRING() << "sent to main session multi proxy " << dest_dc_id);
       send_closure_later(dcs_[dc_pos].main_session_, &SessionMultiProxy::send, std::move(net_query));
@@ -236,29 +239,25 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
       is_cdn = true;
     }
     auto auth_data = AuthDataShared::create(dc_id, std::move(public_rsa_key), td_guard_);
-    int32 session_count = get_session_count();
+    auto plan = get_connection_count_plan(dc_id.get_raw_id());
     bool use_pfs = get_use_pfs();
 
     int32 main_session_scheduler_id = G()->get_main_session_scheduler_id();
     int32 slow_net_scheduler_id = G()->get_slow_net_scheduler_id();
 
     auto raw_dc_id = dc_id.get_raw_id();
-    bool is_premium = G()->get_option_boolean("is_premium") || session_count > 1;
-    int32 upload_session_count = (raw_dc_id != 2 && raw_dc_id != 4) || is_premium ? 8 : 4;
-    int32 download_session_count = is_premium ? 8 : 2;
-    int32 download_small_session_count = is_premium ? 8 : 2;
     dc.main_session_ = create_actor_on_scheduler<SessionMultiProxy>(
-        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main", main_session_scheduler_id, session_count, auth_data,
-        true, raw_dc_id == main_dc_id_, use_pfs, false, false, is_cdn);
+        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main", main_session_scheduler_id, plan.main_session_count,
+        auth_data, true, raw_dc_id == main_dc_id_, use_pfs, false, false, is_cdn);
     dc.upload_session_ = create_actor_on_scheduler<SessionMultiProxy>(
-        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":upload", slow_net_scheduler_id, upload_session_count,
+        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":upload", slow_net_scheduler_id, plan.upload_session_count,
         auth_data, false, false, use_pfs, false, true, is_cdn);
     dc.download_session_ = create_actor_on_scheduler<SessionMultiProxy>(
-        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download", slow_net_scheduler_id, download_session_count,
-        auth_data, false, false, use_pfs, true, true, is_cdn);
+        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download", slow_net_scheduler_id,
+        plan.download_session_count, auth_data, false, false, use_pfs, true, true, is_cdn);
     dc.download_small_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download_small", slow_net_scheduler_id,
-        download_small_session_count, auth_data, false, false, use_pfs, true, true, is_cdn);
+        plan.download_small_session_count, auth_data, false, false, use_pfs, true, true, is_cdn);
     dc.is_inited_ = true;
     if (dc_id.is_internal()) {
       send_closure_later(dc_auth_manager_, &DcAuthManager::add_dc, std::move(auth_data));
@@ -300,17 +299,7 @@ void NetQueryDispatcher::stop() {
 
 void NetQueryDispatcher::update_session_count() {
   std::lock_guard<std::mutex> guard(mutex_);
-  int32 session_count = get_session_count();
-  bool use_pfs = get_use_pfs();
-  for (int32 i = 1; i < DcId::MAX_RAW_DC_ID; i++) {
-    if (is_dc_inited(i)) {
-      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_options, session_count, use_pfs,
-                         need_destroy_auth_key_);
-      send_closure_later(dcs_[i - 1].upload_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
-      send_closure_later(dcs_[i - 1].download_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
-      send_closure_later(dcs_[i - 1].download_small_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
-    }
-  }
+  update_connection_count_policy_locked(false);
 }
 void NetQueryDispatcher::destroy_auth_keys(Promise<> promise) {
   for (int32 i = 1; i < DcId::MAX_RAW_DC_ID && i <= 5; i++) {
@@ -346,12 +335,41 @@ void NetQueryDispatcher::update_use_pfs() {
 
 void NetQueryDispatcher::update_mtproto_header() {
   std::lock_guard<std::mutex> guard(mutex_);
+  update_connection_count_policy_locked(true);
+}
+
+Proxy NetQueryDispatcher::get_active_proxy() {
+  if (!G()->have_mtproto_header()) {
+    return Proxy();
+  }
+  return G()->mtproto_header().get_proxy();
+}
+
+StealthConnectionCountPlan NetQueryDispatcher::get_connection_count_plan(int32 raw_dc_id) {
+  auto session_count = get_session_count();
+  bool is_premium = G()->get_option_boolean("is_premium") || session_count > 1;
+  return make_connection_count_plan(get_active_proxy(), session_count, raw_dc_id, is_premium);
+}
+
+void NetQueryDispatcher::update_connection_count_policy_locked(bool notify_sessions_about_mtproto_header) {
+  bool use_pfs = get_use_pfs();
   for (int32 i = 1; i < DcId::MAX_RAW_DC_ID; i++) {
     if (is_dc_inited(i)) {
-      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_mtproto_header);
-      send_closure_later(dcs_[i - 1].upload_session_, &SessionMultiProxy::update_mtproto_header);
-      send_closure_later(dcs_[i - 1].download_session_, &SessionMultiProxy::update_mtproto_header);
-      send_closure_later(dcs_[i - 1].download_small_session_, &SessionMultiProxy::update_mtproto_header);
+      auto plan = get_connection_count_plan(i);
+      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_options, plan.main_session_count,
+                         use_pfs, need_destroy_auth_key_);
+      send_closure_later(dcs_[i - 1].upload_session_, &SessionMultiProxy::update_options, plan.upload_session_count,
+                         use_pfs, false);
+      send_closure_later(dcs_[i - 1].download_session_, &SessionMultiProxy::update_options, plan.download_session_count,
+                         use_pfs, false);
+      send_closure_later(dcs_[i - 1].download_small_session_, &SessionMultiProxy::update_options,
+                         plan.download_small_session_count, use_pfs, false);
+      if (notify_sessions_about_mtproto_header) {
+        send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_mtproto_header);
+        send_closure_later(dcs_[i - 1].upload_session_, &SessionMultiProxy::update_mtproto_header);
+        send_closure_later(dcs_[i - 1].download_session_, &SessionMultiProxy::update_mtproto_header);
+        send_closure_later(dcs_[i - 1].download_small_session_, &SessionMultiProxy::update_mtproto_header);
+      }
     }
   }
 }

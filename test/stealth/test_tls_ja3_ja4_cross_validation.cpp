@@ -141,9 +141,13 @@ static const td::string KNOWN_TELEGRAM_JA3 = "e0e58235789a753608b12649376e91ec";
 // =====================================================================
 
 TEST(TlsJa3Ja4CrossValidation, Ja3MustNotMatchKnownTelegramHashForAnyProfileAnySeed) {
-  BrowserProfile profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,  BrowserProfile::Chrome120,
-                               BrowserProfile::Firefox148,      BrowserProfile::Safari26_3, BrowserProfile::IOS14,
-                               BrowserProfile::Android11_OkHttp};
+  BrowserProfile profiles[] = {BrowserProfile::Chrome133,
+                               BrowserProfile::Chrome131,
+                               BrowserProfile::Chrome120,
+                               BrowserProfile::Firefox148,
+                               BrowserProfile::Safari26_3,
+                               BrowserProfile::IOS14,
+                               BrowserProfile::Android11_OkHttp_Advisory};
   EchMode ech_modes[] = {EchMode::Disabled, EchMode::Rfc9180Outer};
 
   for (auto profile : profiles) {
@@ -293,7 +297,7 @@ TEST(TlsJa3Ja4CrossValidation, Ja3StringHasExactly4Commas) {
 
 TEST(TlsJa3Ja4CrossValidation, Ja3StringStartsWith771) {
   BrowserProfile profiles[] = {BrowserProfile::Chrome133, BrowserProfile::Firefox148, BrowserProfile::Safari26_3,
-                               BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp};
+                               BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp_Advisory};
 
   for (auto profile : profiles) {
     MockRng rng(42);

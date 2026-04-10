@@ -32,6 +32,11 @@ double ConnectionFlowController::get_wakeup_at(double now, const mtproto::stealt
   return wakeup_at;
 }
 
+bool ConnectionFlowController::allows_rotation_at(double now,
+                                                  const mtproto::stealth::RuntimeFlowBehaviorPolicy &policy) {
+  return get_wakeup_at(now, policy) <= now;
+}
+
 void ConnectionFlowController::on_connect_started(double now,
                                                   const mtproto::stealth::RuntimeFlowBehaviorPolicy &policy) {
   prune_old_attempts(now);

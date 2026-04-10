@@ -37,6 +37,22 @@ class RawConnection {
     virtual void on_pong() = 0;   // called when we know that connection is alive
     virtual void on_error() = 0;  // called on RawConnection error. Such error should be very rare on good connections.
     virtual void on_mtproto_error() = 0;
+    virtual void on_connection_open(uint64 connection_id, Slice destination, int64 started_at_ms) {
+    }
+    virtual void on_connection_reused() {
+    }
+    virtual void on_connection_closed(int64 ended_at_ms) {
+    }
+    virtual void on_connection_role(Slice role) {
+    }
+    virtual void on_connection_rotation_reason(Slice reason) {
+    }
+    virtual void on_connection_successor_opened(int64 successor_opened_at_ms) {
+    }
+    virtual void on_connection_overlap(uint64 overlap_ms) {
+    }
+    virtual void on_connection_over_age_status(bool over_age_degraded, Slice exemption) {
+    }
   };
   RawConnection() = default;
   RawConnection(const RawConnection &) = delete;

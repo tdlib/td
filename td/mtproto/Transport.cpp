@@ -164,6 +164,9 @@ std::pair<uint32, UInt128> Transport::calc_message_key2(const AuthKey &auth_key,
 }
 
 namespace {
+constexpr size_t kStealthMinimumEncryptedPayloadSize = 128;
+constexpr size_t kStealthMinimumPaddingBytes = 12;
+
 size_t do_calc_crypto_size2_basic(size_t data_size, size_t enc_size, size_t raw_size) {
   size_t encrypted_size = (enc_size + data_size + 12 + 15) & ~15;
 
@@ -183,12 +186,32 @@ size_t do_calc_crypto_size2_rand(size_t data_size, size_t enc_size, size_t raw_s
   size_t encrypted_size = (enc_size + data_size + rand_data_size + 12 + 15) & ~15;
   return raw_size + encrypted_size;
 }
+
+size_t do_calc_crypto_size2_stealth(size_t data_size, size_t enc_size, size_t raw_size, const PacketInfo &packet_info) {
+  CHECK(packet_info.stealth_padding_min_bytes >= kStealthMinimumPaddingBytes);
+  CHECK(packet_info.stealth_padding_max_bytes >= packet_info.stealth_padding_min_bytes);
+
+  size_t padding_size = packet_info.stealth_padding_min_bytes;
+  auto padding_span =
+      static_cast<uint32>(packet_info.stealth_padding_max_bytes - packet_info.stealth_padding_min_bytes);
+  if (padding_span != 0) {
+    padding_size += (Random::secure_uint32() % (padding_span + 1));
+  }
+
+  size_t encrypted_size = enc_size + data_size + padding_size;
+  encrypted_size = td::max(encrypted_size, kStealthMinimumEncryptedPayloadSize);
+  encrypted_size = (encrypted_size + 15) & ~15;
+  return raw_size + encrypted_size;
+}
 }  // namespace
 
 template <class HeaderT>
 size_t Transport::calc_crypto_size2(size_t data_size, PacketInfo *packet_info) {
   size_t enc_size = HeaderT::encrypted_header_size();
   size_t raw_size = sizeof(HeaderT) - enc_size;
+  if (packet_info->use_stealth_padding) {
+    return do_calc_crypto_size2_stealth(data_size, enc_size, raw_size, *packet_info);
+  }
   if (packet_info->use_random_padding) {
     return do_calc_crypto_size2_rand(data_size, enc_size, raw_size);
   } else {

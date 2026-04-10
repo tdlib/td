@@ -8,8 +8,6 @@
 
 #include "td/mtproto/MessageId.h"
 
-#include "td/utils/common.h"
-
 namespace td {
 namespace mtproto {
 
@@ -27,6 +25,9 @@ struct PacketInfo {
   bool is_creator{false};
   bool check_mod4{true};
   bool use_random_padding{false};
+  bool use_stealth_padding{false};
+  uint16 stealth_padding_min_bytes{0};
+  uint16 stealth_padding_max_bytes{0};
 };
 
 }  // namespace mtproto

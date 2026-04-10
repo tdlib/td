@@ -146,6 +146,11 @@ std::vector<td::int32> decode_flush_caps(const std::vector<size_t> &lengths, siz
         pos += 2;
         continue;
       }
+      if (len == 1500 + kPrimerHeaderOverhead) {
+        caps.push_back(1500);
+        pos += 1;
+        continue;
+      }
       if (len >= kPayloadSize + 4 + kPrimerHeaderOverhead && len <= kPayloadSize + 19 + kPrimerHeaderOverhead) {
         caps.push_back(1500);
         pos += 1;
@@ -160,6 +165,11 @@ std::vector<td::int32> decode_flush_caps(const std::vector<size_t> &lengths, siz
       if (len == 1200) {
         caps.push_back(1200);
         pos += 2;
+        continue;
+      }
+      if (len == 1500) {
+        caps.push_back(1500);
+        pos += 1;
         continue;
       }
       if (len >= kPayloadSize + 4 && len <= kPayloadSize + 19) {

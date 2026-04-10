@@ -208,8 +208,8 @@ TEST(TlsGreaseStructuralPositions, ChromeLastExtensionMustBeGrease) {
 }
 
 TEST(TlsGreaseStructuralPositions, FixedProfilesMustHaveGreaseInCorrectPositions) {
-  // Fixed profiles (iOS14, Android11_OkHttp) also use GREASE
-  BrowserProfile fixed_profiles[] = {BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp};
+  // Fixed advisory profiles (iOS14, Android11_OkHttp_Advisory) also use GREASE
+  BrowserProfile fixed_profiles[] = {BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : fixed_profiles) {
     MockRng rng(42);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678, profile,

@@ -55,6 +55,12 @@ uint64 IptController::next_delay_us(bool has_pending_data, TrafficHint hint) {
   return to_delay_us(delay_ms);
 }
 
+uint64 IptController::sample_idle_delay_us() {
+  auto delay_ms =
+      sample_truncated_pareto(sample_uniform01(), params_.idle_alpha, params_.idle_scale_ms, params_.idle_max_ms);
+  return to_delay_us(delay_ms);
+}
+
 bool IptController::is_bypass_hint(TrafficHint hint) {
   return hint == TrafficHint::Keepalive || hint == TrafficHint::BulkData || hint == TrafficHint::AuthHandshake;
 }

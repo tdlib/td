@@ -189,7 +189,7 @@ TEST(TlsChromeExtensionSetInvariance, AndroidFixedProfileExtensionOrderMustBeIde
   for (td::uint64 seed = 0; seed < 200; seed++) {
     MockRng rng(seed);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678,
-                                                   BrowserProfile::Android11_OkHttp, EchMode::Disabled, rng);
+                                                   BrowserProfile::Android11_OkHttp_Advisory, EchMode::Disabled, rng);
     orders.insert(ordered_extension_list_key(wire));
   }
   ASSERT_EQ(1u, orders.size());

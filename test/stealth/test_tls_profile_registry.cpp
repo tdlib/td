@@ -49,7 +49,8 @@ TEST(TlsProfileRegistry, FixtureMetadataExposesExplicitSourceKind) {
 
 TEST(TlsProfileRegistry, VerifiedProfilesCarryNetworkCorroboration) {
   for (auto profile :
-       {BrowserProfile::Chrome133, BrowserProfile::Chrome131, BrowserProfile::Chrome120, BrowserProfile::Firefox148}) {
+       {BrowserProfile::Chrome133, BrowserProfile::Chrome131, BrowserProfile::Chrome120, BrowserProfile::Firefox148,
+        BrowserProfile::Firefox149_MacOS26_3}) {
     auto metadata = profile_fixture_metadata(profile);
     ASSERT_TRUE(metadata.trust_tier == ProfileTrustTier::Verified);
     ASSERT_TRUE(metadata.source_kind == ProfileFixtureSourceKind::BrowserCapture ||
@@ -61,7 +62,7 @@ TEST(TlsProfileRegistry, VerifiedProfilesCarryNetworkCorroboration) {
 }
 
 TEST(TlsProfileRegistry, SafariAndMobileProfilesRemainAdvisoryUntilNetworkFixturesLand) {
-  for (auto profile : {BrowserProfile::Safari26_3, BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp}) {
+  for (auto profile : {BrowserProfile::Safari26_3, BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp_Advisory}) {
     auto metadata = profile_fixture_metadata(profile);
     ASSERT_TRUE(metadata.trust_tier == ProfileTrustTier::Advisory);
     ASSERT_FALSE(metadata.has_independent_network_provenance);
@@ -96,7 +97,7 @@ TEST(TlsProfileRegistry, MobileClassUsesOnlyMobileProfiles) {
   for (td::uint32 bucket = 0; bucket < 128; bucket++) {
     key.time_bucket = 20260406 + bucket;
     auto profile = pick_profile_sticky(default_profile_weights(), key, platform, allowed, rng);
-    ASSERT_TRUE(profile == BrowserProfile::IOS14 || profile == BrowserProfile::Android11_OkHttp);
+    ASSERT_TRUE(profile == BrowserProfile::IOS14 || profile == BrowserProfile::Android11_OkHttp_Advisory);
   }
 }
 
@@ -113,7 +114,7 @@ TEST(TlsProfileRegistry, DesktopClassNeverUsesMobileProfiles) {
     key.time_bucket = 20260406 + bucket;
     auto profile = pick_profile_sticky(default_profile_weights(), key, platform, allowed, rng);
     ASSERT_TRUE(profile != BrowserProfile::IOS14);
-    ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp);
+    ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
   }
 }
 

@@ -110,6 +110,11 @@ class MtprotoHeader {
     return options_.system_language_code;
   }
 
+  Proxy get_proxy() const {
+    auto lock = rw_mutex_.lock_read();
+    return options_.proxy;
+  }
+
  private:
   Options options_;
   string default_header_;

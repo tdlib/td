@@ -7,6 +7,7 @@
 
 #include "td/telegram/net/Session.h"
 
+#include "td/telegram/net/ConnectionLifecyclePolicy.h"
 #include "td/telegram/net/ConnectionPoolPolicy.h"
 
 #include "td/telegram/DhCache.h"
@@ -53,6 +54,76 @@
 #include <utility>
 
 namespace td {
+
+namespace {
+
+uint64 to_connection_lifecycle_ms(double timestamp) {
+  if (timestamp <= 0.0) {
+    return 0;
+  }
+  return static_cast<uint64>(timestamp * 1000.0);
+}
+
+ActiveConnectionLifecyclePolicy make_active_connection_lifecycle_policy(
+    const mtproto::stealth::RuntimeFlowBehaviorPolicy &flow_behavior) {
+  ActiveConnectionLifecyclePolicy policy;
+  policy.enable_active_rotation = true;
+  policy.hard_ceiling_ms = flow_behavior.max_conn_lifetime_ms;
+  policy.overlap_max_ms =
+      td::min(flow_behavior.max_conn_lifetime_ms,
+              td::max(static_cast<uint32>(500), flow_behavior.anti_churn_min_reconnect_interval_ms * 4));
+  policy.rotation_backoff_ms = flow_behavior.anti_churn_min_reconnect_interval_ms;
+  policy.max_overlap_connections_per_destination = 1;
+  return policy;
+}
+
+bool is_main_role(ActiveConnectionLifecycleRole role) {
+  return role == ActiveConnectionLifecycleRole::Main;
+}
+
+Slice connection_role_name(ActiveConnectionLifecycleRole role) {
+  switch (role) {
+    case ActiveConnectionLifecycleRole::Main:
+      return Slice("main");
+    case ActiveConnectionLifecycleRole::LongPoll:
+      return Slice("long_poll");
+    case ActiveConnectionLifecycleRole::Upload:
+      return Slice("upload");
+    case ActiveConnectionLifecycleRole::Download:
+      return Slice("download");
+    case ActiveConnectionLifecycleRole::Cached:
+      return Slice("cached");
+    default:
+      return Slice("unknown");
+  }
+}
+
+Slice rotation_reason_name() {
+  return Slice("age_threshold");
+}
+
+Slice rotation_exemption_name(ActiveConnectionRotationExemptionReason reason) {
+  switch (reason) {
+    case ActiveConnectionRotationExemptionReason::None:
+      return Slice();
+    case ActiveConnectionRotationExemptionReason::Warmup:
+      return Slice("warmup");
+    case ActiveConnectionRotationExemptionReason::AuthHandshake:
+      return Slice("auth_handshake");
+    case ActiveConnectionRotationExemptionReason::Shutdown:
+      return Slice("shutdown");
+    case ActiveConnectionRotationExemptionReason::DestinationBudget:
+      return Slice("destination_budget");
+    case ActiveConnectionRotationExemptionReason::AntiChurn:
+      return Slice("anti_churn");
+    case ActiveConnectionRotationExemptionReason::UnsafeHandoverPoint:
+      return Slice("unsafe_handover_point");
+    default:
+      return Slice("unknown");
+  }
+}
+
+}  // namespace
 
 namespace detail {
 
@@ -273,8 +344,14 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
 
   callback_ = std::shared_ptr<Callback>(callback.release());
 
-  main_connection_.connection_id_ = 0;
-  long_poll_connection_.connection_id_ = 1;
+  main_connection_.socket_id_ = 0;
+  main_connection_.role_ = ActiveConnectionLifecycleRole::Main;
+  long_poll_connection_.socket_id_ = 1;
+  long_poll_connection_.role_ = ActiveConnectionLifecycleRole::LongPoll;
+  main_handover_connection_.socket_id_ = 2;
+  main_handover_connection_.role_ = ActiveConnectionLifecycleRole::Main;
+  long_poll_handover_connection_.socket_id_ = 3;
+  long_poll_handover_connection_.role_ = ActiveConnectionLifecycleRole::LongPoll;
 
   if (is_cdn) {
     auth_data_.set_header(G()->mtproto_header().get_anonymous_header());
@@ -327,6 +404,8 @@ void Session::on_network(bool network_flag, uint32 network_generation) {
     network_generation_ = network_generation;
     connection_close(&main_connection_);
     connection_close(&long_poll_connection_);
+    connection_close(&main_handover_connection_);
+    connection_close(&long_poll_handover_connection_);
   }
 
   for (auto &handshake_info : handshake_info_) {
@@ -366,6 +445,12 @@ void Session::connection_online_update(double now, bool force) {
   }
   if (long_poll_connection_.connection_) {
     long_poll_connection_.connection_->set_online(connection_online_flag_, is_primary_);
+  }
+  if (main_handover_connection_.connection_) {
+    main_handover_connection_.connection_->set_online(connection_online_flag_, is_primary_);
+  }
+  if (long_poll_handover_connection_.connection_) {
+    long_poll_handover_connection_.connection_->set_online(connection_online_flag_, is_primary_);
   }
 }
 
@@ -444,6 +529,8 @@ void Session::on_bind_result(NetQueryPtr query) {
     LOG(ERROR) << "BindKey failed: " << status;
     connection_close(&main_connection_);
     connection_close(&long_poll_connection_);
+    connection_close(&main_handover_connection_);
+    connection_close(&long_poll_handover_connection_);
   }
 
   yield();
@@ -472,6 +559,8 @@ void Session::on_check_key_result(NetQueryPtr query) {
     LOG(ERROR) << "Check main key failed: " << status;
     connection_close(&main_connection_);
     connection_close(&long_poll_connection_);
+    connection_close(&main_handover_connection_);
+    connection_close(&long_poll_handover_connection_);
   }
 
   yield();
@@ -508,6 +597,8 @@ void Session::close() {
   close_flag_ = true;
   connection_close(&main_connection_);
   connection_close(&long_poll_connection_);
+  connection_close(&main_handover_connection_);
+  connection_close(&long_poll_handover_connection_);
 
   for (auto &it : sent_queries_) {
     auto &query = it.second.net_query_;
@@ -568,7 +659,7 @@ void Session::on_connected() {
 
 Status Session::on_pong(double ping_time, double pong_time, double current_time) {
   constexpr int MIN_CONNECTION_ACTIVE = 60;
-  if (current_info_ == &main_connection_ &&
+  if (current_info_ != nullptr && is_main_role(current_info_->role_) &&
       Timestamp::at(current_info_->created_at_ + MIN_CONNECTION_ACTIVE).is_in_past()) {
     Status status;
     if (!unknown_queries_.empty()) {
@@ -677,7 +768,7 @@ void Session::on_closed(Status status) {
 
   // resend all queries without ack
   for (auto it = sent_queries_.begin(); it != sent_queries_.end();) {
-    if (!it->second.is_acknowledged_ && it->second.connection_id_ == current_info_->connection_id_) {
+    if (!it->second.is_acknowledged_ && it->second.socket_id_ == current_info_->socket_id_) {
       cleanup_container(it->first, it->second);
       // mark query as unknown
       if (status.is_error() && status.code() == 500) {
@@ -1105,6 +1196,31 @@ bool Session::has_queries() const {
   return !pending_invoke_after_queries_.empty() || !pending_queries_.empty() || !sent_queries_.empty();
 }
 
+bool Session::connection_has_inflight_queries(const ConnectionInfo *info) const {
+  for (const auto &sent_query : sent_queries_) {
+    if (sent_query.second.socket_id_ == info->socket_id_) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Session::connection_should_retire(const ConnectionInfo *info, double now) const {
+  if (info->state_ != ConnectionInfo::State::Ready) {
+    return false;
+  }
+  if (!ConnectionLifecyclePolicy::is_active_connection_retire_due(info->retire_at_, now)) {
+    return false;
+  }
+  if (connection_has_inflight_queries(info)) {
+    return false;
+  }
+  if (is_main_role(info->role_) && !pending_queries_.empty()) {
+    return false;
+  }
+  return true;
+}
+
 void Session::resend_query(NetQueryPtr query) {
   VLOG(net_query) << "Resend " << query;
   query->set_message_id(0);
@@ -1174,8 +1290,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
     LOG(DEBUG) << "Set event for net_query cancellation for " << message_id;
     net_query->cancel_slot_.set_event(EventCreator::raw(actor_id(), message_id.get()));
   }
-  auto status =
-      sent_queries_.emplace(message_id, Query{message_id, std::move(net_query), main_connection_.connection_id_, now});
+  auto status = sent_queries_.emplace(message_id, Query{message_id, std::move(net_query), info->socket_id_, now});
   LOG_CHECK(status.second) << message_id;
   sent_query_list_.put(status.first->second.get_list_node());
   if (immediately_fail_query) {
@@ -1204,6 +1319,9 @@ void Session::connection_open(ConnectionInfo *info, double now, bool ask_info) {
 
   if (cached_connection_) {
     VLOG(dc) << "Reuse cached connection";
+    if (cached_connection_->stats_callback()) {
+      cached_connection_->stats_callback()->on_connection_reused();
+    }
     promise.set_value(std::move(cached_connection_));
   } else {
     VLOG(dc) << "Request new connection";
@@ -1235,6 +1353,19 @@ void Session::connection_check_mode(ConnectionInfo *info) {
 
 void Session::connection_open_finish(ConnectionInfo *info,
                                      Result<unique_ptr<mtproto::RawConnection>> r_raw_connection) {
+  auto mark_handover_open_failed = [this, info]() {
+    const auto now_ms = to_connection_lifecycle_ms(Time::now());
+    const auto backoff_ms =
+        make_active_connection_lifecycle_policy(mtproto::stealth::get_runtime_stealth_params_snapshot().flow_behavior)
+            .rotation_backoff_ms;
+    if (info == &main_handover_connection_) {
+      main_connection_.lifecycle_.mark_successor_failed(now_ms, backoff_ms,
+                                                        ActiveConnectionRotationExemptionReason::None);
+    } else if (info == &long_poll_handover_connection_) {
+      long_poll_connection_.lifecycle_.mark_successor_failed(now_ms, backoff_ms,
+                                                             ActiveConnectionRotationExemptionReason::None);
+    }
+  };
   if (close_flag_ || info->state_ != ConnectionInfo::State::Connecting) {
     VLOG(dc) << "Ignore raw connection while closing";
     return;
@@ -1243,6 +1374,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
   if (r_raw_connection.is_error()) {
     LOG(WARNING) << "Failed to open socket: " << r_raw_connection.error();
     info->state_ = ConnectionInfo::State::Empty;
+    mark_handover_open_failed();
     yield();
     return;
   }
@@ -1252,6 +1384,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
   if (raw_connection->extra().extra != network_generation_) {
     LOG(WARNING) << "Receive RawConnection with old network_generation";
     info->state_ = ConnectionInfo::State::Empty;
+    mark_handover_open_failed();
     yield();
     return;
   }
@@ -1261,10 +1394,11 @@ void Session::connection_open_finish(ConnectionInfo *info,
   if (mode_ != expected_mode) {
     VLOG(dc) << "Change mode " << mode_ << "--->" << expected_mode;
     mode_ = expected_mode;
-    if (info->connection_id_ == 1 && mode_ != Mode::Http) {
+    if (!is_main_role(info->role_) && mode_ != Mode::Http) {
       LOG(WARNING) << "Receive TCP connection for long poll connection";
       connection_add(std::move(raw_connection));
       info->state_ = ConnectionInfo::State::Empty;
+      mark_handover_open_failed();
       yield();
       return;
     }
@@ -1276,7 +1410,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
     mode = mtproto::SessionConnection::Mode::Tcp;
     mode_name = Slice("TCP");
   } else {
-    if (info->connection_id_ == 0) {
+    if (is_main_role(info->role_)) {
       mode = mtproto::SessionConnection::Mode::Http;
       mode_name = Slice("HTTP");
     } else {
@@ -1296,6 +1430,13 @@ void Session::connection_open_finish(ConnectionInfo *info,
   info->mode_ = mode_;
   info->state_ = ConnectionInfo::State::Ready;
   info->created_at_ = Time::now();
+  auto runtime_params = mtproto::stealth::get_runtime_stealth_params_snapshot();
+  info->retire_at_ = ConnectionLifecyclePolicy::sample_active_connection_retire_at(
+      info->created_at_, runtime_params.flow_behavior, Random::secure_uint32());
+  info->lifecycle_.rearm(info->role_, to_connection_lifecycle_ms(info->created_at_),
+                         to_connection_lifecycle_ms(info->retire_at_));
+  info->lifecycle_.mark_eligible();
+  info->connection_->annotate_lifecycle_role(connection_role_name(info->role_));
   info->wakeup_at_ = info->created_at_ + 10;
   if (unknown_queries_.size() > MAX_INFLIGHT_QUERIES) {
     LOG(ERROR) << "With current limits `Too many queries with unknown state` error must be impossible";
@@ -1311,6 +1452,14 @@ void Session::connection_open_finish(ConnectionInfo *info,
     }
     to_cancel_message_ids_.clear();
   }
+  if (info == &main_handover_connection_) {
+    main_connection_.connection_->annotate_lifecycle_successor_opened(to_connection_lifecycle_ms(info->created_at_));
+    main_connection_.lifecycle_.mark_successor_ready(to_connection_lifecycle_ms(info->created_at_));
+  } else if (info == &long_poll_handover_connection_) {
+    long_poll_connection_.connection_->annotate_lifecycle_successor_opened(
+        to_connection_lifecycle_ms(info->created_at_));
+    long_poll_connection_.lifecycle_.mark_successor_ready(to_connection_lifecycle_ms(info->created_at_));
+  }
   yield();
 }
 
@@ -1325,8 +1474,67 @@ void Session::connection_close(ConnectionInfo *info) {
   if (info->state_ != ConnectionInfo::State::Ready) {
     return;
   }
+  info->retire_at_ = 0;
   info->connection_->force_close(static_cast<mtproto::SessionConnection::Callback *>(this));
   CHECK(info->state_ == ConnectionInfo::State::Empty);
+}
+
+void Session::activate_connection_handover(ConnectionInfo *primary, ConnectionInfo *handover) {
+  current_info_ = nullptr;
+  std::swap(*primary, *handover);
+}
+
+void Session::maybe_prepare_connection_handover(ConnectionInfo *primary, ConnectionInfo *handover, double now) {
+  if (close_flag_ || primary->state_ != ConnectionInfo::State::Ready) {
+    return;
+  }
+
+  auto runtime_params = mtproto::stealth::get_runtime_stealth_params_snapshot();
+  auto policy = make_active_connection_lifecycle_policy(runtime_params.flow_behavior);
+  ActiveConnectionLifecycleInput input;
+  input.now_ms = to_connection_lifecycle_ms(now);
+  input.has_inflight_queries = connection_has_inflight_queries(primary);
+  input.auth_in_progress = handshake_info_[MainAuthKeyHandshake].flag_ || handshake_info_[TmpAuthKeyHandshake].flag_;
+  input.shutdown_requested = close_flag_ || logging_out_flag_;
+  auto gate_snapshot = callback_->get_rotation_gate_snapshot();
+  input.destination_budget_allows_overlap =
+      handover->state_ == ConnectionInfo::State::Empty && gate_snapshot.destination_budget_allows_overlap;
+  input.anti_churn_allows_rotation = gate_snapshot.anti_churn_allows_rotation;
+
+  auto decision = primary->lifecycle_.poll(policy, input);
+  if (decision.over_age_degraded) {
+    primary->connection_->annotate_lifecycle_over_age_status(
+        true, rotation_exemption_name(primary->lifecycle_.rotation_exemption_reason()));
+    LOG(WARNING) << "Active connection exceeded hard ceiling without clean successor handover"
+                 << tag("socket_id", primary->socket_id_);
+  }
+  if (decision.prepare_successor && handover->state_ == ConnectionInfo::State::Empty) {
+    primary->connection_->annotate_lifecycle_rotation_reason(rotation_reason_name());
+    connection_open(handover, now, is_main_role(primary->role_));
+  }
+  if (decision.route_new_queries_to_successor && handover->state_ == ConnectionInfo::State::Ready) {
+    activate_connection_handover(primary, handover);
+  }
+}
+
+void Session::maybe_retire_draining_connection(ConnectionInfo *info, double now) {
+  if (info->state_ != ConnectionInfo::State::Ready ||
+      info->lifecycle_.state() != ActiveConnectionLifecycleState::Draining) {
+    return;
+  }
+
+  auto runtime_params = mtproto::stealth::get_runtime_stealth_params_snapshot();
+  auto policy = make_active_connection_lifecycle_policy(runtime_params.flow_behavior);
+  ActiveConnectionLifecycleInput input;
+  input.now_ms = to_connection_lifecycle_ms(now);
+  input.has_inflight_queries = connection_has_inflight_queries(info);
+  auto decision = info->lifecycle_.poll(policy, input);
+  if (decision.retire_current) {
+    if (info->lifecycle_.draining_started_at_ms() != 0) {
+      info->connection_->annotate_lifecycle_overlap(input.now_ms - info->lifecycle_.draining_started_at_ms());
+    }
+    connection_close(info);
+  }
 }
 
 bool Session::need_send_check_main_key() const {
@@ -1421,6 +1629,8 @@ void Session::on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r
                    << auth_data_.get_auth_key().id();
       connection_close(&main_connection_);
       connection_close(&long_poll_connection_);
+      connection_close(&main_handover_connection_);
+      connection_close(&long_poll_handover_connection_);
 
       // Salt of temporary key is different salt. Do not rewrite it
       if (auth_data_.use_pfs() ^ is_main) {
@@ -1513,6 +1723,9 @@ void Session::loop() {
 
   if (cached_connection_ && ConnectionPoolPolicy::is_pooled_connection_expired(cached_connection_timestamp_, now, 10.0,
                                                                                runtime_params.flow_behavior)) {
+    if (cached_connection_->stats_callback()) {
+      cached_connection_->stats_callback()->on_connection_closed(static_cast<td::int64>(now * 1000.0));
+    }
     cached_connection_.reset();
   }
   if (!is_main_ && !has_queries() && !need_destroy_auth_key_ && last_activity_timestamp_ < now - ACTIVITY_TIMEOUT) {
@@ -1525,13 +1738,24 @@ void Session::loop() {
   double wakeup_at = 0;
   main_connection_.wakeup_at_ = 0;
   long_poll_connection_.wakeup_at_ = 0;
+  main_handover_connection_.wakeup_at_ = 0;
+  long_poll_handover_connection_.wakeup_at_ = 0;
 
   // NB: order is crucial. First long_poll_connection, then main_connection
   // Otherwise, queries could be sent with big delay
 
   connection_check_mode(&main_connection_);
   connection_check_mode(&long_poll_connection_);
+  connection_check_mode(&main_handover_connection_);
+  connection_check_mode(&long_poll_handover_connection_);
+  maybe_prepare_connection_handover(&long_poll_connection_, &long_poll_handover_connection_, now);
+  maybe_prepare_connection_handover(&main_connection_, &main_handover_connection_, now);
+  maybe_retire_draining_connection(&long_poll_handover_connection_, now);
+  maybe_retire_draining_connection(&main_handover_connection_, now);
   if (mode_ == Mode::Http) {
+    if (long_poll_handover_connection_.state_ == ConnectionInfo::State::Ready) {
+      connection_flush(&long_poll_handover_connection_);
+    }
     if (long_poll_connection_.state_ == ConnectionInfo::State::Ready) {
       connection_flush(&long_poll_connection_);
     }
@@ -1539,8 +1763,12 @@ void Session::loop() {
       connection_open(&long_poll_connection_, now);
     }
     relax_timeout_at(&wakeup_at, long_poll_connection_.wakeup_at_);
+    relax_timeout_at(&wakeup_at, long_poll_handover_connection_.wakeup_at_);
   }
 
+  if (main_handover_connection_.state_ == ConnectionInfo::State::Ready) {
+    connection_flush(&main_handover_connection_);
+  }
   if (main_connection_.state_ == ConnectionInfo::State::Ready) {
     // do not send queries before we have key and e.t.c
     // do not send queries before tmp_key is bound
@@ -1579,6 +1807,7 @@ void Session::loop() {
   connection_online_update(now, false);  // has_queries() could have been changed
 
   relax_timeout_at(&wakeup_at, main_connection_.wakeup_at_);
+  relax_timeout_at(&wakeup_at, main_handover_connection_.wakeup_at_);
 
   if (wakeup_at != 0) {
     set_timeout_at(wakeup_at);

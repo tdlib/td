@@ -8,8 +8,7 @@
 
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
-
-#include "td/actor/actor.h"
+#include "td/telegram/net/StealthConnectionCountPolicy.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Promise.h"
@@ -91,6 +90,9 @@ class NetQueryDispatcher {
 
   static int32 get_session_count();
   static bool get_use_pfs();
+  static Proxy get_active_proxy();
+  static StealthConnectionCountPlan get_connection_count_plan(int32 raw_dc_id);
+  void update_connection_count_policy_locked(bool notify_sessions_about_mtproto_header);
 
   static void complete_net_query(NetQueryPtr net_query);
   bool check_stop_flag(NetQueryPtr &net_query) const;

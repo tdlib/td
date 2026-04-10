@@ -68,10 +68,13 @@ td::vector<AlpnProto> parse_alpn_protocols(td::Slice ext_value) {
 }
 
 TEST(TlsAlpnPresenceAllProfiles, AllBrowserProfilesMustAdvertiseAlpn) {
-  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,
-                                   BrowserProfile::Chrome120,       BrowserProfile::Firefox148,
-                                   BrowserProfile::Safari26_3,      BrowserProfile::IOS14,
-                                   BrowserProfile::Android11_OkHttp};
+  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
+                                   BrowserProfile::Chrome131,
+                                   BrowserProfile::Chrome120,
+                                   BrowserProfile::Firefox148,
+                                   BrowserProfile::Safari26_3,
+                                   BrowserProfile::IOS14,
+                                   BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : all_profiles) {
     MockRng rng(42);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678, profile,
@@ -85,10 +88,13 @@ TEST(TlsAlpnPresenceAllProfiles, AllBrowserProfilesMustAdvertiseAlpn) {
 }
 
 TEST(TlsAlpnPresenceAllProfiles, BrowserDefaultMustIncludeH2) {
-  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,
-                                   BrowserProfile::Chrome120,       BrowserProfile::Firefox148,
-                                   BrowserProfile::Safari26_3,      BrowserProfile::IOS14,
-                                   BrowserProfile::Android11_OkHttp};
+  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
+                                   BrowserProfile::Chrome131,
+                                   BrowserProfile::Chrome120,
+                                   BrowserProfile::Firefox148,
+                                   BrowserProfile::Safari26_3,
+                                   BrowserProfile::IOS14,
+                                   BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : all_profiles) {
     MockRng rng(42);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678, profile,
@@ -109,10 +115,13 @@ TEST(TlsAlpnPresenceAllProfiles, BrowserDefaultMustIncludeH2) {
 }
 
 TEST(TlsAlpnPresenceAllProfiles, BrowserDefaultMustIncludeHttp11) {
-  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,
-                                   BrowserProfile::Chrome120,       BrowserProfile::Firefox148,
-                                   BrowserProfile::Safari26_3,      BrowserProfile::IOS14,
-                                   BrowserProfile::Android11_OkHttp};
+  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
+                                   BrowserProfile::Chrome131,
+                                   BrowserProfile::Chrome120,
+                                   BrowserProfile::Firefox148,
+                                   BrowserProfile::Safari26_3,
+                                   BrowserProfile::IOS14,
+                                   BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : all_profiles) {
     MockRng rng(42);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678, profile,
@@ -152,10 +161,13 @@ TEST(TlsAlpnPresenceAllProfiles, ProxyAlpnMustOnlyContainHttp11) {
 TEST(TlsAlpnPresenceAllProfiles, BrowserDefaultAlpnMustHaveH2First) {
   // Real Chrome/Firefox/Safari all place h2 before http/1.1 in ALPN.
   // Reversed order would be a DPI anomaly.
-  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,       BrowserProfile::Chrome131,
-                                   BrowserProfile::Chrome120,       BrowserProfile::Firefox148,
-                                   BrowserProfile::Safari26_3,      BrowserProfile::IOS14,
-                                   BrowserProfile::Android11_OkHttp};
+  BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
+                                   BrowserProfile::Chrome131,
+                                   BrowserProfile::Chrome120,
+                                   BrowserProfile::Firefox148,
+                                   BrowserProfile::Safari26_3,
+                                   BrowserProfile::IOS14,
+                                   BrowserProfile::Android11_OkHttp_Advisory};
   for (auto profile : all_profiles) {
     MockRng rng(42);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678, profile,
