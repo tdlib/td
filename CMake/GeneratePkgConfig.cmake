@@ -114,14 +114,23 @@ function(generate_pkgconfig TARGET DESCRIPTION)
 
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig")
 
+  get_target_property(TARGET_OUTPUT_NAME "${TARGET}" OUTPUT_NAME)
+  if ("${TARGET_OUTPUT_NAME}" STREQUAL "TARGET_OUTPUT_NAME-NOTFOUND")
+    set(TARGET_OUTPUT_NAME "${TARGET}")
+  endif()
+
   if ("${LIBRARY_TYPE}" STREQUAL "INTERFACE_LIBRARY")
     set(LIBS_LINE "")
     foreach (ILIB ${INTERFACE_LIBS})
-      set(LIBS_LINE "${LIBS_LINE} -l${ILIB}")
+      get_target_property(ILIB_OUTPUT_NAME "${ILIB}" OUTPUT_NAME)
+      if ("${ILIB_OUTPUT_NAME}" STREQUAL "ILIB_OUTPUT_NAME-NOTFOUND")
+        set(ILIB_OUTPUT_NAME "${ILIB}")
+      endif()
+      set(LIBS_LINE "${LIBS_LINE} -l${ILIB_OUTPUT_NAME}")
     endforeach()
     set(LIBS_LINE "Libs: -L\"${PKGCONFIG_LIBDIR}\"${LIBS_LINE}")
   else()
-    set(LIBS_LINE "Libs: -L\"${PKGCONFIG_LIBDIR}\" -l${TARGET}")
+    set(LIBS_LINE "Libs: -L\"${PKGCONFIG_LIBDIR}\" -l${TARGET_OUTPUT_NAME}")
   endif()
 
   file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" CONTENT
