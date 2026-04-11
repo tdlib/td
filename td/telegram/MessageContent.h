@@ -24,6 +24,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessageSelfDestructType.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/PollId.h"
 #include "td/telegram/QuickReplyMessageFullId.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/secret_api.h"
@@ -188,6 +189,8 @@ telegram_api::object_ptr<telegram_api::inputPhoneCall> get_message_content_input
     const MessageContent *content);
 
 int32 get_message_content_live_location_period(const MessageContent *content);
+
+PollId get_message_content_poll_id(const MessageContent *content);
 
 bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content);
 

@@ -36128,6 +36128,27 @@ Result<MessagesManager::InvoiceMessageInfo> MessagesManager::get_invoice_message
   return std::move(result);
 }
 
+Result<PollId> MessagesManager::get_message_poll_id(MessageFullId message_full_id, bool to_stop) {
+  auto m = get_message_force(message_full_id, "get_message_poll_id");
+  if (m == nullptr) {
+    return Status::Error(400, "Message not found");
+  }
+  if (m->content->get_type() != MessageContentType::Poll) {
+    return Status::Error(400, "Message is not a poll");
+  }
+  if (!td_->dialog_manager_->have_input_peer(message_full_id.get_dialog_id(), false, AccessRights::Read)) {
+    return Status::Error(400, "Can't access the chat");
+  }
+  if (m->message_id.is_scheduled() || !m->message_id.is_server()) {
+    return Status::Error(400, "Wrong poll message specified");
+  }
+  if (to_stop && !can_edit_message(message_full_id.get_dialog_id(), m, true)) {
+    return Status::Error(400, "Poll can't be stopped");
+  }
+
+  return get_message_content_poll_id(m->content.get());
+}
+
 Result<ServerMessageId> MessagesManager::get_group_call_message_id(MessageFullId message_full_id) {
   auto m = get_message_force(message_full_id, "get_group_call_message_id");
   if (m == nullptr) {

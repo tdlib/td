@@ -6819,6 +6819,15 @@ int32 get_message_content_live_location_period(const MessageContent *content) {
   }
 }
 
+PollId get_message_content_poll_id(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Poll:
+      return static_cast<const MessagePoll *>(content)->poll_id;
+    default:
+      return PollId();
+  }
+}
+
 bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Poll:
