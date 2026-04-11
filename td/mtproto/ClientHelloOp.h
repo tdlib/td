@@ -22,6 +22,7 @@ struct ClientHelloOp {
     X25519KeyShareEntry,
     Secp256r1KeyShareEntry,
     X25519MlKem768KeyShareEntry,
+    X25519PublicKey,
     Scope16Begin,
     Scope16End,
     Permutation,
@@ -88,6 +89,23 @@ struct ClientHelloOp {
   static ClientHelloOp x25519_ml_kem_768_key_share_entry() {
     ClientHelloOp op;
     op.type = Type::X25519MlKem768KeyShareEntry;
+    return op;
+  }
+
+  // Emits exactly 32 bytes of a valid X25519 public key (rejection-sampled
+  // through the same Curve25519 quadratic-residue check used by
+  // `x25519_key_share_entry`). Used by extensions that carry a serialized
+  // X25519 point WITHOUT the 4-byte (group, length) prefix that
+  // `x25519_key_share_entry` prepends — currently the ECH `enc` field.
+  //
+  // Replacing this op with `random_bytes(32)` produces wire-images that fail
+  // strict X25519 coordinate validation on Cloudflare/Google ECH-aware
+  // servers and on DPI middleboxes that ship libsodium / OpenSSL X25519
+  // validators. The behaviour is enforced by
+  // `test/stealth/test_ech_encapsulated_key_validity_invariants.cpp`.
+  static ClientHelloOp x25519_public_key() {
+    ClientHelloOp op;
+    op.type = Type::X25519PublicKey;
     return op;
   }
 

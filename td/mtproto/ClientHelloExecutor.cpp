@@ -94,7 +94,15 @@ class LengthCalculator {
         size_ += 2 + 2 + 65;
         break;
       case Op::Type::X25519MlKem768KeyShareEntry:
-        size_ += 2 + 2 + 1184;
+        // group(2) + length(2) + ML-KEM-768 public key(1184) +
+        // X25519 public key(32). The hybrid IANA codepoint 0x11EC requires
+        // the X25519 trailer; emitting only ML-KEM produces a wire-image
+        // that no real Chrome / Firefox client ever produces and that
+        // strict TLS 1.3 parsers reject as length-mismatched.
+        size_ += 2 + 2 + 1184 + 32;
+        break;
+      case Op::Type::X25519PublicKey:
+        size_ += 32;
         break;
       case Op::Type::Scope16Begin:
         size_ += 2;
@@ -177,8 +185,17 @@ class ByteWriter {
         store_secp256r1_key_share();
         break;
       case Op::Type::X25519MlKem768KeyShareEntry:
-        append(Op::bytes("\x11\xec\x04\xa0"), context);
+        // group(0x11EC) + length(0x04C0 = 1216 bytes) + ML-KEM-768 ek (1184)
+        // + X25519 ek (32). Both halves of the hybrid public key MUST be
+        // emitted in this exact order; see
+        // `test/stealth/test_pq_hybrid_key_share_format_invariants.cpp`
+        // for the regression guard.
+        append(Op::bytes("\x11\xec\x04\xc0"), context);
         store_mlkem_key_share();
+        store_x25519_key_share();
+        break;
+      case Op::Type::X25519PublicKey:
+        store_x25519_key_share();
         break;
       case Op::Type::Scope16Begin:
         scope_offsets_.push_back(offset());

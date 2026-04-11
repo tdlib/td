@@ -133,18 +133,58 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
       return ops;
     case TlsExtensionType::EncryptedClientHello:
       if (config.has_ech) {
-        return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::bytes("\x00\x00\x01\x00\x01"), Op::random_bytes(1),
-                Op::bytes(store_u16(static_cast<uint16>(config.ech_enc_key_length))), Op::random_bytes(config.ech_enc_key_length),
-                Op::scope16_begin(), Op::random_bytes(config.ech_payload_length),
-                Op::scope16_end(), Op::scope16_end()};
+        // The ECH HPKE encapsulated key field MUST be a valid X25519
+        // public point — Cloudflare/Google ECH-aware servers and any
+        // DPI middlebox that ships an X25519 validator will reject
+        // raw random bytes here. We always emit X25519 (32-byte point)
+        // because that is the only HPKE KEM Chrome/Firefox use today;
+        // for any other declared length we fall back to opaque bytes
+        // so the wire still matches the declared length field.
+        CHECK(config.ech_enc_key_length > 0);
+        ClientHelloOp enc_key_op = (config.ech_enc_key_length == 32)
+                                       ? Op::x25519_public_key()
+                                       : Op::random_bytes(config.ech_enc_key_length);
+        return {Op::bytes(store_u16(type)),
+                Op::scope16_begin(),
+                Op::bytes("\x00\x00\x01\x00\x01"),
+                Op::random_bytes(1),
+                Op::bytes(store_u16(static_cast<uint16>(config.ech_enc_key_length))),
+                std::move(enc_key_op),
+                Op::scope16_begin(),
+                Op::random_bytes(config.ech_payload_length),
+                Op::scope16_end(),
+                Op::scope16_end()};
       }
       return {};
-    case TlsExtensionType::ApplicationSettings:
-      if (config.alps_type != 0) {
-        return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::bytes(store_u16(config.alps_type)),
-                Op::bytes(extension.raw_data), Op::scope16_end()};
-      }
-      return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::bytes(extension.raw_data), Op::scope16_end()};
+    case TlsExtensionType::ApplicationSettings: {
+      // The ALPS extension uses two different IANA codepoints across
+      // Chrome history:
+      //   * 0x4469 — Chrome 106..132 (legacy ALPS, used by Chrome 120 / 131)
+      //   * 0x44CD — Chrome 133+    (current ALPS, used by Chrome 133)
+      //
+      // The wire byte for the extension TYPE itself MUST be the
+      // profile-specific value, NOT the placeholder enum constant
+      // `TlsExtensionType::ApplicationSettings = 17613` (which happens to
+      // equal 0x44CD but is just a marker for the switch dispatch).
+      //
+      // The previous form of this case wrote `store_u16(type)` (always
+      // 0x44CD) as the ext header AND `store_u16(config.alps_type)` again
+      // inside the body. That produced a wire that:
+      //   1. Always advertised 0x44CD regardless of the requested profile,
+      //      breaking Chrome 120 / 131 imitation.
+      //   2. Carried 2 extra `\x44\x69` (or `\x44\xCD`) bytes inside the
+      //      extension body, making the body length 7 instead of 5 — a
+      //      malformed ApplicationSettings record that any strict
+      //      BoringSSL/Chromium parser rejects.
+      //
+      // The architecturally correct emit puts `config.alps_type` in the
+      // ext header and the unmodified `raw_data` (list_len + protocol)
+      // inside the body. Behaviour is enforced by
+      // `test/stealth/test_alps_extension_wire_type_invariants.cpp`.
+      uint16 wire_type = config.alps_type != 0 ? config.alps_type : type;
+      return {Op::bytes(store_u16(wire_type)), Op::scope16_begin(), Op::bytes(extension.raw_data),
+              Op::scope16_end()};
+    }
     default:
       return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::bytes(extension.raw_data), Op::scope16_end()};
   }

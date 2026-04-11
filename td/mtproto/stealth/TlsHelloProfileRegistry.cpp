@@ -71,9 +71,16 @@ constexpr ProfileSpec PROFILE_SPECS[] = {
      ExtensionOrderPolicy::FixedFromFixture},
   {BrowserProfile::Firefox149_MacOS26_3, Slice("firefox149_macos26_3"), 0, 0x4001, true, false, true, true,
    0x11EC, ExtensionOrderPolicy::FixedFromFixture},
-    {BrowserProfile::Safari26_3, Slice("safari26_3"), 0, 0, false, false, true, true, 0x11EC,
+    // Apple TLS family — Safari 26.3 and iOS 14 do NOT carry the
+    // X25519MLKEM768 hybrid PQ key share. Real Safari/iOS captures from
+    // iOS 26.x advertise only the classical curves {0x001D, 0x0017,
+    // 0x0018, 0x0019} in supported_groups and a single X25519 key share.
+    // The legacy ProfileSpec's `has_pq` and `pq_group_id` fields here
+    // are kept in sync with `BrowserProfileSpec` (the wire source of
+    // truth) by `test_profile_spec_pq_consistency_invariants.cpp`.
+    {BrowserProfile::Safari26_3, Slice("safari26_3"), 0, 0, false, false, true, false, 0,
      ExtensionOrderPolicy::FixedFromFixture},
-    {BrowserProfile::IOS14, Slice("ios14"), 0, 0, false, false, true, true, 0x11EC,
+    {BrowserProfile::IOS14, Slice("ios14"), 0, 0, false, false, true, false, 0,
      ExtensionOrderPolicy::FixedFromFixture},
     {BrowserProfile::Android11_OkHttp_Advisory, Slice("android11_okhttp_advisory"), 0, 0, false, false, true, false, 0,
      ExtensionOrderPolicy::FixedFromFixture},
