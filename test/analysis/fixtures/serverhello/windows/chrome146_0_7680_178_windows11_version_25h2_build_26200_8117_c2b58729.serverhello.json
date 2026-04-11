@@ -1,0 +1,107 @@
+{
+  "capture_date_utc": "2026-04-11T14:39:32Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729",
+      "fixture_id": "imported_chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_serverhello:frame113",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729",
+      "fixture_id": "imported_chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_serverhello:frame134",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729",
+      "fixture_id": "imported_chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_serverhello:frame162",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729",
+      "fixture_id": "imported_chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_serverhello:frame384",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729",
+      "fixture_id": "imported_chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_serverhello:frame400",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729",
+      "fixture_id": "imported_chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_serverhello:frame446",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8117,_Chrome_146_0_7680_178.pcap",
+  "source_sha256": "fcb3bed2e07349f65433618ec4298061f1a4dd2fc4603b235e60279e647681f4",
+  "transport": "tcp"
+}

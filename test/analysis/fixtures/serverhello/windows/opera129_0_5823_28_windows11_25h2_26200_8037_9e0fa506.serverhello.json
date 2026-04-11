@@ -1,0 +1,107 @@
+{
+  "capture_date_utc": "2026-04-11T14:39:28Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506",
+      "fixture_id": "imported_opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_serverhello:frame76",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506",
+      "fixture_id": "imported_opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_serverhello:frame102",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506",
+      "fixture_id": "imported_opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_serverhello:frame134",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506",
+      "fixture_id": "imported_opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_serverhello:frame312",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506",
+      "fixture_id": "imported_opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_serverhello:frame333",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506",
+      "fixture_id": "imported_opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_serverhello:frame375",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap",
+  "source_sha256": "94a522b1393f652e944b29d2243e50adf15922deae3eda49efc942ce07baf21e",
+  "transport": "tcp"
+}

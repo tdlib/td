@@ -141,13 +141,22 @@ def check_profile_platform_policy(sample: ClientHello, registry: dict[str, Any])
 
 
 def get_matching_fixture_metadata(sample: ClientHello, registry: dict[str, Any]) -> dict[str, Any] | None:
+    candidates = get_matching_fixture_metadata_candidates(sample, registry)
+    if not candidates:
+        return None
+    return candidates[0]
+
+
+def get_matching_fixture_metadata_candidates(sample: ClientHello, registry: dict[str, Any]) -> list[dict[str, Any]]:
     profile = get_profile_config(sample, registry)
     include_fixture_ids = profile.get("include_fixture_ids")
     fixtures = registry.get("fixtures")
     if not isinstance(include_fixture_ids, list) or not isinstance(fixtures, dict):
-        return None
+        return []
     if not sample.metadata.source_sha256:
-        return None
+        return []
+
+    candidates: list[dict[str, Any]] = []
 
     for fixture_id in include_fixture_ids:
         fixture = fixtures.get(fixture_id)
@@ -158,8 +167,8 @@ def get_matching_fixture_metadata(sample: ClientHello, registry: dict[str, Any])
         fixture_sha256 = fixture.get("source_sha256")
         if not fixture_sha256 or fixture_sha256 != sample.metadata.source_sha256:
             continue
-        return fixture
-    return None
+        candidates.append(fixture)
+    return candidates
 
 
 def check_profile_fixture_provenance_policy(sample: ClientHello, registry: dict[str, Any]) -> bool:
@@ -212,25 +221,68 @@ def _parse_expected_extension_order(values: Any) -> list[int] | None:
     return parsed
 
 
+def _parse_optional_u16_policy(value: Any) -> tuple[set[int], bool, bool]:
+    if value in (None, "", False):
+        return set(), False, True
+
+    if isinstance(value, dict):
+        raw_values: Any = None
+        for key in ("allowed_types", "allowed_groups", "allowed_values", "values"):
+            if key in value:
+                raw_values = value.get(key)
+                break
+        if raw_values in (None, "", False):
+            raw_list: list[Any] = []
+        elif isinstance(raw_values, list):
+            raw_list = list(raw_values)
+        else:
+            raw_list = [raw_values]
+        parsed_values = {
+            int(item, 16) if isinstance(item, str) else int(item)
+            for item in raw_list
+            if item not in (None, "", False)
+        }
+        allow_absent = bool(value.get("allow_absent", False))
+        allow_present = bool(value.get("allow_present", bool(parsed_values)))
+        return parsed_values, allow_present, allow_absent
+
+    if isinstance(value, list):
+        parsed_values = {int(item, 16) if isinstance(item, str) else int(item) for item in value}
+        return parsed_values, True, False
+
+    parsed_value = int(value, 16) if isinstance(value, str) else int(value)
+    return {parsed_value}, True, False
+
+
+def _parse_ech_presence_policy(value: Any) -> tuple[bool, bool]:
+    if value in (None, "", False):
+        return False, True
+    if isinstance(value, dict):
+        allow_present = bool(value.get("allow_present", True))
+        allow_absent = bool(value.get("allow_absent", False))
+        return allow_present, allow_absent
+    return True, False
+
+
 def check_extension_order_policy(sample: ClientHello, registry: dict[str, Any]) -> bool:
     profile = get_profile_config(sample, registry)
     policy = profile.get("extension_order_policy")
     if policy in (None, "", False):
         return True
 
-    fixture = get_matching_fixture_metadata(sample, registry)
-    if not isinstance(fixture, dict):
-        return False
-
-    expected_order = _parse_expected_extension_order(fixture.get("non_grease_extensions_without_padding"))
-    if expected_order is None:
+    fixtures = get_matching_fixture_metadata_candidates(sample, registry)
+    if not fixtures:
         return False
 
     observed_order = sample.non_grease_extensions_without_padding
-    if policy == "FixedFromFixture":
-        return observed_order == expected_order
-    if policy == "ChromeShuffleAnchored":
-        return Counter(observed_order) == Counter(expected_order)
+    for fixture in fixtures:
+        expected_order = _parse_expected_extension_order(fixture.get("non_grease_extensions_without_padding"))
+        if expected_order is None:
+            continue
+        if policy == "FixedFromFixture" and observed_order == expected_order:
+            return True
+        if policy == "ChromeShuffleAnchored" and Counter(observed_order) == Counter(expected_order):
+            return True
     return False
 
 
@@ -247,21 +299,28 @@ def check_anti_telegram_ja3_policy(sample: ClientHello, registry: dict[str, Any]
 
 def check_pq_group_policy(sample: ClientHello, registry: dict[str, Any]) -> bool:
     profile = get_profile_config(sample, registry)
-    expected = profile.get("pq_group")
-    if expected in (None, "", False):
-        return True
-    expected_group = int(expected, 16) if isinstance(expected, str) else int(expected)
-    return expected_group in sample.supported_groups and expected_group in sample.key_share_groups
+    expected_groups, allow_present, allow_absent = _parse_optional_u16_policy(profile.get("pq_group"))
+    observed_groups = {
+        group
+        for group in sample.supported_groups
+        if group in sample.key_share_groups and group >= 0x1000 and not is_grease(group)
+    }
+    if not observed_groups:
+        return allow_absent
+    if not allow_present or not expected_groups:
+        return False
+    return observed_groups.issubset(expected_groups)
 
 
 def check_alps_policy(sample: ClientHello, registry: dict[str, Any]) -> bool:
     profile = get_profile_config(sample, registry)
-    expected = profile.get("alps_type")
+    expected_values, allow_present, allow_absent = _parse_optional_u16_policy(profile.get("alps_type"))
     present_alps = {extension.type for extension in sample.extensions if extension.type in ALPS_EXTENSION_TYPES}
-    if expected in (None, "", False):
-        return not present_alps
-    expected_type = int(expected, 16) if isinstance(expected, str) else int(expected)
-    return present_alps == {expected_type}
+    if not present_alps:
+        return allow_absent
+    if not allow_present or not expected_values:
+        return False
+    return present_alps.issubset(expected_values)
 
 
 def _has_exact_pin(fingerprint_policy: dict[str, Any], field_names: tuple[str, ...]) -> bool:
@@ -341,7 +400,11 @@ def check_sample_policies(sample: ClientHello, registry: dict[str, Any]) -> list
         failures.append("Route mode known")
         return failures
 
-    if profile_requires_ech(sample.profile, registry) != has_new_ech:
+    profile = get_profile_config(sample, registry)
+    allow_ech_present, allow_ech_absent = _parse_ech_presence_policy(profile.get("ech_type"))
+    if has_new_ech and not allow_ech_present:
+        failures.append("ECH route policy")
+    if not has_new_ech and not allow_ech_absent:
         failures.append("ECH route policy")
     if not check_profile_platform_policy(sample, registry):
         failures.append("Profile matches platform hints")

@@ -1,0 +1,107 @@
+{
+  "capture_date_utc": "2026-04-11T14:39:14Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "yandex26_3_3_869_64_bit_windows10_0_ef066851",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "yandex26_3_3_869_64_bit_windows10_0_ef066851",
+      "fixture_id": "imported_yandex26_3_3_869_64_bit_windows10_0_ef066851_serverhello:frame59",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "yandex26_3_3_869_64_bit_windows10_0_ef066851",
+      "fixture_id": "imported_yandex26_3_3_869_64_bit_windows10_0_ef066851_serverhello:frame76",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "yandex26_3_3_869_64_bit_windows10_0_ef066851",
+      "fixture_id": "imported_yandex26_3_3_869_64_bit_windows10_0_ef066851_serverhello:frame116",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "yandex26_3_3_869_64_bit_windows10_0_ef066851",
+      "fixture_id": "imported_yandex26_3_3_869_64_bit_windows10_0_ef066851_serverhello:frame280",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "yandex26_3_3_869_64_bit_windows10_0_ef066851",
+      "fixture_id": "imported_yandex26_3_3_869_64_bit_windows10_0_ef066851_serverhello:frame319",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "yandex26_3_3_869_64_bit_windows10_0_ef066851",
+      "fixture_id": "imported_yandex26_3_3_869_64_bit_windows10_0_ef066851_serverhello:frame369",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_yandex26_3_3_869_64_bit_windows10_0_ef066851_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap",
+  "source_sha256": "55ec71c5d3e878c995321bffe2033ba355d58770694d1832ca76ff1852684adf",
+  "transport": "tcp"
+}

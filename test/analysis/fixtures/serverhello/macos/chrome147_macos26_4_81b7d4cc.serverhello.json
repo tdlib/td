@@ -1,0 +1,32 @@
+{
+  "capture_date_utc": "2026-04-11T14:39:54Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "chrome147_macos26_4_81b7d4cc",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome147_macos26_4_81b7d4cc",
+      "fixture_id": "imported_chrome147_macos26_4_81b7d4cc_serverhello:frame142",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_chrome147_macos26_4_81b7d4cc_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macos_26_4,_chrome_147,_auto_macOS_10_15_7,_auto_Google_Chrome_1.pcap",
+  "source_sha256": "05ebf74642d54825517473840253968306076ac2627bf0972dc5b3adcaebc147",
+  "transport": "tcp"
+}

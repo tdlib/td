@@ -7,7 +7,7 @@ telemt: https://t.me/telemtrs
 
 # tdlib-obf: что реально реализовано в stealth-контуре и зачем
 
-Документ составлен по текущему состоянию репозитория `tdlib-obf` на 2026-04-10. Это не пересказ `docs/Plans/tdlib-obf-stealth-plan_v6.md`, а фиксация того, что уже присутствует в исходниках, тестах и checked-in артефактах.
+Документ составлен по текущему состоянию репозитория `tdlib-obf` на 2026-04-11. Это не пересказ `docs/Plans/tdlib-obf-stealth-plan_v6.md`, а фиксация того, что уже присутствует в исходниках, тестах и checked-in артефактах.
 
 Главная operational-предпосылка у этой ветки простая: противник смотрит не только на один `ClientHello`, а на всю совокупность признаков. Поэтому работа ушла дальше «сделать браузероподобный TLS hello» и фактически закрыла четыре слоя сразу:
 
@@ -265,7 +265,7 @@ Stealth-ветка выдвигает более строгое требован
 
 ### 2.1. Frozen corpus и checked-in empirical basis
 
-Под `test/analysis/fixtures/` уже лежит checked-in corpus по четырём платформенным веткам:
+Под `test/analysis/fixtures/clienthello` и `test/analysis/fixtures/serverhello` уже лежит checked-in reviewed corpus по четырём платформенным веткам:
 
 - `clienthello/android`, `clienthello/ios`, `clienthello/linux_desktop`, `clienthello/macos`;
 - `serverhello/android`, `serverhello/ios`, `serverhello/linux_desktop`, `serverhello/macos`.
@@ -319,7 +319,50 @@ Stealth-ветка выдвигает более строгое требован
 
 `run_corpus_smoke.py` дополнительно связывает `ServerHello` batch с соответствующим `ClientHello` capture по `source_path`, `source_sha256` и family. То есть ответ нельзя quietly проверить «сам по себе», в отрыве от исходного capture-контекста.
 
-### 2.5. JA3/JA4 audit сделан в двух языках и against reference implementations
+### 2.5. Появился отдельный imported candidate corpus, который позволяет использовать новые capture без ручного promote
+
+Отдельно от reviewed corpus теперь существует candidate-ветка под:
+
+- `test/analysis/fixtures/imported/clienthello/...`;
+- `test/analysis/fixtures/imported/serverhello/...`;
+- `test/analysis/fixtures/imported/import_manifest.json`;
+- `test/analysis/profiles_imported.json`.
+
+Смысл этой ветки не в том, чтобы автоматически расширять release-gating corpus, а в том, чтобы не терять новые browser captures и прогонять их через executable smoke без ручного «promote в reviewed truth».
+
+Логика здесь уже не ручная.
+
+Во-первых, `test/analysis/import_traffic_dumps.py` делает ровно то, чего раньше не хватало:
+
+- сортирует `docs/Samples/Traffic dumps/Unsorted` в канонические platform roots (`Android`, `iOS`, `Linux, desktop`, `macOS`, `Windows`);
+- извлекает imported `ClientHello` и `ServerHello` артефакты в отдельное дерево, не трогая reviewed corpus;
+- ведёт `import_manifest.json` с provenance и результатами импорта;
+- предпочитает user-provided OS/browser token из имени файла и использует `auto ...` token только как fallback;
+- fail-closed отклоняет capture, если browser family из имени файла надёжно определить нельзя, вместо создания `unknown_browser` профиля;
+- по умолчанию ставит imported capture в canonical `route_mode=non_ru_egress`, чтобы candidate lane был исполним в текущих fail-closed smoke checks, а не оставался навсегда в `unknown`.
+
+Во-вторых, поверх этого появился `test/analysis/generate_imported_fixture_registry.py`, который строит `profiles_imported.json` не руками и не копированием из reviewed registry, а прямо из imported artifacts и `import_manifest.json`.
+
+Это важно, потому что imported corpus ведёт себя не как reviewed corpus:
+
+- почти все imported artifacts содержат не один sample, а несколько;
+- для современных браузеров порядок TLS extensions часто плавает между sample-ами даже внутри одного capture;
+- в части imported lanes плавают не только extension order, но и наличие `ALPS`, `ECH` и даже `PQ`-группы.
+
+Из-за этого generated candidate registry теперь фиксирует не ложную «одну правильную строку байтов», а observed policy envelope:
+
+- каждый imported capture остаётся отдельным profile/family и не объявляется release-gating truth;
+- `release_gating=false`, а fixture trust маркируется как `candidate`, а не `verified`;
+- для Safari imported profiles остаётся `FixedFromFixture`, потому что в текущей модели Safari-family считается fixed-order lane;
+- для остальных imported browser families используется `ChromeShuffleAnchored`, то есть extension order трактуется как браузерно-подобная перестановка, а не как один жестко зафиксированный порядок;
+- `ech_type`, `alps_type` и `pq_group` теперь могут быть не только exact value, но и policy-object вида «разрешено присутствие и отсутствие», если именно это наблюдается в multi-sample capture;
+- fingerprint checker для таких profiles умеет принимать любой matching fixture variant из `include_fixture_ids`, а не только первый попавшийся ordering.
+
+Практический результат этого сдвига уже проверен на реальном imported tree: candidate-corpus smoke проходит отдельно от reviewed registry и на текущем head покрывает `78` imported profiles, `430` ClientHello samples и `437` ServerHello samples.
+
+Это и есть главный operational смысл новой логики: новые capture больше не надо вручную «продвигать» в reviewed corpus, чтобы начать получать от них пользу. Reviewed tree остаётся консервативным и release-gating, а imported lane даёт использовать весь хвост свежих артефактов как candidate corpus без смешения trust levels.
+
+### 2.6. JA3/JA4 audit сделан в двух языках и against reference implementations
 
 Проверка отпечатков построена не на одной самописной функции:
 
@@ -332,7 +375,7 @@ Stealth-ветка выдвигает более строгое требован
 - логика JA3/JA4 сверяется с reference implementations;
 - спорные детали вроде padding/SNI/ALPN и сегмента A в JA4 закреплены тестами, а не обсуждениями в чате.
 
-### 2.6. Поверх capture-driven пайплайна добавлен полноценный `1k` statistical corpus layer
+### 2.7. Поверх capture-driven пайплайна добавлен полноценный `1k` statistical corpus layer
 
 В дереве теперь есть не локальный набор экспериментов, а полноценный многоплатформенный слой нативной валидации отпечатков, построенный вокруг `test/stealth/CorpusStatHelpers.h` и целой группы `1024-seed` suite-файлов. На текущем head этот слой включает:
 
@@ -355,7 +398,7 @@ Stealth-ветка выдвигает более строгое требован
 
 Отдельно важно, что этот слой теперь фиксирует и platform-gap reality, а не замалчивает её. Для macOS Firefox заведён отдельный verified runtime-profile с собственным wire-family, а iOS/Android gap-suites явно проверяют, что advisory/mobile fallback не начинает тихо маскироваться под чужой capture family.
 
-### 2.7. Тестовый контур остаётся плотным не только по числу, но и по типу инвариантов
+### 2.8. Тестовый контур остаётся плотным не только по числу, но и по типу инвариантов
 
 По уже проверенному aggregate-run можно зафиксировать конкретный результат: `./build/test/run_all_tests --filter 1k` выбрал `171` тест из `1432` зарегистрированных и завершился `passed 171/171` примерно за `40.0s`.
 
@@ -416,6 +459,22 @@ Checked-in reviewed corpus уже содержит более свежие captu
 
 Именно поэтому новый `1k` corpus layer стоит считать не косметическим дополнением к test-suite, а прямым operational hardening-ом fingerprint subsystem-а.
 
+### 3.7. Вместо ручного "promote" для новых capture появился отдельный candidate lane
+
+Раньше между двумя крайностями был неудобный зазор:
+
+- либо capture оставался в `Unsorted` и практически не участвовал в верификации;
+- либо его нужно было вручную тащить в reviewed registry, даже если его статус ещё нельзя честно назвать verified.
+
+Сейчас этот зазор закрыт отдельным imported lane.
+
+- Новые capture можно отсортировать и извлечь автоматически.
+- Они получают свой own candidate registry и свой smoke path.
+- Browser-order/ECH/ALPS/PQ policy для них выводится из реально наблюдаемого набора sample-ов, а не подгоняется под reviewed инварианты.
+- Reviewed corpus остаётся узким, консервативным и пригодным для release gating.
+
+С архитектурной точки зрения это сильный шаг вперёд: проект научился использовать все новые captures как empirical input, не подменяя ими более строгий reviewed truth.
+
 ## 4. Почему архитектурные решения именно такие
 
 ### 4.1. Почему ECH не включён глобально
@@ -466,6 +525,7 @@ Checked-in reviewed corpus уже содержит более свежие captu
 - anti-churn/destination-budget в сетевом runtime;
 - secure runtime params loader;
 - checked-in multi-platform corpus и `ServerHello` matrix;
+- отдельный imported candidate corpus и generated registry без ручного `promote` новых capture;
 - `1k` statistical corpus validation layer для extension set, GREASE, ECH payload, permutation coverage, platform-family divergence, wire-size distribution, JA3/JA4 stability и adversarial DPI invariants;
 - сотни зарегистрированных native test cases, включая уже 171 проверенный `1k` statistical/семейный corpus check, плюс отдельный плотный Python analysis контур.
 

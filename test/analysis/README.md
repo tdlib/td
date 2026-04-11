@@ -12,6 +12,8 @@ These helpers make PR-2 capture expectations mechanically refreshable from futur
 Files:
 
 - `extract_client_hello_fixtures.py`: parser-driven offline extractor for TCP TLS ClientHello captures.
+- `import_traffic_dumps.py`: organizes `docs/Samples/Traffic dumps/Unsorted` into canonical per-OS capture roots and generates imported candidate fixtures under `test/analysis/fixtures/imported/` without modifying the reviewed corpus.
+- `generate_imported_fixture_registry.py`: normalizes imported candidate artifact metadata, derives browser-aware candidate fingerprint policy from the imported corpus itself, and generates `profiles_imported.json` for imported-corpus smoke runs.
 - `render_client_hello_expectations.py`: renderer that turns extracted JSON into stable summaries or ready-to-paste C++ literal blocks.
 - `diff_client_hello_fixtures.py`: provenance and payload delta reporter for fixture refresh review.
 - `merge_client_hello_fixture_summary.py`: merge step that turns the frozen JSON corpus into one reviewed C++ summary header for PR-2 tests.
@@ -32,9 +34,13 @@ Checked-in corpus:
 - `fixtures/clienthello/android/*.json`: Android browser-capture corpus extracted from the real Android dump directory.
 - `fixtures/clienthello/ios/*.json`: iOS browser-capture corpus extracted from the real iOS dump directory.
 - `fixtures/clienthello/macos/*.json`: macOS browser-capture corpus extracted from the real macOS dump directory when the capture contains a TCP TLS ClientHello.
+- `fixtures/imported/clienthello/<platform>/*.json`: imported candidate ClientHello artifacts created from newly sorted captures before they are curated into the reviewed corpus and registry.
 - `fixtures/serverhello/**/*.json`: authoritative ServerHello corpus extracted from the same reviewed browser-capture sources and correlated back to the matching ClientHello capture metadata during smoke validation.
+- `fixtures/imported/serverhello/<platform>/*.json`: imported candidate ServerHello artifacts produced alongside imported ClientHello captures on a best-effort basis.
+- `fixtures/imported/import_manifest.json`: importer-generated manifest that records filename-derived platform/browser classification, target capture paths, generated artifact paths, and per-capture import status for the candidate lane.
 - `../stealth/ReviewedClientHelloFixtures.h`: generated summary header consumed by PR-2 capture-driven tests.
 - `profiles_validation.json`: PR-9 registry for the reviewed multi-platform ClientHello and ServerHello corpus, including the release-gating `server_hello_matrix`.
+- `profiles_imported.json`: generated candidate registry for the imported corpus; this stays separate from the reviewed registry and is used only for imported-corpus smoke runs.
 
 ## Requirements
 
@@ -44,6 +50,62 @@ Checked-in corpus:
 The extractor uses `tshark` only for frame selection and `tcp.reassembled.data`; all ClientHello parsing is done by repo-local Python code so the JSON schema is pinned by `parser_version`.
 
 ## Browser Capture Workflow
+
+## Imported Candidate Workflow
+
+Use the importer when new browser captures land in `docs/Samples/Traffic dumps/Unsorted` and you want to sort them plus extract non-reviewed fixtures without widening the checked-in reviewed corpus:
+
+```bash
+python3 test/analysis/import_traffic_dumps.py
+```
+
+The importer now acts as a fail-closed classifier rather than a best-effort dump mover:
+
+- it always prefers the user-provided OS/browser filename tokens and only falls back to `auto ...` tokens when the user field is empty, `null`, or not classifiable;
+- it rejects ambiguous browser names instead of generating `unknown_browser` candidate profiles;
+- it writes imported artifacts under `test/analysis/fixtures/imported/` and leaves the reviewed corpus untouched;
+- it defaults imported captures to `route_mode=non_ru_egress` so the imported lane remains executable under the current fail-closed fingerprint checks;
+- it can re-import an already sorted capture directly with `--capture`, which is useful after extractor fixes or manual capture cleanup.
+
+Re-import a single already sorted capture explicitly:
+
+```bash
+python3 test/analysis/import_traffic_dumps.py \
+  --capture "docs/Samples/Traffic dumps/Android/Android_15_QPR2,_Cromite_147_0_7727_56,_auto_Android_10,_auto_Go.pcap"
+```
+
+Imported artifacts are candidate data, not reviewed truth. They are not consumed by `merge_client_hello_fixture_summary.py`, `ReviewedClientHelloFixtures.h`, or the default reviewed-corpus smoke command.
+
+After importing or re-importing captures, regenerate the candidate registry from the imported trees:
+
+```bash
+python3 test/analysis/generate_imported_fixture_registry.py
+```
+
+The generator does four important things that differ from the reviewed lane:
+
+- it normalizes imported manifest entries and imported `ClientHello`/`ServerHello` artifacts to one canonical route mode so the imported smoke lane is executable;
+- it builds one candidate profile per imported capture/profile id instead of forcing manual promotion into `profiles_validation.json`;
+- it marks every generated profile as non-release-gating and every generated fixture as `candidate`, so imported captures remain usable without pretending they are reviewed `verified` ground truth;
+- it derives browser-aware fingerprint policy from the imported samples themselves.
+
+The browser-aware part is deliberate. Imported captures frequently contain multiple samples per artifact, and modern non-Safari browsers often vary extension order across those samples. The generated policy therefore treats imported profiles as follows:
+
+- imported Safari profiles stay `FixedFromFixture`;
+- all other imported browser families use `ChromeShuffleAnchored` as the candidate-order policy;
+- `ech_type`, `alps_type`, and `pq_group` may be emitted either as exact values or as policy objects that allow both presence and absence when that variability is observed in the imported samples;
+- extension-order matching accepts any included imported fixture variant for the same profile instead of assuming the first observed ordering is the only allowed one.
+
+Run the imported-corpus smoke lane against the generated candidate registry:
+
+```bash
+python3 test/analysis/run_corpus_smoke.py \
+  --registry test/analysis/profiles_imported.json \
+  --fixtures-root test/analysis/fixtures/imported/clienthello \
+  --server-hello-fixtures-root test/analysis/fixtures/imported/serverhello
+```
+
+This imported smoke lane is the mechanism for “use all fixtures smartly” without manual promotion. It validates internal consistency and route/fingerprint/serverhello coherence across all imported candidate artifacts while keeping the reviewed corpus conservative and release-gating.
 
 Example for a Chrome family refresh from `pcapng`:
 
@@ -221,6 +283,21 @@ The extractor emits one immutable JSON artifact per input `pcap/pcapng` with:
 
 This is intentionally richer than the current tests require so future PR-2 refreshes can regenerate expectations without re-parsing captures by hand.
 
+## Imported Candidate Registry Contract
+
+`profiles_imported.json` is generated, not hand-maintained. It is intentionally separate from `profiles_validation.json` and is allowed to describe observed variability that would be too loose for the reviewed corpus.
+
+In the imported candidate registry:
+
+- every profile has `release_gating=false`;
+- every generated fixture carries the normal required provenance tags, but `trust_tier` is set to `candidate` rather than `verified`;
+- `extension_order_policy` is generated from browser family: Safari is fixed-order, while all non-Safari imported profiles are treated as order-flexible candidates;
+- `ech_type` may be either an exact string like `0xFE0D` or an object such as `{"allow_present": true, "allow_absent": true}` when imported samples mix ECH-present and ECH-absent cases;
+- `alps_type` may be either an exact codepoint or an object such as `{"allowed_types": ["0x44CD"], "allow_absent": true}` when imported samples mix ALPS-present and ALPS-absent cases;
+- `pq_group` may be either an exact codepoint or an object such as `{"allowed_groups": ["0x11EC"], "allow_absent": true}` when imported samples mix PQ and non-PQ key-share behavior.
+
+Those object forms are understood by the current fingerprint checker and exist specifically so imported multi-sample captures can stay executable instead of being discarded or falsely flattened into one exact fingerprint.
+
 ## Checked-In Corpus Rules
 
 - Each artifact under `fixtures/clienthello/<platform>` is immutable and tied to a single input `pcap/pcapng`.
@@ -228,6 +305,13 @@ This is intentionally richer than the current tests require so future PR-2 refre
 - After the reviewed JSON corpus is updated, `merge_client_hello_fixture_summary.py` must be rerun so PR-2 tests consume the updated corpus through `ReviewedClientHelloFixtures.h` instead of manual literal edits.
 - If `parser_version` changes, the refresh must include the diff output in review notes because fixture ids or derived fields may shift even when the raw capture is unchanged.
 - A corpus update is incomplete if it changes the checked-in JSON without also preserving `source_sha256`, `capture_date_utc`, and `scenario_id` provenance in the replacement artifact.
+
+## Imported Candidate Rules
+
+- Imported candidate artifacts under `fixtures/imported/` are not part of the reviewed header merge and are not implicitly covered by `profiles_validation.json`.
+- Do not hand-edit `profiles_imported.json` or `fixtures/imported/import_manifest.json`; regenerate them with `generate_imported_fixture_registry.py` after importer changes or imported-artifact refreshes.
+- If a capture filename cannot identify a browser family, the importer now rejects it. Rename the capture to something classifiable or remove it; do not create `unknown_browser` fixtures by hand.
+- After re-importing or manually replacing imported artifacts, rerun both `generate_imported_fixture_registry.py` and the imported-corpus `run_corpus_smoke.py` command so the candidate lane stays executable.
 
 ## Failure Mode
 

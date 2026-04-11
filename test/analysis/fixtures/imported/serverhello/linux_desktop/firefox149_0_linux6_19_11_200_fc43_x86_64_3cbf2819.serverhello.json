@@ -1,0 +1,106 @@
+{
+  "capture_date_utc": "2026-04-11T14:39:11Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819",
+      "fixture_id": "imported_firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819_serverhello:frame75",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819",
+      "fixture_id": "imported_firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819_serverhello:frame96",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819",
+      "fixture_id": "imported_firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819_serverhello:frame116",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819",
+      "fixture_id": "imported_firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819_serverhello:frame245",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819",
+      "fixture_id": "imported_firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819_serverhello:frame268",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819",
+      "fixture_id": "imported_firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819_serverhello:frame284",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Linux, desktop/Linux_6_19_11_200_fc43_x86_64,_Firefox_149_0,_auto_Linux,_auto_F.pcap",
+  "source_sha256": "f4e2d741f047f6f7109b237631846239ca031d7bff832f0cd3ed96f574deb3c9",
+  "transport": "tcp"
+}

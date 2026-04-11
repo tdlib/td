@@ -296,4 +296,8 @@ def profile_requires_ech(profile: str, registry: dict[str, Any]) -> bool:
     if not isinstance(profiles, dict) or profile not in profiles:
         raise ValueError(f"unknown profile in registry: {profile}")
     ech_type = profiles[profile].get("ech_type")
+    if isinstance(ech_type, dict):
+        allow_present = bool(ech_type.get("allow_present", True))
+        allow_absent = bool(ech_type.get("allow_absent", False))
+        return allow_present and not allow_absent
     return ech_type not in (None, "", False)

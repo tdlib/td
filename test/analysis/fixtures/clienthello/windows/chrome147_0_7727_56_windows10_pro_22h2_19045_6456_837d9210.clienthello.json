@@ -1,0 +1,1702 @@
+{
+  "artifact_type": "tls_clienthello_fixtures",
+  "capture_date_utc": "2026-04-11T12:21:39Z",
+  "device_class": "desktop",
+  "display_filter": "tcp && tls.handshake.type == 1",
+  "extractor": {
+    "name": "extract_client_hello_fixtures.py",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "generated_at_utc": "2026-04-11T14:39:23Z",
+  "os_family": "windows",
+  "parser_version": "tls-clienthello-parser-v1",
+  "profile_id": "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "alpn_protocols": [
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0xAAAA",
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "32d9731e6bae21e89d373851899e6be31be4db97c407ecc29a89b5bbfb406f2e",
+      "compress_certificate_algorithms": [
+        "0x0002"
+      ],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": {
+        "aead_id": "0x0001",
+        "config_id": "0x22",
+        "enc_length": 32,
+        "enc_sha256": "15fcbe5c79c9580c0aa4dbf1c7b693807ecc7c77760679eb9ef60059ac099137",
+        "kdf_id": "0x0001",
+        "outer_type": "0x00",
+        "payload_length": 144,
+        "payload_sha256": "39131b501d3f6e97f6c7a3292aac30f3f7b91b0d916437bc04efd393f6c3307e"
+      },
+      "extension_types": [
+        "0x0A0A",
+        "0x0033",
+        "0x001B",
+        "0x000D",
+        "0x0023",
+        "0x000B",
+        "0x0005",
+        "0xFE0D",
+        "0x0000",
+        "0x0017",
+        "0x002B",
+        "0x0012",
+        "0x000A",
+        "0xFF01",
+        "0x0010",
+        "0x002D",
+        "0x4A4A"
+      ],
+      "extensions": [
+        {
+          "body_hex": "",
+          "is_grease": true,
+          "length": 0,
+          "type": "0x0A0A"
+        },
+        {
+          "body_hex": "04ed0a0a00010011ec04c06253bed907340f06237909294cc0bcc6016d4ad46d0932a393767e89047b7f562b179741b65538df95c41427618ab954a9f90f352a7f2e8ab5a7acc9af5186fecc3e17c711fb0589df2421ec0827cec0a89d735639f55cda63941b866222a6cc38cc6297233397f4b439f96e2d461da78b1077465e9c0371f7b006df491000bb1a000723ff5449e6853b78b67caab076a67b655f46ab8aab25074b1679d0b788460f36ac2a78d1bd17640826546fdc2bc841720b3ef808db45a02a1bb556e8900855b5993100a1871218b3005f37306587a9fdc925102ab8b1e024d5b28e2617b1c4163cc6307640cc51ddc221a18c29b6b829b4511d4999623fca7b28f498ab962548156bcfbc8fe25276433875943b7591f91f20b80b441066c1a9b04564b54e454ec3bbc492b1cb7362b707985692123f1e646be508a2ca003bd98798ce18b1e69334df58c1c03c6422a6bc666212b90aa0edb30e70b87ef43a532627879e95271895b2c0e357c5999129c32c266893f512c5e7665b4577507a4447fe091410d968ee6735099b14dde389fc7c1b68656bebeb925ab4061431b95bd8127915a3e9a9294680018ac60d0a2c8ae348aad8567fec1a3127c68d1d4971ce570dac6013ac1c60719949c8f443d67700ba060ad349c822c677e27bc23dd97e98c48a99b2a6af713607b5564fe44ebf69b2998b175ec3b8edb29035b6605c5c6e20773f312210fc1104d3f50d2551088002b0c7a5ad3b39482d77aaf1d0abcdbbbd4b4420768a176c39c66df325c785a8e34c629c32c0ac9377f5d5516ccc494622cb391bc5a98b33e6b81e53060e9367c68c712bde539b7fba2ffef95e385633548205b92c1e8dba457188a23952b21528503d226f24cc83dc8746ead28affb1010b2379c443482bb978c3256034c68b5c7c9d9563239e1627e8e7c97ce3bf15dc9fb88a85324827f9b69f1fe1632c316ed86c2fc6a17f4b47c61aa30d96ebb9e018593406cf3b536490e887a7873fa3c3090a16258bac09e9b20a898c126fb1ae8531b6f7720c3a4480aa96a2aefb89a5f11695b0b23c6a89be81af54571ebd6408aa325478b482c3d2c4b4361ea3fc81d87301443a942468bf53678750e33209e4cf3d7a52624218c4a68f6169a5c2ec5c0ef48df18c9b1c94550cf432466a4504075a0724c2ba3b5c9379599d88100ba8990f10cb59b468501ac72e216235e215515c5037930a1b917b325566fa7565fd4a9b76a34aac2ac776715a6d14c21f5052282c880c72306baa1b1b209f205283b6b6adf5647c419a3b0a106563c6b9eaa46065d1a6297502352833460b6327f0b3e1185892825aa913cf15c2bb652a18ab10afb8f3832285bad182a18763cd317996460b86b9b15b1e9ba661c4c6a9ac397a5583b02cba29a7c8b7805f48c1c56cd94d80ea2ee4f5be17143a466179b99113068359ac6518d5e69e881545cff469454a450c6639192c0067315ffd78a07a3444ce5c2382726a84ab2e7b08663a3c8b86a47c8693a1e25b23c94602c6bb8a312818387746470a8c6f9b8d727912017558c22acd89b92907b05bd9c666b5288235a941c7b1b148d800c94c0328da1e5ca51839dbbbd991609698099f9c18b1ada79d0fa05b540bcc0189737338b26c0743e068d55f943f9714730995646cdb3b2b3686c3fb478a05f93495c23d9f90620b950175004710472cc812782b4c001d00205b7d9d5612cfe648ff0722f1d201100afe8f2a26965e46963cf0fe4ee148592b",
+          "is_grease": false,
+          "length": 1263,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "020002",
+          "is_grease": false,
+          "length": 3,
+          "type": "0x001B"
+        },
+        {
+          "body_hex": "001004030804040105030805050108060601",
+          "is_grease": false,
+          "length": 18,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0023"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "0000010001220020e500626a9e021a46d250360d0d9d53ff9b75ef276d63362948a58f6338f3224900903ed2ff6d40ab208f75277930a2dc6bacdf23e2e112661b1e84b5c15be36bd77dd2afb873a94a0cc2d99af175df9719fa21f83c24a85249ad7fd8a0e5a89d6628440fa9eeaf8922f90b90d162ecffc08c623a7e8cbc306a3580a14167e8be757aa62df7409efd7fe0ec795563852b49b5d27c712d809a9c0835dc476bc0fa23f22b3b26674c4080433c849ebc8b7a1045",
+          "is_grease": false,
+          "length": 186,
+          "type": "0xFE0D"
+        },
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "06aaaa03040303",
+          "is_grease": false,
+          "length": 7,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0012"
+        },
+        {
+          "body_hex": "000a0a0a11ec001d00170018",
+          "is_grease": false,
+          "length": 12,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "000908687474702f312e31",
+          "is_grease": false,
+          "length": 11,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": true,
+          "length": 1,
+          "type": "0x4A4A"
+        }
+      ],
+      "fixture_id": "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame77",
+      "frame_number": 77,
+      "frame_time_epoch": "1775910099.076837000",
+      "frame_time_utc": "2026-04-11T12:21:39Z",
+      "handshake_length": 1714,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": true,
+      "has_grease_extension": true,
+      "has_grease_supported_group": true,
+      "key_share_entries": [
+        {
+          "group": "0x0A0A",
+          "is_grease_group": true,
+          "key_exchange_length": 1,
+          "key_exchange_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "group": "0x11EC",
+          "is_grease_group": false,
+          "key_exchange_length": 1216,
+          "key_exchange_sha256": "a7e49f29dbdc1cdf0b0777005a6150cf6725772d19509daf9f9aa1bb2765cb99"
+        },
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "31ab7ae93c4be89c0a73f52eced4502855a9a4a531c035f7fdf82c3b1cdf44e3"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x0033",
+        "0x001B",
+        "0x000D",
+        "0x0023",
+        "0x000B",
+        "0x0005",
+        "0xFE0D",
+        "0x0000",
+        "0x0017",
+        "0x002B",
+        "0x0012",
+        "0x000A",
+        "0xFF01",
+        "0x0010",
+        "0x002D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0033",
+        "0x001B",
+        "0x000D",
+        "0x0023",
+        "0x000B",
+        "0x0005",
+        "0xFE0D",
+        "0x0000",
+        "0x0017",
+        "0x002B",
+        "0x0012",
+        "0x000A",
+        "0xFF01",
+        "0x0010",
+        "0x002D"
+      ],
+      "non_grease_supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "random_sha256": "f1a2fac8a99855fe1cc0a1ed9b5c73f26b4f4efd1eb90a434d7b6e709a7ec3e9",
+      "record_length": 1718,
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "85e731789d77fed52fe81ad54d25730b85254af9f1adaf13da6e2b7a9b7e05a0",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 1718,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0x0A0A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tcp_stream": 1,
+      "tls_record_sha256": "8e41a20a403b664fb3a676df92f8f77e0512cc1f633debe0880b3925a43847d1"
+    },
+    {
+      "alpn_protocols": [
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0xAAAA",
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "6c10687e158e105cb0b6f4123100c71638fdb55f68bfa4e4b8182672557fa97c",
+      "compress_certificate_algorithms": [
+        "0x0002"
+      ],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": {
+        "aead_id": "0x0001",
+        "config_id": "0x81",
+        "enc_length": 32,
+        "enc_sha256": "73f13cb50c979cd200c50f35474eb364b3cc6cbdec6b96ccbe04f5c07c6f2176",
+        "kdf_id": "0x0001",
+        "outer_type": "0x00",
+        "payload_length": 208,
+        "payload_sha256": "3f3029a5b523c695922aa05decb02e3c1d1cb9c999e7e262747e338e19dfaa8c"
+      },
+      "extension_types": [
+        "0x1A1A",
+        "0x002B",
+        "0x0010",
+        "0xFF01",
+        "0xFE0D",
+        "0x0023",
+        "0x002D",
+        "0x000D",
+        "0x000B",
+        "0x0005",
+        "0x0000",
+        "0x0033",
+        "0x001B",
+        "0x0012",
+        "0x0017",
+        "0x000A",
+        "0xAAAA",
+        "0x0029"
+      ],
+      "extensions": [
+        {
+          "body_hex": "",
+          "is_grease": true,
+          "length": 0,
+          "type": "0x1A1A"
+        },
+        {
+          "body_hex": "064a4a03040303",
+          "is_grease": false,
+          "length": 7,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "000908687474702f312e31",
+          "is_grease": false,
+          "length": 11,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "0000010001810020c6fe58e0b2c018ec01d55111ce6fac41f93efdf5b466312e0947070fd4fbf91a00d0a568992907bf0973c75fb2faf0ecb2299d206c2cd6352b83c1da7a5da41eb7a40f4e642bb015fbb44e4380afdcb50c5ee708985f6914637c00d3369bf58152f1827ae9c646ed934e0e6e0556b2c5ae843a97fe25e4b69c86e0dd9fbd2ea004de8c159155fa7d329c44dd6452502905de5cf48d6b017a10aae073b4f777ba66e926c89184d00bc164c323cffc402b479d063960da687165f88d5aa06efd4b2c8ddc08153abff9ffc8dff388e6971f887e21c821cf4b0f2697ad21cf632fa640f9a03bcd2527df1b5b20c9fd3c8aca6e3b",
+          "is_grease": false,
+          "length": 250,
+          "type": "0xFE0D"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0023"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "001004030804040105030805050108060601",
+          "is_grease": false,
+          "length": 18,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "04ed7a7a00010011ec04c07b6872d9782d7aa012ff59886c5580c9c69fda2874ad7b8ae4510057e406e6bb20e224ce60a27b3f4c763354796627c6dd086f5d544d159908c4dcb1efcb561525a5cfc876c584ce6b5a6a1afc3c16893af8ca8d01d43946962e0396a0d0373b41651719560fdae8bd39070817f319a1451be3d2044584914169490dac5f7978be9245c0826a931431ce1495186101805ce7559a587443f21b227b62b0876c56300046ea8e7009c8ea0bc8de788754e892bebc4292085ee5a28dd4f17ff2c34684b7a8caf75dfd01442fc9870f9b766ba978a44410b68822d5c04b386742d639ba2f2416fb968486954be74556141151e9a893231933f1ea77a02aa01ceb24e3d8ca719657e1f4be89b5aceadc0062635d2997271f5c50143c68774b9cf031800b971cce6b3838337e6e421981028f67522ed593489543c2104296fd2b11aae17d75043547d189f323b217212027cc7d13234afa137d877ca2f41829944a36834c9e9c295106778c2a33667e26429bf461f71273c6c774b2363291a401b04a185cc217f6e8a26e7349e6b4092460c4fe2bad307a1819e88f7ab64ac342861d8c4188e0bc9ff636bd695e6f2ca557bb95395b8732b04ad26145961aa6d92a63eef04d3728be11bc7f864937de731cd7ac11640c5404eb1b8f82963f4239b5c72ee98a9e41d3ade84264660aa30df43652eb747efa71b62bb865381cb6f665a0895f8d38541bc0b6e09a4517ba7457f6c2544b6f0c05b52b97583c804ad4707b4cb7442b84401e424ecb1ba483e41a15409fdf270025e36bfa511d2e905f08d5707cf23cf6a49445f848cfaaa205236a413aaae3071dff5422208aab28db05b549938ca8ad46692647987eef418afcd37dd31b4b46467c31b8af62abaf61e86b57c1432999b065e5c7d2910264ea25cc52c5d9b5146bb142f50076644a0e76c0191923a7c294294df3a185b40ac0133c22724d120739057b1a73640e104cade0362ef90c950c536842d869431cc76ec4035c7b254cba8266397e38508bc2eca48a39543e262bafe051c32424e5a60e0753690a539faa5a33c526653c7ccd39852ca5150731a89c6f1105376c8884bb1cc9e4b5a8a50b7de12d4ffac12a3821368ac50825bb32bc2686237b3b6a9641a5b13f91835494b24ff4964b599443bc9b4c67615b347f32b5573934b557601d9284220453a19b98390d75b4a3663c3ebaba3e8557a6492b66c3944db5933c744471844b42f9a88c63b9795779ea518e57a12ba4f2798ac2053114b5e7f00a2649cf66f6903268b602725ccb92570ec5551cd732df5842378052845a9f36167e447598a8480e0bb46c18676f587a1def080b866a5fb5ab466935080a347d47e68a95610a1f57601cf491bf034d106b6e35282a73759dd37183a74aa3b2842d0b845d19243af7a10d5fba56bed4103fbb3814bb32a5cc0be48c21db32219e791a86760fbeca4d6ef6277f80ac198788940543af47b80e5976bb7214e5019ef217b7e6f4ae0f71b3c802a23230497ff0b3e8b171c10212746454f394121378636046810cf2b62ffcb587471b94a7220b692df0482f9ba90770c965ccb9445ac3bc10875669c29d5ce2a436b09b92fbbd0611867228d947ccc9b373fba17afe4e9b2db1e7202b5b302697029d8da19989c6243299ae33cbf6b173ac7443f3f5be23c2cb2b73bdab151ca7aa9108e0c0ac594e04001d00208397a2494a910374ba672dc8eb27f4b4868c26278e04e354a2b60cc09c27f319",
+          "is_grease": false,
+          "length": 1263,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "020002",
+          "is_grease": false,
+          "length": 3,
+          "type": "0x001B"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0012"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "000a7a7a11ec001d00170018",
+          "is_grease": false,
+          "length": 12,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": true,
+          "length": 1,
+          "type": "0xAAAA"
+        },
+        {
+          "body_hex": "006f0069cb9b162fe837311869ab942c6f9b459996b7947d07f7655ea5216cbe4063a06e3f682772e6e778c7db511bfb8f8208b91140ce585beafac21b1d577dbff1d6fcbe8330029f66541426fedbc3bb33830d9175b2b93628f7ef13425bad672e19c2ec71912cab8e1910f3d10e950c0021208ca581837c30f5b0c3b4f032a636eca06544a88dfa1967b839cd015c13c56e9b",
+          "is_grease": false,
+          "length": 148,
+          "type": "0x0029"
+        }
+      ],
+      "fixture_id": "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame93",
+      "frame_number": 93,
+      "frame_time_epoch": "1775910099.106950000",
+      "frame_time_utc": "2026-04-11T12:21:39Z",
+      "handshake_length": 1930,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": true,
+      "has_grease_extension": true,
+      "has_grease_supported_group": true,
+      "key_share_entries": [
+        {
+          "group": "0x7A7A",
+          "is_grease_group": true,
+          "key_exchange_length": 1,
+          "key_exchange_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "group": "0x11EC",
+          "is_grease_group": false,
+          "key_exchange_length": 1216,
+          "key_exchange_sha256": "36b290f5e580b1b4c0bdbe6bc20d59e2bc4232605ce5257ff63966bd57919418"
+        },
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "4336134af284d286ad30693c8b8e4bab78b29d466d136729e9e89f21e54b35fb"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x002B",
+        "0x0010",
+        "0xFF01",
+        "0xFE0D",
+        "0x0023",
+        "0x002D",
+        "0x000D",
+        "0x000B",
+        "0x0005",
+        "0x0000",
+        "0x0033",
+        "0x001B",
+        "0x0012",
+        "0x0017",
+        "0x000A",
+        "0x0029"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x002B",
+        "0x0010",
+        "0xFF01",
+        "0xFE0D",
+        "0x0023",
+        "0x002D",
+        "0x000D",
+        "0x000B",
+        "0x0005",
+        "0x0000",
+        "0x0033",
+        "0x001B",
+        "0x0012",
+        "0x0017",
+        "0x000A",
+        "0x0029"
+      ],
+      "non_grease_supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "random_sha256": "d03f734fe661d06a225d509ab2d443b3d1ae278c2ee43310963da0dc04f587a8",
+      "record_length": 1934,
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "da638c1a23ce157f34bdcb3915b501e9346f18bc92fedfabdb1eaac6d82d17f0",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 1934,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0x7A7A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tcp_stream": 2,
+      "tls_record_sha256": "68daf9873bcd1a024b84c0df2a2e51401c011ec40d5211de472956815e974e0c"
+    },
+    {
+      "alpn_protocols": [
+        "h2",
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0xFAFA",
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "2fc0ac76b461475cce5519f63cf20640af85f0b979d3c23c0582bf959c1b0629",
+      "compress_certificate_algorithms": [
+        "0x0002"
+      ],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": {
+        "aead_id": "0x0001",
+        "config_id": "0x7A",
+        "enc_length": 32,
+        "enc_sha256": "6fd5af983d06d3ede8d4cb8246ea7213e1ac4770d2bd17a61b69a228d763f03e",
+        "kdf_id": "0x0001",
+        "outer_type": "0x00",
+        "payload_length": 208,
+        "payload_sha256": "9a4ac7ae327c88b33c6a84629fc64a588d530b9037c9cec302a8bdd6a1909b2c"
+      },
+      "extension_types": [
+        "0xBABA",
+        "0x002D",
+        "0xFE0D",
+        "0x44CD",
+        "0xFF01",
+        "0x0012",
+        "0x0033",
+        "0x000B",
+        "0x0010",
+        "0x002B",
+        "0x0023",
+        "0x0000",
+        "0x0017",
+        "0x0005",
+        "0x000A",
+        "0x000D",
+        "0x001B",
+        "0xAAAA",
+        "0x0029"
+      ],
+      "extensions": [
+        {
+          "body_hex": "",
+          "is_grease": true,
+          "length": 0,
+          "type": "0xBABA"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "00000100017a0020bd6372c2a7ee840ecfc93ce7e4438ed1dccf70b552a0b8ff896215fedbd0d01e00d08541203a27cd1b5909fe48ea28f0862940ed1c7ad5127416e0877fed7b4e2fa413ff03d568877e6c296b2c3a348817981b37d8b40596e20b6092428e47f003122b571e96a350dcc96fee0694a019eaad54cb078d26c675788f3f6f9b9ef60a15e2d06043a54c7015334375a17c9d8654aa91c5d90f1d8fd2704b00b0c5eeec9047539b469210de16c4b53a0cfa1f07758b184c6350f86bd24085044a6b537581fbc5956a664566a7eefb440f72cefdb563fb1cfa430b115f07d6a13e44d01077790546898f5a6e23a041d4d4e7e17cee",
+          "is_grease": false,
+          "length": 250,
+          "type": "0xFE0D"
+        },
+        {
+          "body_hex": "0003026832",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x44CD"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0012"
+        },
+        {
+          "body_hex": "04edaaaa00010011ec04c0d1f7ab01a21021522e7dc1b973a5969ac5419e75cb8d987b18c535b352ccc6a90c527c5a1783191cc4c71ba853c1e20d1c167a232c956b504879b99641b7bfb0c394415a8a00b4874684c2c9f859cb3ca08851cb9833005911676c8cb50cc62d5af17aeea45a7d921b6101448ee252828c61b60959a40391485a5ad9d8cb6e4934abe612e4335e375c4012dbaff2eab327b867bf5a8ae3052c43ba0ca9c47a0165258928c174ba18de441e8357cd4b6a52fe539cced6c593f188d1529b2a8736a9f70bbee38fa87aa0c3300273b5a827f321cf341178399cdd259b45b634441c635c35b7ee0a790fa5c36421c4a0a0101a19b782da6568ca64f903a80817996e6563a4588b00b7206c70a922c48f0e68c00e1a095d142109b5338d952bd4dc3e0d8c0bbf24c78d51469a85422ad910837801d3b485f78c4dd6ba4d62d107b0783d0b140207e63c7216825890738e51c7e64016e4006475934d7680a07aea646872a8a13237b94165cc2ab62de75887b5554b8524ad980503b017c7c4b88443952f9cc5434ca8f57a4adbf55aa645265b851cdeb4af4b19963e95c5d7b67072c11e201c89f8487ef6009ea0921ed0e7156f8c8733b000c7db7ff8ab2406b607d1117d4ae33da33b82e63534e7f1452fe775bf7a08673747fd92cb6f14cfbebb80eaa88c20f6acc441c59fa375a2b336110a3020ac0d99a52c9f86a461c860fabb9999b2b88f86001fe843feebc588aa11b1575d5b6c62bb2ccc8084548ba845e674968740a7119a5831f5491ffabfce5bc305bca6a754144747a49b748f91cc537286cdde722b056cc1b246b94c4ac41b828311d92f4748878f8b04e5002eefb273460121530b1bbb5547b84846c2c0578b5a2db0ac3d37a548b2dab5b1118ea0995328e18b3115af06d65670b82fe6459a2a808e399ab68da76c849a561243cbfdf18278e24519b84b50f8a826ab2aa4177a60bc9f2cf48ba22ca34dac203b7556926878f6864729dbac7179089a425acbe4c51019a91a76cd96dc0dd327569692bf6b577b4a4a7ff434b2cd717d6b761da97b7b56809b4531339a466625a10b84ca380e9489d93423f00a63cfa3bbe8f0921cec27715436d551ce7163309e915fbc37182231ad89aba53d407f8bb843a84a9b94816b66f476cca7b7be4163ccbbce70daa8f0581d6a98b70c3bc532819171d74dc747556d359587224653f375aab67200712dac91c9e1a002ac6b8901d7ab33496864c9343f202d3ea6c05f1ab47fd9142974bfc66cce5f0b6207e8acfcc15d30a3051959658c14361d215a2a3a3e29f92f82d7588160133d590123174927048766c7cfff61b527623dda421791292999900b22f0b4cc0aa2f83816c6b20ce9829b254951bfa11501923ce392151c35735c46822849c2af3066d5f6cc98546bc9662f02825c18133e7181ada2b019b6fb9c46259c304588393a30c298544030162c017e1177c9cc5a0f784a3ab97194bcfc1b2ac6966eb4a1b8c699a13b702388b2006c61670ba2c1c51fedb4a2e08b1720e50d30503b7d360a79b1b47c0517d5a4966b8abd97e9029ac41c00f15c1453bd31cb335547734d24215cc9cda9f1af1ff39b79e534ad99bbb7c506d63c53279b34a470165d13e76cb81a22adb4f748d8f87c0122bb3a14e0d4ce13baf3b480db0a04e3d61735fb09ec16d7e91cead9c25ba741fbc1e688fb876c50001d0020c38936ae1f8075c79d0a07ee44a210172b3ed8a8f613c4195fd8deef41590a42",
+          "is_grease": false,
+          "length": 1263,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "000c02683208687474702f312e31",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "061a1a03040303",
+          "is_grease": false,
+          "length": 7,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0023"
+        },
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "000aaaaa11ec001d00170018",
+          "is_grease": false,
+          "length": 12,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "001004030804040105030805050108060601",
+          "is_grease": false,
+          "length": 18,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "020002",
+          "is_grease": false,
+          "length": 3,
+          "type": "0x001B"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": true,
+          "length": 1,
+          "type": "0xAAAA"
+        },
+        {
+          "body_hex": "006f0069d7b366c58808816abf69b45e70df53302fdfe4f3fc5d72e425b8e4109648307d9c5d94b3e81f4635658d25df78ef3a48e9f8af09db5ce903d42f5d82cb07164012441962e7fb2760b3c1c5cb3b01a4f6ae45f44f3d6257adf290fcbc499faa93c915a9bff89e1dd5bb2c40dba40021200d323801e5a78a6b05edf4a63d35dda9df71cdd0b1978c82d9129740fdd63b15",
+          "is_grease": false,
+          "length": 148,
+          "type": "0x0029"
+        }
+      ],
+      "fixture_id": "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame129",
+      "frame_number": 129,
+      "frame_time_epoch": "1775910099.359484000",
+      "frame_time_utc": "2026-04-11T12:21:39Z",
+      "handshake_length": 1942,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": true,
+      "has_grease_extension": true,
+      "has_grease_supported_group": true,
+      "key_share_entries": [
+        {
+          "group": "0xAAAA",
+          "is_grease_group": true,
+          "key_exchange_length": 1,
+          "key_exchange_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "group": "0x11EC",
+          "is_grease_group": false,
+          "key_exchange_length": 1216,
+          "key_exchange_sha256": "a045b2352967b0b661e678531d8a386eeb4d12cc4f6a788f0c85a69b865809ca"
+        },
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "527a6b4b3c46dd84a5bf79454c87fc6ddcbe9fd4d9520aca0b250361787940b0"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x002D",
+        "0xFE0D",
+        "0x44CD",
+        "0xFF01",
+        "0x0012",
+        "0x0033",
+        "0x000B",
+        "0x0010",
+        "0x002B",
+        "0x0023",
+        "0x0000",
+        "0x0017",
+        "0x0005",
+        "0x000A",
+        "0x000D",
+        "0x001B",
+        "0x0029"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x002D",
+        "0xFE0D",
+        "0x44CD",
+        "0xFF01",
+        "0x0012",
+        "0x0033",
+        "0x000B",
+        "0x0010",
+        "0x002B",
+        "0x0023",
+        "0x0000",
+        "0x0017",
+        "0x0005",
+        "0x000A",
+        "0x000D",
+        "0x001B",
+        "0x0029"
+      ],
+      "non_grease_supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "random_sha256": "b497d8054d858e3de2a858e0ab633aa04842a00a1aea8ed5f887b8ae571f1408",
+      "record_length": 1946,
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "371b627f5e5290682790de5d38be7e9d2782a468085449c8a36616c0af485c7c",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 1946,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0xAAAA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tcp_stream": 3,
+      "tls_record_sha256": "c1c9d36c7cd2663e4250820fdf89c083b885be27575142a70ebbc3469bde27cf"
+    },
+    {
+      "alpn_protocols": [
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0x7A7A",
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "94bb00bf3afb5c8469e049720519012ad3dbff34b491e135da872f7bbd27e551",
+      "compress_certificate_algorithms": [
+        "0x0002"
+      ],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": {
+        "aead_id": "0x0001",
+        "config_id": "0x3E",
+        "enc_length": 32,
+        "enc_sha256": "845d5c0d0880c4f0db0efaf8fa8819d9c5e77eabcb260e8dfb73cbbc6a988c0a",
+        "kdf_id": "0x0001",
+        "outer_type": "0x00",
+        "payload_length": 176,
+        "payload_sha256": "ce925dc85fb4923db1dc9b2cd16d66d4652b88c6b26929f9c962b807d79b510d"
+      },
+      "extension_types": [
+        "0xEAEA",
+        "0x000D",
+        "0x0012",
+        "0x0017",
+        "0x000B",
+        "0xFE0D",
+        "0x0033",
+        "0x000A",
+        "0x001B",
+        "0x002D",
+        "0x002B",
+        "0x0005",
+        "0x0010",
+        "0x0000",
+        "0x0023",
+        "0xFF01",
+        "0x8A8A",
+        "0x0029"
+      ],
+      "extensions": [
+        {
+          "body_hex": "",
+          "is_grease": true,
+          "length": 0,
+          "type": "0xEAEA"
+        },
+        {
+          "body_hex": "001004030804040105030805050108060601",
+          "is_grease": false,
+          "length": 18,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0012"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "00000100013e002023911750682e5e3d3f6cd88f018ea6e2f58107712e60f96d0218461ef045cc5600b0eb0e9272f265ac69686fe893e348657420c857dd5021b4acaa844c503d06e9d2ea88580d1c699233b02e33ec90a4045e77e9b6ce32e927c0a4947c2dd867f9186b1d09d8f90b0a848896d002fc86015cc2d06996e56500d849916d2fac73949d386335ce6eadaffad506dc0a703442ea70605f5f48d3e80ee92ddeae425943dae636275b1f8709935e4c8966a48bc803a9927874969c6c88e3337baa42ac5bd1d15a4cc4ac97a0ee6fa3353147e4989f",
+          "is_grease": false,
+          "length": 218,
+          "type": "0xFE0D"
+        },
+        {
+          "body_hex": "04edbaba00010011ec04c0c45557bdb3551fc08c345488c9892d833b3ab894767e684f68c75f64d883082abf9d00312f748b5d6018af3bbc71b07d6731784bfc09deec3515f62bb9137f91cb6c5747c9bb514702e873299484756c6ee67a1758b2a948562477eb1f2417ca75c303bd74b11dc158cc38a7767a9c3f53ce17e57354cc5879dc50f47cc755e83645894b437c64fdfa6d2dd94b9ac847b90513e0571aeac13b0c1195e17962219cadfa0b3ca8a9198d673cde30ae5ffb3a26211c69809303aba4b3e93f01aac0c8390083e7238e4a23ce733cb5b1b4782b8cfcf725bbab4741f74f8ad92480512d58f75332c24a6bda8653855f34308d95d6c4f2b47afeb286276929783a042788b64759b040d1bb224589353cc828eba6b4258351d22dfccc851b7b0dca8bbfdfc581f5288f0965c684c973b7954f849c12dbb9c877653ddd04a42352795b5c1d1dd6093849c5e395b595076291e46f5b3b988d30cb367a636f0263106b3122ab32fbd3a53210a9d8ba61306915c0730f14399b9ac6abee196a3e756778b12b29f8b00ca61ac7116248b419d3f664265a6eb9316097898523f7508e8ba0a05a547986b52a5a798457472d80afaf0c3b722995a287bfe23b4d3e908644289f9206388e1904294669585cc4c88b92f3767fdd8a837e2022f8f0c80fe4c8ef626abe0430cf3ca003599bd63bbfad552e0816045051ad70676a77ea8433f507ee274f1f557c2d1385b1da28798820c5b200eb3a726178632dd1197d19abdfba59e4e32ddb39a0524020412387d3f7b3a2aa721a19af12d52f3315214a752bee3819513a7c32164cea390764f914eb08af13f9099bc0a471100223056b02d83fd5990f7a819b8a1b4308b78bcb77c076b923bf918b16da1126f15489975c14b4b20fc056cd5935c396aefb2bbe7aa2c6b7b82f720acebf34542d1648bb2a4041217a3ed4232b393bac19a905ac31c70a99d2285c438465fa54a41424812ed38ee6bc7b07f124cc501a76f21eaf1c39a9701ce64c8018f03c834266387b0502b3b08f4860e8d86f2da358b2298ca1d5980ad0be580529b6db40f1910f23fa9992b6835f928978572909c58c11d9151cb77b58a534618c75e1e02206591a04f09f14939c62c0a62b597b51b270874881fc4605c4f67fe6276f0c4b3c9637aac61872bfd8b059e189b71b084cc019a1d72438bbbdb0d6944d1381d303c859f1919ac875ff031ed1873cbdb38fe7d01dbdc1119f7330fe454cee9b4fe17c42aa7ac7f212849e56734e097ceff06ca570b089a971d6e99ca0b3c8d1428fc062b21eb66e3c951eb2aa8de97abf60267d023abdcd2b63d56c63db255682e031bc94bf64c85d14e4bc214b7374d74d2b9a46cf7c3ccd4c328fa55419f5c1c4db000a190106d31b5ae67e2da1c7377b78f3b149f26ab78eb300facb0f2b9bc78e577181d92b218c83cc7a04bcf05cbec0663df41bfd5374f289520ed98e10d472eda04728a27905e58e34a2af7b44b3a7901a58613393773fbe73b46d2c0b19daa401e8c8d8d25f37068ddd257340c4a041b2a89471bd7b24cda9b56537a496f5374c9c272cd1c795ccbaa60f36b51f657101e57d22776cae5b893de03653e2bd209bbdd176a2cf91aff96cfa9dca2a60ead44a13a67535437dcf60e2b4207af64553353fe7232d8b658ff33a4b068b7c207240145e1ccda14316050f79be559bdd8c67621c38001d00200d3b62c080120d3ce998a6f36b5e28e3ae99cdbdfd167288662829b4bfc0ff14",
+          "is_grease": false,
+          "length": 1263,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "000ababa11ec001d00170018",
+          "is_grease": false,
+          "length": 12,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "020002",
+          "is_grease": false,
+          "length": 3,
+          "type": "0x001B"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "06dada03040303",
+          "is_grease": false,
+          "length": 7,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "000908687474702f312e31",
+          "is_grease": false,
+          "length": 11,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0023"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": true,
+          "length": 1,
+          "type": "0x8A8A"
+        },
+        {
+          "body_hex": "006f006943fc6ccb4551b373a2ae9f90bbbd782a3a64327ffb9efd3ce02569399a241dc5af2864665be47c98504a79cb3150830fba8874b5fead7ca4164d97c2d18ed8fff46e4596248a05b4aaf9957b34c8816d5520f715d4388cd5c6bd3ad15d63335c1b59eb70ee36d62d4ddfd0539c002120b8755f2c2e43347c28bc120477a37393c9b4b08b39327b728e1332b7351d3f3f",
+          "is_grease": false,
+          "length": 148,
+          "type": "0x0029"
+        }
+      ],
+      "fixture_id": "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame296",
+      "frame_number": 296,
+      "frame_time_epoch": "1775910100.292981000",
+      "frame_time_utc": "2026-04-11T12:21:40Z",
+      "handshake_length": 1898,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": true,
+      "has_grease_extension": true,
+      "has_grease_supported_group": true,
+      "key_share_entries": [
+        {
+          "group": "0xBABA",
+          "is_grease_group": true,
+          "key_exchange_length": 1,
+          "key_exchange_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "group": "0x11EC",
+          "is_grease_group": false,
+          "key_exchange_length": 1216,
+          "key_exchange_sha256": "74d36fed7108e432f60344d98b4afef5532edb3b671dc9e1856acd39b9956b27"
+        },
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "5bc032000b5dce25848604e620f9dc0aab6f2707802f50bd065278738003facb"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x000D",
+        "0x0012",
+        "0x0017",
+        "0x000B",
+        "0xFE0D",
+        "0x0033",
+        "0x000A",
+        "0x001B",
+        "0x002D",
+        "0x002B",
+        "0x0005",
+        "0x0010",
+        "0x0000",
+        "0x0023",
+        "0xFF01",
+        "0x0029"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x000D",
+        "0x0012",
+        "0x0017",
+        "0x000B",
+        "0xFE0D",
+        "0x0033",
+        "0x000A",
+        "0x001B",
+        "0x002D",
+        "0x002B",
+        "0x0005",
+        "0x0010",
+        "0x0000",
+        "0x0023",
+        "0xFF01",
+        "0x0029"
+      ],
+      "non_grease_supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "random_sha256": "62c0b7d65ccbed199937f179e9930575321aa13a97db979f86b2ce9e2c616733",
+      "record_length": 1902,
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "6061c561f9b89468687b5d92fd99230e62f2a3572ad70937b8bbcf4ab090e2f9",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 1902,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0xBABA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tcp_stream": 4,
+      "tls_record_sha256": "b38c8d0ac9431774b9f94eaabdf13974eeeefa47037fe8ed16835dce3d3ae5ce"
+    },
+    {
+      "alpn_protocols": [
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0xBABA",
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "614f2c04147bb74ed136f40a2865c9b88d51a6ed3d12300b3c360d41adb037b7",
+      "compress_certificate_algorithms": [
+        "0x0002"
+      ],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": {
+        "aead_id": "0x0001",
+        "config_id": "0xBF",
+        "enc_length": 32,
+        "enc_sha256": "858c2fd031bb1dc28049ded64732a0bd322dd6a5ae68dc039e56a43aa68acf4a",
+        "kdf_id": "0x0001",
+        "outer_type": "0x00",
+        "payload_length": 208,
+        "payload_sha256": "c512d3153a518ad57ce7466f8760602d3b83440d8064db7616c8768fec6da690"
+      },
+      "extension_types": [
+        "0x4A4A",
+        "0xFE0D",
+        "0x0023",
+        "0xFF01",
+        "0x0010",
+        "0x0017",
+        "0x0000",
+        "0x0012",
+        "0x000A",
+        "0x0005",
+        "0x002B",
+        "0x002D",
+        "0x0033",
+        "0x001B",
+        "0x000D",
+        "0x000B",
+        "0x2A2A",
+        "0x0029"
+      ],
+      "extensions": [
+        {
+          "body_hex": "",
+          "is_grease": true,
+          "length": 0,
+          "type": "0x4A4A"
+        },
+        {
+          "body_hex": "0000010001bf002001752d5f46ab495471205a5e31d86dd3d4e512d570ac40bfd99d828a77c21a3800d0b856a22fe2e32ee3d7c3b29b1be6a125764679ab2ea0c55fa3a8a2ac1870ea6004f225a458252921d6e4135093d72e9890051d36cf7e8e43c98e08f99f934a71e090f64b2870e691b7eeba91d70a0c9f58033234a41ae9306685cf3d02d121f4f01c413042c6d5a2a14d0a3be96122fb790f0f6aefa2704cc87378dc5f523c5108a7e5dc460aa5c9e1a92cb87b41104c03a471dc9bf4273f17940c12b49dddfcda465ea07134fc1c7d4a101023039a8e282b4ce0e93ebd396853a386a66432c113ca6a521d734f73a03e47d2b0f88b91",
+          "is_grease": false,
+          "length": 250,
+          "type": "0xFE0D"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0023"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "000908687474702f312e31",
+          "is_grease": false,
+          "length": 11,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0012"
+        },
+        {
+          "body_hex": "000aeaea11ec001d00170018",
+          "is_grease": false,
+          "length": 12,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "068a8a03040303",
+          "is_grease": false,
+          "length": 7,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "04edeaea00010011ec04c06bec63e0493849595ee620b9cc856cb816ca2e465e424aba1664c95fa3ba46bc94e5dc19ef67b85a8b1cbc900ee6d31d54756bc644a0eafa161ce7c9ce2b1b2750c30e5475f25c52be076d27da0663cc03d020b7542b5f851972e4baae1a809985d8608bf23255f55c71b91b540a660a7893b4e0aa19e14d7aca67090a8df92b4799757beda38454ac18c1868da4f867c61665f13a5032c3381bc66f49c455dee73381f02393cc91a7ea565377283691962fc54525b823ed332d20772e5f2180a630b8a3b6b30699ab8a65b5437b174b8b5c2e3b0714c66e62a7a21ee6bbb1b169d2836d85ebb6716a6232e47948e2a7c32aa14395239f53a6503a92d716165a773b3f888ed9a8ccb6814967c32da4390d4c8a81fab6c50102937d5b2b98e5c6fb6922fa008f4fc3393933cb14b990c532c1d0507f9c3816ae28620d5604a72b53b2f76966bba0c1c90d60d1a4b2024de7fa9f51061b0f688adb287010e287ff61379f6860011b7c044c4ad9a93bed38c94f4a95a4a59e9690b22026107cc483e0695aa6b428104aaf24b5048080b39f56a3180cb87ff47fce18bdd36b6fc7c944ede67691297b2db776f99624424b97076516d20791b99293633ab811dc905a5135da5504ddd216f034b12e370004bc5bc28819678c9adc220b7ae0ca56f55c7c6a7dfbb33d6a75049d97441b3b08792c1727563a90624d7714734dba7526d842fd17976e1c668108bac2dbc82d5b3e75d60c234aae511674e9a629c8c5666acc35f759a11d0c5d24b86e69bc79b4acb8988b1cd6b3180e23b82346a8fce01aeb056a4611a7bbf6c6b0357d98704ee3977e506497f2832a91b939d6643c56c8186909849d76907eebb7b60c891599caf1c85683669d7ff503590bba50f0025504c5e36849cf7bcaf4e4575272c716f09950914a97236e284771176a3f1ee8a08837865d66bbb7d36066073947c0afd1238d7b37a3b4f12cd345c728a3055d12bebf21a727d172764a6843f1327f1cb7ce6b1dd4351cfc7c738525c33ac93db704540ed6c6f8f7cbbb9388fb0365aac44fc492526092584c59c24b6c9ecdbc7b1be0532e11c1481730b41434e7287ef4975c392475ee669e68fa8054096a742519b039a1d6d1a743908551a439583558637c7a879b8672111986036ace5330357637c5782060e3c4548197749c3094730c07cc0a375556005b4905e7aa0ec88f056c0a56c042c1a562224479cd4b9470bcb4430c40d2a53e4cd4a677e6b1fa1167397a8de3c8bd98d455168a1c6f2a707639609261807fb252f7478c1666071f21517a414ff916bd63676392a868fbf115e2b89b20b217bdf90323d952e2e718757ace7c03ab11f1338a6727312218a803c67eac75006c192d7c335bd1977b34abc8097a20d69bfc95991e362fe3d20f5541874a8a8b5e331dd7eb09e3bb308c63c9cdd80855d61be057b176c78428f00e3c9c5c44ec5e7bb3c277178e28d7794ec78976f1c4f5e408bc1c144fa1c5322c06ec87791624b6ae58737a287604948eae8ace2f8cb3f7995f2d57a1c01243300b72ff7970304b4372c2be3347b43452a4d7a09f40815f95f266031b5bdba97bee71ba6ce83bf04b25bfc720f383206bbc4d48350bb872dddff40086e49ec89662c54cd93d9c0066e274bea5a1d8019309af30f620d0a0bf6ae25d481fc3e2567396cc4d095f91b3f931d752672b0e001d0020fb52d7adb0f2eaa73ed90f3f4104b63f8724248f7d6422ad038b7fb723577274",
+          "is_grease": false,
+          "length": 1263,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "020002",
+          "is_grease": false,
+          "length": 3,
+          "type": "0x001B"
+        },
+        {
+          "body_hex": "001004030804040105030805050108060601",
+          "is_grease": false,
+          "length": 18,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": true,
+          "length": 1,
+          "type": "0x2A2A"
+        },
+        {
+          "body_hex": "006f0069284000e9ba8d2a7c49e32e90eb55acb23bd3a12a4a2af4b6961e5a043ee553fcfc3d67dd69e95d33dd38677c1ad2ae49ff90dc85b4e25846c652ee7d346ac357e42a60d71676ee17499d2c55e320179524d49f3cf13a21ff6c0098a30c155cf34c0ab053cfd98acd34a4054e7000212018c888b3f602f8e8812e12021e960ee2b9f835eba0955c4a0343b9c09eea9693",
+          "is_grease": false,
+          "length": 148,
+          "type": "0x0029"
+        }
+      ],
+      "fixture_id": "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame312",
+      "frame_number": 312,
+      "frame_time_epoch": "1775910100.326871000",
+      "frame_time_utc": "2026-04-11T12:21:40Z",
+      "handshake_length": 1930,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": true,
+      "has_grease_extension": true,
+      "has_grease_supported_group": true,
+      "key_share_entries": [
+        {
+          "group": "0xEAEA",
+          "is_grease_group": true,
+          "key_exchange_length": 1,
+          "key_exchange_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "group": "0x11EC",
+          "is_grease_group": false,
+          "key_exchange_length": 1216,
+          "key_exchange_sha256": "4ba4e35487b9bc4d97faf378a67cc32e7d3b14f71575e9734338a835afb62c6d"
+        },
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "6c0313a8738d492c196353ba47dbb15796dd5a712ac26b28f1aedad3fd9c0eb9"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0xFE0D",
+        "0x0023",
+        "0xFF01",
+        "0x0010",
+        "0x0017",
+        "0x0000",
+        "0x0012",
+        "0x000A",
+        "0x0005",
+        "0x002B",
+        "0x002D",
+        "0x0033",
+        "0x001B",
+        "0x000D",
+        "0x000B",
+        "0x0029"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0xFE0D",
+        "0x0023",
+        "0xFF01",
+        "0x0010",
+        "0x0017",
+        "0x0000",
+        "0x0012",
+        "0x000A",
+        "0x0005",
+        "0x002B",
+        "0x002D",
+        "0x0033",
+        "0x001B",
+        "0x000D",
+        "0x000B",
+        "0x0029"
+      ],
+      "non_grease_supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "random_sha256": "fcacaa2e8449c46973b57d1813d1bf3ba7f5e9f5035fa49dba54ea03b3588d34",
+      "record_length": 1934,
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "5683436de3307856d6c52a368aef3bcf5c58958e1c6dfbed3bd68d79d56cb70f",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 1934,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0xEAEA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tcp_stream": 5,
+      "tls_record_sha256": "7abe255428a4b890d08d30859a8df852e6e4e024d1aa99a9003b2963705b7b32"
+    },
+    {
+      "alpn_protocols": [
+        "h2",
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0x4A4A",
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "8bcc7614821299488e8507e2ad0e9086f00ec82ec8f8fb2012e2647ea90ad1e6",
+      "compress_certificate_algorithms": [
+        "0x0002"
+      ],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": {
+        "aead_id": "0x0001",
+        "config_id": "0x71",
+        "enc_length": 32,
+        "enc_sha256": "32044ea6148e71ef290f7d75977604bc94e1ab14415c86b73aaba71771890f2e",
+        "kdf_id": "0x0001",
+        "outer_type": "0x00",
+        "payload_length": 144,
+        "payload_sha256": "283573fcfd7a32668f5ca9b96f1422da52224aba9d6d8aa1db036484ea0c0edb"
+      },
+      "extension_types": [
+        "0x2A2A",
+        "0x44CD",
+        "0xFF01",
+        "0x001B",
+        "0x002B",
+        "0x0023",
+        "0x0012",
+        "0x000D",
+        "0x0010",
+        "0x002D",
+        "0x0000",
+        "0x000A",
+        "0x000B",
+        "0x0017",
+        "0x0033",
+        "0xFE0D",
+        "0x0005",
+        "0x6A6A",
+        "0x0029"
+      ],
+      "extensions": [
+        {
+          "body_hex": "",
+          "is_grease": true,
+          "length": 0,
+          "type": "0x2A2A"
+        },
+        {
+          "body_hex": "0003026832",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x44CD"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "020002",
+          "is_grease": false,
+          "length": 3,
+          "type": "0x001B"
+        },
+        {
+          "body_hex": "060a0a03040303",
+          "is_grease": false,
+          "length": 7,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0023"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0012"
+        },
+        {
+          "body_hex": "001004030804040105030805050108060601",
+          "is_grease": false,
+          "length": 18,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "000c02683208687474702f312e31",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "000acaca11ec001d00170018",
+          "is_grease": false,
+          "length": 12,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "04edcaca00010011ec04c0a5f6767112a4d85c7b277ca0a5bb528017996c809683599743764069f603a7d15905c83eadab149f274cd666a14d481269a5abd4c35274a575c9aa45e2c3ac1aabcc35180685f8c5287cc96a111bf26caa9d6816baf9abc2d84b471227cde460b2db4ad909c7c79ba35d67428bd861d352302ab3c4561270ac8a502b271ba1251889a5888204b404279c5ee7686dda7f8b0bb74638a51980417c5a8459510f69b372c46a820a4055b9f0ba59451c4ef99fc5959e1107240f7c39f40377e8b073350a4cd9eb4399bac612ea9586d791fb152a13c2bea6400a500a1e63c582894a796015cc630b8ec0a76e0ad7ba9c696498f4be2b917a43b362eac12672461d23d80bc90c046b7540d8e2697543b72bfca60ccacc7b34594426860fe557db526c076893f5e0b539e2cf3f28bfd8e1183c757fc798b591c1c91d379aa37b5d47099f44898e5d602af215810cf96531c9651d8a0bda632b95f47232336d7b0c2a52b46078bc4e655888b6b3bd109481bad241ae4c1f09ccc3ed849281cb88c73a02def3023ce5ab333a7fd4142c0a2aa1b271182b401ed435070a52cb1741b3ca28af74b8878434b4c24826cc8030c9955c25d03f88274c39b39315378bcf124095a4a7a9c33bc3b86eb69830112b9f28502445765334d446402878ff0b0b016c2a39b34281710c66240a46477d86b4476b5606b30957874433dfc08a140c13f1da1dd875163b9c45e0eac614a20a72fb20010c120e28807af53827d59654eabb4d90244e175374c1803ae387b28c1213ea18e42a014845b2d9e00175526c71a821d1762778dc7fbef3715586a7a3dba2e56a64493bbf960c2ae58567b57463d8e0623f2b3d016421a37056db12b7aaac11d51bc0c6b6b45702afaff2c83d29325ec54420f932246822726b12e016ac9b9a27c55636e032780648010189ad73db9f5160379f256f1539c5e0078ab8549e9500b915a4137631cb730558c91a53f75a62f6e95b76dc0f72b8322106482854b6f6338b8f745d918bc77e09956607c2aaf480cc338cf9b802dfb905e9d95f1c009aaae9bec73a0985157054767fde22c0e0346ff2a57747890456e418691a22acd3cca3fcc42233cd8759915461b2e70041ad578fa1a8ae0d69b04b48199ab2325b0ccb7d04187944a75cba6e86a4bd33f16f102c4021ac1f5c2162f3f456927a7c1a8175d1761acbb12e14474780b47ca91a5d54332335e5bb2f97489e7b59c1d30f2166604f76b9aaf5a0a9a480bbbabf9d53013cb399b615a490794ef6345c565a33161cad15d51e0a508a507b075d562a9ef4c1c1dc2f06823615040501007b68a64d1cc9844315c16fe131697b817ef72917dabb73f95c218bbf80aba2484b381d28010523a995bb178e2ba9952b3e95d9ad50dc38e924a064a34ddd4c200ad3b4f673614a30c46d7b8f98159862dcbe58223be5b585c05b196f1573d9fc59246c98ab08d094763be12628b923b7ebeb27a4fa0d71830ee59a20aee73e373b1218c27f3e111b1c342ea375704159136c55c4a14c9cf5633eb534153a7657acc221a7a8858b577b5e025b0c84a646d2b830001a414641c3face6e561b60220fddcc2ad8843aaf1537911c5174c855a539834f6d252e8d9ff99dffddf8dac9a1718f457303f98f5014bb91e8d7c42d3929bd53776e1a2ec83e79fa059549121478cfd3c613fe37143ed155c3a5bc75001d002098d3074b13a9c348e8cdfdb306c0b4da90afe0d044024d206d433d4fd8c30563",
+          "is_grease": false,
+          "length": 1263,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "0000010001710020dd43f0b56da8aa5dff62b19de7a2023431bac022b1edb31d344fcb9d11926f3c0090a51858af6b59e6c00c69bc50f4bec6eaeaff2eb82763f7d82dbb23c7b84212a26ee6f805d4c8f7d43f360a36c6d6d44c49fa93a129866973bc82f5c4530a63cce05a57d631a461fac9c84699265d1f3599c7add5944abd6733fa3bfb26f28913fd26ef4e8cb72e6a40d9d43ae73bdb79880933922f161639c831dd7e7d745b0c55fff6378f4efa644f1d537eed9f456e",
+          "is_grease": false,
+          "length": 186,
+          "type": "0xFE0D"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": true,
+          "length": 1,
+          "type": "0x6A6A"
+        },
+        {
+          "body_hex": "006f0069ed76bf7c248a19018f5b4b9b4edb8886922018764338b070d5b98a5da5953e7087793746d31badcb522ba8da1f397ace471404571e78cb170acb87e32c9421abee5588135d3535f8a497006640534ccf7b5b64a6d04551e02e05981db97170a4c026f94ff1d5309fadc1fc99b70021200a0e9ae39772415d0717c6ab5a8b2e136c129f3002455aed43f51c178617a21e",
+          "is_grease": false,
+          "length": 148,
+          "type": "0x0029"
+        }
+      ],
+      "fixture_id": "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210:frame367",
+      "frame_number": 367,
+      "frame_time_epoch": "1775910100.802911000",
+      "frame_time_utc": "2026-04-11T12:21:40Z",
+      "handshake_length": 1878,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": true,
+      "has_grease_extension": true,
+      "has_grease_supported_group": true,
+      "key_share_entries": [
+        {
+          "group": "0xCACA",
+          "is_grease_group": true,
+          "key_exchange_length": 1,
+          "key_exchange_sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+        },
+        {
+          "group": "0x11EC",
+          "is_grease_group": false,
+          "key_exchange_length": 1216,
+          "key_exchange_sha256": "3f9f5179e26d86aed98170765647abd46cd148ce684f22aa750e681540347a46"
+        },
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "7e013b334bb4176379a290d11b710d4fde3debed06a6077fea9712c55fe16c3d"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1302",
+        "0x1303",
+        "0xC02B",
+        "0xC02F",
+        "0xC02C",
+        "0xC030",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x44CD",
+        "0xFF01",
+        "0x001B",
+        "0x002B",
+        "0x0023",
+        "0x0012",
+        "0x000D",
+        "0x0010",
+        "0x002D",
+        "0x0000",
+        "0x000A",
+        "0x000B",
+        "0x0017",
+        "0x0033",
+        "0xFE0D",
+        "0x0005",
+        "0x0029"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x44CD",
+        "0xFF01",
+        "0x001B",
+        "0x002B",
+        "0x0023",
+        "0x0012",
+        "0x000D",
+        "0x0010",
+        "0x002D",
+        "0x0000",
+        "0x000A",
+        "0x000B",
+        "0x0017",
+        "0x0033",
+        "0xFE0D",
+        "0x0005",
+        "0x0029"
+      ],
+      "non_grease_supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "random_sha256": "ce3d7cd49c3548e82109e3b68ad6807999447c996de0be2ec47c9af3f10da45f",
+      "record_length": 1882,
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "5fbc7e90d4e916060372737c8993a0bf975d184329dc72ff8c26d85017314d95",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 1882,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0xCACA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tcp_stream": 6,
+      "tls_record_sha256": "6bb372a4d30944c849ae9702ce9c02c671dce70eff880fcda5212dc8dff758aa"
+    }
+  ],
+  "scenario_id": "imported_chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210_clienthello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap",
+  "source_sha256": "c8146166f834e3a01863f117a35f3480c2c461e876453f6b85c28eebe3f6d698",
+  "tls_handshake_type": 1,
+  "transport": "tcp"
+}

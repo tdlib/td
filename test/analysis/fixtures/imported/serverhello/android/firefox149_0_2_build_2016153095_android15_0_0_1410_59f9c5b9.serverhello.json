@@ -1,0 +1,106 @@
+{
+  "capture_date_utc": "2026-04-11T14:38:58Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9",
+      "fixture_id": "imported_firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9_serverhello:frame80",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9",
+      "fixture_id": "imported_firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9_serverhello:frame100",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9",
+      "fixture_id": "imported_firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9_serverhello:frame120",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9",
+      "fixture_id": "imported_firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9_serverhello:frame299",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9",
+      "fixture_id": "imported_firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9_serverhello:frame323",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9",
+      "fixture_id": "imported_firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9_serverhello:frame346",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_15_0_0_1410,_Firefox_149_0_2_Build_#2016153095,_auto_And.pcap",
+  "source_sha256": "fb9f2226556a340db1266884761dbab3a222198597453d9b058e9ccdd8fdda96",
+  "transport": "tcp"
+}

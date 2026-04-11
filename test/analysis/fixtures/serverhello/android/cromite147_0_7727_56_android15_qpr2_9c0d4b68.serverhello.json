@@ -1,0 +1,101 @@
+{
+  "capture_date_utc": "2026-04-11T14:55:44Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "cromite147_0_7727_56_android15_qpr2_9c0d4b68",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "cromite147_0_7727_56_android15_qpr2_9c0d4b68",
+      "fixture_id": "imported_cromite147_0_7727_56_android15_qpr2_9c0d4b68_serverhello:frame94",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "cromite147_0_7727_56_android15_qpr2_9c0d4b68",
+      "fixture_id": "imported_cromite147_0_7727_56_android15_qpr2_9c0d4b68_serverhello:frame145",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "cromite147_0_7727_56_android15_qpr2_9c0d4b68",
+      "fixture_id": "imported_cromite147_0_7727_56_android15_qpr2_9c0d4b68_serverhello:frame197",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "cromite147_0_7727_56_android15_qpr2_9c0d4b68",
+      "fixture_id": "imported_cromite147_0_7727_56_android15_qpr2_9c0d4b68_serverhello:frame506",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "cromite147_0_7727_56_android15_qpr2_9c0d4b68",
+      "fixture_id": "imported_cromite147_0_7727_56_android15_qpr2_9c0d4b68_serverhello:frame528",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "cromite147_0_7727_56_android15_qpr2_9c0d4b68",
+      "fixture_id": "imported_cromite147_0_7727_56_android15_qpr2_9c0d4b68_serverhello:frame613",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_cromite147_0_7727_56_android15_qpr2_9c0d4b68_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_15_QPR2,_Cromite_147_0_7727_56,_auto_Android_10,_auto_Go.pcap",
+  "source_sha256": "0ef1a9e0c261ec73a12038560050e8ca424be3d819678c2ffbee334cc41e8659",
+  "transport": "tcp"
+}

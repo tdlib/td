@@ -1,0 +1,77 @@
+{
+  "capture_date_utc": "2026-04-11T14:39:55Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "brave1_89_132_windows10_21h1_00fe6ad2",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "brave1_89_132_windows10_21h1_00fe6ad2",
+      "fixture_id": "imported_brave1_89_132_windows10_21h1_00fe6ad2_serverhello:frame78",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "brave1_89_132_windows10_21h1_00fe6ad2",
+      "fixture_id": "imported_brave1_89_132_windows10_21h1_00fe6ad2_serverhello:frame218",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "brave1_89_132_windows10_21h1_00fe6ad2",
+      "fixture_id": "imported_brave1_89_132_windows10_21h1_00fe6ad2_serverhello:frame358",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "brave1_89_132_windows10_21h1_00fe6ad2",
+      "fixture_id": "imported_brave1_89_132_windows10_21h1_00fe6ad2_serverhello:frame397",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_brave1_89_132_windows10_21h1_00fe6ad2_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/windows_10_21H1,_brave_1_89_132,_auto_Windows_10_0,_auto_Chromiu.pcap",
+  "source_sha256": "9c387f64a6a041b73912c006932eb22ffce20a631ef937736b265286aa7d61d6",
+  "transport": "tcp"
+}

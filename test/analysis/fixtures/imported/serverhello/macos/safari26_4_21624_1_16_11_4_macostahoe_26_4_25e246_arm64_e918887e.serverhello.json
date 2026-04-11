@@ -1,0 +1,101 @@
+{
+  "capture_date_utc": "2026-04-11T14:39:50Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e",
+      "fixture_id": "imported_safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e_serverhello:frame22",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e",
+      "fixture_id": "imported_safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e_serverhello:frame82",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e",
+      "fixture_id": "imported_safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e_serverhello:frame100",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e",
+      "fixture_id": "imported_safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e_serverhello:frame222",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e",
+      "fixture_id": "imported_safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e_serverhello:frame290",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e",
+      "fixture_id": "imported_safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e_serverhello:frame313",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_Tahoe_26_4_25E246_arm64,_Safari_26_4_21624_1_16_11_4,_auto.pcap",
+  "source_sha256": "c80ba3c847b74a0a6675b4dbff98c3ae3db4f6076ebf302eeaa3d5083c099cd3",
+  "transport": "tcp"
+}

@@ -1,0 +1,77 @@
+{
+  "capture_date_utc": "2026-04-11T14:39:53Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae",
+      "fixture_id": "imported_chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae_serverhello:frame76",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae",
+      "fixture_id": "imported_chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae_serverhello:frame195",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae",
+      "fixture_id": "imported_chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae_serverhello:frame204",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae",
+      "fixture_id": "imported_chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae_serverhello:frame210",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macos_15_7_4_24G517,_Chrome_144_0_7559_133_Official_Build_arm64.pcap",
+  "source_sha256": "943e590bbeb96fea96ce749fa95134aa4df33d3f441264190ef2a75235f95cfb",
+  "transport": "tcp"
+}

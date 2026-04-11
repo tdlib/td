@@ -182,14 +182,60 @@ def parse_ech(body: bytes) -> dict[str, Any]:
     }
 
 
-def parse_client_hello(record: bytes) -> dict[str, Any]:
-    reader = Reader(record)
-    record_type = reader.read_u8()
-    record_version = reader.read_u16()
-    record_length = reader.read_u16()
-    if reader.left() != record_length:
-        raise ValueError("TLS record length mismatch")
+def _collect_client_hello_message(record_sequence: bytes) -> tuple[int, int, int, list[int], bytes, bytes]:
+    sequence_reader = Reader(record_sequence)
+    record_type = 0
+    record_version = 0
+    record_lengths: list[int] = []
+    handshake_bytes = bytearray()
+    handshake_total_length: int | None = None
+    consumed_sequence = b""
 
+    while sequence_reader.left() > 0:
+        if sequence_reader.left() < 5:
+            raise ValueError("TLS record length mismatch")
+        current_record_start = sequence_reader.offset
+        current_record_type = sequence_reader.read_u8()
+        current_record_version = sequence_reader.read_u16()
+        current_record_length = sequence_reader.read_u16()
+        if sequence_reader.left() < current_record_length:
+            raise ValueError("TLS record length mismatch")
+        current_record_body = sequence_reader.read_bytes(current_record_length)
+
+        if not record_lengths:
+            record_type = current_record_type
+            record_version = current_record_version
+        if current_record_type != 0x16:
+            if handshake_bytes:
+                break
+            raise ValueError("unexpected TLS record type before ClientHello")
+
+        record_lengths.append(current_record_length)
+        handshake_bytes.extend(current_record_body)
+        if handshake_total_length is None and len(handshake_bytes) >= 4:
+            handshake_total_length = 4 + int.from_bytes(handshake_bytes[1:4], "big")
+        if handshake_total_length is not None and len(handshake_bytes) >= handshake_total_length:
+            consumed_sequence = record_sequence[: sequence_reader.offset]
+            return (
+                record_type,
+                record_version,
+                sum(record_lengths),
+                record_lengths,
+                bytes(handshake_bytes[:handshake_total_length]),
+                consumed_sequence,
+            )
+
+        consumed_sequence = record_sequence[: sequence_reader.offset]
+
+    raise ValueError("TLS handshake length mismatch")
+
+
+def parse_client_hello(record_sequence: bytes) -> dict[str, Any]:
+    record_type, record_version, record_length, record_lengths, handshake_message, consumed_sequence = _collect_client_hello_message(
+        record_sequence
+    )
+
+    reader = Reader(handshake_message)
     handshake_type = reader.read_u8()
     handshake_length = reader.read_u24()
     handshake_start = reader.offset
@@ -277,6 +323,8 @@ def parse_client_hello(record: bytes) -> dict[str, Any]:
         "record_type": u8_hex(record_type),
         "record_version": u16_hex(record_version),
         "record_length": record_length,
+        "record_lengths": record_lengths,
+        "record_count": len(record_lengths),
         "handshake_type": handshake_type,
         "handshake_length": handshake_length,
         "legacy_version": u16_hex(legacy_version),
@@ -300,8 +348,8 @@ def parse_client_hello(record: bytes) -> dict[str, Any]:
         "alpn_protocols": alpn_protocols,
         "compress_certificate_algorithms": compress_certificate_algorithms,
         "ech": ech,
-        "client_hello_sha256": hashlib.sha256(record[handshake_start : handshake_start + handshake_length]).hexdigest(),
-        "tls_record_sha256": hashlib.sha256(record).hexdigest(),
+        "client_hello_sha256": hashlib.sha256(handshake_message[handshake_start : handshake_start + handshake_length]).hexdigest(),
+        "tls_record_sha256": hashlib.sha256(consumed_sequence).hexdigest(),
     }
 
 
@@ -333,6 +381,8 @@ def collect_frames(pcap_path: pathlib.Path, display_filter: str) -> list[dict[st
             "tcp.reassembled.data",
             "-e",
             "tcp.payload",
+            "-e",
+            "tls.handshake.fragment",
         ]
     )
     frames: list[dict[str, str]] = []
@@ -340,7 +390,7 @@ def collect_frames(pcap_path: pathlib.Path, display_filter: str) -> list[dict[st
         if not line.strip():
             continue
         parts = line.split("|")
-        if len(parts) != 8:
+        if len(parts) != 9:
             raise RuntimeError(f"unexpected tshark field row: {line}")
         frames.append(
             {
@@ -352,6 +402,7 @@ def collect_frames(pcap_path: pathlib.Path, display_filter: str) -> list[dict[st
                 "tls_handshake_type": parts[5],
                 "tcp_reassembled_data": parts[6],
                 "tcp_payload": parts[7],
+                "tls_handshake_fragment": parts[8],
             }
         )
     return frames
@@ -363,6 +414,121 @@ def select_record_hex(frame: dict[str, str]) -> str:
         if raw_hex:
             return raw_hex
     raise ValueError("missing TLS record bytes")
+
+
+def select_stream_start_hex(frame: dict[str, str]) -> str:
+    reassembled_hex = frame.get("tcp_reassembled_data", "").strip()
+    payload_hex = frame.get("tcp_payload", "").strip()
+    if reassembled_hex and payload_hex:
+        offset = payload_hex.find(reassembled_hex)
+        if offset != -1:
+            return payload_hex[offset:]
+    if reassembled_hex:
+        return reassembled_hex
+    if payload_hex:
+        return payload_hex
+    raise ValueError("missing TLS stream bytes")
+
+
+def parse_first_record_version(raw_value: str) -> int | None:
+    values = [value.strip() for value in raw_value.split(",") if value.strip()]
+    if not values:
+        return None
+    return int(values[0], 0)
+
+
+def parse_total_record_length(raw_value: str) -> int | None:
+    values = [value.strip() for value in raw_value.split(",") if value.strip()]
+    if not values:
+        return None
+    return sum(int(value) for value in values)
+
+
+def parse_first_handshake_type(raw_value: str) -> int | None:
+    values = [value.strip() for value in raw_value.split(",") if value.strip()]
+    if not values:
+        return None
+    return int(values[0])
+
+
+def earliest_fragment_frame_number(raw_value: str, fallback_frame_number: str) -> str:
+    values = [value.strip() for value in raw_value.split(",") if value.strip()]
+    fragment_numbers = [int(value) for value in values if value.isdigit()]
+    if not fragment_numbers:
+        return fallback_frame_number
+    return str(min(fragment_numbers))
+
+
+def collect_frame_payload_fields(pcap_path: pathlib.Path, frame_number: str) -> dict[str, str]:
+    output = run_command(
+        [
+            "tshark",
+            "-r",
+            str(pcap_path),
+            "-Y",
+            f"frame.number == {frame_number}",
+            "-T",
+            "fields",
+            "-E",
+            "separator=|",
+            "-e",
+            "frame.number",
+            "-e",
+            "tcp.stream",
+            "-e",
+            "tcp.reassembled.data",
+            "-e",
+            "tcp.payload",
+        ]
+    )
+    line = next((value for value in output.splitlines() if value.strip()), "")
+    if not line:
+        raise RuntimeError(f"missing tshark frame payload row for frame {frame_number}")
+    parts = line.split("|")
+    if len(parts) != 4:
+        raise RuntimeError(f"unexpected tshark frame payload row: {line}")
+    return {
+        "frame_number": parts[0],
+        "tcp_stream": parts[1],
+        "tcp_reassembled_data": parts[2],
+        "tcp_payload": parts[3],
+    }
+
+
+def collect_stream_payload_hex(pcap_path: pathlib.Path, frame: dict[str, str]) -> str:
+    start_frame_number = earliest_fragment_frame_number(frame.get("tls_handshake_fragment", ""), frame["frame_number"])
+    start_frame = frame
+    if start_frame_number != frame["frame_number"]:
+        start_frame = collect_frame_payload_fields(pcap_path, start_frame_number)
+    tcp_stream = start_frame["tcp_stream"]
+    output = run_command(
+        [
+            "tshark",
+            "-r",
+            str(pcap_path),
+            "-Y",
+            f"tcp.stream == {tcp_stream} && frame.number > {start_frame_number} && tcp.payload",
+            "-T",
+            "fields",
+            "-E",
+            "separator=|",
+            "-e",
+            "frame.number",
+            "-e",
+            "tcp.payload",
+        ]
+    )
+    payload_parts: list[str] = [select_stream_start_hex(start_frame)]
+    for line in output.splitlines():
+        if not line.strip():
+            continue
+        parts = line.split("|", 1)
+        if len(parts) != 2:
+            raise RuntimeError(f"unexpected tshark stream payload row: {line}")
+        payload_hex = parts[1].strip()
+        if payload_hex:
+            payload_parts.append(payload_hex)
+    return "".join(payload_parts)
 
 
 def frame_time_utc(epoch_string: str) -> str:
@@ -465,7 +631,19 @@ def main() -> int:
                 f"frame {frame['frame_number']} is missing tcp.reassembled.data and tcp.payload: {exc}"
             ) from exc
         raw_record = bytes.fromhex(raw_hex)
-        parsed = parse_client_hello(raw_record)
+        try:
+            parsed = parse_client_hello(raw_record)
+        except ValueError as exc:
+            if str(exc) not in {"TLS handshake length mismatch", "TLS record length mismatch"}:
+                raise
+            stream_hex = collect_stream_payload_hex(pcap_path, frame)
+            if not stream_hex:
+                raise
+            parsed = parse_client_hello(bytes.fromhex(stream_hex))
+
+        source_tls_record_version = parse_first_record_version(frame["tls_record_version"])
+        source_tls_record_length = parse_total_record_length(frame["tls_record_length"])
+        source_tls_handshake_type = parse_first_handshake_type(frame["tls_handshake_type"])
         parsed.update(
             {
                 "fixture_id": build_fixture_id(args.profile_id, pcap_path, frame["frame_number"]),
@@ -473,11 +651,11 @@ def main() -> int:
                 "frame_time_epoch": frame["frame_time_epoch"],
                 "frame_time_utc": frame_time_utc(frame["frame_time_epoch"]),
                 "tcp_stream": int(frame["tcp_stream"]),
-                "source_tls_record_version": u16_hex(int(frame["tls_record_version"], 0))
-                if frame["tls_record_version"]
+                "source_tls_record_version": u16_hex(source_tls_record_version)
+                if source_tls_record_version is not None
                 else parsed["record_version"],
-                "source_tls_record_length": int(frame["tls_record_length"]) if frame["tls_record_length"] else parsed["record_length"],
-                "source_tls_handshake_type": int(frame["tls_handshake_type"]) if frame["tls_handshake_type"] else parsed["handshake_type"],
+                "source_tls_record_length": source_tls_record_length if source_tls_record_length is not None else parsed["record_length"],
+                "source_tls_handshake_type": source_tls_handshake_type if source_tls_handshake_type is not None else parsed["handshake_type"],
             }
         )
         samples.append(parsed)

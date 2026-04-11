@@ -440,6 +440,88 @@ class CheckSamplePoliciesTest(unittest.TestCase):
 
         self.assertIn("Extension order policy", failures)
 
+    def test_extension_order_policy_accepts_any_matching_fixture_candidate(self) -> None:
+        sample = make_sample(
+            "non_ru_egress",
+            profile="IOS14",
+            device_class="mobile",
+            os_family="ios",
+            non_grease_extensions_without_padding=[0x002B, 0x0010, 0x000D],
+            fixture_family_id="ios14_like",
+            source_path="/captures/ios14.pcapng",
+            source_sha256="ios-sha",
+        )
+        self.registry["fixtures"] = {
+            "fx_ios14_a": {
+                "source_path": "/captures/ios14.pcapng",
+                "source_sha256": "ios-sha",
+                "source_kind": "browser_capture",
+                "family": "ios14_like",
+                "tls_gen": "tls13",
+                "transport": "tcp",
+                "non_grease_extensions_without_padding": ["0x000D", "0x002B", "0x0010"],
+            },
+            "fx_ios14_b": {
+                "source_path": "/captures/ios14.pcapng",
+                "source_sha256": "ios-sha",
+                "source_kind": "browser_capture",
+                "family": "ios14_like",
+                "tls_gen": "tls13",
+                "transport": "tcp",
+                "non_grease_extensions_without_padding": ["0x002B", "0x0010", "0x000D"],
+            },
+        }
+        self.registry["profiles"]["IOS14"]["include_fixture_ids"] = ["fx_ios14_a", "fx_ios14_b"]
+
+        failures = check_sample_policies(sample, self.registry)
+
+        self.assertNotIn("Extension order policy", failures)
+
+    def test_optional_ech_policy_allows_absent_new_ech(self) -> None:
+        self.registry["profiles"]["Chrome133"]["ech_type"] = {"allow_present": True, "allow_absent": True}
+        sample = make_sample(
+            "non_ru_egress",
+            extensions=[make_extension(0x44CD)],
+            supported_groups=[0x11EC],
+            key_share_groups=[0x11EC],
+        )
+
+        failures = check_sample_policies(sample, self.registry)
+
+        self.assertNotIn("ECH route policy", failures)
+
+    def test_optional_pq_group_policy_allows_absent_group(self) -> None:
+        self.registry["profiles"]["Chrome133"]["pq_group"] = {
+            "allowed_groups": ["0x11EC"],
+            "allow_absent": True,
+        }
+        sample = make_sample(
+            "non_ru_egress",
+            extensions=[make_extension(0xFE0D), make_extension(0x44CD)],
+            supported_groups=[0x001D],
+            key_share_groups=[0x001D],
+        )
+
+        failures = check_sample_policies(sample, self.registry)
+
+        self.assertNotIn("PQ group policy", failures)
+
+    def test_optional_alps_policy_allows_absent_extension(self) -> None:
+        self.registry["profiles"]["Chrome133"]["alps_type"] = {
+            "allowed_types": ["0x44CD"],
+            "allow_absent": True,
+        }
+        sample = make_sample(
+            "non_ru_egress",
+            extensions=[make_extension(0xFE0D)],
+            supported_groups=[0x11EC],
+            key_share_groups=[0x11EC],
+        )
+
+        failures = check_sample_policies(sample, self.registry)
+
+        self.assertNotIn("ALPS policy", failures)
+
     def test_rejects_known_telegram_ja3_fingerprint(self) -> None:
         sample = make_sample(
             "non_ru_egress",

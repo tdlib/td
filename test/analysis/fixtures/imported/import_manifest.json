@@ -1,0 +1,2811 @@
+{
+  "entries": [
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/yandex26_android16_31fe3949.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/yandex26_android16_31fe3949.serverhello.json"
+      },
+      "auto_browser_token": "auto Yandex 26",
+      "auto_os_token": "auto Android 16",
+      "browser_alias": "yandex",
+      "browser_version_slug": "26",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android 16, Yandex 26, auto Android 16, auto Yandex 26.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "16",
+      "platform_key": "android",
+      "profile_id": "yandex26_android16_31fe3949",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Yandex 26",
+      "selected_os_source": "user",
+      "selected_os_token": "Android 16",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Yandex 26",
+      "user_os_token": "Android 16"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/chrome146_android10_ce229560.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/chrome146_android10_ce229560.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "chrome",
+      "browser_version_slug": "146",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_10,_Google_Chrome_146,_auto_Android_10,_auto_Google_Chro.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "10",
+      "platform_key": "android",
+      "profile_id": "chrome146_android10_ce229560",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_146",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_10",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_146",
+      "user_os_token": "Android_10"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/chrome146_android10_ef8e86f7.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/chrome146_android10_ef8e86f7.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "chrome",
+      "browser_version_slug": "146",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_10,_Google_Chrome_146,_auto_Android_10,_auto_Google_Chro__828b3261.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "10",
+      "platform_key": "android",
+      "profile_id": "chrome146_android10_ef8e86f7",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_146",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_10",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_146",
+      "user_os_token": "Android_10"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/firefox149_0_android12_58d44f71.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/firefox149_0_android12_58d44f71.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_149_0",
+      "auto_os_token": "auto_Android_12",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_12,_Firefox_149_0,_auto_Android_12,_auto_Firefox_149_0.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "12",
+      "platform_key": "android",
+      "profile_id": "firefox149_0_android12_58d44f71",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_12",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0",
+      "user_os_token": "Android_12"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/firefox149_0_2_android14_6a153087.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/firefox149_0_2_android14_6a153087.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_149_0 (2)",
+      "auto_os_token": "auto_Android_14",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0_2",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_14,_Firefox_149_0_2,_auto_Android_14,_auto_Firefox_149_0 (2).pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "14",
+      "platform_key": "android",
+      "profile_id": "firefox149_0_2_android14_6a153087",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0_2",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_14",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0_2",
+      "user_os_token": "Android_14"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/firefox149_0_2_android14_14ea51fc.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/firefox149_0_2_android14_14ea51fc.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_149_0",
+      "auto_os_token": "auto_Android_14",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0_2",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_14,_Firefox_149_0_2,_auto_Android_14,_auto_Firefox_149_0.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "14",
+      "platform_key": "android",
+      "profile_id": "firefox149_0_2_android14_14ea51fc",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0_2",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_14",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0_2",
+      "user_os_token": "Android_14"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/firefox149_0_2_build_2016153095_android14_1366f94b.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/firefox149_0_2_build_2016153095_android14_1366f94b.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_14",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0_2_build_2016153095",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_14,_Firefox_149_0_2_Build_#2016153095,_auto_Android_14,.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "14",
+      "platform_key": "android",
+      "profile_id": "firefox149_0_2_build_2016153095_android14_1366f94b",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0_2_Build_#2016153095",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_14",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0_2_Build_#2016153095",
+      "user_os_token": "Android_14"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/chrome146_0_7680_177_android14_ada4e248.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/chrome146_0_7680_177_android14_ada4e248.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "chrome",
+      "browser_version_slug": "146_0_7680_177",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_14,_Google_Chrome_146_0_7680_177,_auto_Android_10,_auto.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "14",
+      "platform_key": "android",
+      "profile_id": "chrome146_0_7680_177_android14_ada4e248",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_146_0_7680_177",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_14",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_146_0_7680_177",
+      "user_os_token": "Android_14"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/firefox149_android15_3da4bd49.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/firefox149_android15_3da4bd49.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_149_0",
+      "auto_os_token": "auto_Android_15",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_15,_Firefox_149,_auto_Android_15,_auto_Firefox_149_0.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "15",
+      "platform_key": "android",
+      "profile_id": "firefox149_android15_3da4bd49",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_15",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149",
+      "user_os_token": "Android_15"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/chrome146_0_7680_178_android15_e0f30398.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/chrome146_0_7680_178_android15_e0f30398.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "chrome",
+      "browser_version_slug": "146_0_7680_178",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_15,_Google_Chrome_146_0_7680_178,_auto_Android_10,_auto.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "15",
+      "platform_key": "android",
+      "profile_id": "chrome146_0_7680_178_android15_e0f30398",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_146_0_7680_178",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_15",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_146_0_7680_178",
+      "user_os_token": "Android_15"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0_2_build_2016153095",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_15_0_0_1410,_Firefox_149_0_2_Build_#2016153095,_auto_And.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "15_0_0_1410",
+      "platform_key": "android",
+      "profile_id": "firefox149_0_2_build_2016153095_android15_0_0_1410_59f9c5b9",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0_2_Build_#2016153095",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_15_0_0_1410",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0_2_Build_#2016153095",
+      "user_os_token": "Android_15_0_0_1410"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/chrome143_0_7499_192_android15_1_2_bf770816.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/chrome143_0_7499_192_android15_1_2_bf770816.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "chrome",
+      "browser_version_slug": "143_0_7499_192",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_15_1_2,_Chrome_143_0_7499_192,_auto_Android_10,_auto_Goo.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "15_1_2",
+      "platform_key": "android",
+      "profile_id": "chrome143_0_7499_192_android15_1_2_bf770816",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Chrome_143_0_7499_192",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_15_1_2",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Chrome_143_0_7499_192",
+      "user_os_token": "Android_15_1_2"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/chrome143_0_7499_192_android15_1_2_89fec207.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/chrome143_0_7499_192_android15_1_2_89fec207.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "chrome",
+      "browser_version_slug": "143_0_7499_192",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_15_1_2,_Chrome_143_0_7499_192,_auto_Android_10,_auto_Goo__a8eee1b1.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "15_1_2",
+      "platform_key": "android",
+      "profile_id": "chrome143_0_7499_192_android15_1_2_89fec207",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Chrome_143_0_7499_192",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_15_1_2",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Chrome_143_0_7499_192",
+      "user_os_token": "Android_15_1_2"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/brave1_88_138_android15_aq3a_250226_002_3f3e1b95.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/brave1_88_138_android15_aq3a_250226_002_3f3e1b95.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "brave",
+      "browser_version_slug": "1_88_138",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_15_AQ3A_250226_002,_Brave_1_88_138,_Chromium_146_0_7680.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "15_aq3a_250226_002",
+      "platform_key": "android",
+      "profile_id": "brave1_88_138_android15_aq3a_250226_002_3f3e1b95",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Brave_1_88_138",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_15_AQ3A_250226_002",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Brave_1_88_138",
+      "user_os_token": "Android_15_AQ3A_250226_002"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/cromite147_0_7727_56_android15_qpr2_9c0d4b68.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/cromite147_0_7727_56_android15_qpr2_9c0d4b68.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "cromite",
+      "browser_version_slug": "147_0_7727_56",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_15_QPR2,_Cromite_147_0_7727_56,_auto_Android_10,_auto_Go.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "15_qpr2",
+      "platform_key": "android",
+      "profile_id": "cromite147_0_7727_56_android15_qpr2_9c0d4b68",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Cromite_147_0_7727_56",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_15_QPR2",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Cromite_147_0_7727_56",
+      "user_os_token": "Android_15_QPR2"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/chrome146_0_7680_178_android16_0f91bfe0.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/chrome146_0_7680_178_android16_0f91bfe0.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "chrome",
+      "browser_version_slug": "146_0_7680_178",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_16,_Chrome_146_0_7680_178,_auto_Android_10,_auto_Google.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "16",
+      "platform_key": "android",
+      "profile_id": "chrome146_0_7680_178_android16_0f91bfe0",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Chrome_146_0_7680_178",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_16",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Chrome_146_0_7680_178",
+      "user_os_token": "Android_16"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/chrome147_0_7727_49_android16_8ba24bb3.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/chrome147_0_7727_49_android16_8ba24bb3.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "chrome",
+      "browser_version_slug": "147_0_7727_49",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_16,_Chrome_147_0_7727_49,_auto_Android_10,_auto_Google_C.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "16",
+      "platform_key": "android",
+      "profile_id": "chrome147_0_7727_49_android16_8ba24bb3",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Chrome_147_0_7727_49",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_16",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Chrome_147_0_7727_49",
+      "user_os_token": "Android_16"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/firefox149_0_android16_3e1284a4.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/firefox149_0_android16_3e1284a4.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_149_0",
+      "auto_os_token": "auto_Android_16",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_16,_Firefox_149_0,_auto_Android_16,_auto_Firefox_149_0.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "16",
+      "platform_key": "android",
+      "profile_id": "firefox149_0_android16_3e1284a4",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_16",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0",
+      "user_os_token": "Android_16"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/firefox149_0_2_android16_bde2beaf.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/firefox149_0_2_android16_bde2beaf.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_149_0",
+      "auto_os_token": "auto_Android_16",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0_2",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_16,_Firefox_149_0_2,_auto_Android_16,_auto_Firefox_149_0.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "16",
+      "platform_key": "android",
+      "profile_id": "firefox149_0_2_android16_bde2beaf",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0_2",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_16",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0_2",
+      "user_os_token": "Android_16"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/chrome146_0_7680_177_android16_bc5d2e3e.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/chrome146_0_7680_177_android16_bc5d2e3e.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "chrome",
+      "browser_version_slug": "146_0_7680_177",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_16,_Google_Chrome_146_0_7680_177,_auto_Android_10,_auto.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "16",
+      "platform_key": "android",
+      "profile_id": "chrome146_0_7680_177_android16_bc5d2e3e",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_146_0_7680_177",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_16",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_146_0_7680_177",
+      "user_os_token": "Android_16"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/ironfox149_0_android16_0fd12bf7.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/ironfox149_0_android16_0fd12bf7.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_149_0",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "ironfox",
+      "browser_version_slug": "149_0",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_16,_IronFox_149_0,_auto_Android_10,_auto_Firefox_149_0.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "16",
+      "platform_key": "android",
+      "profile_id": "ironfox149_0_android16_0fd12bf7",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "IronFox_149_0",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_16",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "IronFox_149_0",
+      "user_os_token": "Android_16"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/vivaldi7_9_3980_88_android16_10ab0dc7.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/vivaldi7_9_3980_88_android16_10ab0dc7.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "vivaldi",
+      "browser_version_slug": "7_9_3980_88",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_16,_Vivaldi_7_9_3980_88,_auto_Android_10,_auto_Google_Ch.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "16",
+      "platform_key": "android",
+      "profile_id": "vivaldi7_9_3980_88_android16_10ab0dc7",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Vivaldi_7_9_3980_88",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_16",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Vivaldi_7_9_3980_88",
+      "user_os_token": "Android_16"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/firefox_android16_build_bp2a_250605_015_3156bb61.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/firefox_android16_build_bp2a_250605_015_3156bb61.serverhello.json"
+      },
+      "auto_browser_token": "auto_Fi",
+      "auto_os_token": "auto_Android_16",
+      "browser_alias": "firefox",
+      "browser_version_slug": "",
+      "capture_path": "docs/Samples/Traffic dumps/Android/Android_16_build_BP2A_250605_015,_null,_auto_Android_16,_auto_Fi.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "16_build_bp2a_250605_015",
+      "platform_key": "android",
+      "profile_id": "firefox_android16_build_bp2a_250605_015_3156bb61",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "auto",
+      "selected_browser_token": "auto_Fi",
+      "selected_os_source": "user",
+      "selected_os_token": "Android_16_build_BP2A_250605_015",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "null",
+      "user_os_token": "Android_16_build_BP2A_250605_015"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/android/adblock_browser3_11_1_android14_1e08a5c3.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/android/adblock_browser3_11_1_android14_1e08a5c3.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Android_10",
+      "browser_alias": "adblock_browser",
+      "browser_version_slug": "3_11_1",
+      "capture_path": "docs/Samples/Traffic dumps/Android/\u0410\u043d\u0434\u0440\u043e\u0438\u0434_14,_Adblock_browser_3_11_1,_auto_Android_10,_auto_Chromi.pcap",
+      "captures_dir": "Android",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "android",
+      "os_family": "android",
+      "os_version_slug": "14",
+      "platform_key": "android",
+      "profile_id": "adblock_browser3_11_1_android14_1e08a5c3",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Adblock_browser_3_11_1",
+      "selected_os_source": "user",
+      "selected_os_token": "\u0410\u043d\u0434\u0440\u043e\u0438\u0434_14",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Adblock_browser_3_11_1",
+      "user_os_token": "\u0410\u043d\u0434\u0440\u043e\u0438\u0434_14"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/linux_desktop/firefox149_0_2_linux6_19_6_edc237c0.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/linux_desktop/firefox149_0_2_linux6_19_6_edc237c0.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_149",
+      "auto_os_token": "auto_Linux",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0_2",
+      "capture_path": "docs/Samples/Traffic dumps/Linux, desktop/Arch_Linux_6_19_6,_Firefox_149_0_2,_auto_Linux,_auto_Firefox_149.pcap",
+      "captures_dir": "Linux, desktop",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "linux_desktop",
+      "os_family": "linux",
+      "os_version_slug": "6_19_6",
+      "platform_key": "linux_desktop",
+      "profile_id": "firefox149_0_2_linux6_19_6_edc237c0",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0_2",
+      "selected_os_source": "user",
+      "selected_os_token": "Arch_Linux_6_19_6",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0_2",
+      "user_os_token": "Arch_Linux_6_19_6"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/linux_desktop/chrome147_0_7727_55_linux6_19_6_d0d34bff.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/linux_desktop/chrome147_0_7727_55_linux6_19_6_d0d34bff.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Linux",
+      "browser_alias": "chrome",
+      "browser_version_slug": "147_0_7727_55",
+      "capture_path": "docs/Samples/Traffic dumps/Linux, desktop/Arch_Linux_6_19_6,_Google_Chrome_147_0_7727_55,_auto_Linux,_auto.pcap",
+      "captures_dir": "Linux, desktop",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "linux_desktop",
+      "os_family": "linux",
+      "os_version_slug": "6_19_6",
+      "platform_key": "linux_desktop",
+      "profile_id": "chrome147_0_7727_55_linux6_19_6_d0d34bff",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_147_0_7727_55",
+      "selected_os_source": "user",
+      "selected_os_token": "Arch_Linux_6_19_6",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_147_0_7727_55",
+      "user_os_token": "Arch_Linux_6_19_6"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/linux_desktop/librewolf149_0_2_1_linux6_19_6_176b9137.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/linux_desktop/librewolf149_0_2_1_linux6_19_6_176b9137.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox",
+      "auto_os_token": "auto_Linux",
+      "browser_alias": "librewolf",
+      "browser_version_slug": "149_0_2_1",
+      "capture_path": "docs/Samples/Traffic dumps/Linux, desktop/Arch_Linux_6_19_6,_LibreWolf_149_0_2_1,_auto_Linux,_auto_Firefox.pcap",
+      "captures_dir": "Linux, desktop",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "linux_desktop",
+      "os_family": "linux",
+      "os_version_slug": "6_19_6",
+      "platform_key": "linux_desktop",
+      "profile_id": "librewolf149_0_2_1_linux6_19_6_176b9137",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "LibreWolf_149_0_2_1",
+      "selected_os_source": "user",
+      "selected_os_token": "Arch_Linux_6_19_6",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "LibreWolf_149_0_2_1",
+      "user_os_token": "Arch_Linux_6_19_6"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/linux_desktop/firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/linux_desktop/firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Linux",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0",
+      "capture_path": "docs/Samples/Traffic dumps/Linux, desktop/Linux_6_19_11_200_fc43_x86_64,_Firefox_149_0,_auto_Linux,_auto_F.pcap",
+      "captures_dir": "Linux, desktop",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "linux_desktop",
+      "os_family": "linux",
+      "os_version_slug": "6_19_11_200_fc43_x86_64",
+      "platform_key": "linux_desktop",
+      "profile_id": "firefox149_0_linux6_19_11_200_fc43_x86_64_3cbf2819",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0",
+      "selected_os_source": "user",
+      "selected_os_token": "Linux_6_19_11_200_fc43_x86_64",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0",
+      "user_os_token": "Linux_6_19_11_200_fc43_x86_64"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/linux_desktop/chromium146_0_7680_177_linuxcachyos_kernel_6_19_11_1_6040e8b1.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/linux_desktop/chromium146_0_7680_177_linuxcachyos_kernel_6_19_11_1_6040e8b1.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chromium",
+      "browser_version_slug": "146_0_7680_177",
+      "capture_path": "docs/Samples/Traffic dumps/Linux, desktop/Linux_CachyOS_kernel_6_19_11_1,_Chromium_146_0_7680_177,_auto_Li.pcap",
+      "captures_dir": "Linux, desktop",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "linux_desktop",
+      "os_family": "linux",
+      "os_version_slug": "cachyos_kernel_6_19_11_1",
+      "platform_key": "linux_desktop",
+      "profile_id": "chromium146_0_7680_177_linuxcachyos_kernel_6_19_11_1_6040e8b1",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Chromium_146_0_7680_177",
+      "selected_os_source": "user",
+      "selected_os_token": "Linux_CachyOS_kernel_6_19_11_1",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Chromium_146_0_7680_177",
+      "user_os_token": "Linux_CachyOS_kernel_6_19_11_1"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/linux_desktop/firefox149_0_2_linuxvoid_linux_glibc_x64_kern_6_19_11_9d5ac920.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/linux_desktop/firefox149_0_2_linuxvoid_linux_glibc_x64_kern_6_19_11_9d5ac920.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Linux",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0_2",
+      "capture_path": "docs/Samples/Traffic dumps/Linux, desktop/Void_Linux_glibc_x64_kern_6_19_11,_Firefox_149_0_2,_auto_Linux,.pcap",
+      "captures_dir": "Linux, desktop",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "linux_desktop",
+      "os_family": "linux",
+      "os_version_slug": "void_linux_glibc_x64_kern_6_19_11",
+      "platform_key": "linux_desktop",
+      "profile_id": "firefox149_0_2_linuxvoid_linux_glibc_x64_kern_6_19_11_9d5ac920",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0_2",
+      "selected_os_source": "user",
+      "selected_os_token": "Void_Linux_glibc_x64_kern_6_19_11",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0_2",
+      "user_os_token": "Void_Linux_glibc_x64_kern_6_19_11"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/yandex26_3_3_869_64_bit_windows10_0_ef066851.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/yandex26_3_3_869_64_bit_windows10_0_ef066851.serverhello.json"
+      },
+      "auto_browser_token": "auto_YaBrows",
+      "auto_os_token": "auto_Windows_10_0",
+      "browser_alias": "yandex",
+      "browser_version_slug": "26_3_3_869_64_bit",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_0,_26_3_3_869_64_bit,_auto_Windows_10_0,_auto_YaBrows.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_0",
+      "platform_key": "windows",
+      "profile_id": "yandex26_3_3_869_64_bit_windows10_0_ef066851",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "auto",
+      "selected_browser_token": "auto_YaBrows",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_0",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "26_3_3_869_64_bit",
+      "user_os_token": "Windows_10_0"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/edge146_0_0_0_windows10_0_4b75427d.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/edge146_0_0_0_windows10_0_4b75427d.serverhello.json"
+      },
+      "auto_browser_token": "auto_Edge_146_0",
+      "auto_os_token": "auto_Windows_10_0",
+      "browser_alias": "edge",
+      "browser_version_slug": "146_0_0_0",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_0,_Edge_146_0_0_0,_auto_Windows_10_0,_auto_Edge_146_0.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_0",
+      "platform_key": "windows",
+      "profile_id": "edge146_0_0_0_windows10_0_4b75427d",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Edge_146_0_0_0",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_0",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Edge_146_0_0_0",
+      "user_os_token": "Windows_10_0"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/firefox149_0_windows10_0_081f2d09.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/firefox149_0_windows10_0_081f2d09.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_149",
+      "auto_os_token": "auto_Windows_10_0",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_0",
+      "platform_key": "windows",
+      "profile_id": "firefox149_0_windows10_0_081f2d09",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_0",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0",
+      "user_os_token": "Windows_10_0"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/firefox149_0_windows10_0_d988cede.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/firefox149_0_windows10_0_d988cede.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_149__db023837",
+      "auto_os_token": "auto_Windows_10_0",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_0,_Firefox_149_0,_auto_Windows_10_0,_auto_Firefox_149__db023837.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_0",
+      "platform_key": "windows",
+      "profile_id": "firefox149_0_windows10_0_d988cede",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_0",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0",
+      "user_os_token": "Windows_10_0"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chrome147_0_7727_55_windows10_0_8ce44de0.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chrome147_0_7727_55_windows10_0_8ce44de0.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Windows_10_0",
+      "browser_alias": "chrome",
+      "browser_version_slug": "147_0_7727_55",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_0,_Google_Chrome_147_0_7727_55,_auto_Windows_10_0,_au.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_0",
+      "platform_key": "windows",
+      "profile_id": "chrome147_0_7727_55_windows10_0_8ce44de0",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_147_0_7727_55",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_0",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_147_0_7727_55",
+      "user_os_token": "Windows_10_0"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/edge146_0_3856_109_windows10_0_19045_6456_8b4cd40b.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/edge146_0_3856_109_windows10_0_19045_6456_8b4cd40b.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Windows_10_0",
+      "browser_alias": "edge",
+      "browser_version_slug": "146_0_3856_109",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_0_19045_6456,_Edge_146_0_3856_109,_auto_Windows_10_0.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_0_19045_6456",
+      "platform_key": "windows",
+      "profile_id": "edge146_0_3856_109_windows10_0_19045_6456_8b4cd40b",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Edge_146_0_3856_109",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_0_19045_6456",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Edge_146_0_3856_109",
+      "user_os_token": "Windows_10_0_19045_6456"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "146_0_7680_17",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_0_\u0412\u0435\u0440\u0441\u0438\u044f_21H2_19044_7058,_Google_Chrome_146_0_7680_17.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_0_version_21h2_19044_7058",
+      "platform_key": "windows",
+      "profile_id": "chrome146_0_7680_17_windows10_0_version_21h2_19044_7058_16d3ed6d",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_146_0_7680_17",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_0_\u0412\u0435\u0440\u0441\u0438\u044f_21H2_19044_7058",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_146_0_7680_17",
+      "user_os_token": "Windows_10_0_\u0412\u0435\u0440\u0441\u0438\u044f_21H2_19044_7058"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/firefox_windows10_21h2_iot_enterprise_ltsc_os_build_19044_7058_5f2edeee.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/firefox_windows10_21h2_iot_enterprise_ltsc_os_build_19044_7058_5f2edeee.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "firefox",
+      "browser_version_slug": "",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_21H2_IoT_Enterprise_LTSC_OS_build_19044_7058,_Firefox.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_21h2_iot_enterprise_ltsc_os_build_19044_7058",
+      "platform_key": "windows",
+      "profile_id": "firefox_windows10_21h2_iot_enterprise_ltsc_os_build_19044_7058_5f2edeee",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_21H2_IoT_Enterprise_LTSC_OS_build_19044_7058",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox",
+      "user_os_token": "Windows_10_21H2_IoT_Enterprise_LTSC_OS_build_19044_7058"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "147_0_7727_55",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_22h2_19045_7058,_Google_Chrome_147_0_7727_55,_auto_Wi.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_22h2_19045_7058",
+      "platform_key": "windows",
+      "profile_id": "chrome147_0_7727_55_windows10_22h2_19045_7058_b9b21355",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_147_0_7727_55",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_22h2_19045_7058",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_147_0_7727_55",
+      "user_os_token": "Windows_10_22h2_19045_7058"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chromium",
+      "browser_version_slug": "maxthon_7_5_2_5400_chromium140_0",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_4780,_Maxthon_7_5_2_5400_Chromium140_0.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_pro_22h2_19045_4780",
+      "platform_key": "windows",
+      "profile_id": "chromiummaxthon_7_5_2_5400_chromium140_0_windows10_pro_22h2_19045_4780_456fea45",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Maxthon_7_5_2_5400_Chromium140_0",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_Pro_22H2_19045_4780",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Maxthon_7_5_2_5400_Chromium140_0",
+      "user_os_token": "Windows_10_Pro_22H2_19045_4780"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "146_0_7680_180",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_5608,_Chrome_146_0_7680_180,_auto_Wind.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_pro_22h2_19045_5608",
+      "platform_key": "windows",
+      "profile_id": "chrome146_0_7680_180_windows10_pro_22h2_19045_5608_bee16c61",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Chrome_146_0_7680_180",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_Pro_22H2_19045_5608",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Chrome_146_0_7680_180",
+      "user_os_token": "Windows_10_Pro_22H2_19045_5608"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "edge",
+      "browser_version_slug": "146_0_3856_109",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Edge_146_0_3856_109,_auto_Window.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_pro_22h2_19045_6456",
+      "platform_key": "windows",
+      "profile_id": "edge146_0_3856_109_windows10_pro_22h2_19045_6456_866968a7",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Edge_146_0_3856_109",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_Pro_22H2_19045_6456",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Edge_146_0_3856_109",
+      "user_os_token": "Windows_10_Pro_22H2_19045_6456"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Windows_10",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0_2",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Firefox_149_0_2,_auto_Windows_10.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_pro_22h2_19045_6456",
+      "platform_key": "windows",
+      "profile_id": "firefox149_0_2_windows10_pro_22h2_19045_6456_e32b3ddb",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0_2",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_Pro_22H2_19045_6456",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0_2",
+      "user_os_token": "Windows_10_Pro_22H2_19045_6456"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "146_0_7680_178",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_146_0_7680_178,_au.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_pro_22h2_19045_6456",
+      "platform_key": "windows",
+      "profile_id": "chrome146_0_7680_178_windows10_pro_22h2_19045_6456_359a8977",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_146_0_7680_178",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_Pro_22H2_19045_6456",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_146_0_7680_178",
+      "user_os_token": "Windows_10_Pro_22H2_19045_6456"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "147_0_7727_56",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_Google_Chrome_147_0_7727_56,_aut.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_pro_22h2_19045_6456",
+      "platform_key": "windows",
+      "profile_id": "chrome147_0_7727_56_windows10_pro_22h2_19045_6456_837d9210",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_147_0_7727_56",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_Pro_22H2_19045_6456",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_147_0_7727_56",
+      "user_os_token": "Windows_10_Pro_22H2_19045_6456"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "yandex",
+      "browser_version_slug": "26_3_3_869_64_bit",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_10_Pro_22H2_19045_6456,_YaBrowser_26_3_3_869_64_bit,_aut.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_pro_22h2_19045_6456",
+      "platform_key": "windows",
+      "profile_id": "yandex26_3_3_869_64_bit_windows10_pro_22h2_19045_6456_7762ae63",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "YaBrowser_26_3_3_869_64_bit",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_10_Pro_22H2_19045_6456",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "YaBrowser_26_3_3_869_64_bit",
+      "user_os_token": "Windows_10_Pro_22H2_19045_6456"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/firefox149_0_2_windows11_0_65af0430.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/firefox149_0_2_windows11_0_65af0430.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_1",
+      "auto_os_token": "auto_Windows_10_0",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0_2",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_11_0,_Firefox_149_0_2,_auto_Windows_10_0,_auto_Firefox_1.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "11_0",
+      "platform_key": "windows",
+      "profile_id": "firefox149_0_2_windows11_0_65af0430",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0_2",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_11_0",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0_2",
+      "user_os_token": "Windows_11_0"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/yandex26_3_3_862_64_bit_windows11_0_c10e8192.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/yandex26_3_3_862_64_bit_windows11_0_c10e8192.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Windows_10_0",
+      "browser_alias": "yandex",
+      "browser_version_slug": "26_3_3_862_64_bit",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_11_0,_YaBrowser_26_3_3_862_64_bit,_auto_Windows_10_0,_au.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "11_0",
+      "platform_key": "windows",
+      "profile_id": "yandex26_3_3_862_64_bit_windows11_0_c10e8192",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "YaBrowser_26_3_3_862_64_bit",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_11_0",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "YaBrowser_26_3_3_862_64_bit",
+      "user_os_token": "Windows_11_0"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/firefox149_0_2_windows11_0_25h2_26200_8117_082c503a.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/firefox149_0_2_windows11_0_25h2_26200_8117_082c503a.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Windows_10_0",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0_2",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_11_0_25H2_26200_8117,_Firefox_149_0_2,_auto_Windows_10_0.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "11_0_25h2_26200_8117",
+      "platform_key": "windows",
+      "profile_id": "firefox149_0_2_windows11_0_25h2_26200_8117_082c503a",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0_2",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_11_0_25H2_26200_8117",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0_2",
+      "user_os_token": "Windows_11_0_25H2_26200_8117"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chromewindows_11_222_22621_4317_146_0_7680_178_win_windows11_222_22621_4317_google_chrome_146_0_7680_178_win_9a383694.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chromewindows_11_222_22621_4317_146_0_7680_178_win_windows11_222_22621_4317_google_chrome_146_0_7680_178_win_9a383694.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "windows_11_222_22621_4317_146_0_7680_178_win",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_11_22\u041d2_22621_4317_Google_Chrome_146_0_7680_178_auto_Win.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "11_222_22621_4317_google_chrome_146_0_7680_178_win",
+      "platform_key": "windows",
+      "profile_id": "chromewindows_11_222_22621_4317_146_0_7680_178_win_windows11_222_22621_4317_google_chrome_146_0_7680_178_win_9a383694",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "fallback",
+      "selected_browser_token": "Windows_11_22\u041d2_22621_4317_Google_Chrome_146_0_7680_178_auto_Win",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_11_22\u041d2_22621_4317_Google_Chrome_146_0_7680_178_auto_Win",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "",
+      "user_os_token": "Windows_11_22\u041d2_22621_4317_Google_Chrome_146_0_7680_178_auto_Win"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chromium142_windows11_23h2_2c4b2b22.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chromium142_windows11_23h2_2c4b2b22.serverhello.json"
+      },
+      "auto_browser_token": "auto_Chromium",
+      "auto_os_token": "auto_Windows_10_0",
+      "browser_alias": "chromium",
+      "browser_version_slug": "142",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_11_23h2,_Chromium_142,_auto_Windows_10_0,_auto_Chromium.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "11_23h2",
+      "platform_key": "windows",
+      "profile_id": "chromium142_windows11_23h2_2c4b2b22",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Chromium_142",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_11_23h2",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Chromium_142",
+      "user_os_token": "Windows_11_23h2"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Windows_10",
+      "browser_alias": "opera",
+      "browser_version_slug": "129_0_5823_28",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8037,_Opera_129_0_5823_28,_auto_Windows_10.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "11_25h2_26200_8037",
+      "platform_key": "windows",
+      "profile_id": "opera129_0_5823_28_windows11_25h2_26200_8037_9e0fa506",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Opera_129_0_5823_28",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_11_25H2_26200_8037",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Opera_129_0_5823_28",
+      "user_os_token": "Windows_11_25H2_26200_8037"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/firefox149_0_windows11_25h2_26200_8117_cd5adfa6.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/firefox149_0_windows11_25h2_26200_8117_cd5adfa6.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Windows_10_0",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_11_25H2_26200_8117,_Firefox_149_0,_auto_Windows_10_0,_au.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "11_25h2_26200_8117",
+      "platform_key": "windows",
+      "profile_id": "firefox149_0_windows11_25h2_26200_8117_cd5adfa6",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_11_25H2_26200_8117",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0",
+      "user_os_token": "Windows_11_25H2_26200_8117"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0_2",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_11_25H2_OS_Build_26200_8117,_Firefox_149_0_2,_auto_Windo.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "11_25h2_os_build_26200_8117",
+      "platform_key": "windows",
+      "profile_id": "firefox149_0_2_windows11_25h2_os_build_26200_8117_e7543116",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0_2",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_11_25H2_OS_Build_26200_8117",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0_2",
+      "user_os_token": "Windows_11_25H2_OS_Build_26200_8117"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "edge",
+      "browser_version_slug": "146_0_3856_109",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8037,_Edge_146_0_3856_109,_a.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "11_version_25h2_build_26200_8037",
+      "platform_key": "windows",
+      "profile_id": "edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Edge_146_0_3856_109",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_11_Version_25H2_Build_26200_8037",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Edge_146_0_3856_109",
+      "user_os_token": "Windows_11_Version_25H2_Build_26200_8037"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "146_0_7680_178",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_Build_26200_8117,_Chrome_146_0_7680_178.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "11_version_25h2_build_26200_8117",
+      "platform_key": "windows",
+      "profile_id": "chrome146_0_7680_178_windows11_version_25h2_build_26200_8117_c2b58729",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Chrome_146_0_7680_178",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_11_Version_25H2_Build_26200_8117",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Chrome_146_0_7680_178",
+      "user_os_token": "Windows_11_Version_25H2_Build_26200_8117"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_11_Version_25H2_OS_Build_26200_8117,_Firefox_149_0,_auto.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "11_version_25h2_os_build_26200_8117",
+      "platform_key": "windows",
+      "profile_id": "firefox149_0_windows11_version_25h2_os_build_26200_8117_0377a59b",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_11_Version_25H2_OS_Build_26200_8117",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0",
+      "user_os_token": "Windows_11_Version_25H2_OS_Build_26200_8117"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/firefox115_0_windows6_1_ab9badf0.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/firefox115_0_windows6_1_ab9badf0.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_115_0",
+      "auto_os_token": "auto_Windows_6_1",
+      "browser_alias": "firefox",
+      "browser_version_slug": "115_0",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_6_1,_Firefox_115_0,_auto_Windows_6_1,_auto_Firefox_115_0.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "6_1",
+      "platform_key": "windows",
+      "profile_id": "firefox115_0_windows6_1_ab9badf0",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_115_0",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_6_1",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_115_0",
+      "user_os_token": "Windows_6_1"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "109_0_5414_120",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_7_Pro_6_1_7601,_Google_Chrome_109_0_5414_120,_auto_Windo.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "7_pro_6_1_7601",
+      "platform_key": "windows",
+      "profile_id": "chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_109_0_5414_120",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_7_Pro_6_1_7601",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_109_0_5414_120",
+      "user_os_token": "Windows_7_Pro_6_1_7601"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "109_0_54",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_Server_2008_R2_standart_6_1_7601,_Google_Chrome_109_0_54.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "server_2008_r2_standart_6_1_7601",
+      "platform_key": "windows",
+      "profile_id": "chrome109_0_54_windowsserver_2008_r2_standart_6_1_7601_5e7b5bf6",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_109_0_54",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_Server_2008_R2_standart_6_1_7601",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_109_0_54",
+      "user_os_token": "Windows_Server_2008_R2_standart_6_1_7601"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "edge",
+      "browser_version_slug": "146_0_3856_10",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_Server_2022_Standard_21H2_20348_4648,_Edge_146_0_3856_10.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "server_2022_standard_21h2_20348_4648",
+      "platform_key": "windows",
+      "profile_id": "edge146_0_3856_10_windowsserver_2022_standard_21h2_20348_4648_15cdcd65",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Edge_146_0_3856_10",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_Server_2022_Standard_21H2_20348_4648",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Edge_146_0_3856_10",
+      "user_os_token": "Windows_Server_2022_Standard_21H2_20348_4648"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "firefox",
+      "browser_version_slug": "115_9_1esr",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "server_2012_r2_standart_6_3_9600",
+      "platform_key": "windows",
+      "profile_id": "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_115_9_1esr",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_server_2012_R2_standart_6_3_9600",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_115_9_1esr",
+      "user_os_token": "Windows_server_2012_R2_standart_6_3_9600"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "109_0_54",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Google_Chrome_109_0_54.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "server_2012_r2_standart_6_3_9600",
+      "platform_key": "windows",
+      "profile_id": "chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_109_0_54",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_server_2012_R2_standart_6_3_9600",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_109_0_54",
+      "user_os_token": "Windows_server_2012_R2_standart_6_3_9600"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "146",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/Windows_server_2019_standart_1809_17763_1457,_Google_Chrome_146.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "server_2019_standart_1809_17763_1457",
+      "platform_key": "windows",
+      "profile_id": "chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google_Chrome_146",
+      "selected_os_source": "user",
+      "selected_os_token": "Windows_server_2019_standart_1809_17763_1457",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google_Chrome_146",
+      "user_os_token": "Windows_server_2019_standart_1809_17763_1457"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/windows/brave1_89_132_windows10_21h1_00fe6ad2.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/windows/brave1_89_132_windows10_21h1_00fe6ad2.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "auto_Windows_10_0",
+      "browser_alias": "brave",
+      "browser_version_slug": "1_89_132",
+      "capture_path": "docs/Samples/Traffic dumps/Windows/windows_10_21H1,_brave_1_89_132,_auto_Windows_10_0,_auto_Chromiu.pcap",
+      "captures_dir": "Windows",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "windows",
+      "os_family": "windows",
+      "os_version_slug": "10_21h1",
+      "platform_key": "windows",
+      "profile_id": "brave1_89_132_windows10_21h1_00fe6ad2",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "brave_1_89_132",
+      "selected_os_source": "user",
+      "selected_os_token": "windows_10_21H1",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "brave_1_89_132",
+      "user_os_token": "windows_10_21H1"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/ios/safari26_3_ios26_3_1_83afd3bc.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/ios/safari26_3_ios26_3_1_83afd3bc.serverhello.json"
+      },
+      "auto_browser_token": "auto Safari 26.3",
+      "auto_os_token": "auto iOS 18.7",
+      "browser_alias": "safari",
+      "browser_version_slug": "26_3",
+      "capture_path": "docs/Samples/Traffic dumps/iOS/Ios 26.3.1, Safari 26.3, auto iOS 18.7, auto Safari 26.3.pcap",
+      "captures_dir": "iOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "ios",
+      "os_family": "ios",
+      "os_version_slug": "26_3_1",
+      "platform_key": "ios",
+      "profile_id": "safari26_3_ios26_3_1_83afd3bc",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Safari 26.3",
+      "selected_os_source": "user",
+      "selected_os_token": "Ios 26.3.1",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Safari 26.3",
+      "user_os_token": "Ios 26.3.1"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/ios/safari17_2_ios17_2_1_087f3601.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/ios/safari17_2_ios17_2_1_087f3601.serverhello.json"
+      },
+      "auto_browser_token": "auto Safari 17.2",
+      "auto_os_token": "auto iOS 17.2.1",
+      "browser_alias": "safari",
+      "browser_version_slug": "17_2",
+      "capture_path": "docs/Samples/Traffic dumps/iOS/iOS 17.2.1, Safari 17.2, auto iOS 17.2.1, auto Safari 17.2.pcap",
+      "captures_dir": "iOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "ios",
+      "os_family": "ios",
+      "os_version_slug": "17_2_1",
+      "platform_key": "ios",
+      "profile_id": "safari17_2_ios17_2_1_087f3601",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Safari 17.2",
+      "selected_os_source": "user",
+      "selected_os_token": "iOS 17.2.1",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Safari 17.2",
+      "user_os_token": "iOS 17.2.1"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/ios/safari26_4_ios18_7_7d76d4db.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/ios/safari26_4_ios18_7_7d76d4db.serverhello.json"
+      },
+      "auto_browser_token": "auto Safari 26.4",
+      "auto_os_token": "auto iOS 18.7",
+      "browser_alias": "safari",
+      "browser_version_slug": "26_4",
+      "capture_path": "docs/Samples/Traffic dumps/iOS/iOS 18.7, null, auto iOS 18.7, auto Safari 26.4.pcap",
+      "captures_dir": "iOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "ios",
+      "os_family": "ios",
+      "os_version_slug": "18_7",
+      "platform_key": "ios",
+      "profile_id": "safari26_4_ios18_7_7d76d4db",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "auto",
+      "selected_browser_token": "auto Safari 26.4",
+      "selected_os_source": "user",
+      "selected_os_token": "iOS 18.7",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "null",
+      "user_os_token": "iOS 18.7"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/ios/safari26_1_ios26_1_0b286d98.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/ios/safari26_1_ios26_1_0b286d98.serverhello.json"
+      },
+      "auto_browser_token": "auto Safari 26.1",
+      "auto_os_token": "auto iOS 18.7",
+      "browser_alias": "safari",
+      "browser_version_slug": "26_1",
+      "capture_path": "docs/Samples/Traffic dumps/iOS/iOS 26.1, Safari 26.1, auto iOS 18.7, auto Safari 26.1.pcap",
+      "captures_dir": "iOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "ios",
+      "os_family": "ios",
+      "os_version_slug": "26_1",
+      "platform_key": "ios",
+      "profile_id": "safari26_1_ios26_1_0b286d98",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Safari 26.1",
+      "selected_os_source": "user",
+      "selected_os_token": "iOS 26.1",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Safari 26.1",
+      "user_os_token": "iOS 26.1"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/ios/safari26_4_ios26_4_5ddb4ee5.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/ios/safari26_4_ios26_4_5ddb4ee5.serverhello.json"
+      },
+      "auto_browser_token": "auto Safari 26.4",
+      "auto_os_token": "auto iOS 18.7",
+      "browser_alias": "safari",
+      "browser_version_slug": "26_4",
+      "capture_path": "docs/Samples/Traffic dumps/iOS/iOS 26.4, Safari 26.4, auto iOS 18.7, auto Safari 26.4.pcap",
+      "captures_dir": "iOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "ios",
+      "os_family": "ios",
+      "os_version_slug": "26_4",
+      "platform_key": "ios",
+      "profile_id": "safari26_4_ios26_4_5ddb4ee5",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Safari 26.4",
+      "selected_os_source": "user",
+      "selected_os_token": "iOS 26.4",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Safari 26.4",
+      "user_os_token": "iOS 26.4"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/ios/safari26_5_ios26_5_638eae8b.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/ios/safari26_5_ios26_5_638eae8b.serverhello.json"
+      },
+      "auto_browser_token": "auto Safari 26.5",
+      "auto_os_token": "auto iOS 18.7",
+      "browser_alias": "safari",
+      "browser_version_slug": "26_5",
+      "capture_path": "docs/Samples/Traffic dumps/iOS/iOS 26.5, Safari 26.5, auto iOS 18.7, auto Safari 26.5.pcap",
+      "captures_dir": "iOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "ios",
+      "os_family": "ios",
+      "os_version_slug": "26_5",
+      "platform_key": "ios",
+      "profile_id": "safari26_5_ios26_5_638eae8b",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Safari 26.5",
+      "selected_os_source": "user",
+      "selected_os_token": "iOS 26.5",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Safari 26.5",
+      "user_os_token": "iOS 26.5"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/ios/safari26_3_1_ios26_3_1_23d8133_3d37be0c.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/ios/safari26_3_1_ios26_3_1_23d8133_3d37be0c.serverhello.json"
+      },
+      "auto_browser_token": "auto_Safari_26",
+      "auto_os_token": "auto_iOS_18_7",
+      "browser_alias": "safari",
+      "browser_version_slug": "26_3_1",
+      "capture_path": "docs/Samples/Traffic dumps/iOS/iOS 26_3_1_23D8133,_Safari_26_3_1,_auto_iOS_18_7,_auto_Safari_26.pcap",
+      "captures_dir": "iOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "mobile",
+      "fixtures_dir": "ios",
+      "os_family": "ios",
+      "os_version_slug": "26_3_1_23d8133",
+      "platform_key": "ios",
+      "profile_id": "safari26_3_1_ios26_3_1_23d8133_3d37be0c",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Safari_26_3_1",
+      "selected_os_source": "user",
+      "selected_os_token": "iOS 26_3_1_23D8133",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Safari_26_3_1",
+      "user_os_token": "iOS 26_3_1_23D8133"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/firefoxzen_1_19_8b_149_0_2_aarch64_macos26_4_1_10539049.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/firefoxzen_1_19_8b_149_0_2_aarch64_macos26_4_1_10539049.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "firefox",
+      "browser_version_slug": "zen_1_19_8b_149_0_2_aarch64",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/MacOS_26_4_1,_Zen_Browser_1_19_8b_Firefox_149_0_2_aarch64,_auto.pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "26_4_1",
+      "platform_key": "macos",
+      "profile_id": "firefoxzen_1_19_8b_149_0_2_aarch64_macos26_4_1_10539049",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Zen_Browser_1_19_8b_Firefox_149_0_2_aarch64",
+      "selected_os_source": "user",
+      "selected_os_token": "MacOS_26_4_1",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Zen_Browser_1_19_8b_Firefox_149_0_2_aarch64",
+      "user_os_token": "MacOS_26_4_1"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/firefox149_0_macos26_4_fa52c3c0.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/firefox149_0_macos26_4_fa52c3c0.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/macOS 26.4, Firefox 149.0.pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "26_4",
+      "platform_key": "macos",
+      "profile_id": "firefox149_0_macos26_4_fa52c3c0",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox 149.0",
+      "selected_os_source": "user",
+      "selected_os_token": "macOS 26.4",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox 149.0",
+      "user_os_token": "macOS 26.4"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/chrome146_0_7680_178_macos26_4_97c819b4.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/chrome146_0_7680_178_macos26_4_97c819b4.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "146_0_7680_178",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/macOS 26.4, Google Chrome 146.0.7680.178.pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "26_4",
+      "platform_key": "macos",
+      "profile_id": "chrome146_0_7680_178_macos26_4_97c819b4",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Google Chrome 146.0.7680.178",
+      "selected_os_source": "user",
+      "selected_os_token": "macOS 26.4",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Google Chrome 146.0.7680.178",
+      "user_os_token": "macOS 26.4"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/safari26_4_21624_1_16_11_4_macos26_4_7a304307.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/safari26_4_21624_1_16_11_4_macos26_4_7a304307.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "safari",
+      "browser_version_slug": "26_4_21624_1_16_11_4",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/macOS 26.4, Safari 26.4 (21624.1.16.11.4).pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "26_4",
+      "platform_key": "macos",
+      "profile_id": "safari26_4_21624_1_16_11_4_macos26_4_7a304307",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Safari 26.4 (21624.1.16.11.4)",
+      "selected_os_source": "user",
+      "selected_os_token": "macOS 26.4",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Safari 26.4 (21624.1.16.11.4)",
+      "user_os_token": "macOS 26.4"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/yandex25_12_3_1140_macos26_4_47cff21e.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/yandex25_12_3_1140_macos26_4_47cff21e.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "yandex",
+      "browser_version_slug": "25_12_3_1140",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/macOS 26.4, YaBrowser 25.12.3.1140.pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "26_4",
+      "platform_key": "macos",
+      "profile_id": "yandex25_12_3_1140_macos26_4_47cff21e",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "YaBrowser 25.12.3.1140",
+      "selected_os_source": "user",
+      "selected_os_token": "macOS 26.4",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "YaBrowser 25.12.3.1140",
+      "user_os_token": "macOS 26.4"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/firefox150_0b8_macos15_7_4_44224fa4.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/firefox150_0b8_macos15_7_4_44224fa4.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_150_0",
+      "auto_os_token": "auto_macOS_10",
+      "browser_alias": "firefox",
+      "browser_version_slug": "150_0b8",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/macOS_15_7_4,_Firefox_150_0b8,_auto_macOS_10,_auto_Firefox_150_0.pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "15_7_4",
+      "platform_key": "macos",
+      "profile_id": "firefox150_0b8_macos15_7_4_44224fa4",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_150_0b8",
+      "selected_os_source": "user",
+      "selected_os_token": "macOS_15_7_4",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_150_0b8",
+      "user_os_token": "macOS_15_7_4"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/firefox149_0_macos15_7_5_62124219.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/firefox149_0_macos15_7_5_62124219.serverhello.json"
+      },
+      "auto_browser_token": "auto_Firefox_149_0",
+      "auto_os_token": "auto_macOS_10",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149_0",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/macOS_15_7_5,_Firefox_149_0,_auto_macOS_10,_auto_Firefox_149_0.pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "15_7_5",
+      "platform_key": "macos",
+      "profile_id": "firefox149_0_macos15_7_5_62124219",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Firefox_149_0",
+      "selected_os_source": "user",
+      "selected_os_token": "macOS_15_7_5",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Firefox_149_0",
+      "user_os_token": "macOS_15_7_5"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/chromium130_macos26_3_301a8e50.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/chromium130_macos26_3_301a8e50.serverhello.json"
+      },
+      "auto_browser_token": "auto_Chromium_130",
+      "auto_os_token": "auto_macOS_10_15_7",
+      "browser_alias": "chromium",
+      "browser_version_slug": "130",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/macOS_26_3,_Chromium_130,_auto_macOS_10_15_7,_auto_Chromium_130.pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "26_3",
+      "platform_key": "macos",
+      "profile_id": "chromium130_macos26_3_301a8e50",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Chromium_130",
+      "selected_os_source": "user",
+      "selected_os_token": "macOS_26_3",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Chromium_130",
+      "user_os_token": "macOS_26_3"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "safari",
+      "browser_version_slug": "26_4_21624_1_16_11_4",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/macOS_Tahoe_26_4_25E246_arm64,_Safari_26_4_21624_1_16_11_4,_auto.pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "tahoe_26_4_25e246_arm64",
+      "platform_key": "macos",
+      "profile_id": "safari26_4_21624_1_16_11_4_macostahoe_26_4_25e246_arm64_e918887e",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Safari_26_4_21624_1_16_11_4",
+      "selected_os_source": "user",
+      "selected_os_token": "macOS_Tahoe_26_4_25E246_arm64",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Safari_26_4_21624_1_16_11_4",
+      "user_os_token": "macOS_Tahoe_26_4_25E246_arm64"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/safari_macos26_4_57318420.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/safari_macos26_4_57318420.serverhello.json"
+      },
+      "auto_browser_token": "auto Safari 26.4",
+      "auto_os_token": "auto macOS 10.15.7",
+      "browser_alias": "safari",
+      "browser_version_slug": "",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/macos 26.4, Safari, auto macOS 10.15.7, auto Safari 26.4.pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "26_4",
+      "platform_key": "macos",
+      "profile_id": "safari_macos26_4_57318420",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Safari",
+      "selected_os_source": "user",
+      "selected_os_token": "macos 26.4",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Safari",
+      "user_os_token": "macos 26.4"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/firefox149_macos26_4_946f3b45.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/firefox149_macos26_4_946f3b45.serverhello.json"
+      },
+      "auto_browser_token": "auto Firefox 149.0",
+      "auto_os_token": "auto macOS 10",
+      "browser_alias": "firefox",
+      "browser_version_slug": "149",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/macos 26.4, firefox 149, auto macOS 10, auto Firefox 149.0.pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "26_4",
+      "platform_key": "macos",
+      "profile_id": "firefox149_macos26_4_946f3b45",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "firefox 149",
+      "selected_os_source": "user",
+      "selected_os_token": "macos 26.4",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "firefox 149",
+      "user_os_token": "macos 26.4"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae.serverhello.json"
+      },
+      "auto_browser_token": "",
+      "auto_os_token": "",
+      "browser_alias": "chrome",
+      "browser_version_slug": "144_0_7559_133_build_arm64",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/macos_15_7_4_24G517,_Chrome_144_0_7559_133_Official_Build_arm64.pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "15_7_4_24g517",
+      "platform_key": "macos",
+      "profile_id": "chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "Chrome_144_0_7559_133_Official_Build_arm64",
+      "selected_os_source": "user",
+      "selected_os_token": "macos_15_7_4_24G517",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "Chrome_144_0_7559_133_Official_Build_arm64",
+      "user_os_token": "macos_15_7_4_24G517"
+    },
+    {
+      "artifacts": {
+        "clienthello": "test/analysis/fixtures/imported/clienthello/macos/chrome147_macos26_4_81b7d4cc.clienthello.json",
+        "serverhello": "test/analysis/fixtures/imported/serverhello/macos/chrome147_macos26_4_81b7d4cc.serverhello.json"
+      },
+      "auto_browser_token": "auto_Google_Chrome_1",
+      "auto_os_token": "auto_macOS_10_15_7",
+      "browser_alias": "chrome",
+      "browser_version_slug": "147",
+      "capture_path": "docs/Samples/Traffic dumps/macOS/macos_26_4,_chrome_147,_auto_macOS_10_15_7,_auto_Google_Chrome_1.pcap",
+      "captures_dir": "macOS",
+      "clienthello": {
+        "message": "",
+        "ok": true
+      },
+      "device_class": "desktop",
+      "fixtures_dir": "macos",
+      "os_family": "macos",
+      "os_version_slug": "26_4",
+      "platform_key": "macos",
+      "profile_id": "chrome147_macos26_4_81b7d4cc",
+      "route_mode": "non_ru_egress",
+      "selected_browser_source": "user",
+      "selected_browser_token": "chrome_147",
+      "selected_os_source": "user",
+      "selected_os_token": "macos_26_4",
+      "serverhello": {
+        "message": "",
+        "ok": true
+      },
+      "user_browser_token": "chrome_147",
+      "user_os_token": "macos_26_4"
+    }
+  ],
+  "generated_at_utc": "2026-04-11T16:23:48Z",
+  "version": "imported-capture-corpus-v1"
+}

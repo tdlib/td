@@ -1,0 +1,101 @@
+{
+  "capture_date_utc": "2026-04-11T16:23:44Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "chrome146_android10_ce229560",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "chrome146_android10_ce229560",
+      "fixture_id": "imported_chrome146_android10_ce229560_serverhello:frame106",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "chrome146_android10_ce229560",
+      "fixture_id": "imported_chrome146_android10_ce229560_serverhello:frame125",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "chrome146_android10_ce229560",
+      "fixture_id": "imported_chrome146_android10_ce229560_serverhello:frame159",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "chrome146_android10_ce229560",
+      "fixture_id": "imported_chrome146_android10_ce229560_serverhello:frame463",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "chrome146_android10_ce229560",
+      "fixture_id": "imported_chrome146_android10_ce229560_serverhello:frame487",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "chrome146_android10_ce229560",
+      "fixture_id": "imported_chrome146_android10_ce229560_serverhello:frame547",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_chrome146_android10_ce229560_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_10,_Google_Chrome_146,_auto_Android_10,_auto_Google_Chro.pcap",
+  "source_sha256": "4a8aa6166f7fca8149d9a6e3a48201c7d7d89f6809f77d63d1d5052a5fa7e325",
+  "transport": "tcp"
+}

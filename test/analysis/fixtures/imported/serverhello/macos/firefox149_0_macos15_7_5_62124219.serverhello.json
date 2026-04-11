@@ -1,0 +1,107 @@
+{
+  "capture_date_utc": "2026-04-11T14:39:49Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "firefox149_0_macos15_7_5_62124219",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_macos15_7_5_62124219",
+      "fixture_id": "imported_firefox149_0_macos15_7_5_62124219_serverhello:frame82",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_macos15_7_5_62124219",
+      "fixture_id": "imported_firefox149_0_macos15_7_5_62124219_serverhello:frame97",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_macos15_7_5_62124219",
+      "fixture_id": "imported_firefox149_0_macos15_7_5_62124219_serverhello:frame169",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_macos15_7_5_62124219",
+      "fixture_id": "imported_firefox149_0_macos15_7_5_62124219_serverhello:frame248",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_macos15_7_5_62124219",
+      "fixture_id": "imported_firefox149_0_macos15_7_5_62124219_serverhello:frame263",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox149_0_macos15_7_5_62124219",
+      "fixture_id": "imported_firefox149_0_macos15_7_5_62124219_serverhello:frame333",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_firefox149_0_macos15_7_5_62124219_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_15_7_5,_Firefox_149_0,_auto_macOS_10,_auto_Firefox_149_0.pcap",
+  "source_sha256": "35d519fd793d8aeee4789175f4de24f93a65113ed391a8554bb3b6ab8c684eb7",
+  "transport": "tcp"
+}
