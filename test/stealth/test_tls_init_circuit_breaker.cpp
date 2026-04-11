@@ -26,6 +26,10 @@
 
 #if !TD_DARWIN
 
+#include "td/utils/port/config.h"
+
+#if TD_PORT_POSIX
+
 namespace {
 
 using td::mtproto::stealth::default_runtime_platform_hints;
@@ -381,5 +385,7 @@ TEST(TlsInitCircuitBreaker, SuccessForDifferentDestinationMustNotClearBlockedDes
 }
 
 }  // namespace
+
+#endif  // TD_PORT_POSIX
 
 #endif

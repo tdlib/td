@@ -127,6 +127,41 @@ vector<Op> make_chromium_desktop_layout() {
   };
 }
 
+// Chromium-on-mobile layout (Samsung Internet on Android, Brave on iOS,
+// etc.). Differs from `make_chromium_desktop_layout` in two ways:
+//   1. No `Op::padding_to_target` op — real Chromium-derived mobile
+//      captures (Samsung Internet 29, Brave 1.88, Chrome 146 on stock
+//      Android) consistently emit a ClientHello without a `0x0015`
+//      padding extension.
+//   2. Extensions are written in profile-declared order without the
+//      ChromeShuffleAnchored permutation. The Android11_OkHttp_Advisory
+//      profile is `ExtensionOrderPolicy::FixedFromFixture` per
+//      `TlsHelloProfileRegistry`, so `Test_TlsProfileWire_FixedProfilesKeepStableExtensionOrderAcrossSeeds`
+//      requires the wire to be byte-stable across seeds.
+vector<Op> make_chromium_mobile_layout() {
+  return {
+      Op::bytes("\x16\x03\x01"),
+      Op::scope16_begin(),
+      Op::bytes("\x01\x00"),
+      Op::scope16_begin(),
+      Op::legacy_version_from_profile(),
+      Op::zero_bytes(32),
+      Op::bytes("\x20"),
+      Op::random_bytes(32),
+      Op::cipher_suites_from_profile(),
+      Op::bytes("\x01\x00"),
+      Op::scope16_begin(),
+      Op::grease(2),
+      Op::bytes("\x00\x00"),
+      Op::extensions_from_profile(),
+      Op::grease(3),
+      Op::bytes("\x00\x01\x00"),
+      Op::scope16_end(),
+      Op::scope16_end(),
+      Op::scope16_end(),
+  };
+}
+
 vector<Op> make_chromium_darwin_layout() {
   return {
       Op::bytes("\x16\x03\x01\x02\x00\x01\x00\x01\xfc"),
@@ -244,7 +279,14 @@ BrowserProfileSpec make_chrome133_impl() {
   BrowserProfileSpec profile;
   profile.name = "chrome133";
   profile.tls_version = TlsVersion::Tls12;
-  profile.cipher_suites = {4865, 4866, 4867, 49195, 49199, 49196, 49200, 52393, 52392, 49171, 49172, 156, 157, 47, 53, 10};
+  // Real Chrome 144/146 captures (test/analysis/fixtures/clienthello/
+  // linux_desktop/chrome14*_linux_desktop.clienthello.json) advertise
+  // exactly 15 non-GREASE cipher suites with NO TLS_RSA_WITH_3DES_EDE_CBC_SHA
+  // (0x000A) at the end. Modern Chrome dropped 3DES years ago and emitting
+  // it produces a unique cross-version distinguishing fingerprint that
+  // `TlsHelloDifferential::ModernLaneMustNotOfferDeprecated3DesSuites`
+  // catches.
+  profile.cipher_suites = {4865, 4866, 4867, 49195, 49199, 49196, 49200, 52393, 52392, 49171, 49172, 156, 157, 47, 53};
   profile.supported_groups = {4588, 29, 23, 24};
   profile.ec_point_formats = {0};
   profile.alpn = {"h2", "http/1.1"};
@@ -275,7 +317,14 @@ BrowserProfileSpec make_chrome131_impl() {
   BrowserProfileSpec profile;
   profile.name = "chrome131";
   profile.tls_version = TlsVersion::Tls12;
-  profile.cipher_suites = {4865, 4866, 4867, 49195, 49199, 49196, 49200, 52393, 52392, 49171, 49172, 156, 157, 47, 53, 10};
+  // Real Chrome 144/146 captures (test/analysis/fixtures/clienthello/
+  // linux_desktop/chrome14*_linux_desktop.clienthello.json) advertise
+  // exactly 15 non-GREASE cipher suites with NO TLS_RSA_WITH_3DES_EDE_CBC_SHA
+  // (0x000A) at the end. Modern Chrome dropped 3DES years ago and emitting
+  // it produces a unique cross-version distinguishing fingerprint that
+  // `TlsHelloDifferential::ModernLaneMustNotOfferDeprecated3DesSuites`
+  // catches.
+  profile.cipher_suites = {4865, 4866, 4867, 49195, 49199, 49196, 49200, 52393, 52392, 49171, 49172, 156, 157, 47, 53};
   profile.supported_groups = {4588, 29, 23, 24};
   profile.ec_point_formats = {0};
   profile.alpn = {"h2", "http/1.1"};
@@ -306,7 +355,14 @@ BrowserProfileSpec make_chrome120_impl() {
   BrowserProfileSpec profile;
   profile.name = "chrome120";
   profile.tls_version = TlsVersion::Tls12;
-  profile.cipher_suites = {4865, 4866, 4867, 49195, 49199, 49196, 49200, 52393, 52392, 49171, 49172, 156, 157, 47, 53, 10};
+  // Real Chrome 144/146 captures (test/analysis/fixtures/clienthello/
+  // linux_desktop/chrome14*_linux_desktop.clienthello.json) advertise
+  // exactly 15 non-GREASE cipher suites with NO TLS_RSA_WITH_3DES_EDE_CBC_SHA
+  // (0x000A) at the end. Modern Chrome dropped 3DES years ago and emitting
+  // it produces a unique cross-version distinguishing fingerprint that
+  // `TlsHelloDifferential::ModernLaneMustNotOfferDeprecated3DesSuites`
+  // catches.
+  profile.cipher_suites = {4865, 4866, 4867, 49195, 49199, 49196, 49200, 52393, 52392, 49171, 49172, 156, 157, 47, 53};
   profile.supported_groups = {29, 23, 24};
   profile.ec_point_formats = {0};
   profile.alpn = {"h2", "http/1.1"};
@@ -515,7 +571,10 @@ BrowserProfileSpec make_android_okhttp_impl() {
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
       make_key_share_extension({KeyShareKind::X25519}),
   };
-  profile.layout_template = make_chromium_desktop_layout();
+  // Android Chromium-derived browsers (Samsung Internet, Brave, Yandex,
+  // Chrome on stock Android) emit no padding extension; use the mobile
+  // layout that omits `Op::padding_to_target`.
+  profile.layout_template = make_chromium_mobile_layout();
   return profile;
 }
 

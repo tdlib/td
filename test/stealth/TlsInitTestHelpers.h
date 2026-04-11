@@ -23,6 +23,24 @@ struct SocketPair final {
   SocketFd peer;
 };
 
+// Returns a connected pair of stream sockets that can be used to drive
+// `TlsInit` end-to-end inside a single test process.
+//
+// On POSIX we delegate to `::socketpair(AF_UNIX, SOCK_STREAM, 0, fds)`.
+// On Windows there is no socketpair(2) primitive: emulating it via a
+// loopback TCP listener is possible in principle, but the asynchronous
+// accept-queue semantics of the td socket layer make a robust
+// implementation expensive (the test infrastructure expects synchronous
+// `read`/`write` round-trips that the non-blocking `ServerSocketFd::accept`
+// API does not provide without spinning an event loop). Until that
+// scaffold exists, the helper returns an error so callers can `is_ok()`-check
+// and gracefully skip on Windows. The TlsInit integration tests guarded by
+// `socketpair` therefore exercise only POSIX builds for now; the unit-level
+// test files in `test/stealth/test_tls_*.cpp` that DO not require a socket
+// pair (TlsHelloBuilder, AlpsExtensionWireType, ProfileSpecPqConsistency,
+// PqHybridKeyShareFormat, EchEncapsulatedKeyValidity, GreaseKeyShareEntry,
+// ConnectionCreatorPingProxyLifetime, ...) cover the wire-level invariants
+// that matter for the stealth subsystem on every platform.
 inline Result<SocketPair> create_socket_pair() {
 #if TD_PORT_POSIX
   int fds[2] = {-1, -1};
@@ -34,9 +52,28 @@ inline Result<SocketPair> create_socket_pair() {
   TRY_RESULT(peer, SocketFd::from_native_fd(NativeFd(fds[1])));
   return SocketPair{std::move(client), std::move(peer)};
 #else
-  return Status::Error("socketpair is unsupported on this platform");
+  return Status::Error("create_socket_pair: not implemented on this platform; TlsInit integration tests are POSIX-only");
 #endif
 }
+
+// Skip a TlsInit-style test gracefully when the platform cannot synthesise a
+// connected socket pair. Returns from the enclosing test function after
+// logging the reason. Designed to be invoked at the top of a TEST() body
+// right before constructing the SocketPair.
+//
+// On POSIX `create_socket_pair()` always succeeds and the macro is a no-op.
+// On Windows `create_socket_pair()` returns an error and the macro logs the
+// reason and returns from the enclosing test, so the test runner records
+// it as passing-with-skip rather than crashing on the subsequent
+// `move_as_ok()`.
+#define SKIP_IF_NO_SOCKET_PAIR()                                                              \
+  do {                                                                                        \
+    auto _r_pair_check = ::td::mtproto::test::create_socket_pair();                           \
+    if (_r_pair_check.is_error()) {                                                           \
+      LOG(WARNING) << "Skipping test: " << _r_pair_check.error();                             \
+      return;                                                                                 \
+    }                                                                                         \
+  } while (false)
 
 inline Status write_all(SocketFd &socket_fd, Slice data) {
   while (!data.empty()) {

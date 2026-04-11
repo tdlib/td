@@ -157,6 +157,16 @@ class LengthCalculator {
         // and emitting both ECH AND padding produces a wire-image that
         // no real Chrome client emits (verified against
         // chrome144/chrome146 captures, neither has 0x0015).
+        //
+        // Test lanes that need a deterministic body size set
+        // `padding_extension_payload_length_override > 0`; in that case
+        // a fixed-size padding extension is emitted unconditionally
+        // (including under ECH), bypassing the target+entropy logic.
+        const auto override_len = context.config().padding_extension_payload_length_override;
+        if (override_len > 0) {
+          size_ += 4 + override_len;
+          break;
+        }
         if (context.config().has_ech) {
           break;
         }
@@ -223,16 +233,27 @@ class ByteWriter {
         append(Op::bytes("\x00\x17\x00\x41"), context);
         store_secp256r1_key_share();
         break;
-      case Op::Type::X25519MlKem768KeyShareEntry:
-        // group(0x11EC) + length(0x04C0 = 1216 bytes) + ML-KEM-768 ek (1184)
-        // + X25519 ek (32). Both halves of the hybrid public key MUST be
-        // emitted in this exact order; see
+      case Op::Type::X25519MlKem768KeyShareEntry: {
+        // group(2 bytes, profile-specific PQ codepoint) +
+        // length(0x04C0 = 1216 bytes) + ML-KEM-768 ek (1184) +
+        // X25519 ek (32). Both halves of the hybrid public key MUST be
+        // emitted in this exact order. The wire codepoint is sourced
+        // from `config.pq_group_id_override` so test lanes that
+        // exercise the legacy 0x6399 (X25519Kyber768Draft00) snapshot
+        // can drive the executor without changing the production
+        // 0x11EC default. See
         // `test/stealth/test_pq_hybrid_key_share_format_invariants.cpp`
-        // for the regression guard.
-        append(Op::bytes("\x11\xec\x04\xc0"), context);
+        // and
+        // `test/stealth/test_tls_context_entropy.cpp::ExplicitSerializerParametersDriveWireImage`
+        // for the regression guards.
+        auto pq_group = context.config().pq_group_id_override;
+        char group_bytes[2] = {static_cast<char>((pq_group >> 8) & 0xFF), static_cast<char>(pq_group & 0xFF)};
+        append(Op::bytes(Slice(group_bytes, 2)), context);
+        append(Op::bytes("\x04\xc0"), context);
         store_mlkem_key_share(context.rng());
         store_x25519_key_share(context.rng());
         break;
+      }
       case Op::Type::GreaseKeyShareEntry: {
         // GREASE key_share entry: 2 bytes group (paired GREASE byte) +
         // 2 bytes length (always 0x0001) + 1 byte body (always 0x00).
@@ -276,6 +297,17 @@ class ByteWriter {
       case Op::Type::PaddingToTarget: {
         // Padding only fires when ECH is disabled — see the matching
         // gate in `LengthCalculator::PaddingToTarget` for the rationale.
+        // The `padding_extension_payload_length_override` test hook also
+        // applies here in lockstep with the LengthCalculator pass so the
+        // size accounting and the byte writes agree.
+        const auto override_len = context.config().padding_extension_payload_length_override;
+        if (override_len > 0) {
+          append(Op::bytes("\x00\x15"), context);
+          append(Op::scope16_begin(), context);
+          append(Op::zero_bytes(static_cast<int>(override_len)), context);
+          append(Op::scope16_end(), context);
+          break;
+        }
         if (context.config().has_ech) {
           break;
         }

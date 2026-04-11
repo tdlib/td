@@ -77,15 +77,32 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
     case TlsExtensionType::ServerName:
       return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::scope16_begin(), Op::bytes("\x00"),
               Op::scope16_begin(), Op::domain(), Op::scope16_end(), Op::scope16_end(), Op::scope16_end()};
-    case TlsExtensionType::SupportedGroups:
+    case TlsExtensionType::SupportedGroups: {
+      // The supported_groups list carries the same PQ codepoint that the
+      // matching key_share entry advertises (Chrome 131+ uses 0x11EC =
+      // X25519MLKEM768; the legacy Chrome 120 PQ snapshot used 0x6399 =
+      // X25519Kyber768Draft00). Substitute any occurrence of the canonical
+      // 0x11EC with `config.pq_group_id_override` so that test lanes which
+      // exercise the legacy snapshot can drive both extensions consistently
+      // through the same single override field. Production callers leave
+      // the override at the 0x11EC default and the substitution is a no-op.
+      vector<uint16> groups = extension.u16_list;
+      if (config.pq_group_id_override != 0x11EC) {
+        for (auto &g : groups) {
+          if (g == 0x11EC) {
+            g = config.pq_group_id_override;
+          }
+        }
+      }
       ops = {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::scope16_begin()};
       if (extension.prepend_grease) {
         ops.push_back(Op::grease(4));
       }
-      ops.push_back(Op::bytes(encode_u16_list(extension.u16_list)));
+      ops.push_back(Op::bytes(encode_u16_list(groups)));
       ops.push_back(Op::scope16_end());
       ops.push_back(Op::scope16_end());
       return ops;
+    }
     case TlsExtensionType::EcPointFormats:
       return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::bytes(store_u8(to_uint8(extension.u8_list.size()))),
               Op::bytes(encode_u8_list(extension.u8_list)), Op::scope16_end()};

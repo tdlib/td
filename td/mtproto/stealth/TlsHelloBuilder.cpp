@@ -116,6 +116,17 @@ string build_default_tls_client_hello_with_options(string domain, Slice secret, 
   config.ech_payload_length = options.ech_payload_length;
   config.ech_enc_key_length = options.ech_enc_key_length;
   config.alps_type = options.alps_extension_type;
+  // Plumb the optional PQ group override through to the executor so the
+  // hybrid key_share entry and the supported_groups list both reflect the
+  // requested codepoint. Without this assignment the field is silently
+  // dropped and the executor always emits the canonical 0x11EC.
+  config.pq_group_id_override = options.pq_group_id;
+  // Plumb the optional explicit padding-extension body length the same way.
+  // When non-zero, the executor emits a fixed `0x0015` extension whose body
+  // is exactly this many zero bytes, ignoring the normal target+entropy
+  // logic — used by `TlsContextEntropy::ExplicitPaddingExtensionLengthIsHonored`
+  // and similar test scenarios.
+  config.padding_extension_payload_length_override = options.padding_extension_payload_length;
 
   auto ops = mtproto::ClientHelloOpMapper::map(profile, config);
   auto result = mtproto::ClientHelloExecutor::execute(ops, domain, secret, unix_time, config, rng);

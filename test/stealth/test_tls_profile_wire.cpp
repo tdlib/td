@@ -231,11 +231,18 @@ TEST(TlsProfileWire, Safari26_3UsesFixedWebkitProfileWithoutEchOrAlps) {
 }
 
 TEST(TlsProfileWire, IosAndAndroidFixedProfilesDoNotEmitChromiumOnlyExtensions) {
+  // IOS14 represents the Apple TLS family on iOS 26.x, which DOES carry
+  // X25519MLKEM768 in both supported_groups and key_share per real
+  // captures under test/analysis/fixtures/clienthello/ios/ — see
+  // `test_profile_spec_pq_consistency_invariants.cpp` and
+  // `test_pq_hybrid_key_share_format_invariants.cpp` for the regression
+  // guards. The Chromium-only ECH/ALPS/padding checks below still apply
+  // (Apple TLS does NOT carry those), but PQ is now part of the Apple TLS
+  // family contract and is asserted positively elsewhere.
   for (auto profile : {BrowserProfile::IOS14, BrowserProfile::Android11_OkHttp_Advisory}) {
     auto spec = profile_spec(profile);
     ASSERT_FALSE(spec.allows_ech);
     ASSERT_FALSE(spec.allows_padding);
-    ASSERT_FALSE(spec.has_pq);
     ASSERT_EQ(0u, spec.alps_type);
 
     auto wire = build_profile(profile, EchMode::Rfc9180Outer, static_cast<td::uint64>(profile) + 51);
@@ -252,10 +259,21 @@ TEST(TlsProfileWire, IosAndAndroidFixedProfilesDoNotEmitChromiumOnlyExtensions) 
                                                     parsed.ok().supported_groups.end());
     std::unordered_set<td::uint16> key_share_groups(parsed.ok().key_share_groups.begin(),
                                                     parsed.ok().key_share_groups.end());
-    ASSERT_TRUE(supported_groups.count(td::mtproto::test::fixtures::kPqHybridGroup) == 0);
+    // Legacy Kyber draft codepoint (0x6399) MUST never appear; only the
+    // IANA-final X25519MLKEM768 (0x11EC) is acceptable when PQ is present.
     ASSERT_TRUE(supported_groups.count(td::mtproto::test::fixtures::kPqHybridDraftGroup) == 0);
-    ASSERT_TRUE(key_share_groups.count(td::mtproto::test::fixtures::kPqHybridGroup) == 0);
     ASSERT_TRUE(key_share_groups.count(td::mtproto::test::fixtures::kPqHybridDraftGroup) == 0);
+    if (profile == BrowserProfile::Android11_OkHttp_Advisory) {
+      // Android OkHttp predates PQ adoption — must not advertise it.
+      ASSERT_TRUE(spec.has_pq == false);
+      ASSERT_TRUE(supported_groups.count(td::mtproto::test::fixtures::kPqHybridGroup) == 0);
+      ASSERT_TRUE(key_share_groups.count(td::mtproto::test::fixtures::kPqHybridGroup) == 0);
+    } else {
+      // IOS14 (Apple TLS family on iOS 26.x) DOES advertise PQ.
+      ASSERT_TRUE(spec.has_pq == true);
+      ASSERT_TRUE(supported_groups.count(td::mtproto::test::fixtures::kPqHybridGroup) != 0);
+      ASSERT_TRUE(key_share_groups.count(td::mtproto::test::fixtures::kPqHybridGroup) != 0);
+    }
   }
 }
 

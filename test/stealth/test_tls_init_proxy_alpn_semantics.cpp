@@ -28,6 +28,10 @@
 
 #if !TD_DARWIN
 
+#include "td/utils/port/config.h"
+
+#if TD_PORT_POSIX
+
 namespace {
 
 using td::mtproto::stealth::BrowserProfile;
@@ -134,5 +138,7 @@ TEST(TlsInitProxyAlpnSemantics, UnknownRouteKeepsHttp11OnlyAndSuppressesEch) {
 }
 
 }  // namespace
+
+#endif  // TD_PORT_POSIX
 
 #endif

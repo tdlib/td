@@ -24,6 +24,10 @@
 
 #include "td/utils/tests.h"
 
+#include "td/utils/port/config.h"
+
+#if TD_PORT_POSIX
+
 namespace {
 
 using td::mtproto::stealth::NetworkRouteHints;
@@ -107,3 +111,4 @@ TEST(TlsInitIntegration, UnknownRouteDefaultsToEchDisabledClientHello) {
 }
 
 }  // namespace
+#endif  // TD_PORT_POSIX

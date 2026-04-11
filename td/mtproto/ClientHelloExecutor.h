@@ -26,6 +26,25 @@ struct ExecutorConfig {
   // session-state changes; without this, the unpadded ECH-disabled
   // wire collapses to a single fixed length and becomes a fingerprint.
   int padding_target_entropy{0};
+  // Wire codepoint advertised in the X25519MlKem768 hybrid key_share
+  // entry. Real Chrome 131+ uses the IANA-final 0x11EC (X25519MLKEM768);
+  // older Chrome 120 PQ snapshots used the legacy 0x6399
+  // (X25519Kyber768Draft00) with the same hybrid layout. The same
+  // codepoint is also surfaced in the `supported_groups` extension.
+  // Tests that exercise the legacy lane construct a builder with
+  // `pq_group_id_override = 0x6399`; production callers leave it at
+  // the default 0x11EC.
+  uint16 pq_group_id_override{0x11EC};
+
+  // When > 0, the executor's `Op::PaddingToTarget` handler emits a
+  // padding extension with EXACTLY this many body bytes, ignoring the
+  // op's normal "extend wire to target" calculation. Used by tests that
+  // need a deterministic padding extension shape (e.g.
+  // `TlsContextEntropy::ExplicitPaddingExtensionLengthIsHonored` sets
+  // it to 23 and asserts the wire produces a `0x0015` extension with a
+  // 23-byte body). Production callers leave this at 0 and rely on the
+  // target+entropy logic.
+  size_t padding_extension_payload_length_override{0};
 };
 
 class ClientHelloExecutor {
