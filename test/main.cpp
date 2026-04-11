@@ -17,7 +17,52 @@
 #include <emscripten.h>
 #endif
 
+#if defined(_WIN32)
+#include <crtdbg.h>
+#include <stdlib.h>
+#include <windows.h>
+
+namespace {
+
+// On Windows, the MSVC Debug CRT pops up modal "abort() has been called" and
+// "_CrtDbgReport" dialogs whenever a test triggers an assertion or `LOG(FATAL)`.
+// In CI / non-interactive runs these dialogs hang the test process forever and
+// also block automated bug discovery — exactly the opposite of what a TDD red
+// test suite is supposed to do.
+//
+// Suppress every modal failure surface so that test failures fall through to
+// the standard `abort()` exit code instead of waiting on user input:
+//   * `_set_abort_behavior`        — disable the "abort() has been called" dialog
+//   * `_CrtSetReportMode`          — route _CrtDbgReport to stderr, not a dialog
+//   * `SetErrorMode`               — disable Windows Error Reporting / WER popups
+//   * `_set_error_mode`            — disable CRT error message boxes
+//
+// Each of these is necessary; removing any single one is enough to bring the
+// dialogs back on a modern MSVC build.
+void disable_windows_modal_failure_dialogs() {
+#if defined(_MSC_VER)
+  _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+
+#if defined(_DEBUG)
+  for (int report_type : {_CRT_WARN, _CRT_ERROR, _CRT_ASSERT}) {
+    _CrtSetReportMode(report_type, _CRTDBG_MODE_FILE);
+    _CrtSetReportFile(report_type, _CRTDBG_FILE_STDERR);
+  }
+#endif
+
+  _set_error_mode(_OUT_TO_STDERR);
+#endif
+
+  SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+}
+
+}  // namespace
+#endif
+
 int main(int argc, char **argv) {
+#if defined(_WIN32)
+  disable_windows_modal_failure_dialogs();
+#endif
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(FATAL));
   td::ExitGuard exit_guard;
   td::detail::ThreadIdGuard thread_id_guard;

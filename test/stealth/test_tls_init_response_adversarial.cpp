@@ -11,11 +11,9 @@
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/SocketFd.h"
 
-#define private public
-#define protected public
 #include "td/mtproto/TlsInit.h"
-#undef protected
-#undef private
+
+#include "test/stealth/TlsInitTestPeer.h"
 
 #include "test/stealth/TlsInitTestHelpers.h"
 
@@ -27,6 +25,7 @@ using td::mtproto::stealth::NetworkRouteHints;
 using td::mtproto::stealth::reset_runtime_ech_failure_state_for_tests;
 using td::mtproto::test::create_socket_pair;
 using td::mtproto::test::make_tls_init_response;
+using td::mtproto::test::TlsInitTestPeer;
 using td::mtproto::test::write_all;
 using td::mtproto::TlsInit;
 
@@ -61,60 +60,60 @@ void overwrite_record_length(td::string &response, size_t offset, td::uint16 rec
 TEST(TlsInitResponseAdversarial, RejectsOversizedHandshakeRecordLengthWithoutWaitingForMoreBytes) {
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
-  tls_init.send_hello();
+  TlsInitTestPeer::send_hello(tls_init);
 
   auto response =
-      make_tls_init_response("0123456789secret", tls_init.hello_rand_, kFirstResponsePrefix, kSecondResponsePrefix);
+      make_tls_init_response("0123456789secret", TlsInitTestPeer::hello_rand(tls_init), kFirstResponsePrefix, kSecondResponsePrefix);
   overwrite_record_length(response, 3, kOversizedTlsRecordLength);
 
   ASSERT_TRUE(write_all(socket_pair.peer, response).is_ok());
-  tls_init.fd_.get_poll_info().add_flags(td::PollFlags::Read());
-  ASSERT_TRUE(tls_init.fd_.flush_read().is_ok());
-  ASSERT_TRUE(tls_init.wait_hello_response().is_error());
+  TlsInitTestPeer::fd(tls_init).get_poll_info().add_flags(td::PollFlags::Read());
+  ASSERT_TRUE(TlsInitTestPeer::fd(tls_init).flush_read().is_ok());
+  ASSERT_TRUE(TlsInitTestPeer::wait_hello_response(tls_init).is_error());
 }
 
 TEST(TlsInitResponseAdversarial, RejectsOversizedApplicationDataRecordLengthAfterValidHandshake) {
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
-  tls_init.send_hello();
+  TlsInitTestPeer::send_hello(tls_init);
 
   auto response =
-      make_tls_init_response("0123456789secret", tls_init.hello_rand_, kFirstResponsePrefix, kSecondResponsePrefix);
+      make_tls_init_response("0123456789secret", TlsInitTestPeer::hello_rand(tls_init), kFirstResponsePrefix, kSecondResponsePrefix);
   constexpr size_t kSecondRecordLengthOffset = 5 + 2 + 40 + 3;
   overwrite_record_length(response, kSecondRecordLengthOffset, kOversizedTlsRecordLength);
 
   ASSERT_TRUE(write_all(socket_pair.peer, response).is_ok());
-  tls_init.fd_.get_poll_info().add_flags(td::PollFlags::Read());
-  ASSERT_TRUE(tls_init.fd_.flush_read().is_ok());
-  ASSERT_TRUE(tls_init.wait_hello_response().is_error());
+  TlsInitTestPeer::fd(tls_init).get_poll_info().add_flags(td::PollFlags::Read());
+  ASSERT_TRUE(TlsInitTestPeer::fd(tls_init).flush_read().is_ok());
+  ASSERT_TRUE(TlsInitTestPeer::wait_hello_response(tls_init).is_error());
 }
 
 TEST(TlsInitResponseAdversarial, RejectsZeroLengthHandshakeRecordEvenWhenHashMatches) {
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
-  tls_init.send_hello();
+  TlsInitTestPeer::send_hello(tls_init);
 
-  auto response = make_tls_init_response("0123456789secret", tls_init.hello_rand_, kFirstResponsePrefix,
+  auto response = make_tls_init_response("0123456789secret", TlsInitTestPeer::hello_rand(tls_init), kFirstResponsePrefix,
                                          kSecondResponsePrefix, 0, 32);
 
   ASSERT_TRUE(write_all(socket_pair.peer, response).is_ok());
-  tls_init.fd_.get_poll_info().add_flags(td::PollFlags::Read());
-  ASSERT_TRUE(tls_init.fd_.flush_read().is_ok());
-  ASSERT_TRUE(tls_init.wait_hello_response().is_error());
+  TlsInitTestPeer::fd(tls_init).get_poll_info().add_flags(td::PollFlags::Read());
+  ASSERT_TRUE(TlsInitTestPeer::fd(tls_init).flush_read().is_ok());
+  ASSERT_TRUE(TlsInitTestPeer::wait_hello_response(tls_init).is_error());
 }
 
 TEST(TlsInitResponseAdversarial, RejectsZeroLengthApplicationDataRecordEvenWhenHashMatches) {
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
-  tls_init.send_hello();
+  TlsInitTestPeer::send_hello(tls_init);
 
-  auto response = make_tls_init_response("0123456789secret", tls_init.hello_rand_, kFirstResponsePrefix,
+  auto response = make_tls_init_response("0123456789secret", TlsInitTestPeer::hello_rand(tls_init), kFirstResponsePrefix,
                                          kSecondResponsePrefix, 48, 0);
 
   ASSERT_TRUE(write_all(socket_pair.peer, response).is_ok());
-  tls_init.fd_.get_poll_info().add_flags(td::PollFlags::Read());
-  ASSERT_TRUE(tls_init.fd_.flush_read().is_ok());
-  ASSERT_TRUE(tls_init.wait_hello_response().is_error());
+  TlsInitTestPeer::fd(tls_init).get_poll_info().add_flags(td::PollFlags::Read());
+  ASSERT_TRUE(TlsInitTestPeer::fd(tls_init).flush_read().is_ok());
+  ASSERT_TRUE(TlsInitTestPeer::wait_hello_response(tls_init).is_error());
 }
 
 }  // namespace

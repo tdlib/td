@@ -13,11 +13,9 @@
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Status.h"
 
-#define private public
-#define protected public
 #include "td/mtproto/TlsInit.h"
-#undef protected
-#undef private
+
+#include "test/stealth/TlsInitTestPeer.h"
 // SPDX-FileCopyrightText: Copyright 2026 telemt community
 // SPDX-License-Identifier: GPL-3.0-only
 // telemt: https://github.com/telemt
@@ -40,6 +38,7 @@ using td::mtproto::test::create_socket_pair;
 using td::mtproto::test::find_extension;
 using td::mtproto::test::parse_tls_client_hello;
 using td::mtproto::test::read_exact;
+using td::mtproto::test::TlsInitTestPeer;
 using td::mtproto::TlsInit;
 
 class NoopCallback final : public td::TransparentProxy::Callback {
@@ -52,11 +51,11 @@ class NoopCallback final : public td::TransparentProxy::Callback {
 };
 
 td::string flush_client_hello(TlsInit &tls_init, td::SocketFd &peer_fd) {
-  auto bytes_to_read = tls_init.fd_.ready_for_flush_write();
+  auto bytes_to_read = TlsInitTestPeer::fd(tls_init).ready_for_flush_write();
   CHECK(bytes_to_read > 0);
-  tls_init.fd_.get_poll_info().add_flags(td::PollFlags::Write());
-  while (tls_init.fd_.ready_for_flush_write() > 0) {
-    auto flush_status = tls_init.fd_.flush_write();
+  TlsInitTestPeer::fd(tls_init).get_poll_info().add_flags(td::PollFlags::Write());
+  while (TlsInitTestPeer::fd(tls_init).ready_for_flush_write() > 0) {
+    auto flush_status = TlsInitTestPeer::fd(tls_init).flush_write();
     CHECK(flush_status.is_ok());
   }
   return read_exact(peer_fd, bytes_to_read).move_as_ok();
@@ -87,16 +86,16 @@ TEST(TlsInitRouteStress, RoutePolicyRemainsStableAcrossManyTlsInitInstances) {
       auto socket_pair = create_socket_pair().move_as_ok();
       TlsInit tls_init(std::move(socket_pair.client), "www.google.com", "0123456789secret",
                        td::make_unique<NoopCallback>(), {}, 0.0, scenario.route_hints);
-      tls_init.send_hello();
+      TlsInitTestPeer::send_hello(tls_init);
 
       auto wire = flush_client_hello(tls_init, socket_pair.peer);
       auto parsed = parse_tls_client_hello(wire);
       ASSERT_TRUE(parsed.is_ok());
       ASSERT_EQ(scenario.expect_ech, has_ech_extension(parsed.ok()));
       ASSERT_TRUE(find_extension(parsed.ok(), 0xFE02) == nullptr);
-      ASSERT_EQ(wire.substr(11, 32), tls_init.hello_rand_);
+      ASSERT_EQ(wire.substr(11, 32), TlsInitTestPeer::hello_rand(tls_init));
 
-      hello_randoms.insert(tls_init.hello_rand_);
+      hello_randoms.insert(TlsInitTestPeer::hello_rand(tls_init));
     }
 
     ASSERT_TRUE(hello_randoms.size() > 32u);
@@ -112,7 +111,7 @@ TEST(TlsInitRouteStress, RuntimeRoutePolicyPreservesCountryDerivedFailClosedSema
     auto socket_pair = create_socket_pair().move_as_ok();
     TlsInit tls_init(std::move(socket_pair.client), "www.google.com", "0123456789secret",
                      td::make_unique<NoopCallback>(), {}, 0.0, route_hints);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
 
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);

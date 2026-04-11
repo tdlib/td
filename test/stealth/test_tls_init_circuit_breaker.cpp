@@ -14,11 +14,9 @@
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
-#define private public
-#define protected public
 #include "td/mtproto/TlsInit.h"
-#undef protected
-#undef private
+
+#include "test/stealth/TlsInitTestPeer.h"
 
 #include "test/stealth/FingerprintFixtures.h"
 #include "test/stealth/TlsHelloParsers.h"
@@ -41,6 +39,7 @@ using td::mtproto::test::create_socket_pair;
 using td::mtproto::test::find_extension;
 using td::mtproto::test::make_tls_init_response;
 using td::mtproto::test::parse_tls_client_hello;
+using td::mtproto::test::TlsInitTestPeer;
 using td::mtproto::test::write_all;
 using td::mtproto::TlsInit;
 
@@ -102,11 +101,11 @@ RuntimeProfileCandidate find_distinct_ech_enabled_runtime_candidate(td::Slice ex
 }
 
 td::string flush_client_hello(TlsInit &tls_init, td::SocketFd &peer_fd) {
-  auto bytes_to_read = tls_init.fd_.ready_for_flush_write();
+  auto bytes_to_read = TlsInitTestPeer::fd(tls_init).ready_for_flush_write();
   CHECK(bytes_to_read > 0);
-  tls_init.fd_.get_poll_info().add_flags(td::PollFlags::Write());
-  while (tls_init.fd_.ready_for_flush_write() > 0) {
-    auto flush_status = tls_init.fd_.flush_write();
+  TlsInitTestPeer::fd(tls_init).get_poll_info().add_flags(td::PollFlags::Write());
+  while (TlsInitTestPeer::fd(tls_init).ready_for_flush_write() > 0) {
+    auto flush_status = TlsInitTestPeer::fd(tls_init).flush_write();
     CHECK(flush_status.is_ok());
   }
   return td::mtproto::test::read_exact(peer_fd, bytes_to_read).move_as_ok();
@@ -130,23 +129,23 @@ TlsInit create_tls_init(td::SocketFd socket_fd, td::Slice domain, td::int32 unix
 
 void flush_invalid_response_and_expect_error(TlsInit &tls_init, td::SocketFd &peer_fd) {
   auto response =
-      make_tls_init_response("0123456789secret", tls_init.hello_rand_, kFirstResponsePrefix, kSecondResponsePrefix);
+      make_tls_init_response("0123456789secret", TlsInitTestPeer::hello_rand(tls_init), kFirstResponsePrefix, kSecondResponsePrefix);
   response[11] ^= 0x01;
 
   ASSERT_TRUE(write_all(peer_fd, response).is_ok());
-  tls_init.fd_.get_poll_info().add_flags(td::PollFlags::Read());
-  ASSERT_TRUE(tls_init.fd_.flush_read().is_ok());
-  ASSERT_TRUE(tls_init.wait_hello_response().is_error());
+  TlsInitTestPeer::fd(tls_init).get_poll_info().add_flags(td::PollFlags::Read());
+  ASSERT_TRUE(TlsInitTestPeer::fd(tls_init).flush_read().is_ok());
+  ASSERT_TRUE(TlsInitTestPeer::wait_hello_response(tls_init).is_error());
 }
 
 void flush_valid_response_and_expect_success(TlsInit &tls_init, td::SocketFd &peer_fd) {
   auto response =
-      make_tls_init_response("0123456789secret", tls_init.hello_rand_, kFirstResponsePrefix, kSecondResponsePrefix);
+      make_tls_init_response("0123456789secret", TlsInitTestPeer::hello_rand(tls_init), kFirstResponsePrefix, kSecondResponsePrefix);
 
   ASSERT_TRUE(write_all(peer_fd, response).is_ok());
-  tls_init.fd_.get_poll_info().add_flags(td::PollFlags::Read());
-  ASSERT_TRUE(tls_init.fd_.flush_read().is_ok());
-  ASSERT_TRUE(tls_init.wait_hello_response().is_ok());
+  TlsInitTestPeer::fd(tls_init).get_poll_info().add_flags(td::PollFlags::Read());
+  ASSERT_TRUE(TlsInitTestPeer::fd(tls_init).flush_read().is_ok());
+  ASSERT_TRUE(TlsInitTestPeer::wait_hello_response(tls_init).is_ok());
 }
 
 TEST(TlsInitCircuitBreaker, RepeatedEchFailuresDisableEchForNextConnection) {
@@ -157,7 +156,7 @@ TEST(TlsInitCircuitBreaker, RepeatedEchFailuresDisableEchForNextConnection) {
   for (td::int32 attempt = 0; attempt < 3; attempt++) {
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init = create_tls_init(std::move(socket_pair.client), candidate.domain, candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
 
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
@@ -169,7 +168,7 @@ TEST(TlsInitCircuitBreaker, RepeatedEchFailuresDisableEchForNextConnection) {
 
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client), candidate.domain, candidate.unix_time);
-  tls_init.send_hello();
+  TlsInitTestPeer::send_hello(tls_init);
 
   auto wire = flush_client_hello(tls_init, socket_pair.peer);
   auto parsed = parse_tls_client_hello(wire);
@@ -186,7 +185,7 @@ TEST(TlsInitCircuitBreaker, RuntimeCountersTrackEnabledRouteDisabledCbAndReenabl
   {
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init = create_tls_init(std::move(socket_pair.client), candidate.domain, candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
     ASSERT_TRUE(parsed.is_ok());
@@ -200,7 +199,7 @@ TEST(TlsInitCircuitBreaker, RuntimeCountersTrackEnabledRouteDisabledCbAndReenabl
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init =
         create_tls_init(std::move(socket_pair.client), candidate.domain, candidate.unix_time, unknown_route);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
     ASSERT_TRUE(parsed.is_ok());
@@ -210,7 +209,7 @@ TEST(TlsInitCircuitBreaker, RuntimeCountersTrackEnabledRouteDisabledCbAndReenabl
   for (td::int32 attempt = 0; attempt < 3; attempt++) {
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init = create_tls_init(std::move(socket_pair.client), candidate.domain, candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
     ASSERT_TRUE(parsed.is_ok());
@@ -220,7 +219,7 @@ TEST(TlsInitCircuitBreaker, RuntimeCountersTrackEnabledRouteDisabledCbAndReenabl
   {
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init = create_tls_init(std::move(socket_pair.client), candidate.domain, candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
     ASSERT_TRUE(parsed.is_ok());
@@ -231,7 +230,7 @@ TEST(TlsInitCircuitBreaker, RuntimeCountersTrackEnabledRouteDisabledCbAndReenabl
   {
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init = create_tls_init(std::move(socket_pair.client), candidate.domain, candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
     ASSERT_TRUE(parsed.is_ok());
@@ -256,7 +255,7 @@ TEST(TlsInitCircuitBreaker, FailuresForOneDestinationMustNotDisableEchForDiffere
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init =
         create_tls_init(std::move(socket_pair.client), blocked_candidate.domain, blocked_candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
 
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
@@ -270,7 +269,7 @@ TEST(TlsInitCircuitBreaker, FailuresForOneDestinationMustNotDisableEchForDiffere
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init =
         create_tls_init(std::move(socket_pair.client), blocked_candidate.domain, blocked_candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
 
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
@@ -282,7 +281,7 @@ TEST(TlsInitCircuitBreaker, FailuresForOneDestinationMustNotDisableEchForDiffere
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init =
         create_tls_init(std::move(socket_pair.client), healthy_candidate.domain, healthy_candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
 
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
@@ -300,7 +299,7 @@ TEST(TlsInitCircuitBreaker, FailuresMustNotDisableEchForNextDayBucketOfSameDesti
   for (td::int32 attempt = 0; attempt < 3; attempt++) {
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init = create_tls_init(std::move(socket_pair.client), candidate.domain, candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
 
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
@@ -313,7 +312,7 @@ TEST(TlsInitCircuitBreaker, FailuresMustNotDisableEchForNextDayBucketOfSameDesti
   {
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init = create_tls_init(std::move(socket_pair.client), candidate.domain, candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
 
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
@@ -324,7 +323,7 @@ TEST(TlsInitCircuitBreaker, FailuresMustNotDisableEchForNextDayBucketOfSameDesti
   {
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init = create_tls_init(std::move(socket_pair.client), candidate.domain, next_bucket_unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
 
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
@@ -344,7 +343,7 @@ TEST(TlsInitCircuitBreaker, SuccessForDifferentDestinationMustNotClearBlockedDes
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init =
         create_tls_init(std::move(socket_pair.client), blocked_candidate.domain, blocked_candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
 
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
@@ -358,7 +357,7 @@ TEST(TlsInitCircuitBreaker, SuccessForDifferentDestinationMustNotClearBlockedDes
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init =
         create_tls_init(std::move(socket_pair.client), successful_candidate.domain, successful_candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
 
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);
@@ -372,7 +371,7 @@ TEST(TlsInitCircuitBreaker, SuccessForDifferentDestinationMustNotClearBlockedDes
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init =
         create_tls_init(std::move(socket_pair.client), blocked_candidate.domain, blocked_candidate.unix_time);
-    tls_init.send_hello();
+    TlsInitTestPeer::send_hello(tls_init);
 
     auto wire = flush_client_hello(tls_init, socket_pair.peer);
     auto parsed = parse_tls_client_hello(wire);

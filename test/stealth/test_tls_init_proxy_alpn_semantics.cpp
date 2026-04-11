@@ -14,11 +14,9 @@
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
-#define private public
-#define protected public
 #include "td/mtproto/TlsInit.h"
-#undef protected
-#undef private
+
+#include "test/stealth/TlsInitTestPeer.h"
 
 #include "test/stealth/MockRng.h"
 #include "test/stealth/TlsHelloParsers.h"
@@ -42,6 +40,7 @@ using td::mtproto::test::find_extension;
 using td::mtproto::test::MockRng;
 using td::mtproto::test::parse_tls_client_hello;
 using td::mtproto::test::read_exact;
+using td::mtproto::test::TlsInitTestPeer;
 using td::mtproto::TlsInit;
 
 class NoopCallback final : public td::TransparentProxy::Callback {
@@ -54,11 +53,11 @@ class NoopCallback final : public td::TransparentProxy::Callback {
 };
 
 td::string flush_client_hello(TlsInit &tls_init, td::SocketFd &peer_fd) {
-  auto bytes_to_read = tls_init.fd_.ready_for_flush_write();
+  auto bytes_to_read = TlsInitTestPeer::fd(tls_init).ready_for_flush_write();
   CHECK(bytes_to_read > 0);
-  tls_init.fd_.get_poll_info().add_flags(td::PollFlags::Write());
-  while (tls_init.fd_.ready_for_flush_write() > 0) {
-    auto flush_status = tls_init.fd_.flush_write();
+  TlsInitTestPeer::fd(tls_init).get_poll_info().add_flags(td::PollFlags::Write());
+  while (TlsInitTestPeer::fd(tls_init).ready_for_flush_write() > 0) {
+    auto flush_status = TlsInitTestPeer::fd(tls_init).flush_write();
     CHECK(flush_status.is_ok());
   }
   return read_exact(peer_fd, bytes_to_read).move_as_ok();
@@ -98,7 +97,7 @@ TEST(TlsInitProxyAlpnSemantics, KnownNonRuProxyHelloAdvertisesHttp11Only) {
   auto server_time_difference = static_cast<double>(kUnixTime) - td::Time::now();
   TlsInit tls_init(std::move(socket_pair.client), "www.google.com", "0123456789secret", td::make_unique<NoopCallback>(),
                    {}, server_time_difference, route_hints);
-  tls_init.send_hello();
+  TlsInitTestPeer::send_hello(tls_init);
 
   auto wire = flush_client_hello(tls_init, socket_pair.peer);
   auto parsed = parse_tls_client_hello(wire);
@@ -122,7 +121,7 @@ TEST(TlsInitProxyAlpnSemantics, UnknownRouteKeepsHttp11OnlyAndSuppressesEch) {
   auto server_time_difference = static_cast<double>(kUnixTime) - td::Time::now();
   TlsInit tls_init(std::move(socket_pair.client), "www.google.com", "0123456789secret", td::make_unique<NoopCallback>(),
                    {}, server_time_difference, route_hints);
-  tls_init.send_hello();
+  TlsInitTestPeer::send_hello(tls_init);
 
   auto wire = flush_client_hello(tls_init, socket_pair.peer);
   auto parsed = parse_tls_client_hello(wire);
