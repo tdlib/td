@@ -110,9 +110,22 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
     case TlsExtensionType::DelegatedCredentials:
       return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::scope16_begin(), Op::bytes(encode_u16_list(extension.u16_list)),
               Op::scope16_end(), Op::scope16_end()};
-    case TlsExtensionType::Alpn:
-      return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::scope16_begin(), Op::bytes(encode_str_list(extension.str_list)),
+    case TlsExtensionType::Alpn: {
+      // Proxy path strips `h2` from the ALPN list and advertises
+      // `http/1.1` only. The post-handshake bytes are raw MTProto and
+      // any HTTP/2 framing claim would be a self-evident L7 mismatch
+      // for any DPI box that parses ALPN. Caller sets
+      // `config.force_http11_only_alpn = true` via the proxy builder
+      // entry points; production browser-direct path leaves it at the
+      // default and emits the profile's full ALPN list verbatim.
+      vector<string> alpn = extension.str_list;
+      if (config.force_http11_only_alpn) {
+        alpn.clear();
+        alpn.emplace_back("http/1.1");
+      }
+      return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::scope16_begin(), Op::bytes(encode_str_list(alpn)),
               Op::scope16_end(), Op::scope16_end()};
+    }
     case TlsExtensionType::SupportedVersions:
       ops = {Op::bytes(store_u16(type)), Op::scope16_begin()};
       ops.push_back(Op::bytes(store_u8(to_uint8(extension.u16_list.size() * 2 + (extension.prepend_grease ? 2 : 0)))));

@@ -45,6 +45,19 @@ struct ExecutorConfig {
   // 23-byte body). Production callers leave this at 0 and rely on the
   // target+entropy logic.
   size_t padding_extension_payload_length_override{0};
+
+  // When true, the ALPN extension wire body is rewritten on emit to
+  // advertise ONLY `http/1.1`, suppressing any `h2` entry the profile
+  // would otherwise carry. This is required on proxy paths because the
+  // post-handshake transport sends raw MTProto bytes and cannot honour
+  // an HTTP/2 framing contract — advertising `h2` would create an L7
+  // mismatch that any DPI box capable of parsing TLS-emergency bytes
+  // can fingerprint. The
+  // `AdversarialDpiCorpus1k::ProxyChrome133AdvertisesHttp11OnlyAlpn`
+  // test enforces this for the Chrome 133 proxy path, and the proxy
+  // builder entry points (`build_proxy_tls_client_hello*`) set this
+  // flag.
+  bool force_http11_only_alpn{false};
 };
 
 class ClientHelloExecutor {

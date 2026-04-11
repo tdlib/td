@@ -63,13 +63,18 @@ mtproto::ExecutorConfig make_config(const ProfileSpec &spec, bool enable_ech, IR
 }
 
 string build_tls_hello_impl(string domain, Slice secret, int32 unix_time, BrowserProfile profile_id,
-                           EchMode ech_mode, IRng &rng) {
+                           EchMode ech_mode, IRng &rng, bool proxy_mode) {
   CHECK(!domain.empty());
   CHECK(secret.size() == 16);
 
   auto &spec = profile_spec(profile_id);
   auto enable_ech = ech_mode == EchMode::Rfc9180Outer && spec.allows_ech;
   auto config = make_config(spec, enable_ech, rng);
+  // Proxy paths suppress `h2` from ALPN and advertise `http/1.1` only.
+  // The post-handshake transport carries raw MTProto bytes and cannot
+  // honour HTTP/2 framing semantics, so an `h2` ALPN advertisement
+  // would create a detectable L7 mismatch.
+  config.force_http11_only_alpn = proxy_mode;
   auto &profile = mtproto::get_profile_spec(profile_id);
   auto ops = mtproto::ClientHelloOpMapper::map(profile, config);
   auto result = mtproto::ClientHelloExecutor::execute(ops, domain, secret, unix_time, config, rng);
@@ -138,24 +143,24 @@ string build_default_tls_client_hello_with_options(string domain, Slice secret, 
 
 string build_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
                                          EchMode ech_mode, IRng &rng) {
-  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng);
+  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/false);
 }
 
 string build_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
                                          EchMode ech_mode) {
   SecureRng rng;
-  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng);
+  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/false);
 }
 
 string build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
                                                EchMode ech_mode, IRng &rng) {
-  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng);
+  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/true);
 }
 
 string build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
                                                EchMode ech_mode) {
   SecureRng rng;
-  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng);
+  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/true);
 }
 
 string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,
@@ -179,7 +184,9 @@ string build_runtime_tls_client_hello(string domain, Slice secret, int32 unix_ti
   auto platform = default_runtime_platform_hints();
   auto profile = pick_runtime_profile(domain, unix_time, platform);
   auto ech_mode = get_runtime_ech_decision(domain, unix_time, route_hints).ech_mode;
-  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng);
+  // Runtime path is the production proxy hot path; force ALPN to
+  // `http/1.1` only to match the proxy contract.
+  return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/true);
 #endif
 }
 

@@ -111,27 +111,47 @@ td::string align_payload(size_t size, char fill = 'X') {
   return td::string(aligned_size, fill);
 }
 
-struct WireTestHarness {
+// `WireTestHarness` owns the `ChainBufferReader` that the StealthTransport
+// is initialised against, and the transport stores a raw pointer to that
+// reader internally. The harness is therefore NOT movable / NOT copyable
+// — moving it would invalidate the pointer that `transport->init()`
+// captured into the transport's poll info. Tests construct it in-place
+// via `WireTestHarness h(config, seed);`.
+//
+// The historical form factored construction into a static `create(...)`
+// returning by value, with `input_reader` declared as a stack local
+// inside `create()`. NRVO does NOT save you here: the local goes out of
+// scope at the closing brace of `create()` and the returned harness's
+// `transport` already holds a raw pointer into a freed stack slot. This
+// produced a hard segfault on the very first `transport->write()` of
+// `Test_TlsRecordPaddingIntegration_*` and segfaulted every test that
+// followed it in the `Test_Tls*` filter run.
+class WireTestHarness {
+ public:
   td::unique_ptr<StealthTransportDecorator> transport;
   td::ChainBufferWriter output_writer;
   td::ChainBufferWriter input_writer;
+  td::ChainBufferReader input_reader;
   MockClock *clock_ptr{nullptr};
 
-  static WireTestHarness create(StealthConfig config, td::uint64 seed) {
-    WireTestHarness harness;
+  WireTestHarness(StealthConfig config, td::uint64 seed) {
     auto inner =
         td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret()));
     auto clock = td::make_unique<MockClock>();
-    harness.clock_ptr = clock.get();
+    clock_ptr = clock.get();
     auto result =
         StealthTransportDecorator::create(std::move(inner), config, td::make_unique<MockRng>(seed), std::move(clock));
     ASSERT_TRUE(result.is_ok());
-    harness.transport = result.move_as_ok();
+    transport = result.move_as_ok();
 
-    auto input_reader = harness.input_writer.extract_reader();
-    harness.transport->init(&input_reader, &harness.output_writer);
-    return harness;
+    input_reader = input_writer.extract_reader();
+    transport->init(&input_reader, &output_writer);
   }
+
+  WireTestHarness(const WireTestHarness &) = delete;
+  WireTestHarness &operator=(const WireTestHarness &) = delete;
+  WireTestHarness(WireTestHarness &&) = delete;
+  WireTestHarness &operator=(WireTestHarness &&) = delete;
 
   void write_and_flush(td::Slice payload, TrafficHint hint = TrafficHint::Interactive, bool quick_ack = false) {
     transport->set_traffic_hint(hint);
@@ -154,7 +174,7 @@ TEST(TlsRecordPaddingIntegration, SmallPayloadPaddedToTargetThroughFullStack) {
   // Verify a tiny 4-byte payload "ping" gets padded to 1400 through the full stack.
   auto config = make_fixed_record_size_config(1400);
   ASSERT_TRUE(config.validate().is_ok());
-  auto harness = WireTestHarness::create(config, 7);
+  WireTestHarness harness(config, 7);
 
   // Primer write (triggers first-packet TLS preamble)
   harness.write_and_flush("warm");
@@ -172,7 +192,7 @@ TEST(TlsRecordPaddingIntegration, LargePayloadExceedingTargetNotTruncated) {
   // or attempting negative padding.
   auto config = make_fixed_record_size_config(256);
   ASSERT_TRUE(config.validate().is_ok());
-  auto harness = WireTestHarness::create(config, 33);
+  WireTestHarness harness(config, 33);
 
   harness.write_and_flush("warm");
   auto big_payload = align_payload(2048, 'X');
@@ -192,7 +212,7 @@ TEST(TlsRecordPaddingIntegration, LargePayloadExceedingTargetNotTruncated) {
 TEST(TlsRecordPaddingIntegration, MultipleWritesAllPaddedToTarget) {
   auto config = make_fixed_record_size_config(1200);
   ASSERT_TRUE(config.validate().is_ok());
-  auto harness = WireTestHarness::create(config, 11);
+  WireTestHarness harness(config, 11);
 
   harness.write_and_flush("warm");
   for (int i = 0; i < 10; i++) {
@@ -211,7 +231,7 @@ TEST(TlsRecordPaddingIntegration, QuickAckRecordDoesNotConsumeNextPayloadPadding
   // next ordinary payload record receiving the configured padding target.
   auto config = make_fixed_record_size_config(1400);
   ASSERT_TRUE(config.validate().is_ok());
-  auto harness = WireTestHarness::create(config, 7);
+  WireTestHarness harness(config, 7);
 
   harness.write_and_flush("warm");
   harness.write_and_flush("ack!", TrafficHint::Interactive, true);
@@ -318,7 +338,7 @@ TEST(TlsRecordPaddingIntegration, PhaseTransitionChangesRecordSizes) {
   // DRS phases should produce different record sizes as the connection progresses.
   auto config = make_multi_phase_config();
   ASSERT_TRUE(config.validate().is_ok());
-  auto harness = WireTestHarness::create(config, 99);
+  WireTestHarness harness(config, 99);
 
   // Write primer
   harness.write_and_flush("warm");
@@ -463,7 +483,7 @@ TEST(TlsRecordPaddingIntegration, BulkDataHintUsesLargerRecords) {
   config.drs_policy.idle_reset_ms_max = 1000;
   ASSERT_TRUE(config.validate().is_ok());
 
-  auto harness = WireTestHarness::create(config, 77);
+  WireTestHarness harness(config, 77);
   harness.write_and_flush("warm");  // primer
 
   // Write with BulkData hint — should use steady_state bins (8192)
@@ -498,7 +518,7 @@ TEST(TlsRecordPaddingIntegration, KeepaliveHintGetsMinPayloadCap) {
   config.drs_policy.idle_reset_ms_max = 1000;
   ASSERT_TRUE(config.validate().is_ok());
 
-  auto harness = WireTestHarness::create(config, 7);
+  WireTestHarness harness(config, 7);
   harness.write_and_flush("warm");  // primer
 
   harness.write_and_flush("ping", TrafficHint::Keepalive);

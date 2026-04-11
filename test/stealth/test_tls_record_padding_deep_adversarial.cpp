@@ -87,26 +87,37 @@ td::string align_payload(size_t size, char fill = 'X') {
   return td::string(aligned_size, fill);
 }
 
-struct WireHarness {
+// Same lifetime contract as `WireTestHarness` in
+// `test_tls_record_padding_integration.cpp`: the transport's `init`
+// captures a raw pointer into the harness, so the harness must NOT be
+// movable / copyable. Constructing it via a static `create()` returning
+// by value leaks a dangling pointer to a stack-local `reader` and
+// segfaults on the first write.
+class WireHarness {
+ public:
   td::unique_ptr<StealthTransportDecorator> transport;
   td::ChainBufferWriter output_writer;
   td::ChainBufferWriter input_writer;
+  td::ChainBufferReader input_reader;
   MockClock *clock_ptr{nullptr};
 
-  static WireHarness create(StealthConfig config, td::uint64 seed) {
-    WireHarness h;
+  WireHarness(StealthConfig config, td::uint64 seed) {
     auto inner =
         td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret()));
     auto clock = td::make_unique<MockClock>();
-    h.clock_ptr = clock.get();
+    clock_ptr = clock.get();
     auto r =
         StealthTransportDecorator::create(std::move(inner), config, td::make_unique<MockRng>(seed), std::move(clock));
     CHECK(r.is_ok());
-    h.transport = r.move_as_ok();
-    auto reader = h.input_writer.extract_reader();
-    h.transport->init(&reader, &h.output_writer);
-    return h;
+    transport = r.move_as_ok();
+    input_reader = input_writer.extract_reader();
+    transport->init(&input_reader, &output_writer);
   }
+
+  WireHarness(const WireHarness &) = delete;
+  WireHarness &operator=(const WireHarness &) = delete;
+  WireHarness(WireHarness &&) = delete;
+  WireHarness &operator=(WireHarness &&) = delete;
 
   void write_and_flush(td::Slice payload, TrafficHint hint = TrafficHint::Interactive) {
     transport->set_traffic_hint(hint);
@@ -133,7 +144,7 @@ TEST(TlsRecordPaddingDeepAdversarial, RecordSizeHistogram_NoBucketQuantizationPe
   // With padding active, no peaks should appear at these values.
   auto config = make_config_with_min_cap(1400);
   ASSERT_TRUE(config.validate().is_ok());
-  auto h = WireHarness::create(config, 42);
+  WireHarness h(config, 42);
 
   h.write_and_flush("warm");
 
@@ -173,7 +184,7 @@ TEST(TlsRecordPaddingDeepAdversarial, AllRecordsAboveSmallRecordThreshold) {
   // With stealth padding active, less than 5% of records should be < 200 bytes.
   auto config = make_config_with_min_cap(1400);
   ASSERT_TRUE(config.validate().is_ok());
-  auto h = WireHarness::create(config, 7);
+  WireHarness h(config, 7);
 
   h.write_and_flush("warm");
 
@@ -204,7 +215,7 @@ TEST(TlsRecordPaddingDeepAdversarial, KeepalivePingSize_NeverDetectably88Bytes) 
   // Every single keepalive must be padded above the threshold.
   auto config = make_config_with_min_cap(900);
   ASSERT_TRUE(config.validate().is_ok());
-  auto h = WireHarness::create(config, 33);
+  WireHarness h(config, 33);
 
   h.write_and_flush("warm");
 
@@ -233,7 +244,7 @@ TEST(TlsRecordPaddingDeepAdversarial, AuthHandshakeSize_PaddedAboveThreshold) {
   // Auth handshake records must also be padded above the small-record threshold.
   auto config = make_config_with_min_cap(900);
   ASSERT_TRUE(config.validate().is_ok());
-  auto h = WireHarness::create(config, 55);
+  WireHarness h(config, 55);
 
   h.write_and_flush("warm");
 
@@ -259,7 +270,7 @@ TEST(TlsRecordPaddingDeepAdversarial, MixedTrafficHints_NoSizeClusteringByHint) 
   // purely by size. Both hint types should produce the SAME target size.
   auto config = make_config_with_min_cap(1400);
   ASSERT_TRUE(config.validate().is_ok());
-  auto h = WireHarness::create(config, 7);
+  WireHarness h(config, 7);
 
   h.write_and_flush("warm");
 
@@ -373,7 +384,7 @@ TEST(TlsRecordPaddingDeepAdversarial, TwoConnections_DifferentSeeds_DifferentSiz
 
   std::vector<std::vector<size_t>> all_lengths;
   for (td::uint64 seed : {42ULL, 999ULL, 7777ULL}) {
-    auto h = WireHarness::create(config, seed);
+    WireHarness h(config, seed);
     h.write_and_flush("warm");
     for (int i = 0; i < 50; i++) {
       h.write_and_flush("data", TrafficHint::Interactive);
@@ -411,7 +422,7 @@ TEST(TlsRecordPaddingDeepAdversarial, ConsecutiveSameSizePayloads_ProduceDiffere
   auto config = StealthConfig::default_config(rng_cfg);
   ASSERT_TRUE(config.validate().is_ok());
 
-  auto h = WireHarness::create(config, 7);
+  WireHarness h(config, 7);
   h.write_and_flush("warm");
 
   for (int i = 0; i < 100; i++) {
@@ -434,7 +445,7 @@ TEST(TlsRecordPaddingDeepAdversarial, RecordSizeDistribution_NoMonotonicSequence
   auto config = StealthConfig::default_config(rng_cfg);
   ASSERT_TRUE(config.validate().is_ok());
 
-  auto h = WireHarness::create(config, 7);
+  WireHarness h(config, 7);
   h.write_and_flush("warm");
 
   for (int i = 0; i < 50; i++) {
@@ -471,7 +482,7 @@ TEST(TlsRecordPaddingDeepAdversarial, BulkTransferRecordSizes_ShouldBeLarge) {
   auto config = StealthConfig::default_config(rng_cfg);
   ASSERT_TRUE(config.validate().is_ok());
 
-  auto h = WireHarness::create(config, 42);
+  WireHarness h(config, 42);
   h.write_and_flush("warm");
 
   for (int i = 0; i < 100; i++) {
@@ -649,7 +660,7 @@ TEST(TlsRecordPaddingDeepAdversarial, ExactBoundaryTargets) {
   for (td::int32 target : {256, 16384}) {
     auto config = make_config_with_min_cap(target);
     ASSERT_TRUE(config.validate().is_ok());
-    auto h = WireHarness::create(config, 77);
+    WireHarness h(config, 77);
 
     h.write_and_flush("warm");
     h.write_and_flush("test");
