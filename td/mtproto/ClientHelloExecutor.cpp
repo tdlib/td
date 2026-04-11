@@ -126,11 +126,13 @@ class LengthCalculator {
         }
         break;
       }
-      case Op::Type::PaddingToTarget:
-        if (size_ < static_cast<size_t>(op.value)) {
-          size_ = static_cast<size_t>(op.value + 4);
+      case Op::Type::PaddingToTarget: {
+        auto effective_target = static_cast<size_t>(op.value) + static_cast<size_t>(context.config().padding_target_entropy);
+        if (size_ < effective_target) {
+          size_ = effective_target + 4;
         }
         break;
+      }
       default:
         UNREACHABLE();
     }
@@ -239,7 +241,8 @@ class ByteWriter {
         break;
       }
       case Op::Type::PaddingToTarget: {
-        auto need = op.value - static_cast<int>(offset());
+        auto effective_target = op.value + context.config().padding_target_entropy;
+        auto need = effective_target - static_cast<int>(offset());
         if (need > 0) {
           append(Op::bytes("\x00\x15"), context);
           append(Op::scope16_begin(), context);

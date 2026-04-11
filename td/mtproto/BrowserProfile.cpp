@@ -90,19 +90,19 @@ BrowserExtension make_key_share_extension_with_grease_first(uint8 grease_index,
 }
 
 vector<Op> make_chromium_desktop_layout() {
-  // The historical `padding_to_target(513)` was tuned to land just above
-  // the legacy Telegram 517-byte ClientHello fingerprint. After REG-5
-  // (X25519 trailer added to the PQ key share) and REG-7 (GREASE entry
-  // added to key_share), the unpadded Chromium wire grew past the 513
-  // threshold and the padding extension stopped being emitted at all,
-  // turning "Chrome ClientHello with no padding extension" into a new
-  // unique fingerprint. The target is bumped to 1800 — a value chosen
-  // because it (a) is comfortably above the current unpadded wire size
-  // (~1525 bytes for PQ-bearing Chrome 133) so the padding extension is
-  // always emitted, (b) matches the order of magnitude of real Chrome
-  // captures (record_length ~1779-1794, total ~1784-1799), and (c) is
-  // far enough from the legacy 517 fingerprint to avoid the regression
-  // guarded by `test_tls_total_length_distribution_adversarial.cpp`.
+  // The `padding_to_target` base is paired with `padding_target_entropy`
+  // sampled per build (range 0..255) so the executor's effective
+  // padding target is 1600..1855 bytes. This range is chosen because
+  // the natural unpadded Chrome 133 wire is ~1344 bytes (ECH disabled)
+  // or ~1525 bytes (ECH enabled), so padding always extends the wire
+  // by at least 75 bytes and up to 511 bytes — close to real Chrome
+  // captures (record_length 1779-1794) and far from the legacy 517
+  // fingerprint guarded by `test_tls_total_length_distribution_*`.
+  //
+  // Without the entropy bias the wire would collapse to a single fixed
+  // length per ECH mode, and TlsRoutePolicy's
+  // `*ClientHelloLengthMustNotCollapseToSingleFingerprint` tests would
+  // catch the regression.
   return {
       Op::bytes("\x16\x03\x01"),
       Op::scope16_begin(),
@@ -120,7 +120,7 @@ vector<Op> make_chromium_desktop_layout() {
       Op::extensions_permutation_from_profile(),
       Op::grease(3),
       Op::bytes("\x00\x01\x00"),
-      Op::padding_to_target(1800),
+      Op::padding_to_target(1600),
       Op::scope16_end(),
       Op::scope16_end(),
       Op::scope16_end(),
@@ -140,7 +140,7 @@ vector<Op> make_chromium_darwin_layout() {
       Op::extensions_from_profile(),
       Op::grease(3),
       Op::bytes("\x00\x01\x00"),
-      Op::padding_to_target(513),
+      Op::padding_to_target(1600),
   };
 }
 

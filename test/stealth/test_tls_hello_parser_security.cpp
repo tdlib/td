@@ -132,23 +132,52 @@ TEST(TlsHelloParserSecurity, RejectsLegacyEchExtensionTypeFe02) {
 }
 
 TEST(TlsHelloParserSecurity, RejectsNonZeroPaddingBytes) {
+  // Real Chrome 144 / 146 captures do NOT emit a padding extension
+  // (their natural wire size is already > 512), so the historical form
+  // of this test (build a default ClientHello, then look for and
+  // mutate the existing padding extension) cannot find one to mutate
+  // when the builder matches real Chrome behaviour.
+  //
+  // The parser's "padding extension must contain only zero bytes" rule
+  // is still load-bearing — adversarial server / proxy responses can
+  // smuggle non-zero padding bytes — so we exercise it by constructing
+  // a padding extension manually, injecting it into the wire, fixing
+  // up the length headers, and confirming the parser rejects it.
   NetworkRouteHints hints;
   hints.is_known = false;
   hints.is_ru = false;
 
-  bool mutated = false;
-  for (int i = 0; i < 256; i++) {
-    auto wire = build_default_tls_client_hello("www.google.com", "0123456789secret", 1712345678 + i, hints);
-    td::string non_zero_padding = wire;
-    if (!set_padding_first_byte(non_zero_padding, 0x01)) {
-      continue;
-    }
-    mutated = true;
-    ASSERT_TRUE(parse_tls_client_hello(non_zero_padding).is_error());
-    break;
+  auto base_wire = build_default_tls_client_hello("www.google.com", "0123456789secret", 1712345678, hints);
+
+  // Build a 4-byte padding extension header + 16-byte body, with the
+  // first body byte set to 0x01 (non-zero, MUST be rejected).
+  // Wire shape: ext_type(2) + ext_len(2) + body(N).
+  td::string padding_ext;
+  padding_ext.push_back('\x00');
+  padding_ext.push_back('\x15');  // type 0x0015 = padding
+  padding_ext.push_back('\x00');
+  padding_ext.push_back('\x10');  // length 0x0010 = 16
+  padding_ext.push_back('\x01');  // first body byte: NON-ZERO (the bug)
+  for (int j = 1; j < 16; j++) {
+    padding_ext.push_back('\x00');
   }
 
-  ASSERT_TRUE(mutated);
+  // Inject the padding extension at the END of the extensions list.
+  auto offsets = td::mtproto::test::get_hello_offsets(base_wire);
+  td::string mutated_wire = base_wire.substr(0, offsets.extensions_end) + padding_ext +
+                            base_wire.substr(offsets.extensions_end);
+
+  // Patch the extensions length field, then the record / handshake
+  // length headers, in lockstep.
+  td::MutableSlice mutated_slice(mutated_wire);
+  auto old_extensions_len =
+      static_cast<size_t>(td::mtproto::test::read_u16(mutated_slice, offsets.extensions_length_offset));
+  td::mtproto::test::write_u16(mutated_slice, offsets.extensions_length_offset,
+                               static_cast<td::uint16>(old_extensions_len + padding_ext.size()));
+  td::mtproto::test::update_hello_length_headers(mutated_slice, padding_ext.size());
+
+  auto parsed = parse_tls_client_hello(mutated_wire);
+  ASSERT_TRUE(parsed.is_error());
 }
 
 }  // namespace

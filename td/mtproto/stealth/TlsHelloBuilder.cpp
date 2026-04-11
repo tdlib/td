@@ -54,6 +54,11 @@ mtproto::ExecutorConfig make_config(const ProfileSpec &spec, bool enable_ech, IR
   config.ech_payload_length = 144 + static_cast<int>(rng.bounded(4u) * 32u);
   config.ech_enc_key_length = 32;
   config.alps_type = spec.alps_type;
+  // Per-build padding target entropy: 0..255 bytes added to the static
+  // `padding_to_target` op so that ECH-disabled wires still vary in
+  // length across builds, instead of collapsing into a single fixed
+  // fingerprint that DPI can hash.
+  config.padding_target_entropy = static_cast<int>(rng.bounded(256u));
   return config;
 }
 
@@ -85,6 +90,7 @@ string build_default_hello_impl(string domain, Slice secret, int32 unix_time,
   config.ech_payload_length = 144 + static_cast<int>(rng.bounded(4u) * 32u);
   config.ech_enc_key_length = 32;
   config.alps_type = 0x44CD;
+  config.padding_target_entropy = static_cast<int>(rng.bounded(256u));
 
   auto ops = mtproto::ClientHelloOpMapper::map(profile, config);
   auto result = mtproto::ClientHelloExecutor::execute(ops, domain, secret, unix_time, config);

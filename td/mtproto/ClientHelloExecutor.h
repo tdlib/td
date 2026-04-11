@@ -19,6 +19,12 @@ struct ExecutorConfig {
   int ech_payload_length{144};
   int ech_enc_key_length{32};
   uint16 alps_type{0};
+  // Per-build entropy added to every `padding_to_target` op so the
+  // total wire length varies across builds even when ECH is disabled.
+  // Real Chrome shows length variability in this range from internal
+  // session-state changes; without this, the unpadded ECH-disabled
+  // wire collapses to a single fixed length and becomes a fingerprint.
+  int padding_target_entropy{0};
 };
 
 class ClientHelloExecutor {
