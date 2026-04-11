@@ -57,6 +57,7 @@ struct GreaseSettings {
 };
 
 enum class KeyShareKind : uint16 {
+  Grease = 0,
   X25519 = 29,
   Secp256r1 = 23,
   X25519MlKem768 = 4588,
@@ -64,6 +65,11 @@ enum class KeyShareKind : uint16 {
 
 struct KeyShareEntrySpec {
   KeyShareKind kind{KeyShareKind::X25519};
+  // For `Grease` entries, this is the index into the executor's GREASE
+  // value pool used to source the (group, group) byte pair on the wire.
+  // Real Chrome / Safari / iOS captures use a single 1-byte body for
+  // the GREASE entry, regardless of the GREASE codepoint chosen.
+  uint8 grease_index{0};
 };
 
 struct BrowserExtension {

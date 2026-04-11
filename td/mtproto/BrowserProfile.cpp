@@ -66,12 +66,43 @@ BrowserExtension make_key_share_extension(std::initializer_list<KeyShareKind> en
   extension.type = TlsExtensionType::KeyShare;
   extension.is_dynamic = true;
   for (auto entry : entries) {
-    extension.key_share_entries.push_back(KeyShareEntrySpec{entry});
+    extension.key_share_entries.push_back(KeyShareEntrySpec{entry, 0});
+  }
+  return extension;
+}
+
+// Build a key_share extension whose first entry is a GREASE 1-byte
+// placeholder followed by `entries`. Real Chrome / Safari / iOS captures
+// place GREASE first and the actual classical / hybrid public keys after.
+BrowserExtension make_key_share_extension_with_grease_first(uint8 grease_index,
+                                                            std::initializer_list<KeyShareKind> entries) {
+  BrowserExtension extension;
+  extension.type = TlsExtensionType::KeyShare;
+  extension.is_dynamic = true;
+  KeyShareEntrySpec grease_entry;
+  grease_entry.kind = KeyShareKind::Grease;
+  grease_entry.grease_index = grease_index;
+  extension.key_share_entries.push_back(grease_entry);
+  for (auto entry : entries) {
+    extension.key_share_entries.push_back(KeyShareEntrySpec{entry, 0});
   }
   return extension;
 }
 
 vector<Op> make_chromium_desktop_layout() {
+  // The historical `padding_to_target(513)` was tuned to land just above
+  // the legacy Telegram 517-byte ClientHello fingerprint. After REG-5
+  // (X25519 trailer added to the PQ key share) and REG-7 (GREASE entry
+  // added to key_share), the unpadded Chromium wire grew past the 513
+  // threshold and the padding extension stopped being emitted at all,
+  // turning "Chrome ClientHello with no padding extension" into a new
+  // unique fingerprint. The target is bumped to 1800 — a value chosen
+  // because it (a) is comfortably above the current unpadded wire size
+  // (~1525 bytes for PQ-bearing Chrome 133) so the padding extension is
+  // always emitted, (b) matches the order of magnitude of real Chrome
+  // captures (record_length ~1779-1794, total ~1784-1799), and (c) is
+  // far enough from the legacy 517 fingerprint to avoid the regression
+  // guarded by `test_tls_total_length_distribution_adversarial.cpp`.
   return {
       Op::bytes("\x16\x03\x01"),
       Op::scope16_begin(),
@@ -89,7 +120,7 @@ vector<Op> make_chromium_desktop_layout() {
       Op::extensions_permutation_from_profile(),
       Op::grease(3),
       Op::bytes("\x00\x01\x00"),
-      Op::padding_to_target(513),
+      Op::padding_to_target(1800),
       Op::scope16_end(),
       Op::scope16_end(),
       Op::scope16_end(),
@@ -114,6 +145,12 @@ vector<Op> make_chromium_darwin_layout() {
 }
 
 vector<Op> make_safari_layout() {
+  // Real Safari 26.x captures (test/analysis/fixtures/clienthello/ios/
+  // safari26_*.json) emit a GREASE extension as the FIRST entry of the
+  // extensions list AND another GREASE extension as the LAST entry,
+  // wrapping the real extensions in between. Both wrapper GREASE
+  // entries carry an empty (0-length) body for Safari, distinct from
+  // Chrome which uses a 1-byte trailing GREASE body.
   return {
       Op::bytes("\x16\x03\x01"),
       Op::scope16_begin(),
@@ -129,6 +166,8 @@ vector<Op> make_safari_layout() {
       Op::grease(2),
       Op::bytes("\x00\x00"),
       Op::extensions_from_profile(),
+      Op::grease(3),
+      Op::bytes("\x00\x00"),
       Op::scope16_end(),
       Op::scope16_end(),
       Op::scope16_end(),
@@ -136,6 +175,8 @@ vector<Op> make_safari_layout() {
 }
 
 vector<Op> make_ios_layout() {
+  // Real Chrome 147 on iOS 26.4 captures (Apple TLS family) match the
+  // Safari layout: GREASE-as-first and GREASE-as-last extension.
   return {
       Op::bytes("\x16\x03\x01"),
       Op::scope16_begin(),
@@ -151,6 +192,8 @@ vector<Op> make_ios_layout() {
       Op::grease(2),
       Op::bytes("\x00\x00"),
       Op::extensions_from_profile(),
+      Op::grease(3),
+      Op::bytes("\x00\x00"),
       Op::scope16_end(),
       Op::scope16_end(),
       Op::scope16_end(),
@@ -214,7 +257,7 @@ BrowserProfileSpec make_chrome133_impl() {
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
       make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771}, true),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
-      make_key_share_extension({KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
+      make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
       make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
       make_extension(TlsExtensionType::SignedCertificateTimestamp),
       make_extension(TlsExtensionType::ExtendedMasterSecret),
@@ -244,7 +287,7 @@ BrowserProfileSpec make_chrome131_impl() {
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
       make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771}, true),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
-      make_key_share_extension({KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
+      make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
       make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
       make_extension(TlsExtensionType::SignedCertificateTimestamp),
       make_extension(TlsExtensionType::ExtendedMasterSecret),
@@ -274,7 +317,7 @@ BrowserProfileSpec make_chrome120_impl() {
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
       make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771}, true),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
-      make_key_share_extension({KeyShareKind::X25519}),
+      make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519}),
       make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
       make_extension(TlsExtensionType::SignedCertificateTimestamp),
       make_extension(TlsExtensionType::ExtendedMasterSecret),
@@ -388,7 +431,14 @@ BrowserProfileSpec make_safari_impl() {
   profile.name = "safari26_3";
   profile.tls_version = TlsVersion::Tls12;
   profile.cipher_suites = {4866, 4867, 4865, 49196, 49195, 52393, 49200, 49199, 52392, 49162, 49161, 49172, 49171, 157, 156, 53, 47, 49160, 49170, 10};
-  profile.supported_groups = {29, 23, 24, 25};
+  // Apple TLS family on iOS 26.x adopted X25519MLKEM768. Real captures
+  // (test/analysis/fixtures/clienthello/ios/safari26_3_1_ios26_3_1_*.json,
+  //  safari26_4_*.json, chrome147_0_7727_47_ios26_4_*.json) advertise
+  // {0x11EC, 0x001D, 0x0017, 0x0018, 0x0019} in supported_groups and a
+  // hybrid (0x11EC, 1216 bytes) + classical (0x001D, 32 bytes) pair in
+  // key_share. Dropping the PQ entry produces a wire image that does not
+  // match any real Apple TLS client and is a unique fingerprint.
+  profile.supported_groups = {4588, 29, 23, 24, 25};
   profile.ec_point_formats = {0};
   profile.alpn = {"h2", "http/1.1"};
   profile.grease = {true, 7};
@@ -396,14 +446,14 @@ BrowserProfileSpec make_safari_impl() {
       make_extension(TlsExtensionType::ServerName, true),
       make_extension(TlsExtensionType::ExtendedMasterSecret),
       make_raw_extension(TlsExtensionType::RenegotiationInfo, "\x00"),
-      make_u16_extension(TlsExtensionType::SupportedGroups, {29, 23, 24, 25}, true),
+      make_u16_extension(TlsExtensionType::SupportedGroups, {4588, 29, 23, 24, 25}, true),
       make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
       make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
       make_u16_extension(TlsExtensionType::SignatureAlgorithms,
                          {1027, 1283, 1025, 1281, 513, 515, 1026, 1282, 1537}),
       make_extension(TlsExtensionType::SignedCertificateTimestamp),
-      make_key_share_extension({KeyShareKind::X25519}),
+      make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
       make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771, 770, 769}, true),
       make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x01"),
@@ -417,7 +467,9 @@ BrowserProfileSpec make_ios14_impl() {
   profile.name = "ios14";
   profile.tls_version = TlsVersion::Tls12;
   profile.cipher_suites = {4866, 4867, 4865, 49196, 49195, 52393, 49200, 49199, 52392, 49162, 49161, 49172, 49171, 157, 156, 53, 47, 49160, 49170, 10};
-  profile.supported_groups = {29, 23, 24, 25};
+  // See `make_safari_impl` for the rationale: Apple TLS family on iOS
+  // 26.x has X25519MLKEM768 in both supported_groups and key_share.
+  profile.supported_groups = {4588, 29, 23, 24, 25};
   profile.ec_point_formats = {0};
   profile.alpn = {"h2", "http/1.1"};
   profile.grease = {true, 7};
@@ -425,14 +477,14 @@ BrowserProfileSpec make_ios14_impl() {
       make_extension(TlsExtensionType::ServerName, true),
       make_extension(TlsExtensionType::ExtendedMasterSecret),
       make_raw_extension(TlsExtensionType::RenegotiationInfo, "\x00"),
-      make_u16_extension(TlsExtensionType::SupportedGroups, {29, 23, 24, 25}, true),
+      make_u16_extension(TlsExtensionType::SupportedGroups, {4588, 29, 23, 24, 25}, true),
       make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
       make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
       make_u16_extension(TlsExtensionType::SignatureAlgorithms,
                          {1027, 1283, 1025, 1281, 513, 515, 1026, 1282, 1537}),
       make_extension(TlsExtensionType::SignedCertificateTimestamp),
-      make_key_share_extension({KeyShareKind::X25519}),
+      make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
       make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771, 770, 769}, true),
       make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x01"),

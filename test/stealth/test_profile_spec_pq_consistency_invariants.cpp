@@ -149,19 +149,31 @@ TEST(ProfileSpecPqConsistency, BrowserSupportedGroupsAndKeyShareAgreeOnPqEverywh
   }
 }
 
-// I4 — Apple TLS family (Safari26_3, IOS14) MUST NOT have PQ anywhere.
-//      This is the wire-level invariant that defines membership in the
-//      Apple TLS family per real captures.
-TEST(ProfileSpecPqConsistency, AppleTlsFamilyHasNoPqInLegacyOrBrowserSpec) {
+// I4 — Apple TLS family (Safari26_3, IOS14) DOES have X25519MLKEM768.
+//      Real Safari 26.x and Chrome on iOS 26.x captures advertise the PQ
+//      hybrid in both supported_groups and key_share. This is the
+//      wire-level invariant that anchors Apple TLS profiles to actual
+//      ground truth captures under
+//      `test/analysis/fixtures/clienthello/ios/`. Dropping the PQ entry
+//      produces a wire image that no real Apple TLS client emits and
+//      becomes a unique fingerprint at the post-handshake DPI level.
+//
+//      The legacy "Apple TLS has no PQ" assumption was true for iOS
+//      versions before 26.x, but iOS 26.x adopted PQ for the system TLS
+//      stack, and Chrome on iOS 26.4 (which uses the system stack) also
+//      emits PQ.
+TEST(ProfileSpecPqConsistency, AppleTlsFamilyHasPqInBothLegacyAndBrowserSpec) {
   for (auto profile : {BrowserProfile::Safari26_3, BrowserProfile::IOS14}) {
     const auto &legacy_spec = profile_spec(profile);
     const auto &browser_spec = get_profile_spec(profile);
 
-    ASSERT_FALSE(legacy_spec.has_pq);
-    ASSERT_EQ(static_cast<td::uint16>(0), legacy_spec.pq_group_id);
-    ASSERT_FALSE(browser_supported_groups_contain_pq(browser_spec));
+    ASSERT_TRUE(legacy_spec.has_pq);
+    ASSERT_EQ(static_cast<td::uint16>(kPqHybridGroupCanonical), legacy_spec.pq_group_id);
+    ASSERT_TRUE(browser_supported_groups_contain_pq(browser_spec));
+    ASSERT_TRUE(browser_key_share_contains_pq(browser_spec));
+    // The legacy Kyber draft codepoint (0x6399) MUST NOT appear — Apple
+    // TLS uses the final IANA X25519MLKEM768 codepoint (0x11EC = 4588).
     ASSERT_FALSE(browser_supported_groups_contain_legacy_kyber(browser_spec));
-    ASSERT_FALSE(browser_key_share_contains_pq(browser_spec));
   }
 }
 
@@ -190,13 +202,12 @@ TEST(ProfileSpecPqConsistency, Chrome120HasNoPqOfAnyKind) {
   ASSERT_FALSE(browser_key_share_contains_pq(browser_spec));
 }
 
-// Positive — Chrome133 / Chrome131 / Firefox148 / Firefox149_MacOS26_3 MUST
-// have PQ in supported_groups, key_share, AND ProfileSpec.has_pq, all in
-// agreement. This confirms the cross-table check actually rejects the bug
-// in both directions.
+// Positive — every PQ-bearing profile must agree across both tables.
+// Includes Chrome 133/131, both Firefox profiles, AND the Apple TLS
+// family (Safari 26.3 and IOS14) per the iOS 26.x captures.
 TEST(ProfileSpecPqConsistency, ModernPqProfilesHavePqInBothTables) {
   for (auto profile : {BrowserProfile::Chrome133, BrowserProfile::Chrome131, BrowserProfile::Firefox148,
-                       BrowserProfile::Firefox149_MacOS26_3}) {
+                       BrowserProfile::Firefox149_MacOS26_3, BrowserProfile::Safari26_3, BrowserProfile::IOS14}) {
     const auto &legacy_spec = profile_spec(profile);
     const auto &browser_spec = get_profile_spec(profile);
     ASSERT_TRUE(legacy_spec.has_pq);

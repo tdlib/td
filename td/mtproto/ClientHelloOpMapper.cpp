@@ -115,6 +115,9 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
       ops = {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::scope16_begin()};
       for (auto &entry : extension.key_share_entries) {
         switch (entry.kind) {
+          case KeyShareKind::Grease:
+            ops.push_back(Op::grease_key_share_entry(entry.grease_index));
+            break;
           case KeyShareKind::X25519MlKem768:
             ops.push_back(Op::x25519_ml_kem_768_key_share_entry());
             break;

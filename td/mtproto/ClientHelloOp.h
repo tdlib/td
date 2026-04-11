@@ -22,6 +22,7 @@ struct ClientHelloOp {
     X25519KeyShareEntry,
     Secp256r1KeyShareEntry,
     X25519MlKem768KeyShareEntry,
+    GreaseKeyShareEntry,
     X25519PublicKey,
     Scope16Begin,
     Scope16End,
@@ -89,6 +90,26 @@ struct ClientHelloOp {
   static ClientHelloOp x25519_ml_kem_768_key_share_entry() {
     ClientHelloOp op;
     op.type = Type::X25519MlKem768KeyShareEntry;
+    return op;
+  }
+
+  // Emits a GREASE key_share entry. Wire format:
+  //   group(2 bytes)  - GREASE pair (e.g. 0x4A4A, 0xDADA, 0x8A8A, ...)
+  //                    sourced from the executor GREASE value pool slot
+  //                    `grease_index_value`
+  //   length(2 bytes) - 0x0001
+  //   body(1 byte)    - 0x00
+  //
+  // Real Chrome / Safari / iOS captures all carry exactly this 5-byte
+  // shape as the FIRST entry in the key_share extension. Any profile
+  // that imitates a Chromium-family or Apple-TLS browser MUST include
+  // it; without it, the wire image is detectable by both strict
+  // BoringSSL parsers and DPI middleboxes that fingerprint key_share
+  // entry counts.
+  static ClientHelloOp grease_key_share_entry(uint8 grease_index_value) {
+    ClientHelloOp op;
+    op.type = Type::GreaseKeyShareEntry;
+    op.value = grease_index_value;
     return op;
   }
 

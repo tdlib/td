@@ -101,6 +101,10 @@ class LengthCalculator {
         // strict TLS 1.3 parsers reject as length-mismatched.
         size_ += 2 + 2 + 1184 + 32;
         break;
+      case Op::Type::GreaseKeyShareEntry:
+        // group(2 GREASE bytes) + length(2 = 0x0001) + body(1 = 0x00)
+        size_ += 5;
+        break;
       case Op::Type::X25519PublicKey:
         size_ += 32;
         break;
@@ -194,6 +198,21 @@ class ByteWriter {
         store_mlkem_key_share();
         store_x25519_key_share();
         break;
+      case Op::Type::GreaseKeyShareEntry: {
+        // GREASE key_share entry: 2 bytes group (paired GREASE byte) +
+        // 2 bytes length (always 0x0001) + 1 byte body (always 0x00).
+        // Real Chrome / Safari / iOS captures all carry exactly this
+        // shape as the first key_share entry. Tests:
+        // `test_grease_key_share_entry_invariants.cpp`.
+        auto grease_byte = context.get_grease(static_cast<size_t>(op.value));
+        remaining_[0] = grease_byte;
+        remaining_[1] = grease_byte;
+        remaining_[2] = '\x00';
+        remaining_[3] = '\x01';
+        remaining_[4] = '\x00';
+        remaining_.remove_prefix(5);
+        break;
+      }
       case Op::Type::X25519PublicKey:
         store_x25519_key_share();
         break;

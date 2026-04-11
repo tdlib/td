@@ -102,6 +102,12 @@ const std::vector<BrowserProfile> &profiles_with_pq_hybrid_key_share() {
       BrowserProfile::Chrome131,
       BrowserProfile::Firefox148,
       BrowserProfile::Firefox149_MacOS26_3,
+      // Apple TLS family on iOS 26.x adopted X25519MLKEM768. Real
+      // captures under test/analysis/fixtures/clienthello/ios/ confirm
+      // both Safari 26.3/26.4 and Chrome 147 on iOS 26.4 emit the
+      // hybrid key share entry.
+      BrowserProfile::Safari26_3,
+      BrowserProfile::IOS14,
   };
   return kProfiles;
 }
@@ -214,12 +220,12 @@ TEST(PqHybridKeyShareFormat, ParsedHybridLengthEqualsZero04c0Wire) {
   }
 }
 
-// Defensive: profiles without PQ (Chrome 120, Apple TLS family) MUST NOT
-// have a PQ hybrid entry at all. The wire format invariant is the absence
-// of an entry, not just the absence of the group from supported_groups.
+// Defensive: profiles without PQ (Chrome 120 — predates Chrome PQ adoption,
+// Android OkHttp advisory) MUST NOT have a PQ hybrid entry at all. The
+// wire format invariant is the absence of an entry, not just the absence
+// of the group from supported_groups.
 TEST(PqHybridKeyShareFormat, NonPqProfilesDoNotEmitHybridKeyShareEntry) {
-  for (auto profile : {BrowserProfile::Chrome120, BrowserProfile::Safari26_3, BrowserProfile::IOS14,
-                       BrowserProfile::Android11_OkHttp_Advisory}) {
+  for (auto profile : {BrowserProfile::Chrome120, BrowserProfile::Android11_OkHttp_Advisory}) {
     MockRng rng(0xCABA);
     auto wire =
         build_tls_client_hello_for_profile(kHost.str(), kSecret, kFixedUnixTime, profile, EchMode::Disabled, rng);

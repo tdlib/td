@@ -12,6 +12,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
+#include <memory>
 #include <unordered_set>
 
 namespace td {
@@ -30,6 +31,26 @@ struct ParsedKeyShareEntry final {
 };
 
 struct ParsedClientHello final {
+  // Owns the wire bytes that the `Slice` members below point into. The
+  // bytes are heap-allocated through a `unique_ptr<string>` so that the
+  // address of the buffer is stable across moves: when a
+  // `ParsedClientHello` is returned by value (NRVO or explicit move),
+  // the `unique_ptr` ownership transfers to the destination but the
+  // buffer pointed at by `*owned_wire` does not relocate, so every
+  // `Slice` inside this struct remains valid for the lifetime of the
+  // moved-to `ParsedClientHello`.
+  //
+  // Without this discipline, helper functions of the form
+  //   ParsedClientHello parse_helper() {
+  //     auto wire = build();             // local string
+  //     return parse_tls_client_hello(wire).move_as_ok();
+  //   }
+  // leak dangling slices into the caller — Linux glibc happens to
+  // expose the still-readable bytes by accident, while MSVC Debug fills
+  // the freed heap with the 0xDD paint pattern and loudly fails any
+  // assertion that touches the slices.
+  std::unique_ptr<string> owned_wire;
+
   uint8 record_type{0};
   uint16 record_legacy_version{0};
   uint16 record_length{0};
@@ -232,7 +253,8 @@ inline Result<vector<uint16>> parse_key_share_groups(Slice data, vector<ParsedKe
 
 inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
   ParsedClientHello res;
-  TlsReader reader(wire);
+  res.owned_wire = std::unique_ptr<string>(new string(wire.str()));
+  TlsReader reader(*res.owned_wire);
 
   TRY_RESULT(record_type, reader.read_u8());
   res.record_type = record_type;
