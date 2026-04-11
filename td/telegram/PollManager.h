@@ -96,10 +96,9 @@ class PollManager final : public Actor {
   void delete_poll_option(PollId poll_id, MessageFullId message_full_id, const string &option_id,
                           Promise<Unit> &&promise);
 
-  void set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<int32> &&option_ids,
-                       Promise<Unit> &&promise);
+  void set_poll_answer(MessageFullId message_full_id, vector<int32> &&option_ids, Promise<Unit> &&promise);
 
-  void get_poll_voters(PollId poll_id, MessageFullId message_full_id, int32 option_id, int32 offset, int32 limit,
+  void get_poll_voters(MessageFullId message_full_id, int32 option_id, int32 offset, int32 limit,
                        Promise<td_api::object_ptr<td_api::pollVoters>> &&promise);
 
   void stop_poll(PollId poll_id, MessageFullId message_full_id, unique_ptr<ReplyMarkup> &&reply_markup,

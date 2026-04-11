@@ -228,13 +228,6 @@ void add_message_content_poll_option(Td *td, const MessageContent *content, Mess
 void delete_message_content_poll_option(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                         const string &option_id, Promise<Unit> &&promise);
 
-void set_message_content_poll_answer(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                     vector<int32> &&option_ids, Promise<Unit> &&promise);
-
-void get_message_content_poll_voters(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                     int32 option_id, int32 offset, int32 limit,
-                                     Promise<td_api::object_ptr<td_api::pollVoters>> &&promise);
-
 void stop_message_content_poll(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                unique_ptr<ReplyMarkup> &&reply_markup, Promise<Unit> &&promise);
 

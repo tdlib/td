@@ -35992,50 +35992,6 @@ void MessagesManager::delete_poll_option(MessageFullId message_full_id, const st
   delete_message_content_poll_option(td_, m->content.get(), message_full_id, option_id, std::move(promise));
 }
 
-void MessagesManager::set_poll_answer(MessageFullId message_full_id, vector<int32> &&option_ids,
-                                      Promise<Unit> &&promise) {
-  auto m = get_message_force(message_full_id, "set_poll_answer");
-  if (m == nullptr) {
-    return promise.set_error(400, "Message not found");
-  }
-  if (!td_->dialog_manager_->have_input_peer(message_full_id.get_dialog_id(), true, AccessRights::Read)) {
-    return promise.set_error(400, "Can't access the chat");
-  }
-  if (m->content->get_type() != MessageContentType::Poll) {
-    return promise.set_error(400, "Message is not a poll");
-  }
-  if (m->message_id.is_scheduled()) {
-    return promise.set_error(400, "Can't answer polls from scheduled messages");
-  }
-  if (!m->message_id.is_server()) {
-    return promise.set_error(400, "Poll can't be answered");
-  }
-
-  set_message_content_poll_answer(td_, m->content.get(), message_full_id, std::move(option_ids), std::move(promise));
-}
-
-void MessagesManager::get_poll_voters(MessageFullId message_full_id, int32 option_id, int32 offset, int32 limit,
-                                      Promise<td_api::object_ptr<td_api::pollVoters>> &&promise) {
-  auto m = get_message_force(message_full_id, "get_poll_voters");
-  if (m == nullptr) {
-    return promise.set_error(400, "Message not found");
-  }
-  if (!td_->dialog_manager_->have_input_peer(message_full_id.get_dialog_id(), true, AccessRights::Read)) {
-    return promise.set_error(400, "Can't access the chat");
-  }
-  if (m->content->get_type() != MessageContentType::Poll) {
-    return promise.set_error(400, "Message is not a poll");
-  }
-  if (m->message_id.is_scheduled()) {
-    return promise.set_error(400, "Can't get poll results from scheduled messages");
-  }
-  if (!m->message_id.is_server()) {
-    return promise.set_error(400, "Poll results can't be received");
-  }
-
-  get_message_content_poll_voters(td_, m->content.get(), message_full_id, option_id, offset, limit, std::move(promise));
-}
-
 void MessagesManager::stop_poll(MessageFullId message_full_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                 Promise<Unit> &&promise) {
   auto m = get_message_force(message_full_id, "stop_poll");

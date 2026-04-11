@@ -6969,21 +6969,6 @@ void delete_message_content_poll_option(Td *td, const MessageContent *content, M
                                         std::move(promise));
 }
 
-void set_message_content_poll_answer(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                     vector<int32> &&option_ids, Promise<Unit> &&promise) {
-  CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->set_poll_answer(static_cast<const MessagePoll *>(content)->poll_id, message_full_id,
-                                     std::move(option_ids), std::move(promise));
-}
-
-void get_message_content_poll_voters(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                     int32 option_id, int32 offset, int32 limit,
-                                     Promise<td_api::object_ptr<td_api::pollVoters>> &&promise) {
-  CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->get_poll_voters(static_cast<const MessagePoll *>(content)->poll_id, message_full_id, option_id,
-                                     offset, limit, std::move(promise));
-}
-
 void stop_message_content_poll(Td *td, const MessageContent *content, MessageFullId message_full_id,
                                unique_ptr<ReplyMarkup> &&reply_markup, Promise<Unit> &&promise) {
   CHECK(content->get_type() == MessageContentType::Poll);

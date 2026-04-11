@@ -1084,8 +1084,8 @@ void PollManager::delete_poll_option(PollId poll_id, MessageFullId message_full_
   td_->create_handler<DeletePollAnswerQuery>(std::move(promise))->send(message_full_id, option_id);
 }
 
-void PollManager::set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<int32> &&option_ids,
-                                  Promise<Unit> &&promise) {
+void PollManager::set_poll_answer(MessageFullId message_full_id, vector<int32> &&option_ids, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, poll_id, td_->messages_manager_->get_message_poll_id(message_full_id, false));
   td::unique(option_ids);
 
   if (is_local_poll_id(poll_id)) {
@@ -1386,8 +1386,9 @@ bool PollManager::can_get_poll_voters(PollId poll_id, const Poll *poll) const {
   return (is_voted && !poll->hide_results_until_close_) || poll->is_closed_ || poll->is_creator_;
 }
 
-void PollManager::get_poll_voters(PollId poll_id, MessageFullId message_full_id, int32 option_id, int32 offset,
-                                  int32 limit, Promise<td_api::object_ptr<td_api::pollVoters>> &&promise) {
+void PollManager::get_poll_voters(MessageFullId message_full_id, int32 option_id, int32 offset, int32 limit,
+                                  Promise<td_api::object_ptr<td_api::pollVoters>> &&promise) {
+  TRY_RESULT_PROMISE(promise, poll_id, td_->messages_manager_->get_message_poll_id(message_full_id, false));
   if (offset < 0) {
     return promise.set_error(400, "Invalid offset specified");
   }
