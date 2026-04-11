@@ -7808,8 +7808,8 @@ void Requests::on_request(uint64 id, const td_api::getPollVoters &request) {
 
 void Requests::on_request(uint64 id, td_api::stopPoll &request) {
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->stop_poll({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                    std::move(request.reply_markup_), std::move(promise));
+  td_->poll_manager_->stop_poll({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                std::move(request.reply_markup_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::addChecklistTasks &request) {

@@ -101,7 +101,7 @@ class PollManager final : public Actor {
   void get_poll_voters(MessageFullId message_full_id, int32 option_id, int32 offset, int32 limit,
                        Promise<td_api::object_ptr<td_api::pollVoters>> &&promise);
 
-  void stop_poll(PollId poll_id, MessageFullId message_full_id, unique_ptr<ReplyMarkup> &&reply_markup,
+  void stop_poll(MessageFullId message_full_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                  Promise<Unit> &&promise);
 
   void stop_local_poll(PollId poll_id);

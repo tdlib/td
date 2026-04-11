@@ -973,9 +973,6 @@ class MessagesManager final : public Actor {
 
   void delete_poll_option(MessageFullId message_full_id, const string &option_id, Promise<Unit> &&promise);
 
-  void stop_poll(MessageFullId message_full_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                 Promise<Unit> &&promise);
-
   int64 get_message_random_id(MessageFullId message_full_id);
 
   bool need_poll_group_call_message(MessageFullId message_full_id);
@@ -992,6 +989,8 @@ class MessagesManager final : public Actor {
     int64 star_count_ = 0;
   };
   Result<InvoiceMessageInfo> get_invoice_message_info(MessageFullId message_full_id);
+
+  bool has_message_sender_user_id(MessageFullId message_full_id) const;
 
   Result<PollId> get_message_poll_id(MessageFullId message_full_id, bool to_stop);
 

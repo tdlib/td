@@ -1548,8 +1548,15 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
   }
 }
 
-void PollManager::stop_poll(PollId poll_id, MessageFullId message_full_id, unique_ptr<ReplyMarkup> &&reply_markup,
+void PollManager::stop_poll(MessageFullId message_full_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                             Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, poll_id, td_->messages_manager_->get_message_poll_id(message_full_id, true));
+  if (get_poll_is_closed(poll_id)) {
+    return promise.set_error(400, "Poll has already been closed");
+  }
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(),
+                                             td_->messages_manager_->has_message_sender_user_id(message_full_id)));
   if (is_local_poll_id(poll_id)) {
     LOG(ERROR) << "Receive local " << poll_id << " from " << message_full_id << " in stop_poll";
     stop_local_poll(poll_id);
@@ -1569,7 +1576,7 @@ void PollManager::stop_poll(PollId poll_id, MessageFullId message_full_id, uniqu
   save_poll(poll, poll_id);
   notify_on_poll_update(poll_id);
 
-  do_stop_poll(poll_id, message_full_id, std::move(reply_markup), 0, std::move(promise));
+  do_stop_poll(poll_id, message_full_id, std::move(new_reply_markup), 0, std::move(promise));
 }
 
 class PollManager::StopPollLogEvent {

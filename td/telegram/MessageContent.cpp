@@ -6969,13 +6969,6 @@ void delete_message_content_poll_option(Td *td, const MessageContent *content, M
                                         std::move(promise));
 }
 
-void stop_message_content_poll(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                               unique_ptr<ReplyMarkup> &&reply_markup, Promise<Unit> &&promise) {
-  CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->stop_poll(static_cast<const MessagePoll *>(content)->poll_id, message_full_id,
-                               std::move(reply_markup), std::move(promise));
-}
-
 static void merge_location_access_hash(const Location &first, const Location &second) {
   if (second.get_access_hash() != 0) {
     first.set_access_hash(second.get_access_hash());

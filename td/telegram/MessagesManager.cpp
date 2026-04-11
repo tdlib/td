@@ -23480,7 +23480,12 @@ bool MessagesManager::is_discussion_message(DialogId dialog_id, const Message *m
   return true;
 }
 
+bool MessagesManager::has_message_sender_user_id(MessageFullId message_full_id) const {
+  return has_message_sender_user_id(message_full_id.get_dialog_id(), get_message(message_full_id));
+}
+
 bool MessagesManager::has_message_sender_user_id(DialogId dialog_id, const Message *m) const {
+  CHECK(m != nullptr);
   if (!m->sender_user_id.is_valid()) {
     return false;
   }
@@ -35990,38 +35995,6 @@ void MessagesManager::delete_poll_option(MessageFullId message_full_id, const st
                                          Promise<Unit> &&promise) {
   auto m = get_message_force(message_full_id, "delete_poll_option");
   delete_message_content_poll_option(td_, m->content.get(), message_full_id, option_id, std::move(promise));
-}
-
-void MessagesManager::stop_poll(MessageFullId message_full_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                Promise<Unit> &&promise) {
-  auto m = get_message_force(message_full_id, "stop_poll");
-  if (m == nullptr) {
-    return promise.set_error(400, "Message not found");
-  }
-  if (!td_->dialog_manager_->have_input_peer(message_full_id.get_dialog_id(), true, AccessRights::Read)) {
-    return promise.set_error(400, "Can't access the chat");
-  }
-  if (m->content->get_type() != MessageContentType::Poll) {
-    return promise.set_error(400, "Message is not a poll");
-  }
-  if (get_message_content_poll_is_closed(td_, m->content.get())) {
-    return promise.set_error(400, "Poll has already been closed");
-  }
-  if (!can_edit_message(message_full_id.get_dialog_id(), m, true)) {
-    return promise.set_error(400, "Poll can't be stopped");
-  }
-  if (m->message_id.is_scheduled()) {
-    return promise.set_error(400, "Can't stop polls from scheduled messages");
-  }
-  if (!m->message_id.is_server()) {
-    return promise.set_error(400, "Poll can't be stopped");
-  }
-
-  TRY_RESULT_PROMISE(promise, new_reply_markup,
-                     get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(),
-                                             has_message_sender_user_id(message_full_id.get_dialog_id(), m)));
-
-  stop_message_content_poll(td_, m->content.get(), message_full_id, std::move(new_reply_markup), std::move(promise));
 }
 
 bool MessagesManager::need_poll_group_call_message(MessageFullId message_full_id) {
