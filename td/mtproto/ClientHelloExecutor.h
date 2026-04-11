@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/mtproto/ClientHelloOp.h"
+#include "td/mtproto/stealth/Interfaces.h"
 
 #include "td/utils/Status.h"
 
@@ -29,8 +30,17 @@ struct ExecutorConfig {
 
 class ClientHelloExecutor {
  public:
+  // The `rng` parameter MUST drive every byte of randomness consumed
+  // during ClientHello generation: GREASE pool initialization, ECH and
+  // padding random bodies, X25519 / ML-KEM rejection sampling, and the
+  // `Permutation` shuffle. Production callers pass a `SecureRng` that
+  // wraps the global crypto PRNG; tests pass a deterministic `MockRng`
+  // so that wire-image equality assertions are reproducible across
+  // builds. Without an injected `IRng`, the executor would silently
+  // fall back to the global PRNG and the determinism of any seeded
+  // test would collapse.
   static Result<string> execute(const vector<ClientHelloOp> &ops, Slice domain, Slice secret, int32 unix_time,
-                                const ExecutorConfig &config);
+                                const ExecutorConfig &config, stealth::IRng &rng);
 };
 
 }  // namespace mtproto

@@ -26,8 +26,8 @@ namespace {
 
 using Op = ClientHelloOp;
 
-void init_grease_values(MutableSlice res) {
-  Random::secure_bytes(res);
+void init_grease_values(MutableSlice res, stealth::IRng &rng) {
+  rng.fill_secure_bytes(res);
   for (auto &c : res) {
     c = static_cast<char>((c & 0xF0) + 0x0A);
   }
@@ -38,13 +38,33 @@ void init_grease_values(MutableSlice res) {
   }
 }
 
+// Deterministic Fisher-Yates shuffle driven by `IRng`. Required because
+// `td::Random::shuffle` uses a global Mersenne Twister seeded from
+// /dev/urandom and is NOT reproducible from a test seed. Without this
+// helper, any wire-equality test that depends on a permuted extension
+// order would fail intermittently or always.
+template <typename T>
+void rng_shuffle(vector<T> &items, stealth::IRng &rng) {
+  if (items.size() <= 1) {
+    return;
+  }
+  for (size_t i = items.size() - 1; i > 0; i--) {
+    auto j = static_cast<size_t>(rng.bounded(static_cast<uint32>(i + 1)));
+    if (j != i) {
+      using std::swap;
+      swap(items[i], items[j]);
+    }
+  }
+}
+
 class ExecutionContext {
  public:
-  ExecutionContext(const ExecutorConfig &config, Slice domain)
+  ExecutionContext(const ExecutorConfig &config, Slice domain, stealth::IRng &rng)
       : grease_values_(config.grease_value_count, '\0')
       , domain_(domain.str())
-      , config_(config) {
-    init_grease_values(MutableSlice(grease_values_));
+      , config_(config)
+      , rng_(rng) {
+    init_grease_values(MutableSlice(grease_values_), rng_);
   }
 
   char get_grease(size_t index) const {
@@ -64,10 +84,15 @@ class ExecutionContext {
     return config_;
   }
 
+  stealth::IRng &rng() const {
+    return rng_;
+  }
+
  private:
   string grease_values_;
   string domain_;
   const ExecutorConfig &config_;
+  stealth::IRng &rng_;
 };
 
 class LengthCalculator {
@@ -118,7 +143,7 @@ class LengthCalculator {
         break;
       case Op::Type::Permutation: {
         auto parts = op.permutation_parts;
-        Random::shuffle(parts);
+        rng_shuffle(parts, context.rng());
         for (const auto &part : parts) {
           for (const auto &sub_op : part) {
             append(sub_op, context);
@@ -127,6 +152,14 @@ class LengthCalculator {
         break;
       }
       case Op::Type::PaddingToTarget: {
+        // Padding only fires when ECH is disabled — ECH payload length
+        // already provides per-build wire-size variability (144..240),
+        // and emitting both ECH AND padding produces a wire-image that
+        // no real Chrome client emits (verified against
+        // chrome144/chrome146 captures, neither has 0x0015).
+        if (context.config().has_ech) {
+          break;
+        }
         auto effective_target = static_cast<size_t>(op.value) + static_cast<size_t>(context.config().padding_target_entropy);
         if (size_ < effective_target) {
           size_ = effective_target + 4;
@@ -162,7 +195,7 @@ class ByteWriter {
         remaining_.remove_prefix(op.data.size());
         break;
       case Op::Type::RandomBytes:
-        Random::secure_bytes(remaining_.substr(0, op.length));
+        context.rng().fill_secure_bytes(remaining_.substr(0, op.length));
         remaining_.remove_prefix(op.length);
         break;
       case Op::Type::ZeroBytes:
@@ -184,7 +217,7 @@ class ByteWriter {
       }
       case Op::Type::X25519KeyShareEntry:
         append(Op::bytes("\x00\x1d\x00\x20"), context);
-        store_x25519_key_share();
+        store_x25519_key_share(context.rng());
         break;
       case Op::Type::Secp256r1KeyShareEntry:
         append(Op::bytes("\x00\x17\x00\x41"), context);
@@ -197,8 +230,8 @@ class ByteWriter {
         // `test/stealth/test_pq_hybrid_key_share_format_invariants.cpp`
         // for the regression guard.
         append(Op::bytes("\x11\xec\x04\xc0"), context);
-        store_mlkem_key_share();
-        store_x25519_key_share();
+        store_mlkem_key_share(context.rng());
+        store_x25519_key_share(context.rng());
         break;
       case Op::Type::GreaseKeyShareEntry: {
         // GREASE key_share entry: 2 bytes group (paired GREASE byte) +
@@ -216,7 +249,7 @@ class ByteWriter {
         break;
       }
       case Op::Type::X25519PublicKey:
-        store_x25519_key_share();
+        store_x25519_key_share(context.rng());
         break;
       case Op::Type::Scope16Begin:
         scope_offsets_.push_back(offset());
@@ -232,7 +265,7 @@ class ByteWriter {
       }
       case Op::Type::Permutation: {
         auto parts = op.permutation_parts;
-        Random::shuffle(parts);
+        rng_shuffle(parts, context.rng());
         for (const auto &part : parts) {
           for (const auto &sub_op : part) {
             append(sub_op, context);
@@ -241,6 +274,11 @@ class ByteWriter {
         break;
       }
       case Op::Type::PaddingToTarget: {
+        // Padding only fires when ECH is disabled — see the matching
+        // gate in `LengthCalculator::PaddingToTarget` for the rationale.
+        if (context.config().has_ech) {
+          break;
+        }
         auto effective_target = op.value + context.config().padding_target_entropy;
         auto need = effective_target - static_cast<int>(offset());
         if (need > 0) {
@@ -310,12 +348,12 @@ class ByteWriter {
     return r.to_decimal() == "1";
   }
 
-  void store_x25519_key_share() {
+  void store_x25519_key_share(stealth::IRng &rng) {
     BigNum mod = BigNum::from_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed").move_as_ok();
     BigNumContext ctx;
     auto key = remaining_.substr(0, 32);
     while (true) {
-      Random::secure_bytes(key);
+      rng.fill_secure_bytes(key);
       key[31] = static_cast<char>(key[31] & 127);
       BigNum x = BigNum::from_binary(key);
       BigNum y = get_y2(x, mod, ctx);
@@ -330,16 +368,16 @@ class ByteWriter {
     remaining_.remove_prefix(32);
   }
 
-  void store_mlkem_key_share() {
+  void store_mlkem_key_share(stealth::IRng &rng) {
     for (size_t i = 0; i < 384; i++) {
-      auto a = Random::secure_uint32() % 3329;
-      auto b = Random::secure_uint32() % 3329;
+      auto a = rng.secure_uint32() % 3329;
+      auto b = rng.secure_uint32() % 3329;
       remaining_[0] = static_cast<char>(a & 255);
       remaining_[1] = static_cast<char>((a >> 8) + ((b & 15) << 4));
       remaining_[2] = static_cast<char>(b >> 4);
       remaining_.remove_prefix(3);
     }
-    Random::secure_bytes(remaining_.substr(0, 32));
+    rng.fill_secure_bytes(remaining_.substr(0, 32));
     remaining_.remove_prefix(32);
   }
 
@@ -371,10 +409,10 @@ class ByteWriter {
 }  // namespace
 
 Result<string> ClientHelloExecutor::execute(const vector<ClientHelloOp> &ops, Slice domain, Slice secret, int32 unix_time,
-                                            const ExecutorConfig &config) {
+                                            const ExecutorConfig &config, stealth::IRng &rng) {
   CHECK(secret.size() == 16);
   CHECK(!domain.empty());
-  ExecutionContext context(config, domain);
+  ExecutionContext context(config, domain, rng);
   LengthCalculator calc;
   for (auto &op : ops) {
     calc.append(op, context);

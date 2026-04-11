@@ -72,7 +72,7 @@ string build_tls_hello_impl(string domain, Slice secret, int32 unix_time, Browse
   auto config = make_config(spec, enable_ech, rng);
   auto &profile = mtproto::get_profile_spec(profile_id);
   auto ops = mtproto::ClientHelloOpMapper::map(profile, config);
-  auto result = mtproto::ClientHelloExecutor::execute(ops, domain, secret, unix_time, config);
+  auto result = mtproto::ClientHelloExecutor::execute(ops, domain, secret, unix_time, config, rng);
   CHECK(result.is_ok());
   return result.move_as_ok();
 }
@@ -93,7 +93,7 @@ string build_default_hello_impl(string domain, Slice secret, int32 unix_time,
   config.padding_target_entropy = static_cast<int>(rng.bounded(256u));
 
   auto ops = mtproto::ClientHelloOpMapper::map(profile, config);
-  auto result = mtproto::ClientHelloExecutor::execute(ops, domain, secret, unix_time, config);
+  auto result = mtproto::ClientHelloExecutor::execute(ops, domain, secret, unix_time, config, rng);
   CHECK(result.is_ok());
   return result.move_as_ok();
 }
@@ -118,7 +118,7 @@ string build_default_tls_client_hello_with_options(string domain, Slice secret, 
   config.alps_type = options.alps_extension_type;
 
   auto ops = mtproto::ClientHelloOpMapper::map(profile, config);
-  auto result = mtproto::ClientHelloExecutor::execute(ops, domain, secret, unix_time, config);
+  auto result = mtproto::ClientHelloExecutor::execute(ops, domain, secret, unix_time, config, rng);
   CHECK(result.is_ok());
   return result.move_as_ok();
 }

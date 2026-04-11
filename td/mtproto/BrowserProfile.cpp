@@ -264,6 +264,7 @@ BrowserProfileSpec make_chrome133_impl() {
       make_extension(TlsExtensionType::SessionTicket),
       make_raw_extension(TlsExtensionType::RenegotiationInfo, "\x00"),
       make_raw_extension(TlsExtensionType::ApplicationSettings, "\x00\x03\x02\x68\x32"),
+      make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x02"),
       make_extension(TlsExtensionType::EncryptedClientHello, true),
   };
   profile.layout_template = make_chromium_desktop_layout();
@@ -294,6 +295,7 @@ BrowserProfileSpec make_chrome131_impl() {
       make_extension(TlsExtensionType::SessionTicket),
       make_raw_extension(TlsExtensionType::RenegotiationInfo, "\x00"),
       make_raw_extension(TlsExtensionType::ApplicationSettings, "\x00\x03\x02\x68\x32"),
+      make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x02"),
       make_extension(TlsExtensionType::EncryptedClientHello, true),
   };
   profile.layout_template = make_chromium_desktop_layout();
@@ -324,6 +326,7 @@ BrowserProfileSpec make_chrome120_impl() {
       make_extension(TlsExtensionType::SessionTicket),
       make_raw_extension(TlsExtensionType::RenegotiationInfo, "\x00"),
       make_raw_extension(TlsExtensionType::ApplicationSettings, "\x00\x03\x02\x68\x32"),
+      make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x02"),
       make_extension(TlsExtensionType::EncryptedClientHello, true),
   };
   profile.layout_template = make_chromium_desktop_layout();
