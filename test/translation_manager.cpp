@@ -49,12 +49,21 @@ TEST(TranslationManager, SanitizeAiComposeStylesStressPreservesOrderingAcrossSpa
     input.push_back(i % 11 == 0 ? td::string() : PSTRING() << "Label " << i);
   }
 
+  td::vector<td::string> expected;
+  expected.reserve(300);
+  for (int64 i = 0; i < 100; i++) {
+    if (i % 7 != 0 && i % 11 != 0) {
+      expected.push_back(PSTRING() << "style_" << i);
+      expected.push_back(PSTRING() << i);
+      expected.push_back(PSTRING() << "Label " << i);
+    }
+  }
+
   auto styles = TranslationManager::sanitize_ai_compose_styles(std::move(input), "stress");
 
-  for (size_t i = 0; i < styles.size(); i += 3) {
-    ASSERT_TRUE(!styles[i].empty());
-    ASSERT_TRUE(!styles[i + 2].empty());
-    ASSERT_EQ(PSTRING() << td::to_integer<int64>(styles[i + 1]), styles[i + 1]);
+  ASSERT_EQ(expected.size(), styles.size());
+  for (size_t i = 0; i < styles.size(); i++) {
+    ASSERT_EQ(expected[i], styles[i]);
   }
   ASSERT_TRUE(styles.size() < 300u);
   ASSERT_TRUE(styles.size() > 0u);
