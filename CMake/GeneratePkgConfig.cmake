@@ -9,7 +9,7 @@ function(get_relative_link OUTPUT PATH)
   if (IS_ABSOLUTE ${PATH})
     get_filename_component(DIRECTORY_NAME "${PATH}" DIRECTORY)
     get_filename_component(FULL_NAME "${PATH}" NAME)
-    string(REGEX REPLACE "^lib(.+)\\.[^.]+$" "\\1" LIB_NAME "${FULL_NAME}")
+    string(REGEX REPLACE "^lib([^.]+).*$" "\\1" LIB_NAME "${FULL_NAME}")
     # If the regex didn't match (no lib prefix), fall back to name without extension
     if ("${LIB_NAME}" STREQUAL "${FULL_NAME}")
       set(LIB_NAME "${NAME}")
