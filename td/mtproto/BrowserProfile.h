@@ -44,6 +44,7 @@ enum class TlsExtensionType : uint16 {
   SessionTicket = 35,
   SupportedVersions = 43,
   PskKeyExchangeModes = 45,
+  PreSharedKey = 41,
   KeyShare = 51,
   ApplicationSettings = 17613,
   EncryptedClientHello = 65037,

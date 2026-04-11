@@ -73,6 +73,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_alps_extension_wire_type_invariants.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_ping_proxy_lifetime.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ech_encapsulated_key_validity_invariants.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_firefox_macos_psk_extension_invariants.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_grease_key_share_entry_invariants.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_pq_hybrid_key_share_format_invariants.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_profile_spec_pq_consistency_invariants.cpp

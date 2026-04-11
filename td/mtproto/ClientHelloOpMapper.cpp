@@ -151,6 +151,29 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
       ops.push_back(Op::scope16_end());
       ops.push_back(Op::scope16_end());
       return ops;
+    case TlsExtensionType::PreSharedKey: {
+      // TLS 1.3 OfferedPsks structure as observed in real macOS Firefox 149
+      // captures (test/analysis/fixtures/clienthello/macos/
+      // firefox149_macos26_3.clienthello.json):
+      //   2  identities_len = 0x006F
+      //   2    identity_len  = 0x0069
+      //   105  identity      = random bytes (executor RNG)
+      //   4    obfuscated_ticket_age = random bytes
+      //   2  binders_len = 0x0021
+      //   1    binder_len = 0x20
+      //   32   binder      = random bytes
+      //
+      // Total body = 148 bytes; total extension = type(2) + body_len(2) + 148.
+      // Tests: `test/stealth/test_firefox_macos_psk_extension_invariants.cpp`.
+      return {Op::bytes(store_u16(type)),
+              Op::scope16_begin(),
+              Op::bytes("\x00\x6f\x00\x69"),
+              Op::random_bytes(105),
+              Op::random_bytes(4),
+              Op::bytes("\x00\x21\x20"),
+              Op::random_bytes(32),
+              Op::scope16_end()};
+    }
     case TlsExtensionType::EncryptedClientHello:
       if (config.has_ech) {
         // The ECH HPKE encapsulated key field MUST be a valid X25519

@@ -461,13 +461,23 @@ BrowserProfileSpec make_firefox149_macos_impl() {
   profile.ec_point_formats = {0};
   profile.alpn = {"h2", "http/1.1"};
   profile.grease = {false, 0};
+  // Real Firefox 149 on macOS 26.3 captures (test/analysis/fixtures/
+  // clienthello/macos/firefox149_macos26_3.clienthello.json) differ from
+  // Linux Firefox 149 in two ways:
+  //   1. NO `0x0023` (session_ticket) extension — macOS Firefox dropped
+  //      it on the iOS 26.x system TLS adoption.
+  //   2. A trailing `0x0029` PreSharedKey extension AFTER the ECH
+  //      extension, with body length 148 bytes (TLS 1.3 OfferedPsks
+  //      structure: 2 + 111 identities + 2 + 33 binders).
+  // The extension order below is byte-for-byte the order observed in the
+  // real capture. Tests:
+  // `test/stealth/test_firefox_macos_psk_extension_invariants.cpp`.
   profile.extensions = {
       make_extension(TlsExtensionType::ServerName, true),
       make_extension(TlsExtensionType::ExtendedMasterSecret),
       make_raw_extension(TlsExtensionType::RenegotiationInfo, "\x00"),
       make_u16_extension(TlsExtensionType::SupportedGroups, {4588, 29, 23, 24, 25, 256, 257}),
       make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
-      make_extension(TlsExtensionType::SessionTicket),
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
       make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
       make_u16_extension(TlsExtensionType::DelegatedCredentials, {1027, 1283, 1539, 515}),
@@ -480,6 +490,15 @@ BrowserProfileSpec make_firefox149_macos_impl() {
       make_custom_extension(28, "\x01\x00"),
       make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x02"),
       make_extension(TlsExtensionType::EncryptedClientHello, true),
+      // PSK extension MUST be the LAST entry per real macOS Firefox 149
+      // captures. The body is a TLS 1.3 OfferedPsks structure with
+      // RNG-driven identity and binder bodies (the byte-level wire shape
+      // is fixed but the opaque random spans must vary across builds so
+      // the PSK ext does not become a static fingerprint by itself).
+      // Emitted via the dedicated `Op::Type::FirefoxMacOsPskExtension`
+      // executor op rather than `make_raw_extension` because the latter
+      // cannot inject runtime randomness.
+      make_extension(TlsExtensionType::PreSharedKey),
   };
   profile.layout_template = make_firefox_ech_layout();
   return profile;
