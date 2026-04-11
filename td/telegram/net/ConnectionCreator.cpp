@@ -381,13 +381,34 @@ ActorId<GetHostByNameActor> ConnectionCreator::get_dns_resolver() {
 void ConnectionCreator::ping_proxy(td_api::object_ptr<td_api::proxy> input_proxy, Promise<double> promise) {
   CHECK(!close_flag_);
   Proxy active_proxy = active_proxy_id_ == 0 ? Proxy() : proxies_[active_proxy_id_];
-  Proxy requested_proxy;
-  Proxy *requested_proxy_ptr = nullptr;
+
+  // Resolve the effective proxy in a single linear flow so that the storage
+  // backing the optional `requested_proxy` outlives every reference to it.
+  //
+  // The previous form of this block declared `Proxy requested_proxy;` at
+  // function scope, then used `TRY_RESULT_PROMISE(promise, requested_proxy,
+  // Proxy::create_proxy(input_proxy.get()))` inside an `if (input_proxy)`
+  // block. The macro expands to a fresh `auto requested_proxy = ...`
+  // declaration, which silently SHADOWS the outer variable. The inner shadow
+  // lives only until the closing `}` of the `if`, so a `requested_proxy_ptr =
+  // &requested_proxy;` line right above that brace captured the address of
+  // the inner shadow, and the subsequent
+  // `resolve_effective_ping_proxy(active_proxy, requested_proxy_ptr)` call
+  // outside the `if` dereferenced a dangling stack pointer.
+  //
+  // PVS-Studio V506 and the MSVC C4456 shadowing warning both flagged the
+  // pattern. The fix lifts the optional proxy into its own owning slot
+  // (`std::unique_ptr<Proxy>`) created and consumed in a single statement
+  // sequence, with no shadowing and no out-of-scope address-of.
+  std::unique_ptr<Proxy> requested_proxy;
   if (input_proxy != nullptr) {
-    TRY_RESULT_PROMISE(promise, requested_proxy, Proxy::create_proxy(input_proxy.get()));
-    requested_proxy_ptr = &requested_proxy;
+    auto r_proxy = Proxy::create_proxy(input_proxy.get());
+    if (r_proxy.is_error()) {
+      return promise.set_error(r_proxy.move_as_error());
+    }
+    requested_proxy = std::make_unique<Proxy>(r_proxy.move_as_ok());
   }
-  auto proxy = resolve_effective_ping_proxy(active_proxy, requested_proxy_ptr);
+  auto proxy = resolve_effective_ping_proxy(active_proxy, requested_proxy.get());
 
   if (!proxy.use_proxy()) {
     auto main_dc_id = G()->net_query_dispatcher().get_main_dc_id();

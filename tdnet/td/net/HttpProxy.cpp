@@ -47,7 +47,14 @@ Status HttpProxy::wait_connect_response() {
       !is_digit(begin[11])) {
     char buf[1024];
     size_t len = min(sizeof(buf), it.size());
-    it.advance(len, MutableSlice{buf, sizeof(buf)});
+    // Pass `MutableSlice{buf, len}` (the number of bytes that will actually be
+    // filled) instead of `MutableSlice{buf, sizeof(buf)}`. PVS-Studio V614
+    // correctly flags the latter form as "uninitialized buffer used" because
+    // declaring a sink larger than the data being copied leaves the rest of
+    // `buf` in an undefined state. The downstream `Slice(buf, len)` only
+    // reads the populated prefix, but matching `len` here makes the intent
+    // explicit and lets the static analyser see the contract.
+    it.advance(len, MutableSlice{buf, len});
     VLOG(proxy) << "Failed to connect: " << format::escaped(begin) << format::escaped(Slice(buf, len));
     return Status::Error(PSLICE() << "Failed to connect to " << ip_address_.get_ip_host() << ':'
                                   << ip_address_.get_port());

@@ -864,8 +864,14 @@ MessageId SessionConnection::send_query(BufferSlice buffer, bool gzip_flag, Mess
   }
   to_send_.push_back(MtprotoQuery{message_id, seq_no, std::move(buffer), gzip_flag, std::move(invoke_after_message_ids),
                                   use_quick_ack});
+  // Read the moved-from vector via its final destination (`to_send_.back()`)
+  // instead of the now-invalid local parameter `invoke_after_message_ids`.
+  // After the `std::move` above the local is in a valid-but-unspecified state
+  // and printing it via the log macro is undefined behaviour for the
+  // diagnostic representation; PVS-Studio V1030 catches this. The vector now
+  // lives inside the freshly pushed MtprotoQuery, so we read it from there.
   VLOG(mtproto) << "Invoke query with " << message_id << " and seq_no " << seq_no << " of size "
-                << to_send_.back().packet.size() << " after " << invoke_after_message_ids
+                << to_send_.back().packet.size() << " after " << to_send_.back().invoke_after_message_ids
                 << (use_quick_ack ? " with quick ack" : "");
   return message_id;
 }
