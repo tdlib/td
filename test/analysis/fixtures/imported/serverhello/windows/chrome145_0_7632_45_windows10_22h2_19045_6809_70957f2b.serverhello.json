@@ -1,0 +1,76 @@
+{
+  "capture_date_utc": "2026-04-11T21:47:48Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b",
+      "fixture_id": "imported_chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b_serverhello:frame68",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b",
+      "fixture_id": "imported_chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b_serverhello:frame204",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b",
+      "fixture_id": "imported_chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b_serverhello:frame223",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b",
+      "fixture_id": "imported_chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b_serverhello:frame261",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_22H2_19045_6809,_Google_Chrome_145_0_7632_45,_auto_Wi.pcap",
+  "source_sha256": "32751a54854f2ec1884cdc2a0fba3dc6e573d149b1a116e39af210c656d9ebb4",
+  "transport": "tcp"
+}

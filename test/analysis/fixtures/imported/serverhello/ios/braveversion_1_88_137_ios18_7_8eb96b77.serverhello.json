@@ -1,0 +1,102 @@
+{
+  "capture_date_utc": "2026-04-11T21:47:50Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "braveversion_1_88_137_ios18_7_8eb96b77",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "braveversion_1_88_137_ios18_7_8eb96b77",
+      "fixture_id": "imported_braveversion_1_88_137_ios18_7_8eb96b77_serverhello:frame28",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "braveversion_1_88_137_ios18_7_8eb96b77",
+      "fixture_id": "imported_braveversion_1_88_137_ios18_7_8eb96b77_serverhello:frame37",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "braveversion_1_88_137_ios18_7_8eb96b77",
+      "fixture_id": "imported_braveversion_1_88_137_ios18_7_8eb96b77_serverhello:frame242",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "braveversion_1_88_137_ios18_7_8eb96b77",
+      "fixture_id": "imported_braveversion_1_88_137_ios18_7_8eb96b77_serverhello:frame278",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "braveversion_1_88_137_ios18_7_8eb96b77",
+      "fixture_id": "imported_braveversion_1_88_137_ios18_7_8eb96b77_serverhello:frame342",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "braveversion_1_88_137_ios18_7_8eb96b77",
+      "fixture_id": "imported_braveversion_1_88_137_ios18_7_8eb96b77_serverhello:frame506",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_braveversion_1_88_137_ios18_7_8eb96b77_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS_18_7,_Brave_\u0412\u0435\u0440\u0441\u0438\u044f_1_88_137,_auto_iOS_18_7,_auto_unknown_bro.pcap",
+  "source_sha256": "e2ae4d49a77c858ab8dee5d9332e1c8426fafb91cbc82378e77922e39d32e18e",
+  "transport": "tcp"
+}

@@ -1,0 +1,1471 @@
+{
+  "artifact_type": "tls_clienthello_fixtures",
+  "capture_date_utc": "2026-04-11T16:03:00Z",
+  "device_class": "desktop",
+  "display_filter": "tcp && tls.handshake.type == 1",
+  "extractor": {
+    "name": "extract_client_hello_fixtures.py",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "generated_at_utc": "2026-04-11T21:47:48Z",
+  "os_family": "windows",
+  "parser_version": "tls-clienthello-parser-v1",
+  "profile_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "alpn_protocols": [
+        "h2",
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "6251dbe2c3660b18fb500fb4ef448690c71300b5679b141f404e91125496e43e",
+      "compress_certificate_algorithms": [],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": null,
+      "extension_types": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "extensions": [
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "000c001d00170018001901000101",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "000c02683208687474702f312e31",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "00080403050306030203",
+          "is_grease": false,
+          "length": 10,
+          "type": "0x0022"
+        },
+        {
+          "body_hex": "0069001d0020a0d24b29852072a32b2f72d56e6162d20a51171d8b5e5b9f499c09ec7a402d70001700410405e61e3c0d9958beeaa91df7d17bb82cb23a00bf6ce16db1b0f0f92e79b96dc510218052deca87dd9ac7ad9bbc3d0662e4782eaf18effc09999b6468171be8c8",
+          "is_grease": false,
+          "length": 107,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "0403040303",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "001604030503060308040805080604010501060102030201",
+          "is_grease": false,
+          "length": 24,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "4001",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x001C"
+        },
+        {
+          "body_hex": "006f0069d5c502cf86d5736a479999b5870094340cbcfd58c6da06584a8b0906162446d25e60e592893fdf418abe0d3634714da31e18780575d9e1ab68bced762e62eef7f63bd9e2d1c0c07d4881b9499590108313fc41941cc86f74e3275bf82697418538006388e52046f45ea3cd7f22002120648e90f42445504ef038e1d070a5bdd8640536656935bb8da16661939f90479e",
+          "is_grease": false,
+          "length": 148,
+          "type": "0x0029"
+        }
+      ],
+      "fixture_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame24",
+      "frame_number": 24,
+      "frame_time_epoch": "1775923380.212338000",
+      "frame_time_utc": "2026-04-11T16:03:00Z",
+      "handshake_length": 527,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": false,
+      "has_grease_extension": false,
+      "has_grease_supported_group": false,
+      "key_share_entries": [
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "1a47d44961a97d7a1f13f72192cf22f2d3f641da2cc9e6ef080c9806c1f649dd"
+        },
+        {
+          "group": "0x0017",
+          "is_grease_group": false,
+          "key_exchange_length": 65,
+          "key_exchange_sha256": "98e5f77ac1eb2ba6e84a8aeed64528eec37dd1e336d59ea28e67073176340ce4"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "non_grease_supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "random_sha256": "5e5a46d596e7c3e85b9de3fbcac06674dee90a57c83b51db94b19458bbdb8aba",
+      "record_count": 1,
+      "record_length": 531,
+      "record_lengths": [
+        531
+      ],
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "6dc98b10a6faa95e2d251557c4a1b422a3903dd9bc04d72cd08d43183b4a2991",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 531,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tcp_stream": 1,
+      "tls_record_sha256": "4b2e31122571ee9483ff5e9bb3458606dc88278ccaec8a56f30c8344c376ccea"
+    },
+    {
+      "alpn_protocols": [
+        "h2",
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "ef184185be4736c90f1fa9da0efe6e199d87159fe90a1aefc66f6cfb6eb2b373",
+      "compress_certificate_algorithms": [],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": null,
+      "extension_types": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0015"
+      ],
+      "extensions": [
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "000c001d00170018001901000101",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0023"
+        },
+        {
+          "body_hex": "000c02683208687474702f312e31",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "00080403050306030203",
+          "is_grease": false,
+          "length": 10,
+          "type": "0x0022"
+        },
+        {
+          "body_hex": "0069001d0020e6dbd630cba1e3a5907b64b6814062b8d7aea6ad4ca0f14288eb2349e34bad2c0017004104b348593ccfb8b06fdf2388fb049d4f59aafa3df92aa0d45b71b37ba8b1f394738c127ca6386eea1a6b21b7532f8dc4dec777d68c6a46ec9d89b505faa81d5c5b",
+          "is_grease": false,
+          "length": 107,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "0403040303",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "001604030503060308040805080604010501060102030201",
+          "is_grease": false,
+          "length": 24,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "4001",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x001C"
+        },
+        {
+          "body_hex": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "is_grease": false,
+          "length": 125,
+          "type": "0x0015"
+        }
+      ],
+      "fixture_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame79",
+      "frame_number": 79,
+      "frame_time_epoch": "1775923381.912533000",
+      "frame_time_utc": "2026-04-11T16:03:01Z",
+      "handshake_length": 508,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": false,
+      "has_grease_extension": false,
+      "has_grease_supported_group": false,
+      "key_share_entries": [
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "b256d208932488fcb2b7f21b53efc8022b812e33489a9375b2f24d8dfc346ec8"
+        },
+        {
+          "group": "0x0017",
+          "is_grease_group": false,
+          "key_exchange_length": 65,
+          "key_exchange_sha256": "a24e576b5e32059222f8345ebb5505264fadca734bc07e0ed760af1f63e6551d"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0015"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C"
+      ],
+      "non_grease_supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "random_sha256": "940e5d18ee6cce4d73e85e0ec23ec4d613bf378de94ccea3827a5bc38b58def9",
+      "record_count": 1,
+      "record_length": 512,
+      "record_lengths": [
+        512
+      ],
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "5641bfacb2f133cbc1fb7e53cf72b4828ab5f967dda852f9ae3ca4b66d272e68",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 512,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tcp_stream": 2,
+      "tls_record_sha256": "1d6ff16d95a4cc2b6201d63f4d42182b70467d45747e5d454a55a3888fca2925"
+    },
+    {
+      "alpn_protocols": [
+        "h2",
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "790f3a21cdbb77f4bd4b8a4f9970c83e6cf5cb4ac104ba702711d86330dc3b9f",
+      "compress_certificate_algorithms": [],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": null,
+      "extension_types": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "extensions": [
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "000c001d00170018001901000101",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "000c02683208687474702f312e31",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "00080403050306030203",
+          "is_grease": false,
+          "length": 10,
+          "type": "0x0022"
+        },
+        {
+          "body_hex": "0069001d0020153a0fcf51a6cd18a4d6134933e723ed4cb903bbffef084b94094228f822d92a00170041047868c4395a0d9f1422386b84e93a959fcffc804777311566b9194dc5aeaa102ddd2c68831d670bbdebe42ab1b3d9c64cf033022ff51b0ca7a8f8e3b1217a9241",
+          "is_grease": false,
+          "length": 107,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "0403040303",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "001604030503060308040805080604010501060102030201",
+          "is_grease": false,
+          "length": 24,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "4001",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x001C"
+        },
+        {
+          "body_hex": "006f0069a92a38bd5f3fe5987e33944315a8829a3b6f811ada7907e54a51a028d0eb3dc933b22916e2b6cbe9ba477f8f581bd083b5a9a0089a045297e5ffe0ebb9683f0b20e62da7b7d9cfa06927d52292d9b353e4699c03ecfd11df90b6e2f7e7f046cbc516fc7747a5a423a9ff55ea5200212055b69325d28245f75980ac6026ad496d075ce3b1a569a278d6f7ff4c0393f9c4",
+          "is_grease": false,
+          "length": 148,
+          "type": "0x0029"
+        }
+      ],
+      "fixture_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame94",
+      "frame_number": 94,
+      "frame_time_epoch": "1775923382.051716000",
+      "frame_time_utc": "2026-04-11T16:03:02Z",
+      "handshake_length": 527,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": false,
+      "has_grease_extension": false,
+      "has_grease_supported_group": false,
+      "key_share_entries": [
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "ef00b1310712b41ea808a72338c29c844091804414e459135ef61657160fffca"
+        },
+        {
+          "group": "0x0017",
+          "is_grease_group": false,
+          "key_exchange_length": 65,
+          "key_exchange_sha256": "41fd509ec3c9bf10d0991648144016737585b810b65340a3287bc9339e19b580"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "non_grease_supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "random_sha256": "7777cf7f9d4b1afee2feb78a8048a947ec86eb33d5062680b0bc761c7275ffea",
+      "record_count": 1,
+      "record_length": 531,
+      "record_lengths": [
+        531
+      ],
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "3cc054b77f639e4c1f82e1edd47966420ab3ba6ca2f8653d51308517548cf76c",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 531,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tcp_stream": 3,
+      "tls_record_sha256": "704993ba960ea8182e9a124e4bb1eb13d7aa951748c1b236074c5bd138755b7f"
+    },
+    {
+      "alpn_protocols": [
+        "h2",
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "5dde5b17515b3737dc9e947797fa20e1d4a1af71ab33aedc9869b6b6181a3088",
+      "compress_certificate_algorithms": [],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": null,
+      "extension_types": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "extensions": [
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "000c001d00170018001901000101",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "000c02683208687474702f312e31",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "00080403050306030203",
+          "is_grease": false,
+          "length": 10,
+          "type": "0x0022"
+        },
+        {
+          "body_hex": "0069001d0020cc43a2e02641249172286f301acded75c2bc6cee985fde5981d865cdd7046e35001700410445aa3377d43b7be72bca2331d838f5ba387915663a7dbaf6270206772fd5a61bee8d623c468131d88dc92ec4ca004eedd725b7c595670664dcf6aab6b908e216",
+          "is_grease": false,
+          "length": 107,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "0403040303",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "001604030503060308040805080604010501060102030201",
+          "is_grease": false,
+          "length": 24,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "4001",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x001C"
+        },
+        {
+          "body_hex": "006f00694d54985449f3d0180fbb88756d7eb16412110e2136bafd74998bd1109ab8468ea4bf9891cd61ba577e1ad565a317365c02c0920a241d754012d4ce66ef46ccdf3fea877dda987fe4a7e5e5f6fa66695c27e1ee2ec5f66686d7d9f920a289fe674a7658133ad21804471a8fe2d8002120909cded5facbcdcbb06fd66716d0ccb06657cee6d08d1cb748abc1de6f28db51",
+          "is_grease": false,
+          "length": 148,
+          "type": "0x0029"
+        }
+      ],
+      "fixture_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame139",
+      "frame_number": 139,
+      "frame_time_epoch": "1775923382.639235000",
+      "frame_time_utc": "2026-04-11T16:03:02Z",
+      "handshake_length": 527,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": false,
+      "has_grease_extension": false,
+      "has_grease_supported_group": false,
+      "key_share_entries": [
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "020b9c6ac9e3334e6ffc43cc32ea161c7780a7813d4f51fbf6f48bc450592316"
+        },
+        {
+          "group": "0x0017",
+          "is_grease_group": false,
+          "key_exchange_length": 65,
+          "key_exchange_sha256": "21751fb7bfeeb7f5eea4b8d335b45fb0da892dff76f6b391fb0af96d41918df8"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "non_grease_supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "random_sha256": "110f847ba4a357c72fb0fd2a79a1588fa9acff3a7fcca0c7d0c9c04e2dfd1c42",
+      "record_count": 1,
+      "record_length": 531,
+      "record_lengths": [
+        531
+      ],
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "57193bf7332597c91c04fcaba51801b288c617a3846b9fb0ef941ff4d130cd4e",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 531,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tcp_stream": 4,
+      "tls_record_sha256": "0a34f632bafc755132f9ca25c049dd51738042b9efe09138860ddc0d46c8f91a"
+    },
+    {
+      "alpn_protocols": [
+        "h2",
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "2ed84bc4c8f0a0453cbfbc1a24fe68111da1d1822f1ea087403de18fccfffd33",
+      "compress_certificate_algorithms": [],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": null,
+      "extension_types": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "extensions": [
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "000c001d00170018001901000101",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "000c02683208687474702f312e31",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "00080403050306030203",
+          "is_grease": false,
+          "length": 10,
+          "type": "0x0022"
+        },
+        {
+          "body_hex": "0069001d002010a7c4eaa06f031debb78abb7f7f7bdb13adaa7203b3b1ae3de44c59bd9b6c3a0017004104785c468fa0361b6a69282512bff3853d8cdc140ceb92a6a17fe5c3a2ed34e1b46de8161661e91455abbff9966f9b172820bc6b598468c31774e14251035a1023",
+          "is_grease": false,
+          "length": 107,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "0403040303",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "001604030503060308040805080604010501060102030201",
+          "is_grease": false,
+          "length": 24,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "4001",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x001C"
+        },
+        {
+          "body_hex": "006f006937ccd0338f9ab36c8567771d6a4f96b90a1280a61873118d3914ca4286f45ada75ea0dbbd7e967dbc8fb86e460cc14db9afcdf052061f3dd7c50e31b798383f3154d0083f27f1a991a371b2288ca5bcef23b589f9f4b492468818daa19a85af04e079dc4ef4cf8cffeebc11eea0021204e2ab064a766daa08abd2afd19383694228943f0ce399f9c0ceea89fe4884cdb",
+          "is_grease": false,
+          "length": 148,
+          "type": "0x0029"
+        }
+      ],
+      "fixture_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame196",
+      "frame_number": 196,
+      "frame_time_epoch": "1775923384.332897000",
+      "frame_time_utc": "2026-04-11T16:03:04Z",
+      "handshake_length": 527,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": false,
+      "has_grease_extension": false,
+      "has_grease_supported_group": false,
+      "key_share_entries": [
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "729536f48f8f802fd9d9dd9a80d1189590212a2f759c7593dbece05ee941c4d7"
+        },
+        {
+          "group": "0x0017",
+          "is_grease_group": false,
+          "key_exchange_length": 65,
+          "key_exchange_sha256": "fccb884faeb47123a867901d080477bd896c3a9542c4ba63d4e13eee6bc4b98f"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "non_grease_supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "random_sha256": "b45d8c141f0553916b0deb69b95bfc3107771e08df32b746e6ae51fb072f17ea",
+      "record_count": 1,
+      "record_length": 531,
+      "record_lengths": [
+        531
+      ],
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "a7c5cfa4f4a71acbdb506abac31b9283563b473bb2fb25daf3e0e622976958f1",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 531,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tcp_stream": 5,
+      "tls_record_sha256": "ff8f5652a4e6fd27e5f1e4c28f18cd14643b942c0af3744086a0f1a685605ae7"
+    },
+    {
+      "alpn_protocols": [
+        "h2",
+        "http/1.1"
+      ],
+      "cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "client_hello_sha256": "8e7046b0705b9bee70561456feb68b353eec31fef7c9d3d4c8eb40aa954a7d29",
+      "compress_certificate_algorithms": [],
+      "compression_methods": [
+        "0x00"
+      ],
+      "ech": null,
+      "extension_types": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "extensions": [
+        {
+          "body_hex": "001c0000196b663538703176716263746568726b692e6d6f6f6f2e636f6d",
+          "is_grease": false,
+          "length": 30,
+          "type": "0x0000"
+        },
+        {
+          "body_hex": "",
+          "is_grease": false,
+          "length": 0,
+          "type": "0x0017"
+        },
+        {
+          "body_hex": "00",
+          "is_grease": false,
+          "length": 1,
+          "type": "0xFF01"
+        },
+        {
+          "body_hex": "000c001d00170018001901000101",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x000A"
+        },
+        {
+          "body_hex": "0100",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x000B"
+        },
+        {
+          "body_hex": "000c02683208687474702f312e31",
+          "is_grease": false,
+          "length": 14,
+          "type": "0x0010"
+        },
+        {
+          "body_hex": "0100000000",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x0005"
+        },
+        {
+          "body_hex": "00080403050306030203",
+          "is_grease": false,
+          "length": 10,
+          "type": "0x0022"
+        },
+        {
+          "body_hex": "0069001d002074e6fb15ade342d1d98bac89e8f946ba73621bd4e4a7b15ab1fc795ad3b35d720017004104c88d087168355b3d7f0f22d7ece2a97918a14373ee8a2f4cfc33f6f2d4b6206454c0638fbf41d24fbe3a3753e644fc246c63c9f79cf17ce111fb395043490316",
+          "is_grease": false,
+          "length": 107,
+          "type": "0x0033"
+        },
+        {
+          "body_hex": "0403040303",
+          "is_grease": false,
+          "length": 5,
+          "type": "0x002B"
+        },
+        {
+          "body_hex": "001604030503060308040805080604010501060102030201",
+          "is_grease": false,
+          "length": 24,
+          "type": "0x000D"
+        },
+        {
+          "body_hex": "0101",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x002D"
+        },
+        {
+          "body_hex": "4001",
+          "is_grease": false,
+          "length": 2,
+          "type": "0x001C"
+        },
+        {
+          "body_hex": "006f0069ee0c90256e6ad139bc038022205a325132d7083aa20fb80a3c402b4d066d68f8fed9fbf4fffe93ba5d9a4f0219f6f66e352c580c6f939bf257982c1deaff3d5aeb8d7dd0705ac67c6b82ad0b10520c289c32f8cc1964b7b6e0cd86db858476edad7b98d8774ae9da289ade65ae002120c750698e4234507987b27b11c43bb4644a18db8f88e7b245f54f9741ba3e919d",
+          "is_grease": false,
+          "length": 148,
+          "type": "0x0029"
+        }
+      ],
+      "fixture_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame212",
+      "frame_number": 212,
+      "frame_time_epoch": "1775923384.449654000",
+      "frame_time_utc": "2026-04-11T16:03:04Z",
+      "handshake_length": 527,
+      "handshake_type": 1,
+      "has_grease_cipher_suite": false,
+      "has_grease_extension": false,
+      "has_grease_supported_group": false,
+      "key_share_entries": [
+        {
+          "group": "0x001D",
+          "is_grease_group": false,
+          "key_exchange_length": 32,
+          "key_exchange_sha256": "d2625473c9f8a7a19b26d6ac4f747567029574c5f71ac7082e4eda9fbe543bce"
+        },
+        {
+          "group": "0x0017",
+          "is_grease_group": false,
+          "key_exchange_length": 65,
+          "key_exchange_sha256": "9dc361543199c0943e6441645d9192f2bae0760deb3b5e228f88b71a1b45ecaa"
+        }
+      ],
+      "legacy_version": "0x0303",
+      "non_grease_cipher_suites": [
+        "0x1301",
+        "0x1303",
+        "0x1302",
+        "0xC02B",
+        "0xC02F",
+        "0xCCA9",
+        "0xCCA8",
+        "0xC02C",
+        "0xC030",
+        "0xC00A",
+        "0xC009",
+        "0xC013",
+        "0xC014",
+        "0x009C",
+        "0x009D",
+        "0x002F",
+        "0x0035"
+      ],
+      "non_grease_extensions": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "non_grease_supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "random_sha256": "6cddf8b7f22e36af02cac1c6601ad6f9958a853ce4ace61000e97aab2ead1da5",
+      "record_count": 1,
+      "record_length": 531,
+      "record_lengths": [
+        531
+      ],
+      "record_type": "0x16",
+      "record_version": "0x0301",
+      "session_id_length": 32,
+      "session_id_sha256": "7faab0799b519aea56bb64378f10fa6c8a1413ed6e6b235cf64009e9c32906e1",
+      "sni": "kf58p1vqbctehrki.mooo.com",
+      "source_tls_handshake_type": 1,
+      "source_tls_record_length": 531,
+      "source_tls_record_version": "0x0301",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tcp_stream": 6,
+      "tls_record_sha256": "c1340a893a7bdc47762b6cb248eaeb2533c58a78e119db1e906dd02a8e3726b8"
+    }
+  ],
+  "scenario_id": "imported_firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f_clienthello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Embedded_8_1_Industry_Pro,_Firefox_115_22_0esr,_auto_Win.pcap",
+  "source_sha256": "1172b2767b55e4eb1da43558a145564d5f6e3f5230b5ba0225851f16b11864ba",
+  "tls_handshake_type": 1,
+  "transport": "tcp"
+}

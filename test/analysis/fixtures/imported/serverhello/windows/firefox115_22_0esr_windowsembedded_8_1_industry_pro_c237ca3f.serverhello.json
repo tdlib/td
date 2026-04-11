@@ -1,0 +1,106 @@
+{
+  "capture_date_utc": "2026-04-11T21:47:48Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+      "fixture_id": "imported_firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f_serverhello:frame26",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+      "fixture_id": "imported_firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f_serverhello:frame81",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+      "fixture_id": "imported_firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f_serverhello:frame96",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+      "fixture_id": "imported_firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f_serverhello:frame141",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+      "fixture_id": "imported_firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f_serverhello:frame198",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+      "fixture_id": "imported_firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f_serverhello:frame214",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Embedded_8_1_Industry_Pro,_Firefox_115_22_0esr,_auto_Win.pcap",
+  "source_sha256": "1172b2767b55e4eb1da43558a145564d5f6e3f5230b5ba0225851f16b11864ba",
+  "transport": "tcp"
+}

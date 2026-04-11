@@ -1,0 +1,76 @@
+{
+  "capture_date_utc": "2026-04-11T21:47:49Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1303",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd",
+      "fixture_id": "imported_chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd_serverhello:frame70",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1303",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd",
+      "fixture_id": "imported_chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd_serverhello:frame172",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1303",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd",
+      "fixture_id": "imported_chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd_serverhello:frame229",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1303",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd",
+      "fixture_id": "imported_chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd_serverhello:frame245",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Emdedded_8_1_Industry_Pro,_Chrome_86_0_4213_0,_auto_Wind.pcap",
+  "source_sha256": "02ff6d024b9f7e762c9493ebb688fbc8020845e1b0bb805fac19b352b0136917",
+  "transport": "tcp"
+}

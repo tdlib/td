@@ -1,0 +1,107 @@
+{
+  "capture_date_utc": "2026-04-11T21:47:51Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "chrome146_macos26_4_bfd8697e",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome146_macos26_4_bfd8697e",
+      "fixture_id": "imported_chrome146_macos26_4_bfd8697e_serverhello:frame60",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome146_macos26_4_bfd8697e",
+      "fixture_id": "imported_chrome146_macos26_4_bfd8697e_serverhello:frame84",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome146_macos26_4_bfd8697e",
+      "fixture_id": "imported_chrome146_macos26_4_bfd8697e_serverhello:frame124",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome146_macos26_4_bfd8697e",
+      "fixture_id": "imported_chrome146_macos26_4_bfd8697e_serverhello:frame307",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome146_macos26_4_bfd8697e",
+      "fixture_id": "imported_chrome146_macos26_4_bfd8697e_serverhello:frame331",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "fixture_family_id": "chrome146_macos26_4_bfd8697e",
+      "fixture_id": "imported_chrome146_macos26_4_bfd8697e_serverhello:frame385",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_chrome146_macos26_4_bfd8697e_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Google_Chrome_146,_auto_macOS_10_15_7,_auto_Google_C.pcap",
+  "source_sha256": "1f9111f0454ba2c7f16d735ec0529a23aee0f6ee5d12c9c3072bcb012adc309f",
+  "transport": "tcp"
+}

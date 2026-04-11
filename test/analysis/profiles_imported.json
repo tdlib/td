@@ -599,6 +599,249 @@
       "transport": "tcp",
       "trust_tier": "candidate"
     },
+    "braveversion_1_88_137_ios18_7_8eb96b77:frame24": {
+      "family": "braveversion_1_88_137_ios18_7_8eb96b77",
+      "key_share_groups": [
+        "0xDADA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "ios",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS_18_7,_Brave_\u0412\u0435\u0440\u0441\u0438\u044f_1_88_137,_auto_iOS_18_7,_auto_unknown_bro.pcap",
+      "source_sha256": "e2ae4d49a77c858ab8dee5d9332e1c8426fafb91cbc82378e77922e39d32e18e",
+      "supported_groups": [
+        "0xDADA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "braveversion_1_88_137_ios18_7_8eb96b77:frame240": {
+      "family": "braveversion_1_88_137_ios18_7_8eb96b77",
+      "key_share_groups": [
+        "0x8A8A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "ios",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS_18_7,_Brave_\u0412\u0435\u0440\u0441\u0438\u044f_1_88_137,_auto_iOS_18_7,_auto_unknown_bro.pcap",
+      "source_sha256": "e2ae4d49a77c858ab8dee5d9332e1c8426fafb91cbc82378e77922e39d32e18e",
+      "supported_groups": [
+        "0x8A8A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "braveversion_1_88_137_ios18_7_8eb96b77:frame274": {
+      "family": "braveversion_1_88_137_ios18_7_8eb96b77",
+      "key_share_groups": [
+        "0xAAAA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "ios",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS_18_7,_Brave_\u0412\u0435\u0440\u0441\u0438\u044f_1_88_137,_auto_iOS_18_7,_auto_unknown_bro.pcap",
+      "source_sha256": "e2ae4d49a77c858ab8dee5d9332e1c8426fafb91cbc82378e77922e39d32e18e",
+      "supported_groups": [
+        "0xAAAA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "braveversion_1_88_137_ios18_7_8eb96b77:frame340": {
+      "family": "braveversion_1_88_137_ios18_7_8eb96b77",
+      "key_share_groups": [
+        "0x5A5A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "ios",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS_18_7,_Brave_\u0412\u0435\u0440\u0441\u0438\u044f_1_88_137,_auto_iOS_18_7,_auto_unknown_bro.pcap",
+      "source_sha256": "e2ae4d49a77c858ab8dee5d9332e1c8426fafb91cbc82378e77922e39d32e18e",
+      "supported_groups": [
+        "0x5A5A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "braveversion_1_88_137_ios18_7_8eb96b77:frame35": {
+      "family": "braveversion_1_88_137_ios18_7_8eb96b77",
+      "key_share_groups": [
+        "0xBABA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x000A",
+        "0x0033",
+        "0xFE0D",
+        "0x001B",
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000B",
+        "0x0012",
+        "0x0005",
+        "0x002B",
+        "0x002D",
+        "0x44CD",
+        "0x000D",
+        "0x0010",
+        "0x0023",
+        "0x0029"
+      ],
+      "os_family": "ios",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS_18_7,_Brave_\u0412\u0435\u0440\u0441\u0438\u044f_1_88_137,_auto_iOS_18_7,_auto_unknown_bro.pcap",
+      "source_sha256": "e2ae4d49a77c858ab8dee5d9332e1c8426fafb91cbc82378e77922e39d32e18e",
+      "supported_groups": [
+        "0xBABA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "braveversion_1_88_137_ios18_7_8eb96b77:frame503": {
+      "family": "braveversion_1_88_137_ios18_7_8eb96b77",
+      "key_share_groups": [
+        "0xFAFA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "ios",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS_18_7,_Brave_\u0412\u0435\u0440\u0441\u0438\u044f_1_88_137,_auto_iOS_18_7,_auto_unknown_bro.pcap",
+      "source_sha256": "e2ae4d49a77c858ab8dee5d9332e1c8426fafb91cbc82378e77922e39d32e18e",
+      "supported_groups": [
+        "0xFAFA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
     "chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95:frame111": {
       "family": "chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95",
       "key_share_groups": [
@@ -1358,6 +1601,513 @@
       "transport": "tcp",
       "trust_tier": "candidate"
     },
+    "chrome139_0_7258_123_android11_7074a166:frame101": {
+      "family": "chrome139_0_7258_123_android11_7074a166",
+      "key_share_groups": [
+        "0x6A6A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x002D",
+        "0x001B",
+        "0x002B",
+        "0x000A",
+        "0x0010",
+        "0x0000",
+        "0x0023",
+        "0x0012",
+        "0x000B",
+        "0x0017",
+        "0x0033",
+        "0xFF01",
+        "0xFE0D",
+        "0x0005",
+        "0x000D"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_11,_Google_Chrome_139_0_7258_123,_auto_Android_10,_auto.pcap",
+      "source_sha256": "44e22f77acf76842191c70e3de0605ab7740a8639e601c63493857f882c983ee",
+      "supported_groups": [
+        "0x6A6A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome139_0_7258_123_android11_7074a166:frame120": {
+      "family": "chrome139_0_7258_123_android11_7074a166",
+      "key_share_groups": [
+        "0x1A1A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0005",
+        "0x0017",
+        "0x0000",
+        "0xFE0D",
+        "0x002D",
+        "0x0010",
+        "0x0023",
+        "0x000D",
+        "0x0012",
+        "0x002B",
+        "0x000A",
+        "0x0033",
+        "0xFF01",
+        "0x000B",
+        "0x001B",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_11,_Google_Chrome_139_0_7258_123,_auto_Android_10,_auto.pcap",
+      "source_sha256": "44e22f77acf76842191c70e3de0605ab7740a8639e601c63493857f882c983ee",
+      "supported_groups": [
+        "0x1A1A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome139_0_7258_123_android11_7074a166:frame354": {
+      "family": "chrome139_0_7258_123_android11_7074a166",
+      "key_share_groups": [
+        "0xEAEA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x000B",
+        "0x0012",
+        "0x000A",
+        "0x0005",
+        "0x0017",
+        "0x001B",
+        "0xFE0D",
+        "0xFF01",
+        "0x000D",
+        "0x002D",
+        "0x0010",
+        "0x0023",
+        "0x0000",
+        "0x002B",
+        "0x0033",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_11,_Google_Chrome_139_0_7258_123,_auto_Android_10,_auto.pcap",
+      "source_sha256": "44e22f77acf76842191c70e3de0605ab7740a8639e601c63493857f882c983ee",
+      "supported_groups": [
+        "0xEAEA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome139_0_7258_123_android11_7074a166:frame358": {
+      "family": "chrome139_0_7258_123_android11_7074a166",
+      "key_share_groups": [
+        "0xEAEA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x002B",
+        "0xFF01",
+        "0x44CD",
+        "0x0033",
+        "0x0012",
+        "0x0010",
+        "0xFE0D",
+        "0x0017",
+        "0x002D",
+        "0x000A",
+        "0x0005",
+        "0x0023",
+        "0x0000",
+        "0x000D",
+        "0x000B",
+        "0x001B",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_11,_Google_Chrome_139_0_7258_123,_auto_Android_10,_auto.pcap",
+      "source_sha256": "44e22f77acf76842191c70e3de0605ab7740a8639e601c63493857f882c983ee",
+      "supported_groups": [
+        "0xEAEA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome139_0_7258_123_android11_7074a166:frame385": {
+      "family": "chrome139_0_7258_123_android11_7074a166",
+      "key_share_groups": [
+        "0xEAEA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0xFF01",
+        "0x000A",
+        "0x0005",
+        "0x000B",
+        "0x0023",
+        "0x0012",
+        "0x002B",
+        "0x0010",
+        "0x002D",
+        "0x000D",
+        "0xFE0D",
+        "0x001B",
+        "0x0033",
+        "0x0017",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_11,_Google_Chrome_139_0_7258_123,_auto_Android_10,_auto.pcap",
+      "source_sha256": "44e22f77acf76842191c70e3de0605ab7740a8639e601c63493857f882c983ee",
+      "supported_groups": [
+        "0xEAEA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome139_0_7258_123_android11_7074a166:frame89": {
+      "family": "chrome139_0_7258_123_android11_7074a166",
+      "key_share_groups": [
+        "0xAAAA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0023",
+        "0x0000",
+        "0x0012",
+        "0x0005",
+        "0xFE0D",
+        "0x000A",
+        "0x001B",
+        "0x000B",
+        "0x0033",
+        "0x002B",
+        "0x44CD",
+        "0x000D",
+        "0x002D",
+        "0x0017",
+        "0xFF01",
+        "0x0010",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_11,_Google_Chrome_139_0_7258_123,_auto_Android_10,_auto.pcap",
+      "source_sha256": "44e22f77acf76842191c70e3de0605ab7740a8639e601c63493857f882c983ee",
+      "supported_groups": [
+        "0xAAAA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome143_0_7499_192_android15_1_2_4d757bcd:frame139": {
+      "family": "chrome143_0_7499_192_android15_1_2_4d757bcd",
+      "key_share_groups": [
+        "0x2A2A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0017",
+        "0x002B",
+        "0x0023",
+        "0x0005",
+        "0xFF01",
+        "0x001B",
+        "0x000A",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x000B",
+        "0xFE0D",
+        "0x000D",
+        "0x0000",
+        "0x0010",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_15_1_2,_Chrome_143_0_7499_192,_auto_Android_10,_auto_Goo__40c51bd1.pcap",
+      "source_sha256": "40c51bd193e5eb9c4e77463b64c53157b6db552d9c707cb1d88d835340d4f38e",
+      "supported_groups": [
+        "0x2A2A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome143_0_7499_192_android15_1_2_4d757bcd:frame203": {
+      "family": "chrome143_0_7499_192_android15_1_2_4d757bcd",
+      "key_share_groups": [
+        "0x7A7A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x000D",
+        "0x0012",
+        "0x0017",
+        "0x0010",
+        "0x000B",
+        "0x000A",
+        "0x0000",
+        "0x002B",
+        "0x0023",
+        "0xFE0D",
+        "0x002D",
+        "0x0005",
+        "0x0033",
+        "0xFF01",
+        "0x001B",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_15_1_2,_Chrome_143_0_7499_192,_auto_Android_10,_auto_Goo__40c51bd1.pcap",
+      "source_sha256": "40c51bd193e5eb9c4e77463b64c53157b6db552d9c707cb1d88d835340d4f38e",
+      "supported_groups": [
+        "0x7A7A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome143_0_7499_192_android15_1_2_4d757bcd:frame247": {
+      "family": "chrome143_0_7499_192_android15_1_2_4d757bcd",
+      "key_share_groups": [
+        "0xDADA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0012",
+        "0x44CD",
+        "0x0023",
+        "0x0033",
+        "0x000B",
+        "0xFF01",
+        "0x002B",
+        "0x000D",
+        "0x0005",
+        "0x001B",
+        "0x002D",
+        "0x000A",
+        "0x0000",
+        "0xFE0D",
+        "0x0017",
+        "0x0010",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_15_1_2,_Chrome_143_0_7499_192,_auto_Android_10,_auto_Goo__40c51bd1.pcap",
+      "source_sha256": "40c51bd193e5eb9c4e77463b64c53157b6db552d9c707cb1d88d835340d4f38e",
+      "supported_groups": [
+        "0xDADA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome143_0_7499_192_android15_1_2_4d757bcd:frame498": {
+      "family": "chrome143_0_7499_192_android15_1_2_4d757bcd",
+      "key_share_groups": [
+        "0x0A0A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0005",
+        "0x000D",
+        "0xFF01",
+        "0x0023",
+        "0x0010",
+        "0x002D",
+        "0x000B",
+        "0x0033",
+        "0x0012",
+        "0x0017",
+        "0x0000",
+        "0xFE0D",
+        "0x001B",
+        "0x000A",
+        "0x002B",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_15_1_2,_Chrome_143_0_7499_192,_auto_Android_10,_auto_Goo__40c51bd1.pcap",
+      "source_sha256": "40c51bd193e5eb9c4e77463b64c53157b6db552d9c707cb1d88d835340d4f38e",
+      "supported_groups": [
+        "0x0A0A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome143_0_7499_192_android15_1_2_4d757bcd:frame542": {
+      "family": "chrome143_0_7499_192_android15_1_2_4d757bcd",
+      "key_share_groups": [
+        "0x7A7A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0017",
+        "0xFE0D",
+        "0x0005",
+        "0x0012",
+        "0x000B",
+        "0x002B",
+        "0x000D",
+        "0xFF01",
+        "0x0000",
+        "0x0023",
+        "0x002D",
+        "0x001B",
+        "0x0010",
+        "0x0033",
+        "0x000A",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_15_1_2,_Chrome_143_0_7499_192,_auto_Android_10,_auto_Goo__40c51bd1.pcap",
+      "source_sha256": "40c51bd193e5eb9c4e77463b64c53157b6db552d9c707cb1d88d835340d4f38e",
+      "supported_groups": [
+        "0x7A7A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome143_0_7499_192_android15_1_2_4d757bcd:frame598": {
+      "family": "chrome143_0_7499_192_android15_1_2_4d757bcd",
+      "key_share_groups": [
+        "0x6A6A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0xFF01",
+        "0x0023",
+        "0x44CD",
+        "0x0010",
+        "0x001B",
+        "0x002B",
+        "0x000B",
+        "0x0005",
+        "0x0017",
+        "0x000A",
+        "0xFE0D",
+        "0x0000",
+        "0x002D",
+        "0x0033",
+        "0x0012",
+        "0x000D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_15_1_2,_Chrome_143_0_7499_192,_auto_Android_10,_auto_Goo__40c51bd1.pcap",
+      "source_sha256": "40c51bd193e5eb9c4e77463b64c53157b6db552d9c707cb1d88d835340d4f38e",
+      "supported_groups": [
+        "0x6A6A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
     "chrome143_0_7499_192_android15_1_2_89fec207:frame243": {
       "family": "chrome143_0_7499_192_android15_1_2_89fec207",
       "key_share_groups": [
@@ -1983,6 +2733,589 @@
       "source_sha256": "943e590bbeb96fea96ce749fa95134aa4df33d3f441264190ef2a75235f95cfb",
       "supported_groups": [
         "0x6A6A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b:frame202": {
+      "family": "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b",
+      "key_share_groups": [
+        "0xDADA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0005",
+        "0xFE0D",
+        "0x000D",
+        "0x0012",
+        "0x0023",
+        "0x0010",
+        "0x000B",
+        "0x0033",
+        "0x002B",
+        "0x001B",
+        "0xFF01",
+        "0x0000",
+        "0x0017",
+        "0x000A",
+        "0x002D"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_22H2_19045_6809,_Google_Chrome_145_0_7632_45,_auto_Wi.pcap",
+      "source_sha256": "32751a54854f2ec1884cdc2a0fba3dc6e573d149b1a116e39af210c656d9ebb4",
+      "supported_groups": [
+        "0xDADA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b:frame221": {
+      "family": "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b",
+      "key_share_groups": [
+        "0x4A4A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x001B",
+        "0xFE0D",
+        "0x0005",
+        "0x000D",
+        "0x0023",
+        "0x000A",
+        "0x0012",
+        "0x000B",
+        "0x002B",
+        "0x0000",
+        "0x0010",
+        "0x0017",
+        "0xFF01",
+        "0x002D",
+        "0x0033",
+        "0x0029"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_22H2_19045_6809,_Google_Chrome_145_0_7632_45,_auto_Wi.pcap",
+      "source_sha256": "32751a54854f2ec1884cdc2a0fba3dc6e573d149b1a116e39af210c656d9ebb4",
+      "supported_groups": [
+        "0x4A4A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b:frame258": {
+      "family": "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b",
+      "key_share_groups": [
+        "0x1A1A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0010",
+        "0x0005",
+        "0xFE0D",
+        "0x0033",
+        "0x001B",
+        "0x002B",
+        "0x0000",
+        "0xFF01",
+        "0x0023",
+        "0x0017",
+        "0x000B",
+        "0x000D",
+        "0x002D",
+        "0x000A",
+        "0x44CD",
+        "0x0012",
+        "0x0029"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_22H2_19045_6809,_Google_Chrome_145_0_7632_45,_auto_Wi.pcap",
+      "source_sha256": "32751a54854f2ec1884cdc2a0fba3dc6e573d149b1a116e39af210c656d9ebb4",
+      "supported_groups": [
+        "0x1A1A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b:frame65": {
+      "family": "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b",
+      "key_share_groups": [
+        "0x9A9A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x000B",
+        "0x002B",
+        "0x000A",
+        "0x001B",
+        "0x0023",
+        "0x0017",
+        "0x002D",
+        "0x0000",
+        "0x0012",
+        "0xFF01",
+        "0x0033",
+        "0x44CD",
+        "0x0005",
+        "0xFE0D",
+        "0x000D",
+        "0x0010",
+        "0x0029"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_10_22H2_19045_6809,_Google_Chrome_145_0_7632_45,_auto_Wi.pcap",
+      "source_sha256": "32751a54854f2ec1884cdc2a0fba3dc6e573d149b1a116e39af210c656d9ebb4",
+      "supported_groups": [
+        "0x9A9A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_0_7680_153_android12_140f2879:frame149": {
+      "family": "chrome146_0_7680_153_android12_140f2879",
+      "key_share_groups": [
+        "0xAAAA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x000B",
+        "0x002B",
+        "0x0033",
+        "0x0000",
+        "0x0017",
+        "0x0005",
+        "0x002D",
+        "0x000A",
+        "0x0012",
+        "0xFF01",
+        "0x001B",
+        "0x000D",
+        "0xFE0D",
+        "0x0023",
+        "0x0010"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_12,_Chrome_146_0_7680_153,_auto_Android_10,_auto_Google.pcap",
+      "source_sha256": "4d8013be5465dddf184650749adb93b63b67fb6d71466274425ac3c1f7243d7e",
+      "supported_groups": [
+        "0xAAAA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_0_7680_153_android12_140f2879:frame173": {
+      "family": "chrome146_0_7680_153_android12_140f2879",
+      "key_share_groups": [
+        "0x4A4A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x000B",
+        "0x0010",
+        "0x0033",
+        "0x0023",
+        "0xFE0D",
+        "0x0005",
+        "0x001B",
+        "0x000A",
+        "0x002B",
+        "0x0012",
+        "0x0000",
+        "0xFF01",
+        "0x000D",
+        "0x002D",
+        "0x0017"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_12,_Chrome_146_0_7680_153,_auto_Android_10,_auto_Google.pcap",
+      "source_sha256": "4d8013be5465dddf184650749adb93b63b67fb6d71466274425ac3c1f7243d7e",
+      "supported_groups": [
+        "0x4A4A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_0_7680_153_android12_140f2879:frame200": {
+      "family": "chrome146_0_7680_153_android12_140f2879",
+      "key_share_groups": [
+        "0x9A9A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x000B",
+        "0x0023",
+        "0x001B",
+        "0xFF01",
+        "0x0017",
+        "0x0005",
+        "0xFE0D",
+        "0x44CD",
+        "0x002B",
+        "0x0010",
+        "0x0033",
+        "0x002D",
+        "0x0000",
+        "0x000A",
+        "0x000D",
+        "0x0012"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_12,_Chrome_146_0_7680_153,_auto_Android_10,_auto_Google.pcap",
+      "source_sha256": "4d8013be5465dddf184650749adb93b63b67fb6d71466274425ac3c1f7243d7e",
+      "supported_groups": [
+        "0x9A9A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_0_7680_153_android12_140f2879:frame476": {
+      "family": "chrome146_0_7680_153_android12_140f2879",
+      "key_share_groups": [
+        "0x4A4A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0017",
+        "0x000A",
+        "0x0012",
+        "0x0005",
+        "0x0023",
+        "0x0033",
+        "0x002D",
+        "0x0000",
+        "0xFE0D",
+        "0x001B",
+        "0x0010",
+        "0xFF01",
+        "0x000B",
+        "0x000D",
+        "0x002B"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_12,_Chrome_146_0_7680_153,_auto_Android_10,_auto_Google.pcap",
+      "source_sha256": "4d8013be5465dddf184650749adb93b63b67fb6d71466274425ac3c1f7243d7e",
+      "supported_groups": [
+        "0x4A4A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_0_7680_153_android12_140f2879:frame499": {
+      "family": "chrome146_0_7680_153_android12_140f2879",
+      "key_share_groups": [
+        "0x3A3A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x000A",
+        "0x0012",
+        "0x0000",
+        "0x0010",
+        "0x000D",
+        "0x0023",
+        "0x0017",
+        "0xFE0D",
+        "0x0005",
+        "0x002D",
+        "0x001B",
+        "0xFF01",
+        "0x0033",
+        "0x000B",
+        "0x002B"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_12,_Chrome_146_0_7680_153,_auto_Android_10,_auto_Google.pcap",
+      "source_sha256": "4d8013be5465dddf184650749adb93b63b67fb6d71466274425ac3c1f7243d7e",
+      "supported_groups": [
+        "0x3A3A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_0_7680_153_android12_140f2879:frame551": {
+      "family": "chrome146_0_7680_153_android12_140f2879",
+      "key_share_groups": [
+        "0x1A1A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x000A",
+        "0x0005",
+        "0xFF01",
+        "0x0033",
+        "0x0023",
+        "0xFE0D",
+        "0x0000",
+        "0x002B",
+        "0x001B",
+        "0x0017",
+        "0x0010",
+        "0x44CD",
+        "0x002D",
+        "0x000B",
+        "0x000D",
+        "0x0012"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_12,_Chrome_146_0_7680_153,_auto_Android_10,_auto_Google.pcap",
+      "source_sha256": "4d8013be5465dddf184650749adb93b63b67fb6d71466274425ac3c1f7243d7e",
+      "supported_groups": [
+        "0x1A1A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_0_7680_177_android13_93354fa3:frame256": {
+      "family": "chrome146_0_7680_177_android13_93354fa3",
+      "key_share_groups": [
+        "0x5A5A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0010",
+        "0x002B",
+        "0x44CD",
+        "0x0012",
+        "0x000D",
+        "0x000B",
+        "0xFE0D",
+        "0x002D",
+        "0x0017",
+        "0x0023",
+        "0x0033",
+        "0x000A",
+        "0x0005",
+        "0x001B",
+        "0xFF01"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_13,_Google_Chrome_146_0_7680_177,_auto_Android_10,_auto.pcap",
+      "source_sha256": "a66536ad647d07ba2af632bc850239710a7054cf6bb869fdecbd39f75cd5155b",
+      "supported_groups": [
+        "0x5A5A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_0_7680_177_android13_93354fa3:frame330": {
+      "family": "chrome146_0_7680_177_android13_93354fa3",
+      "key_share_groups": [
+        "0x8A8A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x002D",
+        "0x000B",
+        "0x0023",
+        "0x0033",
+        "0xFE0D",
+        "0x0000",
+        "0x002B",
+        "0x0012",
+        "0xFF01",
+        "0x0005",
+        "0x0010",
+        "0x0017",
+        "0x000D",
+        "0x000A",
+        "0x001B"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_13,_Google_Chrome_146_0_7680_177,_auto_Android_10,_auto.pcap",
+      "source_sha256": "a66536ad647d07ba2af632bc850239710a7054cf6bb869fdecbd39f75cd5155b",
+      "supported_groups": [
+        "0x8A8A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_0_7680_177_android13_93354fa3:frame365": {
+      "family": "chrome146_0_7680_177_android13_93354fa3",
+      "key_share_groups": [
+        "0x5A5A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0033",
+        "0x0012",
+        "0xFF01",
+        "0x000A",
+        "0x002B",
+        "0x001B",
+        "0x0010",
+        "0x000B",
+        "0x000D",
+        "0xFE0D",
+        "0x0017",
+        "0x002D",
+        "0x0005",
+        "0x0023",
+        "0x0000"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_13,_Google_Chrome_146_0_7680_177,_auto_Android_10,_auto.pcap",
+      "source_sha256": "a66536ad647d07ba2af632bc850239710a7054cf6bb869fdecbd39f75cd5155b",
+      "supported_groups": [
+        "0x5A5A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_0_7680_177_android13_93354fa3:frame86": {
+      "family": "chrome146_0_7680_177_android13_93354fa3",
+      "key_share_groups": [
+        "0xFAFA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0xFE0D",
+        "0x000D",
+        "0x0005",
+        "0x0017",
+        "0x000A",
+        "0x0012",
+        "0x0023",
+        "0x000B",
+        "0x002D",
+        "0x0033",
+        "0x0010",
+        "0x001B",
+        "0x44CD",
+        "0x002B",
+        "0xFF01",
+        "0x0000"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_13,_Google_Chrome_146_0_7680_177,_auto_Android_10,_auto.pcap",
+      "source_sha256": "a66536ad647d07ba2af632bc850239710a7054cf6bb869fdecbd39f75cd5155b",
+      "supported_groups": [
+        "0xFAFA",
         "0x11EC",
         "0x001D",
         "0x0017",
@@ -4177,6 +5510,260 @@
       "transport": "tcp",
       "trust_tier": "candidate"
     },
+    "chrome146_macos26_4_bfd8697e:frame120": {
+      "family": "chrome146_macos26_4_bfd8697e",
+      "key_share_groups": [
+        "0x6A6A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x002D",
+        "0x0012",
+        "0x0000",
+        "0x0017",
+        "0x0023",
+        "0xFE0D",
+        "0x000B",
+        "0x000A",
+        "0x002B",
+        "0x001B",
+        "0x0010",
+        "0x0005",
+        "0x44CD",
+        "0x0033",
+        "0x000D",
+        "0xFF01",
+        "0x0029"
+      ],
+      "os_family": "macos",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Google_Chrome_146,_auto_macOS_10_15_7,_auto_Google_C.pcap",
+      "source_sha256": "1f9111f0454ba2c7f16d735ec0529a23aee0f6ee5d12c9c3072bcb012adc309f",
+      "supported_groups": [
+        "0x6A6A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_macos26_4_bfd8697e:frame305": {
+      "family": "chrome146_macos26_4_bfd8697e",
+      "key_share_groups": [
+        "0xAAAA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0xFF01",
+        "0x000A",
+        "0x0017",
+        "0x0012",
+        "0x002B",
+        "0x0010",
+        "0x001B",
+        "0x0023",
+        "0xFE0D",
+        "0x0005",
+        "0x000B",
+        "0x0000",
+        "0x002D",
+        "0x0033",
+        "0x000D",
+        "0x0029"
+      ],
+      "os_family": "macos",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Google_Chrome_146,_auto_macOS_10_15_7,_auto_Google_C.pcap",
+      "source_sha256": "1f9111f0454ba2c7f16d735ec0529a23aee0f6ee5d12c9c3072bcb012adc309f",
+      "supported_groups": [
+        "0xAAAA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_macos26_4_bfd8697e:frame329": {
+      "family": "chrome146_macos26_4_bfd8697e",
+      "key_share_groups": [
+        "0xAAAA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0012",
+        "0x002B",
+        "0x0017",
+        "0x002D",
+        "0x000B",
+        "0x0023",
+        "0xFE0D",
+        "0x0000",
+        "0xFF01",
+        "0x0033",
+        "0x0005",
+        "0x0010",
+        "0x000D",
+        "0x000A",
+        "0x001B",
+        "0x0029"
+      ],
+      "os_family": "macos",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Google_Chrome_146,_auto_macOS_10_15_7,_auto_Google_C.pcap",
+      "source_sha256": "1f9111f0454ba2c7f16d735ec0529a23aee0f6ee5d12c9c3072bcb012adc309f",
+      "supported_groups": [
+        "0xAAAA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_macos26_4_bfd8697e:frame383": {
+      "family": "chrome146_macos26_4_bfd8697e",
+      "key_share_groups": [
+        "0x9A9A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0xFF01",
+        "0x44CD",
+        "0x0023",
+        "0x0012",
+        "0x0005",
+        "0x002D",
+        "0x000A",
+        "0x0000",
+        "0x0010",
+        "0xFE0D",
+        "0x000D",
+        "0x001B",
+        "0x002B",
+        "0x0033",
+        "0x000B",
+        "0x0017",
+        "0x0029"
+      ],
+      "os_family": "macos",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Google_Chrome_146,_auto_macOS_10_15_7,_auto_Google_C.pcap",
+      "source_sha256": "1f9111f0454ba2c7f16d735ec0529a23aee0f6ee5d12c9c3072bcb012adc309f",
+      "supported_groups": [
+        "0x9A9A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_macos26_4_bfd8697e:frame58": {
+      "family": "chrome146_macos26_4_bfd8697e",
+      "key_share_groups": [
+        "0x5A5A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0023",
+        "0x000D",
+        "0x0033",
+        "0x000B",
+        "0x0017",
+        "0x002B",
+        "0x0005",
+        "0x000A",
+        "0xFF01",
+        "0xFE0D",
+        "0x0010",
+        "0x0000",
+        "0x0012",
+        "0x002D",
+        "0x001B",
+        "0x0029"
+      ],
+      "os_family": "macos",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Google_Chrome_146,_auto_macOS_10_15_7,_auto_Google_C.pcap",
+      "source_sha256": "1f9111f0454ba2c7f16d735ec0529a23aee0f6ee5d12c9c3072bcb012adc309f",
+      "supported_groups": [
+        "0x5A5A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome146_macos26_4_bfd8697e:frame82": {
+      "family": "chrome146_macos26_4_bfd8697e",
+      "key_share_groups": [
+        "0xFAFA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x000D",
+        "0x0012",
+        "0xFF01",
+        "0x002D",
+        "0x0000",
+        "0x000B",
+        "0x0017",
+        "0x0023",
+        "0x000A",
+        "0x002B",
+        "0x0033",
+        "0x001B",
+        "0x0005",
+        "0x0010",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "macos",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Google_Chrome_146,_auto_macOS_10_15_7,_auto_Google_C.pcap",
+      "source_sha256": "1f9111f0454ba2c7f16d735ec0529a23aee0f6ee5d12c9c3072bcb012adc309f",
+      "supported_groups": [
+        "0xFAFA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
     "chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d:frame108": {
       "family": "chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d",
       "key_share_groups": [
@@ -5645,6 +7232,159 @@
       "supported_groups": [
         "0xCACA",
         "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd:frame170": {
+      "family": "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd",
+      "key_share_groups": [
+        "0x6A6A",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B",
+        "0x0029"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Emdedded_8_1_Industry_Pro,_Chrome_86_0_4213_0,_auto_Wind.pcap",
+      "source_sha256": "02ff6d024b9f7e762c9493ebb688fbc8020845e1b0bb805fac19b352b0136917",
+      "supported_groups": [
+        "0x6A6A",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd:frame227": {
+      "family": "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd",
+      "key_share_groups": [
+        "0x8A8A",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Emdedded_8_1_Industry_Pro,_Chrome_86_0_4213_0,_auto_Wind.pcap",
+      "source_sha256": "02ff6d024b9f7e762c9493ebb688fbc8020845e1b0bb805fac19b352b0136917",
+      "supported_groups": [
+        "0x8A8A",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd:frame243": {
+      "family": "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd",
+      "key_share_groups": [
+        "0xFAFA",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B",
+        "0x0029"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Emdedded_8_1_Industry_Pro,_Chrome_86_0_4213_0,_auto_Wind.pcap",
+      "source_sha256": "02ff6d024b9f7e762c9493ebb688fbc8020845e1b0bb805fac19b352b0136917",
+      "supported_groups": [
+        "0xFAFA",
+        "0x001D",
+        "0x0017",
+        "0x0018"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd:frame68": {
+      "family": "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd",
+      "key_share_groups": [
+        "0x5A5A",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B",
+        "0x0029"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Emdedded_8_1_Industry_Pro,_Chrome_86_0_4213_0,_auto_Wind.pcap",
+      "source_sha256": "02ff6d024b9f7e762c9493ebb688fbc8020845e1b0bb805fac19b352b0136917",
+      "supported_groups": [
+        "0x5A5A",
         "0x001D",
         "0x0017",
         "0x0018"
@@ -8279,6 +10019,246 @@
       "transport": "tcp",
       "trust_tier": "candidate"
     },
+    "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame139": {
+      "family": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Embedded_8_1_Industry_Pro,_Firefox_115_22_0esr,_auto_Win.pcap",
+      "source_sha256": "1172b2767b55e4eb1da43558a145564d5f6e3f5230b5ba0225851f16b11864ba",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame196": {
+      "family": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Embedded_8_1_Industry_Pro,_Firefox_115_22_0esr,_auto_Win.pcap",
+      "source_sha256": "1172b2767b55e4eb1da43558a145564d5f6e3f5230b5ba0225851f16b11864ba",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame212": {
+      "family": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Embedded_8_1_Industry_Pro,_Firefox_115_22_0esr,_auto_Win.pcap",
+      "source_sha256": "1172b2767b55e4eb1da43558a145564d5f6e3f5230b5ba0225851f16b11864ba",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame24": {
+      "family": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Embedded_8_1_Industry_Pro,_Firefox_115_22_0esr,_auto_Win.pcap",
+      "source_sha256": "1172b2767b55e4eb1da43558a145564d5f6e3f5230b5ba0225851f16b11864ba",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame79": {
+      "family": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0023",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Embedded_8_1_Industry_Pro,_Firefox_115_22_0esr,_auto_Win.pcap",
+      "source_sha256": "1172b2767b55e4eb1da43558a145564d5f6e3f5230b5ba0225851f16b11864ba",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame94": {
+      "family": "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x0029"
+      ],
+      "os_family": "windows",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_Embedded_8_1_Industry_Pro,_Firefox_115_22_0esr,_auto_Win.pcap",
+      "source_sha256": "1172b2767b55e4eb1da43558a145564d5f6e3f5230b5ba0225851f16b11864ba",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
     "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame122": {
       "family": "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c",
       "key_share_groups": [
@@ -8507,6 +10487,468 @@
       "source_kind": "browser_capture",
       "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Windows/Windows_server_2012_R2_standart_6_3_9600,_Firefox_115_9_1esr,_au.pcap",
       "source_sha256": "589a0b1d786fe29f21cab690571dae225faa7ccf2079031718f62f7258980c79",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox138_0_android11_de0ac441:frame107": {
+      "family": "firefox138_0_android11_de0ac441",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_11,_Firefox_138_0,_auto_Android_11,_auto_Firefox_138_0.pcap",
+      "source_sha256": "846ba764e2cd27a3fcb097f51ac2ff7bb34f2f8a71cf950c2bc5e18a1dc8070b",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox138_0_android11_de0ac441:frame155": {
+      "family": "firefox138_0_android11_de0ac441",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_11,_Firefox_138_0,_auto_Android_11,_auto_Firefox_138_0.pcap",
+      "source_sha256": "846ba764e2cd27a3fcb097f51ac2ff7bb34f2f8a71cf950c2bc5e18a1dc8070b",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox138_0_android11_de0ac441:frame244": {
+      "family": "firefox138_0_android11_de0ac441",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_11,_Firefox_138_0,_auto_Android_11,_auto_Firefox_138_0.pcap",
+      "source_sha256": "846ba764e2cd27a3fcb097f51ac2ff7bb34f2f8a71cf950c2bc5e18a1dc8070b",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox138_0_android11_de0ac441:frame258": {
+      "family": "firefox138_0_android11_de0ac441",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_11,_Firefox_138_0,_auto_Android_11,_auto_Firefox_138_0.pcap",
+      "source_sha256": "846ba764e2cd27a3fcb097f51ac2ff7bb34f2f8a71cf950c2bc5e18a1dc8070b",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox138_0_android11_de0ac441:frame26": {
+      "family": "firefox138_0_android11_de0ac441",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_11,_Firefox_138_0,_auto_Android_11,_auto_Firefox_138_0.pcap",
+      "source_sha256": "846ba764e2cd27a3fcb097f51ac2ff7bb34f2f8a71cf950c2bc5e18a1dc8070b",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox138_0_android11_de0ac441:frame92": {
+      "family": "firefox138_0_android11_de0ac441",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_11,_Firefox_138_0,_auto_Android_11,_auto_Firefox_138_0.pcap",
+      "source_sha256": "846ba764e2cd27a3fcb097f51ac2ff7bb34f2f8a71cf950c2bc5e18a1dc8070b",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox143_0_android14_696bd2a6:frame111": {
+      "family": "firefox143_0_android14_696bd2a6",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_14,_Firefox_143_0,_auto_Android_14,_auto_Firefox_143_0.pcap",
+      "source_sha256": "c8e1f51b9132131919617e12a41ee169aa35a204e99431e5e11f2acd156ea8eb",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox143_0_android14_696bd2a6:frame127": {
+      "family": "firefox143_0_android14_696bd2a6",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_14,_Firefox_143_0,_auto_Android_14,_auto_Firefox_143_0.pcap",
+      "source_sha256": "c8e1f51b9132131919617e12a41ee169aa35a204e99431e5e11f2acd156ea8eb",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox143_0_android14_696bd2a6:frame287": {
+      "family": "firefox143_0_android14_696bd2a6",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_14,_Firefox_143_0,_auto_Android_14,_auto_Firefox_143_0.pcap",
+      "source_sha256": "c8e1f51b9132131919617e12a41ee169aa35a204e99431e5e11f2acd156ea8eb",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox143_0_android14_696bd2a6:frame301": {
+      "family": "firefox143_0_android14_696bd2a6",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_14,_Firefox_143_0,_auto_Android_14,_auto_Firefox_143_0.pcap",
+      "source_sha256": "c8e1f51b9132131919617e12a41ee169aa35a204e99431e5e11f2acd156ea8eb",
+      "supported_groups": [
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox143_0_android14_696bd2a6:frame92": {
+      "family": "firefox143_0_android14_696bd2a6",
+      "key_share_groups": [
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_14,_Firefox_143_0,_auto_Android_14,_auto_Firefox_143_0.pcap",
+      "source_sha256": "c8e1f51b9132131919617e12a41ee169aa35a204e99431e5e11f2acd156ea8eb",
       "supported_groups": [
         "0x001D",
         "0x0017",
@@ -11593,6 +14035,226 @@
       "source_kind": "browser_capture",
       "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_12,_Firefox_149_0,_auto_Android_12,_auto_Firefox_149_0.pcap",
       "source_sha256": "9b12c0864673a3eb661aa2c4475b8a66debae230ff33068278c55b94a5ad8af6",
+      "supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox149_0_android14_1a43f4dc:frame117": {
+      "family": "firefox149_0_android14_1a43f4dc",
+      "key_share_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_14,_Firefox_149_0,_auto_Android_14,_auto_Firefox_149_0.pcap",
+      "source_sha256": "dc672392ad774c566426b0bf750093043a14aa77d952873a38a13e1cdd474ef2",
+      "supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox149_0_android14_1a43f4dc:frame168": {
+      "family": "firefox149_0_android14_1a43f4dc",
+      "key_share_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_14,_Firefox_149_0,_auto_Android_14,_auto_Firefox_149_0.pcap",
+      "source_sha256": "dc672392ad774c566426b0bf750093043a14aa77d952873a38a13e1cdd474ef2",
+      "supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox149_0_android14_1a43f4dc:frame262": {
+      "family": "firefox149_0_android14_1a43f4dc",
+      "key_share_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_14,_Firefox_149_0,_auto_Android_14,_auto_Firefox_149_0.pcap",
+      "source_sha256": "dc672392ad774c566426b0bf750093043a14aa77d952873a38a13e1cdd474ef2",
+      "supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox149_0_android14_1a43f4dc:frame287": {
+      "family": "firefox149_0_android14_1a43f4dc",
+      "key_share_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_14,_Firefox_149_0,_auto_Android_14,_auto_Firefox_149_0.pcap",
+      "source_sha256": "dc672392ad774c566426b0bf750093043a14aa77d952873a38a13e1cdd474ef2",
+      "supported_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019",
+        "0x0100",
+        "0x0101"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "firefox149_0_android14_1a43f4dc:frame305": {
+      "family": "firefox149_0_android14_1a43f4dc",
+      "key_share_groups": [
+        "0x11EC",
+        "0x001D",
+        "0x0017"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x0022",
+        "0x0033",
+        "0x002B",
+        "0x000D",
+        "0x002D",
+        "0x001C",
+        "0x001B",
+        "0xFE0D",
+        "0x0029"
+      ],
+      "os_family": "android",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/Android/Android_14,_Firefox_149_0,_auto_Android_14,_auto_Firefox_149_0.pcap",
+      "source_sha256": "dc672392ad774c566426b0bf750093043a14aa77d952873a38a13e1cdd474ef2",
       "supported_groups": [
         "0x11EC",
         "0x001D",
@@ -16416,6 +19078,246 @@
       "transport": "tcp",
       "trust_tier": "candidate"
     },
+    "safari26_3_1_ios26_3_1_e6457bbd:frame104": {
+      "family": "safari26_3_1_ios26_3_1_e6457bbd",
+      "key_share_groups": [
+        "0x4A4A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "ios",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS 26.3.1, Safari 26.3.1, auto iOS 18.7, auto Safari 26.3.pcap",
+      "source_sha256": "56f0ab90c18fb767945aa12db99e605e1409ce23281ca707ba2d231dd6db170a",
+      "supported_groups": [
+        "0x4A4A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "safari26_3_1_ios26_3_1_e6457bbd:frame209": {
+      "family": "safari26_3_1_ios26_3_1_e6457bbd",
+      "key_share_groups": [
+        "0x4A4A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "ios",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS 26.3.1, Safari 26.3.1, auto iOS 18.7, auto Safari 26.3.pcap",
+      "source_sha256": "56f0ab90c18fb767945aa12db99e605e1409ce23281ca707ba2d231dd6db170a",
+      "supported_groups": [
+        "0x4A4A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "safari26_3_1_ios26_3_1_e6457bbd:frame23": {
+      "family": "safari26_3_1_ios26_3_1_e6457bbd",
+      "key_share_groups": [
+        "0x2A2A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "ios",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS 26.3.1, Safari 26.3.1, auto iOS 18.7, auto Safari 26.3.pcap",
+      "source_sha256": "56f0ab90c18fb767945aa12db99e605e1409ce23281ca707ba2d231dd6db170a",
+      "supported_groups": [
+        "0x2A2A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "safari26_3_1_ios26_3_1_e6457bbd:frame276": {
+      "family": "safari26_3_1_ios26_3_1_e6457bbd",
+      "key_share_groups": [
+        "0xCACA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "ios",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS 26.3.1, Safari 26.3.1, auto iOS 18.7, auto Safari 26.3.pcap",
+      "source_sha256": "56f0ab90c18fb767945aa12db99e605e1409ce23281ca707ba2d231dd6db170a",
+      "supported_groups": [
+        "0xCACA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "safari26_3_1_ios26_3_1_e6457bbd:frame293": {
+      "family": "safari26_3_1_ios26_3_1_e6457bbd",
+      "key_share_groups": [
+        "0x3A3A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "ios",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS 26.3.1, Safari 26.3.1, auto iOS 18.7, auto Safari 26.3.pcap",
+      "source_sha256": "56f0ab90c18fb767945aa12db99e605e1409ce23281ca707ba2d231dd6db170a",
+      "supported_groups": [
+        "0x3A3A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "safari26_3_1_ios26_3_1_e6457bbd:frame87": {
+      "family": "safari26_3_1_ios26_3_1_e6457bbd",
+      "key_share_groups": [
+        "0xBABA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "ios",
+      "platform_class": "mobile",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/iOS/iOS 26.3.1, Safari 26.3.1, auto iOS 18.7, auto Safari 26.3.pcap",
+      "source_sha256": "56f0ab90c18fb767945aa12db99e605e1409ce23281ca707ba2d231dd6db170a",
+      "supported_groups": [
+        "0xBABA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
     "safari26_3_ios26_3_1_83afd3bc:frame165": {
       "family": "safari26_3_ios26_3_1_83afd3bc",
       "key_share_groups": [
@@ -17406,6 +20308,246 @@
       "source_sha256": "311efe24e5f14b79184b5a5aa649f57908b3df9d0f2523abe281e0a9536b73c5",
       "supported_groups": [
         "0x1A1A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "safari26_4_macos26_4_4f4b581d:frame18": {
+      "family": "safari26_4_macos26_4_4f4b581d",
+      "key_share_groups": [
+        "0x5A5A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "macos",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Safari_26_4,_auto_macOS_10_15_7,_auto_Safari_26_4.pcap",
+      "source_sha256": "0a82249e6bc214e6b9268ff17de59eb73c9bd6614310e9217011cda08d1bb4a1",
+      "supported_groups": [
+        "0x5A5A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "safari26_4_macos26_4_4f4b581d:frame187": {
+      "family": "safari26_4_macos26_4_4f4b581d",
+      "key_share_groups": [
+        "0x7A7A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "macos",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Safari_26_4,_auto_macOS_10_15_7,_auto_Safari_26_4.pcap",
+      "source_sha256": "0a82249e6bc214e6b9268ff17de59eb73c9bd6614310e9217011cda08d1bb4a1",
+      "supported_groups": [
+        "0x7A7A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "safari26_4_macos26_4_4f4b581d:frame235": {
+      "family": "safari26_4_macos26_4_4f4b581d",
+      "key_share_groups": [
+        "0x5A5A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "macos",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Safari_26_4,_auto_macOS_10_15_7,_auto_Safari_26_4.pcap",
+      "source_sha256": "0a82249e6bc214e6b9268ff17de59eb73c9bd6614310e9217011cda08d1bb4a1",
+      "supported_groups": [
+        "0x5A5A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "safari26_4_macos26_4_4f4b581d:frame252": {
+      "family": "safari26_4_macos26_4_4f4b581d",
+      "key_share_groups": [
+        "0x9A9A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "macos",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Safari_26_4,_auto_macOS_10_15_7,_auto_Safari_26_4.pcap",
+      "source_sha256": "0a82249e6bc214e6b9268ff17de59eb73c9bd6614310e9217011cda08d1bb4a1",
+      "supported_groups": [
+        "0x9A9A",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "safari26_4_macos26_4_4f4b581d:frame72": {
+      "family": "safari26_4_macos26_4_4f4b581d",
+      "key_share_groups": [
+        "0xCACA",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "macos",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Safari_26_4,_auto_macOS_10_15_7,_auto_Safari_26_4.pcap",
+      "source_sha256": "0a82249e6bc214e6b9268ff17de59eb73c9bd6614310e9217011cda08d1bb4a1",
+      "supported_groups": [
+        "0xCACA",
+        "0x11EC",
+        "0x001D",
+        "0x0017",
+        "0x0018",
+        "0x0019"
+      ],
+      "tls_gen": "tls13",
+      "transport": "tcp",
+      "trust_tier": "candidate"
+    },
+    "safari26_4_macos26_4_4f4b581d:frame88": {
+      "family": "safari26_4_macos26_4_4f4b581d",
+      "key_share_groups": [
+        "0x3A3A",
+        "0x11EC",
+        "0x001D"
+      ],
+      "non_grease_extensions_without_padding": [
+        "0x0000",
+        "0x0017",
+        "0xFF01",
+        "0x000A",
+        "0x000B",
+        "0x0010",
+        "0x0005",
+        "0x000D",
+        "0x0012",
+        "0x0033",
+        "0x002D",
+        "0x002B",
+        "0x001B"
+      ],
+      "os_family": "macos",
+      "platform_class": "desktop",
+      "route_mode": "non_ru_egress",
+      "source_kind": "browser_capture",
+      "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Safari_26_4,_auto_macOS_10_15_7,_auto_Safari_26_4.pcap",
+      "source_sha256": "0a82249e6bc214e6b9268ff17de59eb73c9bd6614310e9217011cda08d1bb4a1",
+      "supported_groups": [
+        "0x3A3A",
         "0x11EC",
         "0x001D",
         "0x0017",
@@ -19724,6 +22866,56 @@
       "pq_group": "0x11EC",
       "release_gating": false
     },
+    "braveversion_1_88_137_ios18_7_8eb96b77": {
+      "allowed_tags": {
+        "family": [
+          "braveversion_1_88_137_ios18_7_8eb96b77"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": {
+        "allow_absent": true,
+        "allowed_types": [
+          "0x44CD"
+        ]
+      },
+      "ech_type": {
+        "allow_absent": true,
+        "allow_present": true
+      },
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "braveversion_1_88_137_ios18_7_8eb96b77:frame24",
+        "braveversion_1_88_137_ios18_7_8eb96b77:frame35",
+        "braveversion_1_88_137_ios18_7_8eb96b77:frame240",
+        "braveversion_1_88_137_ios18_7_8eb96b77:frame274",
+        "braveversion_1_88_137_ios18_7_8eb96b77:frame340",
+        "braveversion_1_88_137_ios18_7_8eb96b77:frame503"
+      ],
+      "pq_group": "0x11EC",
+      "release_gating": false
+    },
     "chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95": {
       "allowed_tags": {
         "family": [
@@ -19849,6 +23041,100 @@
         "chrome109_0_54_windowsserver_2012_r2_standart_6_3_9600_e30794b5:frame361"
       ],
       "pq_group": null,
+      "release_gating": false
+    },
+    "chrome139_0_7258_123_android11_7074a166": {
+      "allowed_tags": {
+        "family": [
+          "chrome139_0_7258_123_android11_7074a166"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": {
+        "allow_absent": true,
+        "allowed_types": [
+          "0x44CD"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "chrome139_0_7258_123_android11_7074a166:frame89",
+        "chrome139_0_7258_123_android11_7074a166:frame101",
+        "chrome139_0_7258_123_android11_7074a166:frame120",
+        "chrome139_0_7258_123_android11_7074a166:frame354",
+        "chrome139_0_7258_123_android11_7074a166:frame358",
+        "chrome139_0_7258_123_android11_7074a166:frame385"
+      ],
+      "pq_group": "0x11EC",
+      "release_gating": false
+    },
+    "chrome143_0_7499_192_android15_1_2_4d757bcd": {
+      "allowed_tags": {
+        "family": [
+          "chrome143_0_7499_192_android15_1_2_4d757bcd"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": {
+        "allow_absent": true,
+        "allowed_types": [
+          "0x44CD"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "chrome143_0_7499_192_android15_1_2_4d757bcd:frame139",
+        "chrome143_0_7499_192_android15_1_2_4d757bcd:frame203",
+        "chrome143_0_7499_192_android15_1_2_4d757bcd:frame247",
+        "chrome143_0_7499_192_android15_1_2_4d757bcd:frame498",
+        "chrome143_0_7499_192_android15_1_2_4d757bcd:frame542",
+        "chrome143_0_7499_192_android15_1_2_4d757bcd:frame598"
+      ],
+      "pq_group": "0x11EC",
       "release_gating": false
     },
     "chrome143_0_7499_192_android15_1_2_89fec207": {
@@ -19985,6 +23271,143 @@
         "chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae:frame193",
         "chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae:frame202",
         "chrome144_0_7559_133_build_arm64_macos15_7_4_24g517_fa25d7ae:frame208"
+      ],
+      "pq_group": "0x11EC",
+      "release_gating": false
+    },
+    "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b": {
+      "allowed_tags": {
+        "family": [
+          "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b"
+        ],
+        "os_family": [
+          "windows"
+        ],
+        "platform_class": [
+          "desktop"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": {
+        "allow_absent": true,
+        "allowed_types": [
+          "0x44CD"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b:frame65",
+        "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b:frame202",
+        "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b:frame221",
+        "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b:frame258"
+      ],
+      "pq_group": "0x11EC",
+      "release_gating": false
+    },
+    "chrome146_0_7680_153_android12_140f2879": {
+      "allowed_tags": {
+        "family": [
+          "chrome146_0_7680_153_android12_140f2879"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": {
+        "allow_absent": true,
+        "allowed_types": [
+          "0x44CD"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "chrome146_0_7680_153_android12_140f2879:frame149",
+        "chrome146_0_7680_153_android12_140f2879:frame173",
+        "chrome146_0_7680_153_android12_140f2879:frame200",
+        "chrome146_0_7680_153_android12_140f2879:frame476",
+        "chrome146_0_7680_153_android12_140f2879:frame499",
+        "chrome146_0_7680_153_android12_140f2879:frame551"
+      ],
+      "pq_group": "0x11EC",
+      "release_gating": false
+    },
+    "chrome146_0_7680_177_android13_93354fa3": {
+      "allowed_tags": {
+        "family": [
+          "chrome146_0_7680_177_android13_93354fa3"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": {
+        "allow_absent": true,
+        "allowed_types": [
+          "0x44CD"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "chrome146_0_7680_177_android13_93354fa3:frame86",
+        "chrome146_0_7680_177_android13_93354fa3:frame256",
+        "chrome146_0_7680_177_android13_93354fa3:frame330",
+        "chrome146_0_7680_177_android13_93354fa3:frame365"
       ],
       "pq_group": "0x11EC",
       "release_gating": false
@@ -20483,6 +23906,53 @@
       "pq_group": "0x11EC",
       "release_gating": false
     },
+    "chrome146_macos26_4_bfd8697e": {
+      "allowed_tags": {
+        "family": [
+          "chrome146_macos26_4_bfd8697e"
+        ],
+        "os_family": [
+          "macos"
+        ],
+        "platform_class": [
+          "desktop"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": {
+        "allow_absent": true,
+        "allowed_types": [
+          "0x44CD"
+        ]
+      },
+      "ech_type": "0xFE0D",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "chrome146_macos26_4_bfd8697e:frame58",
+        "chrome146_macos26_4_bfd8697e:frame82",
+        "chrome146_macos26_4_bfd8697e:frame120",
+        "chrome146_macos26_4_bfd8697e:frame305",
+        "chrome146_macos26_4_bfd8697e:frame329",
+        "chrome146_macos26_4_bfd8697e:frame383"
+      ],
+      "pq_group": "0x11EC",
+      "release_gating": false
+    },
     "chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d": {
       "allowed_tags": {
         "family": [
@@ -20798,6 +24268,46 @@
         "chrome147_macos26_4_81b7d4cc:frame140"
       ],
       "pq_group": "0x11EC",
+      "release_gating": false
+    },
+    "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd": {
+      "allowed_tags": {
+        "family": [
+          "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd"
+        ],
+        "os_family": [
+          "windows"
+        ],
+        "platform_class": [
+          "desktop"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": null,
+      "ech_type": null,
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd:frame68",
+        "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd:frame170",
+        "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd:frame227",
+        "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd:frame243"
+      ],
+      "pq_group": null,
       "release_gating": false
     },
     "chromewindows_11_222_22621_4317_146_0_7680_178_win_windows11_222_22621_4317_google_chrome_146_0_7680_178_win_9a383694": {
@@ -21348,6 +24858,48 @@
       "pq_group": null,
       "release_gating": false
     },
+    "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f": {
+      "allowed_tags": {
+        "family": [
+          "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f"
+        ],
+        "os_family": [
+          "windows"
+        ],
+        "platform_class": [
+          "desktop"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": null,
+      "ech_type": null,
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame24",
+        "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame79",
+        "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame94",
+        "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame139",
+        "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame196",
+        "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f:frame212"
+      ],
+      "pq_group": null,
+      "release_gating": false
+    },
     "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c": {
       "allowed_tags": {
         "family": [
@@ -21386,6 +24938,89 @@
         "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame181",
         "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame195",
         "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c:frame252"
+      ],
+      "pq_group": null,
+      "release_gating": false
+    },
+    "firefox138_0_android11_de0ac441": {
+      "allowed_tags": {
+        "family": [
+          "firefox138_0_android11_de0ac441"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": null,
+      "ech_type": "0xFE0D",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "firefox138_0_android11_de0ac441:frame26",
+        "firefox138_0_android11_de0ac441:frame92",
+        "firefox138_0_android11_de0ac441:frame107",
+        "firefox138_0_android11_de0ac441:frame155",
+        "firefox138_0_android11_de0ac441:frame244",
+        "firefox138_0_android11_de0ac441:frame258"
+      ],
+      "pq_group": null,
+      "release_gating": false
+    },
+    "firefox143_0_android14_696bd2a6": {
+      "allowed_tags": {
+        "family": [
+          "firefox143_0_android14_696bd2a6"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": null,
+      "ech_type": "0xFE0D",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "firefox143_0_android14_696bd2a6:frame92",
+        "firefox143_0_android14_696bd2a6:frame111",
+        "firefox143_0_android14_696bd2a6:frame127",
+        "firefox143_0_android14_696bd2a6:frame287",
+        "firefox143_0_android14_696bd2a6:frame301"
       ],
       "pq_group": null,
       "release_gating": false
@@ -21889,6 +25524,47 @@
         "firefox149_0_android12_58d44f71:frame314",
         "firefox149_0_android12_58d44f71:frame344",
         "firefox149_0_android12_58d44f71:frame363"
+      ],
+      "pq_group": "0x11EC",
+      "release_gating": false
+    },
+    "firefox149_0_android14_1a43f4dc": {
+      "allowed_tags": {
+        "family": [
+          "firefox149_0_android14_1a43f4dc"
+        ],
+        "os_family": [
+          "android"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": null,
+      "ech_type": "0xFE0D",
+      "extension_order_policy": "ChromeShuffleAnchored",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "firefox149_0_android14_1a43f4dc:frame117",
+        "firefox149_0_android14_1a43f4dc:frame168",
+        "firefox149_0_android14_1a43f4dc:frame262",
+        "firefox149_0_android14_1a43f4dc:frame287",
+        "firefox149_0_android14_1a43f4dc:frame305"
       ],
       "pq_group": "0x11EC",
       "release_gating": false
@@ -22729,6 +26405,48 @@
       "pq_group": "0x11EC",
       "release_gating": false
     },
+    "safari26_3_1_ios26_3_1_e6457bbd": {
+      "allowed_tags": {
+        "family": [
+          "safari26_3_1_ios26_3_1_e6457bbd"
+        ],
+        "os_family": [
+          "ios"
+        ],
+        "platform_class": [
+          "mobile"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": null,
+      "ech_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "safari26_3_1_ios26_3_1_e6457bbd:frame23",
+        "safari26_3_1_ios26_3_1_e6457bbd:frame87",
+        "safari26_3_1_ios26_3_1_e6457bbd:frame104",
+        "safari26_3_1_ios26_3_1_e6457bbd:frame209",
+        "safari26_3_1_ios26_3_1_e6457bbd:frame276",
+        "safari26_3_1_ios26_3_1_e6457bbd:frame293"
+      ],
+      "pq_group": "0x11EC",
+      "release_gating": false
+    },
     "safari26_3_ios26_3_1_83afd3bc": {
       "allowed_tags": {
         "family": [
@@ -22930,6 +26648,48 @@
         "safari26_4_ios26_4_5ddb4ee5:frame220",
         "safari26_4_ios26_4_5ddb4ee5:frame287",
         "safari26_4_ios26_4_5ddb4ee5:frame306"
+      ],
+      "pq_group": "0x11EC",
+      "release_gating": false
+    },
+    "safari26_4_macos26_4_4f4b581d": {
+      "allowed_tags": {
+        "family": [
+          "safari26_4_macos26_4_4f4b581d"
+        ],
+        "os_family": [
+          "macos"
+        ],
+        "platform_class": [
+          "desktop"
+        ],
+        "source_kind": [
+          "browser_capture"
+        ],
+        "tls_gen": [
+          "tls13"
+        ],
+        "transport": [
+          "tcp"
+        ]
+      },
+      "alps_type": null,
+      "ech_type": null,
+      "extension_order_policy": "FixedFromFixture",
+      "fingerprint_policy": {
+        "allow_exact_ja3_pin": false,
+        "allow_exact_ja4_pin": false,
+        "require_anti_telegram_ja3": true,
+        "require_noncollapsed_randomized_hashes": false,
+        "require_structural_match": true
+      },
+      "include_fixture_ids": [
+        "safari26_4_macos26_4_4f4b581d:frame18",
+        "safari26_4_macos26_4_4f4b581d:frame72",
+        "safari26_4_macos26_4_4f4b581d:frame88",
+        "safari26_4_macos26_4_4f4b581d:frame187",
+        "safari26_4_macos26_4_4f4b581d:frame235",
+        "safari26_4_macos26_4_4f4b581d:frame252"
       ],
       "pq_group": "0x11EC",
       "release_gating": false
@@ -23374,6 +27134,34 @@
       ],
       "parser_version": "tls-serverhello-parser-v1"
     },
+    "braveversion_1_88_137_ios18_7_8eb96b77": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033"
+          ],
+          "selected_version": "0x0304"
+        },
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033",
+            "0x0029"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
     "chrome109_0_5414_120_windows7_pro_6_1_7601_356eca95": {
       "allowed_layout_signatures": [
         [
@@ -23430,6 +27218,54 @@
           ],
           "selected_version": "0x0304"
         },
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033",
+            "0x0029"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
+    "chrome139_0_7258_123_android11_7074a166": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033",
+            "0x0029"
+          ],
+          "selected_version": "0x0304"
+        },
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
+    "chrome143_0_7499_192_android15_1_2_4d757bcd": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
         {
           "cipher_suite": "0x1301",
           "extensions": [
@@ -23504,6 +27340,72 @@
             "0x002B",
             "0x0033",
             "0x0029"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
+    "chrome145_0_7632_45_windows10_22h2_19045_6809_70957f2b": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033",
+            "0x0029"
+          ],
+          "selected_version": "0x0304"
+        },
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
+    "chrome146_0_7680_153_android12_140f2879": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
+    "chrome146_0_7680_177_android13_93354fa3": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033"
           ],
           "selected_version": "0x0304"
         }
@@ -23766,6 +27668,26 @@
       ],
       "parser_version": "tls-serverhello-parser-v1"
     },
+    "chrome146_macos26_4_bfd8697e": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033",
+            "0x0029"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
     "chrome146_windowsserver_2019_standart_1809_17763_1457_b77c034d": {
       "allowed_layout_signatures": [
         [
@@ -23923,6 +27845,34 @@
             "0x002B",
             "0x0033",
             "0x0029"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
+    "chrome86_0_4213_0_windowsemdedded_8_1_industry_pro_f978a0bd": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1303",
+          "extensions": [
+            "0x002B",
+            "0x0033",
+            "0x0029"
+          ],
+          "selected_version": "0x0304"
+        },
+        {
+          "cipher_suite": "0x1303",
+          "extensions": [
+            "0x002B",
+            "0x0033"
           ],
           "selected_version": "0x0304"
         }
@@ -24216,7 +28166,75 @@
       ],
       "parser_version": "tls-serverhello-parser-v1"
     },
+    "firefox115_22_0esr_windowsembedded_8_1_industry_pro_c237ca3f": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033",
+            "0x0029"
+          ],
+          "selected_version": "0x0304"
+        },
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
     "firefox115_9_1esr_windowsserver_2012_r2_standart_6_3_9600_7de8be3c": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033",
+            "0x0029"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
+    "firefox138_0_android11_de0ac441": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033",
+            "0x0029"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
+    "firefox143_0_android14_696bd2a6": {
       "allowed_layout_signatures": [
         [
           22,
@@ -24488,6 +28506,26 @@
       "parser_version": "tls-serverhello-parser-v1"
     },
     "firefox149_0_android12_58d44f71": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033",
+            "0x0029"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
+    "firefox149_0_android14_1a43f4dc": {
       "allowed_layout_signatures": [
         [
           22,
@@ -24951,6 +28989,25 @@
       ],
       "parser_version": "tls-serverhello-parser-v1"
     },
+    "safari26_3_1_ios26_3_1_e6457bbd": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
     "safari26_3_ios26_3_1_83afd3bc": {
       "allowed_layout_signatures": [
         [
@@ -25028,6 +29085,25 @@
       "parser_version": "tls-serverhello-parser-v1"
     },
     "safari26_4_ios26_4_5ddb4ee5": {
+      "allowed_layout_signatures": [
+        [
+          22,
+          20
+        ]
+      ],
+      "allowed_tuples": [
+        {
+          "cipher_suite": "0x1301",
+          "extensions": [
+            "0x002B",
+            "0x0033"
+          ],
+          "selected_version": "0x0304"
+        }
+      ],
+      "parser_version": "tls-serverhello-parser-v1"
+    },
+    "safari26_4_macos26_4_4f4b581d": {
       "allowed_layout_signatures": [
         [
           22,

@@ -1,0 +1,101 @@
+{
+  "capture_date_utc": "2026-04-11T21:47:52Z",
+  "extractor": {
+    "display_filter": "tcp && tls.handshake.type == 2",
+    "tshark_version": "TShark (Wireshark) 4.2.2 (Git v4.2.2 packaged as 4.2.2-1.1build3)."
+  },
+  "family": "safari26_4_macos26_4_4f4b581d",
+  "parser_version": "tls-serverhello-parser-v1",
+  "route_mode": "non_ru_egress",
+  "samples": [
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "safari26_4_macos26_4_4f4b581d",
+      "fixture_id": "imported_safari26_4_macos26_4_4f4b581d_serverhello:frame20",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "safari26_4_macos26_4_4f4b581d",
+      "fixture_id": "imported_safari26_4_macos26_4_4f4b581d_serverhello:frame74",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "safari26_4_macos26_4_4f4b581d",
+      "fixture_id": "imported_safari26_4_macos26_4_4f4b581d_serverhello:frame90",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "safari26_4_macos26_4_4f4b581d",
+      "fixture_id": "imported_safari26_4_macos26_4_4f4b581d_serverhello:frame189",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "safari26_4_macos26_4_4f4b581d",
+      "fixture_id": "imported_safari26_4_macos26_4_4f4b581d_serverhello:frame237",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    },
+    {
+      "cipher_suite": "0x1301",
+      "extensions": [
+        "0x002B",
+        "0x0033"
+      ],
+      "fixture_family_id": "safari26_4_macos26_4_4f4b581d",
+      "fixture_id": "imported_safari26_4_macos26_4_4f4b581d_serverhello:frame254",
+      "record_layout_signature": [
+        22,
+        20
+      ],
+      "selected_version": "0x0304"
+    }
+  ],
+  "scenario_id": "imported_safari26_4_macos26_4_4f4b581d_serverhello",
+  "source_kind": "browser_capture",
+  "source_path": "/home/david_osipov/tdlib-obf/docs/Samples/Traffic dumps/macOS/macOS_26_4,_Safari_26_4,_auto_macOS_10_15_7,_auto_Safari_26_4.pcap",
+  "source_sha256": "0a82249e6bc214e6b9268ff17de59eb73c9bd6614310e9217011cda08d1bb4a1",
+  "transport": "tcp"
+}
