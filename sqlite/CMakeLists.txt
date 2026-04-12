@@ -14,14 +14,18 @@ if (NOT OPENSSL_FOUND)
 endif()
 
 set(SQLITE_SOURCE
-  sqlite/sqlite3.c
+  tdsqlite_amalgamation.c
 
   sqlite/sqlite3.h
   sqlite/sqlite3ext.h
   sqlite/sqlite3session.h
-)
 
-# all SQLite functions are moved to namespace tdsqlite3 by `sed -Ebi 's/sqlite3([^.]|$)/td&/g' *`
+  generated/tdsqlite_rename.h
+
+  upstream/sqlite3.h
+  upstream/sqlite3ext.h
+  upstream/sqlite3session.h
+)
 
 add_library(tdsqlite STATIC ${SQLITE_SOURCE})
 target_include_directories(tdsqlite PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
@@ -42,6 +46,8 @@ target_compile_definitions(tdsqlite PRIVATE
   -DSQLITE_DEFAULT_SYNCHRONOUS=1
   -DSQLITE_DISABLE_LFS
   -DSQLITE_ENABLE_FTS5
+  -DSQLITE_EXTRA_INIT=sqlcipher_extra_init
+  -DSQLITE_EXTRA_SHUTDOWN=sqlcipher_extra_shutdown
   -DSQLITE_HAS_CODEC
   -DSQLITE_OMIT_DECLTYPE
   -DSQLITE_OMIT_DEPRECATED

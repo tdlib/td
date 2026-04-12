@@ -72,14 +72,14 @@ Result<string> SqliteStatement::explain() {
   return sb.as_cslice().str();
 }
 Status SqliteStatement::bind_blob(int id, Slice blob) {
-  auto rc = tdsqlite3_bind_blob(stmt_.get(), id, blob.data(), static_cast<int>(blob.size()), nullptr);
+  auto rc = tdsqlite3_bind_blob(stmt_.get(), id, blob.data(), static_cast<int>(blob.size()), SQLITE_TRANSIENT);
   if (rc != SQLITE_OK) {
     return last_error();
   }
   return Status::OK();
 }
 Status SqliteStatement::bind_string(int id, Slice str) {
-  auto rc = tdsqlite3_bind_text(stmt_.get(), id, str.data(), static_cast<int>(str.size()), nullptr);
+  auto rc = tdsqlite3_bind_text(stmt_.get(), id, str.data(), static_cast<int>(str.size()), SQLITE_TRANSIENT);
   if (rc != SQLITE_OK) {
     return last_error();
   }
@@ -171,6 +171,7 @@ SqliteStatement::Datatype SqliteStatement::view_datatype(int id) {
 
 void SqliteStatement::reset() {
   tdsqlite3_reset(stmt_.get());
+  tdsqlite3_clear_bindings(stmt_.get());
   state_ = State::Start;
 }
 

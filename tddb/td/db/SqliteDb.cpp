@@ -120,17 +120,19 @@ void SqliteDb::trace(bool flag) {
 
 Status SqliteDb::exec(CSlice cmd) {
   CHECK(!empty());
-  char *msg;
+  char *msg = nullptr;
   if (enable_logging_) {
     VLOG(sqlite) << "Start exec " << tag("query", cmd) << tag("database", raw_->db());
   }
   auto rc = tdsqlite3_exec(raw_->db(), cmd.c_str(), nullptr, nullptr, &msg);
   if (rc != SQLITE_OK) {
     CHECK(msg != nullptr);
+    auto status = raw_->last_error();
+    tdsqlite3_free(msg);
     if (enable_logging_) {
-      VLOG(sqlite) << "Finish exec with error " << msg;
+      VLOG(sqlite) << "Finish exec with error " << status;
     }
-    return Status::Error(PSLICE() << tag("query", cmd) << " to database \"" << raw_->path() << "\" failed: " << msg);
+    return status.move_as_error_prefix(PSLICE() << tag("query", cmd) << " failed: ");
   }
   CHECK(msg == nullptr);
   if (enable_logging_) {
@@ -140,11 +142,13 @@ Status SqliteDb::exec(CSlice cmd) {
 }
 
 Result<bool> SqliteDb::has_table(Slice table) {
-  TRY_RESULT(stmt, get_statement(PSLICE() << "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='" << table
-                                          << "'"));
+  TRY_RESULT(stmt, get_statement("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = ?1"));
+  TRY_STATUS(stmt.bind_string(1, table));
   TRY_STATUS(stmt.step());
   CHECK(stmt.has_row());
   auto cnt = stmt.view_int32(0);
+  TRY_STATUS(stmt.step());
+  CHECK(!stmt.can_step());
   return cnt == 1;
 }
 
@@ -182,24 +186,27 @@ Status SqliteDb::set_user_version(int32 version) {
 }
 
 Status SqliteDb::begin_read_transaction() {
-  if (raw_->on_begin()) {
-    return exec("BEGIN");
+  if (raw_->need_begin()) {
+    TRY_STATUS(exec("BEGIN"));
   }
+  raw_->on_begin_success();
   return Status::OK();
 }
 
 Status SqliteDb::begin_write_transaction() {
-  if (raw_->on_begin()) {
-    return exec("BEGIN IMMEDIATE");
+  if (raw_->need_begin()) {
+    TRY_STATUS(exec("BEGIN IMMEDIATE"));
   }
+  raw_->on_begin_success();
   return Status::OK();
 }
 
 Status SqliteDb::commit_transaction() {
-  TRY_RESULT(need_commit, raw_->on_commit());
+  TRY_RESULT(need_commit, raw_->need_commit());
   if (need_commit) {
-    return exec("COMMIT");
+    TRY_STATUS(exec("COMMIT"));
   }
+  raw_->on_commit_success();
   return Status::OK();
 }
 

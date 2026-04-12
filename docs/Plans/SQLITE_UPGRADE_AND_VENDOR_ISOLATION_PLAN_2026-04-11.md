@@ -352,6 +352,11 @@ Tasks:
    - simple statement prepare/bind/step/reset behavior.
 2. wire those tests into the normal native test target.
 
+Hardening extension:
+
+1. add concurrent transaction stress with multiple readers and writers using separate SQLite connections in WAL mode;
+2. expand corruption coverage beyond malformed schema with a small corpus of page-level on-disk corruption patterns.
+
 Rationale:
 
 1. current repo search does not show an obvious dedicated SQLite test slice;

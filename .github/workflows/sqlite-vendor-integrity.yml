@@ -1,0 +1,48 @@
+name: SQLite Vendor Integrity
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/sqlite-vendor-integrity.yml"
+      - "sqlite/**"
+      - "tools/sqlite/**"
+      - "test/analysis/test_sqlite*.py"
+      - "test/analysis/test_sqlite_phase4_vendor_target_repo.py"
+  push:
+    paths:
+      - ".github/workflows/sqlite-vendor-integrity.yml"
+      - "sqlite/**"
+      - "tools/sqlite/**"
+      - "test/analysis/test_sqlite*.py"
+      - "test/analysis/test_sqlite_phase4_vendor_target_repo.py"
+  workflow_dispatch:
+
+jobs:
+  sqlite-vendor-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify manifest and generated files
+        run: python3 tools/sqlite/audit_vendor.py --check-integrity
+
+      - name: Run SQLite vendor analysis tests
+        run: python3 -m unittest discover -s test/analysis -p 'test_sqlite*.py'
+
+      - name: Run current target baseline contract
+        run: python3 -m unittest discover -s test/analysis -p 'test_sqlite_phase4_vendor_target_repo.py'
+
+      - name: Configure native DB smoke build
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF
+
+      - name: Build native DB smoke target
+        run: cmake --build build --target run_all_tests --parallel 2
+
+      - name: Run native SQLite DB smoke
+        run: ctest --test-dir build/test --output-on-failure -R '^Test_DB_sqlite_vendor_wrapper_surface_contract$'

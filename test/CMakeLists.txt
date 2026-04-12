@@ -21,6 +21,11 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/connection_lifecycle_report_rotation.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/active_connection_lifecycle_state_machine.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/db.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_light_fuzz.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_phase3_stress.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/sqlite_vendor_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/http.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/link.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/message_entities.cpp

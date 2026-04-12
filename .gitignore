@@ -16,3 +16,4 @@ test/analysis/__pycache__/**
 vcpkg/
 .clang-tidy
 pvs.cfg
+tools/sqlite/__pycache__/

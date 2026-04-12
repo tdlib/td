@@ -1,0 +1,45 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 10,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default RelWithDebInfo",
+      "description": "Workspace default configure preset used by VS Code CMake Tools.",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "TD_ENABLE_BENCHMARKS": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "run-all-tests",
+      "configurePreset": "default",
+      "targets": [
+        "run_all_tests"
+      ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "sqlite-vendor-smoke",
+      "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^Test_DB_sqlite_vendor_wrapper_surface_contract$"
+        }
+      }
+    }
+  ]
+}

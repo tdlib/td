@@ -1,0 +1,60 @@
+{
+  "build": {
+    "compile_definitions": [
+      "OMIT_MEMLOCK",
+      "SQLITE_DEFAULT_MEMSTATUS=0",
+      "SQLITE_DEFAULT_RECURSIVE_TRIGGERS=1",
+      "SQLITE_DEFAULT_SYNCHRONOUS=1",
+      "SQLITE_DISABLE_LFS",
+      "SQLITE_ENABLE_FTS5",
+      "SQLITE_EXTRA_INIT=sqlcipher_extra_init",
+      "SQLITE_EXTRA_SHUTDOWN=sqlcipher_extra_shutdown",
+      "SQLITE_HAS_CODEC",
+      "SQLITE_OMIT_DECLTYPE",
+      "SQLITE_OMIT_DEPRECATED",
+      "SQLITE_OMIT_DESERIALIZE",
+      "SQLITE_OMIT_LOAD_EXTENSION",
+      "SQLITE_OMIT_PROGRESS_CALLBACK",
+      "SQLITE_TEMP_STORE=2"
+    ]
+  },
+  "generation": {
+    "amalgamation_translation_unit": "sqlite/tdsqlite_amalgamation.c",
+    "rename_generator": "tools/sqlite/generate_tdsqlite_rename.py",
+    "rename_generator_inputs": [
+      "sqlite/upstream/sqlite3.h",
+      "sqlite/upstream/sqlite3ext.h",
+      "sqlite/upstream/sqlite3session.h",
+      "sqlite/upstream/sqlite3.c"
+    ],
+    "update_script": "tools/sqlite/update_vendor.py",
+    "wrapper_headers": [
+      "sqlite/sqlite/sqlite3.h",
+      "sqlite/sqlite/sqlite3ext.h",
+      "sqlite/sqlite/sqlite3session.h"
+    ]
+  },
+  "hashes": {
+    "sha256": {
+      "sqlite/generated/tdsqlite_rename.h": "9f16620c8e29e3e741316c2b2b49f606704f681ad88794792459d3da7be4bffb",
+      "sqlite/sqlite/sqlite3.h": "066fad86d8ce6fae6c4f674a30e72a12f9bc025d02b4e109c45913ce3945cd36",
+      "sqlite/sqlite/sqlite3ext.h": "70b21fbffbf507187ee0f5679d8f856f4cf02fdc674701edb241a9eddc51b893",
+      "sqlite/sqlite/sqlite3session.h": "126a6eb499df875ea12b0de04a90110e6b921569fbb8304981fe18afe41dae89",
+      "sqlite/tdsqlite_amalgamation.c": "3010ad9a15f0a0bcd2735336a5ca6bedd2dbaf950a55dd4c23490afba21ab333",
+      "sqlite/upstream/sqlite3.c": "ea0bf0b08f688ca5d9312b2e33e7f81b3f4ae54b5016fb062ae1f2632a30a1b9",
+      "sqlite/upstream/sqlite3.h": "91190701218669c31d2f56835c98882074ad051f2d38afee9f5b9c35d8406149",
+      "sqlite/upstream/sqlite3ext.h": "ea81fb7bd05882e0e0b92c4d60f677b205f7f1fbf085f218b12f0b5b3f0b9e48",
+      "sqlite/upstream/sqlite3session.h": "bb14eb4601bedafd85c66570729efe2df4baa613870b70119af743ef88651af7"
+    }
+  },
+  "schema_version": 1,
+  "vendor": {
+    "base": "sqlcipher",
+    "release_tag": "v4.14.0",
+    "release_url": "https://github.com/sqlcipher/sqlcipher/releases/tag/v4.14.0",
+    "source_tarball_sha256": "a86d78d5556a699059b47fc0899fc13bd8f7029b88f40a84831fdeb7c1fe5191",
+    "source_tarball_url": "https://api.github.com/repos/sqlcipher/sqlcipher/tarball/v4.14.0",
+    "sqlite_source_id": "2026-03-13 10:38:09 737ae4a34738ffa0c3ff7f9bb18df914dd1cad163f28fd6b6e114a344fe6alt1",
+    "sqlite_version": "3.51.3"
+  }
+}

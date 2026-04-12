@@ -2,6 +2,30 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "cmake configure preset",
+            "type": "cmake",
+            "command": "configure",
+            "preset": "default",
+            "group": "build"
+        },
+        {
+            "label": "cmake build tests preset",
+            "type": "cmake",
+            "command": "build",
+            "preset": "run-all-tests",
+            "group": "build"
+        },
+        {
+            "label": "cmake test sqlite vendor smoke",
+            "type": "cmake",
+            "command": "test",
+            "preset": "sqlite-vendor-smoke",
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests preset"
+            ]
+        },
+        {
             "label": "cmake configure",
             "type": "shell",
             "command": "cmake",

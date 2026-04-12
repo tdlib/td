@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/utils/optional.h"
-#include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 
@@ -47,16 +46,21 @@ class RawSqliteDb {
 
   static bool was_any_database_destroyed();
 
-  bool on_begin() {
-    begin_cnt_++;
-    return begin_cnt_ == 1;
+  bool need_begin() const {
+    return begin_cnt_ == 0;
   }
-  Result<bool> on_commit() {
+  void on_begin_success() {
+    begin_cnt_++;
+  }
+  Result<bool> need_commit() const {
     if (begin_cnt_ == 0) {
       return Status::Error("No matching begin for commit");
     }
+    return begin_cnt_ == 1;
+  }
+  void on_commit_success() {
+    CHECK(begin_cnt_ != 0);
     begin_cnt_--;
-    return begin_cnt_ == 0;
   }
 
   void set_cipher_version(int32 cipher_version) {
