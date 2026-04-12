@@ -445,7 +445,7 @@ BrowserProfileSpec make_firefox148_impl() {
                          {1027, 1283, 1539, 1284, 1285, 1286, 1025, 1281, 1537, 515, 513}),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
       make_custom_extension(28, "\x40\x01"),
-      make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x02"),
+      make_raw_extension(TlsExtensionType::CompressCertificate, "\x06\x00\x01\x00\x02\x00\x03"),
       make_extension(TlsExtensionType::EncryptedClientHello, true),
   };
   profile.layout_template = make_firefox_layout();
@@ -488,7 +488,7 @@ BrowserProfileSpec make_firefox149_macos_impl() {
                          {1027, 1283, 1539, 1284, 1285, 1286, 1025, 1281, 1537, 515, 513}),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
       make_custom_extension(28, "\x40\x01"),
-      make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x02"),
+      make_raw_extension(TlsExtensionType::CompressCertificate, "\x06\x00\x01\x00\x02\x00\x03"),
       make_extension(TlsExtensionType::EncryptedClientHello, true),
       // PSK extension MUST be the LAST entry per real macOS Firefox 149
       // captures. The body is a TLS 1.3 OfferedPsks structure with
