@@ -5,6 +5,7 @@
 # telemt: https://t.me/telemtrs
 
 **/*build*/
+**/.scannerwork/
 **/.*.swp
 **/.DS_Store
 **/auto/

@@ -99,11 +99,14 @@ inline size_t find_extension_position(Slice client_hello, uint16 type) {
   return static_cast<size_t>(-1);
 }
 
-inline Slice extract_extension_body(Slice client_hello, uint16 type) {
+inline string extract_extension_body(Slice client_hello, uint16 type) {
   auto parsed = parse_tls_client_hello(client_hello);
   CHECK(parsed.is_ok());
   auto *extension = find_extension(parsed.ok(), type);
-  return extension == nullptr ? Slice() : extension->value;
+  if (extension == nullptr) {
+    return string();
+  }
+  return string(extension->value.data(), extension->value.size());
 }
 
 inline string join_uint16_decimal(const vector<uint16> &values) {

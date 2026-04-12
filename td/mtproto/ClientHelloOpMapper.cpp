@@ -135,6 +135,8 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
       ops.push_back(Op::bytes(encode_u16_list(extension.u16_list)));
       ops.push_back(Op::scope16_end());
       return ops;
+    case TlsExtensionType::CompressCertificate:
+      return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::bytes(extension.raw_data), Op::scope16_end()};
     case TlsExtensionType::PskKeyExchangeModes:
       return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::bytes(store_u8(to_uint8(extension.u8_list.size()))),
               Op::bytes(encode_u8_list(extension.u8_list)), Op::scope16_end()};
