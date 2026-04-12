@@ -9,6 +9,8 @@
 
 #include "td/mtproto/stealth/TlsHelloBuilder.h"
 
+#include "td/net/ProxySetupError.h"
+
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/Random.h"
@@ -22,6 +24,28 @@ namespace mtproto {
 namespace {
 
 constexpr size_t kMaxTlsRecordBodyLength = (1u << 14) + 256u;
+
+bool looks_like_http_response_prefix(const uint8 header[5]) {
+  return header[0] == 'H' && header[1] == 'T' && header[2] == 'T' && header[3] == 'P' && header[4] == '/';
+}
+
+bool is_valid_tls_record_type(uint8 record_type) {
+  return record_type == 0x14 || record_type == 0x15 || record_type == 0x16 || record_type == 0x17;
+}
+
+Status tls_hello_wrong_regime_error() {
+  return make_proxy_setup_error(ProxySetupErrorCode::TlsHelloWrongRegime,
+                                "First part of response to hello is from the wrong protocol regime");
+}
+
+Status tls_hello_malformed_response_error() {
+  return make_proxy_setup_error(ProxySetupErrorCode::TlsHelloMalformedResponse,
+                                "First part of response to hello is invalid");
+}
+
+Status tls_hello_hash_mismatch_error() {
+  return make_proxy_setup_error(ProxySetupErrorCode::TlsHelloResponseHashMismatch, "Response hash mismatch");
+}
 
 Status consume_tls_hello_response_records(ChainBufferReader *it, bool *is_complete) {
   *is_complete = false;
@@ -39,12 +63,16 @@ Status consume_tls_hello_response_records(ChainBufferReader *it, bool *is_comple
     const auto record_version_minor = header[2];
     const size_t record_length = (static_cast<size_t>(header[3]) << 8) + static_cast<size_t>(header[4]);
 
+    if (looks_like_http_response_prefix(header) || record_type == 0x05 || !is_valid_tls_record_type(record_type)) {
+      return tls_hello_wrong_regime_error();
+    }
+
     if (record_version_major != 0x03 || record_version_minor != 0x03) {
-      return Status::Error("First part of response to hello is invalid");
+      return tls_hello_malformed_response_error();
     }
 
     if (record_length > kMaxTlsRecordBodyLength) {
-      return Status::Error("First part of response to hello is invalid");
+      return tls_hello_malformed_response_error();
     }
 
     if (it->size() < record_length) {
@@ -53,10 +81,10 @@ Status consume_tls_hello_response_records(ChainBufferReader *it, bool *is_comple
 
     if (!seen_handshake) {
       if (record_type != 0x16) {
-        return Status::Error("First part of response to hello is invalid");
+        return tls_hello_malformed_response_error();
       }
       if (record_length == 0) {
-        return Status::Error("First part of response to hello is invalid");
+        return tls_hello_malformed_response_error();
       }
       seen_handshake = true;
       it->advance(record_length);
@@ -65,26 +93,26 @@ Status consume_tls_hello_response_records(ChainBufferReader *it, bool *is_comple
 
     if (record_type == 0x14) {
       if (record_length != 1) {
-        return Status::Error("First part of response to hello is invalid");
+        return tls_hello_malformed_response_error();
       }
       uint8 ccs_payload = 0;
       it->advance(1, MutableSlice(&ccs_payload, 1));
       if (ccs_payload != 0x01) {
-        return Status::Error("First part of response to hello is invalid");
+        return tls_hello_malformed_response_error();
       }
       continue;
     }
 
     if (record_type == 0x17) {
       if (record_length == 0) {
-        return Status::Error("First part of response to hello is invalid");
+        return tls_hello_malformed_response_error();
       }
       it->advance(record_length);
       *is_complete = true;
       return Status::OK();
     }
 
-    return Status::Error("First part of response to hello is invalid");
+    return tls_hello_malformed_response_error();
   }
 }
 
@@ -141,7 +169,7 @@ Status TlsInit::wait_hello_response() {
     if (hello_uses_ech_) {
       stealth::note_runtime_ech_failure(username_, hello_unix_time_);
     }
-    return Status::Error("First part of response to hello is invalid");
+    return tls_hello_malformed_response_error();
   }
   auto response_rand_slice = response.as_mutable_slice().substr(11, 32);
   auto response_rand = response_rand_slice.str();
@@ -152,7 +180,7 @@ Status TlsInit::wait_hello_response() {
     if (hello_uses_ech_) {
       stealth::note_runtime_ech_failure(username_, hello_unix_time_);
     }
-    return Status::Error("Response hash mismatch");
+    return tls_hello_hash_mismatch_error();
   }
 
   if (hello_uses_ech_) {

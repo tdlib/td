@@ -6,6 +6,8 @@
 //
 #include "td/net/HttpProxy.h"
 
+#include "td/net/ProxySetupError.h"
+
 #include "td/utils/base64.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
@@ -56,8 +58,9 @@ Status HttpProxy::wait_connect_response() {
     // explicit and lets the static analyser see the contract.
     it.advance(len, MutableSlice{buf, len});
     VLOG(proxy) << "Failed to connect: " << format::escaped(begin) << format::escaped(Slice(buf, len));
-    return Status::Error(PSLICE() << "Failed to connect to " << ip_address_.get_ip_host() << ':'
-                                  << ip_address_.get_port());
+    return make_proxy_setup_error(ProxySetupErrorCode::HttpConnectRejected, PSLICE() << "Failed to connect to "
+                                                                                     << ip_address_.get_ip_host() << ':'
+                                                                                     << ip_address_.get_port());
   }
 
   size_t total_size = 12;

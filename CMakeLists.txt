@@ -585,6 +585,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/net/ConnectionDestinationBudgetController.cpp
   td/telegram/net/ConnectionFlowController.cpp
   td/telegram/net/ConnectionPoolPolicy.cpp
+  td/telegram/net/ConnectionRetryPolicy.cpp
   td/telegram/net/ConnectionCreator.cpp
   td/telegram/net/DcAuthManager.cpp
   td/telegram/net/DcOptionsSet.cpp

@@ -10,6 +10,7 @@
 #include "td/telegram/net/ConnectionDestinationBudgetController.h"
 #include "td/telegram/net/ConnectionFlowController.h"
 #include "td/telegram/net/ConnectionLifecycleReport.h"
+#include "td/telegram/net/ConnectionRetryPolicy.h"
 #include "td/telegram/net/ConnectionRotationGateSnapshot.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/DcOptions.h"
@@ -25,7 +26,6 @@
 
 #include "td/net/NetStats.h"
 
-#include "td/actor/actor.h"
 #include "td/actor/SignalSlot.h"
 
 #include "td/utils/BufferedFd.h"
@@ -124,34 +124,12 @@ class ConnectionCreator final : public NetQueryCallback {
   uint64 resolve_proxy_query_token_{0};
 
   struct ClientInfo {
-    class Backoff {
-#if TD_ANDROID || TD_DARWIN_IOS || TD_DARWIN_VISION_OS || TD_DARWIN_WATCH_OS || TD_TIZEN
-      static constexpr int32 MAX_BACKOFF = 300;
-#else
-      static constexpr int32 MAX_BACKOFF = 16;
-#endif
-
-     public:
-      void add_event(int32 now) {
-        wakeup_at_ = now + next_delay_;
-        next_delay_ = min(MAX_BACKOFF, next_delay_ * 2);
-      }
-      int32 get_wakeup_at() const {
-        return wakeup_at_;
-      }
-      void clear() {
-        *this = {};
-      }
-
-     private:
-      int32 wakeup_at_{0};
-      int32 next_delay_ = 1;
-    };
     ClientInfo();
     uint64 extract_session_id();
     void add_session_id(uint64 session_id);
 
-    Backoff backoff;
+    ConnectionFailureBackoff backoff;
+    ConnectionFailureClassification last_failure_classification;
     FloodControlStrict sanity_flood_control;
     FloodControlStrict flood_control;
     FloodControlStrict flood_control_online;

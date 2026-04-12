@@ -6,6 +6,8 @@
 //
 #include "td/net/TransparentProxy.h"
 
+#include "td/net/ProxySetupError.h"
+
 #include "td/utils/logging.h"
 #include "td/utils/port/detail/PollableFd.h"
 
@@ -68,7 +70,7 @@ void TransparentProxy::loop() {
     TRY_STATUS(loop_impl());
     TRY_STATUS(fd_.flush_write());
     if (can_close_local(fd_)) {
-      return Status::Error("Connection closed");
+      return make_proxy_setup_error(ProxySetupErrorCode::ConnectionClosed, "Connection closed");
     }
     return Status::OK();
   }();
@@ -78,7 +80,7 @@ void TransparentProxy::loop() {
 }
 
 void TransparentProxy::timeout_expired() {
-  on_error(Status::Error("Connection timeout expired"));
+  on_error(make_proxy_setup_error(ProxySetupErrorCode::ConnectionTimeoutExpired, "Connection timeout expired"));
 }
 
 }  // namespace td

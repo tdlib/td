@@ -83,7 +83,7 @@ void ProxyChecker::on_test_proxy_connection_data(uint64 request_id, Result<Conne
   if (r_data.is_error()) {
     auto promise = std::move(request->promise_);
     test_proxy_requests_.erase(it);
-    return promise.set_error(r_data.move_as_error());
+    return promise.set_error(400, r_data.move_as_error().public_message());
   }
 
   class HandshakeContext final : public mtproto::AuthKeyHandshakeContext {

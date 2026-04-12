@@ -9,6 +9,7 @@
 
 #include "td/telegram/net/ConnectionDestinationBudgetController.h"
 #include "td/telegram/net/ConnectionPoolPolicy.h"
+#include "td/telegram/net/ConnectionRetryPolicy.h"
 
 #include "td/mtproto/stealth/StealthRuntimeParams.h"
 
@@ -891,7 +892,7 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
           if (was_connected_ && stats_callback_) {
             stats_callback_->on_error();
           }
-          promise_.set_error(400, r_buffered_socket_fd.error().public_message());
+          promise_.set_error(r_buffered_socket_fd.move_as_error());
         } else {
           ConnectionData data;
           data.ip_address = ip_address_;
@@ -1034,7 +1035,8 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     auto wakeup_at = max(flood_control.get_wakeup_at(), client.mtproto_error_flood_control.get_wakeup_at());
     wakeup_at = max(client.sanity_flood_control.get_wakeup_at(), wakeup_at);
 
-    if (!act_as_if_online) {
+    bool apply_connection_failure_backoff = should_apply_connection_failure_backoff(act_as_if_online, proxy);
+    if (apply_connection_failure_backoff) {
       wakeup_at = max(wakeup_at, static_cast<double>(client.backoff.get_wakeup_at()));
     }
     wakeup_at = max(wakeup_at, client.flow_controller.get_wakeup_at(now, runtime_params.flow_behavior));
@@ -1045,7 +1047,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       return client_set_timeout_at(client, wakeup_at);
     }
     client.sanity_flood_control.add_event(now);
-    if (!act_as_if_online) {
+    if (apply_connection_failure_backoff) {
       client.backoff.add_event(static_cast<int32>(now));
     }
 
@@ -1213,8 +1215,17 @@ void ConnectionCreator::client_add_connection(uint32 hash, Result<unique_ptr<mtp
     VLOG(connections) << "Add ready connection " << r_raw_connection.ok().get() << " for "
                       << tag("client", format::as_hex(hash));
     client.backoff.clear();
+    client.last_failure_classification = {};
     client.ready_connections.emplace_back(r_raw_connection.move_as_ok(), Time::now_cached());
   } else {
+    auto proxy = active_proxy_id_ == 0 ? Proxy() : proxies_[active_proxy_id_];
+    client.last_failure_classification =
+        classify_connection_failure(online_flag_ || is_logging_out_, proxy, r_raw_connection.error());
+    VLOG(connections) << "Classified connection failure " << tag("client", format::as_hex(hash))
+                      << tag("deterministic", client.last_failure_classification.deterministic)
+                      << tag("stage", static_cast<int32>(client.last_failure_classification.stage))
+                      << tag("reason", static_cast<int32>(client.last_failure_classification.reason)) << ' '
+                      << r_raw_connection.error();
     if (r_raw_connection.error().code() == -404 && client.auth_data &&
         client.auth_data_generation == auth_data_generation) {
       VLOG(connections) << "Drop auth data from " << tag("client", format::as_hex(hash));

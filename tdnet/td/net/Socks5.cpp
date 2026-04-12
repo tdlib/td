@@ -6,10 +6,11 @@
 //
 #include "td/net/Socks5.h"
 
+#include "td/net/ProxySetupError.h"
+
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
-#include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
 
 namespace td {
@@ -41,7 +42,8 @@ Status Socks5::wait_greeting_response() {
   auto buffer_slice = buf.read_as_buffer_slice(2);
   auto slice = buffer_slice.as_slice();
   if (slice[0] != '\x05') {
-    return Status::Error(PSLICE() << "Unsupported socks protocol version " << static_cast<int>(slice[0]));
+    return make_proxy_setup_error(ProxySetupErrorCode::SocksUnsupportedVersion,
+                                  PSLICE() << "Unsupported socks protocol version " << static_cast<int>(slice[0]));
   }
   auto authentication_method = slice[1];
   if (authentication_method == '\0') {
@@ -51,7 +53,8 @@ Status Socks5::wait_greeting_response() {
   if (authentication_method == '\x02') {
     return send_username_password();
   }
-  return Status::Error("Unsupported authentication mode");
+  return make_proxy_setup_error(ProxySetupErrorCode::SocksUnsupportedAuthenticationMode,
+                                "Unsupported authentication mode");
 }
 
 Status Socks5::send_username_password() {
@@ -84,11 +87,12 @@ Status Socks5::wait_password_response() {
   auto buffer_slice = buf.read_as_buffer_slice(2);
   auto slice = buffer_slice.as_slice();
   if (slice[0] != '\x01') {
-    return Status::Error(PSLICE() << "Unsupported socks subnegotiation protocol version "
-                                  << static_cast<int>(slice[0]));
+    return make_proxy_setup_error(
+        ProxySetupErrorCode::SocksUnsupportedSubnegotiationVersion,
+        PSLICE() << "Unsupported socks subnegotiation protocol version " << static_cast<int>(slice[0]));
   }
   if (slice[1] != '\x00') {
-    return Status::Error("Wrong username or password");
+    return make_proxy_setup_error(ProxySetupErrorCode::SocksWrongUsernameOrPassword, "Wrong username or password");
   }
 
   send_ip_address();
@@ -131,15 +135,16 @@ Status Socks5::wait_ip_address_response() {
   MutableSlice c_slice(&c, 1);
   it.advance(1, c_slice);
   if (c != '\x05') {
-    return Status::Error("Invalid response");
+    return make_proxy_setup_error(ProxySetupErrorCode::SocksInvalidResponse, "Invalid response");
   }
   it.advance(1, c_slice);
   if (c != '\0') {
-    return Status::Error(PSLICE() << "Receive error code " << static_cast<int32>(c) << " from server");
+    return make_proxy_setup_error(ProxySetupErrorCode::SocksConnectRejected,
+                                  PSLICE() << "Receive error code " << static_cast<int32>(c) << " from server");
   }
   it.advance(1, c_slice);
   if (c != '\0') {
-    return Status::Error("Byte must be zero");
+    return make_proxy_setup_error(ProxySetupErrorCode::SocksInvalidResponse, "Byte must be zero");
   }
   it.advance(1, c_slice);
   size_t total_size = 6;
@@ -156,7 +161,7 @@ Status Socks5::wait_ip_address_response() {
     it.advance(16);
     total_size += 16;
   } else {
-    return Status::Error("Invalid response");
+    return make_proxy_setup_error(ProxySetupErrorCode::SocksInvalidResponse, "Invalid response");
   }
   if (it.size() < 2) {
     return Status::OK();

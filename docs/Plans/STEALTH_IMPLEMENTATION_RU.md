@@ -261,6 +261,102 @@ Stealth-ветка выдвигает более строгое требован
 
 Практический смысл: hot-reload существует, но он не превращён в новую дырку или источник недетерминизма.
 
+### 1.16. Proxy rejection path больше не схлопывается в безликий reconnect storm
+
+После дополнительного hardening-а закрыт ещё один класс operational-утечек: быстрые и детерминированные отказы на proxy-path больше не теряются внутри generic `Status("Connection closed")` / `Status("First part of response to hello is invalid")` с последующим циклом «сразу переподключиться, потому что клиент online».
+
+Проблема была практическая, а не косметическая.
+
+- Если клиент включал MTProto proxy с неправильным secret;
+- если клиент попадал не в тот regime (например, TLS-emulated путь разговаривал с endpoint-ом другого типа);
+- если proxy быстро рвал соединение или отдавал заведомо несовместимый ответ,
+
+то низкоуровневые actor-ы видели разные причины, но выше по стеку это почти везде превращалось в общий текст ошибки. Для `ConnectionCreator` такой отказ выглядел как обычный неуспех соединения, и до этого ветка не имела typed seam, который бы позволял жёстко различать deterministic proxy rejection и обычный transient network wobble.
+
+Что сделано теперь.
+
+Во-первых, в low-level transport / proxy setup слоях введены typed error codes через `td/net/ProxySetupError.h`.
+
+- `TransparentProxy` теперь размечает `ConnectionClosed` и `ConnectionTimeoutExpired` отдельными кодами.
+- `Socks5` отдельно размечает wrong-regime / auth-reject / invalid-response / connect-reject случаи.
+- `HttpProxy` отдельно размечает отрицательный `CONNECT` как typed reject.
+- `TlsInit` больше не схлопывает всё в один `invalid`: он различает как минимум три класса:
+	- `TlsHelloWrongRegime`;
+	- `TlsHelloMalformedResponse`;
+	- `TlsHelloResponseHashMismatch`.
+
+Это особенно важно для stealth MTProto proxy, потому что раньше сценарии «не тот protocol regime» и «побитый TLS-like ответ» выглядели одинаково, а теперь разделены на уровне кода ошибки ещё до того, как управление вернулось в `ConnectionCreator`.
+
+Во-вторых, в `td/telegram/net/ConnectionRetryPolicy.h/.cpp` появился typed retry/classification seam:
+
+- `ConnectionFailureClassification`;
+- `ProxyFailureStage`;
+- `ProxyFailureReason`;
+- `ConnectionFailureBackoff`.
+
+Смысл этого слоя не в красивых enum-ах ради enum-ов. Он фиксирует именно operational policy:
+
+- proxy-backed отказ помечается отдельно от direct-path отказа;
+- deterministic reject фиксируется отдельно от unknown / timeout;
+- retry path знает, что для proxy rejection нужен bounded exponential backoff, а не tight reconnect loop.
+
+В-третьих, `ConnectionCreator` теперь не теряет typed ошибку на внутреннем boundary. В `prepare_connection(...)` ошибка proxy setup больше не принудительно пережимается в generic `400` до того, как её увидит production retry-path. Внутренний код получает исходный typed `Status`, классифицирует его и только user-facing `ProxyChecker` обратно санитизирует код до публичного `400 + public_message()`.
+
+Это архитектурно важная деталь: typed classification должна жить внутри runtime, но не обязана утекать в внешний API как набор внутренних negative error codes.
+
+Отдельно важно, что backoff logic тоже вынесена из локального private nested helper-а в отдельный `ConnectionFailureBackoff`. Это дало две вещи сразу:
+
+- reuse внутри runtime без дублирования policy;
+- прямую возможность писать soak / saturation tests против production backoff primitive, а не симулировать его руками в тестах.
+
+### 1.17. Для proxy rejection появился отдельный integration/soak harness
+
+Под `test/stealth/ProxyRejectionTestHarness.h` добавлен отдельный POSIX socketpair-based harness, который позволяет прогонять реальные rejection-сценарии для `TlsInit`, а не только unit-test-ить classifier по строкам ошибок.
+
+На текущем head он покрывает следующие сценарии:
+
+- `ImmediateClose`: peer закрывает сокет до валидного ответа;
+- `MalformedTlsResponse`: peer отдаёт TLS-like ответ с заведомо некорректной структурой;
+- `WrongRegimeHttpResponse`: peer отвечает HTTP-префиксом вместо TLS record;
+- `WrongRegimeSocksResponse`: peer отвечает SOCKS-подобным префиксом в TLS lane.
+
+Поверх этого добавлены три новых test-family.
+
+1. `test_connection_retry_policy_classification_security.cpp`
+
+Что фиксирует:
+
+- direct online failure не должен внезапно переходить в proxy policy;
+- TLS malformed / wrong-regime / hash-mismatch ошибки классифицируются typed-образом;
+- SOCKS и HTTP negative paths получают правильный stage/reason;
+- unknown proxy failure всё равно fail-closed остаётся на bounded retry path.
+
+2. `test_proxy_rejection_retry_harness_integration.cpp`
+
+Что фиксирует:
+
+- реальный `TlsInit` path выдаёт нужный typed status code на malformed TLS;
+- wrong-regime через HTTP bytes действительно отделён от malformed TLS;
+- immediate close не деградирует обратно в безликий generic path;
+- SOCKS-like response в TLS lane тоже маркируется как wrong-regime reject.
+
+3. `test_proxy_rejection_retry_soak.cpp`
+
+Что фиксирует:
+
+- retry delays растут монотонно и остаются bounded;
+- saturation достигает platform cap и не уходит в overflow на длинной серии отказов;
+- `clear()` действительно сбрасывает backoff и следующий успешный цикл начинает заново с минимальной задержки.
+
+Практически это значит, что для stealth proxy-path ветка теперь защищена не только от единичной ошибки конфигурации, но и от медленного regress-а обратно в pattern вида:
+
+- proxy быстро отказывает;
+- client это не классифицирует;
+- reconnect loop начинает часто долбить тот же endpoint;
+- DPI получает простую и стабильную server-assisted сигнатуру.
+
+Новый hardening как раз направлен против этой деградации.
+
 ## 2. Что реализовано в verification/analysis контуре
 
 ### 2.1. Frozen corpus и checked-in empirical basis

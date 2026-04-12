@@ -65,6 +65,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_route_stress.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_stress.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profiles.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_coverage_gaps.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_registry.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_registry_provenance.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_platform_coherence.cpp
@@ -119,6 +120,11 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ping_connection_hint_wiring.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_proxy_route_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_ping_proxy_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_retry_policy_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_retry_policy_classification_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_proxy_setup_error_emitters_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_proxy_rejection_retry_harness_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_proxy_rejection_retry_soak.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_config_manager_recovery_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_profile_record_limit.cpp
