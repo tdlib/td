@@ -18,8 +18,11 @@ python3 tools/sqlite/update_vendor.py --release-tag v4.14.0 --source-tarball-sha
 python3 tools/sqlite/audit_vendor.py --check-integrity
 cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF
 cmake --build build --target run_all_tests --parallel 2
+cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF
 ctest --test-dir build/test --output-on-failure -R '^Test_DB_sqlite_vendor_wrapper_surface_contract$'
 ```
+
+The second configure pass is intentional: `test/CMakeLists.txt` registers exact `run_all_tests --exact ...` cases during configure by querying the already-built `run_all_tests` binary, so clean trees need a post-build refresh before the targeted CTest smoke can resolve the exact case name.
 
 For the current pinned release, the updater can also reuse the digest already recorded in `sqlite/VENDOR.json`. Pass `--source-tarball-sha256` explicitly when refreshing to a new release or a different tarball URL.
 

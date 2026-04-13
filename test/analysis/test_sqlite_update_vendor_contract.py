@@ -111,6 +111,38 @@ class SqliteUpdateVendorContractTest(unittest.TestCase):
             msg="phase 5 CI must execute updater contract/adversarial tests, not only audit tests",
         )
 
+    def test_phase5_ci_workflow_triggers_when_native_sqlite_smoke_contract_changes(self) -> None:
+        workflow_text = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "test/sqlite_vendor_contract.cpp",
+            workflow_text,
+            msg="phase 5 CI must trigger when the native SQLite smoke contract source changes",
+        )
+        self.assertIn(
+            "test/CMakeLists.txt",
+            workflow_text,
+            msg="phase 5 CI must trigger when run_all_tests exact CTest discovery wiring changes",
+        )
+
+    def test_phase5_ci_workflow_triggers_when_cmake_tools_contract_inputs_change(self) -> None:
+        workflow_text = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+        required_paths = (
+            "CMakeLists.txt",
+            "CMakePresets.json",
+            ".vscode/settings.json",
+            ".vscode/tasks.json",
+        )
+
+        for required_path in required_paths:
+            with self.subTest(required_path=required_path):
+                self.assertIn(
+                    required_path,
+                    workflow_text,
+                    msg="phase 5 CI must trigger when checked-in CMake Tools contract inputs change",
+                )
+
     def test_phase5_ci_workflow_runs_native_db_smoke_after_python_guardrails(self) -> None:
         workflow_text = WORKFLOW_PATH.read_text(encoding="utf-8")
 
@@ -125,6 +157,31 @@ class SqliteUpdateVendorContractTest(unittest.TestCase):
             smoke_index,
             msg="native DB smoke must run after the Python guardrails",
         )
+
+    def test_phase5_ci_workflow_reconfigures_after_build_before_exact_ctest_smoke(self) -> None:
+        workflow_text = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+        configure_command = (
+            "cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF"
+        )
+        first_configure_index = workflow_text.index(configure_command)
+        build_index = workflow_text.index("cmake --build build --target run_all_tests --parallel 2")
+        second_configure_index = workflow_text.rindex(configure_command)
+        smoke_index = workflow_text.index(
+            "ctest --test-dir build/test --output-on-failure -R '^Test_DB_sqlite_vendor_wrapper_surface_contract$'"
+        )
+
+        self.assertGreater(
+            second_configure_index,
+            build_index,
+            msg="clean-tree exact CTest smoke needs a post-build configure pass so run_all_tests --list can register exact test names",
+        )
+        self.assertLess(
+            second_configure_index,
+            smoke_index,
+            msg="the post-build configure refresh must happen before exact CTest smoke execution",
+        )
+        self.assertLess(first_configure_index, build_index)
 
     def test_maintenance_doc_fast_guardrails_cover_update_vendor_tests(self) -> None:
         maintenance_doc = MAINTENANCE_DOC_PATH.read_text(encoding="utf-8")
@@ -143,3 +200,28 @@ class SqliteUpdateVendorContractTest(unittest.TestCase):
             maintenance_doc,
             msg="phase 5 maintenance guidance must document the pinned tarball digest requirement",
         )
+
+    def test_maintenance_doc_reconfigures_after_build_before_exact_ctest_smoke(self) -> None:
+        maintenance_doc = MAINTENANCE_DOC_PATH.read_text(encoding="utf-8")
+
+        configure_command = (
+            "cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF"
+        )
+        first_configure_index = maintenance_doc.index(configure_command)
+        build_index = maintenance_doc.index("cmake --build build --target run_all_tests --parallel 2")
+        second_configure_index = maintenance_doc.rindex(configure_command)
+        smoke_index = maintenance_doc.index(
+            "ctest --test-dir build/test --output-on-failure -R '^Test_DB_sqlite_vendor_wrapper_surface_contract$'"
+        )
+
+        self.assertGreater(
+            second_configure_index,
+            build_index,
+            msg="maintenance guidance must include the post-build configure pass required for exact CTest discovery on clean trees",
+        )
+        self.assertLess(
+            second_configure_index,
+            smoke_index,
+            msg="maintenance guidance must refresh exact CTest discovery before the targeted smoke run",
+        )
+        self.assertLess(first_configure_index, build_index)

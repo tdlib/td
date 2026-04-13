@@ -101,6 +101,13 @@ WRAPPER_HEADER_RELATIVE_PATHS = (
     "sqlite/sqlite/sqlite3ext.h",
     "sqlite/sqlite/sqlite3session.h",
 )
+FIXED_MANAGED_HASH_PATHS = (
+    "sqlite/upstream/sqlite3ext.h",
+    "sqlite/upstream/sqlite3session.h",
+    "sqlite/generated/tdsqlite_rename.h",
+    *WRAPPER_HEADER_RELATIVE_PATHS,
+    "sqlite/tdsqlite_amalgamation.c",
+)
 RENAME_GENERATOR_INPUT_FILENAMES = (
     "sqlite3.h",
     "sqlite3ext.h",
@@ -283,6 +290,18 @@ def _resolve_managed_repo_path(repo_root: pathlib.Path, relative_path: str) -> p
     return absolute_path
 
 
+def expected_managed_hash_paths(report: dict[str, Any]) -> tuple[str, ...]:
+    vendor_paths = report.get("vendor_paths", {})
+    header_relative_path = vendor_paths.get("header")
+    source_relative_path = vendor_paths.get("source")
+    if not isinstance(header_relative_path, str) or not header_relative_path:
+        raise ValueError("phase1 report is missing vendor_paths.header")
+    if not isinstance(source_relative_path, str) or not source_relative_path:
+        raise ValueError("phase1 report is missing vendor_paths.source")
+
+    return tuple(dict.fromkeys((header_relative_path, source_relative_path, *FIXED_MANAGED_HASH_PATHS)))
+
+
 def build_vendor_manifest(
     repo_root: pathlib.Path | str,
     release_tag: str,
@@ -295,16 +314,7 @@ def build_vendor_manifest(
 
     resolved_root = _normalize_repo_root(repo_root)
     report = build_phase1_report(resolved_root)
-    managed_hash_paths = [
-        report["vendor_paths"]["header"],
-        report["vendor_paths"]["source"],
-        "sqlite/upstream/sqlite3ext.h",
-        "sqlite/upstream/sqlite3session.h",
-        "sqlite/generated/tdsqlite_rename.h",
-        *WRAPPER_HEADER_RELATIVE_PATHS,
-        "sqlite/tdsqlite_amalgamation.c",
-    ]
-    hashes = {path: compute_sha256(resolved_root / path) for path in managed_hash_paths}
+    hashes = {path: compute_sha256(resolved_root / path) for path in expected_managed_hash_paths(report)}
     return {
         "schema_version": MANIFEST_SCHEMA_VERSION,
         "vendor": {
@@ -377,6 +387,7 @@ def verify_vendor_manifest_metadata(repo_root: pathlib.Path | str, manifest: dic
     vendor = manifest.get("vendor", {})
     build = manifest.get("build", {})
     generation = manifest.get("generation", {})
+    manifest_hashes = manifest.get("hashes", {}).get("sha256", {})
     release_tag = vendor.get("release_tag")
 
     if manifest.get("schema_version") != MANIFEST_SCHEMA_VERSION:
@@ -415,6 +426,24 @@ def verify_vendor_manifest_metadata(repo_root: pathlib.Path | str, manifest: dic
         errors.append("vendor manifest wrapper_headers drift")
     if generation.get("amalgamation_translation_unit") != "sqlite/tdsqlite_amalgamation.c":
         errors.append("vendor manifest amalgamation_translation_unit drift")
+    if not isinstance(manifest_hashes, dict):
+        errors.append("vendor manifest hashes.sha256 must be an object")
+        return errors
+
+    expected_hash_paths = set(expected_managed_hash_paths(report))
+    actual_hash_paths = {path for path in manifest_hashes.keys() if isinstance(path, str)}
+    missing_hash_paths = sorted(expected_hash_paths - actual_hash_paths)
+    unexpected_hash_paths = sorted(actual_hash_paths - expected_hash_paths)
+    if missing_hash_paths:
+        errors.append(
+            "vendor manifest hashes.sha256 is missing required managed paths: "
+            + ", ".join(missing_hash_paths)
+        )
+    if unexpected_hash_paths:
+        errors.append(
+            "vendor manifest hashes.sha256 contains unexpected managed paths: "
+            + ", ".join(unexpected_hash_paths)
+        )
     return errors
 
 

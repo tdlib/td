@@ -100,6 +100,21 @@ class ConnectionCreator final : public NetQueryCallback {
                                                                       const IPAddress &target_ip_address);
   static Proxy resolve_effective_ping_proxy(const Proxy &active_proxy, const Proxy *requested_proxy);
 
+  struct ProxyAddressCandidates {
+    IPAddress primary_ip_address;
+    IPAddress fallback_ip_address;
+  };
+
+  struct ProxySocketOpenResult {
+    SocketFd socket_fd;
+    IPAddress connected_proxy_ip_address;
+  };
+
+  static Result<ProxyAddressCandidates> resolve_proxy_address_candidates(const Proxy &proxy,
+                                                                         const IPAddress &resolved_proxy_ip_address);
+  static Result<ProxySocketOpenResult> open_proxy_socket(const Proxy &proxy,
+                                                         const IPAddress &resolved_proxy_ip_address);
+
  private:
   friend class ProxyChecker;
 

@@ -769,11 +769,77 @@ Proxy ConnectionCreator::resolve_effective_ping_proxy(const Proxy &active_proxy,
   return active_proxy;
 }
 
+Result<ConnectionCreator::ProxyAddressCandidates> ConnectionCreator::resolve_proxy_address_candidates(
+    const Proxy &proxy, const IPAddress &resolved_proxy_ip_address) {
+  if (!proxy.use_proxy()) {
+    return Status::Error("Proxy is disabled");
+  }
+  if (!resolved_proxy_ip_address.is_valid()) {
+    return Status::Error("Proxy IP address is invalid");
+  }
+
+  ProxyAddressCandidates candidates;
+  candidates.primary_ip_address = resolved_proxy_ip_address;
+
+  if (IPAddress::get_ip_address(proxy.server()).is_ok()) {
+    return std::move(candidates);
+  }
+
+  IPAddress fallback_ip_address;
+  auto fallback_status = fallback_ip_address.init_host_port(proxy.server(), proxy.port(), !resolved_proxy_ip_address.is_ipv6());
+  if (fallback_status.is_ok() && !(fallback_ip_address == resolved_proxy_ip_address) &&
+      fallback_ip_address.get_address_family() != resolved_proxy_ip_address.get_address_family()) {
+    candidates.fallback_ip_address = std::move(fallback_ip_address);
+  }
+
+  return std::move(candidates);
+}
+
+Result<ConnectionCreator::ProxySocketOpenResult> ConnectionCreator::open_proxy_socket(
+    const Proxy &proxy, const IPAddress &resolved_proxy_ip_address) {
+  TRY_RESULT(candidates, resolve_proxy_address_candidates(proxy, resolved_proxy_ip_address));
+
+  auto try_open = [](const IPAddress &ip_address) -> Result<ProxySocketOpenResult> {
+    TRY_RESULT(socket_fd, SocketFd::open(ip_address));
+    TRY_STATUS(detail::get_socket_pending_error(socket_fd.get_native_fd()));
+
+    ProxySocketOpenResult result;
+    result.socket_fd = std::move(socket_fd);
+    result.connected_proxy_ip_address = ip_address;
+    return std::move(result);
+  };
+
+  auto r_socket = try_open(candidates.primary_ip_address);
+  if (r_socket.is_ok()) {
+    return r_socket;
+  }
+
+  if (!candidates.fallback_ip_address.is_valid()) {
+    return r_socket.move_as_error();
+  }
+
+  VLOG(connections) << "Retry proxy connect via alternate family " << candidates.fallback_ip_address << " after "
+                    << r_socket.error();
+  return try_open(candidates.fallback_ip_address);
+}
+
 void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtproto::TransportType transport_type,
                                                      Promise<unique_ptr<mtproto::RawConnection>> promise) {
   Proxy proxy = active_proxy_id_ == 0 ? Proxy() : proxies_[active_proxy_id_];
   TRY_RESULT_PROMISE(promise, route, resolve_raw_ip_connection_route(proxy, proxy_ip_address_, ip_address));
-  TRY_RESULT_PROMISE(promise, socket_fd, SocketFd::open(route.socket_ip_address));
+
+  SocketFd socket_fd;
+  if (proxy.use_proxy()) {
+    TRY_RESULT_PROMISE(promise, proxy_socket, open_proxy_socket(proxy, route.socket_ip_address));
+    route.socket_ip_address = proxy_socket.connected_proxy_ip_address;
+    if (active_proxy_id_ != 0 && proxy == proxies_[active_proxy_id_]) {
+      proxy_ip_address_ = route.socket_ip_address;
+    }
+    socket_fd = std::move(proxy_socket.socket_fd);
+  } else {
+    TRY_RESULT_PROMISE(promise, opened_socket_fd, SocketFd::open(route.socket_ip_address));
+    socket_fd = std::move(opened_socket_fd);
+  }
 
   auto connection_promise = PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
                                                     transport_type, network_generation = network_generation_,
@@ -843,23 +909,33 @@ Result<SocketFd> ConnectionCreator::find_connection(const Proxy &proxy, const IP
                               << (info.use_http ? " over HTTP" : "");
 
   if (proxy.use_mtproto_proxy()) {
-    extra.debug_str = PSTRING() << "MTProto " << proxy_ip_address << extra.debug_str;
-
+    TRY_RESULT(proxy_socket, open_proxy_socket(proxy, proxy_ip_address));
+    extra.ip_address = proxy_socket.connected_proxy_ip_address;
+    if (active_proxy_id_ != 0 && proxy == proxies_[active_proxy_id_]) {
+      proxy_ip_address_ = extra.ip_address;
+    }
+    extra.debug_str = PSTRING() << "MTProto " << extra.ip_address << extra.debug_str;
     VLOG(connections) << "Create: " << extra.debug_str;
-    return SocketFd::open(proxy_ip_address);
+    return std::move(proxy_socket.socket_fd);
   }
 
   extra.check_mode |= info.should_check;
 
   if (proxy.use_proxy()) {
     extra.mtproto_ip_address = info.option->get_ip_address();
-    extra.ip_address = proxy_ip_address;
-    extra.debug_str = PSTRING() << (proxy.use_socks5_proxy() ? "Socks5" : (only_http ? "HTTP_ONLY" : "HTTP_TCP")) << ' '
-                                << proxy_ip_address << " --> " << extra.mtproto_ip_address << extra.debug_str;
-  } else {
-    extra.ip_address = info.option->get_ip_address();
-    extra.debug_str = PSTRING() << info.option->get_ip_address() << extra.debug_str;
+    TRY_RESULT(proxy_socket, open_proxy_socket(proxy, proxy_ip_address));
+    extra.ip_address = proxy_socket.connected_proxy_ip_address;
+    if (active_proxy_id_ != 0 && proxy == proxies_[active_proxy_id_]) {
+      proxy_ip_address_ = extra.ip_address;
+    }
+    extra.debug_str = PSTRING() << (proxy.use_socks5_proxy() ? "Socks5" : (only_http ? "HTTP_ONLY" : "HTTP_TCP"))
+                                << ' ' << extra.ip_address << " --> " << extra.mtproto_ip_address << extra.debug_str;
+    VLOG(connections) << "Create: " << extra.debug_str;
+    return std::move(proxy_socket.socket_fd);
   }
+
+  extra.ip_address = info.option->get_ip_address();
+  extra.debug_str = PSTRING() << info.option->get_ip_address() << extra.debug_str;
   VLOG(connections) << "Create: " << extra.debug_str;
   return SocketFd::open(extra.ip_address);
 }
@@ -952,6 +1028,7 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
     promise.set_result(std::move(data));
     return {};
   }
+
 }
 
 void ConnectionCreator::client_loop(ClientInfo &client) {

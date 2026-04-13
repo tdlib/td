@@ -17,12 +17,40 @@
         },
         {
             "label": "cmake test sqlite vendor smoke",
-            "type": "cmake",
-            "command": "test",
-            "preset": "sqlite-vendor-smoke",
+            "type": "shell",
+            "command": "ctest",
+            "args": [
+                "--test-dir",
+                "build/test",
+                "--output-on-failure",
+                "-R",
+                "^Test_DB_sqlite_vendor_wrapper_surface_contract$"
+            ],
             "group": "test",
             "dependsOn": [
+                "cmake refresh exact sqlite smoke discovery"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "cmake refresh exact sqlite smoke discovery",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-S",
+                ".",
+                "-B",
+                "build",
+                "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+                "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+                "-DTD_ENABLE_BENCHMARKS=OFF"
+            ],
+            "group": "build",
+            "dependsOn": [
                 "cmake build tests preset"
+            ],
+            "problemMatcher": [
+                "$gcc"
             ]
         },
         {
@@ -154,7 +182,7 @@
             ]
         },
         {
-            "label": "ctest",
+            "label": "ctest all (slow)",
             "type": "shell",
             "command": "ctest",
             "args": [

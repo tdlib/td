@@ -28,6 +28,17 @@ from audit_vendor import verify_manifest_hashes
 from audit_vendor import verify_vendor_manifest_metadata
 
 
+EXPECTED_MANAGED_HASH_PATHS = (
+    "sqlite/upstream/sqlite3.c",
+    "sqlite/upstream/sqlite3.h",
+    "sqlite/upstream/sqlite3ext.h",
+    "sqlite/upstream/sqlite3session.h",
+    "sqlite/generated/tdsqlite_rename.h",
+    *WRAPPER_HEADER_RELATIVE_PATHS,
+    "sqlite/tdsqlite_amalgamation.c",
+)
+
+
 def sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
@@ -57,13 +68,17 @@ def make_vendor_manifest(*, base: str = "sqlcipher", source_tarball_url: str | N
             "amalgamation_translation_unit": "sqlite/tdsqlite_amalgamation.c",
         },
         "hashes": {
-            "sha256": {},
+            "sha256": {path: "b" * 64 for path in EXPECTED_MANAGED_HASH_PATHS},
         },
     }
 
 
 def make_phase1_report() -> dict:
     return {
+        "vendor_paths": {
+            "header": "sqlite/upstream/sqlite3.h",
+            "source": "sqlite/upstream/sqlite3.c",
+        },
         "sqlite_version": "3.51.3",
         "sqlite_source_id": "source-id",
         "compile_definitions": ["SQLITE_HAS_CODEC"],
@@ -172,6 +187,30 @@ class SqliteVendorIntegrityAdversarialTest(unittest.TestCase):
         self.assertTrue(
             any("release_url" in error for error in errors),
             msg="integrity checks must reject unsafe manifest release URLs",
+        )
+
+    def test_verify_vendor_manifest_metadata_rejects_missing_required_managed_hash_pin(self) -> None:
+        manifest = make_vendor_manifest()
+        del manifest["hashes"]["sha256"]["sqlite/upstream/sqlite3.c"]
+
+        with mock.patch("audit_vendor.build_phase1_report", return_value=make_phase1_report()):
+            errors = verify_vendor_manifest_metadata(pathlib.Path("/tmp/repo"), manifest)
+
+        self.assertTrue(
+            any("hashes.sha256" in error and "sqlite/upstream/sqlite3.c" in error for error in errors),
+            msg="integrity checks must fail when a required managed vendor file is not pinned in sqlite/VENDOR.json",
+        )
+
+    def test_verify_vendor_manifest_metadata_rejects_unexpected_managed_hash_path(self) -> None:
+        manifest = make_vendor_manifest()
+        manifest["hashes"]["sha256"]["README.md"] = "c" * 64
+
+        with mock.patch("audit_vendor.build_phase1_report", return_value=make_phase1_report()):
+            errors = verify_vendor_manifest_metadata(pathlib.Path("/tmp/repo"), manifest)
+
+        self.assertTrue(
+            any("hashes.sha256" in error and "README.md" in error for error in errors),
+            msg="integrity checks must reject manifest hash pins for files outside the managed SQLite vendor surface",
         )
 
 

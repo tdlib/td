@@ -11,7 +11,6 @@
 #include "td/mtproto/DhCallback.h"
 #include "td/mtproto/HandshakeActor.h"
 #include "td/mtproto/RSA.h"
-#include "td/mtproto/TlsInit.h"
 
 #include "td/actor/SleepActor.h"
 
@@ -34,10 +33,12 @@ void ProxyChecker::test_proxy(Proxy &&proxy, int32 dc_id, double timeout, Promis
   if (status.is_error()) {
     return promise.set_error(400, status.public_message());
   }
-  auto r_socket_fd = SocketFd::open(ip_address);
-  if (r_socket_fd.is_error()) {
-    return promise.set_error(400, r_socket_fd.error().public_message());
+  auto r_proxy_socket = ConnectionCreator::open_proxy_socket(proxy, ip_address);
+  if (r_proxy_socket.is_error()) {
+    return promise.set_error(400, r_proxy_socket.error().public_message());
   }
+  auto proxy_socket = r_proxy_socket.move_as_ok();
+  ip_address = proxy_socket.connected_proxy_ip_address;
 
   auto dc_options = ConnectionCreator::get_default_dc_options(false);
   IPAddress mtproto_ip_address;
@@ -62,7 +63,8 @@ void ProxyChecker::test_proxy(Proxy &&proxy, int32 dc_id, double timeout, Promis
         send_closure(actor_id, &ProxyChecker::on_test_proxy_connection_data, request_id, std::move(r_data));
       });
   request->child_ = ConnectionCreator::prepare_connection(
-      ip_address, r_socket_fd.move_as_ok(), request->proxy_, mtproto_ip_address, request->get_transport(), "Test",
+      ip_address, std::move(proxy_socket.socket_fd), request->proxy_, mtproto_ip_address, request->get_transport(),
+      "Test",
       "TestPingDC2", nullptr, {}, false, std::move(connection_promise));
 
   test_proxy_requests_.emplace(request_id, std::move(request));
