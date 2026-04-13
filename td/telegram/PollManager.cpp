@@ -1061,8 +1061,9 @@ vector<FileId> PollManager::get_poll_file_ids(PollId poll_id) const {
   return result;
 }
 
-void PollManager::add_poll_option(PollId poll_id, MessageFullId message_full_id,
-                                  td_api::object_ptr<td_api::inputPollOption> &&option, Promise<Unit> &&promise) {
+void PollManager::add_poll_option(MessageFullId message_full_id, td_api::object_ptr<td_api::inputPollOption> &&option,
+                                  Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, poll_id, td_->messages_manager_->get_message_poll_id(message_full_id, false));
   if (option == nullptr) {
     return promise.set_error(400, "Poll option must be non-empty");
   }
@@ -1076,11 +1077,8 @@ void PollManager::add_poll_option(PollId poll_id, MessageFullId message_full_id,
   td_->create_handler<AddPollAnswerQuery>(std::move(promise))->send(message_full_id, poll_option);
 }
 
-void PollManager::delete_poll_option(PollId poll_id, MessageFullId message_full_id, const string &option_id,
-                                     Promise<Unit> &&promise) {
-  if (!message_full_id.get_message_id().is_server()) {
-    return promise.set_error(400, "Invalid message specified");
-  }
+void PollManager::delete_poll_option(MessageFullId message_full_id, const string &option_id, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, poll_id, td_->messages_manager_->get_message_poll_id(message_full_id, false));
   td_->create_handler<DeletePollAnswerQuery>(std::move(promise))->send(message_full_id, option_id);
 }
 

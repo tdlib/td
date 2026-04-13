@@ -222,12 +222,6 @@ void remove_message_content_web_page(MessageContent *content);
 
 bool can_message_content_have_media_timestamp(const MessageContent *content);
 
-void add_message_content_poll_option(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                     td_api::object_ptr<td_api::inputPollOption> &&option, Promise<Unit> &&promise);
-
-void delete_message_content_poll_option(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                        const string &option_id, Promise<Unit> &&promise);
-
 void merge_message_contents(Td *td, const MessageContent *old_content, MessageContent *new_content,
                             bool need_message_changed_warning, DialogId dialog_id, bool need_merge_files,
                             bool &is_content_changed, bool &need_update);

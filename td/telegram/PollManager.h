@@ -90,11 +90,10 @@ class PollManager final : public Actor {
 
   vector<FileId> get_poll_file_ids(PollId poll_id) const;
 
-  void add_poll_option(PollId poll_id, MessageFullId message_full_id,
-                       td_api::object_ptr<td_api::inputPollOption> &&option, Promise<Unit> &&promise);
+  void add_poll_option(MessageFullId message_full_id, td_api::object_ptr<td_api::inputPollOption> &&option,
+                       Promise<Unit> &&promise);
 
-  void delete_poll_option(PollId poll_id, MessageFullId message_full_id, const string &option_id,
-                          Promise<Unit> &&promise);
+  void delete_poll_option(MessageFullId message_full_id, const string &option_id, Promise<Unit> &&promise);
 
   void set_poll_answer(MessageFullId message_full_id, vector<int32> &&option_ids, Promise<Unit> &&promise);
 

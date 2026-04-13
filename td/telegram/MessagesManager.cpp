@@ -35982,21 +35982,6 @@ void MessagesManager::suffix_load_till_message_id(Dialog *d, MessageId message_i
   suffix_load_add_query(d, std::make_pair(std::move(promise), std::move(condition)));
 }
 
-void MessagesManager::add_poll_option(MessageFullId message_full_id,
-                                      td_api::object_ptr<td_api::inputPollOption> &&option, Promise<Unit> &&promise) {
-  auto m = get_message_force(message_full_id, "add_poll_option");
-  if (!can_add_message_poll_option(message_full_id.get_dialog_id(), m)) {
-    return promise.set_error(400, "Invalid message specified");
-  }
-  add_message_content_poll_option(td_, m->content.get(), message_full_id, std::move(option), std::move(promise));
-}
-
-void MessagesManager::delete_poll_option(MessageFullId message_full_id, const string &option_id,
-                                         Promise<Unit> &&promise) {
-  auto m = get_message_force(message_full_id, "delete_poll_option");
-  delete_message_content_poll_option(td_, m->content.get(), message_full_id, option_id, std::move(promise));
-}
-
 bool MessagesManager::need_poll_group_call_message(MessageFullId message_full_id) {
   auto m = get_message(message_full_id);
   CHECK(m != nullptr);

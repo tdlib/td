@@ -6955,20 +6955,6 @@ bool can_message_content_have_media_timestamp(const MessageContent *content) {
   }
 }
 
-void add_message_content_poll_option(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                     td_api::object_ptr<td_api::inputPollOption> &&option, Promise<Unit> &&promise) {
-  CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->add_poll_option(static_cast<const MessagePoll *>(content)->poll_id, message_full_id,
-                                     std::move(option), std::move(promise));
-}
-
-void delete_message_content_poll_option(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                        const string &option_id, Promise<Unit> &&promise) {
-  CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->delete_poll_option(static_cast<const MessagePoll *>(content)->poll_id, message_full_id, option_id,
-                                        std::move(promise));
-}
-
 static void merge_location_access_hash(const Location &first, const Location &second) {
   if (second.get_access_hash() != 0) {
     first.set_access_hash(second.get_access_hash());
