@@ -204,7 +204,9 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
                                        : Op::random_bytes(config.ech_enc_key_length);
         return {Op::bytes(store_u16(type)),
                 Op::scope16_begin(),
-                Op::bytes("\x00\x00\x01\x00\x01"),
+                Op::bytes("\x00\x00"),
+                Op::bytes(store_u16(config.ech_kdf_id)),
+                Op::bytes(store_u16(config.ech_aead_id)),
                 Op::random_bytes(1),
                 Op::bytes(store_u16(static_cast<uint16>(config.ech_enc_key_length))),
                 std::move(enc_key_op),

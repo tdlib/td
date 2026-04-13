@@ -99,6 +99,9 @@ struct ProfileSpec final {
   bool has_session_id{true};
   bool has_pq{false};
   uint16 pq_group_id{0};
+  uint16 ech_payload_length{0};
+  uint16 ech_aead_id{1};
+  uint16 ech_kdf_id{1};
   ExtensionOrderPolicy extension_order_policy{ExtensionOrderPolicy::FixedFromFixture};
 };
 

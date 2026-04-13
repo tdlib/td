@@ -51,8 +51,14 @@ mtproto::ExecutorConfig make_config(const ProfileSpec &spec, bool enable_ech, IR
   mtproto::ExecutorConfig config;
   config.grease_value_count = 7;
   config.has_ech = enable_ech;
-  config.ech_payload_length = 144 + static_cast<int>(rng.bounded(4u) * 32u);
+  if (spec.ech_payload_length != 0) {
+    config.ech_payload_length = spec.ech_payload_length;
+  } else {
+    config.ech_payload_length = 144 + static_cast<int>(rng.bounded(4u) * 32u);
+  }
   config.ech_enc_key_length = 32;
+  config.ech_aead_id = spec.ech_aead_id;
+  config.ech_kdf_id = spec.ech_kdf_id;
   config.alps_type = spec.alps_type;
   // Per-build padding target entropy: 0..255 bytes added to the static
   // `padding_to_target` op so that ECH-disabled wires still vary in

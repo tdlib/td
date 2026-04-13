@@ -61,16 +61,16 @@ constexpr BrowserProfile ANDROID_MOBILE_PROFILES[] = {
 };
 
 constexpr ProfileSpec PROFILE_SPECS[] = {
-    {BrowserProfile::Chrome133, Slice("chrome133"), 0x44CD, 0, true, true, true, true, 0x11EC,
+    {BrowserProfile::Chrome133, Slice("chrome133"), 0x44CD, 0, true, true, true, true, 0x11EC, 0, 1, 1,
      ExtensionOrderPolicy::ChromeShuffleAnchored},
-    {BrowserProfile::Chrome131, Slice("chrome131"), 0x4469, 0, true, true, true, true, 0x11EC,
+    {BrowserProfile::Chrome131, Slice("chrome131"), 0x4469, 0, true, true, true, true, 0x11EC, 0, 1, 1,
      ExtensionOrderPolicy::ChromeShuffleAnchored},
-    {BrowserProfile::Chrome120, Slice("chrome120"), 0x4469, 0, true, true, true, false, 0,
+    {BrowserProfile::Chrome120, Slice("chrome120"), 0x4469, 0, true, true, true, false, 0, 0, 1, 1,
      ExtensionOrderPolicy::ChromeShuffleAnchored},
-    {BrowserProfile::Firefox148, Slice("firefox148"), 0, 0x4001, true, false, true, true, 0x11EC,
+    {BrowserProfile::Firefox148, Slice("firefox148"), 0, 0x4001, true, false, true, true, 0x11EC, 239, 3, 1,
      ExtensionOrderPolicy::FixedFromFixture},
   {BrowserProfile::Firefox149_MacOS26_3, Slice("firefox149_macos26_3"), 0, 0x4001, true, false, true, true,
-   0x11EC, ExtensionOrderPolicy::FixedFromFixture},
+   0x11EC, 239, 1, 1, ExtensionOrderPolicy::FixedFromFixture},
     // Apple TLS family — Safari 26.x and iOS 14 (which represents the
     // current iOS 26.x Apple TLS family despite the legacy enum name)
     // both adopted X25519MLKEM768. Real captures under
@@ -80,11 +80,11 @@ constexpr ProfileSpec PROFILE_SPECS[] = {
     // in key_share. The legacy ProfileSpec `has_pq`/`pq_group_id`
     // fields are kept in sync with `BrowserProfileSpec` by
     // `test_profile_spec_pq_consistency_invariants.cpp`.
-    {BrowserProfile::Safari26_3, Slice("safari26_3"), 0, 0, false, false, true, true, 0x11EC,
+    {BrowserProfile::Safari26_3, Slice("safari26_3"), 0, 0, false, false, true, true, 0x11EC, 0, 1, 1,
      ExtensionOrderPolicy::FixedFromFixture},
-    {BrowserProfile::IOS14, Slice("ios14"), 0, 0, false, false, true, true, 0x11EC,
+    {BrowserProfile::IOS14, Slice("ios14"), 0, 0, false, false, true, true, 0x11EC, 0, 1, 1,
      ExtensionOrderPolicy::FixedFromFixture},
-    {BrowserProfile::Android11_OkHttp_Advisory, Slice("android11_okhttp_advisory"), 0, 0, false, false, true, false, 0,
+    {BrowserProfile::Android11_OkHttp_Advisory, Slice("android11_okhttp_advisory"), 0, 0, false, false, true, false, 0, 0, 1, 1,
      ExtensionOrderPolicy::FixedFromFixture},
 };
 

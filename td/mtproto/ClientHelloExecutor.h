@@ -19,6 +19,8 @@ struct ExecutorConfig {
   bool has_ech{false};
   int ech_payload_length{144};
   int ech_enc_key_length{32};
+  uint16 ech_aead_id{1};
+  uint16 ech_kdf_id{1};
   uint16 alps_type{0};
   // Per-build entropy added to every `padding_to_target` op so the
   // total wire length varies across builds even when ECH is disabled.

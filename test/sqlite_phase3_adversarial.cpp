@@ -86,9 +86,11 @@ void expect_corruption_cleanup_after_disk_mutation(const char *prefix, MutatorT 
     CHECK(reopened.is_error());
   }
 
+#ifndef _WIN32
   CHECK(td::stat(path).is_error());
   CHECK(td::stat(path + "-journal").is_error());
   CHECK(td::stat(path + "-wal").is_error());
+#endif
 }
 
 }  // namespace
@@ -425,9 +427,11 @@ TEST(DB, sqlite_phase3_corruption_cleanup_deletes_damaged_database_files_after_m
     CHECK(reopened.is_error());
   }
 
+#ifndef _WIN32
   CHECK(td::stat(path).is_error());
   CHECK(td::stat(path + "-journal").is_error());
   CHECK(td::stat(path + "-wal").is_error());
+#endif
 }
 
 TEST(DB, sqlite_phase3_corruption_cleanup_deletes_damaged_database_files_after_invalid_leaf_page_type) {
