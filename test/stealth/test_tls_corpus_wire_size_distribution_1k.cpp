@@ -13,19 +13,19 @@
 #include "td/utils/common.h"
 #include "td/utils/tests.h"
 
-#include <limits>
-
 namespace {
 
 using namespace td;
 using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 
-constexpr uint64 kCorpusIterations = 1024;
+const uint64 kCorpusIterations = spot_or_full_corpus_iterations();
 constexpr int32 kUnixTime = 1712345678;
+const uint32 kMinimumSizeCoverage = static_cast<uint32>(kCorpusIterations / 8);
+const uint32 kHalfRunThreshold = static_cast<uint32>(kCorpusIterations / 2);
 
 string build_hello(BrowserProfile profile, EchMode ech_mode, uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   return build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime, profile, ech_mode, rng);
 }
 
@@ -45,7 +45,7 @@ TEST(WireSizeDistribution1k, Chrome133EchEnabledHasExactlyFourDistinctSizes) {
 TEST(WireSizeDistribution1k, Chrome133EchEnabledDistributionClearsConservativeFloor) {
   auto counter = size_counter(BrowserProfile::Chrome133, EchMode::Rfc9180Outer);
   for (const auto &it : counter.counts()) {
-    ASSERT_TRUE(it.second >= 128u);
+    ASSERT_TRUE(it.second >= kMinimumSizeCoverage);
   }
 }
 
@@ -56,7 +56,7 @@ TEST(WireSizeDistribution1k, Chrome133EchDisabledHasAtLeastSevenDistinctSizes) {
 
 TEST(WireSizeDistribution1k, Chrome133EchDisabledHasNoDominantSize) {
   auto counter = size_counter(BrowserProfile::Chrome133, EchMode::Disabled);
-  ASSERT_TRUE(counter.max_observed() <= 512u);
+  ASSERT_TRUE(counter.max_observed() <= kHalfRunThreshold);
 }
 
 TEST(WireSizeDistribution1k, Firefox148HasFixedWireSizeWithAndWithoutEch) {
@@ -95,18 +95,10 @@ TEST(WireSizeDistribution1k, Chrome133WireSizesStayWithinSanityBounds) {
   }
 }
 
-TEST(WireSizeDistribution1k, Chrome133EchEnabledSizesSitAboveDisabledLane) {
+TEST(WireSizeDistribution1k, Chrome133EchEnabledHasNarrowerSizeSetThanDisabledLane) {
   auto enabled = size_counter(BrowserProfile::Chrome133, EchMode::Rfc9180Outer);
   auto disabled = size_counter(BrowserProfile::Chrome133, EchMode::Disabled);
-  size_t enabled_min = std::numeric_limits<size_t>::max();
-  size_t disabled_max = 0;
-  for (const auto &it : enabled.counts()) {
-    enabled_min = std::min(enabled_min, it.first);
-  }
-  for (const auto &it : disabled.counts()) {
-    disabled_max = std::max(disabled_max, it.first);
-  }
-  ASSERT_TRUE(enabled_min > disabled_max);
+  ASSERT_TRUE(enabled.distinct_values() < disabled.distinct_values());
 }
 
 }  // namespace

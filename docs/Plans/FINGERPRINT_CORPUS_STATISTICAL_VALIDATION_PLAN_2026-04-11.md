@@ -30,7 +30,43 @@ That is not yet the same thing as release-grade proof that every active fingerpr
 7. **CI efficiency risk** — the existing 1k corpus suites run 228 tests at 1024 iterations each, taking ~2 minutes of pure CPU. Many of those iterations test deterministic properties that are identical on every seed, wasting CI budget that could be spent on genuinely statistical validation against real dump fixtures.
 8. **Fixture grounding gap** — the existing 1k tests verify the generator's internal consistency (extension sets, GREASE uniformity, wire size distribution), but the critical question — "does the generated output match what real browsers actually produce on the wire?" — is answered only via hand-picked reference values in `test/stealth/CorpusStatHelpers.h` and `test/stealth/FingerprintFixtures.h`, not via systematic statistical comparison against the full reviewed fixture corpus extracted from `docs/Samples/Traffic dumps/`.
 
-No finite corpus can mathematically prove future traffic for all time. The practical bar in this plan is stronger and operationally release-grade: every active fingerprint family must be backed by independent real dumps, reviewed statistical baselines, paired-handshake corroboration, and adversarial regression gates that fail closed.
+No finite corpus can mathematically prove future traffic for all time. The practical bar in this plan is stronger and operationally release-grade: every active fingerprint family must be backed by independent real dumps, reviewed structural baselines, generator-envelope containment, and adversarial regression gates that fail closed. Distributional fidelity gates activate progressively as the corpus grows.
+
+### 0.0.1 Current corpus inventory and tier projections
+
+**Corpus snapshot (2026-04-11):** 111 ClientHello fixtures, 106 ServerHello fixtures, across 5 platforms.
+
+| Platform | Fixtures | Families (approx) | Richest family (n) | Projected max tier with current data |
+|---|---|---|---|---|
+| Android | 29 | ~12 | 4–5 (Chrome 146/147) | Tier 2 for Chrome; Tier 1 for others |
+| iOS | 21 | ~10 | 3–4 (Safari 26.x) | Tier 2 for Safari; Tier 1 for others |
+| Linux desktop | 16 | ~5 | 4–5 (Chrome 144–147) | Tier 2 for Chrome; Tier 2 for Firefox |
+| macOS | 14 | ~6 | 4 (Firefox 149) | Tier 2 for Firefox; Tier 1–2 for others |
+| Windows | 31 | ~15 | 6 (Chrome 146) | Tier 2 for Chrome; Tier 1 for Firefox (not yet in runtime profiles) |
+
+**No family currently reaches Tier 3 (n ≥ 15 per family-lane).** Distributional tests are therefore diagnostic-only today. The plan is designed so that Tier 2 structural gates provide meaningful release evidence now, and Tier 3+ gates activate automatically as contributions arrive.
+
+**Corpus growth model:** This plan does not include a data collection campaign. Contributors are welcome to add captures per the admission protocol in Section 6. When new captures arrive:
+1. The baseline generator re-evaluates tier assignments automatically.
+2. Suites that were diagnostic-only may become release-gating.
+3. No code changes are needed to enable higher tiers — the generated baselines header carries tier metadata, and test suites conditionally enable tier-gated assertions.
+
+### 0.0.2 What is actionable today vs what waits for more data
+
+| Component | Actionable now | Waits for more data |
+|---|---|---|
+| Iteration tier refactoring (Section 0.1) | Yes — purely mechanical | — |
+| Corpus intake hardening (Workstream A) | Yes — pipeline security | — |
+| Deterministic rule verifiers (Workstream B) | Yes — upstream-rule-pinned, zero corpus dependency | — |
+| Generator-envelope containment (Tier 1+) | Yes — works at n = 1 | — |
+| Structural multi-dump suites (Tier 2 gates) | Yes — most families qualify for Tier 2 now | — |
+| Joint state set-membership catalogs | Yes — set-membership works at any n | — |
+| Cross-family disjointness | Yes — invariant-based, works at n ≥ 1 per family | — |
+| Monte Carlo consistency and boundary falsification | Yes — tests generator, not corpus | — |
+| Handshake acceptance and ServerHello corroboration | Yes — correctness checks, not statistical | — |
+| One-sample distributional tests (Tier 3) | Diagnostic-only now | n ≥ 15 per family-lane |
+| Classifier-style adversarial gates (Tier 3) | Diagnostic-only now | n ≥ 15 per family-lane |
+| TOST equivalence framework (Tier 4) | Not yet | n ≥ 200 per family-lane |
 
 ### 0.1 Audit of existing 1k corpus test suite
 
@@ -131,26 +167,32 @@ This plan is successful only if the answer becomes **yes** for every active fami
 
 No finite corpus proves future traffic for all time. Wave 2 therefore makes bounded, falsifiable claims rather than absolute proof claims.
 
+**Fundamental asymmetry:** The generator can be sampled to arbitrary precision at near-zero cost, so its distribution is effectively known. The real browser population is observed only through the limited capture corpus (currently 111 fixtures, 1–5 per typical family-lane). All distributional comparisons must respect this asymmetry: they are one-sample problems (testing whether the small real sample is consistent with the known generator distribution), not symmetric two-sample problems.
+
 Every release gate must declare which of the following claim classes it is using:
 
-| Claim class | Null hypothesis or rule under test | Failure condition | Gate type |
-|---|---|---|---|
-| Exact invariant | The generated output never violates invariant `I` for `(family_id, route_lane)` | A single counterexample exists | Hard fail |
-| Deterministic rule | Given the same inputs and pinned upstream rule specification, the generated field is legal | A single impossible output exists | Hard fail |
-| Distributional fidelity | Real captures and generated outputs for the same `(family_id, route_lane, browser_state)` are drawn from the same audited joint distribution | The chosen corrected two-sample test rejects at configured `alpha` | Nightly and promotion only |
-| Cross-family contamination | Generated outputs for family `X` stay inside the reviewed envelope for `X` and outside disjoint invariants for family `Y` | Distance gate, disjoint invariant gate, or classifier threshold is violated | Nightly and promotion only |
+| Claim class | Null hypothesis or rule under test | Failure condition | Corpus requirement | Gate type |
+|---|---|---|---|---|
+| Exact invariant | The generated output never violates invariant `I` for `(family_id, route_lane)` | A single counterexample exists | Tier 1+ (n ≥ 1) | Hard fail |
+| Deterministic rule | Given the same inputs and pinned upstream rule specification, the generated field is legal | A single impossible output exists | Tier 1+ (n ≥ 1) | Hard fail |
+| Generator-envelope containment | Every observed real capture value falls within the generator's output space (across N seeds) | A real capture value that the generator never produces | Tier 1+ (n ≥ 1) | Hard fail |
+| Empirical-envelope coverage | Generated outputs stay within the min/max/set-of-observed values across all reviewed captures for the family-lane | A generated value outside the reviewed empirical envelope | Tier 2+ (n ≥ 3) | Hard fail |
+| Set-membership coverage | The generator covers every distinct observed value in the reviewed corpus (e.g., every observed extension set, every observed wire-length bucket) | A reviewed real value with zero coverage probability in the generator | Tier 2+ (n ≥ 3) | Nightly and promotion |
+| Cross-family contamination | Generated outputs for family X stay inside the reviewed invariant set for X and outside disjoint invariants for family Y | Disjoint invariant gate or distance gate is violated | Tier 2+ (n ≥ 3) | Nightly and promotion |
+| Distributional fidelity | Real captures are consistent with being drawn from the generator's known distribution | One-sample exact permutation test or bootstrap CI rejects at configured alpha | Tier 3+ (n ≥ 15) | Nightly and promotion only |
+| Classifier-style distinguishability | A simple interpretable classifier cannot separate real from generated at the per-connection level | AUC lower 95% bootstrap CI exceeds threshold | Tier 3+ (n ≥ 15) | Nightly and promotion only |
 
 Required metadata in every distributional or classifier-style test file docstring:
 
 1. Null hypothesis `H0`
 2. Alternative hypothesis `H1`
 3. Significance level `alpha`
-4. Target power `1 - beta`
+4. Achieved power estimate given the actual corpus size, or "power not estimated — diagnostic only" if below Tier 3
 5. DPI-relevant effect size being detected
-6. Minimum sample size required for the decision to be release-gating
+6. Actual sample size used and the tier it qualifies for
 7. Multiple-testing correction policy
 
-Exact-invariant and deterministic-rule suites are not treated as null-hypothesis significance tests. They are legality checks and fail on the first counterexample.
+Exact-invariant, deterministic-rule, and containment/envelope suites are not treated as null-hypothesis significance tests. They are legality checks and fail on the first counterexample.
 
 ---
 
@@ -292,7 +334,7 @@ Additionally, as audited in Section 0.1:
 
 Closing this gap requires:
 1. Right-sizing existing 1k test iterations per the tier strategy in Section 0.1 (no files deleted, all assertions preserved).
-2. Building the new multi-dump statistical comparison suites (Workstream C) that compare generated output against **all reviewed fixtures per family-lane**, using the corrected statistical tests declared in Section 9.
+2. Building the new multi-dump structural and statistical comparison suites (Workstream C) that compare generated output against **all reviewed fixtures per family-lane**, using tier-gated assertion strategies: structural checks (Tier 1+, all families), envelope and coverage checks (Tier 2+, families with ≥ 3 captures), and distributional tests (Tier 3+, families with ≥ 15 captures).
 3. The multi-dump suites are the new primary release evidence; the existing 1k tests become regression guards for generator internals (GREASE quality, permutation diversity, entropy, structural validity).
 
 ---
@@ -315,9 +357,11 @@ All corpus evidence, baselines, and promotion decisions are tracked per `(family
 
 ### Temporal staleness policy
 
-Browser fingerprints drift with auto-updates. A family-lane whose most recent authoritative capture is older than 90 days is flagged as **potentially stale** in nightly reports. A family-lane whose most recent capture is older than 180 days is automatically downgraded to the next lower evidence tier for distributional promotion purposes (Tier 3 → Tier 2 behavior, Tier 2 → diagnostic-only). Exact-invariant and deterministic-rule gates are not affected by staleness because they test structural legality, not distributional currency.
+Browser fingerprints drift with auto-updates. A family-lane whose most recent authoritative capture is older than 90 days is flagged as **potentially stale** in nightly reports. A family-lane whose most recent capture is older than 180 days is automatically downgraded to the next lower evidence tier for distributional promotion purposes (Tier 3 → Tier 2 behavior, Tier 2 → structural-only). Exact-invariant and deterministic-rule gates are not affected by staleness because they test structural legality, not distributional currency.
 
 Staleness downgrade is lifted immediately when a new authoritative capture within the 90-day window is admitted.
+
+**Rapid-response protocol for major TLS stack changes:** When a major browser TLS stack change is detected (new extension added or removed, new named group, ALPS version change, ECH behavior change, PQ algorithm change), all affected families are **immediately downgraded to Tier 0 (Advisory)** until new captures confirm the generator has been updated to match. This is a circuit breaker: it prevents the system from claiming release-grade fidelity for a family whose real-world behavior has changed in ways the corpus hasn't yet captured. The downgrade is lifted per-family as new captures for the updated browser version are admitted and the family re-qualifies for Tier 1+.
 
 ### Capture-environment declaration
 
@@ -363,20 +407,33 @@ Capture date alone never creates independence.
 
 To avoid overclaiming confidence, every family must be tagged by evidence strength.
 
-| Tier | Meaning | Minimum evidence | Allowed use |
-|---|---|---|---|
-| Tier 0 | Provisional | 1 to 4 authoritative captures or only pseudo-replicated sessions from one source | Test research only, never release-grade |
-| Tier 1 | Corroborated exact-invariant evidence | At least 5 authoritative captures from at least 2 independent sources and at least 2 distinct sessions | Exact-invariant and deterministic-rule tests only; no distributional promotion |
-| Tier 2 | Operational release-grade | At least 200 authoritative captures per `(family_id, route_lane)`, at least 3 independent sources, at least 2 browser minor versions unless a reviewed no-drift justification is recorded, at least 2 distinct capture days or environments, handshake acceptance evidence, and ServerHello corroboration | Exact, deterministic, and corrected distributional gates allowed with documented uncertainty |
-| Tier 3 | High-confidence release-grade | At least 385 authoritative captures per `(family_id, route_lane)` under the same independence and version-spanning rules as Tier 2 | Preferred bar for stable distributional promotion and long-term release confidence |
+**Current corpus reality (2026-04-11):** The repository has **111 total ClientHello fixtures** across 5 platforms. Most browser families per platform have 1–5 captures, with the richest single family having approximately 11–16 fixtures. No family-lane has 200+ captures. The tier system below is designed to be **actionable with the corpus as it exists today** while progressively unlocking stronger evidence classes as community contributions grow.
 
-**Threshold derivation.** These per-lane minimums are derived from the heaviest planned distributional battery. For the primary binary/categorical claim class — detecting a 10 percentage-point shift at alpha = 0.05 and power = 0.80 under a two-proportion z-test — the unadjusted per-test requirement is approximately 197 samples per group. After applying Benjamini-Hochberg correction across a within-family battery of up to 20 simultaneous tests (the upper bound for a single family-lane), the effective per-test alpha drops to roughly 0.0025 at the critical rank, raising the per-group requirement to approximately 380. The Tier 2 threshold of 200 therefore covers uncorrected single-test adequacy and is gated by the per-test power rule (Section 9, point 5) which forces any underpowered corrected test to remain diagnostic-only. The Tier 3 threshold of 385 covers the fully-corrected worst-case battery. If a family-lane has an unusually large battery (more than 20 simultaneous distributional tests), the per-test power rule will still prevent underpowered promotion regardless of the tier threshold being met.
+| Tier | Meaning | Minimum evidence | Allowed gates |
+|---|---|---|---|
+| Tier 0 | Advisory-only | Zero authoritative network-derived captures; backed only by code samples (uTLS snapshots, advisory specifications) | Advisory test targets only. Cannot gate any release behavior. |
+| Tier 1 | Anchored | 1–2 authoritative captures from at least 1 network-derived source | Exact-invariant gates, deterministic-rule gates, generator-envelope containment (Section 9.1). No distributional claims. This is where most families start. |
+| Tier 2 | Corroborated | At least 3 authoritative captures per `(family_id, route_lane)` from at least 2 independent sources, at least 2 distinct sessions | All Tier 1 gates plus: empirical-envelope gates (min/max/set-of-observed), set-membership coverage checks, cross-family disjointness checks, one-sample containment tests (Section 9.2). Operational release-grade for structural fidelity. |
+| Tier 3 | Distributional | At least 15 authoritative captures per `(family_id, route_lane)` from at least 3 independent sources, at least 2 browser minor versions unless a reviewed no-drift justification is recorded | All Tier 2 gates plus: permutation-based exact distributional tests, bootstrap confidence intervals on effect sizes, classifier-style adversarial gates with documented power limitations (Section 9.3). Release-grade with quantified uncertainty. |
+| Tier 4 | High-confidence (future) | At least 200 authoritative captures per `(family_id, route_lane)` under the same independence and version-spanning rules as Tier 3 | Full asymptotic two-sample distributional battery with Benjamini-Hochberg correction and power ≥ 0.8 against DPI-relevant effect sizes. Preferred bar for long-term stable distributional promotion. |
+
+**Threshold derivation.**
+
+- **Tier 2 (n ≥ 3):** The minimum at which an empirical min/max envelope is non-degenerate (not defined by a single point) and a pairwise distance matrix has at least 3 entries for centroid estimation. Three independent captures from 2 sources also provide the minimum meaningful corroboration.
+- **Tier 3 (n ≥ 15):** The minimum at which permutation-based exact tests have non-trivial power. For a two-sided permutation test comparing n_real = 15 real captures against n_gen = 1000 generated samples, the exact attainable significance level is approximately $\binom{1015}{15}^{-1}$, far below 0.05. The practical constraint is detection power: Monte Carlo simulation shows that with n_real = 15, a permutation test achieves power ≥ 0.70 against a 20 percentage-point shift in a binary feature — coarser than the Tier 4 target but sufficient to catch gross generator defects. For continuous features, bootstrap CIs on the Kolmogorov-Smirnov statistic at n = 15 have half-widths of approximately ±0.25, adequate for detecting large distributional mismatches (>16 bytes in wire length) but not subtle ones.
+- **Tier 4 (n ≥ 200):** The original asymptotic power calculation: detecting a 10pp shift at alpha = 0.05 / power = 0.80 under a one-sample proportion test against the generator's known distribution requires approximately 197 samples. (Note: this is a one-sample test, not two-sample, because the generator distribution is fully known and can be sampled to arbitrary precision.)
+
+**Key reframing: the generator distribution is known.** Unlike the original plan's two-sample framing, the generated-vs-real comparison is fundamentally asymmetric. The generator can be sampled millions of times at zero cost, so its distribution is effectively known. The only unknown is the real browser's distribution, observed through limited captures. All distributional tests should therefore be one-sample tests: "Is the observed real sample consistent with the generator's distribution?" or equivalently "Does the generator's output space cover the real browser's behavior?" This halves sample-size requirements compared to symmetric two-sample tests.
 
 Rules:
 
-1. If a route lane has fewer than 200 authoritative captures, distributional fields for that lane are diagnostic only and cannot promote it.
-2. If a family lacks multi-version evidence, it may not claim release-grade coverage across browser auto-update behavior unless a reviewed no-drift justification is attached.
-3. Promotion is per route lane, not global per family.
+1. Families at Tier 0 have no release gates and must not back any active fingerprint selection.
+2. Families at Tier 1 are release-eligible for exact-invariant and structural gates only. This is the minimum bar for a new family to enter active rotation.
+3. Families at Tier 2 are release-grade for structural fidelity. Most currently-active families should reach this tier with the existing corpus.
+4. Families at Tier 3 unlock distributional evidence. This is achievable for the richest families (Linux Chrome, Android Chrome) with targeted contributor coordination.
+5. Tier 4 is a future aspiration. No family is expected to reach it in the near term. When community contributions eventually grow the corpus, Tier 4 gates activate automatically.
+6. Promotion is per route lane, not global per family.
+7. If a family lacks multi-version evidence, it may not claim version-spanning coverage unless a reviewed no-drift justification is attached.
 
 ### Family and lane clustering policy
 
@@ -462,9 +519,11 @@ Existing and new `test/stealth/test_tls_corpus_*` files remain the place where r
 
 Existing 1k test files are refactored to use the iteration tier constants from Section 0.1. New multi-dump comparison files (Workstream C) are added to compare generated output against the full reviewed fixture corpus rather than singleton reference values.
 
-Distributional assertions become release-gating only for Tier 2 or Tier 3 route lanes. For lower tiers, the same suites may run in diagnostic mode but cannot promote a family.
+Distributional assertions become release-gating only for Tier 3 or Tier 4 route lanes. For lower tiers, the same suites run structural and envelope checks (which are already release-gating at Tier 1–2) but distributional comparisons are diagnostic-only.
 
 The iteration tier constants (`kQuickIterations`, `kSpotIterations`, `kFullIterations`) and the `TD_NIGHTLY_CORPUS` environment variable gating are defined in a shared header, not duplicated per file.
+
+**Progressive unlocking:** Each multi-dump suite file detects the evidence tier of its family-lane at compile time (via constants in the generated baselines header) and enables the appropriate assertion tiers. When a contributor adds new captures and the family reaches Tier 3, the distributional gates activate automatically on the next baseline regeneration — no new test files are needed.
 
 ---
 
@@ -561,11 +620,23 @@ The next artifact after the reviewed summary header must be a reviewed **statist
 
 #### Joint stochastic state catalogs
 
-- `browser_state` catalogs that keep co-varying fields together instead of treating them as independent marginals
-- Joint tuples for `(extension_order_template, ALPS type family, GREASE legality template)`
-- Joint tuples for `(ECH presence, ECH payload or padded-length bucket, inner extension signature, key-share signature)`
-- Joint tuples for `(wire-length bucket, extension count, ALPN signature, resumption state)`
-- Joint tuples for first-flight and ServerHello reply patterns where the corpus supports them
+Joint state catalogs prevent the generator from producing impossible field combinations that could be detected by DPI correlation. However, with a small corpus (n = 1–15 per family-lane), the joint catalog approach must be adapted:
+
+**Small-corpus rule (n < 15):** Joint catalogs at Tier 1 and Tier 2 are **set-membership catalogs**, not distributional catalogs. They enumerate the set of observed joint tuples and assert that:
+1. Every generated joint tuple must be a member of the generator's declared legal-combination set (a superset of the corpus-observed set, derived from pinned upstream browser rules).
+2. Every corpus-observed joint tuple must be producible by the generator.
+3. No generated joint tuple matches a declared-impossible combination.
+
+This is a legality check, not a frequency test. It avoids the combinatorial explosion problem because it does not require cell counts — it only requires set membership.
+
+**Larger-corpus rule (n ≥ 15, Tier 3+):** When enough data exists, frequencies of joint tuples can be compared using exact multinomial tests. If any cell in the full joint table has expected count < 1, reduce the joint to pairwise interactions: test all $\binom{k}{2}$ pairs of fields as 2-way contingency tables instead of the full k-way joint. This avoids sparse-cell bias while still detecting the most actionable DPI features (pairwise correlations between extension presence and ECH state, ALPS type and key-share structure, etc.).
+
+Joint tuple sets to track:
+
+- `(extension_order_template, ALPS type family, GREASE legality template)` — tracks whether the generator produces only combinations actually seen in the wild
+- `(ECH presence, ECH payload or padded-length bucket, inner extension signature, key-share signature)` — tracks ECH-related field consistency
+- `(wire-length bucket, extension count, ALPN signature, resumption state)` — tracks size-related field consistency
+- `(first-flight layout, ServerHello cipher, ServerHello extension set)` — tracks full-handshake consistency where the corpus supports it
 
 #### Diagnostic marginals only
 
@@ -587,33 +658,74 @@ Marginal histograms are not allowed to be sampled independently to synthesize a 
 
 1. Exact invariants must remain exact.
 2. Deterministic browser-derived fields must first pass pinned rule verifiers before any corpus comparison is considered meaningful.
-3. Stochastic fields must be validated against reviewed joint state catalogs and corrected two-sample tests, not against independently sampled marginals.
-4. If a family-lane does not yet have enough reviewed independent data for a statistically powered distributional decision, mark the baseline provisional and keep that lane out of release-grade distributional promotion.
-5. The goal is not to force uniformity where real browsers are not uniform; the goal is to reflect real observed joint state behavior without allowing obvious synthetic collapse or impossible combinations.
+3. **Primary gate at all tiers:** Generator-envelope containment and empirical-envelope coverage. Every real capture's observed value must fall within the generator's output space, and every generated value must stay within the empirical envelope derived from all reviewed captures. These work from n = 1 and are the backbone of Wave 2.
+4. **Tier 2+ gate:** Set-membership coverage. The generator must cover every distinct observed value in the reviewed corpus (every extension-set variant, every wire-length bucket, every ALPS type). These require n ≥ 3 to be non-trivially constraining.
+5. **Tier 3+ gate:** One-sample distributional tests against the generator's known distribution. These use permutation-based exact tests or bootstrap CIs rather than asymptotic tests, because n < 200. Results carry documented power limitations.
+6. If a family-lane does not yet have enough reviewed independent data for a statistically powered distributional decision, mark the baseline provisional and keep that lane on structural gates only.
+7. The goal is not to force uniformity where real browsers are not uniform; the goal is to reflect real observed joint state behavior without allowing obvious synthetic collapse or impossible combinations.
 
-### Named statistical tests and correction policy
+### Tier-stratified test strategy
 
-| Data shape | Primary test | Release notes |
+The tests that apply depend on the evidence tier of the family-lane. Higher tiers unlock additional gates without relaxing lower-tier gates.
+
+#### 9.1 Tier 1+ gates (n ≥ 1 real capture)
+
+These are structural legality checks. They work even with a single authoritative capture.
+
+| Check | Method | Failure mode |
 |---|---|---|
-| Binary presence or absence | Fisher exact test for small counts, otherwise two-proportion test | Target detection of at least 10 percentage point shifts when sample size permits |
-| Low-cardinality categorical fields | Exact multinomial test when feasible, otherwise chi-squared or G-test with reviewed minimum cell counts | If counts are too sparse, keep the decision diagnostic-only |
-| Ordered extension-template frequencies | Permutation test over template-frequency vectors and Kendall tau distance as a diagnostic | Template membership is primary; order marginals alone are not |
-| Continuous length fields | Two-sample Anderson-Darling test with bootstrap confidence intervals on effect size | Tail sensitivity matters because DPI classifiers often target tails |
-| Randomness quality of generator-only fields | NIST SP 800-22 subset: monobit and runs tests on Monte Carlo outputs | This tests generator quality, not corpus alignment |
+| Exact invariant match | Generated value == reviewed value for every invariant field across all reviewed captures | Any mismatch is a hard fail |
+| Deterministic rule legality | Generated value passes pinned upstream browser-logic rule verifier | Any illegal output is a hard fail |
+| Generator-envelope containment | Sample generator at 10,000 seeds; every observed real capture value must appear at least once in the generated set | A real value that the generator never produces indicates a generator defect |
+| JA3/JA4 set membership | Generated JA3/JA4 must fall within the reviewed set; reviewed JA3/JA4 must fall within the generator's JA3/JA4 output set | Any out-of-set value is a hard fail |
+
+These gates are sufficient for **Tier 1 release eligibility**. A family at Tier 1 can back active fingerprint selection based on structural correctness alone.
+
+#### 9.2 Tier 2+ gates (n ≥ 3 real captures)
+
+These add empirical-envelope checks that become meaningful when there are at least 3 distinct data points.
+
+| Check | Method | Failure mode |
+|---|---|---|
+| Empirical min/max envelope | Generated wire lengths, extension counts, ECH payload lengths must fall within [min, max] observed across all reviewed captures for the family-lane, with a 10% tolerance margin on continuous fields | Any generated value outside the relaxed envelope is a nightly fail |
+| Observed-value coverage | For each discrete field (extension set, supported group set, ALPN set, ALPS type, key share structure), the generator must produce every distinct variant observed across the reviewed captures | A reviewed variant that the generator never produces is a hard fail |
+| Cross-family disjointness | For each pair of families documented as disjoint, the generator for family X must never produce the exact invariant set of family Y | Any overlap is a nightly fail |
+| Joint state set-membership | Each observed `(extension_order_template, ALPS_type, ECH_presence)` joint tuple in the real corpus must be producible by the generator | A real joint tuple outside the generator's joint output set is a hard fail |
+
+The 10% tolerance margin on continuous min/max envelopes accounts for the fact that a small corpus may not have observed the full real range. As corpus size grows past n = 15, the tolerance narrows to 5%.
+
+#### 9.3 Tier 3+ gates (n ≥ 15 real captures)
+
+These add distributional comparisons that require enough real samples for non-trivial statistical power.
+
+| Data shape | Primary test | Notes |
+|---|---|---|
+| Binary presence/absence | One-sample exact binomial test against generator's known probability | Detects ~20pp shifts at n = 15 with power ≈ 0.70; power limitation documented per test |
+| Low-cardinality categorical | One-sample exact multinomial goodness-of-fit against generator distribution | If any cell has expected count < 1, collapse to a binary present/absent test |
+| Ordered extension-template frequencies | Permutation test: observed template-frequency vector vs generator's template-frequency vector | Template set-membership (Tier 2) is primary; frequency comparison is secondary evidence |
+| Continuous length fields | One-sample Kolmogorov-Smirnov test against the generator's empirical CDF (from 100,000 seeds) | At n = 15, KS detects distributional shifts with D > 0.34. Bootstrap 95% CI on D reported alongside the p-value |
+| Randomness quality of generator-only fields | NIST SP 800-22 subset: monobit and runs tests on Monte Carlo outputs | Tests generator quality, not corpus alignment |
+
+**Why one-sample, not two-sample.** The generator's CDF can be estimated to arbitrary precision by sampling millions of seeds. Treating generator output as one of two unknown samples wastes half the statistical budget. All tests above compare the small real-capture sample against the generator's known (or precisely estimated) distribution.
+
+**Equivalence framing for continuous fields.** Raw goodness-of-fit tests (K-S, A-D) will eventually reject at any sample size because the generator intentionally produces a wider distribution than any finite capture set. To avoid trivial rejections as the corpus grows toward Tier 4:
+
+1. For Tier 3 (n ∈ [15, 200)): use one-sample KS and report the test statistic and bootstrap CI. Rejection at alpha = 0.05 triggers diagnostic investigation, not automatic demotion. The gate is the magnitude of the KS statistic: D < 0.40 passes; D ∈ [0.40, 0.60) triggers review; D ≥ 0.60 fails.
+2. For Tier 4 (n ≥ 200, future): switch to a TOST-style equivalence test. H₀: "the distributions differ by more than ε" with ε derived from what a DPI classifier could exploit (16-byte shift or 0.5 pooled SD, whichever is smaller). This tests whether the generator is *close enough*, not whether it is identical.
 
 Default policy:
 
-1. Exact-invariant and deterministic-rule tests are hard-fail legality checks and do not participate in multiple-testing correction.
-2. Distributional tests within one `(family_id, route_lane)` battery use Benjamini-Hochberg with target `FDR <= 0.05`.
-3. Cross-family contamination and promotion tests use a family-wise correction, defaulting to Holm-Bonferroni with `FWER <= 0.01`.
-4. Target power for release-gating distributional tests is at least `0.8` against a DPI-relevant effect size.
-5. If the available sample size is too small to achieve the declared power, the result is diagnostic only and cannot promote a lane.
+1. Exact-invariant, deterministic-rule, and containment/envelope tests are hard-fail legality checks and do not participate in multiple-testing correction.
+2. Distributional tests within one `(family_id, route_lane)` battery at Tier 3 use Bonferroni with `FWER <= 0.05` (chosen over BH because the small battery size at n < 200 makes BH's FDR advantage negligible while Bonferroni provides stronger familywise guarantees for a small number of tests).
+3. Cross-family contamination and promotion tests use Holm-Bonferroni with `FWER <= 0.01`.
+4. Every distributional test must document its achieved power given the actual sample size. If achieved power is below 0.50, the result is diagnostic only and cannot promote or demote a lane.
+5. **Per-test power rule:** If the available sample size is too small to achieve power ≥ 0.50 against the declared DPI-relevant effect size, the result is diagnostic only.
 
 Default DPI-relevant effect sizes:
 
-1. Binary or categorical presence fields: detect at least a 10 percentage point shift when sample size permits.
-2. Continuous structural length fields: detect at least a 16-byte shift or `0.5` pooled standard deviations, whichever is smaller.
-3. Classifier-style distinguishability checks: fail if a reviewed simple classifier exceeds the declared held-out AUC threshold.
+1. Binary or categorical presence fields: detect at least a 20 percentage point shift at Tier 3 (relaxed from 10pp at Tier 4 to match available power).
+2. Continuous structural length fields: detect at least a 32-byte shift or `0.8` pooled standard deviations at Tier 3 (relaxed from 16-byte / 0.5 SD at Tier 4 to match available power).
+3. Classifier-style distinguishability checks: fail if a reviewed simple classifier exceeds the declared held-out AUC threshold (see Section 12).
 
 ### JA3 and JA4 policy
 
@@ -622,7 +734,7 @@ Default DPI-relevant effect sizes:
 3. A route-lane is JA4-stable only if generated outputs stay within the reviewed JA4 set for that lane.
 4. Distinct release families should have disjoint JA3 or JA4 sets whenever the reviewed real corpus shows that disjointness.
 5. Passing JA3 or JA4 does not prove safety because they do not fully encode extension order, wire length, key-share payload details, or first-flight layout.
-6. **Promotion hierarchy:** JA3/JA4 stability is a prerequisite for promotion consideration, but promotion itself requires passing the joint state catalog gates, corrected distributional tests, and classifier-style adversarial checks. A lane that is JA3/JA4-stable but fails any of those higher gates cannot promote. The promotion checklist in Section 15 is the authoritative sequence.
+6. **Promotion hierarchy:** JA3/JA4 stability is a prerequisite for promotion consideration, but promotion itself requires passing the structural and envelope gates (Tier 2), and, where available, distributional and classifier-style adversarial gates (Tier 3+). A lane that is JA3/JA4-stable but fails any of those higher gates cannot promote. The promotion checklist in Section 15 is the authoritative sequence.
 
 ---
 
@@ -672,7 +784,9 @@ These suites are the core new artifact of Workstream C. Each one compares genera
 
 For each `(family_id, route_lane)`, using the full reviewed fixture set from `ReviewedClientHelloFixtures.h`:
 
-#### Exact invariant checks (compared against every fixture in the family)
+**Tier-gated assertion model.** Each suite adapts its assertions based on the evidence tier of the family-lane. Suites are structured as: unconditional structural checks (always run) + tier-gated checks (enabled only when the lane qualifies).
+
+#### Exact invariant checks (Tier 1+, all families — compared against every fixture in the family)
 
 - Non-GREASE cipher suite set and order: generated must match the reviewed set for the family. If different fixtures in the family show the same set (which they do for Chrome, Firefox), every generated output must match.
 - Non-GREASE extension set (without padding): generated must produce only extensions seen across the family's reviewed fixtures.
@@ -688,16 +802,32 @@ For each `(family_id, route_lane)`, using the full reviewed fixture set from `Re
 - ALPS type family legality: conditioned on browser version and route lane.
 - ECH payload length and structure legality: conditioned on the profile's ECH configuration.
 
-#### Distributional alignment checks (generated output distribution vs reviewed fixture distribution)
+#### Distributional alignment checks (Tier 3+ only, n ≥ 15 real captures)
 
-These are the new tests that close the fixture grounding gap:
+These tests unlock **only when the family-lane reaches Tier 3** (≥ 15 authoritative captures from ≥ 3 independent sources). Until then, the structural gates above are the release evidence.
 
-- Wire length distribution: the distribution of generated ClientHello wire lengths must be consistent with the distribution observed across the family's reviewed fixtures, using the Anderson-Darling test or permutation test as declared in Section 9.
-- ECH payload length distribution (for ECH-enabled lanes): generated values must fall within the set observed in reviewed fixtures and approximate the reviewed frequency distribution.
-- Extension count distribution: generated extension counts must match the reviewed range and distribution.
-- Key share total length: generated values must stay within the reviewed envelope.
+When unlocked:
 
-These distributional checks require Tier 2 evidence (at least 200 reviewed samples per family-lane) to be release-gating. Below that threshold they are diagnostic-only, as declared in Section 6.
+- Wire length distribution: one-sample KS test of real capture wire lengths against the generator's empirical CDF (sampled at 100,000 seeds). Report D statistic and bootstrap 95% CI.
+- ECH payload length distribution (for ECH-enabled lanes): one-sample exact multinomial test of real capture values against the generator's known probability vector.
+- Extension count distribution: one-sample KS test against generator CDF.
+- Key share total length: one-sample containment test — every real value within the generator's output range.
+
+**Important:** These distributional checks cannot make claims stronger than the sample size supports. At n = 15, power against subtle shifts (< 20pp or < 32 bytes) is limited. The tests document their achieved power per the docstring requirements in Section 1. Results that fail to achieve power ≥ 0.50 are reported as diagnostic and cannot promote or demote a lane.
+
+**Progressive strengthening:** As the corpus grows:
+- n ∈ [15, 30): Permutation-based exact tests only. Bonferroni correction. Coarse effect sizes (20pp, 32 bytes).
+- n ∈ [30, 200): Permutation tests + bootstrap CIs. BH correction. Medium effect sizes (15pp, 24 bytes).
+- n ≥ 200 (Tier 4, future): Switch to TOST equivalence framework with asymptotic tests. BH correction. Fine effect sizes (10pp, 16 bytes).
+
+#### Tier 2 structural alignment checks (n ≥ 3 real captures, current achievable bar)
+
+These are the **primary new tests for Wave 2** because they are achievable with the current corpus:
+
+- For each discrete field (cipher suites, extensions, supported groups, ALPN, ALPS type, key share groups), verify that the set of distinct values across all reviewed captures for the family equals or is a subset of the generator's output set. A generated value not seen in any capture triggers a review; a capture value not producible by the generator is a hard fail.
+- For continuous fields (wire length), verify that generated outputs fall within the empirical [min − tolerance, max + tolerance] envelope across all reviewed captures. Tolerance is 10% of the observed range at Tier 2, narrowing to 5% at Tier 3+.
+- For joint tuples, verify set-membership as described in Section 9.2.
+- For cross-family pairs, verify that the generator for family X never produces the complete invariant-set signature of family Y.
 
 #### Cross-family contamination checks
 
@@ -755,9 +885,10 @@ Every statistical or classifier-style runtime suite must declare in its file hea
 
 1. Whether it is release-gating or diagnostic-only
 2. The `(family_id, route_lane)` it applies to
-3. Its null hypothesis and alternative hypothesis
-4. The declared `alpha`, power target, effect size, and correction policy
-5. Whether it depends on Tier 2 or Tier 3 evidence
+3. The evidence tier of the family-lane and how many real captures back it
+4. For Tier 1–2: which structural gates it exercises (exact invariant, deterministic rule, envelope, set-membership, containment)
+5. For Tier 3+: its null hypothesis, alternative hypothesis, declared alpha, achieved power estimate given actual n, effect size, and correction policy
+6. Whether it depends on Tier 3+ evidence for any specific assertion (and degrades gracefully at Tier 2)
 
 ---
 
@@ -835,7 +966,10 @@ Default classifier gate:
 1. Train only on reviewed feature vectors that correspond to fields already used elsewhere in the plan.
 2. Use simple audited baselines such as logistic regression and shallow trees before trying more expressive models. Simple models are chosen for **interpretability**: a logistic regression with feature weights identifies which specific feature leaks, while a complex ensemble at the same AUC provides no actionable signal. This is a deliberate design choice, not a capability limitation.
 3. Fail the gate if any reviewed classifier achieves a held-out AUC whose lower 95% bootstrap confidence bound exceeds `0.60` for distinguishing real vs generated outputs inside the same `(family_id, route_lane)`.
-4. **Minimum sample requirement:** the classifier gate requires at least 200 generated samples and at least 200 real samples per `(family_id, route_lane)`. Below this threshold, the bootstrap CI on AUC is unstable and the gate is diagnostic-only — it cannot promote or block a lane.
+4. **Minimum sample requirement — adapted for small corpus:** The classifier gate has tiered minimum requirements:
+   - **Tier 3 (n ≥ 15 real captures):** Run the classifier with leave-one-out cross-validation (LOOCV) instead of held-out split. Generate 1,000 synthetic samples per fold. The bootstrap CI on AUC is wide at n = 15 (approximately ±0.15), so the gate catches only gross leaks (point AUC > 0.80) at this tier. Results are diagnostic for subtler leaks. The LOOCV approach is chosen because a train/test split at n = 15 leaves too few test samples for a stable AUC estimate.
+   - **Tier 4 (n ≥ 200, future):** Switch to 80/20 held-out split with 1,000 bootstrap resamples. AUC lower 95% CI > 0.60 is the release-blocking threshold.
+   - **Below Tier 3 (n < 15):** No classifier gate — sample is too small for any meaningful classification-based inference. Cross-family contamination is checked via exact invariant disjointness instead.
 5. **Adversary capability acknowledgment:** passing the simple-classifier gate is necessary evidence but not sufficient assurance against a state-level adversary with cross-connection correlation, deep ensemble classifiers, or traffic-analysis capabilities. The gate detects gross feature leaks at the per-connection level. Periodic reassessment with more expressive models (gradient-boosted ensembles, neural network probes) is recommended as the corpus grows, but such models are advisory — only interpretable classifier failures are release-blocking.
 
 ---
@@ -853,13 +987,14 @@ The repository already contains light fuzz and stress suites. Wave 2 adds long-r
 
 ### Required long-run coverage
 
-1. **Generator consistency Monte Carlo**: 10k-seed per-family-lane runs verify that the generator remains inside the reviewed baseline and deterministic legality envelope under many seeds.
-2. **Boundary falsification Monte Carlo**: 10k-seed per-family-lane runs verify that no sampled output violates deterministic rule verifiers or legal joint state catalogs.
-3. **Escalation runs**: 100k focused runs for the most sensitive families or fields when a regression is suspected.
-4. Large synthetic corpus stress for the analysis pipeline to ensure fail-closed behavior still holds under corpus growth.
-5. Randomness quality checks on generated client-random and session-id fields use monobit and runs tests on Monte Carlo outputs, not entropy estimates derived from tiny real corpora.
+1. **Generator consistency Monte Carlo**: 10k-seed per-family-lane runs verify that the generator remains inside the reviewed baseline and deterministic legality envelope under many seeds. This is the **highest-value nightly check** because it requires zero additional captures — it validates the generator against its own declared rules and the reviewed invariants.
+2. **Boundary falsification Monte Carlo**: 10k-seed per-family-lane runs verify that no sampled output violates deterministic rule verifiers or legal joint state catalogs (set-membership variant for Tier 1–2, frequency variant for Tier 3+).
+3. **Generator-envelope containment at scale**: For Tier 1+ families, verify that every reviewed real capture value is producible by the generator across 100,000 seeds. This is a stronger version of the Tier 1 containment gate and catches generator bugs that only manifest under specific seeding patterns.
+4. **Escalation runs**: 100k focused runs for the most sensitive families or fields when a regression is suspected.
+5. Large synthetic corpus stress for the analysis pipeline to ensure fail-closed behavior still holds under corpus growth.
+6. Randomness quality checks on generated client-random and session-id fields use monobit and runs tests on Monte Carlo outputs, not entropy estimates derived from tiny real corpora.
 
-Monte Carlo is not allowed to stand in for corpus truth. It validates generator behavior against the reviewed model and legality rules; it does not prove the reviewed model is correct.
+Monte Carlo validates generator behavior against the reviewed model and legality rules. It does not substitute for corpus evidence — it cannot prove the reviewed model is correct, only that the generator faithfully implements it.
 
 Performance requirement:
 
@@ -921,14 +1056,17 @@ Tests that were previously at `kCorpusIterations` (= 1024) and classified as exa
 Broader evidence. All tests run at their full iteration tier (`kFullIterations` = 1024 or higher). Gated by `TD_NIGHTLY_CORPUS=1`.
 
 1. Full multi-dump baseline regeneration check.
-2. Corrected distributional battery for Tier 2 and Tier 3 route lanes at `kFullIterations`.
-3. Generator consistency Monte Carlo at 10k seeds per family-lane.
-4. Boundary falsification Monte Carlo at 10k seeds per family-lane.
-5. Multi-dump fixture distributional alignment checks at `kFullIterations`.
-6. Entropy and uniqueness tests (`adversarial_dpi`, `hmac_timestamp`, `grease_autocorrelation`) at `kFullIterations`.
-7. Handshake acceptance checks.
-8. ServerHello and first-flight corroboration checks.
-9. Long-run fuzz, stress, and classifier-style adversarial suites.
+2. **Tier 1+ structural gates for all families:** exact invariants, deterministic rules, generator-envelope containment at 100,000 seeds.
+3. **Tier 2+ envelope and coverage gates** for qualifying families: empirical envelopes, set-membership, joint state set-membership, cross-family disjointness.
+4. **Tier 3+ distributional gates** for qualifying families (currently: families with ≥ 15 captures): one-sample KS, exact multinomial, permutation tests, classifier LOOCV gate.
+5. Generator consistency Monte Carlo at 10k seeds per family-lane.
+6. Boundary falsification Monte Carlo at 10k seeds per family-lane.
+7. Multi-dump fixture structural alignment checks at `kFullIterations`.
+8. Entropy and uniqueness tests (`adversarial_dpi`, `hmac_timestamp`, `grease_autocorrelation`) at `kFullIterations`.
+9. Handshake acceptance checks.
+10. ServerHello and first-flight corroboration checks.
+11. Long-run fuzz, stress, and randomness quality suites.
+12. **Tier status report:** nightly produces a summary per family-lane: current tier, number of captures, which gates ran, pass/fail status, and what's needed for next tier.
 
 ### CTest label strategy
 
@@ -944,14 +1082,37 @@ To support the PR/nightly split without duplicating test files:
 
 Before a new family can back release behavior:
 
-1. Tier 2 evidence is present for every emitted route lane, with Tier 3 preferred.
-2. Reviewed route-lane baseline exists, including exact invariants, deterministic rule manifests, and joint state catalogs.
+1. **Tier 1 minimum (structural release):** At least 1 authoritative network-derived capture exists for every emitted route lane.
+2. Reviewed route-lane baseline exists, including exact invariants and deterministic rule manifests.
 3. Positive, negative, edge, adversarial, integration, light fuzz, and stress tests all exist in separate files.
 4. Exact invariants and deterministic rule verifiers are green.
-5. Corrected distributional tests are green for Tier 2 and Tier 3 lanes.
-6. Handshake acceptance is green.
-7. ServerHello corroboration is green, but is not treated as sole fidelity proof.
-8. Cross-family contamination and classifier-style adversarial tests are green.
+5. Generator-envelope containment is green (every real capture value is producible by the generator).
+6. JA3/JA4 set membership is green.
+7. Handshake acceptance is green.
+
+**Tier 2 promotion (structural + envelope release, current target for most families):**
+
+8. All Tier 1 gates pass.
+9. At least 3 authoritative captures from at least 2 independent sources per emitted route lane.
+10. Empirical-envelope gates are green (generated outputs within reviewed min/max).
+11. Set-membership coverage is green (generator covers all observed variants).
+12. Joint state set-membership is green.
+13. Cross-family disjointness checks are green.
+14. ServerHello corroboration is green where corpus supports it, but is not treated as sole fidelity proof.
+
+**Tier 3 promotion (distributional release, target for richest families):**
+
+15. All Tier 2 gates pass.
+16. At least 15 authoritative captures from at least 3 independent sources per emitted route lane.
+17. One-sample distributional tests pass or are documented as diagnostic-only with achieved power < 0.50.
+18. Classifier-style adversarial gate passes (LOOCV, gross-leak detection).
+
+**Tier 4 promotion (high-confidence, future):**
+
+19. All Tier 3 gates pass.
+20. At least 200 authoritative captures per emitted route lane.
+21. Full asymptotic distributional battery with TOST equivalence framework passes.
+22. Classifier gate with 80/20 held-out split passes at AUC lower 95% CI > 0.60.
 
 ---
 
@@ -959,20 +1120,23 @@ Before a new family can back release behavior:
 
 Wave 2 is complete only when all of the following are true.
 
-1. Every active fingerprint family has Tier 2 evidence for every emitted route lane or is explicitly marked non-release-grade in the missing lanes.
-2. Every active fingerprint family has a reviewed route-lane baseline generated from real dumps.
-3. Every active fingerprint family has separate positive, negative, edge, adversarial, integration, light fuzz, and stress suites.
-4. No active release family remains advisory-backed.
-5. Windows desktop either has its own reviewed families and tests or remains explicitly out of release scope.
-6. Distributional promotion is only granted to Tier 2 or Tier 3 route lanes; lower tiers remain exact-invariant or deterministic-only.
-7. Handshake acceptance is a correctness gate and ServerHello corroboration is a secondary release gate, never the sole fidelity proof.
-8. Cross-family contamination tests fail on any attempted silent widening of a family.
-9. The analysis pipeline treats community dumps as untrusted input and fails closed under malformed or malicious artifacts.
-10. RU-route and blocked-ECH behavior remain consistent with route policy and reviewed corpus expectations.
-11. Baseline generation, corpus smoke, deterministic verifier suites, and runtime differential suites are all green.
-12. **Existing 1k test iteration tiers are refactored** per the Section 0.1 per-file verdicts: 12 files at quick-tier, 5 files at spot/full-tier, 1 file nightly-only, 4 mixed files with per-test tiers, 2 files unchanged. No tests deleted. PR gate fingerprint corpus tests complete within 30 seconds.
-13. **Multi-dump comparison suites compare against all fixtures per family-lane**, not the singleton fixture reference that the existing 1k tests use. The existing 1k tests' provenance chain (`ReviewedClientHelloFixtures.h` → single fixture) is preserved as generator regression guards, while the new multi-dump suites provide family-level breadth.
-14. **Per-family multi-dump comparison suites exist** for every active non-advisory family, comparing generated outputs against the full reviewed fixture set in `ReviewedClientHelloFixtures.h` per `(family_id, route_lane)`.
+1. Every active fingerprint family has at least **Tier 1 evidence** (at least 1 authoritative network-derived capture) for every emitted route lane, or is explicitly marked non-release-grade in the missing lanes.
+2. Every active fingerprint family with ≥ 3 captures has **Tier 2 evidence** (structural + envelope release) for every emitted route lane, or has a documented path to Tier 2 when contributor captures arrive.
+3. Every active fingerprint family has a reviewed route-lane baseline generated from real dumps.
+4. Every active fingerprint family has separate positive, negative, edge, adversarial, integration, light fuzz, and stress suites.
+5. No active release family remains advisory-backed (Tier 0). Families that cannot be promoted to Tier 1 are either demoted to non-release or replaced with promotable alternatives.
+6. Windows desktop either has its own reviewed families and tests or remains explicitly out of release scope.
+7. Distributional promotion (Tier 3) is only granted to family-lanes with ≥ 15 captures from ≥ 3 independent sources; lower-tier families use structural gates only and document the limitation.
+8. Handshake acceptance is a correctness gate and ServerHello corroboration is a secondary release gate, never the sole fidelity proof.
+9. Cross-family contamination tests (exact invariant disjointness at Tier 2) fail on any attempted silent widening of a family.
+10. The analysis pipeline treats community dumps as untrusted input and fails closed under malformed or malicious artifacts.
+11. RU-route and blocked-ECH behavior remain consistent with route policy and reviewed corpus expectations.
+12. Baseline generation, corpus smoke, deterministic verifier suites, and runtime differential suites are all green.
+13. **Existing 1k test iteration tiers are refactored** per the Section 0.1 per-file verdicts: 12 files at quick-tier, 5 files at spot/full-tier, 1 file nightly-only, 4 mixed files with per-test tiers, 2 files unchanged. No tests deleted. PR gate fingerprint corpus tests complete within 30 seconds.
+14. **Multi-dump comparison suites compare against all fixtures per family-lane**, not the singleton fixture reference that the existing 1k tests use. The existing 1k tests' provenance chain (`ReviewedClientHelloFixtures.h` → single fixture) is preserved as generator regression guards, while the new multi-dump suites provide family-level breadth.
+15. **Per-family multi-dump comparison suites exist** for every active non-advisory family, comparing generated outputs against the full reviewed fixture set in `ReviewedClientHelloFixtures.h` per `(family_id, route_lane)`.
+16. **Tier status is documented per family-lane.** Every active family reports: current tier, number of authoritative captures, number of independent sources, which gates are active, and what would be needed to reach the next tier.
+17. **Generator-envelope containment** is verified at 100,000 seeds for every Tier 1+ family: every real capture value is producible by the generator.
 
 ---
 
@@ -986,10 +1150,12 @@ That update must include:
 
 1. The exact commands run.
 2. The exact green test outputs or summarized pass counts.
-3. Which families and route lanes are Tier 2 release-grade.
-4. Which families and route lanes are Tier 3 release-grade.
-5. Which families or route lanes remain provisional and why.
-6. Any residual risk that still blocks promotion.
+3. Which families and route lanes are Tier 1 (anchored — structural release only).
+4. Which families and route lanes are Tier 2 (corroborated — structural + envelope release).
+5. Which families and route lanes are Tier 3 (distributional — with documented power limitations).
+6. Which families or route lanes remain Tier 0 (advisory) and why.
+7. For each family at Tier 2, what is needed to reach Tier 3 (how many additional captures, from how many additional independent sources).
+8. Any residual risk that still blocks promotion.
 
 Do not update the Russian implementation doc early with aspirational claims.
 
@@ -1001,15 +1167,16 @@ Do not update the Russian implementation doc early with aspirational claims.
 2. **Refactor existing 1k test iteration tiers.** Apply the `kQuickIterations`/`kSpotIterations`/`kFullIterations` split to the existing 22 files per the Section 0.1 audit. Add `TD_NIGHTLY_CORPUS` runtime gating. Add CTest labels `STEALTH_CORPUS_QUICK` and `STEALTH_CORPUS_FULL`. Verify PR gate stays under 30 seconds.
 3. Harden corpus intake and provenance tests.
 4. Add deterministic rule verifiers with pinned upstream-rule references.
-5. Build the route-lane baseline generator and generated baseline artifacts.
+5. Build the route-lane baseline generator and generated baseline artifacts, **including per-family tier metadata** (number of captures, number of independent sources, current tier, active gates).
 6. **Wire the dump→fixture→test evidence chain.** Ensure `ReviewedClientHelloFixtures.h` constants carry explicit provenance back to their source fixture files in `test/analysis/fixtures/clienthello/`. Every constant used as a reference value in a test must trace to a specific `fixture_id` and `source_sha256`.
-7. **Build per-family multi-dump comparison suites (Workstream C).** These are the core artifact that closes Gap E: generated outputs compared against the full reviewed fixture set per `(family_id, route_lane)`, not against singleton reference values.
-8. Add handshake acceptance and ServerHello corroboration suites.
-9. Add multi-dump runtime suites for already-supported non-Windows families.
-10. Promote or demote advisory-backed active profiles based on real evidence.
-11. Add Windows families only when the reviewed corpus exists and is wired into `profiles_validation.json`.
+7. **Build per-family multi-dump comparison suites (Workstream C) with tier-gated assertions.** These suites run structural gates (Tier 1+) for all families and conditionally enable envelope/coverage (Tier 2+) and distributional (Tier 3+) gates based on the baselines header. This is the core artifact that closes Gap E.
+8. **Build generator-envelope containment suites.** 100,000-seed runs verifying every real capture value is producible. These are high-value because they require zero additional captures.
+9. Add handshake acceptance and ServerHello corroboration suites.
+10. Promote or demote advisory-backed active profiles based on real evidence. Safari26_3, IOS14, and Android11_OkHttp_Advisory must reach Tier 1 or be demoted.
+11. Add Windows families only when the reviewed corpus is wired into `profiles_validation.json` and runtime profiles exist.
 12. Run nightly-scale Monte Carlo, fuzz, and stress.
-13. Update `docs/Plans/STEALTH_IMPLEMENTATION_RU.md` only after all gates are green.
+13. **Distributional and classifier gates (Tier 3+) are diagnostic-only** until community contributions grow specific family-lanes to n ≥ 15. No code changes needed when that happens — gates activate via the baselines header tier metadata.
+14. Update `docs/Plans/STEALTH_IMPLEMENTATION_RU.md` only after all structural gates (Tier 1–2) are green for every active family.
 
 ---
 

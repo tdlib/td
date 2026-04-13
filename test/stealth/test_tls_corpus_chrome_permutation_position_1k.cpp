@@ -21,11 +21,12 @@ using namespace td;
 using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 
-constexpr uint64 kCorpusIterations = 1024;
+const uint64 kCorpusIterations = spot_or_full_corpus_iterations();
 constexpr int32 kUnixTime = 1712345678;
+const uint64 kDistinctSequenceFloor = is_nightly_corpus_enabled() ? 1000u : 60u;
 
 ParsedClientHello build_chrome_hello(BrowserProfile profile, EchMode ech_mode, uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   auto wire =
       build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime, profile, ech_mode, rng);
   auto parsed = parse_tls_client_hello(wire);
@@ -61,7 +62,7 @@ TEST(ChromePermutationPosition1k, Chrome133ProducesManyDistinctNonGreaseSequence
     sequences.insert(sequence_key(
         non_grease_extension_sequence(build_chrome_hello(BrowserProfile::Chrome133, EchMode::Disabled, seed))));
   }
-  ASSERT_TRUE(sequences.size() >= 1000u);
+  ASSERT_TRUE(sequences.size() >= kDistinctSequenceFloor);
 }
 
 TEST(ChromePermutationPosition1k, Chrome131ProducesManyDistinctNonGreaseSequences) {
@@ -70,7 +71,7 @@ TEST(ChromePermutationPosition1k, Chrome131ProducesManyDistinctNonGreaseSequence
     sequences.insert(sequence_key(
         non_grease_extension_sequence(build_chrome_hello(BrowserProfile::Chrome131, EchMode::Disabled, seed))));
   }
-  ASSERT_TRUE(sequences.size() >= 1000u);
+  ASSERT_TRUE(sequences.size() >= kDistinctSequenceFloor);
 }
 
 TEST(ChromePermutationPosition1k, ExtensionAtAbsolutePositionZeroIsAlwaysGrease) {

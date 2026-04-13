@@ -7,6 +7,7 @@
 #include "test/stealth/CorpusStatHelpers.h"
 #include "test/stealth/MockRng.h"
 
+#include "td/mtproto/BrowserProfile.h"
 #include "td/mtproto/stealth/TlsHelloBuilder.h"
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
@@ -21,11 +22,11 @@ using namespace td;
 using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 
-constexpr uint64 kCorpusIterations = 1024;
+constexpr uint64 kCorpusIterations = kQuickIterations;
 constexpr int32 kUnixTime = 1712345678;
 
 string build_mobile_hello(BrowserProfile profile, uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   return build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime, profile, EchMode::Disabled,
                                             rng);
 }
@@ -36,13 +37,26 @@ ParsedClientHello parse_mobile_hello(BrowserProfile profile, uint64 seed) {
   return parsed.move_as_ok();
 }
 
-vector<uint16> expected_non_grease_extension_order() {
-  return {0x0000, 0x0005, 0x000A, 0x000B, 0x000D, 0x0010, 0x0012,
-          0x0017, 0x001B, 0x0023, 0x002B, 0x002D, 0x0033, 0xFF01};
+uint16 extension_code(const td::mtproto::BrowserExtension &extension) {
+  return extension.type == td::mtproto::TlsExtensionType::Custom ? extension.custom_type
+                                                                  : static_cast<uint16>(extension.type);
 }
 
-vector<uint16> expected_non_grease_supported_groups() {
-  return {0x001D, 0x0017, 0x0018};
+vector<uint16> expected_non_grease_extension_order(BrowserProfile profile) {
+  vector<uint16> result;
+  const auto &spec = td::mtproto::get_profile_spec(profile);
+  result.reserve(spec.extensions.size());
+  for (const auto &extension : spec.extensions) {
+    auto type = extension_code(extension);
+    if (!is_grease_value(type) && type != 0x0015) {
+      result.push_back(type);
+    }
+  }
+  return result;
+}
+
+vector<uint16> expected_non_grease_supported_groups(BrowserProfile profile) {
+  return td::mtproto::get_profile_spec(profile).supported_groups;
 }
 
 template <class Predicate>
@@ -53,8 +67,8 @@ void for_each_fixed_mobile_profile(Predicate &&predicate) {
 }
 
 TEST(FixedMobileProfileInvariance1k, NonGreaseExtensionOrderFixedAcrossProfilesAndSeeds) {
-  auto expected = expected_non_grease_extension_order();
   for_each_fixed_mobile_profile([&](BrowserProfile profile) {
+    auto expected = expected_non_grease_extension_order(profile);
     for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
       ASSERT_EQ(expected, non_grease_extension_sequence(parse_mobile_hello(profile, seed)));
     }
@@ -63,16 +77,16 @@ TEST(FixedMobileProfileInvariance1k, NonGreaseExtensionOrderFixedAcrossProfilesA
 
 TEST(FixedMobileProfileInvariance1k, NonGreaseExtensionOrderHasNoVariation) {
   std::set<string> orders;
-  auto expected = expected_non_grease_extension_order();
-  string expected_key;
-  for (auto ext : expected) {
-    if (!expected_key.empty()) {
-      expected_key += ",";
-    }
-    expected_key += hex_u16(ext);
-  }
   for_each_fixed_mobile_profile([&](BrowserProfile profile) {
-    for (uint64 seed = 0; seed < 128; seed++) {
+    auto expected = expected_non_grease_extension_order(profile);
+    string expected_key;
+    for (auto ext : expected) {
+      if (!expected_key.empty()) {
+        expected_key += ",";
+      }
+      expected_key += hex_u16(ext);
+    }
+    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
       string key;
       for (auto ext : non_grease_extension_sequence(parse_mobile_hello(profile, seed))) {
         if (!key.empty()) {
@@ -82,16 +96,16 @@ TEST(FixedMobileProfileInvariance1k, NonGreaseExtensionOrderHasNoVariation) {
       }
       orders.insert(key);
     }
+    ASSERT_EQ(expected_key, *orders.begin());
   });
   ASSERT_EQ(1u, orders.size());
-  ASSERT_EQ(expected_key, *orders.begin());
 }
 
-TEST(FixedMobileProfileInvariance1k, SessionTicketAlwaysPresentAndECHAlwaysAbsent) {
+TEST(FixedMobileProfileInvariance1k, SessionTicketAndECHRemainAbsent) {
   for_each_fixed_mobile_profile([&](BrowserProfile profile) {
     for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
       auto hello = parse_mobile_hello(profile, seed);
-      ASSERT_TRUE(find_extension(hello, 0x0023u) != nullptr);
+      ASSERT_TRUE(find_extension(hello, 0x0023u) == nullptr);
       ASSERT_TRUE(find_extension(hello, fixtures::kEchExtensionType) == nullptr);
     }
   });
@@ -111,8 +125,8 @@ TEST(FixedMobileProfileInvariance1k, AlpsAndDelegatedCredentialsNeverPresent) {
 }
 
 TEST(FixedMobileProfileInvariance1k, SupportedGroupsStayLegacyThreeGroupSet) {
-  auto expected = expected_non_grease_supported_groups();
   for_each_fixed_mobile_profile([&](BrowserProfile profile) {
+    auto expected = expected_non_grease_supported_groups(profile);
     for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
       auto hello = parse_mobile_hello(profile, seed);
       ASSERT_EQ(expected, [&] {
@@ -124,14 +138,13 @@ TEST(FixedMobileProfileInvariance1k, SupportedGroupsStayLegacyThreeGroupSet) {
   });
 }
 
-TEST(FixedMobileProfileInvariance1k, KeyShareContainsOnlyGreaseAndX25519) {
+TEST(FixedMobileProfileInvariance1k, KeyShareContainsOnlyX25519) {
   for_each_fixed_mobile_profile([&](BrowserProfile profile) {
     for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
       auto hello = parse_mobile_hello(profile, seed);
-      ASSERT_EQ(2u, hello.key_share_entries.size());
-      ASSERT_TRUE(is_grease_value(hello.key_share_entries[0].group));
-      ASSERT_EQ(fixtures::kX25519Group, hello.key_share_entries[1].group);
-      ASSERT_EQ(fixtures::kX25519KeyShareLength, hello.key_share_entries[1].key_length);
+      ASSERT_EQ(1u, hello.key_share_entries.size());
+      ASSERT_EQ(fixtures::kX25519Group, hello.key_share_entries[0].group);
+      ASSERT_EQ(fixtures::kX25519KeyShareLength, hello.key_share_entries[0].key_length);
     }
   });
 }
@@ -160,14 +173,11 @@ TEST(FixedMobileProfileInvariance1k, GreaseCipherAndGroupSlotsRemainPresent) {
   });
 }
 
-TEST(FixedMobileProfileInvariance1k, CompressCertificateBodyIsBrotliOnly) {
-  static const char kExpectedBody[] = "\x02\x00\x02";
+TEST(FixedMobileProfileInvariance1k, CompressCertificateRemainsAbsent) {
   for_each_fixed_mobile_profile([&](BrowserProfile profile) {
     for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
       auto hello = parse_mobile_hello(profile, seed);
-      auto *compress_certificate = find_extension(hello, 0x001Bu);
-      ASSERT_TRUE(compress_certificate != nullptr);
-      ASSERT_EQ(Slice(kExpectedBody, 3), compress_certificate->value);
+      ASSERT_TRUE(find_extension(hello, 0x001Bu) == nullptr);
     }
   });
 }
@@ -175,7 +185,7 @@ TEST(FixedMobileProfileInvariance1k, CompressCertificateBodyIsBrotliOnly) {
 TEST(FixedMobileProfileInvariance1k, AlpnRemainsH2ThenHttp11) {
   static const char kExpectedBody[] = "\x00\x0c\x02\x68\x32\x08\x68\x74\x74\x70\x2f\x31\x2e\x31";
   for_each_fixed_mobile_profile([&](BrowserProfile profile) {
-    for (uint64 seed = 0; seed < 128; seed++) {
+    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
       auto hello = parse_mobile_hello(profile, seed);
       auto *alpn = find_extension(hello, 0x0010u);
       ASSERT_TRUE(alpn != nullptr);

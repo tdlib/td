@@ -19,13 +19,13 @@ using namespace td;
 using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 
-constexpr uint64 kCorpusIterations = 1024;
+const uint64 kCorpusIterations = spot_or_full_corpus_iterations();
 constexpr int32 kUnixTime = 1712345678;
-constexpr uint32 kDominanceThreshold = 512;
-constexpr uint32 kMostFrequentThreshold = 307;
+const uint32 kDominanceThreshold = static_cast<uint32>(kCorpusIterations / 2);
+const uint32 kMostFrequentThreshold = static_cast<uint32>(kCorpusIterations * 3 / 10);
 
 ParsedClientHello build_chrome133_hello(uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
                                                  BrowserProfile::Chrome133, EchMode::Disabled, rng);
   auto parsed = parse_tls_client_hello(wire);

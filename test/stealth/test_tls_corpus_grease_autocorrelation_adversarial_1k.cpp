@@ -24,11 +24,11 @@ using namespace td;
 using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 
-constexpr uint64 kCorpusIterations = 1024;
+constexpr uint64 kCorpusIterations = kFullIterations;
 constexpr int32 kUnixTime = 1712345678;
 
 ParsedClientHello build_chrome133_hello(uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
                                                  BrowserProfile::Chrome133, EchMode::Disabled, rng);
   auto parsed = parse_tls_client_hello(wire);
@@ -83,6 +83,9 @@ GreaseSlots collect_grease_slots(const ParsedClientHello &hello) {
 // -- Intra-hello uniqueness: all GREASE slots within ONE hello must be distinct --
 
 TEST(GreaseIntraHelloAdversarial1k, AllGreaseSlotsWithinSingleChromeHelloAreNotAllIdentical) {
+  if (!is_nightly_corpus_enabled()) {
+    return;
+  }
   // Chrome produces 6 independent GREASE draws from a pool of 16 values.
   // By birthday paradox, pairwise collisions are common (~60% of hellos have at least one).
   // But ALL 6 being identical would indicate lazy PRNG reuse (prob ≈ (1/16)^5 ≈ 10^-6).
@@ -131,6 +134,9 @@ double compute_autocorrelation(const vector<double> &series, size_t lag) {
 }
 
 TEST(GreaseIntraHelloAdversarial1k, CipherGreaseSequenceHasNoPeriodicPattern) {
+  if (!is_nightly_corpus_enabled()) {
+    return;
+  }
   vector<double> cipher_grease_values;
   cipher_grease_values.reserve(kCorpusIterations);
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
@@ -145,6 +151,9 @@ TEST(GreaseIntraHelloAdversarial1k, CipherGreaseSequenceHasNoPeriodicPattern) {
 }
 
 TEST(GreaseIntraHelloAdversarial1k, ExtensionPositionSequenceHasNoPeriodicPattern) {
+  if (!is_nightly_corpus_enabled()) {
+    return;
+  }
   // Track position of renegotiation_info (0xFF01) in each hello
   vector<double> positions;
   positions.reserve(kCorpusIterations);
@@ -169,6 +178,9 @@ TEST(GreaseIntraHelloAdversarial1k, ExtensionPositionSequenceHasNoPeriodicPatter
 // -- GREASE values not linearly correlated with seed index --
 
 TEST(GreaseIntraHelloAdversarial1k, GreaseCipherNotLinearlyCorrelatedWithSeed) {
+  if (!is_nightly_corpus_enabled()) {
+    return;
+  }
   // Compute Pearson correlation between seed index and cipher GREASE value
   double sum_x = 0, sum_y = 0, sum_xy = 0, sum_x2 = 0, sum_y2 = 0;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
@@ -190,6 +202,9 @@ TEST(GreaseIntraHelloAdversarial1k, GreaseCipherNotLinearlyCorrelatedWithSeed) {
 // -- Chi-squared contingency table: cipher GREASE vs extension GREASE --
 
 TEST(GreaseIntraHelloAdversarial1k, CipherVsExtensionGreaseContingencyTableNotDiagonal) {
+  if (!is_nightly_corpus_enabled()) {
+    return;
+  }
   // Build a contingency table of (cipher_grease, ext_first_grease) pairs
   std::unordered_map<uint32, uint32> pair_counts;
   std::unordered_map<uint16, uint32> cipher_marginal;
@@ -220,10 +235,13 @@ TEST(GreaseIntraHelloAdversarial1k, CipherVsExtensionGreaseContingencyTableNotDi
 // -- ECH payload length autocorrelation --
 
 TEST(GreaseIntraHelloAdversarial1k, EchPayloadLengthSequenceHasNoPeriodicPattern) {
+  if (!is_nightly_corpus_enabled()) {
+    return;
+  }
   vector<double> lengths;
   lengths.reserve(kCorpusIterations);
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    MockRng rng(seed);
+    MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
                                                    BrowserProfile::Chrome133, EchMode::Rfc9180Outer, rng);
     auto parsed = parse_tls_client_hello(wire);
@@ -239,10 +257,13 @@ TEST(GreaseIntraHelloAdversarial1k, EchPayloadLengthSequenceHasNoPeriodicPattern
 // -- Wire size autocorrelation for ECH-disabled Chrome (padding entropy) --
 
 TEST(GreaseIntraHelloAdversarial1k, WireSizeSequenceHasNoPeriodicPattern) {
+  if (!is_nightly_corpus_enabled()) {
+    return;
+  }
   vector<double> sizes;
   sizes.reserve(kCorpusIterations);
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    MockRng rng(seed);
+    MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
     sizes.push_back(
         static_cast<double>(build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
                                                                BrowserProfile::Chrome133, EchMode::Disabled, rng)

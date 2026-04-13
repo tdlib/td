@@ -23,11 +23,11 @@ using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
 using namespace td::mtproto::test::fixtures::reviewed;
 
-constexpr uint64 kCorpusIterations = 1024;
+constexpr uint64 kCorpusIterations = kQuickIterations;
 constexpr int32 kUnixTime = 1712345678;
 
 string build_firefox_macos_hello(Slice domain, int32 unix_time, EchMode ech_mode, uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   return build_tls_client_hello_for_profile(domain.str(), "0123456789secret", unix_time,
                                             BrowserProfile::Firefox149_MacOS26_3, ech_mode, rng);
 }

@@ -24,11 +24,11 @@ using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
 using namespace td::mtproto::test::fixtures::reviewed;
 
-constexpr uint64 kCorpusIterations = 1024;
+constexpr uint64 kCorpusIterations = kQuickIterations;
 constexpr int32 kUnixTime = 1712345678;
 
 string build_ios_hello(uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   return build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime, BrowserProfile::IOS14,
                                             EchMode::Disabled, rng);
 }
@@ -112,7 +112,8 @@ TEST(IosAppleTlsCorpus1k, ECHAndChromiumOnlyExtensionsNeverPresent) {
 
 TEST(IosAppleTlsCorpus1k, NonGreaseSupportedGroupsExactMatchCaptureFamily) {
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    ASSERT_EQ(chrome147_0_7727_47_ios26_4_aNonGreaseSupportedGroups, non_grease_supported_groups(parse_ios_hello(seed)));
+    ASSERT_EQ(chrome147_0_7727_47_ios26_4_aNonGreaseSupportedGroups,
+              non_grease_supported_groups(parse_ios_hello(seed)));
   }
 }
 

@@ -20,11 +20,11 @@ using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
 
-constexpr uint64 kCorpusIterations = 1024;
+constexpr uint64 kCorpusIterations = kQuickIterations;
 constexpr int32 kUnixTime = 1712345678;
 
 string build_client_hello(BrowserProfile profile, EchMode ech_mode, uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   return build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime, profile, ech_mode, rng);
 }
 

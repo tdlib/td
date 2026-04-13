@@ -4,6 +4,7 @@
 // telemt: https://t.me/telemtrs
 //
 
+#include "test/stealth/CorpusIterationTiers.h"
 #include "test/stealth/MockRng.h"
 #include "test/stealth/TestHelpers.h"
 #include "test/stealth/TlsHelloParsers.h"
@@ -22,11 +23,12 @@ using namespace td;
 using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 
-constexpr uint64 kCorpusIterations = 1024;
+const uint64 kCorpusIterations = spot_or_full_corpus_iterations();
+const size_t kGreasePairCoverageFloor = is_nightly_corpus_enabled() ? 64u : 32u;
 constexpr int32 kUnixTime = 1712345678;
 
 ParsedClientHello build_chrome133_hello(uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
                                                  BrowserProfile::Chrome133, EchMode::Disabled, rng);
   auto parsed = parse_tls_client_hello(wire);
@@ -141,7 +143,7 @@ TEST(GreaseSlotIndependence1k, GreasePairCoverageShowsManyDistinctPairs) {
     auto pair_key = (static_cast<uint32>(first_cipher_grease(hello)) << 16) | first_extension_grease(hello);
     pairs.insert(pair_key);
   }
-  ASSERT_TRUE(pairs.size() >= 64u);
+  ASSERT_TRUE(pairs.size() >= kGreasePairCoverageFloor);
 }
 
 }  // namespace

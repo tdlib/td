@@ -17,10 +17,11 @@ namespace mtproto {
 struct ExecutorConfig {
   size_t grease_value_count{7};
   bool has_ech{false};
+  uint8 ech_outer_type{0};
+  uint16 ech_kdf_id{0x0001};
+  uint16 ech_aead_id{0x0001};
   int ech_payload_length{144};
   int ech_enc_key_length{32};
-  uint16 ech_aead_id{1};
-  uint16 ech_kdf_id{1};
   uint16 alps_type{0};
   // Per-build entropy added to every `padding_to_target` op so the
   // total wire length varies across builds even when ECH is disabled.

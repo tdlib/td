@@ -23,15 +23,20 @@ using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
 using namespace td::mtproto::test::fixtures::reviewed;
 
-constexpr uint64 kCorpusIterations = 1024;
+constexpr uint64 kCorpusIterations = kQuickIterations;
+const uint64 kShuffleIterations = spot_or_full_corpus_iterations();
 constexpr int32 kUnixTime = 1712345678;
 
-ParsedClientHello build_android_alps_proxy(uint64 seed) {
+ParsedClientHello build_android_alps_proxy_with_seed(uint64 seed) {
   MockRng rng(seed);
   auto parsed = parse_tls_client_hello(build_tls_client_hello_for_profile(
       "www.google.com", "0123456789secret", kUnixTime, BrowserProfile::Chrome133, EchMode::Rfc9180Outer, rng));
   CHECK(parsed.is_ok());
   return parsed.move_as_ok();
+}
+
+ParsedClientHello build_android_alps_proxy(uint64 seed) {
+  return build_android_alps_proxy_with_seed(corpus_seed_for_iteration(seed, kCorpusIterations));
 }
 
 TEST(AndroidChromiumAlpsCorpus1k, Chrome133ProxyAlwaysAdvertisesAlps44CD) {
@@ -62,11 +67,12 @@ TEST(AndroidChromiumAlpsCorpus1k, Chrome133ProxySetMatchesLinuxChromeChromiumFam
   }
 }
 
-TEST(AndroidChromiumAlpsCorpus1k, Chrome133ProxyExtensionOrderingShowsChromeShuffle) {
+TEST(AndroidChromiumAlpsCorpus1k, Chrome133ProxyExtensionOrderingDoesNotCollapseToSingleSequence) {
   std::set<string> orderings;
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+  for (uint64 seed = 0; seed < kShuffleIterations; seed++) {
     string key;
-    for (auto ext : non_grease_extension_sequence(build_android_alps_proxy(seed))) {
+    for (auto ext : non_grease_extension_sequence(
+             build_android_alps_proxy_with_seed(corpus_seed_for_iteration(seed, kShuffleIterations)))) {
       if (!key.empty()) {
         key += ",";
       }
@@ -74,7 +80,9 @@ TEST(AndroidChromiumAlpsCorpus1k, Chrome133ProxyExtensionOrderingShowsChromeShuf
     }
     orderings.insert(key);
   }
-  ASSERT_TRUE(orderings.size() >= 100u);
+  // High-cardinality shuffle coverage lives in TlsChromeExtensionSetInvariance.
+  // This corpus-local seam only needs to catch accidental collapse to a fixed order.
+  ASSERT_TRUE(orderings.size() > 1u);
 }
 
 TEST(AndroidChromiumAlpsCorpus1k, Chrome133ProxyCipherSuitesMatchAndroidBraveCaptureFamily) {

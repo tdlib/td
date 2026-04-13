@@ -21,11 +21,11 @@ using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
 using namespace td::mtproto::test::fixtures::reviewed;
 
-constexpr uint64 kCorpusIterations = 1024;
+constexpr uint64 kCorpusIterations = kQuickIterations;
 constexpr int32 kUnixTime = 1712345678;
 
 ParsedClientHello build_profile_hello(BrowserProfile profile, EchMode ech_mode, uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   auto parsed = parse_tls_client_hello(
       build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime, profile, ech_mode, rng));
   CHECK(parsed.is_ok());
@@ -35,8 +35,8 @@ ParsedClientHello build_profile_hello(BrowserProfile profile, EchMode ech_mode, 
 TEST(IosChromiumGap1k, Ios14ProfileDoesNotMatchChromium261ExtensionSet) {
   auto ios_chromium = make_unordered_set(chrome146_0_7680_151_ios26_1NonGreaseExtensionsWithoutPadding);
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    ASSERT_TRUE(extension_set_non_grease_no_padding(build_profile_hello(BrowserProfile::IOS14, EchMode::Disabled, seed)) !=
-                ios_chromium);
+    ASSERT_TRUE(extension_set_non_grease_no_padding(
+                    build_profile_hello(BrowserProfile::IOS14, EchMode::Disabled, seed)) != ios_chromium);
   }
 }
 
@@ -47,7 +47,8 @@ TEST(IosChromiumGap1k, Ios14ProfileNeverAdvertisesAlpsWhichChromiumFamilyHas) {
   ASSERT_TRUE(ios_261_chromium.count(kAlpsChrome133Plus) != 0);
 
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    auto extensions = extension_set_non_grease_no_padding(build_profile_hello(BrowserProfile::IOS14, EchMode::Disabled, seed));
+    auto extensions =
+        extension_set_non_grease_no_padding(build_profile_hello(BrowserProfile::IOS14, EchMode::Disabled, seed));
     ASSERT_TRUE(extensions.count(kAlpsChrome133Plus) == 0);
   }
 }

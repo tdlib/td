@@ -23,11 +23,11 @@ using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
 using namespace td::mtproto::test::fixtures::reviewed;
 
-constexpr uint64 kCorpusIterations = 1024;
+constexpr uint64 kCorpusIterations = kQuickIterations;
 constexpr int32 kUnixTime = 1712345678;
 
 string build_firefox_hello(Slice domain, int32 unix_time, EchMode ech_mode, uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   return build_tls_client_hello_for_profile(domain.str(), "0123456789secret", unix_time, BrowserProfile::Firefox148,
                                             ech_mode, rng);
 }
@@ -106,7 +106,7 @@ TEST(FirefoxLinuxDesktopInvariance1k, EchIsAlwaysLastNonPaddingExtension) {
 }
 
 TEST(FirefoxLinuxDesktopInvariance1k, EchIsAlwaysLastWithDifferentDomains) {
-  for (uint64 seed = 0; seed < 100; seed++) {
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
     auto domain = PSTRING() << "firefox-" << seed << ".example.org";
     auto hello = parse_firefox_hello(domain, kUnixTime, EchMode::Rfc9180Outer, seed);
     auto sequence = non_grease_extension_sequence(hello);
@@ -165,9 +165,9 @@ TEST(FirefoxLinuxDesktopInvariance1k, AlpsExtensionNeverPresent) {
 }
 
 TEST(FirefoxLinuxDesktopInvariance1k, FuzzedDomainStillProducesFixedOrder) {
-  for (uint64 domain_index = 0; domain_index < 20; domain_index++) {
+  for (uint64 domain_index = 0; domain_index < kCorpusIterations; domain_index++) {
     auto domain = PSTRING() << "fx-" << domain_index << ".corp.invalid";
-    for (uint64 seed = 0; seed < 51; seed++) {
+    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
       auto hello = parse_firefox_hello(domain, kUnixTime, EchMode::Rfc9180Outer, seed);
       ASSERT_EQ(kFirefox148ExtensionOrder, non_grease_extension_sequence(hello));
     }

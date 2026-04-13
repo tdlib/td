@@ -81,18 +81,19 @@ Ja4SegmentACounts extract_ja4_counts(const td::mtproto::test::ParsedClientHello 
   auto *sv_ext = find_extension(hello, 0x002B);
   if (sv_ext != nullptr && sv_ext->value.size() >= 3) {
     auto len = static_cast<td::uint8>(sv_ext->value[0]);
+    td::uint16 max_supported_version = 0;
     for (size_t i = 1; i + 1 < sv_ext->value.size() && i < static_cast<size_t>(len + 1); i += 2) {
       auto hi = static_cast<td::uint8>(sv_ext->value[i]);
       auto lo = static_cast<td::uint8>(sv_ext->value[i + 1]);
       auto v = static_cast<td::uint16>((hi << 8) | lo);
       if (!is_grease_value(v)) {
-        if (v == 0x0304) {
-          counts.tls_version = "13";
-        } else if (v == 0x0303) {
-          counts.tls_version = "12";
-        }
-        break;
+        max_supported_version = td::max(max_supported_version, v);
       }
+    }
+    if (max_supported_version == 0x0304) {
+      counts.tls_version = "13";
+    } else if (max_supported_version == 0x0303) {
+      counts.tls_version = "12";
     }
   }
 

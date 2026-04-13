@@ -20,8 +20,10 @@ using namespace td;
 using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 
-constexpr uint64 kCorpusIterations = 1024;
+const uint64 kCorpusIterations = spot_or_full_corpus_iterations();
 constexpr int32 kUnixTime = 1712345678;
+const uint32 kMinimumPayloadCoverage = static_cast<uint32>(kCorpusIterations / 8);
+const uint32 kHalfRunThreshold = static_cast<uint32>(kCorpusIterations / 2);
 
 class FixedValueRng final : public IRng {
  public:
@@ -48,7 +50,7 @@ class FixedValueRng final : public IRng {
 };
 
 ParsedClientHello build_ech_hello(BrowserProfile profile, uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime, profile,
                                                  EchMode::Rfc9180Outer, rng);
   auto parsed = parse_tls_client_hello(wire);
@@ -79,7 +81,7 @@ TEST(ChromeEchPayloadUniformity1k, EchPayloadLengthEachValueMeetsMinimumCoverage
     counter.count(build_ech_hello(BrowserProfile::Chrome133, seed).ech_payload_length);
   }
   for (auto payload_length : {144u, 176u, 208u, 240u}) {
-    ASSERT_TRUE(counter.observed(static_cast<uint16>(payload_length)) >= 128u);
+    ASSERT_TRUE(counter.observed(static_cast<uint16>(payload_length)) >= kMinimumPayloadCoverage);
   }
 }
 
@@ -88,7 +90,7 @@ TEST(ChromeEchPayloadUniformity1k, EchPayloadLength144DoesNotDominate) {
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
     counter.count(build_ech_hello(BrowserProfile::Chrome133, seed).ech_payload_length);
   }
-  ASSERT_TRUE(counter.observed(144) <= 512u);
+  ASSERT_TRUE(counter.observed(144) <= kHalfRunThreshold);
 }
 
 TEST(ChromeEchPayloadUniformity1k, EchPayloadLengthNoValueExceedsHalfTheRuns) {
@@ -96,7 +98,7 @@ TEST(ChromeEchPayloadUniformity1k, EchPayloadLengthNoValueExceedsHalfTheRuns) {
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
     counter.count(build_ech_hello(BrowserProfile::Chrome133, seed).ech_payload_length);
   }
-  ASSERT_TRUE(counter.max_observed() <= 512u);
+  ASSERT_TRUE(counter.max_observed() <= kHalfRunThreshold);
 }
 
 TEST(ChromeEchPayloadUniformity1k, EchPayloadLengthDistributionApproximatelyUniform) {
@@ -117,7 +119,7 @@ TEST(ChromeEchPayloadUniformity1k, EchPayloadLengthOnlyAllowedValuesObserved) {
 
 TEST(ChromeEchPayloadUniformity1k, EchPayloadLengthMatchesWireExtensionBody) {
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    MockRng rng(seed);
+    MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
                                                    BrowserProfile::Chrome133, EchMode::Rfc9180Outer, rng);
     auto parsed = parse_tls_client_hello(wire);
@@ -138,7 +140,7 @@ TEST(ChromeEchPayloadUniformity1k, Chrome131EchPayloadLengthHasAllFourValues) {
   }
   ASSERT_EQ(4u, counter.distinct_values());
   for (auto payload_length : {144u, 176u, 208u, 240u}) {
-    ASSERT_TRUE(counter.observed(static_cast<uint16>(payload_length)) >= 128u);
+    ASSERT_TRUE(counter.observed(static_cast<uint16>(payload_length)) >= kMinimumPayloadCoverage);
   }
 }
 
@@ -151,7 +153,7 @@ TEST(ChromeEchPayloadUniformity1k, EchEncKeyAlwaysX25519Length) {
 
 TEST(ChromeEchPayloadUniformity1k, EchDisabledLaneHasNoEchExtension) {
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    MockRng rng(seed);
+    MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
                                                    BrowserProfile::Chrome133, EchMode::Disabled, rng);
     auto parsed = parse_tls_client_hello(wire);

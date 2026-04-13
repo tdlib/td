@@ -89,6 +89,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_chrome144_differential.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_firefox148_differential.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_safari26_3_differential.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_firefox_fixture_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_firefox_linux_desktop_ech.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_expiry.cpp

@@ -7,6 +7,7 @@
 // These tests verify TLS wire format correctness and cryptographic key material
 // quality at scale to prevent DPI detection via malformed or weak key shares.
 
+#include "test/stealth/CorpusIterationTiers.h"
 #include "test/stealth/FingerprintFixtures.h"
 #include "test/stealth/MockRng.h"
 #include "test/stealth/TestHelpers.h"
@@ -30,8 +31,21 @@ using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
 
-constexpr uint64 kCorpusIterations = 1024;
+const uint64 kCorpusIterations = spot_or_full_corpus_iterations();
+constexpr uint64 kKeyMaterialIterations = kSpotIterations;
 constexpr int32 kUnixTime = 1712345678;
+
+uint64 quick_seed(uint64 iteration_index) {
+  return corpus_seed_for_iteration(iteration_index, kQuickIterations);
+}
+
+uint64 corpus_seed(uint64 iteration_index) {
+  return corpus_seed_for_iteration(iteration_index, kCorpusIterations);
+}
+
+uint64 key_material_seed(uint64 iteration_index) {
+  return corpus_seed_for_iteration(iteration_index, kKeyMaterialIterations);
+}
 
 ParsedClientHello build_hello(BrowserProfile profile, EchMode ech_mode, uint64 seed) {
   MockRng rng(seed);
@@ -55,8 +69,8 @@ TEST(StructuralKeyMaterialStress1k, AllProfilesAllEchRecordLayerIs0x16) {
       if (ech_mode == EchMode::Rfc9180Outer && !profile_spec(profile).allows_ech) {
         continue;
       }
-      for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-        ASSERT_EQ(0x16u, build_hello(profile, ech_mode, seed).record_type);
+      for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+        ASSERT_EQ(0x16u, build_hello(profile, ech_mode, quick_seed(seed)).record_type);
       }
     }
   }
@@ -64,40 +78,40 @@ TEST(StructuralKeyMaterialStress1k, AllProfilesAllEchRecordLayerIs0x16) {
 
 TEST(StructuralKeyMaterialStress1k, AllProfilesRecordVersionIs0x0301) {
   for (auto profile : all_profiles()) {
-    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-      ASSERT_EQ(0x0301u, build_hello(profile, EchMode::Disabled, seed).record_legacy_version);
+    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+      ASSERT_EQ(0x0301u, build_hello(profile, EchMode::Disabled, quick_seed(seed)).record_legacy_version);
     }
   }
 }
 
 TEST(StructuralKeyMaterialStress1k, AllProfilesHandshakeTypeIs0x01) {
   for (auto profile : all_profiles()) {
-    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-      ASSERT_EQ(0x01u, build_hello(profile, EchMode::Disabled, seed).handshake_type);
+    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+      ASSERT_EQ(0x01u, build_hello(profile, EchMode::Disabled, quick_seed(seed)).handshake_type);
     }
   }
 }
 
 TEST(StructuralKeyMaterialStress1k, AllProfilesLegacyVersionIs0x0303) {
   for (auto profile : all_profiles()) {
-    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-      ASSERT_EQ(0x0303u, build_hello(profile, EchMode::Disabled, seed).client_legacy_version);
+    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+      ASSERT_EQ(0x0303u, build_hello(profile, EchMode::Disabled, quick_seed(seed)).client_legacy_version);
     }
   }
 }
 
 TEST(StructuralKeyMaterialStress1k, AllProfilesSessionIdIs32Bytes) {
   for (auto profile : all_profiles()) {
-    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-      ASSERT_EQ(32u, build_hello(profile, EchMode::Disabled, seed).session_id.size());
+    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+      ASSERT_EQ(32u, build_hello(profile, EchMode::Disabled, quick_seed(seed)).session_id.size());
     }
   }
 }
 
 TEST(StructuralKeyMaterialStress1k, AllProfilesCompressionMethodsAreNull) {
   for (auto profile : all_profiles()) {
-    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-      auto hello = build_hello(profile, EchMode::Disabled, seed);
+    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+      auto hello = build_hello(profile, EchMode::Disabled, quick_seed(seed));
       // Compression methods should be exactly "\x00" (null compression only)
       ASSERT_EQ(1u, hello.compression_methods.size());
       ASSERT_EQ(0x00u, static_cast<uint8>(hello.compression_methods[0]));
@@ -111,8 +125,8 @@ TEST(StructuralKeyMaterialStress1k, AllProfilesNoDuplicateExtensionTypes) {
       if (ech_mode == EchMode::Rfc9180Outer && !profile_spec(profile).allows_ech) {
         continue;
       }
-      for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-        auto hello = build_hello(profile, ech_mode, seed);
+      for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+        auto hello = build_hello(profile, ech_mode, quick_seed(seed));
         std::unordered_set<uint16> seen;
         for (const auto &ext : hello.extensions) {
           ASSERT_TRUE(seen.insert(ext.type).second);
@@ -126,8 +140,8 @@ TEST(StructuralKeyMaterialStress1k, AllProfilesNoDuplicateExtensionTypes) {
 
 TEST(StructuralKeyMaterialStress1k, RecordLengthMatchesWirePayload) {
   for (auto profile : all_profiles()) {
-    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-      auto wire = build_wire(profile, EchMode::Disabled, seed);
+    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+      auto wire = build_wire(profile, EchMode::Disabled, quick_seed(seed));
       ASSERT_TRUE(wire.size() >= 5);
       auto record_length =
           (static_cast<uint16>(static_cast<uint8>(wire[3])) << 8) | static_cast<uint16>(static_cast<uint8>(wire[4]));
@@ -138,9 +152,9 @@ TEST(StructuralKeyMaterialStress1k, RecordLengthMatchesWirePayload) {
 
 TEST(StructuralKeyMaterialStress1k, HandshakeLengthMatchesPayload) {
   for (auto profile : all_profiles()) {
-    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-      auto hello = build_hello(profile, EchMode::Disabled, seed);
-      auto wire = build_wire(profile, EchMode::Disabled, seed);
+    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+      auto hello = build_hello(profile, EchMode::Disabled, quick_seed(seed));
+      auto wire = build_wire(profile, EchMode::Disabled, quick_seed(seed));
       // Handshake starts at offset 5; type(1) + length(3) = 4 header bytes
       ASSERT_TRUE(wire.size() >= 9);
       auto handshake_length = (static_cast<uint32>(static_cast<uint8>(wire[6])) << 16) |
@@ -156,8 +170,8 @@ TEST(StructuralKeyMaterialStress1k, HandshakeLengthMatchesPayload) {
 TEST(StructuralKeyMaterialStress1k, X25519KeyShareIsValidCurvePoint) {
   for (auto profile :
        {BrowserProfile::Chrome133, BrowserProfile::Firefox148, BrowserProfile::Safari26_3, BrowserProfile::IOS14}) {
-    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-      auto hello = build_hello(profile, EchMode::Disabled, seed);
+    for (uint64 seed = 0; seed < kKeyMaterialIterations; seed++) {
+      auto hello = build_hello(profile, EchMode::Disabled, key_material_seed(seed));
       bool found_x25519 = false;
       for (const auto &entry : hello.key_share_entries) {
         if (entry.group == kX25519Group) {
@@ -172,8 +186,8 @@ TEST(StructuralKeyMaterialStress1k, X25519KeyShareIsValidCurvePoint) {
 }
 
 TEST(StructuralKeyMaterialStress1k, X25519KeyShareNeverAllZeros) {
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Disabled, seed);
+  for (uint64 seed = 0; seed < kKeyMaterialIterations; seed++) {
+    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Disabled, key_material_seed(seed));
     for (const auto &entry : hello.key_share_entries) {
       if (entry.group == kX25519Group) {
         bool all_zero = true;
@@ -190,8 +204,8 @@ TEST(StructuralKeyMaterialStress1k, X25519KeyShareNeverAllZeros) {
 }
 
 TEST(StructuralKeyMaterialStress1k, X25519KeyShareNeverAllOnes) {
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Disabled, seed);
+  for (uint64 seed = 0; seed < kKeyMaterialIterations; seed++) {
+    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Disabled, key_material_seed(seed));
     for (const auto &entry : hello.key_share_entries) {
       if (entry.group == kX25519Group) {
         bool all_ones = true;
@@ -210,8 +224,8 @@ TEST(StructuralKeyMaterialStress1k, X25519KeyShareNeverAllOnes) {
 // -- PQ key share vs X25519 isolation --
 
 TEST(StructuralKeyMaterialStress1k, PqKeyShareDiffersFromX25519KeyShare) {
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Disabled, seed);
+  for (uint64 seed = 0; seed < kKeyMaterialIterations; seed++) {
+    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Disabled, key_material_seed(seed));
     Slice pq_data;
     Slice x25519_data;
     for (const auto &entry : hello.key_share_entries) {
@@ -236,8 +250,8 @@ TEST(StructuralKeyMaterialStress1k, PqKeyShareDiffersFromX25519KeyShare) {
 // Each pair of coefficients (a, b) must satisfy 0 <= a < 3329 and 0 <= b < 3329.
 
 TEST(StructuralKeyMaterialStress1k, MlKemCoefficientsWithinValidRange) {
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Disabled, seed);
+  for (uint64 seed = 0; seed < kKeyMaterialIterations; seed++) {
+    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Disabled, key_material_seed(seed));
     for (const auto &entry : hello.key_share_entries) {
       if (entry.group != kPqHybridGroup) {
         continue;
@@ -264,7 +278,7 @@ TEST(StructuralKeyMaterialStress1k, MlKemCoefficientsWithinValidRange) {
 TEST(StructuralKeyMaterialStress1k, PqKeySharesAreUniqueAcrossSeeds) {
   std::set<string> pq_keys;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Disabled, seed);
+    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Disabled, corpus_seed(seed));
     for (const auto &entry : hello.key_share_entries) {
       if (entry.group == kPqHybridGroup) {
         pq_keys.insert(entry.key_data.str());
@@ -277,8 +291,8 @@ TEST(StructuralKeyMaterialStress1k, PqKeySharesAreUniqueAcrossSeeds) {
 // -- ECH enc key is valid X25519 coordinate --
 
 TEST(StructuralKeyMaterialStress1k, EchEncKeyIsValidX25519Coordinate) {
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, seed);
+  for (uint64 seed = 0; seed < kKeyMaterialIterations; seed++) {
+    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, key_material_seed(seed));
     ASSERT_EQ(32u, hello.ech_actual_enc_length);
     ASSERT_TRUE(is_valid_curve25519_public_coordinate(hello.ech_enc));
   }
@@ -287,8 +301,8 @@ TEST(StructuralKeyMaterialStress1k, EchEncKeyIsValidX25519Coordinate) {
 // -- ECH structural fields --
 
 TEST(StructuralKeyMaterialStress1k, ChromeEchFieldsMatchExpectedValues) {
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, seed);
+  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+    auto hello = build_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, quick_seed(seed));
     ASSERT_EQ(0x00u, hello.ech_outer_type);  // outer
     ASSERT_EQ(0x0001u, hello.ech_kdf_id);    // HKDF-SHA256
     ASSERT_EQ(32u, hello.ech_actual_enc_length);
@@ -301,8 +315,8 @@ TEST(StructuralKeyMaterialStress1k, ChromeEchFieldsMatchExpectedValues) {
 
 TEST(StructuralKeyMaterialStress1k, KeyShareGroupsAreSubsetOfSupportedGroups) {
   for (auto profile : all_profiles()) {
-    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-      auto hello = build_hello(profile, EchMode::Disabled, seed);
+    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+      auto hello = build_hello(profile, EchMode::Disabled, quick_seed(seed));
       std::unordered_set<uint16> sg(hello.supported_groups.begin(), hello.supported_groups.end());
       for (const auto &entry : hello.key_share_entries) {
         ASSERT_TRUE(sg.count(entry.group) != 0 || is_grease_value(entry.group));
@@ -396,8 +410,8 @@ TEST(StructuralKeyMaterialStress1k, AllProfilesWithEchProduceParseableWire) {
     if (!profile_spec(profile).allows_ech) {
       continue;
     }
-    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-      auto wire = build_wire(profile, EchMode::Rfc9180Outer, seed);
+    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+      auto wire = build_wire(profile, EchMode::Rfc9180Outer, quick_seed(seed));
       auto parsed = parse_tls_client_hello(wire);
       ASSERT_TRUE(parsed.is_ok());
     }

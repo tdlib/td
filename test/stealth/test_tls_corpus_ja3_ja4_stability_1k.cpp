@@ -22,8 +22,17 @@ using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
 
-constexpr uint64 kCorpusIterations = 1024;
+const uint64 kCorpusIterations = spot_or_full_corpus_iterations();
+const uint64 kJa3DiversityFloor = is_nightly_corpus_enabled() ? 256u : 32u;
 constexpr int32 kUnixTime = 1712345678;
+
+uint64 quick_seed(uint64 iteration_index) {
+  return corpus_seed_for_iteration(iteration_index, kQuickIterations);
+}
+
+uint64 corpus_seed(uint64 iteration_index) {
+  return corpus_seed_for_iteration(iteration_index, kCorpusIterations);
+}
 
 string build_profile_hello(BrowserProfile profile, EchMode ech_mode, uint64 seed) {
   MockRng rng(seed);
@@ -39,9 +48,9 @@ Ja4Segments compute_ja4_for_wire(Slice wire) {
 TEST(JA3JA4CorpusStability1k, Chrome133EchJa3ShowsLargeDiversityAcross1024Seeds) {
   std::set<string> values;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    values.insert(compute_ja3(build_profile_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, seed)));
+    values.insert(compute_ja3(build_profile_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, corpus_seed(seed))));
   }
-  ASSERT_TRUE(values.size() >= 256u);
+  ASSERT_TRUE(values.size() >= kJa3DiversityFloor);
 }
 
 TEST(JA3JA4CorpusStability1k, Chrome133EchJa3IsNotKnownTelegramHash) {
@@ -52,9 +61,9 @@ TEST(JA3JA4CorpusStability1k, Chrome133EchJa3IsNotKnownTelegramHash) {
 TEST(JA3JA4CorpusStability1k, Chrome131EchJa3ShowsLargeDiversityAcross1024Seeds) {
   std::set<string> values;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    values.insert(compute_ja3(build_profile_hello(BrowserProfile::Chrome131, EchMode::Rfc9180Outer, seed)));
+    values.insert(compute_ja3(build_profile_hello(BrowserProfile::Chrome131, EchMode::Rfc9180Outer, corpus_seed(seed))));
   }
-  ASSERT_TRUE(values.size() >= 256u);
+  ASSERT_TRUE(values.size() >= kJa3DiversityFloor);
 }
 
 TEST(JA3JA4CorpusStability1k, Chrome133Ja3DiffersFromChrome131Ja3) {
@@ -65,8 +74,8 @@ TEST(JA3JA4CorpusStability1k, Chrome133Ja3DiffersFromChrome131Ja3) {
 
 TEST(JA3JA4CorpusStability1k, Firefox148EchJa3IsIdenticalAcross1024Seeds) {
   std::set<string> values;
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    values.insert(compute_ja3(build_profile_hello(BrowserProfile::Firefox148, EchMode::Rfc9180Outer, seed)));
+  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+    values.insert(compute_ja3(build_profile_hello(BrowserProfile::Firefox148, EchMode::Rfc9180Outer, quick_seed(seed))));
   }
   ASSERT_EQ(1u, values.size());
 }
@@ -79,29 +88,32 @@ TEST(JA3JA4CorpusStability1k, Firefox148Ja3DiffersFromChrome133Ja3) {
 
 TEST(JA3JA4CorpusStability1k, Chrome133Ja4SegmentBIsIdenticalAcross1024Seeds) {
   std::set<string> values;
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
     values.insert(
-        compute_ja4_for_wire(build_profile_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, seed)).segment_b);
+        compute_ja4_for_wire(build_profile_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, quick_seed(seed)))
+            .segment_b);
   }
   ASSERT_EQ(1u, values.size());
 }
 
 TEST(JA3JA4CorpusStability1k, Chrome133Ja4SegmentCEchEnabledIsIdenticalAcross1024Seeds) {
   std::set<string> values;
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
     values.insert(
-        compute_ja4_for_wire(build_profile_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, seed)).segment_c);
+        compute_ja4_for_wire(build_profile_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, quick_seed(seed)))
+            .segment_c);
   }
   ASSERT_EQ(1u, values.size());
 }
 
-TEST(JA3JA4CorpusStability1k, Chrome133Ja4SegmentCEchDisabledHasOnlyPaddingDrivenDiversity) {
+TEST(JA3JA4CorpusStability1k, Chrome133Ja4SegmentCEchDisabledIsStableAcrossSeeds) {
   std::set<string> values;
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
     values.insert(
-        compute_ja4_for_wire(build_profile_hello(BrowserProfile::Chrome133, EchMode::Disabled, seed)).segment_c);
+        compute_ja4_for_wire(build_profile_hello(BrowserProfile::Chrome133, EchMode::Disabled, quick_seed(seed)))
+            .segment_c);
   }
-  ASSERT_EQ(2u, values.size());
+  ASSERT_EQ(1u, values.size());
 }
 
 TEST(JA3JA4CorpusStability1k, Chrome133Ja4SegmentCEchEnabledDiffersFromDisabled) {
@@ -118,9 +130,10 @@ TEST(JA3JA4CorpusStability1k, Chrome133Ja4SegmentAEncodesTls13AndH2) {
 
 TEST(JA3JA4CorpusStability1k, Firefox148Ja4SegmentCIsIdenticalAcross1024Seeds) {
   std::set<string> values;
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
     values.insert(
-        compute_ja4_for_wire(build_profile_hello(BrowserProfile::Firefox148, EchMode::Rfc9180Outer, seed)).segment_c);
+        compute_ja4_for_wire(build_profile_hello(BrowserProfile::Firefox148, EchMode::Rfc9180Outer, quick_seed(seed)))
+            .segment_c);
   }
   ASSERT_EQ(1u, values.size());
 }

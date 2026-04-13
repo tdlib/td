@@ -4,6 +4,7 @@
 // telemt: https://t.me/telemtrs
 //
 
+#include "test/stealth/CorpusIterationTiers.h"
 #include "test/stealth/MockRng.h"
 #include "test/stealth/TlsHelloParsers.h"
 
@@ -22,10 +23,18 @@ using namespace td;
 using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 
-constexpr uint64 kCorpusIterations = 1024;
+const uint64 kCorpusIterations = spot_or_full_corpus_iterations();
 constexpr int32 kUnixTime = 1712345678;
 constexpr size_t kClientRandomOffset = 11;
 constexpr size_t kClientRandomLength = 32;
+
+uint64 quick_seed(uint64 iteration_index) {
+  return corpus_seed_for_iteration(iteration_index, kQuickIterations);
+}
+
+uint64 corpus_seed(uint64 iteration_index) {
+  return corpus_seed_for_iteration(iteration_index, kCorpusIterations);
+}
 
 struct RuntimeCandidate final {
   string domain;
@@ -67,8 +76,8 @@ string build_profile_wire(BrowserProfile profile, EchMode ech_mode, uint64 seed)
 
 TEST(AdversarialDpiCorpus1k, AllProfilesKeepThirtyTwoByteSessionIds) {
   for (auto profile : all_profiles()) {
-    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-      ASSERT_EQ(32u, build_profile_hello(profile, EchMode::Disabled, seed).session_id.size());
+    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+      ASSERT_EQ(32u, build_profile_hello(profile, EchMode::Disabled, quick_seed(seed)).session_id.size());
     }
   }
 }
@@ -76,7 +85,8 @@ TEST(AdversarialDpiCorpus1k, AllProfilesKeepThirtyTwoByteSessionIds) {
 TEST(AdversarialDpiCorpus1k, Chrome133SessionIdsVaryAcrossConnections) {
   std::unordered_set<string> values;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    values.insert(build_profile_hello(BrowserProfile::Chrome133, EchMode::Disabled, seed).session_id.str());
+    values.insert(
+        build_profile_hello(BrowserProfile::Chrome133, EchMode::Disabled, corpus_seed(seed)).session_id.str());
   }
   ASSERT_EQ(kCorpusIterations, values.size());
 }
@@ -84,7 +94,9 @@ TEST(AdversarialDpiCorpus1k, Chrome133SessionIdsVaryAcrossConnections) {
 TEST(AdversarialDpiCorpus1k, Chrome133ClientRandomVariesAcrossConnections) {
   std::unordered_set<string> values;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    values.insert(extract_client_random(build_profile_wire(BrowserProfile::Chrome133, EchMode::Disabled, seed)).str());
+    values.insert(
+        extract_client_random(build_profile_wire(BrowserProfile::Chrome133, EchMode::Disabled, corpus_seed(seed)))
+            .str());
   }
   ASSERT_EQ(kCorpusIterations, values.size());
 }
@@ -92,7 +104,7 @@ TEST(AdversarialDpiCorpus1k, Chrome133ClientRandomVariesAcrossConnections) {
 TEST(AdversarialDpiCorpus1k, Chrome133X25519KeyShareVariesAcrossConnections) {
   std::unordered_set<string> values;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    auto hello = build_profile_hello(BrowserProfile::Chrome133, EchMode::Disabled, seed);
+    auto hello = build_profile_hello(BrowserProfile::Chrome133, EchMode::Disabled, corpus_seed(seed));
     for (const auto &entry : hello.key_share_entries) {
       if (entry.group == fixtures::kX25519Group) {
         values.insert(entry.key_data.str());
@@ -105,7 +117,7 @@ TEST(AdversarialDpiCorpus1k, Chrome133X25519KeyShareVariesAcrossConnections) {
 TEST(AdversarialDpiCorpus1k, Chrome133PqKeyShareVariesAcrossConnections) {
   std::unordered_set<string> values;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    auto hello = build_profile_hello(BrowserProfile::Chrome133, EchMode::Disabled, seed);
+    auto hello = build_profile_hello(BrowserProfile::Chrome133, EchMode::Disabled, corpus_seed(seed));
     for (const auto &entry : hello.key_share_entries) {
       if (entry.group == fixtures::kPqHybridGroup) {
         values.insert(entry.key_data.str());
@@ -118,16 +130,16 @@ TEST(AdversarialDpiCorpus1k, Chrome133PqKeyShareVariesAcrossConnections) {
 TEST(AdversarialDpiCorpus1k, Chrome133EchEncKeyVariesAcrossConnections) {
   std::unordered_set<string> values;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    auto hello = build_profile_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, seed);
+    auto hello = build_profile_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, corpus_seed(seed));
     values.insert(hello.ech_enc.str());
   }
   ASSERT_EQ(kCorpusIterations, values.size());
 }
 
 TEST(AdversarialDpiCorpus1k, NoConsecutiveChrome133ConnectionsReuseFullWireImage) {
-  auto previous = build_profile_wire(BrowserProfile::Chrome133, EchMode::Disabled, 0);
+  auto previous = build_profile_wire(BrowserProfile::Chrome133, EchMode::Disabled, corpus_seed(0));
   for (uint64 seed = 1; seed < kCorpusIterations; seed++) {
-    auto current = build_profile_wire(BrowserProfile::Chrome133, EchMode::Disabled, seed);
+    auto current = build_profile_wire(BrowserProfile::Chrome133, EchMode::Disabled, corpus_seed(seed));
     ASSERT_NE(previous, current);
     previous = std::move(current);
   }
@@ -148,23 +160,22 @@ TEST(AdversarialDpiCorpus1k, RuntimeChrome133RoutePolicyControlsEchAtScale) {
   unknown_route.is_known = false;
   unknown_route.is_ru = false;
 
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    MockRng non_ru_rng(seed);
+  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+    MockRng non_ru_rng(quick_seed(seed));
     auto non_ru = parse_tls_client_hello(build_default_tls_client_hello(candidate.domain, "0123456789secret",
                                                                         candidate.unix_time, non_ru_route, non_ru_rng));
     CHECK(non_ru.is_ok());
     ASSERT_TRUE(find_extension(non_ru.ok(), fixtures::kEchExtensionType) != nullptr);
 
-    MockRng ru_rng(seed);
-    auto ru = parse_tls_client_hello(build_default_tls_client_hello(candidate.domain, "0123456789secret",
-                                                                    candidate.unix_time, ru_route, ru_rng));
+    MockRng ru_rng(quick_seed(seed));
+    auto ru = parse_tls_client_hello(
+        build_default_tls_client_hello(candidate.domain, "0123456789secret", candidate.unix_time, ru_route, ru_rng));
     CHECK(ru.is_ok());
     ASSERT_TRUE(find_extension(ru.ok(), fixtures::kEchExtensionType) == nullptr);
 
-    MockRng unknown_rng(seed);
-    auto unknown = parse_tls_client_hello(build_default_tls_client_hello(candidate.domain, "0123456789secret",
-                                                                         candidate.unix_time, unknown_route,
-                                                                         unknown_rng));
+    MockRng unknown_rng(quick_seed(seed));
+    auto unknown = parse_tls_client_hello(build_default_tls_client_hello(
+        candidate.domain, "0123456789secret", candidate.unix_time, unknown_route, unknown_rng));
     CHECK(unknown.is_ok());
     ASSERT_TRUE(find_extension(unknown.ok(), fixtures::kEchExtensionType) == nullptr);
   }
@@ -172,8 +183,8 @@ TEST(AdversarialDpiCorpus1k, RuntimeChrome133RoutePolicyControlsEchAtScale) {
 
 TEST(AdversarialDpiCorpus1k, ProxyChrome133AdvertisesHttp11OnlyAlpn) {
   static const string kHttp11OnlyAlpn("\x00\x09\x08\x68\x74\x74\x70\x2f\x31\x2e\x31", 11);
-  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-    MockRng rng(seed);
+  for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+    MockRng rng(quick_seed(seed));
     auto parsed = parse_tls_client_hello(build_proxy_tls_client_hello_for_profile(
         "www.google.com", "0123456789secret", kUnixTime, BrowserProfile::Chrome133, EchMode::Disabled, rng));
     CHECK(parsed.is_ok());
@@ -185,8 +196,8 @@ TEST(AdversarialDpiCorpus1k, ProxyChrome133AdvertisesHttp11OnlyAlpn) {
 
 TEST(AdversarialDpiCorpus1k, AllProfilesKeepClientLegacyVersionTls12Marker) {
   for (auto profile : all_profiles()) {
-    for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
-      ASSERT_EQ(0x0303u, build_profile_hello(profile, EchMode::Disabled, seed).client_legacy_version);
+    for (uint64 seed = 0; seed < kQuickIterations; seed++) {
+      ASSERT_EQ(0x0303u, build_profile_hello(profile, EchMode::Disabled, quick_seed(seed)).client_legacy_version);
     }
   }
 }

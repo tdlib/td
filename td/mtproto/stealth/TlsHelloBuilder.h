@@ -25,6 +25,9 @@ constexpr uint16 kCurrentSingleLaneAlpsType = 0x44CD;
 
 struct TlsHelloBuildOptions final {
   size_t padding_extension_payload_length{0};
+  uint8 ech_outer_type{0};
+  uint16 ech_kdf_id{0x0001};
+  uint16 ech_aead_id{0x0001};
   int ech_payload_length{144};
   uint16 pq_group_id{kCurrentSingleLanePqGroupId};
   uint16 ech_enc_key_length{kCorrectEchEncKeyLen};

@@ -10,7 +10,6 @@
 #include "td/mtproto/BrowserProfile.h"
 #include "td/mtproto/ClientHelloExecutor.h"
 #include "td/mtproto/ClientHelloOpMapper.h"
-#include "td/mtproto/ProxySecret.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Random.h"
@@ -47,19 +46,29 @@ bool should_enable_ech(const NetworkRouteHints &route_hints) {
   return route_hints.is_known && !route_hints.is_ru;
 }
 
+int resolve_ech_payload_length(const ProfileSpec &spec, bool enable_ech, IRng &rng) {
+  if (!enable_ech) {
+    return 144 + static_cast<int>(rng.bounded(4u) * 32u);
+  }
+  if (spec.ech_payload_length != 0) {
+    return spec.ech_payload_length;
+  }
+  return 144 + static_cast<int>(rng.bounded(4u) * 32u);
+}
+
 mtproto::ExecutorConfig make_config(const ProfileSpec &spec, bool enable_ech, IRng &rng) {
   mtproto::ExecutorConfig config;
   config.grease_value_count = 7;
   config.has_ech = enable_ech;
-  if (spec.ech_payload_length != 0) {
-    config.ech_payload_length = spec.ech_payload_length;
-  } else {
-    config.ech_payload_length = 144 + static_cast<int>(rng.bounded(4u) * 32u);
-  }
-  config.ech_enc_key_length = 32;
-  config.ech_aead_id = spec.ech_aead_id;
+  config.ech_outer_type = spec.ech_outer_type;
   config.ech_kdf_id = spec.ech_kdf_id;
+  config.ech_aead_id = spec.ech_aead_id;
+  config.ech_payload_length = resolve_ech_payload_length(spec, enable_ech, rng);
+  config.ech_enc_key_length = spec.ech_enc_key_length;
   config.alps_type = spec.alps_type;
+  if (spec.pq_group_id != 0) {
+    config.pq_group_id_override = spec.pq_group_id;
+  }
   // Per-build padding target entropy: 0..255 bytes added to the static
   // `padding_to_target` op so that ECH-disabled wires still vary in
   // length across builds, instead of collapsing into a single fixed
@@ -68,8 +77,8 @@ mtproto::ExecutorConfig make_config(const ProfileSpec &spec, bool enable_ech, IR
   return config;
 }
 
-string build_tls_hello_impl(string domain, Slice secret, int32 unix_time, BrowserProfile profile_id,
-                           EchMode ech_mode, IRng &rng, bool proxy_mode) {
+string build_tls_hello_impl(string domain, Slice secret, int32 unix_time, BrowserProfile profile_id, EchMode ech_mode,
+                            IRng &rng, bool proxy_mode) {
   CHECK(!domain.empty());
   CHECK(secret.size() == 16);
 
@@ -88,8 +97,8 @@ string build_tls_hello_impl(string domain, Slice secret, int32 unix_time, Browse
   return result.move_as_ok();
 }
 
-string build_default_hello_impl(string domain, Slice secret, int32 unix_time,
-                               const NetworkRouteHints &route_hints, IRng &rng) {
+string build_default_hello_impl(string domain, Slice secret, int32 unix_time, const NetworkRouteHints &route_hints,
+                                IRng &rng) {
   CHECK(!domain.empty());
   CHECK(secret.size() == 16);
 
@@ -114,8 +123,8 @@ string build_default_hello_impl(string domain, Slice secret, int32 unix_time,
 namespace detail {
 
 string build_default_tls_client_hello_with_options(string domain, Slice secret, int32 unix_time,
-                                                 const NetworkRouteHints &route_hints, IRng &rng,
-                                                 const TlsHelloBuildOptions &options) {
+                                                   const NetworkRouteHints &route_hints, IRng &rng,
+                                                   const TlsHelloBuildOptions &options) {
   CHECK(!domain.empty());
   CHECK(secret.size() == 16);
 
@@ -124,6 +133,9 @@ string build_default_tls_client_hello_with_options(string domain, Slice secret, 
   mtproto::ExecutorConfig config;
   config.grease_value_count = 7;
   config.has_ech = enable_ech;
+  config.ech_outer_type = options.ech_outer_type;
+  config.ech_kdf_id = options.ech_kdf_id;
+  config.ech_aead_id = options.ech_aead_id;
   config.ech_payload_length = options.ech_payload_length;
   config.ech_enc_key_length = options.ech_enc_key_length;
   config.alps_type = options.alps_extension_type;
@@ -148,39 +160,39 @@ string build_default_tls_client_hello_with_options(string domain, Slice secret, 
 }  // namespace detail
 
 string build_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
-                                         EchMode ech_mode, IRng &rng) {
+                                          EchMode ech_mode, IRng &rng) {
   return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/false);
 }
 
 string build_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
-                                         EchMode ech_mode) {
+                                          EchMode ech_mode) {
   SecureRng rng;
   return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/false);
 }
 
 string build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
-                                               EchMode ech_mode, IRng &rng) {
+                                                EchMode ech_mode, IRng &rng) {
   return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/true);
 }
 
 string build_proxy_tls_client_hello_for_profile(string domain, Slice secret, int32 unix_time, BrowserProfile profile,
-                                               EchMode ech_mode) {
+                                                EchMode ech_mode) {
   SecureRng rng;
   return build_tls_hello_impl(std::move(domain), secret, unix_time, profile, ech_mode, rng, /*proxy_mode=*/true);
 }
 
 string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,
-                                       const NetworkRouteHints &route_hints, IRng &rng) {
+                                      const NetworkRouteHints &route_hints, IRng &rng) {
   return build_default_hello_impl(std::move(domain), secret, unix_time, route_hints, rng);
 }
 
 string build_proxy_tls_client_hello(string domain, Slice secret, int32 unix_time, const NetworkRouteHints &route_hints,
-                                     IRng &rng) {
+                                    IRng &rng) {
   return build_default_hello_impl(std::move(domain), secret, unix_time, route_hints, rng);
 }
 
 string build_runtime_tls_client_hello(string domain, Slice secret, int32 unix_time,
-                                       const NetworkRouteHints &route_hints, IRng &rng) {
+                                      const NetworkRouteHints &route_hints, IRng &rng) {
   CHECK(!domain.empty());
   CHECK(secret.size() == 16);
 
@@ -197,19 +209,19 @@ string build_runtime_tls_client_hello(string domain, Slice secret, int32 unix_ti
 }
 
 string build_runtime_tls_client_hello(string domain, Slice secret, int32 unix_time,
-                                       const NetworkRouteHints &route_hints) {
+                                      const NetworkRouteHints &route_hints) {
   SecureRng rng;
   return build_runtime_tls_client_hello(std::move(domain), secret, unix_time, route_hints, rng);
 }
 
 string build_default_tls_client_hello(string domain, Slice secret, int32 unix_time,
-                                       const NetworkRouteHints &route_hints) {
+                                      const NetworkRouteHints &route_hints) {
   SecureRng rng;
   return build_default_tls_client_hello(std::move(domain), secret, unix_time, route_hints, rng);
 }
 
 string build_proxy_tls_client_hello(string domain, Slice secret, int32 unix_time,
-                                     const NetworkRouteHints &route_hints) {
+                                    const NetworkRouteHints &route_hints) {
   SecureRng rng;
   return build_proxy_tls_client_hello(std::move(domain), secret, unix_time, route_hints, rng);
 }

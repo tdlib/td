@@ -225,6 +225,36 @@
             "problemMatcher": []
         },
         {
+            "label": "run corpus tests fast",
+            "type": "shell",
+            "command": "./build/test/run_all_tests",
+            "args": [
+                "--filter",
+                "1k"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run corpus tests nightly",
+            "type": "shell",
+            "command": "env",
+            "args": [
+                "TD_NIGHTLY_CORPUS=1",
+                "./build/test/run_all_tests",
+                "--filter",
+                "1k"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
             "label": "run stealth tests ninja",
             "type": "shell",
             "command": "./build-ninja/test/run_all_tests",

@@ -60,10 +60,7 @@ void rng_shuffle(vector<T> &items, stealth::IRng &rng) {
 class ExecutionContext {
  public:
   ExecutionContext(const ExecutorConfig &config, Slice domain, stealth::IRng &rng)
-      : grease_values_(config.grease_value_count, '\0')
-      , domain_(domain.str())
-      , config_(config)
-      , rng_(rng) {
+      : grease_values_(config.grease_value_count, '\0'), domain_(domain.str()), config_(config), rng_(rng) {
     init_grease_values(MutableSlice(grease_values_), rng_);
   }
 
@@ -170,7 +167,8 @@ class LengthCalculator {
         if (context.config().has_ech) {
           break;
         }
-        auto effective_target = static_cast<size_t>(op.value) + static_cast<size_t>(context.config().padding_target_entropy);
+        auto effective_target =
+            static_cast<size_t>(op.value) + static_cast<size_t>(context.config().padding_target_entropy);
         if (size_ < effective_target) {
           size_ = effective_target + 4;
         }
@@ -231,7 +229,7 @@ class ByteWriter {
         break;
       case Op::Type::Secp256r1KeyShareEntry:
         append(Op::bytes("\x00\x17\x00\x41"), context);
-        store_secp256r1_key_share();
+        store_secp256r1_key_share(context.rng());
         break;
       case Op::Type::X25519MlKem768KeyShareEntry: {
         // group(2 bytes, profile-specific PQ codepoint) +
@@ -380,12 +378,41 @@ class ByteWriter {
     return r.to_decimal() == "1";
   }
 
+  static void derive_retry_candidate(MutableSlice dest, Slice seed_material, uint32 attempt) {
+    CHECK(dest.size() == seed_material.size());
+    if (attempt == 0) {
+      dest.copy_from(seed_material);
+      return;
+    }
+
+    char counter_bytes[4] = {
+        static_cast<char>(attempt & 0xff),
+        static_cast<char>((attempt >> 8) & 0xff),
+        static_cast<char>((attempt >> 16) & 0xff),
+        static_cast<char>((attempt >> 24) & 0xff),
+    };
+    string material;
+    material.reserve(seed_material.size() + sizeof(counter_bytes));
+    material.append(seed_material.begin(), seed_material.size());
+    material.append(counter_bytes, sizeof(counter_bytes));
+
+    string digest(dest.size(), '\0');
+    sha256(material, digest);
+    dest.copy_from(digest);
+  }
+
   void store_x25519_key_share(stealth::IRng &rng) {
+    constexpr uint32 kMaxRetryAttempts = 128;
     BigNum mod = BigNum::from_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed").move_as_ok();
     BigNumContext ctx;
     auto key = remaining_.substr(0, 32);
-    while (true) {
-      rng.fill_secure_bytes(key);
+    string seed_material(key.size(), '\0');
+    rng.fill_secure_bytes(MutableSlice(seed_material));
+
+    for (uint32 attempt = 0; attempt < kMaxRetryAttempts; attempt++) {
+      // Pathological fixed-value RNGs used by adversarial tests can otherwise
+      // feed the same invalid candidate forever and hang the builder.
+      derive_retry_candidate(key, seed_material, attempt);
       key[31] = static_cast<char>(key[31] & 127);
       BigNum x = BigNum::from_binary(key);
       BigNum y = get_y2(x, mod, ctx);
@@ -394,10 +421,12 @@ class ByteWriter {
           x = get_double_x(x, mod, ctx);
         }
         key.copy_from(x.to_le_binary(32));
-        break;
+        remaining_.remove_prefix(32);
+        return;
       }
     }
-    remaining_.remove_prefix(32);
+
+    UNREACHABLE();
   }
 
   void store_mlkem_key_share(stealth::IRng &rng) {
@@ -413,19 +442,46 @@ class ByteWriter {
     remaining_.remove_prefix(32);
   }
 
-  void store_secp256r1_key_share() {
-    EC_KEY *ec_key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
-    CHECK(ec_key != nullptr);
-    CHECK(EC_KEY_generate_key(ec_key) == 1);
-    const EC_GROUP *group = EC_KEY_get0_group(ec_key);
-    const EC_POINT *public_key = EC_KEY_get0_public_key(ec_key);
+  void store_secp256r1_key_share(stealth::IRng &rng) {
+    constexpr uint32 kMaxRetryAttempts = 128;
+    EC_GROUP *group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1);
     CHECK(group != nullptr);
+    BN_CTX *ctx = BN_CTX_new();
+    CHECK(ctx != nullptr);
+    BIGNUM *order = BN_new();
+    CHECK(order != nullptr);
+    CHECK(EC_GROUP_get_order(group, order, ctx) == 1);
+    BIGNUM *private_key = BN_new();
+    CHECK(private_key != nullptr);
+
+    char scalar_bytes[32];
+    string seed_material(sizeof(scalar_bytes), '\0');
+    rng.fill_secure_bytes(MutableSlice(seed_material));
+
+    bool found_valid_scalar = false;
+    for (uint32 attempt = 0; attempt < kMaxRetryAttempts; attempt++) {
+      derive_retry_candidate(MutableSlice(scalar_bytes, sizeof(scalar_bytes)), seed_material, attempt);
+      CHECK(BN_bin2bn(reinterpret_cast<const unsigned char *>(scalar_bytes), sizeof(scalar_bytes), private_key) !=
+            nullptr);
+      if (!BN_is_zero(private_key) && BN_cmp(private_key, order) < 0) {
+        found_valid_scalar = true;
+        break;
+      }
+    }
+    CHECK(found_valid_scalar);
+
+    EC_POINT *public_key = EC_POINT_new(group);
     CHECK(public_key != nullptr);
+    CHECK(EC_POINT_mul(group, public_key, private_key, nullptr, nullptr, ctx) == 1);
     auto dest = remaining_.substr(0, 65);
     size_t written = EC_POINT_point2oct(group, public_key, POINT_CONVERSION_UNCOMPRESSED,
-                                        reinterpret_cast<unsigned char *>(dest.begin()), 65, nullptr);
+                                        reinterpret_cast<unsigned char *>(dest.begin()), 65, ctx);
     CHECK(written == 65);
-    EC_KEY_free(ec_key);
+    BN_free(private_key);
+    BN_free(order);
+    BN_CTX_free(ctx);
+    EC_POINT_free(public_key);
+    EC_GROUP_free(group);
     remaining_.remove_prefix(65);
   }
 
@@ -440,8 +496,8 @@ class ByteWriter {
 
 }  // namespace
 
-Result<string> ClientHelloExecutor::execute(const vector<ClientHelloOp> &ops, Slice domain, Slice secret, int32 unix_time,
-                                            const ExecutorConfig &config, stealth::IRng &rng) {
+Result<string> ClientHelloExecutor::execute(const vector<ClientHelloOp> &ops, Slice domain, Slice secret,
+                                            int32 unix_time, const ExecutorConfig &config, stealth::IRng &rng) {
   CHECK(secret.size() == 16);
   CHECK(!domain.empty());
   ExecutionContext context(config, domain, rng);

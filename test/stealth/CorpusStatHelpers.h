@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "test/stealth/CorpusIterationTiers.h"
 #include "test/stealth/FingerprintFixtures.h"
 #include "test/stealth/ReviewedClientHelloFixtures.h"
 #include "test/stealth/TestHelpers.h"
@@ -219,15 +220,16 @@ inline string compute_ja4_segment_a(const ParsedClientHello &hello) {
   string version = "00";
   if (supported_versions != nullptr && supported_versions->value.size() >= 3) {
     auto versions_len = static_cast<uint8>(supported_versions->value[0]);
+    uint16 max_supported_version = 0;
     for (size_t i = 1; i + 1 < supported_versions->value.size() && i < static_cast<size_t>(versions_len + 1); i += 2) {
       auto supported_version = static_cast<uint16>((static_cast<uint8>(supported_versions->value[i]) << 8) |
                                                    static_cast<uint8>(supported_versions->value[i + 1]));
       if (is_grease_value(supported_version)) {
         continue;
       }
-      version = supported_version == 0x0304 ? "13" : (supported_version == 0x0303 ? "12" : "00");
-      break;
+      max_supported_version = td::max(max_supported_version, supported_version);
     }
+    version = max_supported_version == 0x0304 ? "13" : (max_supported_version == 0x0303 ? "12" : "00");
   }
   result += version;
   result += find_extension(hello, 0x0000) == nullptr ? "i" : "d";

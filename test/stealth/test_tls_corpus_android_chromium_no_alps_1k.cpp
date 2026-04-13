@@ -23,14 +23,14 @@ using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
 using namespace td::mtproto::test::fixtures::reviewed;
 
-constexpr uint64 kCorpusIterations = 1024;
+constexpr uint64 kCorpusIterations = kQuickIterations;
 constexpr int32 kUnixTime = 1712345678;
 
 ParsedClientHello build_android_no_alps(uint64 seed) {
-  MockRng rng(seed);
-  auto parsed = parse_tls_client_hello(build_tls_client_hello_for_profile(
-      "www.google.com", "0123456789secret", kUnixTime, BrowserProfile::Android11_OkHttp_Advisory, EchMode::Disabled,
-      rng));
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
+  auto parsed = parse_tls_client_hello(
+      build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
+                                         BrowserProfile::Android11_OkHttp_Advisory, EchMode::Disabled, rng));
   CHECK(parsed.is_ok());
   return parsed.move_as_ok();
 }

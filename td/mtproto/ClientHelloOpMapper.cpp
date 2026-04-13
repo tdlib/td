@@ -75,8 +75,9 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
 
   switch (extension.type) {
     case TlsExtensionType::ServerName:
-      return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::scope16_begin(), Op::bytes("\x00"),
-              Op::scope16_begin(), Op::domain(), Op::scope16_end(), Op::scope16_end(), Op::scope16_end()};
+      return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::scope16_begin(),
+              Op::bytes("\x00"),          Op::scope16_begin(), Op::domain(),
+              Op::scope16_end(),          Op::scope16_end(),   Op::scope16_end()};
     case TlsExtensionType::SupportedGroups: {
       // The supported_groups list carries the same PQ codepoint that the
       // matching key_share entry advertises (Chrome 131+ uses 0x11EC =
@@ -108,8 +109,9 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
               Op::bytes(encode_u8_list(extension.u8_list)), Op::scope16_end()};
     case TlsExtensionType::SignatureAlgorithms:
     case TlsExtensionType::DelegatedCredentials:
-      return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::scope16_begin(), Op::bytes(encode_u16_list(extension.u16_list)),
-              Op::scope16_end(), Op::scope16_end()};
+      return {Op::bytes(store_u16(type)), Op::scope16_begin(),
+              Op::scope16_begin(),        Op::bytes(encode_u16_list(extension.u16_list)),
+              Op::scope16_end(),          Op::scope16_end()};
     case TlsExtensionType::Alpn: {
       // Proxy path strips `h2` from the ALPN list and advertises
       // `http/1.1` only. The post-handshake bytes are raw MTProto and
@@ -123,8 +125,8 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
         alpn.clear();
         alpn.emplace_back("http/1.1");
       }
-      return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::scope16_begin(), Op::bytes(encode_str_list(alpn)),
-              Op::scope16_end(), Op::scope16_end()};
+      return {Op::bytes(store_u16(type)),       Op::scope16_begin(), Op::scope16_begin(),
+              Op::bytes(encode_str_list(alpn)), Op::scope16_end(),   Op::scope16_end()};
     }
     case TlsExtensionType::SupportedVersions:
       ops = {Op::bytes(store_u16(type)), Op::scope16_begin()};
@@ -180,14 +182,9 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
       //
       // Total body = 148 bytes; total extension = type(2) + body_len(2) + 148.
       // Tests: `test/stealth/test_firefox_macos_psk_extension_invariants.cpp`.
-      return {Op::bytes(store_u16(type)),
-              Op::scope16_begin(),
-              Op::bytes("\x00\x6f\x00\x69"),
-              Op::random_bytes(105),
-              Op::random_bytes(4),
-              Op::bytes("\x00\x21\x20"),
-              Op::random_bytes(32),
-              Op::scope16_end()};
+      return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::bytes("\x00\x6f\x00\x69"),
+              Op::random_bytes(105),      Op::random_bytes(4), Op::bytes("\x00\x21\x20"),
+              Op::random_bytes(32),       Op::scope16_end()};
     }
     case TlsExtensionType::EncryptedClientHello:
       if (config.has_ech) {
@@ -199,14 +196,16 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
         // for any other declared length we fall back to opaque bytes
         // so the wire still matches the declared length field.
         CHECK(config.ech_enc_key_length > 0);
-        ClientHelloOp enc_key_op = (config.ech_enc_key_length == 32)
-                                       ? Op::x25519_public_key()
-                                       : Op::random_bytes(config.ech_enc_key_length);
+        ClientHelloOp enc_key_op =
+            (config.ech_enc_key_length == 32) ? Op::x25519_public_key() : Op::random_bytes(config.ech_enc_key_length);
+        char ech_prefix[5] = {
+            static_cast<char>(config.ech_outer_type),     static_cast<char>((config.ech_kdf_id >> 8) & 0xFF),
+            static_cast<char>(config.ech_kdf_id & 0xFF),  static_cast<char>((config.ech_aead_id >> 8) & 0xFF),
+            static_cast<char>(config.ech_aead_id & 0xFF),
+        };
         return {Op::bytes(store_u16(type)),
                 Op::scope16_begin(),
-                Op::bytes("\x00\x00"),
-                Op::bytes(store_u16(config.ech_kdf_id)),
-                Op::bytes(store_u16(config.ech_aead_id)),
+                Op::bytes(Slice(ech_prefix, sizeof(ech_prefix))),
                 Op::random_bytes(1),
                 Op::bytes(store_u16(static_cast<uint16>(config.ech_enc_key_length))),
                 std::move(enc_key_op),
@@ -242,8 +241,7 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
       // inside the body. Behaviour is enforced by
       // `test/stealth/test_alps_extension_wire_type_invariants.cpp`.
       uint16 wire_type = config.alps_type != 0 ? config.alps_type : type;
-      return {Op::bytes(store_u16(wire_type)), Op::scope16_begin(), Op::bytes(extension.raw_data),
-              Op::scope16_end()};
+      return {Op::bytes(store_u16(wire_type)), Op::scope16_begin(), Op::bytes(extension.raw_data), Op::scope16_end()};
     }
     default:
       return {Op::bytes(store_u16(type)), Op::scope16_begin(), Op::bytes(extension.raw_data), Op::scope16_end()};

@@ -297,7 +297,7 @@ BrowserProfileSpec make_chrome133_impl() {
       make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
       make_u16_extension(TlsExtensionType::SignatureAlgorithms, {1027, 1283, 1025, 1281, 513, 515}),
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
-      make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771}, true),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771}, true),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
       make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
       make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
@@ -335,7 +335,7 @@ BrowserProfileSpec make_chrome131_impl() {
       make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
       make_u16_extension(TlsExtensionType::SignatureAlgorithms, {1027, 1283, 1025, 1281, 513, 515}),
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
-      make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771}, true),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771}, true),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
       make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
       make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
@@ -373,7 +373,7 @@ BrowserProfileSpec make_chrome120_impl() {
       make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
       make_u16_extension(TlsExtensionType::SignatureAlgorithms, {1027, 1283, 1025, 1281, 513, 515}),
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
-      make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771}, true),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771}, true),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
       make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519}),
       make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
@@ -393,8 +393,8 @@ BrowserProfileSpec make_chrome_darwin_impl() {
   BrowserProfileSpec profile;
   profile.name = "chrome_darwin";
   profile.tls_version = TlsVersion::Tls12;
-  profile.cipher_suites = {4865, 4866, 4867, 49196, 49195, 52393, 49200, 49199, 52392, 49162, 49161, 49172,
-                           49171, 157, 156, 53, 47, 49160, 49170, 10};
+  profile.cipher_suites = {4865,  4866,  4867,  49196, 49195, 52393, 49200, 49199, 52392, 49162,
+                           49161, 49172, 49171, 157,   156,   53,    47,    49160, 49170, 10};
   profile.supported_groups = {29, 23, 24, 25};
   profile.ec_point_formats = {0};
   profile.alpn = {"h2", "http/1.1"};
@@ -407,12 +407,11 @@ BrowserProfileSpec make_chrome_darwin_impl() {
       make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
       make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
-      make_u16_extension(TlsExtensionType::SignatureAlgorithms,
-                         {1027, 1284, 1025, 1283, 1281, 1537, 1282, 1026}),
+      make_u16_extension(TlsExtensionType::SignatureAlgorithms, {1027, 1284, 1025, 1283, 1281, 1537, 1282, 1026}),
       make_extension(TlsExtensionType::SignedCertificateTimestamp),
       make_key_share_extension({KeyShareKind::X25519}),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
-      make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771, 770, 769}, true),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771, 770, 769}, true),
       make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x01"),
   };
   profile.layout_template = make_chromium_darwin_layout();
@@ -423,7 +422,8 @@ BrowserProfileSpec make_firefox148_impl() {
   BrowserProfileSpec profile;
   profile.name = "firefox148";
   profile.tls_version = TlsVersion::Tls12;
-  profile.cipher_suites = {4865, 4867, 4866, 49195, 49199, 52393, 52392, 49196, 49200, 49162, 49161, 49171, 49172, 156, 157, 47, 53};
+  profile.cipher_suites = {4865,  4867,  4866,  49195, 49199, 52393, 52392, 49196, 49200,
+                           49162, 49161, 49171, 49172, 156,   157,   47,    53};
   profile.supported_groups = {4588, 29, 23, 24, 25, 256, 257};
   profile.ec_point_formats = {0};
   profile.alpn = {"h2", "http/1.1"};
@@ -440,7 +440,7 @@ BrowserProfileSpec make_firefox148_impl() {
       make_u16_extension(TlsExtensionType::DelegatedCredentials, {1027, 1283, 1539, 515}),
       make_extension(TlsExtensionType::SignedCertificateTimestamp),
       make_key_share_extension({KeyShareKind::X25519MlKem768, KeyShareKind::X25519, KeyShareKind::Secp256r1}),
-      make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771}),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771}),
       make_u16_extension(TlsExtensionType::SignatureAlgorithms,
                          {1027, 1283, 1539, 1284, 1285, 1286, 1025, 1281, 1537, 515, 513}),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
@@ -456,7 +456,8 @@ BrowserProfileSpec make_firefox149_macos_impl() {
   BrowserProfileSpec profile;
   profile.name = "firefox149_macos26_3";
   profile.tls_version = TlsVersion::Tls12;
-  profile.cipher_suites = {4865, 4867, 4866, 49195, 49199, 52393, 52392, 49196, 49200, 49162, 49161, 49171, 49172, 156, 157, 47, 53};
+  profile.cipher_suites = {4865,  4867,  4866,  49195, 49199, 52393, 52392, 49196, 49200,
+                           49162, 49161, 49171, 49172, 156,   157,   47,    53};
   profile.supported_groups = {4588, 29, 23, 24, 25, 256, 257};
   profile.ec_point_formats = {0};
   profile.alpn = {"h2", "http/1.1"};
@@ -483,7 +484,7 @@ BrowserProfileSpec make_firefox149_macos_impl() {
       make_u16_extension(TlsExtensionType::DelegatedCredentials, {1027, 1283, 1539, 515}),
       make_extension(TlsExtensionType::SignedCertificateTimestamp),
       make_key_share_extension({KeyShareKind::X25519MlKem768, KeyShareKind::X25519, KeyShareKind::Secp256r1}),
-      make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771}),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771}),
       make_u16_extension(TlsExtensionType::SignatureAlgorithms,
                          {1027, 1283, 1539, 1284, 1285, 1286, 1025, 1281, 1537, 515, 513}),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
@@ -508,7 +509,8 @@ BrowserProfileSpec make_safari_impl() {
   BrowserProfileSpec profile;
   profile.name = "safari26_3";
   profile.tls_version = TlsVersion::Tls12;
-  profile.cipher_suites = {4866, 4867, 4865, 49196, 49195, 52393, 49200, 49199, 52392, 49162, 49161, 49172, 49171, 157, 156, 53, 47, 49160, 49170, 10};
+  profile.cipher_suites = {4866,  4867,  4865,  49196, 49195, 52393, 49200, 49199, 52392, 49162,
+                           49161, 49172, 49171, 157,   156,   53,    47,    49160, 49170, 10};
   // Apple TLS family on iOS 26.x adopted X25519MLKEM768. Real captures
   // (test/analysis/fixtures/clienthello/ios/safari26_3_1_ios26_3_1_*.json,
   //  safari26_4_*.json, chrome147_0_7727_47_ios26_4_*.json) advertise
@@ -528,12 +530,11 @@ BrowserProfileSpec make_safari_impl() {
       make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
       make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
-      make_u16_extension(TlsExtensionType::SignatureAlgorithms,
-                         {1027, 1283, 1025, 1281, 513, 515, 1026, 1282, 1537}),
+      make_u16_extension(TlsExtensionType::SignatureAlgorithms, {1027, 1283, 1025, 1281, 513, 515, 1026, 1282, 1537}),
       make_extension(TlsExtensionType::SignedCertificateTimestamp),
       make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
-      make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771, 770, 769}, true),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771, 770, 769}, true),
       make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x01"),
   };
   profile.layout_template = make_safari_layout();
@@ -544,7 +545,8 @@ BrowserProfileSpec make_ios14_impl() {
   BrowserProfileSpec profile;
   profile.name = "ios14";
   profile.tls_version = TlsVersion::Tls12;
-  profile.cipher_suites = {4866, 4867, 4865, 49196, 49195, 52393, 49200, 49199, 52392, 49162, 49161, 49172, 49171, 157, 156, 53, 47, 49160, 49170, 10};
+  profile.cipher_suites = {4866,  4867,  4865,  49196, 49195, 52393, 49200, 49199, 52392, 49162,
+                           49161, 49172, 49171, 157,   156,   53,    47,    49160, 49170, 10};
   // See `make_safari_impl` for the rationale: Apple TLS family on iOS
   // 26.x has X25519MLKEM768 in both supported_groups and key_share.
   profile.supported_groups = {4588, 29, 23, 24, 25};
@@ -559,12 +561,11 @@ BrowserProfileSpec make_ios14_impl() {
       make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
       make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
-      make_u16_extension(TlsExtensionType::SignatureAlgorithms,
-                         {1027, 1283, 1025, 1281, 513, 515, 1026, 1282, 1537}),
+      make_u16_extension(TlsExtensionType::SignatureAlgorithms, {1027, 1283, 1025, 1281, 513, 515, 1026, 1282, 1537}),
       make_extension(TlsExtensionType::SignedCertificateTimestamp),
       make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
-      make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771, 770, 769}, true),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771, 770, 769}, true),
       make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x01"),
   };
   profile.layout_template = make_ios_layout();
@@ -586,7 +587,7 @@ BrowserProfileSpec make_android_okhttp_impl() {
       make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
       make_u16_extension(TlsExtensionType::SignatureAlgorithms, {1027, 1283, 1025, 1281, 513, 515}),
       make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
-      make_u16_extension(TlsExtensionType::SupportedVersions, {768, 771}, true),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771}, true),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
       make_key_share_extension({KeyShareKind::X25519}),
   };
