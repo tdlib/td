@@ -158,6 +158,20 @@ class SqliteUpdateVendorContractTest(unittest.TestCase):
             msg="native DB smoke must run after the Python guardrails",
         )
 
+    def test_phase5_ci_workflow_installs_gperf_before_native_configure(self) -> None:
+        workflow_text = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+        install_index = workflow_text.index("apt-get install -y gperf")
+        configure_index = workflow_text.index(
+            "cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF"
+        )
+
+        self.assertLess(
+            install_index,
+            configure_index,
+            msg="phase 5 CI must install gperf before the first native configure because tdutils/generate hard-requires it",
+        )
+
     def test_phase5_ci_workflow_reconfigures_after_build_before_exact_ctest_smoke(self) -> None:
         workflow_text = WORKFLOW_PATH.read_text(encoding="utf-8")
 
@@ -199,6 +213,15 @@ class SqliteUpdateVendorContractTest(unittest.TestCase):
             "--source-tarball-sha256",
             maintenance_doc,
             msg="phase 5 maintenance guidance must document the pinned tarball digest requirement",
+        )
+
+    def test_maintenance_doc_prerequisites_include_gperf_for_native_smoke(self) -> None:
+        maintenance_doc = MAINTENANCE_DOC_PATH.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "gperf",
+            maintenance_doc,
+            msg="maintenance guidance must call out gperf because the native configure step fails without it",
         )
 
     def test_maintenance_doc_reconfigures_after_build_before_exact_ctest_smoke(self) -> None:

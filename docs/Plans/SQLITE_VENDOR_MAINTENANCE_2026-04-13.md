@@ -5,6 +5,7 @@ This note covers the scripted refresh path for the vendored SQLCipher baseline u
 ## Prerequisites
 
 - `python3`, `make`, and a working C toolchain must be available.
+- `gperf` must be installed before the native CMake configure/build steps; on Debian/Ubuntu hosts use `sudo apt-get update && sudo apt-get install -y gperf`.
 - A system `tclsh` is preferred.
 - On Debian/Ubuntu hosts, `tools/sqlite/update_vendor.py` can bootstrap a local Tcl runtime automatically with `apt-get download` and `dpkg-deb` if `tclsh` is not installed.
 - On other hosts, pass `--tclsh /path/to/tclsh`.

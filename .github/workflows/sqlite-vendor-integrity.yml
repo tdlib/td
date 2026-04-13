@@ -50,6 +50,11 @@ jobs:
       - name: Run current target baseline contract
         run: python3 -m unittest discover -s test/analysis -p 'test_sqlite_phase4_vendor_target_repo.py'
 
+      - name: Install native build prerequisite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gperf
+
       - name: Configure native DB smoke build
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF
 
