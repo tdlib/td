@@ -702,6 +702,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
     // hide the voter counts
     for (auto &poll_option : poll_options) {
       poll_option->voter_count_ = 0;
+      poll_option->recent_voter_ids_.clear();
     }
   } else {
     // calculate vote percentage and fix total_voter_count
