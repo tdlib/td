@@ -2151,9 +2151,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
     if (is_valid_username(username)) {
       if (has_arg("post")) {
         // resolve?domain=<username>&post=12345&single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
-        return td::make_unique<InternalLinkMessage>(
-            PSTRING() << "tg://resolve" << copy_arg("domain") << copy_arg("post") << copy_arg("single")
-                      << copy_arg("thread") << copy_arg("comment") << copy_arg("t"));
+        return td::make_unique<InternalLinkMessage>(PSTRING()
+                                                    << "tg://resolve" << copy_arg("domain") << copy_arg("post")
+                                                    << copy_arg("single") << copy_arg("thread") << copy_arg("comment")
+                                                    << copy_arg("t") << copy_arg("task") << copy_arg("option"));
       }
       if (username == "oauth" && has_arg("startapp")) {
         return td::make_unique<InternalLinkOauth>(PSTRING()
@@ -2460,9 +2461,10 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_tg_link_query(Slice que
   } else if (path.size() == 1 && path[0] == "privatepost") {
     // privatepost?channel=123456789&post=12345&single&thread=<thread_id>&comment=<message_id>&t=<media_timestamp>
     if (has_arg("channel") && has_arg("post")) {
-      return td::make_unique<InternalLinkMessage>(
-          PSTRING() << "tg://privatepost" << copy_arg("channel") << copy_arg("post") << copy_arg("single")
-                    << copy_arg("thread") << copy_arg("comment") << copy_arg("t"));
+      return td::make_unique<InternalLinkMessage>(PSTRING()
+                                                  << "tg://privatepost" << copy_arg("channel") << copy_arg("post")
+                                                  << copy_arg("single") << copy_arg("thread") << copy_arg("comment")
+                                                  << copy_arg("t") << copy_arg("task") << copy_arg("option"));
     }
   } else if (path.size() == 1 && path[0] == "boost") {
     // boost?domain=channel_username
@@ -2572,7 +2574,8 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
       }
       return td::make_unique<InternalLinkMessage>(PSTRING() << "tg://privatepost?channel=" << to_integer<int64>(path[1])
                                                             << "&post=" << post << copy_arg("single") << thread
-                                                            << copy_arg("comment") << copy_arg("t"));
+                                                            << copy_arg("comment") << copy_arg("t") << copy_arg("task")
+                                                            << copy_arg("option"));
     } else if (path.size() >= 2 && to_integer<int64>(path[1]) > 0 && url_query.has_arg("boost")) {
       // /c/123456789?boost
       return td::make_unique<InternalLinkDialogBoost>(PSTRING() << "tg://boost?channel=" << to_integer<int64>(path[1]));
@@ -2755,9 +2758,9 @@ unique_ptr<LinkManager::InternalLink> LinkManager::parse_t_me_link_query(Slice q
         thread = PSTRING() << "&thread=" << post;
         post = to_integer<int64>(path[2]);
       }
-      return td::make_unique<InternalLinkMessage>(PSTRING() << "tg://resolve?domain=" << url_encode(path[0])
-                                                            << "&post=" << post << copy_arg("single") << thread
-                                                            << copy_arg("comment") << copy_arg("t"));
+      return td::make_unique<InternalLinkMessage>(
+          PSTRING() << "tg://resolve?domain=" << url_encode(path[0]) << "&post=" << post << copy_arg("single") << thread
+                    << copy_arg("comment") << copy_arg("t") << copy_arg("task") << copy_arg("option"));
     }
     auto username = path[0];
     if (to_lower(username) == "boost") {

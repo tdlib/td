@@ -15410,9 +15410,6 @@ Result<std::pair<string, bool>> MessagesManager::get_message_link(MessageFullId 
         if (todo_item_id != 0) {
           sb << "&task=" << todo_item_id;
         }
-        if (todo_item_id != 0) {
-          sb << "&task=" << todo_item_id;
-        }
         if (!poll_option_id.empty()) {
           sb << "&option=" << base64url_encode(poll_option_id);
         }
