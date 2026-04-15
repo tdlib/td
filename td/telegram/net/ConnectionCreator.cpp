@@ -97,6 +97,41 @@ bool quic_enabled_for_active_policy(const mtproto::stealth::StealthRuntimeParams
   }
 }
 
+bool is_ipv6_mapped_ipv4(const IPAddress &ip_address) {
+  if (!ip_address.is_ipv6()) {
+    return false;
+  }
+  auto ipv6 = ip_address.get_ipv6();
+  if (ipv6.size() != 16) {
+    return false;
+  }
+  for (size_t i = 0; i < 10; i++) {
+    if (ipv6[i] != 0) {
+      return false;
+    }
+  }
+  return static_cast<unsigned char>(ipv6[10]) == 0xff && static_cast<unsigned char>(ipv6[11]) == 0xff;
+}
+
+Result<IPAddress> normalize_peer_address(const IPAddress &ip_address) {
+  if (!ip_address.is_valid()) {
+    return Status::Error("Peer address is invalid");
+  }
+  if (!is_ipv6_mapped_ipv4(ip_address)) {
+    return ip_address;
+  }
+
+  auto ipv6 = ip_address.get_ipv6();
+  IPAddress normalized_ip_address;
+  TRY_STATUS(normalized_ip_address.init_ipv4_port(PSTRING()
+                                                      << static_cast<int>(static_cast<unsigned char>(ipv6[12])) << '.'
+                                                      << static_cast<int>(static_cast<unsigned char>(ipv6[13])) << '.'
+                                                      << static_cast<int>(static_cast<unsigned char>(ipv6[14])) << '.'
+                                                      << static_cast<int>(static_cast<unsigned char>(ipv6[15])),
+                                                  ip_address.get_port()));
+  return normalized_ip_address;
+}
+
 }  // namespace
 
 int VERBOSITY_NAME(connections) = VERBOSITY_NAME(INFO);
@@ -786,7 +821,8 @@ Result<ConnectionCreator::ProxyAddressCandidates> ConnectionCreator::resolve_pro
   }
 
   IPAddress fallback_ip_address;
-  auto fallback_status = fallback_ip_address.init_host_port(proxy.server(), proxy.port(), !resolved_proxy_ip_address.is_ipv6());
+  auto fallback_status =
+      fallback_ip_address.init_host_port(proxy.server(), proxy.port(), !resolved_proxy_ip_address.is_ipv6());
   if (fallback_status.is_ok() && !(fallback_ip_address == resolved_proxy_ip_address) &&
       fallback_ip_address.get_address_family() != resolved_proxy_ip_address.get_address_family()) {
     candidates.fallback_ip_address = std::move(fallback_ip_address);
@@ -821,6 +857,28 @@ Result<ConnectionCreator::ProxySocketOpenResult> ConnectionCreator::open_proxy_s
   VLOG(connections) << "Retry proxy connect via alternate family " << candidates.fallback_ip_address << " after "
                     << r_socket.error();
   return try_open(candidates.fallback_ip_address);
+}
+
+Status ConnectionCreator::verify_connection_peer(const Proxy &proxy, const IPAddress &expected_peer_address,
+                                                 const IPAddress &actual_peer_address) {
+  if (proxy.use_proxy()) {
+    return Status::OK();
+  }
+  if (!expected_peer_address.is_valid()) {
+    return Status::Error("Expected peer address is invalid");
+  }
+  if (!actual_peer_address.is_valid()) {
+    return Status::Error("Actual peer address is invalid");
+  }
+
+  TRY_RESULT(normalized_expected_peer_address, normalize_peer_address(expected_peer_address));
+  TRY_RESULT(normalized_actual_peer_address, normalize_peer_address(actual_peer_address));
+  if (normalized_expected_peer_address == normalized_actual_peer_address) {
+    return Status::OK();
+  }
+
+  return Status::Error(PSLICE() << "Connected peer mismatch: expected " << normalized_expected_peer_address << ", got "
+                                << normalized_actual_peer_address);
 }
 
 void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address, mtproto::TransportType transport_type,
@@ -928,8 +986,8 @@ Result<SocketFd> ConnectionCreator::find_connection(const Proxy &proxy, const IP
     if (active_proxy_id_ != 0 && proxy == proxies_[active_proxy_id_]) {
       proxy_ip_address_ = extra.ip_address;
     }
-    extra.debug_str = PSTRING() << (proxy.use_socks5_proxy() ? "Socks5" : (only_http ? "HTTP_ONLY" : "HTTP_TCP"))
-                                << ' ' << extra.ip_address << " --> " << extra.mtproto_ip_address << extra.debug_str;
+    extra.debug_str = PSTRING() << (proxy.use_socks5_proxy() ? "Socks5" : (only_http ? "HTTP_ONLY" : "HTTP_TCP")) << ' '
+                                << extra.ip_address << " --> " << extra.mtproto_ip_address << extra.debug_str;
     VLOG(connections) << "Create: " << extra.debug_str;
     return std::move(proxy_socket.socket_fd);
   }
@@ -1021,6 +1079,20 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
   } else {
     VLOG(connections) << "Create new direct connection " << debug_str;
 
+    if (!proxy.use_proxy()) {
+      IPAddress actual_peer_address;
+      auto peer_status = actual_peer_address.init_peer_address(socket_fd);
+      if (peer_status.is_error()) {
+        promise.set_error(std::move(peer_status));
+        return {};
+      }
+      peer_status = verify_connection_peer(proxy, ip_address, actual_peer_address);
+      if (peer_status.is_error()) {
+        promise.set_error(std::move(peer_status));
+        return {};
+      }
+    }
+
     ConnectionData data;
     data.ip_address = ip_address;
     data.buffered_socket_fd = BufferedFd<SocketFd>(std::move(socket_fd));
@@ -1028,7 +1100,6 @@ ActorOwn<> ConnectionCreator::prepare_connection(IPAddress ip_address, SocketFd 
     promise.set_result(std::move(data));
     return {};
   }
-
 }
 
 void ConnectionCreator::client_loop(ClientInfo &client) {
@@ -1221,7 +1292,7 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
     auto it = clients_.find(hash);
     CHECK(it != clients_.end());
     const auto &auth_data_ptr = it->second.auth_data;
-    if (auth_data_ptr && auth_data_ptr->use_pfs() && auth_data_ptr->has_auth_key(Time::now_cached())) {
+    if (auth_data_ptr && auth_data_ptr->is_keyed_session() && auth_data_ptr->has_auth_key(Time::now_cached())) {
       auth_data = make_unique<mtproto::AuthData>(*auth_data_ptr);
       auth_data_generation = it->second.auth_data_generation;
       session_id = it->second.extract_session_id();

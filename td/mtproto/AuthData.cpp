@@ -6,15 +6,26 @@
 //
 #include "td/mtproto/AuthData.h"
 
+#include "td/telegram/net/NetReliabilityMonitor.h"
+
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
 
 #include <algorithm>
+#include <atomic>
 
 namespace td {
 namespace mtproto {
+namespace {
+
+std::atomic<bool> &legacy_mode_flag() {
+  static std::atomic<bool> flag{false};
+  return flag;
+}
+
+}  // namespace
 
 Status check_message_id_duplicates(MessageId *saved_message_ids, size_t max_size, size_t &end_pos,
                                    MessageId message_id) {
@@ -51,12 +62,34 @@ AuthData::AuthData() {
   server_salt_.valid_until = -1e10;
 }
 
+void AuthData::set_legacy_session_mode_for_tests(bool allow) {
+  // Test-only: relax the runtime enforcement so fixture code can build non-keyed sessions.
+  legacy_mode_flag().store(allow, std::memory_order_relaxed);
+}
+
+void AuthData::set_session_mode(bool keyed) {
+  // Runtime path: enforce the keyed-session requirement unless a test override is active.
+  // An attempt to disable keying outside that gate is recorded for diagnostics.
+  if (!keyed && !legacy_mode_flag().load(std::memory_order_relaxed)) {
+    net_health::note_session_param_coerce_attempt();
+    keyed_session_ = true;
+    return;
+  }
+  keyed_session_ = keyed;
+}
+
+void AuthData::set_session_mode_from_policy(bool keyed) {
+  // Trusted constructor-time path: the session-policy is set before the session is live,
+  // so no runtime enforcement gate is required here.
+  keyed_session_ = keyed;
+}
+
 bool AuthData::is_ready(double now) {
   if (!has_main_auth_key()) {
     LOG(INFO) << "Need main auth key";
     return false;
   }
-  if (use_pfs() && !has_tmp_auth_key(now)) {
+  if (is_keyed_session() && !has_tmp_auth_key(now)) {
     LOG(INFO) << "Need tmp auth key";
     return false;
   }

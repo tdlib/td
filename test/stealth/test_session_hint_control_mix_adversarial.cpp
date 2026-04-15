@@ -11,6 +11,8 @@
 #include "td/mtproto/SessionConnection.h"
 #include "td/mtproto/stealth/Interfaces.h"
 
+#include "td/telegram/net/NetReliabilityMonitor.h"
+
 #include "td/utils/BufferedFd.h"
 #include "td/utils/tests.h"
 
@@ -154,7 +156,7 @@ class NoopSessionCallback final : public SessionConnection::Callback {
 };
 
 void init_auth_data_with_salt(AuthData *auth_data) {
-  auth_data->set_use_pfs(false);
+  auth_data->set_session_mode(false);
   auth_data->set_main_auth_key(AuthKey(1, td::string(256, 'a')));
   auth_data->set_server_salt(1, td::Time::now_cached());
   auth_data->set_future_salts({td::mtproto::ServerSalt{2, -1e9, 1e9}}, td::Time::now_cached());
@@ -179,6 +181,38 @@ TEST(SessionHintControlMixAdversarial, DestroyKeyWithPingStaysInteractive) {
   ASSERT_EQ(1, raw_ptr->flush_calls_);
   ASSERT_EQ(1u, raw_ptr->sent_hints.size());
   ASSERT_EQ(TrafficHint::Interactive, raw_ptr->sent_hints[0]);
+}
+
+TEST(SessionHintControlMixAdversarial, DestroyKeyWithPolicyOverrideStaysInteractiveWithoutCoerceCounter) {
+  td::net_health::reset_net_monitor_for_tests();
+
+  auto socket_pair = create_socket_pair().move_as_ok();
+  auto raw_connection =
+      td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));
+  auto *raw_ptr = raw_connection.get();
+
+  AuthData auth_data;
+  auth_data.set_session_mode_from_policy(false);
+  auth_data.set_main_auth_key(AuthKey(1, td::string(256, 'a')));
+  auth_data.set_server_salt(1, td::Time::now_cached());
+  auth_data.set_future_salts({td::mtproto::ServerSalt{2, -1e9, 1e9}}, td::Time::now_cached());
+  auth_data.set_session_id(1);
+
+  ASSERT_FALSE(auth_data.is_keyed_session());
+
+  SessionConnection connection(SessionConnection::Mode::Tcp, std::move(raw_connection), &auth_data);
+  NoopSessionCallback callback;
+
+  connection.set_online(true, true);
+  connection.destroy_key();
+  connection.flush(&callback);
+
+  auto snapshot = td::net_health::get_net_monitor_snapshot();
+  ASSERT_FALSE(auth_data.is_keyed_session());
+  ASSERT_EQ(1, raw_ptr->flush_calls_);
+  ASSERT_EQ(1u, raw_ptr->sent_hints.size());
+  ASSERT_EQ(TrafficHint::Interactive, raw_ptr->sent_hints[0]);
+  ASSERT_EQ(0u, snapshot.counters.session_param_coerce_attempt_total);
 }
 
 TEST(SessionHintControlMixAdversarial, ResendAnswerWithPingStaysInteractive) {

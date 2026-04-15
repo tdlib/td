@@ -17,8 +17,8 @@
 #include "td/utils/BufferedFd.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/ScopeGuard.h"
-#include "td/utils/Time.h"
 #include "td/utils/tests.h"
+#include "td/utils/Time.h"
 
 #include <vector>
 
@@ -35,11 +35,11 @@ using td::mtproto::stealth::DrsPhaseModel;
 using td::mtproto::stealth::IRng;
 using td::mtproto::stealth::StealthConfig;
 using td::mtproto::stealth::StealthTransportDecorator;
+using td::mtproto::StreamTransportFactoryForTests;
+using td::mtproto::tcp::ObfuscatedTransport;
 using td::mtproto::test::create_socket_pair;
 using td::mtproto::test::read_exact;
 using td::mtproto::TransportType;
-using td::mtproto::StreamTransportFactoryForTests;
-using td::mtproto::tcp::ObfuscatedTransport;
 
 constexpr size_t kPrimerHeaderOverhead = 64 + 6;
 
@@ -130,7 +130,7 @@ td::string make_tls_secret() {
 }
 
 void init_auth_data_with_salt(AuthData *auth_data) {
-  auth_data->set_use_pfs(false);
+  auth_data->set_session_mode(false);
   auth_data->set_main_auth_key(AuthKey(1, td::string(256, 'a')));
   auth_data->set_server_salt(1, td::Time::now_cached());
   auth_data->set_future_salts({td::mtproto::ServerSalt{2, -1e9, 1e9}}, td::Time::now_cached());
@@ -138,7 +138,7 @@ void init_auth_data_with_salt(AuthData *auth_data) {
 }
 
 void init_auth_data_without_salt(AuthData *auth_data) {
-  auth_data->set_use_pfs(false);
+  auth_data->set_session_mode(false);
   auth_data->set_main_auth_key(AuthKey(1, td::string(256, 'a')));
   auth_data->set_session_id(1);
 }
@@ -171,9 +171,9 @@ td::unique_ptr<IStreamTransport> make_deterministic_stealth_transport(TransportT
     return nullptr;
   }
 
-  auto decorator = StealthTransportDecorator::create(
-      td::make_unique<ObfuscatedTransport>(type.dc_id, type.secret), make_config(), td::make_unique<DominantBinRng>(),
-      td::mtproto::stealth::make_clock());
+  auto decorator =
+      StealthTransportDecorator::create(td::make_unique<ObfuscatedTransport>(type.dc_id, type.secret), make_config(),
+                                        td::make_unique<DominantBinRng>(), td::mtproto::stealth::make_clock());
   CHECK(decorator.is_ok());
   return decorator.move_as_ok();
 }
@@ -230,10 +230,10 @@ td::unique_ptr<SessionHarness> make_harness(AuthData *auth_data) {
   auto socket_pair = create_socket_pair().move_as_ok();
   auto stats_callback = td::make_unique<WriteCapturingStatsCallback>();
   auto *stats_ptr = stats_callback.get();
-  auto raw_connection = RawConnection::create(
-      td::IPAddress(), td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)),
-      TransportType{TransportType::ObfuscatedTcp, 2, ProxySecret::from_raw(make_tls_secret())},
-      std::move(stats_callback));
+  auto raw_connection =
+      RawConnection::create(td::IPAddress(), td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)),
+                            TransportType{TransportType::ObfuscatedTcp, 2, ProxySecret::from_raw(make_tls_secret())},
+                            std::move(stats_callback));
 
   auto harness = td::make_unique<SessionHarness>();
   harness->connection =

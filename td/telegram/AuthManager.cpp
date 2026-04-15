@@ -906,7 +906,7 @@ void AuthManager::log_out(uint64 query_id) {
     // TODO: could skip full logout if still no authorization
     // TODO: send auth.cancelCode if state_ == State::WaitCode
     LOG(WARNING) << "Destroying auth keys by user request";
-    destroy_auth_keys();
+    destroy_auth_keys(net_health::AuthKeyDestroyReason::UserLogout);
     on_current_query_ok();
   } else {
     LOG(WARNING) << "Logging out by user request";
@@ -1360,7 +1360,7 @@ void AuthManager::on_log_out_result(NetQueryPtr &&net_query) {
   } else if (r_log_out.error().code() != 401) {
     LOG(ERROR) << "Receive error for auth.logOut: " << r_log_out.error();
   }
-  destroy_auth_keys();
+  destroy_auth_keys(net_health::AuthKeyDestroyReason::UserLogout);
   on_current_query_ok();
 }
 
@@ -1386,10 +1386,14 @@ void AuthManager::on_authorization_lost(string source) {
   if (source == "USER_DEACTIVATED_BAN") {
     on_account_banned();
   }
-  destroy_auth_keys();
+  auto reason = net_health::AuthKeyDestroyReason::ServerRevoke;
+  if (source == "Main authorization key is invalid" || source == "Main PFS authorization key is invalid") {
+    reason = net_health::AuthKeyDestroyReason::SessionKeyCorruption;
+  }
+  destroy_auth_keys(reason);
 }
 
-void AuthManager::destroy_auth_keys() {
+void AuthManager::destroy_auth_keys(net_health::AuthKeyDestroyReason reason) {
   if (state_ == State::Closing || state_ == State::DestroyingKeys) {
     LOG(INFO) << "Already destroying auth keys";
     return;
@@ -1397,12 +1401,13 @@ void AuthManager::destroy_auth_keys() {
   update_state(State::DestroyingKeys);
   G()->td_db()->get_binlog_pmc()->set("auth", "destroy");
   G()->net_query_dispatcher().destroy_auth_keys(PromiseCreator::lambda([](Result<Unit> result) {
-    if (result.is_ok()) {
-      send_closure_later(G()->td(), &Td::destroy);
-    } else {
-      LOG(INFO) << "Failed to destroy auth keys";
-    }
-  }));
+                                                  if (result.is_ok()) {
+                                                    send_closure_later(G()->td(), &Td::destroy);
+                                                  } else {
+                                                    LOG(INFO) << "Failed to destroy auth keys";
+                                                  }
+                                                }),
+                                                reason);
 }
 
 void AuthManager::on_delete_account_result(NetQueryPtr &&net_query) {
@@ -1420,7 +1425,7 @@ void AuthManager::on_delete_account_result(NetQueryPtr &&net_query) {
     }
   }
 
-  destroy_auth_keys();
+  destroy_auth_keys(net_health::AuthKeyDestroyReason::UserLogout);
   on_current_query_ok();
 }
 

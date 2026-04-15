@@ -322,6 +322,7 @@ set(TD_MTPROTO_SOURCE
   td/mtproto/ProxySecret.cpp
   td/mtproto/RawConnection.cpp
   td/mtproto/RSA.cpp
+  td/mtproto/BlobStore.cpp
   td/mtproto/SessionConnection.cpp
   td/mtproto/TcpTransport.cpp
   td/mtproto/TlsInit.cpp
@@ -604,6 +605,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/net/PublicRsaKeySharedMain.cpp
   td/telegram/net/PublicRsaKeyWatchdog.cpp
   td/telegram/net/StealthConnectionCountPolicy.cpp
+  td/telegram/net/NetReliabilityMonitor.cpp
   td/telegram/net/Session.cpp
   td/telegram/net/SessionMultiProxy.cpp
   td/telegram/net/SessionProxy.cpp

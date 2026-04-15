@@ -225,6 +225,104 @@
             "problemMatcher": []
         },
         {
+            "label": "run reference table tests",
+            "type": "shell",
+            "command": "./build/test/run_all_tests",
+            "args": [
+                "--filter",
+                "ReferenceTable"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run source layout tests",
+            "type": "shell",
+            "command": "./build/test/run_all_tests",
+            "args": [
+                "--filter",
+                "SourceLayout"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run entry window tests",
+            "type": "shell",
+            "command": "./build/test/run_all_tests",
+            "args": [
+                "--filter",
+                "EntryWindow"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run aux channel tests",
+            "type": "shell",
+            "command": "./build/test/run_all_tests",
+            "args": [
+                "--filter",
+                "AuxChannel"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run blob store tests",
+            "type": "shell",
+            "command": "./build/test/run_all_tests",
+            "args": [
+                "--filter",
+                "BlobStore"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run window count tests",
+            "type": "shell",
+            "command": "./build/test/run_all_tests",
+            "args": [
+                "--filter",
+                "WindowCount"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run entry count tests",
+            "type": "shell",
+            "command": "./build/test/run_all_tests",
+            "args": [
+                "--filter",
+                "EntryCount"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
             "label": "run corpus tests fast",
             "type": "shell",
             "command": "./build/test/run_all_tests",

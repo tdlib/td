@@ -59,6 +59,8 @@ class OptionManager {
 
   static bool is_synchronous_option(Slice name);
 
+  static bool resolve_use_pfs_option_value(bool requested_use_pfs);
+
   static td_api::object_ptr<td_api::OptionValue> get_option_synchronously(Slice name);
 
   static void get_common_state(vector<td_api::object_ptr<td_api::Update>> &updates);

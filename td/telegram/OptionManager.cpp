@@ -20,6 +20,7 @@
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/net/NetReliabilityMonitor.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/OnlineManager.h"
 #include "td/telegram/ReactionType.h"
@@ -304,6 +305,9 @@ void OptionManager::on_td_inited() {
 }
 
 void OptionManager::set_option_boolean(Slice name, bool value) {
+  if (name == "use_pfs") {
+    value = resolve_use_pfs_option_value(value);
+  }
   set_option(name, value ? Slice("Btrue") : Slice("Bfalse"));
 }
 
@@ -362,9 +366,19 @@ string OptionManager::get_option_string(Slice name, string default_value) const 
   return value.substr(1);
 }
 
+bool OptionManager::resolve_use_pfs_option_value(bool requested_use_pfs) {
+  if (!requested_use_pfs) {
+    net_health::note_session_param_coerce_attempt();
+  }
+  return true;
+}
+
 void OptionManager::set_option(Slice name, Slice value) {
   CHECK(!name.empty());
   CHECK(Scheduler::instance()->sched_id() == current_scheduler_id_);
+  if (name == "use_pfs" && value == Slice("Bfalse")) {
+    value = Slice("Btrue");
+  }
   if (value.empty()) {
     if (options_->erase(name.str()) == 0) {
       return;

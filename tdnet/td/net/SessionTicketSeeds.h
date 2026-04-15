@@ -1,0 +1,17 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#pragma once
+
+namespace td {
+namespace vault_detail {
+
+inline constexpr unsigned char kSessionTicketSeeds[] = {
+    0x10, 0x91, 0x50, 0x7a, 0x41, 0xfe, 0xd9, 0x44, 0x55, 0x2f, 0x80, 0x5a, 0x7e, 0x21, 0x07, 0x08,
+    0x4f, 0x4a, 0x66, 0x21, 0xee, 0x22, 0x91, 0xa5, 0xfd, 0x57, 0x50, 0x57, 0xda, 0xfe, 0x3f, 0x05};
+
+}  // namespace vault_detail
+}  // namespace td

@@ -41,6 +41,10 @@ class AuthKeyHandshake {
 
   AuthKeyHandshake(int32 dc_id, int32 expires_in);
 
+  static size_t minimum_server_entry_count();
+  static bool should_warn_on_server_entry_count(size_t entry_count);
+  static Status check_window_entry(int64 fingerprint);
+
   void set_timeout_in(double timeout_in);
 
   bool is_ready_for_finish() const;

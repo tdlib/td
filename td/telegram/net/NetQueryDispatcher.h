@@ -8,6 +8,7 @@
 
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/net/NetReliabilityMonitor.h"
 #include "td/telegram/net/StealthConnectionCountPolicy.h"
 
 #include "td/utils/common.h"
@@ -45,7 +46,8 @@ class NetQueryDispatcher {
   void stop();
 
   void update_session_count();
-  void destroy_auth_keys(Promise<> promise);
+  void destroy_auth_keys(Promise<> promise, net_health::AuthKeyDestroyReason reason =
+                                                net_health::AuthKeyDestroyReason::ProgrammaticApiCall);
   void update_use_pfs();
   void update_mtproto_header();
 
@@ -53,10 +55,18 @@ class NetQueryDispatcher {
     return DcId::internal(main_dc_id_.load(std::memory_order_relaxed));
   }
 
-  void set_main_dc_id(int32 new_main_dc_id);
+  bool set_main_dc_id(int32 new_main_dc_id, bool is_migration = false);
   void check_authorization_is_ok();
 
   void set_verification_token(int64 verification_id, string &&token, Promise<Unit> &&promise);
+
+  static bool resolve_use_pfs_policy(bool option_use_pfs, int32 session_count);
+  static Status check_shared_entry(int64 fingerprint, bool is_test);
+  static bool is_known_main_dc_id(int32 raw_dc_id, bool is_test);
+  static bool is_persistable_main_dc_id(int32 raw_dc_id, bool is_test);
+  static bool is_registered_file_dc_id(int32 raw_dc_id, bool is_test, Slice serialized_dc_options);
+  static double main_dc_migration_cooldown();
+  static bool is_main_dc_migration_rate_limited(double last_migration_at, double now);
 
  private:
   std::atomic<bool> stop_flag_{false};
@@ -81,6 +91,7 @@ class NetQueryDispatcher {
 #else
   std::atomic<int32> main_dc_id_{1};
 #endif
+  double last_main_dc_migration_at_{0.0};
   ActorOwn<PublicRsaKeyWatchdog> public_rsa_key_watchdog_;
   std::mutex mutex_;
   std::shared_ptr<Guard> td_guard_;

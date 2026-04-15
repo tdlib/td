@@ -114,6 +114,8 @@ class ConnectionCreator final : public NetQueryCallback {
                                                                          const IPAddress &resolved_proxy_ip_address);
   static Result<ProxySocketOpenResult> open_proxy_socket(const Proxy &proxy,
                                                          const IPAddress &resolved_proxy_ip_address);
+  static Status verify_connection_peer(const Proxy &proxy, const IPAddress &expected_peer_address,
+                                       const IPAddress &actual_peer_address);
 
  private:
   friend class ProxyChecker;

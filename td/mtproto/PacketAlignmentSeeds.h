@@ -1,0 +1,17 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#pragma once
+
+namespace td {
+namespace vault_detail {
+
+inline constexpr unsigned char kPacketAlignmentSeeds[] = {
+    0x5e, 0x7c, 0x74, 0x4f, 0x40, 0x77, 0x52, 0x55, 0x1a, 0x1c, 0x8e, 0xb1, 0x5a, 0xc3, 0x2c, 0xfb,
+    0x6b, 0x13, 0xb2, 0x82, 0x6e, 0x2b, 0xa8, 0x7d, 0xfc, 0xf5, 0x98, 0xb4, 0x35, 0x14, 0xc8, 0xdc};
+
+}  // namespace vault_detail
+}  // namespace td

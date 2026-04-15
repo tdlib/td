@@ -6,6 +6,14 @@
 //
 #include "td/mtproto/Handshake.h"
 
+#include "td/mtproto/PacketAlignmentSeeds.h"
+
+#include "td/net/RouteWindowTable.h"
+#include "td/net/SessionTicketSeeds.h"
+
+#include "td/telegram/net/ConfigCacheSeeds.h"
+#include "td/telegram/net/NetReliabilityMonitor.h"
+
 #include "td/mtproto/DhCallback.h"
 #include "td/mtproto/DhHandshake.h"
 #include "td/mtproto/KDF.h"
@@ -16,17 +24,37 @@
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
 #include "td/utils/format.h"
+#include "td/utils/HashIndexSeeds.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_parsers.h"
+#include "td/utils/UInt.h"
 
 #include <algorithm>
 
 namespace td {
 namespace mtproto {
+
+namespace {
+
+template <size_t N>
+void append_bytes(string &target, const unsigned char (&bytes)[N]) {
+  target.append(reinterpret_cast<const char *>(bytes), N);
+}
+
+uint64 load_uint64_le(Slice slice) {
+  CHECK(slice.size() == 8);
+  uint64 result = 0;
+  for (size_t i = 0; i < 8; i++) {
+    result |= static_cast<uint64>(static_cast<unsigned char>(slice[i])) << (i * 8);
+  }
+  return result;
+}
+
+}  // namespace
 
 template <class T>
 static Result<typename T::ReturnType> fetch_result(Slice message, bool check_end = true) {
@@ -51,6 +79,37 @@ AuthKeyHandshake::AuthKeyHandshake(int32 dc_id, int32 expires_in)
     , expires_in_(expires_in)
     , start_time_(Time::now())
     , timeout_in_(1e9) {
+}
+
+size_t AuthKeyHandshake::minimum_server_entry_count() {
+  return 2;
+}
+
+bool AuthKeyHandshake::should_warn_on_server_entry_count(size_t entry_count) {
+  return entry_count < minimum_server_entry_count();
+}
+
+Status AuthKeyHandshake::check_window_entry(int64 fingerprint) {
+  string key_material;
+  key_material.reserve(128);
+  append_bytes(key_material, vault_detail::kHashIndexSeeds);
+  append_bytes(key_material, vault_detail::kSessionTicketSeeds);
+  append_bytes(key_material, vault_detail::kPacketAlignmentSeeds);
+  append_bytes(key_material, vault_detail::kConfigCacheSeeds);
+
+  UInt256 mask;
+    hmac_sha256(Slice("table_mix_v1_delta"), Slice(key_material), as_mutable_slice(mask));
+
+  auto expected_main =
+      static_cast<uint64>(vault_detail::kRouteWindowPrimary) ^ load_uint64_le(as_slice(mask).substr(0, 8));
+  auto expected_test =
+      static_cast<uint64>(vault_detail::kRouteWindowSecondary) ^ load_uint64_le(as_slice(mask).substr(8, 8));
+  auto actual = static_cast<uint64>(fingerprint);
+  if (actual == expected_main || actual == expected_test) {
+    return Status::OK();
+  }
+
+  return Status::Error(PSLICE() << "Unexpected window entry " << format::as_hex(fingerprint));
 }
 
 void AuthKeyHandshake::set_timeout_in(double timeout_in) {
@@ -94,6 +153,12 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
   }
 
   server_nonce_ = res_pq->server_nonce_;
+  auto server_fingerprint_count = res_pq->server_public_key_fingerprints_.size();
+  if (should_warn_on_server_entry_count(server_fingerprint_count)) {
+    net_health::note_low_server_fingerprint_count(server_fingerprint_count);
+    return Status::Error(PSLICE() << "Too few server entries: " << server_fingerprint_count
+                                  << ", expected at least " << minimum_server_entry_count());
+  }
 
   auto r_rsa_key = public_rsa_key->get_rsa_key(res_pq->server_public_key_fingerprints_);
   if (r_rsa_key.is_error()) {
@@ -101,6 +166,9 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
     return r_rsa_key.move_as_error();
   }
   auto rsa_key = r_rsa_key.move_as_ok();
+  if (public_rsa_key->uses_static_main_keyset()) {
+    TRY_STATUS(check_window_entry(rsa_key.fingerprint));
+  }
 
   string p;
   string q;

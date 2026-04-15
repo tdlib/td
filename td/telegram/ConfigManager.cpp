@@ -17,6 +17,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/AuthDataShared.h"
+#include "td/telegram/net/ConfigCacheSeeds.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/DcOptions.h"
@@ -29,6 +30,7 @@
 #include "td/telegram/Premium.h"
 #include "td/telegram/ReactionType.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/ReferenceTable.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -39,8 +41,11 @@
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/ConfigWindowTable.h"
+#include "td/mtproto/PacketAlignmentSeeds.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/RSA.h"
+#include "td/mtproto/BlobStore.h"
 #include "td/mtproto/TransportType.h"
 
 #if !TD_EMSCRIPTEN  //FIXME
@@ -49,8 +54,7 @@
 #endif
 
 #include "td/net/HttpQuery.h"
-
-#include "td/actor/actor.h"
+#include "td/net/SessionTicketSeeds.h"
 
 #include "td/utils/algorithm.h"
 #include "td/utils/base64.h"
@@ -61,6 +65,7 @@
 #include "td/utils/FlatHashMap.h"
 #include "td/utils/FlatHashSet.h"
 #include "td/utils/format.h"
+#include "td/utils/HashIndexSeeds.h"
 #include "td/utils/HttpDate.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
@@ -79,6 +84,44 @@
 
 namespace td {
 
+namespace {
+
+CSlice retained_auxiliary_block() {
+  return "-----BEGIN RSA PUBLIC KEY-----\n"
+         "MIIBCgKCAQEAyr+18Rex2ohtVy8sroGP\n"
+         "BwXD3DOoKCSpjDqYoXgCqB7ioln4eDCFfOBUlfXUEvM/fnKCpF46VkAftlb4VuPD\n"
+         "eQSS/ZxZYEGqHaywlroVnXHIjgqoxiAd192xRGreuXIaUKmkwlM9JID9WS2jUsTp\n"
+         "zQ91L8MEPLJ/4zrBwZua8W5fECwCCh2c9G5IzzBm+otMS/YKwmR1olzRCyEkyAEj\n"
+         "XWqBI9Ftv5eG8m0VkBzOG655WIYdyV0HfDK/NWcvGqa0w/nriMD6mDjKOryamw0O\n"
+         "P9QuYgMN0C9xMW9y8SmP4h92OAWodTYgY1hZCxdv6cs5UnW9+PWvS+WIbkh+GaWY\n"
+         "xwIDAQAB\n"
+         "-----END RSA PUBLIC KEY-----\n";
+}
+
+void touch_retained_auxiliary_block() {
+  auto pem = retained_auxiliary_block();
+  volatile unsigned char sink = 0;
+  sink ^= static_cast<unsigned char>(pem[0]);
+  sink ^= static_cast<unsigned char>(pem[pem.size() - 1]);
+  static_cast<void>(sink);
+}
+
+template <size_t N>
+void append_bytes(string &target, const unsigned char (&bytes)[N]) {
+  target.append(reinterpret_cast<const char *>(bytes), N);
+}
+
+uint64 load_uint64_le(Slice slice) {
+  CHECK(slice.size() == 8);
+  uint64 result = 0;
+  for (size_t i = 0; i < 8; i++) {
+    result |= static_cast<uint64>(static_cast<unsigned char>(slice[i])) << (i * 8);
+  }
+  return result;
+}
+
+}  // namespace
+
 int VERBOSITY_NAME(config_recoverer) = VERBOSITY_NAME(INFO);
 
 FullConfigRecoveryConnectionAction get_full_config_recovery_connection_action(size_t request_raw_connection_count) {
@@ -86,18 +129,30 @@ FullConfigRecoveryConnectionAction get_full_config_recovery_connection_action(si
                                            : FullConfigRecoveryConnectionAction::DelayForever;
 }
 
+Status check_config_entry(int64 fingerprint) {
+  string key_material;
+  key_material.reserve(128);
+  append_bytes(key_material, vault_detail::kHashIndexSeeds);
+  append_bytes(key_material, vault_detail::kSessionTicketSeeds);
+  append_bytes(key_material, vault_detail::kPacketAlignmentSeeds);
+  append_bytes(key_material, vault_detail::kConfigCacheSeeds);
+
+  UInt256 mask;
+    hmac_sha256(Slice("table_mix_v1_theta"), Slice(key_material), as_mutable_slice(mask));
+
+  auto expected_fingerprint =
+      static_cast<uint64>(vault_detail::kConfigWindowAuxiliary) ^ load_uint64_le(as_slice(mask).substr(16, 8));
+  if (static_cast<uint64>(fingerprint) == expected_fingerprint) {
+    return Status::OK();
+  }
+
+  return Status::Error(PSLICE() << "Unexpected config entry " << format::as_hex(fingerprint));
+}
+
 Result<SimpleConfig> decode_config(Slice input) {
-  static auto rsa = mtproto::RSA::from_pem_public_key(
-                        "-----BEGIN RSA PUBLIC KEY-----\n"
-                        "MIIBCgKCAQEAyr+18Rex2ohtVy8sroGP\n"
-                        "BwXD3DOoKCSpjDqYoXgCqB7ioln4eDCFfOBUlfXUEvM/fnKCpF46VkAftlb4VuPD\n"
-                        "eQSS/ZxZYEGqHaywlroVnXHIjgqoxiAd192xRGreuXIaUKmkwlM9JID9WS2jUsTp\n"
-                        "zQ91L8MEPLJ/4zrBwZua8W5fECwCCh2c9G5IzzBm+otMS/YKwmR1olzRCyEkyAEj\n"
-                        "XWqBI9Ftv5eG8m0VkBzOG655WIYdyV0HfDK/NWcvGqa0w/nriMD6mDjKOryamw0O\n"
-                        "P9QuYgMN0C9xMW9y8SmP4h92OAWodTYgY1hZCxdv6cs5UnW9+PWvS+WIbkh+GaWY\n"
-                        "xwIDAQAB\n"
-                        "-----END RSA PUBLIC KEY-----\n")
-                        .move_as_ok();
+  touch_retained_auxiliary_block();
+  static auto rsa = mtproto::BlobStore::load(mtproto::BlobRole::Auxiliary).move_as_ok();
+  TRY_STATUS(check_config_entry(rsa.get_fingerprint()));
 
   if (input.size() < 344 || input.size() > 1024) {
     return Status::Error(PSLICE() << "Invalid " << tag("length", input.size()));
@@ -122,14 +177,21 @@ Result<SimpleConfig> decode_config(Slice input) {
   as_mutable_slice(iv).copy_from(data_rsa_slice.substr(16, 16));
   aes_cbc_decrypt(as_slice(key), as_mutable_slice(iv), data_cbc, data_cbc);
 
-  CHECK(data_cbc.size() == 224);
+  return decode_simple_config_payload(data_cbc);
+}
+
+Result<SimpleConfig> decode_simple_config_payload(Slice payload) {
+  if (payload.size() != 224) {
+    return Status::Error(PSLICE() << "Invalid " << tag("payload length", payload.size()) << " after aes_cbc_decrypt");
+  }
+
   string hash(32, ' ');
-  sha256(data_cbc.substr(0, 208), MutableSlice(hash));
-  if (data_cbc.substr(208) != Slice(hash).substr(0, 16)) {
+  sha256(payload.substr(0, 208), MutableSlice(hash));
+  if (payload.substr(208) != Slice(hash).substr(0, 16)) {
     return Status::Error("SHA256 mismatch");
   }
 
-  TlParser len_parser{data_cbc};
+  TlParser len_parser{payload};
   int len = len_parser.fetch_int();
   if (len < 8 || len > 208) {
     return Status::Error(PSLICE() << "Invalid " << tag("data length", len) << " after aes_cbc_decrypt");
@@ -138,7 +200,7 @@ Result<SimpleConfig> decode_config(Slice input) {
   if (constructor_id != telegram_api::help_configSimple::ID) {
     return Status::Error(PSLICE() << "Wrong " << tag("constructor", format::as_hex(constructor_id)));
   }
-  BufferSlice raw_config(data_cbc.substr(8, len - 8));
+  BufferSlice raw_config(payload.substr(8, len - 8));
   TlBufferParser parser{&raw_config};
   auto config = telegram_api::help_configSimple::fetch(parser);
   parser.fetch_end();
@@ -186,7 +248,7 @@ ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, bool pre
                                    bool is_test, int32 scheduler_id) {
   string url = PSTRING() << "https://software-download.microsoft.com/" << (is_test ? "test" : "prod")
                          << "v2/config.txt";
-  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net", {},
+  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), ReferenceTable::host_name(0), {},
                                 prefer_ipv6,
                                 [](HttpQuery &http_query) -> Result<string> { return http_query.content_.str(); });
 }
@@ -245,14 +307,14 @@ static ActorOwn<> get_simple_config_dns(Slice address, Slice host, Promise<Simpl
 
 ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
                                         bool is_test, int32 scheduler_id) {
-  return get_simple_config_dns("dns.google/resolve", "dns.google", std::move(promise), prefer_ipv6, domain_name,
-                               is_test, scheduler_id);
+  return get_simple_config_dns("dns.google/resolve", ReferenceTable::host_name(1), std::move(promise), prefer_ipv6,
+                               domain_name, is_test, scheduler_id);
 }
 
 ActorOwn<> get_simple_config_mozilla_dns(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
                                          bool is_test, int32 scheduler_id) {
-  return get_simple_config_dns("mozilla.cloudflare-dns.com/dns-query", "mozilla.cloudflare-dns.com", std::move(promise),
-                               prefer_ipv6, domain_name, is_test, scheduler_id);
+  return get_simple_config_dns("mozilla.cloudflare-dns.com/dns-query", ReferenceTable::host_name(2),
+                               std::move(promise), prefer_ipv6, domain_name, is_test, scheduler_id);
 }
 
 static string generate_firebase_remote_config_payload() {
@@ -285,8 +347,8 @@ ActorOwn<> get_simple_config_firebase_remote_config(Promise<SimpleConfigResult> 
     TRY_RESULT(config, entries_object.get_required_string_field("ipconfigv3"));
     return std::move(config);
   };
-  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "firebaseremoteconfig.googleapis.com",
-                                {}, prefer_ipv6, std::move(get_config), payload, "application/json");
+  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), ReferenceTable::host_name(3), {},
+                                prefer_ipv6, std::move(get_config), payload, "application/json");
 }
 
 ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
@@ -300,7 +362,7 @@ ActorOwn<> get_simple_config_firebase_realtime(Promise<SimpleConfigResult> promi
   auto get_config = [](HttpQuery &http_query) -> Result<string> {
     return http_query.get_arg("content").str();
   };
-  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "reserve-5a846.firebaseio.com", {},
+  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), ReferenceTable::host_name(4), {},
                                 prefer_ipv6, std::move(get_config));
 }
 
@@ -323,7 +385,7 @@ ActorOwn<> get_simple_config_firebase_firestore(Promise<SimpleConfigResult> prom
     TRY_RESULT(config, data_object.get_required_string_field("stringValue"));
     return std::move(config);
   };
-  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "firestore.googleapis.com", {},
+  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), ReferenceTable::host_name(5), {},
                                 prefer_ipv6, std::move(get_config));
 }
 

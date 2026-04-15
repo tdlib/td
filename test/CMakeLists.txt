@@ -81,6 +81,42 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_proxy_dual_stack_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_proxy_dual_stack_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_proxy_dual_stack_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_route_integrity_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_route_integrity_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_route_integrity_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_route_integrity_light_fuzz.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_dispatcher_transport_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_dispatcher_transport_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_dispatcher_transport_light_fuzz.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_transport_security_option_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_auth_data_session_mode_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_policy_source_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_entry_count_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_entry_count_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_window_count_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_window_count_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_window_count_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_blob_store_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_blob_store_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_blob_store_stress.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_reference_table_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_reference_table_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_reference_table_light_fuzz.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_source_layout_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_entry_window_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_entry_window_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_entry_window_source_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_source_layout_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_aux_channel_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_aux_channel_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_net_monitor_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_net_monitor_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_net_monitor_light_fuzz.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_net_monitor_stress.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_net_monitor_route_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_reauth_delay_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_route_window_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_route_window_source_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_ech_encapsulated_key_validity_invariants.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_firefox_macos_psk_extension_invariants.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_grease_key_share_entry_invariants.cpp
@@ -121,6 +157,9 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_inbound_ack_container_drift_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_record_size_sequence_hardening_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_record_size_sequence_hardening_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_auth_recovery_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_auth_recovery_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_auth_recovery_light_fuzz.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_hint_wiring.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_hint_control_mix_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_hint_wiring_adversarial.cpp

@@ -17,6 +17,7 @@
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/net/NetReliabilityMonitor.h"
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/telegram_api.h"
@@ -56,6 +57,10 @@
 namespace td {
 
 namespace {
+
+constexpr int32 MAX_BIND_KEY_RETRIES = 5;
+constexpr double BIND_KEY_RETRY_WINDOW = 10 * 60.0;
+constexpr double MAIN_KEY_CHECK_RETRY_DELAY = 60.0;
 
 uint64 to_connection_lifecycle_ms(double timestamp) {
   if (timestamp <= 0.0) {
@@ -313,19 +318,21 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
     , is_cdn_(is_cdn)
     , need_destroy_auth_key_(need_destroy_auth_key) {
   VLOG(dc) << "Start connection " << tag("need_destroy_auth_key", need_destroy_auth_key_);
+  // Revocation-path sessions use a simplified key schedule; suppress the keyed path.
+  bool session_keyed = use_pfs;
   if (need_destroy_auth_key_) {
-    use_pfs = false;
+    session_keyed = false;
     CHECK(!is_cdn);
   }
 
   shared_auth_data_ = std::move(shared_auth_data);
-  auth_data_.set_use_pfs(use_pfs);
+  // Apply the key schedule determined above via the session-policy setter.
+  auth_data_.set_session_mode_from_policy(session_keyed);
   auth_data_.set_main_auth_key(shared_auth_data_->get_auth_key());
-  // auth_data_.break_main_auth_key();
   auth_data_.reset_server_time_difference(shared_auth_data_->get_server_time_difference());
   auto now = Time::now();
   auth_data_.set_future_salts(shared_auth_data_->get_future_salts(), now);
-  if (use_pfs && !tmp_auth_key.empty()) {
+  if (session_keyed && !tmp_auth_key.empty()) {
     auth_data_.set_tmp_auth_key(tmp_auth_key);
     if (is_main_) {
       registered_temp_auth_key_ = TempAuthKeyWatchdog::register_auth_key_id(auth_data_.get_tmp_auth_key().id());
@@ -337,8 +344,8 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
     session_id = Random::secure_uint64();
   } while (session_id == 0);
   auth_data_.set_session_id(session_id);
-  use_pfs_ = use_pfs;
-  LOG(WARNING) << "Generate new session_id " << session_id << " for " << (use_pfs ? "temp " : "")
+  use_pfs_ = session_keyed;
+  LOG(WARNING) << "Generate new session_id " << session_id << " for " << (session_keyed ? "temp " : "")
                << (is_cdn ? "CDN " : "") << "auth key " << auth_data_.get_auth_key().id() << " for "
                << (is_main_ ? "main " : "") << "DC" << dc_id;
 
@@ -365,6 +372,76 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
 
 bool Session::is_high_loaded() {
   return detail::GenAuthKeyActor::is_high_loaded();
+}
+
+Session::EncryptedMessageInvalidAction Session::resolve_encrypted_message_invalid_action(bool session_uses_pfs,
+                                                                                         bool has_immunity) {
+  if (has_immunity) {
+    return EncryptedMessageInvalidAction::Ignore;
+  }
+  if (session_uses_pfs) {
+    return EncryptedMessageInvalidAction::StartMainKeyCheck;
+  }
+  return EncryptedMessageInvalidAction::DropMainAuthKey;
+}
+
+bool Session::resolve_need_send_bind_key(bool use_pfs, bool bind_flag, uint64 tmp_auth_key_id,
+                                         uint64 being_binded_tmp_auth_key_id, const BindKeyFailureState &failure_state,
+                                         double now) {
+  if (!use_pfs || bind_flag || tmp_auth_key_id == 0 || tmp_auth_key_id == being_binded_tmp_auth_key_id) {
+    return false;
+  }
+  if (failure_state.tmp_auth_key_id != tmp_auth_key_id) {
+    return true;
+  }
+  return now >= failure_state.retry_at;
+}
+
+Session::BindKeyFailureDecision Session::note_bind_key_failure(BindKeyFailureState failure_state,
+                                                               uint64 tmp_auth_key_id, double now) {
+  BindKeyFailureDecision decision;
+  if (failure_state.tmp_auth_key_id != tmp_auth_key_id || tmp_auth_key_id == 0 ||
+      failure_state.window_started_at == 0.0 || now - failure_state.window_started_at >= BIND_KEY_RETRY_WINDOW) {
+    failure_state = {};
+    failure_state.tmp_auth_key_id = tmp_auth_key_id;
+    failure_state.window_started_at = now;
+  }
+
+  failure_state.retry_count++;
+  if (failure_state.retry_count >= MAX_BIND_KEY_RETRIES) {
+    decision.drop_tmp_auth_key = true;
+    decision.state = {};
+    return decision;
+  }
+
+  failure_state.retry_at = now + static_cast<double>(1 << (failure_state.retry_count - 1));
+  decision.state = failure_state;
+  return decision;
+}
+
+bool Session::resolve_need_send_check_main_key(bool need_check_main_key, uint64 main_auth_key_id,
+                                               uint64 being_checked_main_auth_key_id,
+                                               const MainKeyCheckFailureState &failure_state, double now) {
+  if (!need_check_main_key || main_auth_key_id == 0 || main_auth_key_id == being_checked_main_auth_key_id) {
+    return false;
+  }
+  return now >= failure_state.next_retry_at;
+}
+
+Session::MainKeyCheckFailureState Session::note_main_key_check_failure(MainKeyCheckFailureState failure_state,
+                                                                       double now) {
+  failure_state.failure_count++;
+  failure_state.next_retry_at = now + MAIN_KEY_CHECK_RETRY_DELAY;
+  return failure_state;
+}
+
+bool Session::should_drop_main_auth_key_after_check_failure(const MainKeyCheckFailureState &failure_state) {
+  return failure_state.failure_count >= 2;
+}
+
+bool Session::resolve_need_create_main_auth_key(bool can_destroy_auth_key, bool need_main_auth_key, double now,
+                                                double reauth_not_before) {
+  return !can_destroy_auth_key && need_main_auth_key && now >= reauth_not_before;
 }
 
 bool Session::can_destroy_auth_key() const {
@@ -487,26 +564,29 @@ void Session::on_bind_result(NetQueryPtr query) {
       auto now = Time::now();
       bool has_immunity =
           !is_server_time_reliable || auth_key_age < 60 || (auth_key_age > 86400 && last_success_time > now - 86400);
+      net_health::note_bind_encrypted_message_invalid(raw_dc_id_, has_immunity);
       auto debug = PSTRING() << ". Server time is " << server_time << ", auth key created at " << auth_key_creation_date
                              << ", is_server_time_reliable = " << is_server_time_reliable << ", use_pfs = " << use_pfs_
                              << ", last_success_time = " << last_success_time << ", now = " << now;
-      if (!use_pfs_) {
-        if (has_immunity) {
-          LOG(WARNING) << "Do not drop main key, because it was created too recently" << debug;
-        } else {
+      switch (resolve_encrypted_message_invalid_action(use_pfs_, has_immunity)) {
+        case EncryptedMessageInvalidAction::Ignore:
+          LOG(WARNING) << (use_pfs_ ? "Do not validate main key, because it was created too recently"
+                                    : "Do not drop main key, because it was created too recently")
+                       << debug;
+          break;
+        case EncryptedMessageInvalidAction::DropMainAuthKey:
           LOG(WARNING) << "Drop main key because check with temporary key failed" << debug;
           auth_data_.drop_main_auth_key();
           on_auth_key_updated();
           G()->log_out("Main authorization key is invalid");
-        }
-      } else {
-        if (has_immunity) {
-          LOG(WARNING) << "Do not validate main key, because it was created too recently" << debug;
-        } else {
+          break;
+        case EncryptedMessageInvalidAction::StartMainKeyCheck:
           need_check_main_key_ = true;
-          auth_data_.set_use_pfs(false);
-          LOG(WARNING) << "Receive ENCRYPTED_MESSAGE_INVALID error, validate main key" << debug;
-        }
+          main_key_check_failure_state_ = {};
+          main_key_check_failure_state_.next_retry_at = now;
+          LOG(WARNING) << "Receive ENCRYPTED_MESSAGE_INVALID error, validate main key while keeping PFS enabled"
+                       << debug;
+          break;
       }
     }
   } else {
@@ -520,12 +600,22 @@ void Session::on_bind_result(NetQueryPtr query) {
   }
   if (status.is_ok()) {
     LOG(INFO) << "Bound temp auth key " << auth_data_.get_tmp_auth_key().id();
+    bind_key_failure_state_ = {};
     auth_data_.on_bind();
     last_bind_success_timestamp_ = Time::now();
     on_tmp_auth_key_updated();
   } else if (status.message() == "DispatchTtlError") {
     LOG(INFO) << "Resend bind auth key " << auth_data_.get_tmp_auth_key().id() << " request after DispatchTtlError";
   } else {
+    auto bind_key_failure_decision =
+        note_bind_key_failure(bind_key_failure_state_, auth_data_.get_tmp_auth_key().id(), Time::now());
+    bind_key_failure_state_ = bind_key_failure_decision.state;
+    if (bind_key_failure_decision.drop_tmp_auth_key) {
+      LOG(WARNING) << "Drop temporary auth key after repeated bind failures for DC" << raw_dc_id_;
+      net_health::note_bind_retry_budget_exhausted(raw_dc_id_);
+      auth_data_.drop_tmp_auth_key();
+      on_tmp_auth_key_updated();
+    }
     LOG(ERROR) << "BindKey failed: " << status;
     connection_close(&main_connection_);
     connection_close(&long_poll_connection_);
@@ -554,8 +644,9 @@ void Session::on_check_key_result(NetQueryPtr query) {
   if (status.is_ok() || status.code() != -404) {
     LOG(INFO) << "Check main key ok";
     need_check_main_key_ = false;
-    auth_data_.set_use_pfs(true);
+    main_key_check_failure_state_ = {};
   } else {
+    main_key_check_failure_state_ = note_main_key_check_failure(main_key_check_failure_state_, Time::now());
     LOG(ERROR) << "Check main key failed: " << status;
     connection_close(&main_connection_);
     connection_close(&long_poll_connection_);
@@ -701,7 +792,7 @@ void Session::on_tmp_auth_key_updated() {
 }
 
 void Session::on_server_salt_updated() {
-  if (auth_data_.use_pfs()) {
+  if (auth_data_.is_keyed_session()) {
     callback_->on_server_salt_updated(auth_data_.get_future_salts());
     return;
   }
@@ -721,7 +812,23 @@ void Session::on_closed(Status status) {
   raw_connection->close();
 
   if (status.is_error() && status.code() == -404) {
-    if (auth_data_.use_pfs()) {
+    if (need_check_main_key_) {
+      if (should_drop_main_auth_key_after_check_failure(main_key_check_failure_state_)) {
+        LOG(WARNING) << "Invalidate main key after repeated validation failures";
+        bool can_drop_main_auth_key_without_logging_out =
+            !is_main_ && G()->net_query_dispatcher().get_main_dc_id().get_raw_id() != raw_dc_id_;
+        auth_data_.drop_main_auth_key();
+        on_auth_key_updated();
+        if (can_drop_main_auth_key_without_logging_out) {
+          on_session_failed(status.clone());
+        } else {
+          G()->log_out("Main PFS authorization key is invalid");
+        }
+      } else {
+        LOG(WARNING) << "Main key validation probe failed once; keep PFS enabled and retry after backoff";
+      }
+      yield();
+    } else if (auth_data_.is_keyed_session()) {
       LOG(WARNING) << "Invalidate tmp_key";
       auth_data_.drop_tmp_auth_key();
       on_tmp_auth_key_updated();
@@ -739,18 +846,7 @@ void Session::on_closed(Status status) {
       // log out if has error and or 1 minute is passed from start, or 1 minute has passed since auth_key creation
       if (!use_pfs_) {
         LOG(WARNING) << "Use PFS to check main key";
-        auth_data_.set_use_pfs(true);
-      } else if (need_check_main_key_) {
-        LOG(WARNING) << "Invalidate main key";
-        bool can_drop_main_auth_key_without_logging_out =
-            !is_main_ && G()->net_query_dispatcher().get_main_dc_id().get_raw_id() != raw_dc_id_;
-        auth_data_.drop_main_auth_key();
-        on_auth_key_updated();
-        if (can_drop_main_auth_key_without_logging_out) {
-          on_session_failed(status.clone());
-        } else {
-          G()->log_out("Main PFS authorization key is invalid");
-        }
+        auth_data_.set_session_mode(true);
       } else {
         LOG(WARNING) << "Session connection was closed: " << status << ' ' << current_info_->connection_->get_name();
       }
@@ -796,7 +892,7 @@ void Session::on_closed(Status status) {
 
 void Session::on_new_session_created(uint64 unique_id, mtproto::MessageId first_message_id) {
   LOG(INFO) << "New session " << unique_id << " created with first " << first_message_id;
-  if (!use_pfs_ && !auth_data_.use_pfs()) {
+  if (!use_pfs_ && !auth_data_.is_keyed_session()) {
     last_success_timestamp_ = Time::now();
   }
   if (is_main_) {
@@ -955,7 +1051,7 @@ Status Session::on_update(BufferSlice packet) {
     return Status::Error("Receive an update from a CDN connection");
   }
 
-  if (!use_pfs_ && !auth_data_.use_pfs()) {
+  if (!use_pfs_ && !auth_data_.is_keyed_session()) {
     last_success_timestamp_ = Time::now();
   }
   last_activity_timestamp_ = Time::now();
@@ -1027,7 +1123,7 @@ void Session::on_message_result_error(mtproto::MessageId message_id, int error_c
 
   // UNAUTHORIZED
   if (error_code == 401 && message != "SESSION_PASSWORD_NEEDED") {
-    if (auth_data_.use_pfs() && message == CSlice("AUTH_KEY_PERM_EMPTY")) {
+    if (auth_data_.is_keyed_session() && message == CSlice("AUTH_KEY_PERM_EMPTY")) {
       LOG(INFO) << "Receive AUTH_KEY_PERM_EMPTY in session " << auth_data_.get_session_id() << " for auth key "
                 << auth_data_.get_tmp_auth_key().id();
       // temporary key can be dropped any time
@@ -1035,7 +1131,7 @@ void Session::on_message_result_error(mtproto::MessageId message_id, int error_c
       on_tmp_auth_key_updated();
       error_code = 500;
     } else {
-      if (auth_data_.use_pfs() && !is_main_) {
+      if (auth_data_.is_keyed_session() && !is_main_) {
         // temporary key can be dropped any time
         auth_data_.drop_tmp_auth_key();
         on_tmp_auth_key_updated();
@@ -1047,7 +1143,8 @@ void Session::on_message_result_error(mtproto::MessageId message_id, int error_c
         can_drop_main_auth_key_without_logging_out = true;
       }
       LOG(INFO) << "Receive 401, " << message << " in session " << auth_data_.get_session_id() << " for auth key "
-                << auth_data_.get_auth_key().id() << ", PFS = " << auth_data_.use_pfs() << ", is_main = " << is_main_
+                << auth_data_.get_auth_key().id() << ", PFS = " << auth_data_.is_keyed_session()
+                << ", is_main = " << is_main_
                 << ", can_drop_main_auth_key_without_logging_out = " << can_drop_main_auth_key_without_logging_out;
       if (can_drop_main_auth_key_without_logging_out) {
         auth_data_.drop_main_auth_key();
@@ -1326,7 +1423,7 @@ void Session::connection_open(ConnectionInfo *info, double now, bool ask_info) {
   } else {
     VLOG(dc) << "Request new connection";
     unique_ptr<mtproto::AuthData> auth_data;
-    if (auth_data_.use_pfs() && auth_data_.has_auth_key(now)) {
+    if (auth_data_.is_keyed_session() && auth_data_.has_auth_key(now)) {
       // auth_data = make_unique<mtproto::AuthData>(auth_data_);
     }
     callback_->request_raw_connection(std::move(auth_data), std::move(promise));
@@ -1537,8 +1634,9 @@ void Session::maybe_retire_draining_connection(ConnectionInfo *info, double now)
   }
 }
 
-bool Session::need_send_check_main_key() const {
-  return need_check_main_key_ && auth_data_.get_main_auth_key().id() != being_checked_main_auth_key_id_;
+bool Session::need_send_check_main_key(double now) const {
+  return resolve_need_send_check_main_key(need_check_main_key_, auth_data_.get_main_auth_key().id(),
+                                          being_checked_main_auth_key_id_, main_key_check_failure_state_, now);
 }
 
 bool Session::connection_send_check_main_key(ConnectionInfo *info) {
@@ -1562,13 +1660,14 @@ bool Session::connection_send_check_main_key(ConnectionInfo *info) {
   return true;
 }
 
-bool Session::need_send_bind_key() const {
-  return auth_data_.use_pfs() && !auth_data_.get_bind_flag() &&
-         auth_data_.get_tmp_auth_key().id() != being_binded_tmp_auth_key_id_;
+bool Session::need_send_bind_key(double now) const {
+  return resolve_need_send_bind_key(auth_data_.is_keyed_session(), auth_data_.get_bind_flag(),
+                                    auth_data_.get_tmp_auth_key().id(), being_binded_tmp_auth_key_id_,
+                                    bind_key_failure_state_, now);
 }
 
 bool Session::need_send_query() const {
-  return !close_flag_ && !need_check_main_key_ && (!auth_data_.use_pfs() || auth_data_.get_bind_flag()) &&
+  return !close_flag_ && !need_check_main_key_ && (!auth_data_.is_keyed_session() || auth_data_.get_bind_flag()) &&
          !pending_queries_.empty() && !can_destroy_auth_key();
 }
 
@@ -1633,7 +1732,7 @@ void Session::on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r
       connection_close(&long_poll_handover_connection_);
 
       // Salt of temporary key is different salt. Do not rewrite it
-      if (auth_data_.use_pfs() ^ is_main) {
+      if (auth_data_.is_keyed_session() ^ is_main) {
         auth_data_.set_server_salt(handshake->get_server_salt(), Time::now());
         on_server_salt_updated();
       }
@@ -1702,7 +1801,8 @@ void Session::auth_loop(double now) {
   if (can_destroy_auth_key()) {
     return;
   }
-  if (auth_data_.need_main_auth_key()) {
+  if (resolve_need_create_main_auth_key(can_destroy_auth_key(), auth_data_.need_main_auth_key(), now,
+                                        net_health::get_reauth_not_before(raw_dc_id_))) {
     create_gen_auth_key_actor(MainAuthKeyHandshake);
   }
   if (auth_data_.need_tmp_auth_key(now, persist_tmp_auth_key_ ? 2 * 60 : 60 * 60)) {
@@ -1782,12 +1882,12 @@ void Session::loop() {
             need_flush = true;
           }
         }
-        if (need_send_bind_key()) {
+        if (need_send_bind_key(now)) {
           // send auth.bindTempAuthKey
           connection_send_bind_key(&main_connection_);
           need_flush = true;
         }
-        if (need_send_check_main_key()) {
+        if (need_send_check_main_key(now)) {
           connection_send_check_main_key(&main_connection_);
           need_flush = true;
         }

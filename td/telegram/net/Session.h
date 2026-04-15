@@ -80,6 +80,40 @@ class Session final
 
   static bool is_high_loaded();
 
+  enum class EncryptedMessageInvalidAction : int8 { Ignore, StartMainKeyCheck, DropMainAuthKey };
+
+  struct BindKeyFailureState {
+    uint64 tmp_auth_key_id{0};
+    double window_started_at{0.0};
+    double retry_at{0.0};
+    int32 retry_count{0};
+  };
+
+  struct BindKeyFailureDecision {
+    BindKeyFailureState state;
+    bool drop_tmp_auth_key{false};
+  };
+
+  struct MainKeyCheckFailureState {
+    double next_retry_at{0.0};
+    int32 failure_count{0};
+  };
+
+  static EncryptedMessageInvalidAction resolve_encrypted_message_invalid_action(bool session_uses_pfs,
+                                                                                bool has_immunity);
+  static bool resolve_need_send_bind_key(bool use_pfs, bool bind_flag, uint64 tmp_auth_key_id,
+                                         uint64 being_binded_tmp_auth_key_id, const BindKeyFailureState &failure_state,
+                                         double now);
+  static BindKeyFailureDecision note_bind_key_failure(BindKeyFailureState failure_state, uint64 tmp_auth_key_id,
+                                                      double now);
+  static bool resolve_need_send_check_main_key(bool need_check_main_key, uint64 main_auth_key_id,
+                                               uint64 being_checked_main_auth_key_id,
+                                               const MainKeyCheckFailureState &failure_state, double now);
+  static MainKeyCheckFailureState note_main_key_check_failure(MainKeyCheckFailureState failure_state, double now);
+  static bool should_drop_main_auth_key_after_check_failure(const MainKeyCheckFailureState &failure_state);
+  static bool resolve_need_create_main_auth_key(bool can_destroy_auth_key, bool need_main_auth_key, double now,
+                                                double reauth_not_before);
+
  private:
   struct Query final : private ListNode {
     mtproto::MessageId container_message_id_;
@@ -181,6 +215,8 @@ class Session final
   std::shared_ptr<Callback> callback_;
   bool use_pfs_{false};
   bool need_check_main_key_{false};
+  BindKeyFailureState bind_key_failure_state_;
+  MainKeyCheckFailureState main_key_check_failure_state_;
   TempAuthKeyWatchdog::RegisteredAuthKey registered_temp_auth_key_;
   std::shared_ptr<AuthDataShared> shared_auth_data_;
   bool close_flag_ = false;
@@ -276,11 +312,11 @@ class Session final
   void maybe_prepare_connection_handover(ConnectionInfo *primary, ConnectionInfo *handover, double now);
   void maybe_retire_draining_connection(ConnectionInfo *info, double now);
   void connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_query, mtproto::MessageId message_id = {});
-  bool need_send_bind_key() const;
+  bool need_send_bind_key(double now) const;
   bool need_send_query() const;
   bool can_destroy_auth_key() const;
   bool connection_send_bind_key(ConnectionInfo *info);
-  bool need_send_check_main_key() const;
+  bool need_send_check_main_key(double now) const;
   bool connection_send_check_main_key(ConnectionInfo *info);
 
   void on_result(NetQueryPtr query) final;

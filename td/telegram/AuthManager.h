@@ -9,6 +9,7 @@
 #include "td/telegram/EmailVerification.h"
 #include "td/telegram/net/NetActor.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/net/NetReliabilityMonitor.h"
 #include "td/telegram/SendCodeHelper.h"
 #include "td/telegram/SentEmailCode.h"
 #include "td/telegram/td_api.h"
@@ -260,7 +261,8 @@ class AuthManager final : public NetActor {
 
   void send_auth_sign_in_query();
   void send_log_out_query();
-  void destroy_auth_keys();
+  void destroy_auth_keys(
+      net_health::AuthKeyDestroyReason reason = net_health::AuthKeyDestroyReason::ProgrammaticApiCall);
 
   void send_finish_passkey_login_query();
 

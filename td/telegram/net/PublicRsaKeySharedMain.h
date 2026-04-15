@@ -21,8 +21,14 @@ class PublicRsaKeySharedMain final : public mtproto::PublicRsaKeyInterface {
   }
 
   static std::shared_ptr<PublicRsaKeySharedMain> create(bool is_test);
+  static size_t expected_entry_count(bool is_test);
+  static Status validate_entry_count(size_t observed_entry_count, bool is_test);
+  static Status check_catalog_entry(int64 fingerprint, bool is_test);
 
   Result<RsaKey> get_rsa_key(const vector<int64> &fingerprints) final;
+  bool uses_static_main_keyset() const final {
+    return true;
+  }
 
   void drop_keys() final;
 

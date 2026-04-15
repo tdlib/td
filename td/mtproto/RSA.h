@@ -41,6 +41,9 @@ class PublicRsaKeyInterface {
     int64 fingerprint;
   };
   virtual Result<RsaKey> get_rsa_key(const vector<int64> &fingerprints) = 0;
+  virtual bool uses_static_main_keyset() const {
+    return false;
+  }
 
   virtual void drop_keys() = 0;
 };

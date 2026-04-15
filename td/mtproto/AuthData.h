@@ -10,7 +10,6 @@
 #include "td/mtproto/MessageId.h"
 
 #include "td/utils/common.h"
-#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 #include <array>
@@ -95,11 +94,11 @@ class AuthData {
   }
 
   bool was_tmp_auth_key() const {
-    return use_pfs() && !tmp_auth_key_.empty();
+    return is_keyed_session() && !tmp_auth_key_.empty();
   }
 
   bool need_tmp_auth_key(double now, double refresh_margin) const {
-    if (!use_pfs()) {
+    if (!is_keyed_session()) {
       return false;
     }
     if (tmp_auth_key_.empty()) {
@@ -120,7 +119,7 @@ class AuthData {
   }
 
   bool has_tmp_auth_key(double now) const {
-    if (!use_pfs()) {
+    if (!is_keyed_session()) {
       return false;
     }
     if (tmp_auth_key_.empty()) {
@@ -133,14 +132,14 @@ class AuthData {
   }
 
   const AuthKey &get_auth_key() const {
-    if (use_pfs()) {
+    if (is_keyed_session()) {
       return get_tmp_auth_key();
     }
     return get_main_auth_key();
   }
 
   bool has_auth_key(double now) const {
-    if (use_pfs()) {
+    if (is_keyed_session()) {
       return has_tmp_auth_key(now);
     }
     return has_main_auth_key();
@@ -158,16 +157,16 @@ class AuthData {
   }
 
   bool get_bind_flag() const {
-    return !use_pfs() || tmp_auth_key_.auth_flag();
+    return !is_keyed_session() || tmp_auth_key_.auth_flag();
   }
 
   void on_bind() {
-    CHECK(use_pfs());
+    CHECK(is_keyed_session());
     tmp_auth_key_.set_auth_flag(true);
   }
 
   Slice get_header() const {
-    if (use_pfs()) {
+    if (is_keyed_session()) {
       return tmp_auth_key_.need_header() ? Slice(header_) : Slice();
     } else {
       return main_auth_key_.need_header() ? Slice(header_) : Slice();
@@ -179,7 +178,7 @@ class AuthData {
   }
 
   void on_api_response() {
-    if (use_pfs()) {
+    if (is_keyed_session()) {
       tmp_auth_key_.remove_header();
     } else {
       main_auth_key_.remove_header();
@@ -187,7 +186,7 @@ class AuthData {
   }
 
   void on_connection_not_inited() {
-    if (use_pfs()) {
+    if (is_keyed_session()) {
       tmp_auth_key_.restore_header();
     } else {
       main_auth_key_.restore_header();
@@ -277,15 +276,16 @@ class AuthData {
     seq_no_ = 0;
   }
 
-  void set_use_pfs(bool use_pfs) {
-    use_pfs_ = use_pfs;
-  }
-  bool use_pfs() const {
-    return use_pfs_;
+  void set_session_mode(bool use_pfs);
+  void set_session_mode_from_policy(bool use_pfs);
+  static void set_legacy_session_mode_for_tests(bool allow);
+
+  bool is_keyed_session() const {
+    return keyed_session_;
   }
 
  private:
-  bool use_pfs_ = true;
+  bool keyed_session_ = true;
   AuthKey main_auth_key_;
   AuthKey tmp_auth_key_;
   bool server_time_difference_was_updated_ = false;

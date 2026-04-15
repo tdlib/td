@@ -158,7 +158,7 @@ TEST(SessionWakeupOverdueShaping, FlushReturnsOverdueRawConnectionShapingWakeupI
   auto *raw_ptr = raw_connection.get();
 
   AuthData auth_data;
-  auth_data.set_use_pfs(false);
+  auth_data.set_session_mode(false);
   auth_data.set_main_auth_key(AuthKey(1, td::string(256, 'a')));
   auth_data.set_server_salt(1, td::Time::now_cached());
   auth_data.set_session_id(1);

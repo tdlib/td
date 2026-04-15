@@ -13,6 +13,8 @@
 #include "td/utils/Status.h"
 #include "td/utils/tests.h"
 
+#include "td/mtproto/AuthData.h"
+
 #if TD_EMSCRIPTEN
 #include <emscripten.h>
 #endif
@@ -68,6 +70,7 @@ int main(int argc, char **argv) {
   td::detail::ThreadIdGuard thread_id_guard;
   td::Stacktrace::init();
   td::init_openssl_threads();
+  td::mtproto::AuthData::set_legacy_session_mode_for_tests(true);
 
   td::TestsRunner &runner = td::TestsRunner::get_default();
 

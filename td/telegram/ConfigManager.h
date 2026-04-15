@@ -39,6 +39,8 @@ enum class FullConfigRecoveryConnectionAction : int32 { Dispatch, DelayForever }
 FullConfigRecoveryConnectionAction get_full_config_recovery_connection_action(size_t request_raw_connection_count);
 
 Result<SimpleConfig> decode_config(Slice input);
+Result<SimpleConfig> decode_simple_config_payload(Slice payload);
+Status check_config_entry(int64 fingerprint);
 
 ActorOwn<> get_simple_config_azure(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
                                    bool is_test, int32 scheduler_id);

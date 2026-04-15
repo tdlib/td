@@ -189,7 +189,7 @@ class NoopSessionCallback final : public SessionConnection::Callback {
 };
 
 void init_auth_data_with_salt(AuthData *auth_data) {
-  auth_data->set_use_pfs(false);
+  auth_data->set_session_mode(false);
   auth_data->set_main_auth_key(AuthKey(1, td::string(256, 'a')));
   auth_data->set_server_salt(1, td::Time::now_cached());
   auth_data->set_future_salts({td::mtproto::ServerSalt{2, -1e9, 1e9}}, td::Time::now_cached());

@@ -609,7 +609,7 @@ class FastPingTestActor final : public td::Actor {
         auth_data->reset_server_time_difference(handshake_->get_server_time_diff());
         auth_data->set_server_salt(handshake_->get_server_salt(), td::Time::now());
         auth_data->set_future_salts({td::mtproto::ServerSalt{0u, 1e20, 1e30}}, td::Time::now());
-        auth_data->set_use_pfs(true);
+        auth_data->set_session_mode(true);
         td::uint64 session_id = 0;
         do {
           session_id = td::Random::secure_uint64();
