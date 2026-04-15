@@ -246,7 +246,7 @@ class StickersManager final : public Actor {
                                           const char *source);
 
   void on_get_sticker_set_name(StickerSetId sticker_set_id,
-                               telegram_api::object_ptr<telegram_api::messages_StickerSet> &&set_ptr);
+                               Result<telegram_api::object_ptr<telegram_api::messages_StickerSet>> &&r_set_ptr);
 
   void on_get_special_sticker_set(const SpecialStickerSetType &type, StickerSetId sticker_set_id);
 
