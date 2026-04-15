@@ -157,6 +157,7 @@ td::unique_ptr<IStreamTransport> make_deferred_flush_transport(TransportType typ
 }
 
 TEST(RawConnectionFlushOrder, PreFlushWriteRunsBeforeSocketFlushAndMakesQueuedBytesVisible) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto previous_factory = set_transport_factory_for_tests(&make_deferred_flush_transport);
   SCOPE_EXIT {

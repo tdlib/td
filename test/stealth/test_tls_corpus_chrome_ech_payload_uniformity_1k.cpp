@@ -4,6 +4,7 @@
 // telemt: https://t.me/telemtrs
 //
 
+#include "test/stealth/CorpusIterationTiers.h"
 #include "test/stealth/CorpusStatHelpers.h"
 #include "test/stealth/MockRng.h"
 

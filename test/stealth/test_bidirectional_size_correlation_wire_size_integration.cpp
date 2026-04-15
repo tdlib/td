@@ -163,7 +163,11 @@ td::string make_server_quick_ack_wire(td::AesCtrState &inbound_state, td::uint32
   return wire;
 }
 
-struct ClientEndpoint final {
+// `ClientEndpoint` is non-movable / non-copyable: the StealthTransportDecorator's
+// `init` captures a raw pointer into `input_reader`, and a static factory
+// returning by value would invalidate that pointer on copy/move.
+class ClientEndpoint final {
+ public:
   td::unique_ptr<StealthTransportDecorator> transport;
   ObfuscatedTransport *inner{nullptr};
   MockClock *clock{nullptr};
@@ -173,23 +177,26 @@ struct ClientEndpoint final {
   td::ChainBufferWriter output_writer;
   td::ChainBufferReader output_reader;
 
-  static ClientEndpoint create(StealthConfig config, td::uint64 seed) {
-    ClientEndpoint endpoint;
-    auto clock = td::make_unique<MockClock>();
-    endpoint.clock = clock.get();
-    auto inner =
+  ClientEndpoint(StealthConfig config, td::uint64 seed) {
+    auto clock_local = td::make_unique<MockClock>();
+    clock = clock_local.get();
+    auto inner_local =
         td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret()));
-    endpoint.inner = inner.get();
-    auto transport = StealthTransportDecorator::create(std::move(inner), std::move(config),
-                                                       td::make_unique<MockRng>(seed), std::move(clock));
-    CHECK(transport.is_ok());
-    endpoint.transport = transport.move_as_ok();
-    endpoint.input_reader = endpoint.input_writer.extract_reader();
-    endpoint.output_reader = endpoint.output_writer.extract_reader();
-    endpoint.transport->init(&endpoint.input_reader, &endpoint.output_writer);
-    endpoint.inbound_state = endpoint.inner->clone_input_cipher_state_for_tests();
-    return endpoint;
+    inner = inner_local.get();
+    auto r = StealthTransportDecorator::create(std::move(inner_local), std::move(config),
+                                               td::make_unique<MockRng>(seed), std::move(clock_local));
+    CHECK(r.is_ok());
+    transport = r.move_as_ok();
+    input_reader = input_writer.extract_reader();
+    output_reader = output_writer.extract_reader();
+    transport->init(&input_reader, &output_writer);
+    inbound_state = inner->clone_input_cipher_state_for_tests();
   }
+
+  ClientEndpoint(const ClientEndpoint &) = delete;
+  ClientEndpoint &operator=(const ClientEndpoint &) = delete;
+  ClientEndpoint(ClientEndpoint &&) = delete;
+  ClientEndpoint &operator=(ClientEndpoint &&) = delete;
 };
 
 void write_and_flush_client(ClientEndpoint &client, td::Slice payload, TrafficHint hint = TrafficHint::Interactive) {
@@ -236,7 +243,7 @@ td::uint32 read_client_quick_ack(ClientEndpoint &client) {
 }
 
 TEST(BidirectionalSizeCorrelationWireSizeIntegration, PaddedTinyInboundFrameDoesNotArmNextOutboundFloor) {
-  auto client = ClientEndpoint::create(make_wire_size_floor_config(), 37);
+  ClientEndpoint client(make_wire_size_floor_config(), 37);
   auto warmup_request = aligned_payload(16, 'w');
   auto tiny_response = aligned_payload(4, 'p');
   auto next_request = aligned_payload(16, 'n');
@@ -263,7 +270,7 @@ TEST(BidirectionalSizeCorrelationWireSizeIntegration, PaddedTinyInboundFrameDoes
 }
 
 TEST(BidirectionalSizeCorrelationWireSizeIntegration, PaddedTinyInboundFrameDoesNotArmPostResponseJitter) {
-  auto client = ClientEndpoint::create(make_wire_size_jitter_config(), 43);
+  ClientEndpoint client(make_wire_size_jitter_config(), 43);
   auto warmup_request = aligned_payload(16, 'w');
   auto tiny_response = aligned_payload(4, 'p');
   auto next_request = aligned_payload(16, 'n');
@@ -292,7 +299,7 @@ TEST(BidirectionalSizeCorrelationWireSizeIntegration, PaddedTinyInboundFrameDoes
 }
 
 TEST(BidirectionalSizeCorrelationWireSizeIntegration, QuickAckDoesNotArmNextOutboundFloor) {
-  auto client = ClientEndpoint::create(make_wire_size_floor_config(), 47);
+  ClientEndpoint client(make_wire_size_floor_config(), 47);
   auto warmup_request = aligned_payload(16, 'w');
   auto next_request = aligned_payload(16, 'n');
 
@@ -314,7 +321,7 @@ TEST(BidirectionalSizeCorrelationWireSizeIntegration, QuickAckDoesNotArmNextOutb
 }
 
 TEST(BidirectionalSizeCorrelationWireSizeIntegration, QuickAckDoesNotClearArmedFloor) {
-  auto client = ClientEndpoint::create(make_wire_size_floor_config(), 53);
+  ClientEndpoint client(make_wire_size_floor_config(), 53);
   auto warmup_request = aligned_payload(16, 'w');
   auto tiny_response = aligned_payload(4, 'p');
   auto next_request = aligned_payload(16, 'n');
@@ -343,8 +350,8 @@ TEST(BidirectionalSizeCorrelationWireSizeIntegration, QuickAckDoesNotClearArmedF
 }
 
 TEST(BidirectionalSizeCorrelationWireSizeIntegration, FramedSizeThresholdBoundaryIsHonored) {
-  auto arming_client = ClientEndpoint::create(make_wire_size_floor_config(), 59);
-  auto non_arming_client = ClientEndpoint::create(make_wire_size_floor_config(), 61);
+  ClientEndpoint arming_client(make_wire_size_floor_config(), 59);
+  ClientEndpoint non_arming_client(make_wire_size_floor_config(), 61);
   auto warmup_request = aligned_payload(16, 'w');
   auto tiny_response = aligned_payload(4, 'p');
   auto next_request = aligned_payload(16, 'n');

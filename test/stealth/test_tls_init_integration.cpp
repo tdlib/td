@@ -60,6 +60,7 @@ td::string flush_client_hello(TlsInit &tls_init, td::SocketFd &peer_fd) {
 }
 
 TEST(TlsInitIntegration, KnownNonRuRouteSendsEchEnabledClientHello) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto socket_pair = create_socket_pair().move_as_ok();
 
@@ -79,6 +80,7 @@ TEST(TlsInitIntegration, KnownNonRuRouteSendsEchEnabledClientHello) {
 }
 
 TEST(TlsInitIntegration, RuRouteSendsEchDisabledClientHello) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto socket_pair = create_socket_pair().move_as_ok();
 
@@ -97,6 +99,7 @@ TEST(TlsInitIntegration, RuRouteSendsEchDisabledClientHello) {
 }
 
 TEST(TlsInitIntegration, UnknownRouteDefaultsToEchDisabledClientHello) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto socket_pair = create_socket_pair().move_as_ok();
 

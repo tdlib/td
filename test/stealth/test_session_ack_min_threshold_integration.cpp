@@ -281,6 +281,7 @@ td::uint64 fresh_base_message_id() {
 }
 
 TEST(SessionAckMinThresholdIntegration, AckBurstBelowMinimumBoundaryStaysKeepalive) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<ScriptedInboundRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));
@@ -303,6 +304,7 @@ TEST(SessionAckMinThresholdIntegration, AckBurstBelowMinimumBoundaryStaysKeepali
 }
 
 TEST(SessionAckMinThresholdIntegration, AckBurstAtMinimumBoundaryEscalatesToBulkData) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<ScriptedInboundRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));

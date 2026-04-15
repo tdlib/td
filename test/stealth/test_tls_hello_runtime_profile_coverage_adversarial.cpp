@@ -162,6 +162,7 @@ TEST(TlsHelloRuntimeProfileCoverageAdversarial, DefaultNonDarwinDesktopSelection
 }
 
 TEST(TlsHelloRuntimeProfileCoverageAdversarial, KnownNonRuRouteCanEmitFirefoxRuntimeProfile) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto candidate = find_runtime_candidate(BrowserProfile::Firefox148);
   auto socket_pair = create_socket_pair().move_as_ok();
@@ -182,6 +183,7 @@ TEST(TlsHelloRuntimeProfileCoverageAdversarial, KnownNonRuRouteCanEmitFirefoxRun
 }
 
 TEST(TlsHelloRuntimeProfileCoverageAdversarial, UnknownRouteSuppressesEchForFirefoxRuntimeProfile) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto candidate = find_runtime_candidate(BrowserProfile::Firefox148);
   auto socket_pair = create_socket_pair().move_as_ok();

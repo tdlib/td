@@ -260,6 +260,7 @@ td::string flush_and_read(SessionHarness &harness) {
 }
 
 TEST(SessionRecordSizeSequenceHardeningIntegration, BulkQuerySequencePreservesAntiRepeatOnRealTransportPath) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto previous_factory = set_transport_factory_for_tests(&make_deterministic_stealth_transport);
   SCOPE_EXIT {
     set_transport_factory_for_tests(previous_factory);
@@ -279,6 +280,7 @@ TEST(SessionRecordSizeSequenceHardeningIntegration, BulkQuerySequencePreservesAn
 }
 
 TEST(SessionRecordSizeSequenceHardeningIntegration, KeepaliveFlushDoesNotConsumeBulkSequenceState) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto previous_factory = set_transport_factory_for_tests(&make_deterministic_stealth_transport);
   SCOPE_EXIT {
     set_transport_factory_for_tests(previous_factory);
@@ -307,6 +309,7 @@ TEST(SessionRecordSizeSequenceHardeningIntegration, KeepaliveFlushDoesNotConsume
 }
 
 TEST(SessionRecordSizeSequenceHardeningIntegration, AuthHandshakeFlushDoesNotConsumeBulkSequenceState) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto previous_factory = set_transport_factory_for_tests(&make_deterministic_stealth_transport);
   SCOPE_EXIT {
     set_transport_factory_for_tests(previous_factory);

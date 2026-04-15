@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "generated_at_utc": "2026-04-11T00:00:00Z",
+  "note": "Pinned upstream TLS ClientHello legality rules per browser family. Values derived from: test/stealth/test_tls_capture_chrome144_differential.cpp, test/stealth/test_tls_capture_firefox148_differential.cpp, test/stealth/test_tls_capture_safari26_3_differential.cpp, and observed traces under test/analysis/fixtures/clienthello/**/*.clienthello.json. Source refs point at upstream implementations that emit these rules.",
+  "families": {
+    "chromium": {
+      "extension_order": {
+        "shuffle_all_except_pre_shared_key": true,
+        "tail_pad": "0x0015",
+        "grease_head": true,
+        "grease_tail_before_pad": true,
+        "duplicates_forbidden": true,
+        "source_ref": "chromium/src/net/ssl/ssl_client_socket_impl.cc:apply_client_hello_grease_and_shuffle"
+      },
+      "key_share_structure": {
+        "pq_group_first": true,
+        "legal_entries": [
+          {"group": "0x11EC", "length": 1216},
+          {"group": "0x001D", "length": 32}
+        ],
+        "grease_prefix_entry_length": 1,
+        "source_ref": "chromium/src/net/third_party/quiche/src/quiche/common/quiche_crypto_logging.cc post_quantum_key_agreement.cc"
+      },
+      "ech_rules": {
+        "payload_length_buckets": [144, 176, 208, 240],
+        "aead_id": "0x0001",
+        "kdf_id": "0x0001",
+        "enc_length": 32,
+        "source_ref": "boringssl/ssl/handshake_client.cc:hpke_context"
+      },
+      "alps_type_rules": {
+        "chrome120_131": "0x4469",
+        "chrome133_plus": "0x44CD",
+        "legal_types": ["0x4469", "0x44CD"]
+      },
+      "cipher_suite_rules": {
+        "first_entry_grease": true,
+        "count_with_grease": 16,
+        "forbidden_values": ["0x000A", "0xC008", "0xC012"],
+        "source_ref": "boringssl/ssl/ssl_lib.cc"
+      },
+      "compress_certificate_rules": {
+        "legal_algorithm_lists": [["0x0002"]],
+        "source_ref": "boringssl/ssl/handshake_client.cc:emit_compress_certificate"
+      }
+    },
+    "firefox": {
+      "extension_order": {
+        "fixed": true,
+        "grease_head": false,
+        "source_ref": "mozilla-central/security/nss/lib/ssl/ssl3con.c:ssl3_SendClientHello"
+      },
+      "key_share_structure": {
+        "pq_group_first": true,
+        "legal_entries": [
+          {"group": "0x11EC", "length": 1216},
+          {"group": "0x001D", "length": 32},
+          {"group": "0x0017", "length": 65}
+        ],
+        "source_ref": "mozilla-central/security/nss/lib/ssl/tls13con.c:tls13_SendClientHelloKeyShares"
+      },
+      "ech_rules": {
+        "payload_length_fixed_set": [239, 399],
+        "aead_id_set": ["0x0001", "0x0003"],
+        "kdf_id": "0x0001",
+        "enc_length": 32,
+        "source_ref": "mozilla-central/security/nss/lib/ssl/tls13ech.c"
+      },
+      "alps_type_rules": {
+        "advertised": false,
+        "legal_types": []
+      },
+      "cipher_suite_rules": {
+        "first_entry_grease": false,
+        "count": 17,
+        "forbidden_values": ["0x000A", "0xC008", "0xC012"],
+        "source_ref": "mozilla-central/security/nss/lib/ssl/ssl3con.c:cipherSuites"
+      },
+      "compress_certificate_rules": {
+        "legal_algorithm_lists": [["0x0001", "0x0002", "0x0003"]],
+        "source_ref": "mozilla-central/security/nss/lib/ssl/tls13subcerts.c"
+      }
+    },
+    "apple_tls": {
+      "extension_order": {
+        "shuffle_all_except_pre_shared_key": true,
+        "tail_pad": "0x0015",
+        "grease_head": true,
+        "grease_tail_before_pad": true,
+        "duplicates_forbidden": true,
+        "source_ref": "apple/Security/coretls/SecureTransport client hello path (session ticket extension 0x0023 absent)"
+      },
+      "key_share_structure": {
+        "pq_group_first": true,
+        "legal_entries": [
+          {"group": "0x11EC", "length": 1216},
+          {"group": "0x001D", "length": 32}
+        ],
+        "source_ref": "apple/Security/coretls TLS 1.3 key share emitter"
+      },
+      "ech_rules": {
+        "advertised": false,
+        "legal_types": [],
+        "source_ref": "apple/Security/coretls (ECH not emitted by current Apple TLS clients)"
+      },
+      "alps_type_rules": {
+        "advertised": false,
+        "legal_types": []
+      },
+      "cipher_suite_rules": {
+        "first_entry_grease": true,
+        "forbidden_values": ["0x000A", "0xC008", "0xC012"],
+        "source_ref": "apple/Security/coretls"
+      },
+      "compress_certificate_rules": {
+        "legal_algorithm_lists": [["0x0001"]],
+        "source_ref": "apple/Security/coretls (zlib-only advertisement)"
+      }
+    }
+  }
+}

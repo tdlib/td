@@ -96,6 +96,7 @@ td::string expected_http_connect_request(const td::string &host, td::int32 port,
 }
 
 TEST(ProxySetupErrorEmittersIntegration, HttpProxyEmitsConnectRequestWithoutCredentials) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::HttpProxy>("HttpProxy", std::move(client), test_mtproto_ip(), "", "",
@@ -115,6 +116,7 @@ TEST(ProxySetupErrorEmittersIntegration, HttpProxyEmitsConnectRequestWithoutCred
 }
 
 TEST(ProxySetupErrorEmittersIntegration, HttpProxyEmitsBasicAuthorizationHeaderWhenCredentialsPresent) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::HttpProxy>("HttpProxy", std::move(client), test_mtproto_ip(), "alice", "s3cret",
@@ -133,6 +135,7 @@ TEST(ProxySetupErrorEmittersIntegration, HttpProxyEmitsBasicAuthorizationHeaderW
 }
 
 TEST(ProxySetupErrorEmittersIntegration, HttpProxyRejectsNon2xxResponseWithTypedError) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::HttpProxy>("HttpProxy", std::move(client), test_mtproto_ip(), "", "",
@@ -152,6 +155,7 @@ TEST(ProxySetupErrorEmittersIntegration, HttpProxyRejectsNon2xxResponseWithTyped
 }
 
 TEST(ProxySetupErrorEmittersIntegration, HttpProxyWaitsForHeaderTerminatorBeforeSucceeding) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::HttpProxy>("HttpProxy", std::move(client), test_mtproto_ip(), "", "",
@@ -175,6 +179,7 @@ TEST(ProxySetupErrorEmittersIntegration, HttpProxyWaitsForHeaderTerminatorBefore
 }
 
 TEST(ProxySetupErrorEmittersIntegration, Socks5GreetingWithoutCredentialsAdvertisesOnlyNoAuth) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::Socks5>("Socks5", std::move(client), test_mtproto_ip(), "", "",
@@ -196,6 +201,7 @@ TEST(ProxySetupErrorEmittersIntegration, Socks5GreetingWithoutCredentialsAdverti
 }
 
 TEST(ProxySetupErrorEmittersIntegration, Socks5UsernamePasswordFlowSendsCredentialsAndConnectRequest) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::Socks5>("Socks5", std::move(client), test_mtproto_ip(), "alice", "s3cret",
@@ -228,6 +234,7 @@ TEST(ProxySetupErrorEmittersIntegration, Socks5UsernamePasswordFlowSendsCredenti
 }
 
 TEST(ProxySetupErrorEmittersIntegration, Socks5RejectsUnsupportedGreetingVersionWithTypedError) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::Socks5>("Socks5", std::move(client), test_mtproto_ip(), "", "",
@@ -247,6 +254,7 @@ TEST(ProxySetupErrorEmittersIntegration, Socks5RejectsUnsupportedGreetingVersion
 }
 
 TEST(ProxySetupErrorEmittersIntegration, Socks5RejectsUnsupportedAuthenticationModeWithTypedError) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::Socks5>("Socks5", std::move(client), test_mtproto_ip(), "", "",
@@ -267,6 +275,7 @@ TEST(ProxySetupErrorEmittersIntegration, Socks5RejectsUnsupportedAuthenticationM
 }
 
 TEST(ProxySetupErrorEmittersIntegration, Socks5RejectsUnsupportedSubnegotiationVersionWithTypedError) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::Socks5>("Socks5", std::move(client), test_mtproto_ip(), "alice", "s3cret",
@@ -295,6 +304,7 @@ TEST(ProxySetupErrorEmittersIntegration, Socks5RejectsUnsupportedSubnegotiationV
 }
 
 TEST(ProxySetupErrorEmittersIntegration, Socks5RejectsWrongUsernameOrPasswordWithTypedError) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::Socks5>("Socks5", std::move(client), test_mtproto_ip(), "alice", "s3cret",
@@ -322,6 +332,7 @@ TEST(ProxySetupErrorEmittersIntegration, Socks5RejectsWrongUsernameOrPasswordWit
 }
 
 TEST(ProxySetupErrorEmittersIntegration, Socks5ConnectRejectReturnsTypedErrorAfterConnectCallback) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::Socks5>("Socks5", std::move(client), test_mtproto_ip(), "", "",
@@ -345,6 +356,7 @@ TEST(ProxySetupErrorEmittersIntegration, Socks5ConnectRejectReturnsTypedErrorAft
 }
 
 TEST(ProxySetupErrorEmittersIntegration, Socks5InvalidResponseReturnsTypedErrorAfterConnectCallback) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::Socks5>("Socks5", std::move(client), test_mtproto_ip(), "", "",
@@ -368,6 +380,7 @@ TEST(ProxySetupErrorEmittersIntegration, Socks5InvalidResponseReturnsTypedErrorA
 }
 
 TEST(ProxySetupErrorEmittersIntegration, Socks5RejectsOverlongUsernameLocally) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::Socks5>("Socks5", std::move(client), test_mtproto_ip(), td::string(128, 'a'), "pwd",
@@ -386,6 +399,7 @@ TEST(ProxySetupErrorEmittersIntegration, Socks5RejectsOverlongUsernameLocally) {
 }
 
 TEST(ProxySetupErrorEmittersIntegration, Socks5RejectsOverlongPasswordLocally) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(
       [](td::SocketFd client, ProxyActorObservation *observation) {
         td::create_actor<td::Socks5>("Socks5", std::move(client), test_mtproto_ip(), "user", td::string(128, 'p'),

@@ -164,6 +164,7 @@ void init_auth_data_with_salt(AuthData *auth_data) {
 }
 
 TEST(SessionHintControlMixAdversarial, DestroyKeyWithPingStaysInteractive) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));
@@ -184,6 +185,7 @@ TEST(SessionHintControlMixAdversarial, DestroyKeyWithPingStaysInteractive) {
 }
 
 TEST(SessionHintControlMixAdversarial, DestroyKeyWithPolicyOverrideStaysInteractiveWithoutCoerceCounter) {
+  SKIP_IF_NO_SOCKET_PAIR();
   td::net_health::reset_net_monitor_for_tests();
 
   auto socket_pair = create_socket_pair().move_as_ok();
@@ -216,6 +218,7 @@ TEST(SessionHintControlMixAdversarial, DestroyKeyWithPolicyOverrideStaysInteract
 }
 
 TEST(SessionHintControlMixAdversarial, ResendAnswerWithPingStaysInteractive) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));
@@ -235,6 +238,7 @@ TEST(SessionHintControlMixAdversarial, ResendAnswerWithPingStaysInteractive) {
 }
 
 TEST(SessionHintControlMixAdversarial, CancelAnswerWithPingStaysInteractive) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));
@@ -254,6 +258,7 @@ TEST(SessionHintControlMixAdversarial, CancelAnswerWithPingStaysInteractive) {
 }
 
 TEST(SessionHintControlMixAdversarial, LargeQueryWithDestroyKeyStillUsesBulkData) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));

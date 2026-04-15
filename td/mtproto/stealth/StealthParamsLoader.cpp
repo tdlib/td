@@ -13,6 +13,7 @@
 #include <unistd.h>
 #else
 #include "td/utils/port/FileFd.h"
+#include "td/utils/port/Stat.h"
 #endif
 
 #include <unordered_set>
@@ -28,10 +29,23 @@ bool is_missing_config_path(const string &path) {
   if (::lstat(path.c_str(), &st) != 0) {
     return errno == ENOENT || errno == ENOTDIR;
   }
+  return false;
+#elif TD_PORT_WINDOWS
+  // Windows has no `lstat` equivalent. Use the portable `td::stat`
+  // wrapper: any error from it (including ERROR_FILE_NOT_FOUND and
+  // ERROR_PATH_NOT_FOUND) means the path does not exist or is not
+  // accessible, in which case `try_reload` MUST treat the reload as a
+  // failure (preserving the in-memory snapshot) rather than silently
+  // overwriting it with defaults. The previous Windows stub always
+  // returned `false` here, which made
+  // `StealthParamsLoader::ReloadAfterFileDeleted` flip the snapshot
+  // to defaults instead of preserving the last good value, defeating
+  // the whole point of the strict-load contract.
+  return stat(path).is_error();
 #else
   (void)path;
-#endif
   return false;
+#endif
 }
 
 Status validate_secure_parent_directory(const string &path) {
@@ -579,6 +593,17 @@ Result<StealthRuntimeParams> StealthParamsLoader::try_load_strict(Slice config_p
       return default_runtime_stealth_params();
     }
     return Status::PosixError(errno, "Failed to stat stealth params file");
+  }
+#elif TD_PORT_WINDOWS
+  // Windows has no `lstat` equivalent, but the contract of
+  // `try_load_strict` is "missing config = use defaults". Use the
+  // portable `td::stat` wrapper to detect a missing file before calling
+  // `read_file_secure`, which would otherwise translate the missing
+  // file into a hard error and break callers (and the
+  // `StealthParamsLoader_StrictLoadMissingConfigReturnsDefaults` test
+  // which exercises exactly this path on Windows).
+  if (stat(config_path_str).is_error()) {
+    return default_runtime_stealth_params();
   }
 #endif
 

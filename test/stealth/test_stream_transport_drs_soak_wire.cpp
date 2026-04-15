@@ -33,14 +33,6 @@ using td::mtproto::test::MockRng;
 constexpr size_t kPayloadSize = 1300;
 constexpr size_t kPrimerHeaderOverhead = 64 + 6;
 
-struct WireFixture final {
-  td::unique_ptr<StealthTransportDecorator> transport;
-  MockClock *clock{nullptr};
-  td::ChainBufferWriter output_writer;
-  td::ChainBufferWriter input_writer;
-  td::ChainBufferReader input_reader;
-};
-
 td::string make_tls_secret() {
   td::string secret;
   secret.push_back(static_cast<char>(0xee));
@@ -48,6 +40,36 @@ td::string make_tls_secret() {
   secret += "www.google.com";
   return secret;
 }
+
+// Non-movable / non-copyable: `transport->init` captures raw pointers
+// into the writer/reader members; copy/move (or NRVO failure on MSVC
+// Debug builds) would invalidate those pointers. See REG-21/22 for the
+// canonical pattern.
+class WireFixture final {
+ public:
+  td::unique_ptr<StealthTransportDecorator> transport;
+  MockClock *clock{nullptr};
+  td::ChainBufferWriter output_writer;
+  td::ChainBufferWriter input_writer;
+  td::ChainBufferReader input_reader;
+
+  WireFixture(StealthConfig config, td::uint64 seed) {
+    auto clock_local = td::make_unique<MockClock>();
+    clock = clock_local.get();
+    auto r = StealthTransportDecorator::create(
+        td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret())),
+        std::move(config), td::make_unique<MockRng>(seed), std::move(clock_local));
+    CHECK(r.is_ok());
+    transport = r.move_as_ok();
+    input_reader = input_writer.extract_reader();
+    transport->init(&input_reader, &output_writer);
+  }
+
+  WireFixture(const WireFixture &) = delete;
+  WireFixture &operator=(const WireFixture &) = delete;
+  WireFixture(WireFixture &&) = delete;
+  WireFixture &operator=(WireFixture &&) = delete;
+};
 
 DrsPhaseModel make_phase(std::initializer_list<RecordSizeBin> bins, td::int32 max_repeat_run) {
   DrsPhaseModel phase;
@@ -85,22 +107,6 @@ StealthConfig make_reset_config() {
   config.drs_policy.min_payload_cap = 900;
   config.drs_policy.max_payload_cap = 1500;
   return config;
-}
-
-WireFixture make_wire_fixture(StealthConfig config, td::uint64 seed) {
-  auto clock = td::make_unique<MockClock>();
-  auto *clock_ptr = clock.get();
-  auto transport = StealthTransportDecorator::create(
-      td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret())),
-      std::move(config), td::make_unique<MockRng>(seed), std::move(clock));
-  CHECK(transport.is_ok());
-
-  WireFixture fixture;
-  fixture.transport = transport.move_as_ok();
-  fixture.clock = clock_ptr;
-  fixture.input_reader = fixture.input_writer.extract_reader();
-  fixture.transport->init(&fixture.input_reader, &fixture.output_writer);
-  return fixture;
 }
 
 std::vector<size_t> extract_tls_record_lengths(td::Slice wire) {
@@ -206,7 +212,7 @@ TEST(StreamTransportDrsSoakWire, SeedMatrixPreservesSameConnectionAntiRepeatAcro
   constexpr std::array<td::uint64, 6> kSeeds = {7, 19, 41, 77, 123, 255};
 
   for (auto seed : kSeeds) {
-    auto fixture = make_wire_fixture(make_anti_repeat_config(), seed);
+    WireFixture fixture(make_anti_repeat_config(), seed);
     constexpr size_t kFlushCount = 24;
     for (size_t i = 0; i < kFlushCount; i++) {
       enqueue_flush(fixture, kPayloadSize, TrafficHint::BulkData);
@@ -225,7 +231,7 @@ TEST(StreamTransportDrsSoakWire, SeedMatrixPreservesSameConnectionAntiRepeatAcro
 }
 
 TEST(StreamTransportDrsSoakWire, SameConnectionIdleResetReturnsToSlowStartAfterPromotion) {
-  auto fixture = make_wire_fixture(make_reset_config(), 77);
+  WireFixture fixture(make_reset_config(), 77);
 
   enqueue_flush(fixture, kPayloadSize, TrafficHint::Interactive);
   enqueue_flush(fixture, kPayloadSize, TrafficHint::Interactive);

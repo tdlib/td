@@ -268,6 +268,7 @@ td::vector<ScriptedInboundRawConnection::InboundPacket> make_single_packet_step(
 }
 
 TEST(SessionAckMixAdversarial, SmallUserQueryWithAckFloodUsesBulkDataHint) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<ScriptedInboundRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));
@@ -292,6 +293,7 @@ TEST(SessionAckMixAdversarial, SmallUserQueryWithAckFloodUsesBulkDataHint) {
 }
 
 TEST(SessionAckMixAdversarial, PingCannotSmuggleSmallUserQueryWithAckFloodPastBulkHint) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<ScriptedInboundRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));

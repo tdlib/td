@@ -4,6 +4,7 @@
 // telemt: https://t.me/telemtrs
 //
 
+#include "test/stealth/CorpusIterationTiers.h"
 #include "test/stealth/CorpusStatHelpers.h"
 #include "test/stealth/MockRng.h"
 
@@ -23,11 +24,11 @@ using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
 using namespace td::mtproto::test::fixtures::reviewed;
 
-constexpr uint64 kCorpusIterations = 1024;
+constexpr uint64 kCorpusIterations = kQuickIterations;
 constexpr int32 kUnixTime = 1712345678;
 
 ParsedClientHello build_profile_hello(BrowserProfile profile, EchMode ech_mode, uint64 seed) {
-  MockRng rng(seed);
+  MockRng rng(corpus_seed_for_iteration(seed, kCorpusIterations));
   auto wire =
       build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime, profile, ech_mode, rng);
   auto parsed = parse_tls_client_hello(wire);

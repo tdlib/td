@@ -54,26 +54,37 @@ std::vector<size_t> extract_tls_record_lengths(td::Slice wire) {
   return lengths;
 }
 
-struct StressHarness {
+// `StealthTransportDecorator::init` captures a raw pointer to the
+// `ChainBufferReader` argument and dereferences it on every read poll.
+// The reader MUST outlive the harness; making it a member of the
+// harness gives it the right lifetime, and the harness must be
+// non-movable / non-copyable so the pointer captured into the
+// transport's PollInfo is never invalidated by NRVO or std::move.
+class StressHarness {
+ public:
   td::unique_ptr<StealthTransportDecorator> transport;
   td::ChainBufferWriter output_writer;
   td::ChainBufferWriter input_writer;
+  td::ChainBufferReader input_reader;
   MockClock *clock_ptr{nullptr};
 
-  static StressHarness create(StealthConfig config, td::uint64 seed) {
-    StressHarness h;
+  StressHarness(StealthConfig config, td::uint64 seed) {
     auto inner =
         td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret()));
     auto clock = td::make_unique<MockClock>();
-    h.clock_ptr = clock.get();
+    clock_ptr = clock.get();
     auto r =
         StealthTransportDecorator::create(std::move(inner), config, td::make_unique<MockRng>(seed), std::move(clock));
     CHECK(r.is_ok());
-    h.transport = r.move_as_ok();
-    auto reader = h.input_writer.extract_reader();
-    h.transport->init(&reader, &h.output_writer);
-    return h;
+    transport = r.move_as_ok();
+    input_reader = input_writer.extract_reader();
+    transport->init(&input_reader, &output_writer);
   }
+
+  StressHarness(const StressHarness &) = delete;
+  StressHarness &operator=(const StressHarness &) = delete;
+  StressHarness(StressHarness &&) = delete;
+  StressHarness &operator=(StressHarness &&) = delete;
 
   void write_and_flush(td::Slice payload, TrafficHint hint = TrafficHint::Interactive) {
     transport->set_traffic_hint(hint);
@@ -101,7 +112,7 @@ TEST(TlsRecordPaddingStress, MixedPayloadsAndTargets_NoCrash) {
   auto config = StealthConfig::default_config(rng_cfg);
   ASSERT_TRUE(config.validate().is_ok());
 
-  auto h = StressHarness::create(config, 42);
+  StressHarness h(config, 42);
   h.write_and_flush("warm");
 
   MockRng payload_rng(123);
@@ -125,7 +136,7 @@ TEST(TlsRecordPaddingStress, RapidTargetChanges_AllRecordsValid) {
   auto config = StealthConfig::default_config(rng_cfg);
   ASSERT_TRUE(config.validate().is_ok());
 
-  auto h = StressHarness::create(config, 99);
+  StressHarness h(config, 99);
   h.write_and_flush("warm");
 
   // Each write gets a different hint, causing DRS to sample different phases
@@ -152,7 +163,7 @@ TEST(TlsRecordPaddingStress, SmallRecordBudget_HighLoad_NeverViolated) {
   config.record_padding_policy.small_record_window_size = 200;
   ASSERT_TRUE(config.validate().is_ok());
 
-  auto h = StressHarness::create(config, 7);
+  StressHarness h(config, 7);
   h.write_and_flush("warm");
 
   for (int i = 0; i < 5000; i++) {
@@ -187,7 +198,7 @@ TEST(TlsRecordPaddingStress, PayloadAlignment_4Byte_Validated) {
   auto config = StealthConfig::default_config(rng_cfg);
   ASSERT_TRUE(config.validate().is_ok());
 
-  auto h = StressHarness::create(config, 42);
+  StressHarness h(config, 42);
   h.write_and_flush("warm");
 
   // Test aligned sizes: 4, 8, 12, 16, ..., 4096
@@ -215,7 +226,7 @@ TEST(TlsRecordPaddingStress, LightFuzz_RandomSeeds_NoAssertionFailure) {
     auto config = StealthConfig::default_config(rng_cfg);
     ASSERT_TRUE(config.validate().is_ok());
 
-    auto h = StressHarness::create(config, seed);
+    StressHarness h(config, seed);
     h.write_and_flush("warm");
 
     MockRng payload_rng(seed + 500);

@@ -153,6 +153,7 @@ void flush_valid_response_and_expect_success(TlsInit &tls_init, td::SocketFd &pe
 }
 
 TEST(TlsInitCircuitBreaker, RepeatedEchFailuresDisableEchForNextConnection) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   reset_runtime_ech_counters_for_tests();
   auto candidate = find_ech_enabled_runtime_candidate();
@@ -182,6 +183,7 @@ TEST(TlsInitCircuitBreaker, RepeatedEchFailuresDisableEchForNextConnection) {
 }
 
 TEST(TlsInitCircuitBreaker, RuntimeCountersTrackEnabledRouteDisabledCbAndReenable) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   reset_runtime_ech_counters_for_tests();
   auto candidate = find_ech_enabled_runtime_candidate();
@@ -249,6 +251,7 @@ TEST(TlsInitCircuitBreaker, RuntimeCountersTrackEnabledRouteDisabledCbAndReenabl
 }
 
 TEST(TlsInitCircuitBreaker, FailuresForOneDestinationMustNotDisableEchForDifferentDestination) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   reset_runtime_ech_counters_for_tests();
   auto blocked_candidate = find_ech_enabled_runtime_candidate();
@@ -295,6 +298,7 @@ TEST(TlsInitCircuitBreaker, FailuresForOneDestinationMustNotDisableEchForDiffere
 }
 
 TEST(TlsInitCircuitBreaker, FailuresMustNotDisableEchForNextDayBucketOfSameDestination) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   reset_runtime_ech_counters_for_tests();
   auto candidate = find_ech_enabled_runtime_candidate();
@@ -337,6 +341,7 @@ TEST(TlsInitCircuitBreaker, FailuresMustNotDisableEchForNextDayBucketOfSameDesti
 }
 
 TEST(TlsInitCircuitBreaker, SuccessForDifferentDestinationMustNotClearBlockedDestinationState) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   reset_runtime_ech_counters_for_tests();
   auto blocked_candidate = find_ech_enabled_runtime_candidate();

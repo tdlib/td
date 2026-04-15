@@ -95,6 +95,7 @@ td::unique_ptr<IStreamTransport> make_shaping_wakeup_transport(TransportType typ
 }
 
 TEST(RawConnectionShapingWakeupSeam, ShapingWakeupReflectsTransportWakeupIncludingOverdueDeadline) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto previous_factory = set_transport_factory_for_tests(&make_shaping_wakeup_transport);
   SCOPE_EXIT {

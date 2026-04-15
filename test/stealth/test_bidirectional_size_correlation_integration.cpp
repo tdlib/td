@@ -136,7 +136,11 @@ td::string make_server_response_wire(td::AesCtrState &&inbound_state, td::Slice 
   return wire;
 }
 
-struct ClientEndpoint final {
+// `ClientEndpoint` is non-movable / non-copyable: the StealthTransportDecorator's
+// `init` captures a raw pointer into `input_reader`, and a static factory
+// returning by value would invalidate that pointer on copy/move.
+class ClientEndpoint final {
+ public:
   td::unique_ptr<StealthTransportDecorator> transport;
   ObfuscatedTransport *inner{nullptr};
   MockClock *clock{nullptr};
@@ -145,22 +149,25 @@ struct ClientEndpoint final {
   td::ChainBufferWriter output_writer;
   td::ChainBufferReader output_reader;
 
-  static ClientEndpoint create(StealthConfig config, td::uint64 seed) {
-    ClientEndpoint endpoint;
-    auto clock = td::make_unique<MockClock>();
-    endpoint.clock = clock.get();
-    auto inner =
+  ClientEndpoint(StealthConfig config, td::uint64 seed) {
+    auto clock_local = td::make_unique<MockClock>();
+    clock = clock_local.get();
+    auto inner_local =
         td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret()));
-    endpoint.inner = inner.get();
-    auto transport = StealthTransportDecorator::create(std::move(inner), std::move(config),
-                                                       td::make_unique<MockRng>(seed), std::move(clock));
-    CHECK(transport.is_ok());
-    endpoint.transport = transport.move_as_ok();
-    endpoint.input_reader = endpoint.input_writer.extract_reader();
-    endpoint.output_reader = endpoint.output_writer.extract_reader();
-    endpoint.transport->init(&endpoint.input_reader, &endpoint.output_writer);
-    return endpoint;
+    inner = inner_local.get();
+    auto r = StealthTransportDecorator::create(std::move(inner_local), std::move(config),
+                                               td::make_unique<MockRng>(seed), std::move(clock_local));
+    CHECK(r.is_ok());
+    transport = r.move_as_ok();
+    input_reader = input_writer.extract_reader();
+    output_reader = output_writer.extract_reader();
+    transport->init(&input_reader, &output_writer);
   }
+
+  ClientEndpoint(const ClientEndpoint &) = delete;
+  ClientEndpoint &operator=(const ClientEndpoint &) = delete;
+  ClientEndpoint(ClientEndpoint &&) = delete;
+  ClientEndpoint &operator=(ClientEndpoint &&) = delete;
 };
 
 void write_and_flush_client(ClientEndpoint &client, td::Slice payload, TrafficHint hint = TrafficHint::Interactive) {
@@ -191,7 +198,7 @@ td::BufferSlice read_client_message(ClientEndpoint &client) {
 }
 
 TEST(BidirectionalSizeCorrelationIntegration, RealInboundTlsFramingRaisesNextOutboundRecordFloor) {
-  auto client = ClientEndpoint::create(make_size_floor_config(), 17);
+  ClientEndpoint client(make_size_floor_config(), 17);
   auto warmup_request = aligned_payload(16, 'w');
   auto small_response = aligned_payload(4, 'p');
   auto next_request = aligned_payload(16, 'n');
@@ -215,7 +222,7 @@ TEST(BidirectionalSizeCorrelationIntegration, RealInboundTlsFramingRaisesNextOut
 }
 
 TEST(BidirectionalSizeCorrelationIntegration, RealInboundTlsFramingArmsPostResponseJitter) {
-  auto client = ClientEndpoint::create(make_response_jitter_config(), 29);
+  ClientEndpoint client(make_response_jitter_config(), 29);
   auto warmup_request = aligned_payload(16, 'w');
   auto small_response = aligned_payload(4, 'p');
   auto next_request = aligned_payload(16, 'n');

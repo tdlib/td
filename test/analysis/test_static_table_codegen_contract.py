@@ -52,9 +52,9 @@ class StaticTableCodegenContractTest(unittest.TestCase):
         manifest_text = refresh_static_tables.render_state_manifest_json(generated.manifest)
 
         for role_name, fingerprint in {
-            "main_mtproto": "0xd09d1d85de64fd85",
-            "test_mtproto": "0xb25898df208d2603",
-            "simple_config": "0x6f3a701151477715",
+            "primary": "0xd09d1d85de64fd85",
+            "secondary": "0xb25898df208d2603",
+            "auxiliary": "0x6f3a701151477715",
         }.items():
             with self.subTest(role_name=role_name):
                 self.assertEqual(fingerprint, generated.manifest["roles"][role_name]["fingerprint"])

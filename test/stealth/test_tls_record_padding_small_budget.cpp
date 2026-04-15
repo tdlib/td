@@ -97,24 +97,17 @@ std::vector<td::int32> emitted_record_padding_targets(const RecordingTransport &
   return emitted_targets;
 }
 
-struct BudgetHarness {
-  td::unique_ptr<StealthTransportDecorator> transport;
+// BudgetHarness is non-movable / non-copyable: the StealthTransportDecorator's
+// initcaptures a raw pointer to the ChainBufferReader argument and
+// dereferences it on every read poll. The reader MUST live at the same
+// scope as the harness, which means the harness cannot be moved (NRVO from
+// a static factory returning by value would invalidate the captured
+// pointer the moment the factory returns).
+class BudgetHarness {
+ public:
+td::unique_ptr<StealthTransportDecorator> transport;
   td::ChainBufferWriter output_writer;
   td::ChainBufferWriter input_writer;
-
-  static BudgetHarness create(StealthConfig config, td::uint64 seed) {
-    BudgetHarness h;
-    auto inner =
-        td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret()));
-    auto clock = td::make_unique<MockClock>();
-    auto r =
-        StealthTransportDecorator::create(std::move(inner), config, td::make_unique<MockRng>(seed), std::move(clock));
-    CHECK(r.is_ok());
-    h.transport = r.move_as_ok();
-    auto reader = h.input_writer.extract_reader();
-    h.transport->init(&reader, &h.output_writer);
-    return h;
-  }
 
   void write_and_flush(td::Slice payload, TrafficHint hint = TrafficHint::Interactive) {
     transport->set_traffic_hint(hint);
@@ -129,6 +122,25 @@ struct BudgetHarness {
     auto wire = r.move_as_buffer_slice().as_slice().str();
     return extract_tls_record_lengths(wire);
   }
+  td::ChainBufferReader input_reader;
+
+  BudgetHarness(StealthConfig config, td::uint64 seed) {
+    auto inner =
+        td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret()));
+    auto clock = td::make_unique<MockClock>();
+    auto r =
+        StealthTransportDecorator::create(std::move(inner), config, td::make_unique<MockRng>(seed), std::move(clock));
+    CHECK(r.is_ok());
+    transport = r.move_as_ok();
+    input_reader = input_writer.extract_reader();
+    transport->init(&input_reader, &output_writer);
+    
+  }
+
+  BudgetHarness(const BudgetHarness &) = delete;
+  BudgetHarness &operator=(const BudgetHarness &) = delete;
+  BudgetHarness(BudgetHarness &&) = delete;
+  BudgetHarness &operator=(BudgetHarness &&) = delete;
 };
 
 // ==============================================
@@ -216,7 +228,7 @@ TEST(TlsRecordSmallBudget, WireLevel_AfterBudgetExhaustion_AllRecordsAboveThresh
   config.drs_policy.max_payload_cap = 256;
   ASSERT_TRUE(config.validate().is_ok());
 
-  auto h = BudgetHarness::create(config, 42);
+  BudgetHarness h(config, 42);
   h.write_and_flush("warm");
 
   for (int i = 0; i < 300; i++) {

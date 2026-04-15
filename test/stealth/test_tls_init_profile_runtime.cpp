@@ -120,6 +120,7 @@ void assert_profile_shape(const td::mtproto::test::ParsedClientHello &hello, Bro
 }
 
 TEST(TlsInitProfileRuntime, KnownNonRuRouteUsesSelectedRuntimeChromiumProfile) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto candidate = find_chromium_runtime_candidate();
   auto socket_pair = create_socket_pair().move_as_ok();
@@ -140,6 +141,7 @@ TEST(TlsInitProfileRuntime, KnownNonRuRouteUsesSelectedRuntimeChromiumProfile) {
 }
 
 TEST(TlsInitProfileRuntime, UnknownRouteKeepsSelectedRuntimeProfileButSuppressesEch) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto candidate = find_chromium_runtime_candidate();
   auto socket_pair = create_socket_pair().move_as_ok();

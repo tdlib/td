@@ -205,6 +205,7 @@ ActorRunObservation run_tls_init_actor(InteractT &&interact, td::Slice domain = 
 }
 
 TEST(TlsInitCoverageGaps, RejectsNonHandshakeFirstRecordAcrossValidTlsRecordTypes) {
+  SKIP_IF_NO_SOCKET_PAIR();
   constexpr td::uint8 kRecordTypes[] = {0x14, 0x15, 0x17};
 
   for (auto record_type : kRecordTypes) {
@@ -222,6 +223,7 @@ TEST(TlsInitCoverageGaps, RejectsNonHandshakeFirstRecordAcrossValidTlsRecordType
 }
 
 TEST(TlsInitCoverageGaps, NearHttpPrefixVariantsFailClosedAsWrongRegime) {
+  SKIP_IF_NO_SOCKET_PAIR();
   const td::string prefixes[] = {
       td::string("HXTZ?", 5),
       td::string("HTXZ?", 5),
@@ -242,6 +244,7 @@ TEST(TlsInitCoverageGaps, NearHttpPrefixVariantsFailClosedAsWrongRegime) {
 }
 
 TEST(TlsInitCoverageGaps, ShortCompleteResponseFailsClosedAndDisablesEchAfterRepeatedAttempts) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   reset_runtime_ech_counters_for_tests();
   auto candidate = find_ech_enabled_runtime_candidate();
@@ -277,6 +280,7 @@ TEST(TlsInitCoverageGaps, ShortCompleteResponseFailsClosedAndDisablesEchAfterRep
 }
 
 TEST(TlsInitCoverageGaps, UnknownRouteWrongRegimeResponseFailsClosedWithoutEch) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto candidate = find_ech_enabled_runtime_candidate();
   auto socket_pair = create_socket_pair().move_as_ok();
@@ -295,6 +299,7 @@ TEST(TlsInitCoverageGaps, UnknownRouteWrongRegimeResponseFailsClosedWithoutEch) 
 }
 
 TEST(TlsInitCoverageGaps, UnknownRouteShortCompleteResponseFailsClosedWithoutEch) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto candidate = find_ech_enabled_runtime_candidate();
   auto socket_pair = create_socket_pair().move_as_ok();
@@ -313,6 +318,7 @@ TEST(TlsInitCoverageGaps, UnknownRouteShortCompleteResponseFailsClosedWithoutEch
 }
 
 TEST(TlsInitCoverageGaps, UnknownRouteHashMismatchFailsClosedWithoutEch) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto candidate = find_ech_enabled_runtime_candidate();
   auto socket_pair = create_socket_pair().move_as_ok();
@@ -334,6 +340,7 @@ TEST(TlsInitCoverageGaps, UnknownRouteHashMismatchFailsClosedWithoutEch) {
 }
 
 TEST(TlsInitCoverageGaps, UnknownRouteSuccessfulResponseSucceedsWithoutEch) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto candidate = find_ech_enabled_runtime_candidate();
   auto socket_pair = create_socket_pair().move_as_ok();
@@ -352,6 +359,7 @@ TEST(TlsInitCoverageGaps, UnknownRouteSuccessfulResponseSucceedsWithoutEch) {
 }
 
 TEST(TlsInitCoverageGaps, ActorSuccessPathExercisesLoopImplAndCompletes) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_tls_init_actor([](td::ConcurrentScheduler &scheduler, td::SocketFd &peer_fd,
                                            ActorRunObservation &) {
     scheduler.run_main(10);
@@ -369,6 +377,7 @@ TEST(TlsInitCoverageGaps, ActorSuccessPathExercisesLoopImplAndCompletes) {
 }
 
 TEST(TlsInitCoverageGaps, ActorMalformedFirstRecordExercisesLoopImplErrorPath) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_tls_init_actor([](td::ConcurrentScheduler &scheduler, td::SocketFd &peer_fd,
                                            ActorRunObservation &) {
     scheduler.run_main(10);

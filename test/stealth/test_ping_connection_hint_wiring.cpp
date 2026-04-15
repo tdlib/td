@@ -123,6 +123,7 @@ td::unique_ptr<AuthData> make_ready_auth_data() {
 }
 
 TEST(PingConnectionHintWiring, PingPongAuthenticatedPathUsesKeepaliveHint) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));

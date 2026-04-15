@@ -282,6 +282,7 @@ constexpr size_t kNestedAckCountBelowCeilBoundary = 127;
 constexpr size_t kNestedAckCountAtCeilBoundary = 128;
 
 TEST(SessionAckThresholdRuntimeIntegration, AckBurstBelowCeilBoundaryStaysKeepalive) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection = td::make_unique<ScriptedInboundRawConnection>(
       td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)), kCustomBulkThresholdBytes);
@@ -304,6 +305,7 @@ TEST(SessionAckThresholdRuntimeIntegration, AckBurstBelowCeilBoundaryStaysKeepal
 }
 
 TEST(SessionAckThresholdRuntimeIntegration, AckBurstAtCeilBoundaryEscalatesToBulkData) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection = td::make_unique<ScriptedInboundRawConnection>(
       td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)), kCustomBulkThresholdBytes);
@@ -326,6 +328,7 @@ TEST(SessionAckThresholdRuntimeIntegration, AckBurstAtCeilBoundaryEscalatesToBul
 }
 
 TEST(SessionAckThresholdRuntimeIntegration, SmallUserQueryBelowAckBoundaryStaysInteractive) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection = td::make_unique<ScriptedInboundRawConnection>(
       td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)), kCustomBulkThresholdBytes);

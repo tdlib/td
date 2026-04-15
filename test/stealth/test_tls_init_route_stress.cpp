@@ -70,6 +70,7 @@ bool has_ech_extension(const td::mtproto::test::ParsedClientHello &hello) {
 }
 
 TEST(TlsInitRouteStress, RoutePolicyRemainsStableAcrossManyTlsInitInstances) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   struct Scenario final {
     const char *name;
@@ -107,6 +108,7 @@ TEST(TlsInitRouteStress, RoutePolicyRemainsStableAcrossManyTlsInitInstances) {
 }
 
 TEST(TlsInitRouteStress, RuntimeRoutePolicyPreservesCountryDerivedFailClosedSemantics) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   const td::Slice country_codes[] = {"", "R1", "RU", "ru", "US", "de"};
 

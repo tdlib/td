@@ -19,3 +19,8 @@ pvs.cfg
 tools/sqlite/__pycache__/
 tools/catalog_sync/__pycache__/
 tools/catalog_sync/table_manifest.json
+claudeinfo/
+build_compile.ps1
+build_configure.ps1
+pvs-report.json
+test_sqlite_kv

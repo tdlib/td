@@ -151,6 +151,7 @@ class NoopSessionCallback final : public SessionConnection::Callback {
 };
 
 TEST(SessionWakeupOverdueShaping, FlushReturnsOverdueRawConnectionShapingWakeupInsteadOfLaterTimeouts) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto shaping_wakeup = td::Time::now_cached() - 0.125;
   auto raw_connection =

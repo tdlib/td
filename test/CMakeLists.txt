@@ -99,14 +99,19 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_blob_store_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_blob_store_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_blob_store_stress.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_bundle_to_handshake_flow_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_label_domain_separation_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_reference_table_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_reference_table_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_reference_table_light_fuzz.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_slot_entry_rejection_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_source_layout_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_entry_window_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_entry_window_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_entry_window_source_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_source_layout_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_source_layout_bundle_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_source_layout_pem_discoverability.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_aux_channel_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_aux_channel_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_net_monitor_contract.cpp
@@ -121,10 +126,19 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_firefox_macos_psk_extension_invariants.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_grease_key_share_entry_invariants.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_pq_hybrid_key_share_format_invariants.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_secp256r1_key_share_irng_determinism.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_profile_spec_pq_consistency_invariants.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_chrome144_differential.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_firefox148_differential.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_safari26_3_differential.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_cross_family_one_bit_differentiators.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_ech_quic_block_matrix.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_wire_classifier_blackhat.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/UpstreamRuleVerifiers.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/FamilyLaneMatchers.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_upstream_rule_verifiers_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_family_lane_matcher_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_reviewed_family_lane_baselines_coverage.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_firefox_fixture_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_firefox_linux_desktop_ech.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_failure_cache_security.cpp
@@ -334,6 +348,16 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_grease_autocorrelation_adversarial_1k.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_cross_platform_contamination_extended_1k.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_structural_key_material_stress_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_android_chromium_alps_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_android_chromium_no_alps_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_ios_apple_tls_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_ios_chromium_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_linux_chrome_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_linux_firefox_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_macos_firefox_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_nightly_wire_baseline_monte_carlo.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_nightly_boundary_falsification.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_nightly_cross_family_distance.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_record_size_baselines.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_builder_length_agreement_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_cross_connection_fingerprint_adversarial.cpp
@@ -346,6 +370,11 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_cipher_suite_order_determinism.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_alpn_presence_all_profiles.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_chrome_extension_set_invariance.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_server_hello_parser_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_client_hello_acceptance_matrix.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_handshake_acceptance_route_lanes.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_full_handshake_family_pairing.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_first_flight_layout_pairing.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_grease_structural_positions.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_dpi_evasion_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hmac_replay_adversarial.cpp
@@ -422,6 +451,21 @@ if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
   target_include_directories(run_record_size_sequence_hardening_tests
                              PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
   target_include_directories(run_all_tests PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+  # Point repo-relative fixture loaders (ServerHelloFixtureLoader) at the
+  # source tree so tests can read reviewed JSON artifacts regardless of
+  # the build-time working directory.
+  target_compile_definitions(run_all_tests PRIVATE
+    "TELEMT_TEST_REPO_ROOT=\"${CMAKE_SOURCE_DIR}\"")
+  # `test/stealth/test_source_layout_contract.cpp` verifies the source-level
+  # layout of the retained PEM blobs by re-parsing them with OpenSSL's
+  # `PEM_read_bio_RSA_PUBKEY` / `d2i_RSAPublicKey`. The public transitive
+  # include chain for `run_all_tests` doesn't re-export OpenSSL headers, so
+  # the test TU needs its own SYSTEM include of the vcpkg / system OpenSSL
+  # headers. `OPENSSL_INCLUDE_DIR` is already resolved by the top-level
+  # `find_package(OpenSSL ...)` call.
+  if (OPENSSL_FOUND)
+    target_include_directories(run_all_tests SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
+  endif()
   target_include_directories(test-tdutils PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
   target_link_libraries(test-tdutils PRIVATE tdutils)
   target_link_libraries(run_session_record_size_sequence_hardening_adversarial_tests PRIVATE tdcore tdclient)

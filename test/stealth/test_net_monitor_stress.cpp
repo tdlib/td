@@ -22,7 +22,7 @@ TEST(NetMonitorStress, ConcurrentCoerceAttemptsCountersRemainAccurate) {
   std::vector<std::thread> threads;
   threads.reserve(thread_count);
   for (td::uint32 index = 0; index < thread_count; index++) {
-    threads.emplace_back([] {
+    threads.emplace_back([iterations_per_thread] {
       for (td::uint32 iteration = 0; iteration < iterations_per_thread; iteration++) {
         td::net_health::note_session_param_coerce_attempt();
       }

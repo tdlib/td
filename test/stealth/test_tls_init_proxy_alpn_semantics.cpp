@@ -90,6 +90,7 @@ TEST(TlsInitProxyAlpnSemantics, ExplicitProfileBuilderKeepsBrowserCaptureAlpnBod
 }
 
 TEST(TlsInitProxyAlpnSemantics, KnownNonRuProxyHelloAdvertisesHttp11Only) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto socket_pair = create_socket_pair().move_as_ok();
 
@@ -114,6 +115,7 @@ TEST(TlsInitProxyAlpnSemantics, KnownNonRuProxyHelloAdvertisesHttp11Only) {
 }
 
 TEST(TlsInitProxyAlpnSemantics, UnknownRouteKeepsHttp11OnlyAndSuppressesEch) {
+  SKIP_IF_NO_SOCKET_PAIR();
   reset_runtime_ech_failure_state_for_tests();
   auto socket_pair = create_socket_pair().move_as_ok();
 

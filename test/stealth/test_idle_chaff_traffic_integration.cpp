@@ -117,7 +117,14 @@ td::string make_server_quick_ack_wire(td::AesCtrState &inbound_state, td::uint32
   return wire;
 }
 
-struct ClientEndpoint final {
+// `ClientEndpoint` is non-movable / non-copyable: the transport's `init`
+// captures a raw pointer into `input_reader`, and a static factory
+// returning by value would invalidate the captured pointer because MSVC
+// Debug builds (and any non-NRVO path) actually copy the locally
+// constructed `endpoint` into the caller's stack frame, leaving the
+// transport pointing at a freed slot.
+class ClientEndpoint final {
+ public:
   td::unique_ptr<StealthTransportDecorator> transport;
   ObfuscatedTransport *inner{nullptr};
   MockClock *clock{nullptr};
@@ -126,22 +133,25 @@ struct ClientEndpoint final {
   td::ChainBufferWriter output_writer;
   td::ChainBufferReader output_reader;
 
-  static ClientEndpoint create(StealthConfig config, td::uint64 seed) {
-    ClientEndpoint endpoint;
-    auto clock = td::make_unique<MockClock>();
-    endpoint.clock = clock.get();
-    auto inner =
+  ClientEndpoint(StealthConfig config, td::uint64 seed) {
+    auto clock_local = td::make_unique<MockClock>();
+    clock = clock_local.get();
+    auto inner_local =
         td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret()));
-    endpoint.inner = inner.get();
-    auto transport = StealthTransportDecorator::create(std::move(inner), std::move(config),
-                                                       td::make_unique<MockRng>(seed), std::move(clock));
-    CHECK(transport.is_ok());
-    endpoint.transport = transport.move_as_ok();
-    endpoint.input_reader = endpoint.input_writer.extract_reader();
-    endpoint.output_reader = endpoint.output_writer.extract_reader();
-    endpoint.transport->init(&endpoint.input_reader, &endpoint.output_writer);
-    return endpoint;
+    inner = inner_local.get();
+    auto r = StealthTransportDecorator::create(std::move(inner_local), std::move(config),
+                                               td::make_unique<MockRng>(seed), std::move(clock_local));
+    CHECK(r.is_ok());
+    transport = r.move_as_ok();
+    input_reader = input_writer.extract_reader();
+    output_reader = output_writer.extract_reader();
+    transport->init(&input_reader, &output_writer);
   }
+
+  ClientEndpoint(const ClientEndpoint &) = delete;
+  ClientEndpoint &operator=(const ClientEndpoint &) = delete;
+  ClientEndpoint(ClientEndpoint &&) = delete;
+  ClientEndpoint &operator=(ClientEndpoint &&) = delete;
 };
 
 td::BufferSlice read_client_message(ClientEndpoint &client) {
@@ -165,7 +175,7 @@ td::uint32 read_client_quick_ack(ClientEndpoint &client) {
 }
 
 TEST(IdleChaffTrafficIntegration, ZeroLengthFrameLeavesReceiverReadyForNextRealMessage) {
-  auto client = ClientEndpoint::create(make_integration_config(), 17);
+  ClientEndpoint client(make_integration_config(), 17);
   auto cipher_state = client.inner->clone_input_cipher_state_for_tests();
   auto empty_wire = make_server_response_wire(cipher_state, td::Slice(), true);
   auto next_payload = aligned_payload(12, 'n');
@@ -183,7 +193,7 @@ TEST(IdleChaffTrafficIntegration, ZeroLengthFrameLeavesReceiverReadyForNextRealM
 }
 
 TEST(IdleChaffTrafficIntegration, InboundTrafficRearmsIdleThresholdBeforeNextChaff) {
-  auto client = ClientEndpoint::create(make_integration_config(), 23);
+  ClientEndpoint client(make_integration_config(), 23);
   auto initial_wakeup = client.transport->get_shaping_wakeup();
   ASSERT_TRUE(initial_wakeup >= client.clock->now() + 5.0 - 1e-6);
 
@@ -201,7 +211,7 @@ TEST(IdleChaffTrafficIntegration, InboundTrafficRearmsIdleThresholdBeforeNextCha
 }
 
 TEST(IdleChaffTrafficIntegration, ZeroLengthInboundFrameRearmsIdleThresholdBeforeNextChaff) {
-  auto client = ClientEndpoint::create(make_integration_config(), 29);
+  ClientEndpoint client(make_integration_config(), 29);
   auto initial_wakeup = client.transport->get_shaping_wakeup();
   ASSERT_TRUE(initial_wakeup >= client.clock->now() + 5.0 - 1e-6);
 
@@ -218,7 +228,7 @@ TEST(IdleChaffTrafficIntegration, ZeroLengthInboundFrameRearmsIdleThresholdBefor
 }
 
 TEST(IdleChaffTrafficIntegration, QuickAckRearmsIdleThresholdBeforeNextChaff) {
-  auto client = ClientEndpoint::create(make_integration_config(), 31);
+  ClientEndpoint client(make_integration_config(), 31);
   auto initial_wakeup = client.transport->get_shaping_wakeup();
   ASSERT_TRUE(initial_wakeup >= client.clock->now() + 5.0 - 1e-6);
 

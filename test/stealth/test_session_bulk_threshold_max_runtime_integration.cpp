@@ -170,6 +170,7 @@ void init_auth_data_with_salt(AuthData *auth_data) {
 }
 
 TEST(SessionBulkThresholdMaxRuntimeIntegration, QueryOneByteBelowMaximumThresholdStaysInteractive) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection = td::make_unique<HintCapturingRawConnection>(
       td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)), kMaxValidBulkThresholdBytes);
@@ -190,6 +191,7 @@ TEST(SessionBulkThresholdMaxRuntimeIntegration, QueryOneByteBelowMaximumThreshol
 }
 
 TEST(SessionBulkThresholdMaxRuntimeIntegration, QueryAtMaximumThresholdEscalatesToBulkData) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection = td::make_unique<HintCapturingRawConnection>(
       td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)), kMaxValidBulkThresholdBytes);

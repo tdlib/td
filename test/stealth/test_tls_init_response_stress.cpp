@@ -68,6 +68,7 @@ td::Status flush_response_into_tls_init(TlsInit &tls_init, td::SocketFd &peer_fd
 }
 
 TEST(TlsInitResponseStress, EveryProperPrefixTruncationStaysNonFailingUntilEnoughBytesArrive) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);
@@ -87,6 +88,7 @@ TEST(TlsInitResponseStress, EveryProperPrefixTruncationStaysNonFailingUntilEnoug
 }
 
 TEST(TlsInitResponseStress, RepeatedHashCorruptionAlwaysFailsClosed) {
+  SKIP_IF_NO_SOCKET_PAIR();
   for (size_t byte_offset = 0; byte_offset < 32; byte_offset++) {
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init = create_tls_init(std::move(socket_pair.client));
@@ -102,6 +104,7 @@ TEST(TlsInitResponseStress, RepeatedHashCorruptionAlwaysFailsClosed) {
 }
 
 TEST(TlsInitResponseStress, NearMissSecondRecordPrefixesAlwaysFailClosed) {
+  SKIP_IF_NO_SOCKET_PAIR();
   const td::string prefixes[] = {
       "\x14\x03\x03\x00\x01\x00\x17\x03\x03", "\x14\x03\x01\x00\x01\x01\x17\x03\x03",
       "\x15\x03\x03\x00\x01\x01\x17\x03\x03", "\x14\x03\x03\x00\x01\x01\x17\x03\x04",
@@ -121,6 +124,7 @@ TEST(TlsInitResponseStress, NearMissSecondRecordPrefixesAlwaysFailClosed) {
 }
 
 TEST(TlsInitResponseStress, OversizedLengthClaimsFailClosedImmediately) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);
@@ -135,6 +139,7 @@ TEST(TlsInitResponseStress, OversizedLengthClaimsFailClosedImmediately) {
 }
 
 TEST(TlsInitResponseStress, OversizedLengthHeaderFailsClosedAsSoonAsHeaderIsComplete) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);
@@ -165,6 +170,7 @@ TEST(TlsInitResponseStress, OversizedLengthHeaderFailsClosedAsSoonAsHeaderIsComp
 }
 
 TEST(TlsInitResponseStress, MaximumAcceptedLengthWaitsForBodyInsteadOfFailing) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);
@@ -180,6 +186,7 @@ TEST(TlsInitResponseStress, MaximumAcceptedLengthWaitsForBodyInsteadOfFailing) {
 }
 
 TEST(TlsInitResponseStress, ZeroLengthApplicationDataFailsClosedAcrossHandshakeSizeMatrix) {
+  SKIP_IF_NO_SOCKET_PAIR();
   for (size_t first_payload_len : {32u, 40u, 48u, 64u}) {
     auto socket_pair = create_socket_pair().move_as_ok();
     auto tls_init = create_tls_init(std::move(socket_pair.client));

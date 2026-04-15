@@ -163,6 +163,7 @@ void init_auth_data_with_salt(AuthData *auth_data) {
 }
 
 TEST(SessionHintWiring, FlushWithPureAckUsesKeepaliveHint) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));
@@ -182,6 +183,7 @@ TEST(SessionHintWiring, FlushWithPureAckUsesKeepaliveHint) {
 }
 
 TEST(SessionHintWiring, FlushWithLargeUserQueryUsesBulkDataHint) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));
@@ -200,6 +202,7 @@ TEST(SessionHintWiring, FlushWithLargeUserQueryUsesBulkDataHint) {
 }
 
 TEST(SessionHintWiring, FlushWithPingAndLargeUserQueryStillUsesBulkDataHint) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));
@@ -219,6 +222,7 @@ TEST(SessionHintWiring, FlushWithPingAndLargeUserQueryStillUsesBulkDataHint) {
 }
 
 TEST(SessionHintWiring, FlushWithPingAndServiceControlDoesNotUseKeepaliveHint) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));
@@ -238,6 +242,7 @@ TEST(SessionHintWiring, FlushWithPingAndServiceControlDoesNotUseKeepaliveHint) {
 }
 
 TEST(SessionHintWiring, FlushWithoutSaltUsesAuthHandshakeHint) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection =
       td::make_unique<HintCapturingRawConnection>(td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)));

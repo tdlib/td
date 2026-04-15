@@ -837,7 +837,17 @@ Result<ConnectionCreator::ProxySocketOpenResult> ConnectionCreator::open_proxy_s
 
   auto try_open = [](const IPAddress &ip_address) -> Result<ProxySocketOpenResult> {
     TRY_RESULT(socket_fd, SocketFd::open(ip_address));
+#if TD_PORT_POSIX
+    // POSIX: probe SO_ERROR immediately after `SocketFd::open` so the
+    // non-blocking `connect()` failure surfaces here instead of at the
+    // first read/write. Windows-side IOCP reports the same condition via
+    // the completion callback path of `get_socket_pending_error(fd,
+    // overlapped, iocp_error)`, so we skip the probe here on Windows
+    // rather than calling the 3-arg signature without a valid overlapped
+    // handle (which would fail to compile and also produce a misleading
+    // read of the handle state before IOCP has advanced).
     TRY_STATUS(detail::get_socket_pending_error(socket_fd.get_native_fd()));
+#endif
 
     ProxySocketOpenResult result;
     result.socket_fd = std::move(socket_fd);

@@ -73,6 +73,7 @@ td::string make_tls_application_data_record(td::Slice payload) {
 
 TEST(TlsInitResponseMultiRecordIntegration,
      SuccessfulHelloResponsePreservesCaptureBackedMultiRecordApplicationDataSuffix) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);

@@ -62,6 +62,7 @@ void overwrite_record_length(td::string &response, size_t offset, td::uint16 rec
 }
 
 TEST(TlsInitResponseAdversarial, RejectsOversizedHandshakeRecordLengthWithoutWaitingForMoreBytes) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);
@@ -77,6 +78,7 @@ TEST(TlsInitResponseAdversarial, RejectsOversizedHandshakeRecordLengthWithoutWai
 }
 
 TEST(TlsInitResponseAdversarial, RejectsOversizedApplicationDataRecordLengthAfterValidHandshake) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);
@@ -93,6 +95,7 @@ TEST(TlsInitResponseAdversarial, RejectsOversizedApplicationDataRecordLengthAfte
 }
 
 TEST(TlsInitResponseAdversarial, RejectsZeroLengthHandshakeRecordEvenWhenHashMatches) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);
@@ -107,6 +110,7 @@ TEST(TlsInitResponseAdversarial, RejectsZeroLengthHandshakeRecordEvenWhenHashMat
 }
 
 TEST(TlsInitResponseAdversarial, RejectsZeroLengthApplicationDataRecordEvenWhenHashMatches) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);

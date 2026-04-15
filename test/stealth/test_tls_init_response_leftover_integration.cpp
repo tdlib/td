@@ -64,6 +64,7 @@ td::Status flush_response_into_tls_init(TlsInit &tls_init, td::SocketFd &peer_fd
 }
 
 TEST(TlsInitResponseLeftoverIntegration, SuccessfulHelloResponsePreservesTrailingTlsRecordForNextLayer) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);

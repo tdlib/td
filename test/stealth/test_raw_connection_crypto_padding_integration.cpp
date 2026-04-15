@@ -160,6 +160,7 @@ size_t send_and_capture_size(bool enable_stealth_padding) {
 }
 
 TEST(RawConnectionCryptoPaddingIntegration, SendCryptoUsesConfiguredStealthPaddingInsteadOfLegacyBucketOnly) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto previous_factory = set_transport_factory_for_tests(&make_packet_sizing_transport);
   SCOPE_EXIT {
     g_enable_stealth_padding = false;

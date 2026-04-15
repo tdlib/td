@@ -45,14 +45,6 @@ class DominantBinRng final : public IRng {
   }
 };
 
-struct WireFixture final {
-  td::unique_ptr<StealthTransportDecorator> transport;
-  MockClock *clock{nullptr};
-  td::ChainBufferWriter output_writer;
-  td::ChainBufferWriter input_writer;
-  td::ChainBufferReader input_reader;
-};
-
 td::string make_tls_secret() {
   td::string secret;
   secret.push_back(static_cast<char>(0xee));
@@ -84,21 +76,38 @@ StealthConfig make_config() {
   return config;
 }
 
-WireFixture make_wire_fixture() {
-  auto clock = td::make_unique<MockClock>();
-  auto *clock_ptr = clock.get();
-  auto transport = StealthTransportDecorator::create(
-      td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret())),
-      make_config(), td::make_unique<DominantBinRng>(), std::move(clock));
-  CHECK(transport.is_ok());
+// `WireFixture` is non-movable / non-copyable: `transport->init` captures
+// raw pointers into `input_reader` and `output_writer`, and any
+// copy/move (or NRVO failure on MSVC Debug builds) would invalidate
+// those pointers because the writer/reader storage moves with the
+// struct. Construct in place via the constructor and bind by reference
+// at the call sites — same pattern as the seven other test scaffolds
+// that were converted under REG-21/22.
+class WireFixture final {
+ public:
+  td::unique_ptr<StealthTransportDecorator> transport;
+  MockClock *clock{nullptr};
+  td::ChainBufferWriter output_writer;
+  td::ChainBufferWriter input_writer;
+  td::ChainBufferReader input_reader;
 
-  WireFixture fixture;
-  fixture.transport = transport.move_as_ok();
-  fixture.clock = clock_ptr;
-  fixture.input_reader = fixture.input_writer.extract_reader();
-  fixture.transport->init(&fixture.input_reader, &fixture.output_writer);
-  return fixture;
-}
+  WireFixture() {
+    auto clock_local = td::make_unique<MockClock>();
+    clock = clock_local.get();
+    auto r = StealthTransportDecorator::create(
+        td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret())),
+        make_config(), td::make_unique<DominantBinRng>(), std::move(clock_local));
+    CHECK(r.is_ok());
+    transport = r.move_as_ok();
+    input_reader = input_writer.extract_reader();
+    transport->init(&input_reader, &output_writer);
+  }
+
+  WireFixture(const WireFixture &) = delete;
+  WireFixture &operator=(const WireFixture &) = delete;
+  WireFixture(WireFixture &&) = delete;
+  WireFixture &operator=(WireFixture &&) = delete;
+};
 
 std::vector<size_t> extract_tls_record_lengths(td::Slice wire) {
   std::vector<size_t> lengths;
@@ -169,7 +178,7 @@ std::vector<td::int32> decode_flush_caps(const std::vector<size_t> &lengths, siz
 }
 
 TEST(StreamTransportRecordSizeSequenceHardeningWire, DominantSkewHonorsAntiRepeatAcrossFlushes) {
-  auto fixture = make_wire_fixture();
+  WireFixture fixture;
 
   constexpr size_t kFlushCount = 9;
   for (size_t i = 0; i < kFlushCount; i++) {
@@ -182,7 +191,7 @@ TEST(StreamTransportRecordSizeSequenceHardeningWire, DominantSkewHonorsAntiRepea
 }
 
 TEST(StreamTransportRecordSizeSequenceHardeningWire, IdleResetClearsRepeatPressureWithoutReintroducingPrimer) {
-  auto fixture = make_wire_fixture();
+  WireFixture fixture;
 
   for (size_t i = 0; i < 3; i++) {
     enqueue_flush(fixture);

@@ -57,6 +57,7 @@ TlsInit create_tls_init(td::SocketFd socket_fd) {
 }
 
 TEST(TlsInitResponseSecurity, IncompleteValidResponseDoesNotFailPrematurely) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);
@@ -73,6 +74,7 @@ TEST(TlsInitResponseSecurity, IncompleteValidResponseDoesNotFailPrematurely) {
 }
 
 TEST(TlsInitResponseSecurity, RejectsWrongResponseHashEvenWithValidTlsLikeLayout) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);
@@ -88,6 +90,7 @@ TEST(TlsInitResponseSecurity, RejectsWrongResponseHashEvenWithValidTlsLikeLayout
 }
 
 TEST(TlsInitResponseSecurity, RejectsWrongSecondRecordPrefixBeforeHashValidation) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);
@@ -102,6 +105,7 @@ TEST(TlsInitResponseSecurity, RejectsWrongSecondRecordPrefixBeforeHashValidation
 }
 
 TEST(TlsInitResponseSecurity, AcceptsHandshakeThenApplicationDataWithoutChangeCipherSpec) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);
@@ -116,6 +120,7 @@ TEST(TlsInitResponseSecurity, AcceptsHandshakeThenApplicationDataWithoutChangeCi
 }
 
 TEST(TlsInitResponseSecurity, RejectsAlertRecordAfterHandshakeEvenWhenHashMatches) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto tls_init = create_tls_init(std::move(socket_pair.client));
   TlsInitTestPeer::send_hello(tls_init);

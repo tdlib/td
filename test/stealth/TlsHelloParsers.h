@@ -12,6 +12,8 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
+#include <array>
+#include <cstring>
 #include <memory>
 #include <unordered_set>
 
@@ -409,6 +411,168 @@ inline Result<ParsedClientHello> parse_tls_client_hello(Slice wire) {
     if (ech_reader.left() != 0) {
       return Status::Error("ECH extension trailing bytes");
     }
+  }
+
+  return res;
+}
+
+struct ParsedServerHello final {
+  // Same lifecycle pattern as `ParsedClientHello`: the heap-allocated
+  // `unique_ptr<string>` keeps the wire bytes at a stable address so
+  // every Slice member below stays valid after the value is moved or
+  // returned from a helper. See the long comment on ParsedClientHello
+  // for the full rationale.
+  std::unique_ptr<string> owned_wire;
+
+  uint8 record_type{0};
+  uint16 record_legacy_version{0};
+  uint16 record_length{0};
+  uint8 handshake_type{0};
+  uint32 handshake_length{0};
+  uint16 server_legacy_version{0};
+  Slice server_random;
+  Slice session_id;
+  uint16 cipher_suite{0};
+  uint8 compression_method{0};
+  vector<ParsedExtension> extensions;
+  bool is_hello_retry_request{false};
+  uint16 supported_version_extension_value{0};
+  Slice key_share_public_key;
+  uint16 key_share_group{0};
+};
+
+// RFC 8446 §4.1.3: HelloRetryRequest sentinel placed in ServerHello.random
+// when the server asks the client to retry with different parameters.
+inline constexpr std::array<uint8, 32> kHelloRetryRequestRandom = {
+    0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11, 0xBE, 0x1D, 0x8C, 0x02, 0x1E, 0x65, 0xB8, 0x91,
+    0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB, 0x8C, 0x5E, 0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C};
+
+inline const ParsedExtension *find_extension(const ParsedServerHello &hello, uint16 type) {
+  for (const auto &ext : hello.extensions) {
+    if (ext.type == type) {
+      return &ext;
+    }
+  }
+  return nullptr;
+}
+
+inline Result<ParsedServerHello> parse_tls_server_hello(Slice wire) {
+  ParsedServerHello res;
+  res.owned_wire = std::unique_ptr<string>(new string(wire.str()));
+  TlsReader reader(*res.owned_wire);
+
+  TRY_RESULT(record_type, reader.read_u8());
+  res.record_type = record_type;
+  if (res.record_type != 0x16) {
+    return Status::Error("Unexpected TLS record type for ServerHello");
+  }
+  TRY_RESULT(record_legacy_version, reader.read_u16());
+  res.record_legacy_version = record_legacy_version;
+  if (res.record_legacy_version != 0x0303 && res.record_legacy_version != 0x0301) {
+    return Status::Error("Unexpected TLS record legacy version for ServerHello");
+  }
+  TRY_RESULT(record_length, reader.read_u16());
+  res.record_length = record_length;
+  if (reader.left() != res.record_length) {
+    return Status::Error("TLS record length mismatch in ServerHello");
+  }
+
+  TRY_RESULT(handshake_type, reader.read_u8());
+  res.handshake_type = handshake_type;
+  if (res.handshake_type != 0x02) {
+    return Status::Error("Unexpected TLS handshake type for ServerHello");
+  }
+  TRY_RESULT(handshake_length, reader.read_u24());
+  res.handshake_length = handshake_length;
+  if (reader.left() != res.handshake_length) {
+    return Status::Error("Handshake length mismatch in ServerHello");
+  }
+
+  TRY_RESULT(server_legacy_version, reader.read_u16());
+  res.server_legacy_version = server_legacy_version;
+  // Legal server_legacy_version values: 0x0303 (TLS 1.2 or TLS 1.3),
+  // rarely 0x0302 (TLS 1.1). Accept 0x0301..0x0303.
+  if (res.server_legacy_version < 0x0301 || res.server_legacy_version > 0x0304) {
+    return Status::Error("Unexpected ServerHello legacy version");
+  }
+
+  TRY_RESULT(server_random, reader.read_slice(32));
+  res.server_random = server_random;
+  if (res.server_random.size() == kHelloRetryRequestRandom.size() &&
+      std::memcmp(res.server_random.data(), kHelloRetryRequestRandom.data(),
+                  kHelloRetryRequestRandom.size()) == 0) {
+    res.is_hello_retry_request = true;
+  }
+
+  TRY_RESULT(session_id_len, reader.read_u8());
+  if (session_id_len > 32) {
+    return Status::Error("ServerHello session_id length must be <= 32");
+  }
+  TRY_RESULT(session_id, reader.read_slice(session_id_len));
+  res.session_id = session_id;
+
+  TRY_RESULT(cipher_suite, reader.read_u16());
+  res.cipher_suite = cipher_suite;
+
+  TRY_RESULT(compression_method, reader.read_u8());
+  res.compression_method = compression_method;
+  if (res.compression_method != 0x00) {
+    return Status::Error("Unexpected ServerHello compression method");
+  }
+
+  if (reader.left() == 0) {
+    // TLS 1.2 style ServerHello without any extensions block — rare but
+    // the RFC permits omitting the extensions length entirely when no
+    // extensions are present. For TLS 1.3 this is illegal, but we do not
+    // enforce that here; higher-level checks can assert on
+    // `supported_version_extension_value`.
+    return res;
+  }
+
+  TRY_RESULT(extensions_len, reader.read_u16());
+  TRY_RESULT(extensions_raw, reader.read_slice(extensions_len));
+  if (reader.left() != 0) {
+    return Status::Error("Trailing bytes after ServerHello");
+  }
+
+  TlsReader ext_reader(extensions_raw);
+  std::unordered_set<uint16> extension_types;
+  while (ext_reader.left() > 0) {
+    ParsedExtension ext;
+    TRY_RESULT(ext_type, ext_reader.read_u16());
+    ext.type = ext_type;
+    if (!extension_types.insert(ext.type).second) {
+      return Status::Error("Duplicate extension type in ServerHello");
+    }
+    TRY_RESULT(ext_len, ext_reader.read_u16());
+    TRY_RESULT(ext_value, ext_reader.read_slice(ext_len));
+    ext.value = ext_value;
+    res.extensions.push_back(ext);
+  }
+
+  if (auto *supported_versions = find_extension(res, 0x002B)) {
+    // In ServerHello supported_versions carries a single 2-byte selected
+    // version (RFC 8446 §4.2.1).
+    if (supported_versions->value.size() != 2) {
+      return Status::Error("ServerHello supported_versions must carry exactly one 2-byte value");
+    }
+    TlsReader sv_reader(supported_versions->value);
+    TRY_RESULT(selected_version, sv_reader.read_u16());
+    res.supported_version_extension_value = selected_version;
+  }
+
+  if (auto *key_share = find_extension(res, 0x0033)) {
+    // ServerHello key_share has a single KeyShareEntry (no outer length
+    // prefix), not a vector like in ClientHello.
+    TlsReader ks_reader(key_share->value);
+    TRY_RESULT(group, ks_reader.read_u16());
+    TRY_RESULT(key_len, ks_reader.read_u16());
+    TRY_RESULT(key_data, ks_reader.read_slice(key_len));
+    if (ks_reader.left() != 0) {
+      return Status::Error("Trailing bytes in ServerHello key_share");
+    }
+    res.key_share_group = group;
+    res.key_share_public_key = key_data;
   }
 
   return res;

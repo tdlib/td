@@ -281,6 +281,7 @@ td::uint64 fresh_base_message_id() {
 }
 
 TEST(SessionAckTruncationRuntimeDriftIntegration, AckOverflowPastContainerCapStillUsesBulkDataHint) {
+  SKIP_IF_NO_SOCKET_PAIR();
   ASSERT_TRUE(kAckFloodBeyondContainerCap > kContainerAckCap);
 
   auto socket_pair = create_socket_pair().move_as_ok();
@@ -307,6 +308,7 @@ TEST(SessionAckTruncationRuntimeDriftIntegration, AckOverflowPastContainerCapSti
 }
 
 TEST(SessionAckTruncationRuntimeDriftIntegration, ServiceQueryCannotSmuggleTruncatedAckOverflowPastBulkClassification) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection = td::make_unique<ScriptedInboundRawConnection>(
       td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)), kRaisedBulkThresholdBytes);
@@ -333,6 +335,7 @@ TEST(SessionAckTruncationRuntimeDriftIntegration, ServiceQueryCannotSmuggleTrunc
 
 TEST(SessionAckTruncationRuntimeDriftIntegration,
      SmallUserQueryAndServiceQueryCannotHideAckOverflowBehindRaisedRuntimeThreshold) {
+  SKIP_IF_NO_SOCKET_PAIR();
   auto socket_pair = create_socket_pair().move_as_ok();
   auto raw_connection = td::make_unique<ScriptedInboundRawConnection>(
       td::BufferedFd<td::SocketFd>(std::move(socket_pair.client)), kRaisedBulkThresholdBytes);
