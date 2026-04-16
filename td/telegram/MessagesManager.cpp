@@ -5737,7 +5737,7 @@ void MessagesManager::on_message_edited(MessageFullId message_full_id, int32 pts
   update_used_hashtags(dialog_id, m);
 
   if (!had_message && !td_->auth_manager_->is_bot()) {
-    if ((m->reactions != nullptr && !m->reactions->unread_reactions_.empty()) || d->unread_reaction_count > 0) {
+    if (has_unread_message_reactions(dialog_id, m) || d->unread_reaction_count > 0) {
       // if new message with unread reactions was added or the chat has unread reactions,
       // then number of unread reactions could have been changed, so reload the number of unread reactions
       repair_dialog_unread_reaction_count(d, Promise<Unit>(), "on_message_edited");
