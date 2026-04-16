@@ -16,6 +16,7 @@
 #include "td/utils/Status.h"
 
 #include <utility>
+#include <vector>
 
 namespace td {
 
@@ -23,16 +24,18 @@ extern int VERBOSITY_NAME(dns_resolver);
 
 class GetHostByNameActor final : public Actor {
  public:
-  enum class ResolverType { Native, Google };
+  enum class ResolverType { Google, CloudFlare, Custom };
 
   struct Options {
     static constexpr int32 DEFAULT_CACHE_TIME = 60 * 29;       // 29 minutes
     static constexpr int32 DEFAULT_ERROR_CACHE_TIME = 60 * 5;  // 5 minutes
 
-    vector<ResolverType> resolver_types{ResolverType::Native};
+    vector<ResolverType> resolver_types{ResolverType::Google};
     int32 scheduler_id{-1};
     int32 ok_timeout{DEFAULT_CACHE_TIME};
     int32 error_timeout{DEFAULT_ERROR_CACHE_TIME};
+    string custom_doh_url;
+    std::vector<std::pair<string, string>> custom_doh_headers;
   };
 
   explicit GetHostByNameActor(Options options);

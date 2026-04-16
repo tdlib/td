@@ -390,24 +390,57 @@ void ConnectionCreator::get_proxies(Promise<td_api::object_ptr<td_api::addedProx
 }
 
 ActorId<GetHostByNameActor> ConnectionCreator::get_dns_resolver() {
-  if (G()->get_option_boolean("expect_blocking", true)) {
-    if (block_get_host_by_name_actor_.empty()) {
-      VLOG(connections) << "Init block bypass DNS resolver";
-      GetHostByNameActor::Options options;
-      options.scheduler_id = G()->get_gc_scheduler_id();
-      options.resolver_types = {GetHostByNameActor::ResolverType::Google, GetHostByNameActor::ResolverType::Native};
+  auto dns_type = G()->get_option_string("dns_type");
+  auto custom_dns_url = G()->get_option_string("custom_dns_url");
+  auto custom_dns_headers_str = G()->get_option_string("custom_dns_headers");
+
+  GetHostByNameActor::Options options;
+  options.scheduler_id = G()->get_gc_scheduler_id();
+  options.ok_timeout = 5 * 60 - 1;
+  options.error_timeout = 0;
+
+  bool has_custom = !custom_dns_url.empty();
+  bool is_blocking = G()->get_option_boolean("expect_blocking", true);
+
+  if (has_custom) {
+    options.resolver_types = {GetHostByNameActor::ResolverType::Custom};
+    options.custom_doh_url = custom_dns_url;
+
+    if (!custom_dns_headers_str.empty()) {
+      std::vector<std::pair<string, string>> headers;
+      string headers_str = custom_dns_headers_str;
+      size_t colon = headers_str.find(':');
+      if (colon != string::npos) {
+        string key = headers_str.substr(0, colon);
+        size_t value_start = colon + 1;
+        while (value_start < headers_str.size() && (headers_str[value_start] == ' ' || headers_str[value_start] == '\t')) value_start++;
+        string value = headers_str.substr(value_start);
+        headers.emplace_back(std::move(key), std::move(value));
+      }
+      options.custom_doh_headers = std::move(headers);
+    }
+
+    if (is_blocking) {
       options.ok_timeout = 60;
       options.error_timeout = 0;
+    }
+  } else if (dns_type == "cloudflare") {
+    options.resolver_types = {GetHostByNameActor::ResolverType::CloudFlare, GetHostByNameActor::ResolverType::Google};
+  } else if (dns_type == "google") {
+    options.resolver_types = {GetHostByNameActor::ResolverType::Google, GetHostByNameActor::ResolverType::CloudFlare};
+  } else {
+    options.resolver_types = {GetHostByNameActor::ResolverType::Google, GetHostByNameActor::ResolverType::CloudFlare};
+  }
+
+  if (is_blocking) {
+    if (block_get_host_by_name_actor_.empty()) {
+      VLOG(connections) << "Init block bypass DNS resolver";
       block_get_host_by_name_actor_ = create_actor<GetHostByNameActor>("BlockDnsResolverActor", std::move(options));
     }
     return block_get_host_by_name_actor_.get();
   } else {
     if (get_host_by_name_actor_.empty()) {
       VLOG(connections) << "Init DNS resolver";
-      GetHostByNameActor::Options options;
-      options.scheduler_id = G()->get_gc_scheduler_id();
-      options.ok_timeout = 5 * 60 - 1;
-      options.error_timeout = 0;
       get_host_by_name_actor_ = create_actor<GetHostByNameActor>("DnsResolverActor", std::move(options));
     }
     return get_host_by_name_actor_.get();

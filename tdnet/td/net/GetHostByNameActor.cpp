@@ -21,6 +21,40 @@
 namespace td {
 namespace detail {
 
+static Result<IPAddress> parse_doh_json_response(Result<unique_ptr<HttpQuery>> r_http_query) {
+  TRY_RESULT(http_query, std::move(r_http_query));
+
+  auto get_ip_address = [](JsonValue &answer) -> Result<IPAddress> {
+    auto &array = answer.get_array();
+    if (array.empty()) {
+      return Status::Error("Failed to parse DNS result: Answer is an empty array");
+    }
+    if (array[0].type() != JsonValue::Type::Object) {
+      return Status::Error("Failed to parse DNS result: Answer[0] is not an object");
+    }
+    auto &answer_0 = array[0].get_object();
+    TRY_RESULT(ip_str, answer_0.get_required_string_field("data"));
+    IPAddress ip;
+    TRY_STATUS(ip.init_host_port(ip_str, 0));
+    return ip;
+  };
+  if (!http_query->get_arg("Answer").empty()) {
+    TRY_RESULT(answer, json_decode(http_query->get_arg("Answer")));
+    if (answer.type() != JsonValue::Type::Array) {
+      return Status::Error("Expected JSON array");
+    }
+    return get_ip_address(answer);
+  } else {
+    TRY_RESULT(json_value, json_decode(http_query->content_));
+    if (json_value.type() != JsonValue::Type::Object) {
+      return Status::Error("Failed to parse DNS result: not an object");
+    }
+    auto &object = json_value.get_object();
+    TRY_RESULT(answer, object.extract_required_field("Answer", JsonValue::Type::Array));
+    return get_ip_address(answer);
+  }
+}
+
 class GoogleDnsResolver final : public Actor {
  public:
   GoogleDnsResolver(std::string host, bool prefer_ipv6, Promise<IPAddress> promise)
@@ -51,6 +85,50 @@ class GoogleDnsResolver final : public Actor {
         "GoogleDnsResolver", std::move(wget_promise),
         PSTRING() << "https://dns.google/resolve?name=" << url_encode(host_) << "&type=" << (prefer_ipv6_ ? 28 : 1),
         std::vector<std::pair<string, string>>({{"Host", "dns.google"}}), timeout, ttl, prefer_ipv6_,
+        SslCtx::VerifyPeer::Off);
+  }
+
+  void on_result(Result<unique_ptr<HttpQuery>> r_http_query) {
+    auto end_time = Time::now();
+    auto result = parse_doh_json_response(std::move(r_http_query));
+    VLOG(dns_resolver) << "Init IPv" << (prefer_ipv6_ ? "6" : "4") << " host = " << host_ << " in "
+                       << end_time - begin_time_ << " seconds to "
+                       << (result.is_ok() ? (PSLICE() << result.ok()) : CSlice("[invalid]"));
+    promise_.set_result(std::move(result));
+    stop();
+  }
+};
+
+class CloudFlareDnsResolver final : public Actor {
+ public:
+  CloudFlareDnsResolver(std::string host, bool prefer_ipv6, Promise<IPAddress> promise)
+      : host_(std::move(host)), prefer_ipv6_(prefer_ipv6), promise_(std::move(promise)) {
+  }
+
+ private:
+  std::string host_;
+  bool prefer_ipv6_;
+  Promise<IPAddress> promise_;
+  ActorOwn<Wget> wget_;
+  double begin_time_ = 0;
+
+  void start_up() final {
+    auto r_address = IPAddress::get_ip_address(host_);
+    if (r_address.is_ok()) {
+      promise_.set_value(r_address.move_as_ok());
+      return stop();
+    }
+
+    const int timeout = 10;
+    const int ttl = 3;
+    begin_time_ = Time::now();
+    auto wget_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<unique_ptr<HttpQuery>> r_http_query) {
+      send_closure(actor_id, &CloudFlareDnsResolver::on_result, std::move(r_http_query));
+    });
+    wget_ = create_actor<Wget>(
+        "CloudFlareDnsResolver", std::move(wget_promise),
+        PSTRING() << "https://cloudflare-dns.com/dns-query?name=" << url_encode(host_) << "&type=" << (prefer_ipv6_ ? 28 : 1),
+        std::vector<std::pair<string, string>>({{"Host", "cloudflare-dns.com"}}), timeout, ttl, prefer_ipv6_,
         SslCtx::VerifyPeer::Off);
   }
 
@@ -92,35 +170,76 @@ class GoogleDnsResolver final : public Actor {
     auto end_time = Time::now();
     auto result = get_ip_address(std::move(r_http_query));
     VLOG(dns_resolver) << "Init IPv" << (prefer_ipv6_ ? "6" : "4") << " host = " << host_ << " in "
-                       << end_time - begin_time_ << " seconds to "
+                       << end_time - begin_time_ << " seconds to CloudFlare "
                        << (result.is_ok() ? (PSLICE() << result.ok()) : CSlice("[invalid]"));
     promise_.set_result(std::move(result));
     stop();
   }
 };
 
-class NativeDnsResolver final : public Actor {
+class CustomDnsResolver final : public Actor {
  public:
-  NativeDnsResolver(std::string host, bool prefer_ipv6, Promise<IPAddress> promise)
-      : host_(std::move(host)), prefer_ipv6_(prefer_ipv6), promise_(std::move(promise)) {
+  CustomDnsResolver(std::string host, bool prefer_ipv6, Promise<IPAddress> promise, string custom_url,
+                    std::vector<std::pair<string, string>> custom_headers)
+      : host_(std::move(host))
+      , prefer_ipv6_(prefer_ipv6)
+      , promise_(std::move(promise))
+      , custom_url_(std::move(custom_url))
+      , custom_headers_(std::move(custom_headers)) {
   }
 
  private:
   std::string host_;
   bool prefer_ipv6_;
   Promise<IPAddress> promise_;
+  std::string custom_url_;
+  std::vector<std::pair<string, string>> custom_headers_;
+  ActorOwn<Wget> wget_;
+  double begin_time_ = 0;
 
   void start_up() final {
-    IPAddress ip;
-    auto begin_time = Time::now();
-    auto status = ip.init_host_port(host_, 0, prefer_ipv6_);
-    auto end_time = Time::now();
-    VLOG(dns_resolver) << "Init host = " << host_ << " in " << end_time - begin_time << " seconds to " << ip;
-    if (status.is_error()) {
-      promise_.set_error(std::move(status));
-    } else {
-      promise_.set_value(std::move(ip));
+    auto r_address = IPAddress::get_ip_address(host_);
+    if (r_address.is_ok()) {
+      promise_.set_value(r_address.move_as_ok());
+      return stop();
     }
+
+    const int timeout = 10;
+    const int ttl = 3;
+    begin_time_ = Time::now();
+    auto url = PSTRING() << custom_url_ << "?name=" << url_encode(host_) << "&type=" << (prefer_ipv6_ ? 28 : 1);
+    auto wget_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<unique_ptr<HttpQuery>> r_http_query) {
+      send_closure(actor_id, &CustomDnsResolver::on_result, std::move(r_http_query));
+    });
+    auto headers = custom_headers_;
+    auto host_header = get_host_from_url(custom_url_);
+    if (!host_header.empty()) {
+      headers.emplace_back("Host", host_header);
+    }
+    wget_ = create_actor<Wget>("CustomDnsResolver", std::move(wget_promise), url, headers, timeout, ttl, prefer_ipv6_,
+                              SslCtx::VerifyPeer::Off);
+  }
+
+  static std::string get_host_from_url(const std::string &url) {
+    auto host_start = url.find("://");
+    if (host_start == std::string::npos) {
+      return "";
+    }
+    host_start += 3;
+    size_t host_end = host_start;
+    while (host_end < url.size() && url[host_end] != '/' && url[host_end] != '?' && url[host_end] != ':') {
+      host_end++;
+    }
+    return url.substr(host_start, host_end - host_start);
+  }
+
+  void on_result(Result<unique_ptr<HttpQuery>> r_http_query) {
+    auto end_time = Time::now();
+    auto result = parse_doh_json_response(std::move(r_http_query));
+    VLOG(dns_resolver) << "Init IPv" << (prefer_ipv6_ ? "6" : "4") << " host = " << host_ << " in "
+                       << end_time - begin_time_ << " seconds to Custom DNS "
+                       << (result.is_ok() ? (PSLICE() << result.ok()) : CSlice("[invalid]"));
+    promise_.set_result(std::move(result));
     stop();
   }
 };
@@ -165,16 +284,23 @@ void GetHostByNameActor::run_query(std::string host, bool prefer_ipv6, Query &qu
   });
 
   CHECK(query.query.empty());
-  CHECK(query.pos < options_.resolver_types.size());
+  if (query.pos >= options_.resolver_types.size()) {
+    query.query.reset();
+    return on_query_result(std::move(host), prefer_ipv6, Status::Error("No more resolvers"));
+  }
   auto resolver_type = options_.resolver_types[query.pos++];
   query.query = [&] {
     switch (resolver_type) {
-      case ResolverType::Native:
-        return ActorOwn<>(create_actor_on_scheduler<detail::NativeDnsResolver>(
-            "NativeDnsResolver", options_.scheduler_id, std::move(host), prefer_ipv6, std::move(promise)));
       case ResolverType::Google:
         return ActorOwn<>(create_actor_on_scheduler<detail::GoogleDnsResolver>(
             "GoogleDnsResolver", options_.scheduler_id, std::move(host), prefer_ipv6, std::move(promise)));
+      case ResolverType::CloudFlare:
+        return ActorOwn<>(create_actor_on_scheduler<detail::CloudFlareDnsResolver>(
+            "CloudFlareDnsResolver", options_.scheduler_id, std::move(host), prefer_ipv6, std::move(promise)));
+      case ResolverType::Custom:
+        return ActorOwn<>(create_actor_on_scheduler<detail::CustomDnsResolver>(
+            "CustomDnsResolver", options_.scheduler_id, std::move(host), prefer_ipv6, std::move(promise),
+            options_.custom_doh_url, options_.custom_doh_headers));
       default:
         UNREACHABLE();
         return ActorOwn<>();
