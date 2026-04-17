@@ -147,38 +147,37 @@ TEST(Mtproto, config) {
   {
     auto guard = sched.get_main_guard();
 
-    auto run = [&](auto &func, bool is_test) {
-      auto promise =
-          td::PromiseCreator::lambda([&, num = cnt](td::Result<td::SimpleConfigResult> r_simple_config_result) {
-            if (r_simple_config_result.is_ok()) {
-              auto simple_config_result = r_simple_config_result.move_as_ok();
-              auto date = simple_config_result.r_http_date.is_ok()
-                              ? td::to_string(simple_config_result.r_http_date.ok())
-                              : (PSTRING() << simple_config_result.r_http_date.error());
-              auto config = simple_config_result.r_config.is_ok()
-                                ? to_string(simple_config_result.r_config.ok())
-                                : (PSTRING() << simple_config_result.r_config.error());
-              LOG(ERROR) << num << " " << date << " " << config;
-            } else {
-              LOG(ERROR) << num << " " << r_simple_config_result.error();
-            }
-            if (--cnt == 0) {
-              td::Scheduler::instance()->finish();
-            }
-          });
+    auto run = [&](auto &func, td::Slice name) {
+      auto is_test = td::ends_with(name, "test");
+      auto promise = td::PromiseCreator::lambda([&, name](td::Result<td::SimpleConfigResult> r_simple_config_result) {
+        if (r_simple_config_result.is_ok()) {
+          auto simple_config_result = r_simple_config_result.move_as_ok();
+          auto date = simple_config_result.r_http_date.is_ok()
+                          ? td::to_string(simple_config_result.r_http_date.ok())
+                          : (PSTRING() << simple_config_result.r_http_date.error());
+          auto config = simple_config_result.r_config.is_ok() ? to_string(simple_config_result.r_config.ok())
+                                                              : (PSTRING() << simple_config_result.r_config.error());
+          LOG(ERROR) << name << ' ' << date << ' ' << config;
+        } else {
+          LOG(ERROR) << name << ' ' << r_simple_config_result.error();
+        }
+        if (--cnt == 0) {
+          td::Scheduler::instance()->finish();
+        }
+      });
       cnt++;
       func(std::move(promise), false, td::Slice(), is_test, -1).release();
     };
 
-    run(td::get_simple_config_azure, false);
-    run(td::get_simple_config_google_dns, false);
-    run(td::get_simple_config_mozilla_dns, false);
-    run(td::get_simple_config_azure, true);
-    run(td::get_simple_config_google_dns, true);
-    run(td::get_simple_config_mozilla_dns, true);
-    run(td::get_simple_config_firebase_remote_config, false);
-    run(td::get_simple_config_firebase_realtime, false);
-    run(td::get_simple_config_firebase_firestore, false);
+    run(td::get_simple_config_azure, "azure");
+    run(td::get_simple_config_google_dns, "Google DNS");
+    run(td::get_simple_config_mozilla_dns, "Mozilla DNS");
+    run(td::get_simple_config_azure, "azure test");
+    run(td::get_simple_config_google_dns, "Google DNS test");
+    run(td::get_simple_config_mozilla_dns, "Mozilla DNS test");
+    run(td::get_simple_config_firebase_remote_config, "remote config");
+    run(td::get_simple_config_firebase_realtime, "realtime");
+    run(td::get_simple_config_firebase_firestore, "firestore");
   }
   cnt--;
   if (cnt != 0) {
