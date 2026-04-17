@@ -97,7 +97,7 @@
                 "--build",
                 "build",
                 "--parallel",
-                "4"
+                "14"
             ],
             "group": "build",
             "dependsOn": [
@@ -117,7 +117,7 @@
                 "--target",
                 "run_all_tests",
                 "--parallel",
-                "4"
+                "14"
             ],
             "group": "build",
             "dependsOn": [
@@ -137,7 +137,7 @@
                 "--target",
                 "run_all_tests",
                 "--parallel",
-                "4"
+                "14"
             ],
             "group": "build",
             "problemMatcher": [
@@ -154,7 +154,7 @@
                 "--target",
                 "run_all_tests",
                 "--parallel",
-                "4"
+                "14"
             ],
             "group": "build",
             "dependsOn": [
@@ -174,7 +174,7 @@
                 "--target",
                 "run_all_tests",
                 "--parallel",
-                "4"
+                "14"
             ],
             "group": "build",
             "problemMatcher": [

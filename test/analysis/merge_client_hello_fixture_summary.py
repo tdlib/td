@@ -88,8 +88,13 @@ def cpp_bool(value: bool) -> str:
     return "true" if value else "false"
 
 
+def cpp_string(value: str) -> str:
+    escaped = value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
+    return f'"{escaped}"'
+
+
 def cpp_string_vector(name: str, values: list[str]) -> str:
-    body = ", ".join(f'\"{value}\"' for value in values)
+    body = ", ".join(cpp_string(value) for value in values)
     return f"inline const vector<string> {name} = {{{body}}};"
 
 
@@ -125,14 +130,14 @@ def cpp_ech_expectation(name: str, ech: dict[str, Any] | None) -> str:
 def emit_fixture_block(artifact: dict[str, Any], sample: dict[str, Any], prefix: str) -> list[str]:
     lines: list[str] = []
     lines.append(f"// fixture_id={sample['fixture_id']}")
-    lines.append(f"inline constexpr const char {prefix}FixtureId[] = \"{sample['fixture_id']}\";")
-    lines.append(f"inline constexpr const char {prefix}SourcePath[] = \"{artifact['source_path']}\";")
-    lines.append(f"inline constexpr const char {prefix}SourceSha256[] = \"{artifact['source_sha256']}\";")
-    lines.append(f"inline constexpr const char {prefix}CaptureDateUtc[] = \"{artifact['capture_date_utc']}\";")
-    lines.append(f"inline constexpr const char {prefix}ParserVersion[] = \"{artifact['parser_version']}\";")
-    lines.append(f"inline constexpr const char {prefix}ScenarioId[] = \"{artifact['scenario_id']}\";")
-    lines.append(f"inline constexpr const char {prefix}RouteMode[] = \"{normalize_route_mode(artifact['route_mode'])}\";")
-    lines.append(f"inline constexpr const char {prefix}Sni[] = \"{sample['sni']}\";")
+    lines.append(f"inline constexpr const char {prefix}FixtureId[] = {cpp_string(str(sample['fixture_id']))};")
+    lines.append(f"inline constexpr const char {prefix}SourcePath[] = {cpp_string(str(artifact['source_path']))};")
+    lines.append(f"inline constexpr const char {prefix}SourceSha256[] = {cpp_string(str(artifact['source_sha256']))};")
+    lines.append(f"inline constexpr const char {prefix}CaptureDateUtc[] = {cpp_string(str(artifact['capture_date_utc']))};")
+    lines.append(f"inline constexpr const char {prefix}ParserVersion[] = {cpp_string(str(artifact['parser_version']))};")
+    lines.append(f"inline constexpr const char {prefix}ScenarioId[] = {cpp_string(str(artifact['scenario_id']))};")
+    lines.append(f"inline constexpr const char {prefix}RouteMode[] = {cpp_string(normalize_route_mode(artifact['route_mode']))};")
+    lines.append(f"inline constexpr const char {prefix}Sni[] = {cpp_string(str(sample['sni']))};")
     lines.append(f"inline constexpr uint32 {prefix}FrameNumber = {sample['frame_number']};")
     lines.append(f"inline constexpr uint32 {prefix}TcpStream = {sample['tcp_stream']};")
     lines.append(f"inline constexpr uint16 {prefix}RecordLength = {sample['record_length']};")

@@ -18,8 +18,8 @@
 #include "td/telegram/net/PublicRsaKeyWatchdog.h"
 #include "td/telegram/net/SessionMultiProxy.h"
 #include "td/telegram/net/StealthConnectionCountPolicy.h"
-#include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/ReferenceTable.h"
+#include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/SessionBlendTable.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -265,7 +265,7 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     if (dc_id.is_internal()) {
       public_rsa_key = PublicRsaKeySharedMain::create(G()->is_test_dc());
       vector<int64> expected_fingerprints = {ReferenceTable::slot_value(mtproto::BlobRole::Primary),
-                     ReferenceTable::slot_value(mtproto::BlobRole::Secondary)};
+                                             ReferenceTable::slot_value(mtproto::BlobRole::Secondary)};
       auto rsa_result = public_rsa_key->get_rsa_key(expected_fingerprints);
       LOG_CHECK(rsa_result.is_ok()) << rsa_result.error();
       auto status = check_shared_entry(rsa_result.ok().fingerprint, G()->is_test_dc());
@@ -340,7 +340,9 @@ void NetQueryDispatcher::update_session_count() {
   update_connection_count_policy_locked(false);
 }
 void NetQueryDispatcher::destroy_auth_keys(Promise<> promise, net_health::AuthKeyDestroyReason reason) {
-  for (int32 i = 1; i < DcId::MAX_RAW_DC_ID && i <= 5; i++) {
+  constexpr int32 kMaxInternalBootstrapDcId = 5;
+  auto max_internal_dc_id = min(DcId::MAX_RAW_DC_ID - 1, kMaxInternalBootstrapDcId);
+  for (int32 i = 1; i <= max_internal_dc_id; i++) {
     auto dc_id = DcId::internal(i);
     if (!is_dc_inited(i) && !AuthDataShared::get_auth_key_for_dc(dc_id).empty()) {
       wait_dc_init(dc_id, true).ignore();

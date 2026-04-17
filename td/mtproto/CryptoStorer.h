@@ -35,7 +35,7 @@ template <class Object, class ObjectStorer>
 class ObjectImpl {
  public:
   ObjectImpl(bool not_empty, Object &&object, AuthData *auth_data)
-      : not_empty_(not_empty), object_(std::move(object)), object_storer_(object_) {
+      : not_empty_(not_empty), object_(std::move(object)), object_storer_(object_), message_id_{}, seq_no_(0) {
     if (empty()) {
       return;
     }
@@ -362,9 +362,9 @@ class CryptoImpl {
     OnlyDestroyKey,
     Mixed
   };
-  Type type_;
-  MessageId message_id_;
-  int32 seq_no_;
+  Type type_{OnlyQuery};
+  MessageId message_id_{};
+  int32 seq_no_{0};
 };
 
 }  // namespace mtproto

@@ -34,10 +34,16 @@ using td::mtproto::test::parse_tls_client_hello;
 
 constexpr td::uint16 kEchExtType = 0xFE0D;
 
-static const BrowserProfile kAllProfiles[] = {
-    BrowserProfile::Chrome133, BrowserProfile::Chrome131,           BrowserProfile::Chrome120,
-    BrowserProfile::Firefox148, BrowserProfile::Firefox149_MacOS26_3, BrowserProfile::Safari26_3,
-    BrowserProfile::IOS14,     BrowserProfile::Android11_OkHttp_Advisory};
+static const BrowserProfile kAllProfiles[] = {BrowserProfile::Chrome133,
+                                              BrowserProfile::Chrome131,
+                                              BrowserProfile::Chrome120,
+                                              BrowserProfile::Chrome147_Windows,
+                                              BrowserProfile::Chrome147_IOSChromium,
+                                              BrowserProfile::Firefox148,
+                                              BrowserProfile::Firefox149_MacOS26_3,
+                                              BrowserProfile::Safari26_3,
+                                              BrowserProfile::IOS14,
+                                              BrowserProfile::Android11_OkHttp_Advisory};
 
 TEST(TLS_HandshakeAcceptanceRouteLanes, NonRuEgressWithEchOnPresentsEchExtension) {
   // Profiles whose spec disables ECH (e.g. Safari26_3, IOS14,

@@ -83,4 +83,30 @@ TEST(IosChromiumGap1k, FixtureRegressionKeepsIos261AndIos264FamiliesDistinct) {
   ASSERT_TRUE(ios_264.count(kEchExtensionType) == 0);
 }
 
+TEST(IosChromiumGap1k, DedicatedIosChromiumProfileMatchesReviewedChromiumSet) {
+  auto ios_chromium = make_unordered_set(chrome146_0_7680_151_ios26_1NonGreaseExtensionsWithoutPadding);
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+    ASSERT_TRUE(ios_chromium == extension_set_non_grease_no_padding(build_profile_hello(
+                                    BrowserProfile::Chrome147_IOSChromium, EchMode::Rfc9180Outer, seed)));
+  }
+}
+
+TEST(IosChromiumGap1k, DedicatedIosChromiumProfilePreservesChromiumAlpsAndEch) {
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+    auto extensions = extension_set_non_grease_no_padding(
+        build_profile_hello(BrowserProfile::Chrome147_IOSChromium, EchMode::Rfc9180Outer, seed));
+    ASSERT_TRUE(extensions.count(kAlpsChrome133Plus) != 0);
+    ASSERT_TRUE(extensions.count(kEchExtensionType) != 0);
+    ASSERT_TRUE(extensions.count(0x0029u) != 0);
+  }
+}
+
+TEST(IosChromiumGap1k, DedicatedIosChromiumProfileStaysDistinctFromAppleTls) {
+  auto ios_apple_tls = make_unordered_set(chrome147_0_7727_47_ios26_4_aNonGreaseExtensionsWithoutPadding);
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+    ASSERT_TRUE(extension_set_non_grease_no_padding(build_profile_hello(BrowserProfile::Chrome147_IOSChromium,
+                                                                        EchMode::Rfc9180Outer, seed)) != ios_apple_tls);
+  }
+}
+
 }  // namespace

@@ -31,6 +31,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/message_entities.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/mtproto.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/dns_resolver.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/ip_address_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/poll.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/query_merger.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/secret.cpp
@@ -91,6 +92,8 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_dispatcher_transport_light_fuzz.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_transport_security_option_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_auth_data_session_mode_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_bootstrap_state_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_protocol_envelope_frame_safety.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_session_policy_source_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_entry_count_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_entry_count_adversarial.cpp
@@ -134,7 +137,9 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_capture_safari26_3_differential.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_cross_family_one_bit_differentiators.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_ech_quic_block_matrix.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_wire_classifier_blackhat.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_wire_pattern_distinguisher_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_wire_feature_mask_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/WireClassifierFeatures.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/UpstreamRuleVerifiers.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/FamilyLaneMatchers.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_upstream_rule_verifiers_contract.cpp
@@ -150,6 +155,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_params_platform_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_active_policy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_sticky_rotation.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_destination_key_safety.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_proxy_alpn_semantics.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_params_loader.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_params_loader_plan.cpp
@@ -342,7 +348,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_android_chromium_alps_1k.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_android_chromium_no_alps_1k.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_wire_size_distribution_1k.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_adversarial_dpi_1k.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_statistical_sampling_1k.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_fixed_mobile_profile_invariance_1k.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_cross_platform_contamination_1k.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_corpus_hmac_timestamp_adversarial_1k.cpp
@@ -353,9 +359,12 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_android_chromium_no_alps_baseline.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_ios_apple_tls_baseline.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_ios_chromium_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_ios_chromium_stats.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_linux_chrome_baseline.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_linux_firefox_baseline.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_macos_firefox_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_windows_chrome_stats.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_windows_firefox_stats.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_nightly_wire_baseline_monte_carlo.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_nightly_boundary_falsification.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_nightly_cross_family_distance.cpp
@@ -373,14 +382,17 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_chrome_extension_set_invariance.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_server_hello_parser_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_client_hello_acceptance_matrix.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_handshake_acceptance_matrix.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_handshake_acceptance_route_lanes.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_full_handshake_family_pairing.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_first_flight_layout_pairing.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_verified_profile_serverhello_pairing_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_grease_structural_positions.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_dpi_evasion_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_structural_invariants_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_hmac_replay_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_ja4_segment_a_correctness.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_ja3_ja4_cross_validation.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_wire_image_deep_safety.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/data.h
@@ -509,6 +521,18 @@ if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
 
         add_test(NAME "${TD_RUN_ALL_TEST_NAME}"
                  COMMAND run_all_tests --exact "${TD_RUN_ALL_TEST_NAME}")
+
+        set(TD_RUN_ALL_TEST_LABELS "")
+        if (TD_RUN_ALL_TEST_NAME MATCHES "(Corpus|MultiDump|WireClassifierBlackhat|HandshakeAcceptance|FullHandshakeFamilyPairing|FirstFlightLayoutPairing|CrossFamilyOneBitDifferentiators|RouteEchQuicBlockMatrix)")
+          list(APPEND TD_RUN_ALL_TEST_LABELS "STEALTH_CORPUS_QUICK")
+        endif()
+        if (TD_RUN_ALL_TEST_NAME MATCHES "Nightly")
+          list(APPEND TD_RUN_ALL_TEST_LABELS "STEALTH_CORPUS_FULL")
+        endif()
+        if (TD_RUN_ALL_TEST_LABELS)
+          list(REMOVE_DUPLICATES TD_RUN_ALL_TEST_LABELS)
+          set_tests_properties("${TD_RUN_ALL_TEST_NAME}" PROPERTIES LABELS "${TD_RUN_ALL_TEST_LABELS}")
+        endif()
       endforeach()
     else()
       message(WARNING "Failed to discover run_all_tests cases: ${TD_RUN_ALL_TESTS_DISCOVERY_ERROR}")

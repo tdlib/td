@@ -32,57 +32,81 @@ struct ExpectedLane {
   const char *route_lane;
 };
 
-constexpr ExpectedLane kExpectedLanes[] = {
-    {"android_chromium", "non_ru_egress"},
-    {"apple_ios_tls", "non_ru_egress"},
-    {"apple_macos_tls", "non_ru_egress"},
-    {"chromium_linux_desktop", "non_ru_egress"},
-    {"chromium_macos", "non_ru_egress"},
-    {"chromium_windows", "non_ru_egress"},
-    {"firefox_android", "non_ru_egress"},
-    {"firefox_linux_desktop", "non_ru_egress"},
-    {"firefox_macos", "non_ru_egress"},
-    {"firefox_windows", "non_ru_egress"},
-    {"ios_chromium", "non_ru_egress"},
+constexpr const char *kFamilies[] = {
+    "android_chromium", "apple_ios_tls",    "apple_macos_tls", "chromium_linux_desktop",
+    "chromium_macos",   "chromium_windows", "firefox_android", "firefox_linux_desktop",
+    "firefox_macos",    "firefox_windows",  "ios_chromium",
 };
 
+constexpr const char *kRouteLanes[] = {"non_ru_egress", "ru_egress", "unknown"};
+
 TEST(ReviewedFamilyLaneBaselinesCoverage, EveryExpectedLaneIsPresent) {
-  for (const auto &expected : kExpectedLanes) {
-    const auto *baseline = td::mtproto::test::baselines::get_baseline(
-        Slice(expected.family_id), Slice(expected.route_lane));
-    if (baseline == nullptr) {
-      LOG(ERROR) << "Missing reviewed baseline entry for family_id='" << expected.family_id
-                 << "' route_lane='" << expected.route_lane << "'";
+  for (const auto *family : kFamilies) {
+    for (const auto *lane : kRouteLanes) {
+      const auto *baseline = td::mtproto::test::baselines::get_baseline(Slice(family), Slice(lane));
+      if (baseline == nullptr) {
+        LOG(ERROR) << "Missing reviewed baseline entry for family_id='" << family << "' route_lane='" << lane << "'";
+      }
+      ASSERT_TRUE(baseline != nullptr);
+      ASSERT_EQ(Slice(family), baseline->family_id);
+      ASSERT_EQ(Slice(lane), baseline->route_lane);
     }
-    ASSERT_TRUE(baseline != nullptr);
-    ASSERT_EQ(Slice(expected.family_id), baseline->family_id);
-    ASSERT_EQ(Slice(expected.route_lane), baseline->route_lane);
-    ASSERT_TRUE(baseline->sample_count > 0u);
   }
 }
 
 TEST(ReviewedFamilyLaneBaselinesCoverage, TableSizeMatchesExpectedLaneCount) {
-  constexpr size_t kExpectedCount = sizeof(kExpectedLanes) / sizeof(kExpectedLanes[0]);
+  constexpr size_t kExpectedCount =
+      (sizeof(kFamilies) / sizeof(kFamilies[0])) * (sizeof(kRouteLanes) / sizeof(kRouteLanes[0]));
   ASSERT_EQ(kExpectedCount, td::mtproto::test::baselines::get_baseline_count());
 }
 
 TEST(ReviewedFamilyLaneBaselinesCoverage, TierAssignmentsMatchSampleThresholds) {
   using td::mtproto::test::baselines::TierLevel;
+
+  auto expected_raw_tier = [](size_t authoritative_count, size_t num_sources, size_t num_sessions) {
+    if (authoritative_count == 0u) {
+      return TierLevel::Tier0;
+    }
+    if (authoritative_count >= 200u && num_sources >= 3u && num_sessions >= 2u) {
+      return TierLevel::Tier4;
+    }
+    if (authoritative_count >= 15u && num_sources >= 3u && num_sessions >= 2u) {
+      return TierLevel::Tier3;
+    }
+    if (authoritative_count >= 3u && num_sources >= 2u && num_sessions >= 2u) {
+      return TierLevel::Tier2;
+    }
+    return TierLevel::Tier1;
+  };
+
+  auto expected_effective_tier = [](TierLevel raw_tier, bool stale_over_180_days) {
+    if (!stale_over_180_days) {
+      return raw_tier;
+    }
+    if (raw_tier == TierLevel::Tier4) {
+      return TierLevel::Tier3;
+    }
+    if (raw_tier == TierLevel::Tier3) {
+      return TierLevel::Tier2;
+    }
+    if (raw_tier == TierLevel::Tier2) {
+      return TierLevel::Tier1;
+    }
+    return raw_tier;
+  };
+
   for (size_t i = 0; i < td::mtproto::test::baselines::get_baseline_count(); i++) {
     const auto &baseline = td::mtproto::test::baselines::get_baseline_by_index(i);
-    auto n = baseline.sample_count;
-    TierLevel expected_tier = TierLevel::Tier1;
-    if (n >= 200) {
-      expected_tier = TierLevel::Tier4;
-    } else if (n >= 15) {
-      expected_tier = TierLevel::Tier3;
-    } else if (n >= 3) {
-      expected_tier = TierLevel::Tier2;
+    const auto expected_raw =
+        expected_raw_tier(baseline.authoritative_sample_count, baseline.num_sources, baseline.num_sessions);
+    const auto expected_tier = expected_effective_tier(expected_raw, baseline.stale_over_180_days);
+    if (baseline.raw_tier != expected_raw || baseline.tier != expected_tier) {
+      LOG(ERROR) << "Unexpected tier for family_id='" << baseline.family_id << "' route_lane='" << baseline.route_lane
+                 << "' authoritative_sample_count=" << baseline.authoritative_sample_count
+                 << " num_sources=" << baseline.num_sources << " num_sessions=" << baseline.num_sessions
+                 << " stale_over_180_days=" << baseline.stale_over_180_days;
     }
-    if (baseline.tier != expected_tier) {
-      LOG(ERROR) << "Unexpected tier for family_id='" << baseline.family_id
-                 << "' route_lane='" << baseline.route_lane << "' sample_count=" << n;
-    }
+    ASSERT_TRUE(baseline.raw_tier == expected_raw);
     ASSERT_TRUE(baseline.tier == expected_tier);
   }
 }
@@ -90,14 +114,46 @@ TEST(ReviewedFamilyLaneBaselinesCoverage, TierAssignmentsMatchSampleThresholds) 
 TEST(ReviewedFamilyLaneBaselinesCoverage, EveryLaneHasAtLeastOneObservedWireLength) {
   for (size_t i = 0; i < td::mtproto::test::baselines::get_baseline_count(); i++) {
     const auto &baseline = td::mtproto::test::baselines::get_baseline_by_index(i);
-    ASSERT_FALSE(baseline.set_catalog.observed_wire_lengths.empty());
+    if (baseline.route_lane == Slice("non_ru_egress")) {
+      ASSERT_FALSE(baseline.set_catalog.observed_wire_lengths.empty());
+    } else {
+      ASSERT_TRUE(baseline.set_catalog.observed_wire_lengths.empty());
+    }
   }
 }
 
 TEST(ReviewedFamilyLaneBaselinesCoverage, EveryLaneHasAtLeastOneOrderTemplate) {
   for (size_t i = 0; i < td::mtproto::test::baselines::get_baseline_count(); i++) {
     const auto &baseline = td::mtproto::test::baselines::get_baseline_by_index(i);
-    ASSERT_FALSE(baseline.set_catalog.observed_extension_order_templates.empty());
+    if (baseline.route_lane == Slice("non_ru_egress")) {
+      ASSERT_FALSE(baseline.set_catalog.observed_extension_order_templates.empty());
+    } else {
+      ASSERT_TRUE(baseline.set_catalog.observed_extension_order_templates.empty());
+    }
+  }
+}
+
+TEST(ReviewedFamilyLaneBaselinesCoverage, FailClosedLanesAreTierZeroAndEchOff) {
+  using td::mtproto::test::baselines::TierLevel;
+
+  for (const auto *family : kFamilies) {
+    const auto *ru = td::mtproto::test::baselines::get_baseline(Slice(family), Slice("ru_egress"));
+    const auto *unknown = td::mtproto::test::baselines::get_baseline(Slice(family), Slice("unknown"));
+    ASSERT_TRUE(ru != nullptr);
+    ASSERT_TRUE(unknown != nullptr);
+
+    ASSERT_TRUE(ru->tier == TierLevel::Tier0);
+    ASSERT_TRUE(ru->raw_tier == TierLevel::Tier0);
+    ASSERT_EQ(0u, ru->sample_count);
+    ASSERT_EQ(0u, ru->authoritative_sample_count);
+    ASSERT_FALSE(ru->invariants.ech_presence_required);
+    ASSERT_TRUE(ru->set_catalog.observed_ech_payload_lengths.empty());
+
+    ASSERT_TRUE(ru->tier == unknown->tier);
+    ASSERT_TRUE(ru->raw_tier == unknown->raw_tier);
+    ASSERT_EQ(ru->sample_count, unknown->sample_count);
+    ASSERT_EQ(ru->invariants.ech_presence_required, unknown->invariants.ech_presence_required);
+    ASSERT_EQ(ru->set_catalog.observed_ech_payload_lengths, unknown->set_catalog.observed_ech_payload_lengths);
   }
 }
 

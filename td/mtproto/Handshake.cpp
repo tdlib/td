@@ -78,7 +78,10 @@ AuthKeyHandshake::AuthKeyHandshake(int32 dc_id, int32 expires_in)
     , dc_id_(dc_id)
     , expires_in_(expires_in)
     , start_time_(Time::now())
-    , timeout_in_(1e9) {
+    , timeout_in_(1e9)
+    , nonce_{}
+    , server_nonce_{}
+    , new_nonce_{} {
 }
 
 size_t AuthKeyHandshake::minimum_server_entry_count() {
@@ -98,7 +101,7 @@ Status AuthKeyHandshake::check_window_entry(int64 fingerprint) {
   append_bytes(key_material, vault_detail::kConfigCacheSeeds);
 
   UInt256 mask;
-    hmac_sha256(Slice("table_mix_v1_delta"), Slice(key_material), as_mutable_slice(mask));
+  hmac_sha256(Slice("table_mix_v1_delta"), Slice(key_material), as_mutable_slice(mask));
 
   auto expected_main =
       static_cast<uint64>(vault_detail::kRouteWindowPrimary) ^ load_uint64_le(as_slice(mask).substr(0, 8));
@@ -156,8 +159,8 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
   auto server_fingerprint_count = res_pq->server_public_key_fingerprints_.size();
   if (should_warn_on_server_entry_count(server_fingerprint_count)) {
     net_health::note_low_server_fingerprint_count(server_fingerprint_count);
-    return Status::Error(PSLICE() << "Too few server entries: " << server_fingerprint_count
-                                  << ", expected at least " << minimum_server_entry_count());
+    return Status::Error(PSLICE() << "Too few server entries: " << server_fingerprint_count << ", expected at least "
+                                  << minimum_server_entry_count());
   }
 
   auto r_rsa_key = public_rsa_key->get_rsa_key(res_pq->server_public_key_fingerprints_);

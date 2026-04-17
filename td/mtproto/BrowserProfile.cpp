@@ -389,6 +389,44 @@ BrowserProfileSpec make_chrome120_impl() {
   return profile;
 }
 
+BrowserProfileSpec make_chrome147_windows_impl() {
+  auto profile = make_chrome133_impl();
+  profile.name = "chrome147_windows";
+  return profile;
+}
+
+BrowserProfileSpec make_chrome147_ios_chromium_impl() {
+  BrowserProfileSpec profile;
+  profile.name = "chrome147_ios_chromium";
+  profile.tls_version = TlsVersion::Tls12;
+  profile.cipher_suites = {4865, 4866, 4867, 49195, 49199, 49196, 49200, 52393, 52392, 49171, 49172, 156, 157, 47, 53};
+  profile.supported_groups = {4588, 29, 23, 24};
+  profile.ec_point_formats = {0};
+  profile.alpn = {"h2", "http/1.1"};
+  profile.grease = {true, 7};
+  profile.extensions = {
+      make_raw_extension(TlsExtensionType::RenegotiationInfo, "\x00"),
+      make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
+      make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
+      make_extension(TlsExtensionType::SessionTicket),
+      make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
+      make_extension(TlsExtensionType::EncryptedClientHello, true),
+      make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
+      make_extension(TlsExtensionType::SignedCertificateTimestamp),
+      make_extension(TlsExtensionType::ExtendedMasterSecret),
+      make_raw_extension(TlsExtensionType::ApplicationSettings, "\x00\x03\x02\x68\x32"),
+      make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
+      make_u16_extension(TlsExtensionType::SignatureAlgorithms, {1027, 1283, 1025, 1281, 513, 515}),
+      make_extension(TlsExtensionType::ServerName, true),
+      make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x02"),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771}, true),
+      make_u16_extension(TlsExtensionType::SupportedGroups, {4588, 29, 23, 24}, true),
+      make_extension(TlsExtensionType::PreSharedKey),
+  };
+  profile.layout_template = make_chromium_mobile_layout();
+  return profile;
+}
+
 BrowserProfileSpec make_chrome_darwin_impl() {
   BrowserProfileSpec profile;
   profile.name = "chrome_darwin";
@@ -421,6 +459,44 @@ BrowserProfileSpec make_chrome_darwin_impl() {
 BrowserProfileSpec make_firefox148_impl() {
   BrowserProfileSpec profile;
   profile.name = "firefox148";
+  profile.tls_version = TlsVersion::Tls12;
+  profile.cipher_suites = {4865,  4867,  4866,  49195, 49199, 52393, 52392, 49196, 49200,
+                           49162, 49161, 49171, 49172, 156,   157,   47,    53};
+  profile.supported_groups = {4588, 29, 23, 24, 25, 256, 257};
+  profile.ec_point_formats = {0};
+  profile.alpn = {"h2", "http/1.1"};
+  profile.grease = {false, 0};
+  profile.extensions = {
+      make_extension(TlsExtensionType::ServerName, true),
+      make_extension(TlsExtensionType::ExtendedMasterSecret),
+      make_raw_extension(TlsExtensionType::RenegotiationInfo, "\x00"),
+      make_u16_extension(TlsExtensionType::SupportedGroups, {4588, 29, 23, 24, 25, 256, 257}),
+      make_u8_extension(TlsExtensionType::EcPointFormats, {0}),
+      make_extension(TlsExtensionType::SessionTicket),
+      make_string_extension(TlsExtensionType::Alpn, {"h2", "http/1.1"}),
+      make_raw_extension(TlsExtensionType::StatusRequest, "\x01\x00\x00\x00\x00"),
+      make_u16_extension(TlsExtensionType::DelegatedCredentials, {1027, 1283, 1539, 515}),
+      make_extension(TlsExtensionType::SignedCertificateTimestamp),
+      make_key_share_extension({KeyShareKind::X25519MlKem768, KeyShareKind::X25519, KeyShareKind::Secp256r1}),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771}),
+      make_u16_extension(TlsExtensionType::SignatureAlgorithms,
+                         {1027, 1283, 1539, 1284, 1285, 1286, 1025, 1281, 1537, 515, 513}),
+      make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
+      make_custom_extension(28, "\x40\x01"),
+      make_raw_extension(TlsExtensionType::CompressCertificate, "\x06\x00\x01\x00\x02\x00\x03"),
+      make_extension(TlsExtensionType::EncryptedClientHello, true),
+  };
+  profile.layout_template = make_firefox_layout();
+  return profile;
+}
+
+BrowserProfileSpec make_firefox149_windows_impl() {
+  // Firefox 149 on Windows 10/11 uses the same Gecko/NSS TLS stack as
+  // Linux Firefox 148.  Extension order, cipher suites, supported_groups,
+  // and key-share structure are identical.  Named separately to allow
+  // per-platform fixture routing in TlsHelloProfileRegistry.
+  BrowserProfileSpec profile;
+  profile.name = "firefox149_windows";
   profile.tls_version = TlsVersion::Tls12;
   profile.cipher_suites = {4865,  4867,  4866,  49195, 49199, 52393, 52392, 49196, 49200,
                            49162, 49161, 49171, 49172, 156,   157,   47,    53};
@@ -614,12 +690,24 @@ const BrowserProfileSpec &get_profile_spec(BrowserProfile profile_id) {
       static const BrowserProfileSpec spec = make_chrome120_impl();
       return spec;
     }
+    case BrowserProfile::Chrome147_Windows: {
+      static const BrowserProfileSpec spec = make_chrome147_windows_impl();
+      return spec;
+    }
+    case BrowserProfile::Chrome147_IOSChromium: {
+      static const BrowserProfileSpec spec = make_chrome147_ios_chromium_impl();
+      return spec;
+    }
     case BrowserProfile::Firefox148: {
       static const BrowserProfileSpec spec = make_firefox148_impl();
       return spec;
     }
     case BrowserProfile::Firefox149_MacOS26_3: {
       static const BrowserProfileSpec spec = make_firefox149_macos_impl();
+      return spec;
+    }
+    case BrowserProfile::Firefox149_Windows: {
+      static const BrowserProfileSpec spec = make_firefox149_windows_impl();
       return spec;
     }
     case BrowserProfile::Safari26_3: {

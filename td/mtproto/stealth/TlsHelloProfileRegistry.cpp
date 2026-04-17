@@ -6,6 +6,7 @@
 
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
+#include "td/mtproto/ProxySecret.h"
 #include "td/mtproto/stealth/StealthRuntimeParams.h"
 
 #include "tddb/td/db/KeyValueSyncInterface.h"
@@ -28,8 +29,11 @@ constexpr BrowserProfile ALL_PROFILES[] = {
     BrowserProfile::Chrome133,
     BrowserProfile::Chrome131,
     BrowserProfile::Chrome120,
+    BrowserProfile::Chrome147_Windows,
+    BrowserProfile::Chrome147_IOSChromium,
     BrowserProfile::Firefox148,
     BrowserProfile::Firefox149_MacOS26_3,
+    BrowserProfile::Firefox149_Windows,
     BrowserProfile::Safari26_3,
     BrowserProfile::IOS14,
     BrowserProfile::Android11_OkHttp_Advisory,
@@ -50,13 +54,20 @@ constexpr BrowserProfile NON_DARWIN_DESKTOP_PROFILES[] = {
     BrowserProfile::Firefox148,
 };
 
+constexpr BrowserProfile WINDOWS_DESKTOP_PROFILES[] = {
+    BrowserProfile::Chrome147_Windows,
+    BrowserProfile::Firefox149_Windows,
+};
+
 constexpr BrowserProfile MOBILE_PROFILES[] = {
     BrowserProfile::IOS14,
+    BrowserProfile::Chrome147_IOSChromium,
     BrowserProfile::Android11_OkHttp_Advisory,
 };
 
 constexpr BrowserProfile IOS_MOBILE_PROFILES[] = {
     BrowserProfile::IOS14,
+    BrowserProfile::Chrome147_IOSChromium,
 };
 
 constexpr BrowserProfile ANDROID_MOBILE_PROFILES[] = {
@@ -70,10 +81,26 @@ constexpr ProfileSpec PROFILE_SPECS[] = {
      32, ExtensionOrderPolicy::ChromeShuffleAnchored},
     {BrowserProfile::Chrome120, Slice("chrome120"), 0x4469, 0, true, true, true, false, 0, 0x00, 0x0001, 0x0001, 0, 32,
      ExtensionOrderPolicy::ChromeShuffleAnchored},
+    // Windows Chromium family — Chrome 147 on Windows 10/11 uses the same
+    // BoringSSL stack as Linux Chrome. Cipher suites, ALPS type (0x44CD),
+    // PQ group (X25519MLKEM768=0x11EC), and ECH outer params are identical
+    // to Chrome133. Separate profile entry for platform-gated selection and
+    // chromium_windows family-lane matching. Sourced from 31 browser-capture
+    // fixtures under test/analysis/fixtures/clienthello/windows/.
+    {BrowserProfile::Chrome147_Windows, Slice("chrome147_windows"), 0x44CD, 0, true, true, true, true, 0x11EC, 0x00,
+     0x0001, 0x0001, 0, 32, ExtensionOrderPolicy::ChromeShuffleAnchored},
+    {BrowserProfile::Chrome147_IOSChromium, Slice("chrome147_ios_chromium"), 0x44CD, 0, true, false, true, true, 0x11EC,
+     0x00, 0x0001, 0x0001, 144, 32, ExtensionOrderPolicy::FixedFromFixture},
     {BrowserProfile::Firefox148, Slice("firefox148"), 0, 0x4001, true, false, true, true, 0x11EC, 0x00, 0x0001, 0x0003,
      239, 32, ExtensionOrderPolicy::FixedFromFixture},
     {BrowserProfile::Firefox149_MacOS26_3, Slice("firefox149_macos26_3"), 0, 0x4001, true, false, true, true, 0x11EC,
      0x00, 0x0001, 0x0001, 399, 32, ExtensionOrderPolicy::FixedFromFixture},
+    // Windows Firefox family — Firefox 149 on Windows 10/11 uses Gecko/NSS,
+    // identical TLS stack to Linux Firefox. Extension set includes ECH outer
+    // (0xFE0D), PQ key share (0x11EC). Sourced from browser-capture fixtures
+    // under test/analysis/fixtures/clienthello/windows/.
+    {BrowserProfile::Firefox149_Windows, Slice("firefox149_windows"), 0, 0x4001, true, false, true, true, 0x11EC, 0x00,
+     0x0001, 0x0003, 239, 32, ExtensionOrderPolicy::FixedFromFixture},
     // Apple TLS family — Safari 26.x and iOS 14 (which represents the
     // current iOS 26.x Apple TLS family despite the legacy enum name)
     // both adopted X25519MLKEM768. Real captures under
@@ -98,10 +125,16 @@ constexpr ProfileFixtureMetadata PROFILE_FIXTURES[] = {
      true},
     {Slice("browser_capture:chrome120_non_pq"), ProfileFixtureSourceKind::BrowserCapture, ProfileTrustTier::Verified,
      true, true, true},
+    {Slice("browser_capture:chrome147_windows"), ProfileFixtureSourceKind::BrowserCapture, ProfileTrustTier::Verified,
+     true, true, false},
+    {Slice("browser_capture:chrome147_ios_chromium"), ProfileFixtureSourceKind::BrowserCapture,
+     ProfileTrustTier::Verified, true, false, false},
     {Slice("browser_capture:firefox148"), ProfileFixtureSourceKind::BrowserCapture, ProfileTrustTier::Verified, true,
      true, true},
     {Slice("browser_capture:firefox149_macos26_3"), ProfileFixtureSourceKind::BrowserCapture,
      ProfileTrustTier::Verified, true, true, true},
+    {Slice("browser_capture:firefox149_windows"), ProfileFixtureSourceKind::BrowserCapture, ProfileTrustTier::Verified,
+     true, true, false},
     {Slice("utls:HelloSafari_26_3"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Advisory, false, false,
      false},
     {Slice("utls:HelloIOS_14"), ProfileFixtureSourceKind::UtlsSnapshot, ProfileTrustTier::Advisory, false, false,
@@ -186,13 +219,17 @@ size_t profile_index(BrowserProfile profile) {
   return static_cast<size_t>(profile);
 }
 
+string normalized_runtime_destination_key(Slice destination) {
+  return destination.substr(0, ProxySecret::MAX_DOMAIN_LENGTH).str();
+}
+
 string route_failure_cache_key(Slice destination, int32 unix_time) {
   auto unix_time64 = static_cast<int64>(unix_time);
   if (unix_time64 < 0) {
     unix_time64 = 0;
   }
 
-  string key = destination.str();
+  string key = normalized_runtime_destination_key(destination);
   key += '|';
   key += std::to_string(static_cast<uint32>(unix_time64 / kRouteFailureKeyBucketSeconds));
   return key;
@@ -358,9 +395,15 @@ uint8 profile_weight(const ProfileWeights &weights, BrowserProfile profile) {
       return weights.chrome131;
     case BrowserProfile::Chrome120:
       return weights.chrome120;
+    case BrowserProfile::Chrome147_Windows:
+      return weights.chrome147_windows;
+    case BrowserProfile::Chrome147_IOSChromium:
+      return weights.chrome147_ios_chromium;
     case BrowserProfile::Firefox148:
     case BrowserProfile::Firefox149_MacOS26_3:
       return weights.firefox148;
+    case BrowserProfile::Firefox149_Windows:
+      return weights.firefox149_windows;
     case BrowserProfile::Safari26_3:
       return weights.safari26_3;
     case BrowserProfile::IOS14:
@@ -394,7 +437,7 @@ RuntimePlatformHints default_runtime_platform_hints() noexcept {
 
 SelectionKey make_profile_selection_key(Slice destination, int32 unix_time) {
   SelectionKey key;
-  key.destination = destination.str();
+  key.destination = normalized_runtime_destination_key(destination);
 
   auto unix_time64 = static_cast<int64>(unix_time);
   if (unix_time64 < 0) {
@@ -495,6 +538,9 @@ Span<BrowserProfile> allowed_profiles_for_platform(const RuntimePlatformHints &p
   }
   if (platform.desktop_os == DesktopOs::Darwin) {
     return Span<BrowserProfile>(DARWIN_DESKTOP_PROFILES);
+  }
+  if (platform.desktop_os == DesktopOs::Windows) {
+    return Span<BrowserProfile>(WINDOWS_DESKTOP_PROFILES);
   }
   return Span<BrowserProfile>(NON_DARWIN_DESKTOP_PROFILES);
 }

@@ -4,6 +4,8 @@
 // telemt: https://t.me/telemtrs
 //
 
+#include "td/mtproto/BrowserProfile.h"
+
 #include "test/stealth/FingerprintFixtures.h"
 #include "test/stealth/MockRng.h"
 #include "test/stealth/TestHelpers.h"
@@ -100,6 +102,11 @@ TEST(TlsProfileWire, Chrome120OmitsPqHybridGroupsAndKeepsOnlyX25519KeyShare) {
     ASSERT_EQ(td::mtproto::test::fixtures::kX25519KeyShareLength, entry.key_length);
   }
   ASSERT_EQ(1u, non_grease_entries);
+}
+
+TEST(TlsProfileWire, Chrome147WindowsHasDedicatedBrowserProfileSpec) {
+  const auto &profile = td::mtproto::get_profile_spec(BrowserProfile::Chrome147_Windows);
+  ASSERT_EQ("chrome147_windows", profile.name);
 }
 
 TEST(TlsProfileWire, DisabledEchModeRemovesEchExtensionForChromiumProfiles) {
@@ -275,6 +282,54 @@ TEST(TlsProfileWire, IosAndAndroidFixedProfilesDoNotEmitChromiumOnlyExtensions) 
       ASSERT_TRUE(key_share_groups.count(td::mtproto::test::fixtures::kPqHybridGroup) != 0);
     }
   }
+}
+
+TEST(TlsProfileWire, IosChromiumProfileUsesChromiumMobileEchShape) {
+  auto spec = profile_spec(BrowserProfile::Chrome147_IOSChromium);
+  ASSERT_TRUE(spec.allows_ech);
+  ASSERT_FALSE(spec.allows_padding);
+  ASSERT_TRUE(spec.has_pq);
+  ASSERT_EQ(td::mtproto::test::fixtures::kPqHybridGroup, spec.pq_group_id);
+  ASSERT_EQ(td::mtproto::test::fixtures::kAlpsChrome133Plus, spec.alps_type);
+  ASSERT_TRUE(spec.extension_order_policy == td::mtproto::stealth::ExtensionOrderPolicy::FixedFromFixture);
+
+  auto wire = build_profile(BrowserProfile::Chrome147_IOSChromium, EchMode::Rfc9180Outer, 93);
+  auto parsed = parse_tls_client_hello(wire);
+  ASSERT_TRUE(parsed.is_ok());
+
+  ASSERT_TRUE(find_extension(parsed.ok(), td::mtproto::test::fixtures::kEchExtensionType) != nullptr);
+  ASSERT_TRUE(find_extension(parsed.ok(), td::mtproto::test::fixtures::kAlpsChrome133Plus) != nullptr);
+  ASSERT_TRUE(find_extension(parsed.ok(), 0x0029) != nullptr);
+  ASSERT_TRUE(find_extension(parsed.ok(), 0x0023) != nullptr);
+  ASSERT_TRUE(find_extension(parsed.ok(), 0x0015) == nullptr);
+
+  std::unordered_set<td::uint16> supported_groups(parsed.ok().supported_groups.begin(),
+                                                  parsed.ok().supported_groups.end());
+  std::unordered_set<td::uint16> key_share_groups(parsed.ok().key_share_groups.begin(),
+                                                  parsed.ok().key_share_groups.end());
+  ASSERT_TRUE(supported_groups.count(td::mtproto::test::fixtures::kPqHybridGroup) != 0);
+  ASSERT_TRUE(supported_groups.count(td::mtproto::test::fixtures::kX25519Group) != 0);
+  ASSERT_TRUE(key_share_groups.count(td::mtproto::test::fixtures::kPqHybridGroup) != 0);
+  ASSERT_TRUE(key_share_groups.count(td::mtproto::test::fixtures::kX25519Group) != 0);
+}
+
+TEST(TlsProfileWire, IosChromiumFailClosedRouteDropsEchAndPskExtensions) {
+  auto wire = build_profile(BrowserProfile::Chrome147_IOSChromium, EchMode::Disabled, 94);
+  auto parsed = parse_tls_client_hello(wire);
+  ASSERT_TRUE(parsed.is_ok());
+
+  ASSERT_TRUE(find_extension(parsed.ok(), td::mtproto::test::fixtures::kEchExtensionType) == nullptr);
+  ASSERT_TRUE(find_extension(parsed.ok(), 0x0029) == nullptr);
+  ASSERT_TRUE(find_extension(parsed.ok(), td::mtproto::test::fixtures::kAlpsChrome133Plus) != nullptr);
+  ASSERT_TRUE(find_extension(parsed.ok(), 0x0015) == nullptr);
+}
+
+TEST(TlsProfileWire, IosChromiumKeepsStableExtensionOrderAcrossSeeds) {
+  auto first = parse_tls_client_hello(build_profile(BrowserProfile::Chrome147_IOSChromium, EchMode::Rfc9180Outer, 95));
+  auto second = parse_tls_client_hello(build_profile(BrowserProfile::Chrome147_IOSChromium, EchMode::Rfc9180Outer, 96));
+  ASSERT_TRUE(first.is_ok());
+  ASSERT_TRUE(second.is_ok());
+  ASSERT_EQ(extension_types(first.ok()), extension_types(second.ok()));
 }
 
 TEST(TlsProfileWire, FixedProfilesKeepStableExtensionOrderAcrossSeeds) {

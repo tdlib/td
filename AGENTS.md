@@ -32,5 +32,6 @@ TDLib fork with MTProto-proxy-only stealth traffic-masking for DPI evasion.
 ## Reference material
 
 - DPI context: `docs/Plans/STEALTH_IMPLEMENTATION_RU.md`
+- Wave 2 implementation status: `docs/Plans/WAVE2_IMPLEMENTATION_STATUS_2026-04-17.md`
 - Samples: `docs/Samples/GoodbyeDPI/README.md`, `docs/Samples/JA4/README.md`
 - Standards: `docs/Standards/rfc8446.txt` (TLS), `docs/Standards/rfc7685.txt` (QUIC)

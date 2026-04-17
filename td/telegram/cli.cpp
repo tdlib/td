@@ -5056,7 +5056,7 @@ class CliClient final : public Actor {
       FileId file_id;
       int64 offset;
       int64 limit;
-      int32 priority;
+      int32 priority = 0;
       get_args(args, file_id, offset, limit, priority);
       if (priority <= 0) {
         priority = 1;
@@ -5077,7 +5077,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getSuggestedFileName>(file_id, directory_name));
     } else if (op == "uf" || op == "ufs" || op == "ufse") {
       string file_path;
-      int32 priority;
+      int32 priority = 0;
       get_args(args, file_path, priority);
       if (priority <= 0) {
         priority = 1;
@@ -5847,7 +5847,7 @@ class CliClient final : public Actor {
       string photo;
       StoryPrivacySettings rules;
       InputStoryAreas areas;
-      int32 active_period;
+      int32 active_period = 0;
       bool protect_content;
       string album_ids;
       get_args(args, chat_id, photo, rules, areas, active_period, protect_content, album_ids);
@@ -5861,7 +5861,7 @@ class CliClient final : public Actor {
       string video;
       StoryPrivacySettings rules;
       InputStoryAreas areas;
-      int32 active_period;
+      int32 active_period = 0;
       double duration;
       bool protect_content;
       string album_ids;
@@ -6489,7 +6489,7 @@ class CliClient final : public Actor {
       ChatId chat_id;
       MessageId message_id;
       string date;
-      int32 repeat_period;
+      int32 repeat_period = 0;
       get_args(args, chat_id, message_id, date, repeat_period);
       send_request(td_api::make_object<td_api::editMessageSchedulingState>(
           chat_id, message_id, as_message_scheduling_state(date, repeat_period)));
@@ -8280,7 +8280,7 @@ class CliClient final : public Actor {
       int64 sound_id;
       string show_preview;
       string mute_stories;
-      int64 story_sound_id;
+      int64 story_sound_id = 0;
       string hide_story_poster;
       string disable_pinned_message_notifications;
       string disable_mention_notifications;

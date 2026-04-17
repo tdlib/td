@@ -56,7 +56,7 @@ struct ExecutorConfig {
   // an HTTP/2 framing contract — advertising `h2` would create an L7
   // mismatch that any DPI box capable of parsing TLS-emergency bytes
   // can fingerprint. The
-  // `AdversarialDpiCorpus1k::ProxyChrome133AdvertisesHttp11OnlyAlpn`
+  // `CorpusStatisticalSampling1k::ProxyChrome133AdvertisesHttp11OnlyAlpn`
   // test enforces this for the Chrome 133 proxy path, and the proxy
   // builder entry points (`build_proxy_tls_client_hello*`) set this
   // flag.

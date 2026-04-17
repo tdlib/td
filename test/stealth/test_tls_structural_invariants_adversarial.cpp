@@ -48,7 +48,7 @@ using td::mtproto::test::parse_tls_client_hello;
 
 // --- Adversarial DPI Attack Vector 1: Session ID length ---
 
-TEST(TlsDpiEvasionAdversarial, SessionIdLengthMustBe32ForAllProfiles) {
+TEST(TlsStructuralInvariantsAdversarial, SessionIdLengthMustBe32ForAllProfiles) {
   // Real Chrome/Firefox/Safari all send 32-byte session IDs for TLS 1.3 compatibility.
   // Non-standard lengths (0, 16, etc.) are a trivial DPI signal.
   BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
@@ -70,7 +70,7 @@ TEST(TlsDpiEvasionAdversarial, SessionIdLengthMustBe32ForAllProfiles) {
 
 // --- Adversarial DPI Attack Vector 2: Compression methods ---
 
-TEST(TlsDpiEvasionAdversarial, CompressionMethodsMustBeNullForTls13) {
+TEST(TlsStructuralInvariantsAdversarial, CompressionMethodsMustBeNullForTls13) {
   // TLS 1.3 ClientHello must advertise exactly one compression method: null (0x00).
   // Any other value is a protocol violation and DPI red flag.
   BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
@@ -93,7 +93,7 @@ TEST(TlsDpiEvasionAdversarial, CompressionMethodsMustBeNullForTls13) {
 
 // --- Adversarial DPI Attack Vector 3: Record layer version ---
 
-TEST(TlsDpiEvasionAdversarial, RecordLayerVersionMustBe0x0301) {
+TEST(TlsStructuralInvariantsAdversarial, RecordLayerVersionMustBe0x0301) {
   // Real browsers use TLS record version 0x0301 (TLS 1.0) for backward compat.
   // Using 0x0303 is allowed but less common in TLS 1.3.
   BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
@@ -115,7 +115,7 @@ TEST(TlsDpiEvasionAdversarial, RecordLayerVersionMustBe0x0301) {
 
 // --- Adversarial DPI Attack Vector 4: Legacy version field ---
 
-TEST(TlsDpiEvasionAdversarial, ClientHelloLegacyVersionMustBe0x0303) {
+TEST(TlsStructuralInvariantsAdversarial, ClientHelloLegacyVersionMustBe0x0303) {
   // TLS 1.3 spec requires legacy_version = 0x0303 (TLS 1.2)
   BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
                                    BrowserProfile::Chrome131,
@@ -136,7 +136,7 @@ TEST(TlsDpiEvasionAdversarial, ClientHelloLegacyVersionMustBe0x0303) {
 
 // --- Adversarial DPI Attack Vector 5: SNI must match domain ---
 
-TEST(TlsDpiEvasionAdversarial, SniExtensionMustContainProvidedDomain) {
+TEST(TlsStructuralInvariantsAdversarial, SniExtensionMustContainProvidedDomain) {
   BrowserProfile all_profiles[] = {BrowserProfile::Chrome133, BrowserProfile::Firefox148, BrowserProfile::Safari26_3};
   for (auto profile : all_profiles) {
     MockRng rng(42);
@@ -155,7 +155,7 @@ TEST(TlsDpiEvasionAdversarial, SniExtensionMustContainProvidedDomain) {
 
 // --- Adversarial DPI Attack Vector 6: supported_versions must include 0x0304 ---
 
-TEST(TlsDpiEvasionAdversarial, SupportedVersionsMustIncludeTls13) {
+TEST(TlsStructuralInvariantsAdversarial, SupportedVersionsMustIncludeTls13) {
   BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,
                                    BrowserProfile::Chrome131,
                                    BrowserProfile::Chrome120,
@@ -189,7 +189,7 @@ TEST(TlsDpiEvasionAdversarial, SupportedVersionsMustIncludeTls13) {
 
 // --- Adversarial DPI Attack Vector 7: wire image HMAC replay ---
 
-TEST(TlsDpiEvasionAdversarial, DifferentTimestampsMustProduceDifferentHmac) {
+TEST(TlsStructuralInvariantsAdversarial, DifferentTimestampsMustProduceDifferentHmac) {
   // A DPI adversary performing active probing can replay captured ClientHellos.
   // HMAC embedding in client_random must change with timestamp to prevent replay.
   MockRng rng1(42);
@@ -202,7 +202,7 @@ TEST(TlsDpiEvasionAdversarial, DifferentTimestampsMustProduceDifferentHmac) {
   ASSERT_NE(wire1, wire2);
 }
 
-TEST(TlsDpiEvasionAdversarial, DifferentSecretsMustProduceDifferentHmac) {
+TEST(TlsStructuralInvariantsAdversarial, DifferentSecretsMustProduceDifferentHmac) {
   MockRng rng1(42);
   auto wire1 = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678,
                                                   BrowserProfile::Chrome133, EchMode::Disabled, rng1);
@@ -214,7 +214,7 @@ TEST(TlsDpiEvasionAdversarial, DifferentSecretsMustProduceDifferentHmac) {
 
 // --- Adversarial DPI Attack Vector 8: Cross-profile mixing detection ---
 
-TEST(TlsDpiEvasionAdversarial, SafariWithExtensionShuffleWouldBeDetectable) {
+TEST(TlsStructuralInvariantsAdversarial, SafariWithExtensionShuffleWouldBeDetectable) {
   // If a DPI sees a "Safari" User-Agent but fluctuating JA3 hashes,
   // it knows the traffic is fake. This test verifies Safari NEVER shuffles.
   std::set<td::string> ja3_hashes;
@@ -266,7 +266,7 @@ TEST(TlsDpiEvasionAdversarial, SafariWithExtensionShuffleWouldBeDetectable) {
 
 // --- Adversarial DPI Attack Vector 9: Wire length fingerprinting ---
 
-TEST(TlsDpiEvasionAdversarial, WireLengthMustNotBeFixed517ForDefaultBuild) {
+TEST(TlsStructuralInvariantsAdversarial, WireLengthMustNotBeFixed517ForDefaultBuild) {
   // The original TDLib fake TLS ClientHello was always exactly 517 bytes.
   // This is the most well-known DPI signature for Telegram proxy.
   std::set<size_t> lengths;
@@ -281,7 +281,7 @@ TEST(TlsDpiEvasionAdversarial, WireLengthMustNotBeFixed517ForDefaultBuild) {
 
 // --- Adversarial DPI Attack Vector 10: PQ profile consistency ---
 
-TEST(TlsDpiEvasionAdversarial, PqProfilesMustHavePqInBothSupportedGroupsAndKeyShare) {
+TEST(TlsStructuralInvariantsAdversarial, PqProfilesMustHavePqInBothSupportedGroupsAndKeyShare) {
   BrowserProfile pq_profiles[] = {BrowserProfile::Chrome133, BrowserProfile::Chrome131, BrowserProfile::Firefox148,
                                   BrowserProfile::Safari26_3};
   for (auto profile : pq_profiles) {
@@ -315,7 +315,7 @@ TEST(TlsDpiEvasionAdversarial, PqProfilesMustHavePqInBothSupportedGroupsAndKeySh
 
 // --- Adversarial DPI Attack Vector 11: Non-PQ profiles must not have PQ ---
 
-TEST(TlsDpiEvasionAdversarial, NonPqProfilesMustNotAdvertisePqGroup) {
+TEST(TlsStructuralInvariantsAdversarial, NonPqProfilesMustNotAdvertisePqGroup) {
   MockRng rng(42);
   auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678,
                                                  BrowserProfile::Chrome120, EchMode::Disabled, rng);
@@ -334,7 +334,7 @@ TEST(TlsDpiEvasionAdversarial, NonPqProfilesMustNotAdvertisePqGroup) {
 
 // --- Adversarial DPI Attack Vector 12: ECH on RU routes ---
 
-TEST(TlsDpiEvasionAdversarial, RuRouteMustNeverHaveEchExtension) {
+TEST(TlsStructuralInvariantsAdversarial, RuRouteMustNeverHaveEchExtension) {
   // ECH is blocked in Russia (per findings). If ECH appears on RU egress,
   // it's an immediate block trigger. Fail-closed = no ECH on RU.
   NetworkRouteHints ru_hints;
@@ -352,7 +352,7 @@ TEST(TlsDpiEvasionAdversarial, RuRouteMustNeverHaveEchExtension) {
 
 // --- Adversarial DPI Attack Vector 13: Key share X25519 point validation ---
 
-TEST(TlsDpiEvasionAdversarial, X25519KeyShareMustBeValidCurvePointAcross1000Seeds) {
+TEST(TlsStructuralInvariantsAdversarial, X25519KeyShareMustBeValidCurvePointAcross1000Seeds) {
   for (td::uint64 seed = 0; seed < 1000; seed++) {
     MockRng rng(seed);
     auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", 1712345678,
@@ -370,7 +370,7 @@ TEST(TlsDpiEvasionAdversarial, X25519KeyShareMustBeValidCurvePointAcross1000Seed
 
 // --- Adversarial DPI Attack Vector 14: Firefox record_size_limit ---
 
-TEST(TlsDpiEvasionAdversarial, Firefox148MustHaveRecordSizeLimitExtension) {
+TEST(TlsStructuralInvariantsAdversarial, Firefox148MustHaveRecordSizeLimitExtension) {
   // Firefox uniquely includes record_size_limit (0x001C). Its absence
   // when impersonating Firefox is a DPI signal.
   MockRng rng(42);
@@ -384,7 +384,7 @@ TEST(TlsDpiEvasionAdversarial, Firefox148MustHaveRecordSizeLimitExtension) {
   ASSERT_EQ(2u, rsl->value.size());
 }
 
-TEST(TlsDpiEvasionAdversarial, ChromeProfilesMustNotHaveRecordSizeLimitExtension) {
+TEST(TlsStructuralInvariantsAdversarial, ChromeProfilesMustNotHaveRecordSizeLimitExtension) {
   // Chrome does NOT include record_size_limit. Its presence when
   // impersonating Chrome is a DPI signal.
   BrowserProfile chrome_profiles[] = {BrowserProfile::Chrome133, BrowserProfile::Chrome131, BrowserProfile::Chrome120};
@@ -401,7 +401,7 @@ TEST(TlsDpiEvasionAdversarial, ChromeProfilesMustNotHaveRecordSizeLimitExtension
 
 // --- Adversarial DPI Attack Vector 15: Duplicate extension detection ---
 
-TEST(TlsDpiEvasionAdversarial, NoDuplicateExtensionTypesAllowed) {
+TEST(TlsStructuralInvariantsAdversarial, NoDuplicateExtensionTypesAllowed) {
   // RFC 8446 Section 4.2: "There MUST NOT be more than one extension of
   // the same type in a given extension block." DPI can flag duplicates.
   BrowserProfile all_profiles[] = {BrowserProfile::Chrome133,

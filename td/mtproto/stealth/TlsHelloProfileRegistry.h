@@ -83,7 +83,10 @@ struct ProfileWeights final {
   uint8 chrome133{50};
   uint8 chrome131{20};
   uint8 chrome120{15};
+  uint8 chrome147_windows{50};
+  uint8 chrome147_ios_chromium{30};
   uint8 firefox148{15};
+  uint8 firefox149_windows{15};
   uint8 safari26_3{20};
   uint8 ios14{70};
   uint8 android11_okhttp_advisory{30};

@@ -169,6 +169,9 @@ vector<Op> make_extension_ops(const BrowserProfileSpec &profile, const BrowserEx
       ops.push_back(Op::scope16_end());
       return ops;
     case TlsExtensionType::PreSharedKey: {
+      if (!config.has_ech) {
+        return {};
+      }
       // TLS 1.3 OfferedPsks structure as observed in real macOS Firefox 149
       // captures (test/analysis/fixtures/clienthello/macos/
       // firefox149_macos26_3.clienthello.json):

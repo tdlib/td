@@ -53,7 +53,7 @@ TEST(TlsProfilePlatformCoherence, IosRuntimeSelectionNeverUsesAndroidProfile) {
   auto allowed = allowed_profiles_for_platform(platform);
   for (td::uint32 bucket = 20000; bucket < 20256; bucket++) {
     auto profile = pick_profile_sticky(default_profile_weights(), make_selection_key(bucket), platform, allowed, rng);
-    ASSERT_TRUE(BrowserProfile::IOS14 == profile);
+    ASSERT_TRUE(profile != BrowserProfile::Android11_OkHttp_Advisory);
   }
 }
 

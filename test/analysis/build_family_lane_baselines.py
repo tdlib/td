@@ -24,6 +24,7 @@ generated header and a regression test can both be green at the same time.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import difflib
 import json
 import os
@@ -41,6 +42,13 @@ from typing import Any
 
 _FIREFOX_TOKENS = ("firefox", "librewolf", "ironfox", "firefoxzen")
 _SAFARI_TOKENS = ("safari",)
+
+AUTHORITATIVE_SOURCE_KINDS = {"browser_capture", "curl_cffi_capture", "pcap"}
+ADVISORY_SOURCE_KINDS = {"utls_snapshot", "advisory_code_sample"}
+STALE_WARNING_DAYS = 90
+STALE_DOWNGRADE_DAYS = 180
+_PRIMARY_ROUTE_LANE = "non_ru_egress"
+_FAIL_CLOSED_ROUTE_LANES = ("ru_egress", "unknown")
 
 
 def classify_family_id(profile_id: str, os_family: str) -> str:
@@ -206,14 +214,83 @@ def _sample_legacy_version(sample: dict[str, Any]) -> int:
 # ---------------------------------------------------------------------------
 
 
-def _tier_for(sample_count: int) -> str:
-    if sample_count >= 200:
+def _parse_capture_time(value: str) -> dt.datetime | None:
+    text = value.strip()
+    if not text:
+        return None
+    try:
+        if text.endswith("Z"):
+            return dt.datetime.fromisoformat(text[:-1] + "+00:00")
+        parsed = dt.datetime.fromisoformat(text)
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=dt.timezone.utc)
+        return parsed.astimezone(dt.timezone.utc)
+    except ValueError:
+        return None
+
+
+def _now_utc(now_utc: str | None) -> dt.datetime:
+    if now_utc is None:
+        return dt.datetime.now(dt.timezone.utc)
+    parsed = _parse_capture_time(now_utc)
+    if parsed is None:
+        raise ValueError(f"invalid now_utc value: {now_utc}")
+    return parsed
+
+
+def _source_kind(entry: dict[str, Any]) -> str:
+    return str(entry.get("source_kind", "")).strip().lower()
+
+
+def _trust_tier(entry: dict[str, Any]) -> str:
+    return str(entry.get("trust_tier", "")).strip().lower()
+
+
+def _is_authoritative_entry(entry: dict[str, Any]) -> bool:
+    source_kind = _source_kind(entry)
+    trust_tier = _trust_tier(entry)
+    if source_kind in ADVISORY_SOURCE_KINDS:
+        return False
+    if source_kind not in AUTHORITATIVE_SOURCE_KINDS:
+        return False
+    return trust_tier != "advisory"
+
+
+def _source_identity(entry: dict[str, Any]) -> tuple[str, str, str]:
+    return (
+        str(entry.get("source_kind", "")),
+        str(entry.get("source_path", "")),
+        str(entry.get("source_sha256", "")),
+    )
+
+
+def _session_identity(entry: dict[str, Any]) -> str:
+    scenario_id = str(entry.get("scenario_id", "")).strip()
+    if scenario_id:
+        return scenario_id
+    return "|".join(_source_identity(entry))
+
+
+def _raw_tier_for(authoritative_count: int, independent_sources: int, sessions: int) -> str:
+    if authoritative_count <= 0:
+        return "Tier0"
+    if authoritative_count >= 200 and independent_sources >= 3 and sessions >= 2:
         return "Tier4"
-    if sample_count >= 15:
+    if authoritative_count >= 15 and independent_sources >= 3 and sessions >= 2:
         return "Tier3"
-    if sample_count >= 3:
+    if authoritative_count >= 3 and independent_sources >= 2 and sessions >= 2:
         return "Tier2"
     return "Tier1"
+
+
+def _downgrade_tier_once(tier: str) -> str:
+    if tier == "Tier4":
+        return "Tier3"
+    if tier == "Tier3":
+        return "Tier2"
+    if tier == "Tier2":
+        return "Tier1"
+    return tier
 
 
 # ---------------------------------------------------------------------------
@@ -268,7 +345,7 @@ namespace mtproto {
 namespace test {
 namespace baselines {
 
-enum class TierLevel : int { Tier1 = 1, Tier2 = 2, Tier3 = 3, Tier4 = 4 };
+enum class TierLevel : int { Tier0 = 0, Tier1 = 1, Tier2 = 2, Tier3 = 3, Tier4 = 4 };
 
 struct ExactInvariants final {
   Slice family_id;
@@ -294,8 +371,13 @@ struct FamilyLaneBaseline final {
   Slice family_id;
   Slice route_lane;
   TierLevel tier;
+    TierLevel raw_tier;
   size_t sample_count;
+    size_t authoritative_sample_count;
   size_t num_sources;
+    size_t num_sessions;
+    bool stale_over_90_days;
+    bool stale_over_180_days;
   ExactInvariants invariants;
   SetMembershipCatalog set_catalog;
 };
@@ -332,13 +414,37 @@ def load_samples(input_dir: pathlib.Path) -> list[dict[str, Any]]:
         route_lane = str(artifact.get("route_mode", "unknown"))
         os_family = str(artifact.get("os_family", "unknown"))
         family_id = classify_family_id(profile_id, os_family)
+        source_kind = str(artifact.get("source_kind", "unknown"))
+        source_path = str(artifact.get("source_path", ""))
+        source_sha256 = str(artifact.get("source_sha256", ""))
+        trust_tier = str(artifact.get("trust_tier", "verified"))
+        scenario_id = str(artifact.get("scenario_id", artifact_path.stem))
+        capture_date_utc = str(artifact.get("capture_date_utc", ""))
+        contributor_id = str(artifact.get("contributor_id", artifact.get("contributor", "")))
+        device_id = str(artifact.get("device_id", artifact.get("device_hardware", "")))
+        os_build = str(artifact.get("os_build", artifact.get("os_version", "")))
+        browser_build = str(artifact.get("browser_build", artifact.get("browser_version", "")))
+        network_asn_country = str(artifact.get("network_asn_country", artifact.get("egress_asn_country", "")))
         for sample in artifact.get("samples", []):
+            if not isinstance(sample, dict):
+                continue
             samples.append({
                 "family_id": family_id,
                 "route_lane": route_lane,
                 "profile_id": profile_id,
                 "sample": sample,
                 "artifact_path": artifact_path,
+                "source_kind": source_kind,
+                "source_path": source_path,
+                "source_sha256": source_sha256,
+                "trust_tier": trust_tier,
+                "scenario_id": scenario_id,
+                "capture_date_utc": capture_date_utc,
+                "contributor_id": contributor_id,
+                "device_id": device_id,
+                "os_build": os_build,
+                "browser_build": browser_build,
+                "network_asn_country": network_asn_country,
             })
     return samples
 
@@ -428,27 +534,113 @@ def _build_set_catalog(group: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def build_baselines(samples: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _synthetic_fail_closed_invariants(donor: dict[str, Any]) -> dict[str, Any]:
+    inv = donor["invariants"]
+    return {
+        "cipher_suites": [],
+        "extension_set": [],
+        "supported_groups": [],
+        "alpn_protocols": [],
+        "compress_algos": [],
+        "ech_presence_required": False,
+        "record_version": int(inv.get("record_version", 0)),
+        "legacy_version": int(inv.get("legacy_version", 0)),
+    }
+
+
+def _synthetic_fail_closed_catalog() -> dict[str, Any]:
+    return {
+        "extension_order_templates": [],
+        "wire_lengths": [],
+        "ech_payload_lengths": [],
+        "alps_types": [],
+    }
+
+
+def _materialize_fail_closed_route_lanes(baselines: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_family: dict[str, dict[str, dict[str, Any]]] = {}
+    for baseline in baselines:
+        family_id = str(baseline["family_id"])
+        route_lane = str(baseline["route_lane"])
+        by_family.setdefault(family_id, {})[route_lane] = baseline
+
+    augmented: list[dict[str, Any]] = list(baselines)
+    for family_id, lanes in by_family.items():
+        donor = lanes.get(_PRIMARY_ROUTE_LANE)
+        if donor is None and lanes:
+            donor = lanes[sorted(lanes.keys())[0]]
+        if donor is None:
+            continue
+
+        for lane in _FAIL_CLOSED_ROUTE_LANES:
+            if lane in lanes:
+                continue
+            augmented.append({
+                "family_id": family_id,
+                "route_lane": lane,
+                "tier": "Tier0",
+                "raw_tier": "Tier0",
+                "sample_count": 0,
+                "authoritative_sample_count": 0,
+                "num_sources": 0,
+                "num_sessions": 0,
+                "stale_over_90_days": False,
+                "stale_over_180_days": False,
+                "invariants": _synthetic_fail_closed_invariants(donor),
+                "set_catalog": _synthetic_fail_closed_catalog(),
+            })
+
+    augmented.sort(key=lambda entry: (str(entry["family_id"]), str(entry["route_lane"])))
+    return augmented
+
+
+def build_baselines(samples: list[dict[str, Any]], now_utc: str | None = None) -> list[dict[str, Any]]:
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for entry in samples:
         key = (entry["family_id"], entry["route_lane"])
         grouped.setdefault(key, []).append(entry)
 
     baselines: list[dict[str, Any]] = []
+    now = _now_utc(now_utc)
     for (family_id, route_lane), group in sorted(grouped.items()):
         invariants = _merge_exact_invariants(group)
         catalog = _build_set_catalog(group)
-        sources = {entry["profile_id"] for entry in group}
+        authoritative_group = [entry for entry in group if _is_authoritative_entry(entry)]
+        sources = {_source_identity(entry) for entry in authoritative_group}
+        sessions = {_session_identity(entry) for entry in authoritative_group}
+        capture_times = [
+            parsed
+            for parsed in (_parse_capture_time(str(entry.get("capture_date_utc", ""))) for entry in authoritative_group)
+            if parsed is not None
+        ]
+        max_age_days: int | None = None
+        if capture_times:
+            freshest = max(capture_times)
+            age_delta = now - freshest
+            max_age_days = max(0, age_delta.days)
+        raw_tier = _raw_tier_for(
+            authoritative_count=len(authoritative_group),
+            independent_sources=len(sources),
+            sessions=len(sessions),
+        )
+        stale_over_90_days = max_age_days is not None and max_age_days > STALE_WARNING_DAYS
+        stale_over_180_days = max_age_days is not None and max_age_days > STALE_DOWNGRADE_DAYS
+        effective_tier = _downgrade_tier_once(raw_tier) if stale_over_180_days else raw_tier
         baselines.append({
             "family_id": family_id,
             "route_lane": route_lane,
-            "tier": _tier_for(len(group)),
+            "tier": effective_tier,
+            "raw_tier": raw_tier,
             "sample_count": len(group),
+            "authoritative_sample_count": len(authoritative_group),
             "num_sources": len(sources),
+            "num_sessions": len(sessions),
+            "stale_over_90_days": stale_over_90_days,
+            "stale_over_180_days": stale_over_180_days,
             "invariants": invariants,
             "set_catalog": catalog,
         })
-    return baselines
+    return _materialize_fail_closed_route_lanes(baselines)
 
 
 def render_header(baselines: list[dict[str, Any]]) -> str:
@@ -510,8 +702,13 @@ def render_header(baselines: list[dict[str, Any]]) -> str:
         lines.append(f"      b.family_id = Slice({_cpp_string(baseline['family_id'])});")
         lines.append(f"      b.route_lane = Slice({_cpp_string(baseline['route_lane'])});")
         lines.append(f"      b.tier = TierLevel::{baseline['tier']};")
+        lines.append(f"      b.raw_tier = TierLevel::{baseline['raw_tier']};")
         lines.append(f"      b.sample_count = {baseline['sample_count']}u;")
+        lines.append(f"      b.authoritative_sample_count = {baseline['authoritative_sample_count']}u;")
         lines.append(f"      b.num_sources = {baseline['num_sources']}u;")
+        lines.append(f"      b.num_sessions = {baseline['num_sessions']}u;")
+        lines.append(f"      b.stale_over_90_days = {'true' if baseline['stale_over_90_days'] else 'false'};")
+        lines.append(f"      b.stale_over_180_days = {'true' if baseline['stale_over_180_days'] else 'false'};")
         lines.append(f"      b.invariants.family_id = b.family_id;")
         lines.append(f"      b.invariants.route_lane = b.route_lane;")
         lines.append(f"      b.invariants.non_grease_cipher_suites_ordered = {prefix}CipherSuites;")

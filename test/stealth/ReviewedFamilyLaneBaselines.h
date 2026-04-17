@@ -20,7 +20,7 @@ namespace mtproto {
 namespace test {
 namespace baselines {
 
-enum class TierLevel : int { Tier1 = 1, Tier2 = 2, Tier3 = 3, Tier4 = 4 };
+enum class TierLevel : int { Tier0 = 0, Tier1 = 1, Tier2 = 2, Tier3 = 3, Tier4 = 4 };
 
 struct ExactInvariants final {
   Slice family_id;
@@ -46,8 +46,13 @@ struct FamilyLaneBaseline final {
   Slice family_id;
   Slice route_lane;
   TierLevel tier;
+    TierLevel raw_tier;
   size_t sample_count;
+    size_t authoritative_sample_count;
   size_t num_sources;
+    size_t num_sessions;
+    bool stale_over_90_days;
+    bool stale_over_180_days;
   ExactInvariants invariants;
   SetMembershipCatalog set_catalog;
 };
@@ -67,6 +72,28 @@ inline const vector<size_t> kandroid_chromium_non_ru_egressObservedWireLengths =
 inline const vector<uint16> kandroid_chromium_non_ru_egressObservedEchPayloadLengths = {0x0090u, 0x00B0u, 0x00D0u, 0x00F0u};
 inline const vector<uint16> kandroid_chromium_non_ru_egressObservedAlpsTypes = {0x44CDu};
 
+// family_id=android_chromium route_lane=ru_egress
+inline const vector<uint16> kandroid_chromium_ru_egressCipherSuites = {};
+inline const vector<uint16> kandroid_chromium_ru_egressExtensionSet = {};
+inline const vector<uint16> kandroid_chromium_ru_egressSupportedGroups = {};
+inline const vector<string> kandroid_chromium_ru_egressAlpnProtocols = {};
+inline const vector<uint16> kandroid_chromium_ru_egressCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kandroid_chromium_ru_egressObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kandroid_chromium_ru_egressObservedWireLengths = {};
+inline const vector<uint16> kandroid_chromium_ru_egressObservedEchPayloadLengths = {};
+inline const vector<uint16> kandroid_chromium_ru_egressObservedAlpsTypes = {};
+
+// family_id=android_chromium route_lane=unknown
+inline const vector<uint16> kandroid_chromium_unknownCipherSuites = {};
+inline const vector<uint16> kandroid_chromium_unknownExtensionSet = {};
+inline const vector<uint16> kandroid_chromium_unknownSupportedGroups = {};
+inline const vector<string> kandroid_chromium_unknownAlpnProtocols = {};
+inline const vector<uint16> kandroid_chromium_unknownCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kandroid_chromium_unknownObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kandroid_chromium_unknownObservedWireLengths = {};
+inline const vector<uint16> kandroid_chromium_unknownObservedEchPayloadLengths = {};
+inline const vector<uint16> kandroid_chromium_unknownObservedAlpsTypes = {};
+
 // family_id=apple_ios_tls route_lane=non_ru_egress
 inline const vector<uint16> kapple_ios_tls_non_ru_egressCipherSuites = {};
 inline const vector<uint16> kapple_ios_tls_non_ru_egressExtensionSet = {0x0000u, 0x0017u, 0xFF01u, 0x000Au, 0x000Bu, 0x0010u, 0x0005u, 0x000Du, 0x0012u, 0x0033u, 0x002Du, 0x002Bu, 0x001Bu};
@@ -77,6 +104,28 @@ inline const vector<vector<uint16>> kapple_ios_tls_non_ru_egressObservedExtensio
 inline const vector<size_t> kapple_ios_tls_non_ru_egressObservedWireLengths = {512u, 1540u, 1543u};
 inline const vector<uint16> kapple_ios_tls_non_ru_egressObservedEchPayloadLengths = {};
 inline const vector<uint16> kapple_ios_tls_non_ru_egressObservedAlpsTypes = {};
+
+// family_id=apple_ios_tls route_lane=ru_egress
+inline const vector<uint16> kapple_ios_tls_ru_egressCipherSuites = {};
+inline const vector<uint16> kapple_ios_tls_ru_egressExtensionSet = {};
+inline const vector<uint16> kapple_ios_tls_ru_egressSupportedGroups = {};
+inline const vector<string> kapple_ios_tls_ru_egressAlpnProtocols = {};
+inline const vector<uint16> kapple_ios_tls_ru_egressCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kapple_ios_tls_ru_egressObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kapple_ios_tls_ru_egressObservedWireLengths = {};
+inline const vector<uint16> kapple_ios_tls_ru_egressObservedEchPayloadLengths = {};
+inline const vector<uint16> kapple_ios_tls_ru_egressObservedAlpsTypes = {};
+
+// family_id=apple_ios_tls route_lane=unknown
+inline const vector<uint16> kapple_ios_tls_unknownCipherSuites = {};
+inline const vector<uint16> kapple_ios_tls_unknownExtensionSet = {};
+inline const vector<uint16> kapple_ios_tls_unknownSupportedGroups = {};
+inline const vector<string> kapple_ios_tls_unknownAlpnProtocols = {};
+inline const vector<uint16> kapple_ios_tls_unknownCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kapple_ios_tls_unknownObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kapple_ios_tls_unknownObservedWireLengths = {};
+inline const vector<uint16> kapple_ios_tls_unknownObservedEchPayloadLengths = {};
+inline const vector<uint16> kapple_ios_tls_unknownObservedAlpsTypes = {};
 
 // family_id=apple_macos_tls route_lane=non_ru_egress
 inline const vector<uint16> kapple_macos_tls_non_ru_egressCipherSuites = {0x1302u, 0x1303u, 0x1301u, 0xC02Cu, 0xC02Bu, 0xCCA9u, 0xC030u, 0xC02Fu, 0xCCA8u, 0xC00Au, 0xC009u, 0xC014u, 0xC013u, 0x009Du, 0x009Cu, 0x0035u, 0x002Fu, 0xC008u, 0xC012u, 0x000Au};
@@ -89,6 +138,28 @@ inline const vector<size_t> kapple_macos_tls_non_ru_egressObservedWireLengths = 
 inline const vector<uint16> kapple_macos_tls_non_ru_egressObservedEchPayloadLengths = {};
 inline const vector<uint16> kapple_macos_tls_non_ru_egressObservedAlpsTypes = {};
 
+// family_id=apple_macos_tls route_lane=ru_egress
+inline const vector<uint16> kapple_macos_tls_ru_egressCipherSuites = {};
+inline const vector<uint16> kapple_macos_tls_ru_egressExtensionSet = {};
+inline const vector<uint16> kapple_macos_tls_ru_egressSupportedGroups = {};
+inline const vector<string> kapple_macos_tls_ru_egressAlpnProtocols = {};
+inline const vector<uint16> kapple_macos_tls_ru_egressCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kapple_macos_tls_ru_egressObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kapple_macos_tls_ru_egressObservedWireLengths = {};
+inline const vector<uint16> kapple_macos_tls_ru_egressObservedEchPayloadLengths = {};
+inline const vector<uint16> kapple_macos_tls_ru_egressObservedAlpsTypes = {};
+
+// family_id=apple_macos_tls route_lane=unknown
+inline const vector<uint16> kapple_macos_tls_unknownCipherSuites = {};
+inline const vector<uint16> kapple_macos_tls_unknownExtensionSet = {};
+inline const vector<uint16> kapple_macos_tls_unknownSupportedGroups = {};
+inline const vector<string> kapple_macos_tls_unknownAlpnProtocols = {};
+inline const vector<uint16> kapple_macos_tls_unknownCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kapple_macos_tls_unknownObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kapple_macos_tls_unknownObservedWireLengths = {};
+inline const vector<uint16> kapple_macos_tls_unknownObservedEchPayloadLengths = {};
+inline const vector<uint16> kapple_macos_tls_unknownObservedAlpsTypes = {};
+
 // family_id=chromium_linux_desktop route_lane=non_ru_egress
 inline const vector<uint16> kchromium_linux_desktop_non_ru_egressCipherSuites = {0x1301u, 0x1302u, 0x1303u, 0xC02Bu, 0xC02Fu, 0xC02Cu, 0xC030u, 0xCCA9u, 0xCCA8u, 0xC013u, 0xC014u, 0x009Cu, 0x009Du, 0x002Fu, 0x0035u};
 inline const vector<uint16> kchromium_linux_desktop_non_ru_egressExtensionSet = {};
@@ -99,6 +170,28 @@ inline const vector<vector<uint16>> kchromium_linux_desktop_non_ru_egressObserve
 inline const vector<size_t> kchromium_linux_desktop_non_ru_egressObservedWireLengths = {1715u, 1779u, 1782u, 1794u, 1870u, 1882u, 1902u, 1914u, 1946u, 1966u, 1978u};
 inline const vector<uint16> kchromium_linux_desktop_non_ru_egressObservedEchPayloadLengths = {0x0090u, 0x00B0u, 0x00D0u, 0x00F0u};
 inline const vector<uint16> kchromium_linux_desktop_non_ru_egressObservedAlpsTypes = {0x44CDu};
+
+// family_id=chromium_linux_desktop route_lane=ru_egress
+inline const vector<uint16> kchromium_linux_desktop_ru_egressCipherSuites = {};
+inline const vector<uint16> kchromium_linux_desktop_ru_egressExtensionSet = {};
+inline const vector<uint16> kchromium_linux_desktop_ru_egressSupportedGroups = {};
+inline const vector<string> kchromium_linux_desktop_ru_egressAlpnProtocols = {};
+inline const vector<uint16> kchromium_linux_desktop_ru_egressCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kchromium_linux_desktop_ru_egressObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kchromium_linux_desktop_ru_egressObservedWireLengths = {};
+inline const vector<uint16> kchromium_linux_desktop_ru_egressObservedEchPayloadLengths = {};
+inline const vector<uint16> kchromium_linux_desktop_ru_egressObservedAlpsTypes = {};
+
+// family_id=chromium_linux_desktop route_lane=unknown
+inline const vector<uint16> kchromium_linux_desktop_unknownCipherSuites = {};
+inline const vector<uint16> kchromium_linux_desktop_unknownExtensionSet = {};
+inline const vector<uint16> kchromium_linux_desktop_unknownSupportedGroups = {};
+inline const vector<string> kchromium_linux_desktop_unknownAlpnProtocols = {};
+inline const vector<uint16> kchromium_linux_desktop_unknownCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kchromium_linux_desktop_unknownObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kchromium_linux_desktop_unknownObservedWireLengths = {};
+inline const vector<uint16> kchromium_linux_desktop_unknownObservedEchPayloadLengths = {};
+inline const vector<uint16> kchromium_linux_desktop_unknownObservedAlpsTypes = {};
 
 // family_id=chromium_macos route_lane=non_ru_egress
 inline const vector<uint16> kchromium_macos_non_ru_egressCipherSuites = {0x1301u, 0x1302u, 0x1303u, 0xC02Bu, 0xC02Fu, 0xC02Cu, 0xC030u, 0xCCA9u, 0xCCA8u, 0xC013u, 0xC014u, 0x009Cu, 0x009Du, 0x002Fu, 0x0035u};
@@ -111,6 +204,28 @@ inline const vector<size_t> kchromium_macos_non_ru_egressObservedWireLengths = {
 inline const vector<uint16> kchromium_macos_non_ru_egressObservedEchPayloadLengths = {0x0090u, 0x00B0u, 0x00D0u, 0x00F0u};
 inline const vector<uint16> kchromium_macos_non_ru_egressObservedAlpsTypes = {0x4469u, 0x44CDu};
 
+// family_id=chromium_macos route_lane=ru_egress
+inline const vector<uint16> kchromium_macos_ru_egressCipherSuites = {};
+inline const vector<uint16> kchromium_macos_ru_egressExtensionSet = {};
+inline const vector<uint16> kchromium_macos_ru_egressSupportedGroups = {};
+inline const vector<string> kchromium_macos_ru_egressAlpnProtocols = {};
+inline const vector<uint16> kchromium_macos_ru_egressCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kchromium_macos_ru_egressObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kchromium_macos_ru_egressObservedWireLengths = {};
+inline const vector<uint16> kchromium_macos_ru_egressObservedEchPayloadLengths = {};
+inline const vector<uint16> kchromium_macos_ru_egressObservedAlpsTypes = {};
+
+// family_id=chromium_macos route_lane=unknown
+inline const vector<uint16> kchromium_macos_unknownCipherSuites = {};
+inline const vector<uint16> kchromium_macos_unknownExtensionSet = {};
+inline const vector<uint16> kchromium_macos_unknownSupportedGroups = {};
+inline const vector<string> kchromium_macos_unknownAlpnProtocols = {};
+inline const vector<uint16> kchromium_macos_unknownCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kchromium_macos_unknownObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kchromium_macos_unknownObservedWireLengths = {};
+inline const vector<uint16> kchromium_macos_unknownObservedEchPayloadLengths = {};
+inline const vector<uint16> kchromium_macos_unknownObservedAlpsTypes = {};
+
 // family_id=chromium_windows route_lane=non_ru_egress
 inline const vector<uint16> kchromium_windows_non_ru_egressCipherSuites = {};
 inline const vector<uint16> kchromium_windows_non_ru_egressExtensionSet = {};
@@ -121,6 +236,28 @@ inline const vector<vector<uint16>> kchromium_windows_non_ru_egressObservedExten
 inline const vector<size_t> kchromium_windows_non_ru_egressObservedWireLengths = {512u, 1718u, 1736u, 1750u, 1782u, 1814u, 1870u, 1882u, 1902u, 1914u, 1932u, 1934u, 1946u, 1952u, 1964u, 1966u, 1978u, 1984u};
 inline const vector<uint16> kchromium_windows_non_ru_egressObservedEchPayloadLengths = {0x0090u, 0x00B0u, 0x00D0u, 0x00F0u};
 inline const vector<uint16> kchromium_windows_non_ru_egressObservedAlpsTypes = {0x4469u, 0x44CDu};
+
+// family_id=chromium_windows route_lane=ru_egress
+inline const vector<uint16> kchromium_windows_ru_egressCipherSuites = {};
+inline const vector<uint16> kchromium_windows_ru_egressExtensionSet = {};
+inline const vector<uint16> kchromium_windows_ru_egressSupportedGroups = {};
+inline const vector<string> kchromium_windows_ru_egressAlpnProtocols = {};
+inline const vector<uint16> kchromium_windows_ru_egressCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kchromium_windows_ru_egressObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kchromium_windows_ru_egressObservedWireLengths = {};
+inline const vector<uint16> kchromium_windows_ru_egressObservedEchPayloadLengths = {};
+inline const vector<uint16> kchromium_windows_ru_egressObservedAlpsTypes = {};
+
+// family_id=chromium_windows route_lane=unknown
+inline const vector<uint16> kchromium_windows_unknownCipherSuites = {};
+inline const vector<uint16> kchromium_windows_unknownExtensionSet = {};
+inline const vector<uint16> kchromium_windows_unknownSupportedGroups = {};
+inline const vector<string> kchromium_windows_unknownAlpnProtocols = {};
+inline const vector<uint16> kchromium_windows_unknownCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kchromium_windows_unknownObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kchromium_windows_unknownObservedWireLengths = {};
+inline const vector<uint16> kchromium_windows_unknownObservedEchPayloadLengths = {};
+inline const vector<uint16> kchromium_windows_unknownObservedAlpsTypes = {};
 
 // family_id=firefox_android route_lane=non_ru_egress
 inline const vector<uint16> kfirefox_android_non_ru_egressCipherSuites = {};
@@ -133,6 +270,28 @@ inline const vector<size_t> kfirefox_android_non_ru_egressObservedWireLengths = 
 inline const vector<uint16> kfirefox_android_non_ru_egressObservedEchPayloadLengths = {0x00B0u, 0x00D0u, 0x00EFu, 0x018Fu};
 inline const vector<uint16> kfirefox_android_non_ru_egressObservedAlpsTypes = {};
 
+// family_id=firefox_android route_lane=ru_egress
+inline const vector<uint16> kfirefox_android_ru_egressCipherSuites = {};
+inline const vector<uint16> kfirefox_android_ru_egressExtensionSet = {};
+inline const vector<uint16> kfirefox_android_ru_egressSupportedGroups = {};
+inline const vector<string> kfirefox_android_ru_egressAlpnProtocols = {};
+inline const vector<uint16> kfirefox_android_ru_egressCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kfirefox_android_ru_egressObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kfirefox_android_ru_egressObservedWireLengths = {};
+inline const vector<uint16> kfirefox_android_ru_egressObservedEchPayloadLengths = {};
+inline const vector<uint16> kfirefox_android_ru_egressObservedAlpsTypes = {};
+
+// family_id=firefox_android route_lane=unknown
+inline const vector<uint16> kfirefox_android_unknownCipherSuites = {};
+inline const vector<uint16> kfirefox_android_unknownExtensionSet = {};
+inline const vector<uint16> kfirefox_android_unknownSupportedGroups = {};
+inline const vector<string> kfirefox_android_unknownAlpnProtocols = {};
+inline const vector<uint16> kfirefox_android_unknownCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kfirefox_android_unknownObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kfirefox_android_unknownObservedWireLengths = {};
+inline const vector<uint16> kfirefox_android_unknownObservedEchPayloadLengths = {};
+inline const vector<uint16> kfirefox_android_unknownObservedAlpsTypes = {};
+
 // family_id=firefox_linux_desktop route_lane=non_ru_egress
 inline const vector<uint16> kfirefox_linux_desktop_non_ru_egressCipherSuites = {};
 inline const vector<uint16> kfirefox_linux_desktop_non_ru_egressExtensionSet = {};
@@ -143,6 +302,28 @@ inline const vector<vector<uint16>> kfirefox_linux_desktop_non_ru_egressObserved
 inline const vector<size_t> kfirefox_linux_desktop_non_ru_egressObservedWireLengths = {1890u, 1899u, 1905u, 2207u, 2209u, 2213u};
 inline const vector<uint16> kfirefox_linux_desktop_non_ru_egressObservedEchPayloadLengths = {0x00EFu, 0x018Fu};
 inline const vector<uint16> kfirefox_linux_desktop_non_ru_egressObservedAlpsTypes = {};
+
+// family_id=firefox_linux_desktop route_lane=ru_egress
+inline const vector<uint16> kfirefox_linux_desktop_ru_egressCipherSuites = {};
+inline const vector<uint16> kfirefox_linux_desktop_ru_egressExtensionSet = {};
+inline const vector<uint16> kfirefox_linux_desktop_ru_egressSupportedGroups = {};
+inline const vector<string> kfirefox_linux_desktop_ru_egressAlpnProtocols = {};
+inline const vector<uint16> kfirefox_linux_desktop_ru_egressCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kfirefox_linux_desktop_ru_egressObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kfirefox_linux_desktop_ru_egressObservedWireLengths = {};
+inline const vector<uint16> kfirefox_linux_desktop_ru_egressObservedEchPayloadLengths = {};
+inline const vector<uint16> kfirefox_linux_desktop_ru_egressObservedAlpsTypes = {};
+
+// family_id=firefox_linux_desktop route_lane=unknown
+inline const vector<uint16> kfirefox_linux_desktop_unknownCipherSuites = {};
+inline const vector<uint16> kfirefox_linux_desktop_unknownExtensionSet = {};
+inline const vector<uint16> kfirefox_linux_desktop_unknownSupportedGroups = {};
+inline const vector<string> kfirefox_linux_desktop_unknownAlpnProtocols = {};
+inline const vector<uint16> kfirefox_linux_desktop_unknownCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kfirefox_linux_desktop_unknownObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kfirefox_linux_desktop_unknownObservedWireLengths = {};
+inline const vector<uint16> kfirefox_linux_desktop_unknownObservedEchPayloadLengths = {};
+inline const vector<uint16> kfirefox_linux_desktop_unknownObservedAlpsTypes = {};
 
 // family_id=firefox_macos route_lane=non_ru_egress
 inline const vector<uint16> kfirefox_macos_non_ru_egressCipherSuites = {0x1301u, 0x1303u, 0x1302u, 0xC02Bu, 0xC02Fu, 0xCCA9u, 0xCCA8u, 0xC02Cu, 0xC030u, 0xC00Au, 0xC009u, 0xC013u, 0xC014u, 0x009Cu, 0x009Du, 0x002Fu, 0x0035u};
@@ -155,6 +336,28 @@ inline const vector<size_t> kfirefox_macos_non_ru_egressObservedWireLengths = {1
 inline const vector<uint16> kfirefox_macos_non_ru_egressObservedEchPayloadLengths = {0x00EFu, 0x018Fu};
 inline const vector<uint16> kfirefox_macos_non_ru_egressObservedAlpsTypes = {};
 
+// family_id=firefox_macos route_lane=ru_egress
+inline const vector<uint16> kfirefox_macos_ru_egressCipherSuites = {};
+inline const vector<uint16> kfirefox_macos_ru_egressExtensionSet = {};
+inline const vector<uint16> kfirefox_macos_ru_egressSupportedGroups = {};
+inline const vector<string> kfirefox_macos_ru_egressAlpnProtocols = {};
+inline const vector<uint16> kfirefox_macos_ru_egressCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kfirefox_macos_ru_egressObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kfirefox_macos_ru_egressObservedWireLengths = {};
+inline const vector<uint16> kfirefox_macos_ru_egressObservedEchPayloadLengths = {};
+inline const vector<uint16> kfirefox_macos_ru_egressObservedAlpsTypes = {};
+
+// family_id=firefox_macos route_lane=unknown
+inline const vector<uint16> kfirefox_macos_unknownCipherSuites = {};
+inline const vector<uint16> kfirefox_macos_unknownExtensionSet = {};
+inline const vector<uint16> kfirefox_macos_unknownSupportedGroups = {};
+inline const vector<string> kfirefox_macos_unknownAlpnProtocols = {};
+inline const vector<uint16> kfirefox_macos_unknownCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kfirefox_macos_unknownObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kfirefox_macos_unknownObservedWireLengths = {};
+inline const vector<uint16> kfirefox_macos_unknownObservedEchPayloadLengths = {};
+inline const vector<uint16> kfirefox_macos_unknownObservedAlpsTypes = {};
+
 // family_id=firefox_windows route_lane=non_ru_egress
 inline const vector<uint16> kfirefox_windows_non_ru_egressCipherSuites = {};
 inline const vector<uint16> kfirefox_windows_non_ru_egressExtensionSet = {};
@@ -165,6 +368,28 @@ inline const vector<vector<uint16>> kfirefox_windows_non_ru_egressObservedExtens
 inline const vector<size_t> kfirefox_windows_non_ru_egressObservedWireLengths = {287u, 531u, 535u, 1905u, 2201u, 2204u, 2213u};
 inline const vector<uint16> kfirefox_windows_non_ru_egressObservedEchPayloadLengths = {0x00EFu, 0x018Fu};
 inline const vector<uint16> kfirefox_windows_non_ru_egressObservedAlpsTypes = {};
+
+// family_id=firefox_windows route_lane=ru_egress
+inline const vector<uint16> kfirefox_windows_ru_egressCipherSuites = {};
+inline const vector<uint16> kfirefox_windows_ru_egressExtensionSet = {};
+inline const vector<uint16> kfirefox_windows_ru_egressSupportedGroups = {};
+inline const vector<string> kfirefox_windows_ru_egressAlpnProtocols = {};
+inline const vector<uint16> kfirefox_windows_ru_egressCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kfirefox_windows_ru_egressObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kfirefox_windows_ru_egressObservedWireLengths = {};
+inline const vector<uint16> kfirefox_windows_ru_egressObservedEchPayloadLengths = {};
+inline const vector<uint16> kfirefox_windows_ru_egressObservedAlpsTypes = {};
+
+// family_id=firefox_windows route_lane=unknown
+inline const vector<uint16> kfirefox_windows_unknownCipherSuites = {};
+inline const vector<uint16> kfirefox_windows_unknownExtensionSet = {};
+inline const vector<uint16> kfirefox_windows_unknownSupportedGroups = {};
+inline const vector<string> kfirefox_windows_unknownAlpnProtocols = {};
+inline const vector<uint16> kfirefox_windows_unknownCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kfirefox_windows_unknownObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kfirefox_windows_unknownObservedWireLengths = {};
+inline const vector<uint16> kfirefox_windows_unknownObservedEchPayloadLengths = {};
+inline const vector<uint16> kfirefox_windows_unknownObservedAlpsTypes = {};
 
 // family_id=ios_chromium route_lane=non_ru_egress
 inline const vector<uint16> kios_chromium_non_ru_egressCipherSuites = {};
@@ -177,17 +402,44 @@ inline const vector<size_t> kios_chromium_non_ru_egressObservedWireLengths = {15
 inline const vector<uint16> kios_chromium_non_ru_egressObservedEchPayloadLengths = {0x0090u, 0x00F0u};
 inline const vector<uint16> kios_chromium_non_ru_egressObservedAlpsTypes = {0x44CDu};
 
+// family_id=ios_chromium route_lane=ru_egress
+inline const vector<uint16> kios_chromium_ru_egressCipherSuites = {};
+inline const vector<uint16> kios_chromium_ru_egressExtensionSet = {};
+inline const vector<uint16> kios_chromium_ru_egressSupportedGroups = {};
+inline const vector<string> kios_chromium_ru_egressAlpnProtocols = {};
+inline const vector<uint16> kios_chromium_ru_egressCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kios_chromium_ru_egressObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kios_chromium_ru_egressObservedWireLengths = {};
+inline const vector<uint16> kios_chromium_ru_egressObservedEchPayloadLengths = {};
+inline const vector<uint16> kios_chromium_ru_egressObservedAlpsTypes = {};
+
+// family_id=ios_chromium route_lane=unknown
+inline const vector<uint16> kios_chromium_unknownCipherSuites = {};
+inline const vector<uint16> kios_chromium_unknownExtensionSet = {};
+inline const vector<uint16> kios_chromium_unknownSupportedGroups = {};
+inline const vector<string> kios_chromium_unknownAlpnProtocols = {};
+inline const vector<uint16> kios_chromium_unknownCompressCertAlgorithms = {};
+inline const vector<vector<uint16>> kios_chromium_unknownObservedExtensionOrderTemplates = {};
+inline const vector<size_t> kios_chromium_unknownObservedWireLengths = {};
+inline const vector<uint16> kios_chromium_unknownObservedEchPayloadLengths = {};
+inline const vector<uint16> kios_chromium_unknownObservedAlpsTypes = {};
+
 inline const vector<FamilyLaneBaseline> &get_baselines_table() {
   static const vector<FamilyLaneBaseline> kTable = [] {
     vector<FamilyLaneBaseline> t;
-    t.reserve(11);
+    t.reserve(33);
     {
       FamilyLaneBaseline b;
       b.family_id = Slice("android_chromium");
       b.route_lane = Slice("non_ru_egress");
       b.tier = TierLevel::Tier3;
+      b.raw_tier = TierLevel::Tier3;
       b.sample_count = 69u;
+      b.authoritative_sample_count = 69u;
       b.num_sources = 19u;
+      b.num_sessions = 19u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
       b.invariants.family_id = b.family_id;
       b.invariants.route_lane = b.route_lane;
       b.invariants.non_grease_cipher_suites_ordered = kandroid_chromium_non_ru_egressCipherSuites;
@@ -206,11 +458,72 @@ inline const vector<FamilyLaneBaseline> &get_baselines_table() {
     }
     {
       FamilyLaneBaseline b;
+      b.family_id = Slice("android_chromium");
+      b.route_lane = Slice("ru_egress");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kandroid_chromium_ru_egressCipherSuites;
+      b.invariants.non_grease_extension_set = kandroid_chromium_ru_egressExtensionSet;
+      b.invariants.non_grease_supported_groups = kandroid_chromium_ru_egressSupportedGroups;
+      b.invariants.alpn_protocols = kandroid_chromium_ru_egressAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kandroid_chromium_ru_egressCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kandroid_chromium_ru_egressObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kandroid_chromium_ru_egressObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kandroid_chromium_ru_egressObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kandroid_chromium_ru_egressObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
+      b.family_id = Slice("android_chromium");
+      b.route_lane = Slice("unknown");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kandroid_chromium_unknownCipherSuites;
+      b.invariants.non_grease_extension_set = kandroid_chromium_unknownExtensionSet;
+      b.invariants.non_grease_supported_groups = kandroid_chromium_unknownSupportedGroups;
+      b.invariants.alpn_protocols = kandroid_chromium_unknownAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kandroid_chromium_unknownCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kandroid_chromium_unknownObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kandroid_chromium_unknownObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kandroid_chromium_unknownObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kandroid_chromium_unknownObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
       b.family_id = Slice("apple_ios_tls");
       b.route_lane = Slice("non_ru_egress");
       b.tier = TierLevel::Tier3;
+      b.raw_tier = TierLevel::Tier3;
       b.sample_count = 42u;
+      b.authoritative_sample_count = 42u;
       b.num_sources = 16u;
+      b.num_sessions = 16u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
       b.invariants.family_id = b.family_id;
       b.invariants.route_lane = b.route_lane;
       b.invariants.non_grease_cipher_suites_ordered = kapple_ios_tls_non_ru_egressCipherSuites;
@@ -229,11 +542,72 @@ inline const vector<FamilyLaneBaseline> &get_baselines_table() {
     }
     {
       FamilyLaneBaseline b;
+      b.family_id = Slice("apple_ios_tls");
+      b.route_lane = Slice("ru_egress");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kapple_ios_tls_ru_egressCipherSuites;
+      b.invariants.non_grease_extension_set = kapple_ios_tls_ru_egressExtensionSet;
+      b.invariants.non_grease_supported_groups = kapple_ios_tls_ru_egressSupportedGroups;
+      b.invariants.alpn_protocols = kapple_ios_tls_ru_egressAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kapple_ios_tls_ru_egressCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kapple_ios_tls_ru_egressObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kapple_ios_tls_ru_egressObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kapple_ios_tls_ru_egressObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kapple_ios_tls_ru_egressObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
+      b.family_id = Slice("apple_ios_tls");
+      b.route_lane = Slice("unknown");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kapple_ios_tls_unknownCipherSuites;
+      b.invariants.non_grease_extension_set = kapple_ios_tls_unknownExtensionSet;
+      b.invariants.non_grease_supported_groups = kapple_ios_tls_unknownSupportedGroups;
+      b.invariants.alpn_protocols = kapple_ios_tls_unknownAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kapple_ios_tls_unknownCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kapple_ios_tls_unknownObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kapple_ios_tls_unknownObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kapple_ios_tls_unknownObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kapple_ios_tls_unknownObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
       b.family_id = Slice("apple_macos_tls");
       b.route_lane = Slice("non_ru_egress");
       b.tier = TierLevel::Tier3;
+      b.raw_tier = TierLevel::Tier3;
       b.sample_count = 16u;
+      b.authoritative_sample_count = 16u;
       b.num_sources = 3u;
+      b.num_sessions = 3u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
       b.invariants.family_id = b.family_id;
       b.invariants.route_lane = b.route_lane;
       b.invariants.non_grease_cipher_suites_ordered = kapple_macos_tls_non_ru_egressCipherSuites;
@@ -252,11 +626,72 @@ inline const vector<FamilyLaneBaseline> &get_baselines_table() {
     }
     {
       FamilyLaneBaseline b;
+      b.family_id = Slice("apple_macos_tls");
+      b.route_lane = Slice("ru_egress");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kapple_macos_tls_ru_egressCipherSuites;
+      b.invariants.non_grease_extension_set = kapple_macos_tls_ru_egressExtensionSet;
+      b.invariants.non_grease_supported_groups = kapple_macos_tls_ru_egressSupportedGroups;
+      b.invariants.alpn_protocols = kapple_macos_tls_ru_egressAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kapple_macos_tls_ru_egressCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kapple_macos_tls_ru_egressObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kapple_macos_tls_ru_egressObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kapple_macos_tls_ru_egressObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kapple_macos_tls_ru_egressObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
+      b.family_id = Slice("apple_macos_tls");
+      b.route_lane = Slice("unknown");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kapple_macos_tls_unknownCipherSuites;
+      b.invariants.non_grease_extension_set = kapple_macos_tls_unknownExtensionSet;
+      b.invariants.non_grease_supported_groups = kapple_macos_tls_unknownSupportedGroups;
+      b.invariants.alpn_protocols = kapple_macos_tls_unknownAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kapple_macos_tls_unknownCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kapple_macos_tls_unknownObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kapple_macos_tls_unknownObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kapple_macos_tls_unknownObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kapple_macos_tls_unknownObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
       b.family_id = Slice("chromium_linux_desktop");
       b.route_lane = Slice("non_ru_egress");
       b.tier = TierLevel::Tier3;
+      b.raw_tier = TierLevel::Tier3;
       b.sample_count = 16u;
+      b.authoritative_sample_count = 16u;
       b.num_sources = 6u;
+      b.num_sessions = 6u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
       b.invariants.family_id = b.family_id;
       b.invariants.route_lane = b.route_lane;
       b.invariants.non_grease_cipher_suites_ordered = kchromium_linux_desktop_non_ru_egressCipherSuites;
@@ -275,11 +710,72 @@ inline const vector<FamilyLaneBaseline> &get_baselines_table() {
     }
     {
       FamilyLaneBaseline b;
+      b.family_id = Slice("chromium_linux_desktop");
+      b.route_lane = Slice("ru_egress");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kchromium_linux_desktop_ru_egressCipherSuites;
+      b.invariants.non_grease_extension_set = kchromium_linux_desktop_ru_egressExtensionSet;
+      b.invariants.non_grease_supported_groups = kchromium_linux_desktop_ru_egressSupportedGroups;
+      b.invariants.alpn_protocols = kchromium_linux_desktop_ru_egressAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kchromium_linux_desktop_ru_egressCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kchromium_linux_desktop_ru_egressObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kchromium_linux_desktop_ru_egressObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kchromium_linux_desktop_ru_egressObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kchromium_linux_desktop_ru_egressObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
+      b.family_id = Slice("chromium_linux_desktop");
+      b.route_lane = Slice("unknown");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kchromium_linux_desktop_unknownCipherSuites;
+      b.invariants.non_grease_extension_set = kchromium_linux_desktop_unknownExtensionSet;
+      b.invariants.non_grease_supported_groups = kchromium_linux_desktop_unknownSupportedGroups;
+      b.invariants.alpn_protocols = kchromium_linux_desktop_unknownAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kchromium_linux_desktop_unknownCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kchromium_linux_desktop_unknownObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kchromium_linux_desktop_unknownObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kchromium_linux_desktop_unknownObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kchromium_linux_desktop_unknownObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
       b.family_id = Slice("chromium_macos");
       b.route_lane = Slice("non_ru_egress");
       b.tier = TierLevel::Tier3;
+      b.raw_tier = TierLevel::Tier3;
       b.sample_count = 21u;
+      b.authoritative_sample_count = 21u;
       b.num_sources = 5u;
+      b.num_sessions = 5u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
       b.invariants.family_id = b.family_id;
       b.invariants.route_lane = b.route_lane;
       b.invariants.non_grease_cipher_suites_ordered = kchromium_macos_non_ru_egressCipherSuites;
@@ -298,11 +794,72 @@ inline const vector<FamilyLaneBaseline> &get_baselines_table() {
     }
     {
       FamilyLaneBaseline b;
+      b.family_id = Slice("chromium_macos");
+      b.route_lane = Slice("ru_egress");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kchromium_macos_ru_egressCipherSuites;
+      b.invariants.non_grease_extension_set = kchromium_macos_ru_egressExtensionSet;
+      b.invariants.non_grease_supported_groups = kchromium_macos_ru_egressSupportedGroups;
+      b.invariants.alpn_protocols = kchromium_macos_ru_egressAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kchromium_macos_ru_egressCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kchromium_macos_ru_egressObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kchromium_macos_ru_egressObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kchromium_macos_ru_egressObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kchromium_macos_ru_egressObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
+      b.family_id = Slice("chromium_macos");
+      b.route_lane = Slice("unknown");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kchromium_macos_unknownCipherSuites;
+      b.invariants.non_grease_extension_set = kchromium_macos_unknownExtensionSet;
+      b.invariants.non_grease_supported_groups = kchromium_macos_unknownSupportedGroups;
+      b.invariants.alpn_protocols = kchromium_macos_unknownAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kchromium_macos_unknownCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kchromium_macos_unknownObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kchromium_macos_unknownObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kchromium_macos_unknownObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kchromium_macos_unknownObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
       b.family_id = Slice("chromium_windows");
       b.route_lane = Slice("non_ru_egress");
       b.tier = TierLevel::Tier3;
+      b.raw_tier = TierLevel::Tier3;
       b.sample_count = 130u;
+      b.authoritative_sample_count = 130u;
       b.num_sources = 22u;
+      b.num_sessions = 22u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
       b.invariants.family_id = b.family_id;
       b.invariants.route_lane = b.route_lane;
       b.invariants.non_grease_cipher_suites_ordered = kchromium_windows_non_ru_egressCipherSuites;
@@ -321,11 +878,72 @@ inline const vector<FamilyLaneBaseline> &get_baselines_table() {
     }
     {
       FamilyLaneBaseline b;
+      b.family_id = Slice("chromium_windows");
+      b.route_lane = Slice("ru_egress");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kchromium_windows_ru_egressCipherSuites;
+      b.invariants.non_grease_extension_set = kchromium_windows_ru_egressExtensionSet;
+      b.invariants.non_grease_supported_groups = kchromium_windows_ru_egressSupportedGroups;
+      b.invariants.alpn_protocols = kchromium_windows_ru_egressAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kchromium_windows_ru_egressCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kchromium_windows_ru_egressObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kchromium_windows_ru_egressObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kchromium_windows_ru_egressObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kchromium_windows_ru_egressObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
+      b.family_id = Slice("chromium_windows");
+      b.route_lane = Slice("unknown");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kchromium_windows_unknownCipherSuites;
+      b.invariants.non_grease_extension_set = kchromium_windows_unknownExtensionSet;
+      b.invariants.non_grease_supported_groups = kchromium_windows_unknownSupportedGroups;
+      b.invariants.alpn_protocols = kchromium_windows_unknownAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kchromium_windows_unknownCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kchromium_windows_unknownObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kchromium_windows_unknownObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kchromium_windows_unknownObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kchromium_windows_unknownObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
       b.family_id = Slice("firefox_android");
       b.route_lane = Slice("non_ru_egress");
       b.tier = TierLevel::Tier3;
+      b.raw_tier = TierLevel::Tier3;
       b.sample_count = 59u;
+      b.authoritative_sample_count = 59u;
       b.num_sources = 10u;
+      b.num_sessions = 10u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
       b.invariants.family_id = b.family_id;
       b.invariants.route_lane = b.route_lane;
       b.invariants.non_grease_cipher_suites_ordered = kfirefox_android_non_ru_egressCipherSuites;
@@ -344,11 +962,72 @@ inline const vector<FamilyLaneBaseline> &get_baselines_table() {
     }
     {
       FamilyLaneBaseline b;
+      b.family_id = Slice("firefox_android");
+      b.route_lane = Slice("ru_egress");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kfirefox_android_ru_egressCipherSuites;
+      b.invariants.non_grease_extension_set = kfirefox_android_ru_egressExtensionSet;
+      b.invariants.non_grease_supported_groups = kfirefox_android_ru_egressSupportedGroups;
+      b.invariants.alpn_protocols = kfirefox_android_ru_egressAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kfirefox_android_ru_egressCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kfirefox_android_ru_egressObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kfirefox_android_ru_egressObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kfirefox_android_ru_egressObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kfirefox_android_ru_egressObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
+      b.family_id = Slice("firefox_android");
+      b.route_lane = Slice("unknown");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kfirefox_android_unknownCipherSuites;
+      b.invariants.non_grease_extension_set = kfirefox_android_unknownExtensionSet;
+      b.invariants.non_grease_supported_groups = kfirefox_android_unknownSupportedGroups;
+      b.invariants.alpn_protocols = kfirefox_android_unknownAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kfirefox_android_unknownCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kfirefox_android_unknownObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kfirefox_android_unknownObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kfirefox_android_unknownObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kfirefox_android_unknownObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
       b.family_id = Slice("firefox_linux_desktop");
       b.route_lane = Slice("non_ru_egress");
       b.tier = TierLevel::Tier3;
+      b.raw_tier = TierLevel::Tier3;
       b.sample_count = 20u;
+      b.authoritative_sample_count = 20u;
       b.num_sources = 5u;
+      b.num_sessions = 5u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
       b.invariants.family_id = b.family_id;
       b.invariants.route_lane = b.route_lane;
       b.invariants.non_grease_cipher_suites_ordered = kfirefox_linux_desktop_non_ru_egressCipherSuites;
@@ -367,11 +1046,72 @@ inline const vector<FamilyLaneBaseline> &get_baselines_table() {
     }
     {
       FamilyLaneBaseline b;
+      b.family_id = Slice("firefox_linux_desktop");
+      b.route_lane = Slice("ru_egress");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kfirefox_linux_desktop_ru_egressCipherSuites;
+      b.invariants.non_grease_extension_set = kfirefox_linux_desktop_ru_egressExtensionSet;
+      b.invariants.non_grease_supported_groups = kfirefox_linux_desktop_ru_egressSupportedGroups;
+      b.invariants.alpn_protocols = kfirefox_linux_desktop_ru_egressAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kfirefox_linux_desktop_ru_egressCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kfirefox_linux_desktop_ru_egressObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kfirefox_linux_desktop_ru_egressObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kfirefox_linux_desktop_ru_egressObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kfirefox_linux_desktop_ru_egressObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
+      b.family_id = Slice("firefox_linux_desktop");
+      b.route_lane = Slice("unknown");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kfirefox_linux_desktop_unknownCipherSuites;
+      b.invariants.non_grease_extension_set = kfirefox_linux_desktop_unknownExtensionSet;
+      b.invariants.non_grease_supported_groups = kfirefox_linux_desktop_unknownSupportedGroups;
+      b.invariants.alpn_protocols = kfirefox_linux_desktop_unknownAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kfirefox_linux_desktop_unknownCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kfirefox_linux_desktop_unknownObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kfirefox_linux_desktop_unknownObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kfirefox_linux_desktop_unknownObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kfirefox_linux_desktop_unknownObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
       b.family_id = Slice("firefox_macos");
       b.route_lane = Slice("non_ru_egress");
       b.tier = TierLevel::Tier3;
+      b.raw_tier = TierLevel::Tier3;
       b.sample_count = 28u;
+      b.authoritative_sample_count = 28u;
       b.num_sources = 6u;
+      b.num_sessions = 6u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
       b.invariants.family_id = b.family_id;
       b.invariants.route_lane = b.route_lane;
       b.invariants.non_grease_cipher_suites_ordered = kfirefox_macos_non_ru_egressCipherSuites;
@@ -390,11 +1130,72 @@ inline const vector<FamilyLaneBaseline> &get_baselines_table() {
     }
     {
       FamilyLaneBaseline b;
+      b.family_id = Slice("firefox_macos");
+      b.route_lane = Slice("ru_egress");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kfirefox_macos_ru_egressCipherSuites;
+      b.invariants.non_grease_extension_set = kfirefox_macos_ru_egressExtensionSet;
+      b.invariants.non_grease_supported_groups = kfirefox_macos_ru_egressSupportedGroups;
+      b.invariants.alpn_protocols = kfirefox_macos_ru_egressAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kfirefox_macos_ru_egressCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kfirefox_macos_ru_egressObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kfirefox_macos_ru_egressObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kfirefox_macos_ru_egressObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kfirefox_macos_ru_egressObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
+      b.family_id = Slice("firefox_macos");
+      b.route_lane = Slice("unknown");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kfirefox_macos_unknownCipherSuites;
+      b.invariants.non_grease_extension_set = kfirefox_macos_unknownExtensionSet;
+      b.invariants.non_grease_supported_groups = kfirefox_macos_unknownSupportedGroups;
+      b.invariants.alpn_protocols = kfirefox_macos_unknownAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kfirefox_macos_unknownCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kfirefox_macos_unknownObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kfirefox_macos_unknownObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kfirefox_macos_unknownObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kfirefox_macos_unknownObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
       b.family_id = Slice("firefox_windows");
       b.route_lane = Slice("non_ru_egress");
       b.tier = TierLevel::Tier3;
+      b.raw_tier = TierLevel::Tier3;
       b.sample_count = 52u;
+      b.authoritative_sample_count = 52u;
       b.num_sources = 9u;
+      b.num_sessions = 9u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
       b.invariants.family_id = b.family_id;
       b.invariants.route_lane = b.route_lane;
       b.invariants.non_grease_cipher_suites_ordered = kfirefox_windows_non_ru_egressCipherSuites;
@@ -413,11 +1214,72 @@ inline const vector<FamilyLaneBaseline> &get_baselines_table() {
     }
     {
       FamilyLaneBaseline b;
+      b.family_id = Slice("firefox_windows");
+      b.route_lane = Slice("ru_egress");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kfirefox_windows_ru_egressCipherSuites;
+      b.invariants.non_grease_extension_set = kfirefox_windows_ru_egressExtensionSet;
+      b.invariants.non_grease_supported_groups = kfirefox_windows_ru_egressSupportedGroups;
+      b.invariants.alpn_protocols = kfirefox_windows_ru_egressAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kfirefox_windows_ru_egressCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kfirefox_windows_ru_egressObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kfirefox_windows_ru_egressObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kfirefox_windows_ru_egressObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kfirefox_windows_ru_egressObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
+      b.family_id = Slice("firefox_windows");
+      b.route_lane = Slice("unknown");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kfirefox_windows_unknownCipherSuites;
+      b.invariants.non_grease_extension_set = kfirefox_windows_unknownExtensionSet;
+      b.invariants.non_grease_supported_groups = kfirefox_windows_unknownSupportedGroups;
+      b.invariants.alpn_protocols = kfirefox_windows_unknownAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kfirefox_windows_unknownCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kfirefox_windows_unknownObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kfirefox_windows_unknownObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kfirefox_windows_unknownObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kfirefox_windows_unknownObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
       b.family_id = Slice("ios_chromium");
       b.route_lane = Slice("non_ru_egress");
       b.tier = TierLevel::Tier2;
+      b.raw_tier = TierLevel::Tier2;
       b.sample_count = 5u;
+      b.authoritative_sample_count = 5u;
       b.num_sources = 5u;
+      b.num_sessions = 5u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
       b.invariants.family_id = b.family_id;
       b.invariants.route_lane = b.route_lane;
       b.invariants.non_grease_cipher_suites_ordered = kios_chromium_non_ru_egressCipherSuites;
@@ -432,6 +1294,62 @@ inline const vector<FamilyLaneBaseline> &get_baselines_table() {
       b.set_catalog.observed_wire_lengths = kios_chromium_non_ru_egressObservedWireLengths;
       b.set_catalog.observed_ech_payload_lengths = kios_chromium_non_ru_egressObservedEchPayloadLengths;
       b.set_catalog.observed_alps_types = kios_chromium_non_ru_egressObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
+      b.family_id = Slice("ios_chromium");
+      b.route_lane = Slice("ru_egress");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kios_chromium_ru_egressCipherSuites;
+      b.invariants.non_grease_extension_set = kios_chromium_ru_egressExtensionSet;
+      b.invariants.non_grease_supported_groups = kios_chromium_ru_egressSupportedGroups;
+      b.invariants.alpn_protocols = kios_chromium_ru_egressAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kios_chromium_ru_egressCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kios_chromium_ru_egressObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kios_chromium_ru_egressObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kios_chromium_ru_egressObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kios_chromium_ru_egressObservedAlpsTypes;
+      t.push_back(std::move(b));
+    }
+    {
+      FamilyLaneBaseline b;
+      b.family_id = Slice("ios_chromium");
+      b.route_lane = Slice("unknown");
+      b.tier = TierLevel::Tier0;
+      b.raw_tier = TierLevel::Tier0;
+      b.sample_count = 0u;
+      b.authoritative_sample_count = 0u;
+      b.num_sources = 0u;
+      b.num_sessions = 0u;
+      b.stale_over_90_days = false;
+      b.stale_over_180_days = false;
+      b.invariants.family_id = b.family_id;
+      b.invariants.route_lane = b.route_lane;
+      b.invariants.non_grease_cipher_suites_ordered = kios_chromium_unknownCipherSuites;
+      b.invariants.non_grease_extension_set = kios_chromium_unknownExtensionSet;
+      b.invariants.non_grease_supported_groups = kios_chromium_unknownSupportedGroups;
+      b.invariants.alpn_protocols = kios_chromium_unknownAlpnProtocols;
+      b.invariants.compress_cert_algorithms = kios_chromium_unknownCompressCertAlgorithms;
+      b.invariants.ech_presence_required = false;
+      b.invariants.tls_record_version = 0x0301u;
+      b.invariants.client_hello_legacy_version = 0x0303u;
+      b.set_catalog.observed_extension_order_templates = kios_chromium_unknownObservedExtensionOrderTemplates;
+      b.set_catalog.observed_wire_lengths = kios_chromium_unknownObservedWireLengths;
+      b.set_catalog.observed_ech_payload_lengths = kios_chromium_unknownObservedEchPayloadLengths;
+      b.set_catalog.observed_alps_types = kios_chromium_unknownObservedAlpsTypes;
       t.push_back(std::move(b));
     }
     return t;

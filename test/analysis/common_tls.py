@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 import pathlib
+import re
 from typing import Any
 
 
@@ -20,6 +21,12 @@ LEGACY_ROUTE_MODE_ALIASES = {
     "non_ru": "non_ru_egress",
     "ru": "ru_egress",
 }
+CLIENTHELLO_ARTIFACT_TYPE = "tls_clienthello_fixtures"
+CLIENTHELLO_PARSER_VERSION = "tls-clienthello-parser-v1"
+SERVERHELLO_ARTIFACT_TYPE = "tls_serverhello_fixtures"
+SERVERHELLO_PARSER_VERSION = "tls-serverhello-parser-v1"
+
+_SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 @dataclass(frozen=True)
@@ -168,23 +175,55 @@ def _infer_tls_gen(sample: dict[str, Any]) -> str:
     return "unknown"
 
 
+def _validate_sha256_hex(field_name: str, value: str) -> None:
+    normalized = value.strip().lower()
+    if not _SHA256_HEX_RE.match(normalized):
+        raise ValueError(f"{field_name} must be a 64-character lowercase hex digest")
+
+
+def _require_string_field(artifact: dict[str, Any], field_name: str) -> str:
+    value = str(artifact.get(field_name, "")).strip()
+    if not value:
+        raise ValueError(f"artifact must contain {field_name}")
+    return value
+
+
+def _validate_clienthello_artifact_header(artifact: dict[str, Any]) -> None:
+    artifact_type = str(artifact.get("artifact_type", "")).strip()
+    parser_version = str(artifact.get("parser_version", "")).strip()
+    if artifact_type != CLIENTHELLO_ARTIFACT_TYPE:
+        raise ValueError(f"artifact_type must be {CLIENTHELLO_ARTIFACT_TYPE}")
+    if parser_version != CLIENTHELLO_PARSER_VERSION:
+        raise ValueError(f"parser_version must be {CLIENTHELLO_PARSER_VERSION}")
+
+
+def _validate_serverhello_artifact_header(artifact: dict[str, Any]) -> None:
+    artifact_type = str(artifact.get("artifact_type", "")).strip()
+    parser_version = str(artifact.get("parser_version", "")).strip()
+    if artifact_type != SERVERHELLO_ARTIFACT_TYPE:
+        raise ValueError(f"artifact_type must be {SERVERHELLO_ARTIFACT_TYPE}")
+    if parser_version != SERVERHELLO_PARSER_VERSION:
+        raise ValueError(f"parser_version must be {SERVERHELLO_PARSER_VERSION}")
+
+
 def load_clienthello_artifact(path: str | pathlib.Path) -> list[ClientHello]:
     artifact_path = pathlib.Path(path)
     with artifact_path.open("r", encoding="utf-8") as infile:
         artifact = json.load(infile)
 
+    _validate_clienthello_artifact_header(artifact)
+
     route_mode = normalize_route_mode(str(artifact.get("route_mode", "")))
-    profile = str(artifact.get("profile_id", ""))
-    scenario_id = str(artifact.get("scenario_id", artifact_path.stem))
+    profile = _require_string_field(artifact, "profile_id")
+    scenario_id = str(artifact.get("scenario_id", artifact_path.stem)).strip() or artifact_path.stem
     device_class = normalize_device_class(str(artifact.get("device_class", "desktop")))
     os_family = normalize_os_family(str(artifact.get("os_family", "unknown")))
-    transport = str(artifact.get("transport", "tcp"))
-    source_kind = str(artifact.get("source_kind", "unknown"))
+    transport = _require_string_field(artifact, "transport")
+    source_kind = _require_string_field(artifact, "source_kind")
     fixture_family_id = str(artifact.get("fixture_family_id", artifact.get("family", "")))
-    source_path = str(artifact.get("source_path", ""))
-    source_sha256 = str(artifact.get("source_sha256", ""))
-    if not profile:
-        raise ValueError("artifact must contain profile_id")
+    source_path = _require_string_field(artifact, "source_path")
+    source_sha256 = _require_string_field(artifact, "source_sha256").lower()
+    _validate_sha256_hex("source_sha256", source_sha256)
 
     raw_samples = artifact.get("samples")
     if not isinstance(raw_samples, list):
@@ -193,9 +232,17 @@ def load_clienthello_artifact(path: str | pathlib.Path) -> list[ClientHello]:
         raise ValueError("artifact must contain at least one sample")
 
     samples: list[ClientHello] = []
+    seen_fixture_ids: set[str] = set()
     for sample in raw_samples:
+        if not isinstance(sample, dict):
+            raise ValueError("sample entry must be an object")
         ech = sample.get("ech") or {}
-        fixture_id = str(sample.get("fixture_id", ""))
+        fixture_id = str(sample.get("fixture_id", "")).strip()
+        if not fixture_id:
+            raise ValueError("clienthello sample must contain fixture_id")
+        if fixture_id in seen_fixture_ids:
+            raise ValueError(f"duplicate fixture_id in artifact: {fixture_id}")
+        seen_fixture_ids.add(fixture_id)
         key_share_groups = [
             int(entry["group"], 16) for entry in sample.get("key_share_entries", []) if isinstance(entry, dict)
         ]
@@ -237,15 +284,16 @@ def load_server_hello_artifact(path: str | pathlib.Path) -> list[ServerHello]:
     with artifact_path.open("r", encoding="utf-8") as infile:
         artifact = json.load(infile)
 
+    _validate_serverhello_artifact_header(artifact)
+
     route_mode = normalize_route_mode(str(artifact.get("route_mode", "")))
-    scenario_id = str(artifact.get("scenario_id", artifact_path.stem))
-    source_path = str(artifact.get("source_path", ""))
-    source_sha256 = str(artifact.get("source_sha256", ""))
-    parser_version = str(artifact.get("parser_version", ""))
-    transport = str(artifact.get("transport", "tcp"))
-    source_kind = str(artifact.get("source_kind", "browser_capture"))
-    if not parser_version:
-        raise ValueError("artifact must contain parser_version")
+    scenario_id = str(artifact.get("scenario_id", artifact_path.stem)).strip() or artifact_path.stem
+    source_path = _require_string_field(artifact, "source_path")
+    source_sha256 = _require_string_field(artifact, "source_sha256").lower()
+    _validate_sha256_hex("source_sha256", source_sha256)
+    parser_version = _require_string_field(artifact, "parser_version")
+    transport = _require_string_field(artifact, "transport")
+    source_kind = _require_string_field(artifact, "source_kind")
 
     raw_samples = artifact.get("samples")
     if not isinstance(raw_samples, list):
@@ -254,11 +302,17 @@ def load_server_hello_artifact(path: str | pathlib.Path) -> list[ServerHello]:
         raise ValueError("artifact must contain at least one sample")
 
     samples: list[ServerHello] = []
+    seen_fixture_ids: set[str] = set()
     for sample in raw_samples:
-        fixture_id = str(sample.get("fixture_id", ""))
+        if not isinstance(sample, dict):
+            raise ValueError("sample entry must be an object")
+        fixture_id = str(sample.get("fixture_id", "")).strip()
         fixture_family_id = str(sample.get("fixture_family_id", sample.get("family", artifact.get("family", ""))))
         if not fixture_id:
             raise ValueError("server hello sample must contain fixture_id")
+        if fixture_id in seen_fixture_ids:
+            raise ValueError(f"duplicate fixture_id in artifact: {fixture_id}")
+        seen_fixture_ids.add(fixture_id)
         if not fixture_family_id:
             raise ValueError("server hello sample must contain fixture family")
         samples.append(

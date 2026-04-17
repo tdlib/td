@@ -74,7 +74,7 @@ string build_profile_wire(BrowserProfile profile, EchMode ech_mode, uint64 seed)
   return build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime, profile, ech_mode, rng);
 }
 
-TEST(AdversarialDpiCorpus1k, AllProfilesKeepThirtyTwoByteSessionIds) {
+TEST(CorpusStatisticalSampling1k, AllProfilesKeepThirtyTwoByteSessionIds) {
   for (auto profile : all_profiles()) {
     for (uint64 seed = 0; seed < kQuickIterations; seed++) {
       ASSERT_EQ(32u, build_profile_hello(profile, EchMode::Disabled, quick_seed(seed)).session_id.size());
@@ -82,7 +82,7 @@ TEST(AdversarialDpiCorpus1k, AllProfilesKeepThirtyTwoByteSessionIds) {
   }
 }
 
-TEST(AdversarialDpiCorpus1k, Chrome133SessionIdsVaryAcrossConnections) {
+TEST(CorpusStatisticalSampling1k, Chrome133SessionIdsVaryAcrossConnections) {
   std::unordered_set<string> values;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
     values.insert(
@@ -91,7 +91,7 @@ TEST(AdversarialDpiCorpus1k, Chrome133SessionIdsVaryAcrossConnections) {
   ASSERT_EQ(kCorpusIterations, values.size());
 }
 
-TEST(AdversarialDpiCorpus1k, Chrome133ClientRandomVariesAcrossConnections) {
+TEST(CorpusStatisticalSampling1k, Chrome133ClientRandomVariesAcrossConnections) {
   std::unordered_set<string> values;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
     values.insert(
@@ -101,7 +101,7 @@ TEST(AdversarialDpiCorpus1k, Chrome133ClientRandomVariesAcrossConnections) {
   ASSERT_EQ(kCorpusIterations, values.size());
 }
 
-TEST(AdversarialDpiCorpus1k, Chrome133X25519KeyShareVariesAcrossConnections) {
+TEST(CorpusStatisticalSampling1k, Chrome133X25519KeyShareVariesAcrossConnections) {
   std::unordered_set<string> values;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
     auto hello = build_profile_hello(BrowserProfile::Chrome133, EchMode::Disabled, corpus_seed(seed));
@@ -114,7 +114,7 @@ TEST(AdversarialDpiCorpus1k, Chrome133X25519KeyShareVariesAcrossConnections) {
   ASSERT_EQ(kCorpusIterations, values.size());
 }
 
-TEST(AdversarialDpiCorpus1k, Chrome133PqKeyShareVariesAcrossConnections) {
+TEST(CorpusStatisticalSampling1k, Chrome133PqKeyShareVariesAcrossConnections) {
   std::unordered_set<string> values;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
     auto hello = build_profile_hello(BrowserProfile::Chrome133, EchMode::Disabled, corpus_seed(seed));
@@ -127,7 +127,7 @@ TEST(AdversarialDpiCorpus1k, Chrome133PqKeyShareVariesAcrossConnections) {
   ASSERT_EQ(kCorpusIterations, values.size());
 }
 
-TEST(AdversarialDpiCorpus1k, Chrome133EchEncKeyVariesAcrossConnections) {
+TEST(CorpusStatisticalSampling1k, Chrome133EchEncKeyVariesAcrossConnections) {
   std::unordered_set<string> values;
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
     auto hello = build_profile_hello(BrowserProfile::Chrome133, EchMode::Rfc9180Outer, corpus_seed(seed));
@@ -136,7 +136,7 @@ TEST(AdversarialDpiCorpus1k, Chrome133EchEncKeyVariesAcrossConnections) {
   ASSERT_EQ(kCorpusIterations, values.size());
 }
 
-TEST(AdversarialDpiCorpus1k, NoConsecutiveChrome133ConnectionsReuseFullWireImage) {
+TEST(CorpusStatisticalSampling1k, NoConsecutiveChrome133ConnectionsReuseFullWireImage) {
   auto previous = build_profile_wire(BrowserProfile::Chrome133, EchMode::Disabled, corpus_seed(0));
   for (uint64 seed = 1; seed < kCorpusIterations; seed++) {
     auto current = build_profile_wire(BrowserProfile::Chrome133, EchMode::Disabled, corpus_seed(seed));
@@ -145,7 +145,7 @@ TEST(AdversarialDpiCorpus1k, NoConsecutiveChrome133ConnectionsReuseFullWireImage
   }
 }
 
-TEST(AdversarialDpiCorpus1k, RuntimeChrome133RoutePolicyControlsEchAtScale) {
+TEST(CorpusStatisticalSampling1k, RuntimeChrome133RoutePolicyControlsEchAtScale) {
   auto candidate = find_runtime_candidate(BrowserProfile::Chrome133);
 
   NetworkRouteHints non_ru_route;
@@ -181,7 +181,7 @@ TEST(AdversarialDpiCorpus1k, RuntimeChrome133RoutePolicyControlsEchAtScale) {
   }
 }
 
-TEST(AdversarialDpiCorpus1k, ProxyChrome133AdvertisesHttp11OnlyAlpn) {
+TEST(CorpusStatisticalSampling1k, ProxyChrome133AdvertisesHttp11OnlyAlpn) {
   static const string kHttp11OnlyAlpn("\x00\x09\x08\x68\x74\x74\x70\x2f\x31\x2e\x31", 11);
   for (uint64 seed = 0; seed < kQuickIterations; seed++) {
     MockRng rng(quick_seed(seed));
@@ -194,7 +194,7 @@ TEST(AdversarialDpiCorpus1k, ProxyChrome133AdvertisesHttp11OnlyAlpn) {
   }
 }
 
-TEST(AdversarialDpiCorpus1k, AllProfilesKeepClientLegacyVersionTls12Marker) {
+TEST(CorpusStatisticalSampling1k, AllProfilesKeepClientLegacyVersionTls12Marker) {
   for (auto profile : all_profiles()) {
     for (uint64 seed = 0; seed < kQuickIterations; seed++) {
       ASSERT_EQ(0x0303u, build_profile_hello(profile, EchMode::Disabled, quick_seed(seed)).client_legacy_version);

@@ -1905,8 +1905,8 @@ void SecretChatActor::on_dh_config(telegram_api::messages_dhConfig &dh) {
 
 void SecretChatActor::calc_key_hash() {
   unsigned char sha1_buf[20];
-  auto sha1_slice = Slice(sha1_buf, 20);
   sha1(pfs_state_.auth_key.key(), sha1_buf);
+  auto sha1_slice = Slice(sha1_buf, 20);
 
   unsigned char sha256_buf[32];
   auto sha256_slice = MutableSlice(sha256_buf, 32);

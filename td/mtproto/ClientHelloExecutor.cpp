@@ -11,7 +11,6 @@
 #include "td/utils/BigNum.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
-#include "td/utils/Random.h"
 
 #include <openssl/bn.h>
 #include <openssl/ec.h>
@@ -194,6 +193,10 @@ class LengthCalculator {
 class ByteWriter {
  public:
   explicit ByteWriter(MutableSlice dest) : all_(dest), remaining_(dest) {
+  }
+
+  size_t remaining() const {
+    return remaining_.size();
   }
 
   void append(const Op &op, const ExecutionContext &context) {
@@ -511,6 +514,11 @@ Result<string> ClientHelloExecutor::execute(const vector<ClientHelloOp> &ops, Sl
   for (auto &op : ops) {
     writer.append(op, context);
   }
+  // Architectural safeguard: the LengthCalculator and ByteWriter passes
+  // must agree on the exact number of bytes.  A divergence would cause
+  // the HMAC to be computed over a mismatched extent and could indicate
+  // a heap buffer overrun if the ByteWriter overshot.
+  CHECK(writer.remaining() == 0);
   writer.finalize(secret, unix_time);
   return result;
 }
