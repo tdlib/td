@@ -915,6 +915,21 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
       if (set_boolean_option("disable_network_statistics")) {
         return;
       }
+      if (set_string_option("dns_type", [](Slice value) {
+            return value == Slice("google") || value == Slice("cloudflare");
+          })) {
+        return;
+      }
+      if (set_string_option("custom_dns_url", [](Slice value) {
+            return value.find(CSlice("://")) != Slice::npos;
+          })) {
+        return;
+      }
+      if (set_string_option("custom_dns_headers", [](Slice) {
+            return true;
+          })) {
+        return;
+      }
       if (set_boolean_option("disable_persistent_network_statistics")) {
         return;
       }
