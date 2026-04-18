@@ -3,7 +3,7 @@
 ANDROID_SDK_ROOT=${1:-SDK}
 ANDROID_NDK_VERSION=${2:-23.2.8568313}
 OPENSSL_INSTALL_DIR=${3:-third-party/openssl}
-OPENSSL_VERSION=${4:-OpenSSL_1_1_1w} # openssl-3.3.0
+OPENSSL_VERSION=${4:-openssl-3.0.13}
 BUILD_SHARED_LIBS=$5
 
 if [ ! -d "$ANDROID_SDK_ROOT" ] ; then
