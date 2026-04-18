@@ -905,3 +905,65 @@ Gap 4: Release family trust tiers
 Оставшиеся пробелы — в основном в документации, явной tier assignment и завершении пары adversarial test suites. Ни один из оставшихся пробелов не является блокером для release, а большинство — это доработка деталей, а не переписание архитектуры.
 
 Корпус теперь готов для эксплуатационной валидации и systematic composition check against real captured traffic из 5 платформ.
+
+### 7.9 Delta Update (2026-04-18)
+
+Ниже фиксируется именно то, что было доведено и проверено сегодня поверх состояния из разделов 7.1-7.8.
+
+#### 7.9.1 Закрыт nightly regression в boundary falsification для Chrome131
+
+Проблема: `test_tls_nightly_boundary_falsification.cpp` падал на lane `Chrome131EchRun`, потому что chrome-family allow-list и reviewed-order логика фактически были под `Chrome133+` ALPS (`0x44CD`) и не учитывали legacy ALPS `0x4469`.
+
+Что исправлено:
+- в chrome-family allow-list добавлен legacy ALPS codepoint (`0x4469`);
+- reviewed non-GREASE order для boundary-check сделан profile-aware: для `Chrome131` `0x44CD -> 0x4469`;
+- добавлены отдельные регрессии:
+   - `ChromeFamilyAllowListContainsBothAlpsCodepoints`;
+   - `Chrome131ReviewedOrderUsesLegacyAlpsOnly`.
+
+Итог: lane `Test_TLS_NightlyBoundaryFalsification_Chrome131EchRun` стабильно зелёный в nightly/full запуске.
+
+#### 7.9.2 Закрыт routing gap в CTest labels для статистических classifier/feature suites
+
+Проблема: часть статистических/классификаторных контрактов (`WirePatternDistinguisherContract`, `WireFeatureMaskContract`, `WireRealFixtureFeaturesContract`) существовали в test binary, но не попадали в `STEALTH_CORPUS_QUICK` label из-за узкой regex-маршрутизации в `test/CMakeLists.txt`.
+
+Что исправлено:
+- regex для quick-label расширен и теперь включает:
+   - `WirePatternDistinguisherContract`;
+   - `WireFeatureMaskContract`;
+   - `WireRealFixtureFeaturesContract`.
+
+Итог: quick statistical gate теперь реально включает эти suites, а не обходит их silently.
+
+#### 7.9.3 Добавлен classifier-focused guard на ALPS split для chromium_linux_desktop
+
+В `test_tls_wire_feature_mask_contract.cpp` добавлен regression test:
+- `ChromiumLinuxLaneKeepsAlpsFeatureAcrossLegacyAndModernCodepoints`.
+
+Семантика guard-а:
+- runtime `Chrome131` должен нести `0x4469` и не нести `0x44CD`;
+- runtime `Chrome133` должен нести `0x44CD` и не нести `0x4469`;
+- classifier feature mask для `chromium_linux_desktop/non_ru_egress` должен оставлять `kHasAlps` включённым.
+
+Это закрывает риск дрейфа, при котором lane-level ALPS split теряется, а classifier-признак ALPS presence unintentionally выключается.
+
+#### 7.9.4 Валидация после изменений (normal + ASan)
+
+Проверки на текущем head:
+
+1. Normal build:
+- `ctest -L STEALTH_CORPUS_QUICK`: `213/213 passed`;
+- `TD_NIGHTLY_CORPUS=1 ctest -L STEALTH_CORPUS_FULL`: `18/18 passed`.
+
+2. ASan build:
+- `ASAN_OPTIONS=detect_leaks=0 ctest -L STEALTH_CORPUS_QUICK`: `213/213 passed`;
+- `ASAN_OPTIONS=detect_leaks=0 TD_NIGHTLY_CORPUS=1 ctest -L STEALTH_CORPUS_FULL`: `18/18 passed`.
+
+Важно: при полном ASan без override проявляется известный шум от build-time `tl-parser` (generator-side leak reports), не относящийся к stealth statistical runtime lane. Для runtime-среза статистических gate-ов используется `detect_leaks=0`, чтобы не блокировать прогон unrelated tooling leak-ами.
+
+#### 7.9.5 Обновлённый статус по ранее отмеченным пробелам
+
+Из раздела 7.7 (High-priority) пункт про label wiring теперь закрыт:
+- ✅ `STEALTH_CORPUS_QUICK/STEALTH_CORPUS_FULL` label routing для статистических wire/classifier suites подтверждён и проверен executable discovery.
+
+Остальные пункты 7.7 остаются актуальными (Windows release integration, advisory promotion, explicit per-family tier table, classifier blackhat suite по отдельному файлу).
