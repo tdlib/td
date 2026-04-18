@@ -31460,6 +31460,7 @@ static int dotCmdMode(ShellState *p){
       char *zAlign;
       int nAlign;
       int nErr = 0;
+      unsigned char *aNewAlign;
       if( i+1>=nArg ){
         dotCmdError(p, i, "missing argument", 0);
         return 1;
@@ -31467,9 +31468,8 @@ static int dotCmdMode(ShellState *p){
       i++;
       zAlign = azArg[i];
       nAlign = 0x3fff & strlen(zAlign);
-      free(p->mode.spec.aAlign);
-      p->mode.spec.aAlign = malloc(nAlign);
-      shell_check_oom(p->mode.spec.aAlign);
+      aNewAlign = malloc(nAlign);
+      shell_check_oom(aNewAlign);
       for(k=0; k<nAlign; k++){
         unsigned char c = 0;
         switch( zAlign[k] ){
@@ -31478,8 +31478,10 @@ static int dotCmdMode(ShellState *p){
           case 'r': case 'R':   c = QRF_ALIGN_Right;  break;
           default:  nErr++; break;
         }
-        p->mode.spec.aAlign[k] = c;
+        aNewAlign[k] = c;
       }
+      free(p->mode.spec.aAlign);
+      p->mode.spec.aAlign = aNewAlign;
       p->mode.spec.nAlign = nAlign;
       chng = 1;
       if( nErr ){

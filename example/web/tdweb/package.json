@@ -74,6 +74,10 @@
     "localforage": "^1.7.3",
     "uuid": "^3.3.2"
   },
+  "overrides": {
+    "simple-git": "^3.32.0",
+    "property-expr": "^2.0.3"
+  },
   "babel": {
     "presets": [
       "@babel/env"
