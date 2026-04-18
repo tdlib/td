@@ -967,3 +967,79 @@ Gap 4: Release family trust tiers
 - ✅ `STEALTH_CORPUS_QUICK/STEALTH_CORPUS_FULL` label routing для статистических wire/classifier suites подтверждён и проверен executable discovery.
 
 Остальные пункты 7.7 остаются актуальными (Windows release integration, advisory promotion, explicit per-family tier table, classifier blackhat suite по отдельному файлу).
+
+### 7.10 Delta Update (2026-04-18): статус PVS High/Critical wave
+
+Ниже — статус не по старому JSON-отчёту сам по себе, а по фактическому состоянию исходников на текущем head (точечная верификация изменённых мест из `PVS_HIGH_CRITICAL_VALUABLE_ISSUES_2026-04-18.md`).
+
+#### 7.10.1 Подтверждённо закрыто в коде
+
+1. `V512` (`IPAddress` sockaddr copy):
+- `tdutils/td/utils/port/IPAddress.cpp` использует прямой `memcpy` из валидированного `sockaddr *` после строгой проверки размера для IPv4/IPv6.
+
+2. `V1028` (`ChainId` overflow risk):
+- `td/telegram/ChainId.h` использует `1ULL << 30` в `FolderId` конструкторе, фиксируя вычисление в 64-битной области.
+
+3. `V614` (`cli.cpp` uninitialized priority):
+- `td/telegram/cli.cpp` в ветке `aftd` инициализирует `int32 priority = 1` до `get_args(...)`.
+
+4. `V557` (`MessageEntity` tail/end-of-input + pre/code merge):
+- в `get_markdown_v3(...)` хвостовой символ берётся через sentinel (`pos == size ? 0 : text[pos]`), исключая выход за границу;
+- в `parse_html(...)` merge-ветки `pre/code` используют проверяемый `last_entity` pointer вместо небезопасных повторных `entities.back()`.
+
+5. `V595` (null-ordering / stale iterator):
+- `td/telegram/GroupCallManager.cpp`: проверка `group_call != nullptr` стоит в той же ветке, где читается `group_call->is_joined`;
+- `td/telegram/MessagesManager.cpp`: для `last_database_message_id` добавлен fail-closed путь с явной проверкой `*it` и fallback в history repair.
+
+6. `V607` (ownerless map access):
+- подтверждён переход на явные `emplace(...)`-паттерны в:
+   - `td/telegram/Client.cpp`;
+   - `td/telegram/DialogManager.cpp`;
+   - `td/telegram/MessagesManager.cpp`;
+   - `td/telegram/UserManager.cpp`.
+
+7. `V1030` (частичное снижение use-after-move hotspots):
+- `td/telegram/cli.cpp`: в `cqrsn` используется отдельная локальная копия перед `std::move`;
+- `td/telegram/files/FileManager.cpp`: нет пост-move `clear()` на уже перемещённом контейнере;
+- `td/telegram/NotificationManager.h/.cpp`: `delete_group` принимает iterator по значению (без rvalue-iterator перемещения);
+- `tde2e/td/e2e/EncryptedStorage.cpp`: `sync_entry` не consume-ит `value` до логики rewrite/reapply.
+
+8. Дополнительный security hardening, появившийся в той же волне:
+- `td/telegram/MessageEntity.cpp`: `parse_html` fail-closed отклоняет вход с embedded NUL (`400: Text must not contain null bytes`).
+
+#### 7.10.2 Подтверждённо добавлено в регрессионное покрытие
+
+1. `test/pvs_regressions.cpp` подключён в `run_all_tests` через `test/CMakeLists.txt` и покрывает:
+- `ChainId` boundary contract;
+- markdown v3 tail closure;
+- `parse_html` pre/code merge, unterminated block rejection, embedded-NUL rejection;
+- light-fuzz и UTF-8/binary-noise safety инварианты.
+
+2. `tde2e/test/encrypted_storage_regression.cpp` подключён через `tde2e/CMakeLists.txt` и фиксирует:
+- rewrite не теряет уже известное значение;
+- optimistic state для known key вычисляется сразу;
+- rewrite пересчитывает derived pending value;
+- equality guard-ы для `Entry`/`Update` больше не маскируют разные name payload.
+
+#### 7.10.3 Что остаётся незакрытым (по коду, а не по намерению)
+
+1. `V1030` остаётся массовым классом риска (главный остаточный hotspot — большие dispatch-цепочки в `td/telegram/cli.cpp`).
+
+2. `V547` / `V590` / `V1051` families в обозначенных местах всё ещё требуют отдельного intent-аудита и точечных фиксов:
+- `td/telegram/net/Session.cpp`;
+- `td/telegram/cli.cpp`;
+- `tdutils/td/utils/Status.h`;
+- `tdnet/td/net/Socks5.cpp`;
+- `td/telegram/QueryCombiner.cpp`;
+- `td/telegram/SecureStorage.cpp`;
+- `tdutils/td/utils/port/detail/ThreadPthread.cpp`.
+
+3. `V773` leak path в legacy tooling (`td/generate/tl-parser/tl-parser.c`) не закрыт в этой волне и остаётся техническим долгом (низкий runtime приоритет, но валидный долг).
+
+#### 7.10.4 Текущая оценка готовности по PVS-wave
+
+- P0 из текущей волны закрыт в production-коде (по проверенным точкам).
+- P1 закрыт частично: точечные high-impact фиксы внесены, но `V1030` как класс остаётся крупным.
+- P2 остаётся backlog-ом и требует отдельной remediation wave с чётким red/green/survive контуром.
+
+Вывод: тезис «часть исправлений уже влита, но не всё закрыто» подтверждается кодом. Для stealth-контекста это приемлемо только как промежуточное состояние; следующий обязательный шаг — системная вычистка остаточного `V1030` кластера и medium-logic дефектов с fail-closed regression gates.
