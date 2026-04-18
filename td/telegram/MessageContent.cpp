@@ -6819,6 +6819,15 @@ int32 get_message_content_live_location_period(const MessageContent *content) {
   }
 }
 
+PollId get_message_content_poll_id(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Poll:
+      return static_cast<const MessagePoll *>(content)->poll_id;
+    default:
+      return PollId();
+  }
+}
+
 bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Poll:
@@ -6944,42 +6953,6 @@ bool can_message_content_have_media_timestamp(const MessageContent *content) {
     default:
       return has_message_content_web_page(content);
   }
-}
-
-void add_message_content_poll_option(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                     td_api::object_ptr<td_api::inputPollOption> &&option, Promise<Unit> &&promise) {
-  CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->add_poll_option(static_cast<const MessagePoll *>(content)->poll_id, message_full_id,
-                                     std::move(option), std::move(promise));
-}
-
-void delete_message_content_poll_option(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                        const string &option_id, Promise<Unit> &&promise) {
-  CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->delete_poll_option(static_cast<const MessagePoll *>(content)->poll_id, message_full_id, option_id,
-                                        std::move(promise));
-}
-
-void set_message_content_poll_answer(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                     vector<int32> &&option_ids, Promise<Unit> &&promise) {
-  CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->set_poll_answer(static_cast<const MessagePoll *>(content)->poll_id, message_full_id,
-                                     std::move(option_ids), std::move(promise));
-}
-
-void get_message_content_poll_voters(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                                     int32 option_id, int32 offset, int32 limit,
-                                     Promise<td_api::object_ptr<td_api::pollVoters>> &&promise) {
-  CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->get_poll_voters(static_cast<const MessagePoll *>(content)->poll_id, message_full_id, option_id,
-                                     offset, limit, std::move(promise));
-}
-
-void stop_message_content_poll(Td *td, const MessageContent *content, MessageFullId message_full_id,
-                               unique_ptr<ReplyMarkup> &&reply_markup, Promise<Unit> &&promise) {
-  CHECK(content->get_type() == MessageContentType::Poll);
-  td->poll_manager_->stop_poll(static_cast<const MessagePoll *>(content)->poll_id, message_full_id,
-                               std::move(reply_markup), std::move(promise));
 }
 
 static void merge_location_access_hash(const Location &first, const Location &second) {

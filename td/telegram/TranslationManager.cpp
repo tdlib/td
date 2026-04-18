@@ -229,11 +229,10 @@ void TranslationManager::on_authorization_success() {
   }
 }
 
-void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText> &&text,
-                                        const string &to_language_code, const string &tone,
-                                        Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
+Result<TranslationManager::InputText> TranslationManager::get_input_text(
+    td_api::object_ptr<td_api::formattedText> &&text) const {
   if (text == nullptr) {
-    return promise.set_error(400, "Text must be non-empty");
+    return Status::Error(400, "Text must be non-empty");
   }
   InputText input_text;
   for (const auto &entity : text->entities_) {
@@ -256,13 +255,18 @@ void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText
     }
   }
 
-  TRY_RESULT_PROMISE(promise, entities, get_message_entities(td_->user_manager_.get(), std::move(text->entities_)));
-  TRY_STATUS_PROMISE(promise, fix_formatted_text(text->text_, entities, true, true, true, true, true, true));
+  TRY_RESULT(entities, get_message_entities(td_->user_manager_.get(), std::move(text->entities_)));
+  TRY_STATUS(fix_formatted_text(text->text_, entities, true, true, true, true, true, true));
   input_text.text_ = FormattedText{std::move(text->text_), std::move(entities)};
-
-  translate_text(std::move(input_text), MessageFullId(), to_language_code, tone, std::move(promise));
+  return std::move(input_text);
 }
 
+void TranslationManager::translate_text(td_api::object_ptr<td_api::formattedText> &&text,
+                                        const string &to_language_code, const string &tone,
+                                        Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
+  TRY_RESULT_PROMISE(promise, input_text, get_input_text(std::move(text)));
+  translate_text(std::move(input_text), MessageFullId(), to_language_code, tone, std::move(promise));
+}
 void TranslationManager::translate_text(InputText &&text, MessageFullId message_full_id, const string &to_language_code,
                                         const string &tone,
                                         Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
@@ -308,70 +312,14 @@ void TranslationManager::compose_message_with_ai(td_api::object_ptr<td_api::form
                                                  const string &translate_to_language_code, const string &tone,
                                                  bool emojify,
                                                  Promise<td_api::object_ptr<td_api::formattedText>> &&promise) {
-  if (text == nullptr) {
-    return promise.set_error(400, "Text must be non-empty");
-  }
-
-  InputText input_text;
-  for (const auto &entity : text->entities_) {
-    if (entity == nullptr || entity->type_ == nullptr) {
-      continue;
-    }
-
-    switch (entity->type_->get_id()) {
-      case td_api::textEntityTypeBotCommand::ID:
-        input_text.skip_bot_commands_ = false;
-        break;
-      case td_api::textEntityTypeMediaTimestamp::ID:
-        input_text.max_media_timestamp_ =
-            td::max(input_text.max_media_timestamp_,
-                    static_cast<const td_api::textEntityTypeMediaTimestamp *>(entity->type_.get())->media_timestamp_);
-        break;
-      default:
-        // nothing to do
-        break;
-    }
-  }
-
-  TRY_RESULT_PROMISE(promise, entities, get_message_entities(td_->user_manager_.get(), std::move(text->entities_)));
-  TRY_STATUS_PROMISE(promise, fix_formatted_text(text->text_, entities, true, true, true, true, true, true));
-  input_text.text_ = FormattedText{std::move(text->text_), std::move(entities)};
-
+  TRY_RESULT_PROMISE(promise, input_text, get_input_text(std::move(text)));
   td_->create_handler<ComposeMessageWithAiQuery>(std::move(promise))
       ->send(input_text, translate_to_language_code, tone, emojify);
 }
 
 void TranslationManager::proofread_message_with_ai(td_api::object_ptr<td_api::formattedText> &&text,
                                                    Promise<td_api::object_ptr<td_api::fixedText>> &&promise) {
-  if (text == nullptr) {
-    return promise.set_error(400, "Text must be non-empty");
-  }
-
-  InputText input_text;
-  for (const auto &entity : text->entities_) {
-    if (entity == nullptr || entity->type_ == nullptr) {
-      continue;
-    }
-
-    switch (entity->type_->get_id()) {
-      case td_api::textEntityTypeBotCommand::ID:
-        input_text.skip_bot_commands_ = false;
-        break;
-      case td_api::textEntityTypeMediaTimestamp::ID:
-        input_text.max_media_timestamp_ =
-            td::max(input_text.max_media_timestamp_,
-                    static_cast<const td_api::textEntityTypeMediaTimestamp *>(entity->type_.get())->media_timestamp_);
-        break;
-      default:
-        // nothing to do
-        break;
-    }
-  }
-
-  TRY_RESULT_PROMISE(promise, entities, get_message_entities(td_->user_manager_.get(), std::move(text->entities_)));
-  TRY_STATUS_PROMISE(promise, fix_formatted_text(text->text_, entities, true, true, true, true, true, true));
-  input_text.text_ = FormattedText{std::move(text->text_), std::move(entities)};
-
+  TRY_RESULT_PROMISE(promise, input_text, get_input_text(std::move(text)));
   td_->create_handler<ProofreadMessageWithAiQuery>(std::move(promise))->send(input_text);
 }
 

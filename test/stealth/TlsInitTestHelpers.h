@@ -52,7 +52,8 @@ inline Result<SocketPair> create_socket_pair() {
   TRY_RESULT(peer, SocketFd::from_native_fd(NativeFd(fds[1])));
   return SocketPair{std::move(client), std::move(peer)};
 #else
-  return Status::Error("create_socket_pair: not implemented on this platform; TlsInit integration tests are POSIX-only");
+  return Status::Error(
+      "create_socket_pair: not implemented on this platform; TlsInit integration tests are POSIX-only");
 #endif
 }
 
@@ -66,13 +67,13 @@ inline Result<SocketPair> create_socket_pair() {
 // reason and returns from the enclosing test, so the test runner records
 // it as passing-with-skip rather than crashing on the subsequent
 // `move_as_ok()`.
-#define SKIP_IF_NO_SOCKET_PAIR()                                                              \
-  do {                                                                                        \
-    auto _r_pair_check = ::td::mtproto::test::create_socket_pair();                           \
-    if (_r_pair_check.is_error()) {                                                           \
-      LOG(WARNING) << "Skipping test: " << _r_pair_check.error();                             \
-      return;                                                                                 \
-    }                                                                                         \
+#define SKIP_IF_NO_SOCKET_PAIR()                                    \
+  do {                                                              \
+    auto _r_pair_check = ::td::mtproto::test::create_socket_pair(); \
+    if (_r_pair_check.is_error()) {                                 \
+      LOG(WARNING) << "Skipping test: " << _r_pair_check.error();   \
+      return;                                                       \
+    }                                                               \
   } while (false)
 
 inline Status write_all(SocketFd &socket_fd, Slice data) {

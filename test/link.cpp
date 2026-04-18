@@ -569,6 +569,8 @@ TEST(Link, parse_internal_link_part1) {
   parse_internal_link("t.me/c/12345?boost", chat_boost("tg://boost?channel=12345"));
   parse_internal_link("t.me/c/123456789012?boost", chat_boost("tg://boost?channel=123456789012"));
   parse_internal_link("t.me/c/123456789012?boost=12312&domain=123", chat_boost("tg://boost?channel=123456789012"));
+  parse_internal_link("t.me/c/123456789/12345?comment=11&task=17&option=Zm9v",
+                      message("tg://privatepost?channel=123456789&post=12345&comment=11&task=17&option=Zm9v"));
 
   parse_internal_link("t.me/boost/a/12345", story_album("boost", 12345));
   parse_internal_link("t.me/boost/c/12345", gift_collection("boost", 12345));
@@ -587,6 +589,8 @@ TEST(Link, parse_internal_link_part1) {
 
   parse_internal_link("tg:resolve?domain=username&post=12345&single",
                       message("tg://resolve?domain=username&post=12345&single"));
+  parse_internal_link("tg:resolve?domain=username&post=12345&single&task=17&option=Zm9v",
+                      message("tg://resolve?domain=username&post=12345&single&task=17&option=Zm9v"));
   parse_internal_link("tg:resolve?domain=username&post=12345&single&startattach=1&attach=test",
                       message("tg://resolve?domain=username&post=12345&single"));
   parse_internal_link("tg:resolve?domain=user%31name&post=%312345&single&comment=456&t=789&single&thread=123%20%31",
@@ -1349,10 +1353,12 @@ TEST(Link, parse_internal_link_part3) {
       proxy_mtproto("google.com", 80, "7hI0VniQq83vEjRWeJCrze8BAQEBAQEBAQE"));
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7tAAAAAAAAAAAAAAAAAAAAAAAAcuZ29vZ2xlLmNvbQ",
                       proxy_mtproto("google.com", 80, "7tAAAAAAAAAAAAAAAAAAAAAAAAcuZ29vZ2xlLmNvbQ"));
-  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2BSj5pyZnaXRodWIuY29t",
-                      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t"));
-  parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2FSj5pyZnaXRodWIuY29t",
-                      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J_Sj5pyZnaXRodWIuY29t"));
+  parse_internal_link(
+      "t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2BSj5pyZnaXRodWIuY29t",
+      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t"));  // invalid, but accepted
+  parse_internal_link(
+      "t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J%2FSj5pyZnaXRodWIuY29t",
+      proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J_Sj5pyZnaXRodWIuY29t"));  // invalid, but accepted
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t",
                       proxy_mtproto("google.com", 80, "7ge9Ug57SJOnMe8J-Sj5pyZnaXRodWIuY29t"));
   parse_internal_link("t.me/proxy?server=google.com&port=8%30&secret=7ge9Ug57SJOnMe8J_Sj5pyZnaXRodWIuY29t",

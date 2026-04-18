@@ -393,6 +393,9 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_ja4_segment_a_correctness.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_ja3_ja4_cross_validation.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_wire_image_deep_safety.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_transport_wire_parser_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_transport_wire_memory_bounds.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_authentication_constant_time.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/data.h
@@ -521,6 +524,12 @@ if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
 
         add_test(NAME "${TD_RUN_ALL_TEST_NAME}"
                  COMMAND run_all_tests --exact "${TD_RUN_ALL_TEST_NAME}")
+        set_tests_properties("${TD_RUN_ALL_TEST_NAME}" PROPERTIES
+                 WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+        if (TD_RUN_ALL_TEST_NAME MATCHES "^(Test_DB_key_value|Test_DB_key_value_set_all|Test_SecureStorage_secret|Test_Misc_update_atime_change_atime|Test_Misc_update_atime_saves_mtime|Test_FamilyLaneMatcherContract_ReviewedTableByIndexCountMatches|Test_HmacTimestampAdversarial1k_AllProfilesSameSeedSameTimestampProduceDifferentClientRandom|Test_AuthenticationTimingConsistency_StringComparisonNoEarlyExit)$")
+          set_tests_properties("${TD_RUN_ALL_TEST_NAME}" PROPERTIES RUN_SERIAL TRUE)
+        endif()
 
         set(TD_RUN_ALL_TEST_LABELS "")
         if (TD_RUN_ALL_TEST_NAME MATCHES "(Corpus|MultiDump|WireClassifierBlackhat|HandshakeAcceptance|FullHandshakeFamilyPairing|FirstFlightLayoutPairing|CrossFamilyOneBitDifferentiators|RouteEchQuicBlockMatrix)")

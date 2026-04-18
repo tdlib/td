@@ -197,6 +197,23 @@
             "problemMatcher": []
         },
         {
+            "label": "ctest all (14 cores)",
+            "type": "shell",
+            "command": "ctest",
+            "args": [
+                "--test-dir",
+                "build",
+                "--output-on-failure",
+                "-j",
+                "14"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
             "label": "run stealth tests",
             "type": "shell",
             "command": "./build/test/run_all_tests",

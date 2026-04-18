@@ -120,6 +120,7 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Payments.h"
 #include "td/telegram/PhoneNumberManager.h"
+#include "td/telegram/PollManager.h"
 #include "td/telegram/Premium.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/PublicDialogType.h"
@@ -7780,35 +7781,35 @@ void Requests::on_request(uint64 id, td_api::setOption &request) {
 void Requests::on_request(uint64 id, td_api::addPollOption &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->add_poll_option({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                          std::move(request.option_), std::move(promise));
+  td_->poll_manager_->add_poll_option({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                      std::move(request.option_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::deletePollOption &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->delete_poll_option({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                             request.option_id_, std::move(promise));
+  td_->poll_manager_->delete_poll_option({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                         request.option_id_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setPollAnswer &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->set_poll_answer({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                          std::move(request.option_ids_), std::move(promise));
+  td_->poll_manager_->set_poll_answer({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                      std::move(request.option_ids_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getPollVoters &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->messages_manager_->get_poll_voters({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                          request.option_id_, request.offset_, request.limit_, std::move(promise));
+  td_->poll_manager_->get_poll_voters({DialogId(request.chat_id_), MessageId(request.message_id_)}, request.option_id_,
+                                      request.offset_, request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::stopPoll &request) {
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->stop_poll({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                    std::move(request.reply_markup_), std::move(promise));
+  td_->poll_manager_->stop_poll({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                std::move(request.reply_markup_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::addChecklistTasks &request) {

@@ -90,19 +90,17 @@ class PollManager final : public Actor {
 
   vector<FileId> get_poll_file_ids(PollId poll_id) const;
 
-  void add_poll_option(PollId poll_id, MessageFullId message_full_id,
-                       td_api::object_ptr<td_api::inputPollOption> &&option, Promise<Unit> &&promise);
-
-  void delete_poll_option(PollId poll_id, MessageFullId message_full_id, const string &option_id,
-                          Promise<Unit> &&promise);
-
-  void set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<int32> &&option_ids,
+  void add_poll_option(MessageFullId message_full_id, td_api::object_ptr<td_api::inputPollOption> &&option,
                        Promise<Unit> &&promise);
 
-  void get_poll_voters(PollId poll_id, MessageFullId message_full_id, int32 option_id, int32 offset, int32 limit,
+  void delete_poll_option(MessageFullId message_full_id, const string &option_id, Promise<Unit> &&promise);
+
+  void set_poll_answer(MessageFullId message_full_id, vector<int32> &&option_ids, Promise<Unit> &&promise);
+
+  void get_poll_voters(MessageFullId message_full_id, int32 option_id, int32 offset, int32 limit,
                        Promise<td_api::object_ptr<td_api::pollVoters>> &&promise);
 
-  void stop_poll(PollId poll_id, MessageFullId message_full_id, unique_ptr<ReplyMarkup> &&reply_markup,
+  void stop_poll(MessageFullId message_full_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                  Promise<Unit> &&promise);
 
   void stop_local_poll(PollId poll_id);

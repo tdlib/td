@@ -107,9 +107,11 @@ See [example/android](https://github.com/tdlib/td/tree/master/example/android) f
 
 TDLib can be used from the Kotlin/JVM programming language through same way as in [Java](#java).
 
-You can also use [ktd](https://github.com/whyoleg/ktd) library with Kotlin-specific bindings.
+See [tdl-coroutines](https://github.com/g000sha256/tdl-coroutines) - Kotlin Multiplatform coroutine-based wrapper for TDLib.
 
 See also [td-ktx](https://github.com/tdlibx/td-ktx) - Kotlin coroutines wrapper for TDLib.
+
+You can also use [ktd](https://github.com/whyoleg/ktd) library with Kotlin-specific bindings.
 
 Also, see [Monogram](https://github.com/monogram-android/monogram), which is an unofficial Telegram client for Android built with Jetpack Compose and Material Design 3.
 

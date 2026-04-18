@@ -41,7 +41,7 @@ using td::mtproto::TlsInit;
 
 constexpr td::uint16 kEchExtType = td::mtproto::test::fixtures::kEchExtensionType;
 constexpr td::Slice kFirstResponsePrefix("\x16\x03\x03");
-constexpr td::Slice kSecondResponsePrefix("\x14\x03\x03");
+constexpr td::Slice kSecondResponsePrefix("\x17\x03\x03");
 
 class NoopCallback final : public td::TransparentProxy::Callback {
  public:

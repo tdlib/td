@@ -1061,8 +1061,9 @@ vector<FileId> PollManager::get_poll_file_ids(PollId poll_id) const {
   return result;
 }
 
-void PollManager::add_poll_option(PollId poll_id, MessageFullId message_full_id,
-                                  td_api::object_ptr<td_api::inputPollOption> &&option, Promise<Unit> &&promise) {
+void PollManager::add_poll_option(MessageFullId message_full_id, td_api::object_ptr<td_api::inputPollOption> &&option,
+                                  Promise<Unit> &&promise) {
+  TRY_STATUS_PROMISE(promise, td_->messages_manager_->check_can_add_poll_option(message_full_id));
   if (option == nullptr) {
     return promise.set_error(400, "Poll option must be non-empty");
   }
@@ -1076,16 +1077,16 @@ void PollManager::add_poll_option(PollId poll_id, MessageFullId message_full_id,
   td_->create_handler<AddPollAnswerQuery>(std::move(promise))->send(message_full_id, poll_option);
 }
 
-void PollManager::delete_poll_option(PollId poll_id, MessageFullId message_full_id, const string &option_id,
-                                     Promise<Unit> &&promise) {
-  if (!message_full_id.get_message_id().is_server()) {
-    return promise.set_error(400, "Invalid message specified");
+void PollManager::delete_poll_option(MessageFullId message_full_id, const string &option_id, Promise<Unit> &&promise) {
+  auto r_poll_id = td_->messages_manager_->get_message_poll_id(message_full_id, false);
+  if (r_poll_id.is_error()) {
+    return promise.set_error(r_poll_id.move_as_error());
   }
   td_->create_handler<DeletePollAnswerQuery>(std::move(promise))->send(message_full_id, option_id);
 }
 
-void PollManager::set_poll_answer(PollId poll_id, MessageFullId message_full_id, vector<int32> &&option_ids,
-                                  Promise<Unit> &&promise) {
+void PollManager::set_poll_answer(MessageFullId message_full_id, vector<int32> &&option_ids, Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, poll_id, td_->messages_manager_->get_message_poll_id(message_full_id, false));
   td::unique(option_ids);
 
   if (is_local_poll_id(poll_id)) {
@@ -1386,8 +1387,9 @@ bool PollManager::can_get_poll_voters(PollId poll_id, const Poll *poll) const {
   return (is_voted && !poll->hide_results_until_close_) || poll->is_closed_ || poll->is_creator_;
 }
 
-void PollManager::get_poll_voters(PollId poll_id, MessageFullId message_full_id, int32 option_id, int32 offset,
-                                  int32 limit, Promise<td_api::object_ptr<td_api::pollVoters>> &&promise) {
+void PollManager::get_poll_voters(MessageFullId message_full_id, int32 option_id, int32 offset, int32 limit,
+                                  Promise<td_api::object_ptr<td_api::pollVoters>> &&promise) {
+  TRY_RESULT_PROMISE(promise, poll_id, td_->messages_manager_->get_message_poll_id(message_full_id, false));
   if (offset < 0) {
     return promise.set_error(400, "Invalid offset specified");
   }
@@ -1547,8 +1549,15 @@ void PollManager::on_get_poll_voters(PollId poll_id, int32 option_id, string off
   }
 }
 
-void PollManager::stop_poll(PollId poll_id, MessageFullId message_full_id, unique_ptr<ReplyMarkup> &&reply_markup,
+void PollManager::stop_poll(MessageFullId message_full_id, td_api::object_ptr<td_api::ReplyMarkup> &&reply_markup,
                             Promise<Unit> &&promise) {
+  TRY_RESULT_PROMISE(promise, poll_id, td_->messages_manager_->get_message_poll_id(message_full_id, true));
+  if (get_poll_is_closed(poll_id)) {
+    return promise.set_error(400, "Poll has already been closed");
+  }
+  TRY_RESULT_PROMISE(promise, new_reply_markup,
+                     get_inline_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(),
+                                             td_->messages_manager_->has_message_sender_user_id(message_full_id)));
   if (is_local_poll_id(poll_id)) {
     LOG(ERROR) << "Receive local " << poll_id << " from " << message_full_id << " in stop_poll";
     stop_local_poll(poll_id);
@@ -1568,7 +1577,7 @@ void PollManager::stop_poll(PollId poll_id, MessageFullId message_full_id, uniqu
   save_poll(poll, poll_id);
   notify_on_poll_update(poll_id);
 
-  do_stop_poll(poll_id, message_full_id, std::move(reply_markup), 0, std::move(promise));
+  do_stop_poll(poll_id, message_full_id, std::move(new_reply_markup), 0, std::move(promise));
 }
 
 class PollManager::StopPollLogEvent {

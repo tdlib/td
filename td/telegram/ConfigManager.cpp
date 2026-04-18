@@ -29,8 +29,8 @@
 #include "td/telegram/OptionManager.h"
 #include "td/telegram/Premium.h"
 #include "td/telegram/ReactionType.h"
-#include "td/telegram/StateManager.h"
 #include "td/telegram/ReferenceTable.h"
+#include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/telegram_api.h"
@@ -41,11 +41,11 @@
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/BlobStore.h"
 #include "td/mtproto/ConfigWindowTable.h"
 #include "td/mtproto/PacketAlignmentSeeds.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/RSA.h"
-#include "td/mtproto/BlobStore.h"
 #include "td/mtproto/TransportType.h"
 
 #if !TD_EMSCRIPTEN  //FIXME
@@ -138,7 +138,7 @@ Status check_config_entry(int64 fingerprint) {
   append_bytes(key_material, vault_detail::kConfigCacheSeeds);
 
   UInt256 mask;
-    hmac_sha256(Slice("table_mix_v1_theta"), Slice(key_material), as_mutable_slice(mask));
+  hmac_sha256(Slice("table_mix_v1_theta"), Slice(key_material), as_mutable_slice(mask));
 
   auto expected_fingerprint =
       static_cast<uint64>(vault_detail::kConfigWindowAuxiliary) ^ load_uint64_le(as_slice(mask).substr(16, 8));
@@ -313,8 +313,8 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfigResult> promise, boo
 
 ActorOwn<> get_simple_config_mozilla_dns(Promise<SimpleConfigResult> promise, bool prefer_ipv6, Slice domain_name,
                                          bool is_test, int32 scheduler_id) {
-  return get_simple_config_dns("mozilla.cloudflare-dns.com/dns-query", ReferenceTable::host_name(2),
-                               std::move(promise), prefer_ipv6, domain_name, is_test, scheduler_id);
+  return get_simple_config_dns("mozilla.cloudflare-dns.com/dns-query", ReferenceTable::host_name(2), std::move(promise),
+                               prefer_ipv6, domain_name, is_test, scheduler_id);
 }
 
 static string generate_firebase_remote_config_payload() {

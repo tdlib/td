@@ -23,17 +23,17 @@
 
 namespace {
 
-using td::Slice;
-using td::string;
 using td::mtproto::stealth::BrowserProfile;
 using td::mtproto::stealth::build_tls_client_hello_for_profile;
 using td::mtproto::stealth::EchMode;
+using td::mtproto::test::baselines::FamilyLaneBaseline;
+using td::mtproto::test::baselines::TierLevel;
 using td::mtproto::test::FamilyLaneMatcher;
 using td::mtproto::test::MockRng;
 using td::mtproto::test::parse_tls_client_hello;
 using td::mtproto::test::ParsedClientHello;
-using td::mtproto::test::baselines::FamilyLaneBaseline;
-using td::mtproto::test::baselines::TierLevel;
+using td::Slice;
+using td::string;
 
 ParsedClientHello build_and_parse_chrome133() {
   MockRng rng(1);
@@ -132,15 +132,13 @@ TEST(FamilyLaneMatcherContract, ExtensionOrderTemplateCoverageContract) {
 }
 
 TEST(FamilyLaneMatcherContract, ReviewedTableHasChromiumLinuxDesktopLane) {
-  const auto *b = td::mtproto::test::baselines::get_baseline(
-      Slice("chromium_linux_desktop"), Slice("non_ru_egress"));
+  const auto *b = td::mtproto::test::baselines::get_baseline(Slice("chromium_linux_desktop"), Slice("non_ru_egress"));
   ASSERT_TRUE(b != nullptr);
   ASSERT_TRUE(b->sample_count > 0u);
   // Real reviewed table: wire-length envelope check against a Chrome
   // capture size should succeed within 5%.
   FamilyLaneMatcher matcher(*b);
-  ASSERT_TRUE(matcher.within_wire_length_envelope(1779u, 5.0) ||
-              matcher.within_wire_length_envelope(1780u, 5.0) ||
+  ASSERT_TRUE(matcher.within_wire_length_envelope(1779u, 5.0) || matcher.within_wire_length_envelope(1780u, 5.0) ||
               matcher.within_wire_length_envelope(1500u, 5.0));
 }
 
@@ -151,7 +149,13 @@ TEST(FamilyLaneMatcherContract, ReviewedTableByIndexCountMatches) {
     const auto &b = td::mtproto::test::baselines::get_baseline_by_index(i);
     ASSERT_FALSE(b.family_id.empty());
     ASSERT_FALSE(b.route_lane.empty());
-    ASSERT_TRUE(b.sample_count > 0u);
+    if (b.sample_count == 0u) {
+      ASSERT_TRUE(b.authoritative_sample_count == 0u);
+      ASSERT_TRUE(b.set_catalog.observed_wire_lengths.empty());
+      ASSERT_TRUE(b.set_catalog.observed_extension_order_templates.empty());
+    } else {
+      ASSERT_TRUE(b.set_catalog.observed_wire_lengths.size() > 0u);
+    }
   }
 }
 
