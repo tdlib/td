@@ -36046,7 +36046,6 @@ Status MessagesManager::check_can_add_poll_option(MessageFullId message_full_id)
   }
   return Status::OK();
 }
-
 Result<PollId> MessagesManager::get_message_poll_id(MessageFullId message_full_id, bool to_stop) {
   auto m = get_message_force(message_full_id, "get_message_poll_id");
   if (m == nullptr) {

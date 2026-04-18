@@ -988,7 +988,6 @@ class MessagesManager final : public Actor {
   bool has_message_sender_user_id(MessageFullId message_full_id) const;
 
   Status check_can_add_poll_option(MessageFullId message_full_id);
-
   Result<PollId> get_message_poll_id(MessageFullId message_full_id, bool to_stop);
 
   Result<ServerMessageId> get_group_call_message_id(MessageFullId message_full_id);
