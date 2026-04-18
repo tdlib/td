@@ -921,7 +921,7 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
         return;
       }
       if (set_string_option("custom_dns_url", [](Slice value) {
-            return value.find(CSlice("://")) != Slice::npos;
+            return value.find('.') != Slice::npos;
           })) {
         return;
       }
