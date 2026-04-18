@@ -1307,7 +1307,7 @@ void SavedMessagesManager::repair_topic_unread_reaction_count(DialogId dialog_id
     return;
   }
   if (topic->dialog_id_ != dialog_id) {
-    LOG(ERROR) << "Save Messages must not have unread reactions";
+    LOG(ERROR) << "Saves Messages must not have unread reactions";
     return;
   }
 
