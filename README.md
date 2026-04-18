@@ -1,5 +1,8 @@
 # tdlib-obf (Telegram Database Library - Stealth & Anti-Censorship Fork)
 
+<img width="917" height="512" alt="A detailed, stylized illustration of a cutaway view of a futuristic submersible cockpit. Four hooded, secret-keeping figures with painted faces are inside, all making a 'hush' gesture to signal silence. A large wrench has just dropped to the floor with a 'CLANG!' sound effect, creating tension. An orange crab wearing a blue paper plane hat (with a Telegram-like logo) is startled on a table. The interior is full of complex screens and wires, and red laser grids are outside in the dark water, representing a covert coding mission related to obfuscation and evasion of detection." src="https://github.com/user-attachments/assets/37d677a6-fd38-4948-93a5-ae30eff39b9c" />
+
+
 `tdlib-obf` is a specialized, security-hardened fork of [TDLib](https://github.com/tdlib/td) designed for high-threat network environments. It implements advanced MTProto-proxy stealth traffic-masking to evade state-level Deep Packet Inspection (DPI) and introduces robust, defense-in-depth transport security enhancements to protect client integrity.
 
 This fork is designed to work in tandem with the [telemt](https://github.com/telemt) Rust MTProxy server.
