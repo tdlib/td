@@ -77,7 +77,9 @@ const ExtensionOrderVerifier &ExtensionOrderVerifier::get_for_family(Slice famil
 
 bool ExtensionOrderVerifier::is_legal_permutation(const vector<uint16> &non_grease_extensions) const {
   if (mode_ == Mode::NoConstraint) {
-    return true;
+    // Fail closed for unknown families: a permissive default masks
+    // classifier/baseline drift and can silently accept cross-family data.
+    return false;
   }
   if (mode_ == Mode::Fixed) {
     // No upstream-forbidden type list to check yet; Firefox's fixed order
@@ -130,10 +132,11 @@ const KeyShareStructureVerifier &KeyShareStructureVerifier::get_for_family(Slice
   return v;
 }
 
-bool KeyShareStructureVerifier::is_legal_structure(
-    const vector<ParsedKeyShareEntry> &key_share_entries) const {
+bool KeyShareStructureVerifier::is_legal_structure(const vector<ParsedKeyShareEntry> &key_share_entries) const {
   if (legal_entries_.empty()) {
-    return true;
+    // Fail closed for unknown families.
+    (void)key_share_entries;
+    return false;
   }
   bool saw_pq = false;
   bool first_non_grease = true;

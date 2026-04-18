@@ -14,8 +14,6 @@
 #include "test/stealth/ReviewedClientHelloFixtures.h"
 #include "test/stealth/TlsHelloParsers.h"
 
-#include "td/mtproto/BrowserProfile.h"
-#include "td/mtproto/stealth/Interfaces.h"
 #include "td/mtproto/stealth/TlsHelloBuilder.h"
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
 
@@ -23,7 +21,6 @@
 #include "td/utils/tests.h"
 
 #include <algorithm>
-#include <set>
 #include <unordered_set>
 
 namespace {
@@ -46,9 +43,23 @@ string build_hello(BrowserProfile profile, EchMode ech_mode, uint64 seed) {
 // definition unexpected.
 std::unordered_set<uint16> chrome_allowed_extension_set() {
   std::unordered_set<uint16> allowed = kChrome133EchExtensionSet;
+  // Chrome131 keeps the legacy ALPS codepoint while Chrome133+ uses 0x44CD.
+  allowed.insert(fixtures::kAlpsChrome131);
   // Padding is a Chrome-family extension we permit (dynamic presence).
   allowed.insert(0x0015);
   return allowed;
+}
+
+vector<uint16> chrome_reviewed_order_for_profile(BrowserProfile profile) {
+  auto reviewed_order = fixtures::reviewed::chrome146_75_linux_desktopNonGreaseExtensionsWithoutPadding;
+  if (profile == BrowserProfile::Chrome131) {
+    for (auto &ext : reviewed_order) {
+      if (ext == fixtures::kAlpsChrome133Plus) {
+        ext = fixtures::kAlpsChrome131;
+      }
+    }
+  }
+  return reviewed_order;
 }
 
 std::unordered_set<uint16> firefox_allowed_extension_set() {
@@ -65,8 +76,7 @@ std::unordered_set<uint16> safari_allowed_extension_set() {
 
 // Assert no forbidden extension type appears. "Forbidden" = any non-GREASE
 // extension type not present in the reviewed set for this family.
-void assert_no_forbidden_extensions(const ParsedClientHello &hello,
-                                    const std::unordered_set<uint16> &allowed) {
+void assert_no_forbidden_extensions(const ParsedClientHello &hello, const std::unordered_set<uint16> &allowed) {
   for (const auto &ext : hello.extensions) {
     if (is_grease_value(ext.type)) {
       continue;
@@ -79,8 +89,8 @@ void assert_no_forbidden_extensions(const ParsedClientHello &hello,
 // permutation of the declared reviewed order. For Firefox the reviewed
 // order is exact; for Chrome the reviewed order is a declared shuffle
 // set (as a multiset, the non-GREASE extension identity must match).
-void assert_extension_order_is_legal_permutation(const ParsedClientHello &hello,
-                                                 const vector<uint16> &reviewed_order, bool require_exact) {
+void assert_extension_order_is_legal_permutation(const ParsedClientHello &hello, const vector<uint16> &reviewed_order,
+                                                 bool require_exact) {
   auto observed = non_grease_extension_sequence(hello);
   if (require_exact) {
     ASSERT_EQ(reviewed_order.size(), observed.size());
@@ -122,7 +132,7 @@ void assert_no_trailing_garbage(Slice wire) {
 
 void run_boundary_falsification_chrome_family(BrowserProfile profile, EchMode ech_mode) {
   auto allowed = chrome_allowed_extension_set();
-  const auto &reviewed_order = fixtures::reviewed::chrome146_75_linux_desktopNonGreaseExtensionsWithoutPadding;
+  const auto reviewed_order = chrome_reviewed_order_for_profile(profile);
   const auto &spec = profile_spec(profile);
 
   for (uint64 seed = 0; seed < kNightlyIterations; seed++) {
@@ -205,6 +215,26 @@ TEST(TLS_NightlyBoundaryFalsification, IOS14Run) {
     return;
   }
   run_boundary_falsification_safari_family(BrowserProfile::IOS14, EchMode::Disabled);
+}
+
+TEST(TLS_NightlyBoundaryFalsification, ChromeFamilyAllowListContainsBothAlpsCodepoints) {
+  const auto allowed = chrome_allowed_extension_set();
+  ASSERT_TRUE(allowed.count(fixtures::kAlpsChrome131) == 1u);
+  ASSERT_TRUE(allowed.count(fixtures::kAlpsChrome133Plus) == 1u);
+}
+
+TEST(TLS_NightlyBoundaryFalsification, Chrome131ReviewedOrderUsesLegacyAlpsOnly) {
+  const auto chrome131_order = chrome_reviewed_order_for_profile(BrowserProfile::Chrome131);
+  ASSERT_TRUE(std::find(chrome131_order.begin(), chrome131_order.end(), fixtures::kAlpsChrome131) !=
+              chrome131_order.end());
+  ASSERT_TRUE(std::find(chrome131_order.begin(), chrome131_order.end(), fixtures::kAlpsChrome133Plus) ==
+              chrome131_order.end());
+
+  const auto chrome133_order = chrome_reviewed_order_for_profile(BrowserProfile::Chrome133);
+  ASSERT_TRUE(std::find(chrome133_order.begin(), chrome133_order.end(), fixtures::kAlpsChrome133Plus) !=
+              chrome133_order.end());
+  ASSERT_TRUE(std::find(chrome133_order.begin(), chrome133_order.end(), fixtures::kAlpsChrome131) ==
+              chrome133_order.end());
 }
 
 }  // namespace

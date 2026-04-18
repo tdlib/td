@@ -8,6 +8,8 @@
 
 #include "test/stealth/ReviewedFamilyLaneBaselines.h"
 
+#include "td/utils/Status.h"
+
 #include <array>
 
 namespace td {
@@ -44,6 +46,7 @@ struct FeatureMask final {
 
 SampleFeatures extract_generated_features(Slice wire);
 SampleFeatures make_real_features_from_baseline_summary(const baselines::FamilyLaneBaseline &baseline, size_t index);
+Result<vector<SampleFeatures>> load_real_features_for_family_lane(Slice family_id, Slice route_lane);
 FeatureMask classifier_feature_mask_for_baseline(const baselines::FamilyLaneBaseline &baseline);
 std::array<double, kFeatureCount> to_vector(const SampleFeatures &features, const FeatureMask &mask);
 

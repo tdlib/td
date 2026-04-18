@@ -41,6 +41,15 @@ bool any_template_contains(const vector<vector<uint16>> &templates, uint16 exten
   return false;
 }
 
+bool extension_present(const ParsedClientHello &hello, uint16 extension_type) {
+  for (const auto &ext : hello.extensions) {
+    if (ext.type == extension_type) {
+      return true;
+    }
+  }
+  return false;
+}
+
 TEST(TLS_WireFeatureMaskContract, GeneratedFeaturesExcludePaddingLikeReviewedTemplates) {
   MockRng rng(0x12345678ULL);
   auto wire = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
@@ -72,6 +81,31 @@ TEST(TLS_WireFeatureMaskContract, EveryLaneMasksAlpnCountWhenSummaryOmitsObserve
       ASSERT_FALSE(mask.enabled[wire_classifier::kAlpnCount]);
     }
   }
+}
+
+TEST(TLS_WireFeatureMaskContract, ChromiumLinuxLaneKeepsAlpsFeatureAcrossLegacyAndModernCodepoints) {
+  const auto *baseline = baselines::get_baseline(Slice("chromium_linux_desktop"), Slice("non_ru_egress"));
+  ASSERT_TRUE(baseline != nullptr);
+
+  // Regression guard: runtime Chrome131 and Chrome133 lanes must keep their
+  // ALPS type split (0x4469 legacy vs 0x44CD modern). Classifier features
+  // must still model ALPS presence for the shared chromium_linux_desktop lane.
+  MockRng rng_131(0x131u);
+  MockRng rng_133(0x133u);
+  auto wire_131 = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
+                                                     BrowserProfile::Chrome131, EchMode::Rfc9180Outer, rng_131);
+  auto wire_133 = build_tls_client_hello_for_profile("www.google.com", "0123456789secret", kUnixTime,
+                                                     BrowserProfile::Chrome133, EchMode::Rfc9180Outer, rng_133);
+  auto parsed_131 = parse_tls_client_hello(wire_131).move_as_ok();
+  auto parsed_133 = parse_tls_client_hello(wire_133).move_as_ok();
+
+  ASSERT_TRUE(extension_present(parsed_131, 0x4469u));
+  ASSERT_FALSE(extension_present(parsed_131, 0x44CDu));
+  ASSERT_TRUE(extension_present(parsed_133, 0x44CDu));
+  ASSERT_FALSE(extension_present(parsed_133, 0x4469u));
+
+  const auto mask = wire_classifier::classifier_feature_mask_for_baseline(*baseline);
+  ASSERT_TRUE(mask.enabled[wire_classifier::kHasAlps]);
 }
 
 }  // namespace

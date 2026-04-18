@@ -139,11 +139,14 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_route_ech_quic_block_matrix.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_wire_pattern_distinguisher_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_wire_feature_mask_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_wire_real_fixture_features_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/WireClassifierFeatures.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/UpstreamRuleVerifiers.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/FamilyLaneMatchers.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_upstream_rule_verifiers_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_upstream_rule_verifiers_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_family_lane_matcher_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_family_lane_matcher_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_reviewed_family_lane_baselines_coverage.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_firefox_fixture_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_firefox_linux_desktop_ech.cpp
@@ -361,8 +364,12 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_ios_chromium_baseline.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_ios_chromium_stats.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_linux_chrome_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_linux_chrome_stats.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_linux_firefox_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_linux_firefox_stats.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_macos_firefox_baseline.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_macos_firefox_stats.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_ios_apple_tls_stats.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_windows_chrome_stats.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_multi_dump_windows_firefox_stats.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_nightly_wire_baseline_monte_carlo.cpp
@@ -532,7 +539,7 @@ if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
         endif()
 
         set(TD_RUN_ALL_TEST_LABELS "")
-        if (TD_RUN_ALL_TEST_NAME MATCHES "(Corpus|MultiDump|WireClassifierBlackhat|HandshakeAcceptance|FullHandshakeFamilyPairing|FirstFlightLayoutPairing|CrossFamilyOneBitDifferentiators|RouteEchQuicBlockMatrix)")
+        if (TD_RUN_ALL_TEST_NAME MATCHES "(Corpus|MultiDump|WireClassifierBlackhat|WirePatternDistinguisherContract|WireFeatureMaskContract|WireRealFixtureFeaturesContract|HandshakeAcceptance|FullHandshakeFamilyPairing|FirstFlightLayoutPairing|CrossFamilyOneBitDifferentiators|RouteEchQuicBlockMatrix)")
           list(APPEND TD_RUN_ALL_TEST_LABELS "STEALTH_CORPUS_QUICK")
         endif()
         if (TD_RUN_ALL_TEST_NAME MATCHES "Nightly")
