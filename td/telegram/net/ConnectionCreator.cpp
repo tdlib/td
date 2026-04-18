@@ -424,6 +424,13 @@ ActorId<GetHostByNameActor> ConnectionCreator::get_dns_resolver() {
       options.ok_timeout = 60;
       options.error_timeout = 0;
     }
+  } else if (dns_type == "custom") {
+    if (!custom_dns_url.empty()) {
+      // Custom already handled above in has_custom block
+    } else {
+      // Fall back to Google if custom selected but no URL
+      options.resolver_types = {GetHostByNameActor::ResolverType::Google, GetHostByNameActor::ResolverType::CloudFlare};
+    }
   } else if (dns_type == "cloudflare") {
     options.resolver_types = {GetHostByNameActor::ResolverType::CloudFlare, GetHostByNameActor::ResolverType::Google};
   } else if (dns_type == "google") {

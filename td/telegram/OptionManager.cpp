@@ -922,7 +922,10 @@ void OptionManager::set_option(const string &name, td_api::object_ptr<td_api::Op
         return;
       }
       if (set_string_option("dns_type",
-                            [](Slice value) { return value == Slice("google") || value == Slice("cloudflare"); })) {
+                            [](Slice value) {
+                              return value == Slice("google") || value == Slice("cloudflare") ||
+                                     value == Slice("custom");
+                            })) {
         return;
       }
       if (set_boolean_option("disable_persistent_network_statistics")) {
