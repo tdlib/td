@@ -60,6 +60,7 @@ set(TDE2E_TEST_SOURCE
         ${CMAKE_CURRENT_SOURCE_DIR}/td/e2e/TestBlockchain.h
         ${CMAKE_CURRENT_SOURCE_DIR}/test/blockchain.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/e2e.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/encrypted_storage_regression.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/encryption.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/EncryptionTestVectors.h
 )
@@ -79,7 +80,7 @@ target_compile_features(tde2e INTERFACE cxx_std_17)
 add_executable(test-e2e EXCLUDE_FROM_ALL
   ${TDE2E_TEST_SOURCE}
   ../test/main.cpp)
-target_link_libraries(test-e2e PRIVATE tde2e tdutils)
+target_link_libraries(test-e2e PRIVATE tde2e tdutils tdmtproto)
 target_include_directories(test-e2e PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
 
 if (TDE2E_ENABLE_INSTALL)

@@ -182,9 +182,22 @@ td::Result<EncryptedStorage::UpdateId> EncryptedStorage::update(Key key, Update 
   auto update_id = ++next_update_id_;
   auto it = updates_.find(key);
   if (it == updates_.end()) {
-    // create pending update (original value is unknown)
-    updates_.emplace(key, UpdateInfo{{update_id}, std::move(update), {}});
-    LOG(INFO) << "Update [delay] " << key << " " << update;
+    UpdateInfo update_info{{update_id}, std::move(update), {}};
+    auto partial_it = partial_key_value_.find(key);
+    if (partial_it == partial_key_value_.end()) {
+      // create pending update (original value is unknown)
+      LOG(INFO) << "Update [delay] " << key << " " << update_info.update;
+      updates_.emplace(key, std::move(update_info));
+      return update_id;
+    }
+
+    if (!reapply_update(update_info, partial_it->second)) {
+      LOG(INFO) << "Update [drop] " << key << " " << update_info.update;
+      return update_id;
+    }
+
+    LOG(INFO) << "Update [apply] " << key << " " << update_info.update;
+    updates_.emplace(key, std::move(update_info));
     return update_id;
   }
 
@@ -299,22 +312,25 @@ td::Result<std::pair<Key, std::optional<Value>>> EncryptedStorage::parse(td::Sli
 
 void EncryptedStorage::sync_entry(Key key, std::optional<Value> value, bool rewrite) {
   LOG(INFO) << "Sync [new] " << key << " " << value;
-  auto p = partial_key_value_.try_emplace(key, std::move(value));
-  if (!p.second) {
-    if (rewrite) {
-      p.first->second = std::move(value);
-    } else {
-      // CHECK(p.first->second == value);
-    }
+  auto partial_it = partial_key_value_.find(key);
+  auto inserted = false;
+  if (partial_it == partial_key_value_.end()) {
+    auto inserted_it = partial_key_value_.emplace(key, std::move(value));
+    partial_it = inserted_it.first;
+    inserted = inserted_it.second;
+  } else if (rewrite) {
+    partial_it->second = std::move(value);
+  } else {
+    // CHECK(partial_it->second == value);
   }
 
-  if (p.second || rewrite) {
-    auto it = updates_.find(key);
-    if (it != updates_.end()) {
-      auto &update_info = it->second;
-      if (!reapply_update(update_info, p.first->second)) {
+  if (inserted || rewrite) {
+    auto update_it = updates_.find(key);
+    if (update_it != updates_.end()) {
+      auto &update_info = update_it->second;
+      if (!reapply_update(update_info, partial_it->second)) {
         LOG(INFO) << "Update [drop] " << key << " " << update_info.update;
-        updates_.erase(it);
+        updates_.erase(update_it);
       }
     }
   }

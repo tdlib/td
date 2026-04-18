@@ -6359,7 +6359,7 @@ void GroupCallManager::on_get_group_call_stars(
     if (r_stars.is_ok()) {
       r_stars = Status::Error(400, "GROUPCALL_JOIN_MISSING");
     }
-  } else if (group_call->is_joined) {
+  } else if (group_call != nullptr && group_call->is_joined) {
     poll_group_call_stars_timeout_.add_timeout_in(group_call->group_call_id.get(), 30.0);
   }
 

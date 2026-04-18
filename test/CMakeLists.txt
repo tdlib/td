@@ -33,6 +33,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/dns_resolver.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/ip_address_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/poll.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/pvs_regressions.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/query_merger.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/secret.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/secure_storage.cpp

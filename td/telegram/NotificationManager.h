@@ -230,7 +230,7 @@ class NotificationManager final : public Actor {
 
   NotificationGroups::iterator get_group_force(NotificationGroupId group_id, bool send_update = true);
 
-  void delete_group(NotificationGroups::iterator &&group_it);
+  void delete_group(NotificationGroups::iterator group_it);
 
   static NotificationId get_first_notification_id(const NotificationGroup &group);
 

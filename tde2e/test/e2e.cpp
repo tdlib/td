@@ -558,10 +558,8 @@ TEST(Container, Basic) {
                          .move_as_ok();
   ASSERT_EQ(id_string, id_string_2);
   auto id_vec_int = container
-                        .try_build<std::vector<int>>({},
-                                                     []() -> td::Result<std::vector<int>> {
-                                                       return std::vector<int>{1, 2, 3, 4};
-                                                     })
+                        .try_build<std::vector<int>>(
+                            {}, []() -> td::Result<std::vector<int>> { return std::vector<int>{1, 2, 3, 4}; })
                         .move_as_ok();
   auto id_vec_string = container.emplace<std::vector<std::string>>(std::vector<std::string>{"a", "b", "c"});
 

@@ -46,7 +46,7 @@ class ChainId {
     id += static_cast<uint64>(message_full_id.get_message_id().get()) << 10;
   }
 
-  ChainId(FolderId folder_id) : id((static_cast<uint64>(folder_id.get() + (1 << 30)) << 10)) {
+  ChainId(FolderId folder_id) : id(((static_cast<uint64>(folder_id.get()) + (1ULL << 30)) << 10)) {
   }
 
   ChainId(PollId poll_id) : id(static_cast<uint64>(poll_id.get())) {

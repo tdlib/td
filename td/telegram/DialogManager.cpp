@@ -3361,8 +3361,8 @@ void DialogManager::on_failed_public_dialogs_search(const string &query, Status 
   auto promises = std::move(it->second);
   search_public_dialogs_queries_.erase(it);
 
-  found_public_dialogs_[query];     // negative cache
-  found_on_server_dialogs_[query];  // negative cache
+  found_public_dialogs_.emplace(query, vector<DialogId>());     // negative cache
+  found_on_server_dialogs_.emplace(query, vector<DialogId>());  // negative cache
 
   fail_promises(promises, std::move(error));
 }

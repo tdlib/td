@@ -2979,8 +2979,6 @@ void FileManager::download_file(FileId file_id, int32 priority, int64 offset, in
     auto promises = std::move(info->promises_);
     if (!synchronous) {
       pending_user_file_downloads_.erase(info_it);
-    } else {
-      info->promises_.clear();
     }
     fail_promises(promises, Status::Error(200, "Canceled by another downloadFile request"));
   }

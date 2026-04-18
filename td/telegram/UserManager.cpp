@@ -7883,7 +7883,7 @@ std::pair<vector<UserId>, vector<int32>> UserManager::import_contacts(const vect
   do {
     random_id = Random::secure_int64();
   } while (random_id == 0 || random_id == 1 || imported_contacts_.count(random_id) > 0);
-  imported_contacts_[random_id];  // reserve place for result
+  imported_contacts_.emplace(random_id, std::pair<vector<UserId>, vector<int32>>());  // reserve place for result
 
   do_import_contacts(contacts, random_id, std::move(promise));
   return {};

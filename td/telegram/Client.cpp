@@ -482,7 +482,7 @@ class ClientManager::Impl final {
     LOG(INFO) << "Created managed client " << client_id;
     {
       auto lock = impls_mutex_.lock_write();
-      impls_[client_id];  // create empty MultiImplInfo
+      impls_.emplace(client_id, MultiImplInfo());  // create empty MultiImplInfo without ownerless operator[]
     }
     return client_id;
   }

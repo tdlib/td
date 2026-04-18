@@ -154,6 +154,32 @@ TEST(ProxySetupErrorEmittersIntegration, HttpProxyRejectsNon2xxResponseWithTyped
   ASSERT_EQ(static_cast<td::int32>(td::ProxySetupErrorCode::HttpConnectRejected), observation.error.code());
 }
 
+TEST(ProxySetupErrorEmittersIntegration, HttpProxyRejectsMalformedStatusLineWithBinaryTail) {
+  SKIP_IF_NO_SOCKET_PAIR();
+  auto observation = run_proxy_actor(
+      [](td::SocketFd client, ProxyActorObservation *observation) {
+        td::create_actor<td::HttpProxy>("HttpProxy", std::move(client), test_mtproto_ip(), "", "",
+                                        td::make_unique<RecordingCallback>(observation), td::ActorShared<>())
+            .release();
+      },
+      [](td::ConcurrentScheduler &scheduler, td::SocketFd &peer, ProxyActorObservation &) {
+        scheduler.run_main(10);
+        auto expected = expected_http_connect_request("149.154.167.50", 443, "", "");
+        ASSERT_EQ(expected, read_exact(peer, expected.size()).move_as_ok());
+
+        td::string malformed = "HTTP/1.1 xxx";
+        malformed.push_back('\n');
+        malformed.push_back('\x01');
+        malformed.push_back('\x02');
+        malformed += "\r\n\r\n";
+        ASSERT_TRUE(write_all(peer, malformed).is_ok());
+      });
+
+  ASSERT_TRUE(observation.finished);
+  ASSERT_FALSE(observation.success);
+  ASSERT_EQ(static_cast<td::int32>(td::ProxySetupErrorCode::HttpConnectRejected), observation.error.code());
+}
+
 TEST(ProxySetupErrorEmittersIntegration, HttpProxyWaitsForHeaderTerminatorBeforeSucceeding) {
   SKIP_IF_NO_SOCKET_PAIR();
   auto observation = run_proxy_actor(

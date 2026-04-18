@@ -493,12 +493,12 @@ Status IPAddress::init_sockaddr(sockaddr *addr, socklen_t len) {
     if (len != sizeof(ipv6_addr_)) {
       return Status::Error(PSLICE() << "Invalid IPv6 sockaddr size " << len << ", expected " << sizeof(ipv6_addr_));
     }
-    std::memcpy(&ipv6_addr_, reinterpret_cast<sockaddr_in6 *>(addr), sizeof(ipv6_addr_));
+    std::memcpy(&ipv6_addr_, addr, sizeof(ipv6_addr_));
   } else if (addr->sa_family == AF_INET) {
     if (len != sizeof(ipv4_addr_)) {
       return Status::Error(PSLICE() << "Invalid IPv4 sockaddr size " << len << ", expected " << sizeof(ipv4_addr_));
     }
-    std::memcpy(&ipv4_addr_, reinterpret_cast<sockaddr_in *>(addr), sizeof(ipv4_addr_));
+    std::memcpy(&ipv4_addr_, addr, sizeof(ipv4_addr_));
   } else {
     return Status::Error(PSLICE() << "Unknown " << tag("sa_family", addr->sa_family));
   }

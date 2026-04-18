@@ -3161,7 +3161,7 @@ FormattedText get_markdown_v3(FormattedText text) {
     return true;
   };
   for (size_t pos = 0; pos <= text.text.size(); pos++) {
-    auto c = static_cast<unsigned char>(text.text[pos]);
+    auto c = static_cast<unsigned char>(pos == text.text.size() ? 0 : text.text[pos]);
     if (is_utf8_character_first_code_unit(c)) {
       while (!nested_entities_stack.empty()) {
         const auto *entity = nested_entities_stack.back().entity;
@@ -3345,6 +3345,10 @@ static uint32 decode_html_entity(CSlice text, size_t &pos) {
 }
 
 Result<vector<MessageEntity>> parse_html(string &str) {
+  if (str.find('\0') != string::npos) {
+    return Status::Error(400, "Text must not contain null bytes");
+  }
+
   auto str_size = str.size();
   const char *text = str.c_str();
   auto result_end = MutableSlice(str).ubegin();
@@ -3581,19 +3585,21 @@ Result<vector<MessageEntity>> parse_html(string &str) {
             }
           }
         } else if (tag_name == "pre") {
-          if (!entities.empty() && entities.back().type == MessageEntity::Type::Code &&
-              entities.back().offset == entity_offset && entities.back().length == entity_length &&
-              !entities.back().argument.empty()) {
-            entities.back().type = MessageEntity::Type::PreCode;
+          auto *last_entity = entities.empty() ? nullptr : &entities.back();
+          if (last_entity != nullptr && last_entity->type == MessageEntity::Type::Code &&
+              last_entity->offset == entity_offset && last_entity->length == entity_length &&
+              !last_entity->argument.empty()) {
+            last_entity->type = MessageEntity::Type::PreCode;
           } else {
             entities.emplace_back(MessageEntity::Type::Pre, entity_offset, entity_length);
           }
         } else if (tag_name == "code") {
-          if (!entities.empty() && entities.back().type == MessageEntity::Type::Pre &&
-              entities.back().offset == entity_offset && entities.back().length == entity_length &&
+          auto *last_entity = entities.empty() ? nullptr : &entities.back();
+          if (last_entity != nullptr && last_entity->type == MessageEntity::Type::Pre &&
+              last_entity->offset == entity_offset && last_entity->length == entity_length &&
               !nested_entities.back().argument.empty()) {
-            entities.back().type = MessageEntity::Type::PreCode;
-            entities.back().argument = std::move(nested_entities.back().argument);
+            last_entity->type = MessageEntity::Type::PreCode;
+            last_entity->argument = std::move(nested_entities.back().argument);
           } else {
             entities.emplace_back(MessageEntity::Type::Code, entity_offset, entity_length,
                                   nested_entities.back().argument);

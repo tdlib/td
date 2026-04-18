@@ -13197,31 +13197,38 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
     if (message_id == d->last_database_message_id) {
       auto it = d->ordered_messages.get_const_iterator(message_id);
-      CHECK(*it != nullptr);
-      CHECK((*it)->get_message_id() == message_id);
-      do {
-        --it;
-      } while (*it != nullptr && (*it)->get_message_id().is_yet_unsent());
-
-      if (*it != nullptr) {
-        if ((*it)->get_message_id() < d->first_database_message_id && d->dialog_id.get_type() == DialogType::Channel) {
-          // possible if messages were deleted from database, but not from memory after updateChannelTooLong
-          set_dialog_last_database_message_id(d, MessageId(), "do_delete_message 1");
-        } else {
-          set_dialog_last_database_message_id(d, (*it)->get_message_id(), "do_delete_message 2");
-          if (d->last_database_message_id < d->first_database_message_id) {
-            LOG(ERROR) << "Last database " << d->last_database_message_id << " became less than first database "
-                       << d->first_database_message_id << " after deletion of " << message_full_id;
-            set_dialog_first_database_message_id(d, d->last_database_message_id, "do_delete_message 2");
-          }
-        }
+      if (*it == nullptr) {
+        LOG(ERROR) << "Failed to find expected last database message " << message_full_id << " in " << d->dialog_id;
+        need_get_history = true;
+      } else if ((*it)->get_message_id() != message_id) {
+        LOG(ERROR) << "Unexpected message id " << (*it)->get_message_id() << " while deleting " << message_full_id
+                   << " in " << d->dialog_id;
+        need_get_history = true;
       } else {
-        if (d->first_database_message_id == d->last_database_message_id) {
-          // database definitely has no more messages
-          set_dialog_last_database_message_id(d, MessageId(), "do_delete_message 3");
+        do {
+          --it;
+        } while (*it != nullptr && (*it)->get_message_id().is_yet_unsent());
+
+        if (*it != nullptr) {
+          if ((*it)->get_message_id() < d->first_database_message_id && d->dialog_id.get_type() == DialogType::Channel) {
+            // possible if messages were deleted from database, but not from memory after updateChannelTooLong
+            set_dialog_last_database_message_id(d, MessageId(), "do_delete_message 1");
+          } else {
+            set_dialog_last_database_message_id(d, (*it)->get_message_id(), "do_delete_message 2");
+            if (d->last_database_message_id < d->first_database_message_id) {
+              LOG(ERROR) << "Last database " << d->last_database_message_id << " became less than first database "
+                         << d->first_database_message_id << " after deletion of " << message_full_id;
+              set_dialog_first_database_message_id(d, d->last_database_message_id, "do_delete_message 2");
+            }
+          }
         } else {
-          LOG(INFO) << "Need to get history to repair last_database_message_id in " << d->dialog_id;
-          need_get_history = true;
+          if (d->first_database_message_id == d->last_database_message_id) {
+            // database definitely has no more messages
+            set_dialog_last_database_message_id(d, MessageId(), "do_delete_message 3");
+          } else {
+            LOG(INFO) << "Need to get history to repair last_database_message_id in " << d->dialog_id;
+            need_get_history = true;
+          }
         }
       }
     }
@@ -17803,7 +17810,7 @@ std::pair<DialogId, vector<MessageId>> MessagesManager::get_message_thread_histo
   do {
     random_id = Random::secure_int64();
   } while (random_id == 0 || found_dialog_messages_.count(random_id) > 0);
-  found_dialog_messages_[random_id];  // reserve place for result
+  found_dialog_messages_.emplace(random_id, FoundDialogMessages());  // reserve place for result
 
   td_->create_handler<SearchMessagesQuery>(std::move(promise))
       ->send(dialog_id, topic, string(), DialogId(), from_message_id.get_next_server_message_id(), offset, limit,
@@ -18086,7 +18093,7 @@ MessagesManager::FoundDialogMessages MessagesManager::search_dialog_messages(
   do {
     random_id = Random::secure_int64();
   } while (random_id == 0 || found_dialog_messages_.count(random_id) > 0);
-  found_dialog_messages_[random_id];  // reserve place for result
+  found_dialog_messages_.emplace(random_id, FoundDialogMessages());  // reserve place for result
 
   // Trying to use database
   if (use_db && query.empty() && G()->use_message_database() && filter != MessageSearchFilter::Empty &&

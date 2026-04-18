@@ -463,7 +463,7 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
   return add_group(std::move(group_key), std::move(group), "get_group_force");
 }
 
-void NotificationManager::delete_group(NotificationGroups::iterator &&group_it) {
+void NotificationManager::delete_group(NotificationGroups::iterator group_it) {
   auto erased_count = group_keys_.erase(group_it->first.group_id);
   CHECK(erased_count > 0);
   groups_.erase(group_it);
@@ -671,7 +671,7 @@ void NotificationManager::add_notifications_to_group_begin(NotificationGroups::i
   NotificationGroup group = std::move(group_it->second);
   if (is_position_changed) {
     VLOG(notifications) << "Position of notification group is changed from " << group_key << " to " << final_group_key;
-    delete_group(std::move(group_it));
+    delete_group(group_it);
   }
 
   auto last_group_key = get_last_updated_group_key();
@@ -807,7 +807,7 @@ void NotificationManager::try_reuse_notification_group_id(NotificationGroupId gr
     CHECK(group_it->second.notifications.empty());
     CHECK(group_it->second.pending_notifications.empty());
     CHECK(!group_it->second.is_being_loaded_from_database);
-    delete_group(std::move(group_it));
+    delete_group(group_it);
 
     CHECK(running_get_chat_difference_.count(group_id.get()) == 0);
 
@@ -1546,7 +1546,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
   auto group_key = group_it->first;
   auto group = std::move(group_it->second);
 
-  delete_group(std::move(group_it));
+  delete_group(group_it);
 
   auto final_group_key = group_key;
   for (auto &pending_notification : group.pending_notifications) {
@@ -1760,7 +1760,7 @@ void NotificationManager::on_notifications_removed(
   NotificationGroup group = std::move(group_it->second);
   if (is_position_changed) {
     VLOG(notifications) << "Position of notification group is changed from " << group_key << " to " << final_group_key;
-    delete_group(std::move(group_it));
+    delete_group(group_it);
   }
 
   auto last_group_key = get_last_updated_group_key();
@@ -2460,7 +2460,7 @@ void NotificationManager::remove_call_notification(DialogId dialog_id, CallId ca
         CHECK(group_it->second.type == NotificationGroupType::Calls);
         CHECK(!group_it->second.is_being_loaded_from_database);
         CHECK(pending_updates_.count(group_id.get()) == 0);
-        delete_group(std::move(group_it));
+        delete_group(group_it);
       }
       return;
     }

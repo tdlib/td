@@ -5109,7 +5109,7 @@ class CliClient final : public Actor {
       FileId file_id;
       ChatId chat_id;
       MessageId message_id;
-      int32 priority;
+      int32 priority = 1;
       get_args(args, file_id, chat_id, message_id, priority);
       send_request(td_api::make_object<td_api::addFileToDownloads>(file_id, chat_id, message_id, max(priority, 1)));
     } else if (op == "tdip") {
@@ -6504,7 +6504,8 @@ class CliClient final : public Actor {
     }
 
     if (op == "cqrsn") {
-      execute(td_api::make_object<td_api::checkQuickReplyShortcutName>(args));
+      auto shortcut_name = args;
+      execute(td_api::make_object<td_api::checkQuickReplyShortcutName>(std::move(shortcut_name)));
     } else if (op == "lqrs") {
       send_request(td_api::make_object<td_api::loadQuickReplyShortcuts>());
     } else if (op == "dqrs") {
