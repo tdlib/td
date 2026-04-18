@@ -12,7 +12,7 @@ module.exports = {
     globalObject: 'this'
   },
   devServer: {
-    contentBase: './dist'
+    static: './dist'
   },
   plugins: [
     // new HtmlWebpackPlugin(),
@@ -24,17 +24,6 @@ module.exports = {
   },
   module: {
     rules: [
-      {
-        test: /\.(js|jsx)$/,
-        exclude: /prebuilt/,
-        enforce: 'pre',
-        include: [path.resolve(__dirname, 'src')],
-        use: [
-          {
-            loader: require.resolve('eslint-loader')
-          }
-        ]
-      },
       {
         test: /worker\.(js|jsx)$/,
         include: [path.resolve(__dirname, 'src')],
@@ -66,18 +55,18 @@ module.exports = {
       }
     ]
   },
-  node: {
-    dgram: 'empty',
-    fs: 'empty',
-    net: 'empty',
-    tls: 'empty',
-    crypto: 'empty',
-    child_process: 'empty'
-  },
   performance: {
     maxAssetSize: 30000000
   },
   resolve: {
+    fallback: {
+      dgram: false,
+      fs: false,
+      net: false,
+      tls: false,
+      crypto: false,
+      child_process: false
+    },
     alias: {
       ws$: 'fs'
     }
