@@ -642,12 +642,16 @@ bool StealthParamsLoader::try_reload() noexcept {
   }
   consecutive_reload_failures_ = 0;
   reload_cooldown_until_ = Timestamp();
-  current_.store(std::make_shared<const StealthRuntimeParams>(params), std::memory_order_release);
+  {
+    auto current_lock = std::lock_guard<std::mutex>(current_mu_);
+    current_ = std::make_shared<const StealthRuntimeParams>(params);
+  }
   return true;
 }
 
 StealthRuntimeParams StealthParamsLoader::get_snapshot() const noexcept {
-  auto snapshot = current_.load(std::memory_order_acquire);
+  auto current_lock = std::lock_guard<std::mutex>(current_mu_);
+  auto snapshot = current_;
   CHECK(snapshot != nullptr);
   return *snapshot;
 }

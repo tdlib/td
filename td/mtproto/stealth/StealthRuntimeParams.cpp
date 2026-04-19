@@ -8,9 +8,9 @@
 
 #include "td/mtproto/stealth/StealthConfig.h"
 
-#include <atomic>
 #include <cmath>
 #include <memory>
+#include <mutex>
 
 namespace td {
 namespace mtproto {
@@ -155,9 +155,14 @@ std::shared_ptr<const StealthRuntimeParams> make_default_runtime_params() {
   return std::make_shared<const StealthRuntimeParams>(default_runtime_stealth_params());
 }
 
-std::atomic<std::shared_ptr<const StealthRuntimeParams>> &runtime_params_storage() {
-  static std::atomic<std::shared_ptr<const StealthRuntimeParams>> params{make_default_runtime_params()};
+std::shared_ptr<const StealthRuntimeParams> &runtime_params_storage() {
+  static auto params = make_default_runtime_params();
   return params;
+}
+
+std::mutex &runtime_params_storage_mutex() {
+  static std::mutex mu;
+  return mu;
 }
 
 Status validate_route_entry(Slice name, const RuntimeRoutePolicyEntry &entry, bool must_disable_ech) {
@@ -263,14 +268,16 @@ Status validate_runtime_stealth_params(const StealthRuntimeParams &params) noexc
 }
 
 StealthRuntimeParams get_runtime_stealth_params_snapshot() noexcept {
-  auto params = runtime_params_storage().load(std::memory_order_acquire);
+  auto lock = std::lock_guard<std::mutex>(runtime_params_storage_mutex());
+  auto params = runtime_params_storage();
   CHECK(params != nullptr);
   return *params;
 }
 
 Status set_runtime_stealth_params(const StealthRuntimeParams &params) noexcept {
   TRY_STATUS(validate_runtime_stealth_params(params));
-  runtime_params_storage().store(std::make_shared<const StealthRuntimeParams>(params), std::memory_order_release);
+  auto lock = std::lock_guard<std::mutex>(runtime_params_storage_mutex());
+  runtime_params_storage() = std::make_shared<const StealthRuntimeParams>(params);
   return Status::OK();
 }
 
@@ -279,7 +286,8 @@ Status set_runtime_stealth_params_for_tests(const StealthRuntimeParams &params) 
 }
 
 void reset_runtime_stealth_params_for_tests() noexcept {
-  runtime_params_storage().store(make_default_runtime_params(), std::memory_order_release);
+  auto lock = std::lock_guard<std::mutex>(runtime_params_storage_mutex());
+  runtime_params_storage() = make_default_runtime_params();
 }
 
 }  // namespace stealth

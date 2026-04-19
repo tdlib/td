@@ -10,7 +10,6 @@
 
 #include "td/utils/Time.h"
 
-#include <atomic>
 #include <memory>
 #include <mutex>
 
@@ -37,8 +36,9 @@ class StealthParamsLoader final {
   static Result<StealthRuntimeParams> parse_and_validate(string content) noexcept;
 
   string config_path_;
+  mutable std::mutex current_mu_;
+  std::shared_ptr<const StealthRuntimeParams> current_;
   mutable std::mutex reload_mu_;
-  std::atomic<std::shared_ptr<const StealthRuntimeParams>> current_;
   Timestamp reload_cooldown_until_;
   size_t consecutive_reload_failures_{0};
 };
