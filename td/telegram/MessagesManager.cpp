@@ -4754,7 +4754,7 @@ bool MessagesManager::has_unread_poll_votes(DialogId dialog_id, const Message *m
     return false;
   }
   CHECK(m != nullptr);
-  if (m->forward_info != nullptr || m->had_forward_info || m->content->get_type() != MessageContentType::Poll) {
+  if (is_message_forward(m) || m->content->get_type() != MessageContentType::Poll) {
     return false;
   }
   return get_message_content_poll_has_unread_votes(td_, m->content.get());
@@ -5120,7 +5120,7 @@ void MessagesManager::on_update_poll_has_unread_votes(MessageFullId message_full
   Message *m = get_message(d, message_full_id.get_message_id());
   CHECK(m != nullptr);
   CHECK(!td_->auth_manager_->is_bot());
-  if (m->forward_info != nullptr || m->had_forward_info || m->content->get_type() != MessageContentType::Poll) {
+  if (is_message_forward(m) || m->content->get_type() != MessageContentType::Poll) {
     return;
   }
   if (!has_unread_votes) {
@@ -5397,8 +5397,8 @@ void MessagesManager::on_message_animated_emoji_clicked(MessageFullId message_fu
 
 void MessagesManager::cancel_dialog_action(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
-  if (td_->auth_manager_->is_bot() || m->forward_info != nullptr || m->had_forward_info ||
-      m->via_bot_user_id.is_valid() || m->hide_via_bot || m->is_channel_post || m->message_id.is_scheduled()) {
+  if (td_->auth_manager_->is_bot() || is_message_forward(m) || m->via_bot_user_id.is_valid() || m->hide_via_bot ||
+      m->is_channel_post || m->message_id.is_scheduled()) {
     return;
   }
 
@@ -7910,7 +7910,7 @@ bool MessagesManager::can_add_message_offer(DialogId dialog_id, const Message *m
 
 bool MessagesManager::can_add_message_poll_option(DialogId dialog_id, const Message *m) const {
   if (td_->auth_manager_->is_bot() || m == nullptr || !m->message_id.is_server() ||
-      m->content->get_type() != MessageContentType::Poll || m->forward_info != nullptr || m->had_forward_info ||
+      m->content->get_type() != MessageContentType::Poll || is_message_forward(m) ||
       !td_->dialog_manager_->have_input_peer(dialog_id, false, AccessRights::Read)) {
     return false;
   }
@@ -7926,10 +7926,7 @@ bool MessagesManager::can_add_message_tasks(DialogId dialog_id, const Message *m
   if (m == nullptr) {
     return false;
   }
-  if (!m->message_id.is_server() || m->content->get_type() != MessageContentType::ToDoList) {
-    return false;
-  }
-  if (m->forward_info != nullptr || m->had_forward_info) {
+  if (!m->message_id.is_server() || m->content->get_type() != MessageContentType::ToDoList || is_message_forward(m)) {
     return false;
   }
   if (!m->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
@@ -7957,10 +7954,7 @@ bool MessagesManager::can_mark_message_tasks_as_done(DialogId dialog_id, const M
   if (m == nullptr) {
     return false;
   }
-  if (!m->message_id.is_server() || m->content->get_type() != MessageContentType::ToDoList) {
-    return false;
-  }
-  if (m->forward_info != nullptr || m->had_forward_info) {
+  if (!m->message_id.is_server() || m->content->get_type() != MessageContentType::ToDoList || is_message_forward(m)) {
     return false;
   }
   if (!m->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id() &&
@@ -15141,10 +15135,10 @@ void MessagesManager::get_poll_option_properties(DialogId dialog_id, MessageId m
   auto can_be_replied_in_another_chat = can_reply_to_message_in_another_dialog(dialog_id, message_id, can_be_forwarded);
   auto can_get_media_timestamp_links = can_get_media_timestamp_link(dialog_id, m).is_ok();
   auto can_get_link = can_get_media_timestamp_links && dialog_type == DialogType::Channel;
-  get_message_content_poll_option_properties(
-      td_, m->content.get(), option_id, dialog_id, message_id, can_be_replied, can_be_replied_in_another_chat,
-      can_get_link, m->forward_info != nullptr || m->had_forward_info,
-      m->is_outgoing || dialog_id == td_->dialog_manager_->get_my_dialog_id(), std::move(promise));
+  get_message_content_poll_option_properties(td_, m->content.get(), option_id, dialog_id, message_id, can_be_replied,
+                                             can_be_replied_in_another_chat, can_get_link, is_message_forward(m),
+                                             m->is_outgoing || dialog_id == td_->dialog_manager_->get_my_dialog_id(),
+                                             std::move(promise));
 }
 
 bool MessagesManager::is_message_edited_recently(MessageFullId message_full_id, int32 seconds) {
@@ -20177,8 +20171,8 @@ td_api::object_ptr<td_api::MessageContent> MessagesManager::get_message_message_
                                                                                                const Message *m) const {
   auto live_location_date = m->is_failed_to_send ? 0 : m->date;
   return get_message_content_object(m->content.get(), td_, dialog_id, m->message_id, m->is_outgoing,
-                                    m->forward_info != nullptr || m->had_forward_info, get_message_sender(m),
-                                    live_location_date, m->is_content_secret, need_skip_bot_commands(dialog_id, m),
+                                    is_message_forward(m), get_message_sender(m), live_location_date,
+                                    m->is_content_secret, need_skip_bot_commands(dialog_id, m),
                                     get_message_max_media_timestamp(m), m->invert_media, m->disable_web_page_preview);
 }
 
@@ -22732,17 +22726,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
   if (m == nullptr) {
     return false;
   }
-  if (m->message_id.is_yet_unsent()) {
-    return false;
-  }
-  if (m->message_id.is_local()) {
-    return false;
-  }
-  if (m->forward_info != nullptr || m->had_forward_info) {
-    return false;
-  }
-
-  if (m->had_reply_markup) {
+  if (m->message_id.is_yet_unsent() || m->message_id.is_local() || is_message_forward(m) || m->had_reply_markup) {
     return false;
   }
   if (m->reply_markup != nullptr && m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
@@ -22956,6 +22940,10 @@ bool MessagesManager::is_deleted_secret_chat(const Dialog *d) const {
   }
 
   return true;
+}
+
+bool MessagesManager::is_message_forward(const Message *m) {
+  return m != nullptr && (m->forward_info != nullptr || m->had_forward_info);
 }
 
 int32 MessagesManager::get_message_schedule_date(const Message *m) {
@@ -29323,8 +29311,8 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
     return;
   }
   CHECK(m->message_id.is_yet_unsent());
-  if (m->forward_info != nullptr || m->had_forward_info || m->is_copy || m->message_id.is_scheduled() ||
-      m->sender_dialog_id.is_valid() || m->content->get_type() == MessageContentType::PaidMedia ||
+  if (is_message_forward(m) || m->is_copy || m->message_id.is_scheduled() || m->sender_dialog_id.is_valid() ||
+      m->content->get_type() == MessageContentType::PaidMedia ||
       td_->dialog_manager_->is_broadcast_channel(dialog_id)) {
     return;
   }
@@ -32194,8 +32182,7 @@ bool MessagesManager::need_message_changed_warning(const Message *old_message) {
     return false;
   }
   if (old_message->message_id.is_yet_unsent() &&
-      (old_message->forward_info != nullptr || old_message->had_forward_info ||
-       old_message->real_forward_from_dialog_id.is_valid())) {
+      (is_message_forward(old_message) || old_message->real_forward_from_dialog_id.is_valid())) {
     // original message may be edited
     return false;
   }
@@ -35091,8 +35078,7 @@ void MessagesManager::speculatively_update_channel_participants(DialogId dialog_
 void MessagesManager::update_sent_message_contents(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot() || (!m->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id()) ||
-      dialog_id.get_type() == DialogType::SecretChat || m->message_id.is_local() || m->forward_info != nullptr ||
-      m->had_forward_info) {
+      dialog_id.get_type() == DialogType::SecretChat || m->message_id.is_local() || is_message_forward(m)) {
     return;
   }
 
@@ -35103,7 +35089,7 @@ void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m)
   CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot() || (!m->is_outgoing && dialog_id != td_->dialog_manager_->get_my_dialog_id()) ||
       m->via_bot_user_id.is_valid() || m->via_business_bot_user_id.is_valid() || m->hide_via_bot ||
-      m->forward_info != nullptr || m->had_forward_info) {
+      is_message_forward(m)) {
     return;
   }
 
@@ -35119,7 +35105,7 @@ void MessagesManager::update_top_dialogs(DialogId dialog_id, const Message *m) {
     return;
   }
 
-  bool is_forward = m->forward_info != nullptr || m->had_forward_info;
+  bool is_forward = is_message_forward(m);
   if (m->via_bot_user_id.is_valid() && !is_forward) {
     // forwarded game messages can't be distinguished from sent via bot game messages, so increase rating anyway
     on_dialog_used(TopDialogCategory::BotInline, DialogId(m->via_bot_user_id), m->date);

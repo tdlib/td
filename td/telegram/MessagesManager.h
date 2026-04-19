@@ -3136,6 +3136,8 @@ class MessagesManager final : public Actor {
 
   bool is_deleted_secret_chat(const Dialog *d) const;
 
+  static bool is_message_forward(const Message *m);
+
   static int32 get_message_schedule_date(const Message *m);
 
   static int32 get_message_schedule_repeat_period(const Message *m);
