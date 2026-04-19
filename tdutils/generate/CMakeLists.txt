@@ -23,6 +23,19 @@ set(TDMIME_AUTO
 add_custom_target(tdmime_auto DEPENDS ${TDMIME_SOURCE})
 
 if (NOT CMAKE_CROSSCOMPILING)
+  function(tdutils_disable_tsan_for_generator target_name)
+    if ((CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=thread") OR
+        (CMAKE_CXX_FLAGS MATCHES "(^| )-fsanitize=thread") OR
+        (CMAKE_EXE_LINKER_FLAGS MATCHES "(^| )-fsanitize=thread"))
+      target_compile_options(${target_name} PRIVATE -fno-sanitize=thread)
+      if (COMMAND target_link_options)
+        target_link_options(${target_name} PRIVATE -fno-sanitize=thread)
+      else()
+        set_property(TARGET ${target_name} APPEND_STRING PROPERTY LINK_FLAGS " -fno-sanitize=thread")
+      endif()
+    endif()
+  endfunction()
+
   find_program(GPERF_EXECUTABLE gperf)
   if (NOT GPERF_EXECUTABLE)
     message(FATAL_ERROR "Could NOT find gperf. Add path to gperf executable to PATH environment variable or specify it manually using GPERF_EXECUTABLE option, i.e. 'cmake -DGPERF_EXECUTABLE:FILEPATH=\"<path to gperf executable>\"'.")
@@ -36,6 +49,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   set(GPERF_GEN_SOURCE generate_mime_types_gperf.cpp)
 
   add_executable(generate_mime_types_gperf ${GPERF_GEN_SOURCE})
+  tdutils_disable_tsan_for_generator(generate_mime_types_gperf)
 
   add_custom_command(
     OUTPUT ${GPERF_FILES}

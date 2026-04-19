@@ -26,3 +26,8 @@ set(TDTL_SOURCE
 
 add_library(tdtl STATIC ${TDTL_SOURCE})
 target_include_directories(tdtl PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+
+if ((CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=thread") OR
+    (CMAKE_CXX_FLAGS MATCHES "(^| )-fsanitize=thread"))
+  target_compile_options(tdtl PRIVATE -fno-sanitize=thread)
+endif()

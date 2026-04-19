@@ -1402,7 +1402,12 @@ else()
   set(TD_CORE_PART_TARGETS)
 endif()
 
-if (NOT CMAKE_CROSSCOMPILING)
+set(TD_THREAD_SANITIZER_ENABLED OFF)
+if ((CMAKE_CXX_FLAGS MATCHES "(^| )-fsanitize=thread") OR (CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=thread"))
+  set(TD_THREAD_SANITIZER_ENABLED ON)
+endif()
+
+if (NOT CMAKE_CROSSCOMPILING AND NOT TD_THREAD_SANITIZER_ENABLED)
   add_dependencies(tdcore tl_generate_common)
   if (TD_ENABLE_JNI)
     add_dependencies(tdcore td_generate_java_api)

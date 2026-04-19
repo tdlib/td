@@ -150,6 +150,19 @@ if (NOT CMAKE_CROSSCOMPILING)
     set(GENERATE_COMMON_CMD generate_common)
   endif()
 
+  function(td_disable_tsan_for_generator target_name)
+    if ((CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=thread") OR
+        (CMAKE_CXX_FLAGS MATCHES "(^| )-fsanitize=thread") OR
+        (CMAKE_EXE_LINKER_FLAGS MATCHES "(^| )-fsanitize=thread"))
+      target_compile_options(${target_name} PRIVATE -fno-sanitize=thread)
+      if (COMMAND target_link_options)
+        target_link_options(${target_name} PRIVATE -fno-sanitize=thread)
+      else()
+        set_property(TARGET ${target_name} APPEND_STRING PROPERTY LINK_FLAGS " -fno-sanitize=thread")
+      endif()
+    endif()
+  endfunction()
+
   add_subdirectory(tl-parser)
 
   set(TLO_AUTO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/auto/tlo)
@@ -175,6 +188,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   )
 
   add_library(tl_writer_cpp STATIC ${TL_WRITER_CPP_SOURCE})
+  td_disable_tsan_for_generator(tl_writer_cpp)
   target_link_libraries(tl_writer_cpp PRIVATE tdtl)
   target_include_directories(tl_writer_cpp PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
   if (TD_ENABLE_JNI)
@@ -185,6 +199,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   endif()
 
   add_executable(generate_mtproto ${TL_GENERATE_MTPROTO_SOURCE})
+  td_disable_tsan_for_generator(generate_mtproto)
   target_link_libraries(generate_mtproto PRIVATE tdtl tl_writer_cpp)
   add_custom_target(tl_generate_mtproto
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
@@ -194,6 +209,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   )
 
   add_executable(generate_common ${TL_GENERATE_COMMON_SOURCE})
+  td_disable_tsan_for_generator(generate_common)
   target_link_libraries(generate_common PRIVATE tdtl tl_writer_cpp)
   add_custom_target(tl_generate_common
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
@@ -206,6 +222,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   endif()
 
   add_executable(generate_c ${TL_GENERATE_C_SOURCE})
+  td_disable_tsan_for_generator(generate_c)
   target_link_libraries(generate_c PRIVATE tdtl)
   add_custom_target(tl_generate_c
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
@@ -215,10 +232,12 @@ if (NOT CMAKE_CROSSCOMPILING)
   )
 
   add_executable(td_generate_java_api ${TL_GENERATE_JAVA_SOURCE})
+  td_disable_tsan_for_generator(td_generate_java_api)
   target_link_libraries(td_generate_java_api PRIVATE tdtl)
   target_compile_definitions(td_generate_java_api PRIVATE GIT_COMMIT_HASH=${TD_GIT_COMMIT_HASH})
 
   add_executable(generate_json ${TL_GENERATE_JSON_SOURCE})
+  td_disable_tsan_for_generator(generate_json)
   target_link_libraries(generate_json PRIVATE tdtl tdutils)
   add_custom_target(tl_generate_json
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
@@ -241,6 +260,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     endif()
 
     add_executable(td_generate_dotnet_api generate_dotnet.cpp tl_writer_dotnet.h)
+    td_disable_tsan_for_generator(td_generate_dotnet_api)
     target_link_libraries(td_generate_dotnet_api PRIVATE tdtl)
     add_custom_target(generate_dotnet_api
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
