@@ -72,6 +72,12 @@ function(generate_pkgconfig TARGET DESCRIPTION)
   set(LIBS "")
   foreach (LIB ${LIST})
     if (TARGET "${LIB}")
+      if ("${LIBRARY_TYPE}" STREQUAL "SHARED_LIBRARY")
+        get_target_property(LIB_TYPE "${LIB}" TYPE)
+        if ("${LIB_TYPE}" STREQUAL "STATIC_LIBRARY")
+          continue()
+        endif()
+      endif()
       set(HAS_REQS 1)
       list(APPEND REQS "${LIB}")
     else()
@@ -133,6 +139,16 @@ function(generate_pkgconfig TARGET DESCRIPTION)
     set(LIBS_LINE "Libs: -L\"${PKGCONFIG_LIBDIR}\" -l${TARGET_OUTPUT_NAME}")
   endif()
 
+  get_target_property(_td_iface_defs "${TARGET}" INTERFACE_COMPILE_DEFINITIONS)
+  set(CFLAGS_DEFS "")
+  if (NOT "${_td_iface_defs}" STREQUAL "_td_iface_defs-NOTFOUND")
+    foreach(_def ${_td_iface_defs})
+      string(APPEND CFLAGS_DEFS " -D${_def}")
+    endforeach()
+    unset(_def)
+  endif()
+  unset(_td_iface_defs)
+
   file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/${TARGET}.pc" CONTENT
 "prefix=${PREFIX}
 
@@ -140,7 +156,7 @@ Name: ${TARGET}
 Description: ${DESCRIPTION}
 Version: ${PROJECT_VERSION}
 
-CFlags: -I\"${PKGCONFIG_INCLUDEDIR}\"
+CFlags: -I\"${PKGCONFIG_INCLUDEDIR}\"${CFLAGS_DEFS}
 ${LIBS_LINE}
 ${REQUIRES}${LIBRARIES}")
 
