@@ -21,6 +21,7 @@
 #include "td/telegram/ForumTopicManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/HashtagHints.h"
+#include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageContent.h"
@@ -31,6 +32,7 @@
 #include "td/telegram/MessageSender.h"
 #include "td/telegram/MessagesInfo.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/RequestedDialogType.h"
 #include "td/telegram/SearchPostsFlood.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/ServerMessageId.h"
@@ -2077,11 +2079,60 @@ void MessageQueryManager::report_message_delivery(MessageFullId message_full_id,
   td_->create_handler<ReportMessageDeliveryQuery>()->send(message_full_id, from_push);
 }
 
-void MessageQueryManager::send_bot_requested_peer(MessageFullId message_full_id, UserId user_id,
-                                                  const string &request_id, int32 button_id,
-                                                  vector<DialogId> shared_dialog_ids, Promise<Unit> &&promise) {
+void MessageQueryManager::share_dialogs_with_bot(const td_api::object_ptr<td_api::KeyboardButtonSource> &source_ptr,
+                                                 int32 button_id, vector<DialogId> shared_dialog_ids, bool expect_user,
+                                                 bool only_check, Promise<Unit> &&promise) {
+  if (source_ptr == nullptr) {
+    return promise.set_error(400, "Source must be non-empty");
+  }
+  const RequestedDialogType *requested_dialog_type = nullptr;
+  MessageFullId message_full_id;
+  UserId bot_user_id;
+  string request_id;
+  switch (source_ptr->get_id()) {
+    case td_api::keyboardButtonSourceMessage::ID: {
+      const auto *source = static_cast<const td_api::keyboardButtonSourceMessage *>(source_ptr.get());
+      message_full_id = {DialogId(source->chat_id_), MessageId(source->message_id_)};
+      TRY_RESULT_PROMISE_ASSIGN(promise, requested_dialog_type,
+                                td_->messages_manager_->get_message_requested_dialog_type(message_full_id, button_id));
+      break;
+    }
+    case td_api::keyboardButtonSourceWebApp::ID: {
+      const auto *source = static_cast<const td_api::keyboardButtonSourceWebApp *>(source_ptr.get());
+      bot_user_id = UserId(source->bot_user_id_);
+      request_id = source->prepared_button_id_;
+      requested_dialog_type = td_->inline_queries_manager_->get_requested_dialog_type(bot_user_id, request_id);
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  if (requested_dialog_type == nullptr) {
+    return promise.set_error(400, "Button not found");
+  }
+  TRY_STATUS_PROMISE(promise, requested_dialog_type->check_shared_dialog_count(shared_dialog_ids.size()));
+
+  for (auto shared_dialog_id : shared_dialog_ids) {
+    if (shared_dialog_id.get_type() != DialogType::User) {
+      if (!td_->dialog_manager_->have_dialog_force(shared_dialog_id, "share_dialogs_with_bot")) {
+        return promise.set_error(400, "Shared chat not found");
+      }
+    } else {
+      if (!expect_user) {
+        return promise.set_error(400, "Wrong chat type");
+      }
+      if (!td_->user_manager_->have_accessible_user(shared_dialog_id.get_user_id())) {
+        return promise.set_error(400, "Shared user not found");
+      }
+    }
+    TRY_STATUS_PROMISE(promise, requested_dialog_type->check_shared_dialog(td_, shared_dialog_id));
+  }
+  if (only_check) {
+    return promise.set_value(Unit());
+  }
+
   td_->create_handler<SendBotRequestedPeerQuery>(std::move(promise))
-      ->send(message_full_id, user_id, request_id, button_id, std::move(shared_dialog_ids));
+      ->send(message_full_id, bot_user_id, request_id, button_id, std::move(shared_dialog_ids));
 }
 
 void MessageQueryManager::reload_message_extended_media(DialogId dialog_id, vector<MessageId> message_ids) {

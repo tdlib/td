@@ -7866,16 +7866,16 @@ void Requests::on_request(uint64 id, const td_api::shareUsersWithBot &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   auto dialog_ids = DialogId::get_dialog_ids(UserId::get_user_ids(request.shared_user_ids_));
-  td_->messages_manager_->share_dialogs_with_bot(request.source_, request.button_id_, std::move(dialog_ids), true,
-                                                 request.only_check_, std::move(promise));
+  td_->message_query_manager_->share_dialogs_with_bot(request.source_, request.button_id_, std::move(dialog_ids), true,
+                                                      request.only_check_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::shareChatWithBot &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->share_dialogs_with_bot(request.source_, request.button_id_,
-                                                 {DialogId(request.shared_chat_id_)}, false, request.only_check_,
-                                                 std::move(promise));
+  td_->message_query_manager_->share_dialogs_with_bot(request.source_, request.button_id_,
+                                                      {DialogId(request.shared_chat_id_)}, false, request.only_check_,
+                                                      std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getInlineQueryResults &request) {
