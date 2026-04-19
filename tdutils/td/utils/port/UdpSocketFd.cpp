@@ -537,7 +537,7 @@ class UdpSocketFdImpl {
         UNREACHABLE();
       default:
         LOG(WARNING) << "Unknown error: " << error;
-      // fallthrough
+        [[fallthrough]];
       case ENOBUFS:
       case ENOMEM:
 #ifdef MSG_ERRQUEUE

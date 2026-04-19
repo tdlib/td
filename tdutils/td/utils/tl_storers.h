@@ -78,10 +78,10 @@ class TlStorerUnsafe {
     switch (len & 3) {
       case 1:
         *buf_++ = 0;
-        // fallthrough
+        [[fallthrough]];
       case 2:
         *buf_++ = 0;
-        // fallthrough
+        [[fallthrough]];
       case 3:
         *buf_++ = 0;
     }

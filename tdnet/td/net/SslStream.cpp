@@ -323,7 +323,7 @@ class SslStreamImpl {
             return 0;
           }
         }
-        /* fallthrough */
+        [[fallthrough]];
       default:
         LOG(DEBUG) << "SSL_ERROR Default";
         return create_openssl_error(1, "SSL error ");

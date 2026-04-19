@@ -6861,7 +6861,7 @@ void MessagesManager::after_get_difference() {
         if (running_get_channel_difference(dialog_id)) {
           break;
         }
-      // fallthrough
+        [[fallthrough]];
       case DialogType::User:
       case DialogType::Chat: {
         if (!have_message_force({dialog_id, old_message_id}, "after_get_difference")) {
@@ -13210,7 +13210,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
         } while (*it != nullptr && (*it)->get_message_id().is_yet_unsent());
 
         if (*it != nullptr) {
-          if ((*it)->get_message_id() < d->first_database_message_id && d->dialog_id.get_type() == DialogType::Channel) {
+          if ((*it)->get_message_id() < d->first_database_message_id &&
+              d->dialog_id.get_type() == DialogType::Channel) {
             // possible if messages were deleted from database, but not from memory after updateChannelTooLong
             set_dialog_last_database_message_id(d, MessageId(), "do_delete_message 1");
           } else {

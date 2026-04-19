@@ -1261,7 +1261,7 @@ void Session::on_message_info(mtproto::MessageId message_id, int32 state, mtprot
                      << tag("answer", answer_message_id);
           return on_message_failed(message_id, Status::Error("Unexpected message_info.state == 0"));
         }
-      // fallthrough
+        [[fallthrough]];
       case 4:
         CHECK(0 <= source && source <= 3);
         on_message_ack_impl(message_id, (answer_message_id != mtproto::MessageId() ? 2 : 0) |

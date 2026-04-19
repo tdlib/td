@@ -18,6 +18,9 @@ namespace stealth {
 
 class IRng {
  public:
+  IRng() = default;
+  IRng(const IRng &) = default;
+  IRng &operator=(const IRng &) = default;
   virtual ~IRng() = default;
 
   virtual void fill_secure_bytes(MutableSlice dest) = 0;

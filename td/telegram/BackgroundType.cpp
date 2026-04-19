@@ -488,10 +488,10 @@ telegram_api::object_ptr<telegram_api::wallPaperSettings> BackgroundType::get_in
         flags |= telegram_api::wallPaperSettings::FOURTH_BACKGROUND_COLOR_MASK;
       }
       flags |= telegram_api::wallPaperSettings::THIRD_BACKGROUND_COLOR_MASK;
-      // fallthrough
+      [[fallthrough]];
     case BackgroundFill::Type::Gradient:
       flags |= telegram_api::wallPaperSettings::SECOND_BACKGROUND_COLOR_MASK;
-      // fallthrough
+      [[fallthrough]];
     case BackgroundFill::Type::Solid:
       flags |= telegram_api::wallPaperSettings::BACKGROUND_COLOR_MASK;
       break;

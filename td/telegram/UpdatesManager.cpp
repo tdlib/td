@@ -2178,7 +2178,7 @@ void UpdatesManager::on_get_pts_update(int32 pts,
           std::move(difference->other_updates_), std::move(difference->chats_), std::move(difference->users_),
           std::move(difference->state_));
     }
-    // fallthrough
+      [[fallthrough]];
     case telegram_api::updates_differenceSlice::ID: {
       auto difference = move_tl_object_as<telegram_api::updates_differenceSlice>(difference_ptr);
 

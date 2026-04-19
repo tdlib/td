@@ -1,0 +1,309 @@
+name: Main Build CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - '**/*.cpp'
+      - '**/*.h'
+      - '**/CMakeLists.txt'
+      - 'CMake/**'
+      - 'sqlite/**'
+      - 'tools/sqlite/**'
+      - 'test/sqlite_vendor_contract.cpp'
+      - 'test/analysis/test_sqlite*.py'
+      - 'test/analysis/test_sqlite_phase4_vendor_target_repo.py'
+      - '.vscode/settings.json'
+      - '.vscode/tasks.json'
+      - '.github/workflows/cpp23-compat.yml'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - '**/*.cpp'
+      - '**/*.h'
+      - '**/CMakeLists.txt'
+      - 'CMake/**'
+      - 'sqlite/**'
+      - 'tools/sqlite/**'
+      - 'test/sqlite_vendor_contract.cpp'
+      - 'test/analysis/test_sqlite*.py'
+      - 'test/analysis/test_sqlite_phase4_vendor_target_repo.py'
+      - '.vscode/settings.json'
+      - '.vscode/tasks.json'
+      - '.github/workflows/cpp23-compat.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cpp23-compat-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-matrix:
+    name: Core ${{ matrix.compiler }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: gcc
+            cc: gcc-13
+            cxx: g++-13
+          - compiler: clang
+            cc: clang-18
+            cxx: clang++-18
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-gcc-clang-${{ runner.os }}-v1
+
+      - name: Install dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            g++-13 \
+            gcc-13 \
+            clang-18 \
+            gperf \
+            libssl-dev \
+            make \
+            ninja-build \
+            zlib1g-dev
+
+      - name: Cache CMake build artifacts
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: cmake-core-${{ matrix.compiler }}-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'CMake/**') }}-v1
+          restore-keys: |
+            cmake-core-${{ matrix.compiler }}-${{ runner.os }}-
+
+      - name: Run C++23 static guard
+        run: python3 tools/ci/check_cpp23_compat.py
+
+      - name: Configure build
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: |
+          set -euxo pipefail
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_STANDARD=23 \
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DTD_ENABLE_BENCHMARKS=OFF \
+            -DTD_STRICT_CI_WARNINGS=ON
+
+      - name: Build core targets
+        run: |
+          set -euxo pipefail
+          cmake --build build --target tdjson tg_cli run_all_tests --parallel $(nproc)
+
+  asan-ubsan:
+    name: ASan UBSan
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-asan-${{ runner.os }}-v1
+
+      - name: Install dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang-18 \
+            cmake \
+            gperf \
+            libssl-dev \
+            make \
+            ninja-build \
+            zlib1g-dev
+
+      - name: Cache CMake build artifacts
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: cmake-asan-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'CMake/**') }}-v1
+          restore-keys: |
+            cmake-asan-${{ runner.os }}-
+
+      - name: Run C++23 static guard
+        run: python3 tools/ci/check_cpp23_compat.py
+
+      - name: Configure sanitizer build
+        env:
+          CC: clang-18
+          CXX: clang++-18
+        run: |
+          set -euxo pipefail
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_STANDARD=23 \
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+            -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-sanitize-recover=all' \
+            -DCMAKE_C_FLAGS='-fsanitize=address,undefined -fno-sanitize-recover=all' \
+            -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address,undefined -fno-sanitize-recover=all' \
+            -DCMAKE_SHARED_LINKER_FLAGS='-fsanitize=address,undefined -fno-sanitize-recover=all' \
+            -DTD_ENABLE_BENCHMARKS=OFF \
+            -DTD_STRICT_CI_WARNINGS=ON
+
+      - name: Build sanitizer targets
+        run: |
+          set -euxo pipefail
+          cmake --build build --target tdjson tg_cli run_all_tests --parallel $(nproc)
+
+      - name: Run focused sanitizer regression slice
+        env:
+          ASAN_OPTIONS: detect_leaks=1:strict_string_checks=1:check_initialization_order=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          set -euxo pipefail
+          ./build/test/run_all_tests --filter TlsHello
+
+  tsan:
+    name: TSan concurrency
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-tsan-${{ runner.os }}-v1
+
+      - name: Install dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang-18 \
+            cmake \
+            gperf \
+            libssl-dev \
+            make \
+            zlib1g-dev
+
+      - name: Cache CMake build artifacts
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: cmake-tsan-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'CMake/**') }}-v1
+          restore-keys: |
+            cmake-tsan-${{ runner.os }}-
+
+      - name: Configure TSan build
+        env:
+          CC: clang-18
+          CXX: clang++-18
+        run: |
+          set -euxo pipefail
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_STANDARD=23 \
+            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
+            -DCMAKE_CXX_FLAGS='-fsanitize=thread -fno-sanitize-recover=all' \
+            -DCMAKE_C_FLAGS='-fsanitize=thread -fno-sanitize-recover=all' \
+            -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=thread -fno-sanitize-recover=all' \
+            -DTD_ENABLE_BENCHMARKS=OFF
+
+      - name: Build concurrency-heavy test targets
+        run: |
+          set -euxo pipefail
+          cmake --build build --target run_all_tests --parallel $(nproc)
+
+      - name: Run TSan — actor/queue/buffer concurrency slice
+        env:
+          TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1
+        run: |
+          set -euxo pipefail
+          ./build/test/run_all_tests --filter "stress|Stress|Soak|concurrent"
+
+  sqlite-vendor-smoke:
+    name: SQLite vendor smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-sqlite-smoke-${{ runner.os }}-v1
+
+      - name: Install dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            gperf \
+            libssl-dev \
+            make \
+            zlib1g-dev
+
+      - name: Verify manifest and generated files
+        run: python3 tools/sqlite/audit_vendor.py --check-integrity
+
+      - name: Run SQLite vendor analysis tests
+        run: python3 -m unittest discover -s test/analysis -p 'test_sqlite*.py'
+
+      - name: Run current target baseline contract
+        run: python3 -m unittest discover -s test/analysis -p 'test_sqlite_phase4_vendor_target_repo.py'
+
+      - name: Configure native DB smoke build
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF
+
+      - name: Build native DB smoke target
+        run: cmake --build build --target run_all_tests --parallel $(nproc)
+
+      - name: Refresh exact CTest discovery
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF
+
+      - name: Run native SQLite DB smoke
+        run: ctest --test-dir build/test --output-on-failure -R '^Test_DB_sqlite_vendor_wrapper_surface_contract$'

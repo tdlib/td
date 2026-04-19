@@ -477,7 +477,7 @@ class SocketFdImpl {
         UNREACHABLE();
       default:
         LOG(WARNING) << error;
-      // fallthrough
+        [[fallthrough]];
       case ECONNRESET:
       case EDQUOT:
       case EFBIG:
@@ -528,7 +528,7 @@ class SocketFdImpl {
       case EFAULT:  // happens on various Android 13 phones manufactured by BBK Electronics
       default:
         LOG(WARNING) << error;
-      // fallthrough
+        [[fallthrough]];
       case ENOTCONN:
       case EIO:
       case ENOBUFS:

@@ -125,7 +125,7 @@ std::pair<int32, vector<DialogId>> CommonDialogManager::get_common_dialogs(UserI
       if (offset_dialog_id == DialogId()) {
         break;
       }
-    // fallthrough
+      [[fallthrough]];
     case DialogType::User:
     case DialogType::SecretChat:
       promise.set_error(400, "Wrong offset_chat_id");

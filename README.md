@@ -60,7 +60,7 @@ While the TLS handshake and record-sizing layers are highly advanced, the follow
 
 ## Building and Testing
 
-`tdlib-obf` uses CMake. A C++17 compatible compiler, OpenSSL, zlib, and gperf are required.
+`tdlib-obf` uses CMake. A C++23 compatible compiler, OpenSSL, zlib, and gperf are required.
 
 ### Build Instructions
 

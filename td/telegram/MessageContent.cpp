@@ -5687,7 +5687,7 @@ bool is_uploaded_input_media(telegram_api::object_ptr<telegram_api::InputMedia> 
   switch (input_media->get_id()) {
     case telegram_api::inputMediaUploadedDocument::ID:
       static_cast<telegram_api::inputMediaUploadedDocument *>(input_media.get())->nosound_video_ = true;
-    // fallthrough
+      [[fallthrough]];
     case telegram_api::inputMediaUploadedPhoto::ID:
     case telegram_api::inputMediaDocumentExternal::ID:
     case telegram_api::inputMediaPhotoExternal::ID:

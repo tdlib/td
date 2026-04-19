@@ -253,7 +253,7 @@ class ServerSocketFdImpl {
         break;
       default:
         LOG(ERROR) << error;
-      // fallthrough
+        [[fallthrough]];
       case EMFILE:
       case ENFILE:
       case ECONNABORTED:  //???

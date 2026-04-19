@@ -73,10 +73,10 @@ TEST(TLS_MultiDumpIosChromiumStats, StickyIosPlatformPoolIncludesDedicatedChromi
   }
   ASSERT_TRUE(saw_ios_chromium);
 
-  RuntimePlatformHints linux;
-  linux.device_class = DeviceClass::Desktop;
-  linux.desktop_os = DesktopOs::Linux;
-  for (auto p : allowed_profiles_for_platform(linux)) {
+  RuntimePlatformHints linux_hints;
+  linux_hints.device_class = DeviceClass::Desktop;
+  linux_hints.desktop_os = DesktopOs::Linux;
+  for (auto p : allowed_profiles_for_platform(linux_hints)) {
     ASSERT_TRUE(p != BrowserProfile::Chrome147_IOSChromium);
   }
 }

@@ -117,10 +117,10 @@ TEST(MessageEntities, hashtag) {
   check_hashtag("#test@abcdefghijabcdefghijabcdefghijab", {"#test@abcdefghijabcdefghijabcdefghijab"});
   check_hashtag("#test@abcdefghijabcdefghijabcdefghijabc", {"#test@abcdefghijabcdefghijabcdefghijab"});
   check_hashtag("#te·st", {"#te·st"});
-  check_hashtag(u8"\U0001F604\U0001F604\U0001F604\U0001F604 \U0001F604\U0001F604\U0001F604#" + td::string(200, '1') +
+  check_hashtag("\U0001F604\U0001F604\U0001F604\U0001F604 \U0001F604\U0001F604\U0001F604#" + td::string(200, '1') +
                     "ООО" + td::string(200, '2'),
                 {"#" + td::string(200, '1') + "ООО" + td::string(53, '2')});
-  check_hashtag(u8"#a\u2122", {"#a"});
+  check_hashtag("#a\u2122", {"#a"});
   check_hashtag("#a൹", {"#a"});
   check_hashtag("#aඁං෴ก฿", {"#aඁං෴ก"});
   check_hashtag(
@@ -192,9 +192,9 @@ TEST(MessageEntities, cashtag) {
   check_cashtag("$1inch", {});
   check_cashtag("$1INCHA", {});
   check_cashtag("$1INCHА", {});
-  check_cashtag(u8"$ABC\u2122", {"$ABC"});
-  check_cashtag(u8"\u2122$ABC", {"$ABC"});
-  check_cashtag(u8"\u2122$ABC\u2122", {"$ABC"});
+  check_cashtag("$ABC\u2122", {"$ABC"});
+  check_cashtag("\u2122$ABC", {"$ABC"});
+  check_cashtag("\u2122$ABC\u2122", {"$ABC"});
   check_cashtag("$ABC൹", {"$ABC"});
   check_cashtag("$ABCඁ", {});
   check_cashtag("$ABCං", {});

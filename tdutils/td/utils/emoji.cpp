@@ -184,14 +184,14 @@ string remove_emoji_modifiers(Slice emoji, bool remove_selectors) {
 }
 
 void remove_emoji_modifiers_in_place(string &emoji, bool remove_selectors) {
-  static const Slice modifiers[] = {u8"\uFE0F" /* variation selector-16 */,
-                                    u8"\u200D\u2640" /* zero width joiner + female sign */,
-                                    u8"\u200D\u2642" /* zero width joiner + male sign */,
-                                    u8"\U0001F3FB" /* emoji modifier fitzpatrick type-1-2 */,
-                                    u8"\U0001F3FC" /* emoji modifier fitzpatrick type-3 */,
-                                    u8"\U0001F3FD" /* emoji modifier fitzpatrick type-4 */,
-                                    u8"\U0001F3FE" /* emoji modifier fitzpatrick type-5 */,
-                                    u8"\U0001F3FF" /* emoji modifier fitzpatrick type-6 */};
+  static const Slice modifiers[] = {Slice("\xEF\xB8\x8F") /* variation selector-16 */,
+                                    Slice("\xE2\x80\x8D\xE2\x99\x80") /* zero width joiner + female sign */,
+                                    Slice("\xE2\x80\x8D\xE2\x99\x82") /* zero width joiner + male sign */,
+                                    Slice("\xF0\x9F\x8F\xBB") /* emoji modifier fitzpatrick type-1-2 */,
+                                    Slice("\xF0\x9F\x8F\xBC") /* emoji modifier fitzpatrick type-3 */,
+                                    Slice("\xF0\x9F\x8F\xBD") /* emoji modifier fitzpatrick type-4 */,
+                                    Slice("\xF0\x9F\x8F\xBE") /* emoji modifier fitzpatrick type-5 */,
+                                    Slice("\xF0\x9F\x8F\xBF") /* emoji modifier fitzpatrick type-6 */};
   const size_t start_index = remove_selectors ? 0 : 1;
   size_t j = 0;
   for (size_t i = 0; i < emoji.size();) {

@@ -75,7 +75,7 @@ target_link_libraries(tde2e PRIVATE tdutils ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL
 target_include_directories(tde2e SYSTEM PRIVATE $<BUILD_INTERFACE:${OPENSSL_INCLUDE_DIR}>)
 target_include_directories(tde2e PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDE_DIR}>)
 target_include_directories(tde2e PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_compile_features(tde2e INTERFACE cxx_std_17)
+target_compile_features(tde2e INTERFACE cxx_std_23)
 
 add_executable(test-e2e EXCLUDE_FROM_ALL
   ${TDE2E_TEST_SOURCE}

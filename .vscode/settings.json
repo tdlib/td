@@ -15,11 +15,13 @@
     "cmake.useCMakePresets": "always",
     "cmake.configureSettings": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_STANDARD": "23",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON"
     },
     "C_Cpp.intelliSenseEngine": "disabled",
     "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
-    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.cppStandard": "c++23",
     "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
     "clangd.detectExtensionConflicts": false,
     "clangd.arguments": [
@@ -30,6 +32,6 @@
         "--compile-commands-dir=${workspaceFolder}/build"
     ],
     "clangd.fallbackFlags": [
-        "-std=c++17"
+        "-std=c++23"
     ]
 }

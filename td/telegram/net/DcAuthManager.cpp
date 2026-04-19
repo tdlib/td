@@ -155,7 +155,7 @@ void DcAuthManager::dc_loop(DcInfo &dc) {
   switch (dc.state) {
     case DcInfo::State::Waiting: {
       // wait for timeout
-      // break;
+      [[fallthrough]];
     }
     case DcInfo::State::Export: {
       // send auth.exportAuthorization to auth_dc
