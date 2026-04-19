@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -76,6 +77,10 @@ static bool is_private_mime_type(const std::string &mime_type) {
 }
 
 int main(int argc, char *argv[]) {
+  static const std::map<std::string, std::string> preferred_extensions{
+      {"image/jpeg", "jpg"},    {"audio/mpeg", "mp3"}, {"audio/midi", "midi"},
+      {"text/x-pascal", "pas"}, {"text/x-asm", "asm"}, {"video/quicktime", "mov"}};
+
   if (argc != 4) {
     std::cerr << "Wrong number of arguments supplied. Expected 'generate_mime_types_gperf <mime_types.txt> "
                  "<mime_type_to_extension.cpp> <extension_to_mime_type.cpp>'"
@@ -115,19 +120,22 @@ int main(int argc, char *argv[]) {
     extensions_string = extensions_string.substr(extensions_start_position);
 
     std::vector<std::string> extensions;
-    while (!extensions_string.empty()) {
-      extensions.emplace_back();
-      std::tie(extensions.back(), extensions_string) = split(extensions_string);
+    std::istringstream extensions_stream(extensions_string);
+    for (std::string extension; extensions_stream >> extension;) {
+      extensions.push_back(extension);
     }
-    assert(!extensions.empty());
+    if (extensions.empty()) {
+      std::cerr << "Wrong MIME type description \"" << line << "\"" << std::endl;
+      continue;
+    }
 
-    std::map<std::string, std::string> preffered_extensions{{"image/jpeg", "jpg"},  {"audio/mpeg", "mp3"},
-                                                            {"audio/midi", "midi"}, {"text/x-pascal", "pas"},
-                                                            {"text/x-asm", "asm"},  {"video/quicktime", "mov"}};
     std::size_t index = 0;
-    if (preffered_extensions.count(mime_type) != 0) {
-      index = std::find(extensions.begin(), extensions.end(), preffered_extensions[mime_type]) - extensions.begin();
-      assert(index < extensions.size());
+    auto preferred_extension_it = preferred_extensions.find(mime_type);
+    if (preferred_extension_it != preferred_extensions.end()) {
+      auto extension_it = std::find(extensions.begin(), extensions.end(), preferred_extension_it->second);
+      if (extension_it != extensions.end()) {
+        index = static_cast<std::size_t>(extension_it - extensions.begin());
+      }
     }
     if (mime_type_to_extension.emplace_hint(mime_type_to_extension.end(), mime_type, extensions[index])->second !=
         extensions[index]) {

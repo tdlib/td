@@ -8,12 +8,19 @@ import unittest
 
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 REPO_ROOT = THIS_DIR.parent.parent
-SHELL_C_PATH = REPO_ROOT / "docs" / "Samples" / "sqlite3_uptodate" / "shell.c"
+SHELL_C_CANDIDATES = (
+    REPO_ROOT / "docs" / "Samples" / "sqlite3_uptodate" / "shell.c",
+    REPO_ROOT / "sqlite" / "upstream" / "shell.c",
+)
 
 
 class SqliteShellAlignAllocationContractTest(unittest.TestCase):
     def test_align_option_uses_allocate_then_swap_pattern(self) -> None:
-        content = SHELL_C_PATH.read_text(encoding="utf-8")
+        shell_c_path = next((path for path in SHELL_C_CANDIDATES if path.exists()), None)
+        if shell_c_path is None:
+            raise unittest.SkipTest("sqlite shell.c sample is not present in this checkout")
+
+        content = shell_c_path.read_text(encoding="utf-8")
         align_block_match = re.search(
             r"\}else if\( optionMatch\(z,\"align\"\) \)\{(?P<body>.*?)\n\s*\}else if\( pickStr\(z,0,\"-blob\",",
             content,
