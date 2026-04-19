@@ -13,6 +13,7 @@
 #include "td/utils/JsonBuilder.h"
 
 #include <filesystem>
+#include <algorithm>
 
 namespace td {
 namespace mtproto {

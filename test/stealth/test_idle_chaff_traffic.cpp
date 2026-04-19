@@ -13,6 +13,8 @@
 
 #include "td/utils/tests.h"
 
+#include <algorithm>
+
 namespace {
 
 using td::mtproto::stealth::ChaffPolicy;

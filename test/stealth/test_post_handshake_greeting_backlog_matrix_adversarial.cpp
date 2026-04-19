@@ -16,6 +16,7 @@
 
 #include <array>
 #include <cmath>
+#include <algorithm>
 
 namespace {
 

@@ -22,6 +22,36 @@ telemt: https://t.me/telemtrs
 - для `RU` и `unknown` маршрутов ECH по умолчанию выключается, а не «оптимистично пробуется всегда»;
 - QUIC/HTTP3 не считается допустимой стратегией для этой ветки и прямо запрещён runtime-policy.
 
+## Краткое резюме по инциденту Android SSL/IPv6/TLS (обновлено 2026-04-20)
+
+По инциденту с Android-логами и ошибками подключения были разделены три независимые причины:
+
+1. Загрузка trust store: на Android могут отсутствовать OpenSSL default paths (`/usr/local/ssl/cert.pem`), из-за чего в части сценариев verification-on падает fail-closed.
+2. Выбор семейства адресов: в `ConnectionCreator` была связка между proxy family и `prefer_ipv6`, что в отдельных сетях приводило к нежелательным IPv6 попыткам даже при `prefer_ipv6=false`.
+3. `Response hash mismatch`: это отдельный fail-closed контур `TlsInit` (проверка целостности ответа прокси), а не симптом поломанной CA-цепочки сам по себе.
+
+Для этой группы проблем теперь используется один канонический план:
+
+- `docs/Plans/SSL_IPV6_TLS_CROSSPLATFORM_HARDENING_PLAN_2026-04-19.md`
+
+Дублирующие документы удалены, чтобы не разводить несколько источников правды по одному инциденту.
+
+### Что именно внедрено
+
+1. SSL trust-store loading переведён на fail-closed модель для verify-on при пустом хранилище сертификатов.
+2. Для Android добавлен явный probing обеих системных директорий CA: `/apex/com.android.conscrypt/cacerts` и `/system/etc/security/cacerts`.
+3. Для Apple-платформ добавлена загрузка trust anchors через Security.framework (`SecTrustCopyAnchorCertificates`), а iOS-family исключена из OpenSSL default filesystem probing.
+4. Добавлены env-overrides для явных trust источников (`SSL_CERT_FILE`, `SSL_CERT_DIR`, `TDLIB_SSL_CERT_FILE`, `TDLIB_SSL_CERT_DIR`) с предсказуемым единым путём обработки.
+5. IPv6 policy в `ConnectionCreator` вынесена в отдельный seam и развязана от семейства адреса прокси: выбор IPv6 для DC определяется только user preference.
+6. `Response hash mismatch` оставлен как корректный fail-closed контур целостности proxy TLS-init ответа; добавлены дополнительные тесты на фрагментацию и multi-record чтение.
+
+### Тестовое покрытие и валидация
+
+1. Добавлены contract/negative/adversarial/light-fuzz/integration тесты для SSL и ConnectionCreator policy seam.
+2. Добавлен отдельный набор edge-case тестов для Apple trust-store логики (Darwin-gated), включая concurrency и ownership/move-сценарии.
+3. Полный прогон CTest в 14 потоков завершён успешно: 2175/2175.
+4. Важно: Apple-gated тесты исполняются только на Darwin CI/устройствах; на Linux они компилируются, но не выбираются к исполнению.
+
 ## 1. Что реализовано в production-path
 
 ### 1.1. Строгий activation gate и точка подключения

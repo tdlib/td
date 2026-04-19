@@ -112,6 +112,8 @@ class ConnectionCreator final : public NetQueryCallback {
 
   static Result<ProxyAddressCandidates> resolve_proxy_address_candidates(const Proxy &proxy,
                                                                          const IPAddress &resolved_proxy_ip_address);
+  static bool should_prefer_ipv6_for_dc_options(const Proxy &proxy, bool user_prefer_ipv6,
+                                                const IPAddress &resolved_proxy_ip_address);
   static Result<ProxySocketOpenResult> open_proxy_socket(const Proxy &proxy,
                                                          const IPAddress &resolved_proxy_ip_address);
   static Status verify_connection_peer(const Proxy &proxy, const IPAddress &expected_peer_address,

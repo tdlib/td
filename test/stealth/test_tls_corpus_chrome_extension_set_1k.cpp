@@ -13,6 +13,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/tests.h"
+#include <algorithm>
 
 namespace {
 

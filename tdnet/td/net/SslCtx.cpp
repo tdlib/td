@@ -12,7 +12,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/path.h"
-#include "td/utils/port/wstring_convert.h"
+#include "td/utils/port/Stat.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/SliceBuilder.h"
 #include "td/utils/Time.h"
@@ -23,12 +23,21 @@
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
 
+#include <climits>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <mutex>
 
 #if TD_PORT_WINDOWS
 #include <wincrypt.h>
+
+#include "td/utils/port/wstring_convert.h"
+#endif
+
+#if TD_DARWIN
+#include <CoreFoundation/CoreFoundation.h>
+#include <Security/Security.h>
 #endif
 
 namespace td {
@@ -59,6 +68,72 @@ int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 
   return preverify_ok;
 }
+
+#if TD_DARWIN
+Status add_apple_keychain_trust_anchors(X509_STORE *store, int32 *added_certificates) {
+  CHECK(store != nullptr);
+  CHECK(added_certificates != nullptr);
+
+  CFArrayRef anchors = nullptr;
+  auto copy_status = SecTrustCopyAnchorCertificates(&anchors);
+  if (copy_status != errSecSuccess || anchors == nullptr) {
+    return Status::Error(PSLICE() << "SecTrustCopyAnchorCertificates failed with status "
+                                  << static_cast<int32>(copy_status));
+  }
+  SCOPE_EXIT {
+    CFRelease(anchors);
+  };
+
+  const auto anchor_count = CFArrayGetCount(anchors);
+  for (CFIndex i = 0; i < anchor_count; i++) {
+    auto cert = static_cast<SecCertificateRef>(const_cast<void *>(CFArrayGetValueAtIndex(anchors, i)));
+    if (cert == nullptr) {
+      continue;
+    }
+
+    auto cert_data = SecCertificateCopyData(cert);
+    if (cert_data == nullptr) {
+      continue;
+    }
+    SCOPE_EXIT {
+      CFRelease(cert_data);
+    };
+
+    auto cert_size = CFDataGetLength(cert_data);
+    if (cert_size <= 0 || cert_size > static_cast<CFIndex>(LONG_MAX)) {
+      continue;
+    }
+
+    const auto *bytes = CFDataGetBytePtr(cert_data);
+    if (bytes == nullptr) {
+      continue;
+    }
+
+    const unsigned char *in = reinterpret_cast<const unsigned char *>(bytes);
+    auto *x509 = d2i_X509(nullptr, &in, static_cast<long>(cert_size));
+    if (x509 == nullptr) {
+      LOG(INFO) << create_openssl_error(-21, "Failed to decode X509 certificate from Apple Keychain anchor");
+      continue;
+    }
+
+    if (X509_STORE_add_cert(store, x509) != 1) {
+      auto error_code = ERR_peek_error();
+      auto error = create_openssl_error(-20, "Failed to add Apple Keychain anchor certificate");
+      if (ERR_GET_REASON(error_code) != X509_R_CERT_ALREADY_IN_HASH_TABLE) {
+        LOG(ERROR) << error;
+      } else {
+        LOG(INFO) << error;
+      }
+    } else {
+      (*added_certificates)++;
+    }
+
+    X509_free(x509);
+  }
+
+  return Status::OK();
+}
+#endif
 
 X509_STORE *load_system_certificate_store() {
   int32 cert_count = 0;
@@ -123,8 +198,7 @@ X509_STORE *load_system_certificate_store() {
     }
   };
 
-  string default_cert_dir = X509_get_default_cert_dir();
-  for (auto cert_dir : full_split(default_cert_dir, ':')) {
+  auto add_cert_dir = [&](CSlice cert_dir) {
     walk_path(cert_dir, [&](CSlice path, WalkPath::Type type) {
       if (type != WalkPath::Type::RegularFile && type != WalkPath::Type::Symlink) {
         return type == WalkPath::Type::EnterDir && path != cert_dir ? WalkPath::Action::SkipDir
@@ -133,16 +207,88 @@ X509_STORE *load_system_certificate_store() {
       add_file(path);
       return WalkPath::Action::Continue;
     }).ignore();
+  };
+
+  auto add_env_path = [&](const char *var_name, bool is_directory) {
+    auto *raw = std::getenv(var_name);
+    if (raw == nullptr || raw[0] == '\0') {
+      return;
+    }
+    CSlice path(raw);
+    if (is_directory) {
+      add_cert_dir(path);
+    } else {
+      add_file(path);
+    }
+  };
+
+#if TD_DARWIN
+  int32 apple_anchor_count = 0;
+  auto apple_status = add_apple_keychain_trust_anchors(store, &apple_anchor_count);
+  if (apple_status.is_error()) {
+    LOG(INFO) << apple_status;
+  } else {
+    LOG(DEBUG) << "Loaded " << apple_anchor_count << " certificates from Apple Keychain anchors";
+  }
+#endif
+
+#if TD_DARWIN_IOS || TD_DARWIN_TV_OS || TD_DARWIN_WATCH_OS || TD_DARWIN_VISION_OS
+  // iOS-family platforms keep trusted roots in the system keychain rather than
+  // in OpenSSL-style filesystem bundles. Avoid probing default cert dirs/files
+  // that are usually absent in sandboxed app environments.
+  add_env_path("SSL_CERT_FILE", false);
+  add_env_path("SSL_CERT_DIR", true);
+  add_env_path("TDLIB_SSL_CERT_FILE", false);
+  add_env_path("TDLIB_SSL_CERT_DIR", true);
+#else
+
+  string default_cert_dir = X509_get_default_cert_dir();
+  for (auto cert_dir : full_split(default_cert_dir, ':')) {
+    add_cert_dir(cert_dir);
   }
 
   string default_cert_path = X509_get_default_cert_file();
   if (!default_cert_path.empty()) {
-    add_file(default_cert_path);
+    auto default_cert_stat = stat(default_cert_path);
+    if (default_cert_stat.is_ok() && (default_cert_stat.ok().is_reg_ || default_cert_stat.ok().is_symbolic_link_)) {
+      add_file(default_cert_path);
+    } else {
+      LOG(DEBUG) << "Skip unavailable default cert file " << default_cert_path;
+    }
   }
+
+  add_env_path("SSL_CERT_FILE", false);
+  add_env_path("SSL_CERT_DIR", true);
+  add_env_path("TDLIB_SSL_CERT_FILE", false);
+  add_env_path("TDLIB_SSL_CERT_DIR", true);
+#endif
+
+  // Platform-specific Android certificate paths
+#if TD_PORT_ANDROID || defined(__ANDROID__)
+  LOG(DEBUG) << "Attempting Android certificate discovery";
+
+  // Always probe both known Android trust-store roots. Device images may expose
+  // only one of them, and mixed layouts appear in the field.
+  static const char *kAndroidCertDirs[] = {
+      "/apex/com.android.conscrypt/cacerts",
+      "/system/etc/security/cacerts",
+  };
+  for (auto cert_dir : kAndroidCertDirs) {
+    add_cert_dir(CSlice(cert_dir));
+  }
+#endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
   auto objects = X509_STORE_get0_objects(store);
   cert_count = objects == nullptr ? 0 : sk_X509_OBJECT_num(objects);
+  if (cert_count == 0) {
+    // No certificates were loaded into the store. Return nullptr so
+    // do_create_ssl_ctx can apply the correct fail-closed policy (hard error
+    // for VerifyPeer::On, logged warning for VerifyPeer::Off). An empty
+    // X509_STORE must not be silently promoted to a trusted context.
+    X509_STORE_free(store);
+    return nullptr;
+  }
 #else
   cert_count = -1;
 #endif

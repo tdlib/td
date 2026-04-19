@@ -413,7 +413,9 @@ ActorId<GetHostByNameActor> ConnectionCreator::get_dns_resolver() {
       if (colon != string::npos) {
         string key = headers_str.substr(0, colon);
         size_t value_start = colon + 1;
-        while (value_start < headers_str.size() && (headers_str[value_start] == ' ' || headers_str[value_start] == '\t')) value_start++;
+        while (value_start < headers_str.size() &&
+               (headers_str[value_start] == ' ' || headers_str[value_start] == '\t'))
+          value_start++;
         string value = headers_str.substr(value_start);
         headers.emplace_back(std::move(key), std::move(value));
       }
@@ -844,6 +846,11 @@ Proxy ConnectionCreator::resolve_effective_ping_proxy(const Proxy &active_proxy,
   return active_proxy;
 }
 
+bool ConnectionCreator::should_prefer_ipv6_for_dc_options([[maybe_unused]] const Proxy &proxy, bool user_prefer_ipv6,
+                                                          [[maybe_unused]] const IPAddress &resolved_proxy_ip_address) {
+  return user_prefer_ipv6;
+}
+
 Result<ConnectionCreator::ProxyAddressCandidates> ConnectionCreator::resolve_proxy_address_candidates(
     const Proxy &proxy, const IPAddress &resolved_proxy_ip_address) {
   if (!proxy.use_proxy()) {
@@ -1003,7 +1010,7 @@ Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy
 Result<SocketFd> ConnectionCreator::find_connection(const Proxy &proxy, const IPAddress &proxy_ip_address, DcId dc_id,
                                                     bool allow_media_only, FindConnectionExtra &extra) {
   extra.debug_str = PSTRING() << "Failed to find valid IP address for " << dc_id;
-  bool prefer_ipv6 = G()->get_option_boolean("prefer_ipv6") || (proxy.use_proxy() && proxy_ip_address.is_ipv6());
+  bool prefer_ipv6 = should_prefer_ipv6_for_dc_options(proxy, G()->get_option_boolean("prefer_ipv6"), proxy_ip_address);
   bool only_http = proxy.use_http_caching_proxy();
 #if TD_DARWIN_WATCH_OS
   only_http = true;

@@ -68,6 +68,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_profile_runtime.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_fragmentation_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_leftover_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_response_multi_record_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_route_stress.cpp
@@ -81,6 +82,10 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_profile_wire.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_alps_extension_wire_type_invariants.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_ping_proxy_lifetime.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_ip_preference_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_ip_preference_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_ip_preference_light_fuzz.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_ip_preference_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_proxy_dual_stack_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_proxy_dual_stack_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_proxy_dual_stack_adversarial.cpp
@@ -405,6 +410,16 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_transport_wire_parser_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_transport_wire_memory_bounds.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_authentication_constant_time.cpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_loading_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_loading_positive.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_loading_negative.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_loading_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_trust_store_integrity.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_apple_trust_store_contract.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_apple_trust_store_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_apple_trust_store_light_fuzz.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_apple_trust_store_edge_cases.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/data.h

@@ -15,6 +15,7 @@
 #include "td/utils/tests.h"
 
 #include <set>
+#include <algorithm>
 
 namespace {
 

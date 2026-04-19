@@ -13,6 +13,7 @@
 #include <climits>
 #include <cstring>
 #include <vector>
+#include <algorithm>
 
 namespace {
 

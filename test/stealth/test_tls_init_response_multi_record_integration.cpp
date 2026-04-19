@@ -7,6 +7,7 @@
 #include "td/actor/actor.h"  // IWYU pragma: keep
 #include "td/mtproto/stealth/Interfaces.h"
 #include "td/mtproto/stealth/TlsHelloProfileRegistry.h"
+#include "td/net/ProxySetupError.h"
 #include "td/utils/common.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/SocketFd.h"
@@ -82,8 +83,8 @@ TEST(TlsInitResponseMultiRecordIntegration,
   // Handshake(22) then ChangeCipherSpec(20). We validate that once the synthetic
   // emulate_tls response completes, additional encrypted ApplicationData records
   // arriving in the same read burst remain untouched for the next layer.
-  auto response =
-      make_tls_init_response("0123456789secret", TlsInitTestPeer::hello_rand(tls_init), kFirstResponsePrefix, kSecondResponsePrefix);
+  auto response = make_tls_init_response("0123456789secret", TlsInitTestPeer::hello_rand(tls_init),
+                                         kFirstResponsePrefix, kSecondResponsePrefix);
   const td::string trailing_suffix = make_tls_application_data_record("\x99\x98\x97\x96") +
                                      make_tls_application_data_record("\x55\x44\x33\x22\x11\x00");
   response += trailing_suffix;
@@ -94,6 +95,39 @@ TEST(TlsInitResponseMultiRecordIntegration,
 
   auto buffered = TlsInitTestPeer::fd(tls_init).input_buffer().clone().move_as_buffer_slice().as_slice().str();
   ASSERT_EQ(trailing_suffix, buffered);
+}
+
+TEST(TlsInitResponseMultiRecordIntegration,
+     FragmentedTamperedResponseKeepsHashMismatchClassificationUnderMultiRecordReads) {
+  SKIP_IF_NO_SOCKET_PAIR();
+  auto socket_pair = create_socket_pair().move_as_ok();
+  auto tls_init = create_tls_init(std::move(socket_pair.client));
+  TlsInitTestPeer::send_hello(tls_init);
+
+  auto response = make_tls_init_response("0123456789secret", TlsInitTestPeer::hello_rand(tls_init),
+                                         kFirstResponsePrefix, kSecondResponsePrefix);
+  response[11] ^= 0x01;
+
+  const auto first_chunk = response.size() / 3;
+  const auto second_chunk = (response.size() * 2) / 3;
+
+  ASSERT_TRUE(write_all(socket_pair.peer, td::Slice(response).substr(0, first_chunk)).is_ok());
+  TlsInitTestPeer::fd(tls_init).get_poll_info().add_flags(td::PollFlags::Read());
+  ASSERT_TRUE(TlsInitTestPeer::fd(tls_init).flush_read(first_chunk).is_ok());
+  ASSERT_TRUE(TlsInitTestPeer::wait_hello_response(tls_init).is_ok());
+
+  ASSERT_TRUE(write_all(socket_pair.peer, td::Slice(response).substr(first_chunk, second_chunk - first_chunk)).is_ok());
+  TlsInitTestPeer::fd(tls_init).get_poll_info().add_flags(td::PollFlags::Read());
+  ASSERT_TRUE(TlsInitTestPeer::fd(tls_init).flush_read(second_chunk - first_chunk).is_ok());
+  ASSERT_TRUE(TlsInitTestPeer::wait_hello_response(tls_init).is_ok());
+
+  ASSERT_TRUE(write_all(socket_pair.peer, td::Slice(response).substr(second_chunk)).is_ok());
+  TlsInitTestPeer::fd(tls_init).get_poll_info().add_flags(td::PollFlags::Read());
+  ASSERT_TRUE(TlsInitTestPeer::fd(tls_init).flush_read().is_ok());
+
+  auto status = TlsInitTestPeer::wait_hello_response(tls_init);
+  ASSERT_TRUE(status.is_error());
+  ASSERT_EQ(static_cast<td::int32>(td::ProxySetupErrorCode::TlsHelloResponseHashMismatch), status.code());
 }
 
 }  // namespace

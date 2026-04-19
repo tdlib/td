@@ -13,6 +13,7 @@
 #include "td/mtproto/stealth/TlsHelloBuilder.h"
 
 #include "td/utils/tests.h"
+#include <algorithm>
 
 namespace {
 
