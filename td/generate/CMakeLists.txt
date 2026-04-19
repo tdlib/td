@@ -154,14 +154,28 @@ if (NOT CMAKE_CROSSCOMPILING)
     if ((CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=") OR
         (CMAKE_CXX_FLAGS MATCHES "(^| )-fsanitize=") OR
         (CMAKE_EXE_LINKER_FLAGS MATCHES "(^| )-fsanitize="))
-      target_compile_options(${target_name} PRIVATE -fno-sanitize=all)
-      if (COMMAND target_link_options)
-        target_link_options(${target_name} PRIVATE -fno-sanitize=all)
-      else()
-        set_property(TARGET ${target_name} APPEND_STRING PROPERTY LINK_FLAGS " -fno-sanitize=all")
+      if (NOT TD_SANITIZER_BUILD)
+        target_compile_options(${target_name} PRIVATE -fno-sanitize=all)
+        if (COMMAND target_link_options)
+          target_link_options(${target_name} PRIVATE -fno-sanitize=all)
+        else()
+          set_property(TARGET ${target_name} APPEND_STRING PROPERTY LINK_FLAGS " -fno-sanitize=all")
+        endif()
       endif()
     endif()
   endfunction()
+
+  if (TD_SANITIZER_BUILD)
+    set(TL_GENERATE_MTPROTO_COMMAND ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0 $<TARGET_FILE:generate_mtproto>)
+    set(TL_GENERATE_COMMON_COMMAND ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0 $<TARGET_FILE:generate_common>)
+    set(TL_GENERATE_C_COMMAND ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0 $<TARGET_FILE:generate_c>)
+    set(TL_GENERATE_JSON_COMMAND ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0 $<TARGET_FILE:generate_json>)
+  else()
+    set(TL_GENERATE_MTPROTO_COMMAND generate_mtproto)
+    set(TL_GENERATE_COMMON_COMMAND ${GENERATE_COMMON_CMD})
+    set(TL_GENERATE_C_COMMAND generate_c)
+    set(TL_GENERATE_JSON_COMMAND generate_json)
+  endif()
 
   add_subdirectory(tl-parser)
 
@@ -203,7 +217,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   target_link_libraries(generate_mtproto PRIVATE tdtl tl_writer_cpp)
   add_custom_target(tl_generate_mtproto
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
-    COMMAND generate_mtproto
+    COMMAND ${TL_GENERATE_MTPROTO_COMMAND}
     COMMENT "Generate MTProto API source files"
     DEPENDS generate_mtproto tl_generate_tlo ${TLO_FILES}
   )
@@ -213,7 +227,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   target_link_libraries(generate_common PRIVATE tdtl tl_writer_cpp)
   add_custom_target(tl_generate_common
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
-    COMMAND ${GENERATE_COMMON_CMD}
+    COMMAND ${TL_GENERATE_COMMON_COMMAND}
     COMMENT "Generate common TL source files"
     DEPENDS generate_common tl_generate_tlo ${TLO_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl ${CMAKE_CURRENT_SOURCE_DIR}/DoxygenTlDocumentationGenerator.php
   )
@@ -226,7 +240,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   target_link_libraries(generate_c PRIVATE tdtl)
   add_custom_target(tl_generate_c
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
-    COMMAND generate_c
+    COMMAND ${TL_GENERATE_C_COMMAND}
     COMMENT "Generate C TL source files"
     DEPENDS generate_c tl_generate_tlo ${TD_API_TLO_FILE} ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl
   )
@@ -241,7 +255,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   target_link_libraries(generate_json PRIVATE tdtl tdutils)
   add_custom_target(tl_generate_json
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/auto
-    COMMAND generate_json
+    COMMAND ${TL_GENERATE_JSON_COMMAND}
     COMMENT "Generate JSON TL source files"
     DEPENDS generate_json tl_generate_tlo ${TD_API_TLO_FILE} ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tl
   )
