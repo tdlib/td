@@ -15,14 +15,14 @@ endif()
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 # tl-parser is a build-time generator invoked while building other targets.
-# When CI enables global TSan flags for runtime test binaries, instrumenting
+# When CI enables global sanitizer flags for runtime binaries, instrumenting
 # this generator can make source-generation fail before tests even start.
-if ((CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=thread") OR (CMAKE_EXE_LINKER_FLAGS MATCHES "(^| )-fsanitize=thread"))
-  target_compile_options(${PROJECT_NAME} PRIVATE -fno-sanitize=thread)
+if ((CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=") OR (CMAKE_EXE_LINKER_FLAGS MATCHES "(^| )-fsanitize="))
+  target_compile_options(${PROJECT_NAME} PRIVATE -fno-sanitize=all)
   if (COMMAND target_link_options)
-    target_link_options(${PROJECT_NAME} PRIVATE -fno-sanitize=thread)
+    target_link_options(${PROJECT_NAME} PRIVATE -fno-sanitize=all)
   else()
-    set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -fno-sanitize=thread")
+    set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY LINK_FLAGS " -fno-sanitize=all")
   endif()
 endif()
 

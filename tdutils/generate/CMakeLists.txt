@@ -22,16 +22,16 @@ set(TDMIME_AUTO
 
 add_custom_target(tdmime_auto DEPENDS ${TDMIME_SOURCE})
 
-if (NOT CMAKE_CROSSCOMPILING)
-  function(tdutils_disable_tsan_for_generator target_name)
-    if ((CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=thread") OR
-        (CMAKE_CXX_FLAGS MATCHES "(^| )-fsanitize=thread") OR
-        (CMAKE_EXE_LINKER_FLAGS MATCHES "(^| )-fsanitize=thread"))
-      target_compile_options(${target_name} PRIVATE -fno-sanitize=thread)
+if (NOT CMAKE_CROSSCOMPILING AND NOT TD_SANITIZER_BUILD)
+  function(tdutils_disable_sanitizers_for_generator target_name)
+    if ((CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=") OR
+        (CMAKE_CXX_FLAGS MATCHES "(^| )-fsanitize=") OR
+        (CMAKE_EXE_LINKER_FLAGS MATCHES "(^| )-fsanitize="))
+      target_compile_options(${target_name} PRIVATE -fno-sanitize=all)
       if (COMMAND target_link_options)
-        target_link_options(${target_name} PRIVATE -fno-sanitize=thread)
+        target_link_options(${target_name} PRIVATE -fno-sanitize=all)
       else()
-        set_property(TARGET ${target_name} APPEND_STRING PROPERTY LINK_FLAGS " -fno-sanitize=thread")
+        set_property(TARGET ${target_name} APPEND_STRING PROPERTY LINK_FLAGS " -fno-sanitize=all")
       endif()
     endif()
   endfunction()
@@ -49,7 +49,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   set(GPERF_GEN_SOURCE generate_mime_types_gperf.cpp)
 
   add_executable(generate_mime_types_gperf ${GPERF_GEN_SOURCE})
-  tdutils_disable_tsan_for_generator(generate_mime_types_gperf)
+  tdutils_disable_sanitizers_for_generator(generate_mime_types_gperf)
 
   add_custom_command(
     OUTPUT ${GPERF_FILES}
