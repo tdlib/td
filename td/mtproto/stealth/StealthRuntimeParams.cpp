@@ -8,6 +8,7 @@
 
 #include "td/mtproto/stealth/StealthConfig.h"
 
+#include <atomic>
 #include <cmath>
 #include <memory>
 
@@ -154,8 +155,8 @@ std::shared_ptr<const StealthRuntimeParams> make_default_runtime_params() {
   return std::make_shared<const StealthRuntimeParams>(default_runtime_stealth_params());
 }
 
-std::shared_ptr<const StealthRuntimeParams> &runtime_params_storage() {
-  static auto params = make_default_runtime_params();
+std::atomic<std::shared_ptr<const StealthRuntimeParams>> &runtime_params_storage() {
+  static std::atomic<std::shared_ptr<const StealthRuntimeParams>> params{make_default_runtime_params()};
   return params;
 }
 
@@ -262,14 +263,14 @@ Status validate_runtime_stealth_params(const StealthRuntimeParams &params) noexc
 }
 
 StealthRuntimeParams get_runtime_stealth_params_snapshot() noexcept {
-  auto params = std::atomic_load(&runtime_params_storage());
+  auto params = runtime_params_storage().load(std::memory_order_acquire);
   CHECK(params != nullptr);
   return *params;
 }
 
 Status set_runtime_stealth_params(const StealthRuntimeParams &params) noexcept {
   TRY_STATUS(validate_runtime_stealth_params(params));
-  std::atomic_store(&runtime_params_storage(), std::make_shared<const StealthRuntimeParams>(params));
+  runtime_params_storage().store(std::make_shared<const StealthRuntimeParams>(params), std::memory_order_release);
   return Status::OK();
 }
 
@@ -278,7 +279,7 @@ Status set_runtime_stealth_params_for_tests(const StealthRuntimeParams &params) 
 }
 
 void reset_runtime_stealth_params_for_tests() noexcept {
-  std::atomic_store(&runtime_params_storage(), make_default_runtime_params());
+  runtime_params_storage().store(make_default_runtime_params(), std::memory_order_release);
 }
 
 }  // namespace stealth

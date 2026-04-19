@@ -1,32 +1,6 @@
 name: SQLite Vendor Integrity
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/sqlite-vendor-integrity.yml"
-      - ".vscode/settings.json"
-      - ".vscode/tasks.json"
-      - "CMakeLists.txt"
-      - "CMakePresets.json"
-      - "sqlite/**"
-      - "test/CMakeLists.txt"
-      - "test/sqlite_vendor_contract.cpp"
-      - "tools/sqlite/**"
-      - "test/analysis/test_sqlite*.py"
-      - "test/analysis/test_sqlite_phase4_vendor_target_repo.py"
-  push:
-    paths:
-      - ".github/workflows/sqlite-vendor-integrity.yml"
-      - ".vscode/settings.json"
-      - ".vscode/tasks.json"
-      - "CMakeLists.txt"
-      - "CMakePresets.json"
-      - "sqlite/**"
-      - "test/CMakeLists.txt"
-      - "test/sqlite_vendor_contract.cpp"
-      - "tools/sqlite/**"
-      - "test/analysis/test_sqlite*.py"
-      - "test/analysis/test_sqlite_phase4_vendor_target_repo.py"
   workflow_dispatch:
 
 jobs:

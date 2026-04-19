@@ -51,9 +51,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - compiler: gcc
-            cc: gcc-13
-            cxx: g++-13
+          - compiler: gcc14
+            cc: gcc-14
+            cxx: g++-14
           - compiler: clang
             cc: clang-18
             cxx: clang++-18
@@ -77,8 +77,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             cmake \
-            g++-13 \
-            gcc-13 \
+            g++-14 \
+            gcc-14 \
             clang-18 \
             gperf \
             libssl-dev \
