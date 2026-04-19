@@ -117,7 +117,7 @@ inline string make_tls_init_response(Slice secret, Slice hello_rand, Slice first
 
   string response_for_hmac = response;
   auto response_rand_slice = MutableSlice(response_for_hmac).substr(11, 32);
-  std::fill(response_rand_slice.begin(), response_rand_slice.end(), '\0');
+  std::memset(response_rand_slice.begin(), 0, response_rand_slice.size());
 
   string hash_dest(32, '\0');
   string hmac_input = hello_rand.str();
