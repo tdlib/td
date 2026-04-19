@@ -181,6 +181,7 @@ jobs:
       - name: Build sanitizer targets
         run: |
           set -euxo pipefail
+          cmake --build build --target tl_generate_tlo tl_generate_mtproto tl_generate_common tl_generate_json --parallel $(nproc)
           cmake --build build --target tdjson tg_cli run_all_tests --parallel $(nproc)
 
       - name: Run focused sanitizer regression slice
@@ -246,6 +247,7 @@ jobs:
       - name: Build concurrency-heavy test targets
         run: |
           set -euxo pipefail
+          cmake --build build --target tl_generate_tlo tl_generate_mtproto tl_generate_common tl_generate_json --parallel $(nproc)
           cmake --build build --target run_all_tests --parallel $(nproc)
 
       - name: Run TSan — actor/queue/buffer concurrency slice

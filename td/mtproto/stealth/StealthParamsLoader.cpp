@@ -660,7 +660,9 @@ Result<string> StealthParamsLoader::read_file_secure(const string &path) noexcep
 #if TD_PORT_POSIX
   TRY_STATUS(validate_secure_parent_directory(path));
 
-  int fd = ::open(path.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+  // O_NONBLOCK ensures special files like FIFOs don't block open(2)
+  // before we can fail-closed on the regular-file check below.
+  int fd = ::open(path.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK);
   if (fd < 0) {
     return Status::PosixError(errno, "Failed to open stealth params file");
   }
