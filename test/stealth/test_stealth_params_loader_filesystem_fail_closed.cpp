@@ -13,6 +13,11 @@
 #include "td/utils/port/path.h"
 #include "td/utils/tests.h"
 
+#if TD_PORT_POSIX
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
 namespace {
 
 using td::FileFd;
@@ -121,5 +126,37 @@ TEST(StealthParamsLoaderFilesystemFailClosed, ReloadKeepsLastGoodSnapshotOnOvers
   ASSERT_FALSE(loader.try_reload());
   ASSERT_EQ(static_cast<size_t>(12288), get_runtime_stealth_params_snapshot().bulk_threshold_bytes);
 }
+
+#if TD_PORT_POSIX
+TEST(StealthParamsLoaderFilesystemFailClosed, StrictLoadRejectsNonRegularFifoPath) {
+  ScopedTempDir temp_dir;
+  auto path = join_path(temp_dir.path(), "stealth-params.fifo");
+
+  ASSERT_EQ(0, ::mkfifo(path.c_str(), 0600));
+
+  auto result = StealthParamsLoader::try_load_strict(path);
+  ASSERT_TRUE(result.is_error());
+}
+
+TEST(StealthParamsLoaderFilesystemFailClosed, ReloadKeepsLastGoodSnapshotWhenConfigIsReplacedWithSymlink) {
+  RuntimeParamsGuard guard;
+  ScopedTempDir temp_dir;
+  auto path = join_path(temp_dir.path(), "stealth-params.json");
+  auto symlink_target = join_path(temp_dir.path(), "alt-stealth-params.json");
+
+  write_file(path, valid_config_json());
+  write_file(symlink_target, valid_config_json());
+
+  StealthParamsLoader loader(path);
+  ASSERT_TRUE(loader.try_reload());
+  ASSERT_EQ(static_cast<size_t>(12288), get_runtime_stealth_params_snapshot().bulk_threshold_bytes);
+
+  ASSERT_EQ(0, ::unlink(path.c_str()));
+  ASSERT_EQ(0, ::symlink(symlink_target.c_str(), path.c_str()));
+
+  ASSERT_FALSE(loader.try_reload());
+  ASSERT_EQ(static_cast<size_t>(12288), get_runtime_stealth_params_snapshot().bulk_threshold_bytes);
+}
+#endif
 
 }  // namespace

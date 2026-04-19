@@ -20,15 +20,9 @@ set(TDMIME_AUTO
   PARENT_SCOPE
 )
 
-if (TD_SANITIZER_BUILD)
-  # Sanitizer CI uses checked-in generated sources and must not execute
-  # build-time generators, which are intentionally disabled in this mode.
-  add_custom_target(tdmime_auto)
-else()
-  add_custom_target(tdmime_auto DEPENDS ${TDMIME_SOURCE})
-endif()
+add_custom_target(tdmime_auto DEPENDS ${TDMIME_SOURCE})
 
-if (NOT CMAKE_CROSSCOMPILING AND NOT TD_SANITIZER_BUILD)
+if (NOT CMAKE_CROSSCOMPILING)
   function(tdutils_disable_sanitizers_for_generator target_name)
     if ((CMAKE_C_FLAGS MATCHES "(^| )-fsanitize=") OR
         (CMAKE_CXX_FLAGS MATCHES "(^| )-fsanitize=") OR
