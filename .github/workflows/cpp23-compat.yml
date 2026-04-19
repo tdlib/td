@@ -38,6 +38,9 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: cpp23-compat-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -237,7 +240,6 @@ jobs:
             -DCMAKE_CXX_STANDARD=23 \
             -DCMAKE_CXX_STANDARD_REQUIRED=ON \
             -DCMAKE_CXX_FLAGS='-fsanitize=thread -fno-sanitize-recover=all' \
-            -DCMAKE_C_FLAGS='-fsanitize=thread -fno-sanitize-recover=all' \
             -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=thread -fno-sanitize-recover=all' \
             -DTD_ENABLE_BENCHMARKS=OFF
 
