@@ -11,7 +11,10 @@
 #include "td/utils/Slice.h"
 #include "td/utils/StorerBase.h"
 
+#include <array>
+#include <bit>
 #include <cstring>
+#include <type_traits>
 
 namespace td {
 
@@ -27,7 +30,9 @@ class TlStorerUnsafe {
 
   template <class T>
   void store_binary(const T &x) {
-    std::memcpy(buf_, &x, sizeof(T));
+    static_assert(std::is_trivially_copyable<T>::value, "store_binary requires trivially copyable types");
+    const auto bytes = std::bit_cast<std::array<unsigned char, sizeof(T)>>(x);
+    std::memcpy(buf_, bytes.data(), bytes.size());
     buf_ += sizeof(T);
   }
 

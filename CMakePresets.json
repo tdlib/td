@@ -10,12 +10,18 @@
       "name": "default",
       "displayName": "Default RelWithDebInfo",
       "description": "Workspace default configure preset used by VS Code CMake Tools.",
-      "generator": "Unix Makefiles",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
+      "environment": {
+        "CMAKE_BUILD_PARALLEL_LEVEL": "14"
+      },
       "cacheVariables": {
+        "BUILD_SHARED_LIBS": "ON",
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "TD_ENABLE_BENCHMARKS": "OFF"
+        "TD_ENABLE_BENCHMARKS": "OFF",
+        "TD_ENABLE_LLD": "ON",
+        "TD_ENABLE_NATIVE_ARCH": "ON"
       }
     }
   ],
@@ -23,6 +29,7 @@
     {
       "name": "run-all-tests",
       "configurePreset": "default",
+      "jobs": 14,
       "targets": [
         "run_all_tests"
       ]

@@ -20,7 +20,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             make git zlib1g-dev libssl-dev gperf php-cli cmake \
-            clang-18 libc++-18-dev libc++abi-18-dev
+            clang-18 libc++-18-dev libc++abi-18-dev ninja-build lld
 
       - name: Install Build Wrapper
         uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
@@ -31,11 +31,14 @@ jobs:
               CC=/usr/bin/clang-18 \
               CXX=/usr/bin/clang++-18 \
               cmake -S . -B build \
+                    -G Ninja \
+                    -DBUILD_SHARED_LIBS=ON \
                     -DCMAKE_BUILD_TYPE=Release \
-                    -DCMAKE_INSTALL_PREFIX:PATH=./tdlib
+                    -DCMAKE_INSTALL_PREFIX:PATH=./tdlib \
+                    -DTD_ENABLE_LLD=ON
 
           build-wrapper-linux-x86-64 --out-dir build/bw-output \
-            cmake --build build --target install --parallel 4
+            cmake --build build --target install --parallel $(nproc)
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6

@@ -53,16 +53,16 @@ jobs:
       - name: Install native build prerequisite
         run: |
           sudo apt-get update
-          sudo apt-get install -y gperf
+          sudo apt-get install -y gperf ninja-build lld
 
       - name: Configure native DB smoke build
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF
+        run: cmake -S . -B build -G Ninja -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF -DTD_ENABLE_LLD=ON
 
       - name: Build native DB smoke target
-        run: cmake --build build --target run_all_tests --parallel 2
+        run: cmake --build build --target run_all_tests --parallel $(nproc)
 
       - name: Refresh exact CTest discovery
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF
+        run: cmake -S . -B build -G Ninja -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF -DTD_ENABLE_LLD=ON
 
       - name: Run native SQLite DB smoke
         run: ctest --test-dir build/test --output-on-failure -R '^Test_DB_sqlite_vendor_wrapper_surface_contract$'

@@ -41,9 +41,14 @@
                 ".",
                 "-B",
                 "build",
+                "-G",
+                "Ninja",
+                "-DBUILD_SHARED_LIBS=ON",
                 "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
                 "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-                "-DTD_ENABLE_BENCHMARKS=OFF"
+                "-DTD_ENABLE_BENCHMARKS=OFF",
+                "-DTD_ENABLE_LLD=ON",
+                "-DTD_ENABLE_NATIVE_ARCH=ON"
             ],
             "group": "build",
             "dependsOn": [
@@ -62,9 +67,14 @@
                 ".",
                 "-B",
                 "build",
+                "-G",
+                "Ninja",
+                "-DBUILD_SHARED_LIBS=ON",
                 "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
                 "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-                "-DTD_ENABLE_BENCHMARKS=OFF"
+                "-DTD_ENABLE_BENCHMARKS=OFF",
+                "-DTD_ENABLE_LLD=ON",
+                "-DTD_ENABLE_NATIVE_ARCH=ON"
             ],
             "problemMatcher": [
                 "$gcc"
@@ -81,9 +91,12 @@
                 "build-ninja",
                 "-G",
                 "Ninja",
+                "-DBUILD_SHARED_LIBS=ON",
                 "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
                 "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-                "-DTD_ENABLE_BENCHMARKS=OFF"
+                "-DTD_ENABLE_BENCHMARKS=OFF",
+                "-DTD_ENABLE_LLD=ON",
+                "-DTD_ENABLE_NATIVE_ARCH=ON"
             ],
             "problemMatcher": [
                 "$gcc"
@@ -445,6 +458,39 @@
             "group": "test",
             "dependsOn": [
                 "refresh serverhello corpus"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "run ssl context tests fast",
+            "type": "shell",
+            "command": "./build/test/run_all_tests",
+            "args": [
+                "--filter",
+                "SslCtx"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "ctest ssl context (14 cores)",
+            "type": "shell",
+            "command": "ctest",
+            "args": [
+                "--test-dir",
+                "build",
+                "--output-on-failure",
+                "-j",
+                "14",
+                "-R",
+                "SslCtx"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
             ],
             "problemMatcher": []
         }

@@ -6,8 +6,10 @@
 // (i.e., no ASSERT_TRUE(x.is_ok() || x.is_error())).
 
 #include "td/net/SslCtx.h"
+#include "td/utils/port/FileFd.h"
 #include "td/utils/tests.h"
 
+#include <array>
 #include <atomic>
 #include <thread>
 #include <vector>
@@ -117,6 +119,38 @@ TEST(CertificateLoadingAdversarial, RepeatedLoadsDoNotLeakMemory) {
     auto result = td::SslCtx::create(td::CSlice(), td::SslCtx::VerifyPeer::Off);
     ASSERT_TRUE(result.is_ok());
   }
+}
+
+// Attack A12: Embedded NUL in explicit cert path must be rejected. Otherwise,
+// an attacker can smuggle a trusted prefix path and hide a malicious suffix.
+TEST(CertificateLoadingAdversarial, ExplicitPathWithEmbeddedNulIsRejectedFailClosed) {
+  static constexpr std::array<td::CSlice, 3> kCandidates = {
+      "/etc/ssl/certs/ca-certificates.crt",
+      "/etc/pki/tls/certs/ca-bundle.crt",
+      "/etc/ssl/ca-bundle.pem",
+  };
+
+  td::string trusted_bundle;
+  for (auto candidate : kCandidates) {
+    auto r_file = td::FileFd::open(candidate.str(), td::FileFd::Read);
+    if (r_file.is_ok()) {
+      trusted_bundle = candidate.str();
+      break;
+    }
+  }
+  if (trusted_bundle.empty()) {
+    return;
+  }
+
+  td::string tainted = trusted_bundle;
+  tainted += '\0';
+  tainted += "/attacker-controlled-suffix.pem";
+
+  auto on_result = td::SslCtx::create(td::CSlice(tainted), td::SslCtx::VerifyPeer::On);
+  auto off_result = td::SslCtx::create(td::CSlice(tainted), td::SslCtx::VerifyPeer::Off);
+
+  ASSERT_TRUE(on_result.is_error());
+  ASSERT_TRUE(off_result.is_error());
 }
 
 #endif  // !TD_EMSCRIPTEN

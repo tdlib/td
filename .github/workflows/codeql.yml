@@ -111,7 +111,7 @@ jobs:
         run: |
           set -euxo pipefail
           cmake -S . -B build-swift-codeql -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=example/swift/td
-          cmake --build build-swift-codeql --target install --parallel 4
+          cmake --build build-swift-codeql --target install --parallel "$(sysctl -n hw.ncpu)"
 
       - name: Build Swift target
         run: |

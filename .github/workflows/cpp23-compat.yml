@@ -54,12 +54,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - compiler: gcc14
-            cc: gcc-14
-            cxx: g++-14
-          - compiler: clang
-            cc: clang-18
-            cxx: clang++-18
+          - compiler: gcc15
+            cc: gcc-15
+            cxx: g++-15
+          - compiler: clang22
+            cc: clang-22
+            cxx: clang++-22
 
     steps:
       - name: Checkout repository
@@ -80,9 +80,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             cmake \
-            g++-14 \
-            gcc-14 \
-            clang-18 \
+            g++-15 \
+            gcc-15 \
+            clang-22 \
+            lld-22 \
             gperf \
             libssl-dev \
             make \
@@ -107,12 +108,16 @@ jobs:
         run: |
           set -euxo pipefail
           cmake -S . -B build \
+            -G Ninja \
+            -DBUILD_SHARED_LIBS=ON \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_CXX_STANDARD=23 \
             -DCMAKE_CXX_STANDARD_REQUIRED=ON \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DTD_ENABLE_BENCHMARKS=OFF \
-            -DTD_STRICT_CI_WARNINGS=ON
+            -DTD_ENABLE_LLD=ON \
+            -DTD_STRICT_CI_WARNINGS=ON \
+            -DTD_STRICT_COMPILER_VERSIONS=ON
 
       - name: Build core targets
         run: |
@@ -142,7 +147,8 @@ jobs:
           set -euxo pipefail
           sudo apt-get update
           sudo apt-get install -y \
-            clang-18 \
+            clang-22 \
+            lld-22 \
             cmake \
             gperf \
             libssl-dev \
@@ -163,11 +169,13 @@ jobs:
 
       - name: Configure sanitizer build
         env:
-          CC: clang-18
-          CXX: clang++-18
+          CC: clang-22
+          CXX: clang++-22
         run: |
           set -euxo pipefail
           cmake -S . -B build \
+            -G Ninja \
+            -DBUILD_SHARED_LIBS=ON \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_CXX_STANDARD=23 \
             -DCMAKE_CXX_STANDARD_REQUIRED=ON \
@@ -176,7 +184,9 @@ jobs:
             -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address,undefined -fno-sanitize-recover=all' \
             -DCMAKE_SHARED_LINKER_FLAGS='-fsanitize=address,undefined -fno-sanitize-recover=all' \
             -DTD_ENABLE_BENCHMARKS=OFF \
-            -DTD_STRICT_CI_WARNINGS=ON
+            -DTD_ENABLE_LLD=ON \
+            -DTD_STRICT_CI_WARNINGS=ON \
+            -DTD_STRICT_COMPILER_VERSIONS=ON
 
       - name: Build sanitizer targets
         run: |
@@ -215,11 +225,13 @@ jobs:
           set -euxo pipefail
           sudo apt-get update
           sudo apt-get install -y \
-            clang-18 \
+            clang-22 \
+            lld-22 \
             cmake \
             gperf \
             libssl-dev \
             make \
+            ninja-build \
             zlib1g-dev
 
       - name: Cache CMake build artifacts
@@ -232,17 +244,21 @@ jobs:
 
       - name: Configure TSan build
         env:
-          CC: clang-18
-          CXX: clang++-18
+          CC: clang-22
+          CXX: clang++-22
         run: |
           set -euxo pipefail
           cmake -S . -B build \
+            -G Ninja \
+            -DBUILD_SHARED_LIBS=ON \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_CXX_STANDARD=23 \
             -DCMAKE_CXX_STANDARD_REQUIRED=ON \
             -DCMAKE_CXX_FLAGS='-fsanitize=thread -fno-sanitize-recover=all' \
             -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=thread -fno-sanitize-recover=all' \
-            -DTD_ENABLE_BENCHMARKS=OFF
+            -DTD_ENABLE_BENCHMARKS=OFF \
+            -DTD_ENABLE_LLD=ON \
+            -DTD_STRICT_COMPILER_VERSIONS=ON
 
       - name: Build concurrency-heavy test targets
         run: |
@@ -301,13 +317,13 @@ jobs:
         run: python3 -m unittest discover -s test/analysis -p 'test_sqlite_phase4_vendor_target_repo.py'
 
       - name: Configure native DB smoke build
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF
+        run: cmake -S . -B build -G Ninja -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF -DTD_ENABLE_LLD=ON
 
       - name: Build native DB smoke target
         run: cmake --build build --target run_all_tests --parallel $(nproc)
 
       - name: Refresh exact CTest discovery
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF
+        run: cmake -S . -B build -G Ninja -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF -DTD_ENABLE_LLD=ON
 
       - name: Run native SQLite DB smoke
         run: ctest --test-dir build/test --output-on-failure -R '^Test_DB_sqlite_vendor_wrapper_surface_contract$'

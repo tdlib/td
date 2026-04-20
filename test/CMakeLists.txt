@@ -415,6 +415,9 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_loading_positive.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_loading_negative.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_loading_adversarial.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_loading_integration.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_loading_stress.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_loading_light_fuzz_extended.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_trust_store_integrity.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_apple_trust_store_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/tdnet/test_ssl_ctx_apple_trust_store_adversarial.cpp
@@ -553,6 +556,17 @@ if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
 
         if (TD_RUN_ALL_TEST_NAME MATCHES "^(Test_DB_key_value|Test_DB_key_value_set_all|Test_SecureStorage_secret|Test_Misc_update_atime_change_atime|Test_Misc_update_atime_saves_mtime|Test_FamilyLaneMatcherContract_ReviewedTableByIndexCountMatches|Test_HmacTimestampAdversarial1k_AllProfilesSameSeedSameTimestampProduceDifferentClientRandom|Test_AuthenticationTimingConsistency_StringComparisonNoEarlyExit)$")
           set_tests_properties("${TD_RUN_ALL_TEST_NAME}" PROPERTIES RUN_SERIAL TRUE)
+        endif()
+
+        # Tests that create database/filesystem artefacts at their working directory must
+        # run from CMAKE_BINARY_DIR (not CMAKE_SOURCE_DIR) so:
+        #   1. Temporary files don't pollute the source tree.
+        #   2. Stale files from interrupted runs don't cause "readonly database" failures
+        #      because the build tree is always writable.
+        #   3. The test's own "destroy before open" preamble reliably cleans up.
+        if (TD_RUN_ALL_TEST_NAME MATCHES "^(Test_DB_key_value|Test_DB_key_value_set_all|Test_DB_binlog_key_value|Test_DB_thread_key_value|Test_DB_persistent_key_value|Test_SecureStorage_secret|Test_Misc_update_atime)")
+          set_tests_properties("${TD_RUN_ALL_TEST_NAME}" PROPERTIES
+                   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
         endif()
 
         set(TD_RUN_ALL_TEST_LABELS "")
