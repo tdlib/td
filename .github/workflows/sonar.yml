@@ -5,31 +5,56 @@ on:
     branches: [master]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: sonar-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sonar:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # SonarCloud requires full history for blame/new-code analysis
+          persist-credentials: false
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-sonar-${{ runner.os }}-${{ hashFiles('.github/workflows/sonar.yml') }}-v1
+
+      - name: Set up toolchain APT repositories
+        run: |
+          set -euxo pipefail
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-22 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-22.list
+          sudo apt-get update -qq
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
+          set -euxo pipefail
           sudo apt-get install -y \
             make git zlib1g-dev libssl-dev gperf php-cli cmake \
-            clang-18 libc++-18-dev libc++abi-18-dev ninja-build lld
+            clang-22 libc++-22-dev libc++abi-22-dev ninja-build lld-22
 
       - name: Install Build Wrapper
         uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
 
       - name: Configure and build TDLib
         run: |
+          set -euxo pipefail
           env CXXFLAGS="-stdlib=libc++" \
-              CC=/usr/bin/clang-18 \
-              CXX=/usr/bin/clang++-18 \
+              CC=/usr/bin/clang-22 \
+              CXX=/usr/bin/clang++-22 \
               cmake -S . -B build \
                     -G Ninja \
                     -DBUILD_SHARED_LIBS=ON \

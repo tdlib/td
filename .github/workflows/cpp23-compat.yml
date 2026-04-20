@@ -68,16 +68,27 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Set up toolchain APT repositories
+        run: |
+          set -euxo pipefail
+          # LLVM APT for clang-22 / lld-22
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-22 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-22.list
+          # ubuntu-toolchain-r PPA for gcc-15 on ubuntu-24.04
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update -qq
+
       - name: Cache apt packages
         uses: actions/cache@v4
         with:
           path: /var/cache/apt/archives
-          key: apt-gcc-clang-${{ runner.os }}-v1
+          key: apt-gcc-clang-${{ runner.os }}-${{ hashFiles('.github/workflows/cpp23-compat.yml') }}-v2
 
       - name: Install dependencies
         run: |
           set -euxo pipefail
-          sudo apt-get update
           sudo apt-get install -y \
             cmake \
             g++-15 \
@@ -136,16 +147,24 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Set up toolchain APT repositories
+        run: |
+          set -euxo pipefail
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-22 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-22.list
+          sudo apt-get update -qq
+
       - name: Cache apt packages
         uses: actions/cache@v4
         with:
           path: /var/cache/apt/archives
-          key: apt-asan-${{ runner.os }}-v1
+          key: apt-asan-${{ runner.os }}-${{ hashFiles('.github/workflows/cpp23-compat.yml') }}-v2
 
       - name: Install dependencies
         run: |
           set -euxo pipefail
-          sudo apt-get update
           sudo apt-get install -y \
             clang-22 \
             lld-22 \
@@ -214,16 +233,24 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Set up toolchain APT repositories
+        run: |
+          set -euxo pipefail
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-22 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-22.list
+          sudo apt-get update -qq
+
       - name: Cache apt packages
         uses: actions/cache@v4
         with:
           path: /var/cache/apt/archives
-          key: apt-tsan-${{ runner.os }}-v1
+          key: apt-tsan-${{ runner.os }}-${{ hashFiles('.github/workflows/cpp23-compat.yml') }}-v2
 
       - name: Install dependencies
         run: |
           set -euxo pipefail
-          sudo apt-get update
           sudo apt-get install -y \
             clang-22 \
             lld-22 \
