@@ -14,7 +14,7 @@
 
 #include "test/stealth/FingerprintFixtures.h"
 #include "test/stealth/MockRng.h"
-#include "test/stealth/ReviewedClientHelloFixtures.h"
+#include "test/stealth/ReviewedClientHelloReferences.h"
 #include "test/stealth/TestHelpers.h"
 
 #include <algorithm>
@@ -26,7 +26,7 @@ using namespace td;
 using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
-using namespace td::mtproto::test::fixtures::reviewed;
+using namespace td::mtproto::test::fixtures::reviewed_refs;
 
 string build_safari26_3(uint64 seed) {
   MockRng rng(seed);
@@ -83,14 +83,14 @@ std::unordered_map<uint16, uint16> non_grease_key_share_lengths(Slice client_hel
 
 TEST(SafariCaptureDifferential, CipherSuitesExactMatchReviewedCaptureFamily) {
   for (uint64 seed = 0; seed < 10; seed++) {
-    ASSERT_EQ(safari26_3_1_ios26_3_1_aNonGreaseCipherSuites, non_grease_cipher_suites(build_safari26_3(seed)));
+    ASSERT_EQ(safari26_3_1_ios26_3_1_a_non_grease_cipher_suites, non_grease_cipher_suites(build_safari26_3(seed)));
   }
 }
 
 TEST(SafariCaptureDifferential, ExtensionOrderExactMatchReviewedCaptureFamily) {
   for (uint64 seed = 0; seed < 10; seed++) {
     auto wire = build_safari26_3(seed);
-    ASSERT_EQ(safari26_3_1_ios26_3_1_aNonGreaseExtensionsWithoutPadding, non_grease_extension_order(wire));
+    ASSERT_EQ(safari26_3_1_ios26_3_1_a_non_grease_extensions_without_padding, non_grease_extension_order(wire));
     ASSERT_FALSE(has_extension(wire, 0x0023u));
   }
 }
@@ -98,7 +98,7 @@ TEST(SafariCaptureDifferential, ExtensionOrderExactMatchReviewedCaptureFamily) {
 TEST(SafariCaptureDifferential, SupportedGroupsAndKeySharesMatchReviewedCaptureFamily) {
   for (uint64 seed = 0; seed < 10; seed++) {
     auto wire = build_safari26_3(seed);
-    ASSERT_EQ(safari26_3_1_ios26_3_1_aNonGreaseSupportedGroups, non_grease_supported_groups(wire));
+    ASSERT_EQ(safari26_3_1_ios26_3_1_a_non_grease_supported_groups, non_grease_supported_groups(wire));
 
     auto key_share_lengths = non_grease_key_share_lengths(wire);
     ASSERT_EQ(2u, key_share_lengths.size());

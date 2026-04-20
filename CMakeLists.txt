@@ -61,6 +61,7 @@ else()
 endif()
 
 option(TD_ENABLE_LTO "Use \"ON\" to enable Link Time Optimization.")
+option(TD_ENABLE_TARGET_PCH "Use target-scoped precompiled headers when the active CMake supports them." ON)
 
 if (TD_ENABLE_LTO)
   include(CheckIPOSupported)
@@ -575,6 +576,7 @@ set(TDLIB_SOURCE_PART1
   td/telegram/MessageSendOptions.cpp
   td/telegram/MessagesInfo.cpp
   td/telegram/MessagesManager.cpp
+  td/telegram/MessagesManagerLifecycle.cpp
   td/telegram/MessageSource.cpp
   td/telegram/MessageThreadDb.cpp
   td/telegram/MessageTopic.cpp
@@ -716,6 +718,7 @@ set(TDLIB_SOURCE_PART2
   td/telegram/StoryForwardInfo.cpp
   td/telegram/StoryInteractionInfo.cpp
   td/telegram/StoryManager.cpp
+  td/telegram/StoryManagerLifecycle.cpp
   td/telegram/StoryStealthMode.cpp
   td/telegram/StoryViewer.cpp
   td/telegram/SuggestedAction.cpp
@@ -1411,6 +1414,15 @@ if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdcore tl_generate_common)
   if (TD_ENABLE_JNI)
     add_dependencies(tdcore td_generate_java_api)
+  endif()
+endif()
+
+if (TD_ENABLE_TARGET_PCH AND COMMAND target_precompile_headers)
+  if (MSVC AND TD_ENABLE_LTO)
+    target_precompile_headers(tdcore_part1 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/td/tdcore_pch.h)
+    target_precompile_headers(tdcore_part2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/td/tdcore_pch.h)
+  else()
+    target_precompile_headers(tdcore PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/td/tdcore_pch.h)
   endif()
 endif()
 

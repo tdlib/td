@@ -149,6 +149,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/WireClassifierFeatures.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/UpstreamRuleVerifiers.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/FamilyLaneMatchers.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/ReviewedClientHelloReferences.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_upstream_rule_verifiers_contract.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_upstream_rule_verifiers_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_family_lane_matcher_contract.cpp
@@ -263,6 +264,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_idle_chaff_traffic_integration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_idle_chaff_traffic_seed_matrix.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_idle_chaff_traffic_wakeup_edges.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_scheduler_budget_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_chaff_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_chaff_nonfinite_fail_closed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_decorator_record_size_adversarial.cpp
@@ -309,6 +311,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_connection_count_hardening.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_connection_count_overflow_edges.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_alpn_connection_coherence.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_packet_buffer_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_shaper_ring_buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_shaper_ring_buffer_stress.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stream_transport_activation_fail_closed.cpp
@@ -384,6 +387,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_nightly_cross_family_distance.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_record_size_baselines.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_builder_length_agreement_security.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_handshake_frame_domain_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_cross_connection_fingerprint_adversarial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_hmac_timing_security.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_padding_boundary_edge_cases.cpp
@@ -499,6 +503,9 @@ if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
   # the build-time working directory.
   target_compile_definitions(run_all_tests PRIVATE
     "TELEMT_TEST_REPO_ROOT=\"${CMAKE_SOURCE_DIR}\"")
+  if (TD_ENABLE_TARGET_PCH AND COMMAND target_precompile_headers)
+    target_precompile_headers(run_all_tests PRIVATE ${CMAKE_SOURCE_DIR}/test/test_pch.h)
+  endif()
   # `test/stealth/test_source_layout_contract.cpp` verifies the source-level
   # layout of the retained PEM blobs by re-parsing them with OpenSSL's
   # `PEM_read_bio_RSA_PUBKEY` / `d2i_RSAPublicKey`. The public transitive

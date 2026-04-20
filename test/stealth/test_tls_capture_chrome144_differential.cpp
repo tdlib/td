@@ -28,7 +28,7 @@
 
 #include "test/stealth/FingerprintFixtures.h"
 #include "test/stealth/MockRng.h"
-#include "test/stealth/ReviewedClientHelloFixtures.h"
+#include "test/stealth/ReviewedClientHelloReferences.h"
 #include "test/stealth/TestHelpers.h"
 
 #include <algorithm>
@@ -40,7 +40,7 @@ using namespace td;
 using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
-using namespace td::mtproto::test::fixtures::reviewed;
+using namespace td::mtproto::test::fixtures::reviewed_refs;
 
 std::unordered_set<uint16> as_extension_set(const vector<uint16> &values) {
   return std::unordered_set<uint16>(values.begin(), values.end());
@@ -57,9 +57,16 @@ std::unordered_set<uint16> as_extension_set_without_type(const vector<uint16> &v
 }
 
 // Extension type set for ECH-enabled Chrome hello (excludes GREASE and padding 0x0015).
-const auto kChromeEchExtensionSet = as_extension_set(kChromeLinuxDesktopReferenceNonGreaseExtensionsWithoutPadding);
-const auto kChromeNoEchExtensionSet =
-    as_extension_set_without_type(kChromeLinuxDesktopReferenceNonGreaseExtensionsWithoutPadding, kEchExtensionType);
+const std::unordered_set<uint16> &chrome_ech_extension_set() {
+  static const auto value = as_extension_set(chrome_linux_desktop_ref_non_grease_extensions_without_padding);
+  return value;
+}
+
+const std::unordered_set<uint16> &chrome_no_ech_extension_set() {
+  static const auto value =
+      as_extension_set_without_type(chrome_linux_desktop_ref_non_grease_extensions_without_padding, kEchExtensionType);
+  return value;
+}
 
 void assert_same_extension_set(const std::unordered_set<uint16> &expected, const std::unordered_set<uint16> &observed) {
   ASSERT_EQ(expected.size(), observed.size());
@@ -112,7 +119,7 @@ TEST(ChromeCaptureDifferential, CipherSuiteNonGreaseExactOrderMatchesCapture) {
       if (!is_grease_value(c))
         non_grease.push_back(c);
     }
-    ASSERT_EQ(kChromeLinuxDesktopReferenceNonGreaseCipherSuites, non_grease);
+    ASSERT_EQ(chrome_linux_desktop_ref_non_grease_cipher_suites, non_grease);
   }
 }
 
@@ -178,7 +185,7 @@ TEST(ChromeCaptureDifferential, SupportedGroupsNonGreaseExactOrderMatchesCapture
       if (!is_grease_value(g))
         non_grease.push_back(g);
     }
-    ASSERT_EQ(kChromeLinuxDesktopReferenceNonGreaseSupportedGroups, non_grease);
+    ASSERT_EQ(chrome_linux_desktop_ref_non_grease_supported_groups, non_grease);
   }
 }
 
@@ -291,7 +298,7 @@ TEST(ChromeCaptureDifferential, EchEnabledExtensionSetMatchesCapture) {
         observed.insert(ext.type);
       }
     }
-    assert_same_extension_set(kChromeEchExtensionSet, observed);
+    assert_same_extension_set(chrome_ech_extension_set(), observed);
     ASSERT_EQ(2u, grease_count);
   }
 }
@@ -310,7 +317,7 @@ TEST(ChromeCaptureDifferential, EchDisabledExtensionSetMatchesCapture) {
         observed.insert(ext.type);
       }
     }
-    assert_same_extension_set(kChromeNoEchExtensionSet, observed);
+    assert_same_extension_set(chrome_no_ech_extension_set(), observed);
     ASSERT_EQ(2u, grease_count);
   }
 }
@@ -325,7 +332,7 @@ TEST(ChromeCaptureDifferential, TDesktopCaptureCompatibleWithChrome133) {
     if (!is_grease_value(ext.type) && ext.type != 0x0015u)
       observed.insert(ext.type);
   }
-  for (auto t : kChromeEchExtensionSet) {
+  for (auto t : chrome_ech_extension_set()) {
     ASSERT_TRUE(observed.count(t) != 0);
   }
 }
@@ -501,7 +508,7 @@ TEST(ChromeCaptureDifferential, Chrome120CipherSuitesMatchChrome133) {
       if (!is_grease_value(c))
         ng120.push_back(c);
     }
-    ASSERT_EQ(kChromeLinuxDesktopReferenceNonGreaseCipherSuites, ng120);
+    ASSERT_EQ(chrome_linux_desktop_ref_non_grease_cipher_suites, ng120);
   }
 }
 

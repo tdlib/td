@@ -106,6 +106,69 @@ TEST(ActiveConnectionLifecycleStateMachine, DestinationBudgetGateDefersOverlapWh
   assert_reason_eq(ActiveConnectionRotationExemptionReason::DestinationBudget, machine.rotation_exemption_reason());
 }
 
+TEST(ActiveConnectionLifecycleStateMachine, AntiChurnGateDefersRotationUntilWindowReopens) {
+  auto policy = default_policy();
+  ActiveConnectionLifecycleStateMachine machine(ActiveConnectionLifecycleRole::Main, 1000, 2000);
+
+  machine.mark_eligible();
+  auto blocked = machine.poll(policy, ActiveConnectionLifecycleInput{2000, false, false, false, false, true, false});
+
+  ASSERT_FALSE(blocked.prepare_successor);
+  ASSERT_FALSE(blocked.route_new_queries_to_successor);
+  ASSERT_FALSE(blocked.retire_current);
+  ASSERT_FALSE(blocked.over_age_degraded);
+  assert_state_eq(ActiveConnectionLifecycleState::RotationPending, machine.state());
+  ASSERT_FALSE(machine.has_successor());
+  assert_reason_eq(ActiveConnectionRotationExemptionReason::AntiChurn, machine.rotation_exemption_reason());
+
+  auto resumed = machine.poll(policy, ActiveConnectionLifecycleInput{2101, false, false, false, false, true, true});
+  ASSERT_TRUE(resumed.prepare_successor);
+  ASSERT_TRUE(machine.has_successor());
+  assert_reason_eq(ActiveConnectionRotationExemptionReason::None, machine.rotation_exemption_reason());
+}
+
+TEST(ActiveConnectionLifecycleStateMachine, AuthHandshakeGateDefersRotationUntilHandshakeCompletes) {
+  auto policy = default_policy();
+  ActiveConnectionLifecycleStateMachine machine(ActiveConnectionLifecycleRole::Main, 1000, 2000);
+
+  machine.mark_eligible();
+  auto blocked = machine.poll(policy, ActiveConnectionLifecycleInput{2000, false, true, false, false, true, true});
+
+  ASSERT_FALSE(blocked.prepare_successor);
+  ASSERT_FALSE(blocked.route_new_queries_to_successor);
+  ASSERT_FALSE(blocked.retire_current);
+  ASSERT_FALSE(blocked.over_age_degraded);
+  assert_state_eq(ActiveConnectionLifecycleState::RotationPending, machine.state());
+  ASSERT_FALSE(machine.has_successor());
+  assert_reason_eq(ActiveConnectionRotationExemptionReason::AuthHandshake, machine.rotation_exemption_reason());
+
+  auto resumed = machine.poll(policy, ActiveConnectionLifecycleInput{2100, false, false, false, false, true, true});
+  ASSERT_TRUE(resumed.prepare_successor);
+  ASSERT_TRUE(machine.has_successor());
+  assert_reason_eq(ActiveConnectionRotationExemptionReason::None, machine.rotation_exemption_reason());
+}
+
+TEST(ActiveConnectionLifecycleStateMachine, UnsafeHandoverGateDefersRotationUntilSafePoint) {
+  auto policy = default_policy();
+  ActiveConnectionLifecycleStateMachine machine(ActiveConnectionLifecycleRole::Main, 1000, 2000);
+
+  machine.mark_eligible();
+  auto blocked = machine.poll(policy, ActiveConnectionLifecycleInput{2000, false, false, false, true, true, true});
+
+  ASSERT_FALSE(blocked.prepare_successor);
+  ASSERT_FALSE(blocked.route_new_queries_to_successor);
+  ASSERT_FALSE(blocked.retire_current);
+  ASSERT_FALSE(blocked.over_age_degraded);
+  assert_state_eq(ActiveConnectionLifecycleState::RotationPending, machine.state());
+  ASSERT_FALSE(machine.has_successor());
+  assert_reason_eq(ActiveConnectionRotationExemptionReason::UnsafeHandoverPoint, machine.rotation_exemption_reason());
+
+  auto resumed = machine.poll(policy, ActiveConnectionLifecycleInput{2100, false, false, false, false, true, true});
+  ASSERT_TRUE(resumed.prepare_successor);
+  ASSERT_TRUE(machine.has_successor());
+  assert_reason_eq(ActiveConnectionRotationExemptionReason::None, machine.rotation_exemption_reason());
+}
+
 TEST(ActiveConnectionLifecycleStateMachine, HardCeilingWithoutSuccessorRaisesOverAgeSignal) {
   auto policy = default_policy();
   ActiveConnectionLifecycleStateMachine machine(ActiveConnectionLifecycleRole::Main, 1000, 2000);
@@ -119,6 +182,58 @@ TEST(ActiveConnectionLifecycleStateMachine, HardCeilingWithoutSuccessorRaisesOve
   ASSERT_TRUE(decision.over_age_degraded);
   assert_state_eq(ActiveConnectionLifecycleState::RotationPending, machine.state());
   ASSERT_TRUE(machine.is_over_age_degraded());
+}
+
+TEST(ActiveConnectionLifecycleStateMachine, HardCeilingStillSignalsOverAgeWhenAntiChurnBlocksRotation) {
+  auto policy = default_policy();
+  ActiveConnectionLifecycleStateMachine machine(ActiveConnectionLifecycleRole::Main, 1000, 2000);
+
+  machine.mark_eligible();
+  auto decision = machine.poll(policy, ActiveConnectionLifecycleInput{6100, true, false, false, false, true, false});
+
+  ASSERT_FALSE(decision.prepare_successor);
+  ASSERT_FALSE(decision.route_new_queries_to_successor);
+  ASSERT_FALSE(decision.retire_current);
+  ASSERT_TRUE(decision.over_age_degraded);
+  assert_state_eq(ActiveConnectionLifecycleState::RotationPending, machine.state());
+  assert_reason_eq(ActiveConnectionRotationExemptionReason::AntiChurn, machine.rotation_exemption_reason());
+  ASSERT_TRUE(machine.is_over_age_degraded());
+}
+
+TEST(ActiveConnectionLifecycleStateMachine, SuppressedRotationDoesNotSignalOverAgeBeforeHardCeiling) {
+  auto policy = default_policy();
+  ActiveConnectionLifecycleStateMachine machine(ActiveConnectionLifecycleRole::Main, 1000, 2000);
+
+  machine.mark_eligible();
+  auto decision = machine.poll(policy, ActiveConnectionLifecycleInput{4500, true, false, false, false, true, false});
+
+  ASSERT_FALSE(decision.prepare_successor);
+  ASSERT_FALSE(decision.route_new_queries_to_successor);
+  ASSERT_FALSE(decision.retire_current);
+  ASSERT_FALSE(decision.over_age_degraded);
+  ASSERT_FALSE(machine.is_over_age_degraded());
+  assert_state_eq(ActiveConnectionLifecycleState::RotationPending, machine.state());
+  assert_reason_eq(ActiveConnectionRotationExemptionReason::AntiChurn, machine.rotation_exemption_reason());
+}
+
+TEST(ActiveConnectionLifecycleStateMachine, SuccessorReadyClearsPreviousOverAgeDegradedState) {
+  auto policy = default_policy();
+  ActiveConnectionLifecycleStateMachine machine(ActiveConnectionLifecycleRole::Main, 1000, 2000);
+
+  machine.mark_eligible();
+  auto blocked = machine.poll(policy, ActiveConnectionLifecycleInput{6100, true, false, false, false, false, false});
+  ASSERT_TRUE(blocked.over_age_degraded);
+  ASSERT_TRUE(machine.is_over_age_degraded());
+
+  auto resumed = machine.poll(policy, ActiveConnectionLifecycleInput{6200, false, false, false, false, true, true});
+  ASSERT_TRUE(resumed.prepare_successor);
+  ASSERT_TRUE(machine.has_successor());
+  ASSERT_TRUE(machine.mark_successor_ready(6250));
+
+  auto draining = machine.poll(policy, ActiveConnectionLifecycleInput{6250, true, false, false, false, true, true});
+  ASSERT_TRUE(draining.route_new_queries_to_successor);
+  ASSERT_FALSE(machine.is_over_age_degraded());
+  assert_state_eq(ActiveConnectionLifecycleState::Draining, machine.state());
 }
 
 TEST(ActiveConnectionLifecycleStateMachine, SuccessorOverlapNeverCreatesMoreThanOneTemporaryExtraSocketPerRole) {
@@ -152,6 +267,25 @@ TEST(ActiveConnectionLifecycleStateMachine, DrainingRetiresWhenOverlapBudgetExpi
 
   ASSERT_TRUE(decision.retire_current);
   assert_state_eq(ActiveConnectionLifecycleState::Retired, machine.state());
+}
+
+TEST(ActiveConnectionLifecycleStateMachine, DrainingDoesNotRetireBeforeOverlapExpiryWhenQueriesInFlight) {
+  auto policy = default_policy();
+  ActiveConnectionLifecycleStateMachine machine(ActiveConnectionLifecycleRole::Main, 1000, 2000);
+
+  machine.mark_eligible();
+  ASSERT_TRUE(machine.poll(policy, ActiveConnectionLifecycleInput{2000, false, false, false, false, true, true})
+                  .prepare_successor);
+  machine.mark_successor_ready(2100);
+  ASSERT_TRUE(machine.poll(policy, ActiveConnectionLifecycleInput{2100, true, false, false, false, true, true})
+                  .route_new_queries_to_successor);
+
+  auto decision = machine.poll(policy, ActiveConnectionLifecycleInput{2400, true, false, false, false, true, true});
+
+  ASSERT_FALSE(decision.prepare_successor);
+  ASSERT_FALSE(decision.route_new_queries_to_successor);
+  ASSERT_FALSE(decision.retire_current);
+  assert_state_eq(ActiveConnectionLifecycleState::Draining, machine.state());
 }
 
 TEST(ActiveConnectionLifecycleStateMachine, FailedSuccessorPreparationRespectsBackoffBeforeRetrying) {

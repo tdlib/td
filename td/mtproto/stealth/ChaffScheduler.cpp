@@ -7,6 +7,7 @@
 #include "td/mtproto/stealth/ChaffScheduler.h"
 
 #include <algorithm>
+#include <limits>
 
 namespace td {
 namespace mtproto {
@@ -91,16 +92,29 @@ void ChaffScheduler::prune_budget_window(double now) {
 double ChaffScheduler::budget_resume_at(double now) const {
   uint64 bytes = 0;
   double earliest_resume = 0.0;
+  const auto max_uint64 = std::numeric_limits<uint64>::max();
+  const auto byte_limit = static_cast<uint64>(config_.chaff_policy.max_bytes_per_minute);
   for (const auto &sample : budget_window_) {
     if (sample.at + kBudgetWindowSeconds <= now) {
       continue;
     }
-    bytes += sample.bytes;
+    if (sample.bytes >= max_uint64 - bytes) {
+      bytes = max_uint64;
+    } else {
+      bytes += static_cast<uint64>(sample.bytes);
+    }
     if (earliest_resume == 0.0) {
       earliest_resume = sample.at + kBudgetWindowSeconds;
     }
   }
-  if (bytes + static_cast<uint64>(pending_target_bytes_) <= config_.chaff_policy.max_bytes_per_minute) {
+  if (pending_target_bytes_ <= 0) {
+    return 0.0;
+  }
+  const auto pending_bytes = static_cast<uint64>(pending_target_bytes_);
+  if (pending_bytes > byte_limit) {
+    return earliest_resume;
+  }
+  if (bytes <= byte_limit && pending_bytes <= byte_limit - bytes) {
     return 0.0;
   }
   return earliest_resume;

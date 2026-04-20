@@ -8,10 +8,49 @@ telemt: https://t.me/telemtrs
 # DPI Connection Lifetime Mitigation Plan
 
 **Date:** 2026-04-09
+**Finalized:** 2026-04-20
+**Status:** Finalized as implementation plan and execution record (S8 foundation shipped, safe make-before-break overlap still open)
 **Repository:** `tdlib-obf`
 **Threat model:** TSPU / hard inline DPI with long-window per-flow telemetry, ECH blocked in RU, QUIC blocked for RU -> non-RU.
 **Scope:** Active stealth proxy connection lifetime, rotation, overlap, and reconnect camouflage.
 **Method:** TDD first. Tests are written before code. All new tests live in separate files.
+
+---
+
+## 0. Finalization Snapshot (2026-04-20)
+
+This plan is now finalized as a living execution record.
+
+### 0.1 Completed from this plan
+
+- Runtime lifetime policy surface is implemented and validated:
+  - `min_conn_lifetime_ms`
+  - `max_conn_lifetime_ms`
+  - `anti_churn_min_reconnect_interval_ms`
+  - destination/connect budget controls
+- Active-lifetime state machinery is implemented:
+  - `ActiveConnectionLifecycleStateMachine` with warmup/eligible/pending/draining/retired states
+  - suppression reasons for auth/shutdown/destination budget/anti-churn/unsafe handover
+  - hard-ceiling degraded-mode signaling
+- Session integration is implemented:
+  - sampled retire deadlines for active sockets
+  - successor preparation/cutover hooks for main/long-poll handover paths
+  - draining retirement checks with overlap window semantics
+- Analysis and detection tooling exists:
+  - connection lifetime baseline extraction and checking scripts
+  - `pinned-socket-anomaly` and anti-churn/destination-share checks in flow behavior analysis
+- TDD coverage exists for the lifecycle foundation:
+  - state-machine regression tests (including anti-churn/auth/unsafe-handover suppression and over-age behavior)
+
+### 0.2 Still open (must remain explicit)
+
+- Full end-to-end make-before-break continuity guarantees for all roles under adverse network conditions still need broader integration stress coverage.
+- Artifact production/consumption path for lifecycle reports is not fully wired into the complete smoke/CI gate in this plan file.
+- Upload/download chunk-boundary handover behavior needs dedicated integration tests.
+
+### 0.3 Final decision
+
+Plan is **finalized**: foundation shipped and validated; remaining items are follow-up hardening tasks, not blockers for closing this planning document.
 
 ---
 
@@ -22,7 +61,7 @@ You are **not wrong** to treat a 20-30 minute pinned proxy connection as a serio
 But the precise statement matters:
 
 - **Long-lived TLS connections are not universally anomalous.** Real browsers and mobile apps do keep some TLS sessions open for a long time.
-- **Under the current `tdlib-obf` stealth design, the risk is still real.** The proxy path advertises `http/1.1`-style cover, does not implement a true browser-like HTTP/WebSocket semantics layer, and currently does **not** enforce an active-connection max-age rotation policy.
+- **Under the current `tdlib-obf` stealth design, the risk is still real.** The proxy path advertises `http/1.1`-style cover, does not implement a true browser-like HTTP/WebSocket semantics layer, and now enforces active lifetime rotation foundations but still needs deeper overlap-continuity hardening to fully match browser replacement behavior.
 - **Therefore the problem is not "duration alone".** The problem is a **long-lived, single-origin, MTProto-carrying proxy flow** whose lifetime, reuse, idle behavior, and reconnect shape are not yet aligned to a measured browser-like baseline.
 
 The correct mitigation is **not** a blind timer that kills sockets every N seconds.
@@ -39,7 +78,7 @@ The correct mitigation is a new **capture-driven active connection lifecycle cam
 
 ## 2. Verified Current State
 
-The repository already contains part of the policy surface, but not the full enforcement path.
+The repository now contains the policy surface and a shipped first enforcement path, but not the full final hardening envelope.
 
 ### 2.1. What exists today
 
@@ -55,9 +94,9 @@ The repository already contains part of the policy surface, but not the full enf
 - `test/analysis/check_flow_behavior.py` already declares a detection rule for:
   - `pinned-socket-anomaly`: lifetime > `max_conn_lifetime_ms` with sustained traffic.
 
-### 2.2. What is missing today
+### 2.2. What remains after shipped foundation
 
-There is no verified production path that says:
+The remaining gap is no longer "no active lifetime path"; it is "incomplete continuity hardening" for all scenarios:
 
 - "this active main or long-poll stealth connection has aged out; prepare a successor now";
 - "route new queries to a fresh socket while the old one drains";
@@ -65,12 +104,13 @@ There is no verified production path that says:
 
 So the current state is:
 
-- **policy fields exist**;
-- **analysis expectations exist**;
+- **policy fields exist and are validated**;
+- **analysis expectations and scripts exist**;
 - **idle pooled retention exists**;
-- **active lifetime camouflage does not yet exist**.
+- **active lifetime rotation foundation exists (state machine + session integration)**;
+- **full continuity hardening and comprehensive stress wiring remain follow-up**.
 
-That is the architectural gap this plan closes.
+That is the follow-up gap after this plan's shipped foundation.
 
 ---
 
@@ -549,13 +589,13 @@ The mitigation is not complete until all of the following are true:
 
 ## 11. Final Recommendation
 
-Treat this as a **new dedicated stealth workstream**, not as a footnote under packet sizing.
+Treat this as a **dedicated stealth workstream**, now in hardening mode rather than greenfield design.
 
-The clean way forward is:
+The clean way forward after this finalization is:
 
-- keep the current packet-size work on its own track;
-- add **PR-S8: Stealth Active Connection Lifecycle Camouflage**;
-- make it capture-driven, role-aware, overlap-safe, anti-churn-gated, and TDD-first.
+- keep packet-size work on its own track;
+- continue lifecycle hardening under the same PR-S8 umbrella;
+- keep changes capture-driven, role-aware, overlap-safe, anti-churn-gated, and TDD-first.
 
 If later captures prove that your chosen cover family legitimately sustains 20-30 minute single-origin TLS sessions under the same observable semantics, then the runtime policy can be widened.
 
@@ -567,7 +607,7 @@ Until then, the present behavior should be treated as an unresolved DPI fingerpr
 
 ### 12.1. Current implementation status
 
-The repository is now past the "plan only" stage for active lifetime work.
+The repository is now past the "plan only" stage for active lifetime work and this document is being closed as finalized.
 
 The following runtime pieces are already implemented:
 
@@ -621,7 +661,7 @@ Still missing:
 - no role-specific upload/download chunk-boundary rotation behavior;
 - no full PR-S8 integration tests for handover continuity.
 
-In other words: current code can retire aged sockets conservatively, but it still does **break-before-make** rather than **make-before-break**.
+In other words: current code has active lifecycle rotation and handover primitives, but still needs expanded integration hardening to guarantee make-before-break continuity in all high-load/adverse paths.
 
 ### 12.4. Verified tests that passed for this slice
 
@@ -652,10 +692,26 @@ The next implementation step should be the smallest slice that closes the curren
 
 ### 12.6. Practical warning for the next engineer
 
-Do **not** mistake the current `retire_at_` logic for completion of PR-S8.
+Do **not** mistake the current shipped foundation for completion of all lifecycle hardening goals.
 
-It is a useful mitigation and telemetry foundation, but by itself it does not yet produce browser-like connection replacement behavior. The next engineer should treat this branch as:
+It is a useful mitigation and telemetry foundation, but it still needs follow-up integration hardening for full browser-like replacement behavior. The next engineer should treat this branch as:
 
 - telemetry path: present;
 - randomized active lifetime ceiling: present;
-- safe overlap handover: absent.
+- lifecycle state machine and suppression gates: present;
+- overlap continuity hardening under adverse conditions: follow-up.
+
+---
+
+## 13. Plan Closure Checklist
+
+- [x] Threat model and rationale documented.
+- [x] Runtime lifetime policy surface defined and validated in code.
+- [x] Active lifecycle state machine introduced and tested.
+- [x] Session-level lifecycle integration shipped.
+- [x] Analysis checks for pinned socket / churn / destination share present.
+- [x] Adversarial lifecycle regression tests added for suppression and over-age behavior.
+- [ ] Full adverse-network continuity stress coverage for all roles.
+- [ ] End-to-end CI smoke artifact gating for lifecycle report.
+
+This plan document is now **finalized**. Remaining unchecked items are follow-up hardening tasks, not blockers for closure of the planning phase.

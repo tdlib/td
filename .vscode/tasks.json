@@ -227,6 +227,44 @@
             "problemMatcher": []
         },
         {
+            "label": "ctest fast lane (14 cores)",
+            "type": "shell",
+            "command": "ctest",
+            "args": [
+                "--test-dir",
+                "build",
+                "--output-on-failure",
+                "-j",
+                "14",
+                "-E",
+                "^(Test_Log_Bench|Test_ConcurrentHashMap_Benchmark|Test_DB_sqlite_phase3_statement_blob_roundtrip_light_fuzz|Test_CryptoPQ_generated_slow|Test_Http_gzip_bomb|Test_SslCtxLightFuzzExtended_.*)$"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "ctest heavy hotspots (14 cores)",
+            "type": "shell",
+            "command": "ctest",
+            "args": [
+                "--test-dir",
+                "build",
+                "--output-on-failure",
+                "-j",
+                "14",
+                "-R",
+                "^(Test_Log_Bench|Test_ConcurrentHashMap_Benchmark|Test_DB_sqlite_phase3_statement_blob_roundtrip_light_fuzz|Test_CryptoPQ_generated_slow|Test_Http_gzip_bomb|Test_SslCtxLightFuzzExtended_.*)$"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "cmake build tests fast"
+            ],
+            "problemMatcher": []
+        },
+        {
             "label": "run stealth tests",
             "type": "shell",
             "command": "./build/test/run_all_tests",

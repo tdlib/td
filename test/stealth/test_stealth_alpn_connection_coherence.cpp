@@ -4,7 +4,7 @@
 // telemt: https://t.me/telemtrs
 //
 
-#include "test/stealth/ReviewedClientHelloFixtures.h"
+#include "test/stealth/ReviewedClientHelloReferences.h"
 
 #include "td/telegram/net/StealthConnectionCountPolicy.h"
 
@@ -13,8 +13,8 @@
 namespace {
 
 using td::make_connection_count_plan;
-using td::mtproto::test::fixtures::reviewed::chrome146_177_android16AlpnProtocols;
-using td::mtproto::test::fixtures::reviewed::chrome146_177_linux_desktopAlpnProtocols;
+using td::mtproto::test::fixtures::reviewed_refs::chrome146_177_android16_alpn_protocols;
+using td::mtproto::test::fixtures::reviewed_refs::chrome146_177_linux_desktop_alpn_protocols;
 using td::Proxy;
 
 td::mtproto::ProxySecret make_tls_proxy_secret() {
@@ -26,8 +26,8 @@ td::mtproto::ProxySecret make_tls_proxy_secret() {
 }
 
 TEST(StealthAlpnConnectionCoherence, MobileProxyFixtureRemainsCoherentWithHttp11SizedCap) {
-  ASSERT_EQ(1u, chrome146_177_android16AlpnProtocols.size());
-  ASSERT_EQ("http/1.1", chrome146_177_android16AlpnProtocols[0]);
+  ASSERT_EQ(1u, chrome146_177_android16_alpn_protocols.size());
+  ASSERT_EQ("http/1.1", chrome146_177_android16_alpn_protocols[0]);
 
   auto plan = make_connection_count_plan(Proxy::mtproto("proxy.example", 443, make_tls_proxy_secret()), 4, 5, true);
 
@@ -35,9 +35,9 @@ TEST(StealthAlpnConnectionCoherence, MobileProxyFixtureRemainsCoherentWithHttp11
 }
 
 TEST(StealthAlpnConnectionCoherence, DesktopProxyFixtureRemainsCoherentWithFallbackCap) {
-  ASSERT_EQ(2u, chrome146_177_linux_desktopAlpnProtocols.size());
-  ASSERT_EQ("h2", chrome146_177_linux_desktopAlpnProtocols[0]);
-  ASSERT_EQ("http/1.1", chrome146_177_linux_desktopAlpnProtocols[1]);
+  ASSERT_EQ(2u, chrome146_177_linux_desktop_alpn_protocols.size());
+  ASSERT_EQ("h2", chrome146_177_linux_desktop_alpn_protocols[0]);
+  ASSERT_EQ("http/1.1", chrome146_177_linux_desktop_alpn_protocols[1]);
 
   auto plan = make_connection_count_plan(Proxy::mtproto("proxy.example", 443, make_tls_proxy_secret()), 4, 5, true);
 
@@ -45,7 +45,7 @@ TEST(StealthAlpnConnectionCoherence, DesktopProxyFixtureRemainsCoherentWithFallb
 }
 
 TEST(StealthAlpnConnectionCoherence, LegacyDesktopPlanCanStillExceedBrowserNormWithoutStealthCap) {
-  ASSERT_EQ(2u, chrome146_177_linux_desktopAlpnProtocols.size());
+  ASSERT_EQ(2u, chrome146_177_linux_desktop_alpn_protocols.size());
 
   auto plan = make_connection_count_plan(Proxy(), 1, 5, true);
 

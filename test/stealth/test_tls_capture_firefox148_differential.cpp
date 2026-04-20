@@ -34,7 +34,7 @@
 
 #include "test/stealth/FingerprintFixtures.h"
 #include "test/stealth/MockRng.h"
-#include "test/stealth/ReviewedClientHelloFixtures.h"
+#include "test/stealth/ReviewedClientHelloReferences.h"
 #include "test/stealth/TestHelpers.h"
 
 #include <algorithm>
@@ -47,7 +47,7 @@ using namespace td;
 using namespace td::mtproto::stealth;
 using namespace td::mtproto::test;
 using namespace td::mtproto::test::fixtures;
-using namespace td::mtproto::test::fixtures::reviewed;
+using namespace td::mtproto::test::fixtures::reviewed_refs;
 
 string build_ff148_ech(uint64 seed) {
   MockRng rng(seed);
@@ -85,7 +85,7 @@ TEST(FirefoxCaptureDifferential, CipherSuiteCountIsExactly17) {
 TEST(FirefoxCaptureDifferential, CipherSuiteExactOrderMatchesCapture) {
   // Both Firefox 148 and 149 captured the same cipher suite order.
   for (uint64 seed = 0; seed < 10; seed++) {
-    ASSERT_EQ(kFirefoxLinuxDesktopReferenceCipherSuites, extract_cipher_suites(build_ff148_ech(seed)));
+    ASSERT_EQ(firefox_linux_desktop_ref_cipher_suites, extract_cipher_suites(build_ff148_ech(seed)));
   }
 }
 
@@ -130,7 +130,7 @@ TEST(FirefoxCaptureDifferential, ExtensionOrderExactlyMatchesCapture) {
     for (const auto &ext : parsed.ok().extensions) {
       observed.push_back(ext.type);
     }
-    ASSERT_EQ(kFirefoxLinuxDesktopReferenceExtensionOrder, observed);
+    ASSERT_EQ(firefox_linux_desktop_ref_extension_order, observed);
   }
 }
 
@@ -258,7 +258,7 @@ TEST(FirefoxCaptureDifferential, SupportedGroupsExactMatchCapture) {
   // Firefox 148/149: {11EC, 001D, 0017, 0018, 0019, 0100, 0101}
   for (uint64 seed = 0; seed < 10; seed++) {
     auto groups = extract_supported_groups(build_ff148_ech(seed));
-    ASSERT_EQ(kFirefoxLinuxDesktopReferenceSupportedGroups, groups);
+    ASSERT_EQ(firefox_linux_desktop_ref_supported_groups, groups);
   }
 }
 
@@ -521,7 +521,7 @@ TEST(FirefoxCaptureDifferential, EchDisabledExtensionOrderPreservedExceptEch) {
     ASSERT_TRUE(parsed.is_ok());
 
     std::vector<uint16> expected_no_ech;
-    for (auto t : kFirefoxLinuxDesktopReferenceExtensionOrder) {
+    for (auto t : firefox_linux_desktop_ref_extension_order) {
       if (t != 0xFE0Du) {
         expected_no_ech.push_back(t);
       }

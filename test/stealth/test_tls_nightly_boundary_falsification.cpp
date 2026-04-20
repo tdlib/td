@@ -11,7 +11,6 @@
 #include "test/stealth/CorpusStatHelpers.h"
 #include "test/stealth/FingerprintFixtures.h"
 #include "test/stealth/MockRng.h"
-#include "test/stealth/ReviewedClientHelloFixtures.h"
 #include "test/stealth/TlsHelloParsers.h"
 
 #include "td/mtproto/stealth/TlsHelloBuilder.h"
