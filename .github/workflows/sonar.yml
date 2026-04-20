@@ -27,23 +27,20 @@ jobs:
 
       - name: Configure and build TDLib
         run: |
-          mkdir -p build
-          cd build
-
-          build-wrapper-linux-x86-64 --out-dir bw-output \
           env CXXFLAGS="-stdlib=libc++" \
               CC=/usr/bin/clang-18 \
               CXX=/usr/bin/clang++-18 \
-              cmake -DCMAKE_BUILD_TYPE=Release \
-                    -DCMAKE_INSTALL_PREFIX:PATH=../tdlib ..
+              cmake -S . -B build \
+                    -DCMAKE_BUILD_TYPE=Release \
+                    -DCMAKE_INSTALL_PREFIX:PATH=./tdlib
 
-          build-wrapper-linux-x86-64 --out-dir bw-output \
-          cmake --build . --target install
+          build-wrapper-linux-x86-64 --out-dir build/bw-output \
+            cmake --build build --target install --parallel 4
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.cfamily.build-wrapper-output=build/bw-output
+            -Dsonar.cfamily.compile-commands=build/bw-output/compile_commands.json
