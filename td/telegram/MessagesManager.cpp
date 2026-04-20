@@ -20776,8 +20776,12 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
             (d->notification_info != nullptr &&
              message_id <= d->notification_info->max_push_notification_message_id_)) {
           // allow to reply to yet unreceived server message in the same chat
-          return MessageInputReplyTo{message_id, DialogId(), MessageQuote{td_, std::move(reply_to_message->quote_)},
-                                     checklist_task_id, reply_to_message->poll_option_id_};
+          return MessageInputReplyTo{message_id,
+                                     DialogId(),
+                                     MessageQuote{td_, std::move(reply_to_message->quote_)},
+                                     checklist_task_id,
+                                     reply_to_message->poll_option_id_,
+                                     "create_message_input_reply_to 4"};
         }
         if (!for_draft && implicit_reply_to_message_id.is_valid()) {
           return MessageInputReplyTo::regular(implicit_reply_to_message_id);
@@ -20815,8 +20819,12 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
       if (!reply_to_message->poll_option_id_.empty() && m->content->get_type() != MessageContentType::Poll) {
         reply_to_message->poll_option_id_.clear();
       }
-      return MessageInputReplyTo{m->message_id, DialogId(), MessageQuote{td_, std::move(reply_to_message->quote_)},
-                                 checklist_task_id, reply_to_message->poll_option_id_};
+      return MessageInputReplyTo{m->message_id,
+                                 DialogId(),
+                                 MessageQuote{td_, std::move(reply_to_message->quote_)},
+                                 checklist_task_id,
+                                 reply_to_message->poll_option_id_,
+                                 "create_message_input_reply_to 5"};
     }
     case td_api::inputMessageReplyToExternalMessage::ID: {
       auto reply_to_message = td_api::move_object_as<td_api::inputMessageReplyToExternalMessage>(reply_to);
@@ -20843,8 +20851,12 @@ MessageInputReplyTo MessagesManager::create_message_input_reply_to(
           (m != nullptr && m->content->get_type() != MessageContentType::Poll)) {
         reply_to_message->poll_option_id_.clear();
       }
-      return MessageInputReplyTo{m->message_id, reply_dialog_id, MessageQuote{td_, std::move(reply_to_message->quote_)},
-                                 checklist_task_id, reply_to_message->poll_option_id_};
+      return MessageInputReplyTo{m->message_id,
+                                 reply_dialog_id,
+                                 MessageQuote{td_, std::move(reply_to_message->quote_)},
+                                 checklist_task_id,
+                                 reply_to_message->poll_option_id_,
+                                 "create_message_input_reply_to 6"};
     }
     default:
       UNREACHABLE();
@@ -24411,7 +24423,7 @@ Result<td_api::object_ptr<td_api::messages>> MessagesManager::forward_messages(
       if (it != forwarded_message_id_to_new_message_id.end()) {
         // keep replies in forwarded messages
         input_reply_to = forwarded_message->replied_message_info.get_message_input_reply_to();
-        input_reply_to.set_message_id(it->second);
+        input_reply_to.set_message_id(it->second, "forward_messages");
       }
     }
     if (add_offer) {
@@ -27210,7 +27222,7 @@ void MessagesManager::update_reply_to_message_id(DialogId dialog_id, MessageId o
                 old_message_full_id)
           << old_message_full_id << ' ' << new_message_id << ' ' << replied_m->replied_message_info << ' '
           << *input_reply_to;
-      update_message_reply_to_message_id(reply_d, replied_m, new_message_id, true);
+      update_message_reply_to_message_id(reply_d, replied_m, new_message_id, true, source);
     } else {
       set_message_reply(reply_d, replied_m, MessageInputReplyTo(), true);
     }
@@ -35196,7 +35208,7 @@ void MessagesManager::set_message_reply(const Dialog *d, Message *m, MessageInpu
 }
 
 void MessagesManager::update_message_reply_to_message_id(const Dialog *d, Message *m, MessageId reply_to_message_id,
-                                                         bool is_message_in_dialog) {
+                                                         bool is_message_in_dialog, const char *source) {
   LOG(INFO) << "Update identifier of replied message of " << MessageFullId{d->dialog_id, m->message_id} << " from "
             << m->replied_message_info << " to " << reply_to_message_id;
   if (is_message_in_dialog) {
@@ -35204,7 +35216,7 @@ void MessagesManager::update_message_reply_to_message_id(const Dialog *d, Messag
   }
   m->replied_message_info.set_message_id(reply_to_message_id);
   if (!m->message_id.is_any_server()) {
-    m->input_reply_to.set_message_id(reply_to_message_id);
+    m->input_reply_to.set_message_id(reply_to_message_id, source);
   }
   if (is_message_in_dialog) {
     register_message_reply(d->dialog_id, m);
@@ -35228,7 +35240,7 @@ void MessagesManager::restore_message_reply_to_message_id(Dialog *d, Message *m)
 
   auto message_id = get_message_id_by_random_id(d, m->reply_to_random_id, "restore_message_reply_to_message_id");
   if ((message_id.is_valid() || message_id.is_valid_scheduled()) && !message_id.is_local()) {
-    update_message_reply_to_message_id(d, m, message_id, false);
+    update_message_reply_to_message_id(d, m, message_id, false, "restore_message_reply_to_message_id");
   } else {
     auto implicit_reply_to_message_id = get_message_topic(d->dialog_id, m).get_implicit_reply_to_message_id(td_);
     CHECK(implicit_reply_to_message_id == MessageId() || implicit_reply_to_message_id.is_server());
