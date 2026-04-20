@@ -11,6 +11,13 @@ option(TD_STRICT_COMPILER_VERSIONS "Fail the configure step when compiler is bel
 # than GNU ld on most Linux hosts.
 option(TD_ENABLE_LLD "Use -fuse-ld=lld when the compiler supports it." ON)
 
+# Split DWARF keeps debug info in per-TU .dwo sidecars rather than embedding
+# it into the object file, reducing the amount of data the linker must process.
+# Gives ~15-30% faster link on large RelWithDebInfo builds. Disabled for
+# sanitizer builds (ASan/UBSan/TSan) where in-process symbolisation requires
+# consolidated DWARF. Also disabled on cross-compile targets.
+option(TD_ENABLE_SPLIT_DWARF "Use -gsplit-dwarf to speed up linking on debug builds." ON)
+
 # Optional local optimization for developer builds; keep OFF in portable CI.
 option(TD_ENABLE_NATIVE_ARCH "Enable -march=native/-mtune=native for local builds." OFF)
 
@@ -128,6 +135,25 @@ function(td_set_up_compiler)
       if (TD_HAVE_FUSE_LD_LLD)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=lld")
+        # Identical Code Folding: deduplicates identical function bodies at link
+        # time. Safe variant never merges functions with different addresses.
+        # Only enabled with lld because GNU ld's ICF is less mature.
+        set(TD_LINKER_FLAGS "${TD_LINKER_FLAGS} -Wl,--icf=safe")
+      endif()
+    endif()
+
+    # Split DWARF: keep debug info in .dwo sidecar files so the linker does not
+    # have to ingest full DWARF sections. Only useful for debug-info builds on
+    # non-cross-compile native Linux. Disable when sanitizers are active because
+    # ASan/UBSan/TSan symbolisation requires consolidated DWARF.
+    if (TD_ENABLE_SPLIT_DWARF
+        AND NOT WIN32 AND NOT APPLE AND NOT ANDROID AND NOT EMSCRIPTEN
+        AND NOT CMAKE_CROSSCOMPILING
+        AND NOT (CMAKE_CXX_FLAGS MATCHES "sanitize"))
+      check_cxx_compiler_flag("-gsplit-dwarf" TD_HAVE_SPLIT_DWARF)
+      if (TD_HAVE_SPLIT_DWARF)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gsplit-dwarf")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -gsplit-dwarf")
       endif()
     endif()
 

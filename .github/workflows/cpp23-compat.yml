@@ -95,19 +95,20 @@ jobs:
             gcc-15 \
             clang-22 \
             lld-22 \
+            ccache \
             gperf \
             libssl-dev \
             make \
             ninja-build \
             zlib1g-dev
 
-      - name: Cache CMake build artifacts
+      - name: Cache ccache objects
         uses: actions/cache@v4
         with:
-          path: build
-          key: cmake-core-${{ matrix.compiler }}-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'CMake/**') }}-v1
+          path: ~/.cache/ccache
+          key: ccache-core-${{ matrix.compiler }}-${{ runner.os }}-${{ github.sha }}
           restore-keys: |
-            cmake-core-${{ matrix.compiler }}-${{ runner.os }}-
+            ccache-core-${{ matrix.compiler }}-${{ runner.os }}-
 
       - name: Run C++23 static guard
         run: python3 tools/ci/check_cpp23_compat.py
@@ -116,12 +117,17 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
+          CCACHE_DIR: ~/.cache/ccache
+          CCACHE_COMPRESS: "1"
+          CCACHE_MAXSIZE: 500M
         run: |
           set -euxo pipefail
           cmake -S . -B build \
             -G Ninja \
             -DBUILD_SHARED_LIBS=ON \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_STANDARD=23 \
             -DCMAKE_CXX_STANDARD_REQUIRED=ON \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
@@ -131,6 +137,8 @@ jobs:
             -DTD_STRICT_COMPILER_VERSIONS=ON
 
       - name: Build core targets
+        env:
+          CCACHE_DIR: ~/.cache/ccache
         run: |
           set -euxo pipefail
           cmake --build build --target tdjson tg_cli run_all_tests --parallel $(nproc)
@@ -168,6 +176,7 @@ jobs:
           sudo apt-get install -y \
             clang-22 \
             lld-22 \
+            ccache \
             cmake \
             gperf \
             libssl-dev \
@@ -175,13 +184,13 @@ jobs:
             ninja-build \
             zlib1g-dev
 
-      - name: Cache CMake build artifacts
+      - name: Cache ccache objects
         uses: actions/cache@v4
         with:
-          path: build
-          key: cmake-asan-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'CMake/**') }}-v1
+          path: ~/.cache/ccache
+          key: ccache-asan-${{ runner.os }}-${{ github.sha }}
           restore-keys: |
-            cmake-asan-${{ runner.os }}-
+            ccache-asan-${{ runner.os }}-
 
       - name: Run C++23 static guard
         run: python3 tools/ci/check_cpp23_compat.py
@@ -190,12 +199,21 @@ jobs:
         env:
           CC: clang-22
           CXX: clang++-22
+          CCACHE_DIR: ~/.cache/ccache
+          CCACHE_COMPRESS: "1"
+          CCACHE_MAXSIZE: 500M
+          # ccache and sanitizers: disable direct mode so sanitizer wrappers
+          # are handled correctly. basedir normalises paths for cache portability.
+          CCACHE_CPP2: "true"
+          CCACHE_BASEDIR: ${{ github.workspace }}
         run: |
           set -euxo pipefail
           cmake -S . -B build \
             -G Ninja \
             -DBUILD_SHARED_LIBS=ON \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_STANDARD=23 \
             -DCMAKE_CXX_STANDARD_REQUIRED=ON \
             -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-sanitize-recover=all' \
@@ -204,10 +222,13 @@ jobs:
             -DCMAKE_SHARED_LINKER_FLAGS='-fsanitize=address,undefined -fno-sanitize-recover=all' \
             -DTD_ENABLE_BENCHMARKS=OFF \
             -DTD_ENABLE_LLD=ON \
+            -DTD_ENABLE_SPLIT_DWARF=OFF \
             -DTD_STRICT_CI_WARNINGS=ON \
             -DTD_STRICT_COMPILER_VERSIONS=ON
 
       - name: Build sanitizer targets
+        env:
+          CCACHE_DIR: ~/.cache/ccache
         run: |
           set -euxo pipefail
           cmake --build build --target tl_generate_tlo tl_generate_mtproto tl_generate_common tl_generate_json --parallel $(nproc)
@@ -254,6 +275,7 @@ jobs:
           sudo apt-get install -y \
             clang-22 \
             lld-22 \
+            ccache \
             cmake \
             gperf \
             libssl-dev \
@@ -261,33 +283,43 @@ jobs:
             ninja-build \
             zlib1g-dev
 
-      - name: Cache CMake build artifacts
+      - name: Cache ccache objects
         uses: actions/cache@v4
         with:
-          path: build
-          key: cmake-tsan-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'CMake/**') }}-v1
+          path: ~/.cache/ccache
+          key: ccache-tsan-${{ runner.os }}-${{ github.sha }}
           restore-keys: |
-            cmake-tsan-${{ runner.os }}-
+            ccache-tsan-${{ runner.os }}-
 
       - name: Configure TSan build
         env:
           CC: clang-22
           CXX: clang++-22
+          CCACHE_DIR: ~/.cache/ccache
+          CCACHE_COMPRESS: "1"
+          CCACHE_MAXSIZE: 500M
+          CCACHE_CPP2: "true"
+          CCACHE_BASEDIR: ${{ github.workspace }}
         run: |
           set -euxo pipefail
           cmake -S . -B build \
             -G Ninja \
             -DBUILD_SHARED_LIBS=ON \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_STANDARD=23 \
             -DCMAKE_CXX_STANDARD_REQUIRED=ON \
             -DCMAKE_CXX_FLAGS='-fsanitize=thread -fno-sanitize-recover=all' \
             -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=thread -fno-sanitize-recover=all' \
             -DTD_ENABLE_BENCHMARKS=OFF \
             -DTD_ENABLE_LLD=ON \
+            -DTD_ENABLE_SPLIT_DWARF=OFF \
             -DTD_STRICT_COMPILER_VERSIONS=ON
 
       - name: Build concurrency-heavy test targets
+        env:
+          CCACHE_DIR: ~/.cache/ccache
         run: |
           set -euxo pipefail
           cmake --build build --target tl_generate_tlo tl_generate_mtproto tl_generate_common tl_generate_json --parallel $(nproc)

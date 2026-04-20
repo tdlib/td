@@ -74,16 +74,30 @@ jobs:
         run: |
           set -euxo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y gperf cmake libssl-dev ninja-build lld zlib1g-dev
+          sudo apt-get install -y gperf cmake libssl-dev ninja-build lld ccache zlib1g-dev
+
+      - name: Cache ccache objects
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-sqlite-integrity-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            ccache-sqlite-integrity-${{ runner.os }}-
 
       - name: Configure native DB smoke build
-        run: cmake -S . -B build -G Ninja -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF -DTD_ENABLE_LLD=ON
+        env:
+          CCACHE_DIR: ~/.cache/ccache
+          CCACHE_COMPRESS: "1"
+          CCACHE_MAXSIZE: 200M
+        run: cmake -S . -B build -G Ninja -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF -DTD_ENABLE_LLD=ON
 
       - name: Build native DB smoke target
+        env:
+          CCACHE_DIR: ~/.cache/ccache
         run: cmake --build build --target run_all_tests --parallel $(nproc)
 
       - name: Refresh exact CTest discovery
-        run: cmake -S . -B build -G Ninja -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF -DTD_ENABLE_LLD=ON
+        run: cmake -S . -B build -G Ninja -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DTD_ENABLE_BENCHMARKS=OFF -DTD_ENABLE_LLD=ON
 
       - name: Run native SQLite DB smoke
         run: ctest --test-dir build/test --output-on-failure -R '^Test_DB_sqlite_vendor_wrapper_surface_contract$'
