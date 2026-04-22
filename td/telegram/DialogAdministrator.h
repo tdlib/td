@@ -15,6 +15,7 @@
 
 namespace td {
 
+class DialogParticipantStatus;
 class UserManager;
 
 class DialogAdministrator {
@@ -31,6 +32,8 @@ class DialogAdministrator {
   DialogAdministrator(UserId user_id, const string &rank, bool is_creator, bool can_be_edited)
       : user_id_(user_id), rank_(rank), is_creator_(is_creator), can_be_edited_(can_be_edited) {
   }
+
+  DialogAdministrator(UserId user_id, const DialogParticipantStatus &status);
 
   td_api::object_ptr<td_api::chatAdministrator> get_chat_administrator_object(const UserManager *user_manager) const;
 

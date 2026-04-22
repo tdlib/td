@@ -6,9 +6,18 @@
 //
 #include "td/telegram/DialogAdministrator.h"
 
+#include "td/telegram/DialogParticipant.h"
 #include "td/telegram/UserManager.h"
 
 namespace td {
+
+DialogAdministrator::DialogAdministrator(UserId user_id, const DialogParticipantStatus &status)
+    : user_id_(user_id)
+    , rank_(status.get_rank())
+    , is_creator_(status.is_creator())
+    , can_be_edited_(status.can_be_edited()) {
+  CHECK(status.is_administrator());
+}
 
 td_api::object_ptr<td_api::chatAdministrator> DialogAdministrator::get_chat_administrator_object(
     const UserManager *user_manager) const {

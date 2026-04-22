@@ -5537,8 +5537,7 @@ void ChatManager::update_chat_full(ChatFull *chat_full, ChatId chat_id, const ch
     vector<UserId> bot_user_ids;
     for (const auto &participant : chat_full->participants) {
       if (participant.status_.is_administrator() && participant.dialog_id_.get_type() == DialogType::User) {
-        administrators.emplace_back(participant.dialog_id_.get_user_id(), participant.status_.get_rank(),
-                                    participant.status_.is_creator(), participant.status_.can_be_edited());
+        administrators.emplace_back(participant.dialog_id_.get_user_id(), participant.status_);
       }
       if (participant.dialog_id_.get_type() == DialogType::User) {
         auto user_id = participant.dialog_id_.get_user_id();
