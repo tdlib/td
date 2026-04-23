@@ -55,6 +55,8 @@ struct PollOption {
     return added_date_;
   }
 
+  PollOption dup_option(Td *td, DialogId dialog_id) const;
+
   void append_file_ids(const Td *td, vector<FileId> &file_ids) const;
 
   td_api::object_ptr<td_api::pollOption> get_poll_option_object(Td *td) const;

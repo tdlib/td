@@ -49,6 +49,14 @@ PollOption::PollOption(Td *td, telegram_api::object_ptr<telegram_api::PollAnswer
   }
 }
 
+PollOption PollOption::dup_option(Td *td, DialogId dialog_id) const {
+  PollOption result;
+  result.text_ = text_;
+  remove_unallowed_entities(td, result.text_, dialog_id);
+  result.media_ = dup_message_content(td, dialog_id, media_.get(), MessageContentDupType::Copy, MessageCopyOptions());
+  return result;
+}
+
 void PollOption::append_file_ids(const Td *td, vector<FileId> &file_ids) const {
   if (media_ != nullptr) {
     append(file_ids, get_message_content_file_ids(media_.get(), td));
