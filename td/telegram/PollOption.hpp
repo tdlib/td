@@ -23,6 +23,7 @@ void PollOption::store(StorerT &storer) const {
   bool has_recent_voter_dialog_ids = !recent_voter_dialog_ids_.empty();
   bool has_media = media_ != nullptr;
   bool has_no_voter_count = voter_count_ == 0;
+  bool has_no_data = data_.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_chosen_);
   STORE_FLAG(has_entities);
@@ -31,10 +32,13 @@ void PollOption::store(StorerT &storer) const {
   STORE_FLAG(has_recent_voter_dialog_ids);
   STORE_FLAG(has_media);
   STORE_FLAG(has_no_voter_count);
+  STORE_FLAG(has_no_data);
   END_STORE_FLAGS();
 
   store(text_.text, storer);
-  store(data_, storer);
+  if (!has_no_data) {
+    store(data_, storer);
+  }
   if (!has_no_voter_count) {
     store(voter_count_, storer);
   }
@@ -64,6 +68,7 @@ void PollOption::parse(ParserT &parser) {
   bool has_recent_voter_dialog_ids;
   bool has_media;
   bool has_no_voter_count;
+  bool has_no_data;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_chosen_);
   PARSE_FLAG(has_entities);
@@ -72,10 +77,13 @@ void PollOption::parse(ParserT &parser) {
   PARSE_FLAG(has_recent_voter_dialog_ids);
   PARSE_FLAG(has_media);
   PARSE_FLAG(has_no_voter_count);
+  PARSE_FLAG(has_no_data);
   END_PARSE_FLAGS();
 
   parse(text_.text, parser);
-  parse(data_, parser);
+  if (!has_no_data) {
+    parse(data_, parser);
+  }
   if (!has_no_voter_count) {
     parse(voter_count_, parser);
   }
