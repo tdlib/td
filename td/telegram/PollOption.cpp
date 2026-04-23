@@ -18,6 +18,7 @@ namespace td {
 
 PollOption::PollOption(FormattedText &&text, unique_ptr<MessageContent> &&media)
     : text_(std::move(text)), media_(std::move(media)) {
+  keep_only_custom_emoji(text_);
 }
 
 PollOption::PollOption(Td *td, telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr,

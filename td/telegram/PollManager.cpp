@@ -804,9 +804,6 @@ PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> 
     has_open_answers = false;
   }
   keep_only_custom_emoji(question);
-  for (auto &option : options) {
-    keep_only_custom_emoji(option);
-  }
   auto poll = make_unique<Poll>();
   poll->question_ = std::move(question);
   for (auto &option_text : options) {
