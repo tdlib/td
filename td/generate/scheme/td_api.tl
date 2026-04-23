@@ -399,7 +399,7 @@ outline paths:vector<closedVectorPath> = Outline;
 
 
 //@description Describes one answer option of a poll
-//@id Unique identifier of the option in the poll
+//@id Unique identifier of the option in the poll; may be empty if yet unassigned
 //@text Option text; 1-100 characters; may contain only custom emoji entities
 //@media Option media. Currently, can be only of the types messageAnimation, messageLocation, messagePhoto, messageSticker, messageVenue, or messageVideo without caption
 //@voter_count Number of voters for this option, available only for closed or voted polls, or if the current user is the creator of the poll

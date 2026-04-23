@@ -809,9 +809,8 @@ PollId PollManager::create_poll(FormattedText &&question, vector<FormattedText> 
   }
   auto poll = make_unique<Poll>();
   poll->question_ = std::move(question);
-  int pos = 0;
   for (auto &option_text : options) {
-    poll->options_.emplace_back(std::move(option_text), nullptr, pos++);
+    poll->options_.emplace_back(std::move(option_text), nullptr);
   }
   poll->is_anonymous_ = is_anonymous;
   poll->allow_multiple_answers_ = allow_multiple_answers;
@@ -1024,6 +1023,9 @@ void PollManager::get_poll_option_properties(PollId poll_id, const string &optio
     }
   }
   if (option == nullptr) {
+    if (option_id.empty()) {
+      return promise.set_value(td_api::make_object<td_api::pollOptionProperties>(false, false, false, false));
+    }
     return promise.set_error(400, "Poll option not found");
   }
   bool can_be_deleted = can_delete_poll_option(poll, option, message_id, is_forward, is_outgoing);

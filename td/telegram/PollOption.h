@@ -38,7 +38,7 @@ struct PollOption {
 
   PollOption() = default;
 
-  PollOption(FormattedText &&text, unique_ptr<MessageContent> &&media, int32 pos);
+  PollOption(FormattedText &&text, unique_ptr<MessageContent> &&media);
 
   PollOption(Td *td, telegram_api::object_ptr<telegram_api::PollAnswer> &&poll_answer_ptr,
              vector<std::pair<ChannelId, MinChannel>> &min_channels);
