@@ -20926,7 +20926,7 @@ void MessagesManager::cancel_upload_message_content_files(const vector<FileUploa
 }
 
 void MessagesManager::cancel_upload_file(FileUploadId file_upload_id, const char *source) {
-  // send the request later so they doesn't interfere with other actions
+  // send the request later so they don't interfere with other actions
   // for example merge, supposed to happen soon, can auto-cancel the upload
   LOG(INFO) << "Cancel upload of " << file_upload_id << " from " << source;
   send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_upload_id);
