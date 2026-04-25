@@ -64,6 +64,7 @@ class AdministratorRights {
   AdministratorRights(const td_api::object_ptr<td_api::chatAdministratorRights> &administrator_rights,
                       ChannelType channel_type);
 
+  // increase Chat cache version when a new right is added
   AdministratorRights(bool is_anonymous, bool can_manage_dialog, bool can_change_info, bool can_post_messages,
                       bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
                       bool can_restrict_members, bool can_pin_messages, bool can_manage_topics,
@@ -211,6 +212,7 @@ class RestrictedRights {
 
   RestrictedRights(const td_api::object_ptr<td_api::chatPermissions> &rights, ChannelType channel_type);
 
+  // increase Chat cache version when a new right is added
   RestrictedRights(bool can_send_messages, bool can_send_audios, bool can_send_documents, bool can_send_photos,
                    bool can_send_videos, bool can_send_video_notes, bool can_send_voice_notes, bool can_send_stickers,
                    bool can_send_animations, bool can_send_games, bool can_use_inline_bots,

@@ -381,8 +381,8 @@ DialogParticipantStatus DialogParticipantStatus::Banned(int32 banned_until_date,
 }
 
 DialogParticipantStatus DialogParticipantStatus::GroupAdministrator(bool is_creator, string &&rank) {
-  return Administrator(AdministratorRights(false, true, true, false, false, true, true, true, true, false, false, true,
-                                           false, false, false, false, false, ChannelType::Unknown),
+  return Administrator(AdministratorRights(false, true, true, false, false, true, true, true, true, false, is_creator,
+                                           true, false, false, false, false, true, ChannelType::Unknown),
                        std::move(rank), is_creator);
 }
 

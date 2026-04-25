@@ -449,7 +449,7 @@ class ChatManager final : public Actor {
                                          false,
                                          ChannelType::Unknown};
 
-    static constexpr uint32 CACHE_VERSION = 4;
+    static constexpr uint32 CACHE_VERSION = 5;
     uint32 cache_version = 0;
 
     bool is_active = false;
@@ -557,7 +557,7 @@ class ChatManager final : public Actor {
 
     ChannelId monoforum_channel_id;
 
-    static constexpr uint32 CACHE_VERSION = 10;
+    static constexpr uint32 CACHE_VERSION = 11;
     uint32 cache_version = 0;
 
     bool has_linked_channel = false;
