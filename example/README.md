@@ -82,6 +82,9 @@ See also the source code of [DIBgram](https://github.com/DIBgram/DIBgram) - an u
 TDLib can be used also from NativeScript through the [JSON](https://github.com/tdlib/td#using-json) interface.
 See [nativescript-tglib](https://github.com/arpit2438735/nativescript-tglib) as an example of a NativeScript library for building Telegram clients.
 
+TDLib can also be used from React Native on iOS and Android.
+See [react-native-tdlib](https://github.com/vladlenskiy/react-native-tdlib) as an example of a React Native library for building Telegram clients.
+
 <a name="go"></a>
 ## Using TDLib in Go projects
 
