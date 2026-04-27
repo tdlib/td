@@ -10002,7 +10002,7 @@ updateNotification notification_group_id:int32 notification:notification = Updat
 //@type New type of the notification group
 //@chat_id Identifier of a chat to which all notifications in the group belong
 //@notification_settings_chat_id Chat identifier, which notification settings must be applied to the added notifications
-//@notification_sound_id Identifier of the notification sound to be played; 0 if sound is disabled
+//@notification_sound_id Identifier of the notification sound to be played; 0 if sound is disabled or -1 if the default sound should be used
 //@total_count Total number of unread notifications in the group, can be bigger than number of active notifications
 //@added_notifications List of added group notifications, sorted by notification identifier
 //@removed_notification_ids Identifiers of removed group notifications, sorted by notification identifier
