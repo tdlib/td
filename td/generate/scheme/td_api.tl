@@ -12699,7 +12699,7 @@ getStakeDiceState = StakeDiceState;
 
 
 //@description Returns saved notification sound by its identifier. Returns a 404 error if there is no saved notification sound with the specified identifier @notification_sound_id Identifier of the notification sound
-getSavedNotificationSound notification_sound_id:int64 = NotificationSounds;
+getSavedNotificationSound notification_sound_id:int64 = NotificationSound;
 
 //@description Returns the list of saved notification sounds. If a sound isn't in the list, then default sound needs to be used
 getSavedNotificationSounds = NotificationSounds;
