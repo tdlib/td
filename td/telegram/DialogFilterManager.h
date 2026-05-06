@@ -18,6 +18,7 @@
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
+#include "td/utils/FlatHashMap.h"
 #include "td/utils/Promise.h"
 #include "td/utils/Status.h"
 
@@ -130,6 +131,7 @@ class DialogFilterManager final : public Actor {
 
  private:
   static constexpr int32 DIALOG_FILTERS_CACHE_TIME = 86400;
+  static constexpr size_t MAX_PENDING_GET_DIALOG_FILTER_PROMISES = 512;
 
   class DialogFiltersLogEvent;
 
@@ -215,6 +217,8 @@ class DialogFilterManager final : public Actor {
 
   void load_dialog_filter(const DialogFilter *dialog_filter, Promise<Unit> &&promise);
 
+  void on_load_dialog_filter_result(DialogFilterId dialog_filter_id, Result<Unit> &&result);
+
   void on_load_dialog_filter(DialogFilterId dialog_filter_id,
                              Promise<td_api::object_ptr<td_api::chatFolder>> &&promise);
 
@@ -243,6 +247,12 @@ class DialogFilterManager final : public Actor {
   int32 main_dialog_list_position_ = 0;         // local position of the main dialog list stored on the server
 
   vector<RecommendedDialogFilter> recommended_dialog_filters_;
+
+  struct PendingGetDialogFilterQuery {
+    vector<Promise<td_api::object_ptr<td_api::chatFolder>>> promises;
+    bool is_loading = false;
+  };
+  FlatHashMap<DialogFilterId, PendingGetDialogFilterQuery, DialogFilterIdHash> pending_get_dialog_filter_queries_;
 
   Timeout reload_dialog_filters_timeout_;
 

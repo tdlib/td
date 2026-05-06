@@ -158,3 +158,59 @@ TEST(TlParserMemoryLeakContract, tl_parse_nat_term_source_contains_error_log_and
   ASSERT_TRUE(fn_body.find("TL_ERROR(\"nat_term") != std::string::npos);
   ASSERT_TRUE(fn_body.find("tfree(Z,") != std::string::npos);
 }
+
+// ---------------------------------------------------------------------------
+// Contract: speculative parse_args* branches must delete parsed S before
+// rewinding parser state with load_parse(...).
+// ---------------------------------------------------------------------------
+
+TEST(TlParserMemoryLeakContract, parse_args2_rewind_paths_delete_speculative_S_before_load_parse) {
+  const auto src = load_tl_parser_source();
+  ASSERT_FALSE(src.empty());
+
+  const auto fn_body = extract_function_body(src, "struct tree *parse_args2(void)");
+  ASSERT_FALSE(fn_body.empty());
+
+  auto optional_pos = fn_body.find("PARSE_TRY(parse_optional_arg_def);");
+  ASSERT_TRUE(optional_pos != std::string::npos);
+  auto optional_region = fn_body.substr(optional_pos, 220);
+  auto optional_delete_pos = optional_region.find("tree_delete(S);");
+  auto optional_rewind_pos = optional_region.find("load_parse(so);");
+  ASSERT_TRUE(optional_delete_pos != std::string::npos);
+  ASSERT_TRUE(optional_rewind_pos != std::string::npos);
+  ASSERT_TRUE(optional_delete_pos < optional_rewind_pos);
+
+  auto multiplicity_pos = fn_body.find("PARSE_TRY(parse_multiplicity);");
+  ASSERT_TRUE(multiplicity_pos != std::string::npos);
+  auto multiplicity_region = fn_body.substr(multiplicity_pos, 220);
+  auto multiplicity_delete_pos = multiplicity_region.find("tree_delete(S);");
+  auto multiplicity_rewind_pos = multiplicity_region.find("load_parse(save2);");
+  ASSERT_TRUE(multiplicity_delete_pos != std::string::npos);
+  ASSERT_TRUE(multiplicity_rewind_pos != std::string::npos);
+  ASSERT_TRUE(multiplicity_delete_pos < multiplicity_rewind_pos);
+}
+
+TEST(TlParserMemoryLeakContract, tl_try_macro_frees_partial_trees_before_TL_FAIL_on_union_error) {
+  const auto src = load_tl_parser_source();
+  ASSERT_FALSE(src.empty());
+
+  auto macro_pos = src.find("#define TL_TRY(f, x)");
+  ASSERT_TRUE(macro_pos != std::string::npos);
+  auto macro_end = src.find("#define TL_ERROR", macro_pos);
+  ASSERT_TRUE(macro_end != std::string::npos);
+  auto macro_region = src.substr(macro_pos, macro_end - macro_pos);
+
+  auto union_pos = macro_region.find("tl_union(x, _t)");
+  ASSERT_TRUE(union_pos != std::string::npos);
+  auto fail_guard_pos = macro_region.find("if (!_u)", union_pos);
+  ASSERT_TRUE(fail_guard_pos != std::string::npos);
+
+  auto free_x_pos = macro_region.find("tl_free_combinator_tree(x);", fail_guard_pos);
+  auto free_t_pos = macro_region.find("tl_free_combinator_tree(_t);", fail_guard_pos);
+  auto fail_pos = macro_region.find("TL_FAIL", fail_guard_pos);
+  ASSERT_TRUE(free_x_pos != std::string::npos);
+  ASSERT_TRUE(free_t_pos != std::string::npos);
+  ASSERT_TRUE(fail_pos != std::string::npos);
+  ASSERT_TRUE(free_x_pos < fail_pos);
+  ASSERT_TRUE(free_t_pos < fail_pos);
+}

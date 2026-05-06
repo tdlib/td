@@ -1373,6 +1373,8 @@ void Td::send_result(uint64 id, tl_object_ptr<td_api::Object> object) {
   auto it = request_set_.find(id);
   if (it != request_set_.end()) {
     if (object == nullptr) {
+      LOG(WARNING) << "Request " << id << " produced no object result; returning 404 Not Found"
+                   << ", request_type=" << it->second;
       object = td_api::make_object<td_api::error>(404, "Not Found");
     }
     VLOG(td_requests) << "Sending result for request " << id << ": " << to_string(object);
@@ -1392,6 +1394,8 @@ void Td::send_error_impl(uint64 id, tl_object_ptr<td_api::error> error) {
     VLOG(td_requests) << "Sending error for request " << id << ": " << oneline(to_string(error));
     request_set_.erase(it);
     callback_->on_error(id, std::move(error));
+  } else {
+    LOG(WARNING) << "Drop error for unknown request " << id << ": " << oneline(to_string(error));
   }
 }
 

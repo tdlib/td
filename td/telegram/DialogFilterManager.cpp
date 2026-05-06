@@ -528,8 +528,11 @@ class GetDialogsQuery final : public Td::ResultHandler {
 
   void on_error(Status status) final {
     if (is_single_ && status.code() == 400) {
+      LOG(INFO) << "GetChatFolder preload tolerates single-dialog 400 error, is_single=" << is_single_
+                << ", status=" << status;
       return promise_.set_value(Unit());
     }
+    LOG(WARNING) << "GetChatFolder preload query failed, is_single=" << is_single_ << ", status=" << status;
     promise_.set_error(std::move(status));
   }
 };
@@ -567,7 +570,12 @@ DialogFilterManager::DialogFilterManager(Td *td, ActorShared<> parent) : td_(td)
 DialogFilterManager::~DialogFilterManager() = default;
 
 void DialogFilterManager::hangup() {
-  fail_promises(dialog_filter_reload_queries_, Global::request_aborted_error());
+  auto request_aborted_error = Global::request_aborted_error();
+  for (auto &pending_query : pending_get_dialog_filter_queries_) {
+    fail_promises(pending_query.second.promises, request_aborted_error.clone());
+  }
+  pending_get_dialog_filter_queries_.clear();
+  fail_promises(dialog_filter_reload_queries_, std::move(request_aborted_error));
   stop();
 }
 
@@ -949,22 +957,63 @@ void DialogFilterManager::get_dialog_filter(DialogFilterId dialog_filter_id,
                                             Promise<td_api::object_ptr<td_api::chatFolder>> &&promise) {
   CHECK(!td_->auth_manager_->is_bot());
   if (!dialog_filter_id.is_valid()) {
+    LOG(WARNING) << "Reject getChatFolder with invalid identifier " << dialog_filter_id;
     return promise.set_error(400, "Invalid chat folder identifier specified");
   }
 
   auto dialog_filter = get_dialog_filter(dialog_filter_id);
   if (dialog_filter == nullptr) {
+    LOG(INFO) << "Return empty getChatFolder result for unknown folder " << dialog_filter_id;
     return promise.set_value(nullptr);
   }
 
-  auto load_promise = PromiseCreator::lambda(
-      [actor_id = actor_id(this), dialog_filter_id, promise = std::move(promise)](Result<Unit> &&result) mutable {
-        if (result.is_error()) {
-          return promise.set_error(result.move_as_error());
-        }
-        send_closure(actor_id, &DialogFilterManager::on_load_dialog_filter, dialog_filter_id, std::move(promise));
-      });
+  auto &pending_query = pending_get_dialog_filter_queries_[dialog_filter_id];
+  if (pending_query.promises.size() >= MAX_PENDING_GET_DIALOG_FILTER_PROMISES) {
+    LOG(WARNING) << "Reject getChatFolder because waiter queue reached limit for " << dialog_filter_id
+                 << ", limit=" << MAX_PENDING_GET_DIALOG_FILTER_PROMISES;
+    return promise.set_error(429, "Too Many Requests: retry after 1");
+  }
+  pending_query.promises.push_back(std::move(promise));
+  if (pending_query.is_loading) {
+    LOG(INFO) << "Coalesce getChatFolder request for " << dialog_filter_id << " with " << pending_query.promises.size()
+              << " queued request(s)";
+    return;
+  }
+
+  pending_query.is_loading = true;
+  LOG(INFO) << "Begin getChatFolder load for " << dialog_filter_id << " with " << pending_query.promises.size()
+            << " queued request(s)";
+
+  auto load_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_filter_id](Result<Unit> &&result) {
+    send_closure(actor_id, &DialogFilterManager::on_load_dialog_filter_result, dialog_filter_id, std::move(result));
+  });
   load_dialog_filter(dialog_filter, std::move(load_promise));
+}
+
+void DialogFilterManager::on_load_dialog_filter_result(DialogFilterId dialog_filter_id, Result<Unit> &&result) {
+  auto pending_it = pending_get_dialog_filter_queries_.find(dialog_filter_id);
+  if (pending_it == pending_get_dialog_filter_queries_.end()) {
+    LOG(ERROR) << "Missing pending getChatFolder queue for " << dialog_filter_id;
+    return;
+  }
+
+  auto promises = std::move(pending_it->second.promises);
+  pending_get_dialog_filter_queries_.erase(pending_it);
+
+  if (result.is_error()) {
+    auto status = result.move_as_error();
+    LOG(WARNING) << "Failed to load getChatFolder " << dialog_filter_id << ": " << status;
+    for (auto &promise : promises) {
+      promise.set_error(status.clone());
+    }
+    return;
+  }
+
+  LOG(INFO) << "Finish getChatFolder load for " << dialog_filter_id << " and answer " << promises.size()
+            << " request(s)";
+  for (auto &promise : promises) {
+    on_load_dialog_filter(dialog_filter_id, std::move(promise));
+  }
 }
 
 void DialogFilterManager::on_load_dialog_filter(DialogFilterId dialog_filter_id,
@@ -1633,7 +1682,12 @@ void DialogFilterManager::update_dialog_filter_on_server(unique_ptr<DialogFilter
 void DialogFilterManager::on_update_dialog_filter(unique_ptr<DialogFilter> dialog_filter, Status result) {
   CHECK(!td_->auth_manager_->is_bot());
   if (result.is_error()) {
-    // TODO rollback dialog_filters_ changes if error isn't 429
+    LOG(WARNING) << "Failed to synchronize updated chat folder " << dialog_filter->get_dialog_filter_id() << ": "
+                 << result;
+    if (result.code() != 429) {
+      LOG(WARNING) << "Reload chat folders after non-rate-limit update failure";
+      schedule_dialog_filters_reload(0.0);
+    }
   } else {
     bool is_edited = false;
     for (auto &server_dialog_filter : server_dialog_filters_) {
@@ -1725,7 +1779,11 @@ void DialogFilterManager::delete_dialog_filter_on_server(DialogFilterId dialog_f
 void DialogFilterManager::on_delete_dialog_filter(DialogFilterId dialog_filter_id, Status result) {
   CHECK(!td_->auth_manager_->is_bot());
   if (result.is_error()) {
-    // TODO rollback dialog_filters_ changes if error isn't 429
+    LOG(WARNING) << "Failed to synchronize deleted chat folder " << dialog_filter_id << ": " << result;
+    if (result.code() != 429) {
+      LOG(WARNING) << "Reload chat folders after non-rate-limit delete failure";
+      schedule_dialog_filters_reload(0.0);
+    }
   } else {
     for (auto it = server_dialog_filters_.begin(); it != server_dialog_filters_.end(); ++it) {
       if ((*it)->get_dialog_filter_id() == dialog_filter_id) {
@@ -1830,7 +1888,11 @@ void DialogFilterManager::on_reorder_dialog_filters(vector<DialogFilterId> dialo
                                                     int32 main_dialog_list_position, Status result) {
   CHECK(!td_->auth_manager_->is_bot());
   if (result.is_error()) {
-    // TODO rollback dialog_filters_ changes if error isn't 429
+    LOG(WARNING) << "Failed to synchronize chat folder reorder: " << result;
+    if (result.code() != 429) {
+      LOG(WARNING) << "Reload chat folders after non-rate-limit reorder failure";
+      schedule_dialog_filters_reload(0.0);
+    }
   } else {
     if (DialogFilter::set_dialog_filters_order(server_dialog_filters_, std::move(dialog_filter_ids)) ||
         server_main_dialog_list_position_ != main_dialog_list_position) {

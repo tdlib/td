@@ -14050,22 +14050,39 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
   LOG(INFO) << "Get " << message_id << " in " << d->dialog_id << " using " << to_string(input_message);
   auto dialog_type = d->dialog_id.get_type();
   auto m = get_message_force(d, message_id, "get_message_force_from_server");
-  if (m == nullptr && !is_deleted_message(d, message_id) && dialog_type != DialogType::SecretChat) {
-    if (message_id.is_server()) {
-      if (d->last_new_message_id != MessageId() && message_id > d->last_new_message_id &&
-          dialog_type != DialogType::Channel && !td_->auth_manager_->is_bot()) {
-        // message will not be added to the dialog anyway
-        return promise.set_value(Unit());
-      }
+  if (m != nullptr) {
+    LOG(INFO) << "Skip server GetMessage because message is already known locally: " << message_id << " in "
+              << d->dialog_id;
+    return promise.set_value(Unit());
+  }
+  if (is_deleted_message(d, message_id)) {
+    LOG(INFO) << "Skip server GetMessage because message is marked as deleted: " << message_id << " in "
+              << d->dialog_id;
+    return promise.set_value(Unit());
+  }
+  if (dialog_type == DialogType::SecretChat) {
+    LOG(INFO) << "Skip server GetMessage because secret chats can't be fetched from server: " << message_id << " in "
+              << d->dialog_id;
+    return promise.set_value(Unit());
+  }
+  if (message_id.is_server()) {
+    if (d->last_new_message_id != MessageId() && message_id > d->last_new_message_id &&
+        dialog_type != DialogType::Channel && !td_->auth_manager_->is_bot()) {
+      // message will not be added to the dialog anyway
+      LOG(INFO) << "Skip server GetMessage for future non-channel message: " << message_id << " in " << d->dialog_id
+                << ", last_new_message_id=" << d->last_new_message_id;
+      return promise.set_value(Unit());
+    }
 
-      return get_message_from_server({d->dialog_id, message_id}, std::move(promise), "get_message_force_from_server",
-                                     std::move(input_message));
-    }
-    if (message_id.is_valid_scheduled() && message_id.is_scheduled_server() && input_message == nullptr) {
-      return get_message_from_server({d->dialog_id, message_id}, std::move(promise), "get_message_force_from_server");
-    }
+    return get_message_from_server({d->dialog_id, message_id}, std::move(promise), "get_message_force_from_server",
+                                   std::move(input_message));
+  }
+  if (message_id.is_valid_scheduled() && message_id.is_scheduled_server() && input_message == nullptr) {
+    return get_message_from_server({d->dialog_id, message_id}, std::move(promise), "get_message_force_from_server");
   }
 
+  LOG(INFO) << "Skip server GetMessage because identifier isn't server-fetchable: " << message_id << " in "
+            << d->dialog_id;
   promise.set_value(Unit());
 }
 

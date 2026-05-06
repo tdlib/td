@@ -429,6 +429,9 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_direct_retry_no_backoff_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_retry_failure_log_source_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_connection_creator_ping_proxy_log_source_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_dialog_filter_get_chat_folder_hardening_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_dialog_filter_get_chat_folder_hardening_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_td_and_messages_logging_hardening_source_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_proxy_secret_tls_domain_validation_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_proxy_secret_sni_boundary_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_proxy_secret_tls_domain_validation_adversarial.cpp

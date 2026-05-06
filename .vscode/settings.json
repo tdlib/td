@@ -30,5 +30,5 @@
     "connectionId": "telemt",
     "projectKey": "telemt_tdlib-obf"
   },
-  "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json"
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/build/compile_commands.json"
 }
