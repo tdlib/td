@@ -9,7 +9,6 @@
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/Parser.h"
-#include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tests.h"
 
@@ -297,4 +296,17 @@ TEST(JSON, string_decode) {
   test_string_decode_error("\"\\u 123\"");
   test_string_decode_error("\"\\uD800\\ug123\"");
   test_string_decode_error("\"\\uD800\\u123\"");
+}
+
+TEST(JSON, unexpected_symbol_reports_control_byte_hex_code) {
+  td::string malformed_json;
+  malformed_json.push_back(static_cast<char>(0x0e));
+  malformed_json += "{\"@type\":\"pingProxy\"}";
+
+  auto r_value = td::json_decode(td::MutableSlice(malformed_json));
+
+  ASSERT_TRUE(r_value.is_error());
+  auto error_message = r_value.error().message().str();
+  ASSERT_TRUE(error_message.find("Unexpected symbol") != td::string::npos);
+  ASSERT_TRUE(error_message.find("0x0e") != td::string::npos);
 }

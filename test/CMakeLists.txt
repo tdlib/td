@@ -94,6 +94,7 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/set_with_position.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/string_cleaning.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/mime_type_update_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/client_json_boundary_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tdclient.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tqueue.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/translation_manager.cpp
@@ -947,8 +948,15 @@ if(NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
     PRIVATE tdcore tdclient)
   target_link_libraries(run_record_size_sequence_hardening_tests
                         PRIVATE tdcore tdclient)
-  target_link_libraries(run_all_tests PRIVATE tdutils tdactor tdclient tdcore
-                                              tdmtproto tdnet)
+  target_link_libraries(
+    run_all_tests
+    PRIVATE tdutils
+            tdactor
+            tdclient
+            tdcore
+            tdmtproto
+            tdnet
+            tdjson_private)
   target_link_libraries(test-online PRIVATE tdcore tdjson_private tdclient
                                             tdutils tdactor)
 

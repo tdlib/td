@@ -13,6 +13,19 @@
 
 namespace td {
 
+namespace {
+
+Status make_unexpected_symbol_error(char symbol) {
+  auto byte = static_cast<unsigned char>(symbol);
+  if (byte >= 32 && byte < 127) {
+    return Status::Error(PSLICE() << "Unexpected symbol '" << symbol << "'");
+  }
+  static const char *hex_digits = "0123456789abcdef";
+  return Status::Error(PSLICE() << "Unexpected symbol 0x" << hex_digits[byte >> 4] << hex_digits[byte & 15]);
+}
+
+}  // namespace
+
 StringBuilder &operator<<(StringBuilder &sb, const JsonRawString &val) {
   sb << '"';
   SCOPE_EXIT {
@@ -402,12 +415,7 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
     case 0:
       return Status::Error("Unexpected string end");
     default: {
-      char next = parser.peek_char();
-      if (0 < next && next < 127) {
-        return Status::Error(PSLICE() << "Unexpected symbol '" << parser.peek_char() << "'");
-      } else {
-        return Status::Error("Unexpected symbol");
-      }
+      return make_unexpected_symbol_error(parser.peek_char());
     }
   }
   UNREACHABLE();
@@ -511,12 +519,7 @@ Status do_json_skip(Parser &parser, int32 max_depth) {
     case 0:
       return Status::Error("Unexpected end");
     default: {
-      char next = parser.peek_char();
-      if (0 < next && next < 127) {
-        return Status::Error(PSLICE() << "Unexpected symbol '" << parser.peek_char() << "'");
-      } else {
-        return Status::Error("Unexpected symbol");
-      }
+      return make_unexpected_symbol_error(parser.peek_char());
     }
   }
   return Status::Error("Can't parse");

@@ -173,4 +173,24 @@ TEST(ProxySecretTlsDomainValidationContract, InvalidTlsDomainErrorsIncludeValida
   ASSERT_TRUE(message.find("tls_domain_error=") != td::string::npos);
 }
 
+TEST(ProxySecretTlsDomainValidationContract, UserSampleHexSecretIsAcceptedAndUsesTlsDomain) {
+  const td::string user_sample_secret_hex = "eeffb8ecadb37e893760b73778ed5a4ae97777772e6761727368696e6b612e7275";
+
+  auto r_secret = td::mtproto::ProxySecret::from_link(user_sample_secret_hex);
+
+  ASSERT_TRUE(r_secret.is_ok());
+  ASSERT_TRUE(r_secret.ok().emulate_tls());
+  ASSERT_EQ(td::string("www.garshinka.ru"), r_secret.ok().get_domain());
+}
+
+TEST(ProxySecretTlsDomainValidationContract, CorrectedHexSecretWithAsciiDomainIsAccepted) {
+  const td::string corrected_secret_hex = "eeffb8ecadb37e893760b73778ed5a4ae9777777722e6761727368696e6b612e7275";
+
+  auto r_secret = td::mtproto::ProxySecret::from_link(corrected_secret_hex);
+
+  ASSERT_TRUE(r_secret.is_ok());
+  ASSERT_TRUE(r_secret.ok().emulate_tls());
+  ASSERT_EQ(td::string("wwwr.garshinka.ru"), r_secret.ok().get_domain());
+}
+
 }  // namespace
