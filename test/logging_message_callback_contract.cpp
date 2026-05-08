@@ -46,11 +46,11 @@ TEST(LoggingMessageCallbackContract, SourcePinsSingleAtomicSnapshotStateForCallb
   auto normalized = normalize_for_contract(source);
 
   ASSERT_TRUE(normalized.find("structLogMessageCallbackState") != td::string::npos);
-  ASSERT_TRUE(normalized.find("std::shared_ptr<constLogMessageCallbackState>log_message_callback_state") !=
+  ASSERT_TRUE(normalized.find("std::atomic<std::shared_ptr<constLogMessageCallbackState>>log_message_callback_state") !=
               td::string::npos);
-  ASSERT_TRUE(normalized.find("std::atomic_load_explicit(&log_message_callback_state,std::memory_order_acquire)") !=
+  ASSERT_TRUE(normalized.find("log_message_callback_state.load(std::memory_order_acquire)") != td::string::npos);
+  ASSERT_TRUE(normalized.find("log_message_callback_state.store(std::make_shared<constLogMessageCallbackState>") !=
               td::string::npos);
-  ASSERT_TRUE(normalized.find("std::atomic_store_explicit(&log_message_callback_state,") != td::string::npos);
   ASSERT_TRUE(normalized.find("std::atomic<int>max_callback_verbosity_level") == td::string::npos);
   ASSERT_TRUE(normalized.find("std::atomic<OnLogMessageCallback>on_log_message_callback") == td::string::npos);
 }

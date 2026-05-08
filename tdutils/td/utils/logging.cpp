@@ -47,16 +47,15 @@ inline LogMessageCallbackState make_log_message_callback_state(int max_verbosity
   return {max_verbosity_level, callback};
 }
 
-static std::shared_ptr<const LogMessageCallbackState> log_message_callback_state =
-    std::make_shared<const LogMessageCallbackState>(make_log_message_callback_state(-2, nullptr));
+static std::atomic<std::shared_ptr<const LogMessageCallbackState>> log_message_callback_state{
+    std::make_shared<const LogMessageCallbackState>(make_log_message_callback_state(-2, nullptr))};
 
 inline std::shared_ptr<const LogMessageCallbackState> load_log_message_callback_state() noexcept {
-  return std::atomic_load_explicit(&log_message_callback_state, std::memory_order_acquire);
+  return log_message_callback_state.load(std::memory_order_acquire);
 }
 
 inline void store_log_message_callback_state(int max_verbosity_level, OnLogMessageCallback callback) noexcept {
-  std::atomic_store_explicit(
-      &log_message_callback_state,
+  log_message_callback_state.store(
       std::make_shared<const LogMessageCallbackState>(make_log_message_callback_state(max_verbosity_level, callback)),
       std::memory_order_release);
 }

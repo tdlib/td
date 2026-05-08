@@ -15,8 +15,7 @@ TEST(LoggingMessageCallbackAdversarial, SourceRejectsSplitAtomicCallbackConfigur
 
   ASSERT_TRUE(normalized.find("std::atomic<int>max_callback_verbosity_level") == td::string::npos);
   ASSERT_TRUE(normalized.find("std::atomic<OnLogMessageCallback>on_log_message_callback") == td::string::npos);
-  ASSERT_TRUE(normalized.find("std::atomic_load_explicit(&log_message_callback_state,std::memory_order_acquire)") !=
-              td::string::npos);
+  ASSERT_TRUE(normalized.find("log_message_callback_state.load(std::memory_order_acquire)") != td::string::npos);
   ASSERT_TRUE(normalized.find("autocallback_state=load_log_message_callback_state();") != td::string::npos);
 }
 
