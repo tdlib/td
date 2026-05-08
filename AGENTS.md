@@ -26,11 +26,16 @@ TDLib fork with MTProto-proxy-only stealth traffic-masking for DPI evasion.
 
 Use the instruction files below as the authoritative implementation and review rules for this repository:
 
+- Treat `applyTo` as an activation hint: if you touch a listed file or the matching behavior category, read that instruction before editing.
+- In particular, load the Doxygen reminder as soon as work becomes consumer-facing API work, and load the logging reminder as soon as work adds or changes a logging point or logging control path.
+
 - **Architecture**: Layered design and structural constraints. See `.github/instructions/architecture.instructions.md`
 - **C++ rules**: Modern C++ coding rules and Core Guidelines alignment. See `.github/instructions/c++_rules.instructions.md`
 - **C++17 reference**: Language and library guidance for C++17 features. See `.github/instructions/CPP17.md`
 - **C++20 reference**: Language and library guidance for C++20 features. See `.github/instructions/CPP20.md`
 - **C++23 reference**: Language and library guidance for C++23 features. See `.github/instructions/CPP23.md`
+- **Doxygen API docs**: Activation reminder for consumer-facing API work, request plumbing, and Doxygen input changes so public APIs are routed through the canonical documentation pipeline. See `.github/instructions/doxygen_api_documentation.instructions.md`
+- **Logging subsystem**: Activation reminder for `LOG`/`VLOG` points, tags, sinks, callbacks, fatal logging paths, and public logging APIs so changes stay integrated with the existing subsystem. See `.github/instructions/logging_subsystem.instructions.md`
 - **Security requirements**: OWASP ASVS L2 secure coding requirements. See `.github/instructions/Security_Requirements.instructions.md`
 - **SonarQube MCP**: SonarQube MCP workflow and analysis guidance. See `.github/instructions/sonarqube_mcp.instructions.md`
 - **TDD approach**: Adversarial testing required before implementation. See `.github/instructions/TDD_approach.instructions.md`
