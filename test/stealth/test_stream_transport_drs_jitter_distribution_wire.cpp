@@ -87,8 +87,9 @@ std::vector<size_t> extract_tls_record_lengths(td::Slice wire) {
 }
 
 size_t sample_first_bulk_record_length(td::uint64 seed) {
+  auto secret = make_tls_secret();
   auto decorator = StealthTransportDecorator::create(
-      td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(make_tls_secret())),
+      td::make_unique<ObfuscatedTransport>(static_cast<td::int16>(2), ProxySecret::from_raw(secret)),
       make_distribution_config(), td::make_unique<MockRng>(seed), td::make_unique<MockClock>());
   CHECK(decorator.is_ok());
   auto transport = decorator.move_as_ok();

@@ -614,6 +614,7 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_chaff_scheduler_cumulative_resume_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_chaff_scheduler_unsatisfiable_wakeup_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_scheduler_budget_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_scheduler_budget_regression_guard.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_scheduler_time_fail_closed_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_chaff_fail_closed.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_config_chaff_model_overflow_fail_closed.cpp

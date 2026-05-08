@@ -27,7 +27,9 @@ TEST(ConnectionRetryPolicySecurity, OnlineMtprotoProxyConnectionsUseExponentialB
 }
 
 TEST(ConnectionRetryPolicySecurity, OnlineTlsEmulatedMtprotoProxyConnectionsUseExponentialBackoff) {
-  auto secret = std::string(1, static_cast<char>(0xee)) + "0123456789abcdefdomain";
+  std::string secret;
+  secret.push_back(static_cast<char>(0xee));
+  secret += "0123456789abcdefdomain";
   auto proxy = td::Proxy::mtproto("proxy.example", 443, td::mtproto::ProxySecret::from_raw(secret));
 
   ASSERT_TRUE(td::should_apply_connection_failure_backoff(true, proxy));

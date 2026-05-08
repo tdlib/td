@@ -12,7 +12,7 @@
 namespace {
 
 td::string make_db_path(const char *prefix) {
-  return td::string(prefix) + "_" + std::to_string(td::Random::secure_uint64());
+  return PSTRING() << prefix << "_" << td::Random::secure_uint64();
 }
 
 int pick_blob_size() {

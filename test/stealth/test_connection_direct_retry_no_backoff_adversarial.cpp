@@ -26,10 +26,16 @@
 
 #include "td/utils/tests.h"
 
-#include <algorithm>
 #include <limits>
 
 namespace {
+
+td::mtproto::ProxySecret make_tls_proxy_secret() {
+  td::string raw_secret;
+  raw_secret.push_back(static_cast<char>(0xee));
+  raw_secret += "0123456789abcdefdomain";
+  return td::mtproto::ProxySecret::from_raw(raw_secret);
+}
 
 // --- Security policy tests ---
 
@@ -103,9 +109,7 @@ TEST(ConnectionDirectRetryAdversarial, BackoffClearResetsToZero) {
 // Requirement: proxy connections MUST have bounded_retry=true (already tested
 // in classification_security, but this test makes the REGRESSION explicit).
 TEST(ConnectionDirectRetryAdversarial, ProxyConnectionWithBackoffHasBoundedRetry) {
-  auto proxy = td::Proxy::mtproto(
-      "proxy.example", 443,
-      td::mtproto::ProxySecret::from_raw(std::string(1, static_cast<char>(0xee)) + "0123456789abcdefdomain"));
+  auto proxy = td::Proxy::mtproto("proxy.example", 443, make_tls_proxy_secret());
   auto classification = td::classify_connection_failure(true, proxy, td::Status::Error("Connection refused"));
   ASSERT_TRUE(classification.bounded_retry);
 }
@@ -115,9 +119,7 @@ TEST(ConnectionDirectRetryAdversarial, ProxyConnectionWithBackoffHasBoundedRetry
 // (e.g., misconfigured proxy secret) → TlsInit fails → connection retries
 // immediately without limit.
 TEST(ConnectionDirectRetryAdversarial, TlsHashMismatchOnProxyHasBoundedRetry) {
-  auto proxy = td::Proxy::mtproto(
-      "proxy.example", 443,
-      td::mtproto::ProxySecret::from_raw(std::string(1, static_cast<char>(0xee)) + "0123456789abcdefdomain"));
+  auto proxy = td::Proxy::mtproto("proxy.example", 443, make_tls_proxy_secret());
   auto classification = td::classify_connection_failure(
       true, proxy,
       td::Status::Error(static_cast<td::int32>(td::ProxySetupErrorCode::TlsHelloResponseHashMismatch),

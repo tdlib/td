@@ -9,9 +9,15 @@
 #include "td/utils/tests.h"
 
 #include <limits>
-#include <string>
 
 namespace {
+
+td::mtproto::ProxySecret make_tls_proxy_secret() {
+  td::string raw_secret;
+  raw_secret.push_back(static_cast<char>(0xee));
+  raw_secret += "0123456789abcdefdomain";
+  return td::mtproto::ProxySecret::from_raw(raw_secret);
+}
 
 TEST(ConnectionRetryPolicyEnforcementAdversarial, DirectFailuresAlwaysEnableBackoffAndBoundedRetry) {
   auto online = td::classify_connection_failure(true, td::Proxy(), td::Status::Error("connect failure"));
@@ -128,9 +134,7 @@ TEST(ConnectionRetryPolicyEnforcementAdversarial, ClassificationLegacyCloseStrin
 }
 
 TEST(ConnectionRetryPolicyEnforcementAdversarial, ClassificationTlsHashMismatchRemainsDeterministicAndBounded) {
-  auto proxy = td::Proxy::mtproto(
-      "proxy.example", 443,
-      td::mtproto::ProxySecret::from_raw(std::string(1, static_cast<char>(0xee)) + "0123456789abcdefdomain"));
+  auto proxy = td::Proxy::mtproto("proxy.example", 443, make_tls_proxy_secret());
 
   auto classification = td::classify_connection_failure(
       true, proxy,

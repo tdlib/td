@@ -32,9 +32,10 @@ struct RetryAttemptOutcome final {
 };
 
 td::Proxy tls_proxy() {
-  return td::Proxy::mtproto(
-      "proxy.example", 443,
-      td::mtproto::ProxySecret::from_raw(std::string(1, static_cast<char>(0xee)) + "0123456789abcdefdomain"));
+  td::string raw_secret;
+  raw_secret.push_back(static_cast<char>(0xee));
+  raw_secret += "0123456789abcdefdomain";
+  return td::Proxy::mtproto("proxy.example", 443, td::mtproto::ProxySecret::from_raw(raw_secret));
 }
 
 td::size_t connection_creator_retry_cap() {

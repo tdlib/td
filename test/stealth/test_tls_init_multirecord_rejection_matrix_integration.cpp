@@ -16,8 +16,8 @@
 #include "td/mtproto/TlsInit.h"
 
 #include "test/stealth/ProxyRejectionTestHarness.h"
-#include "test/stealth/TlsInitTestPeer.h"
 #include "test/stealth/TlsInitTestHelpers.h"
+#include "test/stealth/TlsInitTestPeer.h"
 
 #include "td/utils/tests.h"
 
@@ -52,14 +52,15 @@ TlsInit create_tls_init(td::SocketFd socket_fd) {
   NetworkRouteHints route_hints;
   route_hints.is_known = true;
   route_hints.is_ru = false;
-  return TlsInit(std::move(socket_fd), "www.google.com", "0123456789secret", td::make_unique<NoopCallback>(), {},
-                 0.0, route_hints);
+  return TlsInit(std::move(socket_fd), "www.google.com", "0123456789secret", td::make_unique<NoopCallback>(), {}, 0.0,
+                 route_hints);
 }
 
 td::Proxy tls_proxy() {
-  return td::Proxy::mtproto(
-      "proxy.example", 443,
-      td::mtproto::ProxySecret::from_raw(std::string(1, static_cast<char>(0xee)) + "0123456789abcdefdomain"));
+  td::string raw_secret;
+  raw_secret.push_back(static_cast<char>(0xee));
+  raw_secret += "0123456789abcdefdomain";
+  return td::Proxy::mtproto("proxy.example", 443, td::mtproto::ProxySecret::from_raw(raw_secret));
 }
 
 td::Status flush_response_into_tls_init(TlsInit &tls_init, td::SocketFd &peer_fd, td::Slice response,
@@ -93,8 +94,8 @@ TEST(TlsInitMultiRecordRejectionMatrixIntegration, MalformedAndHashMismatchRespo
   const ScenarioCase cases[] = {
       {"zero_length_application_data",
        [](const std::string &hello_rand) {
-         return make_tls_init_response("0123456789secret", hello_rand, kFirstResponsePrefix, kSecondResponsePrefix,
-                                       40, 0);
+         return make_tls_init_response("0123456789secret", hello_rand, kFirstResponsePrefix, kSecondResponsePrefix, 40,
+                                       0);
        },
        static_cast<td::int32>(td::ProxySetupErrorCode::TlsHelloMalformedResponse),
        td::ProxyFailureReason::MalformedResponse},
@@ -134,7 +135,7 @@ TEST(TlsInitMultiRecordRejectionMatrixIntegration, MalformedAndHashMismatchRespo
     auto response = test_case.make_response(TlsInitTestPeer::hello_rand(tls_init));
     const auto first_chunk = response.size() / 2;
     ASSERT_TRUE(flush_response_into_tls_init(tls_init, socket_pair.peer, td::Slice(response).substr(0, first_chunk),
-                                            first_chunk)
+                                             first_chunk)
                     .is_ok());
     auto status = TlsInitTestPeer::wait_hello_response(tls_init);
     if (status.is_ok()) {
