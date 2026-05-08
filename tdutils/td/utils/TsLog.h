@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -19,17 +19,23 @@ class TsLog final : public LogInterface {
   explicit TsLog(LogInterface *log) : log_(log) {
   }
   void init(LogInterface *log) {
-    enter_critical();
+    if (!enter_critical()) {
+      return;
+    }
     log_ = log;
     exit_critical();
   }
   void after_rotation() final {
-    enter_critical();
+    if (!enter_critical()) {
+      return;
+    }
     log_->after_rotation();
     exit_critical();
   }
   vector<string> get_file_paths() final {
-    enter_critical();
+    if (!enter_critical()) {
+      return {};
+    }
     auto result = log_->get_file_paths();
     exit_critical();
     return result;
@@ -37,12 +43,14 @@ class TsLog final : public LogInterface {
 
  private:
   void do_append(int log_level, CSlice slice) final {
-    enter_critical();
+    if (!enter_critical()) {
+      return;
+    }
     log_->do_append(log_level, slice);
     exit_critical();
   }
 
-  void enter_critical();
+  bool enter_critical();
 
   void exit_critical() {
     lock_.clear(std::memory_order_release);

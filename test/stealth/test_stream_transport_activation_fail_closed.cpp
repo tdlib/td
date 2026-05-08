@@ -7,6 +7,7 @@
 #include "td/mtproto/IStreamTransport.h"
 #include "td/mtproto/stealth/StealthConfig.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/tests.h"
 
@@ -238,13 +239,13 @@ TEST(StreamTransportActivationFailClosed, InvalidRuntimeConfigLogsStructuredDisa
   g_config_factory_calls = 0;
   auto previous_config_factory = set_stealth_config_factory_for_tests(&invalid_stealth_config_factory_for_logs);
   CapturingLog capture;
-  auto old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(INFO));
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
     set_stealth_config_factory_for_tests(previous_config_factory);
   };
 
@@ -270,14 +271,14 @@ TEST(StreamTransportActivationFailClosed, InvalidRuntimeConfigLogRedactsProxySec
   g_config_factory_calls = 0;
   auto previous_config_factory = set_stealth_config_factory_for_tests(&invalid_stealth_config_factory_with_secret_leak);
   CapturingLog capture;
-  auto old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(INFO));
   auto secret = make_tls_secret();
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
     set_stealth_config_factory_for_tests(previous_config_factory);
   };
 
@@ -303,13 +304,13 @@ TEST(StreamTransportActivationFailClosed, InvalidRuntimeConfigLogRejectsMultilin
   auto previous_config_factory =
       set_stealth_config_factory_for_tests(&invalid_stealth_config_factory_with_multiline_message);
   CapturingLog capture;
-  auto old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(INFO));
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
     set_stealth_config_factory_for_tests(previous_config_factory);
   };
 
@@ -333,13 +334,13 @@ TEST(StreamTransportActivationFailClosed, InvalidRuntimeConfigLogRejectsNonAscii
   auto previous_config_factory =
       set_stealth_config_factory_for_tests(&invalid_stealth_config_factory_with_non_ascii_message);
   CapturingLog capture;
-  auto old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(INFO));
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
     set_stealth_config_factory_for_tests(previous_config_factory);
   };
 
@@ -361,13 +362,13 @@ TEST(StreamTransportActivationFailClosed, SuccessfulActivationLogsEnableDecision
   g_config_factory_calls = 0;
   auto previous_config_factory = set_stealth_config_factory_for_tests(&counting_stealth_config_factory);
   CapturingLog capture;
-  auto old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(INFO));
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
     set_stealth_config_factory_for_tests(previous_config_factory);
   };
 

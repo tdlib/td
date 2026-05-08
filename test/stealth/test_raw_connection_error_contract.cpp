@@ -265,14 +265,14 @@ TEST(RawConnectionErrorContract, FloodWaitStyleMtprotoErrorNotifiesStatsOnceFail
 
   CapturingCallback callback;
   CapturingLog capture;
-  auto *old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
 
   auto status = raw_connection->flush(AuthKey(), callback);
   auto captured = capture.joined();
-  td::log_interface = old_log_interface;
+  td::store_active_log_interface(old_sink);
   SET_VERBOSITY_LEVEL(old_verbosity);
 
   ASSERT_TRUE(status.is_error());
@@ -348,14 +348,14 @@ TEST(RawConnectionErrorContract, InvalidQuickAckLogsStructuredDiagnosticsAtRunti
 
   CapturingCallback callback;
   CapturingLog capture;
-  auto *old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
 
   auto status = raw_connection->flush(AuthKey(), callback);
   auto captured = capture.joined();
-  td::log_interface = old_log_interface;
+  td::store_active_log_interface(old_sink);
   SET_VERBOSITY_LEVEL(old_verbosity);
 
   ASSERT_TRUE(status.is_ok());
@@ -382,14 +382,14 @@ TEST(RawConnectionErrorContract, UnknownQuickAckLogsStructuredDiagnosticsAtRunti
 
   CapturingCallback callback;
   CapturingLog capture;
-  auto *old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
 
   auto status = raw_connection->flush(AuthKey(), callback);
   auto captured = capture.joined();
-  td::log_interface = old_log_interface;
+  td::store_active_log_interface(old_sink);
   SET_VERBOSITY_LEVEL(old_verbosity);
 
   ASSERT_TRUE(status.is_ok());

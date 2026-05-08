@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/Client.h"
 
@@ -691,12 +691,16 @@ static void log_message_callback_wrapper(int verbosity_level, CSlice message) {
       callback(verbosity_level, message.c_str());
     } else {
       size_t pos = 0;
-      while (1 <= message[pos] && message[pos] <= 126) {
+      while (pos < message.size() && 1 <= message[pos] && message[pos] <= 126) {
         pos++;
       }
-      CHECK(pos + 1 < message.size());
-      auto utf8_message = PSTRING() << message.substr(0, pos)
-                                    << url_encode(message.substr(pos, message.size() - pos - 1)) << '\n';
+      CHECK(pos < message.size());
+      const bool has_newline = !message.empty() && message.back() == '\n';
+      const auto tail_size = message.size() - pos - static_cast<size_t>(has_newline);
+      auto utf8_message = PSTRING() << message.substr(0, pos) << url_encode(message.substr(pos, tail_size));
+      if (has_newline) {
+        utf8_message += '\n';
+      }
       callback(verbosity_level, utf8_message.c_str());
     }
   }

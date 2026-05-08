@@ -40,7 +40,7 @@
 
 namespace td {
 
-int VERBOSITY_NAME(mtproto) = VERBOSITY_NAME(DEBUG) + 7;
+std::atomic<int> VERBOSITY_NAME(mtproto) = VERBOSITY_NAME(DEBUG) + 7;
 
 namespace mtproto_api {
 

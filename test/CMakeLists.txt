@@ -95,6 +95,46 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/string_cleaning.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/mime_type_update_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/client_json_boundary_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_stream_pointer_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_tag_verbosity_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_vlog_relaxed_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_tde2e_blkch_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_macro_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_macro_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_macro_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_macro_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_macro_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_message_callback_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_message_callback_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_message_callback_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_message_callback_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_message_callback_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_truncation_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_truncation_boundary_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_fatal_callback_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_spin_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_scoped_disable_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_tscerr_spin_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_tscerr_ordering_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_stream_pointer_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_tag_verbosity_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_truncation_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_fatal_callback_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_spin_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_scoped_disable_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_tscerr_spin_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_tscerr_ordering_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_stream_pointer_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_spin_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_tag_verbosity_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_stream_pointer_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_spin_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_tag_verbosity_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_truncation_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_spin_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_stream_pointer_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_tag_verbosity_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logging_tscerr_spin_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tdclient.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tqueue.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/translation_manager.cpp
@@ -362,6 +402,8 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_runtime_platform_lane_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_route_and_transport_gate_matrix.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_tls_init_proxy_alpn_semantics.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_logging_secret_hygiene_source_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_logging_fixture_route_ech_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_params_loader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_params_loader_plan.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/stealth/test_stealth_params_loader_platform_runtime.cpp

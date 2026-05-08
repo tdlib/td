@@ -1178,3 +1178,49 @@ Gap 4: Release family trust tiers
 - analysis contract `python3 test/analysis/test_stealth_build_contract.py`: `3/3 OK`.
 
 Operational смысл этого обновления простой: `ee`-secret перестал быть просто transport toggle с произвольным suffix, а стал явным validated input boundary. Это снижает риск malformed-SNI drift и закрывает storage-bypass для уже сохранённых `dc_options`.
+
+### 7.13 Delta Update (2026-05-08): logging subsystem hardening
+
+Эта волна описана отдельным планом `docs/Plans/LOGGING_HARDENING_2026-05-07.md`, но её результат важен и для stealth-контура: fail-closed диагностика proxy-routing, ECH policy, activation/build gate и runtime reload не должны опираться на data-racy logging path. Иначе в стрессовых сценариях наблюдаемость начинает сама искажать поведение, а не только описывать его.
+
+#### 7.13.1 Какой класс дефектов был закрыт
+
+Проблема была не в «косметике логов», а в системных UB/observability рисках:
+
+1. active sink переключался через обычный global pointer и читался из hot-path макросов без atomic semantics;
+2. runtime tag verbosity жила в mutable globals, которые читались через `VLOG(...)` одновременно с admin/runtime updates;
+3. `Logger::~Logger()` молча терял факт переполнения буфера и оставлял silent truncation;
+4. `fatal_error_callback` читался и писался конкурентно как plain function pointer;
+5. `TsLog` и `TsCerr` под нагрузкой крутили tight spin loops без bounded yield/backoff;
+6. в `tde2e` оставался survivor `verbosity_blkch` как plain `int`, который превращался бы в тот же LOG-02 класс гонки при первом `VLOG(blkch)` call site.
+
+#### 7.13.2 Что реально изменено в коде
+
+1. `tdutils/td/utils/logging.cpp` и `tdutils/td/utils/logging.h` переведены на единый atomic sink seam: `active_log_interface` теперь `std::atomic<LogInterface *>`, а все читатели/писатели проходят через `load_active_log_interface()` и `store_active_log_interface()` с `acquire/release`. Это убирает UB при смене log sink и делает macro-path и control-path симметричными.
+2. `td/telegram/Logging.cpp` больше не держит tag-level registry как карту на plain `int *`: `log_tags` теперь хранит `std::atomic<int> *`, для чтения/записи введены `load_tag_verbosity_level(...)` и `store_tag_verbosity_level(...)`.
+3. `tdutils/td/utils/logging.h` получил перегруженный `load_verbosity_level(...)`: `int` проходит без накладных расходов, а `const std::atomic<int> &` читается через `memory_order_relaxed`. За счёт этого `VLOG(custom_tag)` перестал платить `seq_cst`-цену на каждом hot-path gate-check.
+4. `tdutils/td/utils/logging.cpp` больше не делает silent truncation: если `StringBuilder` ушёл в overflow, `Logger::~Logger()` в обеих ветках flush добавляет явный tail-marker `[truncated]`.
+5. `td/telegram/Log.cpp` фиксирует fatal callback как shared concurrent state: `fatal_error_callback` стал atomic, wrapper читает его через `acquire`, setter пишет через `release`.
+6. `tdutils/td/utils/TsLog.cpp` и `tdutils/td/utils/TsCerr.cpp` получили bounded backoff: каждые 32 spin-итерации выполняется `std::this_thread::yield()`. Для `TsCerr` ordering дополнительно выровнен с `TsLog`: `test_and_set(memory_order_acquire)` / `clear(memory_order_release)` вместо `seq_cst`.
+7. `tde2e/td/e2e/TestBlockchain.h/.cpp` доведены до общей модели tag-verbosity globals: `verbosity_blkch` теперь `std::atomic<int>`, а не отдельный plain-int survivor.
+
+#### 7.13.3 Что добавлено в регрессионный контур
+
+Logging hardening не остался только переписанным кодом. В `run_all_tests` теперь заведён отдельный набор logging-specific suites с разными типами инвариантов:
+
+1. contract: pointer/tag/truncation/fatal-callback seams, `TsLog`/`TsCerr` spin contracts, Phase 6 pins для `load_verbosity_level`, `TsCerr` ordering и `verbosity_blkch`;
+2. adversarial: stream-swap storms, tag-toggle storms, truncation overflow, fatal callback churn, `TsCerr` ordering/contention pressure;
+3. integration/light-fuzz/stress: отдельные файлы для stream pointer, tag verbosity и spin behavior under load.
+
+Отдельно важно, что новые logging tests не остались orphan-артефактами: они подключены в `test/CMakeLists.txt`, включая Phase 6 файлы `logging_vlog_relaxed_contract.cpp`, `logging_tde2e_blkch_contract.cpp`, `logging_tscerr_ordering_contract.cpp` и `logging_tscerr_ordering_adversarial.cpp`. Для stealth-контура также сохранён source-contract `test/stealth/test_logging_secret_hygiene_source_contract.cpp`, который pin-ит отсутствие секретов в логирующих путях.
+
+#### 7.13.4 Практический итог для stealth-контура
+
+Это не меняет wire image напрямую, но делает наблюдаемость и fail-closed диагностику пригодными для реальной эксплуатации stealth-ветки:
+
+1. runtime-switching log sinks и tag verbosity больше не зависят от UB при одновременных log storms, CLI mutations и тестовых override-ах;
+2. oversized diagnostics для proxy/ECH/routing/fail-fast путей больше не режутся молча, то есть инцидентный лог сохраняет факт truncation явно;
+3. contention в stderr/file logging перестал лишний раз жечь CPU полными fence-барьерами и tight spin-ом, что снижает риск искажения timing-sensitive soak/adversarial прогонов;
+4. вся logging wave теперь закрывает не только исходные LOG-01..LOG-05, но и post-audit residuals LOG-R09..LOG-R11.
+
+Operational вывод простой: stealth-контур теперь опирается не на «как повезёт» observability path, а на race-free, fail-closed и test-pinned logging infrastructure.

@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/db/binlog/Binlog.h"
 
@@ -168,7 +168,7 @@ static int64 file_size(CSlice path) {
 }
 }  // namespace detail
 
-int32 VERBOSITY_NAME(binlog) = VERBOSITY_NAME(DEBUG) + 8;
+std::atomic<int> VERBOSITY_NAME(binlog) = VERBOSITY_NAME(DEBUG) + 8;
 
 Binlog::Binlog() = default;
 

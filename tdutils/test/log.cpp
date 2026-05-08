@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/utils/AsyncFileLog.h"
 #include "td/utils/benchmark.h"
@@ -53,9 +53,9 @@ class LogBenchmark final : public td::Benchmark {
     log_.reset();
   }
   void run(int n) final {
-    auto old_log_interface = td::log_interface;
+    auto *old_sink = td::load_active_log_interface();
     if (log_ != nullptr) {
-      td::log_interface = log_.get();
+      td::store_active_log_interface(log_.get());
     }
 
     for (auto &thread : threads_) {
@@ -65,7 +65,7 @@ class LogBenchmark final : public td::Benchmark {
       thread.join();
     }
 
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
   }
 
   void run_thread(int n) {

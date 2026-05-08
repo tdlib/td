@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/utils/logging.h"
 
@@ -15,6 +15,7 @@
 #include <atomic>
 #include <cstdlib>
 #include <limits>
+#include <memory>
 #include <mutex>
 
 #if TD_ANDROID
@@ -31,26 +32,98 @@ namespace td {
 
 LogOptions log_options;
 
-static std::atomic<int> max_callback_verbosity_level{-2};
-static std::atomic<OnLogMessageCallback> on_log_message_callback{nullptr};
+namespace {
 
-void set_log_message_callback(int max_verbosity_level, OnLogMessageCallback callback) {
+struct LogMessageCallbackState final {
+  int max_verbosity_level;
+  OnLogMessageCallback callback;
+};
+
+inline LogMessageCallbackState make_log_message_callback_state(int max_verbosity_level,
+                                                               OnLogMessageCallback callback) noexcept {
   if (callback == nullptr) {
     max_verbosity_level = -2;
   }
+  return {max_verbosity_level, callback};
+}
 
-  max_callback_verbosity_level = max_verbosity_level;
-  on_log_message_callback = callback;
+static std::shared_ptr<const LogMessageCallbackState> log_message_callback_state =
+    std::make_shared<const LogMessageCallbackState>(make_log_message_callback_state(-2, nullptr));
+
+inline std::shared_ptr<const LogMessageCallbackState> load_log_message_callback_state() noexcept {
+  return std::atomic_load_explicit(&log_message_callback_state, std::memory_order_acquire);
+}
+
+inline void store_log_message_callback_state(int max_verbosity_level, OnLogMessageCallback callback) noexcept {
+  std::atomic_store_explicit(
+      &log_message_callback_state,
+      std::make_shared<const LogMessageCallbackState>(make_log_message_callback_state(max_verbosity_level, callback)),
+      std::memory_order_release);
+}
+
+TD_THREAD_LOCAL bool is_in_log_message_callback = false;
+
+class LogMessageCallbackScope final {
+ public:
+  LogMessageCallbackScope() noexcept : owns_(!is_in_log_message_callback) {
+    if (owns_) {
+      is_in_log_message_callback = true;
+    }
+  }
+
+  ~LogMessageCallbackScope() {
+    if (owns_) {
+      is_in_log_message_callback = false;
+    }
+  }
+
+  explicit operator bool() const noexcept {
+    return owns_;
+  }
+
+ private:
+  bool owns_;
+};
+
+constexpr Slice kLogTruncationMarker("[truncated]");
+
+void append_truncation_marker(MutableCSlice slice) {
+  if (slice.empty()) {
+    return;
+  }
+
+  const bool has_newline = slice.back() == '\n';
+  const size_t content_size = slice.size() - static_cast<size_t>(has_newline);
+  if (content_size == 0) {
+    return;
+  }
+
+  const size_t marker_size = kLogTruncationMarker.size();
+  const size_t copy_size = td::min(content_size, marker_size);
+  const size_t marker_begin = marker_size - copy_size;
+  const size_t target_begin = content_size - copy_size;
+  for (size_t i = 0; i < copy_size; i++) {
+    slice[target_begin + i] = kLogTruncationMarker[marker_begin + i];
+  }
+}
+
+}  // namespace
+
+void set_log_message_callback(int max_verbosity_level, OnLogMessageCallback callback) {
+  store_log_message_callback_state(max_verbosity_level, callback);
 }
 
 void LogInterface::append(int log_level, CSlice slice) {
   do_append(log_level, slice);
   if (log_level == VERBOSITY_NAME(FATAL)) {
     process_fatal_error(slice);
-  } else if (log_level <= max_callback_verbosity_level.load(std::memory_order_relaxed)) {
-    auto callback = on_log_message_callback.load(std::memory_order_relaxed);
-    if (callback != nullptr) {
-      callback(log_level, slice);
+  } else {
+    auto callback_state = load_log_message_callback_state();
+    if (callback_state->callback != nullptr && log_level <= callback_state->max_verbosity_level) {
+      LogMessageCallbackScope callback_scope;
+      if (callback_scope) {
+        callback_state->callback(log_level, slice);
+      }
     }
   }
 }
@@ -144,9 +217,16 @@ Logger::~Logger() {
       slice.back() = '\0';
       slice = MutableCSlice(slice.begin(), slice.begin() + slice.size() - 1);
     }
+    if (sb_.is_error()) {
+      append_truncation_marker(slice);
+    }
     log_.append(log_level_, slice);
   } else {
-    log_.append(log_level_, as_cslice());
+    auto slice = as_cslice();
+    if (sb_.is_error()) {
+      append_truncation_marker(slice);
+    }
+    log_.append(log_level_, slice);
   }
 }
 
@@ -236,13 +316,23 @@ class DefaultLog final : public LogInterface {
 static DefaultLog default_log;
 
 LogInterface *const default_log_interface = &default_log;
-LogInterface *log_interface = default_log_interface;
+static std::atomic<LogInterface *> active_log_interface{default_log_interface};
+
+LogInterface *load_active_log_interface() {
+  return active_log_interface.load(std::memory_order_acquire);
+}
+
+void store_active_log_interface(LogInterface *interface) {
+  CHECK(interface != nullptr);
+  active_log_interface.store(interface, std::memory_order_release);
+}
 
 void process_fatal_error(CSlice message) {
-  if (0 <= max_callback_verbosity_level.load(std::memory_order_relaxed)) {
-    auto callback = on_log_message_callback.load(std::memory_order_relaxed);
-    if (callback != nullptr) {
-      callback(0, message);
+  auto callback_state = load_log_message_callback_state();
+  if (callback_state->callback != nullptr && 0 <= callback_state->max_verbosity_level) {
+    LogMessageCallbackScope callback_scope;
+    if (callback_scope) {
+      callback_state->callback(0, message);
     }
   }
 

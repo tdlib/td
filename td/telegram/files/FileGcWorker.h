@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -16,9 +16,11 @@
 #include "td/utils/logging.h"
 #include "td/utils/Promise.h"
 
+#include <atomic>
+
 namespace td {
 
-extern int VERBOSITY_NAME(file_gc);
+extern std::atomic<int> VERBOSITY_NAME(file_gc);
 
 struct FileGcResult {
   FileStats kept_file_stats_;

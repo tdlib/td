@@ -35,6 +35,39 @@ Use the instruction files below as the authoritative implementation and review r
 - **SonarQube MCP**: SonarQube MCP workflow and analysis guidance. See `.github/instructions/sonarqube_mcp.instructions.md`
 - **TDD approach**: Adversarial testing required before implementation. See `.github/instructions/TDD_approach.instructions.md`
 
+## License headers
+
+- Modified existing Boost-derived files must use the dual SPDX header:
+	- `SPDX-License-Identifier: BSL-1.0 AND MIT`
+	- include both copyright lines: the original TDLib copyright line and `Copyright 2026 telemt community`
+	- include the `telemt` project links already used in the repo header format
+- New files created in this repository should use the telemt-only MIT header:
+	- `SPDX-FileCopyrightText: Copyright 2026 telemt community`
+	- `SPDX-License-Identifier: MIT`
+	- include the same `telemt` project links
+- Do not rewrite third-party or GPL-licensed file headers into the dual SPDX form. The dual header rule applies to Boost-derived repository files only.
+
+Dual SPDX example for modified existing Boost-derived source files:
+
+```cpp
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
+//
+```
+
+MIT-only example for newly created files:
+
+```cpp
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
+//
+```
+
 ## Reference material
 
 - DPI context: `docs/Plans/STEALTH_IMPLEMENTATION_RU.md`

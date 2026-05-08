@@ -29,9 +29,11 @@
 
 #include <utility>
 
+#include <atomic>
+
 namespace td {
 
-extern int VERBOSITY_NAME(mtproto);
+extern std::atomic<int> VERBOSITY_NAME(mtproto);
 
 namespace mtproto_api {
 class new_session_created;

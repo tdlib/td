@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -28,6 +28,8 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
+
+#include <atomic>
 
 namespace td {
 
@@ -115,8 +117,8 @@ class VoiceNotesManager;
 class WebAppManager;
 class WebPagesManager;
 
-extern int VERBOSITY_NAME(td_init);
-extern int VERBOSITY_NAME(td_requests);
+extern std::atomic<int> VERBOSITY_NAME(td_init);
+extern std::atomic<int> VERBOSITY_NAME(td_requests);
 
 // Td may start closing after explicit "close" or "destroy" query.
 // Or it may start closing by itself, because authorization is lost.

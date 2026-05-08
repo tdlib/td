@@ -44,6 +44,8 @@
 #include <set>
 #include <utility>
 
+#include <atomic>
+
 namespace td {
 
 namespace detail {
@@ -52,7 +54,7 @@ class StatsCallback;
 
 class GetHostByNameActor;
 
-extern int VERBOSITY_NAME(connections);
+extern std::atomic<int> VERBOSITY_NAME(connections);
 
 class ConnectionCreator final : public NetQueryCallback {
  public:

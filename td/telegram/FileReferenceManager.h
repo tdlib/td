@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -32,11 +32,13 @@
 #include "td/utils/WaitFreeHashMap.h"
 #include "td/utils/WaitFreeVector.h"
 
+#include <atomic>
+
 namespace td {
 
 class Td;
 
-extern int VERBOSITY_NAME(file_references);
+extern std::atomic<int> VERBOSITY_NAME(file_references);
 
 class FileReferenceManager final : public Actor {
  public:

@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/Log.h"
 
@@ -12,6 +12,7 @@
 
 #include "td/utils/common.h"
 
+#include <atomic>
 #include <mutex>
 
 namespace td {
@@ -19,11 +20,11 @@ namespace td {
 static std::mutex log_mutex;
 static string log_file_path;
 static int64 max_log_file_size = 10 << 20;
-static Log::FatalErrorCallbackPtr fatal_error_callback;
+static std::atomic<Log::FatalErrorCallbackPtr> fatal_error_callback{nullptr};
 
 static void fatal_error_callback_wrapper(int verbosity_level, const char *message) {
   if (verbosity_level == 0) {
-    auto callback = fatal_error_callback;
+    auto callback = fatal_error_callback.load(std::memory_order_acquire);
     if (callback != nullptr) {
       callback(message);
     }
@@ -61,10 +62,10 @@ void Log::set_verbosity_level(int new_verbosity_level) {
 void Log::set_fatal_error_callback(FatalErrorCallbackPtr callback) {
   std::lock_guard<std::mutex> lock(log_mutex);
   if (callback == nullptr) {
+    fatal_error_callback.store(nullptr, std::memory_order_release);
     ClientManager::set_log_message_callback(0, nullptr);
-    fatal_error_callback = nullptr;
   } else {
-    fatal_error_callback = callback;
+    fatal_error_callback.store(callback, std::memory_order_release);
     ClientManager::set_log_message_callback(0, fatal_error_callback_wrapper);
   }
 }

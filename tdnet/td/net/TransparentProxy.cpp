@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/net/TransparentProxy.h"
 
@@ -13,7 +13,7 @@
 
 namespace td {
 
-int VERBOSITY_NAME(proxy) = VERBOSITY_NAME(DEBUG);
+std::atomic<int> VERBOSITY_NAME(proxy) = VERBOSITY_NAME(DEBUG);
 
 TransparentProxy::TransparentProxy(SocketFd socket_fd, IPAddress ip_address, string username, string password,
                                    unique_ptr<Callback> callback, ActorShared<> parent)

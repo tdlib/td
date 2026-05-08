@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/Td.h"
 
@@ -117,8 +117,8 @@
 
 namespace td {
 
-int VERBOSITY_NAME(td_init) = VERBOSITY_NAME(DEBUG) + 3;
-int VERBOSITY_NAME(td_requests) = VERBOSITY_NAME(INFO);
+std::atomic<int> VERBOSITY_NAME(td_init) = VERBOSITY_NAME(DEBUG) + 3;
+std::atomic<int> VERBOSITY_NAME(td_requests) = VERBOSITY_NAME(INFO);
 
 void Td::ResultHandler::set_td(Td *td) {
   CHECK(td_ == nullptr);

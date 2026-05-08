@@ -107,19 +107,19 @@ TEST(TlsInitLogContract, PreparedHelloLogIncludesProfileAndRouteDecisionFields) 
   auto tls_init = create_tls_init(std::move(socket_pair.client), ru_route, kCircuitBreakerUnixTime);
 
   CapturingLog capture;
-  auto *old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
   };
 
   TlsInitTestPeer::send_hello(tls_init);
 
   auto captured = capture.joined();
-  td::log_interface = old_log_interface;
+  td::store_active_log_interface(old_sink);
   SET_VERBOSITY_LEVEL(old_verbosity);
 
   ASSERT_TRUE(captured.find("TlsInit hello prepared") != td::string::npos);
@@ -151,19 +151,19 @@ TEST(TlsInitLogContract, RejectionLogIncludesProfileAndCircuitBreakerDecisionFie
   auto tls_init = create_tls_init(std::move(socket_pair.client), non_ru_route, kCircuitBreakerUnixTime);
 
   CapturingLog capture;
-  auto *old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
   };
 
   TlsInitTestPeer::send_hello(tls_init);
   auto status = feed_invalid_hash_response(tls_init, socket_pair.peer);
   auto captured = capture.joined();
-  td::log_interface = old_log_interface;
+  td::store_active_log_interface(old_sink);
   SET_VERBOSITY_LEVEL(old_verbosity);
   ASSERT_TRUE(status.is_error());
 

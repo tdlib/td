@@ -92,10 +92,15 @@ string make_lifecycle_destination(const IPAddress &ip_address, Slice debug_str) 
 }
 
 string get_dc_option_signature(const DcOption &option) {
+  uint32 secret_fingerprint = 0;
+  for (auto byte : option.get_secret().get_raw_secret()) {
+    secret_fingerprint = combine_hashes(secret_fingerprint, static_cast<uint32>(static_cast<uint8>(byte)));
+  }
   return PSTRING() << option.get_dc_id().get_raw_id() << '|' << option.get_ip_address().get_ip_str() << ':'
                    << option.get_ip_address().get_port() << '|' << option.is_ipv6() << option.is_media_only()
                    << option.is_obfuscated_tcp_only() << option.is_static() << '|'
-                   << format::as_hex(option.get_secret().get_raw_secret());
+                   << option.get_secret().use_random_padding() << option.get_secret().emulate_tls() << '|'
+                   << secret_fingerprint;
 }
 
 struct Ipv4Cidr {
@@ -337,7 +342,7 @@ Result<IPAddress> normalize_peer_address(const IPAddress &ip_address) {
 
 }  // namespace
 
-int VERBOSITY_NAME(connections) = VERBOSITY_NAME(INFO);
+std::atomic<int> VERBOSITY_NAME(connections) = VERBOSITY_NAME(INFO);
 
 namespace detail {
 
@@ -1055,19 +1060,23 @@ Result<ConnectionCreator::RawIpConnectionRoute> ConnectionCreator::resolve_raw_i
   if (!target_ip_address.is_valid()) {
     LOG(WARNING) << "Raw-IP route validation failed" << tag("reason", "invalid_target_ip")
                  << tag("proxy_mode", proxy_mode_name(proxy)) << tag("target_ip_valid", false)
-                 << tag("proxy_ip_valid", proxy_ip_address.is_valid());
+                 << tag("proxy_ip_valid", proxy_ip_address.is_valid())
+                 << tag("tls_emulation", proxy.secret().emulate_tls());
     return Status::Error("Target IP address is invalid");
   }
 
   if (proxy.use_proxy() && !proxy_ip_address.is_valid()) {
     LOG(WARNING) << "Raw-IP route validation failed" << tag("reason", "invalid_proxy_ip")
                  << tag("proxy_mode", proxy_mode_name(proxy)) << tag("target_ip_valid", true)
-                 << tag("proxy_ip_valid", false);
+                 << tag("proxy_ip_valid", false) << tag("tls_emulation", proxy.secret().emulate_tls());
     return Status::Error("Proxy IP address is invalid");
   }
 
   RawIpConnectionRoute route;
   route.debug_str = PSTRING() << "to IP address " << target_ip_address;
+  VLOG(connections) << "Resolve raw-IP route" << tag("proxy_mode", proxy_mode_name(proxy))
+                    << tag("tls_emulation", proxy.secret().emulate_tls()) << tag("target_ip", target_ip_address)
+                    << tag("proxy_ip", proxy_ip_address);
 
   if (!proxy.use_proxy()) {
     route.socket_ip_address = target_ip_address;

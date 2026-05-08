@@ -1106,23 +1106,23 @@ DEFINE_TREE(tl_field, char *, strcmp, 0)
 //tree_tl_field_t *tl_field_tree;
 #define TL_FAIL return 0;
 #define TL_INIT(x) struct tl_combinator_tree *x = 0;
-#define TL_TRY(f, x)                                 \
-  {                                                  \
-    struct tl_combinator_tree *_t = f;               \
-    if (!_t) {                                       \
-      TL_FAIL;                                       \
-    }                                                \
+#define TL_TRY(f, x)                   \
+  {                                    \
+    struct tl_combinator_tree *_t = f; \
+    if (!_t) {                         \
+      TL_FAIL;                         \
+    }                                  \
     struct tl_combinator_tree *_u = tl_union(x, _t); \
-    if (!_u) {                                       \
-      if (x != _t) {                                 \
-        tl_free_combinator_tree(x);                  \
-      }                                              \
-      x = 0;                                         \
-      tl_free_combinator_tree(_t);                   \
-      _t = 0;                                        \
-      TL_FAIL;                                       \
-    }                                                \
-    x = _u;                                          \
+    if (!_u) {                         \
+      if (x != _t) {                   \
+        tl_free_combinator_tree(x);    \
+      }                                \
+      x = 0;                           \
+      tl_free_combinator_tree(_t);     \
+      _t = 0;                          \
+      TL_FAIL;                         \
+    }                                  \
+    x = _u;                            \
   }
 #define TL_ERROR(...) fprintf(stderr, __VA_ARGS__);
 #define TL_WARNING(...) fprintf(stderr, __VA_ARGS__);
@@ -2057,8 +2057,7 @@ struct tl_combinator_tree *tl_parse_opt_args(struct tree *T) {
   }
   if (tt < 0) {
     TL_ERROR("Optargs can be only of type # or Type\n");
-    tl_free_combinator_tree(R);
-    R = 0;
+    tl_free_combinator_tree(R); R = 0;
     TL_FAIL;
   }
 
@@ -2066,14 +2065,12 @@ struct tl_combinator_tree *tl_parse_opt_args(struct tree *T) {
   for (i = 0; i < T->nc - 1; i++) {
     if (T->c[i]->type != type_var_ident) {
       TL_ERROR("Variable name expected\n");
-      tl_free_combinator_tree(R);
-      R = 0;
+      tl_free_combinator_tree(R); R = 0;
       TL_FAIL;
     }
     if (T->c[i]->len == 1 && *T->c[i]->text == '_') {
       TL_ERROR("Variables can not be unnamed\n");
-      tl_free_combinator_tree(R);
-      R = 0;
+      tl_free_combinator_tree(R); R = 0;
       TL_FAIL;
     }
   }
@@ -2214,8 +2211,7 @@ struct tl_combinator_tree *tl_parse_args134(struct tree *T) {
   for (i = 0; i < last; i++) {
     if (T->c[i]->type != type_var_ident && T->c[i]->type != type_var_ident_opt) {
       TL_ERROR("Variable name expected\n");
-      tl_free_combinator_tree(R);
-      R = 0;
+      tl_free_combinator_tree(R); R = 0;
       TL_FAIL;
     }
     /*    if (tt >= 0 && (T->nc == 1 || (T->c[i]->len == 1 && *T->c[i]->text == '_'))) {
@@ -2240,16 +2236,10 @@ struct tl_combinator_tree *tl_parse_args134(struct tree *T) {
     if (S->data && (T->c[i]->len >= 2 || *T->c[i]->text != '_')) {
       if (!tl_add_field(S->data)) {
         TL_ERROR("Duplicate field name %s\n", (char *)S->data);
-        tl_free_combinator_tree(H);
-        H = 0;
-        tfree(S->data, 0);
-        S->data = 0;
-        tl_free_combinator_tree(S);
-        S = 0;
-        if (i != last) {
-          tl_free_combinator_tree(R);
-          R = 0;
-        }
+        tl_free_combinator_tree(H); H = 0;
+        tfree(S->data, 0); S->data = 0;
+        tl_free_combinator_tree(S); S = 0;
+        if (i != last) { tl_free_combinator_tree(R); R = 0; }
         TL_FAIL;
       }
     }
@@ -2263,16 +2253,10 @@ struct tl_combinator_tree *tl_parse_args134(struct tree *T) {
       }
       struct tl_var *v = tl_add_var(name, S, tt);
       if (!v) {
-        tl_free_combinator_tree(H);
-        H = 0;
-        tfree(S->data, 0);
-        S->data = 0;
-        tl_free_combinator_tree(S);
-        S = 0;
-        if (i != last) {
-          tl_free_combinator_tree(R);
-          R = 0;
-        }
+        tl_free_combinator_tree(H); H = 0;
+        tfree(S->data, 0); S->data = 0;
+        tl_free_combinator_tree(S); S = 0;
+        if (i != last) { tl_free_combinator_tree(R); R = 0; }
         TL_FAIL;
       }
       v->flags |= 2;
@@ -2333,8 +2317,7 @@ struct tl_combinator_tree *tl_parse_result_type(struct tree *T) {
     struct tl_var *v = tl_get_var(T->c[0]->text, T->c[0]->len);
     if (v->type) {
       TL_ERROR("Type mistmatch\n");
-      tl_free_combinator_tree(L);
-      L = 0;
+      tl_free_combinator_tree(L); L = 0;
       TL_FAIL;
     }
     L->data = v->ptr;
@@ -2359,8 +2342,7 @@ struct tl_combinator_tree *tl_parse_result_type(struct tree *T) {
   }
 
   if (!tl_finish_subtree(L)) {
-    tl_free_combinator_tree(L);
-    L = 0;
+    tl_free_combinator_tree(L); L = 0;
     TL_FAIL;
   }
 
@@ -2396,9 +2378,8 @@ int tl_parse_combinator_decl(struct tree *T, int fun) {
 
   R = tl_parse_result_type(T->c[i]);
   if (!R) {
-    tl_free_combinator_tree(L);
-    L = 0;
-    TL_FAIL;
+     tl_free_combinator_tree(L); L = 0;
+     TL_FAIL;
   }
 
   struct tl_type *t = tl_tree_get_type(R);
@@ -2799,12 +2780,9 @@ int tl_parse_partial_comb_app_decl(struct tree *T, int fun) {
     struct tl_combinator_tree *K = 0;
     struct tl_tree_change_result z_change = change_first_var(L, &K, X);
     if (tl_tree_change_is_error(z_change)) {
-      tl_free_combinator_tree(L);
-      L = 0;
-      tl_free_combinator_tree(R);
-      R = 0;
-      tl_free_combinator_tree(X);
-      X = 0;
+      tl_free_combinator_tree(L); L = 0;
+      tl_free_combinator_tree(R); R = 0;
+      tl_free_combinator_tree(X); X = 0;
       TL_FAIL;
     }
     if (z_change.status == tl_tree_change_updated) {
@@ -2812,22 +2790,16 @@ int tl_parse_partial_comb_app_decl(struct tree *T, int fun) {
     }
     if (!K) {
       TL_ERROR("Partial app: not enougth variables (i = %d)\n", i);
-      tl_free_combinator_tree(L);
-      L = 0;
-      tl_free_combinator_tree(R);
-      R = 0;
-      tl_free_combinator_tree(X);
-      X = 0;
+      tl_free_combinator_tree(L); L = 0;
+      tl_free_combinator_tree(R); R = 0;
+      tl_free_combinator_tree(X); X = 0;
       TL_FAIL;
     }
     struct tl_tree_change_result zr_change = change_first_var(R, &K, X);
     if (tl_tree_change_is_error(zr_change)) {
-      tl_free_combinator_tree(L);
-      L = 0;
-      tl_free_combinator_tree(R);
-      R = 0;
-      tl_free_combinator_tree(X);
-      X = 0;
+      tl_free_combinator_tree(L); L = 0;
+      tl_free_combinator_tree(R); R = 0;
+      tl_free_combinator_tree(X); X = 0;
       TL_FAIL;
     }
     if (zr_change.status == tl_tree_change_updated) {

@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -16,7 +16,7 @@
  * LOG_IF(INFO, condition) << "Hello world if condition!";
  *
  * Custom log levels may be defined and used using VLOG:
- * int VERBOSITY_NAME(custom) = VERBOSITY_NAME(WARNING);
+ * std::atomic<int> VERBOSITY_NAME(custom){VERBOSITY_NAME(WARNING)};
  * VLOG(custom) << "Hello custom world!"
  *
  * LOG(FATAL) << "Power is off";
@@ -52,19 +52,28 @@ constexpr bool is_log_stripped(int strip_level, int build_strip_level) {
 }
 
 }  // namespace detail
+
+constexpr int load_verbosity_level(int level) noexcept {
+  return level;
+}
+
+inline int load_verbosity_level(const std::atomic<int> &level) noexcept {
+  return level.load(std::memory_order_relaxed);
+}
 }  // namespace td
 
 #define LOG_IS_STRIPPED(strip_level) (::td::detail::IsLogStripped<VERBOSITY_NAME(strip_level), STRIP_LOG>::value)
 
 #define LOGGER(interface, options, level, comment) ::td::Logger(interface, options, level, __FILE__, __LINE__, comment)
 
-#define LOG_IMPL_FULL(interface, options, strip_level, runtime_level, condition, comment) \
-  LOG_IS_STRIPPED(strip_level) || runtime_level > options.get_level() || !(condition)     \
-      ? (void)0                                                                           \
-      : ::td::detail::Voidify() & LOGGER(interface, options, runtime_level, comment)
+#define LOG_IMPL_FULL(interface, options, strip_level, runtime_level, condition, comment)                         \
+  LOG_IS_STRIPPED(strip_level) || ::td::load_verbosity_level(runtime_level) > options.get_level() || !(condition) \
+      ? (void)0                                                                                                   \
+      : ::td::detail::Voidify() & LOGGER(interface, options, ::td::load_verbosity_level(runtime_level), comment)
 
-#define LOG_IMPL(strip_level, level, condition, comment) \
-  LOG_IMPL_FULL(*::td::log_interface, ::td::log_options, strip_level, VERBOSITY_NAME(level), condition, comment)
+#define LOG_IMPL(strip_level, level, condition, comment)                                                              \
+  LOG_IMPL_FULL(*::td::load_active_log_interface(), ::td::log_options, strip_level, VERBOSITY_NAME(level), condition, \
+                comment)
 
 #define LOG(level) LOG_IMPL(level, level, true, ::td::Slice())
 #define LOG_IF(level, condition) LOG_IMPL(level, level, condition, #condition)
@@ -184,7 +193,8 @@ class LogInterface {
 };
 
 extern LogInterface *const default_log_interface;
-extern LogInterface *log_interface;
+LogInterface *load_active_log_interface();
+void store_active_log_interface(LogInterface *interface);
 
 [[noreturn]] void process_fatal_error(CSlice message);
 

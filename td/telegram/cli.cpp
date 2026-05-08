@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/Client.h"
 #include "td/telegram/ClientActor.h"
@@ -200,7 +200,8 @@ class CliLog final : public LogInterface {
       reactivate_readline();
     };
 #endif
-    default_log_interface->do_append(log_level, slice);
+    auto *default_sink = default_log_interface;
+    default_sink->do_append(log_level, slice);
   }
 };
 
@@ -278,7 +279,7 @@ class CliClient final : public Actor {
   }
 
   void update_users(const td_api::users &users) {
-    Logger log{*log_interface, LogOptions::plain(), VERBOSITY_NAME(PLAIN)};
+    Logger log{*load_active_log_interface(), LogOptions::plain(), VERBOSITY_NAME(PLAIN)};
     for (auto &user_id : users.user_ids_) {
       if (user_id == 0) {
         continue;
@@ -8848,7 +8849,7 @@ void main(int argc, char **argv) {
   SCOPE_EXIT {
     std::locale::global(std::locale::classic());
     static NullLog null_log;
-    log_interface = &null_log;
+    store_active_log_interface(&null_log);
   };
 
   CliLog cli_log;
@@ -8858,7 +8859,7 @@ void main(int argc, char **argv) {
 
   combined_log.set_first(&cli_log);
 
-  log_interface = &combined_log;
+  store_active_log_interface(&combined_log);
 
   int new_verbosity_level = VERBOSITY_NAME(INFO);
   bool use_test_dc = false;

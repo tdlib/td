@@ -1,16 +1,16 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
-
-#include "td/utils/Slice.h"
 
 #include <atomic>
 
 namespace td {
+
+class Slice;
 
 class TsCerr {
  public:
@@ -24,9 +24,10 @@ class TsCerr {
   TsCerr &operator<<(Slice slice);
 
  private:
-  static std::atomic_flag lock_;
+  bool lock_is_acquired_{false};
 
-  static void enterCritical();
+  static std::atomic_flag &lock();
+  static bool enterCritical();
   static void exitCritical();
 };
 

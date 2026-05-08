@@ -101,13 +101,13 @@ TEST(StealthParamsLoaderReloadLogContract, ReloadFailureLogContainsActionableDia
   write_file(path, "{");
 
   CapturingLog capture;
-  auto *old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
   };
 
   ASSERT_FALSE(loader.try_reload());
@@ -129,13 +129,13 @@ TEST(StealthParamsLoaderReloadLogContract, MissingPathFailureLogContainsActionab
   StealthParamsLoader loader(path);
 
   CapturingLog capture;
-  auto *old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
   };
 
   ASSERT_FALSE(loader.try_reload());
@@ -168,13 +168,13 @@ TEST(StealthParamsLoaderReloadLogContract, UnknownRootFieldLogPreservesExactFiel
   StealthParamsLoader loader(path);
 
   CapturingLog capture;
-  auto *old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
   };
 
   ASSERT_FALSE(loader.try_reload());
@@ -195,13 +195,13 @@ TEST(StealthParamsLoaderReloadLogContract, BoundsViolationLogIncludesFieldNameAn
   StealthParamsLoader loader(path);
 
   CapturingLog capture;
-  auto *old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
   };
 
   ASSERT_FALSE(loader.try_reload());
@@ -239,13 +239,13 @@ TEST(StealthParamsLoaderReloadLogContract, OversizedStatusMessageFallsBackToSafe
   StealthParamsLoader loader(path);
 
   CapturingLog capture;
-  auto *old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
   };
 
   ASSERT_FALSE(loader.try_reload());
@@ -268,13 +268,13 @@ TEST(StealthParamsLoaderReloadLogContract, CooldownTransitionAndRecoveryLogsAreE
   write_file(path, "{");
 
   CapturingLog capture;
-  auto *old_log_interface = td::log_interface;
+  auto *old_sink = td::load_active_log_interface();
   auto old_verbosity = GET_VERBOSITY_LEVEL();
-  td::log_interface = &capture;
+  td::store_active_log_interface(&capture);
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
   SCOPE_EXIT {
     SET_VERBOSITY_LEVEL(old_verbosity);
-    td::log_interface = old_log_interface;
+    td::store_active_log_interface(old_sink);
   };
 
   for (int i = 0; i < 5; i++) {

@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/files/FileManager.h"
 
@@ -52,7 +52,7 @@ namespace {
 constexpr int64 MAX_FILE_SIZE = static_cast<int64>(4000) << 20;  // 4000MB
 }  // namespace
 
-int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
+std::atomic<int> VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
 
 StringBuilder &operator<<(StringBuilder &string_builder, FileLocationSource source) {
   switch (source) {
@@ -1832,7 +1832,7 @@ FileId FileManager::register_generate(FileType file_type, string original_path, 
                                       DialogId owner_dialog_id, int64 expected_size) {
   // add #mtime# into conversion
   if (!original_path.empty() && conversion[0] != '#' && PathView(original_path).is_absolute()) {
-    auto file_paths = log_interface->get_file_paths();
+    auto file_paths = load_active_log_interface()->get_file_paths();
     if (!td::contains(file_paths, original_path)) {
       auto r_stat = stat(original_path);
       uint64 mtime = r_stat.is_ok() ? r_stat.ok().mtime_nsec_ : 0;

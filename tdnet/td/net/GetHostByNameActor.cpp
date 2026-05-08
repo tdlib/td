@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/net/GetHostByNameActor.h"
 
@@ -125,11 +125,11 @@ class CloudFlareDnsResolver final : public Actor {
     auto wget_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<unique_ptr<HttpQuery>> r_http_query) {
       send_closure(actor_id, &CloudFlareDnsResolver::on_result, std::move(r_http_query));
     });
-    wget_ = create_actor<Wget>(
-        "CloudFlareDnsResolver", std::move(wget_promise),
-        PSTRING() << "https://cloudflare-dns.com/dns-query?name=" << url_encode(host_) << "&type=" << (prefer_ipv6_ ? 28 : 1),
-        std::vector<std::pair<string, string>>({{"Host", "cloudflare-dns.com"}}), timeout, ttl, prefer_ipv6_,
-        SslCtx::VerifyPeer::Off);
+    wget_ = create_actor<Wget>("CloudFlareDnsResolver", std::move(wget_promise),
+                               PSTRING() << "https://cloudflare-dns.com/dns-query?name=" << url_encode(host_)
+                                         << "&type=" << (prefer_ipv6_ ? 28 : 1),
+                               std::vector<std::pair<string, string>>({{"Host", "cloudflare-dns.com"}}), timeout, ttl,
+                               prefer_ipv6_, SslCtx::VerifyPeer::Off);
   }
 
   static Result<IPAddress> get_ip_address(Result<unique_ptr<HttpQuery>> r_http_query) {
@@ -217,7 +217,7 @@ class CustomDnsResolver final : public Actor {
       headers.emplace_back("Host", host_header);
     }
     wget_ = create_actor<Wget>("CustomDnsResolver", std::move(wget_promise), url, headers, timeout, ttl, prefer_ipv6_,
-                              SslCtx::VerifyPeer::Off);
+                               SslCtx::VerifyPeer::Off);
   }
 
   static std::string get_host_from_url(const std::string &url) {
@@ -246,7 +246,7 @@ class CustomDnsResolver final : public Actor {
 
 }  // namespace detail
 
-int VERBOSITY_NAME(dns_resolver) = VERBOSITY_NAME(DEBUG);
+std::atomic<int> VERBOSITY_NAME(dns_resolver) = VERBOSITY_NAME(DEBUG);
 
 GetHostByNameActor::GetHostByNameActor(Options options) : options_(std::move(options)) {
   CHECK(!options_.resolver_types.empty());

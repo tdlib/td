@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/Logging.h"
 
@@ -50,9 +50,17 @@ static TsLog ts_log(&file_log);
 static NullLog null_log;
 static ExitGuard exit_guard;
 
+inline int load_tag_verbosity_level(const std::atomic<int> &tag_verbosity_level) {
+  return tag_verbosity_level.load(std::memory_order_acquire);
+}
+
+inline void store_tag_verbosity_level(std::atomic<int> &tag_verbosity_level, int new_verbosity_level) {
+  tag_verbosity_level.store(new_verbosity_level, std::memory_order_release);
+}
+
 #define ADD_TAG(tag) \
   { #tag, &VERBOSITY_NAME(tag) }
-static const std::map<Slice, int *> log_tags{
+static const std::map<Slice, std::atomic<int> *> log_tags{
     ADD_TAG(td_init),     ADD_TAG(update_file),      ADD_TAG(connections),   ADD_TAG(binlog),
     ADD_TAG(proxy),       ADD_TAG(net_query),        ADD_TAG(td_requests),   ADD_TAG(dc),
     ADD_TAG(file_loader), ADD_TAG(mtproto),          ADD_TAG(raw_mtproto),   ADD_TAG(fd),
@@ -68,7 +76,7 @@ Status Logging::set_current_stream(td_api::object_ptr<td_api::LogStream> stream)
   std::lock_guard<std::mutex> lock(logging_mutex);
   switch (stream->get_id()) {
     case td_api::logStreamDefault::ID:
-      log_interface = default_log_interface;
+      store_active_log_interface(default_log_interface);
       return Status::OK();
     case td_api::logStreamFile::ID: {
       auto file_stream = td_api::move_object_as<td_api::logStreamFile>(stream);
@@ -79,12 +87,11 @@ Status Logging::set_current_stream(td_api::object_ptr<td_api::LogStream> stream)
       auto redirect_stderr = file_stream->redirect_stderr_;
 
       TRY_STATUS(file_log.init(file_stream->path_, max_log_file_size, redirect_stderr));
-      std::atomic_thread_fence(std::memory_order_release);  // better than nothing
-      log_interface = &ts_log;
+      store_active_log_interface(&ts_log);
       return Status::OK();
     }
     case td_api::logStreamEmpty::ID:
-      log_interface = &null_log;
+      store_active_log_interface(&null_log);
       return Status::OK();
     default:
       UNREACHABLE();
@@ -94,13 +101,14 @@ Status Logging::set_current_stream(td_api::object_ptr<td_api::LogStream> stream)
 
 Result<td_api::object_ptr<td_api::LogStream>> Logging::get_current_stream() {
   std::lock_guard<std::mutex> lock(logging_mutex);
-  if (log_interface == default_log_interface) {
+  auto *active_sink = load_active_log_interface();
+  if (active_sink == default_log_interface) {
     return td_api::make_object<td_api::logStreamDefault>();
   }
-  if (log_interface == &null_log) {
+  if (active_sink == &null_log) {
     return td_api::make_object<td_api::logStreamEmpty>();
   }
-  if (log_interface == &ts_log) {
+  if (active_sink == &ts_log) {
     return td_api::make_object<td_api::logStreamFile>(file_log.get_path().str(), file_log.get_rotate_threshold(),
                                                       file_log.get_redirect_stderr());
   }
@@ -137,7 +145,7 @@ Status Logging::set_tag_verbosity_level(Slice tag, int new_verbosity_level) {
   }
 
   std::lock_guard<std::mutex> lock(logging_mutex);
-  *it->second = clamp(new_verbosity_level, 1, VERBOSITY_NAME(NEVER));
+  store_tag_verbosity_level(*it->second, clamp(new_verbosity_level, 1, VERBOSITY_NAME(NEVER)));
   return Status::OK();
 }
 
@@ -152,7 +160,7 @@ Result<int> Logging::get_tag_verbosity_level(Slice tag) {
   }
 
   std::lock_guard<std::mutex> lock(logging_mutex);
-  return *it->second;
+  return load_tag_verbosity_level(*it->second);
 }
 
 void Logging::add_message(int log_verbosity_level, Slice message) {

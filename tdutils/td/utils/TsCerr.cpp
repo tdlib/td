@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/utils/TsCerr.h"
 
@@ -11,36 +11,47 @@
 #include "td/utils/Time.h"
 
 #include <cerrno>
+#include <thread>
 
 namespace td {
 
-std::atomic_flag TsCerr::lock_ = ATOMIC_FLAG_INIT;
+std::atomic_flag &TsCerr::lock() {
+  static std::atomic_flag lock_instance = ATOMIC_FLAG_INIT;
+  return lock_instance;
+}
 
 TsCerr::TsCerr() {
-  enterCritical();
+  lock_is_acquired_ = enterCritical();
 }
 
 TsCerr::~TsCerr() {
-  exitCritical();
+  if (lock_is_acquired_) {
+    exitCritical();
+  }
 }
 
 TsCerr &TsCerr::operator<<(Slice slice) {
+  if (!lock_is_acquired_) {
+    return *this;
+  }
+
   auto &fd = Stderr();
   if (fd.empty()) {
     return *this;
   }
   double end_time = 0;
-  while (!slice.empty()) {
+  bool should_stop = false;
+  while (!slice.empty() && !should_stop) {
     auto res = fd.write(slice);
     if (res.is_error()) {
       if (res.error().code() == EPIPE) {
-        break;
+        should_stop = true;
       }
       // Resource temporary unavailable
-      if (end_time == 0) {
+      if (!should_stop && end_time == 0) {
         end_time = Time::now() + 0.01;
-      } else if (Time::now() > end_time) {
-        break;
+      } else if (!should_stop && Time::now() > end_time) {
+        should_stop = true;
       }
       continue;
     }
@@ -49,16 +60,24 @@ TsCerr &TsCerr::operator<<(Slice slice) {
   return *this;
 }
 
-void TsCerr::enterCritical() {
-  while (lock_.test_and_set(std::memory_order_acquire) && !ExitGuard::is_exited()) {
-    // spin
+bool TsCerr::enterCritical() {
+  unsigned int spin_count = 0;
+  while (lock().test_and_set(std::memory_order_acquire)) {
+    if (ExitGuard::is_exited()) {
+      return false;
+    }
+    spin_count++;
+    if ((spin_count & 31u) == 0u) {
+      std::this_thread::yield();
+    }
   }
+  return true;
 }
 
 void TsCerr::exitCritical() {
-  lock_.clear(std::memory_order_release);
+  lock().clear(std::memory_order_release);
 }
 
-static ExitGuard exit_guard;
+static const ExitGuard exit_guard;
 
 }  // namespace td
