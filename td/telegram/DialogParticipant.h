@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -27,7 +27,6 @@ class AdministratorRights {
   static constexpr uint64 CAN_EDIT_MESSAGES = 1 << 2;
   static constexpr uint64 CAN_DELETE_MESSAGES = 1 << 3;
   static constexpr uint64 CAN_INVITE_USERS = 1 << 4;
-  // static constexpr uint64 CAN_EXPORT_DIALOG_INVITE_LINK = 1 << 5;
   static constexpr uint64 CAN_RESTRICT_MEMBERS = 1 << 6;
   static constexpr uint64 CAN_PIN_MESSAGES = 1 << 7;
   static constexpr uint64 CAN_PROMOTE_MEMBERS = 1 << 8;
@@ -372,11 +371,11 @@ class DialogParticipantStatus {
 
   static DialogParticipantStatus Banned(int32 banned_until_date, string &&rank);
 
-  // legacy rights
-  static DialogParticipantStatus GroupAdministrator(bool is_creator, string &&rank);
+  // legacy rights; never grants can_promote_members, while editability tracks current-user creator context
+  static DialogParticipantStatus GroupAdministrator(bool is_current_user_creator, string &&rank);
 
   // legacy rights
-  static DialogParticipantStatus ChannelAdministrator(bool is_creator, bool is_megagroup);
+  static DialogParticipantStatus ChannelAdministrator(bool is_current_user_creator, bool is_megagroup);
 
   // forcely returns an administrator
   DialogParticipantStatus(bool can_be_edited, tl_object_ptr<telegram_api::chatAdminRights> &&admin_rights, string rank,
@@ -601,13 +600,7 @@ class DialogParticipantStatus {
     return rank_;
   }
 
-  bool set_rank(string &&rank) {
-    if (rank_ != rank) {
-      rank_ = std::move(rank);
-      return true;
-    }
-    return false;
-  }
+  bool set_rank(string &&rank);
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -685,7 +678,7 @@ struct DialogParticipant {
   DialogParticipant(DialogId dialog_id, UserId inviter_user_id, int32 joined_date, DialogParticipantStatus status);
 
   DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant> &&participant_ptr, int32 chat_creation_date,
-                    bool is_creator);
+                    bool is_current_user_creator);
 
   DialogParticipant(tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr, ChannelType channel_type);
 

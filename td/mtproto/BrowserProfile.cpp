@@ -606,7 +606,7 @@ BrowserProfileSpec make_safari_impl() {
       make_extension(TlsExtensionType::SignedCertificateTimestamp),
       make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
-      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771, 770, 769}, true),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771}, true),
       make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x01"),
   };
   profile.layout_template = make_safari_layout();
@@ -637,7 +637,7 @@ BrowserProfileSpec make_ios14_impl() {
       make_extension(TlsExtensionType::SignedCertificateTimestamp),
       make_key_share_extension_with_grease_first(4, {KeyShareKind::X25519MlKem768, KeyShareKind::X25519}),
       make_u8_extension(TlsExtensionType::PskKeyExchangeModes, {1}),
-      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771, 770, 769}, true),
+      make_u16_extension(TlsExtensionType::SupportedVersions, {772, 771}, true),
       make_raw_extension(TlsExtensionType::CompressCertificate, "\x02\x00\x01"),
   };
   profile.layout_template = make_ios_layout();

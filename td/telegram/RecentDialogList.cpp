@@ -108,9 +108,9 @@ void RecentDialogList::load_dialogs(Promise<Unit> &&promise) {
   if (!dialog_ids.empty()) {
     if (G()->use_chat_info_database() && !G()->td_db()->was_dialog_db_created()) {
       td_->messages_manager_->load_dialogs(
-          std::move(dialog_ids),
-          PromiseCreator::lambda(
-              [promise = mpas.get_promise()](vector<DialogId> dialog_ids) mutable { promise.set_value(Unit()); }));
+          std::move(dialog_ids), PromiseCreator::lambda([promise = mpas.get_promise()](vector<DialogId>) mutable {
+            promise.set_value(Unit());
+          }));
     } else {
       td_->messages_manager_->get_dialogs_from_list(
           DialogListId(FolderId::main()), 102,

@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #pragma once
 
@@ -11,8 +11,6 @@
 #include "td/telegram/RepliedMessageInfo.h"
 #include "td/telegram/StoryFullId.h"
 #include "td/telegram/telegram_api.h"
-
-#include "td/utils/common.h"
 
 namespace td {
 
@@ -29,6 +27,13 @@ struct MessageReplyHeader {
   StoryFullId story_full_id_;
 
   MessageReplyHeader() = default;
+
+  // Normalizes malformed forum-topic replies to a canonical top-thread anchor form.
+  static void normalize_topic_reply_header(telegram_api::messageReplyHeader &reply_header);
+
+  // Finalizes channel topic-thread state after reply parsing with safe fallback repair and fail-closed rejection.
+  static bool finalize_channel_topic_thread_state(MessageId message_id, MessageId same_chat_reply_to_message_id,
+                                                  MessageId &top_thread_message_id, bool &is_topic_message);
 
   MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::MessageReplyHeader> &&reply_header_ptr, DialogId dialog_id,
                      MessageId message_id, int32 date);

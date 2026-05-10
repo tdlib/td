@@ -43,7 +43,6 @@
 
 #include "td/utils/algorithm.h"
 #include "td/utils/buffer.h"
-#include "td/utils/format.h"
 #include "td/utils/HashTableUtils.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -2236,6 +2235,15 @@ void QuickReplyManager::do_send_message(const QuickReplyMessage *m, vector<int> 
 
   auto content = is_edit ? m->edited_content.get() : m->content.get();
   CHECK(content != nullptr);
+  if (message_content_poll_has_attached_media(content)) {
+    auto error = Status::Error(400, "Can't send polls with media from quick replies");
+    if (is_edit) {
+      return fail_edit_quick_reply_message(m->shortcut_id, m->message_id, m->edit_generation, FileUploadId(),
+                                           FileUploadId(), FileId(), string(), string(), false, false,
+                                           std::move(error));
+    }
+    return on_failed_send_quick_reply_messages(m->shortcut_id, {m->random_id}, std::move(error));
+  }
   auto content_type = content->get_type();
   if (content_type == MessageContentType::Unsupported) {
     if (is_edit) {
@@ -3263,6 +3271,9 @@ Result<vector<QuickReplyManager::QuickReplyMessageContent>> QuickReplyManager::g
   for (const auto &message : shortcut->messages_) {
     if (!message->message_id.is_server()) {
       continue;
+    }
+    if (message_content_poll_has_attached_media(message->content.get())) {
+      return Status::Error(400, "Can't send polls with media from quick replies");
     }
     auto content = dup_message_content(td_, dialog_id, message->content.get(), MessageContentDupType::ServerCopy,
                                        MessageCopyOptions(true, false));

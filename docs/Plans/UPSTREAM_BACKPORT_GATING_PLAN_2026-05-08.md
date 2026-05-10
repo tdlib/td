@@ -9,10 +9,48 @@ telemt: https://t.me/telemtrs
 
 **Plan ID:** upstream-backport-gate-2026-05-08
 **Date:** 2026-05-08
-**Status:** Planning Only (No Cherry-Picks or Repairs Authorized Yet)
+**Last updated:** 2026-05-09
+**Status:** Execution in Progress (Wave 2 core completed; branch-local lane split pending before merge/squash)
 **Primary Goal:** Decide and execute backports from upstream tdlib only when they improve this codebase and pass strict quality/security/TDD/C++23 gates.
 **Threat Context:** Active DPI adversary with very high budget and adaptive blocking behavior (ECH blocking and selective QUIC blocking). Every transport-facing decision must be adversarially validated.
-**Current Stage Goal:** Produce an evidence-backed intake and classification plan. No implementation starts until the candidate annex and wave ordering are approved.
+**Current Stage Goal:** Keep remaining waves in planning mode, keep the docs aligned with the actual branch state, and split branch-local work into lane-specific commits before any merge or squash.
+
+---
+
+## 0. Execution Delta vs Upstream (2026-05-09)
+
+Compared against upstream range `original..upstream/master` and the current staged changes in this
+fork:
+
+1. Implemented and adapted:
+    - `a09adfc63` (`Fix reply_to_top_id.`) in `td/telegram/MessageReplyHeader.cpp`, adapted via
+       dedicated seams (`normalize_topic_reply_header(...)`,
+       `finalize_channel_topic_thread_state(...)`) and bounded hardening tests.
+    - `386eca6fe` (`Fix DialogParticipantStatus::GroupAdministrator.`) in
+       `td/telegram/DialogParticipant.cpp` and `td/telegram/DialogParticipant.h`, adapted with
+       explicit least-privilege legacy rights seams.
+    - `1a9ef3d68` (`Repair group administrator rights on load.`) in
+       `td/telegram/ChatManager.cpp`, adapted as rank-preserving load normalization.
+2. Branch-local overlap currently present and requiring lane separation before merge/squash:
+      - `5340472b0` (`Fix possible use after move.`) currently overlaps this branch in
+         `td/telegram/CommonDialogManager.cpp`, `td/telegram/DialogManager.cpp`,
+         `td/telegram/MessagesManager.cpp`, `td/telegram/RecentDialogList.cpp`,
+         `td/telegram/SecretChatActor.cpp`, and `td/telegram/StickersManager.cpp`. Keep it as a
+         standalone W2-003 lifetime-hardening lane; do not fold it into the completed W2-001/W2-002
+         semantics lane.
+      - W3-P poll hardening currently overlaps this branch via `21275249c` in
+         `td/telegram/PollManager.cpp`, `c81e6da9f` in `td/telegram/QuickReplyManager.cpp`,
+         `3e78ebcd8` in `td/telegram/MessagesManager.cpp`, and a supporting local seam in
+         `td/telegram/MessageContent.cpp` / `td/telegram/MessageContent.h`. Keep it as a standalone
+         W3-P lane; do not fold it into W2.
+      - Separate fingerprint/tooling work is also present locally in `td/mtproto/BrowserProfile.cpp`,
+         `test/analysis/extract_client_hello_fixtures.py`, reviewed ServerHello fixture refreshes, and
+         `docs/Plans/FINGERPRINT_TEST_AND_PIPELINE_HARDENING_PLAN_2026-05-09.md`. Keep it isolated
+         from upstream-backport lanes.
+3. Historical wave-level outcome:
+      - W2-001 and W2-002 are completed as `Accept with Repair`.
+      - The 2026-05-08 Wave 2 decision report records W2-003 as `Defer` within that wave.
+      - Canonical historical execution log: `docs/Plans/UPSTREAM_WAVE_2_DECISION_2026-05-08.md`.
 
 ---
 
@@ -26,7 +64,7 @@ telemt: https://t.me/telemtrs
 6. OWASP ASVS L2-aligned security gates are mandatory.
 7. No test weakening to make backports pass. Red tests are treated as defect discovery by default.
 8. For TLS/QUIC/stealth behavior, synthetic-only tests are insufficient; real-fixture evidence is mandatory.
-9. At the current stage, do not cherry-pick, repair, or adapt code. Planning artifacts and candidate classification come first.
+9. No cherry-pick, repair, or adaptation work may start for a wave until its preflight annex is approved and explicitly activated.
 
 ---
 
@@ -255,24 +293,21 @@ The full upstream range changes 114 files in this fork's path layout, with 91 fi
 backlog is product/API churn, not reliability hardening. The non-stealth intake policy for this
 plan is therefore hardening-first, feature-second.
 
-**Finding 1 — Small correctness fixes are the worthwhile non-stealth starting point:**
+**Finding 1 — Small correctness fixes were the right non-stealth starting point:**
 
-The narrowest worthwhile candidates currently identified are:
+The narrowest worthwhile candidates identified for early correctness were:
 
 - `a09adfc63` (`Fix reply_to_top_id.`): repairs topic-reply normalization in
-   `td/telegram/MessageReplyHeader.cpp`. The local fork does not contain the upstream fallback that
-   converts malformed topic replies with missing `reply_to_top_id_` into a valid top-thread mapping.
-   This is a bounded semantic repair with user-visible correctness benefit.
+   `td/telegram/MessageReplyHeader.cpp`. This gap is now implemented in the staged Wave 2 work with
+   fork-specific seam hardening and dedicated contract/adversarial/fuzz/stress coverage.
 - `386eca6fe` (`Fix DialogParticipantStatus::GroupAdministrator.`) plus `1a9ef3d68`
    (`Repair group administrator rights on load.`): repair administrator-right interpretation in
    `td/telegram/DialogParticipant.cpp` and persisted-load repair in `td/telegram/ChatManager.cpp`.
-   The local fork still uses the older `GroupAdministrator(bool is_creator, ...)` semantics and does
-   not perform the load-time normalization. This is a state-correctness and persistence-consistency
-   lane, not a product feature lane.
+   This lane is now implemented in the staged Wave 2 work with fork-adapted least-privilege
+   semantics and rank-preserving load normalization.
 
-Verdict: these commits are the best non-stealth candidates for a dedicated correctness wave.
-They must still go through contract capture, dependent audit, and adversarial/load-path tests before
-classification as Accept / Accept with Repair / Reject.
+Verdict update (2026-05-09): this correctness lane completed Wave 2 gating and is classified in the
+Wave 2 decision report (`Accept with Repair` for W2-001 and W2-002).
 
 **Finding 2 — `5340472b0` is worth mining, but not blind cherry-picking:**
 
@@ -860,22 +895,21 @@ For each research item classified above, in order:
    and adversarial), apply minimal compliant repair/adaptation, run lint/static/security gates
    and the 14-core matrix, then classify as Accept / Accept with Repair / Reject / Defer.
 
-## 10.3 Wave 2 (Non-Stealth Correctness Core)
+## 10.3 Wave 2 (Non-Stealth Correctness Core) — Execution Update (2026-05-09)
 
-Only after Wave 1 stabilizes:
-
-1. Coarse size: 4 commits (`a09adfc63`, `386eca6fe`, `1a9ef3d68`, `5340472b0`).
-2. Run a dedicated non-stealth correctness wave before any large feature ingestion. The active shortlist
-   remains `a09adfc63` (reply-thread normalization), `386eca6fe` + `1a9ef3d68`
-   (administrator-rights correctness and load repair), and a hunk-by-hunk audit of `5340472b0`
-   (lifetime/use-after-move cleanup).
-3. Treat these items as hardening candidates, not bulk cherry-picks: require contract snapshot,
-   dependent audit, RED tests, persisted-load tests where applicable, and narrow validation before
-   they can be classified as Accept / Accept with Repair.
-4. Keep large schema-coupled feature bundles out of Wave 2 branches. Wave 2 exists to shrink the
-   correctness backlog, not to open new product surface.
-5. Revisit deferred proxy-management metadata commits only after transport, TLS, parser-boundary,
-   and non-stealth correctness candidates have been exhausted.
+1. Coarse size remains 4 commits (`a09adfc63`, `386eca6fe`, `1a9ef3d68`, `5340472b0`).
+2. Implemented and adapted in this fork:
+   - `a09adfc63` (`Fix reply_to_top_id.`) as W2-001, classified `Accept with Repair`.
+   - `386eca6fe` + `1a9ef3d68` as W2-002, classified `Accept with Repair`.
+3. Deferred from the original Wave 2 decision and requiring its own lane if retained:
+    - `5340472b0` (`Fix possible use after move.`), classified `Defer` for separate lifetime-focused
+       hunk-by-hunk work. Current branch-local overlap must remain a standalone W2-003 lane instead of
+       being merged or squashed into W2-001/W2-002.
+4. Wave 2 closeout evidence and gate decisions are recorded in
+   `docs/Plans/UPSTREAM_WAVE_2_DECISION_2026-05-08.md`.
+5. Remaining backlog work in this gating plan now starts from Wave 2B onward; no feature-wave
+   activation is allowed without approved preflight and charter inputs, and any current branch-local
+   W3-P overlap must remain isolated until it has its own approved lane.
 
 ## 10.4 Wave 2B (Residual Micro-Correctness Queue)
 
@@ -903,7 +937,8 @@ easy cherry-picks.
 3. Planning class: Defer until there is an explicit product objective for poll/media parity.
 4. Cherry-picking individual poll/media commits is forbidden by default because the lane mixes schema,
    storage, upload, quick-reply restrictions, file-reference handling, voter-visibility rules, and
-   forwarded-message semantics.
+   forwarded-message semantics. If the current branch-local overlap is retained, it must ship as a
+   standalone W3-P lane and must not be merged or squashed into any Wave 2 branch.
 5. Any future Wave 3 charter must split the capability into at least these sub-bundles:
    - poll restrictions, voters, and statistics
    - poll local storage and option/state normalization

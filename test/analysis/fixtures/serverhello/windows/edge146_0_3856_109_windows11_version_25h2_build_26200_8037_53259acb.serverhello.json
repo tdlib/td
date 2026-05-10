@@ -1,6 +1,6 @@
 {
   "artifact_type": "tls_serverhello_fixtures",
-  "capture_date_utc": "2026-04-23T15:41:07Z",
+  "capture_date_utc": "2026-05-09T13:59:46Z",
   "capture_provenance": {
     "client_profile_id": "edge146_0_3856_109_windows11_version_25h2_build_26200_8037_53259acb",
     "path_layout_note": "ServerHello fixture path mirrors client capture provenance; validation keys on fixture_family_id and source metadata, not OS directory naming."

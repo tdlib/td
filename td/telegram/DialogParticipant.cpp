@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/DialogParticipant.h"
 
@@ -380,18 +380,26 @@ DialogParticipantStatus DialogParticipantStatus::Banned(int32 banned_until_date,
   return DialogParticipantStatus(Type::Banned, 0, fix_until_date(banned_until_date), std::move(rank));
 }
 
-DialogParticipantStatus DialogParticipantStatus::GroupAdministrator(bool is_creator, string &&rank) {
-  return Administrator(AdministratorRights(false, true, true, false, false, true, true, true, true, false, is_creator,
-                                           true, false, false, false, false, true, ChannelType::Unknown),
-                       std::move(rank), is_creator);
+namespace {
+
+AdministratorRights legacy_group_administrator_rights() {
+  // Keep the legacy basic-group administrator mask explicit and fail-closed for promotions.
+  return AdministratorRights(false, true, true, false, false, true, true, true, true, false, false, true, false, false,
+                             false, false, true, ChannelType::Unknown);
 }
 
-DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_creator, bool is_megagroup) {
+}  // namespace
+
+DialogParticipantStatus DialogParticipantStatus::GroupAdministrator(bool is_current_user_creator, string &&rank) {
+  return Administrator(legacy_group_administrator_rights(), std::move(rank), is_current_user_creator);
+}
+
+DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_current_user_creator, bool is_megagroup) {
   auto rights = is_megagroup ? AdministratorRights(false, true, true, false, false, true, true, true, true, true, false,
                                                    false, false, false, false, false, true, ChannelType::Megagroup)
                              : AdministratorRights(false, true, false, true, true, true, false, true, false, false,
                                                    false, false, true, true, true, true, false, ChannelType::Broadcast);
-  return Administrator(rights, string(), is_creator);
+  return Administrator(rights, string(), is_current_user_creator);
 }
 
 DialogParticipantStatus::DialogParticipantStatus(bool can_be_edited,
@@ -504,6 +512,15 @@ DialogParticipantStatus DialogParticipantStatus::apply_restrictions(RestrictedRi
   }
 
   return DialogParticipantStatus(type_, flags, 0, string());
+}
+
+bool DialogParticipantStatus::set_rank(string &&rank) {
+  auto normalized_rank = strip_empty_characters(std::move(rank), 16);
+  if (rank_ != normalized_rank) {
+    rank_ = std::move(normalized_rank);
+    return true;
+  }
+  return false;
 }
 
 void DialogParticipantStatus::update_restrictions() const {
@@ -647,7 +664,7 @@ DialogParticipant::DialogParticipant(DialogId dialog_id, UserId inviter_user_id,
 }
 
 DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant> &&participant_ptr,
-                                     int32 chat_creation_date, bool is_creator) {
+                                     int32 chat_creation_date, bool is_current_user_creator) {
   switch (participant_ptr->get_id()) {
     case telegram_api::chatParticipant::ID: {
       auto participant = move_tl_object_as<telegram_api::chatParticipant>(participant_ptr);
@@ -664,7 +681,7 @@ DialogParticipant::DialogParticipant(tl_object_ptr<telegram_api::ChatParticipant
     case telegram_api::chatParticipantAdmin::ID: {
       auto participant = move_tl_object_as<telegram_api::chatParticipantAdmin>(participant_ptr);
       *this = {DialogId(UserId(participant->user_id_)), UserId(participant->inviter_id_), participant->date_,
-               DialogParticipantStatus::GroupAdministrator(is_creator, std::move(participant->rank_))};
+               DialogParticipantStatus::GroupAdministrator(is_current_user_creator, std::move(participant->rank_))};
       break;
     }
     default:

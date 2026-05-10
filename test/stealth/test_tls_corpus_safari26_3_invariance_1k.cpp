@@ -52,6 +52,27 @@ vector<uint16> non_grease_supported_groups(const ParsedClientHello &hello) {
   return groups;
 }
 
+vector<uint16> non_grease_supported_versions(const ParsedClientHello &hello) {
+  auto *supported_versions = find_extension(hello, 0x002Bu);
+  CHECK(supported_versions != nullptr);
+  CHECK(!supported_versions->value.empty());
+
+  const auto versions_len = static_cast<uint8>(supported_versions->value[0]);
+  CHECK((versions_len % 2) == 0);
+  CHECK(static_cast<size_t>(versions_len + 1) == supported_versions->value.size());
+
+  vector<uint16> versions;
+  versions.reserve(versions_len / 2);
+  for (size_t i = 1; i + 1 < supported_versions->value.size(); i += 2) {
+    auto version = static_cast<uint16>((static_cast<uint8>(supported_versions->value[i]) << 8) |
+                                       static_cast<uint8>(supported_versions->value[i + 1]));
+    versions.push_back(version);
+  }
+
+  versions.erase(std::remove_if(versions.begin(), versions.end(), is_grease_value), versions.end());
+  return versions;
+}
+
 TEST(Safari26_3Invariance1k, NonGreaseCipherSuitesExactMatchCaptureFamily) {
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
     ASSERT_EQ(safari26_3_1_ios26_3_1_aNonGreaseCipherSuites, non_grease_cipher_suites(parse_safari_hello(seed)));
@@ -68,6 +89,22 @@ TEST(Safari26_3Invariance1k, NonGreaseExtensionOrderExactMatchCaptureFamily) {
 TEST(Safari26_3Invariance1k, NonGreaseSupportedGroupsExactMatchCaptureFamily) {
   for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
     ASSERT_EQ(safari26_3_1_ios26_3_1_aNonGreaseSupportedGroups, non_grease_supported_groups(parse_safari_hello(seed)));
+  }
+}
+
+TEST(Safari26_3Invariance1k, NonGreaseSupportedVersionsExactMatchCaptureFamily) {
+  const vector<uint16> expected_versions = {0x0304u, 0x0303u};
+
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+    ASSERT_EQ(expected_versions, non_grease_supported_versions(parse_safari_hello(seed)));
+  }
+}
+
+TEST(Safari26_3Invariance1k, SupportedVersionsNeverAdvertiseTls10OrTls11) {
+  for (uint64 seed = 0; seed < kCorpusIterations; seed++) {
+    auto versions = non_grease_supported_versions(parse_safari_hello(seed));
+    ASSERT_TRUE(std::find(versions.begin(), versions.end(), 0x0302u) == versions.end());
+    ASSERT_TRUE(std::find(versions.begin(), versions.end(), 0x0301u) == versions.end());
   }
 }
 

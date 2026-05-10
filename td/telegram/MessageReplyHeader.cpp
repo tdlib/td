@@ -1,8 +1,8 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/MessageReplyHeader.h"
 
@@ -14,6 +14,60 @@
 #include "td/utils/logging.h"
 
 namespace td {
+
+namespace {
+
+bool is_usable_channel_topic_thread_anchor(MessageId message_id, MessageId candidate_message_id) {
+  if (!message_id.is_server()) {
+    return false;
+  }
+  return candidate_message_id.is_server() && candidate_message_id < message_id;
+}
+
+bool has_non_empty_thread_anchor(MessageId candidate_message_id) {
+  return candidate_message_id != MessageId();
+}
+
+}  // namespace
+
+void MessageReplyHeader::normalize_topic_reply_header(telegram_api::messageReplyHeader &reply_header) {
+  if (reply_header.reply_to_top_id_ != 0) {
+    return;
+  }
+  if (!reply_header.forum_topic_) {
+    return;
+  }
+  if (reply_header.reply_from_ == nullptr) {
+    return;
+  }
+  if (reply_header.reply_to_peer_id_ != nullptr) {
+    return;
+  }
+  if (!ServerMessageId(reply_header.reply_to_msg_id_).is_valid()) {
+    return;
+  }
+  reply_header.reply_to_top_id_ = reply_header.reply_to_msg_id_;
+  reply_header.reply_to_msg_id_ = 0;
+}
+
+bool MessageReplyHeader::finalize_channel_topic_thread_state(MessageId message_id,
+                                                             MessageId same_chat_reply_to_message_id,
+                                                             MessageId &top_thread_message_id, bool &is_topic_message) {
+  if (is_usable_channel_topic_thread_anchor(message_id, top_thread_message_id)) {
+    return false;
+  }
+
+  if (is_usable_channel_topic_thread_anchor(message_id, same_chat_reply_to_message_id)) {
+    top_thread_message_id = same_chat_reply_to_message_id;
+    return false;
+  }
+
+  const bool has_invalid_thread_anchor =
+      has_non_empty_thread_anchor(top_thread_message_id) || has_non_empty_thread_anchor(same_chat_reply_to_message_id);
+  top_thread_message_id = MessageId();
+  is_topic_message = false;
+  return has_invalid_thread_anchor;
+}
 
 MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::MessageReplyHeader> &&reply_header_ptr,
                                        DialogId dialog_id, MessageId message_id, int32 date) {
@@ -37,6 +91,7 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
   bool can_have_thread = td->dialog_manager_->can_dialog_have_threads(dialog_id);
   if (!message_id.is_scheduled() && can_have_thread) {
     is_topic_message_ = reply_header->forum_topic_;
+    MessageReplyHeader::normalize_topic_reply_header(*reply_header);
     if (reply_header->reply_to_top_id_ != 0) {
       top_thread_message_id_ = MessageId(ServerMessageId(reply_header->reply_to_top_id_));
       if (!top_thread_message_id_.is_valid()) {
@@ -51,18 +106,17 @@ MessageReplyHeader::MessageReplyHeader(Td *td, tl_object_ptr<telegram_api::Messa
   replied_message_info_ = RepliedMessageInfo(td, std::move(reply_header), dialog_id, message_id, date);
 
   if (!message_id.is_scheduled() && can_have_thread && dialog_id.get_type() == DialogType::Channel) {
-    if (!top_thread_message_id_.is_valid()) {
-      auto same_chat_reply_to_message_id = replied_message_info_.get_same_chat_reply_to_message_id(false);
-      if (same_chat_reply_to_message_id.is_valid()) {
-        CHECK(same_chat_reply_to_message_id.is_server());
-        top_thread_message_id_ = same_chat_reply_to_message_id;
-      } else {
-        is_topic_message_ = false;
-      }
+    auto same_chat_reply_to_message_id = MessageId();
+    if (!top_thread_message_id_.is_valid() || top_thread_message_id_ >= message_id) {
+      same_chat_reply_to_message_id = replied_message_info_.get_same_chat_reply_to_message_id(false);
     }
-    if (top_thread_message_id_ >= message_id) {
-      LOG(ERROR) << "Receive top thread " << top_thread_message_id_ << " in " << message_id << " in " << dialog_id;
-      top_thread_message_id_ = MessageId();
+
+    auto candidate_top_thread_message_id =
+        top_thread_message_id_.is_valid() ? top_thread_message_id_ : same_chat_reply_to_message_id;
+    if (MessageReplyHeader::finalize_channel_topic_thread_state(message_id, same_chat_reply_to_message_id,
+                                                                top_thread_message_id_, is_topic_message_)) {
+      LOG(ERROR) << "Receive top thread " << candidate_top_thread_message_id << " in " << message_id << " in "
+                 << dialog_id;
     }
   }
 }

@@ -36,6 +36,12 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_link_info_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_reply_header_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_reply_header_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_reply_header_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_reply_header_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_reply_header_source_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/message_reply_header_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_entities.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/message_entity_v557_pre_code_regression.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/socks5_response_parser_adversarial.cpp
@@ -44,7 +50,30 @@ set(TD_TEST_SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/ip_address_security.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/buffer_initialization_contract.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/dialog_filter_icon_mapping_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_group_admin_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_group_admin_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_group_admin_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_group_admin_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_group_admin_source_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dialog_participant_group_admin_stress.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2_use_after_move_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2_use_after_move_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/w2_use_after_move_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/quick_reply_poll_media_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/forwarded_poll_statistics_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/forwarded_poll_statistics_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/forwarded_poll_statistics_integration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/poll.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_voter_visibility_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_voter_visibility_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_voter_visibility_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_entities_contract.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_entities_adversarial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_entities_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_entities_light_fuzz.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/poll_option_entities_stress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/pvs_regressions.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/pvs_level1_contracts_adversarial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tl_simple_struct_init_contract.cpp

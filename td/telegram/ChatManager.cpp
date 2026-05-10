@@ -1,19 +1,19 @@
-//
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-FileCopyrightText: Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2026
+// SPDX-FileCopyrightText: Copyright 2026 telemt community
+// SPDX-License-Identifier: BSL-1.0 AND MIT
+// telemt: https://github.com/telemt
+// telemt: https://t.me/telemtrs
 //
 #include "td/telegram/ChatManager.h"
 
 #include "td/telegram/ActiveStoryState.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/BotVerification.h"
-#include "td/telegram/BotVerification.hpp"
+#include "td/telegram/BotVerification.hpp"  // IWYU pragma: keep
 #include "td/telegram/ChatTheme.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogAdministrator.h"
-#include "td/telegram/DialogInviteLink.hpp"
+#include "td/telegram/DialogInviteLink.hpp"  // IWYU pragma: keep
 #include "td/telegram/DialogInviteLinkManager.h"
 #include "td/telegram/DialogLocation.h"
 #include "td/telegram/DialogManager.h"
@@ -68,7 +68,6 @@
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 #include "td/utils/SliceBuilder.h"
-#include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/utf8.h"
@@ -1936,7 +1935,8 @@ void ChatManager::Chat::parse(ParserT &parser) {
   }
 
   if (status.is_administrator() && !status.is_creator()) {
-    status = DialogParticipantStatus::GroupAdministrator(false, string());
+    // Normalize persisted basic-group admin state to the canonical least-privilege legacy profile.
+    status = DialogParticipantStatus::GroupAdministrator(false, string(status.get_rank()));
   }
 }
 
@@ -7781,7 +7781,7 @@ void ChatManager::on_update_channel_story_ids_impl(Channel *c, ChannelId channel
   if (need_poll_channel_active_stories(c, channel_id)) {
     auto max_active_story_id_next_reload_time = Time::now() + MAX_ACTIVE_STORY_ID_RELOAD_TIME;
     if (max_active_story_id_next_reload_time >
-        c->max_active_story_id_next_reload_time + MAX_ACTIVE_STORY_ID_RELOAD_TIME / 5) {
+        c->max_active_story_id_next_reload_time + MAX_ACTIVE_STORY_ID_RELOAD_TIME / 5.0) {
       LOG(DEBUG) << "Change max_active_story_id_next_reload_time of " << channel_id;
       c->max_active_story_id_next_reload_time = max_active_story_id_next_reload_time;
       c->need_save_to_database = true;

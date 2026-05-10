@@ -773,6 +773,9 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
       recent_voters.push_back(std::move(recent_voter));
     }
   }
+  if (!can_get_voters && !td_->auth_manager_->is_bot()) {
+    recent_voters.clear();
+  }
   vector<int32> option_order;
   if (poll->shuffle_answers_ && !poll->is_creator_ && !td_->auth_manager_->is_bot()) {
     auto my_user_id = td_->user_manager_->get_my_id().get();

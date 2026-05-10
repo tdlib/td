@@ -8266,10 +8266,12 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileUploadId file_u
   FileType file_type = file_view.get_type();
 
   bool had_input_file = input_file != nullptr;
-  auto input_media =
-      file_type == FileType::Sticker
-          ? get_input_media(file_upload_id.get_file_id(), std::move(input_file), nullptr, string())
-          : td_->documents_manager_->get_input_media(file_upload_id.get_file_id(), std::move(input_file), nullptr);
+  auto input_media = [&] {
+    if (file_type == FileType::Sticker) {
+      return get_input_media(file_upload_id.get_file_id(), std::move(input_file), nullptr, string());
+    }
+    return td_->documents_manager_->get_input_media(file_upload_id.get_file_id(), std::move(input_file), nullptr);
+  }();
   CHECK(input_media != nullptr);
   if (had_input_file && !FileManager::extract_was_uploaded(input_media)) {
     // if we had InputFile, but has failed to use it for input_media, then we need to immediately cancel file upload

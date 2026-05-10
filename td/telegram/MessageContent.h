@@ -192,6 +192,8 @@ int32 get_message_content_live_location_period(const MessageContent *content);
 
 PollId get_message_content_poll_id(const MessageContent *content);
 
+bool message_content_poll_has_attached_media(const MessageContent *content);
+
 bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content);
 
 bool get_message_content_poll_is_closed(const Td *td, const MessageContent *content);

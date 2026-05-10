@@ -52,8 +52,9 @@ class GetCommonDialogsQuery final : public Td::ResultHandler {
     switch (chats_ptr->get_id()) {
       case telegram_api::messages_chats::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
+        auto total_count = narrow_cast<int32>(chats->chats_.size());
         td_->common_dialog_manager_->on_get_common_dialogs(user_id_, offset_chat_id_, std::move(chats->chats_),
-                                                           narrow_cast<int32>(chats->chats_.size()));
+                                                           total_count);
         break;
       }
       case telegram_api::messages_chatsSlice::ID: {

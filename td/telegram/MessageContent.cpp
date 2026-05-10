@@ -6828,6 +6828,15 @@ PollId get_message_content_poll_id(const MessageContent *content) {
   }
 }
 
+bool message_content_poll_has_attached_media(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Poll:
+      return static_cast<const MessagePoll *>(content)->attached_media != nullptr;
+    default:
+      return false;
+  }
+}
+
 bool get_message_content_poll_is_anonymous(const Td *td, const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Poll:

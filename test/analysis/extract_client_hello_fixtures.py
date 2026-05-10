@@ -15,13 +15,15 @@ from typing import Any
 
 from common_tls import normalize_device_class, normalize_os_family, normalize_route_mode
 
-
 PARSER_VERSION = "tls-clienthello-parser-v1"
 DEFAULT_DISPLAY_FILTER = "tcp && tls.handshake.type == 1"
 
 UNAVAILABLE_SYN_REASON_MISSING_TTL = "missing_ttl_or_hlim"
 UNAVAILABLE_SYN_REASON_MISSING_MSS_WSCALE = "missing_mss_or_window_scale"
 UNAVAILABLE_SYN_REASON_PARSE_ERROR = "syn_parse_error"
+
+TCP_OPTION_KIND_FIELD_CANDIDATES = ("tcp.options.kind", "tcp.option_kind")
+_TCP_OPTION_KIND_FIELD_CACHE: str | None = None
 
 
 def run_command(argv: list[str]) -> str:
@@ -45,7 +47,12 @@ def read_sha256(path: pathlib.Path) -> str:
 
 
 def utc_now() -> str:
-    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return (
+        dt.datetime.now(dt.timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def tshark_version() -> str:
@@ -113,7 +120,9 @@ def parse_alpn(body: bytes) -> list[str]:
     protocols: list[str] = []
     while reader.left() > 0:
         item_length = reader.read_u8()
-        protocols.append(reader.read_bytes(item_length).decode("ascii", errors="strict"))
+        protocols.append(
+            reader.read_bytes(item_length).decode("ascii", errors="strict")
+        )
     return protocols
 
 
@@ -186,7 +195,9 @@ def parse_ech(body: bytes) -> dict[str, Any]:
     }
 
 
-def _collect_client_hello_message(record_sequence: bytes) -> tuple[int, int, int, list[int], bytes, bytes]:
+def _collect_client_hello_message(
+    record_sequence: bytes,
+) -> tuple[int, int, int, list[int], bytes, bytes]:
     sequence_reader = Reader(record_sequence)
     record_type = 0
     record_version = 0
@@ -218,7 +229,10 @@ def _collect_client_hello_message(record_sequence: bytes) -> tuple[int, int, int
         handshake_bytes.extend(current_record_body)
         if handshake_total_length is None and len(handshake_bytes) >= 4:
             handshake_total_length = 4 + int.from_bytes(handshake_bytes[1:4], "big")
-        if handshake_total_length is not None and len(handshake_bytes) >= handshake_total_length:
+        if (
+            handshake_total_length is not None
+            and len(handshake_bytes) >= handshake_total_length
+        ):
             consumed_sequence = record_sequence[: sequence_reader.offset]
             return (
                 record_type,
@@ -235,9 +249,14 @@ def _collect_client_hello_message(record_sequence: bytes) -> tuple[int, int, int
 
 
 def parse_client_hello(record_sequence: bytes) -> dict[str, Any]:
-    record_type, record_version, record_length, record_lengths, handshake_message, consumed_sequence = _collect_client_hello_message(
-        record_sequence
-    )
+    (
+        record_type,
+        record_version,
+        record_length,
+        record_lengths,
+        handshake_message,
+        consumed_sequence,
+    ) = _collect_client_hello_message(record_sequence)
 
     reader = Reader(handshake_message)
     handshake_type = reader.read_u8()
@@ -298,7 +317,9 @@ def parse_client_hello(record_sequence: bytes) -> dict[str, Any]:
             if name_type != 0:
                 raise ValueError("unexpected server_name type")
             name_length = server_name_reader.read_u16()
-            sni = server_name_reader.read_bytes(name_length).decode("utf-8", errors="replace")
+            sni = server_name_reader.read_bytes(name_length).decode(
+                "utf-8", errors="replace"
+            )
             if server_name_reader.left() != 0:
                 raise ValueError("server_name extension trailing bytes")
         elif ext_type == 0x000A:
@@ -315,12 +336,20 @@ def parse_client_hello(record_sequence: bytes) -> dict[str, Any]:
     if extension_reader.left() != 0:
         raise ValueError("extension parser stopped early")
 
-    non_grease_cipher_suites = [value for value in cipher_suites if not is_grease(value)]
-    non_grease_supported_groups = [value for value in supported_groups if not is_grease(value)]
+    non_grease_cipher_suites = [
+        value for value in cipher_suites if not is_grease(value)
+    ]
+    non_grease_supported_groups = [
+        value for value in supported_groups if not is_grease(value)
+    ]
     extension_types = [entry["type"] for entry in extensions]
-    non_grease_extensions = [entry["type"] for entry in extensions if not entry["is_grease"]]
+    non_grease_extensions = [
+        entry["type"] for entry in extensions if not entry["is_grease"]
+    ]
     non_grease_extensions_without_padding = [
-        entry["type"] for entry in extensions if not entry["is_grease"] and entry["type"] != u16_hex(0x0015)
+        entry["type"]
+        for entry in extensions
+        if not entry["is_grease"] and entry["type"] != u16_hex(0x0015)
     ]
 
     return {
@@ -337,11 +366,17 @@ def parse_client_hello(record_sequence: bytes) -> dict[str, Any]:
         "random_sha256": hashlib.sha256(random_bytes).hexdigest(),
         "compression_methods": [u8_hex(value) for value in compression_methods],
         "cipher_suites": [u16_hex(value) for value in cipher_suites],
-        "non_grease_cipher_suites": [u16_hex(value) for value in non_grease_cipher_suites],
+        "non_grease_cipher_suites": [
+            u16_hex(value) for value in non_grease_cipher_suites
+        ],
         "has_grease_cipher_suite": any(is_grease(value) for value in cipher_suites),
         "supported_groups": [u16_hex(value) for value in supported_groups],
-        "non_grease_supported_groups": [u16_hex(value) for value in non_grease_supported_groups],
-        "has_grease_supported_group": any(is_grease(value) for value in supported_groups),
+        "non_grease_supported_groups": [
+            u16_hex(value) for value in non_grease_supported_groups
+        ],
+        "has_grease_supported_group": any(
+            is_grease(value) for value in supported_groups
+        ),
         "key_share_entries": key_share_entries,
         "extension_types": extension_types,
         "non_grease_extensions": non_grease_extensions,
@@ -352,12 +387,16 @@ def parse_client_hello(record_sequence: bytes) -> dict[str, Any]:
         "alpn_protocols": alpn_protocols,
         "compress_certificate_algorithms": compress_certificate_algorithms,
         "ech": ech,
-        "client_hello_sha256": hashlib.sha256(handshake_message[handshake_start : handshake_start + handshake_length]).hexdigest(),
+        "client_hello_sha256": hashlib.sha256(
+            handshake_message[handshake_start : handshake_start + handshake_length]
+        ).hexdigest(),
         "tls_record_sha256": hashlib.sha256(consumed_sequence).hexdigest(),
     }
 
 
-def collect_frames(pcap_path: pathlib.Path, display_filter: str) -> list[dict[str, str]]:
+def collect_frames(
+    pcap_path: pathlib.Path, display_filter: str
+) -> list[dict[str, str]]:
     output = run_command(
         [
             "tshark",
@@ -463,7 +502,9 @@ def earliest_fragment_frame_number(raw_value: str, fallback_frame_number: str) -
     return str(min(fragment_numbers))
 
 
-def collect_frame_payload_fields(pcap_path: pathlib.Path, frame_number: str) -> dict[str, str]:
+def collect_frame_payload_fields(
+    pcap_path: pathlib.Path, frame_number: str
+) -> dict[str, str]:
     output = run_command(
         [
             "tshark",
@@ -500,7 +541,9 @@ def collect_frame_payload_fields(pcap_path: pathlib.Path, frame_number: str) -> 
 
 
 def collect_stream_payload_hex(pcap_path: pathlib.Path, frame: dict[str, str]) -> str:
-    start_frame_number = earliest_fragment_frame_number(frame.get("tls_handshake_fragment", ""), frame["frame_number"])
+    start_frame_number = earliest_fragment_frame_number(
+        frame.get("tls_handshake_fragment", ""), frame["frame_number"]
+    )
     start_frame = frame
     if start_frame_number != frame["frame_number"]:
         start_frame = collect_frame_payload_fields(pcap_path, start_frame_number)
@@ -544,7 +587,8 @@ def _parse_optional_int(raw_value: str, field_name: str) -> int | None:
         if not value:
             return None
     try:
-        return int(value)
+        base = 16 if value.lower().startswith("0x") else 10
+        return int(value, base)
     except ValueError as exc:
         raise ValueError(f"{field_name} must be int") from exc
 
@@ -590,7 +634,9 @@ def classify_window_scale_bucket(window_scale: int) -> str:
 
 
 def classify_syn_option_order(raw_option_kinds: str) -> str:
-    values = [value.strip() for value in str(raw_option_kinds).split(",") if value.strip()]
+    values = [
+        value.strip() for value in str(raw_option_kinds).split(",") if value.strip()
+    ]
     if not values:
         return "none"
 
@@ -638,12 +684,36 @@ def parse_syn_transport_traits_row(row: dict[str, str]) -> dict[str, Any]:
         "ttl_bucket": classify_ttl_bucket(ttl),
         "mss_bucket": classify_mss_bucket(mss),
         "window_scale_bucket": classify_window_scale_bucket(window_scale),
-        "syn_option_order_class": classify_syn_option_order(row.get("tcp_options_kind", "")),
-        "ipid_behavior_class": "zero" if ip_id == 0 else "nonzero" if ip_id is not None else "unavailable",
+        "syn_option_order_class": classify_syn_option_order(
+            row.get("tcp_options_kind", "")
+        ),
+        "ipid_behavior_class": (
+            "zero" if ip_id == 0 else "nonzero" if ip_id is not None else "unavailable"
+        ),
     }
 
 
-def collect_syn_transport_traits_for_stream(pcap_path: pathlib.Path, tcp_stream: str) -> dict[str, Any]:
+def _is_unsupported_tshark_field_error(error_text: str, field_name: str) -> bool:
+    return field_name in error_text and (
+        "Some fields aren't valid" in error_text
+        or "is neither a field nor protocol name" in error_text
+        or "No such field" in error_text
+    )
+
+
+def _iter_tcp_option_kind_fields() -> list[str]:
+    if _TCP_OPTION_KIND_FIELD_CACHE is None:
+        return list(TCP_OPTION_KIND_FIELD_CANDIDATES)
+    fields = [_TCP_OPTION_KIND_FIELD_CACHE]
+    for candidate in TCP_OPTION_KIND_FIELD_CANDIDATES:
+        if candidate != _TCP_OPTION_KIND_FIELD_CACHE:
+            fields.append(candidate)
+    return fields
+
+
+def _collect_syn_transport_traits_row(
+    pcap_path: pathlib.Path, tcp_stream: str, tcp_option_kind_field: str
+) -> dict[str, str] | None:
     output = run_command(
         [
             "tshark",
@@ -666,21 +736,18 @@ def collect_syn_transport_traits_for_stream(pcap_path: pathlib.Path, tcp_stream:
             "-e",
             "tcp.options.wscale.shift",
             "-e",
-            "tcp.options.kind",
+            tcp_option_kind_field,
             "-e",
             "ip.id",
         ]
     )
     line = next((value for value in output.splitlines() if value.strip()), "")
     if not line:
-        return {
-            "available": False,
-            "reason": UNAVAILABLE_SYN_REASON_MISSING_TTL,
-        }
+        return None
     parts = line.split("|")
     if len(parts) != 6:
         raise RuntimeError(f"unexpected tshark SYN trait row: {line}")
-    row = {
+    return {
         "ip_ttl": parts[0],
         "ipv6_hlim": parts[1],
         "tcp_mss": parts[2],
@@ -688,15 +755,53 @@ def collect_syn_transport_traits_for_stream(pcap_path: pathlib.Path, tcp_stream:
         "tcp_options_kind": parts[4],
         "ip_id": parts[5],
     }
-    return parse_syn_transport_traits_row(row)
+
+
+def collect_syn_transport_traits_for_stream(
+    pcap_path: pathlib.Path, tcp_stream: str
+) -> dict[str, Any]:
+    global _TCP_OPTION_KIND_FIELD_CACHE
+
+    unsupported_errors: list[str] = []
+    for tcp_option_kind_field in _iter_tcp_option_kind_fields():
+        try:
+            row = _collect_syn_transport_traits_row(
+                pcap_path, tcp_stream, tcp_option_kind_field
+            )
+        except RuntimeError as exc:
+            error_text = str(exc)
+            if _is_unsupported_tshark_field_error(error_text, tcp_option_kind_field):
+                unsupported_errors.append(error_text)
+                continue
+            raise
+
+        _TCP_OPTION_KIND_FIELD_CACHE = tcp_option_kind_field
+        if row is None:
+            return {
+                "available": False,
+                "reason": UNAVAILABLE_SYN_REASON_MISSING_TTL,
+            }
+        return parse_syn_transport_traits_row(row)
+
+    raise RuntimeError(
+        "unable to collect SYN transport traits: tshark lacks supported TCP option kind field "
+        f"{TCP_OPTION_KIND_FIELD_CANDIDATES}; errors={unsupported_errors}"
+    )
 
 
 def frame_time_utc(epoch_string: str) -> str:
     epoch = float(epoch_string)
-    return dt.datetime.fromtimestamp(epoch, tz=dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return (
+        dt.datetime.fromtimestamp(epoch, tz=dt.timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
-def build_fixture_id(profile_id: str | None, pcap_path: pathlib.Path, frame_number: str) -> str:
+def build_fixture_id(
+    profile_id: str | None, pcap_path: pathlib.Path, frame_number: str
+) -> str:
     stem = profile_id if profile_id else pcap_path.stem.replace(" ", "_")
     return f"{stem}:frame{frame_number}"
 
@@ -715,7 +820,8 @@ def validate_source_kind(args: argparse.Namespace) -> None:
     missing = [name for name, value in required if not value]
     if missing:
         raise SystemExit(
-            "curl_cffi_capture requires the following metadata fields: " + ", ".join(missing)
+            "curl_cffi_capture requires the following metadata fields: "
+            + ", ".join(missing)
         )
 
 
@@ -725,12 +831,25 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--pcap", required=True, help="Input pcap/pcapng path")
     parser.add_argument("--out", required=True, help="Output JSON artifact path")
-    parser.add_argument("--profile-id", help="Logical fixture family/profile id for generated fixture ids")
-    parser.add_argument("--source-kind", default="browser_capture",
-                        choices=["browser_capture", "curl_cffi_capture"],
-                        help="Primary provenance source kind")
-    parser.add_argument("--capture-date-utc", help="Capture date in UTC, for example 2026-04-07T11:33:00Z")
-    parser.add_argument("--scenario-id", default="fixture_refresh", help="Scenario id stored in the artifact")
+    parser.add_argument(
+        "--profile-id",
+        help="Logical fixture family/profile id for generated fixture ids",
+    )
+    parser.add_argument(
+        "--source-kind",
+        default="browser_capture",
+        choices=["browser_capture", "curl_cffi_capture"],
+        help="Primary provenance source kind",
+    )
+    parser.add_argument(
+        "--capture-date-utc",
+        help="Capture date in UTC, for example 2026-04-07T11:33:00Z",
+    )
+    parser.add_argument(
+        "--scenario-id",
+        default="fixture_refresh",
+        help="Scenario id stored in the artifact",
+    )
     parser.add_argument(
         "--device-class",
         default="desktop",
@@ -746,18 +865,40 @@ def parse_args() -> argparse.Namespace:
         default="unknown",
         help="Route mode stored in the artifact; canonical values are unknown, ru_egress, non_ru_egress",
     )
-    parser.add_argument("--display-filter", default=DEFAULT_DISPLAY_FILTER,
-                        help="tshark display filter used to select ClientHello frames")
-    parser.add_argument("--frame-number", action="append",
-                        help="Optional specific frame.number to extract; can be repeated")
-    parser.add_argument("--frame-limit", type=int, default=0,
-                        help="Optional max number of matching frames to emit after filtering")
-    parser.add_argument("--capture-tool", help="Capture tool name for curl_cffi_capture provenance")
-    parser.add_argument("--capture-tool-version", help="Capture tool version for curl_cffi_capture provenance")
-    parser.add_argument("--curl-cffi-version", help="curl_cffi version for curl_cffi_capture provenance")
-    parser.add_argument("--browser-type", help="curl_cffi BrowserType name for curl_cffi_capture provenance")
+    parser.add_argument(
+        "--display-filter",
+        default=DEFAULT_DISPLAY_FILTER,
+        help="tshark display filter used to select ClientHello frames",
+    )
+    parser.add_argument(
+        "--frame-number",
+        action="append",
+        help="Optional specific frame.number to extract; can be repeated",
+    )
+    parser.add_argument(
+        "--frame-limit",
+        type=int,
+        default=0,
+        help="Optional max number of matching frames to emit after filtering",
+    )
+    parser.add_argument(
+        "--capture-tool", help="Capture tool name for curl_cffi_capture provenance"
+    )
+    parser.add_argument(
+        "--capture-tool-version",
+        help="Capture tool version for curl_cffi_capture provenance",
+    )
+    parser.add_argument(
+        "--curl-cffi-version", help="curl_cffi version for curl_cffi_capture provenance"
+    )
+    parser.add_argument(
+        "--browser-type",
+        help="curl_cffi BrowserType name for curl_cffi_capture provenance",
+    )
     parser.add_argument("--target-host", help="Target host used by curl_cffi_capture")
-    parser.add_argument("--intercept-method", help="Intercept method used by curl_cffi_capture")
+    parser.add_argument(
+        "--intercept-method", help="Intercept method used by curl_cffi_capture"
+    )
     return parser.parse_args()
 
 
@@ -795,20 +936,29 @@ def main() -> int:
         try:
             parsed = parse_client_hello(raw_record)
         except ValueError as exc:
-            if str(exc) not in {"TLS handshake length mismatch", "TLS record length mismatch"}:
+            if str(exc) not in {
+                "TLS handshake length mismatch",
+                "TLS record length mismatch",
+            }:
                 raise
             stream_hex = collect_stream_payload_hex(pcap_path, frame)
             if not stream_hex:
                 raise
             parsed = parse_client_hello(bytes.fromhex(stream_hex))
 
-        source_tls_record_version = parse_first_record_version(frame["tls_record_version"])
+        source_tls_record_version = parse_first_record_version(
+            frame["tls_record_version"]
+        )
         source_tls_record_length = parse_total_record_length(frame["tls_record_length"])
-        source_tls_handshake_type = parse_first_handshake_type(frame["tls_handshake_type"])
+        source_tls_handshake_type = parse_first_handshake_type(
+            frame["tls_handshake_type"]
+        )
         tcp_stream = str(frame["tcp_stream"])
         if tcp_stream not in syn_traits_cache:
             try:
-                syn_traits_cache[tcp_stream] = collect_syn_transport_traits_for_stream(pcap_path, tcp_stream)
+                syn_traits_cache[tcp_stream] = collect_syn_transport_traits_for_stream(
+                    pcap_path, tcp_stream
+                )
             except ValueError:
                 syn_traits_cache[tcp_stream] = {
                     "available": False,
@@ -817,22 +967,36 @@ def main() -> int:
 
         parsed.update(
             {
-                "fixture_id": build_fixture_id(args.profile_id, pcap_path, frame["frame_number"]),
+                "fixture_id": build_fixture_id(
+                    args.profile_id, pcap_path, frame["frame_number"]
+                ),
                 "frame_number": int(frame["frame_number"]),
                 "frame_time_epoch": frame["frame_time_epoch"],
                 "frame_time_utc": frame_time_utc(frame["frame_time_epoch"]),
                 "tcp_stream": int(frame["tcp_stream"]),
-                "source_tls_record_version": u16_hex(source_tls_record_version)
-                if source_tls_record_version is not None
-                else parsed["record_version"],
-                "source_tls_record_length": source_tls_record_length if source_tls_record_length is not None else parsed["record_length"],
-                "source_tls_handshake_type": source_tls_handshake_type if source_tls_handshake_type is not None else parsed["handshake_type"],
+                "source_tls_record_version": (
+                    u16_hex(source_tls_record_version)
+                    if source_tls_record_version is not None
+                    else parsed["record_version"]
+                ),
+                "source_tls_record_length": (
+                    source_tls_record_length
+                    if source_tls_record_length is not None
+                    else parsed["record_length"]
+                ),
+                "source_tls_handshake_type": (
+                    source_tls_handshake_type
+                    if source_tls_handshake_type is not None
+                    else parsed["handshake_type"]
+                ),
                 "syn_transport_traits": syn_traits_cache[tcp_stream],
             }
         )
         samples.append(parsed)
 
-    capture_date_utc = args.capture_date_utc if args.capture_date_utc else samples[0]["frame_time_utc"]
+    capture_date_utc = (
+        args.capture_date_utc if args.capture_date_utc else samples[0]["frame_time_utc"]
+    )
 
     artifact: dict[str, Any] = {
         "artifact_type": "tls_clienthello_fixtures",

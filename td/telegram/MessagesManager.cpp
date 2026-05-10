@@ -481,10 +481,10 @@ class GetDialogListQuery final : public Td::ResultHandler {
     switch (ptr->get_id()) {
       case telegram_api::messages_dialogs::ID: {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogs>(ptr);
+        auto total_count = narrow_cast<int32>(dialogs->dialogs_.size());
         td_->user_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListQuery");
         td_->chat_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListQuery");
-        td_->messages_manager_->on_get_dialogs(folder_id_, std::move(dialogs->dialogs_),
-                                               narrow_cast<int32>(dialogs->dialogs_.size()),
+        td_->messages_manager_->on_get_dialogs(folder_id_, std::move(dialogs->dialogs_), total_count,
                                                std::move(dialogs->messages_), std::move(promise_));
         break;
       }
@@ -7787,8 +7787,19 @@ bool MessagesManager::can_get_message_statistics(DialogId dialog_id, const Messa
   if (td_->auth_manager_->is_bot() || dialog_id.get_type() != DialogType::Channel) {
     return false;
   }
-  if (m == nullptr || !m->message_id.is_server() || m->view_count == 0 || m->had_forward_info ||
-      (m->forward_info != nullptr && m->forward_info->get_origin().is_channel_post())) {
+  if (m == nullptr || !m->message_id.is_server() || m->view_count == 0) {
+    return false;
+  }
+
+  // Forwarded statistics are allowed only for non-imported channel-post polls.
+  auto can_get_forwarded_poll_statistics = [](const Message *message) {
+    return message->content != nullptr && message->content->get_type() == MessageContentType::Poll &&
+           message->forward_info != nullptr && !message->forward_info->is_imported() &&
+           message->forward_info->get_origin().is_channel_post();
+  };
+
+  const bool is_forwarded_message = m->forward_info != nullptr || m->had_forward_info;
+  if (is_forwarded_message && !can_get_forwarded_poll_statistics(m)) {
     return false;
   }
   return td_->chat_manager_->can_get_channel_message_statistics(dialog_id.get_channel_id());

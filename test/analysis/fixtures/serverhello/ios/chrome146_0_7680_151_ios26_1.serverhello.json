@@ -1,6 +1,6 @@
 {
   "artifact_type": "tls_serverhello_fixtures",
-  "capture_date_utc": "2026-04-23T15:40:45Z",
+  "capture_date_utc": "2026-05-09T13:59:21Z",
   "capture_provenance": {
     "client_profile_id": "chrome146_0_7680_151_ios26_1",
     "path_layout_note": "ServerHello fixture path mirrors client capture provenance; validation keys on fixture_family_id and source metadata, not OS directory naming."

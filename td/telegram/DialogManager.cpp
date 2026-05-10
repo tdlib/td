@@ -755,12 +755,12 @@ class GetBlockedDialogsQuery final : public Td::ResultHandler {
     switch (ptr->get_id()) {
       case telegram_api::contacts_blocked::ID: {
         auto blocked_peers = move_tl_object_as<telegram_api::contacts_blocked>(ptr);
+        auto total_count = narrow_cast<int32>(blocked_peers->blocked_.size());
 
         td_->user_manager_->on_get_users(std::move(blocked_peers->users_), "GetBlockedDialogsQuery");
         td_->chat_manager_->on_get_chats(std::move(blocked_peers->chats_), "GetBlockedDialogsQuery");
-        td_->dialog_manager_->on_get_blocked_dialogs(offset_, limit_,
-                                                     narrow_cast<int32>(blocked_peers->blocked_.size()),
-                                                     std::move(blocked_peers->blocked_), std::move(promise_));
+        td_->dialog_manager_->on_get_blocked_dialogs(offset_, limit_, total_count, std::move(blocked_peers->blocked_),
+                                                     std::move(promise_));
         break;
       }
       case telegram_api::contacts_blockedSlice::ID: {

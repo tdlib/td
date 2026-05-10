@@ -47,6 +47,20 @@ class ImportedSynMetadataContract(unittest.TestCase):
         self.assertFalse(traits["available"])
         self.assertEqual("missing_ttl_or_hlim", traits["reason"])
 
+    def test_collect_syn_transport_traits_accepts_hex_ip_id(self) -> None:
+        row = {
+            "ip_ttl": "64",
+            "ipv6_hlim": "",
+            "tcp_mss": "1460",
+            "tcp_wscale": "8",
+            "tcp_options_kind": "2,4,8,1,3",
+            "ip_id": "0x0960",
+        }
+        traits = extractor.parse_syn_transport_traits_row(row)
+
+        self.assertTrue(traits["available"])
+        self.assertEqual("nonzero", traits["ipid_behavior_class"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,7 +4,36 @@ Date: 2026-05-08
 Wave: 2
 Candidate ID: W2-001
 Upstream commit: `a09adfc63` (`Fix reply_to_top_id.`)
-Status: Ready for contract capture and RED-phase execution
+Status: Completed (finalized 2026-05-09)
+
+## 0. Completion Snapshot (2026-05-09)
+
+Execution is complete and classified `Accept with Repair` in the Wave 2 decision report.
+
+1. Added fail-closed finalization seam `MessageReplyHeader::finalize_channel_topic_thread_state(...)`
+   to prevent stale topic state when thread anchors are missing or invalid.
+2. Added first-pass hardening tests:
+   - `MessageReplyHeaderContract.PromotesEarlierSameChatReplyFallbackIntoThreadAnchor`
+   - `MessageReplyHeaderAdversarial.ClearsTopicFlagWhenFallbackThreadTargetIsNotEarlierThanMessage`
+3. First-pass focused validation: `./build/test/run_all_tests --filter MessageReplyHeader` passed 14/14.
+
+### 0.1 Second-Pass Hardening (2026-05-09)
+
+An adversarial audit of `finalize_channel_topic_thread_state` found a gap: when an explicit
+`top_thread_message_id` was present but chronologically invalid (≥ message_id), the seam
+immediately cleared topic state without attempting the same-chat fallback path. This allowed a
+concurrent valid fallback to be silently discarded.
+
+1. Added RED test `MessageReplyHeaderContract.RepairsInvalidExplicitThreadAnchorUsingEarlierSameChatFallback`:
+   explicit anchor 7000 ≥ message_id 5000, fallback 4242 < 5000 → expected fallback used, topic
+   preserved. Test aborted at message_reply_header_contract.cpp:104 before fix.
+2. Added RED test `MessageReplyHeaderAdversarial.ClearsTopicFlagWhenExplicitAndFallbackThreadTargetsAreNotEarlierThanMessage`:
+   explicit anchor 7000 ≥ 5000, fallback 5000 ≥ 5000 → expected fail-close. This validated the
+   boundary condition for the repair path.
+3. Fix: introduced `is_usable_thread_anchor` lambda (must be valid AND < message_id); seam now tries
+   explicit anchor, then fallback, then fail-closes. Constructor updated to eagerly fetch the
+   same-chat fallback when the explicit anchor is stale or future.
+4. Second-pass focused validation: `./build/test/run_all_tests --filter MessageReplyHeader` passed 16/16.
 
 ## 1. Objective
 
